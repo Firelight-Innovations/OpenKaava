@@ -352,16 +352,15 @@ function Schematify({
   // PRD §12.20: "A new project opens on an empty Stack Schematic with 1
   // action: create the first service." Reachable for real now that the app
   // lands on tier 1 — before this it was drawn only for `?view=empty-stack`,
-  // because the landing view named a service and a project with no services
-  // has none to name. Drawn after every hook above has run, so the early
-  // return cannot change how many hooks this component calls.
-  if (graph.tier === "stack" && countServices(graph) === 0) {
-    return (
-      <div className="kv-shell">
-        <EmptyStack />
-      </div>
-    );
-  }
+  // because the landing view named a service, and a project with no services
+  // has none to name.
+  //
+  // It replaces the canvas, not the shell. The one action it offers is drawn
+  // disabled (`schematify_write_node` is not wired), so a whole-shell takeover
+  // would leave a new project on one dead button with the Outline's `Product`
+  // and `Decisions` sections — the only place a brief can be written, and the
+  // obvious thing to reach for before any service exists — off screen.
+  const emptyStack = graph.tier === "stack" && countServices(graph) === 0;
 
   return (
     <div className="kv-shell">
@@ -403,7 +402,9 @@ function Schematify({
               : undefined
           }
         />
-        {section === "Design" ? (
+        {section === "Design" && emptyStack ? (
+          <EmptyStack />
+        ) : section === "Design" ? (
           <>
             {graph.tier === "module" ? <FacetPalette /> : null}
             <SchematicCanvas
