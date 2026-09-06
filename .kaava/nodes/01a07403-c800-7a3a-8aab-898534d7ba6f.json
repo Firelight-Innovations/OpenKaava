@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7a3a-8aab-898534d7ba6f",
+  "slug": "file-explorer",
+  "kind": "external-dep",
+  "title": "React",
+  "description": "React hooks for app state management",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73b0-99ac-cdd1de6b20ef",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "State management for file explorer app root component"
+}

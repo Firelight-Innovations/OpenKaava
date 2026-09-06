@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7b43-9409-1f7a1fd034ee",
+  "slug": "windows-at-cursor",
+  "kind": "contract-method",
+  "title": "windows::at_cursor",
+  "description": "Determine which OpenKaava window the cursor is over, favoring the focused one.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7db8-a655-5ab4032a4733",
+  "signature": "pub fn at_cursor(app: &AppHandle) -> Option<String>",
+  "params": [
+    "app: &AppHandle"
+  ],
+  "returns": "Option<String>",
+  "errors": [],
+  "semantics": "Enables drag-and-drop targeting across multiple windows.",
+  "exported": false
+}

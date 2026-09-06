@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-75fd-b178-1022c431b8c6",
+  "slug": "document-index-doc",
+  "kind": "contract-method",
+  "title": "indexDoc",
+  "description": "Build fast-lookup maps for a document.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7427-ae73-a0fccec9c7ca",
+  "signature": "function indexDoc(doc: SchematicDoc): DocIndex",
+  "params": [
+    "doc"
+  ],
+  "returns": "DocIndex",
+  "errors": [],
+  "semantics": "Creates O(1) lookup maps by id and parent id.",
+  "exported": false
+}

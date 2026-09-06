@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-79fa-9562-e3a9ed18f71f",
+  "slug": "project-close",
+  "kind": "contract-method",
+  "title": "Unpoint a cluster from its project",
+  "description": "Clear the project and worktree from a cluster without touching history.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "signature": "pub fn close(app: &AppHandle, cluster_id: &str) -> ProjectSnapshot",
+  "params": [
+    "app: &AppHandle",
+    "cluster_id: &str"
+  ],
+  "returns": "ProjectSnapshot",
+  "errors": [],
+  "semantics": "Closes the open project in a cluster, clears its worktree, and broadcasts the change.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c31-ab20-03c0e58ef50e",
+  "slug": "review-add-creates-with-id",
+  "kind": "test-case",
+  "title": "Adding creates a comment with an id and timestamp",
+  "description": "A draft becomes a comment with generated id and creation time.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "given": "A ReviewDraft with trimmed body",
+  "when": "add is called",
+  "then": "Returns a ReviewComment with a non-empty id and created_at set",
+  "impl_ref": "src-tauri/src/review/mod.rs::a_draft_becomes_a_note_with_an_id_and_a_clock_reading",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7aac-bc05-cb8a977b0622",
+  "slug": "graph-seam-in-memory-and-json-tests",
+  "kind": "budget",
+  "title": "Graph Implementation Tests",
+  "description": "Tests for InMemoryGraph and JsonFileGraph loading and queries.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "metric": "test_count",
+  "op": ">=",
+  "value": 3,
+  "unit": "tests",
+  "tier": "soft",
+  "probe": {
+    "command": "pnpm test:rust",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

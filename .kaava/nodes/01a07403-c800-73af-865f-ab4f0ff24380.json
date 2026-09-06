@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-73af-865f-ab4f0ff24380",
+  "slug": "branding-system-surface-list",
+  "kind": "doc-block",
+  "title": "Branding surfaces",
+  "description": "The six locations where product name and assets must be consistent.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7876-8372-05eaf7de8be6",
+  "body": "index.html and splash.html title elements, splash.html wordmark markup, kaava.toml [stack] name, tauri.conf.json productName and window title, and bundle icon paths — one piece of work answering both what a fork has to replace and what to check.",
+  "audience": "human"
+}

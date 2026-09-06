@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-721e-8f9c-e8122046c934",
+  "slug": "palette-registry-flatten",
+  "kind": "test-case",
+  "title": "Registry: Flatten Menu Tree",
+  "description": "Tests that menu tree is correctly flattened to commands with proper paths.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d1f-ac55-b6ae705d4545",
+  "given": "Menu tree with File, Apps > Presets branches",
+  "when": "commandsFromMenus is called",
+  "then": "Produces commands like 'File: New File' and 'Apps › Presets: Two Panes'",
+  "impl_ref": "src/shell/palette/registry.test.ts::flattening the menu tree::names each command by the menu it came from",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7b7e-bdae-fabd0b85dceb",
+  "slug": "terminal-clipboard-overview",
+  "kind": "doc-block",
+  "title": "Terminal Clipboard Handling",
+  "description": "Explains custom clipboard policy separate from xterm's behavior.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7101-96d4-211896bc6c31",
+  "body": "The terminal's clipboard is owned here rather than left to xterm — whose own behaviour is wrong for a Windows terminal in both directions at once, which is what issue #50 reported as two bugs. The account of both, and of what was considered and rejected, is in docs/design-notes/terminal-clipboard.md.",
+  "audience": "agent"
+}

@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-71d3-8418-121af59eb523",
+  "slug": "ci-windows-build-and-test",
+  "statement": "The main verify workflow runs on Windows, not Linux, because Tauri, WebView2, and the MSVC linker are where surprises live for this platform.",
+  "severity": "error",
+  "audit": [],
+  "command": "GitHub Actions: verify.yml"
+}

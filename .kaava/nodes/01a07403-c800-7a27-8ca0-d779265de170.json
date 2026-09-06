@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7a27-8ca0-d779265de170",
+  "slug": "commands-module-doc",
+  "kind": "doc-block",
+  "title": "IPC Bridge Between Rust and TypeScript",
+  "description": "Command naming and type marshaling conventions.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a15-9205-3403c29c95c2",
+  "body": "The bridge between Rust and the web frontend. Every #[tauri::command] here becomes callable from TypeScript via invoke('name', { args }). Arguments and return values cross the boundary as JSON. Note the naming convention: Rust snake_case command names are invoked via that same snake_case string, but their arguments are converted to camelCase. The typed wrappers in src/bindings.ts hide that asymmetry.",
+  "audience": "agent"
+}

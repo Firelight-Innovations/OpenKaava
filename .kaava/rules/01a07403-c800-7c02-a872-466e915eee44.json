@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7c02-a872-466e915eee44",
+  "slug": "flat-public-reexports",
+  "statement": "Public modules in crates must use flat re-exports in lib.rs rather than nested module paths.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm lint"
+}

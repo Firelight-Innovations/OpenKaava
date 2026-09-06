@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7655-84bd-5bd85541192e",
+  "slug": "viewport-fit-to",
+  "kind": "contract-method",
+  "title": "fitTo",
+  "description": "Fit bounds in viewport with margin.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-759b-b225-e1b8cd987643",
+  "signature": "function fitTo(viewport: Viewport, bounds: Rect | null, size: ViewportSize, limits: ZoomConfig, margin?: number): Viewport",
+  "params": [
+    "viewport",
+    "bounds",
+    "size",
+    "limits",
+    "margin"
+  ],
+  "returns": "Viewport",
+  "errors": [],
+  "semantics": "Returns viewport unchanged if inputs invalid; validates all numerics to prevent NaN zoom.",
+  "exported": false
+}

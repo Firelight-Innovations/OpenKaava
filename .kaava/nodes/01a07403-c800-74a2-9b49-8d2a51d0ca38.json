@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-74a2-9b49-8d2a51d0ca38",
+  "slug": "design-tauri",
+  "kind": "external-dep",
+  "title": "Tauri",
+  "description": "Desktop framework for screenshot capture via DevTools Protocol and app state access.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b07-98f5-17457c65a2df",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "AppHandle for devtools integration; Url parsing for target page validation; Manager for state"
+}

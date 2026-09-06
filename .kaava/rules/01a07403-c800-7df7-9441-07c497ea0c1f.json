@@ -1,0 +1,7 @@
+{
+  "id": "01a07403-c800-7df7-9441-07c497ea0c1f",
+  "slug": "baselines-never-grow",
+  "statement": "The three lint baselines (eslint-suppressions.json, clippy-baseline.json, comment-baseline.json) are ratchets that may only shrink.",
+  "severity": "review",
+  "audit": []
+}

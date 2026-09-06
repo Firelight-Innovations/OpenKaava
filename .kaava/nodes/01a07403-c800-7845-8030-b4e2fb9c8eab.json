@@ -1,0 +1,26 @@
+{
+  "id": "01a07403-c800-7845-8030-b4e2fb9c8eab",
+  "slug": "ui-devtools-install-script",
+  "kind": "contract-method",
+  "title": "Install Document Script",
+  "description": "Have every document this window's webview loads run a script first.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7615-af82-fb0b57f137da",
+  "signature": "pub fn install_script(app: &AppHandle, window: Option<&str>, script: &str) -> Result<String, Error>",
+  "params": [
+    "app",
+    "window",
+    "script"
+  ],
+  "returns": "Result<String, Error>",
+  "errors": [
+    "Error::NoWindow",
+    "Error::Refused",
+    "Error::TimedOut"
+  ],
+  "semantics": "Reaches into cross-origin iframes; returns id for later removal.",
+  "exported": false
+}

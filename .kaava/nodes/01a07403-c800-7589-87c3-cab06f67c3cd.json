@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7589-87c3-cab06f67c3cd",
+  "slug": "storage-three-layers-enforcement",
+  "kind": "doc-block",
+  "title": "Three Layers as Enforcement",
+  "description": "Layers separate permissions by path glob, not by naming.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-786a-927d-06cc6a4b0332",
+  "body": "The three layers are not organisational tidiness. They are the enforcement mechanism for the rule that an agent shall not change the design: the permission boundary is a path glob, so CODEOWNERS and a CI path check enforce it mechanically rather than by instruction. A benchmark job appending latency numbers writes to `runs/`; a person editing a contract writes to `nodes/`; the two writes never conflict.",
+  "audience": "both"
+}

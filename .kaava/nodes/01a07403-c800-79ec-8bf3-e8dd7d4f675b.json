@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-79ec-8bf3-e8dd7d4f675b",
+  "slug": "webview-suppress-default-context-menu",
+  "kind": "contract-method",
+  "title": "webview::suppress_default_context_menu",
+  "description": "Turn off WebView2's default right-click context menu on Windows; no-op on other platforms.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-799f-97e8-2b2481591957",
+  "signature": "pub fn suppress_default_context_menu(webview: &tauri::Webview)",
+  "params": [
+    "webview: &tauri::Webview"
+  ],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Posts to the main thread where COM objects live; does not wait for completion.",
+  "exported": false
+}

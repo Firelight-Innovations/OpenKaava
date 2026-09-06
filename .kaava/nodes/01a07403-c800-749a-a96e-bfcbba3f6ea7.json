@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-749a-a96e-bfcbba3f6ea7",
+  "slug": "palette-registry-command-interface",
+  "kind": "contract-method",
+  "title": "Command Registry Entry",
+  "description": "One runnable row in the command palette, flattened from the menu tree.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d1f-ac55-b6ae705d4545",
+  "signature": "export interface Command { category: string; title: string; label: string; accelerator?: string; disabled: boolean; hint?: string; onSelect?: () => void; prompt?: MenuPrompt }",
+  "params": [],
+  "returns": "Command",
+  "errors": [],
+  "semantics": "Represents a single command in the palette with its menu path, label, and execution handler.",
+  "exported": false
+}

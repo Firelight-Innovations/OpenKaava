@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7da3-b157-f782ec4e5f0a",
+  "slug": "client-message-filter-no-marker",
+  "kind": "test-case",
+  "title": "Drops messages without kaava:1 marker",
+  "description": "Verifies that messages lacking the version marker are rejected.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client listening for messages",
+  "when": "A ready message is dispatched without the kaava: 1 field",
+  "then": "The session() promise does not resolve",
+  "impl_ref": "packages/bridge/src/client.test.ts::drops a message missing the kaava:1 marker",
+  "status": "declared",
+  "last_result_ms": null
+}

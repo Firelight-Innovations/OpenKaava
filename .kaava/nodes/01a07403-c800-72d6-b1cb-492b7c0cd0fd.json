@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-72d6-b1cb-492b7c0cd0fd",
+  "slug": "staleness-test-ago-compact",
+  "kind": "test-case",
+  "title": "agoCompact formats 2h ago",
+  "description": "Verifies the compact time format matches the wireframe.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f23-8360-1956f352980f",
+  "given": "A timestamp 2 hours before the current time",
+  "when": "agoCompact is called",
+  "then": "Returns 2h ago",
+  "impl_ref": "apps/schematify/ui/src/graph/staleness.test.ts::draws the wireframe's own example: 2h ago",
+  "status": "declared",
+  "last_result_ms": null
+}

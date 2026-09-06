@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7656-8a2d-e694c8dc36a8",
+  "slug": "trash-bin-trash-view",
+  "kind": "contract-method",
+  "title": "Recycle Bin View Component",
+  "description": "Shows deleted items scoped to this project and allows restore or permanent delete.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ce7-9e18-1b0a7e4aced9",
+  "signature": "export default function TrashView(props: TrashViewProps): JSX.Element",
+  "params": [
+    "root: Root | null",
+    "reloadNonce: number",
+    "onRestored: () => void"
+  ],
+  "returns": "React component for trash/recycle bin view",
+  "errors": [],
+  "semantics": "Renders a flat list of deleted items with restore and purge actions.",
+  "exported": true
+}

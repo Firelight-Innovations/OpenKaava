@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-74cf-8d44-7694956bfdfa",
+  "slug": "design-app-probe-read-rejects-no-channel",
+  "kind": "test-case",
+  "title": "readProbeMessage rejects missing channel marker",
+  "description": "Ignores messages without CHANNEL identifier",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71a3-ae12-251b52dac590",
+  "given": "payload without CHANNEL marker or wrong channel value",
+  "when": "readProbeMessage is called",
+  "then": "returns null",
+  "impl_ref": "apps/design/ui/src/probe.test.ts::ignores anything without the channel marker",
+  "status": "declared",
+  "last_result_ms": null
+}

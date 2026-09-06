@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-703a-b1bb-7389e4da55b3",
+  "slug": "plugin-catalog-catalog-parses",
+  "kind": "test-case",
+  "title": "Catalog: TOML Parse",
+  "description": "The build's own catalog.toml parses without error.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78c4-8878-c792de8f7f2c",
+  "given": "Repo's catalog.toml",
+  "when": "toml::from_str() is called",
+  "then": "Succeeds",
+  "impl_ref": "src-tauri/src/plugins/catalog.rs::catalog_parses",
+  "status": "declared",
+  "last_result_ms": null
+}

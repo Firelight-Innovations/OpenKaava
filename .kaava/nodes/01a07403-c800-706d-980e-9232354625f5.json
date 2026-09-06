@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-706d-980e-9232354625f5",
+  "slug": "plugin-registry-path-of",
+  "kind": "contract-method",
+  "title": "Get Plugin Checkout Path",
+  "description": "Retrieve filesystem location of installed package.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "signature": "pub fn path_of(&self, id: &str) -> Option<PathBuf>",
+  "params": [
+    "id: &str"
+  ],
+  "returns": "Option<PathBuf>",
+  "errors": [],
+  "semantics": "Returns path from record if found; does not validate existence.",
+  "exported": false
+}

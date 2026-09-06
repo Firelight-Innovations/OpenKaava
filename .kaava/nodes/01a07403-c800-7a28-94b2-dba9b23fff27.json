@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7a28-94b2-dba9b23fff27",
+  "slug": "palette-registry-drop-branch",
+  "kind": "test-case",
+  "title": "Registry: Drop Branch Rows",
+  "description": "Tests that branch rows (that open rather than act) are not offered.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d1f-ac55-b6ae705d4545",
+  "given": "Menu with submenu branch 'Apps › Presets'",
+  "when": "commandsFromMenus is called",
+  "then": "Commands do not include 'Apps: Presets'",
+  "impl_ref": "src/shell/palette/registry.test.ts::flattening the menu tree::does not offer the branch row itself, which opens rather than acts",
+  "status": "declared",
+  "last_result_ms": null
+}

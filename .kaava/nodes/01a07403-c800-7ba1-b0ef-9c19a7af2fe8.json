@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7ba1-b0ef-9c19a7af2fe8",
+  "slug": "diff-prompt-format-comment",
+  "kind": "contract-method",
+  "title": "Format Single Review Comment",
+  "description": "Converts one review comment into four lines for pasting into a shell.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "signature": "export function formatComment(comment: ReviewComment): string",
+  "params": [
+    "comment: ReviewComment"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Produces file, line range, diff scope, and escaped comment body in shell-pasteable format.",
+  "exported": false
+}

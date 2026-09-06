@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-79d6-9194-de124b4466c3",
+  "slug": "review-remove",
+  "kind": "contract-method",
+  "title": "Delete a review comment",
+  "description": "Remove one comment by id, erroring on an unknown id.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "signature": "pub fn remove(comments: &mut Vec<ReviewComment>, id: &str) -> Result<()>",
+  "params": [
+    "comments: &mut Vec<ReviewComment>",
+    "id: &str"
+  ],
+  "returns": "Result<()>",
+  "errors": [
+    "Review"
+  ],
+  "semantics": "Finds and removes the comment, returning an error if the id does not exist.",
+  "exported": false
+}

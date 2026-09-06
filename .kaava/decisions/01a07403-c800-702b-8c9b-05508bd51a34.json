@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-702b-8c9b-05508bd51a34",
+  "kind": "decision",
+  "slug": "DEC-SCH-STORE-002",
+  "title": "Storage splits into three layers: semantic, audit, cosmetic",
+  "context": "Alternative approaches: single unified layer; two-layer split; no explicit layering.",
+  "decision": "Schematify stores data in three layers: (1) semantic (nodes, edges, screens, flows, decisions, rules, libraries), (2) audit (runs and lifecycle audit logs), (3) cosmetic (layout positions and viewport state). Each layer has different write patterns and permissions.",
+  "consequences": "Permission boundaries can split along these lines; agents can write audit data without touching design; layout drags do not dirty semantic files; the split is the enforcement mechanism for the rule that agents cannot change the design unreviewed.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7a55-aabe-97cf9fa81c41",
+  "kind": "decision",
+  "slug": "DEC-TEC-TERM-003",
+  "title": "TerminalTransport.attach replays all prior output before streaming new bytes",
+  "context": "PTY output begins the instant it spawns, before React has mounted anything. On Windows the opening line blocks until an emulator answers.",
+  "decision": "Every call to onData begins with everything the shell has already said, then continues with new bytes. An emulator mounting late still sees the whole session.",
+  "consequences": "Terminal always fills from first keystroke, never starts blank. Every terminal is permanently initialized rather than having to wait for live bytes.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

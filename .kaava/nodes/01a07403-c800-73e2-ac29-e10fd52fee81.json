@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-73e2-ac29-e10fd52fee81",
+  "slug": "plugin-catalog-row-predicate-wiring",
+  "kind": "test-case",
+  "title": "Catalog: Installed Status",
+  "description": "Rows report what the is_installed predicate says.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78c4-8878-c792de8f7f2c",
+  "given": "Predicate that returns true for id 'a' only",
+  "when": "rows_from() is called",
+  "then": "'a' row has installed=true, others false",
+  "impl_ref": "src-tauri/src/plugins/catalog.rs::a_row_reports_what_the_predicate_says",
+  "status": "declared",
+  "last_result_ms": null
+}

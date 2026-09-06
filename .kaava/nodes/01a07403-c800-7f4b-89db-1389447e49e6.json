@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7f4b-89db-1389447e49e6",
+  "slug": "file-api-list",
+  "kind": "contract-method",
+  "title": "List Directory",
+  "description": "Fetch immediate children of a directory, sorted directories-first by name.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export const list = (path: string | null) => invoke<Listing>('files/list', { path })",
+  "params": [
+    "path: string | null"
+  ],
+  "returns": "Promise<Listing> with entries array",
+  "errors": [],
+  "semantics": "Returns sorted children of the given directory.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7343-b73a-02efed337c50",
+  "slug": "error-app-error-enum",
+  "kind": "contract-method",
+  "title": "AppError Enum",
+  "description": "Unified error type for orchestrator operations with variants for manifest, I/O, TOML parsing, versioning, git, plugins, windows, terminals, and more.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7201-bc76-069d8a5755f3",
+  "signature": "pub enum AppError { ManifestNotFound(String), Io { path: String, source: io::Error }, Toml { path: String, source: toml::de::Error }, ... }",
+  "params": [],
+  "returns": "AppError",
+  "errors": [],
+  "semantics": "Represents all failure states the orchestrator can encounter with human-readable messages.",
+  "exported": false
+}

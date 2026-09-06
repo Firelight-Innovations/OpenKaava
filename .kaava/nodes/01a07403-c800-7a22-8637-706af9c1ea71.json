@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7a22-8637-706af9c1ea71",
+  "slug": "shell-bindings-cluster-project",
+  "kind": "contract-method",
+  "title": "clusterProject",
+  "description": "Fetch one cluster's project for the title bar.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7149-8c4b-15d6ed575d92",
+  "signature": "function clusterProject(clusterId: string | null): Promise<ProjectInfo | null>",
+  "params": [
+    "clusterId"
+  ],
+  "returns": "Promise<ProjectInfo | null>",
+  "errors": [],
+  "semantics": "Returns the project a cluster is pointing at or null.",
+  "exported": true
+}

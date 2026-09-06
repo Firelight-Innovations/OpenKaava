@@ -1,0 +1,27 @@
+{
+  "id": "01a07403-c800-7ad2-b1da-85bc808441c7",
+  "slug": "home-call",
+  "kind": "contract-method",
+  "title": "Home app dispatcher",
+  "description": "Handles JSON-RPC method calls for the Home application.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7db5-a68f-82d64aa2458f",
+  "signature": "fn call(app: &AppHandle, context: &CallContext, method: &str, params: Option<Value>) -> Result<Value, RpcError>",
+  "params": [
+    "app",
+    "context",
+    "method",
+    "params"
+  ],
+  "returns": "Result<Value, RpcError>",
+  "errors": [
+    "INVALID_PARAMS",
+    "INTERNAL_ERROR",
+    "METHOD_NOT_FOUND"
+  ],
+  "semantics": "Implements home/state, home/tutorials, home/{new,open,clone}-project, home/{open-recent,forget-recent,close-project,initialize-project}, home/install-plugin, home/worktree-{state,create}.",
+  "exported": true
+}

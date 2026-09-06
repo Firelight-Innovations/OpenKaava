@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7591-85eb-387f742794d6",
+  "slug": "graph-descendants-walk-tree",
+  "kind": "test-case",
+  "title": "Descendants walk tree",
+  "description": "The descendants method walks all nested children.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bcb-9de4-3775dbe05092",
+  "given": "A node with nested children",
+  "when": "descendants is called",
+  "then": "It returns all descendant UUIDs, sorted",
+  "impl_ref": "crates/schematify-core/src/graph.rs::descendants",
+  "status": "declared",
+  "last_result_ms": null
+}

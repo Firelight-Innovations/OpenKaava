@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7a36-a610-f3a3b6732a31",
+  "kind": "decision",
+  "slug": "DEC-SCH-IDENT-004",
+  "title": "Adopt schematify:// URI scheme for all internal references",
+  "context": "Prior applications used `forger://`, `journeyman://`, and `decision://` schemes. Each application had its own scheme, and cross-references required knowing which application held the object.",
+  "decision": "Retire `forger://`, `journeyman://`, and `decision://` schemes. Adopt `schematify://node/<uuid>`, `schematify://screen/<uuid>`, `schematify://flow/<uuid>`, and `schematify://decision/<uuid>` for all internal references. All stored references use the `schematify://` form.",
+  "consequences": "Single, unified scheme across all Schematify object kinds; wave 1 must convert every stored reference; no ambiguity about which application holds an object; URI resolution stays within Schematify.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

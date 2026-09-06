@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7c45-b0aa-93ae84627bb3",
+  "slug": "userdata-adoption-on-rename",
+  "kind": "doc-block",
+  "title": "Config directory adoption on bundle id rename",
+  "description": "Why a changed bundle identifier moves the orphaned config directory.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-795e-a9a6-827112f01105",
+  "body": "app_config_dir() appends the bundle identifier, so moving the identifier moves the directory and every store in it. Adoption runs at the start of the next launch: it walks SUPERSEDED, newest first, and moves the first directory it finds onto the current one. Move rather than copy so the NSIS uninstaller's Delete checkbox removes only the current identifier's data.",
+  "audience": "both"
+}

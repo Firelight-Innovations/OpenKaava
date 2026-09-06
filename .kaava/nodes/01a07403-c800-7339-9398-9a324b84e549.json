@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7339-9398-9a324b84e549",
+  "slug": "context-menu-dismisses",
+  "kind": "contract-method",
+  "title": "Dismissal Checker",
+  "description": "Determines whether a dismissal event should close the menu.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "signature": "export function dismisses(event: Dismissal): boolean",
+  "params": [
+    "Dismissal"
+  ],
+  "returns": "boolean",
+  "errors": [],
+  "semantics": "Returns true for events that close the menu, false if pointer stayed inside.",
+  "exported": true
+}

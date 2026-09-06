@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-731e-83bd-5a249d0d1926",
+  "slug": "index-load-graph",
+  "kind": "contract-method",
+  "title": "loadGraph",
+  "description": "Returns one Schematic's graph by tier and slug, defaulting to service/auth-service.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7053-b407-040c7111f077",
+  "signature": "function loadGraph(tier?: Tier, slug?: string): Promise<SchematicGraph>",
+  "params": [
+    "tier?: Tier",
+    "slug?: string"
+  ],
+  "returns": "Promise<SchematicGraph>",
+  "errors": [],
+  "semantics": "Loads a Schematic graph from fixture or backend.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-712d-9504-2622fa80cc1d",
+  "slug": "context-menu-no-extra-separator",
+  "kind": "test-case",
+  "title": "No Separator When No Extra Items",
+  "description": "Ensures Cut row has no separator when nothing contributed.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Empty extra array",
+  "when": "contextItems() called",
+  "then": "Cut row separatorBefore undefined",
+  "impl_ref": "src/shell/contextMenu.test.ts::contextItems leaves the first row unseparated when nothing was contributed",
+  "status": "declared",
+  "last_result_ms": null
+}

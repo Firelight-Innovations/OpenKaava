@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7984-b95f-9b614ce43a56",
+  "slug": "index-status-cell1",
+  "kind": "contract-method",
+  "title": "statusCell1",
+  "description": "Status bar cell 1: storage root and tier-appropriate counts (nodes/services).",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7053-b407-040c7111f077",
+  "signature": "function statusCell1(graph: SchematicGraph): string",
+  "params": [
+    "graph: SchematicGraph"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Displays storage path and counts in status bar per PRD section 12.1.",
+  "exported": true
+}

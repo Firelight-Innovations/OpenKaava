@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-786d-9c55-57e33adc3686",
+  "slug": "diff-review-scope-isolation",
+  "kind": "test-case",
+  "title": "Review: Scope Isolation",
+  "description": "Tests that the same line in different diffs does not cross over.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "given": "Comments on same line in unstaged, staged, and branch diffs",
+  "when": "commentsFor is called with 'branch'",
+  "then": "Returns only the branch comment",
+  "impl_ref": "src/shell/diff/reviewComments.test.ts::commentsFor::does not let a note from one diff surface against another",
+  "status": "declared",
+  "last_result_ms": null
+}

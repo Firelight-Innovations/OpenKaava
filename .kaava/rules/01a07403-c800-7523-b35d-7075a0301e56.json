@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7523-b35d-7075a0301e56",
+  "slug": "lint-function-volume",
+  "statement": "Functions must not exceed information volume (token count) of 3000.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm slop"
+}

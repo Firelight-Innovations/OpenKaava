@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7921-8f7b-1b86ace36d00",
+  "slug": "ci-cargo-deny-license-check",
+  "statement": "All Rust dependencies must be checked against the allow-list of approved licenses; deny all others.",
+  "severity": "error",
+  "audit": [],
+  "command": "cargo deny check"
+}

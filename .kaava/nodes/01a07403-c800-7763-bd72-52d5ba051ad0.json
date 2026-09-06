@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7763-bd72-52d5ba051ad0",
+  "slug": "launch-module-doc",
+  "kind": "doc-block",
+  "title": "Launch Target Detection and Delivery",
+  "description": "How Explorer context menus become app actions.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a3-a407-049c1f55dd74",
+  "body": "What a launch was asked to open, and how a second launch reaches the first. Explorer's context menu is the only caller that matters: Open with OpenKaava runs this binary with one path as its argument. A second launch must not become a second process. tauri-plugin-single-instance hands the new argv to the process already running and exits. The first launch has nobody to tell yet — Tauri does not replay events, and at setup time no window listens. The target is parked in LaunchState for take_launch_target to collect.",
+  "audience": "agent"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7365-8e13-cb540154b5f6",
+  "slug": "product-screenuri-builder",
+  "kind": "test-case",
+  "title": "Screen URI construction",
+  "description": "Verifies that screenUri builds the stored reference form, not the drawn form.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "given": "A RawScreen object with an id",
+  "when": "screenUri is called",
+  "then": "A schematify://screen/<id> reference is returned",
+  "impl_ref": "apps/schematify/ui/src/product/index.test.ts::screenUri / decisionUri build the stored reference form, not the drawn form",
+  "status": "declared",
+  "last_result_ms": null
+}

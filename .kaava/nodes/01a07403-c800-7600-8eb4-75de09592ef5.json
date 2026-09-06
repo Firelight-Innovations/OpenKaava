@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7600-8eb4-75de09592ef5",
+  "slug": "file-api-write",
+  "kind": "contract-method",
+  "title": "Write File",
+  "description": "Overwrite a file, refusing if mtime changed since read (optimistic lock).",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export const write = (path: string, text: string, baseMtime: number | null) => invoke<WriteResult>('files/write', { path, text, baseMtime })",
+  "params": [
+    "path: string",
+    "text: string",
+    "baseMtime: number | null"
+  ],
+  "returns": "Promise<WriteResult> with new mtime",
+  "errors": [],
+  "semantics": "Writes text file if mtime matches; rejects with stale conflict if changed.",
+  "exported": true
+}

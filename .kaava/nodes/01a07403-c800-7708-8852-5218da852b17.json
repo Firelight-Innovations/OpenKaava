@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7708-8852-5218da852b17",
+  "slug": "github-query-fetch-scope",
+  "kind": "test-case",
+  "title": "GitHub Query: Fetch Scope Mapping",
+  "description": "Tests that merged and closed queries map correctly to API scopes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcd-8834-b536584a1dca",
+  "given": "Parsed query with state 'merged' or 'closed'",
+  "when": "fetchScopeOf is called",
+  "then": "Returns 'closed'",
+  "impl_ref": "src/shell/github/query.test.ts::fetchScopeOf::sends merged and closed queries to a closed fetch",
+  "status": "declared",
+  "last_result_ms": null
+}

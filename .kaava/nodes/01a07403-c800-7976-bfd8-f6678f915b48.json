@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7976-bfd8-f6678f915b48",
+  "slug": "core-a-decision-slug-recognised",
+  "kind": "test-case",
+  "title": "Decision slug recognized by shape",
+  "description": "Decision-shaped slugs like DEC-TEC-AUTH-004 are detected.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a7-8335-a2b30fb2137e",
+  "given": "Various slug strings",
+  "when": "is_decision_shaped is called",
+  "then": "DEC-TEC-AUTH-004 returns true, but DEC-TEC-AUTH-4 and token-verifier return false",
+  "impl_ref": "crates/schematify-core/src/slug.rs::a_decision_slug_is_recognised_by_shape",
+  "status": "declared",
+  "last_result_ms": null
+}

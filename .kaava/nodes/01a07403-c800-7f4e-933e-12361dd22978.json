@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f4e-933e-12361dd22978",
+  "slug": "design-app-prompt-to-prompt-leading-statement",
+  "kind": "test-case",
+  "title": "toPrompt leads with element type",
+  "description": "First line states what was selected",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71a3-ae12-251b52dac590",
+  "given": "picked element",
+  "when": "toPrompt is called",
+  "then": "first line contains \"selected a `<tagname>` element\"",
+  "impl_ref": "apps/design/ui/src/prompt.test.ts::says what it is before it says anything else",
+  "status": "declared",
+  "last_result_ms": null
+}

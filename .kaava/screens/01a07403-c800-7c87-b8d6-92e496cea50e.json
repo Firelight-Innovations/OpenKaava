@@ -1,0 +1,27 @@
+{
+  "id": "01a07403-c800-7c87-b8d6-92e496cea50e",
+  "kind": "screen",
+  "slug": "settings-screen",
+  "title": "Settings Screen",
+  "purpose": "Application settings organized by category with filtering and MCP server management",
+  "states": [
+    "closed - settings not open",
+    "open-first-group - settings open on first category",
+    "open-selected - settings open on specific selected category",
+    "filtering - search active in settings"
+  ],
+  "acceptance": [
+    "shall display as modal overlay with backdrop",
+    "shall show sidebar with setting group names",
+    "shall display settings for selected group in main area",
+    "shall support searching/filtering settings by name",
+    "shall show MCP panel with extra server management UI",
+    "shall apply settings changes immediately",
+    "shall close on Escape or close button",
+    "shall support keyboard navigation between groups",
+    "shall remember last opened group per session"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7a46-93c2-1cf4ed390bef"
+  ]
+}

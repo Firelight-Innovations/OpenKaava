@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7360-8272-f0cd3b2c30e3",
+  "slug": "settings-unreadable-store-defaults",
+  "kind": "test-case",
+  "title": "Unreadable settings fall back to defaults",
+  "description": "A corrupt or unknown file returns empty settings.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7af9-8c80-9bcc2630d68a",
+  "given": "An unreadable or unknown-format settings.json",
+  "when": "load is called",
+  "then": "Returns Stored with empty values",
+  "impl_ref": "src-tauri/src/settings/store.rs::an_unreadable_store_falls_back_to_the_defaults",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b26-86ed-11e8b5f08c7a",
+  "slug": "schema",
+  "kind": "module",
+  "title": "Data Model Types",
+  "description": "The data model: edges and edge kinds, project brief with success metrics, append-only decisions, product screens and flows, rule registry, library registry, and cosmetic layout.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7abe-9eed-7510b796f92a",
+  "allowed_libraries": [
+    "01a07403-c800-75dd-b05c-6d3f11053668",
+    "01a07403-c800-7565-ae9d-23b929975082"
+  ],
+  "ui_refs": []
+}

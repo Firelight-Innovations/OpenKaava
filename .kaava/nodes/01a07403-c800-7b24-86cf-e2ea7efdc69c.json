@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b24-86cf-e2ea7efdc69c",
+  "slug": "search-logic-compile-path-filter-bare-glob",
+  "kind": "test-case",
+  "title": "Path Filter: Bare Glob",
+  "description": "Tests that bare globs match at any depth by basename.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "given": "Filter '*.md'",
+  "when": "compilePathFilter is called and tested",
+  "then": "Matches 'docs/deep/notes.md' but not 'docs/deep/notes.ts'",
+  "impl_ref": "src/shell/search/query.test.ts::compilePathFilter::matches a bare glob against the basename at any depth",
+  "status": "declared",
+  "last_result_ms": null
+}

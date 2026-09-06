@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7a69-ba2f-65f09856a5cb",
+  "slug": "api-host",
+  "kind": "contract-method",
+  "title": "host",
+  "description": "Determine which host this frontend is running under.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77f3-afe7-a004ea566b14",
+  "signature": "host(): 'kaava' | 'tauri'",
+  "params": [],
+  "returns": "'kaava' | 'tauri'",
+  "errors": [],
+  "semantics": "Returns 'kaava' when running as an iframe under the orchestrator shell, 'tauri' when in a standalone app.",
+  "exported": true
+}

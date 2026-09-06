@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7242-81f1-19b2ed050e2f",
+  "slug": "project-module-graph",
+  "kind": "contract-method",
+  "title": "projectModuleGraph",
+  "description": "Builds one module's SchematicGraph out of the whole project graph, including the module root and all facets.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b17-92da-f10f0c4deca9",
+  "signature": "function projectModuleGraph(raw: RawGraph, moduleSlug: string): SchematicGraph",
+  "params": [
+    "raw: RawGraph",
+    "moduleSlug: string"
+  ],
+  "returns": "SchematicGraph",
+  "errors": [
+    "Error when no module node carries the given slug"
+  ],
+  "semantics": "Narrows the whole-project graph to one module's hierarchy, including tier-3 facets.",
+  "exported": false
+}

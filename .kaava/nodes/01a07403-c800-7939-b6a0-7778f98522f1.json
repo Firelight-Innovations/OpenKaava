@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7939-b6a0-7778f98522f1",
+  "slug": "github-query-parse",
+  "kind": "test-case",
+  "title": "GitHub Query: Basic Parsing",
+  "description": "Tests parsing of GitHub-style qualifiers.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcd-8834-b536584a1dca",
+  "given": "Query 'is:pr'",
+  "when": "parseQuery is called",
+  "then": "scope is 'pull'",
+  "impl_ref": "src/shell/github/query.test.ts::parseQuery::reads the kind and state qualifiers",
+  "status": "declared",
+  "last_result_ms": null
+}

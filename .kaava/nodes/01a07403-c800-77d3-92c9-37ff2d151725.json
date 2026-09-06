@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-77d3-92c9-37ff2d151725",
+  "slug": "registry-list",
+  "kind": "contract-method",
+  "title": "List Servers",
+  "description": "Get all registered servers the user should see.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74ba-abfe-06dbc4c59dec",
+  "signature": "pub fn list(&self, dev_mode: bool) -> Vec<ServerInfo>",
+  "params": [
+    "dev_mode: bool"
+  ],
+  "returns": "Vec<ServerInfo>",
+  "errors": [],
+  "semantics": "Returns every registered server except developer-only ones when dev_mode is false; filters by reachability.",
+  "exported": false
+}

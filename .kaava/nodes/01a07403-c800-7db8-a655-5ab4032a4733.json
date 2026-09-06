@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7db8-a655-5ab4032a4733",
+  "slug": "windows",
+  "kind": "module",
+  "title": "Window Management",
+  "description": "Detached window creation and lifecycle, with labels scoped through capabilities, geometry clamped to visible monitors, and cursor tracking for drag drop.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [
+    "01a07403-c800-736a-801a-ea4485c6faff"
+  ],
+  "ui_refs": []
+}

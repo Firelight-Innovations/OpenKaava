@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7fa9-9c3f-c345e65e2dea",
+  "slug": "ci-annotations-tsc-parsing",
+  "kind": "test-case",
+  "title": "parse TypeScript errors",
+  "description": "Extracts file, line, column, and error code from tsc output.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73d7-a1af-eac6f5057d04",
+  "given": "tsc error line like 'src/shell/search/query.ts(42,17): error TS2345: ...'",
+  "when": "parse() is called",
+  "then": "returns finding with file, line=42, col=17, and TS2345 in message",
+  "impl_ref": "scripts/ci-annotations.test.mjs::typescript",
+  "status": "declared",
+  "last_result_ms": null
+}

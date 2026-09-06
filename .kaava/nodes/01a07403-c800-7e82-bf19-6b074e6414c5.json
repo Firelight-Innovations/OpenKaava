@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7e82-bf19-6b074e6414c5",
+  "slug": "git-operations-git-worktree-create",
+  "kind": "contract-method",
+  "title": "Create Worktree",
+  "description": "Cut a branch and check it out into a new worktree beside the project.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "signature": "pub fn git_worktree_create(app: AppHandle, cluster_id: String, name: String) -> Result<WorktreeRef>",
+  "params": [
+    "app",
+    "cluster_id",
+    "name"
+  ],
+  "returns": "Result<WorktreeRef>",
+  "errors": [
+    "AppError::Git"
+  ],
+  "semantics": "Creates new branch and worktree, returns reference after git succeeds.",
+  "exported": true
+}

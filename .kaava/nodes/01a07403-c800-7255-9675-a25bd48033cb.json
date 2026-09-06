@@ -1,0 +1,33 @@
+{
+  "id": "01a07403-c800-7255-9675-a25bd48033cb",
+  "slug": "plugin-install-from-repo",
+  "kind": "contract-method",
+  "title": "Install Plugin from GitHub",
+  "description": "Fetch release, verify checksum, unpack, register, and report progress.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-762d-98bf-9549ca7a28bb",
+  "signature": "pub fn from_repo(app: &AppHandle, input: &str, expected_id: Option<&str>, private_hint: bool) -> Result<ResolvedPlugin, InstallError>",
+  "params": [
+    "app: &AppHandle",
+    "input: &str",
+    "expected_id: Option<&str>",
+    "private_hint: bool"
+  ],
+  "returns": "Result<ResolvedPlugin, InstallError>",
+  "errors": [
+    "BadRepo",
+    "NotFoundOrNoAccess",
+    "NoRelease",
+    "NoZipAsset",
+    "Network",
+    "Checksum",
+    "Unpack",
+    "NotAPlugin",
+    "IdMismatch"
+  ],
+  "semantics": "Emits progress events at each phase; validates manifest id if catalog entry given.",
+  "exported": true
+}

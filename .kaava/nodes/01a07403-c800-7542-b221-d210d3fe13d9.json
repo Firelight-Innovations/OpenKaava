@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7542-b221-d210d3fe13d9",
+  "slug": "reconciliation-declared-absent-is-only-an-error-once-lifecycle-reaches-implemented",
+  "kind": "test-case",
+  "title": "DeclaredAbsent Error After implemented Lifecycle",
+  "description": "A DeclaredAbsent outcome only counts as an error if lifecycle is implemented or later.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f82-b74b-6f5fb1052449",
+  "given": "markable nodes with lifecycle=specified and lifecycle=implemented",
+  "when": "reconcile is called",
+  "then": "DeclaredAbsent.error is false and true respectively",
+  "impl_ref": "crates/schematify-reconcile/src/reconcile.rs::declared_absent_is_only_an_error_once_lifecycle_reaches_implemented",
+  "status": "declared",
+  "last_result_ms": null
+}

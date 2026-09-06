@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7cb9-899c-07999aac148f",
+  "slug": "entry-point-build",
+  "kind": "budget",
+  "title": "Entry Point Build Success",
+  "description": "main.tsx bundles successfully with all imports resolved.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754b-b02b-d0ca4aeda476",
+  "metric": "build-success",
+  "op": "==",
+  "value": 1,
+  "unit": "pass",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm build",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

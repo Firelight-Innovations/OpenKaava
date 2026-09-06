@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7470-8863-246fe309e166",
+  "slug": "image-viewer",
+  "kind": "module",
+  "title": "Image Viewer",
+  "description": "Read-only image viewer for bitmap and vector image formats with responsive scaling.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7996-96e4-9a298ed54a09",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-76ae-a605-d875ff6464ef"
+  ]
+}

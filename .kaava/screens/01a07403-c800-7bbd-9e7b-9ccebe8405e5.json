@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-7bbd-9e7b-9ccebe8405e5",
+  "kind": "screen",
+  "slug": "schematify-decision-log",
+  "title": "Decision Log",
+  "purpose": "Decisions section showing architectural decision history and supersessions",
+  "states": [
+    "loading",
+    "empty",
+    "populated",
+    "creating",
+    "error"
+  ],
+  "acceptance": [
+    "shall display all project decisions in reverse chronological order",
+    "shall show decision title and summary",
+    "shall show supersession relationships between decisions",
+    "shall allow creating new decisions",
+    "shall allow superseding prior decisions with new ones",
+    "shall display error if decisions cannot be loaded"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-75a3-aa4b-594b7ec3dd79"
+  ]
+}

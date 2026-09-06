@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-71de-a9f3-61b000c32df7",
+  "slug": "review-add-validates-line-range",
+  "kind": "test-case",
+  "title": "Invalid line ranges are refused",
+  "description": "Line numbers must start at 1 and end must not come before start.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "given": "A draft with start_line=0 or end_line < start_line",
+  "when": "add is called",
+  "then": "Returns Err and comments is unchanged",
+  "impl_ref": "src-tauri/src/review/mod.rs::a_range_that_is_not_one_is_refused",
+  "status": "declared",
+  "last_result_ms": null
+}

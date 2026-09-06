@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7281-abee-847dc436935d",
+  "kind": "decision",
+  "slug": "DEC-SCH-SCOPE-004",
+  "title": "Wireframes are the authoritative source of truth on visual and copy questions",
+  "context": "Multiple source documents exist: wireframes, PRD, FORGER-SPEC.md, FORGER-UI.md, and naming decisions. They may disagree.",
+  "decision": "Establish a source hierarchy where the wireframes always win on visual, copy, and interface questions. The PRD wins over FORGER-SPEC.md and FORGER-UI.md. When every source is silent, raise the question and stop.",
+  "consequences": "Clear resolution of conflicts during implementation; visual truth is always in the wireframes, not the narrative; implementation must defer to wireframes rather than interpreting the PRD prose.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

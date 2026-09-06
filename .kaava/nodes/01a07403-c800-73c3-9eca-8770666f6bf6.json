@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-73c3-9eca-8770666f6bf6",
+  "slug": "branding-module-doc",
+  "kind": "doc-block",
+  "title": "Compile-time branding data",
+  "description": "Why branding is embedded rather than read at runtime.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77e9-8c82-551638f168b7",
+  "body": "The product's name is embedded at compile time, unlike kaava.toml which is read at runtime. The manifest points at checkouts that differ per machine. Branding is the opposite: Tauri bakes productName and the window title into the bundle when it is built, so a name read at run time could disagree with the installer that delivered it. Branding data reaches every OS-level place the name appears: window title, detached window captions, and folder picker labels.",
+  "audience": "agent"
+}

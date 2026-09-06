@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-75c2-9cb8-e472f243f50a",
+  "slug": "design-app-comments-pending-question-silent-on-open",
+  "kind": "test-case",
+  "title": "pendingQuestion silent for non-question states",
+  "description": "Returns null for open or resolved comments",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-76b8-97b0-0d8399c3f37b",
+  "given": "open or resolved comment",
+  "when": "pendingQuestion is called",
+  "then": "returns null",
+  "impl_ref": "apps/design/ui/src/comments.test.ts::is silent for a comment that is not waiting on anybody",
+  "status": "declared",
+  "last_result_ms": null
+}

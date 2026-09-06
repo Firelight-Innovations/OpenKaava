@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-761b-a54e-f7961b94c7fd",
+  "slug": "github-integration-github-feed",
+  "kind": "contract-method",
+  "title": "Get GitHub Feed",
+  "description": "Everything the GitHub region draws for one cluster.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72a7-b1d3-78f88552a561",
+  "signature": "pub async fn github_feed(app: AppHandle, cluster_id: String, scope: GithubScope) -> Result<GithubFeed>",
+  "params": [
+    "app",
+    "cluster_id",
+    "scope"
+  ],
+  "returns": "Result<GithubFeed>",
+  "errors": [],
+  "semantics": "Returns GithubFeed with Ready, Unavailable, or NotGithub state for all outcomes.",
+  "exported": true
+}

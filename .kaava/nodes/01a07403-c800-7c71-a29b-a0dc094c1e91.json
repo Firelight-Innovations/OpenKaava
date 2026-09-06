@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7c71-a29b-a0dc094c1e91",
+  "slug": "bench-suite-frame-rate",
+  "kind": "budget",
+  "title": "Frame rate budget",
+  "description": "Shell interaction frame rate during drag operations.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-750c-bd32-35fde88f334e",
+  "metric": "dropped frames per second",
+  "op": "<=",
+  "value": 5,
+  "unit": "frames",
+  "tier": "soft",
+  "probe": {
+    "command": "pnpm bench:drag",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7fa4-ae2f-d3f5ab76b53f",
+  "slug": "shell-core-command-line-blank",
+  "kind": "test-case",
+  "title": "commandLine rejects blank input",
+  "description": "Ensures empty input is caught with user-friendly message.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-746a-b0bb-73db6ddd45f1",
+  "given": "Only whitespace input",
+  "when": "commandLine is called",
+  "then": "Returns refused with message",
+  "impl_ref": "src/shell/run.test.ts::a command line off the Run field::refuses a blank field with something to show",
+  "status": "declared",
+  "last_result_ms": null
+}

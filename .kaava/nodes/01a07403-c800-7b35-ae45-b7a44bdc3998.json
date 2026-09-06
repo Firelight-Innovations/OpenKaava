@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b35-ae45-b7a44bdc3998",
+  "slug": "search-logic-match-flags-interface",
+  "kind": "contract-method",
+  "title": "Text Matching Flags",
+  "description": "Control flags for needle compilation and matching behavior.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "signature": "export interface MatchFlags { regex: boolean; caseSensitive: boolean; wholeWord: boolean }",
+  "params": [],
+  "returns": "MatchFlags",
+  "errors": [],
+  "semantics": "Three toggle flags that control how a search needle is interpreted and matched against file contents.",
+  "exported": false
+}

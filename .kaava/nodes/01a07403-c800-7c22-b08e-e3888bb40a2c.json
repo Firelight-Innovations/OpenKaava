@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7c22-b08e-e3888bb40a2c",
+  "slug": "statusbar-status-bar",
+  "kind": "contract-method",
+  "title": "StatusBar Component",
+  "description": "Renders the status bar with update notice, git status, GitHub health indicator, and settings access.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78af-87c4-c75201a2058a",
+  "signature": "function StatusBar({ git, githubOk, update }: StatusBarProps): ReactNode",
+  "params": [
+    "git: GitStatus | null",
+    "githubOk: boolean",
+    "update: UpdateNotice | null"
+  ],
+  "returns": "JSX.Element",
+  "errors": [],
+  "semantics": "Displays cluster-scoped git status, update availability, and provides settings entry point.",
+  "exported": true
+}

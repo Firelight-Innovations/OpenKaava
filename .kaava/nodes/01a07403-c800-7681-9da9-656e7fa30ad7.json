@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7681-9da9-656e7fa30ad7",
+  "slug": "shell-state-fetch-shell-state",
+  "kind": "contract-method",
+  "title": "fetchShellState",
+  "description": "One-shot read of shared state for non-component callers.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73c6-9a0b-c837d3e517f6",
+  "signature": "function fetchShellState(): Promise<ShellSnapshot>",
+  "params": [],
+  "returns": "Promise<ShellSnapshot>",
+  "errors": [],
+  "semantics": "Returns current state without establishing subscription.",
+  "exported": true
+}

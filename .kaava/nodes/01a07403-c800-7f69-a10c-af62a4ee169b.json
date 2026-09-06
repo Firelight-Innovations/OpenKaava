@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f69-a10c-af62a4ee169b",
+  "slug": "shortcuts-surface-open-shortcuts",
+  "kind": "contract-method",
+  "title": "Open Shortcuts Screen",
+  "description": "Shows the keyboard shortcuts screen.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7728-94ea-ea2af567cdc5",
+  "signature": "export function openShortcuts(): void",
+  "params": [],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Announces shortcuts open state to all subscribers, safe to call multiple times.",
+  "exported": false
+}

@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7bb9-a3d4-7e877c465c06",
+  "slug": "errors-kaava-rpc-error-class",
+  "kind": "contract-method",
+  "title": "KaavaRpcError",
+  "description": "Exception class for all errors this bridge produces; normalizes host-specific errors.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78aa-838a-6e8f2db5b559",
+  "signature": "class KaavaRpcError extends Error { code: number; data?: unknown; constructor(code: number, message: string, data?: unknown) }",
+  "params": [
+    "code: number",
+    "message: string",
+    "data?: unknown"
+  ],
+  "returns": "KaavaRpcError instance",
+  "errors": [],
+  "semantics": "Envelope for both shell-originated errors and locally-generated ones (timeouts); every rejection is this type.",
+  "exported": true
+}

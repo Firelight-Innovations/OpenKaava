@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7757-b46c-763ef79d0754",
+  "slug": "shell-core-motion-scale",
+  "kind": "doc-block",
+  "title": "Shell motion scale",
+  "description": "Every animated thing uses one of these; guarantees window moves like one piece.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-746a-b0bb-73db6ddd45f1",
+  "body": "The shell's motion scale. Every animated thing in the shell uses one of these; a component that writes its own `transition={{ ... }}` is a bug, because a scale's whole point is that the window moves like one piece of software, and that is lost the moment two regions disagree about what \"quick\" means.",
+  "audience": "both"
+}

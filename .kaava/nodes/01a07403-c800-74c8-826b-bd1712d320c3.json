@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-74c8-826b-bd1712d320c3",
+  "slug": "icon-lookup-file-icon-url",
+  "kind": "contract-method",
+  "title": "File Icon URL",
+  "description": "Resolve a filename to a Material Icon Theme icon URL, handling exact filename matches and multi-part extensions.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7add-a668-c662fdc1ba08",
+  "signature": "fileIconUrl(name: string): string",
+  "params": [
+    "name: string"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Returns a root-relative Material Icon URL for a given filename, preferring exact matches to extension-based matches.",
+  "exported": true
+}

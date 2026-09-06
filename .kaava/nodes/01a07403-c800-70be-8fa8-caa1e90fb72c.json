@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-70be-8fa8-caa1e90fb72c",
+  "slug": "sysinfo",
+  "kind": "external-dep",
+  "title": "System Information Library",
+  "description": "Provides system process information for checking if a shell has running child processes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731a-ab6c-3a00854fdef3",
+  "registry_ref": "01a07403-c800-7ef4-9667-f02d960db124",
+  "usage_note": "Used to enumerate processes and find direct children of a shell process for the close-session confirmation check"
+}

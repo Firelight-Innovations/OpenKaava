@@ -1,0 +1,19 @@
+{
+  "id": "01a07403-c800-73b0-99ac-cdd1de6b20ef",
+  "slug": "file-explorer",
+  "kind": "module",
+  "title": "File Explorer Application",
+  "description": "Top-level file explorer application component that orchestrates the tree view, trash management, and menu commands.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-724f-ac20-c392624f0d9e",
+  "allowed_libraries": [
+    "01a07403-c800-7bd1-a062-9c1c49e747dc"
+  ],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7b19-815c-ac876d41c9c5"
+  ]
+}

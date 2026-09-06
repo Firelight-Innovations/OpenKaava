@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7547-995a-cc2b4d3bf3c5",
+  "slug": "core-is-toml-path",
+  "kind": "contract-method",
+  "title": "Is TOML Path",
+  "description": "Determine if a file path should be treated as TOML based on its extension.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75c0-8343-2b091383cfc2",
+  "signature": "isTomlPath(path: string): boolean",
+  "params": [
+    "path: string"
+  ],
+  "returns": "boolean",
+  "errors": [],
+  "semantics": "Tests whether a path's final extension matches TOML or .kaava, allowing callers to identify TOML files without importing Monaco.",
+  "exported": true
+}

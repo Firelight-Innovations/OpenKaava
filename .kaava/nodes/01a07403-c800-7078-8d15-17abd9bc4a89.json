@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7078-8d15-17abd9bc4a89",
+  "slug": "band-geometry-no-cluster",
+  "kind": "test-case",
+  "title": "Window with no cluster reports as shut",
+  "description": "When clusterId is null, bandGeometry returns the default BAND_SHUT state regardless of the map.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bda-92fe-1e3bdf7870f3",
+  "given": "geometry state and null cluster id",
+  "when": "bandGeometry is called with clusterId=null",
+  "then": "it returns BAND_SHUT",
+  "impl_ref": "src/shell/frame/bandGeometry.test.ts::bandGeometry#reports a window with no cluster as shut",
+  "status": "declared",
+  "last_result_ms": null
+}

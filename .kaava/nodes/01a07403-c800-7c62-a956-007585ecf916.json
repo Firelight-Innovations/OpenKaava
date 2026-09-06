@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c62-a956-007585ecf916",
+  "slug": "context-menu-flip-both",
+  "kind": "test-case",
+  "title": "Menu Flips Both Axes In Corner",
+  "description": "Ensures menu flips both left and up in far corner.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Point (995, 795) in 1000x800 viewport",
+  "when": "placeMenu() called",
+  "then": "Flips to (795, 635)",
+  "impl_ref": "src/shell/contextMenu.test.ts::placeMenu flips both ways at once in the far corner",
+  "status": "declared",
+  "last_result_ms": null
+}

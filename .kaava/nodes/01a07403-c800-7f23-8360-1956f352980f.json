@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7f23-8360-1956f352980f",
+  "slug": "staleness",
+  "kind": "module",
+  "title": "Staleness Computation",
+  "description": "Computes staleness captions and elapsed time in compact form (e.g. '2h ago') from backend staleness marks, per PRD §7.4.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

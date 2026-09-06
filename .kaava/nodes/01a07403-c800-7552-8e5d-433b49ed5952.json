@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7552-8e5d-433b49ed5952",
+  "slug": "vitest",
+  "kind": "external-dep",
+  "title": "Vitest",
+  "description": "JavaScript unit testing framework with Jest-compatible API, running on Node.js without jsdom.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b7-95f8-682301adf593",
+  "registry_ref": "01a07403-c800-7624-8f42-daeadd0fe87a",
+  "usage_note": "All test files use Vitest's describe(), it(), expect() for pure-function testing of anatomy, frame, layout, navigation, routing, viewport, inspector, engine, and arrange logic. Node environment permits testing without DOM."
+}

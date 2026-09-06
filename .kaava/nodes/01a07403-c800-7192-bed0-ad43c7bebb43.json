@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7192-bed0-ad43c7bebb43",
+  "slug": "reconciliation-duplicate-when-one-id-sits-at-two-sites",
+  "kind": "test-case",
+  "title": "Duplicate Outcome for Multiple Marker Occurrences",
+  "description": "When one UUID marker appears at two or more code locations, outcome is Duplicate.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f82-b74b-6f5fb1052449",
+  "given": "the same UUID marker written to two different files",
+  "when": "reconcile is called",
+  "then": "one Duplicate error outcome with both sites is produced, exit code 1",
+  "impl_ref": "crates/schematify-reconcile/src/reconcile.rs::duplicate_when_one_id_sits_at_two_sites",
+  "status": "declared",
+  "last_result_ms": null
+}

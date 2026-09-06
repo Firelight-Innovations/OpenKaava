@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7bb8-b09f-e6a7ff39d7d1",
+  "slug": "tool-window-transport-protocol",
+  "kind": "doc-block",
+  "title": "Tool Window owns shell half of transport-B protocol",
+  "description": "Architecture for the tool iframe communication handshake and why transport-B is centralized here.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e2-b95c-b24cdbe6d78b",
+  "body": "Owns the shell half of transport B: every tool iframe's hello lands here, and this is the only place that answers ready. Centralising the listener is what makes the security property possible — there is exactly one place that resolves a tool id from event.source, and exactly one map of trusted sources to check it against.",
+  "audience": "agent"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d79-9d06-0c8699a62277",
+  "slug": "tool-spec-dir-name",
+  "kind": "contract-method",
+  "title": "ToolSpec Directory Resolution",
+  "description": "Resolve the effective checkout directory name, using path override if present.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f53-8e06-e976a305895d",
+  "signature": "pub fn dir_name(&self) -> &str",
+  "params": [],
+  "returns": "&str",
+  "errors": [],
+  "semantics": "Returns the override path if set, otherwise the tool id.",
+  "exported": false
+}

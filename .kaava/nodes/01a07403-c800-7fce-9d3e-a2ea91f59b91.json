@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7fce-9d3e-a2ea91f59b91",
+  "slug": "kaava-tool-manifest",
+  "kind": "service",
+  "title": "Kaava Tool Manifest",
+  "description": "The kaava-tool.toml schema and its parser: what a tool declares about itself before OpenKaava will install it.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": null,
+  "entry_point": "crates/kaava-tool-manifest/src/lib.rs.",
+  "exports": [
+    "01a07403-c800-744a-bfe2-58310abd3c8d",
+    "01a07403-c800-79f0-a04e-34a1016076d6",
+    "01a07403-c800-72fb-a810-38a681a387d3",
+    "01a07403-c800-7195-8131-620cbf3c581e",
+    "01a07403-c800-76a8-af2e-1f8b36ced2ce"
+  ],
+  "schemas": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7afa-b1c1-df1f9e650e05",
+  "slug": "shell-state-splitting-assigns-a-shared-group",
+  "kind": "test-case",
+  "title": "Terminal Split Grouping",
+  "description": "Verify that splitting two terminals creates a shared group between them.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-793e-a1dd-5f4c43788377",
+  "given": "Two ungrouped terminal sessions",
+  "when": "Calling group_with_pure to split them",
+  "then": "Both terminals get the same group_id",
+  "impl_ref": "src-tauri/src/shell_state.rs::splitting_assigns_a_shared_group",
+  "status": "declared",
+  "last_result_ms": null
+}

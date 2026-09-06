@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f3d-a274-3fece29e1543",
+  "slug": "outcome-reconcile-outcome-kind",
+  "kind": "contract-method",
+  "title": "Get Outcome Type",
+  "description": "Return this outcome's OutcomeKind.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f14-8b2b-c06d802d2714",
+  "signature": "pub fn kind(&self) -> OutcomeKind",
+  "params": [],
+  "returns": "OutcomeKind",
+  "errors": [],
+  "semantics": "Extracts the kind discriminant from any variant.",
+  "exported": false
+}

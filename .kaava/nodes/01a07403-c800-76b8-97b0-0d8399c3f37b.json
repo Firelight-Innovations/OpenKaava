@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-76b8-97b0-0d8399c3f37b",
+  "slug": "comments",
+  "kind": "module",
+  "title": "Comments System",
+  "description": "Comment storage, retrieval, and display interface for design feedback and collaboration.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7364-bfe0-1ce9993df6cc",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7c9b-8a54-989d62b8f403"
+  ]
+}

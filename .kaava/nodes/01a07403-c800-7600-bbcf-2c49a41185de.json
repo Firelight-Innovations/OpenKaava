@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7600-bbcf-2c49a41185de",
+  "slug": "core-one-scope-refuses-second",
+  "kind": "test-case",
+  "title": "One scope refuses duplicate",
+  "description": "A second claim of the same slug to a different ID fails in one scope.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a7-8335-a2b30fb2137e",
+  "given": "A SlugIndex and a claimed slug",
+  "when": "claim is called again for the same slug with a different ID",
+  "then": "It returns SlugError::Duplicate",
+  "impl_ref": "crates/schematify-core/src/slug.rs::one_scope_refuses_a_second_claim_on_the_same_slug",
+  "status": "declared",
+  "last_result_ms": null
+}

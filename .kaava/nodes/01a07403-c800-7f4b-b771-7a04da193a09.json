@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f4b-b771-7a04da193a09",
+  "slug": "client-invoke-timeout",
+  "kind": "test-case",
+  "title": "Invoke times out if response never arrives",
+  "description": "Verifies that a request that never receives a response is rejected with a Timeout error code.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client with a 1000ms timeout",
+  "when": "invoke is called but no response arrives within 1000ms",
+  "then": "The promise rejects with KaavaRpcError with code Timeout",
+  "impl_ref": "packages/bridge/src/client.test.ts::times out a request that never gets a response",
+  "status": "declared",
+  "last_result_ms": null
+}

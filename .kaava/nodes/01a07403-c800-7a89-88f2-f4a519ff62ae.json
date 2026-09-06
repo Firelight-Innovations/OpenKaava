@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7a89-88f2-f4a519ff62ae",
+  "slug": "tool-spec",
+  "kind": "external-dep",
+  "title": "serde",
+  "description": "Serialization framework used for derive macros on data types.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f53-8e06-e976a305895d",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "#[derive(Serialize, Deserialize)] on ToolKind, ToolSpec, ToolStatus, ResolvedTool"
+}

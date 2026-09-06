@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-76dd-a0f4-f1f2b216af2f",
+  "slug": "library-surface-use-library-surface",
+  "kind": "contract-method",
+  "title": "useLibrarySurface Hook",
+  "description": "Returns whether the library screen should be drawn; subscribes to openLibrary/closeLibrary changes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7373-9ec3-080a8122ecb7",
+  "signature": "function useLibrarySurface(): LibrarySurface",
+  "params": [],
+  "returns": "LibrarySurface",
+  "errors": [],
+  "semantics": "Seeds from current value; re-renders when library open state changes.",
+  "exported": true
+}

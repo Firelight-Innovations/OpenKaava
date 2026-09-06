@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7656-b258-831c5fb1e13d",
+  "slug": "uuid-loader",
+  "kind": "external-dep",
+  "title": "UUID Type",
+  "description": "UUID type when constructing entities during loading.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d11-8354-a2669af47406",
+  "registry_ref": "01a07403-c800-71e9-a09e-d51d7c34d3cc",
+  "usage_note": "Parses UUID from JSON filenames and fields"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78a5-b734-718c2d346d5a",
+  "slug": "dashboard-test-latest-run",
+  "kind": "test-case",
+  "title": "latestRunLine draws the wireframe example",
+  "description": "Verifies the exact run line format.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cc3-bea1-6e72e54f057f",
+  "given": "A DashboardRun for run 1184 at 2026-08-25T14:02:00Z with commit 4f2c9ab and workflow ci/verify.yml",
+  "when": "latestRunLine is called",
+  "then": "Returns #1184 · 2026-08-25 14:02Z · 4f2c9ab · ci/verify.yml",
+  "impl_ref": "apps/schematify/ui/src/graph/dashboard.test.ts::draws the wireframe's own run line exactly",
+  "status": "declared",
+  "last_result_ms": null
+}

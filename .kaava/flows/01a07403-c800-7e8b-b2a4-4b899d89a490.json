@@ -1,0 +1,30 @@
+{
+  "id": "01a07403-c800-7e8b-b2a4-4b899d89a490",
+  "kind": "flow",
+  "slug": "work-multiple-projects-clusters",
+  "title": "Work on Multiple Projects with Clusters",
+  "trigger": "User needs to work on two projects or branches at the same time",
+  "steps": [
+    {
+      "screen": "schematify://screen/01a07403-c800-7953-b112-117deaa747db",
+      "action": "Click the + in the switcher bar to create a new cluster; Home appears"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7f0a-8719-bbe21ca9c505",
+      "action": "In the new cluster, open or create a different project"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7953-b112-117deaa747db",
+      "action": "Two cluster tabs now appear on the left of the switcher bar; click either tab to switch between them"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-70d7-ab31-286c94355b77",
+      "action": "When switching clusters, the entire layout swaps: File Explorer, File Viewer, and terminals all belong to the active cluster"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7953-b112-117deaa747db",
+      "action": "Each cluster maintains its own project path, pane arrangement, and terminal tabs independently"
+    }
+  ],
+  "outcome": "Two clusters are open side by side with independent projects, panes, and terminals"
+}

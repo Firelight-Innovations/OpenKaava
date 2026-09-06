@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7952-92b9-af9078dc30a0",
+  "slug": "search-execution",
+  "kind": "module",
+  "title": "Search Execution and Utilities",
+  "description": "Executes searches via backend, previews search results in Monaco, manages locator tree state, and handles opening search hits in the Files app.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bf0-b9c3-c8b9d80222dd",
+  "allowed_libraries": [
+    "01a07403-c800-7009-8eef-cc81f6cacfda",
+    "01a07403-c800-7e82-88b5-711699401b80"
+  ],
+  "ui_refs": []
+}

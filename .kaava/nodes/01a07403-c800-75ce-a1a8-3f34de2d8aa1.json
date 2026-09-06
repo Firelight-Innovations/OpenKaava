@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-75ce-a1a8-3f34de2d8aa1",
+  "slug": "tauri-api",
+  "kind": "external-dep",
+  "title": "Tauri Core API",
+  "description": "Provides invoke and event listening APIs for standalone Tauri app hosts through dynamic import of @tauri-apps/api/core and @tauri-apps/api/event.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "registry_ref": "01a07403-c800-7316-86fd-2d4d6903c4f5",
+  "usage_note": "Declared as an optional peer dependency (version ^2); required only when the bridge is used in a tool's own standalone Tauri app, not when running as a shell iframe."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-77a7-a36a-cb8726531672",
+  "slug": "plugin-remote-3",
+  "kind": "external-dep",
+  "title": "zip",
+  "description": "ZIP archive reader for unpacking downloaded plugin releases.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-764a-b5c5-9f2cce1355f5",
+  "registry_ref": "01a07403-c800-7323-8e18-14bf5b293cbf",
+  "usage_note": "zip reader in unpack() to extract plugin from release asset"
+}

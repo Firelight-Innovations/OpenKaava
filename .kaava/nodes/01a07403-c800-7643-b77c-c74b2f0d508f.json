@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7643-b77c-c74b2f0d508f",
+  "slug": "core-slug-index-claim",
+  "kind": "contract-method",
+  "title": "Claim Slug",
+  "description": "Record a slug as held by a node in a scope, detecting collisions.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a7-8335-a2b30fb2137e",
+  "signature": "pub fn claim(&mut self, scope: SlugScope, slug: &Slug, id: Uuid) -> Result<(), SlugError>",
+  "params": [
+    "scope: SlugScope",
+    "slug: &Slug",
+    "id: Uuid"
+  ],
+  "returns": "Result<(), SlugError>",
+  "errors": [
+    "SlugError::Duplicate"
+  ],
+  "semantics": "Records a slug for an identifier in a scope and succeeds when re-claiming the same slug for the same id, but fails if a different id holds it.",
+  "exported": false
+}

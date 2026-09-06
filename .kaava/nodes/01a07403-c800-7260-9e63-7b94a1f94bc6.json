@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7260-9e63-7b94a1f94bc6",
+  "slug": "manifest-parser-permissions-optional",
+  "kind": "test-case",
+  "title": "Permissions Section is Optional and Permissive",
+  "description": "A [permissions] table can be absent or hold any keys without error.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "A manifest with and without a [permissions] section",
+  "when": "parsed",
+  "then": "both parse successfully",
+  "impl_ref": "crates/kaava-tool-manifest/src/lib.rs::permissions_section_is_optional_and_permissive",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-7c8d-b6f5-6236b7d6e00e",
+  "slug": "plugin-registry-install-folder",
+  "kind": "contract-method",
+  "title": "Install Plugin from Folder",
+  "description": "Validate and register a checkout already on this machine.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "signature": "pub fn install_folder(app: &AppHandle, path: &Path) -> Result<ResolvedPlugin, InstallError>",
+  "params": [
+    "app: &AppHandle",
+    "path: &Path"
+  ],
+  "returns": "Result<ResolvedPlugin, InstallError>",
+  "errors": [
+    "NotAPlugin",
+    "AlreadyInstalled",
+    "ShadowsAnApp"
+  ],
+  "semantics": "Validates manifest, checks id constraints, registers record, stops old core if present.",
+  "exported": true
+}

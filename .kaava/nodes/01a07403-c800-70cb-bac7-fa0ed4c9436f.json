@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-70cb-bac7-fa0ed4c9436f",
+  "slug": "worktree-logic-selection-for",
+  "kind": "contract-method",
+  "title": "Create Selection from Row",
+  "description": "Extracts a minimal identity key from a file change for selection tracking.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71fe-af1c-0dcd2dfd9607",
+  "signature": "export function selectionFor(row: GitFileChange): { path: string; staged: boolean }",
+  "params": [
+    "row: GitFileChange"
+  ],
+  "returns": "{ path: string; staged: boolean }",
+  "errors": [],
+  "semantics": "Returns just the path and staged flag needed to identify a row across re-renders.",
+  "exported": false
+}

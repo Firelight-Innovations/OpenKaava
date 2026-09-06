@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-77d3-a0d3-3e27db45a8db",
+  "slug": "marker-token",
+  "kind": "module",
+  "title": "Marker Token Grammar",
+  "description": "Defines and parses the '@kaava:UUID [slug]' marker token format that links code to design elements.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e48-8636-0f44278a1b0e",
+  "allowed_libraries": [
+    "01a07403-c800-7c6f-af7f-96f44dbcc89a",
+    "01a07403-c800-71e9-a09e-d51d7c34d3cc"
+  ],
+  "ui_refs": []
+}

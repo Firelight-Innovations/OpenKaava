@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-754f-899d-8190848db469",
+  "slug": "codec",
+  "kind": "module",
+  "title": "JSON-RPC Wire Codec",
+  "description": "Wire format encoding and JSON-RPC 2.0 message types (Request, Response, Notification, RpcError) for newline-delimited JSON transport over standard streams.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7fb5-97cd-f3b9c139dbde",
+  "allowed_libraries": [
+    "01a07403-c800-75dd-b05c-6d3f11053668",
+    "01a07403-c800-7565-ae9d-23b929975082"
+  ],
+  "ui_refs": []
+}

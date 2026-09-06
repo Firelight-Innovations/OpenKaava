@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7b2f-a0cb-f3e2aeb5ac24",
+  "slug": "entry-point-bootstrap",
+  "kind": "doc-block",
+  "title": "React Application Bootstrap",
+  "description": "Entry point that initializes React and mounts the app.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754b-b02b-d0ca4aeda476",
+  "body": "The main.tsx entry point creates the React root and renders the App component wrapped in React.StrictMode. It imports the shared tokens (root-relative path resolved against vite project root) and the shell stylesheet, applying app-wide styling before rendering the App component into #root.",
+  "audience": "human"
+}

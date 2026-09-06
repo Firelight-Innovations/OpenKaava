@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e2a-b785-c7c8e95548f2",
+  "slug": "manifest-parser-rejects-invalid-version",
+  "kind": "test-case",
+  "title": "Tool Versions Must Be Semver",
+  "description": "A version string that is not valid semver fails to parse.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "version='not-semver'",
+  "when": "parsed",
+  "then": "returns ManifestError::InvalidVersion",
+  "impl_ref": "crates/kaava-tool-manifest/src/lib.rs::rejects_invalid_version",
+  "status": "declared",
+  "last_result_ms": null
+}

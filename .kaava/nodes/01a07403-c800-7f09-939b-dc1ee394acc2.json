@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f09-939b-dc1ee394acc2",
+  "slug": "search-logic-query-grammar",
+  "kind": "doc-block",
+  "title": "Search Query Grammar Design",
+  "description": "The unified syntax for search field combining globs, path scopes, and free text.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "body": "The query field's grammar unifies filter buttons and typed input into one string: bare globs, a trailing-slash directory, path:/ext:/kind: prefixes, !/- negation and a quoted phrase, mixed with plain words searched *for*, not filtered *by*. Pure by design — no React, no Monaco, no Tauri — so both a Rust-backed search source and a React hook depend on it without dragging the other's runtime along.",
+  "audience": "both"
+}

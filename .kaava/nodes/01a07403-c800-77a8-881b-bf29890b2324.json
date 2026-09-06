@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-77a8-881b-bf29890b2324",
+  "slug": "band-geometry-patch-merge",
+  "kind": "test-case",
+  "title": "Patch merges into existing state",
+  "description": "Calling withBandGeometry with a partial patch merges into the existing geometry without overwriting the other field.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bda-92fe-1e3bdf7870f3",
+  "given": "cluster with collapsed=false and maximized=true",
+  "when": "withBandGeometry is called with patch {collapsed: true}",
+  "then": "result has collapsed=true and maximized=true",
+  "impl_ref": "src/shell/frame/bandGeometry.test.ts::bandGeometry#patches one half without restating the other",
+  "status": "declared",
+  "last_result_ms": null
+}

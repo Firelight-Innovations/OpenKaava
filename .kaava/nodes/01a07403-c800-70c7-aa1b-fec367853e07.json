@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-70c7-aa1b-fec367853e07",
+  "slug": "report-rendering-summary",
+  "kind": "contract-method",
+  "title": "Outcome Count Summary",
+  "description": "Per-OutcomeKind counts for the consolidated report.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "signature": "pub struct Summary",
+  "params": [
+    "matched: usize",
+    "declared_absent: usize",
+    "present_unknown: usize",
+    "duplicate: usize"
+  ],
+  "returns": "struct",
+  "errors": [],
+  "semantics": "Aggregate counts of each outcome type.",
+  "exported": false
+}

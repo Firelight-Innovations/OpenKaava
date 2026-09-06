@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7698-85b6-3ac867ffc881",
+  "slug": "tool-frontend",
+  "kind": "external-dep",
+  "title": "tauri",
+  "description": "Desktop framework for AppHandle state and Manager trait access.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7219-9c03-3b1eff89b2cd",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "use tauri::{AppHandle, Manager} for state access in resolve()"
+}

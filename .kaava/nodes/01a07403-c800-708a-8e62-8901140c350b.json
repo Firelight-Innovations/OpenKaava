@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-708a-8e62-8901140c350b",
+  "slug": "splash-screen-minimum-visible",
+  "kind": "doc-block",
+  "title": "Splash minimum visible time",
+  "description": "Splash stays up 800ms minimum so boot completion is not a flash.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c00-b2b5-c21de1d221d0",
+  "body": "Minimum time the splash stays up after mounting, no matter how fast boot finishes. Without this, a boot that completes in a couple of milliseconds would show up as a flash of a window nobody had time to actually read. This only holds back the handoff to the main window.",
+  "audience": "agent"
+}

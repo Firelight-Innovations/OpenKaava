@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7032-8d40-a1a4472cebdd",
+  "slug": "uuid-graph",
+  "kind": "external-dep",
+  "title": "UUID Type",
+  "description": "UUID references in graph indexing and lookups.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bcb-9de4-3775dbe05092",
+  "registry_ref": "01a07403-c800-71e9-a09e-d51d7c34d3cc",
+  "usage_note": "Uuid keys in BTreeMap collections for nodes, edges, screens, flows"
+}

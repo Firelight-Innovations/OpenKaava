@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-71de-bec0-80ca01c2faf4",
+  "kind": "decision",
+  "slug": "DEC-TEC-CLAP-022",
+  "title": "Default catalog entry auto-installs on first run; CI check guards against accidental swallowing of security-impacting edits",
+  "context": "Default=true entry downloads and executes unsandboxed code on every new machine. Configuration looks innocent but has code consequences.",
+  "decision": "Guard catalog edits in CI with maintainer requirement. Document that CODEOWNERS is the actual boundary (server-side evaluation). First-run installs fail quietly on network outage.",
+  "consequences": "Contributor adds entry; merge blocked until maintainer takes over. CI prevents pull requests from relaxing their own gate. New users get friendly degradation without red warnings.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

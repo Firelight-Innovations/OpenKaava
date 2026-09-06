@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7da6-96ec-956ebc183c2d",
+  "slug": "build-config-2",
+  "kind": "external-dep",
+  "title": "Vite React Plugin",
+  "description": "Vite plugin providing React JSX and HMR support for React applications.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-70e9-8fb7-50d8be9843d8",
+  "registry_ref": "01a07403-c800-75f9-bc0f-17bc1fb90b8b",
+  "usage_note": "Used in vite.config.ts to enable React JSX transformation and hot module replacement"
+}

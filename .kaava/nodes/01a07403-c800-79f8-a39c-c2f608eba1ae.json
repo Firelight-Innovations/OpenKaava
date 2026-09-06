@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-79f8-a39c-c2f608eba1ae",
+  "slug": "staleness-ago-compact",
+  "kind": "contract-method",
+  "title": "agoCompact",
+  "description": "Formats elapsed time as compact form: minutes/hours/days ago, coarsest unit that keeps 1 significant digit.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f23-8360-1956f352980f",
+  "signature": "function agoCompact(atMs: number, nowMs: number): string",
+  "params": [
+    "atMs: number",
+    "nowMs: number"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Computes time intervals at draw time per PRD section 7.4.",
+  "exported": false
+}

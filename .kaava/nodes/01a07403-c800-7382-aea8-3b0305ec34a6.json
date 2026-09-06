@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7382-aea8-3b0305ec34a6",
+  "slug": "viewport-zoom-readout",
+  "kind": "contract-method",
+  "title": "zoomReadout",
+  "description": "Format zoom as percentage string.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-759b-b225-e1b8cd987643",
+  "signature": "function zoomReadout(viewport: Viewport): string",
+  "params": [
+    "viewport"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Returns rounded percentage like '68%'.",
+  "exported": true
+}

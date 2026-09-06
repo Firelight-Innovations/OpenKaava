@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-751c-97fb-07188a089ef6",
+  "slug": "shell-bindings-set-cluster-project",
+  "kind": "contract-method",
+  "title": "setClusterProject",
+  "description": "Point a cluster at a project without going through Home.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7149-8c4b-15d6ed575d92",
+  "signature": "function setClusterProject(clusterId: string, path: string | null): Promise<void>",
+  "params": [
+    "clusterId",
+    "path"
+  ],
+  "returns": "Promise<void>",
+  "errors": [],
+  "semantics": "Sets a cluster's project binding directly from the layout system.",
+  "exported": true
+}

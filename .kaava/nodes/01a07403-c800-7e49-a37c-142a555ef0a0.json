@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7e49-a37c-142a555ef0a0",
+  "slug": "reconciliation-reconcile",
+  "kind": "contract-method",
+  "title": "Run Reconciliation",
+  "description": "Scan root for marker tokens and reconcile them against graph.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f82-b74b-6f5fb1052449",
+  "signature": "pub fn reconcile(root: &Path, graph: &dyn GraphLookup) -> ReconcileRun",
+  "params": [
+    "root: &Path",
+    "graph: &dyn GraphLookup"
+  ],
+  "returns": "ReconcileRun",
+  "errors": [],
+  "semantics": "Scans code tree and compares every marker against the graph.",
+  "exported": false
+}

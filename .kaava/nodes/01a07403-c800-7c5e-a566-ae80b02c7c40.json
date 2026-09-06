@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7c5e-a566-ae80b02c7c40",
+  "slug": "plugin-registry-2",
+  "kind": "external-dep",
+  "title": "serde",
+  "description": "Serialization for plugin data structures sent to frontend.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "#[derive(Serialize)] on ResolvedPlugin, ResolvedSurface, PluginRow"
+}

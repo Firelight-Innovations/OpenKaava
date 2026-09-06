@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7866-8b8b-841c043c1c81",
+  "slug": "settings-empty-document-is-store",
+  "kind": "test-case",
+  "title": "Empty document is a store with nothing changed",
+  "description": "An empty JSON object represents all settings at default.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7af9-8c80-9bcc2630d68a",
+  "given": "An empty JSON object",
+  "when": "deserialized",
+  "then": "Returns Stored with empty values",
+  "impl_ref": "src-tauri/src/settings/store.rs::an_empty_document_is_a_store_with_nothing_changed",
+  "status": "declared",
+  "last_result_ms": null
+}

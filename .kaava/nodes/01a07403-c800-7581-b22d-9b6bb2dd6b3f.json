@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7581-b22d-9b6bb2dd6b3f",
+  "slug": "ids-module-doc",
+  "kind": "doc-block",
+  "title": "Identifier Minting",
+  "description": "UUIDv7 generation and slug duplication for node identity.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7013-af37-bb584e518f4a",
+  "body": "Identifier minting. PRD §3.1 makes a node's identity a UUIDv7 and PRD §12.3 requires that a duplicate mint a new UUIDv7 and append a suffix to the slug — a copy is a new thing, never the same thing twice. UUIDv7 rather than v4 because the first 48 bits are the mint time, so a directory of `nodes/<uuid>.json` sorts chronologically without a stored timestamp.",
+  "audience": "agent"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7661-81c1-62e2390442eb",
+  "slug": "config-module-doc",
+  "kind": "doc-block",
+  "title": "Configuration Surface",
+  "description": "The engine's declarative configuration shape for 3 tiers.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74d4-b905-475b4f8fabda",
+  "body": "One Schematic engine, configured 3 ways (PRD §17 Wave 3) — this file is the whole interface Wave 5 programs against when it builds the Stack, Service and Module Schematics. Nothing below draws; every value here is read by `engine.ts`, `rules.ts`, `routing.ts` or `frame.ts`. The shape is deliberately declarative: an edge kind is a row in a table rather than a callback, so a refusal can name the rule it came from and a test can enumerate what a tier accepts without running a drag.",
+  "audience": "agent"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7b43-80b5-651f0032b088",
+  "slug": "vitest",
+  "kind": "external-dep",
+  "title": "Vitest",
+  "description": "Unit testing framework for the product layer tests.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "registry_ref": "01a07403-c800-7624-8f42-daeadd0fe87a",
+  "usage_note": "product/index.test.ts uses describe, expect, it for testing product layer derivations"
+}

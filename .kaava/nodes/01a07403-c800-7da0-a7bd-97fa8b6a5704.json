@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7da0-a7bd-97fa8b6a5704",
+  "slug": "plugin-store-load",
+  "kind": "contract-method",
+  "title": "Load Plugin Store",
+  "description": "Deserialize saved plugin records; never fails.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c92-b990-0fafa3c719fa",
+  "signature": "pub fn load(app: &AppHandle) -> Stored",
+  "params": [
+    "app: &AppHandle"
+  ],
+  "returns": "Stored",
+  "errors": [],
+  "semantics": "Returns empty store if file missing or unreadable; set-aside on parse error.",
+  "exported": false
+}

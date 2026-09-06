@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7fc2-a5a8-592daba9a035",
+  "kind": "decision",
+  "slug": "DEC-STD-DOORS-002",
+  "title": "No version numbers exposed in interface contracts",
+  "context": "Interface types were tempted to expose version fields for tool status display.",
+  "decision": "ToolPresentation has no version field. toolPresentation() is the only way to turn a ResolvedTool into something renderable. Components that need version must explicitly retrieve it.",
+  "consequences": "Decouples interface from backend version complexity. Components cannot accidentally depend on version being present. healthOf() is the single mapping point from backend states (ready|mismatch|unversioned|missing) to interface terms (needs update, not tracked, not installed).",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-08-16"
+}

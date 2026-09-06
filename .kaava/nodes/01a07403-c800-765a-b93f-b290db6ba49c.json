@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-765a-b93f-b290db6ba49c",
+  "slug": "identity-check-problems-detection",
+  "kind": "test-case",
+  "title": "problems function",
+  "description": "Identifies disagreements between surfaces and the pinned identity.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ef5-b5fd-cb82e357bc20",
+  "given": "Five files with identifier, productName, KEYRING_SERVICE, ui:build config, and installer hooks",
+  "when": "problems() is called with mismatched values",
+  "then": "returns specific error messages per disagreement, with explanation of consequences",
+  "impl_ref": "scripts/check-identity.test.mjs::problems",
+  "status": "declared",
+  "last_result_ms": null
+}

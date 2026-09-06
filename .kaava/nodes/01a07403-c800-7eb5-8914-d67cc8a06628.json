@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7eb5-8914-d67cc8a06628",
+  "slug": "git-support",
+  "kind": "module",
+  "title": "Git Integration",
+  "description": "Git utilities for displaying diff hunks in the editor gutter, tracking HEAD state, and managing blob URLs.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7027-b3d8-9a1e046e1067",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

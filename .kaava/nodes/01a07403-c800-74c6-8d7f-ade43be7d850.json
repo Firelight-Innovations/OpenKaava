@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-74c6-8d7f-ade43be7d850",
+  "slug": "search-logic-compile-path-filter-slash-anchored",
+  "kind": "test-case",
+  "title": "Path Filter: Slash-Anchored Glob",
+  "description": "Tests that globs with slashes anchor to the whole path.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "given": "Filter 'src/*.ts'",
+  "when": "predicate is called",
+  "then": "Matches 'src/main.ts' but not 'apps/src/main.ts'",
+  "impl_ref": "src/shell/search/query.test.ts::compilePathFilter::anchors a glob containing a slash to the whole path",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-728a-92f5-d2324fb85aed",
+  "slug": "project-cluster-root-pointer",
+  "kind": "contract-method",
+  "title": "Get a cluster's working root, regardless of disk presence",
+  "description": "Return the root a cluster's work is rooted in, following worktrees but not checking disk existence.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "signature": "pub fn cluster_root_pointer(app: &AppHandle, cluster_id: &str) -> Option<PathBuf>",
+  "params": [
+    "app: &AppHandle",
+    "cluster_id: &str"
+  ],
+  "returns": "Option<PathBuf>",
+  "errors": [],
+  "semantics": "Returns the working root for a cluster, preferring worktree if set, without disk verification.",
+  "exported": false
+}

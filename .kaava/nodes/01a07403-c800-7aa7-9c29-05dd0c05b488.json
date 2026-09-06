@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7aa7-9c29-05dd0c05b488",
+  "slug": "client-declare-commands-request",
+  "kind": "test-case",
+  "title": "declareCommands sends kaava/commands request",
+  "description": "Verifies that declaring commands sends a request with the correct method and payload.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client with completed handshake",
+  "when": "declareCommands(['file/save', 'edit/undo']) is called",
+  "then": "A kaava/commands request is posted with the commands array",
+  "impl_ref": "packages/bridge/src/client.test.ts::sends a declaration as a kaava/commands request",
+  "status": "declared",
+  "last_result_ms": null
+}

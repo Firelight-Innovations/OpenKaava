@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-77c7-bb63-c4707bf90af7",
+  "slug": "api-subscribe",
+  "kind": "contract-method",
+  "title": "subscribe",
+  "description": "Listen for what other frames in this cluster publish under a named topic.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77f3-afe7-a004ea566b14",
+  "signature": "subscribe(topic: string, cb: (value: unknown, from: string) => void): () => void",
+  "params": [
+    "topic: string",
+    "cb: (value: unknown, from: string) => void"
+  ],
+  "returns": "() => void",
+  "errors": [],
+  "semantics": "Wrapper around on() that adds the topic prefix and unwraps the payload; returns an unsubscribe function.",
+  "exported": true
+}

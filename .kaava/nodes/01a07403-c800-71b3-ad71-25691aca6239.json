@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-71b3-ad71-25691aca6239",
+  "slug": "drag",
+  "kind": "module",
+  "title": "Drag and Drop",
+  "description": "Layer managing drag-and-drop gestures for moving app tabs and clusters between panes and windows, plus file dragging to terminals.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bb4-bdbe-fe72bc3e7a0c",
+  "allowed_libraries": [
+    "01a07403-c800-7bd1-a062-9c1c49e747dc",
+    "01a07403-c800-7417-a580-5d7e987102ee"
+  ],
+  "ui_refs": []
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7a3e-8444-a890650a68a9",
+  "slug": "handoff-url-is-loopback",
+  "kind": "test-case",
+  "title": "Handoff URL Uses Loopback",
+  "description": "The URL in the handoff document is the loopback address the listener actually bound.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f49-a38a-51adeb6359f8",
+  "given": "A handoff document",
+  "when": "The url field is inspected",
+  "then": "It starts with http://127.0.0.1: and never with localhost",
+  "impl_ref": "src-tauri/src/mcp/handoff.rs::the_url_is_the_loopback_address_the_listener_actually_bound",
+  "status": "declared",
+  "last_result_ms": null
+}

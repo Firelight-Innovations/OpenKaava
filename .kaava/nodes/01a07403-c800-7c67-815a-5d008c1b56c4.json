@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c67-815a-5d008c1b56c4",
+  "slug": "manifest-parser-surface-lookup",
+  "kind": "test-case",
+  "title": "Surface Lookup by ID",
+  "description": "The surface() method finds a surface by its id or returns None.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "A multi-surface manifest with 'graph' surface",
+  "when": "surface('graph') and surface('nope') are called",
+  "then": "first returns the surface, second returns None",
+  "impl_ref": "crates/kaava-tool-manifest/src/lib.rs::surface_looks_up_by_id",
+  "status": "declared",
+  "last_result_ms": null
+}

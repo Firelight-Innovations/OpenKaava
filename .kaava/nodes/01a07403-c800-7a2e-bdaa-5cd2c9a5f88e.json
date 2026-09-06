@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7a2e-bdaa-5cd2c9a5f88e",
+  "slug": "layout-to-graph",
+  "kind": "contract-method",
+  "title": "toGraph",
+  "description": "Project document to semantic service graph.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79bb-abc8-74d009a7d2da",
+  "signature": "function toGraph(doc: SchematicDoc): ServiceGraph",
+  "params": [
+    "doc"
+  ],
+  "returns": "ServiceGraph",
+  "errors": [],
+  "semantics": "Filters out annotations, returns semantic structure.",
+  "exported": true
+}

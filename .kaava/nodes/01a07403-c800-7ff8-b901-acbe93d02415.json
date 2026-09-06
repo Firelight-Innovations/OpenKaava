@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7ff8-b901-acbe93d02415",
+  "slug": "stack-discovery-module-doc",
+  "kind": "doc-block",
+  "title": "Stack Resolution Purpose",
+  "description": "Joins manifest against filesystem to determine actual tool health.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7987-be21-fd2e593064ee",
+  "body": "Joining the manifest against the filesystem. The manifest says 'engine should be at version 0.1.0'. Discovery answers '…and here is what is actually sitting on this machine right now'. Stack components this build actually resolves and reports health for are filtered through ENABLED_TOOLS: a tool id absent from it never reaches `resolve_one` — it has to not appear in the snapshot at all, not appear there tagged `Missing` or `Unversioned`.",
+  "audience": "agent"
+}

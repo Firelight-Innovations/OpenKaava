@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-752b-ac39-cdaf31590659",
+  "slug": "crates-require-doc-comments",
+  "statement": "Every public module in crates/ must have a doc comment describing its purpose.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm lint"
+}

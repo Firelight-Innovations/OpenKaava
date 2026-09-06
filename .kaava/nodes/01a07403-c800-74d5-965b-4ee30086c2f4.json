@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-74d5-965b-4ee30086c2f4",
+  "slug": "workspace-search",
+  "kind": "module",
+  "title": "Content Search Engine",
+  "description": "Searches file contents across a workspace using ripgrep components (grep-regex, grep-searcher, ignore), respecting .gitignore patterns and configurable match/file limits.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [
+    "01a07403-c800-7c62-a5d4-66c790dd740a",
+    "01a07403-c800-767b-81c3-803c3f923674",
+    "01a07403-c800-7914-856f-66fc1aed5faf",
+    "01a07403-c800-7021-9c05-f9cb856f667c",
+    "01a07403-c800-7e1d-a73a-767f7374fc17"
+  ],
+  "ui_refs": []
+}

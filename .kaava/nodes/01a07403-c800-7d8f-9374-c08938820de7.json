@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7d8f-9374-c08938820de7",
+  "slug": "rules-validate-reparent",
+  "kind": "contract-method",
+  "title": "validateReparent",
+  "description": "Validate reparent avoiding containment cycles.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74c0-9507-02a5b468f60f",
+  "signature": "function validateReparent(index: DocIndex, nodeId: string, parentId: string | null): Refusal | null",
+  "params": [
+    "index",
+    "nodeId",
+    "parentId"
+  ],
+  "returns": "Refusal | null",
+  "errors": [],
+  "semantics": "Returns null if valid or Refusal if would cycle.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7bba-8279-bbd3a278fcea",
+  "slug": "design-app-probe-read-well-formed-pick",
+  "kind": "test-case",
+  "title": "readProbeMessage accepts well-formed pick",
+  "description": "Validates and parses element selection message",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71a3-ae12-251b52dac590",
+  "given": "valid picked element payload with channel marker",
+  "when": "readProbeMessage is called",
+  "then": "returns ProbeMessage with kind picked and element data",
+  "impl_ref": "apps/design/ui/src/probe.test.ts::takes a well-formed pick",
+  "status": "declared",
+  "last_result_ms": null
+}

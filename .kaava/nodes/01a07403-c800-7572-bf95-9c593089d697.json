@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7572-bf95-9c593089d697",
+  "slug": "plugin-registry-missing-checkout-resolves",
+  "kind": "test-case",
+  "title": "Plugin Resolution: Missing Checkout",
+  "description": "Missing directory resolves to Missing error, not manifest error.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "given": "Path that does not exist",
+  "when": "resolve_one() is called",
+  "then": "Returns ResolveError::Missing",
+  "impl_ref": "src-tauri/src/plugins/mod.rs::a_missing_checkout_resolves_to_missing_rather_than_a_manifest_error",
+  "status": "declared",
+  "last_result_ms": null
+}

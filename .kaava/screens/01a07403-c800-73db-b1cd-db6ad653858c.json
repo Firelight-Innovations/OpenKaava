@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-73db-b1cd-db6ad653858c",
+  "kind": "screen",
+  "slug": "files-trash",
+  "title": "Trash/Recycle Bin View",
+  "purpose": "Displays deleted files scoped to current project with restore and permanent delete options",
+  "states": [
+    "loading",
+    "empty",
+    "populated",
+    "error",
+    "purging item"
+  ],
+  "acceptance": [
+    "shall show snapshot timestamp of when trash was last read",
+    "shall display deleted items with original path, size/count, and deletion time",
+    "shall allow restore action to put items back to original location",
+    "shall allow permanent delete (purge) with confirmation",
+    "shall show error if item is no longer in trash when action is clicked",
+    "shall refresh list after any restore or purge action"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7ce7-9e18-1b0a7e4aced9"
+  ]
+}

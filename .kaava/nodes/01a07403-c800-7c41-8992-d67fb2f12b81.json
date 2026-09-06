@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c41-8992-d67fb2f12b81",
+  "slug": "design-app-prompt-to-prompt-omits-empty-sections",
+  "kind": "test-case",
+  "title": "toPrompt omits empty sections",
+  "description": "Does not print sections with no content",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71a3-ae12-251b52dac590",
+  "given": "element with no text, attributes, styles, or html",
+  "when": "toPrompt is called",
+  "then": "no Attributes, Computed styles, or Markup sections printed",
+  "impl_ref": "apps/design/ui/src/prompt.test.ts::omits a whole section rather than printing an empty one",
+  "status": "declared",
+  "last_result_ms": null
+}

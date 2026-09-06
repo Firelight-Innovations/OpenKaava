@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7d62-abe0-4004c3d67c98",
+  "slug": "tool-window-component",
+  "kind": "contract-method",
+  "title": "ToolWindow React Component",
+  "description": "Container that mounts every docked tool iframe, handles the transport-B handshake protocol, measures pane geometry, and positions frames over their panes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e2-b95c-b24cdbe6d78b",
+  "signature": "const ToolWindow: React.ForwardRefComponent<ToolWindowHandle, ToolWindowProps>",
+  "params": [
+    "tree: PaneNode",
+    "clusterId: string | null",
+    "clustersKnown: boolean",
+    "instances: Map<string, SurfaceInstance>",
+    "presentationOf: (appId) => ToolPresentation | undefined"
+  ],
+  "returns": "ReactElement | null",
+  "errors": [],
+  "semantics": "Hosts all tool iframes in one flat container, positions them absolutely over their pane hosts, and manages the hello/ready handshake.",
+  "exported": false
+}

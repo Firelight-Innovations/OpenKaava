@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7f59-9ddf-2bc3eb15d303",
+  "slug": "shell-outline-component",
+  "kind": "contract-method",
+  "title": "Outline Panel Component",
+  "description": "Renders the left sidebar with a 3-entry section switcher (Design/Product/Decisions) and hierarchy tree for the Design section.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-743f-ae55-0cbaeb91a62a",
+  "signature": "Outline(props: OutlineProps) => JSX.Element",
+  "params": [
+    "graph: ServiceGraph",
+    "section?: Section",
+    "onSectionChange?: (section: Section) => void",
+    "productCounts?: ProductCounts"
+  ],
+  "returns": "React component",
+  "errors": [],
+  "semantics": "Displays section tabs, a containment tree for Design view, and summary lines for Product/Decisions sections read from product graph counts.",
+  "exported": true
+}

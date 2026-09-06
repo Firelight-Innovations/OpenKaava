@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-779b-93bf-67454e813d71",
+  "slug": "accelerators-windows-modifier",
+  "kind": "test-case",
+  "title": "Accelerator Writes Windows Modifier",
+  "description": "Verifies that accelerator() outputs Ctrl+ not Cmd+ on all inputs.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d53-814c-3c88cf09800b",
+  "given": "Various keyboard keys including K, ., `, \\, =, -, 1",
+  "when": "Passed to accelerator() with optional shift",
+  "then": "All outputs begin with Ctrl+ and contain no Mac glyphs",
+  "impl_ref": "src/shell/accelerators.test.ts::accelerator() writes the Windows modifier",
+  "status": "declared",
+  "last_result_ms": null
+}

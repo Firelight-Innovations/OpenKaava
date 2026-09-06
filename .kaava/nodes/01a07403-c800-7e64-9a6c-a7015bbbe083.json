@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7e64-9a6c-a7015bbbe083",
+  "slug": "shell-bindings-terminal-attach",
+  "kind": "contract-method",
+  "title": "terminalAttach",
+  "description": "Get the backlog of a terminal session since last attach.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7149-8c4b-15d6ed575d92",
+  "signature": "function terminalAttach(id: string): Promise<PtyAttachment | null>",
+  "params": [
+    "id"
+  ],
+  "returns": "Promise<PtyAttachment | null>",
+  "errors": [],
+  "semantics": "Returns session text backlog and sequence number to replay history.",
+  "exported": true
+}

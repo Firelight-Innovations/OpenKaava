@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-72de-8659-2159aa7a150f",
+  "kind": "screen",
+  "slug": "schematify-project-brief",
+  "title": "Project Brief View",
+  "purpose": "Product section showing and editing high-level project overview and goals",
+  "states": [
+    "loading",
+    "ready",
+    "editing",
+    "saving",
+    "error"
+  ],
+  "acceptance": [
+    "shall display project name, description, and objectives",
+    "shall allow editing brief content",
+    "shall save changes to backend",
+    "shall show save status",
+    "shall display error if brief cannot be loaded or saved"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-75a3-aa4b-594b7ec3dd79"
+  ]
+}

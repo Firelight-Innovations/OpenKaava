@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7e59-81f7-76e1d8cd89cf",
+  "slug": "context-menu-host-overview",
+  "kind": "doc-block",
+  "title": "Context Menu Host Component",
+  "description": "Explains document-level right-click menu handling.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d41-ae1e-744620afb4bf",
+  "body": "WebView2's own menu is off, so a right-click that nothing answers shows nothing at all. This is what answers it. A surface that wants its own says so with preventDefault — that is the web's existing signal for 'this right-click is handled' — and the host reads defaultPrevented and stands down.",
+  "audience": "agent"
+}

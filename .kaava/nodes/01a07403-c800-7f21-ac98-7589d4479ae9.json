@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f21-ac98-7589d4479ae9",
+  "slug": "scanner-invalid-utf8-text-file-does-not-panic-and-still-finds-the-marker",
+  "kind": "test-case",
+  "title": "Handle Invalid UTF-8 Gracefully",
+  "description": "Files with stray invalid UTF-8 bytes are scanned lossily and markers are still found.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-781b-85ef-56660694446e",
+  "given": "text file with stray invalid UTF-8 bytes and a valid marker",
+  "when": "scan_tree walks",
+  "then": "marker is found, skipped is empty",
+  "impl_ref": "crates/schematify-reconcile/src/scan.rs::invalid_utf8_text_file_does_not_panic_and_still_finds_the_marker",
+  "status": "declared",
+  "last_result_ms": null
+}

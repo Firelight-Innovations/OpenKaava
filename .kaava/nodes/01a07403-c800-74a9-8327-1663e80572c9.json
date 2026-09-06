@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-74a9-8327-1663e80572c9",
+  "slug": "stack-discovery",
+  "kind": "external-dep",
+  "title": "semver",
+  "description": "Semantic version parser for validating and comparing tool version pins.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7987-be21-fd2e593064ee",
+  "registry_ref": "01a07403-c800-7aa2-b3b9-6a78efea577b",
+  "usage_note": "Version::parse() to validate pinned tool versions in discovery"
+}

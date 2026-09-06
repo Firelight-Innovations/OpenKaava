@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7117-bb4a-a9049a160f6d",
+  "slug": "shortcuts-screen-overview",
+  "kind": "doc-block",
+  "title": "Keyboard Shortcuts Modal",
+  "description": "Explains read-only modal design and why rebinding not supported.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7330-b3fb-c4b513350eab",
+  "body": "Read-only is the whole design. Rebinding means a stored keymap, a conflict check against the ones the browser and the focused surface already own, and a way back to the defaults — none of which exists, and a screen that offered to rebind before any of it did would be promising something it could not keep.",
+  "audience": "human"
+}

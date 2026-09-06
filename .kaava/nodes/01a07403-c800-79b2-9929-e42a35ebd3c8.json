@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79b2-9929-e42a35ebd3c8",
+  "slug": "tree-state-row-height",
+  "kind": "contract-method",
+  "title": "Row Height Constant",
+  "description": "Height of every tree row in pixels, used for virtual windowing arithmetic.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75ef-92b8-f1ede6be6e2f",
+  "signature": "export const ROW_HEIGHT = 22",
+  "params": [],
+  "returns": "Number in pixels",
+  "errors": [],
+  "semantics": "Fixed row height for windowing calculations.",
+  "exported": true
+}

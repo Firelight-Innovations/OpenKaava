@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-7def-9354-dd5b64c0c021",
+  "slug": "context-ui-context-menu",
+  "kind": "contract-method",
+  "title": "Context Menu Component",
+  "description": "Right-click menu offering create, rename, delete, copy path, reveal in OS, open with default app.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e9-befc-346f4e5d66bd",
+  "signature": "export default function ContextMenu(props: ContextMenuProps): JSX.Element",
+  "params": [
+    "target: MenuTarget",
+    "rootPath: string",
+    "onCreate: (parent: string, kind: DraftKind) => void",
+    "onRename: (path: string, name: string) => void",
+    "onDelete: (target: DeleteTarget) => void",
+    "onClose: () => void"
+  ],
+  "returns": "React component for context menu",
+  "errors": [],
+  "semantics": "Renders positioned menu with actions conditional on whether target is file, dir, or blank space.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7dc2-ad30-ceb30c4a07e9",
+  "slug": "shortcuts-screen-component",
+  "kind": "contract-method",
+  "title": "Keyboard Shortcuts Screen",
+  "description": "Modal overlay displaying all keyboard shortcuts grouped by category.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7330-b3fb-c4b513350eab",
+  "signature": "export default function ShortcutsScreen(): ReactNode",
+  "params": [],
+  "returns": "ReactNode",
+  "errors": [],
+  "semantics": "Renders a read-only modal listing all shell keyboard shortcuts.",
+  "exported": true
+}

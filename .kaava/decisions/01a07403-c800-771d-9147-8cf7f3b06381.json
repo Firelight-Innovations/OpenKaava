@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-771d-9147-8cf7f3b06381",
+  "kind": "decision",
+  "slug": "DEC-TEC-SEARCH-014",
+  "title": "Search hit paths stored absolute, displayed relative; matches list is per-file not per-hit",
+  "context": "Search consumers need absolute paths; display is relative to search root. A file matching on name has no matches inside to point at.",
+  "decision": "SearchHit.path is absolute. SearchHit.matches is empty for name-only matches, otherwise lists every place inside file the query matched.",
+  "consequences": "Locator tree walks absolute path back to search root. Results can show '417 results in 32 files'. File row with no nested matches is still a stop.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

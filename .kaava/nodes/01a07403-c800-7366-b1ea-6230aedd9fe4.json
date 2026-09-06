@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7366-b1ea-6230aedd9fe4",
+  "slug": "commands-shell-state",
+  "kind": "contract-method",
+  "title": "shell_state",
+  "description": "Retrieve the current shared state for a window that has just mounted.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a15-9205-3403c29c95c2",
+  "signature": "pub fn shell_state(shell: State<ShellState>) -> ShellSnapshot",
+  "params": [
+    "shell: State<ShellState>"
+  ],
+  "returns": "ShellSnapshot",
+  "errors": [],
+  "semantics": "Complements shell:state event subscription for catching up on missed broadcasts.",
+  "exported": true
+}

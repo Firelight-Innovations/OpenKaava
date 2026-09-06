@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f03-9582-d69ee2e889b6",
+  "slug": "identity-check-rename-safety",
+  "kind": "doc-block",
+  "title": "Identity rename consequences",
+  "description": "Why identifier and productName drifting separately is silently dangerous.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ef5-b5fd-cb82e357bc20",
+  "body": "A rename that moves either is allowed; moving either quietly is what took a live %APPDATA%\\com.firelightinnovations.helve out of reach and installed OpenKaava beside HELVE instead of over it, with every check passing. The identifier moves the config directory holding eight stores, the WebView2 profile, and the single-instance mutex. The productName moves the install directory NSIS chooses and the Add/Remove Programs key its probe reads.",
+  "audience": "human"
+}

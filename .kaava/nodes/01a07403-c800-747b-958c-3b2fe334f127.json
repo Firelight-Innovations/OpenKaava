@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-747b-958c-3b2fe334f127",
+  "slug": "plugin-install-2",
+  "kind": "external-dep",
+  "title": "serde",
+  "description": "Serialization for progress reports sent during installation.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-762d-98bf-9549ca7a28bb",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "#[derive(Serialize)] on Progress and Phase enums"
+}

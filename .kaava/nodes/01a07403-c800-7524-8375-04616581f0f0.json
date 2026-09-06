@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7524-8375-04616581f0f0",
+  "slug": "report-rendering-thiserror",
+  "kind": "external-dep",
+  "title": "thiserror",
+  "description": "Derive macros for implementing Error trait.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "registry_ref": "01a07403-c800-7565-98ec-498cf9d20d06",
+  "usage_note": "Derives Error on ReportError for I/O and JSON encoding failures"
+}

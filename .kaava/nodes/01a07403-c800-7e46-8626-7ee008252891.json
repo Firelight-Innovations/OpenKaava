@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e46-8626-7ee008252891",
+  "slug": "atomic-a-write-lands-and-parses-back",
+  "kind": "test-case",
+  "title": "Write lands and parses back",
+  "description": "A write succeeds and the file can be read back as valid JSON.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7584-85b8-2c8fc4148f9d",
+  "given": "A JSON value and a file path",
+  "when": "write_json_atomic is called",
+  "then": "The file exists, ends with newline, and deserializes to the original value",
+  "impl_ref": "crates/schematify-core/src/atomic.rs::a_write_lands_and_parses_back",
+  "status": "declared",
+  "last_result_ms": null
+}

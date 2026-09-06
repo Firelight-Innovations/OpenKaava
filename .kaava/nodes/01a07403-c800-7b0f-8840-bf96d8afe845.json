@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b0f-8840-bf96d8afe845",
+  "slug": "shell-state-splitting-reuses-existing-group",
+  "kind": "test-case",
+  "title": "Terminal Group Reuse",
+  "description": "Verify that adding a third terminal to an existing group reuses the group rather than minting a new one.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-793e-a1dd-5f4c43788377",
+  "given": "Two terminals in a group and a third ungrouped terminal",
+  "when": "Splitting the third terminal with one from the group",
+  "then": "The third terminal joins the existing group",
+  "impl_ref": "src-tauri/src/shell_state.rs::splitting_reuses_an_existing_group_rather_than_minting_a_second_one",
+  "status": "declared",
+  "last_result_ms": null
+}

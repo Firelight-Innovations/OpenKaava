@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b48-af7a-46dff583a2ef",
+  "slug": "context-menu-dismiss-scroll-resize",
+  "kind": "test-case",
+  "title": "Scroll and Resize Close Menu",
+  "description": "Verifies menu closes when surface under it moves.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Dismissal with reason 'scroll' or 'resize'",
+  "when": "dismisses() called",
+  "then": "Both return true",
+  "impl_ref": "src/shell/contextMenu.test.ts::dismisses closes rather than chasing when the surface under it moves",
+  "status": "declared",
+  "last_result_ms": null
+}

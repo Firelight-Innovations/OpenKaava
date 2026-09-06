@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7ffb-b0a0-c7c1acb69a41",
+  "slug": "product-uriid-valid-reference",
+  "kind": "test-case",
+  "title": "URI ID extraction from valid reference",
+  "description": "Verifies that uriId correctly parses schematify://screen/ and schematify://decision/ URIs.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "given": "A schematify:// URI with a valid id segment",
+  "when": "uriId is called with the URI string",
+  "then": "The id segment is extracted and returned",
+  "impl_ref": "apps/schematify/ui/src/product/index.test.ts::uriId extracts the uuid half of a schematify:// reference",
+  "status": "declared",
+  "last_result_ms": null
+}

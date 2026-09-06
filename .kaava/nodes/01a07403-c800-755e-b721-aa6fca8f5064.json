@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-755e-b721-aa6fca8f5064",
+  "slug": "backend",
+  "kind": "module",
+  "title": "Backend Integration",
+  "description": "The single door to Rust: wraps invoke() calls for schematify RPC methods (load-graph, read-layout, write-layout, lint, etc.) and the product layer writes.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

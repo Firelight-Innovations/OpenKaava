@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-70e5-93cc-74140132afb2",
+  "slug": "dashboard-relative-time",
+  "kind": "contract-method",
+  "title": "relativeTime",
+  "description": "Computes elapsed time as coarsest unit keeping 1 significant digit: just now, Nm ago, Nh ago, Nd ago.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cc3-bea1-6e72e54f057f",
+  "signature": "function relativeTime(iso: string, now?: number): string",
+  "params": [
+    "iso: string",
+    "now?: number"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Formats elapsed time at draw time per PRD section 0.4.",
+  "exported": false
+}

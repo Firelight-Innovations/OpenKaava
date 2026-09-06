@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f25-a777-fc3574e82b55",
+  "slug": "shortcuts-surface-use-shortcuts-surface",
+  "kind": "contract-method",
+  "title": "Subscribe to Shortcuts Surface State",
+  "description": "React hook providing current shortcuts surface state with subscriber cleanup.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7728-94ea-ea2af567cdc5",
+  "signature": "export function useShortcutsSurface(): ShortcutsSurface",
+  "params": [],
+  "returns": "ShortcutsSurface",
+  "errors": [],
+  "semantics": "Returns current state and subscribes to future changes; seeded from module state on mount.",
+  "exported": false
+}

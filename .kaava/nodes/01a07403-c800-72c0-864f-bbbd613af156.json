@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-72c0-864f-bbbd613af156",
+  "slug": "shell-contract-cluster-root",
+  "kind": "contract-method",
+  "title": "clusterRoot",
+  "description": "Determine where a cluster's work actually is.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a2b-9c3f-6e98ac6d152b",
+  "signature": "function clusterRoot(cluster: Cluster): string | null",
+  "params": [
+    "cluster"
+  ],
+  "returns": "string | null",
+  "errors": [],
+  "semantics": "Returns worktree path if bound, else project path, else null.",
+  "exported": true
+}

@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-758e-9bc2-c4ea830cab81",
+  "slug": "shell-statusbar-component",
+  "kind": "contract-method",
+  "title": "Status Bar Component",
+  "description": "Renders the bottom status strip with 5 cells: tier summary, layout state, lint findings, latest run and session-only writes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-743f-ae55-0cbaeb91a62a",
+  "signature": "StatusBar(props: StatusBarProps) => JSX.Element",
+  "params": [
+    "graph: ServiceGraph",
+    "layoutClean?: boolean",
+    "findings?: Finding[] | null",
+    "latestRun?: DashboardRun | null",
+    "semanticWrites?: readonly string[]"
+  ],
+  "returns": "React component",
+  "errors": [],
+  "semantics": "Displays real-time state of the current Schematic including error/warning counts, layout cleanliness, and in-memory semantic gestures not yet written to disk.",
+  "exported": true
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-72dd-9270-dad4c244a937",
+  "slug": "manifest-parser-format-compatibility",
+  "kind": "doc-block",
+  "title": "Tool Manifest Format Supports Multiple Surfaces",
+  "description": "A package can declare zero or more surfaces; the format retroactively supports multiple surfaces without breaking existing single-surface tools.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "body": "A package used to be exactly one surface, and the file said so — `[frontend]` and `[core]` were both required and there was one of each. It carries several now, because a repository worth installing is usually several related views over one domain rather than a single window. Empty surfaces list occurs only when there is no `[frontend]` either: a manifest with a frontend and no `[[surface]]` blocks gets one synthesised, so the single-surface tool this format started as needs no new keys.",
+  "audience": "both"
+}

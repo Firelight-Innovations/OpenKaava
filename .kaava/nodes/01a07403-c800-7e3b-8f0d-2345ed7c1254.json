@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e3b-8f0d-2345ed7c1254",
+  "slug": "validators-catches-named-color",
+  "kind": "test-case",
+  "title": "Positive control for named color detection",
+  "description": "Verifies the regex patterns correctly identify named colors in value position, including shorthand forms.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7568-b464-c150d28c61e2",
+  "given": "Test strings with CSS named colors in value position",
+  "when": "The NAMED_COLOR regex is tested against them",
+  "then": "All test strings match, including shorthand forms like 'border: 1px solid red'",
+  "impl_ref": "apps/schematify/ui/src/noLiteralHex.test.ts::positive control catches a named color in value position, including shorthand where the color is not the first token after the colon",
+  "status": "declared",
+  "last_result_ms": null
+}

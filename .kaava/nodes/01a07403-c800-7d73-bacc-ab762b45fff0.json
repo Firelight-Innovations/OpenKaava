@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7d73-bacc-ab762b45fff0",
+  "slug": "serde-json",
+  "kind": "external-dep",
+  "title": "JSON Value Type",
+  "description": "JSON value type and pretty printing for reading and writing design files.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7584-85b8-2c8fc4148f9d",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "Serializes to Value and JSON string in atomic write operations"
+}

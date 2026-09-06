@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7fbb-9af0-f45934e68fd8",
+  "slug": "catalog-check",
+  "kind": "module",
+  "title": "App Library Access Control",
+  "description": "Restricts changes to the app library catalog to maintainers, preventing unauthorized plugins or tools from being registered.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

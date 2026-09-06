@@ -1,0 +1,27 @@
+{
+  "id": "01a07403-c800-7929-bd0c-99b80dba8635",
+  "slug": "product-productpanel-component",
+  "kind": "contract-method",
+  "title": "Product Panel Component",
+  "description": "Renders the center panel when Outline section is Product or Decisions, with tabbed content (Brief/Screens/Flows or DecisionLog).",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "signature": "ProductPanel(props: ProductPanelProps) => JSX.Element",
+  "params": [
+    "section: ProductSection",
+    "graph: ProductGraph",
+    "onSaveBrief: (brief: RawProjectBrief) => Promise<void>",
+    "onSaveScreen: (screen: RawScreen) => Promise<void>",
+    "onSaveFlow: (flow: RawFlow) => Promise<void>",
+    "onCreateDecision: (decision: RawDecision) => Promise<void>",
+    "onSupersedeDecision: (priorId: string, decision: RawDecision) => Promise<void>",
+    "initialScreenId?: string | null"
+  ],
+  "returns": "React component",
+  "errors": [],
+  "semantics": "Swaps the Schematic + Inspector body for tabbed product surfaces when Product section is active, or for a decision log when Decisions is active.",
+  "exported": true
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7d28-97e1-4b31b279f98e",
+  "slug": "eslint-config",
+  "kind": "module",
+  "title": "ESLint Rules and Baselines",
+  "description": "JavaScript and TypeScript linting configuration enforcing STANDARDS.md rules, with grandfathered violations in a baseline.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [
+    "01a07403-c800-7272-b14e-7c8acbd51d6d",
+    "01a07403-c800-7d30-baf0-cc947e02d606",
+    "01a07403-c800-75e8-b274-b8730d0fc8ce",
+    "01a07403-c800-7dc7-9a18-9f2fd722576a"
+  ],
+  "ui_refs": []
+}

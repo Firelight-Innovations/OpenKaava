@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7c02-9356-0ab9b76dafac",
+  "slug": "codec-serde-json",
+  "kind": "external-dep",
+  "title": "Serde JSON",
+  "description": "JSON serialization and deserialization using serde_json::Value for flexible RPC parameters and results.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "Parses and serializes newline-delimited JSON messages; holds params and result fields"
+}

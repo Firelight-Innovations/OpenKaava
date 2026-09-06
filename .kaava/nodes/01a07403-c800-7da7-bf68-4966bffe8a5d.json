@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7da7-bf68-4966bffe8a5d",
+  "slug": "plugin-broker-stop",
+  "kind": "contract-method",
+  "title": "Stop Plugin Core",
+  "description": "Gracefully shut down a package's running process.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78db-904b-bb87473e03bb",
+  "signature": "pub fn stop(&self, package_id: &str)",
+  "params": [
+    "package_id: &str"
+  ],
+  "returns": "",
+  "errors": [],
+  "semantics": "Asks core to shutdown over wire; kills after grace period; safe when not running.",
+  "exported": false
+}

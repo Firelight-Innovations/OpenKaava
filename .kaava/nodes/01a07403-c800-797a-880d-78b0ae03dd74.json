@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-797a-880d-78b0ae03dd74",
+  "slug": "shortcuts-chords-match",
+  "kind": "test-case",
+  "title": "Shortcuts List Matches Keymap",
+  "description": "Verifies shortcuts display exactly the chords the keymap binds.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7755-81bd-95e5849f8e41",
+  "given": "SHORTCUT_GROUPS and CHORDS",
+  "when": "Extracted chords compared",
+  "then": "Both lists identical when sorted",
+  "impl_ref": "src/shell/keys/shortcuts.test.ts::the shortcuts list and the keymap account for exactly the same chords",
+  "status": "declared",
+  "last_result_ms": null
+}

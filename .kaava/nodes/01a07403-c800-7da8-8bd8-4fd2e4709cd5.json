@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7da8-8bd8-4fd2e4709cd5",
+  "slug": "search-logic-compile-needle",
+  "kind": "contract-method",
+  "title": "Compile Search Needle to Regex",
+  "description": "Turns a needle and match flags into a RegExp for text matching.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "signature": "export function compileNeedle(needle: string, flags: MatchFlags): CompiledNeedle",
+  "params": [
+    "needle: string",
+    "flags: MatchFlags"
+  ],
+  "returns": "CompiledNeedle",
+  "errors": [
+    "Regex syntax errors caught and returned in error discriminant"
+  ],
+  "semantics": "Compiles literal or regex patterns with case and word-boundary handling, returning either a working RegExp or an error message.",
+  "exported": false
+}

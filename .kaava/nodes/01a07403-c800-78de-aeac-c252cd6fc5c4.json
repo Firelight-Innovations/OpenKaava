@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78de-aeac-c252cd6fc5c4",
+  "slug": "project-store-unreadable-degrades",
+  "kind": "test-case",
+  "title": "Unreadable store degrades to default",
+  "description": "A corrupt or newer format file returns empty without failing.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b76-a547-de7e3176cebe",
+  "given": "An unreadable or unknown-format projects.json",
+  "when": "load is called",
+  "then": "Returns default Stored instead of erroring",
+  "impl_ref": "src-tauri/src/project/store.rs::an_unreadable_store_deserializes_to_nothing_rather_than_failing",
+  "status": "declared",
+  "last_result_ms": null
+}

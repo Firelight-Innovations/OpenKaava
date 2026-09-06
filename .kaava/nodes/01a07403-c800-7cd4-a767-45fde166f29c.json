@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7cd4-a767-45fde166f29c",
+  "slug": "client-command-event-separation",
+  "kind": "test-case",
+  "title": "Commands and events are routed separately",
+  "description": "Verifies that a command with the same name as an event does not cross over; each registration receives only its type.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client with both on() and onCommand() listeners for the same name",
+  "when": "Both a command and an event with that name arrive",
+  "then": "on() receives only the event, onCommand() receives only the command",
+  "impl_ref": "packages/bridge/src/client.test.ts::does not deliver a command to on(), or an event to onCommand()",
+  "status": "declared",
+  "last_result_ms": null
+}

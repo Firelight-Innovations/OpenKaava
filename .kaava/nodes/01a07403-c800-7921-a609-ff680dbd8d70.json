@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7921-a609-ff680dbd8d70",
+  "slug": "design-app-handoff-doc",
+  "kind": "doc-block",
+  "title": "Clipboard handoff to agent terminal",
+  "description": "Gets capture out of Design Mode and into agent via clipboard",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-792e-9c42-1f9b1aff2e4f",
+  "body": "Getting a capture out of this app and into an agent. **The clipboard, deliberately, and for now.** What this feature wants is to put the text straight into whichever terminal an agent is running in, and the shell has no verb for that yet. A clipboard write needs no Tauri capability, no new command and no protocol change.",
+  "audience": "agent"
+}

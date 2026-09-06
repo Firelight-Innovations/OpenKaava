@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-701c-9dbe-711d0923e27c",
+  "slug": "toml-grammar-design-rationale",
+  "kind": "doc-block",
+  "title": "TOML Grammar Design Rationale",
+  "description": "Design notes explaining why a custom TOML grammar was written, why it moved to packages/, why it exports a registerToml function, and what it deliberately does not do.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72fd-88ee-22fc2f3d05b5",
+  "body": "A TOML grammar was written because Monaco does not ship one and the previous ini alias was concretely wrong on OpenKaava's three main files (.kaava, kaava.toml, Cargo.toml). The ini grammar fails on: keys with hyphens (\\w excludes -), array-of-tables (matches [[tool] instead of [[tool]]), comments after values, arrays, inline tables, multi-line strings and datetimes. The grammar lives in a package because the shell and Files app may not import each other, so anything both sides need must be in packages/. It exports a registerToml function rather than three loose setters because two consumers are shell-side and share one global registry; calling register three times is a hazard. Every token name it emits is borrowed from vs-dark (key, metatag, comment, string, number, keyword, delimiter) rather than invented, so themes keep rules: []. It deliberately does not validate, fold or provide language services — a Monarch tokenizer is a lexer only. Nothing in this package imports monaco-editor at runtime, so it can be imported by modules that must stay Monaco-free.",
+  "audience": "both"
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-764a-b5c5-9f2cce1355f5",
+  "slug": "plugin-remote",
+  "kind": "module",
+  "title": "Remote Plugin Fetching",
+  "description": "Fetch plugin releases from GitHub: resolve latest versions, download assets, verify checksums, and unpack zips.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "allowed_libraries": [
+    "01a07403-c800-7c54-bbf2-e838fea606f6",
+    "01a07403-c800-711c-b767-942de08d837f",
+    "01a07403-c800-7323-8e18-14bf5b293cbf",
+    "01a07403-c800-75dd-b05c-6d3f11053668"
+  ],
+  "ui_refs": []
+}

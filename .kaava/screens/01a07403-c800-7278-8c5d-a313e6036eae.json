@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7278-8c5d-a313e6036eae",
+  "kind": "screen",
+  "slug": "schematify-problems",
+  "title": "Problems Panel",
+  "purpose": "Dock tab displaying linting findings across entire project grouped by severity",
+  "states": [
+    "loading",
+    "empty",
+    "populated",
+    "error"
+  ],
+  "acceptance": [
+    "shall display errors before warnings (fixed order)",
+    "shall show columns: SEVERITY, RULE, NODE, LOCATION",
+    "shall support clicking findings to navigate to offending node",
+    "shall refresh on schematic changes",
+    "shall show error if lint report cannot be loaded"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-743f-ae55-0cbaeb91a62a"
+  ]
+}

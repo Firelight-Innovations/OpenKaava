@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7386-8224-93a09ae3580d",
+  "slug": "index-status-cell5",
+  "kind": "contract-method",
+  "title": "statusCell5",
+  "description": "Status bar cell 5: unsaved semantic layer writes, blank if none.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7053-b407-040c7111f077",
+  "signature": "function statusCell5(semanticWrites: readonly string[]): string",
+  "params": [
+    "semanticWrites: readonly string[]"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Alerts to session-only unsaved changes per PRD section 6.2.",
+  "exported": true
+}

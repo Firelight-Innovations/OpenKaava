@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b1a-9d90-04040fbf7b92",
+  "slug": "plugin-broker-id-mismatch-refused",
+  "kind": "test-case",
+  "title": "Broker: ID Disagreement",
+  "description": "Core identity not matching manifest id is rejected.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78db-904b-bb87473e03bb",
+  "given": "Reply with id='something-else', manifest id='acme'",
+  "when": "check_hello() is called",
+  "then": "Returns HANDSHAKE_FAILED error",
+  "impl_ref": "src-tauri/src/plugins/broker.rs::an_id_disagreeing_with_the_manifest_is_refused",
+  "status": "declared",
+  "last_result_ms": null
+}

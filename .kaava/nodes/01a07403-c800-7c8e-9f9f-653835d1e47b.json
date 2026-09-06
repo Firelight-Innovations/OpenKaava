@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7c8e-9f9f-653835d1e47b",
+  "slug": "shell-state-not-a-store",
+  "kind": "doc-block",
+  "title": "Deliberately not a store",
+  "description": "Every window projects one broadcast object; nothing to reconcile or merge.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73c6-9a0b-c837d3e517f6",
+  "body": "Deliberately not a store. Every window is a projection of one broadcast object, so there is nothing to reconcile and nothing to merge — the last `shell:state` event is the truth, and `useShellState` re-renders with it.",
+  "audience": "both"
+}

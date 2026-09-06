@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7d89-9517-725bc751d480",
+  "slug": "agent",
+  "kind": "module",
+  "title": "Agent Server",
+  "description": "Composite endpoint composing UI interaction and debug reads plus app method calls and project management for agents working on the shell; dev-only.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e98-ae8d-c1ef00cefddb",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

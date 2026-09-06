@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7c47-9a20-207966f8403d",
+  "slug": "file-explorer-menu-commands",
+  "kind": "contract-method",
+  "title": "Menu Command Handler",
+  "description": "Hook that connects the shell's File menu to the explorer UI.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73b0-99ac-cdd1de6b20ef",
+  "signature": "export function useMenuCommands(deps: MenuCommandDeps): void",
+  "params": [
+    "root: Root | null",
+    "explorer: React.RefObject<ExplorerHandle | null>",
+    "onError: (message: string) => void"
+  ],
+  "returns": "void, installs event listeners",
+  "errors": [],
+  "semantics": "Declares menu commands and routes them to the tree for new file and trash actions.",
+  "exported": true
+}

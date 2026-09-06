@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7899-938d-50660dfbbcc0",
+  "slug": "contents",
+  "kind": "module",
+  "title": "Contents Panel",
+  "description": "Table of contents and index view for navigating tutorials and tracking completion status.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-718d-b2d6-63127c14155b",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-71ea-9b0c-b158b4cbb148"
+  ]
+}

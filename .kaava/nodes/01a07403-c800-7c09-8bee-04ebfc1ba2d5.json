@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7c09-8bee-04ebfc1ba2d5",
+  "slug": "design-app-comments-doc",
+  "kind": "doc-block",
+  "title": "Comments state machine and display logic",
+  "description": "Separates backend shapes from display decisions",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-76b8-97b0-0d8399c3f37b",
+  "body": "Comments as this app reads them: the shapes the backend stores, and the pure decisions about how a list of them is shown. The types mirror `src-tauri/src/design_comments.rs` and are restated rather than imported. Everything else here is a function of a comment and nothing else, so the ordering and the wording can be tested without a backend.",
+  "audience": "agent"
+}

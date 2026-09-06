@@ -1,0 +1,30 @@
+{
+  "id": "01a07403-c800-7364-bfe0-1ce9993df6cc",
+  "slug": "design-app",
+  "kind": "service",
+  "title": "Design",
+  "description": "The design-comment surface: annotations anchored to a running UI, and the probe that collects them.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": null,
+  "entry_point": "apps/design/ui/src/main.tsx, mounted into a pane by the shell.",
+  "exports": [
+    "01a07403-c800-7fd3-a0ba-7454c7fb5b61",
+    "01a07403-c800-7942-8421-cbbd32b5e9f8",
+    "01a07403-c800-713d-bf02-dd0cedfe0d45",
+    "01a07403-c800-7cb6-91ec-bf1bfe01d948",
+    "01a07403-c800-742c-9136-816deef355ee",
+    "01a07403-c800-742d-bb5e-da51c5cc46c1",
+    "01a07403-c800-7a75-8293-e968fe3bf59d",
+    "01a07403-c800-7597-91ac-ef0ef6ecead4",
+    "01a07403-c800-7bf0-9284-3843e8644597",
+    "01a07403-c800-7bc5-afdf-5e52e920f075",
+    "01a07403-c800-70d9-9928-af77d2cb146c",
+    "01a07403-c800-7a61-9b2f-c4e801e64ecb",
+    "01a07403-c800-7eec-af93-1a417dc86b07"
+  ],
+  "schemas": null
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-73f6-bc9c-d85e02d5e82b",
+  "slug": "product-screenuri-function",
+  "kind": "contract-method",
+  "title": "Screen URI Builder",
+  "description": "Builds a schematify://screen/<id> reference from a RawScreen object.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "signature": "screenUri(screen: RawScreen) => string",
+  "params": [
+    "screen: RawScreen"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Returns the stored reference form of a screen URI for persistence or comparison, distinct from the drawn display slug.",
+  "exported": true
+}

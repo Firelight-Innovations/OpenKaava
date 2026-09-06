@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7b9d-858f-6938a9e7a7a0",
+  "slug": "navigation-module-doc",
+  "kind": "doc-block",
+  "title": "Drill Navigation",
+  "description": "Click-to-drill decision logic independent of React.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f1a-b375-e7fa4e858967",
+  "body": "Click-to-drill (PRD §17 Wave 5). Pure and DOM-free: the decision of where a click leads lives here, unit-tested, and `SchematicCanvas.tsx` only turns a click into a call to it. Breadcrumb walk-up depends on navigation history, not document state, so it stays as `App.tsx`'s own small piece of React state instead.",
+  "audience": "agent"
+}

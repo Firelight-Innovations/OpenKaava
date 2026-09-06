@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7af4-97ef-56993f653aa3",
+  "slug": "design-comments-comments-get",
+  "kind": "contract-method",
+  "title": "Get Comment by ID",
+  "description": "One comment by id.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cda-ab91-40d777dffd1d",
+  "signature": "pub fn get(&self, id: &str) -> Option<Comment>",
+  "params": [
+    "id"
+  ],
+  "returns": "Option<Comment>",
+  "errors": [],
+  "semantics": "Returns the comment or None if not found.",
+  "exported": false
+}

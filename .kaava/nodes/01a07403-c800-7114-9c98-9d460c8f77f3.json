@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7114-9c98-9d460c8f77f3",
+  "slug": "viewer-media",
+  "kind": "module",
+  "title": "Viewer Media",
+  "description": "Shared styling for image, SVG, PDF, and Mermaid viewers.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7996-96e4-9a298ed54a09",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

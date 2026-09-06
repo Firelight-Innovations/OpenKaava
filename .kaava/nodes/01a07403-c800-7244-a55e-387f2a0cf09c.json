@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7244-a55e-387f2a0cf09c",
+  "slug": "plugin-remote-parse",
+  "kind": "contract-method",
+  "title": "Parse Repository Reference",
+  "description": "Recognize owner/name or GitHub URLs; extract repo slug.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-764a-b5c5-9f2cce1355f5",
+  "signature": "pub fn parse(input: &str) -> Option<Self>",
+  "params": [
+    "input: &str"
+  ],
+  "returns": "Option<Repo>",
+  "errors": [],
+  "semantics": "Returns None if not a recognized format; accepts owner/name, https, http, git@.",
+  "exported": false
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-74e8-9192-50b36912f003",
+  "kind": "decision",
+  "slug": "DEC-TEC-WIN-013",
+  "title": "Torn-off cluster appears at drop point using physical coordinates from drop monitor",
+  "context": "Without explicit positioning, Windows cascade new windows from top-left of primary monitor, far from the cursor on multi-monitor setups.",
+  "decision": "Pass explicit position using physical coordinates from the monitor under the cursor. Apply position after building window (not in builder), so window never appears at wrong place on screen.",
+  "consequences": "Cluster dragged onto second screen opens on that screen. Drag-to-second-monitor feature actually works.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

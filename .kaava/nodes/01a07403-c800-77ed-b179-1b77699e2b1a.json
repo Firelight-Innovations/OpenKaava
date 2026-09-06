@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-77ed-b179-1b77699e2b1a",
+  "slug": "ui-server-declares-six-tools",
+  "kind": "test-case",
+  "title": "UI Server Has Six Tools",
+  "description": "The ui server exposes exactly the six interaction tools.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c60-bf87-a6ce55a2f177",
+  "given": "The ui server",
+  "when": "SERVER.tools is inspected",
+  "then": "The names are [screenshot, snapshot, click, type_text, press_key, eval]",
+  "impl_ref": "src-tauri/src/mcp/servers/ui.rs::the_server_declares_exactly_the_six_tools",
+  "status": "declared",
+  "last_result_ms": null
+}

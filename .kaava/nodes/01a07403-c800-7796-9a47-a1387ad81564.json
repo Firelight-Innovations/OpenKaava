@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7796-9a47-a1387ad81564",
+  "slug": "tool-window-handle",
+  "kind": "contract-method",
+  "title": "ToolWindowHandle",
+  "description": "Interface for sending menu commands to a specific tool instance.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e2-b95c-b24cdbe6d78b",
+  "signature": "interface ToolWindowHandle { send(instanceId: string, command: string): void; }",
+  "params": [],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Delivers a menu command as a transport-B message to the instance; silent when instance is not ready or does not declare the command.",
+  "exported": false
+}

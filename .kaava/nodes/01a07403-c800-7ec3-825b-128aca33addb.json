@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7ec3-825b-128aca33addb",
+  "slug": "review-add",
+  "kind": "contract-method",
+  "title": "Create a review comment on a file",
+  "description": "Add a validated note anchored to a line range with automatic id and timestamp.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "signature": "pub fn add(comments: &mut Vec<ReviewComment>, draft: ReviewDraft, now: u64) -> Result<ReviewComment>",
+  "params": [
+    "comments: &mut Vec<ReviewComment>",
+    "draft: ReviewDraft",
+    "now: u64"
+  ],
+  "returns": "Result<ReviewComment>",
+  "errors": [
+    "Review"
+  ],
+  "semantics": "Validates the draft, assigns an id, and adds it to the list, returning the stored comment.",
+  "exported": false
+}

@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-78b5-b923-65051e991d87",
+  "kind": "flow",
+  "slug": "open-schematify-design-layer",
+  "title": "Open Schematify for Design and Planning",
+  "trigger": "User wants to plan the architecture or design for the project",
+  "steps": [
+    {
+      "screen": "schematify://screen/01a07403-c800-7953-b112-117deaa747db",
+      "action": "Click the + in the switcher bar and select Schematify from the apps list"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7953-b112-117deaa747db",
+      "action": "Schematify can also be opened from the Apps menu in the title bar"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-70d7-ab31-286c94355b77",
+      "action": "Schematify opens in a pane, showing design canvases, stack schematics, and planning tools"
+    }
+  ],
+  "outcome": "Schematify opens in a pane, showing the technical and product design for the project"
+}

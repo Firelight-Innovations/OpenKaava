@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7cd5-b082-52c2a9ea27f3",
+  "slug": "shortcuts-shortcut-interface",
+  "kind": "contract-method",
+  "title": "Shortcut Entry",
+  "description": "One row in the Keyboard Shortcuts screen with label, keys, and optional note.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7755-81bd-95e5849f8e41",
+  "signature": "export interface Shortcut { label: string; keys: string[]; chords?: Chord[]; note?: string; }",
+  "params": [],
+  "returns": "interface",
+  "errors": [],
+  "semantics": "Describes a single keyboard shortcut for the shortcuts screen.",
+  "exported": true
+}

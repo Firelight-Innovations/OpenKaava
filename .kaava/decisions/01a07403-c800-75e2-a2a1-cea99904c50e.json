@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-75e2-a2a1-cea99904c50e",
+  "kind": "decision",
+  "slug": "DEC-TEC-GIT-005",
+  "title": "GitControl methods scoped to cluster, not tool",
+  "context": "Git status used to resolve a tool id, which never worked because discovery.rs left the tool list empty for every project.",
+  "decision": "Every GitControl method takes a cluster id. Git operations resolve against the cluster's repository root instead of a tool id.",
+  "consequences": "Source-control view draws correctly for any open project. Two clusters on the same repository can check different branches without conflicts.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7ab3-b3b9-4ad6ec8ab857",
+  "slug": "plugin-registry-uninstall",
+  "kind": "contract-method",
+  "title": "Uninstall Plugin",
+  "description": "Remove plugin record, stop its core, delete owned directory.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "signature": "pub fn uninstall(app: &AppHandle, id: &str) -> bool",
+  "params": [
+    "app: &AppHandle",
+    "id: &str"
+  ],
+  "returns": "bool",
+  "errors": [],
+  "semantics": "Stops core, removes record, deletes Release sources but not Folder installs.",
+  "exported": true
+}

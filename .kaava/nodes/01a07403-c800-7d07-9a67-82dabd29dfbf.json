@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7d07-9a67-82dabd29dfbf",
+  "slug": "tool-frontend-serve",
+  "kind": "contract-method",
+  "title": "Plugin Asset Serving",
+  "description": "Serve plugin frontend assets over custom kaava-tool:// scheme with path bounds checking.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7219-9c03-3b1eff89b2cd",
+  "signature": "pub fn serve(app: &AppHandle, path: &str) -> (u16, &'static str, Vec<u8>)",
+  "params": [
+    "app: &AppHandle",
+    "path: &str"
+  ],
+  "returns": "(u16, &'static str, Vec<u8>)",
+  "errors": [],
+  "semantics": "Returns HTTP status, MIME type, and file bytes; refuses symlinks and .. escapes.",
+  "exported": false
+}

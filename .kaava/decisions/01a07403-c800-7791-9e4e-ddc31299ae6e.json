@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7791-9e4e-ddc31299ae6e",
+  "kind": "decision",
+  "slug": "DEC-STD-TEST-002",
+  "title": "Published crates require tests; external consumers depend on them",
+  "context": "Crates are published and consumed by tool repositories.",
+  "decision": "Anything in crates/ needs tests. Changes without tests in published crates are not accepted.",
+  "consequences": "Tool authors can trust code. External consumers have confidence in correctness. Enables safe version upgrades.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-08-16"
+}

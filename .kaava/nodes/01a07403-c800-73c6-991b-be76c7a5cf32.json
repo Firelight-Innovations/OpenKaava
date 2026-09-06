@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-73c6-991b-be76c7a5cf32",
+  "slug": "design-localhost-reserved",
+  "kind": "test-case",
+  "title": ".localhost domains reserved",
+  "description": "Domains under .localhost are refused to avoid Tauri custom protocol confusion.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b07-98f5-17457c65a2df",
+  "given": "addresses ending in .localhost",
+  "when": "normalize() checks the host",
+  "then": "they are refused as ReservedHost",
+  "impl_ref": "src-tauri/src/apps/design.rs::a_host_under_localhost_is_refused",
+  "status": "declared",
+  "last_result_ms": null
+}

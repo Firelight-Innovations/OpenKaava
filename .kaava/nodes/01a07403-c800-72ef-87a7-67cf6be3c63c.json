@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-72ef-87a7-67cf6be3c63c",
+  "slug": "outcome-declared-absent-error-follows-its-own-flag",
+  "kind": "test-case",
+  "title": "DeclaredAbsent Error Flag Controls Error Status",
+  "description": "DeclaredAbsent.is_error() returns the outcome's error flag value.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f14-8b2b-c06d802d2714",
+  "given": "DeclaredAbsent with error=false and error=true",
+  "when": "is_error is called",
+  "then": "returns false and true respectively",
+  "impl_ref": "crates/schematify-reconcile/src/outcome.rs::declared_absent_error_follows_its_own_flag",
+  "status": "declared",
+  "last_result_ms": null
+}

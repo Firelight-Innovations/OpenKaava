@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-75cf-9d46-122bf31b1ee2",
+  "slug": "manifest-loader-load",
+  "kind": "contract-method",
+  "title": "Manifest File Loading",
+  "description": "Parse a kaava.toml file from disk into a Manifest struct.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b8-a253-bd079c91045f",
+  "signature": "pub fn load(path: &Path) -> Result<Self>",
+  "params": [
+    "path: &Path"
+  ],
+  "returns": "Result<Manifest>",
+  "errors": [
+    "Io error reading file",
+    "Toml parse error"
+  ],
+  "semantics": "Deserializes TOML into Manifest, validating structure.",
+  "exported": false
+}

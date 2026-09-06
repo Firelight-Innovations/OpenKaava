@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-73bf-89a3-30b32bb18082",
+  "slug": "terminal-sessions-backlog-bounded",
+  "kind": "test-case",
+  "title": "Terminal backlog respects memory limit",
+  "description": "A session that runs for days does not grow the backlog unbounded.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731a-ab6c-3a00854fdef3",
+  "given": "200 chunks of 8KB each pushed to backlog",
+  "when": "the buffer exceeds BACKLOG_BYTES",
+  "then": "oldest chunks are dropped while maintaining sequence numbers",
+  "impl_ref": "src-tauri/src/pty.rs::the_backlog_is_bounded",
+  "status": "declared",
+  "last_result_ms": null
+}

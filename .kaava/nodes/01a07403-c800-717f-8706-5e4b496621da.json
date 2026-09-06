@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-717f-8706-5e4b496621da",
+  "slug": "shell-state-window-label",
+  "kind": "contract-method",
+  "title": "windowLabel",
+  "description": "Read this window's own label from the URL.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73c6-9a0b-c837d3e517f6",
+  "signature": "function windowLabel(): string",
+  "params": [],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Parses window query parameter from location, defaults to main.",
+  "exported": true
+}

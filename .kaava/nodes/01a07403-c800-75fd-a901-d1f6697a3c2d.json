@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-75fd-a901-d1f6697a3c2d",
+  "slug": "xterm-webgl",
+  "kind": "external-dep",
+  "title": "xterm.js WebGL Addon",
+  "description": "GPU-accelerated rendering backend for terminal output with fallback to canvas if unavailable.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7011-923c-5233df9ecad3",
+  "registry_ref": "01a07403-c800-7c77-8a9e-694ca2035cda",
+  "usage_note": "WebglAddon loaded with try/catch fallback; disposes on context loss to degrade to canvas renderer gracefully."
+}

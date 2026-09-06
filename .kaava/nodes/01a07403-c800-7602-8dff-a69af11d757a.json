@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7602-8dff-a69af11d757a",
+  "slug": "staleness-caption",
+  "kind": "contract-method",
+  "title": "staleCaption",
+  "description": "Generates PRD section 7.4's caption line for a stale node: sourceSlug.member changed Xh ago. Re-review required.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f23-8360-1956f352980f",
+  "signature": "function staleCaption(stale: RawStaleness | undefined, sourceSlug: string | undefined, nowMs: number): string | undefined",
+  "params": [
+    "stale: RawStaleness | undefined",
+    "sourceSlug: string | undefined",
+    "nowMs: number"
+  ],
+  "returns": "string | undefined",
+  "errors": [],
+  "semantics": "Formats the stale node caption, computed at draw time per PRD section 0.4.",
+  "exported": false
+}

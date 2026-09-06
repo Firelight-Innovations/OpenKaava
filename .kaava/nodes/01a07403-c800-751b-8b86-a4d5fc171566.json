@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-751b-8b86-a4d5fc171566",
+  "slug": "scanner-ignore",
+  "kind": "external-dep",
+  "title": "ignore",
+  "description": "Fast recursive directory iteration respecting .gitignore patterns.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-781b-85ef-56660694446e",
+  "registry_ref": "01a07403-c800-7021-9c05-f9cb856f667c",
+  "usage_note": "Version 0.4; WalkBuilder respects repository, global, and per-directory .gitignore excludes"
+}

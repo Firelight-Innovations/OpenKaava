@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-77bf-83b6-8c94112450d4",
+  "slug": "routing-dirty-report",
+  "kind": "test-case",
+  "title": "routeEdge reports honestly when no candidate is clean",
+  "description": "Route.clean is false when no candidate avoids every obstacle.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7afd-b0e6-03ee26345279",
+  "given": "a configuration where all candidates enter obstacles",
+  "when": "routeEdge is called",
+  "then": "returns Route with clean=false",
+  "impl_ref": "apps/schematify/ui/src/engine/routing.test.ts::orthogonal routing reports honestly when no candidate route is clean",
+  "status": "declared",
+  "last_result_ms": null
+}

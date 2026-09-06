@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c17-b24d-2f09ade45e95",
+  "slug": "core-a-legal-slug-accepted",
+  "kind": "test-case",
+  "title": "Legal slug accepted, illegal rejected",
+  "description": "Valid slugs pass, empty/invalid ones fail.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a7-8335-a2b30fb2137e",
+  "given": "Various slug strings",
+  "when": "Slug::new is called",
+  "then": "Legal strings like 'token-verifier' succeed, empty strings and 'has space' fail",
+  "impl_ref": "crates/schematify-core/src/slug.rs::a_legal_slug_is_accepted_and_an_illegal_one_is_not",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7980-ba3d-a787434a7bd8",
+  "slug": "github-integration-github-open-in-browser",
+  "kind": "contract-method",
+  "title": "Open GitHub URL",
+  "description": "Open one item on github.com in the user's browser.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72a7-b1d3-78f88552a561",
+  "signature": "pub fn github_open_in_browser(app: AppHandle, url: String) -> Result<()>",
+  "params": [
+    "app",
+    "url"
+  ],
+  "returns": "Result<()>",
+  "errors": [
+    "AppError::OpenUrl"
+  ],
+  "semantics": "Validates URL is github.com HTTPS before delegating to opener plugin.",
+  "exported": true
+}

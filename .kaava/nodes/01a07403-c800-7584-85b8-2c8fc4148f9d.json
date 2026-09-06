@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7584-85b8-2c8fc4148f9d",
+  "slug": "atomic",
+  "kind": "module",
+  "title": "Atomic I/O and Error Types",
+  "description": "Atomic JSON file writing with fsync and atomic rename for data integrity. Defines CoreError wrapping all error variants from the design graph.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7abe-9eed-7510b796f92a",
+  "allowed_libraries": [
+    "01a07403-c800-7565-ae9d-23b929975082",
+    "01a07403-c800-7565-98ec-498cf9d20d06"
+  ],
+  "ui_refs": []
+}

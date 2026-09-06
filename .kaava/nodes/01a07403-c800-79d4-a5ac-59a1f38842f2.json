@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79d4-a5ac-59a1f38842f2",
+  "slug": "index-test-cell2",
+  "kind": "test-case",
+  "title": "statusCell2 draws clean state",
+  "description": "Verifies the exact cell 2 format.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7053-b407-040c7111f077",
+  "given": "AUTH_SERVICE_GRAPH with clean=true",
+  "when": "statusCell2 is called",
+  "then": "Returns layout/auth-service.json clean",
+  "impl_ref": "apps/schematify/ui/src/graph/index.test.ts::draws cell 2 exactly as PRD section 17 Wave 2 requires",
+  "status": "declared",
+  "last_result_ms": null
+}

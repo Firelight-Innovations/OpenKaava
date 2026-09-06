@@ -1,0 +1,30 @@
+{
+  "id": "01a07403-c800-7095-9f41-6b9b08270ce2",
+  "slug": "ingest-ingest-run-file",
+  "kind": "contract-method",
+  "title": "Ingest Run File",
+  "description": "Read a run artifact from disk and ingest it under a scope.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b60-9878-90ec5353237e",
+  "signature": "pub fn ingest_run_file(graph: &Graph, store: &Store, scope: Uuid, path: &Path) -> Result<()>",
+  "params": [
+    "graph: &Graph",
+    "store: &Store",
+    "scope: Uuid",
+    "path: &Path"
+  ],
+  "returns": "Result<()>",
+  "errors": [
+    "CoreError::Io",
+    "CoreError::UnknownRunSchema",
+    "CoreError::Parse",
+    "CoreError::UnknownRunScope",
+    "CoreError::RunAnswersNoBudget",
+    "CoreError::RunAlreadyIngested"
+  ],
+  "semantics": "Reads the file from disk using the same version-probe as the loader, then calls ingest_run.",
+  "exported": true
+}

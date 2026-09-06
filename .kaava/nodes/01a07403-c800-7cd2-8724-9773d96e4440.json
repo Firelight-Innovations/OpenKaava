@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7cd2-8724-9773d96e4440",
+  "slug": "index-compute-depth",
+  "kind": "contract-method",
+  "title": "computeDepth",
+  "description": "Computes containment depth counting the service root as level 1.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7053-b407-040c7111f077",
+  "signature": "function computeDepth(nodes: GraphNode[]): number",
+  "params": [
+    "nodes: GraphNode[]"
+  ],
+  "returns": "number",
+  "errors": [
+    "Error when a containment cycle is detected"
+  ],
+  "semantics": "Measures the deepest nesting level, throwing on cycles.",
+  "exported": true
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-721a-a4c9-ceb7c75d6027",
+  "slug": "search-ui-kind-extension-of",
+  "kind": "contract-method",
+  "title": "Extract File Extension",
+  "description": "Gets the lowercased, dotless extension from a filename.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "signature": "export function extensionOf(name: string): string",
+  "params": [
+    "name: string"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Returns the last dot-separated segment of a filename, lowercased; dotfiles return empty string.",
+  "exported": false
+}

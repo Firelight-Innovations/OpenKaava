@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7cc1-a2e4-4a4b87d60fb7",
+  "slug": "library-use-library",
+  "kind": "contract-method",
+  "title": "useLibrary Hook",
+  "description": "Manages library screen state: catalog, installed plugins, in-flight installs, notices, and GitHub sign-in status.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7fed-b0e5-a5d417aba687",
+  "signature": "function useLibrary(active: boolean): LibrarySession",
+  "params": [
+    "active: boolean"
+  ],
+  "returns": "LibrarySession",
+  "errors": [],
+  "semantics": "Subscribes to plugins:changed and install:progress signals; provides methods to install, remove, reload, and toggle plugins.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7cf9-8a57-31b4e9c8a7c7",
+  "slug": "registry-switched",
+  "kind": "contract-method",
+  "title": "Switched Server State",
+  "description": "Get server switches that differ from shipped defaults.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74ba-abfe-06dbc4c59dec",
+  "signature": "pub fn switched(&self) -> BTreeMap<String, bool>",
+  "params": [],
+  "returns": "BTreeMap<String, bool>",
+  "errors": [],
+  "semantics": "Returns only servers whose switch state differs from the default, for persistence.",
+  "exported": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b43-b23c-05daab58ece4",
+  "slug": "codec-orphaned-response-decodes",
+  "kind": "test-case",
+  "title": "Response Decodes Regardless of Matching Request",
+  "description": "A response with an id nobody sent still decodes as valid.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "given": "A Response with id=999 that no pending call awaits",
+  "when": "decoded",
+  "then": "produces a valid Response; matching is the caller's job",
+  "impl_ref": "crates/kaava-rpc/src/codec.rs::response_decodes_regardless_of_whether_anything_is_waiting_on_its_id",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-74f9-bf4b-2fd9a36d0332",
+  "slug": "context-menu",
+  "kind": "module",
+  "title": "Context Menu",
+  "description": "Context menu component supporting editor actions and file operations.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7027-b3d8-9a1e046e1067",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

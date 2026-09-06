@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7a9b-89df-fe6718226e95",
+  "slug": "listener-tokio",
+  "kind": "external-dep",
+  "title": "tokio",
+  "description": "Async runtime for serving the MCP listener; reuses the tokio runtime already running under Tauri.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7086-80ae-e8b05191e7a8",
+  "registry_ref": "01a07403-c800-7243-8adc-c1bedafde741",
+  "usage_note": "Spawns async task via tauri::async_runtime to serve TcpListener and run axum router"
+}

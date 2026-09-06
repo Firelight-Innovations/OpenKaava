@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-70ed-a57e-b019a9176856",
+  "slug": "prettier-config",
+  "kind": "module",
+  "title": "Prettier Code Formatting Configuration",
+  "description": "Configures Prettier for consistent code formatting across TypeScript and JavaScript, aligning print width with rustfmt.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

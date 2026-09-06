@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f1f-9bb7-cc55b389fd77",
+  "slug": "design-serde-json",
+  "kind": "external-dep",
+  "title": "serde_json",
+  "description": "JSON serialization for method parameters and screenshot/comment results.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b07-98f5-17457c65a2df",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "Value type for DevTools Protocol responses; json! macro for building screenshot and comment responses"
+}

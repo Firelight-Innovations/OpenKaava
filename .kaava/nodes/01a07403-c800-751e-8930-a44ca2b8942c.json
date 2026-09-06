@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-751e-8930-a44ca2b8942c",
+  "slug": "clipboard-contextmenu-no-write",
+  "kind": "test-case",
+  "title": "Right-Click Writes Nothing",
+  "description": "Ensures right-click menu handling never sends data to PTY.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7101-96d4-211896bc6c31",
+  "given": "Fake terminal with previous paste in textarea",
+  "when": "handleContextMenu() called",
+  "then": "terminal.writes remains empty",
+  "impl_ref": "src/shell/terminal/clipboard.test.ts::right-click writes nothing to the pty on its own",
+  "status": "declared",
+  "last_result_ms": null
+}

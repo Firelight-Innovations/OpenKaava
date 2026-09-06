@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7966-bc49-b6594b78b83f",
+  "slug": "core-an-id-carries-version-seven",
+  "kind": "test-case",
+  "title": "ID carries UUIDv7 version",
+  "description": "A minted ID is version 7 with correct RFC variant bits.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a7-8335-a2b30fb2137e",
+  "given": "A minter seeded with 7",
+  "when": "mint_at is called",
+  "then": "The returned UUID has version 7 and variant bits 0x80",
+  "impl_ref": "crates/schematify-core/src/id.rs::an_id_carries_version_seven_and_the_rfc_variant",
+  "status": "declared",
+  "last_result_ms": null
+}

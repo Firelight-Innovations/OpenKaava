@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-78ab-a613-e1238eed6be2",
+  "slug": "trash-scoping-is-design",
+  "kind": "doc-block",
+  "title": "Trash scoping is security, not convenience",
+  "description": "The scope boundary keeps a tool's blast radius inside its project.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7415-bf3d-ec958150ed0a",
+  "body": "This is a real boundary in a way files.rs explains its own path checks are not. This one is different: it is not defending the filesystem from the user, it is keeping a tool's blast radius inside the project it was pointed at, which is a scope decision rather than a security theatre one.",
+  "audience": "agent"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-776b-8551-2edaf4110f6e",
+  "slug": "design-app-comments-pending-question-finds-agent-question",
+  "kind": "test-case",
+  "title": "pendingQuestion finds agent's last question",
+  "description": "Returns agent's final question when status is question",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-76b8-97b0-0d8399c3f37b",
+  "given": "comment with question status and agent response in thread",
+  "when": "pendingQuestion is called",
+  "then": "returns the agent's question text",
+  "impl_ref": "apps/design/ui/src/comments.test.ts::finds the question a comment is waiting on",
+  "status": "declared",
+  "last_result_ms": null
+}

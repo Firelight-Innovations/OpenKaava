@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-77f9-9dc3-5feae5d50459",
+  "slug": "review-edit",
+  "kind": "contract-method",
+  "title": "Read-modify-write review comments under a lock",
+  "description": "Load comments, apply a mutation, sort, and save, all under a single-process mutex.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "signature": "pub fn edit<T>(app: &AppHandle, cluster_id: &str, change: impl FnOnce(&mut Vec<ReviewComment>) -> Result<T>) -> Result<T>",
+  "params": [
+    "app: &AppHandle",
+    "cluster_id: &str",
+    "change: impl FnOnce(&mut Vec<ReviewComment>) -> Result<T>"
+  ],
+  "returns": "Result<T>",
+  "errors": [
+    "Review"
+  ],
+  "semantics": "Serializes comment mutations to prevent race conditions, returning the outcome of the change function.",
+  "exported": false
+}

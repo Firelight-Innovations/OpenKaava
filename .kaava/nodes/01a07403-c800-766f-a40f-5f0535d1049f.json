@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-766f-a40f-5f0535d1049f",
+  "slug": "app-root-app-component",
+  "kind": "contract-method",
+  "title": "App Root Component",
+  "description": "Default export bootstraps the Schematify shell with initial path state, engine lifecycle, and data fetches.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7fb5-aa99-e6208f931a06",
+  "signature": "App() => JSX.Element",
+  "params": [],
+  "returns": "React component",
+  "errors": [],
+  "semantics": "Manages the top-level state for tier navigation, Schematic engine lifecycle, linting findings, runs, and module dashboards, orchestrating all subcomponents.",
+  "exported": true
+}

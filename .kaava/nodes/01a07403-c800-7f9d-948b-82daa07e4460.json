@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f9d-948b-82daa07e4460",
+  "slug": "presets-service-config",
+  "kind": "contract-method",
+  "title": "SERVICE_CONFIG",
+  "description": "Tier 2 configuration for Service Schematics.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7919-b359-e87ddc820cbc",
+  "signature": "const SERVICE_CONFIG: SchematicConfig",
+  "params": [],
+  "returns": "SchematicConfig",
+  "errors": [],
+  "semantics": "Pre-configured settings for Service Schematics.",
+  "exported": true
+}

@@ -1,0 +1,30 @@
+{
+  "id": "01a07403-c800-7571-bdda-f6f86d0bbe22",
+  "kind": "screen",
+  "slug": "library-screen",
+  "title": "Library / Apps Screen",
+  "purpose": "Application catalog, repository installer, and authentication for third-party apps",
+  "states": [
+    "closed - library not open",
+    "open-catalog - showing built-in catalog of apps",
+    "open-custom - showing repo URL installation form",
+    "installing - app installation in progress",
+    "sign-in - authentication flow active",
+    "toasts - notifications shown as corner toasts when closed"
+  ],
+  "acceptance": [
+    "shall display as modal overlay with backdrop",
+    "shall show three sections: Library, Repository, Sign In",
+    "shall display app cards with icon, title, and Install button",
+    "shall show installation progress for in-flight installs",
+    "shall display success/error notices for completed installs",
+    "shall support dismissing notices",
+    "shall show corner toasts when screen is closed",
+    "shall support installing from GitHub repo URL",
+    "shall support GitHub authentication via token",
+    "shall close on backdrop click or close button"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7fed-b0e5-a5d417aba687"
+  ]
+}

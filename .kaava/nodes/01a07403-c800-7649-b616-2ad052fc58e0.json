@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7649-b616-2ad052fc58e0",
+  "slug": "tool-spec-module-doc",
+  "kind": "doc-block",
+  "title": "Tool Specification Layer Doc",
+  "description": "Two-layer design separating declared specs from resolved disk state.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f53-8e06-e976a305895d",
+  "body": "The vocabulary of the stack: what a tool *is*, and what state it's in. Two layers on purpose: `ToolSpec` — what kaava.toml *declares*. Deserialized from the manifest. `ResolvedTool` — that spec joined with what's actually on disk right now. Keeping 'declared' and 'actual' as separate types means the discovery step can't accidentally overwrite the pinned version with whatever it found.",
+  "audience": "agent"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-709f-bf7b-a415dbc76de8",
+  "slug": "file-api-coupling-rule",
+  "kind": "doc-block",
+  "title": "RPC Module Coupling Rule",
+  "description": "Why rpc.ts restates shapes and avoids imports from the orchestrator.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "body": "rpc.ts mirrors src-tauri/src/apps/files.rs and restates rather than imports: an app knows its host only through @openkaava/bridge, and the day this one is extracted into a tool repository of its own, nothing in apps/files/ may be reaching into src/. A Rust test catches a drift, not pnpm build.",
+  "audience": "agent"
+}

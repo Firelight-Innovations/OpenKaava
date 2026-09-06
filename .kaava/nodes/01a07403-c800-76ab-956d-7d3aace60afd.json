@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-76ab-956d-7d3aace60afd",
+  "slug": "app-updater-note-cut-on-word-boundary",
+  "kind": "test-case",
+  "title": "Release Notes: Word Boundary Cutting",
+  "description": "Long notes are cut at word boundary after MAX_NOTES chars.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7725-8d89-01b343796845",
+  "given": "Long single-paragraph note exceeding MAX_NOTES",
+  "when": "summarise() is called",
+  "then": "Returns text cut at word boundary with ellipsis",
+  "impl_ref": "src-tauri/src/updater.rs::a_long_note_is_cut_on_a_word_boundary",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-7c85-a0f1-558c49088808",
+  "slug": "git-operations-git-cluster-diff",
+  "kind": "contract-method",
+  "title": "Get File Diff",
+  "description": "Both sides of one file's diff for staged or unstaged view.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "signature": "pub fn git_cluster_diff(app: AppHandle, cluster_id: String, path: String, staged: bool) -> Result<GitDiff>",
+  "params": [
+    "app",
+    "cluster_id",
+    "path",
+    "staged"
+  ],
+  "returns": "Result<GitDiff>",
+  "errors": [
+    "AppError::Git"
+  ],
+  "semantics": "Returns the full text of both sides of a diff for an editor.",
+  "exported": true
+}

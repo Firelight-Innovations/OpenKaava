@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-78fe-9665-68c86ea39d49",
+  "slug": "executable-validation-issue-36",
+  "kind": "doc-block",
+  "title": "Modal dialog prevention (issue #36)",
+  "description": "The Windows modal dialog that blocked app startup.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77da-aa46-7c6a5eb0946a",
+  "body": "CreateProcess handed a file beginning with MZ but having no PE header puts up a modal 'Unsupported 16-Bit Application' box and blocks the calling thread. The launch terminal is spawned synchronously while the splash is the only window on screen. A shell on PATH that fails this check could appear as if the application never starts until a box is dismissed. Reading the PE header before spawning prevents this.",
+  "audience": "agent"
+}

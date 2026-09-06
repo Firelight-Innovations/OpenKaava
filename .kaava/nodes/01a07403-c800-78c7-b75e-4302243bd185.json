@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-78c7-b75e-4302243bd185",
+  "slug": "problems-resolve-click",
+  "kind": "contract-method",
+  "title": "resolveClickThrough",
+  "description": "Resolves whether a Problems row navigates or just selects based on whether the target Schematic is already open.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74e7-acd1-ffea4dddd156",
+  "signature": "function resolveClickThrough(current: { tier: Tier; slug: string }, finding: Finding): ClickThrough | null",
+  "params": [
+    "current: { tier: Tier; slug: string }",
+    "finding: Finding"
+  ],
+  "returns": "ClickThrough | null",
+  "errors": [],
+  "semantics": "Avoids re-opening already-open Schematics per PRD.",
+  "exported": false
+}

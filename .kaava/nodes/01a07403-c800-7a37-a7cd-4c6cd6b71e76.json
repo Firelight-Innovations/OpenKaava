@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7a37-a7cd-4c6cd6b71e76",
+  "slug": "report-rendering-render-text",
+  "kind": "contract-method",
+  "title": "Render Text Report",
+  "description": "Render run as the --format text consolidated report.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "signature": "pub fn render_text(run: &ReconcileRun) -> String",
+  "params": [
+    "run: &ReconcileRun"
+  ],
+  "returns": "String",
+  "errors": [],
+  "semantics": "Produces human-readable line-by-line report with summary.",
+  "exported": false
+}

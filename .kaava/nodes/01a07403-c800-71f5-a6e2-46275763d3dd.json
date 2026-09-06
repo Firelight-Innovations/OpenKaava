@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-71f5-a6e2-46275763d3dd",
+  "slug": "project-store-precious-data",
+  "kind": "doc-block",
+  "title": "Recent projects list is precious",
+  "description": "Why the recent list survives a restart without touching the repository.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b76-a547-de7e3176cebe",
+  "body": "The Recent list is precious — the machine's history with projects, and nothing on the machine can rebuild it. A checkout on disk says nothing about whether it was ever opened here. It lives in the OS config directory for this app, not in the repo and not beside any project, because it is about this machine's history with projects and must not end up in someone's version control.",
+  "audience": "both"
+}

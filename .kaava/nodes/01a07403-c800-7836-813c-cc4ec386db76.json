@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7836-813c-cc4ec386db76",
+  "slug": "layout-build-doc",
+  "kind": "contract-method",
+  "title": "buildDoc",
+  "description": "Join semantic graph to cosmetic layout file.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79bb-abc8-74d009a7d2da",
+  "signature": "function buildDoc(graph: SchematicGraph, layout: LayoutFile | null, config: SchematicConfig): SchematicDoc",
+  "params": [
+    "graph",
+    "layout",
+    "config"
+  ],
+  "returns": "SchematicDoc",
+  "errors": [],
+  "semantics": "Returns document preserving stored positions and arranging new nodes.",
+  "exported": true
+}

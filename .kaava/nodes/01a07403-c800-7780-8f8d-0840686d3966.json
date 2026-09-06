@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7780-8f8d-0840686d3966",
+  "slug": "stack-discovery-3",
+  "kind": "external-dep",
+  "title": "toml",
+  "description": "TOML value type parsing in version detection.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7987-be21-fd2e593064ee",
+  "registry_ref": "01a07403-c800-7994-a954-210071677424",
+  "usage_note": "toml::Value for parsing Cargo.toml version fields"
+}

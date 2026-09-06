@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7590-bb3c-fe1a4b53aba3",
+  "slug": "design-only-http-loadable",
+  "kind": "test-case",
+  "title": "Only http(s) schemes load",
+  "description": "file:, data:, and javascript: schemes are refused.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b07-98f5-17457c65a2df",
+  "given": "URLs with various schemes",
+  "when": "normalize() is called",
+  "then": "only http and https pass",
+  "impl_ref": "src-tauri/src/apps/design.rs::only_http_schemes_are_loadable",
+  "status": "declared",
+  "last_result_ms": null
+}

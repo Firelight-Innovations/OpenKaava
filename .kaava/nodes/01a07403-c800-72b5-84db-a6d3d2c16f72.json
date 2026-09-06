@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-72b5-84db-a6d3d2c16f72",
+  "slug": "app",
+  "kind": "module",
+  "title": "App Root",
+  "description": "Main tutorial app that displays interactive tutorials explaining OpenKaava features and workflows.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-718d-b2d6-63127c14155b",
+  "allowed_libraries": [
+    "01a07403-c800-7bd1-a062-9c1c49e747dc",
+    "01a07403-c800-7ea4-bc03-11fc58b51a7e"
+  ],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-71ea-9b0c-b158b4cbb148",
+    "schematify://screen/01a07403-c800-792e-af7c-c6b7b8831232"
+  ]
+}

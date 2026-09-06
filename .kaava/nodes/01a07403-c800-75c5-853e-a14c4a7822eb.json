@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-75c5-853e-a14c4a7822eb",
+  "slug": "tutorial-app-catalog-doc",
+  "kind": "doc-block",
+  "title": "Tutorial catalog and completion tracking",
+  "description": "Fetches tutorial list and manages completion state",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7697-bf70-29e6a2605cc1",
+  "body": "The tutorial list, and what has been finished. One call, and every mutation answers with the whole catalog back — so there is no local model of progress to keep in step with the store. Marking a tutorial done is a round trip whose reply *is* the new state.",
+  "audience": "agent"
+}

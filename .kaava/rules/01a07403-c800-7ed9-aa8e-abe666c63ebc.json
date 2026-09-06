@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7ed9-aa8e-abe666c63ebc",
+  "slug": "gate-bundle-identifier-consistency",
+  "statement": "Bundle identifier must be the same across `tauri.conf.json`, `identity.rs`, `install.rs`, and `package.json ui:build` config.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm lint:identity"
+}

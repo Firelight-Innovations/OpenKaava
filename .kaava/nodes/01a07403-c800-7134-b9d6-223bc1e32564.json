@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7134-b9d6-223bc1e32564",
+  "slug": "file-api-stat",
+  "kind": "contract-method",
+  "title": "Stat File",
+  "description": "Get current metadata of a file for external change detection.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export const stat = (path: string) => invoke<Stat>('files/stat', { path })",
+  "params": [
+    "path: string"
+  ],
+  "returns": "Promise<Stat> with file metadata including exists flag",
+  "errors": [],
+  "semantics": "Returns current file metadata; exists: false when file was deleted.",
+  "exported": true
+}

@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7bbc-9c10-9eeeb00a08e3",
+  "slug": "cli-integration-tests",
+  "kind": "module",
+  "title": "CLI Integration Tests",
+  "description": "End-to-end tests spawning the kaava binary with realistic fixture trees and verifying correct exit codes and output.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e48-8636-0f44278a1b0e",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78ea-863f-a3b45497ce59",
+  "slug": "marker-token-parses-a-well-formed-token-with-slug",
+  "kind": "test-case",
+  "title": "Parse Token with Slug",
+  "description": "Parse a complete @kaava:UUID slug pattern.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77d3-a0d3-3e27db45a8db",
+  "given": "@kaava:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 token-verifier.verify_signature",
+  "when": "parse_token is called",
+  "then": "returns Some with correct UUID and slug",
+  "impl_ref": "crates/schematify-reconcile/src/token.rs::parses_a_well_formed_token_with_slug",
+  "status": "declared",
+  "last_result_ms": null
+}

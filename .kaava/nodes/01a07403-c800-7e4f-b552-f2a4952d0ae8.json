@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7e4f-b552-f2a4952d0ae8",
+  "slug": "core-slug-new",
+  "kind": "contract-method",
+  "title": "Create Slug",
+  "description": "Validate and wrap a human-readable identifier unique within its scope.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a7-8335-a2b30fb2137e",
+  "signature": "pub fn new(text: impl Into<String>) -> Result<Self, SlugError>",
+  "params": [
+    "text: impl Into<String>"
+  ],
+  "returns": "Result<Slug, SlugError>",
+  "errors": [
+    "SlugError::Malformed"
+  ],
+  "semantics": "Creates a slug from 1-128 ASCII alphanumeric, dash, underscore or dot characters, rejecting empty strings and leading dots.",
+  "exported": true
+}

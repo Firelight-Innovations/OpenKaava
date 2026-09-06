@@ -1,0 +1,34 @@
+{
+  "id": "01a07403-c800-7ac7-aa17-bb18ca490023",
+  "kind": "flow",
+  "slug": "configure-mcp-servers-for-agents",
+  "title": "Configure MCP Servers for Coding Agents",
+  "trigger": "User wants to connect a coding agent to OpenKaava's tools",
+  "steps": [
+    {
+      "screen": "schematify://screen/01a07403-c800-7cef-864a-1ae1a3c77d5c",
+      "action": "Click the sliders glyph in the status bar at the bottom to open Settings"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c87-b8d6-92e496cea50e",
+      "action": "Navigate to MCP servers section"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c87-b8d6-92e496cea50e",
+      "action": "Toggle on the servers you want (e.g., Echo server or future Schematify server)"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c87-b8d6-92e496cea50e",
+      "action": "Leave Write .mcp.json into open projects on; this generates or updates the .mcp.json file"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c0a-bb93-223be6b8c63c",
+      "action": "Open a terminal in the OpenKaava cluster (Ctrl+Shift+`) and start your MCP client (e.g., Claude Code) there"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c0a-bb93-223be6b8c63c",
+      "action": "When the client starts, it reads .mcp.json and connects to the enabled servers using the KAAVA_MCP_PORT and KAAVA_MCP_TOKEN environment variables"
+    }
+  ],
+  "outcome": "MCP servers are enabled and written to .mcp.json, making OpenKaava's tools available to agents in the terminal"
+}

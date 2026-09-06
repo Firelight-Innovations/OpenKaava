@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7c64-8d59-0fd20032a52d",
+  "slug": "bottom-panel-component",
+  "kind": "contract-method",
+  "title": "BottomPanel React Component",
+  "description": "Renders the terminal band with a vertical session list on the left and the terminal emulator deck filling the rest.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ab5-b38c-4cd0ce02ad5d",
+  "signature": "function BottomPanel(props: BottomPanelProps): ReactElement",
+  "params": [
+    "props: BottomPanelProps (sessions, activeTabId, onSelectTab, onNewTerminal, etc.)"
+  ],
+  "returns": "ReactElement",
+  "errors": [],
+  "semantics": "Displays terminal sessions in a scrollable left rail with drag handles, and renders the emulator view into the main body.",
+  "exported": false
+}

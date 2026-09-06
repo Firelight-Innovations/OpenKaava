@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7086-80ae-e8b05191e7a8",
+  "slug": "listener",
+  "kind": "module",
+  "title": "HTTP Listener",
+  "description": "HTTP server hosting the MCP protocol on loopback with bearer token authentication and request routing to registered servers.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [
+    "01a07403-c800-732f-b818-f874a7c82aaa",
+    "01a07403-c800-7299-afdf-128e540beb73",
+    "01a07403-c800-7b4c-8e5d-4a89a068809e",
+    "01a07403-c800-765e-b16b-0ba52dbbc710",
+    "01a07403-c800-7243-8adc-c1bedafde741"
+  ],
+  "ui_refs": []
+}

@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-742d-bb5e-da51c5cc46c1",
+  "slug": "viewer-app-rpc-write",
+  "kind": "contract-method",
+  "title": "write",
+  "description": "Overwrites file with optimistic locking on mtime",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a0-9c27-267f8065604a",
+  "signature": "export const write = (path: string, text: string, baseMtime: number | null) => invoke<WriteResult>(\"files/write\", ...)",
+  "params": [
+    "path",
+    "text",
+    "baseMtime"
+  ],
+  "returns": "Promise<WriteResult>",
+  "errors": [
+    "KaavaRpcError"
+  ],
+  "semantics": "Writes text to file, refusing if mtime changed since read to catch concurrent edits.",
+  "exported": true
+}

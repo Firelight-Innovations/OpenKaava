@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e16-86ce-27559f74faca",
+  "slug": "userdata-identity-not-self-superseding",
+  "kind": "test-case",
+  "title": "IDENTIFIER is not in SUPERSEDED",
+  "description": "A bundle id cannot supersede itself.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7eb9-8c34-08c4ec7b1932",
+  "given": "The defined identity constants",
+  "when": "checked",
+  "then": "IDENTIFIER does not appear in SUPERSEDED",
+  "impl_ref": "src-tauri/src/userdata/identity.rs::the_identifier_is_not_also_superseded",
+  "status": "declared",
+  "last_result_ms": null
+}

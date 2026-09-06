@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7ad9-aca4-edfeda4aec6a",
+  "slug": "anatomy-badges-entry-stack",
+  "kind": "test-case",
+  "title": "badgesFor draws shorter ENTRY on stack tier",
+  "description": "Stack tier entry point role draws just ENTRY.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b7-95f8-682301adf593",
+  "given": "a node with role='entry-point' at stack tier",
+  "when": "badgesFor is called",
+  "then": "badges include 'ENTRY' not 'ENTRY POINT'",
+  "impl_ref": "apps/schematify/ui/src/engine/anatomy.test.ts::badgesFor draws the shorter ENTRY on the Stack Schematic for the same role",
+  "status": "declared",
+  "last_result_ms": null
+}

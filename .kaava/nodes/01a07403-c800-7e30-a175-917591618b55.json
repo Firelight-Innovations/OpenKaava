@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7e30-a175-917591618b55",
+  "slug": "plugin-registry-split-address",
+  "kind": "contract-method",
+  "title": "Parse Surface Address",
+  "description": "Decompose package.surface address back into halves.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "signature": "pub fn split_address(address: &str) -> Option<(&str, &str)>",
+  "params": [
+    "address: &str"
+  ],
+  "returns": "Option<(&str, &str)>",
+  "errors": [],
+  "semantics": "Returns None if not an address; accepts bare app ids like home without error.",
+  "exported": false
+}

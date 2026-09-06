@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7e40-80f2-9d2d15147fc8",
+  "slug": "settings-snapshot",
+  "kind": "contract-method",
+  "title": "Get every settings group and all changed values",
+  "description": "Return the entire settings screen in one call.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7be5-8dc0-57c63dfa6eb1",
+  "signature": "#[tauri::command] pub fn settings_snapshot(registry: State<'_, Registry>) -> Snapshot",
+  "params": [
+    "registry: State<'_, Registry>"
+  ],
+  "returns": "Snapshot",
+  "errors": [],
+  "semantics": "Returns all settings groups and the values changed away from defaults.",
+  "exported": true
+}

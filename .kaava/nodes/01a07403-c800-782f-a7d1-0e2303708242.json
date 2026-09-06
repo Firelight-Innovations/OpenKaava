@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-782f-a7d1-0e2303708242",
+  "slug": "boundary-check-lifecycle-pair",
+  "kind": "test-case",
+  "title": "lifecycle pair validation",
+  "description": "Accepts one node write paired with exactly that node's audit.json.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78ad-9f18-7213bcc5f199",
+  "given": "Changed files including one nodes/ file and its corresponding runs/ audit.json",
+  "when": "violations() is called",
+  "then": "returns empty array (passes check)",
+  "impl_ref": "scripts/check-kaava-boundary.test.mjs::passes the lifecycle pair",
+  "status": "declared",
+  "last_result_ms": null
+}

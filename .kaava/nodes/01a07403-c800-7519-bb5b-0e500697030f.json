@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7519-bb5b-0e500697030f",
+  "slug": "diff-review-comments-for",
+  "kind": "contract-method",
+  "title": "Filter Comments by File and Scope",
+  "description": "Extracts review comments for one file in one diff, sorted by position and age.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "signature": "export function commentsFor(comments: readonly ReviewComment[], path: string, scope: ReviewScope): ReviewComment[]",
+  "params": [
+    "comments: readonly ReviewComment[]",
+    "path: string",
+    "scope: ReviewScope"
+  ],
+  "returns": "ReviewComment[]",
+  "errors": [],
+  "semantics": "Filters by path and scope, sorts by line number then creation time, and does not mutate input.",
+  "exported": false
+}

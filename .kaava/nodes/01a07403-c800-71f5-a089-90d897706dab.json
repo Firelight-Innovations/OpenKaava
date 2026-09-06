@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-71f5-a089-90d897706dab",
+  "slug": "tool-window-mount",
+  "kind": "contract-method",
+  "title": "ToolMount React Component",
+  "description": "One instance's iframe element plus boot overlay and unavailable state, mounted once per instance for its entire lifetime.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e2-b95c-b24cdbe6d78b",
+  "signature": "function ToolMount(props: ToolMountProps): ReactElement",
+  "params": [
+    "instanceId: string",
+    "tool: ToolPresentation",
+    "title: string",
+    "ready: boolean"
+  ],
+  "returns": "ReactElement",
+  "errors": [],
+  "semantics": "Renders an iframe for a tool instance, overlays a boot indicator until handshake completes, and registers/unregisters the frame with ToolWindow.",
+  "exported": false
+}

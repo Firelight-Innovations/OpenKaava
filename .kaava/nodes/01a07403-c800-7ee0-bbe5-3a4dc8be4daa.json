@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-7ee0-bbe5-3a4dc8be4daa",
+  "slug": "app-updater-install-update",
+  "kind": "contract-method",
+  "title": "Download and Install Update",
+  "description": "Download offered release and execute NSIS installer; does not return on Windows.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7725-8d89-01b343796845",
+  "signature": "#[tauri::command] pub async fn install_update(app: AppHandle) -> Result<()>",
+  "params": [
+    "app: AppHandle"
+  ],
+  "returns": "Result<()>",
+  "errors": [
+    "No standing offer",
+    "Download failed",
+    "Signature verification failed",
+    "Network unavailable"
+  ],
+  "semantics": "Blocks on Standing offer state, re-checks endpoint, downloads, and installs.",
+  "exported": true
+}

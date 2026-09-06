@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7192-82eb-04f3dac8c6ce",
+  "kind": "decision",
+  "slug": "DEC-STD-NAMING-001",
+  "title": "Wire formats are permanent; never rename product tokens",
+  "context": "Early decisions about identifiers and namespaces propagate to every tool repository ever written.",
+  "decision": ".kaava extension, kaava/* RPC namespace, kaava-tool:// scheme, @openkaava/* scope, crate names, and bundle identifier must never be renamed. Managed via branding.toml; product marketing name changes but wire formats do not.",
+  "consequences": "Backward compatibility is mandatory for wire formats. Renaming any of these breaks every tool repository written against this shell. These are not branding—they are protocol.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-08-18"
+}

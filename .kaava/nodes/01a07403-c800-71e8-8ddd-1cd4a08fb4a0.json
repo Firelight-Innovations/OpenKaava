@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-71e8-8ddd-1cd4a08fb4a0",
+  "slug": "window-frame-band-geometry",
+  "kind": "contract-method",
+  "title": "bandGeometry",
+  "description": "Reads the terminal band's open/closed and maximized state for a given cluster from the geometry map.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bda-92fe-1e3bdf7870f3",
+  "signature": "function bandGeometry(byCluster: BandGeometryByCluster, clusterId: string | null): BandGeometry",
+  "params": [
+    "byCluster: BandGeometryByCluster",
+    "clusterId: string | null"
+  ],
+  "returns": "BandGeometry",
+  "errors": [],
+  "semantics": "Returns the band's collapsed and maximized state for the cluster, defaulting to BAND_SHUT if cluster has not been touched.",
+  "exported": false
+}

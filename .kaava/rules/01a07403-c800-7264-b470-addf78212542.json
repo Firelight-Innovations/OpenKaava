@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7264-b470-addf78212542",
+  "slug": "gate-branding-surface-agreement",
+  "statement": "All branding surfaces in `index.html`, `splash.html`, `kaava.toml`, and `tauri.conf.json` must agree with `branding.toml`.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm lint:branding"
+}

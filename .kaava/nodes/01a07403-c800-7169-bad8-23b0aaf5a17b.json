@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7169-bad8-23b0aaf5a17b",
+  "slug": "project-store-touch",
+  "kind": "contract-method",
+  "title": "Record a project as just-opened",
+  "description": "Move a project to the front of the recent list, updating its timestamp.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b76-a547-de7e3176cebe",
+  "signature": "pub fn touch(&mut self, path: &Path, name: &str, at: u64)",
+  "params": [
+    "path: &Path",
+    "name: &str",
+    "at: u64"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Inserts or moves the project to the front of recents, removing duplicates and capping the list.",
+  "exported": false
+}

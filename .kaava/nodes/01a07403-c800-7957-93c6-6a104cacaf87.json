@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7957-93c6-6a104cacaf87",
+  "slug": "topics",
+  "kind": "module",
+  "title": "Message Topics",
+  "description": "Message topic definitions for communication between the Viewer and other app instances.",
+  "lifecycle": "specified",
+  "layer": "data",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7027-b3d8-9a1e046e1067",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

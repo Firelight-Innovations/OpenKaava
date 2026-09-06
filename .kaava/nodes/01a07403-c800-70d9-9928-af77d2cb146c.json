@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-70d9-9928-af77d2cb146c",
+  "slug": "design-app-rpc-capture",
+  "kind": "contract-method",
+  "title": "capture",
+  "description": "Takes screenshot of element region",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a0-9c27-267f8065604a",
+  "signature": "export const capture = (rect: { x: number; y: number; width: number; height: number }) => invoke<Screenshot>(...)",
+  "params": [
+    "rect"
+  ],
+  "returns": "Promise<Screenshot>",
+  "errors": [
+    "KaavaRpcError"
+  ],
+  "semantics": "Photographs rectangle in window coordinates, returns PNG data URL.",
+  "exported": true
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7dea-b58c-a5bdfcf83cc3",
+  "slug": "shell-module-overview",
+  "kind": "doc-block",
+  "title": "Shell Chrome Module Overview",
+  "description": "The shell layer provides UI components for the Schematify app interface.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-743f-ae55-0cbaeb91a62a",
+  "body": "The shell components draw the application chrome: breadcrumb navigation, toolbar, outline panel with section switching, dock with collapsible tabs, status bar with 5 cells, inspector sidebar, facet palette, empty states, problems panel, and runs panel. Each component receives data and callbacks from App.tsx, applying pure presentational logic per PRD Wave specs.",
+  "audience": "both"
+}

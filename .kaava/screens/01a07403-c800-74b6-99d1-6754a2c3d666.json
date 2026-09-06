@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-74b6-99d1-6754a2c3d666",
+  "kind": "screen",
+  "slug": "schematify-service",
+  "title": "Service Schematic",
+  "purpose": "Detailed architecture diagram for a single service showing modules and dependencies",
+  "states": [
+    "loading",
+    "ready",
+    "empty",
+    "error",
+    "node selected"
+  ],
+  "acceptance": [
+    "shall display service structure with modules and connections",
+    "shall support clicking modules to drill into module schematic",
+    "shall show breadcrumb navigation back to stack",
+    "shall display findings/problems for this service",
+    "shall show empty state when service has no modules"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7fb5-aa99-e6208f931a06",
+    "schematify://node/01a07403-c800-7ca9-8733-7c3c727556b9"
+  ]
+}

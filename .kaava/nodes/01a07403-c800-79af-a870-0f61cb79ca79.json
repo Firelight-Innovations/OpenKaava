@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79af-a870-0f61cb79ca79",
+  "slug": "anatomy-badges-module-root",
+  "kind": "test-case",
+  "title": "badgesFor draws MODULE ROOT · CANNOT BE DELETED at tier 3",
+  "description": "Module root role draws only at tier 3.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b7-95f8-682301adf593",
+  "given": "a node with role='schematic-root' at module tier",
+  "when": "badgesFor is called",
+  "then": "badges include 'MODULE ROOT · CANNOT BE DELETED'",
+  "impl_ref": "apps/schematify/ui/src/engine/anatomy.test.ts::badgesFor draws MODULE ROOT · CANNOT BE DELETED only for the schematic-root role at tier 3",
+  "status": "declared",
+  "last_result_ms": null
+}

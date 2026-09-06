@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7cf1-8793-b482a05cb000",
+  "slug": "webview-module-doc",
+  "kind": "doc-block",
+  "title": "WebView Engine Tuning",
+  "description": "Platform-specific configuration of the rendering engine.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-799f-97e8-2b2481591957",
+  "body": "Settings on the webview itself as opposed to the window drawn around it. windows.rs builds windows; this changes what the engine inside one does. There is exactly one such setting today and it is here rather than there because the two are reached through different objects — a window is a WebviewWindow, this is ICoreWebView2Settings behind the COM interface devtools.rs already uses. This suppresses WebView2's own right-click menu for this webview — an operation an IDE does not need.",
+  "audience": "agent"
+}

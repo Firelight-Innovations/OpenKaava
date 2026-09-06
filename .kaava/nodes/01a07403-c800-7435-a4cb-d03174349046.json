@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7435-a4cb-d03174349046",
+  "slug": "manifest-loader-2",
+  "kind": "external-dep",
+  "title": "serde",
+  "description": "Serialization framework for deriving Deserialize on manifest structures.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b8-a253-bd079c91045f",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "#[derive(Deserialize)] on Manifest and StackInfo"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-749a-a8a5-640ce0ecd6b2",
+  "slug": "product-screenstatecount-empty",
+  "kind": "test-case",
+  "title": "Screen state count when no states",
+  "description": "Verifies that screenStateCount returns 0 for a screen with no states.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "given": "A RawScreen with no states array entries",
+  "when": "screenStateCount is called",
+  "then": "0 is returned",
+  "impl_ref": "apps/schematify/ui/src/product/index.test.ts::screenStateCount is 0 for a screen with no states authored",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-72bb-a748-d826d7b4117e",
+  "slug": "branding-tagline",
+  "kind": "contract-method",
+  "title": "Product Tagline",
+  "description": "The tagline shown below the lockup on the Home hero.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7eb1-82f3-b6fa98380519",
+  "signature": "export const TAGLINE = 'The Veistra custom agentic development stack'",
+  "params": [],
+  "returns": "String",
+  "errors": [],
+  "semantics": "Tagline displayed under the product mark.",
+  "exported": true
+}

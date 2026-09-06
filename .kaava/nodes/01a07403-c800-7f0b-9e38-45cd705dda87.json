@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7f0b-9e38-45cd705dda87",
+  "slug": "ci-workflows",
+  "kind": "module",
+  "title": "GitHub Actions CI/CD Workflows",
+  "description": "Defines continuous integration jobs for verification, supply-chain checks, app library access control, architecture boundary enforcement, and release building.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

@@ -1,0 +1,7 @@
+{
+  "id": "01a07403-c800-72ce-b12c-91f8eedc0c43",
+  "slug": "state-machines-have-unit-tests",
+  "statement": "State machines must get unit test coverage before they grow.",
+  "severity": "review",
+  "audit": []
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7533-a4f0-375a855392e3",
+  "slug": "palette-registry-initial-index",
+  "kind": "contract-method",
+  "title": "Find First Runnable Command",
+  "description": "Determines which command the highlight should start on.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d1f-ac55-b6ae705d4545",
+  "signature": "export function initialIndex(rows: RankedCommand[]): number",
+  "params": [
+    "rows: RankedCommand[]"
+  ],
+  "returns": "number",
+  "errors": [],
+  "semantics": "Returns the index of the first command that is not disabled, falling back to zero when all are disabled.",
+  "exported": false
+}

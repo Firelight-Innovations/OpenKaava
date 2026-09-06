@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7077-9f42-81b9eb0e1b22",
+  "slug": "tool-notify",
+  "kind": "contract-method",
+  "title": "Send a Notification from a Tool",
+  "description": "Push an unsolicited event to the host from any thread.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7154-a856-36e43d55537d",
+  "signature": "pub fn notify(method: &str, params: Option<Value>) -> io::Result<()>",
+  "params": [
+    "method: &str",
+    "params: Option<Value>"
+  ],
+  "returns": "io::Result<()>",
+  "errors": [
+    "std::io::Error"
+  ],
+  "semantics": "Thread-safe; holds stdout lock for the whole message to prevent interleaving.",
+  "exported": true
+}

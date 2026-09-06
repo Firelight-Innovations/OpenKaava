@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d72-a168-bf242627624c",
+  "slug": "stack-discovery-the-shipped-manifest-parses",
+  "kind": "test-case",
+  "title": "Manifest Validation",
+  "description": "The repo's actual kaava.toml parses and resolves without error.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7987-be21-fd2e593064ee",
+  "given": "Repo's kaava.toml file",
+  "when": "loaded and resolved",
+  "then": "Every pinned version is valid semver and ENABLED_TOOLS filtering works",
+  "impl_ref": "src-tauri/src/discovery.rs::the_shipped_manifest_parses_and_resolves",
+  "status": "declared",
+  "last_result_ms": null
+}

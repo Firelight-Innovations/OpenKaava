@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7bf0-a40c-b96bb64f20a8",
+  "slug": "registry-hydrate",
+  "kind": "contract-method",
+  "title": "Restore Switches",
+  "description": "Restore server switch positions from storage.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74ba-abfe-06dbc4c59dec",
+  "signature": "pub fn hydrate(&self, switched: BTreeMap<String, bool>)",
+  "params": [
+    "switched: BTreeMap<String, bool>"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Applies saved switch positions to registered servers, ignoring ids this build does not have.",
+  "exported": false
+}

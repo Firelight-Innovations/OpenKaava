@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-745c-a1f7-a0cb8efd6289",
+  "slug": "tauri",
+  "kind": "external-dep",
+  "title": "Tauri Framework",
+  "description": "Desktop application framework providing window management, event emission, and IPC.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731a-ab6c-3a00854fdef3",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "Emits pty:data and pty:exit events for terminal output; accesses app state for MCP endpoint"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-789a-82c8-528951eafa03",
+  "slug": "review-store-roundtrip",
+  "kind": "test-case",
+  "title": "Notes survive write and read",
+  "description": "Saved comments can be loaded back unchanged.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-700b-8fdc-ce83c58300e1",
+  "given": "A comment list",
+  "when": "save then load is called",
+  "then": "The loaded list equals the original",
+  "impl_ref": "src-tauri/src/review/store.rs::notes_survive_a_write_and_a_read",
+  "status": "declared",
+  "last_result_ms": null
+}

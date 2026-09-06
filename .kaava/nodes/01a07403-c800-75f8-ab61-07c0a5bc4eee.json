@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-75f8-ab61-07c0a5bc4eee",
+  "slug": "ui-server",
+  "kind": "contract-method",
+  "title": "UI Server",
+  "description": "See and drive the running window.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c60-bf87-a6ce55a2f177",
+  "signature": "pub static SERVER: McpServer",
+  "params": [],
+  "returns": "McpServer",
+  "errors": [],
+  "semantics": "Hosts six tools for screenshots, element snapshots, clicks, text input, key presses, and JavaScript evaluation; developer-only.",
+  "exported": false
+}

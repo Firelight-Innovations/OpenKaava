@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7cf8-9c80-ac491fe54767",
+  "slug": "notice-bar",
+  "kind": "module",
+  "title": "Notice Bar",
+  "description": "Confirmation and notice bar component for user prompts and alerts.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7027-b3d8-9a1e046e1067",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

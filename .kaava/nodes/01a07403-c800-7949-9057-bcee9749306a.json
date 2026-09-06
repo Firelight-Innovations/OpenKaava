@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7949-9057-bcee9749306a",
+  "slug": "launch-skips-switches",
+  "kind": "test-case",
+  "title": "Flag Skipping",
+  "description": "Verify that command-line flags beginning with dash are not treated as paths.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a3-a407-049c1f55dd74",
+  "given": "Arguments containing --disable-gpu before the actual path",
+  "when": "Extracting the launch target",
+  "then": "The path after the flag is returned",
+  "impl_ref": "src-tauri/src/launch.rs::skips_switches",
+  "status": "declared",
+  "last_result_ms": null
+}

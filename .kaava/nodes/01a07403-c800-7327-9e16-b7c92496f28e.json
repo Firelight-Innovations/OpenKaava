@@ -1,0 +1,27 @@
+{
+  "id": "01a07403-c800-7327-9e16-b7c92496f28e",
+  "slug": "schematify-call",
+  "kind": "contract-method",
+  "title": "Schematify app dispatcher",
+  "description": "Handles JSON-RPC method calls for design graph operations.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7aa6-b49a-5ee6d01af898",
+  "signature": "fn call(app: &AppHandle, context: &CallContext, method: &str, params: Option<Value>) -> Result<Value, RpcError>",
+  "params": [
+    "app",
+    "context",
+    "method",
+    "params"
+  ],
+  "returns": "Result<Value, RpcError>",
+  "errors": [
+    "INVALID_PARAMS",
+    "INTERNAL_ERROR",
+    "METHOD_NOT_FOUND"
+  ],
+  "semantics": "Implements schematify/state, schematify/{open-project,load-graph}, write operations (node, edge, layout, screen, flow, brief, decision), schematify/{transition,reconcile-status,lint,ingest-run,module-dashboard,runs}.",
+  "exported": true
+}

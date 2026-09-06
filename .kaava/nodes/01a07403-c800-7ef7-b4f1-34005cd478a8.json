@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7ef7-b4f1-34005cd478a8",
+  "slug": "schematify-state-reports-project",
+  "kind": "test-case",
+  "title": "schematify/state reports context",
+  "description": "State method returns resolved project and ready flag.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7aa6-b49a-5ee6d01af898",
+  "given": "a CallContext with cluster and project",
+  "when": "schematify/state is dispatched",
+  "then": "response includes project path and ready=false",
+  "impl_ref": "src-tauri/src/apps/schematify.rs::state_reports_the_resolved_project_and_is_honestly_not_ready",
+  "status": "declared",
+  "last_result_ms": null
+}

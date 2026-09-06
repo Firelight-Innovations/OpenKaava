@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7365-ba17-268ae2bd4997",
+  "slug": "design-comments-pruning",
+  "kind": "test-case",
+  "title": "Old resolved comments are pruned",
+  "description": "Resolved comments beyond KEPT_RESOLVED are forgotten oldest first.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cda-ab91-40d777dffd1d",
+  "given": "KEPT_RESOLVED + 10 resolved comments",
+  "when": "prune is called",
+  "then": "10 oldest are dropped, c1 through c10, leaving KEPT_RESOLVED",
+  "impl_ref": "src-tauri/src/design_comments.rs::pruning_forgets_old_resolved_comments_and_never_an_open_one",
+  "status": "declared",
+  "last_result_ms": null
+}

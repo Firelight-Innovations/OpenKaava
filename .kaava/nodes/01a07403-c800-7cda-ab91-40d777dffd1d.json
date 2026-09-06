@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7cda-ab91-40d777dffd1d",
+  "slug": "design-comments",
+  "kind": "module",
+  "title": "Design Mode Comment Store",
+  "description": "Persistent store for design mode comments captured from elements, with thread status tracking and conversation history between user and agent.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

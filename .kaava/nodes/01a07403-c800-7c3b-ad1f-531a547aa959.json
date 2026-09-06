@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c3b-ad1f-531a547aa959",
+  "slug": "index-test-outline-rows",
+  "kind": "test-case",
+  "title": "buildOutlineRows hides collapsed children",
+  "description": "Verifies rows are generated correctly with collapse state respected.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7053-b407-040c7111f077",
+  "given": "AUTH_SERVICE_GRAPH where session-store is collapsed with 2 children",
+  "when": "buildOutlineRows is called",
+  "then": "Returns 10 rows total, with session-codec and session-index not drawn but hiddenChildCount: 2 on session-store",
+  "impl_ref": "apps/schematify/ui/src/graph/index.test.ts::draws every root-level node and every expanded node's children",
+  "status": "declared",
+  "last_result_ms": null
+}

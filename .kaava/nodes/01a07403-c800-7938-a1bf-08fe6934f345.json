@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7938-a1bf-08fe6934f345",
+  "slug": "diff-prompt-format-comments",
+  "kind": "contract-method",
+  "title": "Format Multiple Review Comments",
+  "description": "Converts several review comments into a preamble and formatted blocks for pasting.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "signature": "export function formatComments(comments: readonly ReviewComment[]): string",
+  "params": [
+    "comments: readonly ReviewComment[]"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Returns empty string for no comments, prefixed message with singular/plural count for any number of comments.",
+  "exported": false
+}

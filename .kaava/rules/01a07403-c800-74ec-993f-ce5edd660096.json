@@ -1,0 +1,7 @@
+{
+  "id": "01a07403-c800-74ec-993f-ce5edd660096",
+  "slug": "rejected-alternatives-documented",
+  "statement": "Every non-obvious design decision must record the rejected alternative and explain why.",
+  "severity": "review",
+  "audit": []
+}

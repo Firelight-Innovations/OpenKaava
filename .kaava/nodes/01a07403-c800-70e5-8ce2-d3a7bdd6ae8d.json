@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-70e5-8ce2-d3a7bdd6ae8d",
+  "slug": "pane-tree-layout-design",
+  "kind": "doc-block",
+  "title": "Pane layout design and tab architecture",
+  "description": "Design rationale for how panes are organized and why tabs have moved out of this component.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77d0-8be7-f3b4ac1716af",
+  "body": "The recursive pane layout — splits and dividers, and nothing else. No tabs. Every pane used to draw its own strip, so a window with two splits listed the same surfaces across three rows at once. They are all in the cluster bar now; a pane here is a rectangle with a focus outline. A tab listed in two rows is two things that can disagree about which is active, and the second row never told anyone anything the first could not. No surfaces either, and that separation is a correctness requirement: moving a mounted element to a new position in the React tree is indistinguishable from unmounting and remounting it, which would reload iframes and lose app state.",
+  "audience": "both"
+}

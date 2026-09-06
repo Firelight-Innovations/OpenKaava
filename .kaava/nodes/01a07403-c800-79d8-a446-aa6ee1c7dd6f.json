@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-79d8-a446-aa6ee1c7dd6f",
+  "slug": "update-manifest-classify",
+  "kind": "contract-method",
+  "title": "classify",
+  "description": "Parses platform and installer type from an OpenKaava binary filename.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71ec-ad11-9f4d2a3ee4d1",
+  "signature": "classify(filename: string): {target: string, kind: string} | null",
+  "params": [
+    "filename: installer filename like 'OpenKaava_0.2.0_x64-setup.exe'"
+  ],
+  "returns": "object with target (windows-x86_64 etc.) and kind (nsis/msi) or null",
+  "errors": [],
+  "semantics": "Extracts version-specific platform and installer type from Tauri's output filenames.",
+  "exported": false
+}

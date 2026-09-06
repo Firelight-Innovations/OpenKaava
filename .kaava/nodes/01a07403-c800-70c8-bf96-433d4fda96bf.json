@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-70c8-bf96-433d4fda96bf",
+  "slug": "plugin-remote-slug",
+  "kind": "contract-method",
+  "title": "Get Repository Slug",
+  "description": "Return owner/name canonical form.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-764a-b5c5-9f2cce1355f5",
+  "signature": "pub fn slug(&self) -> String",
+  "params": [],
+  "returns": "String",
+  "errors": [],
+  "semantics": "Formats as owner/name; matches catalog entry repo field.",
+  "exported": false
+}

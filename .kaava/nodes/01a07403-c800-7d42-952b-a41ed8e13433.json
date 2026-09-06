@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7d42-952b-a41ed8e13433",
+  "slug": "launch-first-path-arg",
+  "kind": "contract-method",
+  "title": "launch::first_path_arg",
+  "description": "Extract the first non-flag argument from a command line.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a3-a407-049c1f55dd74",
+  "signature": "pub fn first_path_arg<I, S>(args: I) -> Option<PathBuf> where I: IntoIterator<Item = S>, S: AsRef<str>",
+  "params": [
+    "args: I (IntoIterator<Item = S>)"
+  ],
+  "returns": "Option<PathBuf>",
+  "errors": [],
+  "semantics": "Skips argv[0] and all flags starting with dash to find the path, if any.",
+  "exported": false
+}

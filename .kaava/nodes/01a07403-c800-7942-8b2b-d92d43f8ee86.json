@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7942-8b2b-d92d43f8ee86",
+  "slug": "scanner-a-marker-inside-kaava-or-git-produces-no-occurrence",
+  "kind": "test-case",
+  "title": "Exclude Markers from .kaava and .git",
+  "description": ".kaava and .git directories are not scanned, avoiding double-counting design data.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-781b-85ef-56660694446e",
+  "given": "same marker in .kaava/nodes, .git, and src",
+  "when": "scan_tree walks the tree",
+  "then": "only the src marker is returned",
+  "impl_ref": "crates/schematify-reconcile/src/scan.rs::a_marker_inside_kaava_or_git_produces_no_occurrence",
+  "status": "declared",
+  "last_result_ms": null
+}

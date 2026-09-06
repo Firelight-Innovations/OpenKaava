@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7140-94a6-05c33a5d3cc5",
+  "slug": "all-tests-pass",
+  "statement": "All JavaScript and Rust tests must pass.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm test"
+}

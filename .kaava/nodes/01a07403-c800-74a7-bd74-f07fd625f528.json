@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-74a7-bd74-f07fd625f528",
+  "slug": "backend-plugins-verify-full",
+  "kind": "budget",
+  "title": "Full Verification Suite",
+  "description": "Complete build, test, lint, and format checks for backend-plugins slice.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "metric": "execution time",
+  "op": "<=",
+  "value": 33,
+  "unit": "seconds",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm verify",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

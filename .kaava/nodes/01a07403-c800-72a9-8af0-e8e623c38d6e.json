@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-72a9-8af0-e8e623c38d6e",
+  "slug": "window-frame-component",
+  "kind": "contract-method",
+  "title": "Frame React Component",
+  "description": "Renders the window's five-band geometry: title bar, switcher bar, tool window, terminal band, and status bar, with resizable split between tool window and secondary panel.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bda-92fe-1e3bdf7870f3",
+  "signature": "function Frame(props: FrameProps): ReactElement",
+  "params": [
+    "props: FrameProps (kind, slots, panelCollapsed, panelWidth, etc.)"
+  ],
+  "returns": "ReactElement",
+  "errors": [],
+  "semantics": "Arranges five fixed-height bands in a column with a resizable split row; only the middle row grows; regions arrive as pre-built slots.",
+  "exported": false
+}

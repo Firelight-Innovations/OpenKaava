@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7687-a342-217de5a752ca",
+  "slug": "plugin-registry-rows",
+  "kind": "contract-method",
+  "title": "Get Plugin Management Screen Rows",
+  "description": "Resolve all plugins with failures kept for management screen display.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "signature": "pub fn rows(app: &AppHandle) -> Vec<PluginRow>",
+  "params": [
+    "app: &AppHandle"
+  ],
+  "returns": "Vec<PluginRow>",
+  "errors": [],
+  "semantics": "Resolves all records; includes error messages for broken plugins.",
+  "exported": true
+}

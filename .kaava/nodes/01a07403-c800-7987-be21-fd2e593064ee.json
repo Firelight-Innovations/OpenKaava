@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7987-be21-fd2e593064ee",
+  "slug": "stack-discovery",
+  "kind": "module",
+  "title": "Stack Discovery",
+  "description": "Join kaava.toml manifest declarations against the filesystem to build a snapshot of what tools are actually installed and their status.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [
+    "01a07403-c800-7aa2-b3b9-6a78efea577b",
+    "01a07403-c800-75dd-b05c-6d3f11053668",
+    "01a07403-c800-7994-a954-210071677424",
+    "01a07403-c800-7565-ae9d-23b929975082"
+  ],
+  "ui_refs": []
+}

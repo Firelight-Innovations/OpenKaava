@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7a33-8fd0-32393afd319c",
+  "slug": "project-module-overview",
+  "kind": "doc-block",
+  "title": "Project state and folder management",
+  "description": "What an OpenKaava project is, and which one is open in each cluster.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "body": "A project is a folder — chosen, not defaulted to. A folder becomes an OpenKaava project when it holds a <name>.kaava manifest. An un-marked folder still opens, so OpenKaava can be pointed at a game that exists today, and the frontend can offer to set one up rather than refuse it. The authority on which project is open lives in crate::shell_state::Cluster::project.",
+  "audience": "both"
+}

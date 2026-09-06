@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-76ea-9789-a318fc4d82c6",
+  "slug": "accelerators-primary-modifier",
+  "kind": "contract-method",
+  "title": "Primary Modifier Constant",
+  "description": "The modifier key for all shell shortcuts on Windows.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d53-814c-3c88cf09800b",
+  "signature": "export const PRIMARY_MODIFIER = \"Ctrl\"",
+  "params": [],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Exports the primary modifier key constant used across the shell.",
+  "exported": false
+}

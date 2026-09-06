@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-746f-9310-f1a0a66b6642",
+  "slug": "settings-store-save",
+  "kind": "contract-method",
+  "title": "Write changed settings atomically",
+  "description": "Persist settings through a temp file and atomic rename.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7af9-8c80-9bcc2630d68a",
+  "signature": "pub fn save(app: &AppHandle, stored: &Stored)",
+  "params": [
+    "app: &AppHandle",
+    "stored: &Stored"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Writes only changed values, never the defaults, to keep the file small and upgradeable.",
+  "exported": false
+}

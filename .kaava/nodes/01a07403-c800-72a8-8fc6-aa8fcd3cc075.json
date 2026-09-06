@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-72a8-8fc6-aa8fcd3cc075",
+  "slug": "eslint-config-2",
+  "kind": "external-dep",
+  "title": "TypeScript ESLint",
+  "description": "ESLint support for TypeScript including type-aware linting and TypeScript-specific rules.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d28-97e1-4b31b279f98e",
+  "registry_ref": "01a07403-c800-7d30-baf0-cc947e02d606",
+  "usage_note": "Imported in eslint.config.js to provide TypeScript language support and recommended rules"
+}

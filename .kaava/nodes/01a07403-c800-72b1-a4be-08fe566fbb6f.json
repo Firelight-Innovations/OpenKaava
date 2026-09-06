@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-72b1-a4be-08fe566fbb6f",
+  "slug": "review-unknown-id-errors",
+  "kind": "test-case",
+  "title": "Unknown id errors for mutations",
+  "description": "Operations on non-existent comments fail.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "given": "A comment and a made-up id",
+  "when": "update, set_resolved, or remove is called",
+  "then": "Each returns Err",
+  "impl_ref": "src-tauri/src/review/mod.rs::an_unknown_id_is_an_error_for_every_mutation_that_names_one",
+  "status": "declared",
+  "last_result_ms": null
+}

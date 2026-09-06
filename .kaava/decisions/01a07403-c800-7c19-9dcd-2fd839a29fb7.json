@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7c19-9dcd-2fd839a29fb7",
+  "kind": "decision",
+  "slug": "DEC-TEC-ICONS-016",
+  "title": "File-type icons are external multi-colour SVGs, hand-authored shell icons are inline JSX at currentColor",
+  "context": "File icons must be coloured (orange for .rs, blue for .toml) for scanning; shell chrome should adapt to theme.",
+  "decision": "Carve-out rule: file-type icons only in file lists (Files tree, search locator); they are external Material icons. All chrome (buttons, toggles, chevrons) uses hand-authored JSX at currentColor.",
+  "consequences": "Tree scanned visually by colour without reading filenames. Chrome adapts to all themes. Two different icon systems for two different purposes.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

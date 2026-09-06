@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7c97-8dd9-4b99a0409410",
+  "slug": "shell-bindings",
+  "kind": "external-dep",
+  "title": "@tauri-apps/api",
+  "description": "Tauri API for inter-process communication between the frontend and Rust backend.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7149-8c4b-15d6ed575d92",
+  "registry_ref": "01a07403-c800-7316-86fd-2d4d6903c4f5",
+  "usage_note": "Provides invoke() for calling Rust commands and listen() for subscribing to backend events"
+}

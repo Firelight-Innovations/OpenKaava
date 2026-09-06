@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7407-aac7-d70760ac8d02",
+  "slug": "error-2",
+  "kind": "external-dep",
+  "title": "serde",
+  "description": "Serialization/deserialization framework with derive macro",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7201-bc76-069d8a5755f3",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "Custom Serialize impl to collapse enum into JSON string for IPC"
+}

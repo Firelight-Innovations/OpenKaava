@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7fa7-a7be-c24e16799062",
+  "slug": "context-menu-dismissal-type",
+  "kind": "contract-method",
+  "title": "Menu Dismissal Reason",
+  "description": "Union type describing why a context menu should close.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "signature": "export type Dismissal = { reason: 'escape' } | { reason: 'pointer'; insideMenu: boolean } | { reason: 'blur' } | { reason: 'scroll' } | { reason: 'resize' } | { reason: 'selected' }",
+  "params": [],
+  "returns": "type",
+  "errors": [],
+  "semantics": "Represents all events that can trigger menu closure.",
+  "exported": true
+}

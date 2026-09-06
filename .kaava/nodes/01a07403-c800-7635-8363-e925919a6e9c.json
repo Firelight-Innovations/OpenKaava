@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7635-8363-e925919a6e9c",
+  "slug": "trash-no-shared-prefix-match",
+  "kind": "test-case",
+  "title": "Trash scoping rejects shared prefixes",
+  "description": "Ensures aurora-old is not matched as inside aurora.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7415-bf3d-ec958150ed0a",
+  "given": "project root C:\\games\\aurora and sibling C:\\games\\aurora-old",
+  "when": "is_inside checks aurora-old paths",
+  "then": "they are rejected",
+  "impl_ref": "src-tauri/src/apps/trash.rs::scoping_does_not_match_a_sibling_with_a_shared_prefix",
+  "status": "declared",
+  "last_result_ms": null
+}

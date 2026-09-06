@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78ed-9f58-799fe60046dc",
+  "slug": "codec-malformed-line-is-parse-error",
+  "kind": "test-case",
+  "title": "Malformed JSON is Parse Error",
+  "description": "A line that is not valid JSON decodes as PARSE_ERROR.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "given": "A string 'not json at all'",
+  "when": "decoded",
+  "then": "returns RpcError with code PARSE_ERROR",
+  "impl_ref": "crates/kaava-rpc/src/codec.rs::malformed_line_is_a_parse_error",
+  "status": "declared",
+  "last_result_ms": null
+}

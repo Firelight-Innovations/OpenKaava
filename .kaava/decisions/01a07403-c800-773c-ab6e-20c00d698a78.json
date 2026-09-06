@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-773c-ab6e-20c00d698a78",
+  "kind": "decision",
+  "slug": "DEC-OPS-LINTING-001",
+  "title": "Lint baselines are ratchets—may shrink but never grow",
+  "context": "When linters were first enabled on existing code, thousands of violations existed. Baselines were created to grandfather those violations and prevent new ones from being added.",
+  "decision": "The three baseline files (`eslint-suppressions.json`, `clippy-baseline.json`, `comment-baseline.json`) are now empty. They may shrink (violations fixed) but may never grow. Never run `pnpm baseline` to absorb a new violation into the baseline.",
+  "consequences": "Every new lint violation must be fixed in code, not buried in baseline. This prevents the gradual rot of code quality. Once empty, the baseline cannot be used to bank improvements; it can only absorb broken code, which is what it exists to prevent.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-06"
+}

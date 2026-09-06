@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7fc8-b6f7-94c78e568bc4",
+  "slug": "project-test-excludes-facets",
+  "kind": "test-case",
+  "title": "projectServiceGraph drops tier-3 facets",
+  "description": "Ensures that contract-method, test-case, and budget facets are excluded from service tier.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b17-92da-f10f0c4deca9",
+  "given": "A raw graph with facet nodes under a module",
+  "when": "projectServiceGraph projects the service",
+  "then": "The result has no facet nodes (f1, f2, f3)",
+  "impl_ref": "apps/schematify/ui/src/graph/project.test.ts::drops every tier-3 facet under a module",
+  "status": "declared",
+  "last_result_ms": null
+}

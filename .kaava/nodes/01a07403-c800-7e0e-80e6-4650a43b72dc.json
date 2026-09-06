@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7e0e-80e6-4650a43b72dc",
+  "slug": "manifest-loader-module-doc",
+  "kind": "doc-block",
+  "title": "Manifest Loading Strategy",
+  "description": "Fallback chain ensures manifest is found in dev, bundled, or user scenarios.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b8-a253-bd079c91045f",
+  "body": "Locating and parsing kaava.toml. The manifest says 'engine should be at version 0.1.0'. This module finds it and reads it. Find kaava.toml, trying the most specific location first. This matters because `tauri dev` runs the binary with its working directory set to `src-tauri/`, while a bundled release runs from wherever the user installed it. Order is deliberate: an explicit override beats a manifest the user dropped next to the app, which beats the copy baked into the bundle.",
+  "audience": "agent"
+}

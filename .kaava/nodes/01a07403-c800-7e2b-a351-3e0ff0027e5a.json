@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e2b-a351-3e0ff0027e5a",
+  "slug": "context-menu-subject-interface",
+  "kind": "contract-method",
+  "title": "Context Menu Subject",
+  "description": "Describes what a right-click landed on: whether editable, writable, and has selection.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "signature": "export interface ContextSubject { editable: boolean; writable: boolean; hasSelection: boolean; }",
+  "params": [],
+  "returns": "interface",
+  "errors": [],
+  "semantics": "Captures the state of the element under the right-click pointer.",
+  "exported": true
+}

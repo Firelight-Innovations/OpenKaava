@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-71ec-ad11-9f4d2a3ee4d1",
+  "slug": "update-manifest",
+  "kind": "module",
+  "title": "Release Update Manifest Generation",
+  "description": "Builds the latest.json manifest that the updater reads, mapping signed installers to their download URLs for each release.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

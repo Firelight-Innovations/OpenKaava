@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7a88-a01e-f404fefba50f",
+  "slug": "scanner-module-doc",
+  "kind": "doc-block",
+  "title": "Tree Scanner",
+  "description": "The scanner walks source trees for @kaava: markers, language-agnostic.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-781b-85ef-56660694446e",
+  "body": "Walks a source tree for `@kaava:` marker tokens. The token is found by plain regular expression per the PRD, and that is taken literally here: every text file's raw content is scanned line by line with the same regex regardless of the file's language. There is no per-language comment parser, which lets an unrecognized language degrade to a plain text scan rather than a miss.",
+  "audience": "both"
+}

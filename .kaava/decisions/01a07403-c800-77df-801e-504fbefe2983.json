@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-77df-801e-504fbefe2983",
+  "kind": "decision",
+  "slug": "DEC-SCH-MODEL-001",
+  "title": "Annotation tier (comments and groups) stays out of reconciliation",
+  "context": "Alternative approaches: treat annotations as full first-class nodes; allow annotations to carry semantic edges.",
+  "decision": "Comment and group nodes sit in an annotation tier separate from the semantic graph. Schematify keeps annotation nodes out of reconciliation. Schematify refuses semantic edges (covers, satisfies, documents) on annotation nodes.",
+  "consequences": "Annotations cannot carry load-bearing design detail (which would land where the reconciler cannot read it); comments are for humans only; groups are purely visual; the rule prevents anti-slop holes in reconciliation.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

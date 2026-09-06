@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7395-8176-dc40ff0cfded",
+  "slug": "thiserror",
+  "kind": "external-dep",
+  "title": "Error Derive Macros",
+  "description": "Derives Display and Error traits on error types.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7584-85b8-2c8fc4148f9d",
+  "registry_ref": "01a07403-c800-7565-98ec-498cf9d20d06",
+  "usage_note": "Derives Error on CoreError with automatic source chains and Display formatting"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-72ab-b067-84ed6d046556",
+  "slug": "client-host-detection-tauri",
+  "kind": "test-case",
+  "title": "Host detection identifies tauri when self === parent",
+  "description": "Verifies that a client with identical self and parent handles is detected as running under the tauri (standalone app) host.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client created with the same object as both self and parent",
+  "when": "host() is called",
+  "then": "It returns 'tauri'",
+  "impl_ref": "packages/bridge/src/client.test.ts::is 'tauri' when self === parent — a tool's own app is a top-level window",
+  "status": "declared",
+  "last_result_ms": null
+}

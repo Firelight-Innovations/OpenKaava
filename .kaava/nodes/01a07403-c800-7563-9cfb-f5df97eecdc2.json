@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7563-9cfb-f5df97eecdc2",
+  "slug": "git-operations-numstat-rename",
+  "kind": "test-case",
+  "title": "Git numstat parses renames correctly",
+  "description": "rename detection: the trailing NUL pattern for renames must parse correctly.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "given": "git diff --numstat -z output for a renamed file",
+  "when": "parse_numstat_z processes it",
+  "then": "The file is attributed to its destination path not the source",
+  "impl_ref": "src-tauri/src/git.rs::numstat_z_reads_a_rename_under_its_destination",
+  "status": "declared",
+  "last_result_ms": null
+}

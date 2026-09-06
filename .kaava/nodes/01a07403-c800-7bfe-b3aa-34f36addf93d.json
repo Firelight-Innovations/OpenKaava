@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7bfe-b3aa-34f36addf93d",
+  "slug": "context-menu-cut-rules",
+  "kind": "test-case",
+  "title": "Cut Requires Editable Writable Selected",
+  "description": "Verifies Cut is enabled only for writable editable fields with selection.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Various field states: empty, selected, read-only",
+  "when": "contextItems() called",
+  "then": "Cut only enabled when all three conditions met",
+  "impl_ref": "src/shell/contextMenu.test.ts::contextItems enables Cut only when the field takes edits and something is selected",
+  "status": "declared",
+  "last_result_ms": null
+}

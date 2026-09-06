@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-792e-8ac2-932cfddc61a6",
+  "slug": "home-icons-package-plus",
+  "kind": "contract-method",
+  "title": "Package Plus Icon",
+  "description": "Icon for the Install App action.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ef6-b0b3-58a1f5c2d12b",
+  "signature": "export function PackagePlus(props: IconProps): JSX.Element",
+  "params": [
+    "size?: number",
+    "className?: string"
+  ],
+  "returns": "SVG icon element",
+  "errors": [],
+  "semantics": "Renders package with plus overlay icon.",
+  "exported": true
+}

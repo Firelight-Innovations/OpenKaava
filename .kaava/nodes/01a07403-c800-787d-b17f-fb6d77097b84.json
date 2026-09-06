@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-787d-b17f-fb6d77097b84",
+  "slug": "agent-composes-not-copies",
+  "kind": "doc-block",
+  "title": "Agent Composes Tools",
+  "description": "One server rather than four because the tools separate but the task does not.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d89-9517-725bc751d480",
+  "body": "One server rather than four because the tools are separable and the *task* is not: testing an app means screenshotting it, reading the shell layout, calling a method, then checking `recent_errors` — one loop, and otherwise four switches to leave off.",
+  "audience": "agent"
+}

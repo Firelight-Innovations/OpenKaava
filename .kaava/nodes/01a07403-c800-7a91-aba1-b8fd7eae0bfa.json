@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7a91-aba1-b8fd7eae0bfa",
+  "slug": "git-operations-git-branches",
+  "kind": "contract-method",
+  "title": "Get Local Branches",
+  "description": "Every local branch of the cluster's repository, most recently committed first.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "signature": "pub fn git_branches(app: AppHandle, cluster_id: String) -> Result<Vec<GitBranch>>",
+  "params": [
+    "app",
+    "cluster_id"
+  ],
+  "returns": "Result<Vec<GitBranch>>",
+  "errors": [
+    "AppError::Git"
+  ],
+  "semantics": "Returns empty list if not a repository, otherwise branches with current status and worktree holding.",
+  "exported": true
+}

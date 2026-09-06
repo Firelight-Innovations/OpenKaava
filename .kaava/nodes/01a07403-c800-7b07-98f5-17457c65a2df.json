@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7b07-98f5-17457c65a2df",
+  "slug": "design",
+  "kind": "module",
+  "title": "Design Mode Application",
+  "description": "Design Mode's Rust half — URL validation for embedded pages, probe injection for element inspection, screenshot capture, and design comments management. Includes the browser-side probe code for element interaction.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a1-a91f-421d244b774a",
+  "allowed_libraries": [
+    "01a07403-c800-736a-801a-ea4485c6faff",
+    "01a07403-c800-75dd-b05c-6d3f11053668",
+    "01a07403-c800-7565-ae9d-23b929975082",
+    "01a07403-c800-7299-afdf-128e540beb73"
+  ],
+  "ui_refs": []
+}

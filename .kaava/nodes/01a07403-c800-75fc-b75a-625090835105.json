@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-75fc-b75a-625090835105",
+  "slug": "product-module-overview",
+  "kind": "doc-block",
+  "title": "Product Layer Module Overview",
+  "description": "Pure derivations over the product layer without bridge dependencies, testable under plain Node.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "body": "The product module (PRD §5.7, §5.8, §5.9, §5.12, §12.17, §12.18) provides pure functions and components for the product layer—screens, flows, decisions, and project briefs. Every count is computed from passed-in data at draw time, never cached (PRD §0.4). This module holds no `@openkaava/bridge` calls, so unit tests run under plain Node, the same split the design graph module applies.",
+  "audience": "both"
+}

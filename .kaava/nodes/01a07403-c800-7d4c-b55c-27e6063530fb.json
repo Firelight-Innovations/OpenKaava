@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d4c-b55c-27e6063530fb",
+  "slug": "ui-every-tool-accepts-window",
+  "kind": "test-case",
+  "title": "All Tools Accept Window Parameter",
+  "description": "Every ui tool schema includes the window property.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c60-bf87-a6ce55a2f177",
+  "given": "The ui server tools",
+  "when": "Each schema's /properties/window is checked",
+  "then": "All schemas have this pointer defined",
+  "impl_ref": "src-tauri/src/mcp/servers/ui.rs::every_tool_accepts_a_window",
+  "status": "declared",
+  "last_result_ms": null
+}

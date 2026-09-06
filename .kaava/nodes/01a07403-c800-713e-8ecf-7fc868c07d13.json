@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-713e-8ecf-7fc868c07d13",
+  "slug": "tokens-format-compliance",
+  "kind": "budget",
+  "title": "Design Tokens Format Compliance",
+  "description": "tokens.css passes Prettier formatting checks as part of verification.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7920-9ee5-14ed9a3b2fd5",
+  "metric": "format-check-pass",
+  "op": "==",
+  "value": 1,
+  "unit": "pass",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm format:check",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

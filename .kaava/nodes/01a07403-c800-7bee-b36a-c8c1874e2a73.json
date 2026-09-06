@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7bee-b36a-c8c1874e2a73",
+  "slug": "git-operations-untracked-line-count",
+  "kind": "budget",
+  "title": "Untracked file size limit",
+  "description": "Files larger than this are not read for line count on every status refresh.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "metric": "bytes",
+  "op": "<=",
+  "value": 5242880,
+  "unit": "bytes",
+  "tier": "soft",
+  "probe": {
+    "command": "grep -n 'UNTRACKED_LINE_COUNT_CAP' src-tauri/src/git.rs",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

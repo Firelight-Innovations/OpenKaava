@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d8e-a04b-82b82d8d330e",
+  "slug": "schematify-methods-refuse-missing-actor",
+  "kind": "test-case",
+  "title": "All schematify methods require actor",
+  "description": "Every method below state() refuses calls without an actor field.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7aa6-b49a-5ee6d01af898",
+  "given": "calls to 17 different schematify methods with no actor param",
+  "when": "dispatch() is called",
+  "then": "all return INVALID_PARAMS error",
+  "impl_ref": "src-tauri/src/apps/schematify.rs::every_method_below_state_refuses_a_missing_actor",
+  "status": "declared",
+  "last_result_ms": null
+}

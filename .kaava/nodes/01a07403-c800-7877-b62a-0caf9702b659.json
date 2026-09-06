@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7877-b62a-0caf9702b659",
+  "slug": "index-test-cell1",
+  "kind": "test-case",
+  "title": "statusCell1 draws PRD Wave 2 requirement",
+  "description": "Verifies the exact cell 1 format for service tier.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7053-b407-040c7111f077",
+  "given": "AUTH_SERVICE_GRAPH with 12 nodes and 9 edges",
+  "when": "statusCell1 is called",
+  "then": "Returns .kaava/ · 12 nodes · 9 edges",
+  "impl_ref": "apps/schematify/ui/src/graph/index.test.ts::draws cell 1 exactly as PRD section 17 Wave 2 requires",
+  "status": "declared",
+  "last_result_ms": null
+}

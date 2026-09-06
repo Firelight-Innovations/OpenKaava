@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7ea6-b0b1-379d7c3c44a3",
+  "slug": "boot-finish-function",
+  "kind": "contract-method",
+  "title": "boot::finish",
+  "description": "Show every real window and close the splash, idempotent and called from both frontend and watchdog.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f28-b976-1789857ef688",
+  "signature": "pub fn finish(app: &AppHandle)",
+  "params": [
+    "app: &AppHandle"
+  ],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Safely handles double-firing from the watchdog and early frontend completion.",
+  "exported": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7499-8dee-a44659b9ed70",
+  "slug": "search-logic-kind-of",
+  "kind": "test-case",
+  "title": "Kind Classification: OpenKaava Files",
+  "description": "Tests that OpenKaava filenames are classified correctly before extension.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "given": "Paths '/repo/kaava.toml' and '/repo/Cargo.toml'",
+  "when": "kindOf is called",
+  "then": "First is 'kaava', second is 'data'",
+  "impl_ref": "src/shell/search/kinds.test.ts::kindOf::classifies OpenKaava's own filenames before their extension",
+  "status": "declared",
+  "last_result_ms": null
+}

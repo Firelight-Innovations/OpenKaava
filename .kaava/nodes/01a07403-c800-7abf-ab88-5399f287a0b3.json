@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7abf-ab88-5399f287a0b3",
+  "slug": "worktree-logic-selection-round-trip",
+  "kind": "test-case",
+  "title": "Selection: Round Trip Identity",
+  "description": "Tests that selection identity round-trips for every row.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71fe-af1c-0dcd2dfd9607",
+  "given": "Various GitFileChange rows",
+  "when": "isRowSelected(selectionFor(row), row) is called",
+  "then": "Always returns true",
+  "impl_ref": "src/shell/worktree/selection.test.ts::selectionFor and isRowSelected::agrees with itself for every row",
+  "status": "declared",
+  "last_result_ms": null
+}

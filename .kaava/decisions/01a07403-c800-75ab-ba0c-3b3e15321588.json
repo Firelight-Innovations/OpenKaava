@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-75ab-ba0c-3b3e15321588",
+  "kind": "decision",
+  "slug": "DEC-GOV-TRADEMARK-001",
+  "title": "Trademark not covered by license; code is freely copyable",
+  "context": "Once source code is freely copyable, the name becomes the only thing telling a user which build is in front of them. OpenKaava is a program whose job is loading and executing other people's tools on a user's machine.",
+  "decision": "The license covers code and patents. It does not cover names. OpenKaava and Schematify, and the marks that go with them, are trademarks of Firelight Innovations. Forks can modify the code and sell what they build, and must state plainly that their work is based on OpenKaava. They cannot ship as OpenKaava itself.",
+  "consequences": "A build not ours that answers to our name is the one confusion that costs somebody something real. This line is drawn by Rust, Docker, and Mozilla for the same reason. The alternative—copyleft or no license—would cost far more and protect less. A fork should not have to grep the source to remove marks.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-06"
+}

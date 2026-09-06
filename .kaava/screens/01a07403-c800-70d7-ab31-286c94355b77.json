@@ -1,0 +1,27 @@
+{
+  "id": "01a07403-c800-70d7-ab31-286c94355b77",
+  "kind": "screen",
+  "slug": "main-window",
+  "title": "Main Window",
+  "purpose": "The primary OpenKaava application window containing the pane grid, clusters, panels, and toolbars",
+  "states": [
+    "initialized - shell is loading the stack snapshot",
+    "active - shell is fully ready with clusters and apps",
+    "empty-clusters - no clusters open in this window",
+    "rescanning - stack is being re-scanned for changes"
+  ],
+  "acceptance": [
+    "shall render title bar with window controls",
+    "shall render cluster bar showing active and inactive clusters",
+    "shall render pane grid with open apps when cluster is active",
+    "shall render terminal band at bottom when collapsed or expanded",
+    "shall render secondary panel on right when toggled open",
+    "shall render status bar at bottom",
+    "shall show 'No clusters' state when all clusters are closed",
+    "shall display loading state while stack is being scanned"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7c87-8546-4af3785b349f",
+    "schematify://node/01a07403-c800-7bda-92fe-1e3bdf7870f3"
+  ]
+}

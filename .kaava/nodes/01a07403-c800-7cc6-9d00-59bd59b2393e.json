@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7cc6-9d00-59bd59b2393e",
+  "slug": "debug-server",
+  "kind": "contract-method",
+  "title": "Debug Server",
+  "description": "Read the running shell: layout, errors, and boot status.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7768-89f6-f76b82ea5f13",
+  "signature": "pub static SERVER: McpServer",
+  "params": [],
+  "returns": "McpServer",
+  "errors": [],
+  "semantics": "Hosts shell_snapshot, recent_errors, and boot_status; read-only and accessible in release builds.",
+  "exported": false
+}

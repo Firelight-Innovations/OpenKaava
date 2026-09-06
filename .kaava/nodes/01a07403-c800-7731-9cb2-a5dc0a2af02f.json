@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7731-9cb2-a5dc0a2af02f",
+  "slug": "viewer-app-rpc-doc",
+  "kind": "doc-block",
+  "title": "RPC restated rather than imported",
+  "description": "App frontend restates backend shapes to avoid coupling",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a0-9c27-267f8065604a",
+  "body": "Every call this app makes to its host, in one file. The shapes below mirror `src-tauri/src/apps/files.rs` and are *restated* here rather than imported, so that nothing in an app reaches into `src/`. Wrapping `invoke` also means the method-name strings appear exactly once — nothing outside this module spells `\"files/read-bytes\"`.",
+  "audience": "agent"
+}

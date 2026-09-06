@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7e99-9127-7a5472eb650d",
+  "slug": "listener-rand",
+  "kind": "external-dep",
+  "title": "rand",
+  "description": "Cryptographic random number generation for the bearer token that authenticates out-of-process agents.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7086-80ae-e8b05191e7a8",
+  "registry_ref": "01a07403-c800-7b4c-8e5d-4a89a068809e",
+  "usage_note": "Fills a [u8; 32] array with entropy from rand::rng() each time the listener starts"
+}

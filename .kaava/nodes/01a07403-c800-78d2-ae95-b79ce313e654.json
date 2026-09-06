@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78d2-ae95-b79ce313e654",
+  "slug": "registry-registered-server-is-listed-and-on",
+  "kind": "test-case",
+  "title": "Registered Server Listed and Enabled",
+  "description": "A server added via register appears in the list and is enabled.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74ba-abfe-06dbc4c59dec",
+  "given": "A new registry",
+  "when": "A server is registered",
+  "then": "The server appears in the list with enabled=true and the correct tool count",
+  "impl_ref": "src-tauri/src/mcp/registry.rs::a_registered_server_is_listed_and_on",
+  "status": "declared",
+  "last_result_ms": null
+}

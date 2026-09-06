@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7a48-ae74-7afa5d7d70da",
+  "slug": "gate-catalog-access-control",
+  "statement": "Only the maintainer (braden-seaborn) may edit `catalog.toml`, `scripts/check-catalog.mjs`, or `.github/workflows/catalog.yml`.",
+  "severity": "error",
+  "audit": [],
+  "command": "catalog workflow"
+}

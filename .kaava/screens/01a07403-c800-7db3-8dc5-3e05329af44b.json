@@ -1,0 +1,26 @@
+{
+  "id": "01a07403-c800-7db3-8dc5-3e05329af44b",
+  "kind": "screen",
+  "slug": "home-screen",
+  "title": "Home / Welcome Screen",
+  "purpose": "Project launcher and welcome screen shown when no apps are active in cluster",
+  "states": [
+    "hidden - home is in background",
+    "showing - home covering the cluster layout",
+    "loading-recent - loading recently opened projects"
+  ],
+  "acceptance": [
+    "shall display when cluster chip is clicked with no apps open",
+    "shall cover the pane grid but keep terminal band visible",
+    "shall show recently opened projects",
+    "shall provide Open Project button with folder picker",
+    "shall provide New Project button",
+    "shall provide Clone Project button",
+    "shall hide when any app is opened",
+    "shall hide when cluster chip is clicked again"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7bf3-b083-b0139d0bad6a",
+    "schematify://node/01a07403-c800-7c87-8546-4af3785b349f"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-773b-821e-8a9da890614a",
+  "kind": "decision",
+  "slug": "DEC-TEC-ICONS-017",
+  "title": "OpenKaava icon mark is black, not lighter tint, for WCAG 7.66:1 contrast on amber body",
+  "context": "Material theme uses light tint for folder marks (2.08:1 contrast), but that disappears into the amber at 16px.",
+  "decision": "Use black mark (#000000) on the H folder icon, giving 7.66:1 contrast. Paint mark as filled path, not knockout, for consistent contrast independent of background.",
+  "consequences": "Icon reads clearly at all sizes and backgrounds. Sits above AAA minimum for graphical objects at all times.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

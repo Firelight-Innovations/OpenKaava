@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d8d-bb17-d7d1616981f2",
+  "slug": "diagnostics-polling-cursor",
+  "kind": "test-case",
+  "title": "Polling with cursor returns only new records",
+  "description": "The polling contract: pass the cursor back, get only what is new.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-768f-b87f-b17753d9768a",
+  "given": "Buffer with 2 records, cursor at seq 1",
+  "when": "since(Some(1), limit) is called",
+  "then": "Only the second record is returned",
+  "impl_ref": "src-tauri/src/diagnostics.rs::after_a_cursor_returns_only_later_records",
+  "status": "declared",
+  "last_result_ms": null
+}

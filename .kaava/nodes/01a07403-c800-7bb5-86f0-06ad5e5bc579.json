@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7bb5-86f0-06ad5e5bc579",
+  "slug": "sync-a-healthy-rwlock-reads-and-writes",
+  "kind": "test-case",
+  "title": "RwLock Healthy State",
+  "description": "Verify that a healthy RwLock can be read and written without error.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7187-a645-d607e5b748cd",
+  "given": "A fresh RwLock<i32> initialized to 1",
+  "when": "Write to increment it, then read the value",
+  "then": "The read value equals 2",
+  "impl_ref": "src-tauri/src/sync.rs::a_healthy_rwlock_reads_and_writes",
+  "status": "declared",
+  "last_result_ms": null
+}

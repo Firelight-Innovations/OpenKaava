@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7a3e-9f1d-8dd8e2be1a58",
+  "slug": "plugin-store-empty-document",
+  "kind": "test-case",
+  "title": "Plugin Store: Empty",
+  "description": "Empty JSON object deserializes to store with no plugins.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c92-b990-0fafa3c719fa",
+  "given": "JSON: {}",
+  "when": "deserialized to Stored",
+  "then": "plugins field is empty",
+  "impl_ref": "src-tauri/src/plugins/store.rs::an_empty_document_is_a_store_with_nothing_installed",
+  "status": "declared",
+  "last_result_ms": null
+}

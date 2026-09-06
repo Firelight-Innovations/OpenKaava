@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7128-b5e5-f9d380cdaa01",
+  "slug": "review-store-empty-checkout-no-notes",
+  "kind": "test-case",
+  "title": "Empty checkout has no notes",
+  "description": "A repo with no review file starts clean.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-700b-8fdc-ce83c58300e1",
+  "given": "A directory with no .kaava/review-comments.json",
+  "when": "load is called",
+  "then": "Returns an empty Vec",
+  "impl_ref": "src-tauri/src/review/store.rs::a_checkout_with_no_file_yet_has_no_notes",
+  "status": "declared",
+  "last_result_ms": null
+}

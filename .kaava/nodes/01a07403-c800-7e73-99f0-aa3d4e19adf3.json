@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7e73-99f0-aa3d4e19adf3",
+  "slug": "commands-mcp-set-server-enabled",
+  "kind": "contract-method",
+  "title": "Toggle Server Enabled",
+  "description": "Switch a server on or off from the settings UI.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a15-9205-3403c29c95c2",
+  "signature": "#[tauri::command] pub fn mcp_set_server_enabled(app: AppHandle, registry: State<'_, Registry>, id: String, enabled: bool) -> bool",
+  "params": [
+    "app: AppHandle",
+    "registry: State<'_, Registry>",
+    "id: String",
+    "enabled: bool"
+  ],
+  "returns": "bool",
+  "errors": [],
+  "semantics": "Toggles the server, rewrites .mcp.json and the persist store, and returns whether the change succeeded.",
+  "exported": true
+}

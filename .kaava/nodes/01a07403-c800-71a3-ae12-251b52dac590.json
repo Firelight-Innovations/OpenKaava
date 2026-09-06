@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-71a3-ae12-251b52dac590",
+  "slug": "probe-frame",
+  "kind": "module",
+  "title": "Probe Frame",
+  "description": "Frame management, element picking via overlay, and capture sequencing for inspecting web pages.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7364-bfe0-1ce9993df6cc",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

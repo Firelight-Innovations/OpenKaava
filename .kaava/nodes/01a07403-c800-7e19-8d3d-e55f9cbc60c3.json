@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7e19-8d3d-e55f9cbc60c3",
+  "slug": "graph-no-index-file",
+  "kind": "doc-block",
+  "title": "No Index File",
+  "description": "The graph rebuilds on every load.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bcb-9de4-3775dbe05092",
+  "body": "There is no index file on disk. PRD section 6.1 is explicit about it: the loader walks `.kaava/`, parses every file, and rebuilds this. An index would be a second source of truth that goes stale on the first hand edit, and hand edits are expected because the tree is in git. The indexes below are built once at load and never written back.",
+  "audience": "both"
+}

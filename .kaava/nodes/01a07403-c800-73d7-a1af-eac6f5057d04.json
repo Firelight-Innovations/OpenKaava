@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-73d7-a1af-eac6f5057d04",
+  "slug": "ci-gateway",
+  "kind": "module",
+  "title": "CI Verification and Annotation System",
+  "description": "Runs pnpm verify in GitHub Actions and parses its output to emit inline code annotations on pull requests, with support for multiple linters.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

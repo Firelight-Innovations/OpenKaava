@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7713-9c01-b33b32c633e1",
+  "slug": "window-frame-with-band-geometry",
+  "kind": "contract-method",
+  "title": "withBandGeometry",
+  "description": "Updates part of one cluster's band geometry without mutating the input or affecting other clusters' state.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bda-92fe-1e3bdf7870f3",
+  "signature": "function withBandGeometry(byCluster: BandGeometryByCluster, clusterId: string | null, patch: Partial<BandGeometry>): BandGeometryByCluster",
+  "params": [
+    "byCluster: BandGeometryByCluster",
+    "clusterId: string | null",
+    "patch: Partial<BandGeometry>"
+  ],
+  "returns": "BandGeometryByCluster",
+  "errors": [],
+  "semantics": "Merges the patch into one cluster's entry, returning a new immutable map; no-op when clusterId is null.",
+  "exported": false
+}

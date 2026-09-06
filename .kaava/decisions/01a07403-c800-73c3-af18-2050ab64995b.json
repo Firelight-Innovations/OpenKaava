@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-73c3-af18-2050ab64995b",
+  "kind": "decision",
+  "slug": "DEC-TEC-DRAG-010",
+  "title": "Two drag payloads with different drop targets: SurfaceDrag goes into panes, ClusterDrag goes on windows",
+  "context": "A surface (tab) can be dropped into a pane or used to split one. A cluster can only be dropped on a window, never in a pane.",
+  "decision": "Union type with `what` field: SurfaceDrag for surfaces (apps and terminals), ClusterDrag for clusters. DropTarget refuses incompatible combinations.",
+  "consequences": "Drag layer knows which payload it has and refuses invalid operations. No cluster accidentally lands in a pane because it fell through the tab branches.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-77d1-b91c-9d6313fff339",
+  "slug": "tutorial-every-section-has-content",
+  "kind": "test-case",
+  "title": "Every tutorial section has content",
+  "description": "No section exists without at least one tutorial.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ee8-82c9-e4bc6f0a02fe",
+  "given": "SECTIONS and TUTORIALS arrays",
+  "when": "each section is checked for tutorials in it",
+  "then": "every section has at least one tutorial",
+  "impl_ref": "src-tauri/src/apps/tutorial.rs::every_section_holds_at_least_one_tutorial",
+  "status": "declared",
+  "last_result_ms": null
+}

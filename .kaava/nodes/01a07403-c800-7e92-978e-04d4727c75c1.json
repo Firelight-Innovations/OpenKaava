@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7e92-978e-04d4727c75c1",
+  "slug": "statusbar",
+  "kind": "external-dep",
+  "title": "React",
+  "description": "React library for UI component rendering and hooks (useState, useRef, useEffect).",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78af-87c4-c75201a2058a",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "Used for component state, refs, and lifecycle effects in status bar rendering"
+}

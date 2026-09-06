@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-733e-a91b-f69ea1257f81",
+  "slug": "dispatch-app-ids-url-safe",
+  "kind": "test-case",
+  "title": "App IDs are URL-safe",
+  "description": "Ensures all app IDs match the URL-safe pattern.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a1-a91f-421d244b774a",
+  "given": "every app in REGISTRY",
+  "when": "each ID is checked against ^[a-z][a-z0-9-]*$",
+  "then": "all IDs pass the pattern",
+  "impl_ref": "src-tauri/src/apps/mod.rs::app_ids_are_url_safe",
+  "status": "declared",
+  "last_result_ms": null
+}

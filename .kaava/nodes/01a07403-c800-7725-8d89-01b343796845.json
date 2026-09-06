@@ -1,0 +1,19 @@
+{
+  "id": "01a07403-c800-7725-8d89-01b343796845",
+  "slug": "app-updater",
+  "kind": "module",
+  "title": "Application Updater",
+  "description": "Check for and install updates to OpenKaava itself from the releases endpoint, verifying signatures and managing installation state.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [
+    "01a07403-c800-736a-801a-ea4485c6faff",
+    "01a07403-c800-7f2e-ba89-af9f52c05df1",
+    "01a07403-c800-75dd-b05c-6d3f11053668"
+  ],
+  "ui_refs": []
+}

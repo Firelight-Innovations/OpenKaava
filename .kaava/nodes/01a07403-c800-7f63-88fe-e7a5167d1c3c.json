@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f63-88fe-e7a5167d1c3c",
+  "slug": "framer-motion",
+  "kind": "external-dep",
+  "title": "Framer Motion",
+  "description": "Animation library for React components with motion values and spring physics.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bda-92fe-1e3bdf7870f3",
+  "registry_ref": "01a07403-c800-7417-a580-5d7e987102ee",
+  "usage_note": "Used in Frame for animate, motion, and useMotionValue for smooth panel width and band height animations; also used in bottom-panel and tool-window for transitions."
+}

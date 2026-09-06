@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7caf-beca-97873f4b589d",
+  "slug": "app-root",
+  "kind": "external-dep",
+  "title": "react",
+  "description": "React library for building the UI.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c87-8546-4af3785b349f",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "React components and hooks for App, WindowRoot components"
+}

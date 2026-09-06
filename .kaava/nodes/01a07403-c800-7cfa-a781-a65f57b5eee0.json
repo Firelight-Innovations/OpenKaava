@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7cfa-a781-a65f57b5eee0",
+  "slug": "echo",
+  "kind": "module",
+  "title": "Echo Server",
+  "description": "Diagnostic test server proving the MCP plumbing works end-to-end with ping and echo tools.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e98-ae8d-c1ef00cefddb",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

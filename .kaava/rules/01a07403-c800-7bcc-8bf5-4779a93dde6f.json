@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7bcc-8bf5-4779a93dde6f",
+  "slug": "ci-pnpm-verify-gate",
+  "statement": "Every commit and every pull request must pass `pnpm verify`, which runs build, test, lint, and format:check as one command.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm verify"
+}

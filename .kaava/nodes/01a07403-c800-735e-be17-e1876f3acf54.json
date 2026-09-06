@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-735e-be17-e1876f3acf54",
+  "slug": "context-menu-all-disabled",
+  "kind": "test-case",
+  "title": "Non-Text Subject Disables All",
+  "description": "Ensures all menu items are disabled and have hints over non-text.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Inert subject",
+  "when": "contextItems() called",
+  "then": "Every item has disabled: true and hint defined",
+  "impl_ref": "src/shell/contextMenu.test.ts::contextItems disables everything over a surface that is not text",
+  "status": "declared",
+  "last_result_ms": null
+}

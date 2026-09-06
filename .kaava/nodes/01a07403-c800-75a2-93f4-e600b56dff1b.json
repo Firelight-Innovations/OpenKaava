@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-75a2-93f4-e600b56dff1b",
+  "slug": "plugin-catalog-rows-comprehensive",
+  "kind": "test-case",
+  "title": "Catalog: Complete Coverage",
+  "description": "Library lists every catalog entry regardless of install state.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78c4-8878-c792de8f7f2c",
+  "given": "Catalog entries and various predicates",
+  "when": "rows() is called",
+  "then": "Returned row count equals catalog entry count",
+  "impl_ref": "src-tauri/src/plugins/catalog.rs::rows_cover_the_whole_catalog",
+  "status": "declared",
+  "last_result_ms": null
+}

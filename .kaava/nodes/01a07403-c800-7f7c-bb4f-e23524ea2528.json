@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f7c-bb4f-e23524ea2528",
+  "slug": "home-launcher-worktree-triggers",
+  "kind": "doc-block",
+  "title": "Worktree State Check Triggers",
+  "description": "Which RPC methods open a new project requiring a worktree prompt.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bf3-b083-b0139d0bad6a",
+  "body": "WORKTREE_TRIGGERS holds home/new-project, home/open-project, home/open-recent, and home/initialize-project. The home/close-project and home/forget-recent methods never open anything. home/worktree-create is dispatched by WorktreeDialog itself rather than through run.",
+  "audience": "agent"
+}

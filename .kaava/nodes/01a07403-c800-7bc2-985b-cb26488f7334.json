@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7bc2-985b-cb26488f7334",
+  "slug": "sync-a-poisoned-mutex-panics-on-lock",
+  "kind": "test-case",
+  "title": "Mutex Poisoning",
+  "description": "Verify that locking a poisoned Mutex panics with the poisoned message.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7187-a645-d607e5b748cd",
+  "given": "A thread that holds a Mutex and panics",
+  "when": "Another thread attempts to lock after the panic",
+  "then": "The lock panics with 'lock poisoned'",
+  "impl_ref": "src-tauri/src/sync.rs::a_poisoned_mutex_panics_on_lock",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-75fe-b7cf-cb2f337e095e",
+  "kind": "decision",
+  "slug": "DEC-STD-TEST-001",
+  "title": "All tests must pass; failing tests never fixed by deletion",
+  "context": "Quality control needed to ensure tests remain valuable.",
+  "decision": "Every commit and every PR must pass all tests. A failing test is never fixed by skipping or deleting it. If test is genuinely wrong, explain why in commit message.",
+  "consequences": "Prevents introduction of bugs that were once caught by deleted tests. Test suite remains aligned with current code. Running 1773 tests (632 Rust, 1141 JS/TS) on every PR.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-08-16"
+}

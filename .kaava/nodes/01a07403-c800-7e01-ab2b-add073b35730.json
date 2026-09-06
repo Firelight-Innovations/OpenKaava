@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e01-ab2b-add073b35730",
+  "slug": "product-isvalidsuccessmetric-invalid-noname",
+  "kind": "test-case",
+  "title": "Success metric validation rejects empty name",
+  "description": "Verifies that isValidSuccessMetric rejects metrics with no name.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "given": "A RawSuccessMetric with whitespace-only name and a unit",
+  "when": "isValidSuccessMetric is called",
+  "then": "false is returned",
+  "impl_ref": "apps/schematify/ui/src/product/index.test.ts::isValidSuccessMetric rejects a metric with no name",
+  "status": "declared",
+  "last_result_ms": null
+}

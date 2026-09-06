@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-718c-8ca5-fa2a53446574",
+  "slug": "plugin-install-token",
+  "kind": "contract-method",
+  "title": "Get Stored GitHub Token",
+  "description": "Retrieve token from system keyring if one exists.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-762d-98bf-9549ca7a28bb",
+  "signature": "pub fn token() -> Option<String>",
+  "params": [],
+  "returns": "Option<String>",
+  "errors": [],
+  "semantics": "Returns None on missing entry or keyring error; never fails loudly.",
+  "exported": false
+}

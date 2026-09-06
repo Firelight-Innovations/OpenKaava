@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-71cb-8aac-da0eba87f4a9",
+  "slug": "settings-logic-settings-session-interface",
+  "kind": "contract-method",
+  "title": "Settings Data and Methods",
+  "description": "The complete settings interface with groups, values, and mutation operations.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ebb-a9e9-416f0525893f",
+  "signature": "export interface SettingsSession { groups: SettingsGroup[]; valueOf: (setting: Setting) => SettingValue; isChanged: (key: string) => boolean; changedIn: (group: SettingsGroup) => number; set: (setting: Setting, value: SettingValue) => void; reset: (setting: Setting) => void; resetGroup: (group: SettingsGroup) => void; error: string | null; ready: boolean }",
+  "params": [],
+  "returns": "SettingsSession",
+  "errors": [],
+  "semantics": "Provides read and write access to settings with change tracking, error reporting, and group-level reset.",
+  "exported": false
+}

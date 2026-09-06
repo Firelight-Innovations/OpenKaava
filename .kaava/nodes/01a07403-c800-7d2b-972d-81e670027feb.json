@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7d2b-972d-81e670027feb",
+  "slug": "git-operations-git-worktree-remove",
+  "kind": "contract-method",
+  "title": "Remove Worktree",
+  "description": "Discard a cluster's worktree and return it to project folder.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "signature": "pub fn git_worktree_remove(app: AppHandle, cluster_id: String, force: bool) -> Result<()>",
+  "params": [
+    "app",
+    "cluster_id",
+    "force"
+  ],
+  "returns": "Result<()>",
+  "errors": [
+    "AppError::Git"
+  ],
+  "semantics": "Removes worktree checkout, optionally forcing removal of uncommitted changes.",
+  "exported": true
+}

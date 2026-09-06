@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-715e-b014-cea16eae17ce",
+  "slug": "sync-mutex-ext-trait",
+  "kind": "contract-method",
+  "title": "MutexExt Trait",
+  "description": "Extension trait for Mutex that panics on poisoning rather than returning an error.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7187-a645-d607e5b748cd",
+  "signature": "pub trait MutexExt<T: ?Sized> { fn lock_or_panic(&self) -> MutexGuard<'_, T>; }",
+  "params": [
+    "T"
+  ],
+  "returns": "MutexGuard<'_, T>",
+  "errors": [
+    "Panics if lock is poisoned"
+  ],
+  "semantics": "Provides panic-on-poison semantics for mutexes guarding state the orchestrator owns.",
+  "exported": false
+}

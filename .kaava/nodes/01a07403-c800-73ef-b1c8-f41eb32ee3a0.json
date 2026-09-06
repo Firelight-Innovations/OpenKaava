@@ -1,0 +1,26 @@
+{
+  "id": "01a07403-c800-73ef-b1c8-f41eb32ee3a0",
+  "slug": "registry-call",
+  "kind": "contract-method",
+  "title": "Dispatch Tool Call",
+  "description": "Route a tool call to the server that owns it.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74ba-abfe-06dbc4c59dec",
+  "signature": "pub fn call(&self, app: &AppHandle, id: &str, tool: &str, params: Option<Value>, dev_mode: bool) -> Result<ToolAnswer, RpcError>",
+  "params": [
+    "app: &AppHandle",
+    "id: &str",
+    "tool: &str",
+    "params: Option<Value>",
+    "dev_mode: bool"
+  ],
+  "returns": "Result<ToolAnswer, RpcError>",
+  "errors": [
+    "METHOD_NOT_FOUND when server or tool is unknown"
+  ],
+  "semantics": "Looks up the server and tool, validates both, then calls the handler with the lock released.",
+  "exported": false
+}

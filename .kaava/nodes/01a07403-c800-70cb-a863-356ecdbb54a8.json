@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-70cb-a863-356ecdbb54a8",
+  "slug": "rustfmt-config",
+  "kind": "module",
+  "title": "Rust Code Formatting Configuration",
+  "description": "Configures rustfmt to format Rust code with consistent line width and style rules.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

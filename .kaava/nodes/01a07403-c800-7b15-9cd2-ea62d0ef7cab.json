@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7b15-9cd2-ea62d0ef7cab",
+  "slug": "file-api-trash-purge",
+  "kind": "contract-method",
+  "title": "Permanently Delete",
+  "description": "Destroy an item from the Recycle Bin permanently.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export const trashPurge = (id: string) => invoke<{ name: string; originalPath: string }>('trash/purge', { id })",
+  "params": [
+    "id: string"
+  ],
+  "returns": "Promise with name and originalPath",
+  "errors": [],
+  "semantics": "Permanently deletes item; no recovery possible.",
+  "exported": true
+}

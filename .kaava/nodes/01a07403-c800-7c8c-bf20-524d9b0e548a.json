@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7c8c-bf20-524d9b0e548a",
+  "slug": "search",
+  "kind": "module",
+  "title": "Global Search and Indexing",
+  "description": "Global search over all nodes with a flat, searchable text index rebuilt on load and after every semantic write. Matching is linear scan with a 100 ms first-result budget.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7abe-9eed-7510b796f92a",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-70e2-a378-cc497f770100",
+  "slug": "app-root-owns-snapshot",
+  "kind": "doc-block",
+  "title": "App owns stack snapshot",
+  "description": "All data fetching and error state; layout lives under shell.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c87-8546-4af3785b349f",
+  "body": "Owns the stack snapshot and hands it to the shell. All this does is data: fetch, refresh, and error state. Everything about how the app looks and what it shows lives under `shell/`. Keeping the fetch here rather than inside the shell means the shell can be restyled or rearranged without anything having to know how the snapshot is obtained.",
+  "audience": "agent"
+}

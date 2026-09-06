@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7220-b53d-c54edb585688",
+  "slug": "switcher",
+  "kind": "module",
+  "title": "Cluster Bar",
+  "description": "Cluster and member tab bar showing grouped apps and terminals with add-app button, health indicator, and tab management.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bb4-bdbe-fe72bc3e7a0c",
+  "allowed_libraries": [
+    "01a07403-c800-7bd1-a062-9c1c49e747dc",
+    "01a07403-c800-7ea4-bc03-11fc58b51a7e",
+    "01a07403-c800-7417-a580-5d7e987102ee"
+  ],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7953-b112-117deaa747db"
+  ]
+}

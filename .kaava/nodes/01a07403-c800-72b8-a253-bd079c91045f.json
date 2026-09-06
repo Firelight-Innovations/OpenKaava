@@ -1,0 +1,19 @@
+{
+  "id": "01a07403-c800-72b8-a253-bd079c91045f",
+  "slug": "manifest-loader",
+  "kind": "module",
+  "title": "Kaava Manifest Loader",
+  "description": "Locate and parse kaava.toml files that declare the stack composition and pinned tool versions.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [
+    "01a07403-c800-736a-801a-ea4485c6faff",
+    "01a07403-c800-75dd-b05c-6d3f11053668",
+    "01a07403-c800-7994-a954-210071677424"
+  ],
+  "ui_refs": []
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7da4-b1bd-78adcef45a2e",
+  "slug": "review-store-no-temp-files",
+  "kind": "test-case",
+  "title": "Save leaves no temp file behind",
+  "description": "Atomic rename completes without strays.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-700b-8fdc-ce83c58300e1",
+  "given": "A comment list to save",
+  "when": "save is called",
+  "then": "No .json.tmp file remains in .kaava/",
+  "impl_ref": "src-tauri/src/review/store.rs::a_save_leaves_no_temp_file_behind",
+  "status": "declared",
+  "last_result_ms": null
+}

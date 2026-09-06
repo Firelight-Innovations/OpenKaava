@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7574-ba62-9c6abc31d224",
+  "slug": "plugin-broker-stop-all",
+  "kind": "contract-method",
+  "title": "Stop All Plugin Cores",
+  "description": "Gracefully shut down every running plugin.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78db-904b-bb87473e03bb",
+  "signature": "pub fn stop_all(&self)",
+  "params": [],
+  "returns": "",
+  "errors": [],
+  "semantics": "Called at application exit; each core gets chance to flush.",
+  "exported": false
+}

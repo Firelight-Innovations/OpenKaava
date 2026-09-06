@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7230-968f-e2f3b5b9ce19",
+  "slug": "rules-module-doc",
+  "kind": "doc-block",
+  "title": "Validation Rules",
+  "description": "Edge and reparent validation with refusal messages.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74c0-9507-02a5b468f60f",
+  "body": "Every refusal, in one module. PRD §12.5: Schematify shall never accept an invalid edge and flag it later — so this is asked while the pointer is still down, and its answer is drawn at the cursor under the heading `Drop refused`. Two strings below are quoted from PRD §11.3 and §12.5; the rest are engine's own wording.",
+  "audience": "agent"
+}

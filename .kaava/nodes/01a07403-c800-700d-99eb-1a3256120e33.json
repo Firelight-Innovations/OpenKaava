@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-700d-99eb-1a3256120e33",
+  "slug": "accelerators-menu-windows-form",
+  "kind": "test-case",
+  "title": "Menu Bar Shows Windows Form Only",
+  "description": "Ensures all menu accelerators use Windows notation (Ctrl+, F#).",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d53-814c-3c88cf09800b",
+  "given": "Default menu bar from defaultMenus()",
+  "when": "Accelerator fields extracted",
+  "then": "All match /^(Ctrl\\+|F\\d)/ pattern",
+  "impl_ref": "src/shell/accelerators.test.ts::the menu bar shows an accelerator only in Windows form",
+  "status": "declared",
+  "last_result_ms": null
+}

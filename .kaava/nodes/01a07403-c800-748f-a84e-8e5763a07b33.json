@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-748f-a84e-8e5763a07b33",
+  "slug": "navigation-service-to-module",
+  "kind": "test-case",
+  "title": "nextDrillTarget: module at service tier drills to module",
+  "description": "Clicking module on service opens its Module Schematic.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f1a-b375-e7fa4e858967",
+  "given": "service tier and a module node",
+  "when": "nextDrillTarget is called",
+  "then": "returns drill target with tier='module'",
+  "impl_ref": "apps/schematify/ui/src/engine/navigation.test.ts",
+  "status": "declared",
+  "last_result_ms": null
+}

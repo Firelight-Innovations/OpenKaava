@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-71d4-b723-bb7bb5902465",
+  "slug": "clipboard-paste-key",
+  "kind": "test-case",
+  "title": "Ctrl+V Claimed As Paste",
+  "description": "Verifies that Ctrl+V and Ctrl+Shift+V are identified as paste keys.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7101-96d4-211896bc6c31",
+  "given": "KeyGesture for Ctrl+V and Ctrl+Shift+V",
+  "when": "Passed to handleKey()",
+  "then": "Returns false to let webview's paste fire",
+  "impl_ref": "src/shell/terminal/clipboard.test.ts::Ctrl+V is claimed as a paste rather than left to xterm's control-byte table",
+  "status": "declared",
+  "last_result_ms": null
+}

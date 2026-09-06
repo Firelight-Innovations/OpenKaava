@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7876-9315-080049b043b2",
+  "slug": "product-filterdecisions-active",
+  "kind": "test-case",
+  "title": "Decision filter by ACTIVE status",
+  "description": "Verifies that filterDecisions returns only active decisions.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "given": "A list of RawDecision objects with mixed statuses and filter='ACTIVE'",
+  "when": "filterDecisions is called",
+  "then": "Only decisions with status='ACTIVE' are returned",
+  "impl_ref": "apps/schematify/ui/src/product/index.test.ts::filterDecisions ACTIVE returns only active rows",
+  "status": "declared",
+  "last_result_ms": null
+}

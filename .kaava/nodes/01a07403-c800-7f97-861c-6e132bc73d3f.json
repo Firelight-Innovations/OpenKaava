@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f97-861c-6e132bc73d3f",
+  "slug": "plugin-store-unreadable-fallback",
+  "kind": "test-case",
+  "title": "Plugin Store: Degradation",
+  "description": "Unreadable or invalid store yields empty list, not error.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c92-b990-0fafa3c719fa",
+  "given": "Invalid JSON",
+  "when": "parsed",
+  "then": "Returns empty Stored",
+  "impl_ref": "src-tauri/src/plugins/store.rs::an_unreadable_store_falls_back_to_no_plugins",
+  "status": "declared",
+  "last_result_ms": null
+}

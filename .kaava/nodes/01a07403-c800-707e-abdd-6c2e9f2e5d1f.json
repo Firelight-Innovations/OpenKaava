@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-707e-abdd-6c2e9f2e5d1f",
+  "slug": "navigation-next-drill-target",
+  "kind": "contract-method",
+  "title": "nextDrillTarget",
+  "description": "Determine click navigation destination.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f1a-b375-e7fa4e858967",
+  "signature": "function nextDrillTarget(tier: Tier, node: DrillableNode): DrillTarget | null",
+  "params": [
+    "tier",
+    "node"
+  ],
+  "returns": "DrillTarget | null",
+  "errors": [],
+  "semantics": "Returns drill target for service at stack or module at service, or null.",
+  "exported": true
+}

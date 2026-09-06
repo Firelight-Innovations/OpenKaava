@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-75e5-9980-cecbf838d4d8",
+  "slug": "worktree-logic-line-counts-distinction",
+  "kind": "doc-block",
+  "title": "Line Count Display: Present vs. Absent",
+  "description": "Why binary files show nothing, not zero.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71fe-af1c-0dcd2dfd9607",
+  "body": "An absent count and a zero count are different facts and are drawn differently. A binary file has no counts and must not be drawn as a file that changed by nothing. This distinction is what this module exists for.",
+  "audience": "both"
+}

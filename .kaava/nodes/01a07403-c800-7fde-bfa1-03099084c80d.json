@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7fde-bfa1-03099084c80d",
+  "slug": "switcher-tab-model",
+  "kind": "doc-block",
+  "title": "Cluster bar tab model",
+  "description": "Explains the tab-group model and why tabs are in one place rather than duplicated.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7220-b53d-c54edb585688",
+  "body": "This is Chrome's tab-group model: a cluster is exactly what a tab group is, a set of tabs kept together for one piece of work. Clicking a cluster chip expands that cluster's apps and terminals to the right of it and collapses whichever was expanded before. Every tab is here and nowhere else; pane strips and panel's terminal strip are gone rather than duplicated, because a tab in two places is two things that can disagree about which one is active. A pane holding more than one surface draws as a grouped tray (a raised, rounded rectangle with internal dividers), which is not those strips coming back.",
+  "audience": "agent"
+}

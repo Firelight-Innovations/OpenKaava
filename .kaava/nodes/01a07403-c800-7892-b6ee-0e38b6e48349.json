@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7892-b6ee-0e38b6e48349",
+  "slug": "anatomy-badges-for",
+  "kind": "contract-method",
+  "title": "badgesFor",
+  "description": "Compute badges for a node at a tier.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b7-95f8-682301adf593",
+  "signature": "function badgesFor(node: AnatomyNode, tier: Tier): string[]",
+  "params": [
+    "node",
+    "tier"
+  ],
+  "returns": "string[]",
+  "errors": [],
+  "semantics": "Returns badge array in reading order.",
+  "exported": false
+}

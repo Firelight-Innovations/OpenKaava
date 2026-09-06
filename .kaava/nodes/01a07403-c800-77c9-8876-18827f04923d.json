@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-77c9-8876-18827f04923d",
+  "slug": "agent-dialog-methods-refused",
+  "kind": "test-case",
+  "title": "Dialog Methods Refused",
+  "description": "Methods that raise native dialogs are refused with a replacement.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d89-9517-725bc751d480",
+  "given": "A method like home/new-project that raises a dialog",
+  "when": "guard_dialog is called",
+  "then": "An error is returned naming the replacement",
+  "impl_ref": "src-tauri/src/mcp/servers/agent.rs::a_method_that_raises_a_dialog_is_refused_and_names_its_replacement",
+  "status": "declared",
+  "last_result_ms": null
+}

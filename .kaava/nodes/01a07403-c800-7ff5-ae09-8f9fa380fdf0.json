@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7ff5-ae09-8f9fa380fdf0",
+  "slug": "config-no-machine-values",
+  "kind": "doc-block",
+  "title": "Port and Token Are Variables",
+  "description": "The file contains no secrets or per-machine values.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-782d-bdc1-e759c21e6408",
+  "body": "Nothing machine-specific goes in it. The port and the token are written as `${KAAVA_MCP_PORT}` and `${KAAVA_MCP_TOKEN}`, which the client expands from the environment OpenKaava gave the shell. So the file holds no secret and no per-machine value, and can be committed and shared like any other project config.",
+  "audience": "human"
+}

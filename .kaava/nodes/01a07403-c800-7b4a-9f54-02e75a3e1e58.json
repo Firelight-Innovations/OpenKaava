@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7b4a-9f54-02e75a3e1e58",
+  "slug": "presets-not-in-layout",
+  "kind": "doc-block",
+  "title": "Presets are separate from the layout",
+  "description": "Why presets have their own store and file.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e3f-9d6f-b11a334ab406",
+  "body": "Presets live in presets.json, not layout.json, because layout.json is what is on screen right now and is rewritten on every drag. Presets are a small, deliberate, rarely-changing library of user data that outlives every layout they were captured from. Folding them in would mean one corrupt write costing both, and putting a file rewritten hundreds of times a session in charge of something expected to last a year.",
+  "audience": "both"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-71ec-9a43-9d0508ea7d88",
+  "slug": "unsupported-viewer",
+  "kind": "module",
+  "title": "Unsupported Viewer",
+  "description": "Fallback viewer for binary and unsupported file formats with OS launcher option.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7996-96e4-9a298ed54a09",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7b67-ba2c-9ab84ba1d65b"
+  ]
+}

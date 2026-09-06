@@ -1,0 +1,39 @@
+{
+  "schematic": "home-app",
+  "zoom": 1,
+  "pan": [
+    0,
+    0
+  ],
+  "nodes": {
+    "01a07403-c800-7bf3-b083-b0139d0bad6a": {
+      "x": 80,
+      "y": 80,
+      "w": 240,
+      "h": 140,
+      "collapsed": false
+    },
+    "01a07403-c800-7ef6-b0b3-58a1f5c2d12b": {
+      "x": 380,
+      "y": 80,
+      "w": 240,
+      "h": 140,
+      "collapsed": false
+    },
+    "01a07403-c800-7ec6-b013-d79e23f5b6d7": {
+      "x": 680,
+      "y": 80,
+      "w": 240,
+      "h": 140,
+      "collapsed": false
+    },
+    "01a07403-c800-7aa0-bfa5-faddf008a347": {
+      "x": 980,
+      "y": 80,
+      "w": 240,
+      "h": 140,
+      "collapsed": false
+    }
+  },
+  "groups": {}
+}

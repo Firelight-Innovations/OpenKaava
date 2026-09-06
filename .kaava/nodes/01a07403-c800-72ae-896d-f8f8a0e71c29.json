@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-72ae-896d-f8f8a0e71c29",
+  "slug": "graph-seam-module-doc",
+  "kind": "doc-block",
+  "title": "Graph Lookup Interface",
+  "description": "The seam between reconciliation and a design graph implementation.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "body": "The seam between this crate and a real Schematify design graph. `crates/schematify-core` is built in parallel by another wave and this crate must not depend on it. Reconciliation depends only on [`GraphLookup`], small enough that implementing it later is one `impl` block and no change to [`crate::reconcile`]. For the wiring wave: implement `GraphLookup` for whatever `schematify-core` exposes as its loaded graph, and pass that in place of `JsonFileGraph`. Nothing else in this crate needs to change.",
+  "audience": "agent"
+}

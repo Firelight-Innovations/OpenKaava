@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c68-8677-e8c7374369bd",
+  "slug": "titlebar-run-menu-rerun-names-last-command",
+  "kind": "test-case",
+  "title": "Re-run row label",
+  "description": "Re-run row should show the last command that was executed.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7806-88f7-dafc7969fdd8",
+  "given": "A Run menu with last = 'pnpm verify'",
+  "when": "checking Re-run row label",
+  "then": "should read 'Re-run: pnpm verify'",
+  "impl_ref": "src/shell/titlebar/menus.test.ts::it(\"names the command it would repeat\")",
+  "status": "declared",
+  "last_result_ms": null
+}

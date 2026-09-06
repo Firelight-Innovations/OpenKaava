@@ -1,0 +1,19 @@
+{
+  "id": "01a07403-c800-7ce7-9e18-1b0a7e4aced9",
+  "slug": "trash-bin",
+  "kind": "module",
+  "title": "Trash Recycle Bin View",
+  "description": "UI for viewing, restoring, and permanently purging files from the project-scoped Recycle Bin.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-724f-ac20-c392624f0d9e",
+  "allowed_libraries": [
+    "01a07403-c800-7bd1-a062-9c1c49e747dc"
+  ],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-73db-b1cd-db6ad653858c"
+  ]
+}

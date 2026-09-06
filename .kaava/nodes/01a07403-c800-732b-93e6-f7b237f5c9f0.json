@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-732b-93e6-f7b237f5c9f0",
+  "slug": "manifest-parser-resolve-bin-exe-fallback",
+  "kind": "test-case",
+  "title": "Resolve Binary Falls Back to .exe Suffix",
+  "description": "resolve_bin tries both plain and .exe versions on all platforms.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "A TempCheckout with tool-bin.exe present, manifest with core.bin='tool-bin'",
+  "when": "resolve_bin is called",
+  "then": "returns the absolute path to tool-bin.exe",
+  "impl_ref": "crates/kaava-tool-manifest/src/lib.rs::resolve_bin_falls_back_to_exe_suffix",
+  "status": "declared",
+  "last_result_ms": null
+}

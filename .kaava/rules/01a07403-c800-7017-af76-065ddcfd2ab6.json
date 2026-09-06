@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7017-af76-065ddcfd2ab6",
+  "slug": "no-unwrap-on-io",
+  "statement": "Never use unwrap() or expect() on anything depending on the filesystem, a process, or user input.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm lint"
+}

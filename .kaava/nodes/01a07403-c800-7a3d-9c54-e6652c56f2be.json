@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7a3d-9c54-e6652c56f2be",
+  "slug": "layout-empty",
+  "kind": "contract-method",
+  "title": "emptyLayout",
+  "description": "Returns the initial layout state: no moved nodes, no annotations, default viewport.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79bb-abc8-74d009a7d2da",
+  "signature": "function emptyLayout(slug: string): LayoutFile",
+  "params": [
+    "slug: string"
+  ],
+  "returns": "LayoutFile",
+  "errors": [],
+  "semantics": "Creates blank layout for new Schematic.",
+  "exported": true
+}

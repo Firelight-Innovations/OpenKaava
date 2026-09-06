@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-70e7-a09c-716c2ab33656",
+  "slug": "backend-test-service-routing",
+  "kind": "test-case",
+  "title": "createBackendSeam().loadGraph routes services",
+  "description": "Verifies the backend seam correctly routes to different services.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-755e-b721-aa6fca8f5064",
+  "given": "An invoke mock returning billing-service nodes",
+  "when": "createBackendSeam().loadGraph(\"service\", \"billing-service\") is called",
+  "then": "The result has tier: service and serviceSlug: billing-service",
+  "impl_ref": "apps/schematify/ui/src/graph/backend.test.ts::draws the requested service, not the hardcoded auth-service default",
+  "status": "declared",
+  "last_result_ms": null
+}

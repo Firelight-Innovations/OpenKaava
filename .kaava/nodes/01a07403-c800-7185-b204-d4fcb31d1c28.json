@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7185-b204-d4fcb31d1c28",
+  "slug": "plugin-broker-plugin-methods-forwarded",
+  "kind": "test-case",
+  "title": "Broker: Plugin Methods",
+  "description": "Methods not starting with kaava/ are forwarded to core.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78db-904b-bb87473e03bb",
+  "given": "Methods like 'specs/load', 'echo', 'graph/kaava/nested'",
+  "when": "is_reserved() is called",
+  "then": "All return false",
+  "impl_ref": "src-tauri/src/plugins/broker.rs::a_plugins_own_methods_are_forwarded",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7309-ac18-fd2b808f4ece",
+  "slug": "scanner-regex",
+  "kind": "external-dep",
+  "title": "Regex",
+  "description": "Regular expression engine for pattern matching.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-781b-85ef-56660694446e",
+  "registry_ref": "01a07403-c800-7c6f-af7f-96f44dbcc89a",
+  "usage_note": "Shared from marker-token; captures_iter searches each file line for tokens"
+}

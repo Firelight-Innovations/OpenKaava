@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7f6e-b729-d50f0ce88258",
+  "kind": "decision",
+  "slug": "DEC-STD-TS-001",
+  "title": "No 'any' type; use 'unknown' at boundaries",
+  "context": "Frontend type safety needed a hard rule to prevent escape hatches.",
+  "decision": "TypeScript: No `any` type allowed. Use `unknown` at boundaries and narrow immediately.",
+  "consequences": "Maintains type safety throughout. appCall returns Promise<unknown> by design. Type checker forces narrowing at entry points.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-08-16"
+}

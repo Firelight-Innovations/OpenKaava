@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d03-b4ac-037796d7fdde",
+  "slug": "shell-facetpalette-component",
+  "kind": "contract-method",
+  "title": "Facet Palette Component",
+  "description": "Renders the Module Schematic's facet palette (drawn at tier 3 only) with 5 facet types and 2 annotation kinds.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-743f-ae55-0cbaeb91a62a",
+  "signature": "FacetPalette() => JSX.Element",
+  "params": [],
+  "returns": "React component",
+  "errors": [],
+  "semantics": "Shows draggable palette entries for contract-method, test-case, budget, doc-block, external-dep facets and comment, group annotations (entries inert until Wave X wires semantic writes).",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-73a7-af01-50cad51c5ed2",
+  "slug": "viewport-fitto-zero-area",
+  "kind": "test-case",
+  "title": "fitTo leaves viewport unchanged for zero-area bounding box",
+  "description": "fitTo rejects both zero-width and zero-height bounding boxes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-759b-b225-e1b8cd987643",
+  "given": "a bounding box with zero width or height",
+  "when": "fitTo is called",
+  "then": "returns the starting viewport unchanged",
+  "impl_ref": "apps/schematify/ui/src/engine/viewport.test.ts::fitTo leaves the viewport unchanged for a zero-area bounding box",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f6e-a6a4-dcc7ad23c2ef",
+  "slug": "layout-closing-the-last-tab-collapses-the-split",
+  "kind": "test-case",
+  "title": "Split Collapse on Empty",
+  "description": "Verify that removing the last tab from a pane also removes the now-empty pane.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ff9-963f-4bb8df82714f",
+  "given": "A split with one pane containing one tab",
+  "when": "Removing the last tab",
+  "then": "The tree prunes the split, leaving just the root",
+  "impl_ref": "src-tauri/src/layout.rs::closing_the_last_tab_in_a_pane_collapses_the_split",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7167-bc94-92ccf34f139f",
+  "slug": "shell-state-app-state-struct",
+  "kind": "contract-method",
+  "title": "AppState Struct",
+  "description": "Process-wide state shared across Tauri command handlers running on multiple threads.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74ea-9d72-103436d2dbec",
+  "signature": "pub struct AppState { snapshot: RwLock<Option<StackSnapshot>>, boot_status: RwLock<Option<BootStatus>> }",
+  "params": [],
+  "returns": "AppState",
+  "errors": [],
+  "semantics": "RwLock-protected state allowing many concurrent readers and rare writers.",
+  "exported": false
+}

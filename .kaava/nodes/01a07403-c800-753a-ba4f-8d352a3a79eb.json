@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-753a-ba4f-8d352a3a79eb",
+  "slug": "github-query-quote-restrictions",
+  "kind": "doc-block",
+  "title": "GitHub Query Quote Handling",
+  "description": "Why quotes may only open at the start of a token or after a colon.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcd-8834-b536584a1dca",
+  "body": "A quote only opens at the start of a token or straight after a colon. Opening on a quote character anywhere would be wrong for the commonest thing anyone types: in `it's broken is:pr`, the apostrophe would open a quote that never closes. Restricting where a quote may open costs nothing real and leaves an apostrophe inside a word alone.",
+  "audience": "both"
+}

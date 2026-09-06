@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b7b-a5bf-ffc89a76206d",
+  "slug": "shell-contract-update-notice-tests",
+  "kind": "test-case",
+  "title": "updateNotice silent checks",
+  "description": "Verifies that unrequested checks say nothing unless an update is available.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a2b-9c3f-6e98ac6d152b",
+  "given": "UpdateState representing idle, checking, or up-to-date",
+  "when": "asked is false",
+  "then": "Returns null",
+  "impl_ref": "src/shell/contract.test.ts::a check nobody asked for::says nothing when there is nothing to say",
+  "status": "declared",
+  "last_result_ms": null
+}

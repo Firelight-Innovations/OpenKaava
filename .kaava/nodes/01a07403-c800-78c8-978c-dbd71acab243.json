@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78c8-978c-dbd71acab243",
+  "slug": "github-query-draft",
+  "kind": "test-case",
+  "title": "GitHub Query: Draft Flag",
+  "description": "Tests that is:draft sets appropriate flags.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcd-8834-b536584a1dca",
+  "given": "Query 'is:draft'",
+  "when": "parseQuery is called",
+  "then": "scope is 'pull', state is 'open', draft is true",
+  "impl_ref": "src/shell/github/query.test.ts::parseQuery::treats is:draft as an open pull request",
+  "status": "declared",
+  "last_result_ms": null
+}

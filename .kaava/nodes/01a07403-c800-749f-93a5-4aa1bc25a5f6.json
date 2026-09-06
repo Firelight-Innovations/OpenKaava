@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-749f-93a5-4aa1bc25a5f6",
+  "slug": "product-isvalidsuccessmetric-invalid-nounit",
+  "kind": "test-case",
+  "title": "Success metric validation rejects empty unit",
+  "description": "Verifies that isValidSuccessMetric rejects metrics with no unit, per PRD §5.12.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "given": "A RawSuccessMetric with a name but empty unit",
+  "when": "isValidSuccessMetric is called",
+  "then": "false is returned",
+  "impl_ref": "apps/schematify/ui/src/product/index.test.ts::isValidSuccessMetric rejects a metric with no unit, per PRD §5.12",
+  "status": "declared",
+  "last_result_ms": null
+}

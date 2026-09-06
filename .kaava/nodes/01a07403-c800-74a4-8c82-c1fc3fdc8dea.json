@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-74a4-8c82-c1fc3fdc8dea",
+  "slug": "backend-fetch-dashboard",
+  "kind": "contract-method",
+  "title": "fetchModuleDashboard",
+  "description": "Calls schematify/module-dashboard to read one module's dashboard data.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-755e-b721-aa6fca8f5064",
+  "signature": "function fetchModuleDashboard(module: string): Promise<Dashboard>",
+  "params": [
+    "module: string"
+  ],
+  "returns": "Promise<Dashboard>",
+  "errors": [],
+  "semantics": "Reads dashboard metrics from backend.",
+  "exported": true
+}

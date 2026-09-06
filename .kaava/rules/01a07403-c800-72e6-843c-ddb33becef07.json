@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-72e6-843c-ddb33becef07",
+  "slug": "tool-app-id-format",
+  "statement": "Tool and app identifiers must match the pattern ^[a-z][a-z0-9-]*$.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm lint"
+}

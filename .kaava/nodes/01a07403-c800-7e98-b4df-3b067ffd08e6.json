@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7e98-b4df-3b067ffd08e6",
+  "slug": "client-create-client",
+  "kind": "contract-method",
+  "title": "createClient",
+  "description": "Factory to create a testable bridge client with injected window and Tauri handles.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "signature": "createClient(opts: ClientOptions): Client",
+  "params": [
+    "opts: ClientOptions"
+  ],
+  "returns": "Client",
+  "errors": [],
+  "semantics": "Detects host (kaava vs tauri) structurally and wires up message routing accordingly.",
+  "exported": false
+}

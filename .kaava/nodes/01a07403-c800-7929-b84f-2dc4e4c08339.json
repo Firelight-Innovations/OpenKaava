@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7929-b84f-2dc4e4c08339",
+  "slug": "file-operations-use-inline-name",
+  "kind": "contract-method",
+  "title": "Inline Name Editor Hook",
+  "description": "State and handlers for editing a filename in place with commit/cancel logic.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ca9-93c6-8fe99d1140a0",
+  "signature": "export function useInlineName(opts: InlineNameOptions): InlineName",
+  "params": [
+    "initial: string",
+    "mode: 'create' | 'rename'",
+    "busy: boolean",
+    "onCommit: (name: string) => void",
+    "onCancel: () => void"
+  ],
+  "returns": "InlineName with value, setValue, inputRef, and key handlers",
+  "errors": [],
+  "semantics": "Provides keyboard and blur handling for inline name editing fields.",
+  "exported": true
+}

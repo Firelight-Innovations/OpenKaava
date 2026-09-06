@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-76a0-9313-e787ec73f040",
+  "slug": "reconciliation-a-run-with-no-markers-and-no-markable-nodes-has-no-outcomes",
+  "kind": "test-case",
+  "title": "Empty Run for Empty Tree and Graph",
+  "description": "When no markers exist and no nodes are markable, reconcile produces no outcomes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f82-b74b-6f5fb1052449",
+  "given": "empty directory tree and empty graph",
+  "when": "reconcile is called",
+  "then": "outcomes is empty, exit code is 0",
+  "impl_ref": "crates/schematify-reconcile/src/reconcile.rs::a_run_with_no_markers_and_no_markable_nodes_has_no_outcomes",
+  "status": "declared",
+  "last_result_ms": null
+}

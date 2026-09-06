@@ -1,0 +1,19 @@
+{
+  "id": "01a07403-c800-762d-98bf-9549ca7a28bb",
+  "slug": "plugin-install",
+  "kind": "module",
+  "title": "Plugin Installation",
+  "description": "Download plugins from repository references, verify checksums, unpack, and integrate them into the registry, with progress reporting.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "allowed_libraries": [
+    "01a07403-c800-736a-801a-ea4485c6faff",
+    "01a07403-c800-75dd-b05c-6d3f11053668",
+    "01a07403-c800-7dbc-9d85-c55c6f498ac3"
+  ],
+  "ui_refs": []
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7761-8cef-672207f15fb7",
+  "slug": "webview",
+  "kind": "external-dep",
+  "title": "tauri",
+  "description": "Desktop app framework with IPC, plugins, windows and state management",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-799f-97e8-2b2481591957",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "Webview type parameter for Windows-specific context menu suppression"
+}

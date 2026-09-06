@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-787a-9c22-91db98b7ae50",
+  "kind": "decision",
+  "slug": "DEC-STD-APPS-001",
+  "title": "Apps vs. Tools: code the orchestrator 'is' vs. code it 'finds'",
+  "context": "Decision needed on where new surfaces belong: in-process or child process.",
+  "decision": "Apps are code the orchestrator 'is' (in-process Rust modules). Tools are code it 'finds' (child processes). Write surfaces as apps when they show orchestrator-owned data; as tools when they have own domain, release cadence, or need separate shipping.",
+  "consequences": "Home and Files are apps because they own stack state, checkout, open project. Avoids wasteful IPC boundary between shell and logic that would only ask shell for data it already has. Adding app requires three edits: registry entry, index.html, vite.config.ts line.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-08-16"
+}

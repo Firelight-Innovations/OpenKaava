@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7622-a0a0-8f4661f1d872",
+  "slug": "menu-items-css-overview",
+  "kind": "doc-block",
+  "title": "Menu Item List Styling",
+  "description": "Explains shared styling for menu bar and hamburger.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7932-a805-49d0bca71663",
+  "body": "The menu item tree, portalled: the rows, their accelerators, the caret on a row that opens something, the surface that opens beside it, and the name field a prompt row turns into. This is a shared widget rendered by three regions, so the styling is shared rather than duplicated per surface.",
+  "audience": "agent"
+}

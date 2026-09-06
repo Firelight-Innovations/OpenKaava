@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-75af-a46e-fb63c7c5a0c2",
+  "slug": "file-icons",
+  "kind": "service",
+  "title": "File Icons",
+  "description": "The file-icon lookup, generated from material-icon-theme at install time and consumed by the file tree and the tab strip.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": null,
+  "entry_point": "packages/file-icons/src/index.ts.",
+  "exports": [
+    "01a07403-c800-74c8-826b-bd1712d320c3",
+    "01a07403-c800-7309-9935-22ee8e6ee585",
+    "01a07403-c800-767c-bcd1-e864eb6046b2"
+  ],
+  "schemas": null
+}

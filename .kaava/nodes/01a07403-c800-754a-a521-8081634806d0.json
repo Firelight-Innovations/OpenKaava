@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-754a-a521-8081634806d0",
+  "slug": "accelerators-mac-glyphs-in",
+  "kind": "contract-method",
+  "title": "Mac Glyph Detector",
+  "description": "Finds all Mac key glyphs in a string (⌘⌥⌃⇧⌫⏎⌤⎋⇥⇪).",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d53-814c-3c88cf09800b",
+  "signature": "export function macGlyphsIn(text: string): string[]",
+  "params": [
+    "string"
+  ],
+  "returns": "string[]",
+  "errors": [],
+  "semantics": "Extracts every Mac key glyph present in the text.",
+  "exported": true
+}

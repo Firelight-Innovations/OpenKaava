@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7d41-ae1e-744620afb4bf",
+  "slug": "context-menu-host",
+  "kind": "module",
+  "title": "Right-Click Context Menu",
+  "description": "React component that listens for right-clicks on the document, captures the target's edit state and selection, and displays a context menu with cut/copy/paste/select-all.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bb4-bdbe-fe72bc3e7a0c",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

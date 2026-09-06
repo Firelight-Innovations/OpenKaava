@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-72f5-b9c3-e93f60b4d83d",
+  "slug": "git-operations-hunks-single-line",
+  "kind": "test-case",
+  "title": "Hunk parsing handles single-line edits",
+  "description": "The `,n` part of hunk headers is optional and means ,1 when absent.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "given": "A unified diff with single-line changes",
+  "when": "parse_hunks processes the @@ headers",
+  "then": "Single-line hunks are correctly parsed without the ,1 suffix",
+  "impl_ref": "src-tauri/src/git.rs::parse_hunks",
+  "status": "declared",
+  "last_result_ms": null
+}

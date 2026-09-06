@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-74b4-8f60-d98f3445c448",
+  "slug": "report-rendering-summary-counts-match-outcome-kinds",
+  "kind": "test-case",
+  "title": "Summarize Counts by Outcome Kind",
+  "description": "summarize tallies outcomes into matched, declared_absent, present_unknown, duplicate counts.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "given": "an empty ReconcileRun",
+  "when": "summarize is called",
+  "then": "all counts are zero",
+  "impl_ref": "crates/schematify-reconcile/src/report.rs::summary_counts_match_outcome_kinds",
+  "status": "declared",
+  "last_result_ms": null
+}

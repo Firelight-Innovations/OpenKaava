@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-70c5-b7cf-453fb90707f3",
+  "slug": "context-menu-dismiss-selected",
+  "kind": "test-case",
+  "title": "Item Selection Closes Menu",
+  "description": "Verifies menu closes once an item is selected.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Dismissal with reason 'selected'",
+  "when": "dismisses() called",
+  "then": "Returns true",
+  "impl_ref": "src/shell/contextMenu.test.ts::dismisses closes once an item has acted",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-72fd-88ee-22fc2f3d05b5",
+  "slug": "toml-grammar",
+  "kind": "module",
+  "title": "TOML Grammar",
+  "description": "Monarch tokenizer providing TOML syntax highlighting and language configuration for Monaco editor. Handles comments, brackets, strings, dates, numbers, and inline/multiline string escapes.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d12-b3d6-9d93871b55d6",
+  "allowed_libraries": [
+    "01a07403-c800-7009-8eef-cc81f6cacfda"
+  ],
+  "ui_refs": []
+}

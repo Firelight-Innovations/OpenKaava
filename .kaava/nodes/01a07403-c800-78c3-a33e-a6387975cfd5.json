@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78c3-a33e-a6387975cfd5",
+  "slug": "listener-unbound-endpoint-offers-no-env",
+  "kind": "test-case",
+  "title": "Unbound Endpoint Has No Environment",
+  "description": "An endpoint that has not been bound returns empty environment.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7086-80ae-e8b05191e7a8",
+  "given": "A new Endpoint",
+  "when": "env() is called",
+  "then": "The result is an empty vector",
+  "impl_ref": "src-tauri/src/mcp/listener.rs::an_unbound_endpoint_offers_no_environment",
+  "status": "declared",
+  "last_result_ms": null
+}

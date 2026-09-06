@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7ea3-95f6-1e2b4202958e",
+  "slug": "ci-workflows-verify-timeout",
+  "kind": "budget",
+  "title": "Verify gate time limit",
+  "description": "The full verify check must complete within CI time budget.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f0b-9e38-45cd705dda87",
+  "metric": "elapsed time",
+  "op": "<=",
+  "value": 600,
+  "unit": "seconds",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm verify",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

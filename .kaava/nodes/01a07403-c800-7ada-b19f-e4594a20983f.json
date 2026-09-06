@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7ada-b19f-e4594a20983f",
+  "slug": "serde-json-storage",
+  "kind": "external-dep",
+  "title": "JSON Value Type",
+  "description": "JSON parsing and formatting in storage operations.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-786a-927d-06cc6a4b0332",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "Serializes all graph entities to JSON for writing to disk"
+}

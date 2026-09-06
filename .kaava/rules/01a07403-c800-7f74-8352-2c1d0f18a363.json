@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7f74-8352-2c1d0f18a363",
+  "slug": "hooks-own-state",
+  "statement": "Hooks starting with `use` must own state and effects; everything else must be pure.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm lint"
+}

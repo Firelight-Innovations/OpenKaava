@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-763c-9e3a-704cdd10eb7f",
+  "slug": "product-emptybrief-defaults",
+  "kind": "test-case",
+  "title": "Empty brief has correct initial values",
+  "description": "Verifies that emptyBrief returns a brief with required fields blank and lists empty.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "given": "No arguments",
+  "when": "emptyBrief is called",
+  "then": "A RawProjectBrief with empty product_name and problem, and empty arrays is returned",
+  "impl_ref": "apps/schematify/ui/src/product/index.test.ts::emptyBrief returns a brief with both required fields blank and every list empty",
+  "status": "declared",
+  "last_result_ms": null
+}

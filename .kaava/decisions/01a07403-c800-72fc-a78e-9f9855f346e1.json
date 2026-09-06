@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-72fc-a78e-9f9855f346e1",
+  "kind": "decision",
+  "slug": "DEC-STD-APPS-002",
+  "title": "vite.config.ts entry for apps cannot be inferred",
+  "context": "New apps require minimal boilerplate, but one piece must be added manually.",
+  "decision": "Apps need exactly three additions to the system: registry entry in src-tauri/src/apps/mod.rs, index.html under apps/<id>/ui/, and one line in vite.config.ts. The vite.config.ts entry cannot be inferred from other artifacts.",
+  "consequences": "Missing vite.config.ts line causes app to silently fail to build—vite produces no error. This is the one piece that breaks silently. Must verify bundle includes new app.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-08-16"
+}

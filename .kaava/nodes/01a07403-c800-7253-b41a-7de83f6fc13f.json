@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7253-b41a-7de83f6fc13f",
+  "slug": "review-store-forward-compatible",
+  "kind": "test-case",
+  "title": "Future format still loads known fields",
+  "description": "A document from a newer build with unknown fields still loads.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-700b-8fdc-ce83c58300e1",
+  "given": "A JSON with format > FORMAT and extra fields",
+  "when": "load is called",
+  "then": "The comments load and unknown fields are ignored",
+  "impl_ref": "src-tauri/src/review/store.rs::a_document_from_a_newer_build_still_loads_what_this_one_understands",
+  "status": "declared",
+  "last_result_ms": null
+}

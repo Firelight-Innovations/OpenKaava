@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-782a-b5f2-8f4687300dcb",
+  "slug": "file-api-trash-list",
+  "kind": "contract-method",
+  "title": "List Recycle Bin",
+  "description": "Fetch items this project has deleted, scoped to project.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export const trashList = () => invoke<TrashListing>('trash/list')",
+  "params": [],
+  "returns": "Promise<TrashListing> with root and items array",
+  "errors": [],
+  "semantics": "Returns deleted items recoverable for this project.",
+  "exported": true
+}

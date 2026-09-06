@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7416-859e-0a48e93bbdf9",
+  "slug": "listener-endpoint-get",
+  "kind": "contract-method",
+  "title": "Get Endpoint",
+  "description": "Read the bound port and token.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7086-80ae-e8b05191e7a8",
+  "signature": "pub fn get(&self) -> Option<(u16, String)>",
+  "params": [],
+  "returns": "Option<(u16, String)>",
+  "errors": [],
+  "semantics": "Returns the port and bearer token once bound, or None if the listener has not started or if the lock is poisoned.",
+  "exported": false
+}

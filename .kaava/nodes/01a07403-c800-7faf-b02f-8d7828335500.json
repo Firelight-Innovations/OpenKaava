@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7faf-b02f-8d7828335500",
+  "slug": "manifest-loader-3",
+  "kind": "external-dep",
+  "title": "toml",
+  "description": "TOML parser for reading kaava.toml configuration files.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b8-a253-bd079c91045f",
+  "registry_ref": "01a07403-c800-7994-a954-210071677424",
+  "usage_note": "toml::from_str() to parse TOML content"
+}

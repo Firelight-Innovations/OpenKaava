@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-75ea-ab34-8500efdc4700",
+  "slug": "git-operations-git-cluster-unstage",
+  "kind": "contract-method",
+  "title": "Unstage Files",
+  "description": "Remove files from the index.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "signature": "pub fn git_cluster_unstage(app: AppHandle, cluster_id: String, paths: Vec<String>) -> Result<()>",
+  "params": [
+    "app",
+    "cluster_id",
+    "paths"
+  ],
+  "returns": "Result<()>",
+  "errors": [
+    "AppError::Git"
+  ],
+  "semantics": "Unstages the given paths using git restore --staged.",
+  "exported": true
+}

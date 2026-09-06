@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7ba9-b5c2-d422afdf3664",
+  "slug": "palette-fuzzy-fuzzy-match",
+  "kind": "contract-method",
+  "title": "Fuzzy Match Text Subsequence",
+  "description": "Scores a needle subsequence against a haystack string with bonuses for word boundaries and consecutive matches.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7497-b529-d3c21db99100",
+  "signature": "export function fuzzyMatch(needle: string, haystack: string): FuzzyMatch | null",
+  "params": [
+    "needle: string",
+    "haystack: string"
+  ],
+  "returns": "FuzzyMatch | null",
+  "errors": [],
+  "semantics": "Scores based on character positions, word starts, camel case boundaries, and consecutive matches; requires every whitespace-separated token to match.",
+  "exported": false
+}

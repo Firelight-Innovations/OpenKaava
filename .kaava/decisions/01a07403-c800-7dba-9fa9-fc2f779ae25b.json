@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7dba-9fa9-fc2f779ae25b",
+  "kind": "decision",
+  "slug": "DEC-OPS-COMMITS-001",
+  "title": "Commit messages are imperative sentences from codebase point of view",
+  "context": "The commit log is a historical record of what the codebase gained and why. It should be readable end to end.",
+  "decision": "A commit message is an imperative sentence describing the change from the codebase's point of view. The repository does not use Conventional Commits. Real examples: `Give the shell panes, clusters, and many instances of one app`, `Answer the lock-poison question once instead of at forty call sites`, `Declare tools/list uncacheable, which is what makes a client accept it`.",
+  "consequences": "A message like `feat: add panes` cannot carry rationale like `which is what makes a client accept it`. If the subject cannot hold the reasoning, it goes in the body. Long bodies are normal.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-06"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-72e7-b9b3-88a36145cec8",
+  "slug": "plugin-store-module-doc",
+  "kind": "doc-block",
+  "title": "Plugin Persistence Strategy",
+  "description": "Thin file storing only records; manifests always re-read from disk.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c92-b990-0fafa3c719fa",
+  "body": "Which plugins this person has installed, across launches. A record names where a package came from and nothing about what is in it — no surface list, no version, no name. All of that is read back out of the checkout's own `kaava-tool.toml` at load, so a plugin that gains a surface between launches gains it here too, and a record can never disagree with the code it points at.",
+  "audience": "agent"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7bb7-8ffd-6b355ddc58bc",
+  "slug": "diff-review-mark-at-line-2",
+  "kind": "test-case",
+  "title": "Review: Find Marker at Line",
+  "description": "Tests that markers are found for lines within their range.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "given": "Marker covering lines 3-9 and query for line 6",
+  "when": "markAtLine is called",
+  "then": "Returns the marker",
+  "impl_ref": "src/shell/diff/reviewComments.test.ts::markAtLine::finds a marker from anywhere inside its range, ends included",
+  "status": "declared",
+  "last_result_ms": null
+}

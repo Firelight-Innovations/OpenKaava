@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7819-bbb5-a26b63893f4a",
+  "slug": "userdata-identity-keyring-matches",
+  "kind": "test-case",
+  "title": "Keyring service matches IDENTIFIER",
+  "description": "The keyring service is kept in sync with IDENTIFIER.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7eb9-8c34-08c4ec7b1932",
+  "given": "IDENTIFIER and plugins::install::KEYRING_SERVICE",
+  "when": "checked",
+  "then": "They are equal",
+  "impl_ref": "src-tauri/src/userdata/identity.rs::the_keyring_service_is_the_identifier",
+  "status": "declared",
+  "last_result_ms": null
+}

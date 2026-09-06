@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7930-9231-944c38478ace",
+  "slug": "frame-module-doc",
+  "kind": "doc-block",
+  "title": "Frame Building",
+  "description": "One frame's draw model with budget measurement.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dd1-9e6f-3a5f9034098a",
+  "body": "One frame's draw model. Everything the renderer needs and nothing it has to work out for itself: which boxes are visible, where every edge runs, what the collapsed captions say, what the legend and the readout read. This is also the unit the 16 ms budget in PRD §14.7 is measured against. Every count on a frame is computed here and stored nowhere (PRD §0.4).",
+  "audience": "agent"
+}

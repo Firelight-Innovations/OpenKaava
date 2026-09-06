@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-72eb-ad2e-3c6371192182",
+  "slug": "file-explorer-split-design",
+  "kind": "doc-block",
+  "title": "Files App Split",
+  "description": "How Files became two separate surfaces for browsing and viewing.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73b0-99ac-cdd1de6b20ef",
+  "body": "The explorer no longer shows a file. Clicking a row asks the shell for a File Viewer in this cluster and hands it a path using openIn. The shell finds or opens the Viewer, which is what makes the tree and editor two surfaces you can put in two panes or on two monitors.",
+  "audience": "agent"
+}

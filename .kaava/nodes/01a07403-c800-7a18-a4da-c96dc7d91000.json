@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7a18-a4da-c96dc7d91000",
+  "slug": "terminal-sessions-real-shell-spawn",
+  "kind": "test-case",
+  "title": "Real shell starts and responds",
+  "description": "Integration test that a real shell process spawns and exchanges data.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731a-ab6c-3a00854fdef3",
+  "given": "A system with at least one available shell",
+  "when": "spawn_shell is called and text is written",
+  "then": "The shell produces output and responds to commands",
+  "impl_ref": "src-tauri/src/pty.rs::spawns_a_real_shell_and_talks_to_it",
+  "status": "declared",
+  "last_result_ms": null
+}

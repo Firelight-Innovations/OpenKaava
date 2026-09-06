@@ -1,0 +1,7 @@
+{
+  "id": "01a07403-c800-74f1-8d64-2f0e5e1bcd7b",
+  "slug": "bug-fix-arrives-with-test",
+  "statement": "Every bug fix must arrive with the test that would have caught it; this is the only non-negotiable test rule.",
+  "severity": "review",
+  "audit": []
+}

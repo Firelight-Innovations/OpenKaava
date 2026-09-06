@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d04-b4e8-61cc3871df01",
+  "slug": "project-marker-name-fallback",
+  "kind": "test-case",
+  "title": "Manifest name falls back to filename",
+  "description": "A manifest with no name field uses the filename as the project name.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7742-a1fb-c4253f531eb9",
+  "given": "A manifest with no [project] name field",
+  "when": "marker::load is called",
+  "then": "The returned name matches the manifest's filename stem",
+  "impl_ref": "src-tauri/src/project/marker.rs::a_manifest_with_no_name_falls_back_to_its_filename",
+  "status": "declared",
+  "last_result_ms": null
+}

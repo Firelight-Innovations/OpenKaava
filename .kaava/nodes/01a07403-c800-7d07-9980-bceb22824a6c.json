@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7d07-9980-bceb22824a6c",
+  "slug": "viewer-app-topics-doc",
+  "kind": "doc-block",
+  "title": "Topics restated in each app",
+  "description": "Message topic strings published for cross-app communication",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7957-93c6-6a104cacaf87",
+  "body": "What this app says to the File Explorer, and what it listens for back. Three strings and two shapes, **restated** in `apps/files/ui/src/topics.ts` rather than shared from one place — the same trade `commands.ts` makes for the menu ids and `rpc.ts` for the backend's reply shapes.",
+  "audience": "agent"
+}

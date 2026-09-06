@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7799-af92-88a57cb0bbba",
+  "slug": "project-test-module-root",
+  "kind": "test-case",
+  "title": "projectModuleGraph draws the module root",
+  "description": "Ensures the module root is included as its own node with parentId null.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b17-92da-f10f0c4deca9",
+  "given": "A raw graph with a module and its facets",
+  "when": "projectModuleGraph projects the module",
+  "then": "The result has the module root with parentId null and its description",
+  "impl_ref": "apps/schematify/ui/src/graph/project.test.ts::draws the module root as its own node, parentId null",
+  "status": "declared",
+  "last_result_ms": null
+}

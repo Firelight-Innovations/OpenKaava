@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7645-a6d3-bb239422c4c0",
+  "slug": "worktree-logic-follow-across-index-2",
+  "kind": "test-case",
+  "title": "Selection: Follow Across Staging",
+  "description": "Tests that selection moves to opposite side when file is staged/unstaged.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71fe-af1c-0dcd2dfd9607",
+  "given": "Open row unstaged, file is staged",
+  "when": "followAcrossIndex is called",
+  "then": "Returns selection with staged: true",
+  "impl_ref": "src/shell/worktree/selection.test.ts::followAcrossIndex::moves the open row to the other side when it is the one staged",
+  "status": "declared",
+  "last_result_ms": null
+}

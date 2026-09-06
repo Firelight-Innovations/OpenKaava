@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7367-ac0d-80c22840737f",
+  "slug": "marker-token-module-doc",
+  "kind": "doc-block",
+  "title": "Marker Token Grammar",
+  "description": "The marker-token module implements the @kaava: prefix pattern matching.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77d3-a0d3-3e27db45a8db",
+  "body": "The marker-token grammar (PRD `SCHEMATIFY-PRD.md` section 9.1): found by plain regular expression rather than parsed as a doc comment, because a docstring parser breaks on the first language nobody anticipated. The UUID is authoritative; the trailing slug is a human grep aid and carries no semantics reconciliation depends on. A malformed candidate simply does not match. There is no separate malformed token outcome; a near-miss is invisible to the scanner.",
+  "audience": "both"
+}

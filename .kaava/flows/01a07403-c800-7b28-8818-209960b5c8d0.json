@@ -1,0 +1,30 @@
+{
+  "id": "01a07403-c800-7b28-8818-209960b5c8d0",
+  "kind": "flow",
+  "slug": "split-panes-side-by-side",
+  "title": "Split Panes to View Side by Side",
+  "trigger": "User wants to see two apps or tools in the same cluster at the same time",
+  "steps": [
+    {
+      "screen": "schematify://screen/01a07403-c800-7953-b112-117deaa747db",
+      "action": "Click the + in the switcher bar and select an app (e.g., File Explorer) to open it"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-70d7-ab31-286c94355b77",
+      "action": "The app appears in a single pane filling the tool window"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7953-b112-117deaa747db",
+      "action": "Click + again and select a different app (e.g., File Viewer) to add a second pane"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-70d7-ab31-286c94355b77",
+      "action": "The two panes split along the longer axis: a wide window splits vertically (left and right), a tall one horizontally (top and bottom)"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-70d7-ab31-286c94355b77",
+      "action": "Drag the line between the panes to resize them, or drag a pane's tab to another pane to move it"
+    }
+  ],
+  "outcome": "The tool window is divided into two panes, each with its own app, resizable by dragging between them"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7e65-ba01-8334cd1662be",
+  "kind": "decision",
+  "slug": "DEC-SCH-RELAT-002",
+  "title": "Marker token is a plain regex, not a docstring parser",
+  "context": "Alternative approaches: parse docstrings to extract markers; use code-generation annotations; require specific file structure.",
+  "decision": "The marker token is a fixed string `@kaava:<uuid> <slug>` found by plain regular expression anywhere in a source file. The UUID is authoritative; the slug is for human readability. A docstring parser breaks on the first unanticipated language.",
+  "consequences": "Marker can be placed anywhere; no fragility from docstring parsing; humans can grep for readable names; the trailing slug is optional for parsing but essential for usability; reconciliation relies on the regex and UUID only.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

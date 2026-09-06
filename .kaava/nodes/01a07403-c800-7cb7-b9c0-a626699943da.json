@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7cb7-b9c0-a626699943da",
+  "slug": "outcome-reconcile-outcome-node-id",
+  "kind": "contract-method",
+  "title": "Get Outcome Node ID",
+  "description": "The node id this outcome is keyed by in runs/<node-uuid>/.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f14-8b2b-c06d802d2714",
+  "signature": "pub fn node_id(&self) -> Uuid",
+  "params": [],
+  "returns": "Uuid",
+  "errors": [],
+  "semantics": "Returns the node UUID that uniquely identifies this outcome.",
+  "exported": false
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7b4c-bee4-59b01d80059b",
+  "slug": "shell-bindings-git-branches",
+  "kind": "contract-method",
+  "title": "gitBranches",
+  "description": "Fetch every local branch most recently committed to first.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7149-8c4b-15d6ed575d92",
+  "signature": "function gitBranches(clusterId: string): Promise<GitBranch[]>",
+  "params": [
+    "clusterId"
+  ],
+  "returns": "Promise<GitBranch[]>",
+  "errors": [],
+  "semantics": "Returns local branches that can be checked out.",
+  "exported": true
+}

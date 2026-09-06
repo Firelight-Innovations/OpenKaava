@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7305-a687-445dadfaeda6",
+  "slug": "frame-budget-collapsed",
+  "kind": "test-case",
+  "title": "16 ms budget holds with collapsed content",
+  "description": "Collapsed state adds roll-up work but stays within budget.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dd1-9e6f-3a5f9034098a",
+  "given": "dense fixture with fifth of graph collapsed",
+  "when": "buildFrame is called",
+  "then": "still meets 16 ms budget",
+  "impl_ref": "apps/schematify/ui/src/engine/frameBudget.test.ts::the dense fixture holds the 16 ms frame budget holds the budget with a fifth of the graph collapsed, which adds roll-up work",
+  "status": "declared",
+  "last_result_ms": null
+}

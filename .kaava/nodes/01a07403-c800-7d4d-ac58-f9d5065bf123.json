@@ -1,0 +1,27 @@
+{
+  "id": "01a07403-c800-7d4d-ac58-f9d5065bf123",
+  "slug": "workspace-search-search-content",
+  "kind": "contract-method",
+  "title": "Search Workspace Content",
+  "description": "Search a cluster's directory for a query in file names and contents.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74d5-965b-4ee30086c2f4",
+  "signature": "pub async fn search_content(app: AppHandle, cluster_id: String, query: String, case_sensitive: bool, whole_word: bool, regex: bool) -> Result<SearchResponse>",
+  "params": [
+    "app",
+    "cluster_id",
+    "query",
+    "case_sensitive",
+    "whole_word",
+    "regex"
+  ],
+  "returns": "Result<SearchResponse>",
+  "errors": [
+    "AppError::Search"
+  ],
+  "semantics": "Returns empty hits if no project, respects .gitignore, bounded by settings.",
+  "exported": true
+}

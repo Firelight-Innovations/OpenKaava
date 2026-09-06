@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7dfd-8118-2126dd0fc81c",
+  "slug": "terminal-sessions-unattached-no-emit",
+  "kind": "test-case",
+  "title": "No emission before emulator attaches",
+  "description": "The blank terminal bug: ConPTY's cursor position request must not emit before someone listens.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731a-ab6c-3a00854fdef3",
+  "given": "Output arrives before attach is called",
+  "when": "Backlog::push is called with unattached = false",
+  "then": "Output is stored but no event is emitted",
+  "impl_ref": "src-tauri/src/pty.rs::nothing_is_emitted_before_an_emulator_attaches",
+  "status": "declared",
+  "last_result_ms": null
+}

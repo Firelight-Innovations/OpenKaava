@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7930-bf31-76dc0828c024",
+  "slug": "manifest-parser-rejects-invalid-id",
+  "kind": "test-case",
+  "title": "Tool IDs Must Match the Kebab-Case Pattern",
+  "description": "IDs must start with a lowercase letter and contain only lowercase, digits, and hyphens.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "Tool IDs 'Echo', '1echo', 'ec ho', 'ec_ho', or ''",
+  "when": "parsed",
+  "then": "each returns ManifestError::InvalidId",
+  "impl_ref": "crates/kaava-tool-manifest/src/lib.rs::rejects_invalid_id",
+  "status": "declared",
+  "last_result_ms": null
+}

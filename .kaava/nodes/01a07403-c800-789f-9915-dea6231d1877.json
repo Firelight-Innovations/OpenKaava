@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-789f-9915-dea6231d1877",
+  "slug": "app-updater-update-state",
+  "kind": "contract-method",
+  "title": "Get Current Update State",
+  "description": "Retrieve updater state without network access for UI display.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7725-8d89-01b343796845",
+  "signature": "#[tauri::command] pub fn update_state(app: AppHandle) -> UpdateState",
+  "params": [
+    "app: AppHandle"
+  ],
+  "returns": "UpdateState",
+  "errors": [],
+  "semantics": "Returns current state: Idle, Checking, Available, Downloading, Installing, Failed, or Unsupported.",
+  "exported": true
+}

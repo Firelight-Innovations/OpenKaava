@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7e56-bd71-a6b7c18708fe",
+  "slug": "titlebar",
+  "kind": "external-dep",
+  "title": "React",
+  "description": "React library for UI component rendering and hooks (useState, useRef, useEffect).",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7806-88f7-dafc7969fdd8",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "Used for menu bar state, responsive hook, and focus tracking"
+}

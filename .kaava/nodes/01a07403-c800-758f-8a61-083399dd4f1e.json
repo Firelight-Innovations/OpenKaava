@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-758f-8a61-083399dd4f1e",
+  "slug": "palette-registry-commands-from-menus",
+  "kind": "contract-method",
+  "title": "Flatten Menu Tree to Commands",
+  "description": "Extracts all runnable commands from a nested menu hierarchy.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d1f-ac55-b6ae705d4545",
+  "signature": "export function commandsFromMenus(menus: Menu[]): Command[]",
+  "params": [
+    "menus: Menu[]"
+  ],
+  "returns": "Command[]",
+  "errors": [],
+  "semantics": "Traverses the menu tree, extracting leaf items and submenu paths into a flat command list.",
+  "exported": false
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-723d-9d99-1a90e4465df3",
+  "kind": "decision",
+  "slug": "DEC-SCH-RECON-002",
+  "title": "kaava reconcile command runs marker scanning outside the interface process",
+  "context": "Alternative approaches: scan from within the React interface; background task in the Tauri main thread; no reconciliation.",
+  "decision": "The `kaava reconcile` command (a binary in `crates/schematify-reconcile`) runs marker-token scanning outside the interface process. It reads `.kaava/nodes/`, scans the working tree, and writes `runs/<node-uuid>/reconcile.json` for every node. Schematify reads the written file through `schematify_reconcile_status` but never scans the working tree itself.",
+  "consequences": "Scanning does not block the UI; projects with huge source trees can scan in background CI; Tauri main thread stays responsive; binary can be used in CI pipelines independently; design UI has no direct access to source code.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

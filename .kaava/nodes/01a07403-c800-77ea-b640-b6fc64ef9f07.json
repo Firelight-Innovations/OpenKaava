@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-77ea-b640-b6fc64ef9f07",
+  "slug": "dispatch-module-doc",
+  "kind": "doc-block",
+  "title": "First-party apps and tools",
+  "description": "Defines the distinction between apps (shipped in this binary) and tools (external repositories).",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a1-a91f-421d244b774a",
+  "body": "A **tool** is another repository: its frontend is served out of its own checkout, its Rust core is a child process the shell spawns and talks to over the standard streams. An **app** ships inside the orchestrator: its frontend is an extra entry point in this repo's own Vite config, its Rust half a module right here, reached over transport B and dispatched by call() below — no child process, no broker in between.",
+  "audience": "both"
+}

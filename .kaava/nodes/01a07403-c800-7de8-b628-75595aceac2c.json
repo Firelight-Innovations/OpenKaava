@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7de8-b628-75595aceac2c",
+  "slug": "context-menu-paste-dead",
+  "kind": "test-case",
+  "title": "Paste Always Disabled With Hint",
+  "description": "Verifies Paste is always disabled and explains why via Ctrl+V.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Writable editable field with selection",
+  "when": "contextItems() called",
+  "then": "Paste disabled with hint matching /Ctrl\\+V/",
+  "impl_ref": "src/shell/contextMenu.test.ts::contextItems keeps Paste dead and says why, even in a writable field with a selection",
+  "status": "declared",
+  "last_result_ms": null
+}

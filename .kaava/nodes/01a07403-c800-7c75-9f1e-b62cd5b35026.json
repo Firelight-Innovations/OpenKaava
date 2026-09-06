@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7c75-9f1e-b62cd5b35026",
+  "slug": "project-retitle",
+  "kind": "contract-method",
+  "title": "Update all window titles to reflect their cluster's project",
+  "description": "Set each window's OS title to its cluster's project name or the product name.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "signature": "pub fn retitle(app: &AppHandle)",
+  "params": [
+    "app: &AppHandle"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Updates window titles to show the project each is displaying, or the product name if no project is open.",
+  "exported": false
+}

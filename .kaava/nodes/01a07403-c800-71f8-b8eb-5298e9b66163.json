@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-71f8-b8eb-5298e9b66163",
+  "slug": "outcome-evidence-site",
+  "kind": "contract-method",
+  "title": "Code Location Record",
+  "description": "One marker occurrence's location: file path and 1-based line number.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f14-8b2b-c06d802d2714",
+  "signature": "pub struct EvidenceSite",
+  "params": [
+    "file: PathBuf",
+    "line: usize"
+  ],
+  "returns": "struct",
+  "errors": [],
+  "semantics": "Immutable record of where a marker was found.",
+  "exported": false
+}

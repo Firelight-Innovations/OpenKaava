@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7427-85e5-d8de4af2f394",
+  "slug": "ui-devtools-module-doc",
+  "kind": "doc-block",
+  "title": "WebView2 DevTools Protocol access",
+  "description": "Why DevTools Protocol over a socket is unnecessary here.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7615-af82-fb0b57f137da",
+  "body": "The webview this process is already running, reached through the COM interface Tauri already holds rather than over a socket. WebView2 is Chromium, and ICoreWebView2::CallDevToolsProtocolMethod is the same protocol Chrome exposes over --remote-debugging-port. No socket, no debug port and no second process is the whole reason this module exists. Document-created scripts use WebView2's own AddScriptToExecuteOnDocumentCreated, not part of the DevTools Protocol, but reachable the same way.",
+  "audience": "agent"
+}

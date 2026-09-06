@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7353-905e-13d99d2ef1b7",
+  "slug": "codec-response-ok",
+  "kind": "contract-method",
+  "title": "Create a Successful JSON-RPC Response",
+  "description": "Constructs a response with a result value.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "signature": "pub fn ok(id: u64, result: Value) -> Self",
+  "params": [
+    "id: u64",
+    "result: Value"
+  ],
+  "returns": "Self",
+  "errors": [],
+  "semantics": "Creates a success response that echoes the request id and carries the result, with error field absent.",
+  "exported": false
+}

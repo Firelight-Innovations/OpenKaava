@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7db5-a68f-82d64aa2458f",
+  "slug": "home",
+  "kind": "module",
+  "title": "Home Application",
+  "description": "The Home app — where a session starts. Handles project operations (open, create, close), recent project list, worktree management, and the tutorials column displayed on the home screen.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a1-a91f-421d244b774a",
+  "allowed_libraries": [
+    "01a07403-c800-736a-801a-ea4485c6faff",
+    "01a07403-c800-7565-ae9d-23b929975082"
+  ],
+  "ui_refs": []
+}

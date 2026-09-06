@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-73ba-905e-a856daf2cd4e",
+  "slug": "report-rendering-render-json",
+  "kind": "contract-method",
+  "title": "Render JSON Report",
+  "description": "Render run as the --format json consolidated report.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "signature": "pub fn render_json(run: &ReconcileRun) -> Result<String, serde_json::Error>",
+  "params": [
+    "run: &ReconcileRun"
+  ],
+  "returns": "Result<String, serde_json::Error>",
+  "errors": [
+    "serde_json::Error"
+  ],
+  "semantics": "Encodes full results and summary as pretty-printed JSON.",
+  "exported": false
+}

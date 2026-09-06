@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7110-bf87-ebc30fac98fa",
+  "slug": "plugin-registry-resolve-enabled",
+  "kind": "contract-method",
+  "title": "List Enabled Installed Plugins",
+  "description": "Resolve every enabled plugin's manifest; drop broken ones without reporting.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "signature": "pub fn resolve_enabled(registry: &Registry) -> Vec<ResolvedPlugin>",
+  "params": [
+    "registry: &Registry"
+  ],
+  "returns": "Vec<ResolvedPlugin>",
+  "errors": [],
+  "semantics": "Resolves all records, filters to enabled, drops errors silently for switcher use.",
+  "exported": false
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7aa4-abbb-e7c1167daefd",
+  "slug": "inspector-module-doc",
+  "kind": "doc-block",
+  "title": "Inspector Content",
+  "description": "Tab and field computation for node inspection.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7525-b41d-a14c415c5258",
+  "body": "The Inspector's content, computed (PRD §12.12, §17 Wave 6) — every function here is pure and takes plain data, following `anatomy.ts`'s own rule: no function in this file touches the DOM, `InspectorShell.tsx` only maps what is computed here onto markup. Every count a tab draws is computed here, from whatever facet children the caller hands in, and never read off a stored total (PRD §0.4).",
+  "audience": "agent"
+}

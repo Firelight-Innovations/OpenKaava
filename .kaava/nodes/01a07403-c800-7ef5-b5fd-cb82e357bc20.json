@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7ef5-b5fd-cb82e357bc20",
+  "slug": "identity-check",
+  "kind": "module",
+  "title": "Bundle Identifier and Product Name Validation",
+  "description": "Validates that the bundle identifier and product name remain consistent across Tauri, Rust, installer, and NPM configs.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

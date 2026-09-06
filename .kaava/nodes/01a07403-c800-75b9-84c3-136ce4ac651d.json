@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-75b9-84c3-136ce4ac651d",
+  "slug": "manifest-parser-toml",
+  "kind": "external-dep",
+  "title": "TOML Parser",
+  "description": "TOML file parsing and deserialization for kaava-tool.toml manifests.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "registry_ref": "01a07403-c800-7994-a954-210071677424",
+  "usage_note": "toml::from_str() in parse() method to deserialize manifest files"
+}

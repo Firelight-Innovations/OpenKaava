@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "slug": "search-logic",
+  "kind": "module",
+  "title": "Search Session and Parsing",
+  "description": "Pure logic for search query parsing, session state management, and result classification. Includes parsed query type, search kinds, and the main session hook that coordinates between field and results.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bf0-b9c3-c8b9d80222dd",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

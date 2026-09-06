@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-77e7-bfc4-98548629c682",
+  "kind": "decision",
+  "slug": "DEC-STD-RUST-002",
+  "title": "No unwrap() or expect() on fallible operations",
+  "context": "Need to prevent runtime panics from filesystem, process, or user-input operations.",
+  "decision": "Rust: No unwrap() or expect() on anything depending on filesystem, process, or user input. Only acceptable for genuine invariants (regex literals, owned mutexes) with explanatory comments.",
+  "consequences": "Lock-poisoning—the one invariant shipping code leans on—answered once in src-tauri/src/sync.rs and crates/kaava-rpc/src/sync.rs rather than at each of 40 call sites. Enforced by clippy::unwrap_used and clippy::expect_used (tests exempted wholesale).",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-08-16"
+}

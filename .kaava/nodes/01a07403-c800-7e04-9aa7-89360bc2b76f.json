@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e04-9aa7-89360bc2b76f",
+  "slug": "palette-fuzzy-word-order-independent",
+  "kind": "test-case",
+  "title": "Fuzzy: Word Order Independence",
+  "description": "Tests that multi-word needles match regardless of order.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7497-b529-d3c21db99100",
+  "given": "Needles 'view zoom' and 'zoom view' against 'View: Zoom In'",
+  "when": "fuzzyMatch is called",
+  "then": "Both return non-null matches",
+  "impl_ref": "src/shell/palette/fuzzy.test.ts::a needle of several words::finds the command whichever way round the words are typed",
+  "status": "declared",
+  "last_result_ms": null
+}

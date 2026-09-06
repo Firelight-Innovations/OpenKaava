@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-703e-ae28-87971fcfa3e7",
+  "slug": "project-store-recent-list-capped",
+  "kind": "test-case",
+  "title": "Recent list is capped at RECENT_LIMIT",
+  "description": "Adding beyond the cap removes the oldest entries.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b76-a547-de7e3176cebe",
+  "given": "Adding more than RECENT_LIMIT projects",
+  "when": "touch is called repeatedly",
+  "then": "Recents length never exceeds RECENT_LIMIT, newest survives",
+  "impl_ref": "src-tauri/src/project/store.rs::the_recent_list_is_capped",
+  "status": "declared",
+  "last_result_ms": null
+}

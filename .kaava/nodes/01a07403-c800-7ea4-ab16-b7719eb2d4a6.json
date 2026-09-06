@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7ea4-ab16-b7719eb2d4a6",
+  "slug": "grep-matcher",
+  "kind": "external-dep",
+  "title": "Grep Matcher Trait",
+  "description": "Trait abstraction for search matchers used by ripgrep.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74d5-965b-4ee30086c2f4",
+  "registry_ref": "01a07403-c800-7914-856f-66fc1aed5faf",
+  "usage_note": "Provides the matcher trait that both regex and literal search matchers implement"
+}

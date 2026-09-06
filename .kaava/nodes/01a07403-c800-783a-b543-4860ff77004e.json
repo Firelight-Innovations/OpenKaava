@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-783a-b543-4860ff77004e",
+  "slug": "sync-lock-poisoning-policy",
+  "kind": "doc-block",
+  "title": "Mutex Poisoning is Treated as a Fatal Bug",
+  "description": "This crate owns all its mutexes, so poisoning indicates a correctness violation.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-70a8-92f2-4c023de99985",
+  "body": "A poisoned lock therefore means one of this crate's own threads panicked partway through a write, leaving the map missing an entry it was moving or the pipe holding half a line. STANDARDS.md §5 allows a panic for exactly that — 'a mutex you own' is its own example of a genuine invariant — as long as a comment names it. This module is that comment, written once instead of at eight call sites.",
+  "audience": "agent"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7a28-bd5d-03ad74872b60",
+  "slug": "graph-seam-thiserror",
+  "kind": "external-dep",
+  "title": "thiserror",
+  "description": "Derive macros for implementing Error trait.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "registry_ref": "01a07403-c800-7565-98ec-498cf9d20d06",
+  "usage_note": "Derives Error on GraphLoadError for file I/O and JSON parsing failures"
+}

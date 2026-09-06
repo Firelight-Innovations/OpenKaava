@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7fb6-b8f1-111cf31c3815",
+  "slug": "run-schema-versioning",
+  "kind": "doc-block",
+  "title": "Run Artifact Schema Versioning",
+  "description": "Probe the schema field before deserializing the rest.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d68-a4ef-925e3f0b6586",
+  "body": "Schematify never invokes a probe. CI runs it, emits one of these, and Schematify ingests the file into `runs/` and draws it. That one-way flow is what lets a `git clone` plus the project owner's own CI produce every number Schematify displays. The `schema` field carries the version and a reader that meets an unknown value rejects the file and reports the version.",
+  "audience": "both"
+}

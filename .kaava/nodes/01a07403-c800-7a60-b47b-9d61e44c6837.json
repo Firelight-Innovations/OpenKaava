@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7a60-b47b-9d61e44c6837",
+  "slug": "plugin-remote-module-doc",
+  "kind": "doc-block",
+  "title": "GitHub API Integration",
+  "description": "Pure functions for release resolution, download, and verification.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-764a-b5c5-9f2cce1355f5",
+  "body": "Installing an app from a GitHub release. A release artifact rather than a clone is the decision recorded in tool protocol: a fixed set of bytes that can be checksummed before anything runs, needing no `git` on the user's machine. A repository, in the only form the API takes, accepts owner/name or various GitHub URL forms.",
+  "audience": "agent"
+}

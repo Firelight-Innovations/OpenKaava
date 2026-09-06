@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7201-b616-2282580ab057",
+  "slug": "client-unbound-methods-pattern",
+  "kind": "doc-block",
+  "title": "Unbound method exports",
+  "description": "Design pattern for exporting client methods as unbound functions.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "body": "`index.ts` exports every client method unbound (`export const invoke = client.invoke`), so anything reaching for `this` would break for every caller of the shorthand. This is deliberate: the methods are named rather than written straight into a literal so that `declareCommands` and `subscribe` (which call other methods) can refer to them by name without losing `this`.",
+  "audience": "agent"
+}

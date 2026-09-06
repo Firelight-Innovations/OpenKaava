@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7522-87a7-165348843948",
+  "slug": "context-menu-extra-items",
+  "kind": "test-case",
+  "title": "Extra Items Positioned Above Edit Block",
+  "description": "Verifies contributed items appear above Cut/Copy/Paste/Select All with separator.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Extra MenuItem array with 'Reveal in File Explorer'",
+  "when": "contextItems() called with extra",
+  "then": "Extra appears first, Cut has separatorBefore: true",
+  "impl_ref": "src/shell/contextMenu.test.ts::contextItems puts contributed items above the edit block, behind a separator",
+  "status": "declared",
+  "last_result_ms": null
+}

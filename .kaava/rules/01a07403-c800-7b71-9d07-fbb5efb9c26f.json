@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7b71-9d07-fbb5efb9c26f",
+  "slug": "lint-expect-used",
+  "statement": "Rust code must not call `expect()` on anything that depends on the filesystem, a process, or user input.",
+  "severity": "warning",
+  "audit": [],
+  "command": "pnpm lint:rust"
+}

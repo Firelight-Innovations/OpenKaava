@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7666-b63c-20bf2dcad661",
+  "slug": "ids-uuidv7",
+  "kind": "contract-method",
+  "title": "uuidv7",
+  "description": "Mint a UUIDv7 with millisecond timestamp.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7013-af37-bb584e518f4a",
+  "signature": "function uuidv7(now?: number): string",
+  "params": [
+    "now"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Returns RFC 9562 UUIDv7 for use as node identity.",
+  "exported": false
+}

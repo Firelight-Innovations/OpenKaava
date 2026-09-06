@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-70a3-bcae-239f5368ae78",
+  "slug": "backend-header",
+  "kind": "doc-block",
+  "title": "Backend Integration Door",
+  "description": "The backend module documentation on the single Rust interface point.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-755e-b721-aa6fca8f5064",
+  "body": "This app's one and only door to Rust. Kept out of ./index.ts on purpose: that module is imported by a plain-Node unit test, and @openkaava/bridge's root export touches window at module load. ./backend.ts is the only file in this app that contains invoke — a new operation gets a new function here, never a new file.",
+  "audience": "both"
+}

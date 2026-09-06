@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7c2c-9805-003afaf97b91",
+  "kind": "screen",
+  "slug": "schematify-outline",
+  "title": "Outline Panel",
+  "purpose": "Left-side panel with section switcher for Design, Product, and Decisions views",
+  "states": [
+    "design",
+    "product",
+    "decisions"
+  ],
+  "acceptance": [
+    "shall display three tabs: Design, Product, Decisions",
+    "shall show Design section with service/module tree",
+    "shall show summary line for Product section (loading/counts)",
+    "shall show summary line for Decisions section (loading/counts)",
+    "shall support switching between sections"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-743f-ae55-0cbaeb91a62a"
+  ]
+}

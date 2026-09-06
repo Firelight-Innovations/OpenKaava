@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-77fd-aac6-8edcd99b48f9",
+  "slug": "ci-annotations-workflow-command-escape",
+  "kind": "test-case",
+  "title": "toWorkflowCommands escapes special chars",
+  "description": "Properly escapes newlines and percent signs in workflow commands.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73d7-a1af-eac6f5057d04",
+  "given": "Finding with message containing % and newline",
+  "when": "toWorkflowCommands() is called",
+  "then": "emits escaped command with %25 for % and %0A for newline",
+  "impl_ref": "scripts/ci-annotations.test.mjs::workflow commands",
+  "status": "declared",
+  "last_result_ms": null
+}

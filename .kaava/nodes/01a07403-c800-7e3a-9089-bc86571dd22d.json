@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7e3a-9089-bc86571dd22d",
+  "slug": "shell-state-module-doc",
+  "kind": "doc-block",
+  "title": "Shared Shell State Across Windows",
+  "description": "Architecture of multi-window state management.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-793e-a1dd-5f4c43788377",
+  "body": "What every OpenKaava window has to agree on. The shell runs in more than one window: the main one, plus a real OS window for anything dragged out of it. The layout cannot be window-local because two windows disagreeing would be a visible bug. So the layout lives in the backend and each window is a projection of it subscribing to shell:state. Nothing is copied between windows, which means nothing can drift out of sync.",
+  "audience": "agent"
+}

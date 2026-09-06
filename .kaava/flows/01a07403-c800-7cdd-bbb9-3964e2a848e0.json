@@ -1,0 +1,30 @@
+{
+  "id": "01a07403-c800-7cdd-bbb9-3964e2a848e0",
+  "kind": "flow",
+  "slug": "search-project-content",
+  "title": "Search Project Contents",
+  "trigger": "User needs to find text or files across the project",
+  "steps": [
+    {
+      "screen": "schematify://screen/01a07403-c800-7953-b112-117deaa747db",
+      "action": "Press Ctrl+K or click the search field on the right of the switcher bar"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-70de-8d8e-d1609ff54137",
+      "action": "The search overlay covers the tool window; type a term or use filters like ext:ts, path:src/, kind:script"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-70de-8d8e-d1609ff54137",
+      "action": "Results appear at the top with file locators on the left and preview on the right; matches are highlighted"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-70de-8d8e-d1609ff54137",
+      "action": "Narrow results in the same field using filters, or press Enter or double-click to open the focused result in File Viewer"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-70d7-ab31-286c94355b77",
+      "action": "The result file opens in a File Viewer tab in the same cluster; press Escape to close the search overlay"
+    }
+  ],
+  "outcome": "Search results appear with file locations and preview, and a result can be opened in the editor"
+}

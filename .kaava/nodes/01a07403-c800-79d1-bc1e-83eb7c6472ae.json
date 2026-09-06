@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-79d1-bc1e-83eb7c6472ae",
+  "slug": "tool-window-unavailable-state",
+  "kind": "contract-method",
+  "title": "UnavailableState React Component",
+  "description": "Shown in a tool's slot when its frontend cannot be resolved, typically because the checkout has not been cloned.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e2-b95c-b24cdbe6d78b",
+  "signature": "function UnavailableState(props: { tool: ToolPresentation; reason: string }): ReactElement",
+  "params": [
+    "tool: ToolPresentation",
+    "reason: string"
+  ],
+  "returns": "ReactElement",
+  "errors": [],
+  "semantics": "Renders the tool's name and a reason message; uses quiet typography since unavailability is normal, not an error.",
+  "exported": false
+}

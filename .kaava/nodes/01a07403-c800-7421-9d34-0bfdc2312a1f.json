@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "slug": "file-api",
+  "kind": "module",
+  "title": "File API Layer",
+  "description": "RPC method definitions, pub/sub topic definitions, and settings reading for file operations and inter-app communication.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-724f-ac20-c392624f0d9e",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7eb1-9067-550dccf27bf4",
+  "slug": "settings-roundtrip",
+  "kind": "test-case",
+  "title": "Changed settings survive round-trip",
+  "description": "A changed value persists through serialization.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7af9-8c80-9bcc2630d68a",
+  "given": "A Stored with changed values",
+  "when": "serialized and deserialized",
+  "then": "The values are preserved",
+  "impl_ref": "src-tauri/src/settings/store.rs::a_changed_setting_survives_a_round_trip_through_the_file_format",
+  "status": "declared",
+  "last_result_ms": null
+}

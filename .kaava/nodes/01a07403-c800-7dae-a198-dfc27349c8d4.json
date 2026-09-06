@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7dae-a198-dfc27349c8d4",
+  "slug": "shell-moduledashboard-component",
+  "kind": "contract-method",
+  "title": "Module Dashboard Component",
+  "description": "Renders a read-only overlay modal with module counters, budget history, reconciliation, and contract/lifecycle audit trails.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-743f-ae55-0cbaeb91a62a",
+  "signature": "ModuleDashboard(props: ModuleDashboardProps) => JSX.Element",
+  "params": [
+    "dashboard: Dashboard | null",
+    "error: string | null",
+    "onClose: () => void"
+  ],
+  "returns": "React component",
+  "errors": [],
+  "semantics": "Displays a full-page read-only record of module metrics and history, with no editable controls except the close button.",
+  "exported": true
+}

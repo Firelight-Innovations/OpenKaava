@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7169-aacf-ab09793ec885",
+  "slug": "client-subscribe-delivery",
+  "kind": "test-case",
+  "title": "subscribe delivers published topics",
+  "description": "Verifies that published topics prefixed with kaava:topic/ are delivered to subscribe() callbacks unwrapped.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client with a subscribe() listener registered",
+  "when": "An event arrives with the kaava:topic/ prefix",
+  "then": "The callback receives the unwrapped value and the 'from' instance id; unsubscribe stops delivery",
+  "impl_ref": "packages/bridge/src/client.test.ts::delivers a published topic to subscribe(), unwrapped, and stops on unsubscribe",
+  "status": "declared",
+  "last_result_ms": null
+}

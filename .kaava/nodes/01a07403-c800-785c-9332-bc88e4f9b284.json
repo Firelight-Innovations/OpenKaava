@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-785c-9332-bc88e4f9b284",
+  "slug": "portable-pty",
+  "kind": "external-dep",
+  "title": "Portable Pseudo-Terminal Library",
+  "description": "Cross-platform abstraction for pseudo-terminal creation and management across Windows ConPTY, macOS openpty, and Linux.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731a-ab6c-3a00854fdef3",
+  "registry_ref": "01a07403-c800-71cb-9624-807c89e2bfc2",
+  "usage_note": "Used to create PTY pairs, manage master/slave ends, and handle session I/O; WezTerm uses the same crate"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-71d5-bf81-121b289a6bd0",
+  "kind": "decision",
+  "slug": "DEC-TEC-CLAP-021",
+  "title": "Catalog compiled in with include_str! rather than read at runtime",
+  "context": "Catalog sitting beside executable is vulnerable to swap; baking into binary changes only on official releases.",
+  "decision": "Use include_str! to bake catalog into binary at compile time. Catalog rounds-trips only on OpenKaava release.",
+  "consequences": "Adding app to library requires a release. Library renders on offline machines. Single trust boundary instead of two.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

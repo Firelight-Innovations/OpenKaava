@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-712a-9eb9-455fc102ffe9",
+  "slug": "tab-management",
+  "kind": "module",
+  "title": "Tab Management",
+  "description": "Tab strip UI and open file model managing which files are open, active, and dirty.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7027-b3d8-9a1e046e1067",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7314-8d95-80f34a87916d"
+  ]
+}

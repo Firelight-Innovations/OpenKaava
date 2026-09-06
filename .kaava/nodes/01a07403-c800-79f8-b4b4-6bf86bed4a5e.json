@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-79f8-b4b4-6bf86bed4a5e",
+  "slug": "engine-core-edit-node",
+  "kind": "contract-method",
+  "title": "editNode",
+  "description": "Edit node fields writing only semantic file.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7346-9c32-cc9d99a7dbc8",
+  "signature": "editNode(id: string, patch: Partial<SchematicNode>): Refusal | null",
+  "params": [
+    "id",
+    "patch"
+  ],
+  "returns": "Refusal | null",
+  "errors": [],
+  "semantics": "Inspector-specific: writes semantic only, not layout.",
+  "exported": false
+}

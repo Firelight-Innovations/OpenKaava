@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7928-9ccf-a10cfe95f568",
+  "slug": "plugin-registry-insert",
+  "kind": "contract-method",
+  "title": "Add or Update Plugin Record",
+  "description": "Register a package, replacing existing record with same id, and persist.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "signature": "pub fn insert(&self, app: &AppHandle, record: Record)",
+  "params": [
+    "app: &AppHandle",
+    "record: Record"
+  ],
+  "returns": "",
+  "errors": [],
+  "semantics": "Inserts or replaces record; immediately saves to disk and emits change event.",
+  "exported": false
+}

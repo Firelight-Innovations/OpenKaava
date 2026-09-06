@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-79e5-a1e7-642136651c1a",
+  "kind": "screen",
+  "slug": "schematify-inspector",
+  "title": "Node Inspector",
+  "purpose": "Right-side panel displaying properties and metadata of selected schematic node",
+  "states": [
+    "empty",
+    "node selected",
+    "loading",
+    "error"
+  ],
+  "acceptance": [
+    "shall display properties of selected node",
+    "shall show dependencies and dependents",
+    "shall allow editing node properties",
+    "shall display related documentation or links",
+    "shall close when no node is selected"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-743f-ae55-0cbaeb91a62a"
+  ]
+}

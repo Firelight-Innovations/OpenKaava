@@ -1,0 +1,28 @@
+{
+  "id": "01a07403-c800-7c0a-bb93-223be6b8c63c",
+  "kind": "screen",
+  "slug": "terminal-band",
+  "title": "Terminal Band",
+  "purpose": "Collapsible terminal panel at the bottom showing terminal tabs and emulator",
+  "states": [
+    "collapsed - band is closed showing only edge handle",
+    "open - band is open showing terminal tabs and emulator",
+    "maximized - band is taking full height with apps minimized below"
+  ],
+  "acceptance": [
+    "shall display terminal tabs grouped by session",
+    "shall show terminal emulator (xterm) for active tab",
+    "shall allow dragging divider to resize band height",
+    "shall support pull-up gesture to collapse when open",
+    "shall support drag-down gesture to expand when collapsed",
+    "shall display empty state when no terminals",
+    "shall allow splitting terminal into panes",
+    "shall show 'still running' confirmation when closing busy terminal",
+    "shall highlight active terminal tab"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7ab5-b38c-4cd0ce02ad5d",
+    "schematify://node/01a07403-c800-71fa-8cfc-3e06c842aa4b",
+    "schematify://node/01a07403-c800-7011-923c-5233df9ecad3"
+  ]
+}

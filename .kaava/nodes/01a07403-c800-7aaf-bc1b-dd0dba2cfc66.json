@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7aaf-bc1b-dd0dba2cfc66",
+  "slug": "github-query-scope-collapse",
+  "kind": "test-case",
+  "title": "GitHub Query: Conflicting Scopes",
+  "description": "Tests that contradictory scopes collapse to 'all'.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcd-8834-b536584a1dca",
+  "given": "Query 'is:issue is:pr'",
+  "when": "parseQuery is called",
+  "then": "scope is 'all'",
+  "impl_ref": "src/shell/github/query.test.ts::parseQuery::collapses two opposed scopes to both rather than to neither",
+  "status": "declared",
+  "last_result_ms": null
+}

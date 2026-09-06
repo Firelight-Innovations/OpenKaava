@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7445-8870-563062fcf3d5",
+  "slug": "ui-devtools-call-timeout",
+  "kind": "budget",
+  "title": "DevTools Protocol call timeout",
+  "description": "How long a DevTools call may take before we stop waiting.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7615-af82-fb0b57f137da",
+  "metric": "seconds",
+  "op": "<=",
+  "value": 20,
+  "unit": "seconds",
+  "tier": "soft",
+  "probe": {
+    "command": "grep -n 'const TIMEOUT' src-tauri/src/devtools.rs",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

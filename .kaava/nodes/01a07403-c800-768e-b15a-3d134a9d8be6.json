@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-768e-b15a-3d134a9d8be6",
+  "slug": "ingest-ingesting-writes-and-finds",
+  "kind": "test-case",
+  "title": "Ingesting writes run",
+  "description": "A run is written and found by its budget metric.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b60-9878-90ec5353237e",
+  "given": "A module with a budget child and a run artifact",
+  "when": "ingest_run is called",
+  "then": "The run file exists and reloading the graph finds it via runs_for_budget",
+  "impl_ref": "crates/schematify-core/src/ingest.rs::ingesting_a_run_writes_it_and_the_graph_finds_it_from_its_budget",
+  "status": "declared",
+  "last_result_ms": null
+}

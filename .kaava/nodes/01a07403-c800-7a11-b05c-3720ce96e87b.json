@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7a11-b05c-3720ce96e87b",
+  "slug": "types",
+  "kind": "module",
+  "title": "Graph Types",
+  "description": "The graph vocabulary and core TypeScript types for all tiers: NodeKind, GraphNode, GraphEdge, SchematicGraph, and type aliases for Layer, Lifecycle, Tier.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

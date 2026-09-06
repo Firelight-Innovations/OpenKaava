@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7503-b10b-cd084f7dc3a8",
+  "slug": "worktree",
+  "kind": "module",
+  "title": "Git Worktree Surface",
+  "description": "A two-part view of the repository: commit graph over all branches on top, this cluster's file changes on the bottom. Coordinates cluster switching between sections.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bb4-bdbe-fe72bc3e7a0c",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

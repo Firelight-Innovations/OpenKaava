@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7496-a104-7d9f72ccd118",
+  "slug": "workspace-search-mb-conversion",
+  "kind": "test-case",
+  "title": "Settings megabytes convert to byte boundaries",
+  "description": "MB settings are converted to bytes for file size comparison.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74d5-965b-4ee30086c2f4",
+  "given": "8 MB setting value",
+  "when": "mb_to_bytes is called",
+  "then": "Returns 8 * 1024 * 1024 bytes",
+  "impl_ref": "src-tauri/src/search.rs::mb_to_bytes_converts_megabytes_to_bytes",
+  "status": "declared",
+  "last_result_ms": null
+}

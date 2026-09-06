@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7082-a571-a60e9cd0bb72",
+  "slug": "state",
+  "kind": "external-dep",
+  "title": "tauri",
+  "description": "Desktop app framework with IPC, plugins, windows and state management",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74ea-9d72-103436d2dbec",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "Implicit Manager trait bound for state management"
+}

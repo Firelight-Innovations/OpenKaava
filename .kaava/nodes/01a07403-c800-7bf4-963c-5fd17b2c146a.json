@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7bf4-963c-5fd17b2c146a",
+  "slug": "trash-trash",
+  "kind": "external-dep",
+  "title": "trash",
+  "description": "Cross-platform Recycle Bin / Trash access for Windows and Freedesktop-compliant Unix.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7415-bf3d-ec958150ed0a",
+  "registry_ref": "01a07403-c800-7cac-8eb3-d31b3948c693",
+  "usage_note": "os_limited module to enumerate, restore, and permanently delete trashed items within project scope"
+}

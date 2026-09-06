@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d68-a4ef-925e3f0b6586",
+  "slug": "run",
+  "kind": "module",
+  "title": "Run Artifact Schema",
+  "description": "The kaava-bench-v1 artifact schema: holds benchmark and test results from CI runs with budget measurements, linter findings, and reconciliation results.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7abe-9eed-7510b796f92a",
+  "allowed_libraries": [
+    "01a07403-c800-75dd-b05c-6d3f11053668",
+    "01a07403-c800-7565-ae9d-23b929975082"
+  ],
+  "ui_refs": []
+}

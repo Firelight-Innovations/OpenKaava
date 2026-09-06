@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7a7f-a008-1ea0c4c86b23",
+  "slug": "layout-to-layout-file",
+  "kind": "contract-method",
+  "title": "toLayoutFile",
+  "description": "Convert document to storable layout file.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79bb-abc8-74d009a7d2da",
+  "signature": "function toLayoutFile(doc: SchematicDoc, viewport: Viewport): LayoutFile",
+  "params": [
+    "doc",
+    "viewport"
+  ],
+  "returns": "LayoutFile",
+  "errors": [],
+  "semantics": "Returns layout with cosmetic positions and annotations.",
+  "exported": true
+}

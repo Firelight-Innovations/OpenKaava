@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-755a-9dff-f2d960d24681",
+  "slug": "atomic-an-overwrite-replaces-whole",
+  "kind": "test-case",
+  "title": "Overwrite replaces whole file",
+  "description": "Writing a shorter JSON over a longer one truncates properly.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7584-85b8-2c8fc4148f9d",
+  "given": "A file with a long JSON value",
+  "when": "write_json_atomic is called with shorter JSON",
+  "then": "The file contains only the new JSON, not a truncated version of the old",
+  "impl_ref": "crates/schematify-core/src/atomic.rs::an_overwrite_replaces_the_whole_file_rather_than_the_leading_bytes",
+  "status": "declared",
+  "last_result_ms": null
+}

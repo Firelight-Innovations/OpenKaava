@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7518-9f22-1343d4a39551",
+  "kind": "decision",
+  "slug": "DEC-STD-DONE-002",
+  "title": "Contract changes must be explicit in PR description",
+  "context": "Changes to contracts affect downstream code in multiple repositories.",
+  "decision": "If PR touches docs/tool-protocol.md, src/bindings.ts, or src/shell/contract.ts, PR description must explicitly state so.",
+  "consequences": "Upstream impact visible to reviewers. Enables coordination with tool maintainers. Prevents silent contract drift.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-08-16"
+}

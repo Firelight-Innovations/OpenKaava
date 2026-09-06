@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7499-aa34-8ceba3d80504",
+  "kind": "decision",
+  "slug": "DEC-STD-TS-002",
+  "title": "Discriminated unions instead of optional fields",
+  "context": "Type safety was better served by making invalid states unrepresentable.",
+  "decision": "Use discriminated unions with internal tags (e.g., ToolStatus, BootStatus). Narrow on status.state to ensure right fields exist. Reject structs where half the fields are |undefined.",
+  "consequences": "Type system prevents presence of fields that should only exist in certain states. Refactoring is safer; compilers catch misuse.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-08-16"
+}

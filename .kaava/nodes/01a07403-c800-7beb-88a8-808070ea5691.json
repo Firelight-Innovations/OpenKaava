@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7beb-88a8-808070ea5691",
+  "slug": "manifest-parser-security-boundary",
+  "kind": "doc-block",
+  "title": "Path Validation is a Security Boundary",
+  "description": "Tool manifests are authored by third-party code; path fields are validated to prevent escape.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "body": "kaava-tool.toml is authored by third-party tool code, and `dist`/`bin` end up joined onto a trusted root and then read or executed. Reject anything that could put a resolved path outside the checkout root: an absolute path, or a path containing a `..` component anywhere in it. This is a security boundary rather than a style rule.",
+  "audience": "both"
+}

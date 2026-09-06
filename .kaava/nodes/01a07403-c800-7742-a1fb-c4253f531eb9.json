@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7742-a1fb-c4253f531eb9",
+  "slug": "project-marker",
+  "kind": "module",
+  "title": "Project Manifest Handling",
+  "description": "Reads and writes the .kaava project manifest files, including the project identity, format version, and creation timestamp. Handles forward-compatibility for newer manifest versions.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "allowed_libraries": [
+    "01a07403-c800-7994-a954-210071677424"
+  ],
+  "ui_refs": []
+}

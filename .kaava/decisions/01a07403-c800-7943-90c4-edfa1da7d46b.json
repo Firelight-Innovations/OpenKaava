@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7943-90c4-edfa1da7d46b",
+  "kind": "decision",
+  "slug": "DEC-STD-TEST-004",
+  "title": "Frontend pure functions tested via vitest in same directory",
+  "context": "Pure functions need fast testing without DOM overhead; component testing needs jsdom but only where necessary.",
+  "decision": "Pure frontend functions tested via vitest with node environment (default). Per-file `// @vitest-environment jsdom` enables React Testing Library for component tests. jsdom held at v29 via pnpm.overrides for Node 20 compatibility.",
+  "consequences": "Pure modules pay zero cost for DOM. Component tests only where needed. CI pin (Node 20) drives jsdom version. Tests live beside source in same region (import rules enforced §1.2).",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-04"
+}

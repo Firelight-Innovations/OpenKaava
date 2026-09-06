@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7347-81fa-d23dae2a3ba0",
+  "slug": "core-identity-and-lifecycle",
+  "kind": "doc-block",
+  "title": "Identity, References, and Lifecycle",
+  "description": "UUIDv7 minting, slugs scoped per kind, URIs, nodes, and lifecycle rules.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a7-8335-a2b30fb2137e",
+  "body": "PRD section 3 gives every element two identifiers and puts a hard line between them: the `id` is what a reference stores, and the `slug` is what a person reads. Renaming changes the slug alone, so nothing inbound breaks. Uniqueness is per scope and the scope differs by kind. Two modules named `cache` are legal under different parents and illegal under the same one.",
+  "audience": "both"
+}

@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-76a8-af2e-1f8b36ced2ce",
+  "slug": "manifest-parser-tool-manifest-surface",
+  "kind": "contract-method",
+  "title": "Lookup Surface by ID",
+  "description": "Find a surface declaration by its id within this package.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "signature": "pub fn surface(&self, id: &str) -> Option<&Surface>",
+  "params": [
+    "&self",
+    "id: &str"
+  ],
+  "returns": "Option<&Surface>",
+  "errors": [],
+  "semantics": "Returns a reference to the surface if found, or None if this id is not declared.",
+  "exported": true
+}

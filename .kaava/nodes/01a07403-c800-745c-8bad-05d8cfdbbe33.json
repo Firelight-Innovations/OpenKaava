@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-745c-8bad-05d8cfdbbe33",
+  "slug": "branding-wordmark",
+  "kind": "contract-method",
+  "title": "Wordmark Text",
+  "description": "The product wordmark in mixed case, uppercased by CSS.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7eb1-82f3-b6fa98380519",
+  "signature": "export const WORDMARK = 'OpenKaava'",
+  "params": [],
+  "returns": "String",
+  "errors": [],
+  "semantics": "Product wordmark text for the Home hero lockup.",
+  "exported": true
+}

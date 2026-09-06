@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7fd4-b926-5a80c128800c",
+  "slug": "terminal-clipboard-handle-key",
+  "kind": "contract-method",
+  "title": "Clipboard Key Handler",
+  "description": "Handler for xterm's attachCustomKeyEventHandler, returns false for paste keys.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7101-96d4-211896bc6c31",
+  "signature": "export function handleKey(ev: KeyGesture): boolean",
+  "params": [
+    "KeyGesture"
+  ],
+  "returns": "boolean",
+  "errors": [],
+  "semantics": "Declines paste keys so webview's own paste can fire.",
+  "exported": true
+}

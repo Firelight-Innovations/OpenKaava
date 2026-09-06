@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-788d-94cb-a7c7adc8dc07",
+  "slug": "index-defaultseam-test-forwarding",
+  "kind": "test-case",
+  "title": "defaultSeam.loadGraph forwards arguments",
+  "description": "Verifies the wrapper seam correctly forwards tier and slug.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7053-b407-040c7111f077",
+  "given": "A mocked backend seam",
+  "when": "defaultSeam.loadGraph(\"module\", \"token-verifier\") is called",
+  "then": "The backend seam's loadGraph receives exactly (\"module\", \"token-verifier\")",
+  "impl_ref": "apps/schematify/ui/src/graph/index.defaultSeam.test.ts::forwards the exact tier and slug it was called with",
+  "status": "declared",
+  "last_result_ms": null
+}

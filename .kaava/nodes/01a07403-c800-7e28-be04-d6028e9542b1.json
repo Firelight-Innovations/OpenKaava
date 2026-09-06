@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7e28-be04-d6028e9542b1",
+  "slug": "project-cluster-path",
+  "kind": "contract-method",
+  "title": "Get a cluster's working directory, disk-resident",
+  "description": "Return the filesystem path where a cluster does work, following worktrees and filtered to existing directories.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "signature": "pub fn cluster_path(app: &AppHandle, cluster_id: &str) -> Option<PathBuf>",
+  "params": [
+    "app: &AppHandle",
+    "cluster_id: &str"
+  ],
+  "returns": "Option<PathBuf>",
+  "errors": [],
+  "semantics": "Returns the working root for a cluster, preferring its worktree if set, and only if the path exists on disk.",
+  "exported": false
+}

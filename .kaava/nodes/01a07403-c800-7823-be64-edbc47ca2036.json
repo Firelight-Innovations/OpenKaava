@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7823-be64-edbc47ca2036",
+  "slug": "protocol-opened-event-constant",
+  "kind": "contract-method",
+  "title": "OPENED_EVENT",
+  "description": "Event name under which kaava/open payloads are delivered to receiving apps.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e50-b9bf-2c07534a4168",
+  "signature": "const OPENED_EVENT: 'kaava:opened'",
+  "params": [],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Reserved event name for the sideways channel; the payload shape is app-specific.",
+  "exported": false
+}

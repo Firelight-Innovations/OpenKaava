@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7ee9-ae34-6db28cd7c47d",
+  "slug": "workspace-search-module-doc",
+  "kind": "doc-block",
+  "title": "Content search engine design",
+  "description": "Why this uses ripgrep libraries instead of shelling out.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74d5-965b-4ee30086c2f4",
+  "body": "Built from the same crates ripgrep is built from (ignore, grep-regex, grep-searcher) rather than shelling out to rg. Deliberate: git is on every developer's machine for its own reasons, rg is not, and this cannot depend on a tool nobody chose. Using ignore buys .gitignore support for free — the same walker VS Code uses — which lets this retire hardcoded skip lists entirely.",
+  "audience": "agent"
+}

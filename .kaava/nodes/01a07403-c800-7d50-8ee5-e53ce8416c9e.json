@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7d50-8ee5-e53ce8416c9e",
+  "slug": "menu-items-in-menu-surface",
+  "kind": "contract-method",
+  "title": "Menu Surface Detector",
+  "description": "Checks if a pointer event target is inside a portalled menu surface.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7932-a805-49d0bca71663",
+  "signature": "export function inMenuSurface(target: EventTarget | null): boolean",
+  "params": [
+    "EventTarget"
+  ],
+  "returns": "boolean",
+  "errors": [],
+  "semantics": "Identifies whether an event originated within a portalled menu.",
+  "exported": true
+}

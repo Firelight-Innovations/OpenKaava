@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-71ad-a008-686f2f777e35",
+  "kind": "decision",
+  "slug": "DEC-STD-COMMENTS-001",
+  "title": "Comments explain why, not what; record rejected alternatives",
+  "context": "Codebase needed principle for comment value and what makes them worth maintaining.",
+  "decision": "Every module opens with doc comment stating what it is *for* and which seam it sits on. Record the alternative rejected and why. Document what is deliberately absent. Explain non-obvious mechanics at point of use.",
+  "consequences": "Comments have high value only when explaining reasoning. Stops relitigating decisions annually. Comment concentration capped at half file or 20 unbroken lines via scripts/check-comments.mjs. Long-form headers distributed onto items, tightened, then moved to docs/design-notes/ verbatim.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-08-17"
+}

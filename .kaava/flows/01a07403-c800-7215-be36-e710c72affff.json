@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7215-be36-e710c72affff",
+  "kind": "flow",
+  "slug": "first-launch-and-home",
+  "title": "First Launch and Home Screen",
+  "trigger": "User starts OpenKaava for the first time",
+  "steps": [
+    {
+      "screen": "schematify://screen/01a07403-c800-7e65-bafc-77e6158f75c6",
+      "action": "OpenKaava launches with a splash screen that waits for all built-in apps to report ready"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7953-b112-117deaa747db",
+      "action": "The main window appears with the title bar, switcher bar, and the Home app ready"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7db3-8dc5-3e05329af44b",
+      "action": "Home displays with Start section (New Project, Open Project, Clone Project, Install App buttons), Recents below, and Tutorials column on the right"
+    }
+  ],
+  "outcome": "OpenKaava loads with the Home app on screen, showing recent projects and options to create, open, or clone a project"
+}

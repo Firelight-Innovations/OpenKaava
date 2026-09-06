@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e2c-a09d-e947ed0c6a93",
+  "slug": "anatomy-badges-exported",
+  "kind": "test-case",
+  "title": "badgesFor draws EXPORTED for exported contract method",
+  "description": "Contract method facets can be marked exported.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b7-95f8-682301adf593",
+  "given": "a contract-method node with exported=true",
+  "when": "badgesFor is called",
+  "then": "badges include EXPORTED",
+  "impl_ref": "apps/schematify/ui/src/engine/anatomy.test.ts::badgesFor draws EXPORTED for an exported contract-method facet",
+  "status": "declared",
+  "last_result_ms": null
+}

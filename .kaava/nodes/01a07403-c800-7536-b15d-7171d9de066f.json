@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-7536-b15d-7171d9de066f",
+  "slug": "tool-frontend-resolve",
+  "kind": "contract-method",
+  "title": "Tool Frontend URL Resolution",
+  "description": "Determine where to point a tool iframe: dev server or release bundle.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7219-9c03-3b1eff89b2cd",
+  "signature": "pub fn resolve(app: &AppHandle, id: &str) -> Result<ToolFrontend>",
+  "params": [
+    "app: &AppHandle",
+    "id: &str"
+  ],
+  "returns": "Result<ToolFrontend>",
+  "errors": [
+    "Plugin not installed",
+    "Manifest parse failure",
+    "Frontend not built"
+  ],
+  "semantics": "Returns mountable URL for dev/release, or Unavailable with reason.",
+  "exported": true
+}

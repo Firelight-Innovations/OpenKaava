@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7975-a45b-04008673d5af",
+  "slug": "git-operations-git-cluster-commit",
+  "kind": "contract-method",
+  "title": "Commit Staged Changes",
+  "description": "Commit whatever is staged.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "signature": "pub fn git_cluster_commit(app: AppHandle, cluster_id: String, message: String) -> Result<()>",
+  "params": [
+    "app",
+    "cluster_id",
+    "message"
+  ],
+  "returns": "Result<()>",
+  "errors": [
+    "AppError::Git"
+  ],
+  "semantics": "Creates a commit with the given message.",
+  "exported": true
+}

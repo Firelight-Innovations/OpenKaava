@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-734e-bd1b-14ae1a2a69de",
+  "slug": "product-isvalidsuccessmetric-valid",
+  "kind": "test-case",
+  "title": "Success metric validation accepts valid metric",
+  "description": "Verifies that isValidSuccessMetric accepts metrics carrying both name and unit.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "given": "A RawSuccessMetric with both a non-empty name and unit",
+  "when": "isValidSuccessMetric is called",
+  "then": "true is returned",
+  "impl_ref": "apps/schematify/ui/src/product/index.test.ts::isValidSuccessMetric accepts a metric carrying both",
+  "status": "declared",
+  "last_result_ms": null
+}

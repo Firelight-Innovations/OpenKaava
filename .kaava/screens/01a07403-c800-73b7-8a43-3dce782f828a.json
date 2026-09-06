@@ -1,0 +1,27 @@
+{
+  "id": "01a07403-c800-73b7-8a43-3dce782f828a",
+  "kind": "screen",
+  "slug": "schematify-flow-editor",
+  "title": "Flow Editor",
+  "purpose": "Product section for defining and editing user journey flows between screens",
+  "states": [
+    "loading",
+    "empty",
+    "populated",
+    "creating",
+    "editing",
+    "saving",
+    "error"
+  ],
+  "acceptance": [
+    "shall display list of user flows",
+    "shall show flow name and sequence of screens",
+    "shall support creating new flow definitions",
+    "shall support editing flow steps and connections",
+    "shall save flow changes to backend",
+    "shall display error if flows cannot be loaded or saved"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-75a3-aa4b-594b7ec3dd79"
+  ]
+}

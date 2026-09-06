@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-72af-8b67-08f9b342fca4",
+  "slug": "product-screenbackingmodulecount-function",
+  "kind": "contract-method",
+  "title": "Screen Backing Module Counter",
+  "description": "Counts how many backing references in a screen resolve to nodes actually in the project.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "signature": "screenBackingModuleCount(screen: RawScreen, nodeIds: ReadonlySet<string>) => number",
+  "params": [
+    "screen: RawScreen",
+    "nodeIds: ReadonlySet<string>"
+  ],
+  "returns": "number",
+  "errors": [],
+  "semantics": "Returns the count of schematify://node/ references in backed_by that name existing nodes, omitting dangling references.",
+  "exported": true
+}

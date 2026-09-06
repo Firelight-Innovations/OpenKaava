@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-786a-927d-06cc6a4b0332",
+  "slug": "storage",
+  "kind": "module",
+  "title": "Storage Layer and Write Routing",
+  "description": "The .kaava/ storage abstraction with three write layers—semantic (design data), audit (immutable runs and lifecycle), and cosmetic (node positions)—and enforcement of the permission boundary.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7abe-9eed-7510b796f92a",
+  "allowed_libraries": [
+    "01a07403-c800-7565-ae9d-23b929975082",
+    "01a07403-c800-71e9-a09e-d51d7c34d3cc"
+  ],
+  "ui_refs": []
+}

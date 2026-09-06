@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7449-b630-39293147377d",
+  "slug": "stack-discovery-normalize-drops-current-dir",
+  "kind": "test-case",
+  "title": "Path Normalization: Current Dir",
+  "description": "Verify that . segments are lexically removed.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7987-be21-fd2e593064ee",
+  "given": "Path C:/code/./helve",
+  "when": "normalize() is called",
+  "then": "Returns C:/code/helve",
+  "impl_ref": "src-tauri/src/discovery.rs::normalize_drops_current_dir_segments",
+  "status": "declared",
+  "last_result_ms": null
+}

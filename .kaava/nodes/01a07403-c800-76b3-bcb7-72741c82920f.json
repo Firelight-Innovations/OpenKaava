@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-76b3-bcb7-72741c82920f",
+  "slug": "titlebar-default-menus",
+  "kind": "contract-method",
+  "title": "defaultMenus Function",
+  "description": "Builds all seven menus (File, Edit, Apps, View, Run, Terminal, Help) from live state and handlers.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7806-88f7-dafc7969fdd8",
+  "signature": "function defaultMenus(handlers: MenuHandlers): Menu[]",
+  "params": [
+    "handlers: MenuHandlers"
+  ],
+  "returns": "Menu[]",
+  "errors": [],
+  "semantics": "Returns a menu array rebuilt on every render from live state; every row lives and carries onSelect or disabled reason.",
+  "exported": true
+}

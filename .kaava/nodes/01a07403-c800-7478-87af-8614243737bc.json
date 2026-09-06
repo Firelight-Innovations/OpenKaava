@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7478-87af-8614243737bc",
+  "slug": "product-decisionuri-builder",
+  "kind": "test-case",
+  "title": "Decision URI construction",
+  "description": "Verifies that decisionUri builds the stored reference form, not the drawn form.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "given": "A RawDecision object with an id",
+  "when": "decisionUri is called",
+  "then": "A schematify://decision/<id> reference is returned",
+  "impl_ref": "apps/schematify/ui/src/product/index.test.ts::screenUri / decisionUri build the stored reference form, not the drawn form",
+  "status": "declared",
+  "last_result_ms": null
+}

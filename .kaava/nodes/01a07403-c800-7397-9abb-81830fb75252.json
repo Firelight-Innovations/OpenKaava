@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7397-9abb-81830fb75252",
+  "slug": "library-surface-open-library",
+  "kind": "contract-method",
+  "title": "openLibrary Function",
+  "description": "Shows the library screen. Safe to call when already open.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7373-9ec3-080a8122ecb7",
+  "signature": "function openLibrary(): void",
+  "params": [],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Announces library open state to all subscribers; used by menu and settings to show the library.",
+  "exported": true
+}

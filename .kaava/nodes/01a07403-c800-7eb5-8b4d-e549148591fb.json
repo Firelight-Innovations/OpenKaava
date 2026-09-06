@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7eb5-8b4d-e549148591fb",
+  "slug": "plugin-install-3",
+  "kind": "external-dep",
+  "title": "keyring",
+  "description": "OS credential store access for GitHub token management.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-762d-98bf-9549ca7a28bb",
+  "registry_ref": "01a07403-c800-7dbc-9d85-c55c6f498ac3",
+  "usage_note": "keyring::Entry to store/retrieve GitHub tokens from system credential manager"
+}

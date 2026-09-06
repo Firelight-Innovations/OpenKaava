@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f15-b5b3-25e9843e6836",
+  "slug": "react-dom",
+  "kind": "external-dep",
+  "title": "React DOM",
+  "description": "Bindings for rendering React to the browser DOM. Used for portaling search and settings screens to document.body.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d9c-a3ed-618a62cdb22f",
+  "registry_ref": "01a07403-c800-7ea4-bc03-11fc58b51a7e",
+  "usage_note": "Imported for createPortal in CommandPalette, SearchOverlay, and SettingsScreen"
+}

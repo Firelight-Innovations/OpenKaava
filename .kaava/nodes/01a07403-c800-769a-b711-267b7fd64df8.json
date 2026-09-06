@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-769a-b711-267b7fd64df8",
+  "slug": "graph-seam-loads-nodes-and-filters-markable-by-impl-ref-not-kind",
+  "kind": "test-case",
+  "title": "Markable Filtering by impl_ref Field",
+  "description": "Nodes are markable only if they have a non-null impl_ref, regardless of kind.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "given": "test-case with impl_ref, module without impl_ref, contract-method without impl_ref",
+  "when": "JsonFileGraph::load reads the files",
+  "then": "only the test-case is in markable_node_ids",
+  "impl_ref": "crates/schematify-reconcile/src/graph.rs::loads_nodes_and_filters_markable_by_impl_ref_not_kind",
+  "status": "declared",
+  "last_result_ms": null
+}

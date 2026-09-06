@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7717-a019-ba313ad43590",
+  "slug": "palette-fuzzy-anchor-selection",
+  "kind": "doc-block",
+  "title": "Fuzzy Matching Anchor Strategy",
+  "description": "Why multiple anchor points per token produce better ranking than leftmost-only.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7497-b529-d3c21db99100",
+  "body": "Anchoring only at the leftmost occurrence is what a plain greedy scan does, and it puts the score somewhere arbitrary rather than somewhere good: `in` inside `Terminal: Zoom In View` matched the `in` of 'Terminal', collected a consecutive-pair bonus for it, and outscored the same needle against `View: Zoom In`. The label a person would pick came second.",
+  "audience": "agent"
+}

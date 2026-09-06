@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7a75-8293-e968fe3bf59d",
+  "slug": "viewer-app-rpc-create-file",
+  "kind": "contract-method",
+  "title": "createFile",
+  "description": "Creates an empty file in a parent directory",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a0-9c27-267f8065604a",
+  "signature": "export const createFile = (parent: string, name: string) => invoke<Created>(...)",
+  "params": [
+    "parent",
+    "name"
+  ],
+  "returns": "Promise<Created>",
+  "errors": [
+    "KaavaRpcError"
+  ],
+  "semantics": "Creates new file with validated name, refusing invalid names or existing paths.",
+  "exported": true
+}

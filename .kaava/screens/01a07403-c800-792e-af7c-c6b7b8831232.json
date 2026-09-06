@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-792e-af7c-c6b7b8831232",
+  "kind": "screen",
+  "slug": "tutorial-reader",
+  "title": "Tutorial Content Reader",
+  "purpose": "Displays formatted tutorial prose with inline code blocks and navigation",
+  "states": [
+    "loading",
+    "ready",
+    "complete",
+    "error"
+  ],
+  "acceptance": [
+    "shall display tutorial body content with formatted blocks",
+    "shall show inline interactive mocks where applicable",
+    "shall provide next/previous navigation between tutorials",
+    "shall allow marking tutorial as done/incomplete",
+    "shall support embedded live examples and screenshots"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-72b5-84db-a6d3d2c16f72",
+    "schematify://node/01a07403-c800-702e-a9b8-69a8bdd8d936",
+    "schematify://node/01a07403-c800-7c9e-8ebc-a6c0f717916b"
+  ]
+}

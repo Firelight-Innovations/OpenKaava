@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7b1b-8191-204c5a7b104b",
+  "slug": "settings-reset",
+  "kind": "contract-method",
+  "title": "Restore one setting to its default",
+  "description": "Reset a setting and broadcast the change.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7be5-8dc0-57c63dfa6eb1",
+  "signature": "#[tauri::command] pub fn settings_reset(app: AppHandle, registry: State<'_, Registry>, key: String) -> Result<Value>",
+  "params": [
+    "app: AppHandle",
+    "registry: State<'_, Registry>",
+    "key: String"
+  ],
+  "returns": "Result<Value>",
+  "errors": [],
+  "semantics": "Resets a setting to default, persists and broadcasts, returning the default value.",
+  "exported": true
+}

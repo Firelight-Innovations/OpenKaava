@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d30-a982-095f71764417",
+  "slug": "search-logic-kind-extension-of",
+  "kind": "test-case",
+  "title": "Extension: Basic Extraction",
+  "description": "Tests basic extension extraction from filenames.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "given": "Filename 'manifest.generated.ts'",
+  "when": "extensionOf is called",
+  "then": "Returns 'ts'",
+  "impl_ref": "src/shell/search/kinds.test.ts::extensionOf::takes the last segment only",
+  "status": "declared",
+  "last_result_ms": null
+}

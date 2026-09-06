@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79a4-8253-6fc02d9b4521",
+  "slug": "client-declare-dedupe",
+  "kind": "test-case",
+  "title": "declareCommands deduplicates identical sets",
+  "description": "Verifies that the same set of commands in any order is not re-sent to avoid unnecessary messages.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client that has declared a set of commands",
+  "when": "The same set is declared again (in same or different order)",
+  "then": "No additional postMessage call is made; a different set does trigger a new message",
+  "impl_ref": "packages/bridge/src/client.test.ts::does not re-send an unchanged set, whatever order it arrives in",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7774-95f8-7148298341af",
+  "slug": "plugin-store",
+  "kind": "external-dep",
+  "title": "tauri",
+  "description": "Desktop framework for config directory access in file()",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c92-b990-0fafa3c719fa",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "AppHandle, Manager trait for app_config_dir() to locate plugins.json"
+}

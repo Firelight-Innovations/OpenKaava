@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-799f-a747-a362c74e823d",
+  "slug": "settings",
+  "kind": "module",
+  "title": "Settings Interface",
+  "description": "A full settings screen, portalled to the document body, with schema-driven rows generated from the Rust backend, filterable sections, and individual setting editors.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bb4-bdbe-fe72bc3e7a0c",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

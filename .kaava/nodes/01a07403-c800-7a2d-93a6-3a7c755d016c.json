@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7a2d-93a6-3a7c755d016c",
+  "slug": "file-api-open-external",
+  "kind": "contract-method",
+  "title": "Open with Default App",
+  "description": "Hand the file to the OS to open with its default handler.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export const openExternal = (path: string) => invoke<null>('files/open-external', { path })",
+  "params": [
+    "path: string"
+  ],
+  "returns": "Promise<null>",
+  "errors": [],
+  "semantics": "Launches file with system default application.",
+  "exported": true
+}

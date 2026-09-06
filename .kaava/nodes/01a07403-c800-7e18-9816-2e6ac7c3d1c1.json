@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7e18-9816-2e6ac7c3d1c1",
+  "slug": "scanner-uuid",
+  "kind": "external-dep",
+  "title": "UUID",
+  "description": "Universally unique identifier generation and parsing.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-781b-85ef-56660694446e",
+  "registry_ref": "01a07403-c800-71e9-a09e-d51d7c34d3cc",
+  "usage_note": "Stores Uuid in Occurrence struct representing the marker identifier"
+}

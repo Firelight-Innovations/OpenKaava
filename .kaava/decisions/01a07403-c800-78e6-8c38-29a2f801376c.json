@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-78e6-8c38-29a2f801376c",
+  "kind": "decision",
+  "slug": "DEC-SCH-LIFEC-002",
+  "title": "Only humans can transition to accepted; agents cannot",
+  "context": "Alternative approaches: allow agents to accept; require explicit review gate elsewhere; use soft gates.",
+  "decision": "The accept transition (reviewed → accepted) is human-only. Schematify blocks that transition at the Tauri command boundary if the actor is `agent`. No agent row in the lifecycle audit log can read → accepted.",
+  "consequences": "Humans always review before acceptance; the gate is enforced at the command boundary, not the UI layer; this is a core invariant per PRD §7; agents can do all other lifecycle work (draft, specify, assign, implement) but cannot finalize acceptance.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

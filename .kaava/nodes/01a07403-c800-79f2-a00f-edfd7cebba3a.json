@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79f2-a00f-edfd7cebba3a",
+  "slug": "search-logic-compile-path-filter-directory-scope",
+  "kind": "test-case",
+  "title": "Path Filter: Directory Scope",
+  "description": "Tests that directory globs match the directory and everything beneath it.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "given": "Negated filter '!node_modules/'",
+  "when": "predicate is called",
+  "then": "Excludes 'repo/node_modules/pkg/index.js' but includes 'repo/src/index.js'",
+  "impl_ref": "src/shell/search/query.test.ts::compilePathFilter::excludes a directory and everything beneath it",
+  "status": "declared",
+  "last_result_ms": null
+}

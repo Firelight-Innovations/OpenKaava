@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7ac7-adcc-34c927f6a083",
+  "slug": "toml",
+  "kind": "external-dep",
+  "title": "TOML Parser",
+  "description": "Parser for TOML configuration files.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77e9-8c82-551638f168b7",
+  "registry_ref": "01a07403-c800-7994-a954-210071677424",
+  "usage_note": "Parses branding.toml to extract product name at compile time via include_str!"
+}

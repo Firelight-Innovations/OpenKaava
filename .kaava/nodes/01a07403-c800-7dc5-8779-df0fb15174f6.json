@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7dc5-8779-df0fb15174f6",
+  "slug": "graph-node",
+  "kind": "contract-method",
+  "title": "Get Node",
+  "description": "Look up a single node by UUID.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bcb-9de4-3775dbe05092",
+  "signature": "pub fn node(&self, id: Uuid) -> Option<&Node>",
+  "params": [
+    "id: Uuid"
+  ],
+  "returns": "Option<&Node>",
+  "errors": [],
+  "semantics": "Returns a reference to a node if it exists in the graph, None otherwise.",
+  "exported": true
+}

@@ -1,0 +1,30 @@
+{
+  "id": "01a07403-c800-789a-a270-3b22a309197c",
+  "kind": "flow",
+  "slug": "stage-and-commit-changes",
+  "title": "Stage and Commit Changes to Git",
+  "trigger": "User has made edits and wants to commit them to the git repository",
+  "steps": [
+    {
+      "screen": "schematify://screen/01a07403-c800-727c-a02d-041e8ac2a84e",
+      "action": "With a git repository open, the source control panel appears on the right side (Ctrl+B shows/hides it)"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7d56-a4f0-f12bd453a564",
+      "action": "Under Staged Changes and Changes groups, review the list of modified (M), added (A), and deleted (D) files"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7d56-a4f0-f12bd453a564",
+      "action": "Click a file name to see its diff in the panel, or click the control icon next to a file to stage or unstage it"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7d56-a4f0-f12bd453a564",
+      "action": "Type a commit message in the Commit message field at the bottom of the panel"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7d56-a4f0-f12bd453a564",
+      "action": "Click the Commit button to record the staged changes; the button is disabled until something is staged and a message is entered"
+    }
+  ],
+  "outcome": "Changes are staged, a commit message is entered, and the commit is recorded in git history"
+}

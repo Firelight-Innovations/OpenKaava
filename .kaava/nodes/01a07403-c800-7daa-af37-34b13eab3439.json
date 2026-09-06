@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7daa-af37-34b13eab3439",
+  "slug": "scanner-skipped-file",
+  "kind": "contract-method",
+  "title": "Skipped File Record",
+  "description": "A file the scanner could not read as text, and the human-readable reason why.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-781b-85ef-56660694446e",
+  "signature": "pub struct SkippedFile",
+  "params": [
+    "file: PathBuf",
+    "reason: String"
+  ],
+  "returns": "struct",
+  "errors": [],
+  "semantics": "Records files excluded from scanning.",
+  "exported": false
+}

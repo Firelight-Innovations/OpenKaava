@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7bbd-80c8-6bed1c26f541",
+  "slug": "shell-frontend-verify-all",
+  "kind": "budget",
+  "title": "Full verification suite",
+  "description": "Build, test, lint, and format check must all pass",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7149-8c4b-15d6ed575d92",
+  "metric": "checks passed",
+  "op": "==",
+  "value": 4,
+  "unit": "checks",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm verify",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

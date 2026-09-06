@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7f79-afe4-24f4db00ebf0",
+  "slug": "launch-classify",
+  "kind": "contract-method",
+  "title": "launch::classify",
+  "description": "Decide what a filesystem path means: a project folder or a file with its parent.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a3-a407-049c1f55dd74",
+  "signature": "pub fn classify(path: &Path) -> Option<Target>",
+  "params": [
+    "path: &Path"
+  ],
+  "returns": "Option<Target>",
+  "errors": [],
+  "semantics": "Canonicalizes and checks existence; returns None if path is neither a file nor a directory.",
+  "exported": false
+}

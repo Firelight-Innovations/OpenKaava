@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7330-b3fb-c4b513350eab",
+  "slug": "shortcuts-screen",
+  "kind": "module",
+  "title": "Shortcuts Screen Component",
+  "description": "Read-only dialog displaying every shell keystroke grouped by category, with Escape to close and settings-sheet motion styling.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77ea-a32c-4eee96e848f4",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-739c-a4ff-db07cc75dd36"
+  ]
+}

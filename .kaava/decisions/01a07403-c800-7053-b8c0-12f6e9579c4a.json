@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7053-b8c0-12f6e9579c4a",
+  "kind": "decision",
+  "slug": "DEC-SCH-PERF-001",
+  "title": "Performance budgets use hard, soft, and target tiers with CI gates",
+  "context": "Alternative approaches: no budgets; advisory budgets; all hard budgets.",
+  "decision": "Schematify declares 6 performance budgets with three tiers: (1) hard budgets block CI if they fail (cold startup 2s, load 1s, frame time 16ms, search 100ms, lint 500ms); (2) soft budgets warn and need 1 human sign-off to merge; (3) target budgets are tracked and graphed but block nothing. The lint and search budgets carry the hard tier because wave acceptance blocks on them.",
+  "consequences": "Critical paths are protected by hard gates; soft budgets allow trending awareness; targets track regression without forcing it; wave acceptance is gated on hard budgets only; sign-off captures human judgment on soft breaches.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-783f-9d12-e31aa95b6455",
+  "slug": "shell-contract-app-presentation",
+  "kind": "contract-method",
+  "title": "appPresentation",
+  "description": "Map an AppInfo to its user-facing presentation.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a2b-9c3f-6e98ac6d152b",
+  "signature": "function appPresentation(app: AppInfo): ToolPresentation",
+  "params": [
+    "app"
+  ],
+  "returns": "ToolPresentation",
+  "errors": [],
+  "semantics": "Returns presentation for a first-party app with health always ok.",
+  "exported": true
+}

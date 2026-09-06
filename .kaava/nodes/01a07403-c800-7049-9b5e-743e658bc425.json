@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7049-9b5e-743e658bc425",
+  "slug": "clipboard-paste-to-pty",
+  "kind": "test-case",
+  "title": "Clipboard Paste Reaches PTY",
+  "description": "Ensures handlePaste writes text to terminal exactly once.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7101-96d4-211896bc6c31",
+  "given": "Fake terminal and paste event with text 'cargo test\\n'",
+  "when": "handlePaste() called",
+  "then": "terminal.writes contains the text and stopPropagation called",
+  "impl_ref": "src/shell/terminal/clipboard.test.ts::produces a clipboard paste written to the pty, and nothing else",
+  "status": "declared",
+  "last_result_ms": null
+}

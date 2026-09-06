@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7fcb-b7fb-2fdb062d2bb2",
+  "slug": "bottom-panel-vertical-layout",
+  "kind": "doc-block",
+  "title": "Terminal panel uses vertical list for width efficiency",
+  "description": "Why the terminal panel lists sessions vertically in a rail rather than horizontally like the old tabs.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ab5-b38c-4cd0ce02ad5d",
+  "body": "The list runs vertically because this band is wide and short, where the old panel's strip was tall and narrow. A horizontal strip here would spend the band's scarce height on tabs rather than on output, and a column holds a dozen sessions without scrolling where the strip started scrolling at about four.",
+  "audience": "both"
+}

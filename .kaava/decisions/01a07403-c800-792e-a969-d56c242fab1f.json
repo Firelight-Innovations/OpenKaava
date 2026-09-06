@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-792e-a969-d56c242fab1f",
+  "kind": "decision",
+  "slug": "DEC-SCH-SCOPE-002",
+  "title": "Schematify holds screens and flows as design nodes without pixel-level visual design",
+  "context": "Journeyman held visual mockups and interactions as user-facing design. The alternative would be to store full visual design artifacts.",
+  "decision": "Schematify stores screen names, purposes, states, acceptance conditions, and links to external Claude Design projects. Pixel-level visual design remains in Claude Design; Schematify references it but does not hold it.",
+  "consequences": "Cleaner separation of concerns and lighter data model; visual design stays in its native tool; but requires users to reference external design artifacts; agents cannot drive pixel-level changes from Schematify.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

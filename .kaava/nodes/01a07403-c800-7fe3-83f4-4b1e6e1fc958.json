@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7fe3-83f4-4b1e6e1fc958",
+  "slug": "product-emptybrief-function",
+  "kind": "contract-method",
+  "title": "Empty Brief Factory",
+  "description": "Returns a RawProjectBrief with both required fields blank and every list empty.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "signature": "emptyBrief() => RawProjectBrief",
+  "params": [],
+  "returns": "RawProjectBrief",
+  "errors": [],
+  "semantics": "Provides a blank brief template for first-run projects that have never written a brief.json, replacing the null value with a form-ready object.",
+  "exported": true
+}

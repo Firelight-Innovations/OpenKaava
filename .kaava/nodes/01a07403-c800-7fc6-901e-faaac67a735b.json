@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7fc6-901e-faaac67a735b",
+  "slug": "plugin-store-save",
+  "kind": "contract-method",
+  "title": "Persist Plugin Store",
+  "description": "Write plugin records to disk atomically.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c92-b990-0fafa3c719fa",
+  "signature": "pub fn save(app: &AppHandle, stored: &Stored)",
+  "params": [
+    "app: &AppHandle",
+    "stored: &Stored"
+  ],
+  "returns": "",
+  "errors": [],
+  "semantics": "Writes to temp then renames; always succeeds or leaves old file.",
+  "exported": false
+}

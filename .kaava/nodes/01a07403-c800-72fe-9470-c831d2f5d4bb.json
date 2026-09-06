@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-72fe-9470-c831d2f5d4bb",
+  "slug": "band-geometry-untouched-cluster",
+  "kind": "test-case",
+  "title": "Untouched cluster reports as shut",
+  "description": "A cluster that has never had its band geometry modified returns the default BAND_SHUT state.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bda-92fe-1e3bdf7870f3",
+  "given": "empty geometry map and a cluster id",
+  "when": "bandGeometry is called with that cluster id",
+  "then": "it returns BAND_SHUT (collapsed: true, maximized: false)",
+  "impl_ref": "src/shell/frame/bandGeometry.test.ts::bandGeometry#reports a cluster nobody has touched as shut",
+  "status": "declared",
+  "last_result_ms": null
+}

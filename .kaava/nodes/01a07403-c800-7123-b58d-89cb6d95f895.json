@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7123-b58d-89cb6d95f895",
+  "slug": "boundary-check-mixed-violations",
+  "kind": "test-case",
+  "title": "mixed write violations",
+  "description": "Blocks writes that mix nodes/ and runs/ that are not the lifecycle pair.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78ad-9f18-7213bcc5f199",
+  "given": "Changed files mixing nodes/ and runs/ files not matching the lifecycle rule",
+  "when": "violations() is called",
+  "then": "returns violation with root and touched files",
+  "impl_ref": "scripts/check-kaava-boundary.test.mjs::blocks a mixed write",
+  "status": "declared",
+  "last_result_ms": null
+}

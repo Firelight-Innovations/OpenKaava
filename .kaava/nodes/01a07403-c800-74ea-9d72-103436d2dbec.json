@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-74ea-9d72-103436d2dbec",
+  "slug": "state",
+  "kind": "module",
+  "title": "App State",
+  "description": "Process-wide snapshot of the stack and boot status, guarded by RwLock with many readers and rare writes.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [
+    "01a07403-c800-736a-801a-ea4485c6faff"
+  ],
+  "ui_refs": []
+}

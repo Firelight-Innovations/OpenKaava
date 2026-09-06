@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7415-bf3d-ec958150ed0a",
+  "slug": "trash",
+  "kind": "module",
+  "title": "Trash and Recycle Bin",
+  "description": "Trash/Recycle Bin management — enumerating deleted items, restoring them, and permanent purging. Scoped to items deleted from the current project to enforce blast-radius boundaries for agents.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d29-9b02-357f7f4c18c2",
+  "allowed_libraries": [
+    "01a07403-c800-7cac-8eb3-d31b3948c693"
+  ],
+  "ui_refs": []
+}

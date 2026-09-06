@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7084-b1ab-2edbde91569a",
+  "slug": "drag-performance-baseline",
+  "kind": "budget",
+  "title": "Drag performance",
+  "description": "Drag operation performance measured to ensure smooth 60fps ghost movement and hit-test response.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71b3-ad71-25691aca6239",
+  "metric": "milliseconds",
+  "op": "<=",
+  "value": 0,
+  "unit": "ms per frame",
+  "tier": "soft",
+  "probe": {
+    "command": "pnpm bench:drag",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

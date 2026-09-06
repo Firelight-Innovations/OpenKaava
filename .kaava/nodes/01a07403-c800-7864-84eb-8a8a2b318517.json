@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7864-84eb-8a8a2b318517",
+  "slug": "outcome-module-doc",
+  "kind": "doc-block",
+  "title": "Reconciliation Outcomes",
+  "description": "Reconciliation outcome types per PRD section 9.2.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f14-8b2b-c06d802d2714",
+  "body": "Reconciliation outcomes (PRD `SCHEMATIFY-PRD.md` section 9.2): one variant per row of the outcome table, each carrying the evidence that produced it so a caller can render a reason rather than just a verdict.",
+  "audience": "both"
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-78ed-ad6a-770194053bcc",
+  "slug": "file-api-remove",
+  "kind": "contract-method",
+  "title": "Move to Recycle Bin",
+  "description": "Move a file or directory to the Recycle Bin.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export const remove = (path: string) => invoke<Deleted>('files/delete', { path })",
+  "params": [
+    "path: string"
+  ],
+  "returns": "Promise<Deleted> with path, kind, trashed flag",
+  "errors": [],
+  "semantics": "Moves entry to Recycle Bin; recoverable.",
+  "exported": true
+}

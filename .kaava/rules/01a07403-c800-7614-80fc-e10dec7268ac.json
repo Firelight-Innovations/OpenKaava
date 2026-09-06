@@ -1,0 +1,7 @@
+{
+  "id": "01a07403-c800-7614-80fc-e10dec7268ac",
+  "slug": "new-modules-have-doc-comments",
+  "statement": "Every new module must open with a doc comment explaining what it is for and what seam it sits on.",
+  "severity": "review",
+  "audit": []
+}

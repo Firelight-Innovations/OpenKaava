@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7909-ae69-fabea05c5ee1",
+  "slug": "graph-seam-graph-lookup",
+  "kind": "contract-method",
+  "title": "Graph Query Interface",
+  "description": "The entire dependency reconciliation has on a design graph.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "signature": "pub trait GraphLookup",
+  "params": [],
+  "returns": "trait with methods lookup(id: Uuid) and markable_node_ids()",
+  "errors": [],
+  "semantics": "Trait enabling multiple graph backend implementations.",
+  "exported": false
+}

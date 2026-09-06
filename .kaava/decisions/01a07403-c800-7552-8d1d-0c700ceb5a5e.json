@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7552-8d1d-0c700ceb5a5e",
+  "kind": "decision",
+  "slug": "DEC-SCH-LINT-001",
+  "title": "Thirteen lint rules enforce graph validity and design quality",
+  "context": "Alternative approaches: fewer rules; advisory rules only; no linting.",
+  "decision": "Schematify runs a linter with 13 rules that check containment (tree), dependency (acyclic), budgets (probed), libraries (registered), annotations (no semantic edges), references (no dangling), decisions (superseded), caches (consistent), contracts (exported or tested), shared nodes (at LCA), coverage (methods tested), deprecation (acknowledged), and screens (backed).",
+  "consequences": "Violations are caught immediately; errors block merge; warnings request attention; the linter runs in under 500ms on stress-2000 fixture (wave 7 budget); all 13 rules fire correctly on planted defects; rules can be added by extending the rule registry.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

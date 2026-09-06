@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-74b8-806f-976be1b32bc4",
+  "slug": "codec-response-into-result",
+  "kind": "contract-method",
+  "title": "Extract Result or Error from Response",
+  "description": "Converts a response into a plain Result by collapsing the one-of-two invariant.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "signature": "pub fn into_result(self) -> Result<Value, RpcError>",
+  "params": [
+    "self"
+  ],
+  "returns": "Result<Value, RpcError>",
+  "errors": [
+    "RpcError"
+  ],
+  "semantics": "Extracts either the result or error field into a normal Rust Result type.",
+  "exported": false
+}

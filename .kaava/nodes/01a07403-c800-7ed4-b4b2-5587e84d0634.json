@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7ed4-b4b2-5587e84d0634",
+  "slug": "shell-ui",
+  "kind": "module",
+  "title": "Shell UI Primitives",
+  "description": "Reusable shell UI components including a custom overlay scrollbar for horizontal scrolling strips and icon display primitives.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bb4-bdbe-fe72bc3e7a0c",
+  "allowed_libraries": [
+    "01a07403-c800-7417-a580-5d7e987102ee",
+    "01a07403-c800-7bd1-a062-9c1c49e747dc"
+  ],
+  "ui_refs": []
+}

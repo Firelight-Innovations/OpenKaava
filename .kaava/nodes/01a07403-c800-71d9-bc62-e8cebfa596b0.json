@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-71d9-bc62-e8cebfa596b0",
+  "slug": "tutorial-tauri",
+  "kind": "external-dep",
+  "title": "Tauri",
+  "description": "Desktop framework for app state and config directory access.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ee8-82c9-e4bc6f0a02fe",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "AppHandle for reading/writing progress file from OS config directory"
+}

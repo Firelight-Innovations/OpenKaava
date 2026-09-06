@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7154-b311-2b18cb1b14a6",
+  "slug": "terminal-sessions-write",
+  "kind": "contract-method",
+  "title": "Write to Terminal",
+  "description": "Send a keystroke or any other data the emulator wants the shell to receive.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731a-ab6c-3a00854fdef3",
+  "signature": "pub fn write(&self, id: &str, data: &str)",
+  "params": [
+    "id",
+    "data"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Sends data to the shell through the tap_input interception seam.",
+  "exported": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c57-8157-57e12265b31c",
+  "slug": "accelerators-menu-no-glyphs",
+  "kind": "test-case",
+  "title": "Menu Bar Has No Mac Glyphs",
+  "description": "Verifies that the menu bar never displays Mac key glyphs in any toggle state.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d53-814c-3c88cf09800b",
+  "given": "Menu bar with all three toggle states (panel, terminal, fullscreen off and on)",
+  "when": "Extracted as strings",
+  "then": "No Mac glyphs appear in any combination",
+  "impl_ref": "src/shell/accelerators.test.ts::the menu bar holds no Mac glyph, in any of its toggle states",
+  "status": "declared",
+  "last_result_ms": null
+}

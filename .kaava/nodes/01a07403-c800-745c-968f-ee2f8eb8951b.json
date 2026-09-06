@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-745c-968f-ee2f8eb8951b",
+  "slug": "lint",
+  "kind": "module",
+  "title": "Design Validation and Linter",
+  "description": "The linter enforcing thirteen validation rules (L01-L13) over the design graph: checks for broken references, constraint violations, and design integrity.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7abe-9eed-7510b796f92a",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

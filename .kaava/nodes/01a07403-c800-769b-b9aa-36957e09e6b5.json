@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-769b-b9aa-36957e09e6b5",
+  "slug": "launch-a-file-becomes-a-file-target",
+  "kind": "test-case",
+  "title": "File Classification",
+  "description": "Verify that a file path produces a File target with its parent folder.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a3-a407-049c1f55dd74",
+  "given": "A temporary file path",
+  "when": "Classifying the path",
+  "then": "A File target with the file path and its parent is returned",
+  "impl_ref": "src-tauri/src/launch.rs::a_file_becomes_a_file_target_carrying_its_folder",
+  "status": "declared",
+  "last_result_ms": null
+}

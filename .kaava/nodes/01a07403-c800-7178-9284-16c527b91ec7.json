@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7178-9284-16c527b91ec7",
+  "slug": "tool-window-no-clusters-state",
+  "kind": "contract-method",
+  "title": "NoClustersState React Component",
+  "description": "Shown when a window has no clusters at all, with guidance to create one using the + button.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e2-b95c-b24cdbe6d78b",
+  "signature": "function NoClustersState(): ReactElement",
+  "params": [],
+  "returns": "ReactElement",
+  "errors": [],
+  "semantics": "Renders a brand glyph and text explaining that the terminal band is still available and the + button makes a cluster.",
+  "exported": false
+}

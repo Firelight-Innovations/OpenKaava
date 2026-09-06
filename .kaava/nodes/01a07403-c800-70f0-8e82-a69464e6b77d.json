@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-70f0-8e82-a69464e6b77d",
+  "slug": "manifest-parser-surfaces-in-order",
+  "kind": "test-case",
+  "title": "Multiple Surfaces Parse in Declaration Order",
+  "description": "The surfaces array preserves the author's declared order.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "A multi-surface manifest with surfaces 'specs' and 'graph' in that order",
+  "when": "parsed",
+  "then": "surfaces[0].id='specs' and surfaces[1].id='graph'",
+  "impl_ref": "crates/kaava-tool-manifest/src/lib.rs::parses_several_surfaces_in_declaration_order",
+  "status": "declared",
+  "last_result_ms": null
+}

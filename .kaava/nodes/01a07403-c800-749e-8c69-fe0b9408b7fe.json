@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-749e-8c69-fe0b9408b7fe",
+  "slug": "shell-quoting-windows-path",
+  "kind": "test-case",
+  "title": "Windows paths quoted correctly per dialect",
+  "description": "A path like C:\\Program Files\\x requires different quoting for different shells.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e0-bbc7-7090d1eeb4e5",
+  "given": "A Windows path with spaces",
+  "when": "quote is called for each shell family",
+  "then": "PowerShell and Cmd quote it, Posix still needs quotes for backslash",
+  "impl_ref": "src-tauri/src/quoting.rs::a_windows_path_is_quoted_for_a_posix_shell",
+  "status": "declared",
+  "last_result_ms": null
+}

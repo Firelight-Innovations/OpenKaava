@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-787f-945a-81b906bcab89",
+  "slug": "worktree-logic-sum-line-counts",
+  "kind": "contract-method",
+  "title": "Sum Line Counts Across Changes",
+  "description": "Aggregates insertions and deletions, tracking uncountable files separately.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71fe-af1c-0dcd2dfd9607",
+  "signature": "export function sumLineCounts(changes: readonly GitFileChange[]): { insertions: number; deletions: number; uncounted: number }",
+  "params": [
+    "changes: readonly GitFileChange[]"
+  ],
+  "returns": "{ insertions: number; deletions: number; uncounted: number }",
+  "errors": [],
+  "semantics": "Sums countable changes and counts files with null counts separately.",
+  "exported": false
+}

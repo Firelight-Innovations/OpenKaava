@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7dfb-b771-6012a7be72b1",
+  "slug": "plugin-remote-2",
+  "kind": "external-dep",
+  "title": "sha2",
+  "description": "SHA-256 hashing for checksum verification of downloaded assets.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-764a-b5c5-9f2cce1355f5",
+  "registry_ref": "01a07403-c800-711c-b767-942de08d837f",
+  "usage_note": "Sha256 digest for sha256_hex() checksum validation"
+}

@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7ca5-b28d-5eff8ea12f7b",
+  "slug": "engine-core-add-facet",
+  "kind": "contract-method",
+  "title": "addFacet",
+  "description": "Add new facet child with semantic file write.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7346-9c32-cc9d99a7dbc8",
+  "signature": "addFacet(parentId: string, kind: SchematicNodeKind, fields: Partial<SchematicNode>): Refusal | null",
+  "params": [
+    "parentId",
+    "kind",
+    "fields"
+  ],
+  "returns": "Refusal | null",
+  "errors": [],
+  "semantics": "Creates facet and writes semantic file.",
+  "exported": false
+}

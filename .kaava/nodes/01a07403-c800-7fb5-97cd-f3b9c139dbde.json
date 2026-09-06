@@ -1,0 +1,27 @@
+{
+  "id": "01a07403-c800-7fb5-97cd-f3b9c139dbde",
+  "slug": "kaava-rpc",
+  "kind": "service",
+  "title": "Kaava RPC",
+  "description": "The JSON-RPC transport every app's Rust half answers on, shared between the orchestrator and third-party tool repositories.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": null,
+  "entry_point": "crates/kaava-rpc/src/lib.rs.",
+  "exports": [
+    "01a07403-c800-7865-a3f4-6b01a0108ffc",
+    "01a07403-c800-78c1-aa2b-e246412a6104",
+    "01a07403-c800-7404-8366-77fa39bef944",
+    "01a07403-c800-7597-b7dd-eeee05d01e51",
+    "01a07403-c800-7a48-8e45-1185c758da3e",
+    "01a07403-c800-7058-8ed1-f556b64bfd20",
+    "01a07403-c800-7586-88b6-562c9bf8553e",
+    "01a07403-c800-7657-b09a-b4995768064d",
+    "01a07403-c800-7077-9f42-81b9eb0e1b22",
+    "01a07403-c800-7082-be33-7d198cb379e2"
+  ],
+  "schemas": null
+}

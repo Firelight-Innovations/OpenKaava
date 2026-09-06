@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7a52-a08b-cfe050a1d649",
+  "slug": "plugin-install",
+  "kind": "external-dep",
+  "title": "tauri",
+  "description": "Desktop framework for state and event management during installation.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-762d-98bf-9549ca7a28bb",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "AppHandle, Emitter trait, Manager trait for progress reporting and registry access"
+}

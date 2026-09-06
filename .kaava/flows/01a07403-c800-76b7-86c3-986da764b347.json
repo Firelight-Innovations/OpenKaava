@@ -1,0 +1,34 @@
+{
+  "id": "01a07403-c800-76b7-86c3-986da764b347",
+  "kind": "flow",
+  "slug": "adjust-window-layout-and-settings",
+  "title": "Customize Window Layout and Application Settings",
+  "trigger": "User wants to adjust the appearance, editor settings, or terminal behavior",
+  "steps": [
+    {
+      "screen": "schematify://screen/01a07403-c800-7c0a-bb93-223be6b8c63c",
+      "action": "Drag the line above the terminal band to resize it; push it down to snap the terminal closed, or drag it up to expand it"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-727c-a02d-041e8ac2a84e",
+      "action": "Press Ctrl+B to collapse the source control panel to a strip on the right, or press again to expand it"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7878-a22d-53e26487eace",
+      "action": "Drag the line between two panes to adjust their sizes relative to each other"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7cef-864a-1ae1a3c77d5c",
+      "action": "Click the sliders glyph in the status bar to open Settings"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c87-b8d6-92e496cea50e",
+      "action": "Adjust editor settings (font size, tab width, line wrapping), terminal shell choice, and other preferences"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c87-b8d6-92e496cea50e",
+      "action": "Settings are applied when a new file or terminal is opened; existing ones retain their previous settings until closed and reopened"
+    }
+  ],
+  "outcome": "Window layout is resized, panes are rearranged, and application settings are updated"
+}

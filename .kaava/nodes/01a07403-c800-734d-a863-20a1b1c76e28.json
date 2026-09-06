@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-734d-a863-20a1b1c76e28",
+  "slug": "plugin-install-module-doc",
+  "kind": "doc-block",
+  "title": "GitHub Release Installation",
+  "description": "Turning a repository reference into an installed plugin with progress reporting.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-762d-98bf-9549ca7a28bb",
+  "body": "Turning a repository reference into an installed plugin. `remote.rs` is the pure half — GitHub, checksums, zips, no `AppHandle` — and this is the half that knows about application state: where downloads land, what the frontend is told while one is in flight, and where the token lives. Splitting them is what lets the fiddly parsing and unpacking be tested without a running app.",
+  "audience": "agent"
+}

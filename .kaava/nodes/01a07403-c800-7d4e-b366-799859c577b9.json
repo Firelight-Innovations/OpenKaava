@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7d4e-b366-799859c577b9",
+  "slug": "file-api-read-bytes",
+  "kind": "contract-method",
+  "title": "Read Binary File",
+  "description": "Read a file's raw bytes as base64, rejecting if too large.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export const readBytes = (path: string) => invoke<FileBytes>('files/read-bytes', { path })",
+  "params": [
+    "path: string"
+  ],
+  "returns": "Promise<FileBytes> with base64-encoded content and size",
+  "errors": [],
+  "semantics": "Returns binary file data up to backend limit.",
+  "exported": true
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-77c7-9507-66c09a6ae15f",
+  "kind": "decision",
+  "slug": "DEC-TEC-LAYOUT-007",
+  "title": "Pane tree layout owned by Rust, presets shape with app ids not instance ids",
+  "context": "Layout state must be shared across windows for drag-and-drop. Instance ids are session-local; app ids are permanent types.",
+  "decision": "Rust owns all layout: PaneNode uses instance ids (session-specific identity), PresetNode uses app ids (portable arrangement). Presets mirror Rust structure without any identity.",
+  "consequences": "User can save an arrangement of surfaces and restore it with new sessions. Tabs can be dragged across windows from the same Rust-owned state.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

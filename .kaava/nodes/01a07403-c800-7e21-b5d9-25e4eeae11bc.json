@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e21-b5d9-25e4eeae11bc",
+  "slug": "client-tauri-refused-methods",
+  "kind": "test-case",
+  "title": "Tauri host refuses sideways channel methods",
+  "description": "Verifies that kaava/open, kaava/publish, and kaava/drag are rejected under Tauri host.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client under Tauri host",
+  "when": "openIn, publish, or kaava/drag are invoked",
+  "then": "They reject with KaavaRpcError(MethodNotFound)",
+  "impl_ref": "packages/bridge/src/client.test.ts::refuses the sideways channel rather than pretending it worked",
+  "status": "declared",
+  "last_result_ms": null
+}

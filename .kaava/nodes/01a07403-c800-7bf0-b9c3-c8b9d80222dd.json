@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7bf0-b9c3-c8b9d80222dd",
+  "slug": "search",
+  "kind": "module",
+  "title": "Workspace Search",
+  "description": "A full-text workspace search feature with query parsing, result filtering, preview, and file tree locator. Opened via keyboard shortcut and overlaid on the main window.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bb4-bdbe-fe72bc3e7a0c",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-70de-8d8e-d1609ff54137"
+  ]
+}

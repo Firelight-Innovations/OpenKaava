@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79a1-a91f-421d244b774a",
+  "slug": "dispatch",
+  "kind": "module",
+  "title": "App Registry and Dispatch",
+  "description": "The central dispatch router and app registry for OpenKaava's first-party applications. Maintains the REGISTRY of apps and routes JSON-RPC calls from the shell frontend to each app's handler.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [
+    "01a07403-c800-736a-801a-ea4485c6faff",
+    "01a07403-c800-7565-ae9d-23b929975082"
+  ],
+  "ui_refs": []
+}

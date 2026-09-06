@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7db8-9ed7-759764bb47a7",
+  "slug": "presets-store-save",
+  "kind": "contract-method",
+  "title": "Write saved presets atomically",
+  "description": "Persist presets through a temp file and atomic rename.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7089-8194-4ec42c107ffb",
+  "signature": "pub fn save(app: &AppHandle, stored: &Stored)",
+  "params": [
+    "app: &AppHandle",
+    "stored: &Stored"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Writes user presets only, never built-ins, ensuring they survive the app across launches.",
+  "exported": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c0c-8bed-c8241349337f",
+  "slug": "boot-the-step-counts-the-apps-already-heard-from",
+  "kind": "test-case",
+  "title": "Step Calculation",
+  "description": "Verify that the step number reflects the in-progress app, not completed apps.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f28-b976-1789857ef688",
+  "given": "Two outstanding apps and a total of five steps",
+  "when": "Calculating the step number for waiting_on",
+  "then": "Step is 4 (three scans done, fourth in progress)",
+  "impl_ref": "src-tauri/src/boot.rs::the_step_counts_the_apps_already_heard_from",
+  "status": "declared",
+  "last_result_ms": null
+}

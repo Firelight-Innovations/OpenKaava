@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7634-9342-1ad1e1cd76af",
+  "slug": "clipboard-contextmenu-selection",
+  "kind": "test-case",
+  "title": "Right-Click Preserves Selection",
+  "description": "Ensures context menu keeps terminal selection in textarea for Copy.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7101-96d4-211896bc6c31",
+  "given": "Terminal with 'src/shell/terminal' selected and old paste in textarea",
+  "when": "handleContextMenu() called",
+  "then": "textarea.value equals current selection, writes empty",
+  "impl_ref": "src/shell/terminal/clipboard.test.ts::right-click still leaves the selection there, which is what the menu's Copy reads",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7384-af63-53c8b4c0d2b3",
+  "slug": "core-id-timestamp-ms",
+  "kind": "contract-method",
+  "title": "Extract UUIDv7 Timestamp",
+  "description": "Read the millisecond a UUIDv7 was stamped with, returning None for any other UUID version.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a7-8335-a2b30fb2137e",
+  "signature": "pub fn id_timestamp_ms(id: Uuid) -> Option<u64>",
+  "params": [
+    "id: Uuid"
+  ],
+  "returns": "Option<u64>",
+  "errors": [],
+  "semantics": "Extracts the Unix milliseconds from the leading 48 bits of a v7 UUID, returning None for v4 or any other version to prevent misreading random bits as a timestamp.",
+  "exported": true
+}

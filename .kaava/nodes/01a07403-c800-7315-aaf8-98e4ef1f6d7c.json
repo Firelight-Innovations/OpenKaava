@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7315-aaf8-98e4ef1f6d7c",
+  "slug": "terminal-sessions-resize",
+  "kind": "contract-method",
+  "title": "Resize Terminal Viewport",
+  "description": "Tell the pty its viewport changed for load-bearing TUI support.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731a-ab6c-3a00854fdef3",
+  "signature": "pub fn resize(&self, id: &str, cols: u16, rows: u16)",
+  "params": [
+    "id",
+    "cols",
+    "rows"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Updates the pty size to match the emulator viewport.",
+  "exported": false
+}

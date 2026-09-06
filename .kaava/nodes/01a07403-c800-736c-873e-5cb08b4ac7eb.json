@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-736c-873e-5cb08b4ac7eb",
+  "slug": "frame-time-budget",
+  "kind": "budget",
+  "title": "Schematify frame time performance",
+  "description": "Service Schematic engine frame time must stay under 16 ms for dense layouts, measured via the median of 21 samples.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bda-92fe-1e3bdf7870f3",
+  "metric": "frame_time_ms",
+  "op": "<",
+  "value": 16,
+  "unit": "ms",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm bench:frame",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

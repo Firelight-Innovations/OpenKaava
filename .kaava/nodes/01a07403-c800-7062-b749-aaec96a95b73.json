@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7062-b749-aaec96a95b73",
+  "slug": "stack-discovery-resolve",
+  "kind": "contract-method",
+  "title": "Stack Resolution",
+  "description": "Join manifest declarations against disk state to resolve tool versions and locations.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7987-be21-fd2e593064ee",
+  "signature": "pub fn resolve(manifest_path: &Path, manifest: &Manifest) -> Result<StackSnapshot>",
+  "params": [
+    "manifest_path: &Path",
+    "manifest: &Manifest"
+  ],
+  "returns": "Result<StackSnapshot>",
+  "errors": [
+    "Version parse error",
+    "Invalid manifest structure"
+  ],
+  "semantics": "Validates all pinned versions and probes disk for actual state.",
+  "exported": true
+}

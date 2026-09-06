@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7f6e-93a0-a7636d54835f",
+  "slug": "settings-set",
+  "kind": "contract-method",
+  "title": "Change one setting",
+  "description": "Update a setting and broadcast the change to all windows.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7be5-8dc0-57c63dfa6eb1",
+  "signature": "#[tauri::command] pub fn settings_set(app: AppHandle, registry: State<'_, Registry>, key: String, value: Value) -> Result<Value>",
+  "params": [
+    "app: AppHandle",
+    "registry: State<'_, Registry>",
+    "key: String",
+    "value: Value"
+  ],
+  "returns": "Result<Value>",
+  "errors": [],
+  "semantics": "Updates a setting, clamps numbers to range, persists and broadcasts, returning the actual stored value.",
+  "exported": true
+}

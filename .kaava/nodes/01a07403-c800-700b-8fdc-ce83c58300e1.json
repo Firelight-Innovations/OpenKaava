@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-700b-8fdc-ce83c58300e1",
+  "slug": "review-store",
+  "kind": "module",
+  "title": "Review Comments Persistence",
+  "description": "Reads and writes review comments to .kaava/review-comments.json inside each git repository. Handles atomic writes with temp-then-rename, forward-compatible parsing, and directory creation.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

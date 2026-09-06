@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-72f0-929c-51cee9436676",
+  "slug": "tree-state-use-tree",
+  "kind": "contract-method",
+  "title": "Tree State Hook",
+  "description": "Manages loaded directories, expansion state, and the flat row list for display.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75ef-92b8-f1ede6be6e2f",
+  "signature": "export function useTree(root: Root | null, reloadNonce: number, filter: string): Tree",
+  "params": [
+    "root: Root | null",
+    "reloadNonce: number",
+    "filter: string"
+  ],
+  "returns": "Tree object with rows, ready flag, and expand/collapse methods",
+  "errors": [],
+  "semantics": "Maintains tree cache and expansion state, returns flat rows for rendering.",
+  "exported": true
+}

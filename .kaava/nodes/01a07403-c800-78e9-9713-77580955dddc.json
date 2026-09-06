@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78e9-9713-77580955dddc",
+  "slug": "plugin-watch-unbuilt-no-core-dir",
+  "kind": "test-case",
+  "title": "Watch: Unbuilt Plugin",
+  "description": "Unbuilt checkout with no binary directory returns None.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a4-91d1-5b52d3a3d82c",
+  "given": "Nonexistent path",
+  "when": "core_dir() is called",
+  "then": "Returns None",
+  "impl_ref": "src-tauri/src/plugins/watch.rs::an_unbuilt_checkout_has_no_core_directory",
+  "status": "declared",
+  "last_result_ms": null
+}

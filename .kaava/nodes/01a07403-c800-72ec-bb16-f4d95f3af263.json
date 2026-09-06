@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-72ec-bb16-f4d95f3af263",
+  "slug": "library",
+  "kind": "external-dep",
+  "title": "React",
+  "description": "React library for UI component rendering and hooks.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7fed-b0e5-a5d417aba687",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "useState, useEffect, useCallback, useRef for library session state and event handling"
+}

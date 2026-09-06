@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-75c5-be04-a48ae495f6f3",
+  "slug": "presets-store-load",
+  "kind": "contract-method",
+  "title": "Read saved presets from storage",
+  "description": "Load presets.json from the config directory, degrading to built-ins only.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7089-8194-4ec42c107ffb",
+  "signature": "pub fn load(app: &AppHandle) -> Stored",
+  "params": [
+    "app: &AppHandle"
+  ],
+  "returns": "Stored",
+  "errors": [],
+  "semantics": "Never fails; any read error returns an empty Stored, leaving only built-in presets.",
+  "exported": false
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7fd3-a0ba-7454c7fb5b61",
+  "slug": "viewer-app-rpc-get-root",
+  "kind": "contract-method",
+  "title": "getRoot",
+  "description": "Fetches the open project root directory",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a0-9c27-267f8065604a",
+  "signature": "export const getRoot = () => invoke<Root>(\"files/root\")",
+  "params": [],
+  "returns": "Promise<Root>",
+  "errors": [
+    "KaavaRpcError"
+  ],
+  "semantics": "Returns the root directory path and display name for the currently open project.",
+  "exported": true
+}

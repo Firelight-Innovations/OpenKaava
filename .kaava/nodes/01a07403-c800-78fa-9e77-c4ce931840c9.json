@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78fa-9e77-c4ce931840c9",
+  "slug": "identity-check-rust-parsing",
+  "kind": "test-case",
+  "title": "rustConst and rustList",
+  "description": "Parses Rust const declarations correctly, including null handling.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ef5-b5fd-cb82e357bc20",
+  "given": "Rust source code with pub const NAME: &str = \"value\"; and pub const LIST: &[&str] = &[\"a\", \"b\"];",
+  "when": "rustConst() and rustList() are called on the text",
+  "then": "returns the literal value or list, or null if the constant is not found",
+  "impl_ref": "scripts/check-identity.test.mjs::rustConst and rustList",
+  "status": "declared",
+  "last_result_ms": null
+}

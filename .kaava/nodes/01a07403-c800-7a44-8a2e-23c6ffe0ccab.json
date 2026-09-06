@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7a44-8a2e-23c6ffe0ccab",
+  "slug": "outcome-present-unknown-and-duplicate-are-always-errors",
+  "kind": "test-case",
+  "title": "PresentUnknown and Duplicate Are Always Errors",
+  "description": "PresentUnknown and Duplicate outcomes always have is_error() == true.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f14-8b2b-c06d802d2714",
+  "given": "PresentUnknown and Duplicate outcomes",
+  "when": "is_error is called",
+  "then": "both return true",
+  "impl_ref": "crates/schematify-reconcile/src/outcome.rs::present_unknown_and_duplicate_are_always_errors",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7c73-abb8-1eebcfca90ca",
+  "kind": "decision",
+  "slug": "DEC-STD-LAYER-001",
+  "title": "Backend owns all machine access; frontend is view-only",
+  "context": "Repository structure needed a fundamental boundary between what Rust and JavaScript could do.",
+  "decision": "Rust owns everything that touches the machine: manifests, filesystem operations, processes, PTYs, shell state. Frontend renders snapshots Rust produces and sends verbs back.",
+  "consequences": "No component imports Tauri API directly; only src/bindings.ts calls invoke. No region imports another region's source. Shared pieces live at src/shell/ level, not in regions. This enforces predictable data flow and testability.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-08-16"
+}

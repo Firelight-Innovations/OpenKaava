@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7b79-96c0-fc6817aa76b4",
+  "slug": "layout-module-doc",
+  "kind": "doc-block",
+  "title": "Layout File Management",
+  "description": "Join between semantic graph and cosmetic layout.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79bb-abc8-74d009a7d2da",
+  "body": "The join between the semantic graph and the cosmetic layout file, in both directions: `buildDoc` opens a Schematic, `toLayoutFile` produces what a change persists. Groups and comments round-trip through the cosmetic file in full. PRD §6.1 already names groups as layout content, and PRD §11.3 puts both kinds in the annotation tier — out of reconciliation and unable to carry a semantic edge — so keeping them out of `nodes/` is what makes an annotation is not design data true on disk.",
+  "audience": "agent"
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7676-a866-371b1ad44914",
+  "slug": "design-app-comments-for-display",
+  "kind": "contract-method",
+  "title": "forDisplay",
+  "description": "Orders comments for panel: blocked, live, resolved",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-76b8-97b0-0d8399c3f37b",
+  "signature": "export function forDisplay(comments: readonly Comment[]): Comment[]",
+  "params": [
+    "comments"
+  ],
+  "returns": "Comment[]",
+  "errors": [],
+  "semantics": "Returns sorted copy by urgency and recency.",
+  "exported": false
+}

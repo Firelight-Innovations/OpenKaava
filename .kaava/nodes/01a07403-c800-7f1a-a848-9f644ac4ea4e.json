@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f1a-a848-9f644ac4ea4e",
+  "slug": "project-test-stale-reason",
+  "kind": "test-case",
+  "title": "projectServiceGraph draws stale caption",
+  "description": "Verifies the exact caption line format for stale nodes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b17-92da-f10f0c4deca9",
+  "given": "A stale node with a source and member",
+  "when": "projectServiceGraph is called with Date.now() set to 2 hours later",
+  "then": "The staleReason reads crypto-primitives.sign changed 2h ago. Re-review required.",
+  "impl_ref": "apps/schematify/ui/src/graph/project.test.ts::draws PRD 7.4's exact second caption line for a stale node with a stale mark",
+  "status": "declared",
+  "last_result_ms": null
+}

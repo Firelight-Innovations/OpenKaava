@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-741e-a722-36b1195ef27f",
+  "slug": "github-integration-merged-pr-state",
+  "kind": "test-case",
+  "title": "Merged PRs identified correctly",
+  "description": "A PR with merged_at set reads as Merged not Closed.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72a7-b1d3-78f88552a561",
+  "given": "API response with state=closed and merged_at set",
+  "when": "into_item is called for a pull request",
+  "then": "The state is GithubItemState::Merged",
+  "impl_ref": "src-tauri/src/github.rs::a_merged_pull_request_is_merged_rather_than_closed",
+  "status": "declared",
+  "last_result_ms": null
+}

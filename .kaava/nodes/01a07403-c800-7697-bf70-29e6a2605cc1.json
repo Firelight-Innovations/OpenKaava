@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7697-bf70-29e6a2605cc1",
+  "slug": "catalog",
+  "kind": "module",
+  "title": "Catalog",
+  "description": "Loads the tutorial catalog from the backend and manages completion progress for each tutorial.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-718d-b2d6-63127c14155b",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

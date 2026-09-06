@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7650-a3f3-b61b549a5b38",
+  "slug": "context-menu-four-items",
+  "kind": "test-case",
+  "title": "Context Menu Always Has Four Items",
+  "description": "Verifies menu always shows Cut, Copy, Paste, Select All regardless of subject.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Inert subject (no selection, not editable)",
+  "when": "contextItems() called",
+  "then": "Returns array with labels: Cut, Copy, Paste, Select All",
+  "impl_ref": "src/shell/contextMenu.test.ts::contextItems offers the same four rows whatever was clicked",
+  "status": "declared",
+  "last_result_ms": null
+}

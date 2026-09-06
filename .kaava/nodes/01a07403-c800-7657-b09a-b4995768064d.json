@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7657-b09a-b4995768064d",
+  "slug": "tool-handler-call",
+  "kind": "contract-method",
+  "title": "Dispatch a Tool Method Call",
+  "description": "Handler trait method that every tool implements to answer methods the protocol doesn't own.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7154-a856-36e43d55537d",
+  "signature": "fn call(&mut self, method: &str, params: Option<Value>) -> Result<Value, RpcError>",
+  "params": [
+    "&mut self",
+    "method: &str",
+    "params: Option<Value>"
+  ],
+  "returns": "Result<Value, RpcError>",
+  "errors": [
+    "RpcError"
+  ],
+  "semantics": "Called one request at a time from the serve loop; an unrecognized method returns an error rather than panicking.",
+  "exported": true
+}

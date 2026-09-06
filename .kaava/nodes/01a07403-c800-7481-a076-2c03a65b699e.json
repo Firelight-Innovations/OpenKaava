@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7481-a076-2c03a65b699e",
+  "slug": "plugin-catalog-module-doc",
+  "kind": "doc-block",
+  "title": "Application Library Catalog",
+  "description": "Compiled-in list of installable apps with optional default installation.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78c4-8878-c792de8f7f2c",
+  "body": "The app library, compiled in from `catalog.toml`. This module is only the reader. The catalog is compiled in rather than read off disk so answers are offline and deterministic within a build. Every entry names an app the library offers to install; the `installed` flag moves but the catalog itself does not.",
+  "audience": "agent"
+}

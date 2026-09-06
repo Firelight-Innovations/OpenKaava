@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-71c4-89cf-5b234dd86bc6",
+  "slug": "settings-surface",
+  "kind": "module",
+  "title": "Settings Surface State",
+  "description": "Module-scoped state and hooks for managing the settings screen's open/closed state and the section to land on when opened. Shared across detached window pairs.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bb4-bdbe-fe72bc3e7a0c",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

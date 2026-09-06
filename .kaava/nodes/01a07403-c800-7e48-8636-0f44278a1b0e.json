@@ -1,0 +1,19 @@
+{
+  "id": "01a07403-c800-7e48-8636-0f44278a1b0e",
+  "slug": "schematify-reconcile",
+  "kind": "service",
+  "title": "Schematify Reconcile",
+  "description": "The graph twin at symbol granularity. Scans a working tree for marker tokens, compares them against the declared graph, and writes the outcome under runs/.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": null,
+  "entry_point": "crates/schematify-reconcile/src/bin/kaava.rs — the `kaava reconcile` command.",
+  "exports": [
+    "01a07403-c800-7434-9054-035f0c3678ee",
+    "01a07403-c800-7806-a2ee-5e6f7b51360f"
+  ],
+  "schemas": null
+}

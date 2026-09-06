@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78a3-8e23-79f95d472790",
+  "slug": "staleness-test-caption",
+  "kind": "test-case",
+  "title": "staleCaption matches wireframe exactly",
+  "description": "Verifies the complete caption line format.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f23-8360-1956f352980f",
+  "given": "A stale mark with source and member 2 hours old",
+  "when": "staleCaption is called",
+  "then": "Returns crypto-primitives.sign changed 2h ago. Re-review required.",
+  "impl_ref": "apps/schematify/ui/src/graph/staleness.test.ts::matches the wireframe's exact second line for a facet-level change",
+  "status": "declared",
+  "last_result_ms": null
+}

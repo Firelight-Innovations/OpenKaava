@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7e61-a2a8-6fb76846fc20",
+  "slug": "context-menu-paste-design",
+  "kind": "doc-block",
+  "title": "Why Paste Is Dead",
+  "description": "Design rationale for disabled Paste menu item.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "body": "Paste is present and dead for two reasons: no Chromium engine will run execCommand('paste'), and navigator.clipboard.readText() is gated on a permission whose behaviour in a Tauri v2 WebView2 window could not be established without running the app. Shipping a Paste that silently does nothing is worse than one that says why. Full account in docs/design-notes/shell-chrome.md.",
+  "audience": "human"
+}

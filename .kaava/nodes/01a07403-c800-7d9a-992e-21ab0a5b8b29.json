@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-7d9a-992e-21ab0a5b8b29",
+  "slug": "project-create",
+  "kind": "contract-method",
+  "title": "Create a new OpenKaava project and open it",
+  "description": "Make a folder into an OpenKaava project with a manifest and open it in a cluster.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "signature": "pub fn create(app: &AppHandle, dir: &Path, cluster_id: &str) -> Result<ProjectSnapshot>",
+  "params": [
+    "app: &AppHandle",
+    "dir: &Path",
+    "cluster_id: &str"
+  ],
+  "returns": "Result<ProjectSnapshot>",
+  "errors": [
+    "Io",
+    "AlreadyAProject"
+  ],
+  "semantics": "Creates folder if needed, writes manifest and trace directory, then opens the project.",
+  "exported": true
+}

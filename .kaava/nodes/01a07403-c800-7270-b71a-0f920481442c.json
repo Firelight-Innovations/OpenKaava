@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7270-b71a-0f920481442c",
+  "slug": "shell-state-app-state-get",
+  "kind": "contract-method",
+  "title": "AppState::get",
+  "description": "Retrieve a clone of the last snapshot, or None before the first load.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74ea-9d72-103436d2dbec",
+  "signature": "pub fn get(&self) -> Option<StackSnapshot>",
+  "params": [],
+  "returns": "Option<StackSnapshot>",
+  "errors": [
+    "Panics if lock is poisoned"
+  ],
+  "semantics": "Returns immediately without holding a lock across awaits.",
+  "exported": false
+}

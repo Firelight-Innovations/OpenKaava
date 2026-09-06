@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7eca-a4d0-34a035942290",
+  "slug": "graph-facet-count",
+  "kind": "contract-method",
+  "title": "Count Facets",
+  "description": "Count how many facets a module holds, computed and not stored.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bcb-9de4-3775dbe05092",
+  "signature": "pub fn facet_count(&self, module: Uuid) -> usize",
+  "params": [
+    "module: Uuid"
+  ],
+  "returns": "usize",
+  "errors": [],
+  "semantics": "Counts the direct children of a module that are facets, implementing PRD section 0.4 that forbids storing counts.",
+  "exported": true
+}

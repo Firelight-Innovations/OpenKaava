@@ -1,0 +1,19 @@
+{
+  "id": "01a07403-c800-7615-af82-fb0b57f137da",
+  "slug": "ui-devtools",
+  "kind": "module",
+  "title": "WebView2 DevTools Protocol Interface",
+  "description": "Drives WebView2 UI automation via the DevTools Protocol on Windows, providing screenshot, DOM query, and input methods for agent-driven UI interaction.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [
+    "01a07403-c800-7565-ae9d-23b929975082",
+    "01a07403-c800-74f0-a3b8-b425c5ec91c0",
+    "01a07403-c800-7493-91c1-9fa3dc03ef6d"
+  ],
+  "ui_refs": []
+}

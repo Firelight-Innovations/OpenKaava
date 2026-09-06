@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7fba-97c6-4611d95b3d06",
+  "slug": "plugin-registry",
+  "kind": "external-dep",
+  "title": "tauri",
+  "description": "Desktop framework for state management and event emission.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "AppHandle, Emitter trait, Manager trait for registry and event broadcasting"
+}

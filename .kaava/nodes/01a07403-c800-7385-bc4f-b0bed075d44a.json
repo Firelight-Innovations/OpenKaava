@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7385-bc4f-b0bed075d44a",
+  "slug": "tool-frontend-module-doc",
+  "kind": "doc-block",
+  "title": "Tool Frontend Resolution",
+  "description": "Determines which URL (dev server or built bundle) should mount a tool iframe.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7219-9c03-3b1eff89b2cd",
+  "body": "Where a tool's frontend is served from, and how. A tool mounts into the tool window as an iframe on its own origin. There are two answers for which URL goes in the `src`: In development, the tool's own Vite server, declared as `frontend.dev-url` in kaava-tool.toml. In a release build, the tool's built `frontend.dist` directory, served over the custom `kaava-tool://` scheme. Everything else — a checkout that isn't there, a manifest that doesn't parse — resolves to `Unavailable` with a reason.",
+  "audience": "agent"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7779-a245-d4e6f0b365d5",
+  "slug": "project-test-service-names",
+  "kind": "test-case",
+  "title": "projectServiceGraph names the service",
+  "description": "Verifies the service graph is correctly named by its slug and title.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b17-92da-f10f0c4deca9",
+  "given": "A raw graph with a service node",
+  "when": "projectServiceGraph is called with that service's slug",
+  "then": "The returned graph has the correct serviceSlug and serviceTitle",
+  "impl_ref": "apps/schematify/ui/src/graph/project.test.ts::names the service by its slug and title",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c73-8db4-e51d1c41a46a",
+  "slug": "backend-fetch-lint",
+  "kind": "contract-method",
+  "title": "fetchLintReport",
+  "description": "Calls schematify/lint to get the whole project's Problems panel findings.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-755e-b721-aa6fca8f5064",
+  "signature": "function fetchLintReport(): Promise<RawLintReport>",
+  "params": [],
+  "returns": "Promise<RawLintReport>",
+  "errors": [],
+  "semantics": "Reads lint findings from backend.",
+  "exported": true
+}

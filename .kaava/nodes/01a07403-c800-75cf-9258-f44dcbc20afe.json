@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-75cf-9258-f44dcbc20afe",
+  "slug": "palette-fuzzy-subsequence",
+  "kind": "test-case",
+  "title": "Fuzzy: Subsequence Match",
+  "description": "Tests that fuzzy matching works for non-contiguous subsequences.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7497-b529-d3c21db99100",
+  "given": "Needle 'vzi' and haystack 'View: Zoom In'",
+  "when": "fuzzyMatch is called",
+  "then": "Returns non-null match",
+  "impl_ref": "src/shell/palette/fuzzy.test.ts::matching a needle against a label::matches a subsequence, not just a substring",
+  "status": "declared",
+  "last_result_ms": null
+}

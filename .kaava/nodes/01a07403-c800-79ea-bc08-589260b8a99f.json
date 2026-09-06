@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79ea-bc08-589260b8a99f",
+  "slug": "host-is-send-sync",
+  "kind": "test-case",
+  "title": "ToolProcess is Send + Sync",
+  "description": "ToolProcess can be moved to and shared between threads, as required by Tauri.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-762d-94d0-4cb8287084c4",
+  "given": "A ToolProcess type",
+  "when": "type-checked for Send + Sync + 'static bounds",
+  "then": "compilation succeeds",
+  "impl_ref": "crates/kaava-rpc/src/host.rs::is_send_sync_for_tauri_managed_state",
+  "status": "declared",
+  "last_result_ms": null
+}

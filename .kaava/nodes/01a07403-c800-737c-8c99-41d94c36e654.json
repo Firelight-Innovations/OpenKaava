@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-737c-8c99-41d94c36e654",
+  "slug": "client-publish-request",
+  "kind": "test-case",
+  "title": "publish sends kaava/publish request",
+  "description": "Verifies that publishing a topic sends a request and deduplicates repeated identical values.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client with completed handshake",
+  "when": "publish('files/active-path', {path: 'a.txt'}) is called twice with equal values",
+  "then": "Only one kaava/publish request is posted; a different value triggers a new request",
+  "impl_ref": "packages/bridge/src/client.test.ts::sends a publish, and does not re-send an unchanged value",
+  "status": "declared",
+  "last_result_ms": null
+}

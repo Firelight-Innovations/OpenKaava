@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7e50-b9bf-2c07534a4168",
+  "slug": "protocol",
+  "kind": "module",
+  "title": "Wire Protocol",
+  "description": "Message types and validators for the tool frontend ↔ shell window message protocol, including messages for handshake, requests, responses, events, commands, and topic subscriptions.",
+  "lifecycle": "specified",
+  "layer": "data",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-766e-94db-d0683eb24506",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

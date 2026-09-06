@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7ebf-8a5c-6658caa49ee1",
+  "slug": "windows",
+  "kind": "external-dep",
+  "title": "tauri",
+  "description": "Desktop app framework with IPC, plugins, windows and state management",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7db8-a655-5ab4032a4733",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "AppHandle, WebviewWindow, WebviewWindowBuilder for window creation and lifecycle"
+}

@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-7a1d-a0f5-e76d9c2b0ac6",
+  "slug": "git-operations-git-checkout",
+  "kind": "contract-method",
+  "title": "Checkout Branch",
+  "description": "Move the cluster's checkout onto a target branch or detached commit.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "signature": "pub fn git_checkout(app: AppHandle, cluster_id: String, target: String, detach: bool) -> Result<()>",
+  "params": [
+    "app",
+    "cluster_id",
+    "target",
+    "detach"
+  ],
+  "returns": "Result<()>",
+  "errors": [
+    "AppError::Git"
+  ],
+  "semantics": "Delegates entirely to git's own validation and error messages.",
+  "exported": true
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-77d9-9d47-373fce5c5c32",
+  "slug": "plugin-watch-2",
+  "kind": "external-dep",
+  "title": "notify",
+  "description": "File system event watcher for detecting plugin rebuilds.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a4-91d1-5b52d3a3d82c",
+  "registry_ref": "01a07403-c800-7785-950e-a30371fa8e05",
+  "usage_note": "RecommendedWatcher, Event, RecursiveMode for watching manifest and binary directories"
+}

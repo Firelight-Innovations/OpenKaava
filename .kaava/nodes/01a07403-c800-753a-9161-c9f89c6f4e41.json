@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-753a-9161-c9f89c6f4e41",
+  "slug": "design-app-rpc-doc",
+  "kind": "doc-block",
+  "title": "Design RPC restated from Rust",
+  "description": "Backend shapes mirrored in frontend to prevent coupling",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a0-9c27-267f8065604a",
+  "body": "Every call this app makes to its host, in one file. The shapes mirror `src-tauri/src/apps/design.rs` and are restated rather than imported, for the reason `apps/files/ui/src/rpc.ts` gives.",
+  "audience": "agent"
+}

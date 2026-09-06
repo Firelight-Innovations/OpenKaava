@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7089-a16f-508a20829f6e",
+  "slug": "project-marker-find-locates-manifest",
+  "kind": "test-case",
+  "title": "find locates the manifest and ignores .kaava/ directory",
+  "description": "Manifest file is found even when .kaava/ directory exists.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7742-a1fb-c4253f531eb9",
+  "given": "A project with both <name>.kaava and .kaava/",
+  "when": "marker::find is called",
+  "then": "Returns the path to <name>.kaava",
+  "impl_ref": "src-tauri/src/project/marker.rs::find_locates_the_manifest_and_ignores_the_trace_directory",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7851-a75d-b5800efe2516",
+  "slug": "project-cluster-pointer",
+  "kind": "contract-method",
+  "title": "Get a cluster's project, regardless of disk presence",
+  "description": "Return the project path a cluster is pointed at, without verifying it exists.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "signature": "pub fn cluster_pointer(app: &AppHandle, cluster_id: &str) -> Option<PathBuf>",
+  "params": [
+    "app: &AppHandle",
+    "cluster_id: &str"
+  ],
+  "returns": "Option<PathBuf>",
+  "errors": [],
+  "semantics": "Returns the project a cluster is configured to open, for display even if the folder was deleted or unplugged.",
+  "exported": false
+}

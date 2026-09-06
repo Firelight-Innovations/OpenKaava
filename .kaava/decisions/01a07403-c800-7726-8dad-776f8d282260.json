@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7726-8dad-776f8d282260",
+  "kind": "decision",
+  "slug": "DEC-SCH-IDENT-003",
+  "title": "Decision nodes carry structured slugs in the form DEC-<AREA>-<TOPIC>-<NNN>",
+  "context": "Decision identifiers must be machine-readable for linking and human-readable for discovery. The alternative would be unstructured slugs like `auth-decision-3` or using only UUIDs.",
+  "decision": "Every decision node carries a slug matching the pattern `DEC-<AREA>-<TOPIC>-<NNN>` where AREA and TOPIC are uppercase letters only and NNN is exactly three digits. The structured slug is the `slug` field (not the `id`), unique within the decision collection.",
+  "consequences": "Decisions are discoverable and linkable by their structured name; the pattern enforces categorization; areas and topics can be extracted for grouping and reporting; the slug cannot be used as a fallback identifier because it is strictly formatted.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

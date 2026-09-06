@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7287-89b1-d6f244c86dd5",
+  "slug": "app-updater-2",
+  "kind": "external-dep",
+  "title": "tauri-plugin-updater",
+  "description": "Tauri plugin for checking and installing application updates.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7725-8d89-01b343796845",
+  "registry_ref": "01a07403-c800-7f2e-ba89-af9f52c05df1",
+  "usage_note": "UpdaterExt trait for app.updater(), download_and_install() workflow"
+}

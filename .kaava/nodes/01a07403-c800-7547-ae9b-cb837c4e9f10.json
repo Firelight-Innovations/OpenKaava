@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7547-ae9b-cb837c4e9f10",
+  "slug": "app-updater-check-for-update",
+  "kind": "contract-method",
+  "title": "Check for Update",
+  "description": "Query the releases endpoint and transition through checking states.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7725-8d89-01b343796845",
+  "signature": "#[tauri::command] pub async fn check_for_update(app: AppHandle) -> UpdateState",
+  "params": [
+    "app: AppHandle"
+  ],
+  "returns": "UpdateState",
+  "errors": [],
+  "semantics": "Emits state changes as events; settles in UpToDate, Available, Failed, or Unsupported.",
+  "exported": true
+}

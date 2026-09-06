@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-70cf-b78c-349e0008e218",
+  "slug": "ci-gateway-parse",
+  "kind": "contract-method",
+  "title": "parse",
+  "description": "Parses build tool output and extracts structured findings.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73d7-a1af-eac6f5057d04",
+  "signature": "parse(output: string, repoRoot: string): object[]",
+  "params": [
+    "output: raw output from build, lint, test, or format tools",
+    "repoRoot: repository root for relativizing paths"
+  ],
+  "returns": "array of findings with tool, file, line, col, and message",
+  "errors": [],
+  "semantics": "Converts output from tsc, eslint, clippy, rustfmt, prettier, and Cargo test into a uniform finding format.",
+  "exported": false
+}

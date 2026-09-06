@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-712e-90f9-bd632bce8a79",
+  "slug": "registry-overview",
+  "kind": "doc-block",
+  "title": "Registry Shape",
+  "description": "The registry holds enabled/disabled state, not the definitions.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74ba-abfe-06dbc4c59dec",
+  "body": "Deliberately shaped like `apps::REGISTRY`: an id, a display name, a description, and the function that answers a call. The difference is that this one is a `Vec` built at boot rather than a `const` slice, because a server can be switched off from settings and the exposed set has to be allowed to change while a client is connected.",
+  "audience": "agent"
+}

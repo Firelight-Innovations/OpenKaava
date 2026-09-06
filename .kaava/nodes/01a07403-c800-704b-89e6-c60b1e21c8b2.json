@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-704b-89e6-c60b1e21c8b2",
+  "slug": "viewer-app-commands-doc",
+  "kind": "doc-block",
+  "title": "Commands as messages through bridge",
+  "description": "Menu commands are routed via bridge to avoid cross-frame coupling",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-786a-9874-be99239e4df9",
+  "body": "The title bar's File and Edit menus, from this side. The shell's menu bar cannot reach into this app — File Viewer runs in an iframe and the shell must not import its hooks or poke its DOM. So a menu item is a *message*: the shell posts a transport-B `command` to the active frame and this module answers it.",
+  "audience": "agent"
+}

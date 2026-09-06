@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7451-a723-5679117091c2",
+  "slug": "terminal-view-component",
+  "kind": "contract-method",
+  "title": "Terminal Emulator View",
+  "description": "React component wrapping xterm.js with clipboard handling and dynamic resizing.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7011-923c-5233df9ecad3",
+  "signature": "export default forwardRef(XTermView)",
+  "params": [
+    "TerminalTransport",
+    "string"
+  ],
+  "returns": "ReactNode",
+  "errors": [],
+  "semantics": "Mounts and manages one xterm.js Terminal instance per session.",
+  "exported": true
+}

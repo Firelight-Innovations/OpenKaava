@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7d12-b3d6-9d93871b55d6",
+  "slug": "monaco-languages",
+  "kind": "service",
+  "title": "Monaco Languages",
+  "description": "The extra Monaco language definitions this project ships, TOML among them, registered when an editor first opens.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": null,
+  "entry_point": "packages/monaco-languages/src/index.ts.",
+  "exports": [
+    "01a07403-c800-7536-b7fe-9e5a9ad5633b",
+    "01a07403-c800-7103-84d5-16130832e13c",
+    "01a07403-c800-7615-b48a-6667e13e9865",
+    "01a07403-c800-7783-87bd-5cfc59364a64",
+    "01a07403-c800-7f78-b92f-8533d0faaca8",
+    "01a07403-c800-70a2-a26d-d63ba3006b75",
+    "01a07403-c800-7547-995a-cc2b4d3bf3c5"
+  ],
+  "schemas": null
+}

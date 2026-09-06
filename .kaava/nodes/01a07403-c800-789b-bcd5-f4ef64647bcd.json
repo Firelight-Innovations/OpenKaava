@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-789b-bcd5-f4ef64647bcd",
+  "slug": "listener-endpoint-env",
+  "kind": "contract-method",
+  "title": "Get Environment Variables",
+  "description": "Export the endpoint as PTY environment variables.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7086-80ae-e8b05191e7a8",
+  "signature": "pub fn env(&self) -> Vec<(String, String)>",
+  "params": [],
+  "returns": "Vec<(String, String)>",
+  "errors": [],
+  "semantics": "Returns a vector of KAAVA_MCP_PORT and KAAVA_MCP_TOKEN if bound, or an empty vector if not.",
+  "exported": false
+}

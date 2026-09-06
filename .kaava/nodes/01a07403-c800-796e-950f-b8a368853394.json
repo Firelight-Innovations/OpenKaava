@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-796e-950f-b8a368853394",
+  "slug": "storage-store-open",
+  "kind": "contract-method",
+  "title": "Open Store",
+  "description": "Create a store handle over a project directory.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-786a-927d-06cc6a4b0332",
+  "signature": "pub fn open(project_root: impl Into<PathBuf>) -> Self",
+  "params": [
+    "project_root: impl Into<PathBuf>"
+  ],
+  "returns": "Store",
+  "errors": [],
+  "semantics": "Creates a Store that knows where .kaava/ sits and can compute paths for all semantic and audit files.",
+  "exported": true
+}

@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-78aa-838a-6e8f2db5b559",
+  "slug": "errors",
+  "kind": "module",
+  "title": "Error Handling",
+  "description": "Standard JSON-RPC error codes plus Kaava-specific codes, and the KaavaRpcError exception class that normalizes all RPC rejections from invoke() calls.",
+  "lifecycle": "specified",
+  "layer": "data",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-766e-94db-d0683eb24506",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

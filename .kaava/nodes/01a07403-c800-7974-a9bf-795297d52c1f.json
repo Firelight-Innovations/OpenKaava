@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7974-a9bf-795297d52c1f",
+  "slug": "worktree-logic-selection-staged-side",
+  "kind": "test-case",
+  "title": "Selection: Staged Side Distinction",
+  "description": "Tests that staged and unstaged versions of same file are distinct.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71fe-af1c-0dcd2dfd9607",
+  "given": "Same path with staged: true and staged: false",
+  "when": "selections are compared",
+  "then": "isRowSelected returns false when checking one against the other",
+  "impl_ref": "src/shell/worktree/selection.test.ts::selectionFor and isRowSelected::does not match the same path on the other side of the index",
+  "status": "declared",
+  "last_result_ms": null
+}

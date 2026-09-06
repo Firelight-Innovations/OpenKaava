@@ -1,0 +1,27 @@
+{
+  "id": "01a07403-c800-7edd-958d-bee95ef71ba3",
+  "slug": "tutorial-call",
+  "kind": "contract-method",
+  "title": "Tutorials app dispatcher",
+  "description": "Handles JSON-RPC method calls for tutorial catalog and progress tracking.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ee8-82c9-e4bc6f0a02fe",
+  "signature": "fn call(app: &AppHandle, context: &CallContext, method: &str, params: Option<Value>) -> Result<Value, RpcError>",
+  "params": [
+    "app",
+    "context",
+    "method",
+    "params"
+  ],
+  "returns": "Result<Value, RpcError>",
+  "errors": [
+    "INVALID_PARAMS",
+    "INTERNAL_ERROR",
+    "METHOD_NOT_FOUND"
+  ],
+  "semantics": "Implements tutorial/catalog, tutorial/complete, and tutorial/reset to manage tutorial state.",
+  "exported": true
+}

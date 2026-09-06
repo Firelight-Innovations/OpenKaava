@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7616-b4d2-6f8c394a124d",
+  "slug": "userdata-store-read",
+  "kind": "contract-method",
+  "title": "Read a user-data store file with fallback",
+  "description": "Load a JSON file, degrading gracefully if unreadable or from a newer format.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-70ee-93f1-c95ba74cde29",
+  "signature": "pub fn read<T: DeserializeOwned + Default>(path: &Path, keep: Keep) -> T",
+  "params": [
+    "path: &Path",
+    "keep: Keep"
+  ],
+  "returns": "T",
+  "errors": [],
+  "semantics": "Never fails; missing files or newer formats return T::default(), backing up precious files on corruption.",
+  "exported": false
+}

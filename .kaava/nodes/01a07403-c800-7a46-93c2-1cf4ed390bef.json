@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7a46-93c2-1cf4ed390bef",
+  "slug": "settings-screen",
+  "kind": "module",
+  "title": "Settings Screen UI",
+  "description": "The main settings screen with a sidebar for section selection, a search filter, and the selected section's rows. Includes the MCP panel as a special-case extension.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-799f-a747-a362c74e823d",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7c87-b8d6-92e496cea50e"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7ee2-9273-f14c08d7ba6c",
+  "slug": "project-folder-name-fallback-for-root",
+  "kind": "test-case",
+  "title": "folder_name falls back for drive roots",
+  "description": "A drive root with no file name component falls back to the full path.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "given": "A drive root path like C:\\",
+  "when": "folder_name is called",
+  "then": "Returns the full path string instead of empty",
+  "impl_ref": "src-tauri/src/project/mod.rs::folder_name_of_a_root_falls_back_to_the_path",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7bcb-9de4-3775dbe05092",
+  "slug": "graph",
+  "kind": "module",
+  "title": "In-Memory Design Graph",
+  "description": "The design graph loaded into memory with three indexes: children (containment), outgoing edges (dependencies), and incoming edges (dependents). Rebuilt on every load, never persisted.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7abe-9eed-7510b796f92a",
+  "allowed_libraries": [
+    "01a07403-c800-71e9-a09e-d51d7c34d3cc"
+  ],
+  "ui_refs": []
+}

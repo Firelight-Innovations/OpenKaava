@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7e14-bc6f-e3a58f7ad438",
+  "slug": "drop-zones-use-drop-zone",
+  "kind": "contract-method",
+  "title": "useDropZone Hook",
+  "description": "Registers an element as a drop target zone (pane, strip, panel, or terminal) with the global registry.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b01-8375-1c88edc532e9",
+  "signature": "function useDropZone(zone: DropZone): (el: HTMLElement | null) => void",
+  "params": [
+    "zone: DropZone"
+  ],
+  "returns": "(el: HTMLElement | null) => void",
+  "errors": [],
+  "semantics": "Returns stable ref callback; zone read through ref ensures registration is current even during drag moves.",
+  "exported": true
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7589-a548-95a0297ec3bf",
+  "slug": "schematify-per-cluster",
+  "kind": "doc-block",
+  "title": "Schematify per-cluster scope",
+  "description": "Each cluster's call is independent.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7aa6-b49a-5ee6d01af898",
+  "body": "Schematify reads nothing off the handle for any method below — every one of them goes through CallContext and the filesystem — so threading a live handle through a test would only be there to satisfy the type and not because anything used it.",
+  "audience": "agent"
+}

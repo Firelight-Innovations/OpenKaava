@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-74ba-839a-5fc3b24f6337",
+  "slug": "plugin-install-has-token",
+  "kind": "contract-method",
+  "title": "Check Token Presence",
+  "description": "Test whether a GitHub token is stored.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-762d-98bf-9549ca7a28bb",
+  "signature": "pub fn has_token() -> bool",
+  "params": [],
+  "returns": "bool",
+  "errors": [],
+  "semantics": "Never exposes token itself; used for UI signing state.",
+  "exported": true
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7240-a09e-8eda962b5db7",
+  "kind": "decision",
+  "slug": "DEC-SCH-RECON-001",
+  "title": "Marker token prefix changes from @forger: to @kaava:",
+  "context": "Legacy Forger code uses `@forger:` prefix. HELVE rebranding requires updating the marker token.",
+  "decision": "Replace all `@forger:` marker tokens with `@kaava:` to align with the HELVE rebranding. Existing `@forger:` tokens will not be recognized by the reconciler.",
+  "consequences": "All marker tokens in existing projects must be updated (manual or automated); reconciliation against old code bases will report `present_unknown` for `@forger:` tokens; backward compatibility is not maintained; migration path needed for teams with existing markers.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

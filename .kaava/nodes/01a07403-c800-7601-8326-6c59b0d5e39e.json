@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7601-8326-6c59b0d5e39e",
+  "slug": "tutorial-serde-json",
+  "kind": "external-dep",
+  "title": "serde_json",
+  "description": "JSON serialization for tutorial catalog and progress persistence.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ee8-82c9-e4bc6f0a02fe",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "Value type for method parameters; json! macro for building catalog responses"
+}

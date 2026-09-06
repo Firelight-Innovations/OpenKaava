@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-75f9-b991-137d8fd8d47b",
+  "slug": "types-tier",
+  "kind": "contract-method",
+  "title": "Tier Type",
+  "description": "Union type representing the 3 tiers a Schematic can draw: stack, service, or module.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a11-b05c-3720ce96e87b",
+  "signature": "type Tier = \"stack\" | \"service\" | \"module\"",
+  "params": [],
+  "returns": "Tier",
+  "errors": [],
+  "semantics": "Identifies which containment level a Schematic operates at.",
+  "exported": true
+}

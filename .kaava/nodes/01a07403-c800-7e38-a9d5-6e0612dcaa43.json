@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7e38-a9d5-6e0612dcaa43",
+  "slug": "layout-pane-node-open-into",
+  "kind": "contract-method",
+  "title": "PaneNode::open_into",
+  "description": "Open a new instance beside a target pane, subject to the pane ceiling limit of 4 auto-split panes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ff9-963f-4bb8df82714f",
+  "signature": "pub fn open_into(&mut self, new_instance: String, pane_id: &str, dir: SplitDir) -> bool",
+  "params": [
+    "new_instance: String",
+    "pane_id: &str",
+    "dir: SplitDir"
+  ],
+  "returns": "bool",
+  "errors": [],
+  "semantics": "Splits panes up to MAX_AUTO_PANES (4), then stacks remaining opens as tabs; returns false if pane not found.",
+  "exported": false
+}

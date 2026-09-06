@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7901-9d34-cbf7f5b29e66",
+  "slug": "project-store-touch-moves-to-front",
+  "kind": "test-case",
+  "title": "Touching moves a project to front without duplicating",
+  "description": "Opening an existing recent project moves it to front as one entry.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b76-a547-de7e3176cebe",
+  "given": "A Stored with projects [a, b, c]",
+  "when": "touch is called with path a",
+  "then": "Recents becomes [a, b, c] with a at index 0 and length still 3",
+  "impl_ref": "src-tauri/src/project/store.rs::touching_moves_a_project_to_the_front_without_duplicating_it",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-77bf-9387-5c01bae705bd",
+  "slug": "diff-review-unsent-count",
+  "kind": "test-case",
+  "title": "Review: Unsent Filter",
+  "description": "Tests that unsent comments are identified correctly.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "given": "Mix of sent and unsent comments",
+  "when": "unsent is called",
+  "then": "Returns only comments with no sentAt timestamp",
+  "impl_ref": "src/shell/diff/reviewComments.test.ts::unsent and unresolved::counts a note with no sent stamp as unsent",
+  "status": "declared",
+  "last_result_ms": null
+}

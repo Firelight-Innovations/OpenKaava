@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7603-b9f5-baa192185844",
+  "slug": "app-updater-module-doc",
+  "kind": "doc-block",
+  "title": "Update Mechanism Overview",
+  "description": "Tauri-plugin-based release checking and installation with explicit state machine.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7725-8d89-01b343796845",
+  "body": "Finding out that a newer OpenKaava exists, and replacing this one with it. The mechanism is `tauri-plugin-updater`: it fetches the `latest.json` named in `plugins.updater.endpoints`, verifies its minisign signature against `plugins.updater.pubkey`, downloads the NSIS installer and runs it. What is here is the part that plugin has no opinion about — when a check happens, what the interface is told while it is happening, and what a failure reads like on screen. Driven from Rust, not from the webview — Rust owns everything touching the machine, and this downloads a file and runs an installer.",
+  "audience": "agent"
+}

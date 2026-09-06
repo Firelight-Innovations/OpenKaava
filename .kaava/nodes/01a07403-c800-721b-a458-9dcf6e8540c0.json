@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-721b-a458-9dcf6e8540c0",
+  "slug": "drop-zones-pane-rect",
+  "kind": "contract-method",
+  "title": "paneRect Function",
+  "description": "Returns the bounding rectangle of a pane element if it is currently on screen, or null.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b01-8375-1c88edc532e9",
+  "signature": "function paneRect(paneId: string): DOMRect | null",
+  "params": [
+    "paneId: string"
+  ],
+  "returns": "DOMRect | null",
+  "errors": [],
+  "semantics": "Reads live from registry without caching; used by split-on-open logic to position new panes.",
+  "exported": true
+}

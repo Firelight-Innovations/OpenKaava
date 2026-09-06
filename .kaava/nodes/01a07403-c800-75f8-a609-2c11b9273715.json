@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-75f8-a609-2c11b9273715",
+  "slug": "terminal-css-overview",
+  "kind": "doc-block",
+  "title": "Terminal Deck Layout CSS",
+  "description": "Explains deck layout, hide/show mechanics, and split pane positioning.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71fa-8cfc-3e06c842aa4b",
+  "body": "The terminal deck: one xterm instance per session, all mounted, one shown. Owns the deck's own layout and the hide/show mechanics XTermView depends on. Split panes positioned with custom properties per pane rather than by moving panes into a flex wrapper, to keep all slots permanent and unmoving siblings.",
+  "audience": "agent"
+}

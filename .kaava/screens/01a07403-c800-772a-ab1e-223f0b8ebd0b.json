@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-772a-ab1e-223f0b8ebd0b",
+  "kind": "screen",
+  "slug": "title-bar",
+  "title": "Title Bar",
+  "purpose": "Window control bar with menus (File, Edit, View) and window controls (minimize, maximize, close)",
+  "states": [
+    "normal - standard menu state",
+    "fullscreen - menu items reflect fullscreen state",
+    "detached-window - simplified for detached windows"
+  ],
+  "acceptance": [
+    "shall display File menu with New Window, Open, Save operations",
+    "shall display Edit menu with undo, cut, copy, paste operations",
+    "shall display View menu with terminal, sidebar, fullscreen toggles",
+    "shall display window controls (minimize, maximize, close) on right",
+    "shall gray out menu items that are not available for current state",
+    "shall show window title with active app or cluster name",
+    "shall support keyboard accelerators for menu items"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7806-88f7-dafc7969fdd8"
+  ]
+}

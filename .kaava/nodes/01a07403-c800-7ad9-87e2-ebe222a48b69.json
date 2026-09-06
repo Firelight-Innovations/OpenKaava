@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7ad9-87e2-ebe222a48b69",
+  "slug": "plugin-broker-is-running",
+  "kind": "contract-method",
+  "title": "Check Plugin Core Status",
+  "description": "Test whether a package's core is running right now.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78db-904b-bb87473e03bb",
+  "signature": "pub fn is_running(&self, package_id: &str) -> bool",
+  "params": [
+    "package_id: &str"
+  ],
+  "returns": "bool",
+  "errors": [],
+  "semantics": "Returns true if core exists in map; does not probe process.",
+  "exported": false
+}

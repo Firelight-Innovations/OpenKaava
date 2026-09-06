@@ -1,0 +1,26 @@
+{
+  "id": "01a07403-c800-77e3-a1e8-6ee8366ab713",
+  "kind": "flow",
+  "slug": "view-project-stack-health",
+  "title": "Check Project Stack Health and Tool Status",
+  "trigger": "User wants to verify that all project tools and dependencies are properly configured",
+  "steps": [
+    {
+      "screen": "schematify://screen/01a07403-c800-7953-b112-117deaa747db",
+      "action": "Look at the switcher bar to spot the health badge if any tools are not well; it is a warning triangle with a count"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c34-9e8c-646297e0b08b",
+      "action": "Click the health badge to open a list of tools with status issues (needs update, not tracked, not installed)"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c34-9e8c-646297e0b08b",
+      "action": "The list shows which tools are missing, need updates, or are out of sync with kaava.toml"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c0a-bb93-223be6b8c63c",
+      "action": "Use a terminal to clone or pull the tool repositories as needed to resolve the issues"
+    }
+  ],
+  "outcome": "The stack health badge shows the status of any pinned tools, indicating if updates or installations are needed"
+}

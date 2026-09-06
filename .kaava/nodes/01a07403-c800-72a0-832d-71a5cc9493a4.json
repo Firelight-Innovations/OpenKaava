@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-72a0-832d-71a5cc9493a4",
+  "slug": "files-base64",
+  "kind": "external-dep",
+  "title": "base64",
+  "description": "Base64 encoding and decoding for file binary content.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d29-9b02-357f7f4c18c2",
+  "registry_ref": "01a07403-c800-7299-afdf-128e540beb73",
+  "usage_note": "Encoding file bytes as base64 for files/read-bytes method to pass binary data through JSON"
+}

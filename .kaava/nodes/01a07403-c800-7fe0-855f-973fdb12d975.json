@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7fe0-855f-973fdb12d975",
+  "slug": "file-api-create-dir",
+  "kind": "contract-method",
+  "title": "Create Directory",
+  "description": "Create a new directory.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export const createDir = (parent: string, name: string) => invoke<Created>('files/create-dir', { parent, name })",
+  "params": [
+    "parent: string",
+    "name: string"
+  ],
+  "returns": "Promise<Created> with path, name, kind",
+  "errors": [],
+  "semantics": "Creates a new directory; validates name.",
+  "exported": true
+}

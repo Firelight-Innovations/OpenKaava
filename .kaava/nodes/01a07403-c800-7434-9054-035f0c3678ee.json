@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7434-9054-035f0c3678ee",
+  "slug": "kaava-binary-main",
+  "kind": "contract-method",
+  "title": "CLI Entry Point",
+  "description": "kaava command-line tool entry point, dispatching to subcommands.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-76f3-b30d-63296fe9e9db",
+  "signature": "fn main() -> ExitCode",
+  "params": [],
+  "returns": "ExitCode",
+  "errors": [],
+  "semantics": "Parses argv and dispatches to appropriate subcommand handler.",
+  "exported": true
+}

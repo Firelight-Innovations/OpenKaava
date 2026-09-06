@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7704-8d75-499dea6882e7",
+  "kind": "decision",
+  "slug": "DEC-TEC-FILES-015",
+  "title": "Delete needs confirmation dialog plus Recycle Bin integration for recovery",
+  "context": "Destructive menu item teaches people the menu is where you manage files. Bare Delete is worse than no Delete at all.",
+  "decision": "Delete requires confirmation dialog (counts folder contents, names unsaved work, focuses Cancel). Deletion goes through trash crate, making it recoverable via OS Recycle Bin.",
+  "consequences": "Delete can appear in the menu because the two barriers (confirmation + recovery) are in place. Unconfirmed destructive action never happens on a single click.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

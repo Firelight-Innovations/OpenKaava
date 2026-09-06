@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7687-967d-ddd0fc5b4565",
+  "slug": "app-root-orchestration",
+  "kind": "doc-block",
+  "title": "App Root Component Orchestration",
+  "description": "Manages top-level state, engine lifecycle, and data synchronization.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7fb5-aa99-e6208f931a06",
+  "body": "The App component orchestrates the entire Schematify interface. It manages tier navigation state (path array of DrillTargets), opens and closes Schematics via the engine, fetches linting findings and runs project-wide (once per mount, not per tier switch), handles Problems panel click-through navigation, loads product graph data lazily on first access to Product/Decisions sections, and manages the module dashboard overlay. Wave 7b and Wave 10c changes are integrated: findings click-through can navigate to a different Schematic, and Product/Decisions panels swap the center body entirely.",
+  "audience": "human"
+}

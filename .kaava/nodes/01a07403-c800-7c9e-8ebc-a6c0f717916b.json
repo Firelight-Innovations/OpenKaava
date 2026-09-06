@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7c9e-8ebc-a6c0f717916b",
+  "slug": "blocks",
+  "kind": "module",
+  "title": "Block Renderer",
+  "description": "Renders tutorial blocks (text, steps, code, mocks, flows) and inline markdown-style formatting.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-718d-b2d6-63127c14155b",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-792e-af7c-c6b7b8831232"
+  ]
+}

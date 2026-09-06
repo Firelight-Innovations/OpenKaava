@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7913-b0f3-90e621cbe48c",
+  "slug": "formatting-consistent",
+  "statement": "Code must be formatted according to Prettier and rustfmt standards.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm format:check"
+}

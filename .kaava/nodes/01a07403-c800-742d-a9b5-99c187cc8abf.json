@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-742d-a9b5-99c187cc8abf",
+  "slug": "terminal-sessions-busy",
+  "kind": "contract-method",
+  "title": "Check Session Busyness",
+  "description": "Does this session's shell have a child process running.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731a-ab6c-3a00854fdef3",
+  "signature": "pub fn busy(sessions: &PtySessions, id: &str) -> Option<Busy>",
+  "params": [
+    "sessions",
+    "id"
+  ],
+  "returns": "Option<Busy>",
+  "errors": [],
+  "semantics": "Returns the direct child process if the shell is running something, None otherwise.",
+  "exported": false
+}

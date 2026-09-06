@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7147-869e-803b11c7e925",
+  "slug": "userdata-backup-newest",
+  "kind": "contract-method",
+  "title": "Find the newest backup of a file with a given label",
+  "description": "Search the backups directory for the most recent copy with a label.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7647-a2bc-d7543b67ec40",
+  "signature": "pub fn newest(path: &Path, label: &str) -> Option<PathBuf>",
+  "params": [
+    "path: &Path",
+    "label: &str"
+  ],
+  "returns": "Option<PathBuf>",
+  "errors": [],
+  "semantics": "Returns the newest backup by timestamp in the filename, used for restoring on downgrade.",
+  "exported": false
+}

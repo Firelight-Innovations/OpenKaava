@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7919-b359-e87ddc820cbc",
+  "slug": "presets",
+  "kind": "module",
+  "title": "Tier Presets",
+  "description": "The three tier configurations as SchematicConfig values. Proof of PRD §17 Wave 5: one engine serves all tiers through data alone. Contains edge vocabularies, node sizes, and facet palettes.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

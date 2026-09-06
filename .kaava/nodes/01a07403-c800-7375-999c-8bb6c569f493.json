@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7375-999c-8bb6c569f493",
+  "slug": "validators-regression-test-purpose",
+  "kind": "doc-block",
+  "title": "No Literal Color Regression Test Purpose",
+  "description": "Enforces PRD §17 Wave 2's acceptance condition that no literal color values escape the tokens file.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7568-b464-c150d28c61e2",
+  "body": "PRD §17 Wave 2's acceptance condition is 'packages/schematify-ui holds no literal hex value' (updated to apps/schematify/ui/ per audit baseline). The test expands beyond hex to cover rgb(), rgba(), hsl(), hsla(), hwb(), lab(), lch(), oklab(), oklch(), and color-mix() functional forms, plus all 147 CSS named-color keywords, because every one bypasses --kv-* tokens exactly as a hex literal would. The test exempts tokens.css (which holds the design token definitions) and this file itself (whose positive-control test fixtures need literal colors to verify the patterns catch them). Two files are exempt by design; no others are allowed.",
+  "audience": "agent"
+}

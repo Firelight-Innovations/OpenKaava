@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7dd1-9e6f-3a5f9034098a",
+  "slug": "frame",
+  "kind": "module",
+  "title": "Frame Building",
+  "description": "Builds one frame's draw model: visible nodes and edges, routed paths, collapsed captions, legend, and readout. Measured against the 16 ms budget in PRD §14.7. Every count is computed fresh, never read from storage (PRD §0.4).",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

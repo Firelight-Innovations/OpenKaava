@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-748f-893f-6f68961a5abd",
+  "slug": "manifest-parser-semver",
+  "kind": "external-dep",
+  "title": "Semantic Versioning",
+  "description": "Parses and validates semantic version strings in tool version field.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "registry_ref": "01a07403-c800-7aa2-b3b9-6a78efea577b",
+  "usage_note": "Version::parse() validates tool.version against semver format"
+}

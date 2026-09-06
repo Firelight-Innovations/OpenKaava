@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b8b-83f9-0fb2587d57c8",
+  "slug": "product-screendesignlinkstate-none",
+  "kind": "test-case",
+  "title": "Screen design link state when not linked",
+  "description": "Verifies that screenDesignLinkState returns 'none' when design_ref is absent.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "given": "A RawScreen with no design_ref field",
+  "when": "screenDesignLinkState is called",
+  "then": "\"none\" is returned",
+  "impl_ref": "apps/schematify/ui/src/product/index.test.ts::screenDesignLinkState reads none when design_ref is absent",
+  "status": "declared",
+  "last_result_ms": null
+}

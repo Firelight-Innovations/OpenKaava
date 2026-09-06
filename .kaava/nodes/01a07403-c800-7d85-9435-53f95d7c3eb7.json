@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d85-9435-53f95d7c3eb7",
+  "slug": "atomic-a-write-creates-directories",
+  "kind": "test-case",
+  "title": "Write creates needed directories",
+  "description": "A write to a path whose parent directories do not exist creates them.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7584-85b8-2c8fc4148f9d",
+  "given": "A deeply nested file path that does not exist",
+  "when": "write_json_atomic is called",
+  "then": "All parent directories are created and the file is written",
+  "impl_ref": "crates/schematify-core/src/atomic.rs::a_write_creates_the_directory_it_needs",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-762c-b49b-7d9fb9d61bc5",
+  "slug": "validators-regression",
+  "kind": "budget",
+  "title": "Color Literal Regression Test",
+  "description": "No literal hex or functional color values exist outside tokens.css, verified on every test run.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7568-b464-c150d28c61e2",
+  "metric": "test-pass-rate",
+  "op": "==",
+  "value": 100,
+  "unit": "percent",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm test",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

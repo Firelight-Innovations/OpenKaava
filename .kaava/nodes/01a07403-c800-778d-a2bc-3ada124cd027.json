@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-778d-a2bc-3ada124cd027",
+  "slug": "plugin-registry-hydrate",
+  "kind": "contract-method",
+  "title": "Load Plugin Registry from Disk",
+  "description": "Deserialize plugin records from persisted storage into memory.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "signature": "pub fn hydrate(&self, app: &AppHandle)",
+  "params": [
+    "app: &AppHandle"
+  ],
+  "returns": "",
+  "errors": [],
+  "semantics": "Replaces in-memory registry with saved records; called once at startup.",
+  "exported": false
+}

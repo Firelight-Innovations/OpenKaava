@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7887-9fa6-976a56529d8f",
+  "slug": "statusbar-settings-popover",
+  "kind": "contract-method",
+  "title": "SettingsPopover Component",
+  "description": "A popover menu offering shortcuts to All Settings, MCP Servers, and Appearance sections.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78af-87c4-c75201a2058a",
+  "signature": "function SettingsPopover({ onPicked }: { onPicked: () => void }): ReactNode",
+  "params": [
+    "onPicked: () => void"
+  ],
+  "returns": "JSX.Element",
+  "errors": [],
+  "semantics": "Opens the settings surface by section when items are selected.",
+  "exported": true
+}

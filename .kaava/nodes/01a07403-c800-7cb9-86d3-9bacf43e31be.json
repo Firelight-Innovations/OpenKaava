@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7cb9-86d3-9bacf43e31be",
+  "slug": "review-update-clears-sent-at",
+  "kind": "test-case",
+  "title": "Editing clears the sent timestamp",
+  "description": "Updating body makes the agent see new words.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "given": "A comment with sent_at set",
+  "when": "update is called",
+  "then": "sent_at becomes None and updated_at is set",
+  "impl_ref": "src-tauri/src/review/mod.rs::editing_a_body_clears_the_sent_stamp",
+  "status": "declared",
+  "last_result_ms": null
+}

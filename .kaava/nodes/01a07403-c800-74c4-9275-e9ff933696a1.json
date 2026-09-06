@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-74c4-9275-e9ff933696a1",
+  "slug": "context-menu-copy-selection",
+  "kind": "test-case",
+  "title": "Copy Enabled For Selection Outside Field",
+  "description": "Verifies Copy is the only item enabled for text selection outside text fields.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Selection over non-field element",
+  "when": "contextItems() called",
+  "then": "Copy enabled, Cut and Select All disabled",
+  "impl_ref": "src/shell/contextMenu.test.ts::contextItems enables Copy for a selection outside a field, and nothing else",
+  "status": "declared",
+  "last_result_ms": null
+}

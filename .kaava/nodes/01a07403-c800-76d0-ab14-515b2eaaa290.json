@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-76d0-ab14-515b2eaaa290",
+  "slug": "plugin-remote-unpack",
+  "kind": "contract-method",
+  "title": "Unzip Release Asset",
+  "description": "Extract zip to staging directory.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-764a-b5c5-9f2cce1355f5",
+  "signature": "pub fn unpack(bytes: &[u8], dir: &Path) -> Result<(), RemoteError>",
+  "params": [
+    "bytes: &[u8]",
+    "dir: &Path"
+  ],
+  "returns": "Result<(), RemoteError>",
+  "errors": [
+    "Unpack"
+  ],
+  "semantics": "Extracts contents to dir; fails if invalid zip.",
+  "exported": false
+}

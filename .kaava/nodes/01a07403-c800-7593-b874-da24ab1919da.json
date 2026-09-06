@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7593-b874-da24ab1919da",
+  "slug": "viewport-module-doc",
+  "kind": "doc-block",
+  "title": "Viewport Management",
+  "description": "Pan and zoom transformations between world and screen coordinates.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-759b-b225-e1b8cd987643",
+  "body": "Pan and zoom. The viewport is the only place screen coordinates and world coordinates meet: everything else in the engine works in world units, so a zoom change never touches the document. `x` and `y` are the world point drawn at the Schematic's top-left corner. `zoom` is screen pixels per world unit — the number the readout draws as a percentage (PRD §12.1).",
+  "audience": "agent"
+}

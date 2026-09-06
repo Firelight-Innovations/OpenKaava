@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7fd3-94a3-6c8876f9c261",
+  "slug": "design-app-prompt-to-prompt",
+  "kind": "contract-method",
+  "title": "toPrompt",
+  "description": "Formats picked element as agent-readable Markdown",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71a3-ae12-251b52dac590",
+  "signature": "export function toPrompt(picked: PickedElement, options?: PromptOptions): string",
+  "params": [
+    "picked",
+    "options"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Returns Markdown describing element for agent context.",
+  "exported": false
+}

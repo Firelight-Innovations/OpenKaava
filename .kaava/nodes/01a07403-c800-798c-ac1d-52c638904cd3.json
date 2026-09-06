@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-798c-ac1d-52c638904cd3",
+  "slug": "plugin-broker-call",
+  "kind": "contract-method",
+  "title": "Route IPC Call from Surface to Core",
+  "description": "Relay RPC from mounted surface iframe to its package core.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78db-904b-bb87473e03bb",
+  "signature": "pub fn call(app: &AppHandle, surface_address: &str, method: &str, params: Option<Value>) -> Result<Value, RpcError>",
+  "params": [
+    "app: &AppHandle",
+    "surface_address: &str",
+    "method: &str",
+    "params: Option<Value>"
+  ],
+  "returns": "Result<Value, RpcError>",
+  "errors": [
+    "METHOD_NOT_FOUND if not a surface address"
+  ],
+  "semantics": "Extracts package id from address and routes to broker.",
+  "exported": true
+}

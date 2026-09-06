@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-76b3-9445-e312d66f3aa8",
+  "slug": "routing-route-edge",
+  "kind": "contract-method",
+  "title": "routeEdge",
+  "description": "Route edge orthogonally avoiding obstacles.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7afd-b0e6-03ee26345279",
+  "signature": "function routeEdge(from: Rect, to: Rect, obstacles: readonly Rect[]): Route",
+  "params": [
+    "from",
+    "to",
+    "obstacles"
+  ],
+  "returns": "Route",
+  "errors": [],
+  "semantics": "Returns best clean route or fallback; clean flag indicates obstacle avoidance.",
+  "exported": false
+}

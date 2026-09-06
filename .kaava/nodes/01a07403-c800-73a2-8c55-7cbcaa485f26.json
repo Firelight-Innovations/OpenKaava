@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-73a2-8c55-7cbcaa485f26",
+  "slug": "project-test-facets-included",
+  "kind": "test-case",
+  "title": "projectModuleGraph includes facets",
+  "description": "Verifies all facet types are included in module tier.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b17-92da-f10f0c4deca9",
+  "given": "A module with contract-method, test-case, budget, doc-block, external-dep, group, and comment facets",
+  "when": "projectModuleGraph is called",
+  "then": "All facets are present in the result",
+  "impl_ref": "apps/schematify/ui/src/graph/project.test.ts::includes only token-verifier's own facets",
+  "status": "declared",
+  "last_result_ms": null
+}

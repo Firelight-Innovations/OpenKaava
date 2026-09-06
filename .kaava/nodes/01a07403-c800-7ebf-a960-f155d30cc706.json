@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7ebf-a960-f155d30cc706",
+  "slug": "plugin-broker-stop-nonexistent-safe",
+  "kind": "test-case",
+  "title": "Broker: Stop Missing Core",
+  "description": "Stopping a core that never started is not an error.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78db-904b-bb87473e03bb",
+  "given": "Broker with no running cores",
+  "when": "stop() and stop_all() called",
+  "then": "No error; is_running() returns false",
+  "impl_ref": "src-tauri/src/plugins/broker.rs::stopping_a_core_that_never_started_is_not_an_error",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7df9-bcd6-ce91ae1b5787",
+  "kind": "decision",
+  "slug": "DEC-GOV-SCHEMATIFY-001",
+  "title": "Schematify design is owned; automation-written files are not",
+  "context": "Schematify has semantic design files (human-authored) and automation files (CI writes runs/, node drag rewrites layout/). CODEOWNERS needs to reflect this split.",
+  "decision": "The Schematify design files (`nodes/`, `edges/`, `rules/`, `screens/`, `flows/`, `decisions/`, `registry/`, `brief.json`) are owned by the maintainer. The automation-written trees (`runs/`, `layout/`) have no owner because CI and node drag write them. Assigning a human owner to trees only automation touches would make every routine write wait on a review it does not need.",
+  "consequences": "Some files carry no CODEOWNERS entry by design. Machines can write to `runs/` and `layout/` without review. Semantic design changes still require owner approval. The lifecycle pair is the one exception: `nodes/` carries the owner (human-triggered transition), `runs/` does not (CI-written).",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-06"
+}

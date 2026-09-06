@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-788f-824f-8af3f699f0dd",
+  "slug": "graph-nodes",
+  "kind": "contract-method",
+  "title": "Get All Nodes",
+  "description": "Iterate over every node in creation order (UUIDv7 time order).",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bcb-9de4-3775dbe05092",
+  "signature": "pub fn nodes(&self) -> impl Iterator<Item = &Node>",
+  "params": [],
+  "returns": "impl Iterator<Item = &Node>",
+  "errors": [],
+  "semantics": "Returns an iterator over all nodes stored in the graph in their identifier order, which is creation order under UUIDv7.",
+  "exported": true
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7fec-842c-91a5e114a62e",
+  "slug": "design-comments-module-doc",
+  "kind": "doc-block",
+  "title": "Design Mode comment store",
+  "description": "Why comments are persisted instead of clipboard-based.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cda-ab91-40d777dffd1d",
+  "body": "Design Mode used to end at the clipboard: pick an element, copy Markdown and a picture, paste both into an agent. That works in a chat window nowhere else — an agent in a terminal cannot be pasted an image. This is the store that replaces it. A comment is a request against one captured element with an id that outlives the app, a status saying whose turn it is, and a thread both sides take turns in.",
+  "audience": "agent"
+}

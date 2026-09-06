@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-70a8-9acf-5e485468cc86",
+  "kind": "decision",
+  "slug": "DEC-SCH-LIFEC-003",
+  "title": "Contract changes cascade staleness downstream",
+  "context": "Alternative approaches: no cascade; require manual re-review everywhere; ignore contract changes.",
+  "decision": "A contract change (signature, params, returns, errors on a contract-method facet, or export list on a service) drops every node with an inbound `depends_on` edge from `accepted` to `stale`. Human re-review is the only way to resolve staleness.",
+  "consequences": "Dependents are automatically marked for review when their dependencies change; breaking changes surface immediately; the stale node draws a caption naming the changed member and time; teams cannot ignore breaking changes.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

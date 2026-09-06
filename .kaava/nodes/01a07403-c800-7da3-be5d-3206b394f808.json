@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7da3-be5d-3206b394f808",
+  "slug": "api-on",
+  "kind": "contract-method",
+  "title": "on",
+  "description": "Listen for a named event from the host and invoke a callback when it arrives.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77f3-afe7-a004ea566b14",
+  "signature": "on(event: string, cb: (payload: unknown) => void): () => void",
+  "params": [
+    "event: string",
+    "cb: (payload: unknown) => void"
+  ],
+  "returns": "() => void",
+  "errors": [],
+  "semantics": "Registers a listener with the host and returns an unsubscribe function.",
+  "exported": true
+}

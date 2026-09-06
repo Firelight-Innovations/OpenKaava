@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7453-84bd-032b4374e667",
+  "slug": "switcher-2",
+  "kind": "external-dep",
+  "title": "React DOM",
+  "description": "React DOM utilities for portals.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7220-b53d-c54edb585688",
+  "registry_ref": "01a07403-c800-7ea4-bc03-11fc58b51a7e",
+  "usage_note": "createPortal in AddAppButton to render menu outside component tree"
+}

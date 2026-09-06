@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7d07-a6de-8e705f1e4df3",
+  "slug": "listener-start",
+  "kind": "contract-method",
+  "title": "Start MCP Listener",
+  "description": "Bind an HTTP listener and serve MCP on loopback.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7086-80ae-e8b05191e7a8",
+  "signature": "pub fn start(app: &AppHandle) -> Option<u16>",
+  "params": [
+    "app: &AppHandle"
+  ],
+  "returns": "Option<u16>",
+  "errors": [],
+  "semantics": "Binds a loopback socket to port zero, publishes the endpoint, and spawns an async handler; returns the port or None on bind failure.",
+  "exported": true
+}

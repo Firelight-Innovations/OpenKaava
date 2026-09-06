@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-70b0-8880-48cc1c7c1e97",
+  "slug": "validators-no-hex-literals",
+  "kind": "test-case",
+  "title": "No hex color literals outside tokens.css",
+  "description": "Regression test that verifies no #hex color values appear in source files other than tokens.css.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7568-b464-c150d28c61e2",
+  "given": "All .ts, .tsx, and .css files under apps/schematify/ui/src/ except tokens.css",
+  "when": "The test scans for #[0-9a-fA-F] patterns",
+  "then": "No matches are found outside the exempted files",
+  "impl_ref": "apps/schematify/ui/src/noLiteralHex.test.ts::no literal color in Schematify's UI finds no #hex literal outside tokens.css",
+  "status": "declared",
+  "last_result_ms": null
+}

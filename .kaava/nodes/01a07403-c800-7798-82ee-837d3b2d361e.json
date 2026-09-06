@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7798-82ee-837d3b2d361e",
+  "slug": "plugin-broker-correct-handshake-reply",
+  "kind": "test-case",
+  "title": "Broker: Valid Handshake",
+  "description": "A reply with correct protocol and id is accepted.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78db-904b-bb87473e03bb",
+  "given": "JSON reply with protocol=1 and id='echo'",
+  "when": "check_hello() is called",
+  "then": "Returns Ok(())",
+  "impl_ref": "src-tauri/src/plugins/broker.rs::a_correct_reply_is_accepted",
+  "status": "declared",
+  "last_result_ms": null
+}

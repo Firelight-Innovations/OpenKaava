@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-713d-bf02-dd0cedfe0d45",
+  "slug": "viewer-app-rpc-stat",
+  "kind": "contract-method",
+  "title": "stat",
+  "description": "Gets current file status for external change detection",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a0-9c27-267f8065604a",
+  "signature": "export const stat = (path: string) => invoke<Stat>(\"files/stat\", { path })",
+  "params": [
+    "path"
+  ],
+  "returns": "Promise<Stat>",
+  "errors": [
+    "KaavaRpcError"
+  ],
+  "semantics": "Returns current file metadata including mtime, used to detect external file changes.",
+  "exported": true
+}

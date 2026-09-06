@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-73e8-9f5e-a2063bc38ec9",
+  "slug": "handoff-publish",
+  "kind": "contract-method",
+  "title": "Publish Endpoint",
+  "description": "Write the MCP endpoint to a file an external agent can read.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f49-a38a-51adeb6359f8",
+  "signature": "pub fn publish(app: &AppHandle, port: u16, token: &str)",
+  "params": [
+    "app: &AppHandle",
+    "port: u16",
+    "token: &str"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Writes the endpoint to mcp-endpoint.json in the app config dir, with the process id so a reader can check it is live.",
+  "exported": false
+}

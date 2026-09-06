@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f4e-8ffa-8b9ed9621cef",
+  "slug": "report-rendering-serde-json",
+  "kind": "external-dep",
+  "title": "serde_json",
+  "description": "JSON serialization and deserialization.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "Serializes reconciliation outcomes and reports to pretty-printed JSON strings"
+}

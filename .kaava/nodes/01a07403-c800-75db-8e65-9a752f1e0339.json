@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-75db-8e65-9a752f1e0339",
+  "slug": "shell-core",
+  "kind": "external-dep",
+  "title": "framer-motion",
+  "description": "Animation and motion library providing spring-based transitions and keyframe animations.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-746a-b0bb-73db6ddd45f1",
+  "registry_ref": "01a07403-c800-7417-a580-5d7e987102ee",
+  "usage_note": "motion.ts exports transition objects (snap, settle, instant, popover) used throughout the shell for consistent animation timing"
+}

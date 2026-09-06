@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-78c4-8d33-7e58eb8c71e7",
+  "slug": "eslint-config",
+  "kind": "external-dep",
+  "title": "ESLint JavaScript Config",
+  "description": "ESLint configuration with base rules for JavaScript and modern syntax.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d28-97e1-4b31b279f98e",
+  "registry_ref": "01a07403-c800-7272-b14e-7c8acbd51d6d",
+  "usage_note": "Imported in eslint.config.js as base rules configuration"
+}

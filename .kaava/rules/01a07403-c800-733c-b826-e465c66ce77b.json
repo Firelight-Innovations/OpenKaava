@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-733c-b826-e465c66ce77b",
+  "slug": "build-success",
+  "statement": "TypeScript must compile without errors and the application must bundle successfully with Vite.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm build"
+}

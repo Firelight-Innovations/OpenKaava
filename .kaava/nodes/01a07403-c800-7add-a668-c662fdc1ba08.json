@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7add-a668-c662fdc1ba08",
+  "slug": "icon-lookup",
+  "kind": "module",
+  "title": "Icon Lookup",
+  "description": "Resolves file and folder names to Material Icon Theme SVG URLs for rendering in file browsers and tree views throughout the shell and Files app.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75af-a46e-fb63c7c5a0c2",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

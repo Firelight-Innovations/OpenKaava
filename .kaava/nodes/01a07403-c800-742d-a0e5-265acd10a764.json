@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-742d-a0e5-265acd10a764",
+  "slug": "band-geometry-isolation",
+  "kind": "test-case",
+  "title": "Each cluster band state is isolated",
+  "description": "Changes to one cluster's band geometry do not affect another cluster's stored state.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bda-92fe-1e3bdf7870f3",
+  "given": "cluster-1 with maximized band and cluster-2 with default state",
+  "when": "withBandGeometry is called for each cluster separately",
+  "then": "bandGeometry returns the correct state for each cluster independently",
+  "impl_ref": "src/shell/frame/bandGeometry.test.ts::bandGeometry#keeps each cluster's band state to itself",
+  "status": "declared",
+  "last_result_ms": null
+}

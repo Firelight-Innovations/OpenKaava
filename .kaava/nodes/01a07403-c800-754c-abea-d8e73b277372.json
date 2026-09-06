@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-754c-abea-d8e73b277372",
+  "slug": "product-sortdecisions-groups",
+  "kind": "test-case",
+  "title": "Decision sort by status and date",
+  "description": "Verifies that sortDecisions groups active before superseded, with newest first within each group.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "given": "A list of RawDecision objects with mixed statuses and dates",
+  "when": "sortDecisions is called",
+  "then": "Active decisions appear first, sorted newest-first, then superseded decisions in the same order",
+  "impl_ref": "apps/schematify/ui/src/product/index.test.ts::sortDecisions draws every active row before every superseded row",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7202-addb-618818c3219a",
+  "slug": "shell-quoting-quote",
+  "kind": "contract-method",
+  "title": "Quote Single Path",
+  "description": "Write a path so the shell reads it as one word.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e0-bbc7-7090d1eeb4e5",
+  "signature": "pub fn quote(family: ShellFamily, path: &str) -> String",
+  "params": [
+    "family",
+    "path"
+  ],
+  "returns": "String",
+  "errors": [],
+  "semantics": "Returns the path quoted for the given shell dialect, or unquoted if no quoting is needed.",
+  "exported": false
+}

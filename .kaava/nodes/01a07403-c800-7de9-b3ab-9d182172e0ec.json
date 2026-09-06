@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7de9-b3ab-9d182172e0ec",
+  "slug": "review-resolved-is-independent",
+  "kind": "test-case",
+  "title": "Resolved is independent of sending",
+  "description": "Marking sent does not set resolved, and toggling is separate.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "given": "A new comment",
+  "when": "mark_sent is called, then set_resolved",
+  "then": "Sending does not set resolved; toggling resolved works independently",
+  "impl_ref": "src-tauri/src/review/mod.rs::resolving_is_the_persons_mark_and_sending_does_not_set_it",
+  "status": "declared",
+  "last_result_ms": null
+}

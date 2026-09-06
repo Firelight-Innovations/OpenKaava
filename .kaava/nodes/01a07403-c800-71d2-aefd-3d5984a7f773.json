@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-71d2-aefd-3d5984a7f773",
+  "slug": "git-operations-module-doc",
+  "kind": "doc-block",
+  "title": "Git operations via shelling out",
+  "description": "Why this module shells out to git instead of linking a library.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "body": "This shells out to the system git binary rather than linking a library (git2). A deliberate trade: the user's credential helper, SSH agent, .gitconfig, hooks and aliases are all things git already knows about and a linked library would have to be taught. The cost is that every answer arrives as text that has to be parsed. Everything here is one-shot request→reply: there is no watcher and no subscription.",
+  "audience": "agent"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7af7-a795-b14ddfca0fbb",
+  "slug": "update-manifest-unsigned-failure",
+  "kind": "doc-block",
+  "title": "Unsigned installer failure",
+  "description": "Why signature validation on signed binaries is non-negotiable.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71ec-ad11-9f4d2a3ee4d1",
+  "body": "A build that ran without TAURI_SIGNING_PRIVATE_KEY produces installers and no .sig, and a manifest published from it would advertise an update every machine then refuses to verify, with nothing in the build log to say so. This module refuses to publish about unsigned binaries for this reason.",
+  "audience": "human"
+}

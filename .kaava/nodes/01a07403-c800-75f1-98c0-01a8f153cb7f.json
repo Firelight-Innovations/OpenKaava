@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-75f1-98c0-01a8f153cb7f",
+  "slug": "diff-review-scope-line",
+  "kind": "doc-block",
+  "title": "Review Comments Scope Line",
+  "description": "How the three diffs (unstaged, staged, branch) are named in agent-readable format.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "body": "The same line in the same file is different code in each of the three scopes. Scope line names the diff: 'the uncommitted changes' for unstaged, 'the staged changes' for staged, 'this branch's changes since it forked' for branch.",
+  "audience": "agent"
+}

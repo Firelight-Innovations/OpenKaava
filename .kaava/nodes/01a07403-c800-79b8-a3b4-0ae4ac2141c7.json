@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "slug": "diff-review",
+  "kind": "module",
+  "title": "Review Comments and Annotations",
+  "description": "Handles review comments attached to diff lines and the annotated diff wrapper that combines the diff view with review comment rendering.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7134-b3d3-38ffacbecdc4",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7d56-a4f0-f12bd453a564",
+    "schematify://screen/01a07403-c800-7cbb-b2f0-856b926f8d52"
+  ]
+}

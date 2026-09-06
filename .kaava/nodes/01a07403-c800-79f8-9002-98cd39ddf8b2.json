@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-79f8-9002-98cd39ddf8b2",
+  "slug": "cli-integration-tests-module-doc",
+  "kind": "doc-block",
+  "title": "CLI End-to-End Tests",
+  "description": "Integration tests spawning the real kaava binary.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bbc-9c10-9eeeb00a08e3",
+  "body": "End-to-end tests that spawn the real `kaava` binary, per `SCHEMATIFY-PRD.md` section 9.3 and Wave 9's acceptance condition: A duplicate marker token produces an error and exit code 1. `CARGO_BIN_EXE_kaava` is a cargo-provided environment variable naming the just-built binary for an integration test.",
+  "audience": "agent"
+}

@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-719a-893a-7b008ebc9669",
+  "slug": "review-set-resolved",
+  "kind": "contract-method",
+  "title": "Mark or unmark a comment as dealt with",
+  "description": "Toggle a comment's resolved flag, recording the update time.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "signature": "pub fn set_resolved(comments: &mut [ReviewComment], id: &str, resolved: bool, now: u64) -> Result<ReviewComment>",
+  "params": [
+    "comments: &mut [ReviewComment]",
+    "id: &str",
+    "resolved: bool",
+    "now: u64"
+  ],
+  "returns": "Result<ReviewComment>",
+  "errors": [
+    "Review"
+  ],
+  "semantics": "Updates the resolved flag and updated_at timestamp, returning the modified comment.",
+  "exported": false
+}

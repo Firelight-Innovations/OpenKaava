@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-752d-acb8-409ecfedf6d4",
+  "slug": "plugin-store-2",
+  "kind": "external-dep",
+  "title": "serde",
+  "description": "Serialization for plugin records persisted to disk.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c92-b990-0fafa3c719fa",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "#[derive(Serialize, Deserialize)] on Stored, Record, Source"
+}

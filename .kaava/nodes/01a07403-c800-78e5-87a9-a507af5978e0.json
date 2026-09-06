@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-78e5-87a9-a507af5978e0",
+  "slug": "comment-check",
+  "kind": "module",
+  "title": "Comment Density Enforcement",
+  "description": "Checks Rust and TypeScript source files for excessive comment concentration, preventing comment-heavy blocks from dominating code.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

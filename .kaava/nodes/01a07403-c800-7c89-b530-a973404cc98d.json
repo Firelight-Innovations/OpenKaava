@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7c89-b530-a973404cc98d",
+  "slug": "api-on-command",
+  "kind": "contract-method",
+  "title": "onCommand",
+  "description": "Listen for menu commands from the shell and invoke a callback when the user selects one.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77f3-afe7-a004ea566b14",
+  "signature": "onCommand(cb: (command: string) => void): () => void",
+  "params": [
+    "cb: (command: string) => void"
+  ],
+  "returns": "() => void",
+  "errors": [],
+  "semantics": "Registers a command handler with the host and returns an unsubscribe function; only called for commands the frontend has declared.",
+  "exported": true
+}

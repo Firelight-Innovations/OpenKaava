@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-704f-8899-662c0f77accd",
+  "slug": "engine-drag-position-persists",
+  "kind": "test-case",
+  "title": "Drag position persists across reopen",
+  "description": "Layout file stores and restores node positions.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7346-9c32-cc9d99a7dbc8",
+  "given": "an engine after dragging a node",
+  "when": "the schematic is reopened with the same seam",
+  "then": "the node appears at the new position",
+  "impl_ref": "apps/schematify/ui/src/engine/engine.test.ts::a node drag writes no semantic file keeps that position across a reopen, which is what persistence means",
+  "status": "declared",
+  "last_result_ms": null
+}

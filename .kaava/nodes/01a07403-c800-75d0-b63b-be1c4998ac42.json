@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-75d0-b63b-be1c4998ac42",
+  "slug": "registry-disabling-hides-from-client",
+  "kind": "test-case",
+  "title": "Disabled Server Hidden from Client",
+  "description": "A disabled server is removed from enabled_ids but still appears in settings.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74ba-abfe-06dbc4c59dec",
+  "given": "A registry with two servers, one disabled",
+  "when": "enabled_ids and list are called",
+  "then": "enabled_ids excludes the disabled server but list includes it with enabled=false",
+  "impl_ref": "src-tauri/src/mcp/registry.rs::disabling_hides_a_server_from_the_client_but_not_from_settings",
+  "status": "declared",
+  "last_result_ms": null
+}

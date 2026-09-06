@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7668-988e-58b63b9c1a20",
+  "slug": "outcome-reconcile-outcome",
+  "kind": "contract-method",
+  "title": "Reconciliation Outcome",
+  "description": "One reconciliation outcome with the evidence that produced it.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f14-8b2b-c06d802d2714",
+  "signature": "pub enum ReconcileOutcome",
+  "params": [],
+  "returns": "enum",
+  "errors": [],
+  "semantics": "Tagged enum with four variants carrying outcome-specific evidence.",
+  "exported": false
+}

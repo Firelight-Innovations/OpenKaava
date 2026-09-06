@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-72b7-a248-63d4b0f1a2f4",
+  "slug": "product-screendesignlinkstate-function",
+  "kind": "contract-method",
+  "title": "Screen Design Link State Detector",
+  "description": "Returns whether a screen carries a design_ref link to Claude Design.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "signature": "screenDesignLinkState(screen: RawScreen) => DesignLinkState",
+  "params": [
+    "screen: RawScreen"
+  ],
+  "returns": "\"linked\" | \"none\"",
+  "errors": [],
+  "semantics": "Reports the closed 2-value state of design linking for a screen row, drawn as a badge or icon in the Screen registry.",
+  "exported": true
+}

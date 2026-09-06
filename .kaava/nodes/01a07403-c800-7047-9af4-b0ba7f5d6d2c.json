@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7047-9af4-b0ba7f5d6d2c",
+  "slug": "design-app-comments-pending-question",
+  "kind": "contract-method",
+  "title": "pendingQuestion",
+  "description": "Extracts question a comment is waiting for answer to",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-76b8-97b0-0d8399c3f37b",
+  "signature": "export function pendingQuestion(comment: Comment): string | null",
+  "params": [
+    "comment"
+  ],
+  "returns": "string | null",
+  "errors": [],
+  "semantics": "Returns agent's last question if comment is in question state.",
+  "exported": false
+}

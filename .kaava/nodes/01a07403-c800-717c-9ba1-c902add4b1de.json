@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-717c-9ba1-c902add4b1de",
+  "slug": "manifest-parser-rejects-absolute-paths",
+  "kind": "test-case",
+  "title": "Paths Must Be Relative",
+  "description": "An absolute path like /etc/passwd or C:\\Windows fails validation.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "frontend.dist='/etc/passwd' or 'C:\\\\Windows\\\\System32'",
+  "when": "parsed",
+  "then": "returns ManifestError::PathNotRelative",
+  "impl_ref": "crates/kaava-tool-manifest/src/lib.rs::rejects_absolute_dist_path",
+  "status": "declared",
+  "last_result_ms": null
+}

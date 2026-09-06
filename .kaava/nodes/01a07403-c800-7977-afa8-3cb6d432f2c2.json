@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7977-afa8-3cb6d432f2c2",
+  "slug": "launch-a-directory-becomes-a-project",
+  "kind": "test-case",
+  "title": "Directory Classification",
+  "description": "Verify that a directory path is classified as a Project target.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a3-a407-049c1f55dd74",
+  "given": "A temporary directory path",
+  "when": "Classifying the path",
+  "then": "A Project target with the canonicalized path is returned",
+  "impl_ref": "src-tauri/src/launch.rs::a_directory_becomes_a_project",
+  "status": "declared",
+  "last_result_ms": null
+}

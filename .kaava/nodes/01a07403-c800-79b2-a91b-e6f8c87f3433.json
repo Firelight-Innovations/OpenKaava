@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-79b2-a91b-e6f8c87f3433",
+  "slug": "worktree-logic-line-counts-format",
+  "kind": "contract-method",
+  "title": "Format Line Count Columns",
+  "description": "Renders insertion and deletion counts as signed numbers, or null when no counts exist.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71fe-af1c-0dcd2dfd9607",
+  "signature": "export function formatLineCounts(insertions: number | null, deletions: number | null): { added: string; removed: string } | null",
+  "params": [
+    "insertions: number | null",
+    "deletions: number | null"
+  ],
+  "returns": "{ added: string; removed: string } | null",
+  "errors": [],
+  "semantics": "Returns signed strings '+12' and '−3', or null for no counts or both-zero.",
+  "exported": false
+}

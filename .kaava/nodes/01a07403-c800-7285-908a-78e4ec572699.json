@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7285-908a-78e4ec572699",
+  "slug": "plugin-store-enabled-default-true",
+  "kind": "test-case",
+  "title": "Plugin Store: Enabled Backward Compat",
+  "description": "Records without enabled field default to true.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c92-b990-0fafa3c719fa",
+  "given": "Record JSON without enabled field",
+  "when": "deserialized",
+  "then": "enabled is true",
+  "impl_ref": "src-tauri/src/plugins/store.rs::a_record_without_enabled_is_enabled",
+  "status": "declared",
+  "last_result_ms": null
+}

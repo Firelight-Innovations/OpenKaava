@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7877-b054-af849ce265d7",
+  "slug": "layout-path",
+  "kind": "contract-method",
+  "title": "layoutPath",
+  "description": "Returns the relative path where a layout file is stored: layout/<slug>.json.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79bb-abc8-74d009a7d2da",
+  "signature": "function layoutPath(slug: string): string",
+  "params": [
+    "slug: string"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Determines storage location for a Schematic's layout per PRD section 6.1.",
+  "exported": true
+}

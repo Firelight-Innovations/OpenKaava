@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7ad8-b50c-2607aa7b924a",
+  "slug": "plugin-remote-parse-checksum",
+  "kind": "contract-method",
+  "title": "Parse Checksum File",
+  "description": "Extract SHA-256 from GitHub release sidecar.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-764a-b5c5-9f2cce1355f5",
+  "signature": "pub fn parse_checksum(text: &str) -> Option<String>",
+  "params": [
+    "text: &str"
+  ],
+  "returns": "Option<String>",
+  "errors": [],
+  "semantics": "Returns first hex-looking hash found; None if unreadable.",
+  "exported": false
+}

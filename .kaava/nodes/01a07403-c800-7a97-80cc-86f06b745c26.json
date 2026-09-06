@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7a97-80cc-86f06b745c26",
+  "slug": "graph-dependents",
+  "kind": "contract-method",
+  "title": "Get Dependents",
+  "description": "Return what depends on this node.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bcb-9de4-3775dbe05092",
+  "signature": "pub fn dependents(&self, id: Uuid) -> Vec<Uuid>",
+  "params": [
+    "id: Uuid"
+  ],
+  "returns": "Vec<Uuid>",
+  "errors": [],
+  "semantics": "Returns a vector of node identifiers with DependsOn edges pointing to this node.",
+  "exported": true
+}

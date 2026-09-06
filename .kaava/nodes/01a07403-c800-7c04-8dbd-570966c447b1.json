@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7c04-8dbd-570966c447b1",
+  "slug": "palette-fuzzy-match-runs",
+  "kind": "contract-method",
+  "title": "Cut Label into Matched and Unmatched Runs",
+  "description": "Segments text into alternating matched and unmatched stretches for rendering.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7497-b529-d3c21db99100",
+  "signature": "export function matchRuns(text: string, positions: number[]): Run[]",
+  "params": [
+    "text: string",
+    "positions: number[]"
+  ],
+  "returns": "Run[]",
+  "errors": [],
+  "semantics": "Returns text cut into runs where consecutive matched positions form one run and unmatched text forms another.",
+  "exported": false
+}

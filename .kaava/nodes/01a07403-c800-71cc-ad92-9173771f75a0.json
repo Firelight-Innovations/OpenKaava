@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-71cc-ad92-9173771f75a0",
+  "slug": "executable-validation-pe-header",
+  "kind": "test-case",
+  "title": "PE header validation catches non-images",
+  "description": "MZ files without valid PE headers are correctly identified.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77da-aa46-7c6a5eb0946a",
+  "given": "An MZ file with invalid or missing PE header",
+  "when": "is_image is called",
+  "then": "Returns false to prevent modal dialogs",
+  "impl_ref": "src-tauri/src/runnable.rs::an_mz_with_no_pe_header_is_not_an_image",
+  "status": "declared",
+  "last_result_ms": null
+}

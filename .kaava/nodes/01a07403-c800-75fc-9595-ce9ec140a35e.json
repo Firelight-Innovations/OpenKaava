@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-75fc-9595-ce9ec140a35e",
+  "slug": "config-entry-names-variables",
+  "kind": "test-case",
+  "title": "Config Entry Uses Variables",
+  "description": "Generated config entries use ${KAAVA_MCP_PORT} and ${KAAVA_MCP_TOKEN}, not live values.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-782d-bdc1-e759c21e6408",
+  "given": "A generated entry for server 'acme'",
+  "when": "The entry is printed",
+  "then": "It contains the variable placeholders, not actual port or token digits beyond 127001",
+  "impl_ref": "src-tauri/src/mcp/config.rs::an_entry_names_variables_rather_than_a_port_or_a_token",
+  "status": "declared",
+  "last_result_ms": null
+}

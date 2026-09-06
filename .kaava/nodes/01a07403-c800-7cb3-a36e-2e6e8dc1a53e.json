@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7cb3-a36e-2e6e8dc1a53e",
+  "slug": "commands-2",
+  "kind": "external-dep",
+  "title": "tauri-plugin-opener",
+  "description": "Tauri plugin for opening files and URLs with system handlers",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a15-9205-3403c29c95c2",
+  "registry_ref": "01a07403-c800-762c-994e-83e7a83b758a",
+  "usage_note": "OpenerExt trait for reveal_item_in_dir in reveal_tool command"
+}

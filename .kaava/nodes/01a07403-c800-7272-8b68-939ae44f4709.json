@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7272-8b68-939ae44f4709",
+  "slug": "ci-gateway-to-workflow-commands",
+  "kind": "contract-method",
+  "title": "toWorkflowCommands",
+  "description": "Converts findings to GitHub workflow command annotations.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73d7-a1af-eac6f5057d04",
+  "signature": "toWorkflowCommands(findings: object[]): string[]",
+  "params": [
+    "findings: array of parsed findings"
+  ],
+  "returns": "array of GitHub workflow command strings like '::error file=src/a.rs,line=4,...'",
+  "errors": [],
+  "semantics": "Emits GitHub-actionable annotations for placing inline findings in PR diffs.",
+  "exported": false
+}

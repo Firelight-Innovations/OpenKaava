@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-70d5-884c-ffd023424d5c",
+  "slug": "pdfjs-dist",
+  "kind": "external-dep",
+  "title": "PDF.js",
+  "description": "JavaScript PDF rendering library with canvas output.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7fab-b591-f27fbcd9bc11",
+  "registry_ref": "01a07403-c800-7925-9af2-8fa48bcdefc7",
+  "usage_note": "Dynamic import via registry; loads worker and renders PDF pages to canvas"
+}

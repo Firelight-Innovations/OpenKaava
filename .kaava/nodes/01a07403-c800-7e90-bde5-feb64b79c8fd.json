@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e90-bde5-feb64b79c8fd",
+  "slug": "codec-invalid-shape-is-invalid-request",
+  "kind": "test-case",
+  "title": "Valid JSON with Wrong Shape is Invalid Request",
+  "description": "A JSON object with neither method nor id is an INVALID_REQUEST.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "given": "A JSON object with neither 'method' nor 'id' field",
+  "when": "decoded",
+  "then": "returns RpcError with code INVALID_REQUEST",
+  "impl_ref": "crates/kaava-rpc/src/codec.rs::a_shape_that_is_valid_json_but_no_valid_message_is_an_invalid_request",
+  "status": "declared",
+  "last_result_ms": null
+}

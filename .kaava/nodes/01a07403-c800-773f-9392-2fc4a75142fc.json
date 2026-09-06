@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-773f-9392-2fc4a75142fc",
+  "slug": "diff-review-decorations-2",
+  "kind": "test-case",
+  "title": "Review: Grouping by Range",
+  "description": "Tests that comments on same line range produce one marker.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "given": "Two comments on lines 5-5",
+  "when": "decorations is called",
+  "then": "Returns one LineDecoration with both comments",
+  "impl_ref": "src/shell/diff/reviewComments.test.ts::decorations::draws one marker per range, however many notes are on it",
+  "status": "declared",
+  "last_result_ms": null
+}

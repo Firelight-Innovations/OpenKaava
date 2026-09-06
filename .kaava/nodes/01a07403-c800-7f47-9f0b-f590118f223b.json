@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f47-9f0b-f590118f223b",
+  "slug": "client-command-delivery",
+  "kind": "test-case",
+  "title": "Commands are delivered to onCommand() listeners",
+  "description": "Verifies that menu commands from the shell arrive at registered onCommand() callbacks.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client with an onCommand() listener registered",
+  "when": "A command message arrives from the shell",
+  "then": "The callback receives the command string; after unsubscribe, subsequent commands do not reach it",
+  "impl_ref": "packages/bridge/src/client.test.ts::delivers a command to onCommand and stops once unsubscribed",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-735e-ac69-463108e2d391",
+  "slug": "plugin-broker-module-doc",
+  "kind": "doc-block",
+  "title": "Plugin Broker Transport Layer",
+  "description": "Relay and lifecycle for plugin core IPC; not a translator of payloads.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78db-904b-bb87473e03bb",
+  "body": "The broker: one plugin's frontend asking a question its own core answers. A relay and not a translator: nothing here inspects a payload or enumerates a method, because the vocabulary belongs to the plugin, not to the protocol. Mostly lifecycle, therefore — when a core starts, when it stops, and what happens to a call that arrives while it is neither. `ToolProcess` is cached per package, so two surfaces of one plugin route to the same core.",
+  "audience": "agent"
+}

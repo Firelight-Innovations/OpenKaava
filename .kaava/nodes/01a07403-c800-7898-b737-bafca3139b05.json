@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7898-b737-bafca3139b05",
+  "slug": "manifest-parser-backend-only",
+  "kind": "test-case",
+  "title": "Backend-Only Package (No Frontend, No Surfaces)",
+  "description": "A package can declare only [core], no frontend and no surfaces.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "A manifest with [tool] and [core] but no [frontend] or [[surface]]",
+  "when": "parsed",
+  "then": "frontend is None, surfaces is empty, core is Some",
+  "impl_ref": "crates/kaava-tool-manifest/src/lib.rs::a_package_may_declare_no_frontend_and_no_surfaces",
+  "status": "declared",
+  "last_result_ms": null
+}

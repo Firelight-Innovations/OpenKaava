@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-732d-b8c7-1f00c0857749",
+  "slug": "project-marker-find-returns-none-for-plain-folder",
+  "kind": "test-case",
+  "title": "find returns None for a plain folder",
+  "description": "A folder with no manifest is not mistaken for a project.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7742-a1fb-c4253f531eb9",
+  "given": "A folder with no .kaava file",
+  "when": "marker::find is called",
+  "then": "Returns None",
+  "impl_ref": "src-tauri/src/project/marker.rs::find_is_none_for_a_plain_folder",
+  "status": "declared",
+  "last_result_ms": null
+}

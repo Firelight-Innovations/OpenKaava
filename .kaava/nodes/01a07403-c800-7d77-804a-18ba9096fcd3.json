@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7d77-804a-18ba9096fcd3",
+  "slug": "registry-enabled-ids",
+  "kind": "contract-method",
+  "title": "Enabled Server IDs",
+  "description": "Get the ids of servers a client can reach.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74ba-abfe-06dbc4c59dec",
+  "signature": "pub fn enabled_ids(&self, dev_mode: bool) -> Vec<String>",
+  "params": [
+    "dev_mode: bool"
+  ],
+  "returns": "Vec<String>",
+  "errors": [],
+  "semantics": "Returns ids of servers that are both switched on and visible to the client, given developer mode.",
+  "exported": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7ff6-88a1-2adc096e41ab",
+  "slug": "codec-null-result-is-present",
+  "kind": "test-case",
+  "title": "Null Result Stays Distinct from Missing Result",
+  "description": "A response with result: null encodes and decodes as present, not missing.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "given": "A Response with result: Value::Null",
+  "when": "encoded to JSON and decoded back",
+  "then": "into_result() returns Ok(Value::Null), not an error",
+  "impl_ref": "crates/kaava-rpc/src/codec.rs::a_null_result_is_a_present_success_not_a_missing_one",
+  "status": "declared",
+  "last_result_ms": null
+}

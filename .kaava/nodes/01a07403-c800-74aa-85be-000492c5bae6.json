@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-74aa-85be-000492c5bae6",
+  "slug": "backend-product-seam",
+  "kind": "contract-method",
+  "title": "productSeam",
+  "description": "The product layer seam implementation for screen/flow/brief/decision writes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-755e-b721-aa6fca8f5064",
+  "signature": "const productSeam: ProductSeam",
+  "params": [],
+  "returns": "ProductSeam",
+  "errors": [],
+  "semantics": "Provides product layer read/write operations.",
+  "exported": true
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-775f-8c95-910feccb8353",
+  "slug": "search-logic-compile-path-filter",
+  "kind": "contract-method",
+  "title": "Compile Path Filter Predicate",
+  "description": "Precompiles query filters into a reusable path-matching predicate.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "signature": "export function compilePathFilter(parsed: ParsedQuery): (path: string) => boolean",
+  "params": [
+    "parsed: ParsedQuery"
+  ],
+  "returns": "(path: string) => boolean",
+  "errors": [],
+  "semantics": "Factory that returns a predicate testing a path against all filter axes: glob patterns, extensions, kinds, and path scopes.",
+  "exported": false
+}

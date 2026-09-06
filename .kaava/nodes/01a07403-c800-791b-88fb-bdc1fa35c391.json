@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-791b-88fb-bdc1fa35c391",
+  "slug": "viewport-fitto-normal",
+  "kind": "test-case",
+  "title": "fitTo computes finite viewport for normal bounds",
+  "description": "fitTo produces a centred viewport with finite zoom when given valid inputs.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-759b-b225-e1b8cd987643",
+  "given": "a normal bounding box and size",
+  "when": "fitTo is called",
+  "then": "returns a viewport with finite zoom, x, and y all greater than zero",
+  "impl_ref": "apps/schematify/ui/src/engine/viewport.test.ts::fitTo computes a finite, centred viewport for a normal bounding box",
+  "status": "declared",
+  "last_result_ms": null
+}

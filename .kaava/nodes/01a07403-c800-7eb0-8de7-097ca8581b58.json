@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7eb0-8de7-097ca8581b58",
+  "slug": "servers-default-install-sees-no-clicking-servers",
+  "kind": "test-case",
+  "title": "Default Install Hides Clicking Servers",
+  "description": "With developer mode off, ui and agent are not listed.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e98-ae8d-c1ef00cefddb",
+  "given": "A seeded registry with dev_mode=false",
+  "when": "list and enabled_ids are called",
+  "then": "Both return [echo, debug, design] only",
+  "impl_ref": "src-tauri/src/mcp/servers/mod.rs::a_default_install_sees_no_server_that_can_click",
+  "status": "declared",
+  "last_result_ms": null
+}

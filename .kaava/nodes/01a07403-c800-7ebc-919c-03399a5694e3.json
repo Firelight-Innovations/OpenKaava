@@ -1,0 +1,19 @@
+{
+  "id": "01a07403-c800-7ebc-919c-03399a5694e3",
+  "slug": "text-editor",
+  "kind": "module",
+  "title": "Text Editor",
+  "description": "Monaco-based text editor viewer with syntax highlighting, git diff gutters, and full editing support.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7996-96e4-9a298ed54a09",
+  "allowed_libraries": [
+    "01a07403-c800-7009-8eef-cc81f6cacfda"
+  ],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-755e-901c-b373fd57d46e"
+  ]
+}

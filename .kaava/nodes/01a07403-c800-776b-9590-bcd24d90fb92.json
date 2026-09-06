@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-776b-9590-bcd24d90fb92",
+  "slug": "plugin-registry-set-enabled-cmd",
+  "kind": "contract-method",
+  "title": "Toggle Plugin Visibility",
+  "description": "Enable or disable plugin surfaces and stop core if disabling.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "signature": "pub fn set_enabled(app: &AppHandle, id: &str, enabled: bool) -> bool",
+  "params": [
+    "app: &AppHandle",
+    "id: &str",
+    "enabled: bool"
+  ],
+  "returns": "bool",
+  "errors": [],
+  "semantics": "Updates registry, stops core if disabling, emits change event.",
+  "exported": true
+}

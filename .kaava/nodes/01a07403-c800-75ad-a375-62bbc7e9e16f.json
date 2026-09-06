@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-75ad-a375-62bbc7e9e16f",
+  "slug": "plugin-catalog",
+  "kind": "external-dep",
+  "title": "serde",
+  "description": "Serialization for catalog entry structures.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78c4-8878-c792de8f7f2c",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "#[derive(Serialize, Deserialize)] on Entry and CatalogRow"
+}

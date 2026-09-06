@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7afd-b0e6-03ee26345279",
+  "slug": "routing",
+  "kind": "module",
+  "title": "Edge Routing",
+  "description": "Orthogonal edge routing per PRD §12.3, enumerating candidate routes and scoring by bend count and length. Avoids obstacles decided by frame.ts.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

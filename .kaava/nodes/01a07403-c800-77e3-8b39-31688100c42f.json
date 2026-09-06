@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-77e3-8b39-31688100c42f",
+  "slug": "marker-token-regex",
+  "kind": "external-dep",
+  "title": "Regex",
+  "description": "Regular expression engine for pattern matching.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77d3-a0d3-3e27db45a8db",
+  "registry_ref": "01a07403-c800-7c6f-af7f-96f44dbcc89a",
+  "usage_note": "Version 1.x; matches marker token format and captures UUID and optional slug groups"
+}

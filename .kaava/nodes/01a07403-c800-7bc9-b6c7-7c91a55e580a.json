@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7bc9-b6c7-7c91a55e580a",
+  "slug": "client-sideways-methods-unbound",
+  "kind": "test-case",
+  "title": "Sideways channel methods work unbound",
+  "description": "Verifies that openIn, publish, and subscribe work correctly when extracted as unbound functions.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "Sideways methods extracted via destructuring",
+  "when": "openIn, publish, and subscribe are called unbound",
+  "then": "They function correctly without throwing a 'this' error",
+  "impl_ref": "packages/bridge/src/client.test.ts::works when its methods are pulled off the client",
+  "status": "declared",
+  "last_result_ms": null
+}

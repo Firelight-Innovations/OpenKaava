@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7306-9498-899cf1488828",
+  "slug": "git-status-decorate",
+  "kind": "contract-method",
+  "title": "Row Decoration Function",
+  "description": "Determines how a single row should be decorated based on git status.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7590-be34-b0cc0e99d1db",
+  "signature": "export function decorate(git: GitDecoration | null, path: string, isDir: boolean): RowDecoration",
+  "params": [
+    "git: GitDecoration | null",
+    "path: string",
+    "isDir: boolean"
+  ],
+  "returns": "RowDecoration with kind, badge, and ignored flag",
+  "errors": [],
+  "semantics": "Returns color, badge letter, and ignored state for a tree row.",
+  "exported": true
+}

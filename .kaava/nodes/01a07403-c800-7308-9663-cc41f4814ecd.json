@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7308-9663-cc41f4814ecd",
+  "slug": "marker-token-pattern-has-exactly-the-id-and-slug-groups",
+  "kind": "test-case",
+  "title": "Token Regex Has Exactly Two Groups",
+  "description": "The regex pattern has exactly the id (group 1) and slug (group 2) capture groups.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77d3-a0d3-3e27db45a8db",
+  "given": "a token pattern from token_pattern()",
+  "when": "captures_len() is called",
+  "then": "it returns 3 (whole match plus 2 capturing groups)",
+  "impl_ref": "crates/schematify-reconcile/src/token.rs::pattern_has_exactly_the_id_and_slug_groups",
+  "status": "declared",
+  "last_result_ms": null
+}

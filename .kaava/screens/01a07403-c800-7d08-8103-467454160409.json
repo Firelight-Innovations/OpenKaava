@@ -1,0 +1,29 @@
+{
+  "id": "01a07403-c800-7d08-8103-467454160409",
+  "kind": "screen",
+  "slug": "github-view",
+  "title": "GitHub View",
+  "purpose": "GitHub issues and pull requests browser for the active cluster's repository",
+  "states": [
+    "no-cluster - no cluster active",
+    "no-repository - cluster not in git repo",
+    "loading - fetching from GitHub",
+    "authenticated - showing issues/PRs",
+    "not-authenticated - showing sign-in prompt",
+    "error - fetch failed with explanation"
+  ],
+  "acceptance": [
+    "shall display issues and pull requests together",
+    "shall allow filtering by kind (all, issues, pull requests)",
+    "shall allow filtering by state (open, closed, merged, any)",
+    "shall show empty state with explanation for each error condition",
+    "shall display 'Sign in' button when not authenticated",
+    "shall allow typing custom search queries",
+    "shall show loading indicator while fetching",
+    "shall support starting work on items by creating branch"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7d5c-a355-5264280ef828",
+    "schematify://node/01a07403-c800-7dcd-8834-b536584a1dca"
+  ]
+}

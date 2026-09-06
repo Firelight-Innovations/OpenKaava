@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b0b-9077-71222c143d25",
+  "slug": "shell-emptystack-component",
+  "kind": "contract-method",
+  "title": "Empty Stack State Component",
+  "description": "Renders the Stack Schematic's first-run empty state with a disabled 'Create the first service' action.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-743f-ae55-0cbaeb91a62a",
+  "signature": "EmptyStack() => JSX.Element",
+  "params": [],
+  "returns": "React component",
+  "errors": [],
+  "semantics": "Shows the first-run state when a project has no services, with a disabled Create button (enabled by Wave X's write layer).",
+  "exported": true
+}

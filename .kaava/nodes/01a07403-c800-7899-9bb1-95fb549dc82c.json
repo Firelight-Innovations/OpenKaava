@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7899-9bb1-95fb549dc82c",
+  "slug": "plugin-registry-resolve-all",
+  "kind": "contract-method",
+  "title": "Resolve All Installed Plugins with Failures",
+  "description": "Resolve every plugin record, keeping failures paired with records.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "signature": "pub fn resolve_all(registry: &Registry) -> Vec<(Record, Result<ResolvedPlugin, ResolveError>)>",
+  "params": [
+    "registry: &Registry"
+  ],
+  "returns": "Vec<(Record, Result<ResolvedPlugin, ResolveError>)>",
+  "errors": [],
+  "semantics": "Pairs records with resolution results so caller can name failed plugins.",
+  "exported": false
+}

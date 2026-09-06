@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7a95-a43b-8eec1110f2f2",
+  "slug": "boundary-check-lifecycle-rule",
+  "kind": "doc-block",
+  "title": "Schema lifecycle pair rule",
+  "description": "The one allowed mixed write in the .kaava boundary.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78ad-9f18-7213bcc5f199",
+  "body": "A lifecycle transition writes exactly one node file and appends exactly that node's audit row, and the gate must pass that pair. This is the acceptance condition PRD 6.3 names by name.",
+  "audience": "agent"
+}

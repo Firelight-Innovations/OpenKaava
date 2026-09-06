@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7259-90bf-d9acbee1533d",
+  "slug": "diff-review-format-contract",
+  "kind": "doc-block",
+  "title": "Review Comments Format as Contract",
+  "description": "Why the format is deterministic and must be tested.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "body": "This format is a contract between a person writing prose in a panel and an agent reading it out of a terminal, with no schema between them but the shape of these lines. This is why it lives in its own module with its own tests rather than inline in a click handler.",
+  "audience": "agent"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "01a07403-c800-7fab-b591-f27fbcd9bc11",
+  "slug": "pdf-viewer",
+  "kind": "module",
+  "title": "PDF Viewer",
+  "description": "PDF viewer rendering single pages at a time for quick preview of PDF documents.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7996-96e4-9a298ed54a09",
+  "allowed_libraries": [
+    "01a07403-c800-7925-9af2-8fa48bcdefc7"
+  ],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7649-b6e5-9a112fc9cba0"
+  ]
+}

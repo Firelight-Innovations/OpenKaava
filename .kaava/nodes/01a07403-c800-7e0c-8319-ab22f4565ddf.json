@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e0c-8319-ab22f4565ddf",
+  "slug": "product-resolveflowsteps-resolution",
+  "kind": "test-case",
+  "title": "Flow step screen reference resolution",
+  "description": "Verifies that resolveFlowSteps resolves screen references to titles and slugs.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "given": "A RawFlow with steps referencing screens in the provided screens array",
+  "when": "resolveFlowSteps is called",
+  "then": "Each step is returned with screenTitle and screenSlug populated",
+  "impl_ref": "apps/schematify/ui/src/product/index.test.ts::resolveFlowSteps resolves each step's screen reference to a title and slug",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7901-ad5b-a5f5f77ab3a5",
+  "slug": "shell-bindings-github-feed",
+  "kind": "contract-method",
+  "title": "githubFeed",
+  "description": "Fetch issues and pull requests for a repository.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7149-8c4b-15d6ed575d92",
+  "signature": "function githubFeed(clusterId: string, scope: GithubScope): Promise<GithubFeed>",
+  "params": [
+    "clusterId",
+    "scope"
+  ],
+  "returns": "Promise<GithubFeed>",
+  "errors": [],
+  "semantics": "Returns items or reason why they are unavailable.",
+  "exported": true
+}

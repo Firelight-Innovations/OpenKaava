@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7535-a199-eee4a3cffaf6",
+  "slug": "debug-cursor-selects-new-records",
+  "kind": "test-case",
+  "title": "Cursor Filters by Time",
+  "description": "Passing the latest sequence number filters to only newer records.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7768-89f6-f76b82ea5f13",
+  "given": "Records logged before and after a cursor",
+  "when": "recent_errors is called with the cursor",
+  "then": "Only records after the cursor appear in the result",
+  "impl_ref": "src-tauri/src/mcp/servers/debug.rs::a_cursor_from_one_answer_selects_only_what_came_after_it",
+  "status": "declared",
+  "last_result_ms": null
+}

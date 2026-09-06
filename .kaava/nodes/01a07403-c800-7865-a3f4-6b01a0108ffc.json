@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7865-a3f4-6b01a0108ffc",
+  "slug": "codec-rpc-error-new",
+  "kind": "contract-method",
+  "title": "Create an RPC Error",
+  "description": "Constructs an error with code and message, without structured data.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "signature": "pub fn new(code: i32, message: impl Into<String>) -> Self",
+  "params": [
+    "code: i32",
+    "message: impl Into<String>"
+  ],
+  "returns": "Self",
+  "errors": [],
+  "semantics": "Creates an RPC error for use in failure responses or handler results.",
+  "exported": true
+}

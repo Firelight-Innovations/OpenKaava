@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c8e-9477-b10179a3efe8",
+  "slug": "review-storage-order-stable",
+  "kind": "test-case",
+  "title": "Comments sort by file, line, age",
+  "description": "Storage order is stable and version-controllable.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "given": "Comments for different files and lines",
+  "when": "sort is called",
+  "then": "Comments are ordered by path, then start_line, then created_at",
+  "impl_ref": "src-tauri/src/review/mod.rs::storage_order_is_file_then_line_then_age",
+  "status": "declared",
+  "last_result_ms": null
+}

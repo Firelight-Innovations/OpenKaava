@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-74de-add1-a2b622bda552",
+  "kind": "decision",
+  "slug": "DEC-SCH-RELAT-001",
+  "title": "Express containment as nesting, never as drawn edges",
+  "context": "Alternative approaches: draw containment edges alongside dependency edges (draws clutter); use hierarchical layouts that show both relations.",
+  "decision": "Schematify expresses the containment relation (strict tree of parent nodes) through visual nesting only. Containment is never drawn as a line. The rule is: `contains = nesting · depends_on = drawn`.",
+  "consequences": "Clean visual distinction between structural and behavioral relations; nesting is the only way to show parentage; no edge clutter from containment; users must read spatial structure instead of edge labels.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

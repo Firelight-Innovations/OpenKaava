@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7829-8f22-178bcab7eef9",
+  "slug": "clippy-config",
+  "kind": "module",
+  "title": "Clippy Linter Configuration",
+  "description": "Configures Rust clippy linter rules and warning levels for the Cargo workspace.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

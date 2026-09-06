@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-77fa-968a-d4b4c462f585",
+  "slug": "trash-bin",
+  "kind": "external-dep",
+  "title": "React",
+  "description": "React hooks (useCallback, useEffect, useState) for trash view state management",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ce7-9e18-1b0a7e4aced9",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "State management for trash item display and operations"
+}

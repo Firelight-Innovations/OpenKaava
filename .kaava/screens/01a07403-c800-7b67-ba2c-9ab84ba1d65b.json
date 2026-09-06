@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b67-ba2c-9ab84ba1d65b",
+  "kind": "screen",
+  "slug": "viewer-unsupported",
+  "title": "Unsupported File View",
+  "purpose": "Display message for binary or non-UTF-8 files that cannot be edited as text",
+  "states": [
+    "no file",
+    "unsupported file"
+  ],
+  "acceptance": [
+    "shall display error message for binary files",
+    "shall show file format and size information"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-71ec-9a43-9d0508ea7d88"
+  ]
+}

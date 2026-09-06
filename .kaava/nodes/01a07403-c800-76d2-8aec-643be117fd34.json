@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-76d2-8aec-643be117fd34",
+  "slug": "shortcuts-no-duplicates",
+  "kind": "test-case",
+  "title": "No Chord Listed Twice",
+  "description": "Ensures no chord appears in multiple shortcut rows.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7755-81bd-95e5849f8e41",
+  "given": "All chords claimed across SHORTCUT_GROUPS",
+  "when": "Checked for duplicates",
+  "then": "Set size equals array length",
+  "impl_ref": "src/shell/keys/shortcuts.test.ts::the shortcuts list and the keymap claim no chord twice",
+  "status": "declared",
+  "last_result_ms": null
+}

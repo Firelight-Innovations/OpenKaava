@@ -1,0 +1,26 @@
+{
+  "id": "01a07403-c800-77ee-a77b-d06f303fc539",
+  "slug": "plugin-broker-route",
+  "kind": "contract-method",
+  "title": "Route Call to Plugin Core",
+  "description": "Send RPC method to package core, starting it if needed.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78db-904b-bb87473e03bb",
+  "signature": "pub fn route(&self, app: &AppHandle, package_id: &str, method: &str, params: Option<Value>) -> Result<Value, RpcError>",
+  "params": [
+    "app: &AppHandle",
+    "package_id: &str",
+    "method: &str",
+    "params: Option<Value>"
+  ],
+  "returns": "Result<Value, RpcError>",
+  "errors": [
+    "METHOD_NOT_FOUND if reserved",
+    "INTERNAL_ERROR on spawn failure"
+  ],
+  "semantics": "Refuses kaava/* methods; lazily spawns core and caches handle.",
+  "exported": false
+}

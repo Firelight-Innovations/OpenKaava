@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-73a9-bcfa-ef8274482a10",
+  "slug": "settings-surface-shared-state",
+  "kind": "doc-block",
+  "title": "Settings Surface Shared State Model",
+  "description": "Why settings surface uses module-scope state instead of prop threading or context.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71c4-89cf-5b234dd86bc6",
+  "body": "A module rather than a prop threaded through WindowRoot, and rather than a context. The two halves mount independently and neither is the other's parent. A Set of subscribers rather than one callback: both windows of a detached pair mount their own screen, and a second subscriber replacing the first would leave one of them unable to close.",
+  "audience": "both"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-750a-b673-f5e0b23af675",
+  "slug": "design-comments-id-uniqueness",
+  "kind": "test-case",
+  "title": "Comment IDs never reuse after removal",
+  "description": "Persisted counter prevents ID collision after a comment is forgotten.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cda-ab91-40d777dffd1d",
+  "given": "Three comments added, second is removed",
+  "when": "A fourth comment is added",
+  "then": "It gets c4, not c2",
+  "impl_ref": "src-tauri/src/design_comments.rs::ids_are_sequential_and_never_reused",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-77cb-b20f-641b3bcca244",
+  "slug": "secondary-panel-component",
+  "kind": "contract-method",
+  "title": "SecondaryPanel React Component",
+  "description": "Renders the source control panel with worktree and GitHub views, collapsible to a 34px strip showing the current branch.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7746-91a8-cd9baba1739e",
+  "signature": "function SecondaryPanel(props: SecondaryPanelProps): ReactElement",
+  "params": [
+    "props: SecondaryPanelProps (collapsed, branch, worktreeView, githubView, view, onSelectView, onToggleCollapse)"
+  ],
+  "returns": "ReactElement",
+  "errors": [],
+  "semantics": "Renders panel header with view switcher (if multiple views available) and collapses to branch label when collapsed=true.",
+  "exported": false
+}

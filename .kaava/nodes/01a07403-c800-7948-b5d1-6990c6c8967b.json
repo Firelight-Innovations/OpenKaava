@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7948-b5d1-6990c6c8967b",
+  "slug": "codec-wire-format",
+  "kind": "doc-block",
+  "title": "JSON-RPC 2.0 Wire Format Specification",
+  "description": "The codec module implements newline-delimited JSON-RPC 2.0 transport.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "body": "Wire format: JSON-RPC 2.0, one object per line, newline-delimited. Everything here is transport-agnostic -- it knows how to turn a line of text into a typed message and back, and nothing about processes, pipes, or pending calls. `host.rs` and `tool.rs` own those. See `docs/tool-protocol.md` section 2 for the prose spec this mirrors.",
+  "audience": "both"
+}

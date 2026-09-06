@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7144-853d-8626ecf799dc",
+  "slug": "design-comments-read-shot",
+  "kind": "contract-method",
+  "title": "Read Comment Screenshot",
+  "description": "Read a comment's picture back from disk.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cda-ab91-40d777dffd1d",
+  "signature": "pub fn read_shot(app: &AppHandle, id: &str) -> Option<Vec<u8>>",
+  "params": [
+    "app",
+    "id"
+  ],
+  "returns": "Option<Vec<u8>>",
+  "errors": [],
+  "semantics": "Returns PNG bytes or None if file not found.",
+  "exported": false
+}

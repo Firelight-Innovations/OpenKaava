@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-760a-81e8-54cc023cfe40",
+  "slug": "shell-core-close-window",
+  "kind": "contract-method",
+  "title": "closeWindow",
+  "description": "Close this window through the backend.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-746a-b0bb-73db6ddd45f1",
+  "signature": "function closeWindow(): void",
+  "params": [],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Requests backend to close window; no-op outside Tauri.",
+  "exported": true
+}

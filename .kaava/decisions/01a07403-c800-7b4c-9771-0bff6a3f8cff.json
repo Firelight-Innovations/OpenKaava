@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7b4c-9771-0bff6a3f8cff",
+  "kind": "decision",
+  "slug": "DEC-OPS-TESTS-002",
+  "title": "Bug fixes must arrive with the test that would have caught them",
+  "context": "Without this rule, it's easy to fix a bug and forget to prevent it from regressing. Tests are the only way to guarantee the fix stays fixed.",
+  "decision": "A bug fix goes in the same commit as the test, written as if the test had caught the regression rather than being retrofitted to pass. This applies to both Rust (`#[cfg(test)]` modules in the file tested) and frontend code (per STANDARDS.md §8 authority on which runner covers what).",
+  "consequences": "Writing a test before or with the fix takes more time, but the cost is paid once and the benefit is permanent. A failing test never gets deleted; if it's genuinely wrong, change it in a separate commit about that and explain why in the message.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-06"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7f54-a877-1db7a96fe877",
+  "slug": "git-operations-git-divergence",
+  "kind": "contract-method",
+  "title": "Get Worktree Divergence",
+  "description": "Everything the cluster's worktree has changed since it forked.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "signature": "pub fn git_divergence(app: AppHandle, cluster_id: String) -> Result<Option<GitDivergence>>",
+  "params": [
+    "app",
+    "cluster_id"
+  ],
+  "returns": "Result<Option<GitDivergence>>",
+  "errors": [
+    "AppError::Git"
+  ],
+  "semantics": "Returns None if not on a worktree, Some with all changes from fork point.",
+  "exported": true
+}

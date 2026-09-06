@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7e93-b480-d6f0dc1c8598",
+  "slug": "state-module-doc",
+  "kind": "doc-block",
+  "title": "Process-Wide Shared State",
+  "description": "Multi-threaded access to global application state.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74ea-9d72-103436d2dbec",
+  "body": "Process-wide state handed to commands by Tauri, which may run them on several threads at once — so anything shared has to be Send + Sync. RwLock rather than Mutex: the snapshot is read on every UI query but rewritten only on an explicit reload — many readers, rare writer.",
+  "audience": "agent"
+}

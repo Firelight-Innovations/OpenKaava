@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-79ac-9bcb-1a2b815802d4",
+  "slug": "context-menu-css-overview",
+  "kind": "doc-block",
+  "title": "Context Menu Surface Styling",
+  "description": "Explains context menu surface styling and z-index layering.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d41-ae1e-744620afb4bf",
+  "body": "The surface the shell's right-click menu is drawn on. The rows inside it are MenuItemList's, so menuItemList.css already owns every pixel of them. The context menu is z-index 42, above submenu at 41, so a right-click while a title-bar submenu is open shows the newer menu in front.",
+  "audience": "agent"
+}

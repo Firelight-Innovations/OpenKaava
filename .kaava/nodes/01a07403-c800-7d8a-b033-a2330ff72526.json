@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-7d8a-b033-a2330ff72526",
+  "slug": "shell-dock-component",
+  "kind": "contract-method",
+  "title": "Bottom Dock Frame Component",
+  "description": "Renders the collapsible dock with Problems, Runs, Registries and Rules tabs at 196px height when expanded.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-743f-ae55-0cbaeb91a62a",
+  "signature": "Dock(props: DockProps) => JSX.Element",
+  "params": [
+    "findings?: Finding[] | null",
+    "error?: string | null",
+    "onSelectFinding?: (finding: Finding) => void",
+    "runs?: RunsRow[] | null",
+    "runsError?: string | null",
+    "onSelectRun?: (moduleId: string) => void"
+  ],
+  "returns": "React component",
+  "errors": [],
+  "semantics": "Provides tabbed access to linting findings and ingested runs with a collapse toggle that hides content but keeps severity badges visible.",
+  "exported": true
+}

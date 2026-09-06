@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7b4f-bca7-d556909656a4",
+  "slug": "engine-core-drop-facet",
+  "kind": "contract-method",
+  "title": "dropFacet",
+  "description": "Remove facet that was never probed.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7346-9c32-cc9d99a7dbc8",
+  "signature": "dropFacet(id: string): Refusal | null",
+  "params": [
+    "id"
+  ],
+  "returns": "Refusal | null",
+  "errors": [],
+  "semantics": "Exception to no-delete rule for unprobed facets.",
+  "exported": false
+}

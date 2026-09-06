@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78a2-ba6e-87be6321dfb4",
+  "slug": "review-two-notes-same-line-different-id",
+  "kind": "test-case",
+  "title": "Two notes on the same line have different ids",
+  "description": "Comments on the same line do not collide.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "given": "Two drafts for the same file and line",
+  "when": "add is called twice",
+  "then": "Each comment has a different id",
+  "impl_ref": "src-tauri/src/review/mod.rs::two_notes_minted_for_the_same_line_do_not_share_an_id",
+  "status": "declared",
+  "last_result_ms": null
+}

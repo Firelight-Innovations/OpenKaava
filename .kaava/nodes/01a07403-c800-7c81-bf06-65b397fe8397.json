@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7c81-bf06-65b397fe8397",
+  "slug": "settings-controls",
+  "kind": "module",
+  "title": "Settings Control Components",
+  "description": "Four control types that render and handle edits to settings: toggle, number, text, and select. The ControlFor dispatcher picks the right control for each setting based on its schema.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-799f-a747-a362c74e823d",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

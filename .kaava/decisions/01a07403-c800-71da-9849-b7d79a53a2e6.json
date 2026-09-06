@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-71da-9849-b7d79a53a2e6",
+  "kind": "decision",
+  "slug": "DEC-OPS-MCPDESIGN-002",
+  "title": "UI-driving MCP server gated behind developer mode",
+  "context": "OpenKaava has two MCP servers: `kaava-debug` (read-only, always on) and `kaava-ui` (writes to window, must be off by default). The write server is powerful enough to break things.",
+  "decision": "The `kaava-ui` server, which can screenshot, click, type, and execute JavaScript against the window, is off and invisible unless developer.mode is on and the server's own switch is thrown. It does not appear in settings, `.mcp.json`, or `tools/list` until explicitly enabled.",
+  "consequences": "Agents cannot accidentally invoke powerful UI automation. The write surface is hidden from normal operation. Access requires two toggles: one global (`developer.mode`) and one per-server. This prevents accidental clicks and state mutations.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-06"
+}

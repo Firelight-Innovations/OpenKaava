@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7d1f-8689-1fb524aa07b5",
+  "slug": "keyboard-hook-overview",
+  "kind": "doc-block",
+  "title": "Shell Global Keyboard Shortcuts",
+  "description": "Explains document-level keyboard listener and action callbacks.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78e7-856c-cf28278f7c01",
+  "body": "The shell's global keyboard shortcuts — everything except Ctrl+K and Escape, which SearchSlot already owns. Nothing here resolves which tool is at a given index or whether Save is possible — that is WindowRoot's job, passed in as callbacks. An action that cannot run is a callback that does nothing.",
+  "audience": "agent"
+}

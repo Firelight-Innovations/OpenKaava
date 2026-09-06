@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-798b-9906-ae3c93aa1d92",
+  "slug": "design-comments-comments-say",
+  "kind": "contract-method",
+  "title": "Add Comment Thread Reply",
+  "description": "Add a turn to a comment's thread and move it to status.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cda-ab91-40d777dffd1d",
+  "signature": "pub fn say(&self, app: &AppHandle, id: &str, author: Author, text: &str, status: Status) -> Option<Comment>",
+  "params": [
+    "app",
+    "id",
+    "author",
+    "text",
+    "status"
+  ],
+  "returns": "Option<Comment>",
+  "errors": [],
+  "semantics": "Returns None if comment doesn't exist, persists book after successful update.",
+  "exported": false
+}

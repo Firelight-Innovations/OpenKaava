@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e63-868c-a0fa505fef4e",
+  "slug": "outcome-matched-is-never-an-error",
+  "kind": "test-case",
+  "title": "Matched Outcome Is Never an Error",
+  "description": "A Matched outcome always has is_error() == false.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f14-8b2b-c06d802d2714",
+  "given": "a Matched ReconcileOutcome",
+  "when": "is_error is called",
+  "then": "returns false",
+  "impl_ref": "crates/schematify-reconcile/src/outcome.rs::matched_is_never_an_error",
+  "status": "declared",
+  "last_result_ms": null
+}

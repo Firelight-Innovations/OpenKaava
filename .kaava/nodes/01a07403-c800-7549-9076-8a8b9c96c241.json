@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7549-9076-8a8b9c96c241",
+  "slug": "shell-state-closing-one-member-leaves-other",
+  "kind": "test-case",
+  "title": "Terminal Group Dissolution",
+  "description": "Verify that a group of one stops being a group once the other member is closed.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-793e-a1dd-5f4c43788377",
+  "given": "Two terminals in a group",
+  "when": "Closing one terminal",
+  "then": "The remaining terminal's group_id is cleared",
+  "impl_ref": "src-tauri/src/shell_state.rs::closing_one_member_leaves_the_other",
+  "status": "declared",
+  "last_result_ms": null
+}

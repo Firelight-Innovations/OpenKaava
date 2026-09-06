@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7089-99f1-9c1815743484",
+  "slug": "app-vite-entry-required",
+  "statement": "Every new app must have an entry in vite.config.ts or it silently fails to build.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm build"
+}

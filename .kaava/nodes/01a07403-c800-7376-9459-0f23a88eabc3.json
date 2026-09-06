@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7376-9459-0f23a88eabc3",
+  "slug": "shell-quoting-module-doc",
+  "kind": "doc-block",
+  "title": "Shell dialect quoting rules",
+  "description": "Module-level documentation on why quoting must happen in Rust.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e0-bbc7-7090d1eeb4e5",
+  "body": "Getting shell quoting wrong turns C:\\Program Files\\x into two arguments, which is the bug this feature exists to avoid. It lives in Rust rather than the frontend because only Rust knows which shell a session is talking to — the pty picked it from a setting and never told the emulator. The rule is adapted from Orca, using allow-lists rather than metacharacter lists: three dialects with different rules for PowerShell, Cmd, and POSIX shells.",
+  "audience": "agent"
+}

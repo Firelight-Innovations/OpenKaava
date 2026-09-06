@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7b1d-8519-f385ae272be5",
+  "slug": "plugin-remote-sha256-hex",
+  "kind": "contract-method",
+  "title": "Hash Asset Bytes",
+  "description": "Compute SHA-256 of downloaded bytes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-764a-b5c5-9f2cce1355f5",
+  "signature": "pub fn sha256_hex(bytes: &[u8]) -> String",
+  "params": [
+    "bytes: &[u8]"
+  ],
+  "returns": "String",
+  "errors": [],
+  "semantics": "Returns lowercase hex string for checksum comparison.",
+  "exported": false
+}

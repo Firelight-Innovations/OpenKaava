@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-70ac-9fb2-c3ef1a3e86e6",
+  "slug": "kaava-debug-tools",
+  "kind": "module",
+  "title": "OpenKaava Debugging and Automation",
+  "description": "MCP-based tools to query a running OpenKaava instance and drive its UI, enabling agents to verify changes without launching the app.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

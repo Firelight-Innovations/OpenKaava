@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7037-9650-8c6e9744d2e1",
+  "slug": "explorer-tree",
+  "kind": "external-dep",
+  "title": "React",
+  "description": "React hooks and components for tree rendering with forwardRef and imperative handles",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c13-b0ea-a43449e8f713",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "Core React library for tree UI components"
+}

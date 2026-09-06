@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7cb1-94a7-782e198fb15e",
+  "slug": "shell-core-command-line",
+  "kind": "contract-method",
+  "title": "commandLine",
+  "description": "Parse and validate text for the Run menu.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-746a-b0bb-73db6ddd45f1",
+  "signature": "function commandLine(input: string): CommandLine",
+  "params": [
+    "input"
+  ],
+  "returns": "CommandLine",
+  "errors": [],
+  "semantics": "Returns command or refusal message; rejects multiline input.",
+  "exported": true
+}

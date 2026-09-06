@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79d5-9434-75e152382e45",
+  "slug": "report-rendering-writes-one-reconcile-json-per-outcome-keyed-by-node-id",
+  "kind": "test-case",
+  "title": "Write Outcome Files Keyed by Node UUID",
+  "description": "Each outcome is written to .kaava/runs/<node-uuid>/reconcile.json with timestamp and schema.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "given": "a ReconcileRun with one matched outcome",
+  "when": "write_run_files is called",
+  "then": "file is written at runs/<node-id>/reconcile.json with schema and outcome fields",
+  "impl_ref": "crates/schematify-reconcile/src/report.rs::writes_one_reconcile_json_per_outcome_keyed_by_node_id",
+  "status": "declared",
+  "last_result_ms": null
+}

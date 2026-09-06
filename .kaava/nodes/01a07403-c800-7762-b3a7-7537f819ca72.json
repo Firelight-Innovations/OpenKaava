@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7762-b3a7-7537f819ca72",
+  "slug": "sync-module-doc",
+  "kind": "doc-block",
+  "title": "Lock Poisoning and Invariants",
+  "description": "Rationale for panic-on-poisoning semantics.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7187-a645-d607e5b748cd",
+  "body": "Every RwLock and Mutex in this binary guards something the orchestrator is the sole author of — the shell layout, the pty table, the resolved stack, the open project. A poisoned lock means an earlier thread panicked partway through a write, so the value behind it is half-applied. Stopping at the first access is better than serving a half-applied state. STANDARDS.md section 5 allows the panic — a mutex you own is its own example of a genuine invariant — and asks for a comment naming the invariant.",
+  "audience": "agent"
+}

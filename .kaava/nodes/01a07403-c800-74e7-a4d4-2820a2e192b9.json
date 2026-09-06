@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-74e7-a4d4-2820a2e192b9",
+  "slug": "scanner-occurrence",
+  "kind": "contract-method",
+  "title": "Marker Occurrence Record",
+  "description": "One @kaava: marker found while walking the tree.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-781b-85ef-56660694446e",
+  "signature": "pub struct Occurrence",
+  "params": [
+    "file: PathBuf",
+    "line: usize",
+    "id: Uuid",
+    "slug: Option<String>"
+  ],
+  "returns": "struct",
+  "errors": [],
+  "semantics": "Immutable record of one marker token occurrence in source code.",
+  "exported": false
+}

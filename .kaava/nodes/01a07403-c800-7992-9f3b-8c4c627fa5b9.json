@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7992-9f3b-8c4c627fa5b9",
+  "slug": "sync-a-poisoned-rwlock-panics-on-read",
+  "kind": "test-case",
+  "title": "RwLock Poisoning",
+  "description": "Verify that reading a poisoned RwLock panics with the poisoned message.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7187-a645-d607e5b748cd",
+  "given": "A thread that writes to an RwLock then panics",
+  "when": "Another thread attempts to read after the panic",
+  "then": "The read panics with 'lock poisoned'",
+  "impl_ref": "src-tauri/src/sync.rs::a_poisoned_rwlock_panics_on_read",
+  "status": "declared",
+  "last_result_ms": null
+}

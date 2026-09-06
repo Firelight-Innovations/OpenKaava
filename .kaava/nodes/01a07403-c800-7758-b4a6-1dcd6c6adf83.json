@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7758-b4a6-1dcd6c6adf83",
+  "slug": "frame-16ms-budget",
+  "kind": "budget",
+  "title": "16 ms frame budget",
+  "description": "buildFrame completes in under 16 ms at median of 21 runs on the dense fixture.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dd1-9e6f-3a5f9034098a",
+  "metric": "execution time",
+  "op": "<",
+  "value": 16,
+  "unit": "ms",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm test -- frameBudget.test.ts",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f04-a30f-c20a9d364f2c",
+  "slug": "settings-decision-registry",
+  "kind": "doc-block",
+  "title": "Settings are decisions the app reads",
+  "description": "What makes a valid setting and the rule for adding one.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7317-a0f1-948948e9e898",
+  "body": "A setting is a decision, and something has to read it. A row that writes a value nothing consumes is worse than an absent row — it is a promise the interface does not keep. Every setting is defined in schema.rs and followed to its reader, so every key is validated and none are orphaned.",
+  "audience": "both"
+}

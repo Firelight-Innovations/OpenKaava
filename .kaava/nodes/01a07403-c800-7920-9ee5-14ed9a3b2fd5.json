@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7920-9ee5-14ed9a3b2fd5",
+  "slug": "tokens",
+  "kind": "module",
+  "title": "Design Tokens",
+  "description": "Application-scoped CSS custom properties defining colors, typography, geometry, and semantic values (PRD §13), isolated within this iframe document and never exporting hex literals per Wave 2's acceptance condition.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7ee3-9c28-55541df6f520",
+  "slug": "palette-registry-rank-commands",
+  "kind": "contract-method",
+  "title": "Rank Commands by Query Match",
+  "description": "Filters and ranks commands based on fuzzy matching against a query string.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d1f-ac55-b6ae705d4545",
+  "signature": "export function rankCommands(commands: Command[], query: string): RankedCommand[]",
+  "params": [
+    "commands: Command[]",
+    "query: string"
+  ],
+  "returns": "RankedCommand[]",
+  "errors": [],
+  "semantics": "Scores each command against the query using fuzzy matching, sorts by score, and returns ranked hits.",
+  "exported": false
+}

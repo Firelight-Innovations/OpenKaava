@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7425-9f35-f6d71ed2d8db",
+  "slug": "outcome-serde",
+  "kind": "external-dep",
+  "title": "Serde",
+  "description": "Serialization and deserialization framework.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f14-8b2b-c06d802d2714",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "Derives Serialize on OutcomeKind and ReconcileOutcome with tag mapping for JSON representation"
+}

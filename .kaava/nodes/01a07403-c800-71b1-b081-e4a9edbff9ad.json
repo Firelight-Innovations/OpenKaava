@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-71b1-b081-e4a9edbff9ad",
+  "slug": "titlebar-title-bar",
+  "kind": "contract-method",
+  "title": "TitleBar Component",
+  "description": "Renders the application title bar with logo, menus or hamburger, centered window title, and window controls.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7806-88f7-dafc7969fdd8",
+  "signature": "function TitleBar({ kind, project, worktree, menus }: TitleBarProps): ReactNode",
+  "params": [
+    "kind: WindowKind",
+    "project: string | null",
+    "worktree: string | null",
+    "menus: Menu[]"
+  ],
+  "returns": "JSX.Element",
+  "errors": [],
+  "semantics": "Displays product name, active cluster's project, and built menu structure; becomes drag region for window.",
+  "exported": true
+}

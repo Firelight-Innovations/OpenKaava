@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7058-8ed1-f556b64bfd20",
+  "slug": "host-tool-process-notifications",
+  "kind": "contract-method",
+  "title": "Retrieve Incoming Notifications",
+  "description": "Access the channel of unsolicited pushes from the tool, in arrival order.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-762d-94d0-4cb8287084c4",
+  "signature": "pub fn notifications(&self) -> std::sync::MutexGuard<'_, Receiver<Notification>>",
+  "params": [
+    "&self"
+  ],
+  "returns": "std::sync::MutexGuard<'_, Receiver<Notification>>",
+  "errors": [],
+  "semantics": "Returns a guard that derefs to a receiver and enforces one consumer at a time.",
+  "exported": true
+}

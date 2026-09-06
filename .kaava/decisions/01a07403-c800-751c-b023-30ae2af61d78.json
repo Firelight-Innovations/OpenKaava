@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-751c-b023-30ae2af61d78",
+  "kind": "decision",
+  "slug": "DEC-TEC-PROJ-011",
+  "title": "Project belongs to cluster, not process; per-cluster project pointers enable multi-monitor workflows",
+  "context": "Single global project prevented two windows on two monitors from showing two different projects simultaneously.",
+  "decision": "Move project ownership from process to cluster. Cluster.project is the authority. Each cluster can point to its own project.",
+  "consequences": "Two windows can work on different projects. Broadcast includes cluster id; relay filters events by cluster so Files in other clusters ignore project changes.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

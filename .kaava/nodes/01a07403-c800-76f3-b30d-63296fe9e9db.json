@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-76f3-b30d-63296fe9e9db",
+  "slug": "kaava-binary",
+  "kind": "module",
+  "title": "Kaava CLI Binary",
+  "description": "Entry point for 'kaava reconcile' command; parses arguments, loads the design graph, orchestrates reconciliation, and handles output.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e48-8636-0f44278a1b0e",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7e8a-932c-3ec6398ffdeb",
+  "slug": "boot-module-doc",
+  "kind": "doc-block",
+  "title": "Startup Sequence Behind the Splash",
+  "description": "Overview of the three-phase startup and app synchronization.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f28-b976-1789857ef688",
+  "body": "The startup sequence that runs behind the splash window. App.tsx used to call load_stack once the main window's React tree mounted, so the manifest read and checkout scan happened after the window was on screen and the app sat blank. Running the same three steps here lets them happen while the splash is what the user sees. The main window's webview starts loading the instant that window is created (hidden), so the shell and its apps boot in parallel.",
+  "audience": "agent"
+}

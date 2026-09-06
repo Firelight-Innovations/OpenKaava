@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7e4e-89fb-4054682f7583",
+  "kind": "decision",
+  "slug": "DEC-SCH-API-001",
+  "title": "kaava-bench-v1 schema carries every ingested probe result",
+  "context": "Alternative approaches: separate schemas per metric; text output with parsing; no versioning.",
+  "decision": "CI runs probes and emits `kaava-bench-v1` artifact files. The schema version is `kaava-bench-v1`. Schematify ingests the artifact into `runs/` and draws it. The schema is versioned; a reader that meets an unknown version rejects the file and reports the version.",
+  "consequences": "Versioning allows schema evolution; breaking changes can be detected; Schematify never invokes the probe command itself; CI controls the probe and Schematify ingest; version mismatch is an error, not silent data loss.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

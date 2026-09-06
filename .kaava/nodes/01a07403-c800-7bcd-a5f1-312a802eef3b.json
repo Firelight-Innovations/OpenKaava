@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7bcd-a5f1-312a802eef3b",
+  "slug": "design-comments-thread-ordering",
+  "kind": "test-case",
+  "title": "Comment threads maintain turn order",
+  "description": "Remarks are kept in the order they were written.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cda-ab91-40d777dffd1d",
+  "given": "A comment with agent asking then user replying",
+  "when": "the comment is read",
+  "then": "Thread shows agent remark first, user remark second",
+  "impl_ref": "src-tauri/src/design_comments.rs::a_thread_records_who_said_what_in_order",
+  "status": "declared",
+  "last_result_ms": null
+}

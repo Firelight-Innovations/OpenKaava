@@ -1,0 +1,19 @@
+{
+  "id": "01a07403-c800-7d11-8354-a2669af47406",
+  "slug": "loader",
+  "kind": "module",
+  "title": "Graph Loader and Parsing",
+  "description": "Loads the design graph from disk: walks .kaava/, parses JSON files in parallel, builds the graph in memory, and quarantines dangling references without losing them.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7abe-9eed-7510b796f92a",
+  "allowed_libraries": [
+    "01a07403-c800-7565-ae9d-23b929975082",
+    "01a07403-c800-71e9-a09e-d51d7c34d3cc",
+    "01a07403-c800-742b-8645-f7e1a4004134"
+  ],
+  "ui_refs": []
+}

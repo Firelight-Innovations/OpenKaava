@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7c22-9a7c-148cbffb33c4",
+  "kind": "screen",
+  "slug": "home-worktree-dialog",
+  "title": "Worktree Setup Dialog",
+  "purpose": "Prompt for creating a git worktree when a project is opened without one",
+  "states": [
+    "initial",
+    "creating",
+    "created",
+    "cancelled"
+  ],
+  "acceptance": [
+    "shall appear only after opening a git repository without an existing worktree",
+    "shall show list of branch names already taken",
+    "shall allow user to create a new worktree with a branch name",
+    "shall close on Escape, Cancel, or successful creation"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7bf3-b083-b0139d0bad6a"
+  ]
+}

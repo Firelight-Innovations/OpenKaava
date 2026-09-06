@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-799e-91e7-f974a688bd9c",
+  "slug": "listener-binding-strategy",
+  "kind": "doc-block",
+  "title": "Binding Is Synchronous, Serving Is Async",
+  "description": "The port is known before terminals are spawned.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7086-80ae-e8b05191e7a8",
+  "body": "Binding is synchronous and serving is not, which is the whole shape of this function. The port has to be known before the first terminal is spawned — that terminal inherits it as an environment variable — and `setup` in `lib.rs` is not async. So a `std` socket is bound here, its port read immediately, and only the serving handed to the runtime.",
+  "audience": "human"
+}

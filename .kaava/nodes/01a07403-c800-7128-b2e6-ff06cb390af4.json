@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7128-b2e6-ff06cb390af4",
+  "slug": "home-launcher-rpc-shapes",
+  "kind": "doc-block",
+  "title": "RPC Shapes in Home",
+  "description": "Patterns for declaring RPC types in apps without reaching into the orchestrator.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bf3-b083-b0139d0bad6a",
+  "body": "Project, State, and WorktreeState are declared here rather than imported from the orchestrator's src/bindings.ts, for the same reason icons.tsx draws its own glyphs: an app's only coupling to its host is @openkaava/bridge and the shape of what crosses it. Only what this pane actually draws is described.",
+  "audience": "agent"
+}

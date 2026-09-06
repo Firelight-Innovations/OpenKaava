@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-785a-8117-166f6f916bf9",
+  "slug": "userdata-adopt-run",
+  "kind": "contract-method",
+  "title": "Adopt a superseded config directory if present and unused",
+  "description": "Move a config directory from a previous identifier to the current one, once, at startup.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-795e-a9a6-827112f01105",
+  "signature": "pub fn run(app: &AppHandle)",
+  "params": [
+    "app: &AppHandle"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Checks adoption marker first, then moves the newest superseded directory that is in use, silently on failure.",
+  "exported": false
+}

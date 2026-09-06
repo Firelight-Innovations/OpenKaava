@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-746d-80b9-f917275e35c1",
+  "slug": "servers-rule",
+  "kind": "doc-block",
+  "title": "What Earns a Server",
+  "description": "Only what exists only inside OpenKaava gets a server.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e98-ae8d-c1ef00cefddb",
+  "body": "If the harness can already do it, it does not get a server. No file reading, writing or listing, no search, no git. Every agent worth pointing at OpenKaava arrives with those, and a second worse copy costs a permission surface and a pile of tool descriptions competing for the model's attention. What earns a server is something that exists only inside OpenKaava and has no filesystem equivalent.",
+  "audience": "agent"
+}

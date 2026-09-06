@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7ce4-9216-9b9c352bef26",
+  "slug": "report-rendering-write-run-files",
+  "kind": "contract-method",
+  "title": "Write Per-Node Result Files",
+  "description": "Write one .kaava/runs/<node-uuid>/reconcile.json per outcome in run.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "signature": "pub fn write_run_files(root: &Path, run: &ReconcileRun) -> Result<(), ReportError>",
+  "params": [
+    "root: &Path",
+    "run: &ReconcileRun"
+  ],
+  "returns": "Result<(), ReportError>",
+  "errors": [
+    "Io",
+    "Json"
+  ],
+  "semantics": "Persists each outcome to its own timestamped JSON file.",
+  "exported": false
+}

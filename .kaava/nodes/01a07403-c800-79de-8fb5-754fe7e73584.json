@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79de-8fb5-754fe7e73584",
+  "slug": "api-report-painted",
+  "kind": "contract-method",
+  "title": "reportPainted",
+  "description": "Tell the orchestrator this frontend has drawn its first meaningful content.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77f3-afe7-a004ea566b14",
+  "signature": "reportPainted(): void",
+  "params": [],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Idempotent fire-and-forget; waits up to 200ms for requestAnimationFrame, then sends if rAF never fires.",
+  "exported": true
+}

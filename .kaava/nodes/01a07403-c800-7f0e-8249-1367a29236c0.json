@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f0e-8249-1367a29236c0",
+  "slug": "problems-finding",
+  "kind": "contract-method",
+  "title": "Finding Type",
+  "description": "One Problems row after camelCasing node_cell to nodeCell from the wire format.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74e7-acd1-ffea4dddd156",
+  "signature": "interface Finding",
+  "params": [],
+  "returns": "Finding",
+  "errors": [],
+  "semantics": "Represents a single lint finding ready for display.",
+  "exported": true
+}

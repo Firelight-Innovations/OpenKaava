@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7755-81bd-95e5849f8e41",
+  "slug": "shortcuts",
+  "kind": "module",
+  "title": "Shortcut Definitions",
+  "description": "Structured data table of every keystroke the shell binds, organized by category (Tools, File, View, Terminal, Search) with labels and notes.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77ea-a32c-4eee96e848f4",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-739c-a4ff-db07cc75dd36"
+  ]
+}

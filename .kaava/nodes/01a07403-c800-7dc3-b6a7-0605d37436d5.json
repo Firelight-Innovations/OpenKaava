@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7dc3-b6a7-0605d37436d5",
+  "slug": "tool-window-boot-overlay",
+  "kind": "contract-method",
+  "title": "BootOverlay React Component",
+  "description": "Overlay shown while a tool is starting, with spinning arc animation and optional progress bar.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e2-b95c-b24cdbe6d78b",
+  "signature": "function BootOverlay(props: { toolName: string; progress?: BootProgress }): ReactElement",
+  "params": [
+    "toolName: string",
+    "progress?: BootProgress"
+  ],
+  "returns": "ReactElement",
+  "errors": [],
+  "semantics": "Renders a centered boot animation with tool name and optional progress indicator; laid over the tool's iframe.",
+  "exported": false
+}

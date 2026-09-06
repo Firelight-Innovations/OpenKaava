@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7a08-bb28-1e6a468d2626",
+  "slug": "titlebar-edit-handlers",
+  "kind": "contract-method",
+  "title": "editHandlers Function",
+  "description": "Routes Edit menu commands (Undo, Cut, Find, etc.) to the appropriate handler based on what has focus.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7806-88f7-dafc7969fdd8",
+  "signature": "function editHandlers(target: EditTarget, app: CommandHandlers): CommandHandlers",
+  "params": [
+    "target: EditTarget",
+    "app: CommandHandlers"
+  ],
+  "returns": "CommandHandlers",
+  "errors": [],
+  "semantics": "Returns command handlers that execute on focused app frame or shell field, or report blocked if nothing editable has focus.",
+  "exported": true
+}

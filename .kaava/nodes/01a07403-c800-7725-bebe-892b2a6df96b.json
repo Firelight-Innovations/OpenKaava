@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7725-bebe-892b2a6df96b",
+  "slug": "manifest-loader-locate",
+  "kind": "contract-method",
+  "title": "Manifest Discovery",
+  "description": "Find kaava.toml with fallback chain: env override, dev build repo, bundled copy.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b8-a253-bd079c91045f",
+  "signature": "pub fn locate(app: &AppHandle) -> Result<PathBuf>",
+  "params": [
+    "app: &AppHandle"
+  ],
+  "returns": "Result<PathBuf>",
+  "errors": [
+    "ManifestNotFound with attempted paths"
+  ],
+  "semantics": "Returns first accessible manifest in priority order.",
+  "exported": true
+}

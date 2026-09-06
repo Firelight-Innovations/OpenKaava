@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-76b4-a906-6011a61e4ddf",
+  "slug": "commands-mcp-status",
+  "kind": "contract-method",
+  "title": "MCP Status",
+  "description": "Report whether the MCP endpoint is reachable and which servers are visible.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a15-9205-3403c29c95c2",
+  "signature": "#[tauri::command] pub fn mcp_status(app: AppHandle, registry: State<'_, Registry>, endpoint: State<'_, Endpoint>) -> EndpointStatus",
+  "params": [
+    "app: AppHandle",
+    "registry: State<'_, Registry>",
+    "endpoint: State<'_, Endpoint>"
+  ],
+  "returns": "EndpointStatus",
+  "errors": [],
+  "semantics": "Returns the port (None if binding failed) and the list of servers the user should see, filtered by developer mode.",
+  "exported": true
+}

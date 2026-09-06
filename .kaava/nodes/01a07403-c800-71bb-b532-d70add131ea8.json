@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-71bb-b532-d70add131ea8",
+  "slug": "reconciliation-matched-when-graph-and-code-agree",
+  "kind": "test-case",
+  "title": "Matched Outcome When Marker and Node Agree",
+  "description": "When a marker's UUID is found in code and exists in the graph, the outcome is Matched.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f82-b74b-6f5fb1052449",
+  "given": "a marker and a matching graph node with the same UUID",
+  "when": "reconcile is called",
+  "then": "one Matched outcome is produced with exit code 0",
+  "impl_ref": "crates/schematify-reconcile/src/reconcile.rs::matched_when_graph_and_code_agree",
+  "status": "declared",
+  "last_result_ms": null
+}

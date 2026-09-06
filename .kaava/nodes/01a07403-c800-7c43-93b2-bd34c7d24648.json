@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c43-93b2-bd34c7d24648",
+  "slug": "engine-cycle-edge-refused",
+  "kind": "test-case",
+  "title": "Cycle edge is refused at drag time",
+  "description": "PRD §12.5 refusal prevents cycles before any write.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7346-9c32-cc9d99a7dbc8",
+  "given": "an engine with http-entry depends_on token-issuer",
+  "when": "attempting to add crypto-primitives -> http-entry",
+  "then": "returns PRD §12.5 cycle refusal",
+  "impl_ref": "apps/schematify/ui/src/engine/engine.test.ts::a cycle edge is refused draws PRD §12.5's sentence, exactly",
+  "status": "declared",
+  "last_result_ms": null
+}

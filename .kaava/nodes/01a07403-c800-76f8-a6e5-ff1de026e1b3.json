@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-76f8-a6e5-ff1de026e1b3",
+  "slug": "tauri-api",
+  "kind": "external-dep",
+  "title": "Tauri API",
+  "description": "Bridge to Tauri commands for backend interaction. Used to fetch settings and listen for changes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ebb-a9e9-416f0525893f",
+  "registry_ref": "01a07403-c800-7316-86fd-2d4d6903c4f5",
+  "usage_note": "settingsSnapshot and onSettingsChanged imported for settings state management"
+}

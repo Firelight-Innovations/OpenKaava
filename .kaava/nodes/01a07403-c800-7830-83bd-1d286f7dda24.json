@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7830-83bd-1d286f7dda24",
+  "slug": "shell-core-command-line-multiline",
+  "kind": "test-case",
+  "title": "commandLine rejects multiline input",
+  "description": "Prevents pasted multi-command blocks from running all at once.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-746a-b0bb-73db6ddd45f1",
+  "given": "Input with newline separating two commands",
+  "when": "commandLine is called",
+  "then": "Returns object with refused field",
+  "impl_ref": "src/shell/run.test.ts::a command line off the Run field::refuses a paste that holds more than one line",
+  "status": "declared",
+  "last_result_ms": null
+}

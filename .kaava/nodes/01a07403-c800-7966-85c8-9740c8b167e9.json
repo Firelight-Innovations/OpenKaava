@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7966-85c8-9740c8b167e9",
+  "slug": "reconciliation-module-doc",
+  "kind": "doc-block",
+  "title": "Reconciliation Algorithm",
+  "description": "Compares markers in code against the design graph.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f82-b74b-6f5fb1052449",
+  "body": "Compares markers found in code against nodes in the design graph and produces one [`ReconcileOutcome`] per marker identifier the run touches, on either side (PRD `SCHEMATIFY-PRD.md` section 9.2).",
+  "audience": "both"
+}
