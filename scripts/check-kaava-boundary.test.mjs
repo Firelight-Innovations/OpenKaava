@@ -21,6 +21,22 @@ describe("groupByRoot", () => {
     ]);
   });
 
+  /**
+   * The case this file's own header calls out — "a project opened at the
+   * repository root would add a fourth" — and the case the patterns could not
+   * see until 2026-09-06, because `.*\/\.kaava` demands a slash before
+   * `.kaava`. It failed open: no match, no group, no violation, no output.
+   */
+  it("classifies a .kaava tree at the repository root", () => {
+    const roots = groupByRoot([`.kaava/nodes/${UUID}.json`, `.kaava/runs/${UUID}/audit.json`]);
+    expect(roots.size).toBe(1);
+    const entry = roots.get(".kaava");
+    expect(entry.nodes).toEqual([{ path: `.kaava/nodes/${UUID}.json`, uuid: UUID }]);
+    expect(entry.runs).toEqual([
+      { path: `.kaava/runs/${UUID}/audit.json`, uuid: UUID, rest: "audit.json" },
+    ]);
+  });
+
   it("keeps two .kaava roots separate", () => {
     const otherRoot = "crates/schematify-core/fixtures/dense-service/.kaava";
     const roots = groupByRoot([
@@ -57,6 +73,24 @@ describe("violations", () => {
     expect(violations([`${ROOT}/nodes/${UUID}.json`, `${ROOT}/runs/${UUID}/audit.json`])).toEqual(
       [],
     );
+  });
+
+  /**
+   * The shape a port of this repository actually produces: generate the
+   * semantic tree, then run `kaava reconcile`, which writes one
+   * `reconcile.json` per node under `runs/`. That is a design write and an
+   * audit write in one commit, and it is what the gate exists to stop — but it
+   * could not stop it at the repository root while the patterns demanded a
+   * leading directory.
+   */
+  it("blocks a repository-root port that committed reconcile output beside its nodes", () => {
+    expect(
+      violations([
+        `.kaava/nodes/${UUID}.json`,
+        `.kaava/nodes/${OTHER_UUID}.json`,
+        `.kaava/runs/${UUID}/reconcile.json`,
+      ]),
+    ).not.toEqual([]);
   });
 
   it("blocks a mixed write that is not the lifecycle pair — different uuids", () => {
