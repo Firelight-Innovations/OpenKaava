@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { MODULE_CONFIG, SERVICE_CONFIG, STACK_CONFIG } from "./presets";
-import { configFor, nextDrillTarget } from "./navigation";
+import { configFor, LANDING_PATH, nextDrillTarget } from "./navigation";
 
 describe("nextDrillTarget", () => {
   it("opens a Service Schematic from a click on a service at the stack tier", () => {
@@ -70,5 +70,58 @@ describe("configFor", () => {
     const config = configFor({ tier: "module", slug: "jwks-cache", title: "JWKS Cache" });
     expect(config.layoutSlug).toBe("jwks-cache");
     expect(config.arrangement).toBe(MODULE_CONFIG.arrangement);
+  });
+});
+
+/**
+ * The landing view. This is the test that would have caught the defect: the
+ * app opened by asking for a service named `auth-service`, so every project
+ * that did not happen to be `fixtures/saas-backend/` drew
+ * `no service named "auth-service" in this project` over the whole shell and
+ * offered nothing to click past it.
+ *
+ * The rule that fixes it is stated as an assertion rather than as a slug,
+ * because pinning the literal `"stack"` would pass just as happily for a
+ * second hardcoded service. What matters is that the landing view names
+ * nothing the project has to contain.
+ */
+describe("LANDING_PATH", () => {
+  it("opens the highest tier there is", () => {
+    expect(LANDING_PATH.map((target) => target.tier)).toEqual(["stack"]);
+  });
+
+  it("names nothing the project has to contain — no service, no module", () => {
+    // A service or module target carries a slug that must resolve against the
+    // graph, and `projectServiceGraph`/`projectModuleGraph` throw when it does
+    // not. Only a stack target is answerable for a project nobody has opened.
+    expect(LANDING_PATH.every((target) => target.tier === "stack")).toBe(true);
+  });
+
+  it("is a single segment, so the breadcrumb has nowhere left to walk back to", () => {
+    expect(LANDING_PATH).toHaveLength(1);
+  });
+
+  it("carries the slug the stack preset already keys its layout file on", () => {
+    // Not a claim about the project: `configFor` ignores the field at this
+    // tier. Keeping the two in step is what stops a landing view from writing
+    // `layout/<something-else>.json`.
+    expect(LANDING_PATH[0].slug).toBe(STACK_CONFIG.layoutSlug);
+  });
+
+  it("opens the stack preset unmodified when handed to configFor", () => {
+    expect(configFor(LANDING_PATH[0])).toBe(STACK_CONFIG);
+  });
+
+  it("drills straight to a service, so the tier below is one click away", () => {
+    const drilled = nextDrillTarget(LANDING_PATH[0].tier, {
+      kind: "service",
+      slug: "orchestrator-backend",
+      title: "Orchestrator Backend",
+    });
+    expect(drilled).toEqual({
+      tier: "service",
+      slug: "orchestrator-backend",
+      title: "Orchestrator Backend",
+    });
   });
 });
