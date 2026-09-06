@@ -9,7 +9,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { coversCountFor } from "../engine/anatomy";
 import { countNodes } from "./index";
-import { projectModuleGraph, projectServiceGraph, type RawGraph, type RawNode } from "./project";
+import {
+  projectModuleGraph,
+  projectServiceGraph,
+  projectStackGraph,
+  type RawGraph,
+  type RawNode,
+} from "./project";
 
 function node(partial: Partial<RawNode> & Pick<RawNode, "id" | "slug" | "kind">): RawNode {
   return {
@@ -566,5 +572,206 @@ describe("projectModuleGraph", () => {
     } finally {
       dateNowSpy.mockRestore();
     }
+  });
+});
+
+/**
+ * `projectStackGraph` — tier 1, and the last of the three to get a real
+ * projector. Until it did, `backend.ts` answered the stack tier with an empty
+ * graph no matter what the project held, and `App.tsx` compensated by landing
+ * on a service named `auth-service` instead. Every project without one drew
+ * `no service named "auth-service" in this project` over the whole shell, and
+ * the Stack Schematic was no way out of it: it had no nodes to click.
+ *
+ * The graph below is PRD §16.1's own stack shape — a group that really
+ * contains services, a service nested in another service, modules and facets
+ * that belong to deeper tiers, and one annotation per tier — so the assertions
+ * read against the arrangement the PRD describes rather than a shape invented
+ * here.
+ */
+describe("projectStackGraph", () => {
+  const STACK: RawGraph = {
+    nodes: [
+      node({ id: "gw", slug: "api-gateway", kind: "service", title: "API Gateway" }),
+      // A real containment parent, not a cosmetic overlay (PRD §16.1).
+      node({ id: "core", slug: "platform-core", kind: "group", title: "Platform Core" }),
+      node({
+        id: "auth",
+        slug: "auth-service",
+        kind: "service",
+        title: "Auth Service",
+        parent: "core",
+        layer: "backend",
+      }),
+      node({
+        id: "sess",
+        slug: "session-service",
+        kind: "service",
+        title: "Session Service",
+        parent: "core",
+      }),
+      // A service inside a service: PRD §16.1's `ledger-store`.
+      node({
+        id: "ledger",
+        slug: "ledger-store",
+        kind: "service",
+        title: "Ledger Store",
+        parent: "sess",
+      }),
+      // Tier 2 and tier 3. None of it is tier 1's to draw, but the counts on
+      // the service faces are computed from it.
+      node({ id: "m1", slug: "http-entry", kind: "module", parent: "auth" }),
+      node({ id: "m2", slug: "token-verifier", kind: "module", parent: "auth" }),
+      node({ id: "m3", slug: "ledger-writer", kind: "module", parent: "ledger" }),
+      node({ id: "f1", slug: "verify", kind: "contract-method", parent: "m2", exported: true }),
+      node({ id: "f2", slug: "decode", kind: "contract-method", parent: "m2", exported: true }),
+      node({ id: "f3", slug: "cache-key", kind: "contract-method", parent: "m2", exported: false }),
+      node({ id: "f4", slug: "verify-case-1", kind: "test-case", parent: "m2" }),
+      // An annotation group that arranges one service's modules — tier 2's,
+      // not tier 1's, even though its own parent is a service.
+      node({ id: "g2", slug: "token-pipeline", kind: "group", parent: "auth" }),
+      // A comment on the stack canvas, anchored to a service.
+      node({
+        id: "c1",
+        slug: "stack-note",
+        kind: "comment",
+        title: "Stack note",
+        anchor: "gw",
+        body: "The gateway fronts all three.",
+        author: "b.seaborn",
+      }),
+      // A comment about a module: it belongs to that service's Schematic.
+      node({ id: "c2", slug: "module-note", kind: "comment", parent: "m2", anchor: "m2" }),
+    ],
+    edges: [
+      { id: "se1", kind: "depends_on", source: "gw", target: "auth" },
+      { id: "se2", kind: "depends_on", source: "gw", target: "sess" },
+      // Tier 2's line, between two modules — never drawn here.
+      { id: "se3", kind: "depends_on", source: "m1", target: "m2" },
+      // Containment is `parentId`, never an edge.
+      { id: "se4", kind: "contains", source: "core", target: "auth" },
+      // An annotation is never an edge endpoint.
+      { id: "se5", kind: "depends_on", source: "gw", target: "core" },
+    ],
+    brief: {
+      product_name: "saas-backend",
+      problem: "",
+      users: [],
+      goals: [],
+      non_goals: [],
+      constraints: [],
+      success_metrics: [],
+    },
+  };
+
+  const graph = projectStackGraph(STACK);
+
+  it("draws every service in the project, at any containment depth", () => {
+    const services = graph.nodes.filter((n) => n.kind === "service").map((n) => n.slug);
+    expect(services.sort()).toEqual([
+      "api-gateway",
+      "auth-service",
+      "ledger-store",
+      "session-service",
+    ]);
+  });
+
+  it("opens at the stack tier without being told a slug", () => {
+    expect(graph.tier).toBe("stack");
+  });
+
+  it("titles the Schematic from the project brief, having no root node to take one from", () => {
+    expect(graph.serviceTitle).toBe("saas-backend");
+  });
+
+  it("falls back to the layout slug when the project states no brief", () => {
+    expect(projectStackGraph({ nodes: [], edges: [] }).serviceTitle).toBe("stack");
+  });
+
+  it("nests a service inside the group that contains it", () => {
+    expect(graph.nodes.find((n) => n.id === "auth")?.parentId).toBe("core");
+  });
+
+  it("nests a service inside another service", () => {
+    expect(graph.nodes.find((n) => n.id === "ledger")?.parentId).toBe("sess");
+  });
+
+  it("keeps a group that really contains services", () => {
+    expect(graph.nodes.find((n) => n.id === "core")?.kind).toBe("group");
+  });
+
+  it("drops a group that arranges one service's modules, which is tier 2's", () => {
+    expect(graph.nodes.some((n) => n.id === "g2")).toBe(false);
+  });
+
+  it("draws a comment on the stack canvas at its anchor, not at its containment parent", () => {
+    const comment = graph.nodes.find((n) => n.id === "c1");
+    expect(comment?.parentId).toBe("gw");
+    expect(comment?.body).toBe("The gateway fronts all three.");
+  });
+
+  it("drops a comment that belongs to a module's Schematic", () => {
+    expect(graph.nodes.some((n) => n.id === "c2")).toBe(false);
+  });
+
+  it("draws no modules and no facets", () => {
+    const deeper = ["m1", "m2", "m3", "f1", "f2", "f3", "f4"];
+    expect(graph.nodes.some((n) => deeper.includes(n.id))).toBe(false);
+  });
+
+  it("counts each service's own modules, not the ones its child service holds", () => {
+    expect(graph.nodes.find((n) => n.id === "auth")?.modulesCount).toBe(2);
+    expect(graph.nodes.find((n) => n.id === "sess")?.modulesCount).toBe(0);
+    expect(graph.nodes.find((n) => n.id === "ledger")?.modulesCount).toBe(1);
+  });
+
+  it("counts a service's exports as its exported contract methods alone", () => {
+    expect(graph.nodes.find((n) => n.id === "auth")?.exportsCount).toBe(2);
+  });
+
+  it("draws the dependency edges that run between services", () => {
+    expect(graph.edges.map((e) => e.id).sort()).toEqual(["se1", "se2"]);
+  });
+
+  it("draws no edge whose endpoint is an annotation, and none for containment", () => {
+    expect(graph.edges.some((e) => ["se3", "se4", "se5"].includes(e.id))).toBe(false);
+  });
+
+  it("returns an empty graph for a project with no services, rather than throwing", () => {
+    const empty = projectStackGraph({ nodes: [], edges: [] });
+    expect(empty.tier).toBe("stack");
+    expect(empty.nodes).toEqual([]);
+  });
+
+  /**
+   * A `.kaava/` tree is a directory a person can hand-edit, so a `parent`
+   * chain that loops is a real possibility rather than a hypothetical one —
+   * `isDescendantOf` guards the tier-2 and tier-3 walks for the same reason.
+   * Without the guard this hangs rather than failing, which is why it is
+   * asserted on its own instead of left to the cases above.
+   */
+  it("terminates on a containment cycle instead of walking it forever", () => {
+    const cyclic: RawGraph = {
+      nodes: [
+        node({ id: "a", slug: "a", kind: "group", parent: "b" }),
+        node({ id: "b", slug: "b", kind: "group", parent: "a" }),
+        node({ id: "svc", slug: "orphan", kind: "service", parent: "a" }),
+      ],
+      edges: [],
+    };
+    expect(projectStackGraph(cyclic).nodes.map((n) => n.slug)).toContain("orphan");
+  });
+
+  it("drops a parent that is not itself drawn here, rather than dangling the reference", () => {
+    const nested: RawGraph = {
+      nodes: [
+        node({ id: "svc", slug: "outer", kind: "service" }),
+        node({ id: "m", slug: "inner-module", kind: "module", parent: "svc" }),
+        node({ id: "svc2", slug: "misplaced", kind: "service", parent: "m" }),
+      ],
+      edges: [],
+    };
+    const result = projectStackGraph(nested);
+    expect(result.nodes.find((n) => n.id === "svc2")?.parentId).toBeNull();
   });
 });

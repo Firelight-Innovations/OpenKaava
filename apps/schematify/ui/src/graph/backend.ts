@@ -22,7 +22,12 @@ import type { Dashboard, RawRunsReport } from "./dashboard";
 import { DENSE_SERVICE_GRAPH } from "./dense";
 import type { LayoutFile } from "./layout";
 import type { RawLintReport } from "./problems";
-import { projectModuleGraph, projectServiceGraph, type RawGraph } from "./project";
+import {
+  projectModuleGraph,
+  projectServiceGraph,
+  projectStackGraph,
+  type RawGraph,
+} from "./project";
 import type { SchematicGraph, ServiceGraph, Tier } from "./types";
 
 export interface SchematifyState {
@@ -45,9 +50,12 @@ export function reasonForFailure(err: unknown): string {
  *  value sent — see the wiring handoff for the record of that choice. */
 const ACTOR = "human";
 
-/** The default landing view: `engine/presets.ts`'s `SERVICE_CONFIG`
- *  hardcodes `layoutSlug: "auth-service"`. Only a default now that
- *  `loadRealGraph` honours whatever `slug` it is actually called with. */
+/** What `loadGraph()` reads when called with no arguments at all, which is
+ *  how most of this app's test suite calls it. **Not the landing view** —
+ *  `App.tsx` opens the Stack Schematic and names every target it drills to,
+ *  so nothing in the running app reaches this default. Kept because the
+ *  fixture-era call sites still rely on it, and removing it would rewrite
+ *  tests that are about something else. */
 const DEFAULT_SERVICE_SLUG = "auth-service";
 
 interface LoadGraphResponse {
@@ -58,21 +66,19 @@ interface LoadGraphResponse {
 // `schematify/load-graph`, projected to whichever tier and slug the caller
 // asked for. Previously ignored both, always returning the `auth-service`
 // Service Schematic — the bug a Module-location Problems row's
-// click-through ran into (wave 7b's handoff). `service` routes to
-// `./project.ts`'s `projectServiceGraph`, already generic across any slug.
-// `module` routes to the new `projectModuleGraph` — Stack and Module had no
-// real projector before, only `./stack.ts`/`./module.ts`'s stand-ins.
-// `stack` still has none, out of scope here and unreached by any reference
-// Problems row, so it draws the same empty graph `./index.ts`'s stand-in
-// loader returns for a slug it has no fixture for.
+// click-through ran into (wave 7b's handoff).
+//
+// All 3 tiers now have a real projector in `./project.ts`. `stack` was the
+// last stand-in: it returned an empty graph regardless of what the project
+// held, which made the Stack Schematic a dead end that could be walked to and
+// never drilled out of. `slug` is unused at that tier — there is 1 Stack
+// Schematic per project, so there is nothing to name.
 async function loadRealGraph(
   tier: Tier = "service",
   slug: string = DEFAULT_SERVICE_SLUG,
 ): Promise<SchematicGraph> {
-  if (tier === "stack") {
-    return { tier: "stack", serviceSlug: slug, serviceTitle: slug, nodes: [], edges: [] };
-  }
   const response = await invoke<LoadGraphResponse>("schematify/load-graph", { actor: ACTOR });
+  if (tier === "stack") return projectStackGraph(response.graph);
   return tier === "module"
     ? projectModuleGraph(response.graph, slug)
     : projectServiceGraph(response.graph, slug);
