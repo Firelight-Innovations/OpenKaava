@@ -9,6 +9,7 @@
  * WIREFRAME-EXTRACT.md §1.1 and §2.2 — every literal string below is copied
  * from there, not composed loosely, so a test can compare literally.
  */
+import { plural } from "../graph";
 import type { FacetCounts, HealthStatus, Layer, Lifecycle, Tier } from "../graph";
 import { descendantsOf } from "./doc";
 import type { DocIndex, SchematicNode } from "./doc";
@@ -125,9 +126,9 @@ export function facetChipsFor(facets: FacetCounts | undefined): string[] {
  */
 export function countStringsFor(node: AnatomyNode): string[] {
   const out: string[] = [];
-  if (node.exportsCount !== undefined) out.push(`${node.exportsCount} exports`);
-  if (node.modulesCount !== undefined) out.push(`${node.modulesCount} modules`);
-  if (node.dependentsCount !== undefined) out.push(`${node.dependentsCount} dependents`);
+  if (node.exportsCount !== undefined) out.push(plural(node.exportsCount, "export"));
+  if (node.modulesCount !== undefined) out.push(plural(node.modulesCount, "module"));
+  if (node.dependentsCount !== undefined) out.push(plural(node.dependentsCount, "dependent"));
   if (node.schemasResolved) out.push("schemas ✓");
   return out;
 }
