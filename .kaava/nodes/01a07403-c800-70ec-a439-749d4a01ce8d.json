@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-70ec-a439-749d4a01ce8d",
+  "slug": "search-logic-compile-needle-word-boundary",
+  "kind": "test-case",
+  "title": "Compile Needle: Whole Word Bounding",
+  "description": "Tests that whole word flag bounds entire regex, not just last alternative.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "given": "Regex needle 'foo|bar' with wholeWord flag",
+  "when": "compileNeedle is called",
+  "then": "Matches 'a foo b' and 'a bar b' but not 'foobar'",
+  "impl_ref": "src/shell/search/query.test.ts::compileNeedle::bounds a whole alternation rather than only its last branch",
+  "status": "declared",
+  "last_result_ms": null
+}

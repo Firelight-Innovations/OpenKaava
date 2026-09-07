@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7cda-a21f-f5c943a934b1",
+  "slug": "diff-review-decorations",
+  "kind": "contract-method",
+  "title": "Group Comments into Line Decorations",
+  "description": "Groups comments by line range to determine where to draw editor markers.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "signature": "export function decorations(comments: readonly ReviewComment[]): LineDecoration[]",
+  "params": [
+    "comments: readonly ReviewComment[]"
+  ],
+  "returns": "LineDecoration[]",
+  "errors": [],
+  "semantics": "Produces one marker entry per distinct (startLine, endLine) pair, grouped with all comments on that range.",
+  "exported": false
+}

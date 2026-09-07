@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7332-b8ce-dd15b5a6dc6a",
+  "slug": "github-query-matches-query-2",
+  "kind": "test-case",
+  "title": "GitHub Query: Item Matching",
+  "description": "Tests that items are correctly matched against queries.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcd-8834-b536584a1dca",
+  "given": "Query with labels and item with matching labels",
+  "when": "matchesQuery is called",
+  "then": "Returns true",
+  "impl_ref": "src/shell/github/query.test.ts (implied by matchesQuery function)",
+  "status": "declared",
+  "last_result_ms": null
+}

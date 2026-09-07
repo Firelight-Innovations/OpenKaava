@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78e9-bee3-362ae6e57312",
+  "slug": "handoff-document-carries-everything",
+  "kind": "test-case",
+  "title": "Handoff Document Complete",
+  "description": "The handoff document includes pid, port, token, url, and authorization.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f49-a38a-51adeb6359f8",
+  "given": "A handoff document for pid 4321, port 51234, token 'sekrit'",
+  "when": "The document is parsed",
+  "then": "All five fields are present and correctly formatted",
+  "impl_ref": "src-tauri/src/mcp/handoff.rs::the_document_carries_everything_a_client_needs_to_connect",
+  "status": "declared",
+  "last_result_ms": null
+}

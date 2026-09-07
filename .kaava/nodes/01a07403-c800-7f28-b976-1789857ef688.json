@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f28-b976-1789857ef688",
+  "slug": "boot",
+  "kind": "module",
+  "title": "Startup Sequence",
+  "description": "Manifest location, load and checkout scan running behind the splash, with progress reporting and app-boot timeout coordinated through AppState.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [
+    "01a07403-c800-736a-801a-ea4485c6faff",
+    "01a07403-c800-75dd-b05c-6d3f11053668"
+  ],
+  "ui_refs": []
+}

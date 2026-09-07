@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "slug": "report-rendering",
+  "kind": "module",
+  "title": "Report Rendering and Persistence",
+  "description": "Writes individual reconcile.json outcome files to .kaava/runs/ and renders complete reports in text or JSON format with summary counts.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e48-8636-0f44278a1b0e",
+  "allowed_libraries": [
+    "01a07403-c800-7b04-88fc-0ca4063b4aba",
+    "01a07403-c800-75dd-b05c-6d3f11053668",
+    "01a07403-c800-7565-ae9d-23b929975082",
+    "01a07403-c800-7565-98ec-498cf9d20d06"
+  ],
+  "ui_refs": []
+}

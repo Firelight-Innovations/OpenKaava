@@ -1,0 +1,30 @@
+{
+  "id": "01a07403-c800-7630-9022-392224af2313",
+  "slug": "storage-store-deprecate",
+  "kind": "contract-method",
+  "title": "Deprecate Node",
+  "description": "Retire a node by marking it deprecated and optionally naming a replacement.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-786a-927d-06cc6a4b0332",
+  "signature": "pub fn deprecate(&self, node: &mut Node, superseded_by: Option<Uuid>, actor: Actor, actor_name: &str, at: &str, reason: &str) -> Result<AuditRow>",
+  "params": [
+    "node: &mut Node",
+    "superseded_by: Option<Uuid>",
+    "actor: Actor",
+    "actor_name: &str",
+    "at: &str",
+    "reason: &str"
+  ],
+  "returns": "Result<AuditRow>",
+  "errors": [
+    "CoreError::Lifecycle",
+    "CoreError::Io",
+    "CoreError::AtomicWrite",
+    "CoreError::TransitionTornWrite"
+  ],
+  "semantics": "Moves a node to Deprecated via write_transition, the alternative to deletion per PRD section 6.6.",
+  "exported": true
+}

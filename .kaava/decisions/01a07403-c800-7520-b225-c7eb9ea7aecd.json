@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7520-b225-c7eb9ea7aecd",
+  "kind": "decision",
+  "slug": "DEC-OPS-DEVPORTS-001",
+  "title": "Port 1420 reserved exclusively for human dev",
+  "context": "OpenKaava runs on Tauri, which starts Vite and points the webview at a fixed URL. Multiple developers and agents need to run the app simultaneously for verification.",
+  "decision": "Port 1420 is reserved for `pnpm app` (Tauri dev), which only Braden runs to verify work. Agents must use `pnpm dev:agent` on port 1430 with strictPort off, stepping up to 1431/1432 if collision occurs.",
+  "consequences": "Any other process holding 1420 causes the whole run to fail rather than gracefully degrading. Agents cannot assume a specific port; they must read what Vite prints. This prevents port collisions but adds operational complexity.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-06"
+}

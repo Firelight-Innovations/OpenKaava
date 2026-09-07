@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7219-9c03-3b1eff89b2cd",
+  "slug": "tool-frontend",
+  "kind": "module",
+  "title": "Tool Frontend Resolution",
+  "description": "Resolve where a tool's UI should be served from: either its own dev server during development or its built dist directory in release.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [
+    "01a07403-c800-736a-801a-ea4485c6faff"
+  ],
+  "ui_refs": []
+}

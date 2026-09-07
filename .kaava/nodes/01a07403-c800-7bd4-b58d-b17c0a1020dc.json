@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7bd4-b58d-b17c0a1020dc",
+  "slug": "scanner-skips-node-modules-and-target-even-without-gitignore",
+  "kind": "test-case",
+  "title": "Skip node_modules and target Unconditionally",
+  "description": "node_modules and target directories are excluded regardless of .gitignore.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-781b-85ef-56660694446e",
+  "given": "markers in node_modules, target, and src",
+  "when": "scan_tree walks without .gitignore",
+  "then": "only src marker is found",
+  "impl_ref": "crates/schematify-reconcile/src/scan.rs::skips_node_modules_and_target_even_without_gitignore",
+  "status": "declared",
+  "last_result_ms": null
+}

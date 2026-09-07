@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7c7e-91e8-29c7a939d595",
+  "kind": "decision",
+  "slug": "DEC-GOV-GOVERNANCE-001",
+  "title": "CODEOWNERS names a username, not an unresolvable team",
+  "context": "GitHub requests reviews from CODEOWNERS, but only if the owner is resolvable. A team that does not exist matches nobody without warning or error.",
+  "decision": "CODEOWNERS file names `@braden-seaborn` (a real username) rather than `@Firelight-Innovations/maintainers` (a team that does not exist). A username cannot be wrong in that way; swap it back to a team when one exists and has members.",
+  "consequences": "The file looks less tidy with a username, but a tidier-looking unresolvable owner beats a real owner that silently does nothing. Until CODEOWNERS review is required (it is not as of 2026-08-21), this rule just prevents silent failure if/when branch protection is enabled.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-06"
+}

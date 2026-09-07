@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-75a7-9310-0210403f2911",
+  "slug": "agent-no-duplicate-tools",
+  "kind": "test-case",
+  "title": "No Tool Listed Twice",
+  "description": "Each tool name appears exactly once in agent's list.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d89-9517-725bc751d480",
+  "given": "The agent server's tool list",
+  "when": "Duplicates are searched for",
+  "then": "None are found",
+  "impl_ref": "src-tauri/src/mcp/servers/agent.rs::no_tool_is_listed_twice",
+  "status": "declared",
+  "last_result_ms": null
+}

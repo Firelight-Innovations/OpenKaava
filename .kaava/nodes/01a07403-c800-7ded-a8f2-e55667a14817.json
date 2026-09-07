@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7ded-a8f2-e55667a14817",
+  "slug": "boundary-check-violations",
+  "kind": "contract-method",
+  "title": "violations",
+  "description": "Detects schema boundary violations in changed files for a pull request.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78ad-9f18-7213bcc5f199",
+  "signature": "violations(changedFiles: string[]): object[]",
+  "params": [
+    "changedFiles: array of changed file paths"
+  ],
+  "returns": "array of violation objects with root and touched file paths",
+  "errors": [],
+  "semantics": "Enforces that .kaava nodes/ and runs/ writes follow the lifecycle pair rule: one node write pairs with only that node's audit.json.",
+  "exported": false
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "slug": "graph-seam",
+  "kind": "module",
+  "title": "Graph Lookup Interface",
+  "description": "Trait-based seam for querying design graph nodes; includes in-memory implementation for testing and JSON file implementation for reading .kaava/nodes/.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e48-8636-0f44278a1b0e",
+  "allowed_libraries": [
+    "01a07403-c800-75dd-b05c-6d3f11053668",
+    "01a07403-c800-7565-ae9d-23b929975082",
+    "01a07403-c800-7565-98ec-498cf9d20d06",
+    "01a07403-c800-71e9-a09e-d51d7c34d3cc"
+  ],
+  "ui_refs": []
+}

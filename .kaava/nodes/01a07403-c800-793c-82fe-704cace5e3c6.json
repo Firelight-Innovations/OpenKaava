@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-793c-82fe-704cace5e3c6",
+  "slug": "client-handshake-session-resolution",
+  "kind": "test-case",
+  "title": "Session resolves from ready message",
+  "description": "Verifies that the session promise is resolved when the shell's ready message arrives.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client with a pending session promise",
+  "when": "A ready message is dispatched from the parent with a project path",
+  "then": "session() resolves with the session object from the ready message",
+  "impl_ref": "packages/bridge/src/client.test.ts::resolves session() from the ready message's session field",
+  "status": "declared",
+  "last_result_ms": null
+}

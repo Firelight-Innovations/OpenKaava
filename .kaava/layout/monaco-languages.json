@@ -1,0 +1,25 @@
+{
+  "schematic": "monaco-languages",
+  "zoom": 1,
+  "pan": [
+    0,
+    0
+  ],
+  "nodes": {
+    "01a07403-c800-72fd-88ee-22fc2f3d05b5": {
+      "x": 80,
+      "y": 80,
+      "w": 240,
+      "h": 140,
+      "collapsed": false
+    },
+    "01a07403-c800-75c0-8343-2b091383cfc2": {
+      "x": 380,
+      "y": 80,
+      "w": 240,
+      "h": 140,
+      "collapsed": false
+    }
+  },
+  "groups": {}
+}

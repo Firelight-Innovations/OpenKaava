@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7164-84ef-d22ae211bb72",
+  "slug": "stack-discovery-4",
+  "kind": "external-dep",
+  "title": "serde_json",
+  "description": "JSON serialization for parsing package.json version fields.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7987-be21-fd2e593064ee",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "serde_json::from_str() to parse package.json"
+}

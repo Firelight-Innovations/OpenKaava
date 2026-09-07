@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c3d-8d99-a063c6da1951",
+  "slug": "worktree-logic-format-line-counts",
+  "kind": "test-case",
+  "title": "Line Counts: Format",
+  "description": "Tests line count formatting with proper signs.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71fe-af1c-0dcd2dfd9607",
+  "given": "12 insertions, 3 deletions",
+  "when": "formatLineCounts is called",
+  "then": "Returns { added: '+12', removed: '−3' }",
+  "impl_ref": "src/shell/worktree/lineCounts.test.ts::formatLineCounts::prints both columns with a plus and a minus sign",
+  "status": "declared",
+  "last_result_ms": null
+}

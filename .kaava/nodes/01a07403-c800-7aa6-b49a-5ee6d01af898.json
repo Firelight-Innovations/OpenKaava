@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7aa6-b49a-5ee6d01af898",
+  "slug": "schematify",
+  "kind": "module",
+  "title": "Schematify Application",
+  "description": "Schematify's Rust half — the design layer of OpenKaava. A thin JSON-RPC layer over schematify-core that resolves project roots from call context, marshals typed arguments, and shapes results back to JSON for the graph editing UI.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a1-a91f-421d244b774a",
+  "allowed_libraries": [
+    "01a07403-c800-7565-ae9d-23b929975082"
+  ],
+  "ui_refs": []
+}

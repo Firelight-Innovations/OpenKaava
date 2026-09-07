@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-782b-82f6-726cb8b56329",
+  "slug": "design-app-comments-pending-question-empty-thread",
+  "kind": "test-case",
+  "title": "pendingQuestion handles empty thread safely",
+  "description": "Does not throw on question with no thread entries",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-76b8-97b0-0d8399c3f37b",
+  "given": "question comment with empty thread array",
+  "when": "pendingQuestion is called",
+  "then": "returns null without throwing",
+  "impl_ref": "apps/design/ui/src/comments.test.ts::is silent for a question with an empty thread rather than throwing",
+  "status": "declared",
+  "last_result_ms": null
+}

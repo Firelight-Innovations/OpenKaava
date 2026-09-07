@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7ec9-a08e-b907961453bf",
+  "slug": "titlebar-menu-routing",
+  "kind": "doc-block",
+  "title": "Menu command routing",
+  "description": "Clarifies how Edit menu items are routed based on focus target.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7806-88f7-dafc7969fdd8",
+  "body": "Edit menu items route based on where focus is, not always to the app. Undo, Cut, Find belong to whatever has focus: usually Monaco in the Files iframe, but just as easily the switcher bar's search field, or nothing. Edit menu that always fired into the iframe would cut text out of a file the user was not typing in. Focus is remembered, not read: by the time an item is clicked, focus is on the menu's own button, so document.activeElement answers the wrong question. This tracks focusin and ignores anything inside the title bar, leaving exactly where focus was before the menu opened.",
+  "audience": "agent"
+}

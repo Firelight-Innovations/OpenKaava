@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-778d-84b4-048cf58f5056",
+  "slug": "layout-splitting-a-pane-puts-new-instance-beside-it",
+  "kind": "test-case",
+  "title": "Pane Splitting",
+  "description": "Verify that opening into a pane with a direction creates a split and places the instance there.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ff9-963f-4bb8df82714f",
+  "given": "A leaf pane with one tab",
+  "when": "Opening a new instance with a split direction",
+  "then": "The tree has a split with two children: the original pane and a new one with the new instance",
+  "impl_ref": "src-tauri/src/layout.rs::splitting_a_pane_puts_the_new_instance_beside_it",
+  "status": "declared",
+  "last_result_ms": null
+}

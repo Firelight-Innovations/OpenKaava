@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-71fe-af1c-0dcd2dfd9607",
+  "slug": "worktree-logic",
+  "kind": "module",
+  "title": "Worktree Utilities",
+  "description": "Pure utilities for worktree panel state: line count computation, row focus management, section floor calculation, selection state, and git status tracking.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7503-b10b-cd084f7dc3a8",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

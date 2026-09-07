@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7068-a7ed-d2a94c884929",
+  "slug": "project-forget",
+  "kind": "contract-method",
+  "title": "Remove a project from the recent list",
+  "description": "Delete one entry from the global history without affecting open projects.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "signature": "pub fn forget(app: &AppHandle, path: &Path, cluster_id: Option<&str>) -> ProjectSnapshot",
+  "params": [
+    "app: &AppHandle",
+    "path: &Path",
+    "cluster_id: Option<&str>"
+  ],
+  "returns": "ProjectSnapshot",
+  "errors": [],
+  "semantics": "Removes a project from recent history; does not broadcast since the open project is unchanged.",
+  "exported": true
+}

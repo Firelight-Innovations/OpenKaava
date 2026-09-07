@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7199-b357-7e1bd81aeb03",
+  "slug": "plugin-broker-protocol-mismatch-refused",
+  "kind": "test-case",
+  "title": "Broker: Protocol Mismatch",
+  "description": "Different protocol major is rejected at handshake.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78db-904b-bb87473e03bb",
+  "given": "Reply with protocol=2",
+  "when": "check_hello() is called",
+  "then": "Returns HANDSHAKE_FAILED error",
+  "impl_ref": "src-tauri/src/plugins/broker.rs::a_different_protocol_major_is_refused",
+  "status": "declared",
+  "last_result_ms": null
+}

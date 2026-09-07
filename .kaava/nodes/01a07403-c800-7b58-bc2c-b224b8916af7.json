@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b58-bc2c-b224b8916af7",
+  "slug": "plugin-watch-quiet-window-reasonable",
+  "kind": "test-case",
+  "title": "Watch: Debounce Window",
+  "description": "Quiet window is long enough for build, short enough to feel immediate.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a4-91d1-5b52d3a3d82c",
+  "given": "QUIET constant",
+  "when": "checked against bounds",
+  "then": "Is between 200ms and 2s",
+  "impl_ref": "src-tauri/src/plugins/watch.rs::the_quiet_window_is_long_enough_to_cover_a_link_step",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7f13-be9a-f17329be2236",
+  "slug": "diagnostics-report-frontend-error",
+  "kind": "contract-method",
+  "title": "Report Frontend Error",
+  "description": "Record something the webview caught to the diagnostics buffer.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-768f-b87f-b17753d9768a",
+  "signature": "pub fn report_frontend_error(message: String)",
+  "params": [
+    "message"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Infallible and silent; truncates message to MAX_MESSAGE and stores it.",
+  "exported": true
+}

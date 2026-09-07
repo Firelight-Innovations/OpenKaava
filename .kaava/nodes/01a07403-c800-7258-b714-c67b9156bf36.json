@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7258-b714-c67b9156bf36",
+  "slug": "backend-test-module-routing",
+  "kind": "test-case",
+  "title": "createBackendSeam().loadGraph routes modules",
+  "description": "Verifies the backend seam correctly loads module tier with facets.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-755e-b721-aa6fca8f5064",
+  "given": "An invoke mock returning token-verifier module with cold_start_p95 budget",
+  "when": "createBackendSeam().loadGraph(\"module\", \"token-verifier\") is called",
+  "then": "The result has tier: module and includes the cold_start_p95 facet",
+  "impl_ref": "apps/schematify/ui/src/graph/backend.test.ts::draws the requested module and the offending node inside it",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7bdc-a018-0b16c6a2fd6a",
+  "slug": "run-read-run-artifact",
+  "kind": "contract-method",
+  "title": "Read Run Artifact",
+  "description": "Deserialize a run artifact from bytes, probing the schema field first.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d68-a4ef-925e3f0b6586",
+  "signature": "pub fn read_run_artifact(bytes: &[u8]) -> Result<RunArtifact, RunReadError>",
+  "params": [
+    "bytes: &[u8]"
+  ],
+  "returns": "Result<RunArtifact, RunReadError>",
+  "errors": [
+    "RunReadError::UnknownSchema",
+    "RunReadError::Malformed"
+  ],
+  "semantics": "Reads the schema field from the JSON before deserializing the full artifact, so an unknown version is reported by version rather than by field.",
+  "exported": true
+}

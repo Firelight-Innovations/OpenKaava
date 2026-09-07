@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-76e8-8f81-28515c62128c",
+  "slug": "drop-zones-hit-test",
+  "kind": "contract-method",
+  "title": "hitTest Function",
+  "description": "Resolves where a drop would land: strip insertion index, pane edge split, panel, or detach to new window.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b01-8375-1c88edc532e9",
+  "signature": "function hitTest(x: number, y: number): DropTarget",
+  "params": [
+    "x: number",
+    "y: number"
+  ],
+  "returns": "DropTarget",
+  "errors": [],
+  "semantics": "Queries registered drop zones in order (strip, pane, panel) to determine the most specific drop target at cursor position.",
+  "exported": true
+}

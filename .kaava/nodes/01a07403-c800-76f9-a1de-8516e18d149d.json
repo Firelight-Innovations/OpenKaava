@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-76f9-a1de-8516e18d149d",
+  "slug": "terminal-clipboard-attach-clipboard",
+  "kind": "contract-method",
+  "title": "Clipboard Attachment",
+  "description": "Wires paste and context menu handlers to a mounted Terminal instance.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7101-96d4-211896bc6c31",
+  "signature": "export function attachClipboard(term: Terminal, container: HTMLElement): () => void",
+  "params": [
+    "Terminal",
+    "HTMLElement"
+  ],
+  "returns": "() => void",
+  "errors": [],
+  "semantics": "Installs clipboard handlers and returns cleanup function.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-73d3-9d0f-7f7fe4a7e3f3",
+  "slug": "echo-server",
+  "kind": "contract-method",
+  "title": "Echo Server",
+  "description": "Diagnostic server that proves the plumbing works.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cfa-a781-a65f57b5eee0",
+  "signature": "pub static SERVER: McpServer",
+  "params": [],
+  "returns": "McpServer",
+  "errors": [],
+  "semantics": "Answers ping and echo tools; provides no real capability and is deliberately boring.",
+  "exported": false
+}

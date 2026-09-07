@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-77ad-a208-d169c7d2e4cc",
+  "slug": "protocol-wire-protocol-doc",
+  "kind": "doc-block",
+  "title": "Wire protocol definition",
+  "description": "Documentation of the protocol layer for tool-shell communication.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e50-b9bf-2c07534a4168",
+  "body": "Wire types for transport B — tool frontend <-> shell window messages. Mirrors `docs/tool-protocol.md` §3 exactly. Every message carries `kaava: 1`. It's a version marker, but its real job is cheaper: an iframe's `window` can receive `message` events from anything, not just its host (browser extensions, embedded widgets, the page's own code posting to itself) — `kaava === 1` is what lets the bridge ignore all of that in one check instead of trying to prove a message is safe to parse.",
+  "audience": "both"
+}

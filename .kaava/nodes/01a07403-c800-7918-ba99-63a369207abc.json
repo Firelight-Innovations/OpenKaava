@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7918-ba99-63a369207abc",
+  "slug": "app-updater-unreachable-endpoint",
+  "kind": "test-case",
+  "title": "Error Messages: Network Errors",
+  "description": "DNS and timeout errors are recognized and generalized.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7725-8d89-01b343796845",
+  "given": "Error containing 'dns' or 'connect' or 'timed out'",
+  "when": "describe() is called",
+  "then": "Returns 'Could not reach the releases endpoint'",
+  "impl_ref": "src-tauri/src/updater.rs::an_unreachable_endpoint_reads_as_one",
+  "status": "declared",
+  "last_result_ms": null
+}

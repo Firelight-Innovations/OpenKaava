@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-75ef-92b8-f1ede6be6e2f",
+  "slug": "tree-state",
+  "kind": "module",
+  "title": "Tree State Management",
+  "description": "Hooks managing tree state, virtual row windowing, and drag-and-drop interactions for the file tree.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-724f-ac20-c392624f0d9e",
+  "allowed_libraries": [
+    "01a07403-c800-7bd1-a062-9c1c49e747dc"
+  ],
+  "ui_refs": []
+}

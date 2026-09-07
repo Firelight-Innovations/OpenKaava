@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-73ed-ae57-8020a8ac8a08",
+  "slug": "graph-seam-in-memory-graph-new",
+  "kind": "contract-method",
+  "title": "Create Empty Graph",
+  "description": "Create an empty in-memory graph.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "signature": "pub fn new() -> Self",
+  "params": [],
+  "returns": "InMemoryGraph",
+  "errors": [],
+  "semantics": "Returns new empty InMemoryGraph.",
+  "exported": false
+}

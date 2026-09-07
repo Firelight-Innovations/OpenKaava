@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7737-9e60-af7b61216037",
+  "slug": "codec-error-response-round-trips",
+  "kind": "test-case",
+  "title": "Error Response Serialization Round-Trip",
+  "description": "An error response encodes and decodes with code and message preserved.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "given": "A Response with error code METHOD_NOT_FOUND and message 'no such method: nope'",
+  "when": "encoded to JSON and decoded back",
+  "then": "the decoded error code and message match",
+  "impl_ref": "crates/kaava-rpc/src/codec.rs::error_response_round_trips",
+  "status": "declared",
+  "last_result_ms": null
+}

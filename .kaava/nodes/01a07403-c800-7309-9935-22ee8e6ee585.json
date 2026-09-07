@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7309-9935-22ee8e6ee585",
+  "slug": "icon-lookup-folder-icon-url",
+  "kind": "contract-method",
+  "title": "Folder Icon URL",
+  "description": "Resolve a folder name to a Material Icon Theme folder icon URL, with support for bare name stripping and expansion states.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7add-a668-c662fdc1ba08",
+  "signature": "folderIconUrl(name: string, expanded: boolean): string",
+  "params": [
+    "name: string",
+    "expanded: boolean"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Returns a Material Icon URL for a folder, normalizing decorated names and returning open or closed variants based on expansion state.",
+  "exported": true
+}

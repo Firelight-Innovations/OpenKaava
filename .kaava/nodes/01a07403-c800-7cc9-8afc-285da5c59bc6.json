@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7cc9-8afc-285da5c59bc6",
+  "slug": "host-transport-design",
+  "kind": "doc-block",
+  "title": "Host-Side Bidirectional RPC Transport",
+  "description": "The ToolProcess manages a tool subprocess with reader threads for buffered bidirectional communication.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-762d-94d0-4cb8287084c4",
+  "body": "The host side of transport A: spawn a tool binary, speak the codec on its stdin/stdout, and hand back a handle callers use like a synchronous RPC client even though two background threads are doing the actual I/O. `pending` is the hinge everything turns on: `call_timeout` inserts a sender keyed by request id before writing the request, and the reader thread below removes and fires that sender when the matching response (or, on EOF, a synthetic failure) shows up.",
+  "audience": "both"
+}

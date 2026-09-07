@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7078-8095-d6825794102d",
+  "slug": "product-decisiondisplayslug-function",
+  "kind": "contract-method",
+  "title": "Decision Display Slug Resolver",
+  "description": "Returns the drawn slug of a decision (e.g., DEC-TEC-AUTH-004) for display in references.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "signature": "decisionDisplaySlug(decision: RawDecision) => string",
+  "params": [
+    "decision: RawDecision"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Resolves a schematify://decision/ reference to its structured slug for display in the Inspector and other reference contexts.",
+  "exported": true
+}

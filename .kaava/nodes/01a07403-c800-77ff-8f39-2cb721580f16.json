@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-77ff-8f39-2cb721580f16",
+  "slug": "icon-generation",
+  "kind": "module",
+  "title": "File Icon Set Generation",
+  "description": "Extracts and packages a curated set of Material Design icons for the Files explorer and search locator, generating a lookup manifest.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [
+    "01a07403-c800-7592-a876-abf51bca0b1b"
+  ],
+  "ui_refs": []
+}

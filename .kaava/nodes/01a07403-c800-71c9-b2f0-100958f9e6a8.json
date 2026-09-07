@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-71c9-b2f0-100958f9e6a8",
+  "slug": "reconciliation-exit-code",
+  "kind": "contract-method",
+  "title": "Get Exit Code",
+  "description": "kaava reconcile's exit code: 0 with no error, 1 with one or more.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f82-b74b-6f5fb1052449",
+  "signature": "pub fn exit_code(run: &ReconcileRun) -> u8",
+  "params": [
+    "run: &ReconcileRun"
+  ],
+  "returns": "u8",
+  "errors": [],
+  "semantics": "Returns 0 or 1 based on error presence.",
+  "exported": false
+}

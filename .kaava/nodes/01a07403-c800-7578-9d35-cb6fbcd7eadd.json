@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7578-9d35-cb6fbcd7eadd",
+  "slug": "review-add-refuses-empty-body",
+  "kind": "test-case",
+  "title": "Empty body is refused",
+  "description": "Whitespace-only comments are not stored.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "given": "A draft with only whitespace in the body",
+  "when": "add is called",
+  "then": "Returns Err and comments is unchanged",
+  "impl_ref": "src-tauri/src/review/mod.rs::an_empty_body_is_refused",
+  "status": "declared",
+  "last_result_ms": null
+}

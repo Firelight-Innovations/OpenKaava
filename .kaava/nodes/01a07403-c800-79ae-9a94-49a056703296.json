@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79ae-9a94-49a056703296",
+  "slug": "client-error-handling",
+  "kind": "test-case",
+  "title": "Response errors become KaavaRpcError instances",
+  "description": "Verifies that error responses from the shell are converted to KaavaRpcError with code and message.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client that has sent an invoke",
+  "when": "A response with an error envelope arrives",
+  "then": "The promise rejects with a KaavaRpcError instance carrying the code and message",
+  "impl_ref": "packages/bridge/src/client.test.ts::rejects with a KaavaRpcError carrying the shell's error envelope",
+  "status": "declared",
+  "last_result_ms": null
+}

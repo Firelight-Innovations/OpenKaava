@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7dae-8580-0efe37a8ca74",
+  "slug": "files-no-sandbox",
+  "kind": "doc-block",
+  "title": "Files has deliberately no sandbox",
+  "description": "Apps are trusted code running in the orchestrator process.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d29-9b02-357f7f4c18c2",
+  "body": "There is deliberately no sandbox here. An app is this repository's own code running in the orchestrator's own process, next to a module that spawns real shells with the user's full privileges. A path check here would look like a boundary while defending nothing, which is worse than not having one.",
+  "audience": "both"
+}

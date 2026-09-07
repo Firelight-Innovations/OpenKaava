@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-71eb-b000-3c085b5f9134",
+  "slug": "slop-wrapper",
+  "kind": "module",
+  "title": "Python Slop Linter Windows Compatibility",
+  "description": "Wraps the agent-slop-lint tool to work on Windows by setting UTF-8 environment variables that the Python linter requires.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

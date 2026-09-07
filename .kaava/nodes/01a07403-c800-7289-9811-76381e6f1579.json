@@ -1,0 +1,28 @@
+{
+  "id": "01a07403-c800-7289-9811-76381e6f1579",
+  "slug": "atomic-write-json-atomic",
+  "kind": "contract-method",
+  "title": "Atomic JSON Write",
+  "description": "Serialize and write JSON to disk with temp file, fsync, and rename to ensure a reader never sees a partial file.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7584-85b8-2c8fc4148f9d",
+  "signature": "pub fn write_json_atomic<T: Serialize>(path: &Path, value: &T) -> Result<(), AtomicWriteError>",
+  "params": [
+    "path: &Path",
+    "value: &T"
+  ],
+  "returns": "Result<(), AtomicWriteError>",
+  "errors": [
+    "AtomicWriteError::Directory",
+    "AtomicWriteError::Serialize",
+    "AtomicWriteError::Create",
+    "AtomicWriteError::Write",
+    "AtomicWriteError::Sync",
+    "AtomicWriteError::Rename"
+  ],
+  "semantics": "Writes JSON atomically by creating a temporary file in the same directory, syncing it to the device, then renaming over the target to ensure a crashed or interrupted process cannot leave a partial file.",
+  "exported": false
+}

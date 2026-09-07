@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-771c-8cb5-90ca4289eb20",
+  "slug": "engine-core-module-doc",
+  "kind": "doc-block",
+  "title": "Schematic Engine",
+  "description": "Document mutations, selection, viewport, history, and writes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7346-9c32-cc9d99a7dbc8",
+  "body": "The engine itself: one open Schematic, its selection, its viewport, its undo history, and the writes each gesture makes. The division of labour that matters is which layer a gesture writes to. Arranging the picture — moving, collapsing, grouping, commenting, auto-sort — calls `seam.writeLayout` and nothing else, which is PRD §17 Wave 3's sharpest acceptance condition: a node drag writes no semantic file. Changing the design — creating an edge, duplicating a node — reaches the semantic layer as well. No other code path in this app writes anything.",
+  "audience": "agent"
+}

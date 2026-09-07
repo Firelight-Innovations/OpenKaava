@@ -1,0 +1,30 @@
+{
+  "id": "01a07403-c800-70de-8d8e-d1609ff54137",
+  "kind": "screen",
+  "slug": "search-overlay",
+  "title": "Search Overlay",
+  "purpose": "Project-wide file search with live results and preview pane",
+  "states": [
+    "closed - search not active",
+    "open-empty - search open with no query",
+    "searching - search in progress",
+    "with-results - search results displayed",
+    "focused-result - specific result selected for preview"
+  ],
+  "acceptance": [
+    "shall expand search field in cluster bar when opened",
+    "shall display results covering split row and below",
+    "shall support file filters (e.g. *.md)",
+    "shall show match count and file tree organization",
+    "shall display selected result in preview pane (Monaco)",
+    "shall highlight search matches in preview",
+    "shall navigate results with arrow keys",
+    "shall open result in Files app on double-click or Enter",
+    "shall close on Escape",
+    "shall keep field visible and focused while overlay is open"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7d9c-a3ed-618a62cdb22f",
+    "schematify://node/01a07403-c800-7bf0-b9c3-c8b9d80222dd"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7be5-8dc0-57c63dfa6eb1",
+  "slug": "settings-commands",
+  "kind": "module",
+  "title": "Settings Commands",
+  "description": "Tauri command handlers for settings operations: fetch the full snapshot, set a single value, reset a value to default, or reset an entire group.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7317-a0f1-948948e9e898",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

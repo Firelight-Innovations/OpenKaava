@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-73cd-a4f4-25c6f04f78ee",
+  "kind": "decision",
+  "slug": "DEC-SCH-STORE-003",
+  "title": "Lifecycle transition combines nodes/ and runs/ writes in one atomic action",
+  "context": "Alternative approaches: write only the node file; write only the audit file; require two separate calls.",
+  "decision": "A lifecycle transition writes `nodes/<uuid>.json` (updating the lifecycle field) and appends `runs/<node-uuid>/audit.json` (appending the transition record) in a single atomic action. The CI path-scope gate allows this one exception to the rule that nodes/ and runs/ cannot be touched together.",
+  "consequences": "Lifecycle state and its audit trail are always consistent; no orphaned audit rows; the exception is documented in the gate as a special case; the write must be atomic or the invariant breaks.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

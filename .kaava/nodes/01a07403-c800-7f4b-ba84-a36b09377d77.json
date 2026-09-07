@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f4b-ba84-a36b09377d77",
+  "slug": "shell-state-frontend-half",
+  "kind": "doc-block",
+  "title": "Frontend half of shared shell state",
+  "description": "Mirrors Rust shell_state; placement and terminals owned by backend so multiple windows agree.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73c6-9a0b-c837d3e517f6",
+  "body": "The frontend half of the shared shell state. Mirrors `src-tauri/src/shell_state.rs`. Placement and terminal sessions are owned by the backend because more than one window has to agree on them; this is how a window subscribes to that agreement.",
+  "audience": "both"
+}

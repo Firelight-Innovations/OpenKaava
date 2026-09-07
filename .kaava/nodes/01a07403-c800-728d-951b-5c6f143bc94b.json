@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-728d-951b-5c6f143bc94b",
+  "slug": "client-queue-before-handshake",
+  "kind": "test-case",
+  "title": "Queues invokes made before handshake",
+  "description": "Verifies that invoke calls made before the ready message are queued and flushed after handshake completes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client with no handshake completed yet",
+  "when": "invoke('echo', {text: 'queued'}) is called before ready, then ready arrives",
+  "then": "Only hello is posted initially, the invoke request is posted after ready, and the promise resolves correctly",
+  "impl_ref": "packages/bridge/src/client.test.ts::queues an invoke made before handshake and flushes it on ready",
+  "status": "declared",
+  "last_result_ms": null
+}

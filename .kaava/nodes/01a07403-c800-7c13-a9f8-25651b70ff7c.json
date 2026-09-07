@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c13-a9f8-25651b70ff7c",
+  "slug": "shell-contract-update-offer-tests",
+  "kind": "test-case",
+  "title": "updateNotice shows available updates",
+  "description": "Ensures available updates are offered regardless of whether the user asked.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a2b-9c3f-6e98ac6d152b",
+  "given": "UpdateState with state available and version",
+  "when": "asked is false",
+  "then": "Returns notice with tone offer and onSelect callback",
+  "impl_ref": "src/shell/contract.test.ts::a check nobody asked for::still offers an update it found",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-74f1-9bba-fbcdc199e1e2",
+  "slug": "manifest-parser-reference-tool-loads",
+  "kind": "test-case",
+  "title": "Reference Tool Manifest Loads from Disk",
+  "description": "The echo tool's kaava-tool.toml can be loaded from its real checkout.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "The echo tool checkout at examples/echo-tool",
+  "when": "ToolManifest::load is called",
+  "then": "succeeds with tool.id='echo'",
+  "impl_ref": "crates/kaava-tool-manifest/tests/reference_manifest.rs::reference_tool_manifest_loads_from_disk",
+  "status": "declared",
+  "last_result_ms": null
+}

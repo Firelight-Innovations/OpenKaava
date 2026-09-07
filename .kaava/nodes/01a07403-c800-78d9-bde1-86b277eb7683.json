@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-78d9-bde1-86b277eb7683",
+  "slug": "terminal-clipboard-is-paste-key",
+  "kind": "contract-method",
+  "title": "Paste Key Detector",
+  "description": "Checks if a keyboard gesture is Ctrl+V or Ctrl+Shift+V.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7101-96d4-211896bc6c31",
+  "signature": "export function isPasteKey(ev: KeyGesture): boolean",
+  "params": [
+    "KeyGesture"
+  ],
+  "returns": "boolean",
+  "errors": [],
+  "semantics": "Returns true for paste gestures, excluding AltGr+V on non-US layouts.",
+  "exported": true
+}

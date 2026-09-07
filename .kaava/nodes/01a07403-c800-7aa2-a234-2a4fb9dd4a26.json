@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7aa2-a234-2a4fb9dd4a26",
+  "slug": "file-api-load-settings",
+  "kind": "contract-method",
+  "title": "Load Settings",
+  "description": "Fetch all settings for this host with memoization.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export function loadSettings(): Promise<SettingsReader>",
+  "params": [],
+  "returns": "Promise<SettingsReader> with toggle, number, choice accessors",
+  "errors": [],
+  "semantics": "Returns settings reader; fetched once per app frame.",
+  "exported": true
+}

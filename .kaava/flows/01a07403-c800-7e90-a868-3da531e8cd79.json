@@ -1,0 +1,26 @@
+{
+  "id": "01a07403-c800-7e90-a868-3da531e8cd79",
+  "kind": "flow",
+  "slug": "view-diff-in-file",
+  "title": "View Diff of Changes in a File",
+  "trigger": "User wants to review what changed in a file against the previous commit",
+  "steps": [
+    {
+      "screen": "schematify://screen/01a07403-c800-7b19-815c-ac876d41c9c5",
+      "action": "In the File Explorer, modified files are marked with an M indicator and show git coloring (typically orange or blue)"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7b67-ba2c-9ab84ba1d65b",
+      "action": "Click the modified file to open it in File Viewer"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7b67-ba2c-9ab84ba1d65b",
+      "action": "The file displays with syntax highlighting; if it is a git repository, the File Viewer can show the diff against HEAD (the specific UI for toggling this is app-internal)"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-727c-a02d-041e8ac2a84e",
+      "action": "Alternatively, in the source control panel, click a changed file to see its diff displayed in the panel itself"
+    }
+  ],
+  "outcome": "The file's diff is displayed in the File Viewer, highlighting added and removed lines"
+}

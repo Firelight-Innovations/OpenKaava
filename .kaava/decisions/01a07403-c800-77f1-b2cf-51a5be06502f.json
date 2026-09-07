@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-77f1-b2cf-51a5be06502f",
+  "kind": "decision",
+  "slug": "DEC-TEC-SHELL-001",
+  "title": "Tool and app distinction encoded as single bit on ToolPresentation.isApp",
+  "context": "The shell mounts both first-party apps and third-party tools in the same tool window with identical UI treatment.",
+  "decision": "Store whether a presentation is an app or tool as one `isApp` boolean field, not separate types. Apps invoke in-process to app_call; tools invoke over a broker to their core process.",
+  "consequences": "Apps and tools receive no special tab, badge, or separate section in the bar—the implementation-detail difference is invisible to users. Simplifies routing logic.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

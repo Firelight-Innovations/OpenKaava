@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7eb9-8c34-08c4ec7b1932",
+  "slug": "userdata-identity",
+  "kind": "module",
+  "title": "Bundle Identifier Management",
+  "description": "Manages the stable bundle identifier for this OpenKaava installation and tracks previous identifiers for migration.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b4-aafe-18e08975027a",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

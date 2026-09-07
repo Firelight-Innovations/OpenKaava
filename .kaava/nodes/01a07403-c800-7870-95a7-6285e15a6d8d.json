@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7870-95a7-6285e15a6d8d",
+  "slug": "react",
+  "kind": "external-dep",
+  "title": "React",
+  "description": "UI library for building interactive component hierarchies. Used throughout for all components in this slice.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d9c-a3ed-618a62cdb22f",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "Core dependency for all React components; imported for useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense"
+}

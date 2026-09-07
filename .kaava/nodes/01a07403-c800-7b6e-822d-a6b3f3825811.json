@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b6e-822d-a6b3f3825811",
+  "slug": "trash-scoping-by-project",
+  "kind": "test-case",
+  "title": "Trash is scoped to project",
+  "description": "Verifies deleted items are filtered to those originally in project root.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7415-bf3d-ec958150ed0a",
+  "given": "a project root and items in/out of that tree",
+  "when": "is_inside() is applied to each path",
+  "then": "only in-scope paths are accepted",
+  "impl_ref": "src-tauri/src/apps/trash.rs::scoping_accepts_only_paths_inside_the_project",
+  "status": "declared",
+  "last_result_ms": null
+}

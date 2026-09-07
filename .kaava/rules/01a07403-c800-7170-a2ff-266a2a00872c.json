@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7170-a2ff-266a2a00872c",
+  "slug": "lint-magic-literals",
+  "statement": "Functions should avoid more than 3 distinct non-trivial numeric literals.",
+  "severity": "warning",
+  "audit": [],
+  "command": "pnpm slop"
+}

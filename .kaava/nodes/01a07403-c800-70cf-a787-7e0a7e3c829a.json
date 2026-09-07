@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-70cf-a787-7e0a7e3c829a",
+  "slug": "context-menu-dismiss-blur",
+  "kind": "test-case",
+  "title": "Blur Closes Menu",
+  "description": "Ensures menu closes when focus leaves window.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Dismissal with reason 'blur'",
+  "when": "dismisses() called",
+  "then": "Returns true",
+  "impl_ref": "src/shell/contextMenu.test.ts::dismisses closes when focus leaves the document, which is what a click in an app frame looks like",
+  "status": "declared",
+  "last_result_ms": null
+}

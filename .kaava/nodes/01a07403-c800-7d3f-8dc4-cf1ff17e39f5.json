@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7d3f-8dc4-cf1ff17e39f5",
+  "slug": "lint-rules-as-table",
+  "kind": "doc-block",
+  "title": "Rules as Data Table",
+  "description": "The rule set is a lookup table, not a match statement.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-745c-968f-ee2f8eb8951b",
+  "body": "CATALOG holds one row per rule: its identifier, the name the `RULE` column draws, its severity, and the function that finds it. A fourteenth rule is one row and one function rather than a new arm inside an existing one. That is the shape EdgeKind uses, and it is deliberate: a linter is where a list of special cases accumulates.",
+  "audience": "both"
+}

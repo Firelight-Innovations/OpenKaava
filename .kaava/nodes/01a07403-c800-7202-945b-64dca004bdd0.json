@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7202-945b-64dca004bdd0",
+  "slug": "plugin-install-set-token",
+  "kind": "contract-method",
+  "title": "Store GitHub Token",
+  "description": "Save token to system keyring or clear if empty.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-762d-98bf-9549ca7a28bb",
+  "signature": "pub fn set_token(value: &str) -> Result<(), String>",
+  "params": [
+    "value: &str"
+  ],
+  "returns": "Result<(), String>",
+  "errors": [],
+  "semantics": "Trims and stores; clears entry when empty string passed.",
+  "exported": false
+}

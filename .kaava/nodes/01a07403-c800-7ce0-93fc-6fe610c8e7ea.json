@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7ce0-93fc-6fe610c8e7ea",
+  "slug": "plugin-registry-address-construction",
+  "kind": "test-case",
+  "title": "Surface Address Building",
+  "description": "address() joins package and surface ids with separator.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "given": "package_id='acme', surface_id='specs'",
+  "when": "address() is called",
+  "then": "Returns 'acme.specs'",
+  "impl_ref": "src-tauri/src/plugins/mod.rs::an_address_is_the_two_ids_joined",
+  "status": "declared",
+  "last_result_ms": null
+}

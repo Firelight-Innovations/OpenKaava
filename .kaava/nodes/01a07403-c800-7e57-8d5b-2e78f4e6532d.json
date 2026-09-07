@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7e57-8d5b-2e78f4e6532d",
+  "slug": "search-graph-index-build",
+  "kind": "contract-method",
+  "title": "Build Search Index",
+  "description": "Index nodes, rules, libraries, screens, flows and decisions for global search.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c8c-bf20-524d9b0e548a",
+  "signature": "pub fn build(graph: &Graph) -> Self",
+  "params": [
+    "graph: &Graph"
+  ],
+  "returns": "GraphIndex",
+  "errors": [],
+  "semantics": "Creates a flat-vector search index of all graph elements with lowercased searchable text, implementing the SearchIndex trait.",
+  "exported": true
+}

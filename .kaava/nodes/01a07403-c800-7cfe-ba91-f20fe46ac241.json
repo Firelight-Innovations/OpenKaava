@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7cfe-ba91-f20fe46ac241",
+  "slug": "toml-grammar",
+  "kind": "external-dep",
+  "title": "Monaco Editor",
+  "description": "Language configuration and Monarch tokenizer type definitions for syntax highlighting.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72fd-88ee-22fc2f3d05b5",
+  "registry_ref": "01a07403-c800-7009-8eef-cc81f6cacfda",
+  "usage_note": "Type imports only; tokenizer configuration types depend on monaco-editor's language interfaces. Runtime provided by consumers."
+}

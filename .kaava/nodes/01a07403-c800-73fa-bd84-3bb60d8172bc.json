@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-73fa-bd84-3bb60d8172bc",
+  "slug": "presets-module-doc",
+  "kind": "doc-block",
+  "title": "Tier Presets",
+  "description": "The 3 tier configurations as pure data.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7919-b359-e87ddc820cbc",
+  "body": "The 3 tier configurations, as `SchematicConfig` values. This file is the proof of PRD §17 Wave 5's acceptance condition — one Schematic engine serves all 3 tiers — held one wave early: nothing below subclasses, branches on the tier at runtime, or reaches into the engine. Each preset is data.",
+  "audience": "agent"
+}

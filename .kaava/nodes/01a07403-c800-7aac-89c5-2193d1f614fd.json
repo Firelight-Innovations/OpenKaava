@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7aac-89c5-2193d1f614fd",
+  "slug": "build-config-bundle-size",
+  "kind": "budget",
+  "title": "Vite build output",
+  "description": "The bundle includes all app entry points without silent failures.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-70e9-8fb7-50d8be9843d8",
+  "metric": "build status",
+  "op": "==",
+  "value": 0,
+  "unit": "exit code",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm build",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

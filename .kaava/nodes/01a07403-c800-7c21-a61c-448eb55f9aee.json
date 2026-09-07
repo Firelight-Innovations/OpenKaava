@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c21-a61c-448eb55f9aee",
+  "slug": "home-launcher-app-export",
+  "kind": "contract-method",
+  "title": "Home App Export",
+  "description": "Default export of the Home application component, the main UI for project management and recent projects list.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bf3-b083-b0139d0bad6a",
+  "signature": "export default function App(): JSX.Element",
+  "params": [],
+  "returns": "React component rendering the Home screen",
+  "errors": [],
+  "semantics": "Renders the home screen with project selection, recent projects, and tutorial cards.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7051-89d3-5636495231d2",
+  "slug": "viewer-app-topics-active-path",
+  "kind": "contract-method",
+  "title": "ACTIVE_PATH",
+  "description": "Message topic: currently shown file",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7957-93c6-6a104cacaf87",
+  "signature": "export const ACTIVE_PATH = \"files/active-path\"",
+  "params": [],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Published to announce which file is currently active in viewer.",
+  "exported": false
+}

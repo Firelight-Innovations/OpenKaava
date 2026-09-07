@@ -1,0 +1,27 @@
+{
+  "id": "01a07403-c800-7319-8bbf-6f3f1a75df8b",
+  "slug": "plugin-remote-resolve",
+  "kind": "contract-method",
+  "title": "Query Latest Release",
+  "description": "Ask GitHub API which release is current and where its assets are.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-764a-b5c5-9f2cce1355f5",
+  "signature": "pub fn resolve(repo: &Repo, token: Option<&str>, private_hint: bool) -> Result<Resolved, RemoteError>",
+  "params": [
+    "repo: &Repo",
+    "token: Option<&str>",
+    "private_hint: bool"
+  ],
+  "returns": "Result<Resolved, RemoteError>",
+  "errors": [
+    "NotFoundOrNoAccess",
+    "NoRelease",
+    "NoZipAsset",
+    "Network"
+  ],
+  "semantics": "Returns tag, zip URL, and optional checksum sidecar URL.",
+  "exported": false
+}

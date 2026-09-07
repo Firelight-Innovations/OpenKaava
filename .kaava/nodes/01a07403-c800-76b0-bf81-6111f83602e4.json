@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-76b0-bf81-6111f83602e4",
+  "slug": "search-logic-compile-needle-literal",
+  "kind": "test-case",
+  "title": "Compile Needle: Literal Matching",
+  "description": "Tests literal string needle compilation with proper escaping.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "given": "Needle 'a.b' with literal flags",
+  "when": "compileNeedle is called",
+  "then": "Regex matches 'a.b' but not 'axb'",
+  "impl_ref": "src/shell/search/query.test.ts::compileNeedle::escapes a literal needle",
+  "status": "declared",
+  "last_result_ms": null
+}

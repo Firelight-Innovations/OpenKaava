@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-71b9-b6f5-792cd8222664",
+  "slug": "review-store-in-checkout",
+  "kind": "doc-block",
+  "title": "Review comments live inside the checkout",
+  "description": "Why comments are stored in .kaava/ and travel with the branch.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-700b-8fdc-ce83c58300e1",
+  "body": "Review comments are stored in .kaava/review-comments.json inside the checkout, not in the config directory. That matters: the notes are about that code, worth carrying to another machine with the branch, and a person reviewing an agent's worktree wants the notes to travel with the worktree. .kaava/ is the directory the project manifest already promises holds what OpenKaava produced about a project.",
+  "audience": "both"
+}

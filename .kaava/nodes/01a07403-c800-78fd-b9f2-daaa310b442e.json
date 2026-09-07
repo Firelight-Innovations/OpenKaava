@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-78fd-b9f2-daaa310b442e",
+  "slug": "project-service-graph",
+  "kind": "contract-method",
+  "title": "projectServiceGraph",
+  "description": "Builds one service's ServiceGraph out of the whole project graph, filtering to a single service's containment subtree.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b17-92da-f10f0c4deca9",
+  "signature": "function projectServiceGraph(raw: RawGraph, serviceSlug: string): ServiceGraph",
+  "params": [
+    "raw: RawGraph",
+    "serviceSlug: string"
+  ],
+  "returns": "ServiceGraph",
+  "errors": [
+    "Error when no top-level service node carries the given slug"
+  ],
+  "semantics": "Narrows the whole-project graph to one service's hierarchy, excluding tier-3 facets.",
+  "exported": false
+}

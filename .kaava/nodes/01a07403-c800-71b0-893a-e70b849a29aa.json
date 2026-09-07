@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-71b0-893a-e70b849a29aa",
+  "slug": "settings-store-load",
+  "kind": "contract-method",
+  "title": "Read changed settings from storage",
+  "description": "Load settings.json from the config directory, degrading to empty.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7af9-8c80-9bcc2630d68a",
+  "signature": "pub fn load(app: &AppHandle) -> Stored",
+  "params": [
+    "app: &AppHandle"
+  ],
+  "returns": "Stored",
+  "errors": [],
+  "semantics": "Never fails; any read error returns an empty Stored, leaving all settings at defaults.",
+  "exported": false
+}

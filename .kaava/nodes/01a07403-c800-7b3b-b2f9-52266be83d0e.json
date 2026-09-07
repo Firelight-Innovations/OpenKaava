@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b3b-b2f9-52266be83d0e",
+  "slug": "client-request-response-round-trip",
+  "kind": "test-case",
+  "title": "Request-response round trip after handshake",
+  "description": "Verifies that invoke sends a request with the correct format and resolves when a matching response arrives.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client that has completed the hello/ready handshake",
+  "when": "invoke('echo', {text: 'hi'}) is called and a response arrives with id 1",
+  "then": "The request uses the shell's origin (not '*') and the promise resolves with the response result",
+  "impl_ref": "packages/bridge/src/client.test.ts::round trips a request once past the handshake",
+  "status": "declared",
+  "last_result_ms": null
+}

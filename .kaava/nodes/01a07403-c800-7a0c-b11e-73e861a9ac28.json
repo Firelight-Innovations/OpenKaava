@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7a0c-b11e-73e861a9ac28",
+  "slug": "terminal-sessions-close",
+  "kind": "contract-method",
+  "title": "Close Terminal Session",
+  "description": "Kill the shell and forget the session.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731a-ab6c-3a00854fdef3",
+  "signature": "pub fn close(&self, id: &str)",
+  "params": [
+    "id"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Idempotent operation to kill and remove a session.",
+  "exported": false
+}

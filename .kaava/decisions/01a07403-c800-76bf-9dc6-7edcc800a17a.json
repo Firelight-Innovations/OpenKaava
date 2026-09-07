@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-76bf-9dc6-7edcc800a17a",
+  "kind": "decision",
+  "slug": "DEC-TEC-DESIGN-018",
+  "title": "Design Mode probe installation uses WebView2.AddScriptToExecuteOnDocumentCreated, bypassing cross-origin wall",
+  "context": "Same-origin policy prevents shell JavaScript from reaching into frames pointed at third-party dev servers. Design Mode requires code injection into those frames.",
+  "decision": "Use Rust's devtools.rs to call WebView2's native AddScriptToExecuteOnDocumentCreated API directly, reaching all frames including cross-origin. Bypass CDP limitation that cannot reach cross-site iframe targets.",
+  "consequences": "Can inject probe into arbitrary dev server frames. Probe runs in every frame before its code does.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

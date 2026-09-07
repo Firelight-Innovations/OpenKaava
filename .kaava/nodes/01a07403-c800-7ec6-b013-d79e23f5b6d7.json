@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7ec6-b013-d79e23f5b6d7",
+  "slug": "home-styles",
+  "kind": "module",
+  "title": "Home App Styling",
+  "description": "Application-specific stylesheet for the home app layout and components.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e68-ba1f-cc74581e910a",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

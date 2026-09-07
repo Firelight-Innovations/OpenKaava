@@ -1,0 +1,26 @@
+{
+  "id": "01a07403-c800-7c34-9e8c-646297e0b08b",
+  "kind": "screen",
+  "slug": "schematify-stack",
+  "title": "Stack Schematic",
+  "purpose": "Top-level architectural diagram showing all services and their relationships",
+  "states": [
+    "loading",
+    "ready",
+    "empty",
+    "error",
+    "node selected"
+  ],
+  "acceptance": [
+    "shall display visual graph of services in the stack",
+    "shall show service dependencies and connections",
+    "shall support clicking services to drill into service schematic",
+    "shall display error count and problem indicators",
+    "shall show empty state when stack has no services"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7fb5-aa99-e6208f931a06",
+    "schematify://node/01a07403-c800-7ca9-8733-7c3c727556b9",
+    "schematify://node/01a07403-c800-743f-ae55-0cbaeb91a62a"
+  ]
+}

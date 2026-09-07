@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7291-9bee-37b1e1572f49",
+  "slug": "client-tauri-invoke-forward",
+  "kind": "test-case",
+  "title": "Tauri host forwards methods to tauri's invoke",
+  "description": "Verifies that non-reserved methods under Tauri host are forwarded to the Tauri invoke API unchanged.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client under Tauri host (self === parent)",
+  "when": "invoke('echo', {text: 'hi'}) is called",
+  "then": "Tauri's invoke is called with the method and params, and the result is returned",
+  "impl_ref": "packages/bridge/src/client.test.ts::forwards ordinary methods to tauri's invoke, name unchanged",
+  "status": "declared",
+  "last_result_ms": null
+}

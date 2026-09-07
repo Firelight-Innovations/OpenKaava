@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e17-96ac-e810eccc30ee",
+  "slug": "review-update-same-body-clears-sent",
+  "kind": "test-case",
+  "title": "Re-submitting the same body still clears sent_at",
+  "description": "Even unchanged edits count as unsent.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "given": "A comment with sent_at set and unchanged body",
+  "when": "update is called with the same text",
+  "then": "sent_at becomes None",
+  "impl_ref": "src-tauri/src/review/mod.rs::re_submitting_the_same_body_still_clears_the_sent_stamp",
+  "status": "declared",
+  "last_result_ms": null
+}

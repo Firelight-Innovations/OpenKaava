@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7b64-b0e1-1d397887281f",
+  "slug": "commands-boot-status",
+  "kind": "contract-method",
+  "title": "boot_status",
+  "description": "Fetch the latest boot status directly instead of waiting for an event.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a15-9205-3403c29c95c2",
+  "signature": "pub fn boot_status(state: State<AppState>) -> boot::BootStatus",
+  "params": [
+    "state: State<AppState>"
+  ],
+  "returns": "boot::BootStatus",
+  "errors": [],
+  "semantics": "Returns a concrete BootStatus, never None, providing a fallback for early polls.",
+  "exported": true
+}

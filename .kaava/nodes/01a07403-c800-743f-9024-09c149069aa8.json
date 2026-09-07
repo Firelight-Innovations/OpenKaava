@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-743f-9024-09c149069aa8",
+  "slug": "github-query-parse-query",
+  "kind": "contract-method",
+  "title": "Parse GitHub Filter Query",
+  "description": "Parses GitHub-syntax filter qualifiers into structured query components.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcd-8834-b536584a1dca",
+  "signature": "export function parseQuery(input: string): ParsedQuery",
+  "params": [
+    "input: string"
+  ],
+  "returns": "ParsedQuery",
+  "errors": [],
+  "semantics": "Tokenizes GitHub-style qualifiers (is:pr, label:bug, author:name, etc.) and free text, collapsing conflicts.",
+  "exported": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-729e-aa26-63a1f1b34037",
+  "slug": "terminal-clipboard-terminal-interface",
+  "kind": "contract-method",
+  "title": "Clipboard Terminal Interface",
+  "description": "Minimal xterm Terminal interface used by clipboard handlers.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7101-96d4-211896bc6c31",
+  "signature": "export interface ClipboardTerminal { paste(data: string): void; getSelection(): string; readonly textarea: { value: string } | undefined; }",
+  "params": [],
+  "returns": "interface",
+  "errors": [],
+  "semantics": "Abstracts the terminal methods needed for clipboard operations.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7acd-90ae-0b855743c8a1",
+  "slug": "plugin-catalog-ids-addressable",
+  "kind": "test-case",
+  "title": "Catalog: Addressable IDs",
+  "description": "Catalog ids are addressable; contain no separator character.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78c4-8878-c792de8f7f2c",
+  "given": "All catalog ids",
+  "when": "checked for ADDRESS_SEPARATOR",
+  "then": "None contain the separator",
+  "impl_ref": "src-tauri/src/plugins/catalog.rs::ids_are_addressable",
+  "status": "declared",
+  "last_result_ms": null
+}

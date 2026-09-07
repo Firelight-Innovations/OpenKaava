@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7dc6-ad9e-c29cd1e483ae",
+  "slug": "core-an-id-carries-millisecond",
+  "kind": "test-case",
+  "title": "ID carries millisecond timestamp",
+  "description": "A UUIDv7 preserves the millisecond it was stamped with.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a7-8335-a2b30fb2137e",
+  "given": "A minter stamped at 1756000000000 ms",
+  "when": "id_timestamp_ms is called on the result",
+  "then": "It returns Some(1756000000000)",
+  "impl_ref": "crates/schematify-core/src/id.rs::an_id_carries_the_millisecond_it_was_stamped_with",
+  "status": "declared",
+  "last_result_ms": null
+}

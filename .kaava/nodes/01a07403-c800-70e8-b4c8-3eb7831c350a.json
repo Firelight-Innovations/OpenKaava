@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-70e8-b4c8-3eb7831c350a",
+  "slug": "layout-holds-pane-finds-a-leaf-at-any-depth",
+  "kind": "test-case",
+  "title": "Pane Location Search",
+  "description": "Verify that holds_pane correctly finds panes at any depth in the tree.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ff9-963f-4bb8df82714f",
+  "given": "A tree with splits and leaves at various depths",
+  "when": "Searching for a known pane",
+  "then": "holds_pane returns true; for unknown panes it returns false",
+  "impl_ref": "src-tauri/src/layout.rs::holds_pane_finds_a_leaf_at_any_depth_and_nothing_else",
+  "status": "declared",
+  "last_result_ms": null
+}

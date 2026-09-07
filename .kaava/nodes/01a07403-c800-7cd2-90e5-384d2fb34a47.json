@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7cd2-90e5-384d2fb34a47",
+  "slug": "shell-state-use-shell-state",
+  "kind": "contract-method",
+  "title": "useShellState",
+  "description": "React hook to subscribe to shared shell state.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73c6-9a0b-c837d3e517f6",
+  "signature": "function useShellState(): ShellSnapshot | null",
+  "params": [],
+  "returns": "ShellSnapshot | null",
+  "errors": [],
+  "semantics": "Subscribes first then fetches; returns null until resolved.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b85-9e00-cedc925c2ed5",
+  "slug": "search-logic-parsed-query-interface",
+  "kind": "contract-method",
+  "title": "Parsed Query Data Structure",
+  "description": "The query field parsed into its structural parts.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "signature": "export interface ParsedQuery { needle: string; include: string[]; exclude: string[]; paths: string[]; kinds: SearchKind[]; extensions: string[] }",
+  "params": [],
+  "returns": "ParsedQuery",
+  "errors": [],
+  "semantics": "Represents the semantic meaning of a search query: the text to find and the file filters to apply.",
+  "exported": false
+}

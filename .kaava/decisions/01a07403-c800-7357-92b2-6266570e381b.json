@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7357-92b2-6266570e381b",
+  "kind": "decision",
+  "slug": "DEC-TEC-REVIEW-025",
+  "title": "Review notes anchored to line numbers, not content; line changes leave notes stale but visible",
+  "context": "Code-review hosts re-anchor comments to keep them through many pushes. These notes are meant for one review cycle within a minute of reading the diff.",
+  "decision": "Record line range only, no text snippet. Edit the file and the anchor is stale; note still lists and sends against its original line.",
+  "consequences": "Fails gracefully instead of silently: if agent rewrites while notes are open, reader can tell because note carries its own prose. Simpler mechanism for short-lived notes.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

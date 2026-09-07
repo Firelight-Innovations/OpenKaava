@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-76ce-9dd8-6de1650620e9",
+  "slug": "product-screenbackingmodulecount-resolves",
+  "kind": "test-case",
+  "title": "Screen backing module count resolution",
+  "description": "Verifies that screenBackingModuleCount counts only references that resolve to real nodes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "given": "A RawScreen with mixed valid and dangling backed_by references and a nodeIds set",
+  "when": "screenBackingModuleCount is called",
+  "then": "Only references resolving to nodes in the set are counted",
+  "impl_ref": "apps/schematify/ui/src/product/index.test.ts::screenBackingModuleCount counts only the backing references that resolve to a real node",
+  "status": "declared",
+  "last_result_ms": null
+}

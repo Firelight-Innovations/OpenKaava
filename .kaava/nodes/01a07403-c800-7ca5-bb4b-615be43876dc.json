@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7ca5-bb4b-615be43876dc",
+  "slug": "engine-core-move-selection",
+  "kind": "contract-method",
+  "title": "moveSelection",
+  "description": "Move nodes by delta, writing layout only.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7346-9c32-cc9d99a7dbc8",
+  "signature": "moveSelection(dx: number, dy: number): void",
+  "params": [
+    "dx",
+    "dy"
+  ],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Cosmetic write only; drags descendants to maintain containment.",
+  "exported": false
+}

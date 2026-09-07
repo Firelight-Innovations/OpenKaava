@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7bfb-9944-52a8ffd5594b",
+  "slug": "shell-runspanel-component",
+  "kind": "contract-method",
+  "title": "Runs Panel Component",
+  "description": "Renders the dock's Runs tab as a 6-column table showing project-wide run history with click-through to module dashboards.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-743f-ae55-0cbaeb91a62a",
+  "signature": "RunsPanel(props: RunsPanelProps) => JSX.Element",
+  "params": [
+    "runs: readonly RunsRow[] | null",
+    "error: string | null",
+    "onSelect?: (moduleId: string) => void"
+  ],
+  "returns": "React component",
+  "errors": [],
+  "semantics": "Lists every ingested run with run number, module, timestamp, commit, workflow file and ingest state, with rows clickable to open the module's dashboard.",
+  "exported": true
+}

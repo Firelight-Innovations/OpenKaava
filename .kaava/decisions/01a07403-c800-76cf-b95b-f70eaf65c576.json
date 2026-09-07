@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-76cf-b95b-f70eaf65c576",
+  "kind": "decision",
+  "slug": "DEC-SCH-SCOPE-005",
+  "title": "Every drawn count is computed at draw time and never stored",
+  "context": "Alternative would be to store counts in the graph and risk stale numbers after updates.",
+  "decision": "Schematify shall compute every displayed count (node counts, edge counts, facet counts, export counts, dependent counts) from the graph at draw time. No count is stored in any node or edge file.",
+  "consequences": "Counts are always correct after any graph change; no stale counts; but rendering counts costs computation on every draw; counts that do not match wireframes become testable facts.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

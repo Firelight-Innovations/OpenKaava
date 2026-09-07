@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79bb-98f5-dac23b108d6a",
+  "slug": "validators-catches-functional-color",
+  "kind": "test-case",
+  "title": "Positive control for functional color detection",
+  "description": "Verifies the regex patterns correctly identify rgba, hsl, and color-mix forms.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7568-b464-c150d28c61e2",
+  "given": "Test strings with functional color forms",
+  "when": "The FUNCTIONAL_COLOR regex is tested against them",
+  "then": "All test strings match",
+  "impl_ref": "apps/schematify/ui/src/noLiteralHex.test.ts::positive control catches a functional color form",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-72f0-9dfe-fdc6282ecb70",
+  "slug": "keyboard-hook-keyboard-actions",
+  "kind": "contract-method",
+  "title": "Keyboard Actions Interface",
+  "description": "Callbacks for every shell keyboard shortcut.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78e7-856c-cf28278f7c01",
+  "signature": "export interface KeyboardActions { selectToolByIndex(index: number): void; rescan(): void; cancelBoot(): void; newFile(): void; openProject(): void; save(): void; saveAs(): void; duplicate(): void; closeWindow(): void; commandPalette(): void; togglePanel(): void; toggleTerminal(): void; toggleFullscreen(): void; zoomIn(): void; zoomOut(): void; newTerminal(): void; splitTerminal(): void; }",
+  "params": [],
+  "returns": "interface",
+  "errors": [],
+  "semantics": "Defines all actions triggered by keyboard shortcuts.",
+  "exported": true
+}

@@ -1,0 +1,29 @@
+{
+  "id": "01a07403-c800-79f0-a04e-34a1016076d6",
+  "slug": "manifest-parser-tool-manifest-parse",
+  "kind": "contract-method",
+  "title": "Parse Manifest from String",
+  "description": "Parse and validate a manifest already in memory.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "signature": "pub fn parse(source: &str) -> Result<Self, ManifestError>",
+  "params": [
+    "source: &str"
+  ],
+  "returns": "Result<Self, ManifestError>",
+  "errors": [
+    "ManifestError::Toml",
+    "ManifestError::InvalidId",
+    "ManifestError::InvalidVersion",
+    "ManifestError::PathNotRelative",
+    "ManifestError::PathEscapesRoot",
+    "ManifestError::PathIsRoot",
+    "ManifestError::DuplicateSurfaceId",
+    "ManifestError::SurfaceWithoutFrontend"
+  ],
+  "semantics": "Validates all fields and invariants including path safety and id format.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-76a1-814a-982aaaa17387",
+  "slug": "core-a-v4-id-reports-no-timestamp",
+  "kind": "test-case",
+  "title": "V4 ID reports no timestamp",
+  "description": "Extracting timestamp from a v4 UUID returns None.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a7-8335-a2b30fb2137e",
+  "given": "A v4 UUID",
+  "when": "id_timestamp_ms is called",
+  "then": "It returns None",
+  "impl_ref": "crates/schematify-core/src/id.rs::a_v4_id_reports_no_timestamp",
+  "status": "declared",
+  "last_result_ms": null
+}

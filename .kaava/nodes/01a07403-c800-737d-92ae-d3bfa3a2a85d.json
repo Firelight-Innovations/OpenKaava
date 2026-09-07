@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-737d-92ae-d3bfa3a2a85d",
+  "slug": "launch-2",
+  "kind": "external-dep",
+  "title": "serde",
+  "description": "Serialization/deserialization framework with derive macro",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a3-a407-049c1f55dd74",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "#[derive(Serialize)] for Target enum sent to frontend over launch-target event"
+}

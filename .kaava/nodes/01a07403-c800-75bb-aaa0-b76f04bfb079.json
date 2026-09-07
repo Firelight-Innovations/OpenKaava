@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-75bb-aaa0-b76f04bfb079",
+  "slug": "project-take-migration-seed",
+  "kind": "contract-method",
+  "title": "Consume legacy global project for per-cluster migration",
+  "description": "Extract the pre-per-cluster open project, consuming it so migration runs once.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "signature": "pub fn take_migration_seed(app: &AppHandle) -> Option<PathBuf>",
+  "params": [
+    "app: &AppHandle"
+  ],
+  "returns": "Option<PathBuf>",
+  "errors": [],
+  "semantics": "Takes and clears the legacy open project field, enabling one-time migration to per-cluster storage.",
+  "exported": false
+}

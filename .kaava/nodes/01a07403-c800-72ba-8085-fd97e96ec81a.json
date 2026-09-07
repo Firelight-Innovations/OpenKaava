@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-72ba-8085-fd97e96ec81a",
+  "slug": "icon-lookup-design-rationale",
+  "kind": "doc-block",
+  "title": "File Icons Design Rationale",
+  "description": "Design notes on file-type icons as a carve-out from the general icon rule, including mechanics, the OpenKaava glyph, contrast measurements, and lookup order.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7add-a668-c662fdc1ba08",
+  "body": "File-type icons from VS Code's Material Icon Theme are a deliberate carve-out from the rule that every glyph is hand-authored inline JSX at currentColor. For these icons the colour *is* the information: a tree of fifty rows is scanned by colour, not read — the orange of a .rs against the blue-grey of a .toml is what lets you find the file you want. The carve-out is bounded to file-type icons wherever a filename is listed for someone to scan (Files tree, search overlay), and nowhere else; chrome stays inline SVG at currentColor. Material icons live in public/icons/material/, are generated at build time, and are not in git. OpenKaava's own three icons (.kaava folder and .kaava file) are hand-drawn, live in public/icons/kaava/, and are in git. The icon lookup order: exact filename beats an extension, a longer extension beats a shorter one. Extensions are walked left to right (component.spec.ts tries spec.ts before ts) rather than using only the last segment. The OpenKaava mark is black (#000000) for WCAG contrast (7.66:1 on the amber background), not the light tint the theme convention would use (2.08:1).",
+  "audience": "both"
+}

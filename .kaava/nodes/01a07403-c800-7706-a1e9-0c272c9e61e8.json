@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7706-a1e9-0c272c9e61e8",
+  "slug": "client-event-delivery",
+  "kind": "test-case",
+  "title": "Events are delivered to on() listeners",
+  "description": "Verifies that events from the shell arrive at registered on() callbacks and stop when unsubscribed.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client with an on() listener registered",
+  "when": "An event message arrives from the shell",
+  "then": "The callback receives the event payload; after unsubscribe, subsequent events do not reach it",
+  "impl_ref": "packages/bridge/src/client.test.ts::delivers events to on() and stops once unsubscribed",
+  "status": "declared",
+  "last_result_ms": null
+}

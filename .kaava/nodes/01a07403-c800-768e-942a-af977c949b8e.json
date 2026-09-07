@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-768e-942a-af977c949b8e",
+  "slug": "validators-excludes-comments",
+  "kind": "test-case",
+  "title": "Positive control for comment exclusion",
+  "description": "Verifies that isCommentLine correctly identifies comment lines so they are excluded from named-color checks.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7568-b464-c150d28c61e2",
+  "given": "A comment line mentioning a color word",
+  "when": "isCommentLine is called",
+  "then": "The line is identified as a comment and not checked for color literals",
+  "impl_ref": "apps/schematify/ui/src/noLiteralHex.test.ts::positive control does not reach the named-color check at all for a comment line",
+  "status": "declared",
+  "last_result_ms": null
+}

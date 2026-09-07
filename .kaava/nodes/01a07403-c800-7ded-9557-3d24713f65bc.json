@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7ded-9557-3d24713f65bc",
+  "slug": "build-config",
+  "kind": "external-dep",
+  "title": "Vite Bundler",
+  "description": "JavaScript and TypeScript bundler for development and production builds.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-70e9-8fb7-50d8be9843d8",
+  "registry_ref": "01a07403-c800-7ca0-89a4-a4db7b2773a6",
+  "usage_note": "Used in vite.config.ts for defineConfig function and main bundling orchestration"
+}

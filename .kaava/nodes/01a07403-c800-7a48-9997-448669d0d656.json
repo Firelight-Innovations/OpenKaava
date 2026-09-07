@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7a48-9997-448669d0d656",
+  "slug": "explorer-tree-explorer-handle",
+  "kind": "contract-method",
+  "title": "Tree Imperative Handle",
+  "description": "Methods to trigger tree actions from outside, used by the menu.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c13-b0ea-a43449e8f713",
+  "signature": "export interface ExplorerHandle { newFile(): void; showTrash(): void; }",
+  "params": [],
+  "returns": "Interface with two void methods",
+  "errors": [],
+  "semantics": "Allows imperative triggering of new file creation and trash view from menu.",
+  "exported": true
+}

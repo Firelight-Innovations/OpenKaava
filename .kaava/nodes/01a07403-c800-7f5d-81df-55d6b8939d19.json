@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f5d-81df-55d6b8939d19",
+  "slug": "layout-header",
+  "kind": "doc-block",
+  "title": "Layout Schema",
+  "description": "The layout module documentation on cosmetic state storage.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79bb-abc8-74d009a7d2da",
+  "body": "The shape of layout/<schematic-slug>.json (PRD §6.1) — the cosmetic layer, the only file a node drag writes. Nothing here carries meaning: positions, sizes, collapse state, the annotation tier and where the viewport was left, and no more.",
+  "audience": "both"
+}

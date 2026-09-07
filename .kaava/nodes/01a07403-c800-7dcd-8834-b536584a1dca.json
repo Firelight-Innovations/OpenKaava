@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7dcd-8834-b536584a1dca",
+  "slug": "github-query",
+  "kind": "module",
+  "title": "GitHub Query Parsing",
+  "description": "Pure parser for GitHub-style filter syntax (is:, label:, author:) that converts typed queries into structured filters the panel uses to narrow results.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d5c-a355-5264280ef828",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7d08-8103-467454160409"
+  ]
+}

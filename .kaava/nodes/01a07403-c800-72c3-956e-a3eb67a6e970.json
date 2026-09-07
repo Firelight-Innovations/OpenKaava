@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-72c3-956e-a3eb67a6e970",
+  "slug": "clipboard-altgr-v",
+  "kind": "test-case",
+  "title": "AltGr+V Not Treated As Paste",
+  "description": "Verifies Ctrl+Alt+V is not paste (AltGr on non-US layouts).",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7101-96d4-211896bc6c31",
+  "given": "KeyGesture with ctrl and alt true",
+  "when": "Passed to isPasteKey()",
+  "then": "Returns false",
+  "impl_ref": "src/shell/terminal/clipboard.test.ts::is not AltGr+V, which is a character on non-US layouts",
+  "status": "declared",
+  "last_result_ms": null
+}

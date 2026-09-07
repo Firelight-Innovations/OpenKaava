@@ -1,0 +1,27 @@
+{
+  "id": "01a07403-c800-7292-8aed-3b29a5d68efd",
+  "kind": "screen",
+  "slug": "schematify-module",
+  "title": "Module Schematic",
+  "purpose": "Detailed diagram of a single module showing its structure and internal components",
+  "states": [
+    "loading",
+    "ready",
+    "empty",
+    "error",
+    "node selected"
+  ],
+  "acceptance": [
+    "shall display module's internal structure",
+    "shall show component nodes and their relationships",
+    "shall support selecting nodes for inspector",
+    "shall show breadcrumb navigation back to service and stack",
+    "shall display findings for this module",
+    "shall show empty state when module has no components"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7fb5-aa99-e6208f931a06",
+    "schematify://node/01a07403-c800-7ca9-8733-7c3c727556b9",
+    "schematify://node/01a07403-c800-743f-ae55-0cbaeb91a62a"
+  ]
+}

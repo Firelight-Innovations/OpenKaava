@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f5d-9157-6900ea4eafa3",
+  "slug": "client-host-detection-kaava",
+  "kind": "test-case",
+  "title": "Host detection identifies kaava when self !== parent",
+  "description": "Verifies that a client with different self and parent handles is detected as running under the kaava (orchestrator) host.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client created with distinct self and parent window-like objects",
+  "when": "host() is called",
+  "then": "It returns 'kaava'",
+  "impl_ref": "packages/bridge/src/client.test.ts::is 'kaava' when self !== parent, mirroring window.parent !== window",
+  "status": "declared",
+  "last_result_ms": null
+}

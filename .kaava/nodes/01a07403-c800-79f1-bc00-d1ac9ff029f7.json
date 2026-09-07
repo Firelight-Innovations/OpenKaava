@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-79f1-bc00-d1ac9ff029f7",
+  "slug": "svg-viewer",
+  "kind": "module",
+  "title": "SVG Viewer",
+  "description": "SVG viewer that renders diagrams and graphics with toggle to view source in the text editor.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7996-96e4-9a298ed54a09",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-70a2-94cf-d3a9a8e2aec9"
+  ]
+}

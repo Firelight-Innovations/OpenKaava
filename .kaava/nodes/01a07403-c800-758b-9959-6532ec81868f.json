@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-758b-9959-6532ec81868f",
+  "slug": "project-restore",
+  "kind": "contract-method",
+  "title": "Restore project state from storage",
+  "description": "Load the project store from disk during application startup.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "signature": "pub fn restore(app: &AppHandle)",
+  "params": [
+    "app: &AppHandle"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Loads the recent projects list from storage into the application state.",
+  "exported": false
+}

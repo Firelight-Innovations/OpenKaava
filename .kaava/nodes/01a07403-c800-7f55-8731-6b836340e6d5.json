@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f55-8731-6b836340e6d5",
+  "slug": "regex-syntax",
+  "kind": "external-dep",
+  "title": "Regex Syntax Library",
+  "description": "Provides regex escaping to turn literal queries into safe regex patterns.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74d5-965b-4ee30086c2f4",
+  "registry_ref": "01a07403-c800-7e1d-a73a-767f7374fc17",
+  "usage_note": "Escapes literal search queries so they match as literals not patterns"
+}

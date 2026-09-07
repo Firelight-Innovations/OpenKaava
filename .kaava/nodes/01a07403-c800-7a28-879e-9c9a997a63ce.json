@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7a28-879e-9c9a997a63ce",
+  "slug": "search-logic-parse-query-prefixes",
+  "kind": "test-case",
+  "title": "Parse Query: Prefix Qualifiers",
+  "description": "Tests case-insensitive prefix normalization for path, ext, and kind.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "given": "Query 'PATH:src/shell EXT:.RS kind:script'",
+  "when": "parseQuery is called",
+  "then": "paths has ['src/shell'], extensions has ['rs'], kinds has ['script']",
+  "impl_ref": "src/shell/search/query.test.ts::parseQuery::reads the three prefixes case-insensitively and normalizes the keyword",
+  "status": "declared",
+  "last_result_ms": null
+}

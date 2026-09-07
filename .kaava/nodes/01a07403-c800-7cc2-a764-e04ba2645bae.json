@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7cc2-a764-e04ba2645bae",
+  "slug": "project-marker-create-writes-and-loads",
+  "kind": "test-case",
+  "title": "Manifest survives create and load round-trip",
+  "description": "A created manifest can be read back with all fields intact.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7742-a1fb-c4253f531eb9",
+  "given": "A temporary directory",
+  "when": "marker::create is called, then marker::find and marker::load",
+  "then": "The loaded manifest matches the created one, with the same id and name",
+  "impl_ref": "src-tauri/src/project/marker.rs::create_writes_a_manifest_that_load_reads_back",
+  "status": "declared",
+  "last_result_ms": null
+}

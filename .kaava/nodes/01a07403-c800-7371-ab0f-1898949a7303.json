@@ -1,0 +1,26 @@
+{
+  "id": "01a07403-c800-7371-ab0f-1898949a7303",
+  "slug": "api-invoke",
+  "kind": "contract-method",
+  "title": "invoke",
+  "description": "Execute a method on the host and return a typed promise of the result.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77f3-afe7-a004ea566b14",
+  "signature": "invoke<T = unknown>(method: string, params?: unknown, timeoutMs?: number): Promise<T>",
+  "params": [
+    "method: string",
+    "params?: unknown",
+    "timeoutMs?: number"
+  ],
+  "returns": "Promise<T>",
+  "errors": [
+    "KaavaRpcError with code Timeout if the request does not complete within timeoutMs",
+    "KaavaRpcError with code MethodNotFound if the method does not exist on the host",
+    "KaavaRpcError with code InvalidParams if params fail validation"
+  ],
+  "semantics": "Routes to the host (orchestrator shell via window messages or standalone Tauri app) and returns the result or throws a KaavaRpcError.",
+  "exported": true
+}

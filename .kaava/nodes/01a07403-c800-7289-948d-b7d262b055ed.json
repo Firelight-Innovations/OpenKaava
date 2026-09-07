@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7289-948d-b7d262b055ed",
+  "slug": "titlebar-use-edit-target",
+  "kind": "contract-method",
+  "title": "useEditTarget Hook",
+  "description": "Tracks where focus is and returns the target for Edit menu operations: app frame, shell field, or none.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7806-88f7-dafc7969fdd8",
+  "signature": "function useEditTarget(): EditTarget",
+  "params": [],
+  "returns": "EditTarget",
+  "errors": [],
+  "semantics": "Remembers focus on focusin events and routes Edit commands to app, field, or nothing based on where it was.",
+  "exported": true
+}

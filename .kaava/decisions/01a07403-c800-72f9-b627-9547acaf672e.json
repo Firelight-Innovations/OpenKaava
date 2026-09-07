@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-72f9-b627-9547acaf672e",
+  "kind": "decision",
+  "slug": "DEC-GOV-PROTOCOL-001",
+  "title": "Tool protocol is the open-core license boundary",
+  "context": "OpenKaava is open core: Apache-licensed shell, proprietary first-party tools, one public protocol. Each repository (first-party, commercial, third-party) is built against the tool protocol.",
+  "decision": "The tool protocol (`docs/tool-protocol.md`) is the contract the entire model rests on. Nothing crosses this boundary. A change that reaches around it—a private tool poking at orchestrator internals, or the orchestrator growing a special case for one tool—is declined on principle rather than on quality, including when the code is good.",
+  "consequences": "When something genuinely needs more from the other side, there are two moves and no third: generalize it so any tool could want it and land it in core, or accept that it belongs in the tool. No special cases are allowed. This prevents open-core rot but requires discipline.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-06"
+}

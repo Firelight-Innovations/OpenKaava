@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7a55-a2ec-bee95ed26bdb",
+  "slug": "design-app-probe-read-drops-wrong-types",
+  "kind": "test-case",
+  "title": "readProbeMessage keeps message if fields wrong type",
+  "description": "Drops fields of wrong type but preserves rest",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71a3-ae12-251b52dac590",
+  "given": "pick with mixed correct and incorrect field types",
+  "when": "readProbeMessage is called",
+  "then": "returns message with wrong types set to defaults",
+  "impl_ref": "apps/design/ui/src/probe.test.ts::drops fields of the wrong type rather than the whole message",
+  "status": "declared",
+  "last_result_ms": null
+}

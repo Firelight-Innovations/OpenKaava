@@ -1,0 +1,19 @@
+{
+  "id": "01a07403-c800-7fa2-8884-0fddd267d804",
+  "slug": "mermaid-viewer",
+  "kind": "module",
+  "title": "Mermaid Viewer",
+  "description": "Mermaid diagram viewer with graceful error display for invalid diagram syntax during editing.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7996-96e4-9a298ed54a09",
+  "allowed_libraries": [
+    "01a07403-c800-7c20-aa33-06c32d5f2584"
+  ],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7272-9ebc-980bd4da74e9"
+  ]
+}

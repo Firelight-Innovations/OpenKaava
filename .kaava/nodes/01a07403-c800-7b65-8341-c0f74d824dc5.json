@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b65-8341-c0f74d824dc5",
+  "slug": "core-ids-rise-clock-backwards",
+  "kind": "test-case",
+  "title": "IDs rise when clock steps back",
+  "description": "A backward clock step does not reverse ID ordering.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a7-8335-a2b30fb2137e",
+  "given": "A minter",
+  "when": "mint_at is called at 1756000000000, then at 1755000000000",
+  "then": "The second ID is still greater than the first",
+  "impl_ref": "crates/schematify-core/src/id.rs::ids_rise_when_the_clock_steps_backwards",
+  "status": "declared",
+  "last_result_ms": null
+}

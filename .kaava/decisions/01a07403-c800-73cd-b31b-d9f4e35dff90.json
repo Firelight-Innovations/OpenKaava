@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-73cd-b31b-d9f4e35dff90",
+  "kind": "decision",
+  "slug": "DEC-TEC-CLAP-020",
+  "title": "Terminal Ctrl+V paste claim conflicts with readline literal-next; no replacement binding added",
+  "context": "xterm maps Ctrl+V to SYN (literal-next). Windows terminals expect Ctrl+V or Ctrl+Shift+V for paste. Choice is required.",
+  "decision": "Claim Ctrl+V and Ctrl+Shift+V for paste. Do not add replacement binding for literal-next. Readline already has Ctrl+Q as fallback.",
+  "consequences": "Paste works like Windows terminal users expect. Literal-next still available. Only AltGr is excluded to avoid breaking non-US keyboard layouts.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

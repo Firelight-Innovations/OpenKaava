@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7fa3-8f61-f4ebd66b5260",
+  "slug": "reconciliation-present-unknown-when-no-node-carries-the-id",
+  "kind": "test-case",
+  "title": "PresentUnknown for Marker Without Node",
+  "description": "When a marker exists in code but no graph node has that UUID, outcome is PresentUnknown.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f82-b74b-6f5fb1052449",
+  "given": "a marker with no corresponding graph node",
+  "when": "reconcile is called",
+  "then": "one PresentUnknown error outcome is produced with exit code 1",
+  "impl_ref": "crates/schematify-reconcile/src/reconcile.rs::present_unknown_when_no_node_carries_the_id",
+  "status": "declared",
+  "last_result_ms": null
+}

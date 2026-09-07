@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7341-b4a0-068fe7baf593",
+  "slug": "client-testable-core-doc",
+  "kind": "doc-block",
+  "title": "Client design pattern",
+  "description": "Documentation of the testable client pattern used throughout the bridge.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "body": "The testable core of the bridge. `createClient` takes its window handles as parameters instead of reaching for `window`/`window.parent` globally. Under jsdom `window.parent === window`, so a client hard-wired to globals could only ever be exercised on the Tauri path. Passing `self`/`parent` in lets tests fake the iframe relationship and drive the Kaava path too.",
+  "audience": "agent"
+}

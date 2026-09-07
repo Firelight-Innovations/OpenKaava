@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7238-9f29-2fb959bbf38c",
+  "kind": "decision",
+  "slug": "DEC-SCH-ARCH-002",
+  "title": "Schematify registers through one Tauri module and one generate_handler! line",
+  "context": "Alternative approaches: individual `#[tauri::command]` for each operation; multiple registrations; unregistered dispatch.",
+  "decision": "Schematify registers through a single module `src-tauri/src/apps/schematify.rs` and adds one line to `generate_handler!`. Every further command lands inside that module as a match arm on the method string (e.g., `schematify/open-project`). No separate `#[tauri::command]` entries or `src/bindings.ts` wrappers are added.",
+  "consequences": "Minimal collision on shared registration files; merge contention is limited to one line in `generate_handler!` and the schematify.rs file; all 10 operations share one dispatch function; typed wrappers live in `apps/schematify/ui/src/rpc.ts` instead of the shell's `bindings.ts`.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

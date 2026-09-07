@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7651-a76b-2ced649118fa",
+  "slug": "manifest-parser-args-default",
+  "kind": "test-case",
+  "title": "Core Args Default to Kaava RPC Flag",
+  "description": "Omitting args in [core] defaults to ['--kaava-rpc'].",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "A manifest with [core] but no args key",
+  "when": "parsed",
+  "then": "core.args equals vec!['--kaava-rpc']",
+  "impl_ref": "crates/kaava-tool-manifest/src/lib.rs::args_default_when_absent",
+  "status": "declared",
+  "last_result_ms": null
+}

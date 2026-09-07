@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7c40-975c-5bb8b40c1dc1",
+  "slug": "loader-load-project",
+  "kind": "contract-method",
+  "title": "Load Project",
+  "description": "Walk .kaava/ and build the graph, reporting dangling references rather than silencing them.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d11-8354-a2669af47406",
+  "signature": "pub fn load_project(project_root: &Path) -> Result<LoadOutcome>",
+  "params": [
+    "project_root: &Path"
+  ],
+  "returns": "Result<LoadOutcome>",
+  "errors": [
+    "CoreError::NoProject"
+  ],
+  "semantics": "Reads every file under .kaava/, parses it in parallel, and builds an in-memory graph, returning both the graph and a report of quarantined references, collisions, and read failures.",
+  "exported": true
+}

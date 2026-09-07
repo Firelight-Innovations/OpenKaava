@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7ad1-9e13-7e4e10dc0e9c",
+  "slug": "error-result-type-alias",
+  "kind": "contract-method",
+  "title": "Result Type Alias",
+  "description": "Shorthand for std::result::Result with AppError as the error type.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7201-bc76-069d8a5755f3",
+  "signature": "pub type Result<T> = std::result::Result<T, AppError>;",
+  "params": [
+    "T"
+  ],
+  "returns": "std::result::Result<T, AppError>",
+  "errors": [],
+  "semantics": "Reduces verbosity by pre-filling the error type across the codebase.",
+  "exported": false
+}

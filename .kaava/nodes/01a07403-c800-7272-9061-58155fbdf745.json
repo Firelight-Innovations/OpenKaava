@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7272-9061-58155fbdf745",
+  "slug": "git-operations-git-cluster-status",
+  "kind": "contract-method",
+  "title": "Get Cluster Git Status",
+  "description": "The changed-file lists, branch, and upstream drift for a cluster.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "signature": "pub fn git_cluster_status(app: AppHandle, cluster_id: String) -> Result<Option<GitStatus>>",
+  "params": [
+    "app",
+    "cluster_id"
+  ],
+  "returns": "Result<Option<GitStatus>>",
+  "errors": [
+    "AppError::Git"
+  ],
+  "semantics": "Returns git status for the cluster's project root, or None if not a repository.",
+  "exported": true
+}

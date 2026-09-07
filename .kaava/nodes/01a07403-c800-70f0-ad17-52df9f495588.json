@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-70f0-ad17-52df9f495588",
+  "slug": "backend-plugins-test-rust",
+  "kind": "budget",
+  "title": "Rust Tests",
+  "description": "All cargo test suite tests across workspace.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "metric": "test_count",
+  "op": ">=",
+  "value": 212,
+  "unit": "tests",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm test:rust",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-723d-9de9-ce112da27296",
+  "slug": "worktree-panels",
+  "kind": "module",
+  "title": "Worktree Panel Components",
+  "description": "The main container and sub-components for the git worktree view: the split panel with commit graph and source control, plus the commit graph visualization.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7503-b10b-cd084f7dc3a8",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-727c-a02d-041e8ac2a84e",
+    "schematify://screen/01a07403-c800-7d56-a4f0-f12bd453a564"
+  ]
+}

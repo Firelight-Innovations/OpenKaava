@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7215-8e8b-54de17bccec3",
+  "slug": "report-rendering-report-error",
+  "kind": "contract-method",
+  "title": "Report Writing Error",
+  "description": "An error writing reconciliation output to disk.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "signature": "pub enum ReportError",
+  "params": [],
+  "returns": "enum",
+  "errors": [
+    "Io",
+    "Json"
+  ],
+  "semantics": "I/O or JSON encoding errors during result persistence.",
+  "exported": false
+}

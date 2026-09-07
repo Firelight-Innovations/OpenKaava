@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7639-a430-192c21cf0880",
+  "slug": "marker-token-rejects-truncated-uuid",
+  "kind": "test-case",
+  "title": "Reject Truncated UUID",
+  "description": "Do not parse UUIDs with wrong segment length.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77d3-a0d3-3e27db45a8db",
+  "given": "@kaava:0192f4a1-4c3d-7890-a1b2 token-verifier",
+  "when": "parse_token is called",
+  "then": "returns None",
+  "impl_ref": "crates/schematify-reconcile/src/token.rs::rejects_truncated_uuid",
+  "status": "declared",
+  "last_result_ms": null
+}

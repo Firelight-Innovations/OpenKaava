@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-73aa-afca-5a878c187086",
+  "slug": "dispatch-two-apps-same-context",
+  "kind": "test-case",
+  "title": "Files and Viewer resolve same context",
+  "description": "Ensures Explorer and Viewer dispatch to same function for identical project roots.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a1-a91f-421d244b774a",
+  "given": "Files and Viewer app entries",
+  "when": "dispatch function pointers are compared",
+  "then": "they resolve to the same function",
+  "impl_ref": "src-tauri/src/apps/mod.rs::two_apps_in_one_cluster_resolve_the_same_context",
+  "status": "declared",
+  "last_result_ms": null
+}

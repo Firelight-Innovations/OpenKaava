@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7106-b69d-a3d8287cc648",
+  "slug": "monaco-editor",
+  "kind": "external-dep",
+  "title": "Monaco Editor",
+  "description": "Powerful text editor with syntax highlighting, multi-cursor, and language features.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ebc-919c-03399a5694e3",
+  "registry_ref": "01a07403-c800-7009-8eef-cc81f6cacfda",
+  "usage_note": "Dynamic import via registry to keep out of main bundle; loaded only when text file is opened"
+}

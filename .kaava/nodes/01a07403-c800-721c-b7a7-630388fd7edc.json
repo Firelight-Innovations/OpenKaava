@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-721c-b7a7-630388fd7edc",
+  "slug": "plugin-registry-remove",
+  "kind": "contract-method",
+  "title": "Unregister Plugin Record",
+  "description": "Forget a package by id and persist.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "signature": "pub fn remove(&self, app: &AppHandle, id: &str) -> bool",
+  "params": [
+    "app: &AppHandle",
+    "id: &str"
+  ],
+  "returns": "bool",
+  "errors": [],
+  "semantics": "Removes record if found; returns true if one was removed; saves and emits event.",
+  "exported": false
+}

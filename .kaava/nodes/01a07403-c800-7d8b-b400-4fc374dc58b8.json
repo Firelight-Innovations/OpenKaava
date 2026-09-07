@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d8b-b400-4fc374dc58b8",
+  "slug": "search-logic-compile-path-filter-path-scope",
+  "kind": "test-case",
+  "title": "Path Filter: Path Scope",
+  "description": "Tests that path scopes match without requiring root-anchoring.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "given": "Filter 'path:src/shell'",
+  "when": "predicate is called",
+  "then": "Matches '/c/repo/src/shell/query.ts' but not '/c/repo/src/views/StackView.tsx'",
+  "impl_ref": "src/shell/search/query.test.ts::compilePathFilter::scopes by a path fragment without it being rooted",
+  "status": "declared",
+  "last_result_ms": null
+}

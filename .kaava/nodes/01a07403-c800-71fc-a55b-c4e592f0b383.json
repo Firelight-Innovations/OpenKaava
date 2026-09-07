@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-71fc-a55b-c4e592f0b383",
+  "slug": "manifest-parser-thiserror",
+  "kind": "external-dep",
+  "title": "Error Derivation",
+  "description": "Macro-based error type derivation for ManifestError variants with Display implementations.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "registry_ref": "01a07403-c800-7565-98ec-498cf9d20d06",
+  "usage_note": "#[error(...)] derive macro on ManifestError enum variants"
+}

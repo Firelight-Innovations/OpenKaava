@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7109-b5bf-deed7b152bad",
+  "slug": "product-screenbackingmodulecount-empty",
+  "kind": "test-case",
+  "title": "Screen backing module count when no references resolve",
+  "description": "Verifies that screenBackingModuleCount returns 0 when no references resolve.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "given": "A RawScreen with backed_by references and an empty nodeIds set",
+  "when": "screenBackingModuleCount is called",
+  "then": "0 is returned",
+  "impl_ref": "apps/schematify/ui/src/product/index.test.ts::screenBackingModuleCount is 0 when no backing reference resolves",
+  "status": "declared",
+  "last_result_ms": null
+}

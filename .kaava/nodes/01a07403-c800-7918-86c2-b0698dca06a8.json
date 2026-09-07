@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7918-86c2-b0698dca06a8",
+  "slug": "context-menu-dismiss-pointer",
+  "kind": "test-case",
+  "title": "Pointer Outside Menu Closes",
+  "description": "Ensures pointer down outside menu closes, but inside keeps it open.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Dismissal reason 'pointer' with insideMenu true/false",
+  "when": "dismisses() called",
+  "then": "Returns false if inside, true if outside",
+  "impl_ref": "src/shell/contextMenu.test.ts::dismisses closes on a pointer down outside, and stays open for one inside",
+  "status": "declared",
+  "last_result_ms": null
+}

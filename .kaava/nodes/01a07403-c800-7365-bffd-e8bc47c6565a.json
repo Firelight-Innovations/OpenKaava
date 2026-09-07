@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7365-bffd-e8bc47c6565a",
+  "slug": "diff-review-mark-at-line",
+  "kind": "contract-method",
+  "title": "Find Marker Covering a Line",
+  "description": "Returns the marker at a given line, if one exists.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "signature": "export function markAtLine(marks: readonly LineDecoration[], line: number): LineDecoration | undefined",
+  "params": [
+    "marks: readonly LineDecoration[]",
+    "line: number"
+  ],
+  "returns": "LineDecoration | undefined",
+  "errors": [],
+  "semantics": "Finds the first marker whose range includes the line, or undefined if no marker covers it.",
+  "exported": false
+}

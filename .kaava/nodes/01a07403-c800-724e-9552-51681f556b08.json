@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-724e-9552-51681f556b08",
+  "slug": "marker-token-finds-two-tokens-on-one-line",
+  "kind": "test-case",
+  "title": "Find Multiple Tokens Per Line",
+  "description": "One line can contain multiple valid marker tokens.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77d3-a0d3-3e27db45a8db",
+  "given": "two tokens on one line",
+  "when": "captures_iter is called on the pattern",
+  "then": "returns 2 capture objects",
+  "impl_ref": "crates/schematify-reconcile/src/token.rs::finds_two_tokens_on_one_line",
+  "status": "declared",
+  "last_result_ms": null
+}

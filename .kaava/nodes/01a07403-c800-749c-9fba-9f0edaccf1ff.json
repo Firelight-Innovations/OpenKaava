@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-749c-9fba-9f0edaccf1ff",
+  "slug": "manifest-parser-serde",
+  "kind": "external-dep",
+  "title": "Serde Deserialization",
+  "description": "Deserialization framework for parsing TOML and reconstructing manifest structures from files.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "Derive macro on RawManifest, RawTool, RawSurface, RawFrontend, RawCore, and Presentation enum"
+}

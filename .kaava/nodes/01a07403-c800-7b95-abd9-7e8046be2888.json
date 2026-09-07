@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7b95-abd9-7e8046be2888",
+  "slug": "fixtures",
+  "kind": "module",
+  "title": "Test Fixtures",
+  "description": "Stand-in Schematic graphs for testing and development: auth-service Service Schematic, Stack tier, Module tier token-verifier, and dense performance fixture.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

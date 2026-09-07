@@ -1,0 +1,51 @@
+{
+  "product_name": "OpenKaava",
+  "problem": "A developer working next to a coding agent has the design in one tool, the code in another, and no link between them. The agent reads a pull request diff and cannot tell which decision it violates; the person reads a decision and cannot tell which code implements it. Every tool in the loop assumes a human is the only author.",
+  "users": [
+    "A solo developer building software next to a coding agent",
+    "A small team whose agents write most of the code and whose people own the design",
+    "A tool author shipping an app that mounts into the OpenKaava window"
+  ],
+  "goals": [
+    "One window holding the tools, the terminal, the files and the agent",
+    "Design and code in one repository, traced to each other by identifier",
+    "A tool protocol a third-party repository can be written against without reading the shell's source",
+    "Verification that an agent cannot talk its way past: build, test, lint and format, all four, every time",
+    "Every architectural decision written down once, with the alternative it rejected"
+  ],
+  "non_goals": [
+    "Running the software the user builds with it",
+    "A hosted or multi-tenant service",
+    "A general-purpose code editor competing with VS Code on editing features",
+    "Sandboxing a plugin core — the tool protocol states plainly that it is unsandboxed"
+  ],
+  "constraints": [
+    "Windows first; the shell is Tauri over WebView2 and reaches it through the COM interface Tauri already holds",
+    "Rust owns everything that touches the machine; the frontend is a view over snapshots Rust produces",
+    "The three lint baselines are ratchets: they may shrink and may not grow",
+    "Port 1420 is the human's dev server and cannot be shared; agents use pnpm dev:agent",
+    "A failing test is never fixed by deleting or skipping the test"
+  ],
+  "success_metrics": [
+    {
+      "name": "verify_wall_clock",
+      "value": 33,
+      "unit": "s"
+    },
+    {
+      "name": "verify_fast_wall_clock",
+      "value": 17,
+      "unit": "s"
+    },
+    {
+      "name": "cold_launch_ms",
+      "value": 2000,
+      "unit": "ms"
+    },
+    {
+      "name": "graph_load_5000_files_ms",
+      "value": 1000,
+      "unit": "ms"
+    }
+  ]
+}

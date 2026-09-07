@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7d9e-b44c-e1b1413ce49b",
+  "kind": "decision",
+  "slug": "DEC-TEC-WTREE-006",
+  "title": "Worktrees created outside project at <project>/../.worktrees/<project-name>/<name>/",
+  "context": "Worktrees are complete second checkouts on disk maintained by git. Nesting one inside the project would replicate the codebase in every file walker.",
+  "decision": "Place worktrees outside the project folder, at a parallel path. Nesting is deliberately refused.",
+  "consequences": "Files app, search index, and Vite watcher ignore worktrees without being taught. Nothing has to filter them out specially.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

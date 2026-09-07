@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7c47-bc45-4c3627a8de19",
+  "slug": "shell-state-app-state-store",
+  "kind": "contract-method",
+  "title": "AppState::store",
+  "description": "Update the cached stack snapshot from discovery.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74ea-9d72-103436d2dbec",
+  "signature": "pub fn store(&self, snapshot: StackSnapshot)",
+  "params": [
+    "snapshot: StackSnapshot"
+  ],
+  "returns": "void",
+  "errors": [
+    "Panics if lock is poisoned"
+  ],
+  "semantics": "Overwrites the previous snapshot; callers keep their own copies to avoid holding the lock.",
+  "exported": false
+}

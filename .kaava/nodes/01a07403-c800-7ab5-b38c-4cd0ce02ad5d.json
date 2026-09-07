@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7ab5-b38c-4cd0ce02ad5d",
+  "slug": "bottom-panel",
+  "kind": "module",
+  "title": "Bottom Panel",
+  "description": "The terminal panel under the tool window with a vertical session list and emulator deck, including a close confirmation dialog for busy sessions.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bb4-bdbe-fe72bc3e7a0c",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7c0a-bb93-223be6b8c63c"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-76a4-a89f-b355db961e8e",
+  "slug": "design-normalize-localhost-scheme",
+  "kind": "test-case",
+  "title": "Bare localhost gets http scheme",
+  "description": "A bare host:port is prepended with http://.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b07-98f5-17457c65a2df",
+  "given": "typed address \"localhost:5173\"",
+  "when": "normalize() is called with shell origin None",
+  "then": "it resolves to http://localhost:5173/",
+  "impl_ref": "src-tauri/src/apps/design.rs::a_bare_host_and_port_gets_a_scheme",
+  "status": "declared",
+  "last_result_ms": null
+}

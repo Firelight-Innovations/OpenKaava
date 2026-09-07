@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "slug": "manifest-parser",
+  "kind": "module",
+  "title": "Tool Manifest Parser",
+  "description": "Loads and validates kaava-tool.toml files defining tool identity, frontend bundle paths, core process configuration, and UI surfaces with comprehensive path and id validation.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7fce-9d3e-a2ea91f59b91",
+  "allowed_libraries": [
+    "01a07403-c800-75dd-b05c-6d3f11053668",
+    "01a07403-c800-7994-a954-210071677424",
+    "01a07403-c800-7aa2-b3b9-6a78efea577b",
+    "01a07403-c800-7565-98ec-498cf9d20d06"
+  ],
+  "ui_refs": []
+}

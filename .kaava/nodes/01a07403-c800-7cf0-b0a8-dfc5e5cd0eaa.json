@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7cf0-b0a8-dfc5e5cd0eaa",
+  "slug": "marker-token-token-pattern",
+  "kind": "contract-method",
+  "title": "Token Pattern Regex",
+  "description": "Build the regular expression that finds every well-formed marker token in text.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77d3-a0d3-3e27db45a8db",
+  "signature": "pub fn token_pattern() -> Regex",
+  "params": [],
+  "returns": "Regex",
+  "errors": [],
+  "semantics": "Returns compiled regex matching @kaava:UUID format with optional slug.",
+  "exported": false
+}

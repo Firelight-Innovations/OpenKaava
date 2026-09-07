@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-72fa-8ef7-98874067b8b6",
+  "slug": "react",
+  "kind": "external-dep",
+  "title": "React",
+  "description": "Component framework and hooks (useState, useEffect, useRef, useCallback, etc.) used throughout.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7932-a805-49d0bca71663",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "Rendering menus, managing state, refs for measuring and positioning. Also used in context-menu-host, terminal-view, terminal-deck, shortcuts-screen."
+}

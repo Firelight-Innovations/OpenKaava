@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7c8a-8a30-f688619905ed",
+  "slug": "terminal-sessions-backlog-capacity",
+  "kind": "budget",
+  "title": "Terminal backlog memory budget",
+  "description": "Output held for emulators that arrive late is bounded to prevent unbounded growth on long-running sessions.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731a-ab6c-3a00854fdef3",
+  "metric": "bytes",
+  "op": "<=",
+  "value": 524288,
+  "unit": "bytes",
+  "tier": "soft",
+  "probe": {
+    "command": "grep -n 'BACKLOG_BYTES' src-tauri/src/pty.rs",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

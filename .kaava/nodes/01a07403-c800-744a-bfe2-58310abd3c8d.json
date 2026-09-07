@@ -1,0 +1,30 @@
+{
+  "id": "01a07403-c800-744a-bfe2-58310abd3c8d",
+  "slug": "manifest-parser-tool-manifest-load",
+  "kind": "contract-method",
+  "title": "Load Manifest from Disk",
+  "description": "Read and validate kaava-tool.toml from a checkout directory.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "signature": "pub fn load(checkout_root: &Path) -> Result<Self, ManifestError>",
+  "params": [
+    "checkout_root: &Path"
+  ],
+  "returns": "Result<Self, ManifestError>",
+  "errors": [
+    "ManifestError::Io",
+    "ManifestError::Toml",
+    "ManifestError::InvalidId",
+    "ManifestError::InvalidVersion",
+    "ManifestError::PathNotRelative",
+    "ManifestError::PathEscapesRoot",
+    "ManifestError::PathIsRoot",
+    "ManifestError::DuplicateSurfaceId",
+    "ManifestError::SurfaceWithoutFrontend"
+  ],
+  "semantics": "Reads the manifest file and validates all fields and invariants.",
+  "exported": true
+}

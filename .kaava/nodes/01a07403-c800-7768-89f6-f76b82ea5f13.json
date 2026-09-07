@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7768-89f6-f76b82ea5f13",
+  "slug": "debug",
+  "kind": "module",
+  "title": "Debug Server",
+  "description": "Read-only server exposing shell diagnostics: layout tree, boot status, and recent errors; always available including in release builds.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e98-ae8d-c1ef00cefddb",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

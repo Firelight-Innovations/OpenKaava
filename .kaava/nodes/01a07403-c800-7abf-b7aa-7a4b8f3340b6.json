@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7abf-b7aa-7a4b8f3340b6",
+  "slug": "echo-core-roundtrip",
+  "kind": "test-case",
+  "title": "A request round-trips through the tool core",
+  "description": "The end-to-end protocol test, deliberately placed here rather than in kaava-rpc so it exercises a real binary.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7545-b320-b920096b24b2",
+  "given": "the echo tool binary and a well-formed JSON-RPC request",
+  "when": "the request is written to the tool's stdin",
+  "then": "a matching JSON-RPC response comes back on stdout",
+  "impl_ref": "examples/echo-tool/tests/roundtrip.rs::roundtrip",
+  "status": "declared",
+  "last_result_ms": null
+}

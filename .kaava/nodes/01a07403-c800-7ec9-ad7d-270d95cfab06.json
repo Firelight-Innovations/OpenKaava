@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7ec9-ad7d-270d95cfab06",
+  "slug": "shell-problemspanel-component",
+  "kind": "contract-method",
+  "title": "Problems Panel Component",
+  "description": "Renders the dock's Problems tab as a 4-column table grouped by severity showing lint findings with click-through to offending nodes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-743f-ae55-0cbaeb91a62a",
+  "signature": "ProblemsPanel(props: ProblemsPanelProps) => JSX.Element",
+  "params": [
+    "findings: Finding[] | null",
+    "error: string | null",
+    "onSelect?: (finding: Finding) => void"
+  ],
+  "returns": "React component",
+  "errors": [],
+  "semantics": "Displays linting errors and warnings grouped by severity in the order the backend returns them, with rows clickable to navigate to the offending node.",
+  "exported": true
+}

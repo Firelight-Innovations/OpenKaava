@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7f84-b3af-4cfe1c35a31b",
+  "slug": "graph-seam-json-file-graph-load",
+  "kind": "contract-method",
+  "title": "Load Graph from Disk",
+  "description": "Load every node under <root>/.kaava/nodes/*.json.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "signature": "pub fn load(root: &Path) -> Result<Self, GraphLoadError>",
+  "params": [
+    "root: &Path"
+  ],
+  "returns": "Result<JsonFileGraph, GraphLoadError>",
+  "errors": [
+    "NoProject",
+    "Io",
+    "Parse"
+  ],
+  "semantics": "Reads all node files from .kaava/nodes directory.",
+  "exported": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-72ec-a54a-cc7e4d504f6c",
+  "slug": "plugin-catalog-ids-unique",
+  "kind": "test-case",
+  "title": "Catalog: Unique IDs",
+  "description": "No two catalog entries claim the same id.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78c4-8878-c792de8f7f2c",
+  "given": "All catalog entries",
+  "when": "checked for uniqueness",
+  "then": "All ids are distinct",
+  "impl_ref": "src-tauri/src/plugins/catalog.rs::ids_are_unique",
+  "status": "declared",
+  "last_result_ms": null
+}

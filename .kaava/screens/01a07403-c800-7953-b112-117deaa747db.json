@@ -1,0 +1,28 @@
+{
+  "id": "01a07403-c800-7953-b112-117deaa747db",
+  "kind": "screen",
+  "slug": "cluster-bar",
+  "title": "Cluster Bar (App Switcher)",
+  "purpose": "Tab bar showing cluster groups and the active cluster's open applications and terminals",
+  "states": [
+    "empty - no clusters",
+    "single-cluster - one cluster chip visible",
+    "multiple-clusters - several collapsed and one expanded",
+    "collapsed-cluster - cluster shown as chip with member count",
+    "expanded-cluster - cluster expanded showing all members"
+  ],
+  "acceptance": [
+    "shall display cluster chips as collapsible groups",
+    "shall show member count on collapsed cluster chips",
+    "shall expand active cluster showing all app tabs",
+    "shall collapse previous cluster when switching",
+    "shall support renaming clusters inline",
+    "shall show health warning badge on unhealthy clusters",
+    "shall allow closing clusters with × button",
+    "shall allow adding new cluster with + button",
+    "shall highlight active tab in open cluster"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7220-b53d-c54edb585688"
+  ]
+}

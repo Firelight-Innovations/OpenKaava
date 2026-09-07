@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7aef-80de-54768d116f74",
+  "slug": "reconciliation-six-logic-tests",
+  "kind": "budget",
+  "title": "Reconciliation Logic Tests",
+  "description": "Tests for matched, absent, unknown, duplicate, deduplication, and empty outcomes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f82-b74b-6f5fb1052449",
+  "metric": "test_count",
+  "op": ">=",
+  "value": 6,
+  "unit": "tests",
+  "tier": "soft",
+  "probe": {
+    "command": "pnpm test:rust",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

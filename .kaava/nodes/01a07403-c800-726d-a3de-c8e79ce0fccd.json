@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-726d-a3de-c8e79ce0fccd",
+  "slug": "plugin-watch-module-doc",
+  "kind": "doc-block",
+  "title": "Plugin Build Watcher",
+  "description": "File system monitoring for development-mode plugin rebuilds.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a4-91d1-5b52d3a3d82c",
+  "body": "Noticing that a plugin under development has been rebuilt. The half of the reload loop nobody has to ask for. `plugins::reload` already does the work — stop the core, tell every window to re-read the manifest — and this is what calls it when `cargo build` finishes in a terminal beside the shell rather than when somebody clicks something. Two narrow paths per plugin, and only for a `Source::Folder` install.",
+  "audience": "agent"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-706a-80ae-95528a9f32da",
+  "slug": "serde-run",
+  "kind": "external-dep",
+  "title": "Serialization Framework",
+  "description": "Serialize and deserialize run artifacts to and from JSON.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d68-a4ef-925e3f0b6586",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "Derives Serialize/Deserialize on RunArtifact and budget measurement types"
+}

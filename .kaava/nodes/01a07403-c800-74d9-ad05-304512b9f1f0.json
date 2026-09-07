@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-74d9-ad05-304512b9f1f0",
+  "slug": "boot-the-label-names-what-is-left",
+  "kind": "test-case",
+  "title": "Starting Label Formation",
+  "description": "Verify that waiting_on produces human-readable labels for pending apps.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f28-b976-1789857ef688",
+  "given": "Lists of pending app names in various counts",
+  "when": "Formatting the label for the splash progress bar",
+  "then": "Single app formats as 'Starting Home', multiple as 'Starting Home and Files'",
+  "impl_ref": "src-tauri/src/boot.rs::the_label_names_what_is_left",
+  "status": "declared",
+  "last_result_ms": null
+}

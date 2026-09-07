@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-799f-97e8-2b2481591957",
+  "slug": "webview",
+  "kind": "module",
+  "title": "WebView Settings",
+  "description": "Platform-specific WebView2 configuration to suppress the default context menu, with COM interface fallback.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [
+    "01a07403-c800-736a-801a-ea4485c6faff",
+    "01a07403-c800-7493-91c1-9fa3dc03ef6d"
+  ],
+  "ui_refs": []
+}

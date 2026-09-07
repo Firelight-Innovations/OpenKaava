@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-70e4-94c2-7c2554972d59",
+  "slug": "mocks",
+  "kind": "module",
+  "title": "UI Mocks",
+  "description": "Mock components simulating OpenKaava shell, panes, explorer, terminal, and other UI elements for tutorials.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-718d-b2d6-63127c14155b",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

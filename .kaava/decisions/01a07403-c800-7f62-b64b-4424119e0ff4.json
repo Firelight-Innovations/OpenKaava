@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7f62-b64b-4424119e0ff4",
+  "kind": "decision",
+  "slug": "DEC-SCH-SCOPE-003",
+  "title": "Schematify holds the decision log as internal nodes, superseding FORGER-SPEC.md section 1",
+  "context": "FORGER-SPEC.md section 1 placed decisions in a separate application, outside the design graph.",
+  "decision": "Move the decision log inside Schematify as a collection of typed nodes with append-only semantics and supersession tracking, making decisions first-class citizens in the design layer.",
+  "consequences": "Decisions stay with the design they document; single source of truth for design and its rationale; agents can reference decisions from design nodes; abandons the prior Veistra CSV-based decision log for this application.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

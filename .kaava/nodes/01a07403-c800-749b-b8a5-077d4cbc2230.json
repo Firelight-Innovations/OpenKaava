@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-749b-b8a5-077d4cbc2230",
+  "slug": "core-ids-rise-one-millisecond",
+  "kind": "test-case",
+  "title": "IDs rise within one millisecond",
+  "description": "5000 IDs minted in the same millisecond are strictly increasing.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a7-8335-a2b30fb2137e",
+  "given": "A minter",
+  "when": "mint_at is called 5000 times with the same millisecond",
+  "then": "Each ID is greater than the previous",
+  "impl_ref": "crates/schematify-core/src/id.rs::ids_rise_inside_one_millisecond",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f36-b68a-c0805294944e",
+  "slug": "github-integration-module-doc",
+  "kind": "doc-block",
+  "title": "Read-only GitHub integration",
+  "description": "GitHub feature scope and design constraints.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72a7-b1d3-78f88552a561",
+  "body": "Read-only, and that is a scope decision rather than a stage: nothing here comments, merges, or opens anything on GitHub. Everything is one-shot request→reply, because there is nothing to watch. The region re-asks when the cluster changes and when a person presses refresh. The UI vocabulary is adapted from Orca: one list holding both issues and pull requests, keyed on a kind tag, filtered by is: qualifiers.",
+  "audience": "agent"
+}

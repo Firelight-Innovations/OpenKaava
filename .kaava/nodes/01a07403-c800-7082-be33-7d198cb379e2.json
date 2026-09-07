@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7082-be33-7d198cb379e2",
+  "slug": "tool-serve",
+  "kind": "contract-method",
+  "title": "Start the Tool Server Loop",
+  "description": "Read stdin, dispatch requests to a handler, write stdout until shutdown or EOF.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7154-a856-36e43d55537d",
+  "signature": "pub fn serve<H: Handler>(handler: H) -> io::Result<()>",
+  "params": [
+    "handler: H"
+  ],
+  "returns": "io::Result<()>",
+  "errors": [
+    "std::io::Error"
+  ],
+  "semantics": "Runs until stdin closes (host cue to exit) or kaava/shutdown is answered, whichever comes first.",
+  "exported": true
+}

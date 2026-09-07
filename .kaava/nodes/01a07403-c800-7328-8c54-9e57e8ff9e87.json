@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7328-8c54-9e57e8ff9e87",
+  "slug": "listener-rmcp",
+  "kind": "external-dep",
+  "title": "rmcp",
+  "description": "Model Context Protocol implementation providing ServerHandler trait, protocol types, and streamable HTTP transport.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7086-80ae-e8b05191e7a8",
+  "registry_ref": "01a07403-c800-765e-b16b-0ba52dbbc710",
+  "usage_note": "Implements ServerHandler for Bridge; serves ListToolsResult and CallToolResponse through rmcp types and StreamableHttpService"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-766c-b94b-ab289338723c",
+  "slug": "dispatch-serde-json",
+  "kind": "external-dep",
+  "title": "serde_json",
+  "description": "JSON serialization library providing Value type for JSON-RPC parameters and results.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a1-a91f-421d244b774a",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "Value type represents JSON-RPC method parameters and return values across the IPC boundary"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7564-ae56-7ebe0af83cc6",
+  "slug": "manifest-parser-reference-frontend-in-checkout",
+  "kind": "test-case",
+  "title": "Reference Tool Frontend Path Stays in Checkout",
+  "description": "The echo tool's resolved dist path does not escape the checkout root.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "The echo tool manifest and its checkout root",
+  "when": "resolve_dist is called",
+  "then": "the result starts_with the checkout root",
+  "impl_ref": "crates/kaava-tool-manifest/tests/reference_manifest.rs::reference_tool_frontend_path_stays_inside_the_checkout",
+  "status": "declared",
+  "last_result_ms": null
+}

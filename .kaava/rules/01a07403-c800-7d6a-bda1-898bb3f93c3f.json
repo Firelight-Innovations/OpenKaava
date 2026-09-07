@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7d6a-bda1-898bb3f93c3f",
+  "slug": "gate-branding-asset-existence",
+  "statement": "All assets referenced in `branding.toml` must exist on disk at their declared paths.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm lint:branding"
+}

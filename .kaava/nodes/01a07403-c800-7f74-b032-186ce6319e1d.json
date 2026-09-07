@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f74-b032-186ce6319e1d",
+  "slug": "file-api-topics-restated",
+  "kind": "doc-block",
+  "title": "Topics Restated Between Apps",
+  "description": "Why topics.ts copies topic definitions rather than sharing them.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "body": "topics.ts is restated from apps/viewer/ui/src/topics.ts, deliberately. An app's only coupling to anything outside itself is @openkaava/bridge and the shape of what crosses it. A module the two apps shared would let one app's refactor break the other's build.",
+  "audience": "agent"
+}

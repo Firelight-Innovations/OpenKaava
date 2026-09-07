@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7aef-b4d6-0de1d4fbf9ba",
+  "slug": "context-ui-notice-bar",
+  "kind": "contract-method",
+  "title": "Notice Bar Component",
+  "description": "Question or error bar for delete confirmations and external change warnings.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e9-befc-346f4e5d66bd",
+  "signature": "export default function NoticeBar(props: { notice: Notice; onEscape?: () => void }): JSX.Element",
+  "params": [
+    "notice: Notice",
+    "onEscape?: () => void"
+  ],
+  "returns": "React component for alert/confirmation bar",
+  "errors": [],
+  "semantics": "Renders message with actions, safe action focused, Escape chooses safe action.",
+  "exported": true
+}

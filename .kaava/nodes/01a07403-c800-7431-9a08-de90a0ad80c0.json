@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7431-9a08-de90a0ad80c0",
+  "slug": "design-base64",
+  "kind": "external-dep",
+  "title": "base64",
+  "description": "Base64 encoding for screenshot PNG data.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b07-98f5-17457c65a2df",
+  "registry_ref": "01a07403-c800-7299-afdf-128e540beb73",
+  "usage_note": "Encoding DevTools screenshot bytes as base64 for data: URL in design/capture responses"
+}

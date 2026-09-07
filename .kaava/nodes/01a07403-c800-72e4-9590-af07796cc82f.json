@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-72e4-9590-af07796cc82f",
+  "slug": "loader-load-stress-1000ms",
+  "kind": "budget",
+  "title": "Load 5000 files under 1s",
+  "description": "The loader must walk and parse 5000 design files in under 1 second.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d11-8354-a2669af47406",
+  "metric": "load_time",
+  "op": "<",
+  "value": 1000,
+  "unit": "ms",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm bench:load",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

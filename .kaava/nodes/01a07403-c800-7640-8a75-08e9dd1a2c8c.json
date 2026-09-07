@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7640-8a75-08e9dd1a2c8c",
+  "slug": "plugin-watch",
+  "kind": "external-dep",
+  "title": "tauri",
+  "description": "Desktop framework for state access and app cloning in watcher threads.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a4-91d1-5b52d3a3d82c",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "AppHandle, Manager trait for Registry and plugins::reload access"
+}

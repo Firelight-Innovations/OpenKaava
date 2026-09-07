@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e4c-840b-0064624f713f",
+  "slug": "titlebar-view-menu-opens-command-palette",
+  "kind": "test-case",
+  "title": "View menu command palette action",
+  "description": "Verifies that clicking Command Palette row fires the correct handler.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7806-88f7-dafc7969fdd8",
+  "given": "A View menu with commandPalette spy",
+  "when": "selecting the Command Palette row",
+  "then": "commandPalette handler should be called once",
+  "impl_ref": "src/shell/titlebar/menus.test.ts::it(\"opens the command palette\")",
+  "status": "declared",
+  "last_result_ms": null
+}

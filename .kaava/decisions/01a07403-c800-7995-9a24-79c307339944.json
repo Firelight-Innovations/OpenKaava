@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7995-9a24-79c307339944",
+  "kind": "decision",
+  "slug": "DEC-TEC-PRESETS-024",
+  "title": "Presets fetched once then subscribed; second window still offers yesterday's menu until save fires event",
+  "context": "Tauri events have no replay buffer. Window that only subscribed would sit with empty menu until first save.",
+  "decision": "Subscribe first (so events land), then fetch (so stale answers are discarded if events beat them home). Both paths needed; neither is redundant.",
+  "consequences": "Second window gets the presets. Empty initial menu is never seen. Drift between windows is impossible.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

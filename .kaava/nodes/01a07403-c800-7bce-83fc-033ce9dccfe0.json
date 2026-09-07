@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7bce-83fc-033ce9dccfe0",
+  "slug": "userdata-backup-keep",
+  "kind": "contract-method",
+  "title": "Move a file to the backups directory",
+  "description": "Rename a file when it is about to be replaced by derived content, keeping only the newest three.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7647-a2bc-d7543b67ec40",
+  "signature": "pub fn keep(path: &Path, label: &str) -> Option<PathBuf>",
+  "params": [
+    "path: &Path",
+    "label: &str"
+  ],
+  "returns": "Option<PathBuf>",
+  "errors": [],
+  "semantics": "Moves the file into the backups directory labeled with the reason, trimming old copies.",
+  "exported": false
+}

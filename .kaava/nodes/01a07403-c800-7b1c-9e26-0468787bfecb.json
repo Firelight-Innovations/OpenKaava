@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7b1c-9e26-0468787bfecb",
+  "slug": "executable-validation-resolve",
+  "kind": "contract-method",
+  "title": "Resolve Program Path",
+  "description": "Where a program name would be found on this system.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77da-aa46-7c6a5eb0946a",
+  "signature": "pub fn resolve(program: &str) -> Option<PathBuf>",
+  "params": [
+    "program"
+  ],
+  "returns": "Option<PathBuf>",
+  "errors": [],
+  "semantics": "Searches PATH for a bare program name, or validates an explicit path.",
+  "exported": false
+}

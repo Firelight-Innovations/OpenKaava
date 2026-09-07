@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7879-8250-4503ccbd6393",
+  "slug": "navigation-config-for",
+  "kind": "contract-method",
+  "title": "configFor",
+  "description": "Get config for a drill target.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f1a-b375-e7fa4e858967",
+  "signature": "function configFor(target: DrillTarget): SchematicConfig",
+  "params": [
+    "target"
+  ],
+  "returns": "SchematicConfig",
+  "errors": [],
+  "semantics": "Returns preset with layoutSlug per target.",
+  "exported": true
+}

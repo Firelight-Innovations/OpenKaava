@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-71d3-82dc-995a0b8d612c",
+  "slug": "app",
+  "kind": "module",
+  "title": "App Root",
+  "description": "Main Design Mode app for capturing UI elements and leaving design comments on web pages.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7364-bfe0-1ce9993df6cc",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7c9b-8a54-989d62b8f403"
+  ]
+}

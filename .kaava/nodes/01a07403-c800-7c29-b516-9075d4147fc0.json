@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7c29-b516-9075d4147fc0",
+  "slug": "terminal-clipboard-handle-context-menu",
+  "kind": "contract-method",
+  "title": "Clipboard Context Menu Handler",
+  "description": "Processes context menu events, ensuring textarea contains only current selection.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7101-96d4-211896bc6c31",
+  "signature": "export function handleContextMenu(term: ClipboardTerminal): void",
+  "params": [
+    "ClipboardTerminal"
+  ],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Clears stale clipboard data from hidden textarea after right-click.",
+  "exported": true
+}

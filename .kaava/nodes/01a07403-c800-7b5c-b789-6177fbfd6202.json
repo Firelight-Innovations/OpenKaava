@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7b5c-b789-6177fbfd6202",
+  "slug": "icons",
+  "kind": "module",
+  "title": "Icons",
+  "description": "Icon components used throughout the tutorial UI for visual consistency.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-718d-b2d6-63127c14155b",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7de5-8e00-8b2fa866fb4b",
+  "slug": "report-rendering-reconcile-schema",
+  "kind": "contract-method",
+  "title": "Schema Tag Constant",
+  "description": "The schema tag written into every reconcile.json file.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "signature": "pub const RECONCILE_SCHEMA: &str",
+  "params": [],
+  "returns": "&'static str",
+  "errors": [],
+  "semantics": "Constant kaava-reconcile-v1 for schema versioning.",
+  "exported": false
+}

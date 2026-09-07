@@ -1,0 +1,7 @@
+{
+  "id": "01a07403-c800-7ff3-9a57-a5ddb16a56a9",
+  "slug": "never-delete-failing-test",
+  "statement": "A failing test is never fixed by deleting or skipping it; fix the code instead or explain why the test is wrong.",
+  "severity": "review",
+  "audit": []
+}

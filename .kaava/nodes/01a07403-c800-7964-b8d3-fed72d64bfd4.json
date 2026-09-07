@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7964-b8d3-fed72d64bfd4",
+  "slug": "agent-three-own-tools-only",
+  "kind": "test-case",
+  "title": "Agent Has Three Unique Tools",
+  "description": "Beyond borrowed tools, agent only adds app_call, open_app, and set_project.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d89-9517-725bc751d480",
+  "given": "The agent server's tool list minus borrowed ones",
+  "when": "The remaining tools are enumerated",
+  "then": "They are exactly [app_call, open_app, set_project]",
+  "impl_ref": "src-tauri/src/mcp/servers/agent.rs::the_only_tools_beyond_the_borrowed_ones_are_the_three_that_needed_a_home",
+  "status": "declared",
+  "last_result_ms": null
+}

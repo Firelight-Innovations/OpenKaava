@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7305-b8d3-eeaf5fd1f945",
+  "slug": "xterm-fit",
+  "kind": "external-dep",
+  "title": "xterm.js Fit Addon",
+  "description": "Addon that fits terminal to container size and calculates row/column dimensions.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7011-923c-5233df9ecad3",
+  "registry_ref": "01a07403-c800-7e76-b9a7-a6b48c92fb34",
+  "usage_note": "FitAddon loaded to measure viewport and send resize events to PTY when container bounds change via ResizeObserver."
+}

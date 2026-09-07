@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7f2f-ac9b-e422d778703e",
+  "slug": "routing-is-orthogonal",
+  "kind": "contract-method",
+  "title": "isOrthogonal",
+  "description": "Test orthogonality of polyline segments.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7afd-b0e6-03ee26345279",
+  "signature": "function isOrthogonal(points: readonly Point[]): boolean",
+  "params": [
+    "points"
+  ],
+  "returns": "boolean",
+  "errors": [],
+  "semantics": "Returns true when all segments are horizontal or vertical.",
+  "exported": false
+}

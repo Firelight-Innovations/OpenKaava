@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f97-8fcd-0c48721928f8",
+  "slug": "worktree-logic-sum-line-counts-2",
+  "kind": "test-case",
+  "title": "Line Counts: Sum Across Changes",
+  "description": "Tests aggregation of line counts with uncountable tracking.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71fe-af1c-0dcd2dfd9607",
+  "given": "Two countable changes and two uncountable changes",
+  "when": "sumLineCounts is called",
+  "then": "Returns sums with uncounted: 2",
+  "impl_ref": "src/shell/worktree/lineCounts.test.ts::sumLineCounts::counts the changes it could not add rather than dropping them",
+  "status": "declared",
+  "last_result_ms": null
+}

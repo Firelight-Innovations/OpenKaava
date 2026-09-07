@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7c01-b223-0cabcaf8dd48",
+  "slug": "secondary-panel-layout-change",
+  "kind": "doc-block",
+  "title": "Secondary panel layout change from terminals to source control",
+  "description": "Why terminals were moved out and how the panel now focuses on source control with GitHub view support.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7746-91a8-cd9baba1739e",
+  "body": "The secondary panel: source control, and a collapsed strip. Terminals used to share this panel. Its row listed a tab per session plus a `+` to make another, with the change list as one more segment at the end, and the body swapped between the two. They are in the band under the tool window now (BottomPanel), which is where a terminal wants to be: wide, short, and across the bottom of the work rather than beside it.",
+  "audience": "both"
+}

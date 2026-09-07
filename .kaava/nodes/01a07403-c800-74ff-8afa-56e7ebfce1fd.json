@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-74ff-8afa-56e7ebfce1fd",
+  "slug": "shell-store",
+  "kind": "external-dep",
+  "title": "tauri",
+  "description": "Desktop app framework with IPC, plugins, windows and state management",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7969-944d-2276968a1b7c",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "AppHandle for accessing userdata directory via Manager trait"
+}

@@ -1,0 +1,27 @@
+{
+  "id": "01a07403-c800-78c1-8c30-700c96cbf630",
+  "slug": "ui-devtools-call",
+  "kind": "contract-method",
+  "title": "Call DevTools Protocol",
+  "description": "Make one DevTools Protocol call against the webview.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7615-af82-fb0b57f137da",
+  "signature": "pub fn call(app: &AppHandle, window: Option<&str>, method: &str, params: &Value) -> Result<Value, Error>",
+  "params": [
+    "app",
+    "window",
+    "method",
+    "params"
+  ],
+  "returns": "Result<Value, Error>",
+  "errors": [
+    "Error::NoWindow",
+    "Error::Refused",
+    "Error::TimedOut"
+  ],
+  "semantics": "Never call from main thread; posts to main thread and blocks until answer.",
+  "exported": false
+}

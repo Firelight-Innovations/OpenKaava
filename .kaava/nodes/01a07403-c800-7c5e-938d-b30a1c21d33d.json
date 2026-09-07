@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7c5e-938d-b30a1c21d33d",
+  "slug": "commands-finish-boot",
+  "kind": "contract-method",
+  "title": "finish_boot",
+  "description": "Show the main window and close the splash once boot reaches Ready or Failed.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a15-9205-3403c29c95c2",
+  "signature": "pub fn finish_boot(app: tauri::AppHandle)",
+  "params": [
+    "app: tauri::AppHandle"
+  ],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Idempotent; forwards to boot::finish which handles double-firing.",
+  "exported": true
+}

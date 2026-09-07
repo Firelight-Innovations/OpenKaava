@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7f04-aafb-395b8077ac60",
+  "slug": "design-comments-comments-add",
+  "kind": "contract-method",
+  "title": "Add Design Comment",
+  "description": "Write a comment down with its picture and persist the book.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cda-ab91-40d777dffd1d",
+  "signature": "pub fn add(&self, app: &AppHandle, draft: Draft, png: Option<&[u8]>) -> Comment",
+  "params": [
+    "app",
+    "draft",
+    "png"
+  ],
+  "returns": "Comment",
+  "errors": [],
+  "semantics": "Picture write failure leaves comment without screenshot but comment still created.",
+  "exported": false
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7e50-90d1-30ad5d3768fd",
+  "slug": "files-tauri-plugin-opener",
+  "kind": "external-dep",
+  "title": "tauri-plugin-opener",
+  "description": "Native OS integration for opening files and URLs with system default applications.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d29-9b02-357f7f4c18c2",
+  "registry_ref": "01a07403-c800-762c-994e-83e7a83b758a",
+  "usage_note": "OpenerExt trait for files/reveal (show in explorer) and files/open-external methods"
+}

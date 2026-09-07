@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-781c-abc0-aefd822a22a6",
+  "slug": "report-rendering-summarize",
+  "kind": "contract-method",
+  "title": "Count Outcomes by Kind",
+  "description": "Count run's outcomes by kind into a Summary.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "signature": "pub fn summarize(run: &ReconcileRun) -> Summary",
+  "params": [
+    "run: &ReconcileRun"
+  ],
+  "returns": "Summary",
+  "errors": [],
+  "semantics": "Tallies each outcome variant.",
+  "exported": false
+}

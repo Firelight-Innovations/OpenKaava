@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-72f9-8b6e-ea725556f12d",
+  "slug": "terminal-deck-component",
+  "kind": "contract-method",
+  "title": "Terminal Session Deck",
+  "description": "React component managing multiple terminal emulators, one visible, supporting split panes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71fa-8cfc-3e06c842aa4b",
+  "signature": "export default forwardRef(TerminalDeck)",
+  "params": [
+    "TerminalSession[]",
+    "string",
+    "string",
+    "TerminalTransport"
+  ],
+  "returns": "ReactNode",
+  "errors": [],
+  "semantics": "Renders all sessions mounted but hidden, showing only the active one or split group.",
+  "exported": true
+}

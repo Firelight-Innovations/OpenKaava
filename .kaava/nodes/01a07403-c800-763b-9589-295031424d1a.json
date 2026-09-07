@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-763b-9589-295031424d1a",
+  "slug": "marker-token-parse-token",
+  "kind": "contract-method",
+  "title": "Parse Single Token",
+  "description": "Parse a single candidate string as exactly one marker token starting at its first character.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77d3-a0d3-3e27db45a8db",
+  "signature": "pub fn parse_token(candidate: &str) -> Option<(Uuid, Option<String>)>",
+  "params": [
+    "candidate: &str"
+  ],
+  "returns": "Option<(Uuid, Option<String>)>",
+  "errors": [],
+  "semantics": "Parses if the entire string opens with a well-formed token.",
+  "exported": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78e2-8e01-612e7a36ebe0",
+  "slug": "titlebar-view-menu-gives-every-row-something-to-do",
+  "kind": "test-case",
+  "title": "View menu row liveness",
+  "description": "Verifies that every row in the View menu carries an onSelect handler and never renders inert.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7806-88f7-dafc7969fdd8",
+  "given": "A View menu built from live state",
+  "when": "checking for inert menu items",
+  "then": "no rows should have onSelect === undefined",
+  "impl_ref": "src/shell/titlebar/menus.test.ts::it(\"gives every row something to do\")",
+  "status": "declared",
+  "last_result_ms": null
+}

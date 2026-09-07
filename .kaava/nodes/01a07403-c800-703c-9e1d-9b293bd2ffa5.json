@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-703c-9e1d-9b293bd2ffa5",
+  "slug": "codec-notification-round-trips",
+  "kind": "test-case",
+  "title": "Notification Serialization Round-Trip",
+  "description": "A notification (no id) encodes and decodes correctly.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "given": "A Notification with method='file/changed', params={path: 'a.txt'}",
+  "when": "encoded to JSON and decoded back",
+  "then": "the decoded notification matches the original",
+  "impl_ref": "crates/kaava-rpc/src/codec.rs::notification_round_trips",
+  "status": "declared",
+  "last_result_ms": null
+}

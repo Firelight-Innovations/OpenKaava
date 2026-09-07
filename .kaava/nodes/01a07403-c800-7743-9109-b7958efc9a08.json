@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7743-9109-b7958efc9a08",
+  "slug": "shell-quoting-no-execution",
+  "kind": "test-case",
+  "title": "Insertions never end with control characters",
+  "description": "The property the whole feature rests on: insertions never end lines.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e0-bbc7-7090d1eeb4e5",
+  "given": "Paths containing control characters",
+  "when": "quote_all is called",
+  "then": "No newlines or carriage returns appear in output",
+  "impl_ref": "src-tauri/src/quoting.rs::an_insertion_never_ends_a_line",
+  "status": "declared",
+  "last_result_ms": null
+}

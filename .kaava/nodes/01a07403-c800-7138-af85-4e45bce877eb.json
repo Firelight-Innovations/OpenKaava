@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7138-af85-4e45bce877eb",
+  "slug": "titlebar-run-menu-asks-for-command",
+  "kind": "test-case",
+  "title": "Run menu command input",
+  "description": "Run Command row should prompt for input rather than acting blind.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7806-88f7-dafc7969fdd8",
+  "given": "A Run menu",
+  "when": "finding Run Command row",
+  "then": "should have prompt with confirmLabel 'Run' and onSubmit handler",
+  "impl_ref": "src/shell/titlebar/menus.test.ts::it(\"asks for the command in the menu rather than acting blind\")",
+  "status": "declared",
+  "last_result_ms": null
+}

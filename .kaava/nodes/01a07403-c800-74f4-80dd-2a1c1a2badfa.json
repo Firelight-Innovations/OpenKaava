@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-74f4-80dd-2a1c1a2badfa",
+  "slug": "shell-contract-group-terminal-tabs",
+  "kind": "contract-method",
+  "title": "groupTerminalTabs",
+  "description": "Convert terminal sessions into tab groups.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a2b-9c3f-6e98ac6d152b",
+  "signature": "function groupTerminalTabs(sessions: TerminalSession[]): TerminalTabGroup[]",
+  "params": [
+    "sessions"
+  ],
+  "returns": "TerminalTabGroup[]",
+  "errors": [],
+  "semantics": "Groups sessions by groupId and creates tab entries.",
+  "exported": true
+}

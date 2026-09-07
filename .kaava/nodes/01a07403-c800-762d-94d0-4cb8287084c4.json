@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-762d-94d0-4cb8287084c4",
+  "slug": "host",
+  "kind": "module",
+  "title": "Tool Process Host",
+  "description": "Spawns tool processes and manages bidirectional RPC communication via stdin/stdout with background reader and notification threads.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7fb5-97cd-f3b9c139dbde",
+  "allowed_libraries": [
+    "01a07403-c800-7565-ae9d-23b929975082"
+  ],
+  "ui_refs": []
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-77c4-a526-2d5bef417888",
+  "slug": "switcher-add-app-button",
+  "kind": "contract-method",
+  "title": "AddAppButton Component",
+  "description": "A + button that opens a portalled menu at the end of the open cluster's tabs, offering apps and layout presets.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7220-b53d-c54edb585688",
+  "signature": "function AddAppButton({ apps }: { apps: AppsMenuHandlers }): ReactNode",
+  "params": [
+    "apps: AppsMenuHandlers"
+  ],
+  "returns": "JSX.Element",
+  "errors": [],
+  "semantics": "Opens same menu as title bar's Apps menu when clicked; dismisses on Escape, outside click, resize, or scroll.",
+  "exported": true
+}

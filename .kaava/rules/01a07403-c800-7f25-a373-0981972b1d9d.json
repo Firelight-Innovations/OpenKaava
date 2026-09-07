@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7f25-a373-0981972b1d9d",
+  "slug": "kaava-boundary-respected",
+  "statement": "Pull requests must not write to both .kaava/nodes/ and .kaava/runs/ trees together unless it is a lifecycle pair.",
+  "severity": "error",
+  "audit": [],
+  "command": "node scripts/check-kaava-boundary.mjs"
+}

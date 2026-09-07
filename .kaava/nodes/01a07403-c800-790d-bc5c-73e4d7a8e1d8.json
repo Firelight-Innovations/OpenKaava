@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-790d-bc5c-73e4d7a8e1d8",
+  "slug": "tool-mount-lifetime-correctness",
+  "kind": "doc-block",
+  "title": "ToolMount mounted once per instance lifetime",
+  "description": "Why ToolMount is never remounted despite layout changes, and the correctness requirement this implements.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e2-b95c-b24cdbe6d78b",
+  "body": "Mounted once per instance id and kept mounted for that instance's whole life. This never unmounts on a tab switch, a split, a divider drag, or a tab being dragged into another pane. That is the property the whole arrangement exists to protect: an iframe that remounts reloads the app inside it, and a Files that forgot its open file every time you rearranged the layout would make the layout not worth rearranging.",
+  "audience": "both"
+}

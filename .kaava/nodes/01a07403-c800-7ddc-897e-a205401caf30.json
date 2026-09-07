@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7ddc-897e-a205401caf30",
+  "slug": "problems-drill-target",
+  "kind": "contract-method",
+  "title": "drillTargetForLocation",
+  "description": "Determines where a Problems row navigates to, or null when its location names no Schematic.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74e7-acd1-ffea4dddd156",
+  "signature": "function drillTargetForLocation(location: Location): NavigationTarget | null",
+  "params": [
+    "location: Location"
+  ],
+  "returns": "NavigationTarget | null",
+  "errors": [],
+  "semantics": "Maps lint findings to Schematic navigation targets.",
+  "exported": false
+}

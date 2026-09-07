@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e8a-8c4b-5ca3c08827be",
+  "slug": "context-menu-size-interface",
+  "kind": "contract-method",
+  "title": "Size Dimensions",
+  "description": "Width and height in CSS pixels.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "signature": "export interface Size { width: number; height: number; }",
+  "params": [],
+  "returns": "interface",
+  "errors": [],
+  "semantics": "Describes a rectangular area's dimensions.",
+  "exported": true
+}

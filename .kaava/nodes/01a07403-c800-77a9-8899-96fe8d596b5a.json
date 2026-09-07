@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-77a9-8899-96fe8d596b5a",
+  "slug": "graph-children",
+  "kind": "contract-method",
+  "title": "Get Containment Children",
+  "description": "Return the direct containment children of a node.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bcb-9de4-3775dbe05092",
+  "signature": "pub fn children(&self, id: Uuid) -> &[Uuid]",
+  "params": [
+    "id: Uuid"
+  ],
+  "returns": "&[Uuid]",
+  "errors": [],
+  "semantics": "Returns the identifiers of all nodes whose parent field points to this node, in identifier order.",
+  "exported": true
+}

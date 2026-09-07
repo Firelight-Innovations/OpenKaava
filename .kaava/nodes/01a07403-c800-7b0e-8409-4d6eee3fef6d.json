@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b0e-8409-4d6eee3fef6d",
+  "slug": "search-logic-parse-query-plain-words",
+  "kind": "test-case",
+  "title": "Parse Query: Plain Words",
+  "description": "Verifies that plain words are kept as the needle and not misclassified.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "given": "Raw query string 'render scene'",
+  "when": "parseQuery is called",
+  "then": "needle field contains 'render scene'",
+  "impl_ref": "src/shell/search/query.test.ts::parseQuery::keeps plain words as the needle",
+  "status": "declared",
+  "last_result_ms": null
+}

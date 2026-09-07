@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7f2d-90af-77f879051682",
+  "slug": "shell-bindings-on-shell-state-changed",
+  "kind": "contract-method",
+  "title": "onShellStateChanged",
+  "description": "Subscribe to shell state changes from any window.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7149-8c4b-15d6ed575d92",
+  "signature": "function onShellStateChanged(cb: (snapshot: ShellSnapshot) => void): Promise<UnlistenFn>",
+  "params": [
+    "cb"
+  ],
+  "returns": "Promise<UnlistenFn>",
+  "errors": [],
+  "semantics": "Broadcasts shell state updates across all windows.",
+  "exported": true
+}

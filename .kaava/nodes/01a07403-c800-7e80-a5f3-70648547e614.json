@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7e80-a5f3-70648547e614",
+  "slug": "comment-check-density",
+  "kind": "budget",
+  "title": "Comment density limits",
+  "description": "Maximum consecutive comment lines and comment-to-code ratio.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78e5-87a9-a507af5978e0",
+  "metric": "density percentage and run length",
+  "op": "<=",
+  "value": 20,
+  "unit": "consecutive lines",
+  "tier": "soft",
+  "probe": {
+    "command": "pnpm lint:comments",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

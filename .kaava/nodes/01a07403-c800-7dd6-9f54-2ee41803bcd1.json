@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7dd6-9f54-2ee41803bcd1",
+  "slug": "shell-contract-seam",
+  "kind": "doc-block",
+  "title": "Seam every region plugs into",
+  "description": "Contract is the interface every region imports and nothing else so they build in parallel.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a2b-9c3f-6e98ac6d152b",
+  "body": "The seam every region plugs into. Each of the sixteen regions is built against this file and nothing else — a region never imports another region's source, which is what lets them be built in parallel without growing into each other. Anything two regions need lives beside this file (STANDARDS.md §1.2).",
+  "audience": "both"
+}

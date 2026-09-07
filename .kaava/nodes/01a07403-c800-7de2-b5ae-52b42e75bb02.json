@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7de2-b5ae-52b42e75bb02",
+  "slug": "diff-view",
+  "kind": "module",
+  "title": "Diff Viewer",
+  "description": "A Monaco-based read-only diff editor that displays two-column diffs with line decorations for review comments, lazy-loaded when first needed.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7134-b3d3-38ffacbecdc4",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7d56-a4f0-f12bd453a564",
+    "schematify://screen/01a07403-c800-7cbb-b2f0-856b926f8d52"
+  ]
+}

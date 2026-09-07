@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7cfc-ac22-e6c4ff07571a",
+  "slug": "context-menu-actions-interface",
+  "kind": "contract-method",
+  "title": "Context Menu Actions",
+  "description": "Callbacks for cut, copy, and selectAll operations.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "signature": "export interface ContextActions { cut: () => void; copy: () => void; selectAll: () => void; }",
+  "params": [],
+  "returns": "interface",
+  "errors": [],
+  "semantics": "Provides handlers that execute when context menu items are selected.",
+  "exported": true
+}

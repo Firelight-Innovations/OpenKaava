@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7cee-bdf9-8906d4e1e55b",
+  "slug": "tool-serde-json",
+  "kind": "external-dep",
+  "title": "Serde JSON for Values",
+  "description": "JSON value type for RPC method parameters and results in tool-side serve() function.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7154-a856-36e43d55537d",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "Holds params in incoming requests and results in Handler::call trait"
+}

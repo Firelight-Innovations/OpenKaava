@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7aad-8c85-b4f40516e608",
+  "slug": "react-3",
+  "kind": "external-dep",
+  "title": "React",
+  "description": "UI library for building components.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b5-84db-a6d3d2c16f72",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "Used throughout the tutorial app for all components"
+}

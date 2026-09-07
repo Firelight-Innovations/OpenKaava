@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7103-84d5-16130832e13c",
+  "slug": "toml-grammar-extensions",
+  "kind": "contract-method",
+  "title": "TOML Extensions",
+  "description": "The file extensions TOML grammar handles: .toml and .kaava.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72fd-88ee-22fc2f3d05b5",
+  "signature": "const TOML_EXTENSIONS: readonly [\"toml\", \"kaava\"]",
+  "params": [],
+  "returns": "readonly [\"toml\", \"kaava\"]",
+  "errors": [],
+  "semantics": "Exports the tuple of extensions the TOML tokenizer recognizes, used by both Monaco registration and path detection.",
+  "exported": true
+}

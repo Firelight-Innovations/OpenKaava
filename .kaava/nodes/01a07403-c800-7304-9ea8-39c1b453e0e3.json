@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7304-9ea8-39c1b453e0e3",
+  "slug": "commands-status-payload-carries-no-token",
+  "kind": "test-case",
+  "title": "Status Omits Token",
+  "description": "The status payload never includes the bearer token.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a15-9205-3403c29c95c2",
+  "given": "An EndpointStatus with a port",
+  "when": "It is serialized to JSON",
+  "then": "The JSON contains the port but no token field",
+  "impl_ref": "src-tauri/src/mcp/commands.rs::the_status_payload_carries_no_token",
+  "status": "declared",
+  "last_result_ms": null
+}

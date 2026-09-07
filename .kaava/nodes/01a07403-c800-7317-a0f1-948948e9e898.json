@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7317-a0f1-948948e9e898",
+  "slug": "settings",
+  "kind": "module",
+  "title": "Application Settings Registry",
+  "description": "Centralized settings registry that apps register groups and individual settings into. Manages default values, control types (toggle, number, text, select), and when changes take effect (now, next, restart).",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [
+    "01a07403-c800-7565-ae9d-23b929975082"
+  ],
+  "ui_refs": []
+}

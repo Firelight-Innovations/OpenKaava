@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7dc5-8369-14cc2566f994",
+  "slug": "palette-registry-rank",
+  "kind": "test-case",
+  "title": "Registry: Rank Commands",
+  "description": "Tests that commands are ranked by fuzzy match score.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d1f-ac55-b6ae705d4545",
+  "given": "Query 'save' against commands including 'File: Save' and 'Apps: Set A Value'",
+  "when": "rankCommands is called",
+  "then": "'File: Save' is ranked higher",
+  "impl_ref": "src/shell/palette/registry.test.ts::ranking against the field::ranks the closer match first",
+  "status": "declared",
+  "last_result_ms": null
+}

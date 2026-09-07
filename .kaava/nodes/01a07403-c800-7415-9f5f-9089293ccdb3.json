@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7415-9f5f-9089293ccdb3",
+  "slug": "terminal-clipboard-handle-paste",
+  "kind": "contract-method",
+  "title": "Clipboard Paste Handler",
+  "description": "Processes paste events, sending text to terminal and clearing textarea.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7101-96d4-211896bc6c31",
+  "signature": "export function handlePaste(term: ClipboardTerminal, ev: PasteGesture): void",
+  "params": [
+    "ClipboardTerminal",
+    "PasteGesture"
+  ],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Routes clipboard text to terminal and prevents browser default handling.",
+  "exported": true
+}

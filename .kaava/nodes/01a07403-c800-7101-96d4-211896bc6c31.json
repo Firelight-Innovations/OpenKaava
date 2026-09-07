@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7101-96d4-211896bc6c31",
+  "slug": "terminal-clipboard",
+  "kind": "module",
+  "title": "Terminal Clipboard Handling",
+  "description": "Clipboard paste (Ctrl+V) and right-click context menu handling for terminals, with custom key event filtering to suppress xterm's default paste behavior.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7374-9333-dfe09d91c1fc",
+  "allowed_libraries": [
+    "01a07403-c800-7b36-9dd4-94369ecae6ff"
+  ],
+  "ui_refs": []
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-70a8-94af-c8190e91e3aa",
+  "slug": "routing-orthogonal-drawing",
+  "kind": "test-case",
+  "title": "routeEdge draws every segment on an axis",
+  "description": "Routing produces only horizontal and vertical segments.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7afd-b0e6-03ee26345279",
+  "given": "any from, to, and obstacles",
+  "when": "routeEdge is called",
+  "then": "every segment of the returned route is axis-aligned",
+  "impl_ref": "apps/schematify/ui/src/engine/routing.test.ts::orthogonal routing draws every segment of every edge on an axis",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7783-87bd-5cfc59364a64",
+  "slug": "toml-grammar-language",
+  "kind": "contract-method",
+  "title": "TOML Language",
+  "description": "Monaco Monarch tokenizer for TOML, defining syntax highlighting rules for all TOML constructs.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72fd-88ee-22fc2f3d05b5",
+  "signature": "const TOML_LANGUAGE: monaco.languages.IMonarchLanguage",
+  "params": [],
+  "returns": "monaco.languages.IMonarchLanguage",
+  "errors": [],
+  "semantics": "Exports the Monarch lexer that colorizes TOML files using standard vs-dark token names already present in Monaco.",
+  "exported": true
+}

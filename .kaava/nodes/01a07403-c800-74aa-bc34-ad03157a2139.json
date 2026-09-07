@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-74aa-bc34-ad03157a2139",
+  "slug": "manifest-parser-surface-without-frontend",
+  "kind": "test-case",
+  "title": "Surface Requires a Frontend Bundle",
+  "description": "A [[surface]] without a [frontend] section is rejected.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "A manifest with [[surface]] but no [frontend]",
+  "when": "parsed",
+  "then": "returns ManifestError::SurfaceWithoutFrontend",
+  "impl_ref": "crates/kaava-tool-manifest/src/lib.rs::a_surface_without_a_frontend_is_rejected",
+  "status": "declared",
+  "last_result_ms": null
+}

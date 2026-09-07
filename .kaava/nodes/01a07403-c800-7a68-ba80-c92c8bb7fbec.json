@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7a68-ba80-c92c8bb7fbec",
+  "slug": "git-operations-git-worktree-reconcile",
+  "kind": "contract-method",
+  "title": "Reconcile Worktree",
+  "description": "Drop cluster's worktree binding if the checkout is gone.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "signature": "pub fn git_worktree_reconcile(app: AppHandle, cluster_id: String) -> Result<Option<WorktreeRef>>",
+  "params": [
+    "app",
+    "cluster_id"
+  ],
+  "returns": "Result<Option<WorktreeRef>>",
+  "errors": [
+    "AppError::Git"
+  ],
+  "semantics": "Returns the worktree reference if still valid, None if removed, and clears binding if gone.",
+  "exported": true
+}

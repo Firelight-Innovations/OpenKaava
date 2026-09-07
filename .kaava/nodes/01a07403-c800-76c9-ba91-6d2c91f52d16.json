@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-76c9-ba91-6d2c91f52d16",
+  "slug": "github-query-with-scope-round-trip",
+  "kind": "test-case",
+  "title": "GitHub Query: Scope Round Trip",
+  "description": "Tests that scope changes parse back correctly.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcd-8834-b536584a1dca",
+  "given": "Various inputs and scope changes",
+  "when": "parseQuery(withScope(input, scope)) is called",
+  "then": "scope in result equals requested scope",
+  "impl_ref": "src/shell/github/query.test.ts::withScope::round-trips every kind through the parser",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "slug": "product",
+  "kind": "module",
+  "title": "Product Layer",
+  "description": "Product data editing and viewing interfaces for screens, flows, project brief, and decision log (PRD §5.7-5.12, §12.17-12.18), swappable into the main canvas area alongside the design Schematic.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [
+    "01a07403-c800-7624-8f42-daeadd0fe87a"
+  ],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7bbd-9e7b-9ccebe8405e5",
+    "schematify://screen/01a07403-c800-72de-8659-2159aa7a150f",
+    "schematify://screen/01a07403-c800-76bf-8862-2a0547b02435",
+    "schematify://screen/01a07403-c800-73b7-8a43-3dce782f828a"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7ed0-aac2-dbef091c8be2",
+  "slug": "plugin-store-source-tagged",
+  "kind": "test-case",
+  "title": "Plugin Store: Source Tagging",
+  "description": "Source is tagged so Release kind can be added in future.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c92-b990-0fafa3c719fa",
+  "given": "Folder source",
+  "when": "serialized to JSON",
+  "then": "JSON contains kind field",
+  "impl_ref": "src-tauri/src/plugins/store.rs::source_is_tagged_so_a_second_kind_can_be_added",
+  "status": "declared",
+  "last_result_ms": null
+}

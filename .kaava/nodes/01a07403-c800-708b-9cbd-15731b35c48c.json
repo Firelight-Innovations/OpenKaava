@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-708b-9cbd-15731b35c48c",
+  "slug": "index-header",
+  "kind": "doc-block",
+  "title": "Main Seam",
+  "description": "The index module documentation on fixture loading and seam structure.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7053-b407-040c7111f077",
+  "body": "The one narrow seam between the shell and the graph, ahead of a real loader. Deliberately pure: nothing here imports @openkaava/bridge, so this module unit-tests under plain Node. The functions below loadGraph compute from whatever ServiceGraph they are given, per PRD §0.4.",
+  "audience": "both"
+}

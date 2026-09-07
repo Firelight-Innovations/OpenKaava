@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7d1f-ac55-b6ae705d4545",
+  "slug": "palette-registry",
+  "kind": "module",
+  "title": "Command Registry and Ranking",
+  "description": "Converts the menu tree into a flat list of commands and ranks them by fuzzy match against the user's query. Imported by the palette component to drive its display.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ea0-adaf-c0946e52d978",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-73d9-9c0a-00789421afa8"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-76d4-9849-93dcf883dbc7",
+  "slug": "backend-fetch-state",
+  "kind": "contract-method",
+  "title": "fetchState",
+  "description": "Calls schematify/state to read whether a project is open and the app is ready.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-755e-b721-aa6fca8f5064",
+  "signature": "function fetchState(): Promise<SchematifyState>",
+  "params": [],
+  "returns": "Promise<SchematifyState>",
+  "errors": [],
+  "semantics": "Queries backend for app state.",
+  "exported": true
+}

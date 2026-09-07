@@ -1,0 +1,27 @@
+{
+  "id": "01a07403-c800-7cbb-b2f0-856b926f8d52",
+  "kind": "screen",
+  "slug": "diff-viewer",
+  "title": "Diff Viewer",
+  "purpose": "Side-by-side or inline diff editor showing changes with optional review annotations",
+  "states": [
+    "loading - Monaco is loading",
+    "ready - diff displayed",
+    "annotated - showing review comments on lines",
+    "focused - focused on specific change range"
+  ],
+  "acceptance": [
+    "shall display original on left and modified on right",
+    "shall highlight added lines in green",
+    "shall highlight removed lines in red",
+    "shall support toggling between side-by-side and inline views",
+    "shall allow clicking margin to add review comments",
+    "shall display review comment glyphs on annotated lines",
+    "shall support scrolling with line decorations visible",
+    "shall be read-only (no editing)"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7de2-b5ae-52b42e75bb02",
+    "schematify://node/01a07403-c800-79b8-a3b4-0ae4ac2141c7"
+  ]
+}

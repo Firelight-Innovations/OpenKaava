@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7b60-8365-38cedeb4e853",
+  "slug": "gate-kaava-nodes-runs-boundary",
+  "statement": "A pull request may not edit both `.kaava/nodes/` and `.kaava/runs/` together except for the lifecycle pair: one `nodes/<uuid>.json` and that uuid's `runs/<uuid>/audit.json` only.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm probe --server kaava-boundary"
+}

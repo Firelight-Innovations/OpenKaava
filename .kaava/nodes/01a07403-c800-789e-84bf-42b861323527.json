@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-789e-84bf-42b861323527",
+  "slug": "design-writes-and-unguarded",
+  "kind": "doc-block",
+  "title": "Design Server Writes",
+  "description": "This server writes and is not developer-only because design comments are for users.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b07-98f5-17457c65a2df",
+  "body": "This server writes, and is not `dev_only`. The token in a file is only a reasonable trade while the served surface is read-only, so this reopens that decision rather than inheriting it. Design comments belong to the user; they are not developer infrastructure.",
+  "audience": "human"
+}

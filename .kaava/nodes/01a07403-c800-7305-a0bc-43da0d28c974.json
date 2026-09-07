@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7305-a0bc-43da0d28c974",
+  "slug": "app-updater-progress-clamped",
+  "kind": "test-case",
+  "title": "Download Progress: Clamping",
+  "description": "Progress percent is clamped to [0, 100] even if reported incorrectly.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7725-8d89-01b343796845",
+  "given": "Various combinations of received > total",
+  "when": "percent() is called",
+  "then": "Returns max 100%",
+  "impl_ref": "src-tauri/src/updater.rs::progress_is_clamped_to_the_bar_it_draws",
+  "status": "declared",
+  "last_result_ms": null
+}

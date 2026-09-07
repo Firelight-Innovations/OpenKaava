@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79fb-8ac8-4a499e55c4d4",
+  "slug": "outcome-outcome-kind",
+  "kind": "contract-method",
+  "title": "Reconciliation Outcome Type",
+  "description": "The four reconciliation outcome variants per PRD section 9.2.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f14-8b2b-c06d802d2714",
+  "signature": "pub enum OutcomeKind",
+  "params": [],
+  "returns": "enum",
+  "errors": [],
+  "semantics": "Matched, DeclaredAbsent, PresentUnknown, or Duplicate.",
+  "exported": false
+}

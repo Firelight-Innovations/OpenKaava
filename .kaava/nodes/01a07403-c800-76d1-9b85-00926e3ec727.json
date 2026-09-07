@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-76d1-9b85-00926e3ec727",
+  "slug": "ci-gateway-tool-parsing",
+  "kind": "doc-block",
+  "title": "CI tool output formats",
+  "description": "The real output shapes this parser handles.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73d7-a1af-eac6f5057d04",
+  "body": "Fixtures are drawn from real tool output: tsc error format with file(line,col), ESLint with path headers and indented findings, clippy's nested file-then-problem blocks, rustfmt with at line N: and :N: headers, prettier warn lines (with optional ANSI color), and vitest FAIL headers with case names. Each format is handled by its own parser section so upstream changes are caught if they alter the output shape.",
+  "audience": "agent"
+}

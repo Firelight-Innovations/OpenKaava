@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c34-95ba-bcecde76bf9f",
+  "slug": "manifest-parser-frontend-only",
+  "kind": "test-case",
+  "title": "Frontend-Only Package (No Core)",
+  "description": "A package can declare only [frontend], no [core].",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "A manifest with [tool] and [frontend] but no [core]",
+  "when": "parsed",
+  "then": "core is None, one synthesized surface exists, resolve_bin returns NoCore error",
+  "impl_ref": "crates/kaava-tool-manifest/src/lib.rs::a_package_may_declare_no_core",
+  "status": "declared",
+  "last_result_ms": null
+}

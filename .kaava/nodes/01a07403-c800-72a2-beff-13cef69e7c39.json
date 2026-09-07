@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-72a2-beff-13cef69e7c39",
+  "slug": "content",
+  "kind": "module",
+  "title": "Tutorial Content",
+  "description": "Tutorial prose and structured content blocks for all tutorials in the system.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-718d-b2d6-63127c14155b",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

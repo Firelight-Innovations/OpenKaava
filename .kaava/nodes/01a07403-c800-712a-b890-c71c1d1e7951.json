@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-712a-b890-c71c1d1e7951",
+  "slug": "plugin-broker-2",
+  "kind": "external-dep",
+  "title": "serde_json",
+  "description": "JSON types and macros for JSON-RPC protocol payloads.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78db-904b-bb87473e03bb",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "json! macro and Value type for kaava/hello handshake messages"
+}

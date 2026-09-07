@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f28-929f-6186ce953ad0",
+  "slug": "terminal-sessions-module-doc",
+  "kind": "doc-block",
+  "title": "Real terminals and the interception seam",
+  "description": "Module-level documentation explaining the pty architecture and tap functions.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731a-ab6c-3a00854fdef3",
+  "body": "A pseudo-terminal (pty) is a pair of file handles that impersonate a physical terminal. We hold the master end; the shell we spawn is given the slave end and cannot tell the difference. Everything funnels through tap_output and tap_input, and nothing else in the orchestrator may talk to a pty directly — the whole point of this module's shape. A coding harness reads and writes a terminal, so owning both directions of its byte stream lets us wrap it: to notice what it did, to answer a prompt on its behalf, to stop it.",
+  "audience": "agent"
+}

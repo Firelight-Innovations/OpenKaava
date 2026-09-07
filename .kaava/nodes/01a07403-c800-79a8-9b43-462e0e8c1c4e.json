@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-79a8-9b43-462e0e8c1c4e",
+  "slug": "document-descendants-of",
+  "kind": "contract-method",
+  "title": "descendantsOf",
+  "description": "Get all descendants at any depth.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7427-ae73-a0fccec9c7ca",
+  "signature": "function descendantsOf(index: DocIndex, id: string): SchematicNode[]",
+  "params": [
+    "index",
+    "id"
+  ],
+  "returns": "SchematicNode[]",
+  "errors": [],
+  "semantics": "Returns every node under id, used for collapsed counts.",
+  "exported": false
+}

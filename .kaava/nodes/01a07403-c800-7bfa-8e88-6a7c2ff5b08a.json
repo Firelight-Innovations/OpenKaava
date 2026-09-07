@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7bfa-8e88-6a7c2ff5b08a",
+  "slug": "project-marker-forward-compatible-load",
+  "kind": "test-case",
+  "title": "Forward-compatible manifest loading",
+  "description": "A manifest from a newer build with unknown fields still loads.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7742-a1fb-c4253f531eb9",
+  "given": "A manifest with future format and unknown fields",
+  "when": "marker::load is called",
+  "then": "Returns the Marker and reports the newer format version",
+  "impl_ref": "src-tauri/src/project/marker.rs::a_manifest_from_a_newer_kaava_still_loads",
+  "status": "declared",
+  "last_result_ms": null
+}

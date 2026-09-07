@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7545-b320-b920096b24b2",
+  "slug": "echo-core",
+  "kind": "module",
+  "title": "Echo Core",
+  "description": "The tool core itself: reads a JSON-RPC request on stdin, answers it, and exits. It exists to be the smallest correct implementation of the protocol rather than to do anything useful.",
+  "lifecycle": "specified",
+  "layer": "external",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7aa5-8f64-1896f2d2414b",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

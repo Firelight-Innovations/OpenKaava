@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7cb7-9fd1-6f1b09513af2",
+  "slug": "context-menu-edge-gap",
+  "kind": "contract-method",
+  "title": "Edge Gap Constant",
+  "description": "Minimum pixel distance to keep menu borders off viewport edges.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "signature": "export const EDGE_GAP = 4",
+  "params": [],
+  "returns": "number",
+  "errors": [],
+  "semantics": "Defines the minimum margin between menu and viewport edge.",
+  "exported": false
+}

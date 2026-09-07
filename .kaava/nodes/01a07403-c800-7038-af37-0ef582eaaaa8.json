@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7038-af37-0ef582eaaaa8",
+  "slug": "plugin-registry-reload",
+  "kind": "contract-method",
+  "title": "Reload Plugin Manifest",
+  "description": "Re-read plugin from disk and notify all windows.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "signature": "pub fn reload(app: &AppHandle, id: &str) -> bool",
+  "params": [
+    "app: &AppHandle",
+    "id: &str"
+  ],
+  "returns": "bool",
+  "errors": [],
+  "semantics": "Stops core, emits change event; returns false only if plugin not found.",
+  "exported": true
+}

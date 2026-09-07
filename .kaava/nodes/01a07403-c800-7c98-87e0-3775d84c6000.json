@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c98-87e0-3775d84c6000",
+  "slug": "types-node-kind",
+  "kind": "contract-method",
+  "title": "NodeKind Type",
+  "description": "Union of all node kinds the graph can hold, including facet types (contract-method, test-case, budget, doc-block, external-dep) and annotation types (group, comment).",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a11-b05c-3720ce96e87b",
+  "signature": "type NodeKind = \"service\" | \"group\" | \"module\" | \"screen\" | \"contract-method\" | \"test-case\" | \"budget\" | \"doc-block\" | \"external-dep\" | \"comment\"",
+  "params": [],
+  "returns": "NodeKind",
+  "errors": [],
+  "semantics": "Classifies what each node represents in the graph.",
+  "exported": true
+}

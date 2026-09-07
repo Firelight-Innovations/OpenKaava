@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-77e2-96f0-a04546671df1",
+  "slug": "report-rendering-five-output-tests",
+  "kind": "budget",
+  "title": "Report Rendering Tests",
+  "description": "Tests for file writing, summary counting, text and JSON rendering.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "metric": "test_count",
+  "op": ">=",
+  "value": 5,
+  "unit": "tests",
+  "tier": "soft",
+  "probe": {
+    "command": "pnpm test:rust",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

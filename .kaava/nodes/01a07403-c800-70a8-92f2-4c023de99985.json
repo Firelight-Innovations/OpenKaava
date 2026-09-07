@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-70a8-92f2-4c023de99985",
+  "slug": "sync",
+  "kind": "module",
+  "title": "Mutex Utilities",
+  "description": "Lock access helper providing panicking semantics for poisoned mutexes owned by ToolProcess, with documented invariant for lock poisoning.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7fb5-97cd-f3b9c139dbde",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

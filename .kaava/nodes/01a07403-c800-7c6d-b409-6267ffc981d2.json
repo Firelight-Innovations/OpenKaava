@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7c6d-b409-6267ffc981d2",
+  "slug": "viewport-to-screen",
+  "kind": "contract-method",
+  "title": "toScreen",
+  "description": "Convert world coordinate to screen coordinate.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-759b-b225-e1b8cd987643",
+  "signature": "function toScreen(viewport: Viewport, point: Point): Point",
+  "params": [
+    "viewport",
+    "point"
+  ],
+  "returns": "Point",
+  "errors": [],
+  "semantics": "Applies viewport and zoom transformation.",
+  "exported": true
+}

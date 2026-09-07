@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-75c0-b866-02d63286286e",
+  "slug": "bench-suite-startup",
+  "kind": "budget",
+  "title": "Startup benchmark budget",
+  "description": "Time to initialize OpenKaava and display shell.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-750c-bd32-35fde88f334e",
+  "metric": "time",
+  "op": "<=",
+  "value": 2000,
+  "unit": "ms",
+  "tier": "soft",
+  "probe": {
+    "command": "pnpm bench:startup",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

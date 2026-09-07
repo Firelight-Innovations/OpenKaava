@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-764f-8aba-0922b31391a6",
+  "slug": "branding-product-name",
+  "kind": "contract-method",
+  "title": "Get Product Name",
+  "description": "The product's name for window titles and dialog captions.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77e9-8c82-551638f168b7",
+  "signature": "pub fn product_name() -> &'static str",
+  "params": [],
+  "returns": "&'static str",
+  "errors": [],
+  "semantics": "Panics if branding.toml cannot be parsed; it is embedded at compile time.",
+  "exported": false
+}

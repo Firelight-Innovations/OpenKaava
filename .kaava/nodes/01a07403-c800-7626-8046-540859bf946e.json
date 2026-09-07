@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7626-8046-540859bf946e",
+  "slug": "app-root-build",
+  "kind": "budget",
+  "title": "App Root Type Checking",
+  "description": "App.tsx and related components pass TypeScript type checking.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7fb5-aa99-e6208f931a06",
+  "metric": "type-check-pass",
+  "op": "==",
+  "value": 1,
+  "unit": "pass",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm build",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

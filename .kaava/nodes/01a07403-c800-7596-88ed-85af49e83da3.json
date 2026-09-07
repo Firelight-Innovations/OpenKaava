@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7596-88ed-85af49e83da3",
+  "slug": "ids-duplicate-slug",
+  "kind": "contract-method",
+  "title": "duplicateSlug",
+  "description": "Generate unique slug for a duplicated node.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7013-af37-bb584e518f4a",
+  "signature": "function duplicateSlug(slug: string, taken: ReadonlySet<string>): string",
+  "params": [
+    "slug",
+    "taken"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Returns slug-copy, slug-copy-2, etc. until unused.",
+  "exported": false
+}

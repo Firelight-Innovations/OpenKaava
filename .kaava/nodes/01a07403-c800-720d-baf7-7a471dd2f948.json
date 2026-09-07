@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-720d-baf7-7a471dd2f948",
+  "slug": "shell-ui-2",
+  "kind": "external-dep",
+  "title": "react",
+  "description": "React framework for UI components.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ed4-b4b2-5587e84d0634",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "OverlayScrollbar.tsx and Icon.tsx are React components using hooks for state management"
+}

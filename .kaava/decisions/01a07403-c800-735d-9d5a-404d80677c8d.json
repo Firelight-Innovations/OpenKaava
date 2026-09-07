@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-735d-9d5a-404d80677c8d",
+  "kind": "decision",
+  "slug": "DEC-SCH-SCOPE-001",
+  "title": "Schematify replaces Forger and Journeyman as one unified application",
+  "context": "HELVE Forger held the technical design graph and HELVE Journeyman held the product layer as separate applications with separate UIs and data stores.",
+  "decision": "Merge both applications into a single Schematify application that holds both the technical design graph and the product layer (screens, flows, briefs) within one interface.",
+  "consequences": "Single codebase to maintain but requires unified data model and UI; retirement of the Forger and Journeyman names across all product surfaces and documentation; increased scope of the single application.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

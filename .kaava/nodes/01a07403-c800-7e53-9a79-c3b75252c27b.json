@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7e53-9a79-c3b75252c27b",
+  "slug": "titlebar-2",
+  "kind": "external-dep",
+  "title": "Framer Motion",
+  "description": "Animation library for motion components and variants.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7806-88f7-dafc7969fdd8",
+  "registry_ref": "01a07403-c800-7417-a580-5d7e987102ee",
+  "usage_note": "Motion components and popover variants for menu animations"
+}

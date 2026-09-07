@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-724c-a80f-a9f7775e690b",
+  "slug": "tauri-opener",
+  "kind": "external-dep",
+  "title": "Tauri Opener Plugin",
+  "description": "Plugin for opening files and URLs with the system default application.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7952-92b9-af9078dc30a0",
+  "registry_ref": "01a07403-c800-7e82-88b5-711699401b80",
+  "usage_note": "Used in openHit.ts to open search results with the Files app"
+}

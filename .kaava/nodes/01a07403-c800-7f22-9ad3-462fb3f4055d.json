@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f22-9ad3-462fb3f4055d",
+  "slug": "client-timeout-drops-queued-request",
+  "kind": "test-case",
+  "title": "Timed out request is dropped on flush",
+  "description": "Verifies that a request that timed out while queued is not sent to the shell when flushed after handshake.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client with a 1000ms invoke timeout before handshake",
+  "when": "invoke is called, timeout fires, then ready arrives",
+  "then": "Only hello is posted (the timed-out request is dropped and never sent)",
+  "impl_ref": "packages/bridge/src/client.test.ts::does not send a queued request that already timed out",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-75e4-946d-49009d9069ca",
+  "slug": "worktree-logic-is-row-selected",
+  "kind": "contract-method",
+  "title": "Test if Row Matches Selection",
+  "description": "Determines whether a file change matches a stored selection key.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71fe-af1c-0dcd2dfd9607",
+  "signature": "export function isRowSelected(selection: { path: string; staged: boolean } | null, row: GitFileChange): boolean",
+  "params": [
+    "selection: { path: string; staged: boolean } | null",
+    "row: GitFileChange"
+  ],
+  "returns": "boolean",
+  "errors": [],
+  "semantics": "Tests both path and staged flag for equality; returns false when selection is null.",
+  "exported": false
+}

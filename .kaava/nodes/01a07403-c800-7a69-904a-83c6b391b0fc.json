@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7a69-904a-83c6b391b0fc",
+  "slug": "presets-unreadable-store-built-ins",
+  "kind": "test-case",
+  "title": "Unreadable presets fall back to built-ins",
+  "description": "A corrupt or newer format presets file returns just built-ins.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7089-8194-4ec42c107ffb",
+  "given": "An unreadable or unknown-format presets.json",
+  "when": "load is called and merge is applied",
+  "then": "Returns Stored merging to just the built-in presets",
+  "impl_ref": "src-tauri/src/presets/store.rs::an_unreadable_store_falls_back_to_the_built_ins",
+  "status": "declared",
+  "last_result_ms": null
+}

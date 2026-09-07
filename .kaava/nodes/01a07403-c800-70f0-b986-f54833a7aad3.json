@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-70f0-b986-f54833a7aad3",
+  "slug": "context-menu-place-menu",
+  "kind": "contract-method",
+  "title": "Menu Placement Algorithm",
+  "description": "Positions a context menu relative to a click point, flipping and clamping to fit the viewport.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "signature": "export function placeMenu(at: Point, size: Size, viewport: Size): Point",
+  "params": [
+    "Point",
+    "Size",
+    "Size"
+  ],
+  "returns": "Point",
+  "errors": [],
+  "semantics": "Flips menu left and up as needed to keep it on screen, with edge gaps.",
+  "exported": true
+}

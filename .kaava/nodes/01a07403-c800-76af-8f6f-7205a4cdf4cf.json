@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-76af-8f6f-7205a4cdf4cf",
+  "slug": "graph-seam-in-memory-graph-round-trips",
+  "kind": "test-case",
+  "title": "InMemoryGraph Add and Lookup",
+  "description": "Nodes added to InMemoryGraph can be looked up by id.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "given": "an InMemoryGraph with one added node",
+  "when": "lookup is called with that id",
+  "then": "NodeFacts is returned with the correct slug",
+  "impl_ref": "crates/schematify-reconcile/src/graph.rs::in_memory_graph_round_trips",
+  "status": "declared",
+  "last_result_ms": null
+}

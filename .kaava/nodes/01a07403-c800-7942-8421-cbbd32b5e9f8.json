@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7942-8421-cbbd32b5e9f8",
+  "slug": "viewer-app-rpc-list",
+  "kind": "contract-method",
+  "title": "list",
+  "description": "Lists directory contents sorted directories-first by name",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a0-9c27-267f8065604a",
+  "signature": "export const list = (path: string | null) => invoke<Listing>(\"files/list\", { path })",
+  "params": [
+    "path"
+  ],
+  "returns": "Promise<Listing>",
+  "errors": [
+    "KaavaRpcError"
+  ],
+  "semantics": "Retrieves immediate children of a directory with file metadata.",
+  "exported": true
+}

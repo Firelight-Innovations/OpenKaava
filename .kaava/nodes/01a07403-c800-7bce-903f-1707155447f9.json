@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7bce-903f-1707155447f9",
+  "slug": "errors-error-handling-doc",
+  "kind": "doc-block",
+  "title": "Error normalization",
+  "description": "Documentation of how this bridge normalizes all errors.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78aa-838a-6e8f2db5b559",
+  "body": "Every rejection `invoke` can produce, from either host, normalizes to this — a `{code, message, data}` error envelope and a local timeout look the same to calling code, which is the point: tool UI shouldn't need to know which host it's running under to handle a failure.",
+  "audience": "agent"
+}

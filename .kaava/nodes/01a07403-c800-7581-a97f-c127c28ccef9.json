@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7581-a97f-c127c28ccef9",
+  "slug": "sync-poisoned-mutex-panics",
+  "kind": "test-case",
+  "title": "Poisoned Mutex Panics on Lock",
+  "description": "A Mutex whose holder panicked rejects further lock attempts.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-70a8-92f2-4c023de99985",
+  "given": "A Mutex in the poisoned state after a thread panicked holding it",
+  "when": "lock_or_panic is called",
+  "then": "panics with 'lock poisoned' in the message",
+  "impl_ref": "crates/kaava-rpc/src/sync.rs::a_poisoned_mutex_panics_on_lock",
+  "status": "declared",
+  "last_result_ms": null
+}

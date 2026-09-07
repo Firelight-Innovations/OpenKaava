@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7662-be07-dcefc00c5322",
+  "slug": "github-query-fetch-scope-mapping",
+  "kind": "doc-block",
+  "title": "GitHub Query to API Scope Mapping",
+  "description": "Why merged/closed queries map to a closed fetch, not separate requests.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcd-8834-b536584a1dca",
+  "body": "The API has no merged state, so a merged-only view is a *closed* fetch narrowed on this side. A client-side filter over an open-only feed would narrow an empty set and draw an empty list, which is exactly the silent emptiness the query system exists to rule out.",
+  "audience": "both"
+}

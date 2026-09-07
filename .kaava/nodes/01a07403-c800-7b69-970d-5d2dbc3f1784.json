@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7b69-970d-5d2dbc3f1784",
+  "slug": "shell-test-coverage",
+  "kind": "budget",
+  "title": "Shell Components Test Coverage",
+  "description": "Shell components are covered by integration and visual regression testing via the verify command.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-743f-ae55-0cbaeb91a62a",
+  "metric": "test-pass-rate",
+  "op": "==",
+  "value": 100,
+  "unit": "percent",
+  "tier": "target",
+  "probe": {
+    "command": "pnpm verify",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

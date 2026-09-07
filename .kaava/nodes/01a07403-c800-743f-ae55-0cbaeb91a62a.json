@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-743f-ae55-0cbaeb91a62a",
+  "slug": "shell",
+  "kind": "module",
+  "title": "Shell Chrome",
+  "description": "Application chrome layer containing the toolbar, breadcrumb navigation, outline sidebar, inspector panel, dock frame with problems and runs tabs, status bar, and first-run empty states for the Schematify design system editor.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [
+    "01a07403-c800-7bd1-a062-9c1c49e747dc"
+  ],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7c34-9e8c-646297e0b08b",
+    "schematify://screen/01a07403-c800-7292-8aed-3b29a5d68efd",
+    "schematify://screen/01a07403-c800-79e5-a1e7-642136651c1a",
+    "schematify://screen/01a07403-c800-7278-8c5d-a313e6036eae",
+    "schematify://screen/01a07403-c800-7007-b359-37fde32cdbf4",
+    "schematify://screen/01a07403-c800-7c2c-9805-003afaf97b91",
+    "schematify://screen/01a07403-c800-70aa-aa49-ff75252f66e7"
+  ]
+}

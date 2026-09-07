@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7ebb-a9e9-416f0525893f",
+  "slug": "settings-logic",
+  "kind": "module",
+  "title": "Settings State and Appearance",
+  "description": "The useSettings hook that manages settings state and subscriptions to backend changes, plus utilities for appearance-related settings.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-799f-a747-a362c74e823d",
+  "allowed_libraries": [
+    "01a07403-c800-7316-86fd-2d4d6903c4f5"
+  ],
+  "ui_refs": []
+}

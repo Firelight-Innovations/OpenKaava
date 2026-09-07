@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7096-a08d-4dc53e581857",
+  "slug": "executable-validation-is-image",
+  "kind": "contract-method",
+  "title": "Validate PE Header",
+  "description": "Whether the file at path is a Windows PE image CreateProcess will accept.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77da-aa46-7c6a5eb0946a",
+  "signature": "pub fn is_image(path: &Path) -> bool",
+  "params": [
+    "path"
+  ],
+  "returns": "bool",
+  "errors": [],
+  "semantics": "Conservative check: returns false for files that cannot be read or lack valid PE headers.",
+  "exported": false
+}

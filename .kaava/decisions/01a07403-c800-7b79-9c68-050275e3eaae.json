@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7b79-9c68-050275e3eaae",
+  "kind": "decision",
+  "slug": "DEC-TEC-TERM-002",
+  "title": "Terminal session split into identity (TerminalSource) and bytes (TerminalTransport)",
+  "context": "A terminal session has two separate concerns: which terminals exist, their names, and which window's panel holds one (shared state); versus which PTY's output goes where and the emulator's keystrokes back (per-session, high-volume).",
+  "decision": "Create two separate interfaces: TerminalSource for identity/lifetime (Rust-owned, projected from shell:state), and TerminalTransport for bytes (one per session, per-emulator).",
+  "consequences": "Allows a single interception point at the transport seam in Rust. Enables tracking what a coding harness did and injecting input without cooperation from every component.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

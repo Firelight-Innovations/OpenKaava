@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-72b7-95f8-682301adf593",
+  "slug": "anatomy",
+  "kind": "module",
+  "title": "Node Anatomy",
+  "description": "Pure computation of node structure per PRD §12.6–12.8: badges, counts, captions, content layout. Every decision this file makes is testable without DOM; SchematicCanvas.tsx only maps the result onto markup.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [
+    "01a07403-c800-7624-8f42-daeadd0fe87a"
+  ],
+  "ui_refs": []
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f9c-a3be-d43a196bc723",
+  "slug": "tauri-2",
+  "kind": "external-dep",
+  "title": "Tauri Framework",
+  "description": "Rust bindings for the Tauri desktop application framework. Provides AppHandle, Manager/Emitter traits, command macros, state management, and window/webview APIs.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "Used across all modules for app handle, state management, event emission, and command registration"
+}

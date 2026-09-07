@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-718b-950b-d6531cbf0349",
+  "slug": "context-ui",
+  "kind": "external-dep",
+  "title": "React",
+  "description": "React hooks and components for context menu and notice bar UI",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e9-befc-346f4e5d66bd",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "Component rendering for context menus and notice bars"
+}

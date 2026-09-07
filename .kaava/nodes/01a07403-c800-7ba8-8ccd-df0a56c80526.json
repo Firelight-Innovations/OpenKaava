@@ -1,0 +1,26 @@
+{
+  "id": "01a07403-c800-7ba8-8ccd-df0a56c80526",
+  "slug": "update-manifest-build-manifest",
+  "kind": "contract-method",
+  "title": "buildManifest",
+  "description": "Generates an update manifest JSON for Tauri's update server.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71ec-ad11-9f4d2a3ee4d1",
+  "signature": "buildManifest({tag, signed, notes?, pubDate?}): object",
+  "params": [
+    "tag: git tag like 'v0.2.0'",
+    "signed: array of {file, signature}",
+    "notes: optional release notes",
+    "pubDate: optional publication date"
+  ],
+  "returns": "manifest object with version, pub_date, and platforms with url and signature",
+  "errors": [
+    "Error if no signed installers provided",
+    "Error if two installers of same kind claim same platform"
+  ],
+  "semantics": "Assembles a release manifest for Tauri's updater, requiring signed binaries to prevent silent update failures.",
+  "exported": false
+}

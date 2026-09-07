@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-739b-89bb-1ec33e7057f8",
+  "slug": "serde-json-run",
+  "kind": "external-dep",
+  "title": "JSON Artifact Format",
+  "description": "JSON parsing of kaava-bench-v1 run artifacts.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d68-a4ef-925e3f0b6586",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "Parses and validates run artifact JSON schema"
+}

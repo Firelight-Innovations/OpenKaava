@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7756-aeed-a64fc136937e",
+  "slug": "plugin-catalog-every-repo-valid",
+  "kind": "test-case",
+  "title": "Catalog: Valid Repo Format",
+  "description": "Every repo field is owner/name with both halves non-empty.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78c4-8878-c792de8f7f2c",
+  "given": "All catalog entries",
+  "when": "repo field split on '/'",
+  "then": "Returns exactly 2 non-empty parts",
+  "impl_ref": "src-tauri/src/plugins/catalog.rs::every_repo_is_owner_slash_name",
+  "status": "declared",
+  "last_result_ms": null
+}

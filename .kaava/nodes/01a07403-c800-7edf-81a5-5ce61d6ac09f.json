@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7edf-81a5-5ce61d6ac09f",
+  "slug": "shell-contract-tool-presentation",
+  "kind": "contract-method",
+  "title": "toolPresentation",
+  "description": "Map a ResolvedTool to its user-facing presentation.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a2b-9c3f-6e98ac6d152b",
+  "signature": "function toolPresentation(tool: ResolvedTool): ToolPresentation",
+  "params": [
+    "tool"
+  ],
+  "returns": "ToolPresentation",
+  "errors": [],
+  "semantics": "Hides version strings and maps backend health states to labels.",
+  "exported": true
+}

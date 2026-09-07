@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-70ad-b86f-179425b3fa43",
+  "slug": "layout-a-split-of-same-direction-is-flattened",
+  "kind": "test-case",
+  "title": "Nested Split Flattening",
+  "description": "Verify that nested splits of the same direction are flattened to reduce tree depth.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ff9-963f-4bb8df82714f",
+  "given": "A column inside a column",
+  "when": "Pruning the tree",
+  "then": "The nested structure is flattened into a single column",
+  "impl_ref": "src-tauri/src/layout.rs::a_split_of_the_same_direction_is_flattened_into_its_parent",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7c79-81cf-6cfac0c664c6",
+  "kind": "decision",
+  "slug": "DEC-TEC-WIN-012",
+  "title": "Window labels are opaque (win-<n>) not semantic (tool-<id>), capabilities scoped by label pattern",
+  "context": "Semantic labels like tool-<id> made 'one window per tool' true by construction but required detection logic when detaching.",
+  "decision": "Labels minted by ShellState as win-<n>, carrying no meaning. Capabilities scoped with glob patterns matching these labels.",
+  "consequences": "Window with no matching capability glob gets no permissions, silently failing to initialize. Glob and label generation must change together.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7ff3-b570-196736567950",
+  "slug": "report-rendering-render-json-round-trips",
+  "kind": "test-case",
+  "title": "JSON Report Round-trips",
+  "description": "JSON report output is valid JSON with summary and outcomes arrays.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "given": "an empty ReconcileRun",
+  "when": "render_json is called and parsed as JSON",
+  "then": "contains summary and outcomes objects",
+  "impl_ref": "crates/schematify-reconcile/src/report.rs::render_json_round_trips",
+  "status": "declared",
+  "last_result_ms": null
+}

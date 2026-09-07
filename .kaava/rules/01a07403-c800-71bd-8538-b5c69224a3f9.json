@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-71bd-8538-b5c69224a3f9",
+  "slug": "region-isolation",
+  "statement": "Shell regions may not import other regions' source code directly.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm lint"
+}

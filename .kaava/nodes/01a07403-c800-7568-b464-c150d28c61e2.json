@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7568-b464-c150d28c61e2",
+  "slug": "validators",
+  "kind": "module",
+  "title": "Literal Color Regression Test",
+  "description": "Regression test verifying that no literal hex, functional color, or named-color values appear in TypeScript and CSS files outside tokens.css, enforcing the design token constraint that PRD §17 Wave 2 names as an acceptance condition.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

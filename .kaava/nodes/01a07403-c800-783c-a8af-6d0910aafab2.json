@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-783c-a8af-6d0910aafab2",
+  "slug": "update-manifest-build-manifest-nsis-priority",
+  "kind": "test-case",
+  "title": "buildManifest picks NSIS",
+  "description": "Selects NSIS setup over MSI when both claim the same platform.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71ec-ad11-9f4d2a3ee4d1",
+  "given": "Signed binaries with both NSIS and MSI for windows-x86_64",
+  "when": "buildManifest() is called with either order",
+  "then": "always uses the NSIS setup.exe URL in the manifest",
+  "impl_ref": "scripts/update-manifest.test.mjs::picks the NSIS setup",
+  "status": "declared",
+  "last_result_ms": null
+}

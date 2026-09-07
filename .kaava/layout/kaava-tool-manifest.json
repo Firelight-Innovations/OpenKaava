@@ -1,0 +1,18 @@
+{
+  "schematic": "kaava-tool-manifest",
+  "zoom": 1,
+  "pan": [
+    0,
+    0
+  ],
+  "nodes": {
+    "01a07403-c800-71f8-9598-ec40e29ada11": {
+      "x": 80,
+      "y": 80,
+      "w": 240,
+      "h": 140,
+      "collapsed": false
+    }
+  },
+  "groups": {}
+}

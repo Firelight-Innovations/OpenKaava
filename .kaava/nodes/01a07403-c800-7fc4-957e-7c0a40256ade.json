@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7fc4-957e-7c0a40256ade",
+  "slug": "uuid-storage",
+  "kind": "external-dep",
+  "title": "UUID Type",
+  "description": "UUID references when persisting and retrieving entities.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-786a-927d-06cc6a4b0332",
+  "registry_ref": "01a07403-c800-71e9-a09e-d51d7c34d3cc",
+  "usage_note": "Uuid used in store operations for entity identification"
+}

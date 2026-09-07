@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7223-b3b6-60ec37fe924f",
+  "slug": "dependency-audit",
+  "statement": "All Rust dependencies must pass license and security advisory checks.",
+  "severity": "error",
+  "audit": [],
+  "command": "cargo deny check"
+}

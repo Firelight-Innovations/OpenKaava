@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7007-b359-37fde32cdbf4",
+  "kind": "screen",
+  "slug": "schematify-runs",
+  "title": "Runs Panel",
+  "purpose": "Dock tab displaying test/workflow run history with status and metadata",
+  "states": [
+    "loading",
+    "empty",
+    "populated",
+    "error"
+  ],
+  "acceptance": [
+    "shall display columns: RUN, MODULE, WHEN, COMMIT, WORKFLOW, INGEST STATE",
+    "shall show run numbers and timestamps",
+    "shall support clicking to navigate to module dashboard",
+    "shall display project-wide runs regardless of current tier",
+    "shall show error if runs cannot be loaded"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-743f-ae55-0cbaeb91a62a"
+  ]
+}

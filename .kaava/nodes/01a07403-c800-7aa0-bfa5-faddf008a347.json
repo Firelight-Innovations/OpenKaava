@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7aa0-bfa5-faddf008a347",
+  "slug": "app-chrome",
+  "kind": "module",
+  "title": "Shared App Shell Styling",
+  "description": "Common styling for the Chrome frame of all first-party apps, including scrollbars, headers, rows, and error display components.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e68-ba1f-cc74581e910a",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

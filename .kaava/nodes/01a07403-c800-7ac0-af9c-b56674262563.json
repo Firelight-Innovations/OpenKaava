@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7ac0-af9c-b56674262563",
+  "slug": "host-serde-json",
+  "kind": "external-dep",
+  "title": "Serde JSON for Values",
+  "description": "JSON value type for RPC method parameters and results passed through ToolProcess calls.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-762d-94d0-4cb8287084c4",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "Parameter and result handling in call() and call_timeout() methods"
+}

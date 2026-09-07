@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-74fa-ac71-696dce9f5cb2",
+  "slug": "routing-port-arrival",
+  "kind": "test-case",
+  "title": "routeEdge leaves out port and arrives at in port",
+  "description": "First point is out port of from, last is in port of to.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7afd-b0e6-03ee26345279",
+  "given": "from and to rectangles",
+  "when": "routeEdge is called",
+  "then": "first point is from's out port, last point is to's in port",
+  "impl_ref": "apps/schematify/ui/src/engine/routing.test.ts::orthogonal routing leaves the out port and arrives at the in port",
+  "status": "declared",
+  "last_result_ms": null
+}

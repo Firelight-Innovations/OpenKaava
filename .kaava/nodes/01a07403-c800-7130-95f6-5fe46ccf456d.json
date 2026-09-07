@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7130-95f6-5fe46ccf456d",
+  "slug": "registry-developer-only-absent-until-mode-on",
+  "kind": "test-case",
+  "title": "Developer-Only Server Absent by Default",
+  "description": "A developer-only server is not listed or routed until developer mode is on.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74ba-abfe-06dbc4c59dec",
+  "given": "A registry with a dev_only server registered",
+  "when": "dev_mode is false",
+  "then": "The server is absent from list, enabled_ids, and tools; present when dev_mode is true",
+  "impl_ref": "src-tauri/src/mcp/registry.rs::a_developer_only_server_is_absent_until_developer_mode_is_on",
+  "status": "declared",
+  "last_result_ms": null
+}

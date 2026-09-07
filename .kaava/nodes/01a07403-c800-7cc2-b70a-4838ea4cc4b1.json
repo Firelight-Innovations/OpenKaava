@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7cc2-b70a-4838ea4cc4b1",
+  "slug": "dashboard-header",
+  "kind": "doc-block",
+  "title": "Module Dashboard Data",
+  "description": "The dashboard module documentation on hand-built JSON shapes and display formatting.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cc3-bea1-6e72e54f057f",
+  "body": "The Module dashboard's own data (PRD §12.13, S-12) and the Runs dock tab's (PRD §12.2, S-14) — everything both surfaces draw. Both wire shapes are hand-built JSON on the Rust side, already camelCase, so the Raw* types are stated in full rather than projected.",
+  "audience": "both"
+}

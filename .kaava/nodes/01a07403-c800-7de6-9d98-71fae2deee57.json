@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7de6-9d98-71fae2deee57",
+  "slug": "problems-test-project-findings",
+  "kind": "test-case",
+  "title": "projectFindings renames node_cell to nodeCell",
+  "description": "Verifies the field rename and order preservation.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74e7-acd1-ffea4dddd156",
+  "given": "A raw lint report with 2 findings",
+  "when": "projectFindings is called",
+  "then": "Returns findings with nodeCell instead of node_cell, in the same order",
+  "impl_ref": "apps/schematify/ui/src/graph/problems.test.ts::renames node_cell to nodeCell and passes every other field through",
+  "status": "declared",
+  "last_result_ms": null
+}

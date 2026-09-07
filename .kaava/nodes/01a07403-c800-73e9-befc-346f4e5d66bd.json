@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-73e9-befc-346f4e5d66bd",
+  "slug": "context-ui",
+  "kind": "module",
+  "title": "Context Menu and Notice Bar",
+  "description": "UI components for right-click context menus and confirmation notice bars, with associated styling.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-724f-ac20-c392624f0d9e",
+  "allowed_libraries": [
+    "01a07403-c800-7bd1-a062-9c1c49e747dc"
+  ],
+  "ui_refs": []
+}

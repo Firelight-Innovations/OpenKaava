@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d96-8fb8-ba7ec012b615",
+  "slug": "listener-tokens-do-not-repeat",
+  "kind": "test-case",
+  "title": "Tokens Are Unique",
+  "description": "Each call to mint_token produces a different token.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7086-80ae-e8b05191e7a8",
+  "given": "Two calls to mint_token",
+  "when": "The tokens are compared",
+  "then": "They are different and at least 40 characters long",
+  "impl_ref": "src-tauri/src/mcp/listener.rs::tokens_do_not_repeat",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-79c0-86e9-4d22e90f00f9",
+  "kind": "decision",
+  "slug": "DEC-SCH-ARCH-001",
+  "title": "Storage root is .kaava/ directory, not sdd/",
+  "context": "Earlier wireframe status bar showed `sdd/` as the storage root. This is the actual directory name used.",
+  "decision": "The storage root for all Schematify project data is `.kaava/` not `sdd/`. This aligns with the project-manifest convention (`<name>.kaava` files) and distinguishes it from the stack-level manifest `kaava.toml`.",
+  "consequences": "Directory naming is consistent with the project manifest naming; `.kaava` is clearly a project-scoped directory; wave 2 updates the status bar to draw `.kaava/` instead of `sdd/`.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

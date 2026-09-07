@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7173-8455-733e4799dfc5",
+  "slug": "plugin-catalog-entries",
+  "kind": "contract-method",
+  "title": "Get Library Catalog",
+  "description": "Return all apps compiled into the build from catalog.toml.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78c4-8878-c792de8f7f2c",
+  "signature": "pub fn entries() -> &'static [Entry]",
+  "params": [],
+  "returns": "&'static [Entry]",
+  "errors": [],
+  "semantics": "Parsed once on first call; returns empty on parse error.",
+  "exported": false
+}

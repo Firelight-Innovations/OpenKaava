@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-73fb-8e8a-a094c19cdf8a",
+  "slug": "context-menu-pointer-placement",
+  "kind": "test-case",
+  "title": "Menu Hangs From Pointer When Fits",
+  "description": "Verifies menu is positioned at pointer when enough space available.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Point (100, 100) with 1000x800 viewport and 200x160 menu",
+  "when": "placeMenu() called",
+  "then": "Returns (100, 100)",
+  "impl_ref": "src/shell/contextMenu.test.ts::placeMenu hangs from the pointer when there is room",
+  "status": "declared",
+  "last_result_ms": null
+}

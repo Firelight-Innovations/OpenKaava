@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7c3a-906e-331eb8f52eb9",
+  "slug": "scanner-tree-walk-tests",
+  "kind": "budget",
+  "title": "Scanner Tree Walk Tests",
+  "description": "Tests for multi-language scanning, gitignore respect, binary handling.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-781b-85ef-56660694446e",
+  "metric": "test_count",
+  "op": ">=",
+  "value": 6,
+  "unit": "tests",
+  "tier": "soft",
+  "probe": {
+    "command": "pnpm test:rust",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

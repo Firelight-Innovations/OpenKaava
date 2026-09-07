@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7486-ae7a-447bb84f2c1e",
+  "slug": "editor-state",
+  "kind": "module",
+  "title": "Editor State",
+  "description": "Global state tracking the active text editor instance for coordinating menu commands and save operations.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7027-b3d8-9a1e046e1067",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

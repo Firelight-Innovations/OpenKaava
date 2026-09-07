@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7005-96f7-7ddd5e65ad9b",
+  "slug": "protocol-is-command-message",
+  "kind": "contract-method",
+  "title": "isCommandMessage",
+  "description": "Type guard for a menu command from the shell.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e50-b9bf-2c07534a4168",
+  "signature": "isCommandMessage(msg: IncomingMessage): msg is CommandMessage",
+  "params": [
+    "msg: IncomingMessage"
+  ],
+  "returns": "boolean",
+  "errors": [],
+  "semantics": "Narrows a message to CommandMessage type.",
+  "exported": false
+}

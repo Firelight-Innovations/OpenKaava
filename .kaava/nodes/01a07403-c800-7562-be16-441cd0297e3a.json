@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7562-be16-441cd0297e3a",
+  "slug": "backend-plugins-verify-fast",
+  "kind": "budget",
+  "title": "Fast Verification (Development)",
+  "description": "Typecheck, test, and lint without bundling for inner-loop development.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "metric": "execution time",
+  "op": "<=",
+  "value": 17,
+  "unit": "seconds",
+  "tier": "soft",
+  "probe": {
+    "command": "pnpm verify:fast",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

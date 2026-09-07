@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-74ca-899f-c0bc10297baf",
+  "slug": "worktree-logic-format-null-counts",
+  "kind": "test-case",
+  "title": "Line Counts: Binary File",
+  "description": "Tests that null counts for binary files return null.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71fe-af1c-0dcd2dfd9607",
+  "given": "null insertions and null deletions",
+  "when": "formatLineCounts is called",
+  "then": "Returns null",
+  "impl_ref": "src/shell/worktree/lineCounts.test.ts::formatLineCounts::prints nothing for a change with no counts",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,7 @@
+{
+  "id": "01a07403-c800-7eb0-8da4-09e19c8ec4b4",
+  "slug": "contract-changes-in-pr-description",
+  "statement": "Pull requests touching docs/tool-protocol.md, src/bindings.ts, or src/shell/contract.ts must note this explicitly in the PR description.",
+  "severity": "review",
+  "audit": []
+}

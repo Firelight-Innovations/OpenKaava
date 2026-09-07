@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-796c-a91c-eec055320a10",
+  "slug": "files-serde-json",
+  "kind": "external-dep",
+  "title": "serde_json",
+  "description": "JSON serialization for method parameters and directory listings, file metadata, and git status results.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d29-9b02-357f7f4c18c2",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "Value type for parameters; json! macro for building file tree and status responses"
+}

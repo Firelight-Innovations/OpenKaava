@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f60-8b52-93b7aa15886d",
+  "slug": "presets-tier-presets",
+  "kind": "contract-method",
+  "title": "TIER_PRESETS",
+  "description": "Tier configuration lookup by name.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7919-b359-e87ddc820cbc",
+  "signature": "const TIER_PRESETS: Record<Tier, SchematicConfig>",
+  "params": [],
+  "returns": "Record<Tier, SchematicConfig>",
+  "errors": [],
+  "semantics": "Single-point lookup for any tier's configuration.",
+  "exported": true
+}

@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7586-bef7-dd89ffbf9491",
+  "slug": "branding-system-read-branding",
+  "kind": "contract-method",
+  "title": "readBranding",
+  "description": "Reads and parses branding.toml, resolving asset paths to absolute locations.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7876-8372-05eaf7de8be6",
+  "signature": "readBranding(): { product: object, assets: object, assetPaths: object }",
+  "params": [],
+  "returns": "object with product table, assets table, and resolved assetPaths",
+  "errors": [
+    "Error if branding.toml is missing required tables or keys",
+    "Error if asset files do not exist"
+  ],
+  "semantics": "Reads and validates branding.toml, providing the single source of truth for product name, wordmark, and asset locations.",
+  "exported": false
+}

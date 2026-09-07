@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7dc9-ab90-e157c6e85aec",
+  "kind": "decision",
+  "slug": "DEC-TEC-PANE-009",
+  "title": "Cluster is a place in the switcher bar, not a filter",
+  "context": "Switching cluster tabs must swap the pane tree, the project underneath it, and the terminals in the band below—the whole workspace.",
+  "decision": "One tab in the switcher per cluster. Switching cluster swaps everything: pane tree, project, terminals. A terminal dragged into the layout moves into a pane tab; the band stops listing it.",
+  "consequences": "Membership is exclusive: a surface is either in the tree or listed in the band, not both. Built fresh from shell:state on every render.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

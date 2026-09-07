@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-739c-a4ff-db07cc75dd36",
+  "kind": "screen",
+  "slug": "shortcuts-screen",
+  "title": "Keyboard Shortcuts Screen",
+  "purpose": "Read-only reference display of all keyboard shortcuts organized by category",
+  "states": [
+    "closed - shortcuts not open",
+    "open - shortcuts displayed in modal"
+  ],
+  "acceptance": [
+    "shall display as modal overlay with backdrop",
+    "shall organize shortcuts into logical groups",
+    "shall show action description on left, key binding on right",
+    "shall display all shell-level shortcuts",
+    "shall note that focused surface shortcuts take precedence",
+    "shall be read-only (no rebinding)",
+    "shall close on Escape or close button",
+    "shall close on backdrop click"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7330-b3fb-c4b513350eab",
+    "schematify://node/01a07403-c800-7755-81bd-95e5849f8e41"
+  ]
+}

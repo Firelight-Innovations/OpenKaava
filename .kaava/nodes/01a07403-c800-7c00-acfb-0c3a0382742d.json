@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c00-acfb-0c3a0382742d",
+  "slug": "entry-point-root-render",
+  "kind": "contract-method",
+  "title": "React Root Render",
+  "description": "Entry point that mounts the React app into the #root DOM element with StrictMode.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754b-b02b-d0ca4aeda476",
+  "signature": "ReactDOM.createRoot(...).render(...)",
+  "params": [],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Initializes React and renders the App component, importing shared tokens and shell styling at app scope.",
+  "exported": false
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7742-a982-d400c63cb07a",
+  "slug": "product-sortdecisions-function",
+  "kind": "contract-method",
+  "title": "Decision Sorter",
+  "description": "Returns decisions sorted active-first, then by date descending within each status group.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "signature": "sortDecisions(decisions: readonly RawDecision[]) => RawDecision[]",
+  "params": [
+    "decisions: readonly RawDecision[]"
+  ],
+  "returns": "RawDecision[]",
+  "errors": [],
+  "semantics": "Sorts decisions so active rows appear before superseded rows, and within each group newest dates first, without mutating input.",
+  "exported": true
+}

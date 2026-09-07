@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-70e9-8fb7-50d8be9843d8",
+  "slug": "build-config",
+  "kind": "module",
+  "title": "Build and Development Configuration",
+  "description": "Root-level configuration for bundling, type checking, and tooling: Vite for both dev and release builds, TypeScript compiler, and build-time settings.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [
+    "01a07403-c800-7ca0-89a4-a4db7b2773a6",
+    "01a07403-c800-75f9-bc0f-17bc1fb90b8b"
+  ],
+  "ui_refs": []
+}

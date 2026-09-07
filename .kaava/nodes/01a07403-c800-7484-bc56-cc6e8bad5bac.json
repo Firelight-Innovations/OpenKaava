@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7484-bc56-cc6e8bad5bac",
+  "slug": "store-moved-switch-survives-round-trip",
+  "kind": "test-case",
+  "title": "Switch State Persists",
+  "description": "A changed server switch is written to disk and read back.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7764-9af2-41487069c40b",
+  "given": "A Stored with switched=[('ui', true), ('echo', false)]",
+  "when": "The Stored is serialized and deserialized",
+  "then": "The switched map is identical",
+  "impl_ref": "src-tauri/src/mcp/store.rs::a_moved_switch_survives_a_round_trip_through_the_file_format",
+  "status": "declared",
+  "last_result_ms": null
+}

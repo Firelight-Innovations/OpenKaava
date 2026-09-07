@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7897-836f-4ed38dc5974f",
+  "slug": "ui-hostile-argument-encoded",
+  "kind": "test-case",
+  "title": "Arguments Are Safe",
+  "description": "Tool arguments are encoded so they cannot break out of string context.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c60-bf87-a6ce55a2f177",
+  "given": "An argument containing quotes and JavaScript",
+  "when": "script is called",
+  "then": "The argument is encoded, not interpolated",
+  "impl_ref": "src-tauri/src/mcp/servers/ui.rs::a_hostile_argument_is_encoded_rather_than_interpolated",
+  "status": "declared",
+  "last_result_ms": null
+}

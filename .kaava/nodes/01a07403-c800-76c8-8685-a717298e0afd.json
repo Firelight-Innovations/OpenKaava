@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-76c8-8685-a717298e0afd",
+  "slug": "identity-check-problems",
+  "kind": "contract-method",
+  "title": "problems",
+  "description": "Reports all disagreements between file surfaces and the pinned identity.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ef5-b5fd-cb82e357bc20",
+  "signature": "problems(sources, identity?: object, supersededProducts?: string[]): string[]",
+  "params": [
+    "sources: file texts keyed by path",
+    "identity: optional identity object",
+    "supersededProducts: optional array of old names"
+  ],
+  "returns": "array of problem descriptions",
+  "errors": [],
+  "semantics": "Pure function that audits bundle identifier, product name, and installer configuration across five files for consistency.",
+  "exported": false
+}

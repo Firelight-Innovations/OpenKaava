@@ -1,0 +1,548 @@
+{
+  "libraries": [
+    {
+      "id": "01a07403-c800-7272-b14e-7c8acbd51d6d",
+      "name": "@eslint/js",
+      "version": "^10.0.1",
+      "license": "MIT",
+      "rationale": "Provides ESLint's JavaScript language implementation for code linting",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7476-a67f-cac408951991",
+      "name": "@fontsource/ibm-plex-mono",
+      "version": "^5.3.0",
+      "license": "OFL-1.1",
+      "rationale": "Self-hosted IBM Plex Mono font for monospace code display in the terminal",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-72c2-ac71-ee3fda1c43e6",
+      "name": "@fontsource/ibm-plex-sans",
+      "version": "^5.3.0",
+      "license": "OFL-1.1",
+      "rationale": "Self-hosted IBM Plex Sans font for UI text rendering",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7316-86fd-2d4d6903c4f5",
+      "name": "@tauri-apps/api",
+      "version": "^2",
+      "license": "Apache-2.0 OR MIT",
+      "rationale": "JavaScript bindings for Tauri desktop application framework APIs",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7a46-9a35-d2626145387e",
+      "name": "@tauri-apps/cli",
+      "version": "^2",
+      "license": "Apache-2.0 OR MIT",
+      "rationale": "Command-line interface for building, signing and publishing Tauri applications",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7e82-88b5-711699401b80",
+      "name": "@tauri-apps/plugin-opener",
+      "version": "^2",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "Tauri plugin for opening files and URLs with system default applications",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7b34-bbfd-7301265f95ec",
+      "name": "@testing-library/dom",
+      "version": "^10.4.1",
+      "license": "MIT",
+      "rationale": "DOM testing utilities that provide query methods for testing UI components",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7a4a-8729-43f73c1d2e4d",
+      "name": "@testing-library/react",
+      "version": "^16.3.3",
+      "license": "MIT",
+      "rationale": "React testing utilities built on top of @testing-library/dom",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7ab6-8d12-63bfca9f5de2",
+      "name": "@types/react",
+      "version": "^19.1.8",
+      "license": "MIT",
+      "rationale": "TypeScript type definitions for React library",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7eba-b8d6-26ef69ac3f88",
+      "name": "@types/react-dom",
+      "version": "^19.1.6",
+      "license": "MIT",
+      "rationale": "TypeScript type definitions for React DOM",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-75f9-bc0f-17bc1fb90b8b",
+      "name": "@vitejs/plugin-react",
+      "version": "^4.6.0",
+      "license": "MIT",
+      "rationale": "Vite plugin providing React JSX transformation and HMR support",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7e76-b9a7-a6b48c92fb34",
+      "name": "@xterm/addon-fit",
+      "version": "^0.11.0",
+      "license": "MIT",
+      "rationale": "XTerm.js addon for fitting terminal to container element size",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7c77-8a9e-694ca2035cda",
+      "name": "@xterm/addon-webgl",
+      "version": "^0.19.0",
+      "license": "MIT",
+      "rationale": "XTerm.js addon for WebGL-accelerated terminal rendering performance",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7b36-9dd4-94369ecae6ff",
+      "name": "@xterm/xterm",
+      "version": "^6.0.0",
+      "license": "MIT",
+      "rationale": "Web-based terminal emulator used for the orchestrator shell interface",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7262-88f7-03782eda6fd4",
+      "name": "eslint",
+      "version": "^9.39.5",
+      "license": "MIT",
+      "rationale": "JavaScript linter for enforcing code quality and style consistency",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-75e8-b274-b8730d0fc8ce",
+      "name": "eslint-plugin-react-hooks",
+      "version": "^7.1.1",
+      "license": "MIT",
+      "rationale": "ESLint plugin for enforcing React hooks best practices and rules",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7417-a580-5d7e987102ee",
+      "name": "framer-motion",
+      "version": "^13.1.0",
+      "license": "MIT",
+      "rationale": "Animation library for creating smooth transitions and interactions in React UI",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7dc7-9a18-9f2fd722576a",
+      "name": "globals",
+      "version": "^17.11.0",
+      "license": "MIT",
+      "rationale": "Provides global variable names for ESLint configuration",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7521-b667-8c258ec94e60",
+      "name": "jsdom",
+      "version": "^29.1.1",
+      "license": "MIT",
+      "rationale": "JavaScript implementation of web standards enabling DOM testing in Node.js",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7592-a876-abf51bca0b1b",
+      "name": "material-icon-theme",
+      "version": "^5.37.0",
+      "license": "MIT",
+      "rationale": "Material Design icon theme for file and folder icons in the Files application",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7c20-aa33-06c32d5f2584",
+      "name": "mermaid",
+      "version": "^11.16.1",
+      "license": "MIT",
+      "rationale": "Markdown-inspired syntax for rendering diagrams and flowcharts in the UI",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7009-8eef-cc81f6cacfda",
+      "name": "monaco-editor",
+      "version": "^0.56.0",
+      "license": "MIT",
+      "rationale": "VS Code's Monaco editor component used for source code editing in applications",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7925-9af2-8fa48bcdefc7",
+      "name": "pdfjs-dist",
+      "version": "^6.2.108",
+      "license": "Apache-2.0",
+      "rationale": "PDF.js library for rendering and displaying PDF documents in the browser",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-72a4-9e27-df4cb4d6d471",
+      "name": "prettier",
+      "version": "^3.9.6",
+      "license": "MIT",
+      "rationale": "Code formatter for JavaScript, TypeScript and other languages",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+      "name": "react",
+      "version": "^19.1.0",
+      "license": "MIT",
+      "rationale": "React library for building interactive user interfaces with components",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7ea4-bc03-11fc58b51a7e",
+      "name": "react-dom",
+      "version": "^19.1.0",
+      "license": "MIT",
+      "rationale": "React DOM bindings for rendering React components to the web",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-72d7-9235-43107b1328ff",
+      "name": "typescript",
+      "version": "~5.8.3",
+      "license": "Apache-2.0",
+      "rationale": "TypeScript compiler for static type checking and transpilation",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7d30-baf0-cc947e02d606",
+      "name": "typescript-eslint",
+      "version": "^8.67.0",
+      "license": "MIT",
+      "rationale": "ESLint support for TypeScript with type-aware linting capabilities",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7ca0-89a4-a4db7b2773a6",
+      "name": "vite",
+      "version": "^7.0.4",
+      "license": "MIT",
+      "rationale": "Frontend build tool and dev server providing fast HMR for development",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7624-8f42-daeadd0fe87a",
+      "name": "vitest",
+      "version": "^4.1.10",
+      "license": "MIT",
+      "rationale": "Unit testing framework powered by Vite for JavaScript and TypeScript",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-75dd-b05c-6d3f11053668",
+      "name": "serde",
+      "version": "1",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "Serialization framework with derive macro for JSON-RPC and TOML parsing",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7565-ae9d-23b929975082",
+      "name": "serde_json",
+      "version": "1",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "JSON serialization and deserialization for RPC payloads and configuration",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7994-a954-210071677424",
+      "name": "toml",
+      "version": "0.9",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "TOML parsing for kaava-tool.toml manifest files and workspace configuration",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7565-98ec-498cf9d20d06",
+      "name": "thiserror",
+      "version": "2",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "Ergonomic error enum derives for RPC and application error handling",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7aa2-b3b9-6a78efea577b",
+      "name": "semver",
+      "version": "1",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "Parsing and comparing pinned component versions for compatibility checks",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-71e9-a09e-d51d7c34d3cc",
+      "name": "uuid",
+      "version": "1",
+      "license": "Apache-2.0 OR MIT",
+      "rationale": "UUID v7 generation and parsing for Schematify's design graph identity scheme",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7dd7-be0c-9b86a48f6b68",
+      "name": "getrandom",
+      "version": "0.3",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "Random seed provider for UUID v7 monotonicity within one millisecond",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-742b-8645-f7e1a4004134",
+      "name": "tempfile",
+      "version": "3",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "Temporary directory allocation for storage tests across workspace crates",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7df3-b4c3-01cc60947d13",
+      "name": "tauri-build",
+      "version": "2",
+      "license": "Apache-2.0 OR MIT",
+      "rationale": "Build configuration for Tauri desktop application packaging",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-736a-801a-ea4485c6faff",
+      "name": "tauri",
+      "version": "2",
+      "license": "Apache-2.0 OR MIT",
+      "rationale": "Core framework for cross-platform Tauri desktop application",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-762c-994e-83e7a83b758a",
+      "name": "tauri-plugin-opener",
+      "version": "2",
+      "license": "Apache-2.0 OR MIT",
+      "rationale": "Native URL and file opening capability for external resource launches",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7f7e-b097-5a138e1fdd97",
+      "name": "tauri-plugin-single-instance",
+      "version": "2",
+      "license": "Apache-2.0 OR MIT",
+      "rationale": "Enforces single process instance and routes context menu launches to existing window",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7f2e-ba89-af9f52c05df1",
+      "name": "tauri-plugin-updater",
+      "version": "2",
+      "license": "Apache-2.0 OR MIT",
+      "rationale": "In-app updater with minisign verification of release artifacts",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7f9e-ae96-9554a3601dfd",
+      "name": "rfd",
+      "version": "0.16",
+      "license": "MIT",
+      "rationale": "Native folder picker for Home app's New/Open Project without dialog capability exposure",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7299-afdf-128e540beb73",
+      "name": "base64",
+      "version": "0.22",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "Base64 encoding for binary file content passed through JSON-RPC",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-71cb-9624-807c89e2bfc2",
+      "name": "portable-pty",
+      "version": "0.9.0",
+      "license": "MIT",
+      "rationale": "PTY allocation for terminal emulation within the orchestrator",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7ef4-9667-f02d960db124",
+      "name": "sysinfo",
+      "version": "0.39.6",
+      "license": "MIT",
+      "rationale": "System information retrieval for process and resource management",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7cac-8eb3-d31b3948c693",
+      "name": "trash",
+      "version": "5.2.6",
+      "license": "MIT",
+      "rationale": "Cross-platform trash/recycle bin support for safe file deletion",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7021-9c05-f9cb856f667c",
+      "name": "ignore",
+      "version": "0.4",
+      "license": "Unlicense OR MIT",
+      "rationale": "Directory walking with .gitignore parsing for content search operations",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7914-856f-66fc1aed5faf",
+      "name": "grep-matcher",
+      "version": "0.1",
+      "license": "Unlicense OR MIT",
+      "rationale": "Pattern matching trait from ripgrep for content search implementation",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7c62-a5d4-66c790dd740a",
+      "name": "grep-regex",
+      "version": "0.1",
+      "license": "Unlicense OR MIT",
+      "rationale": "Regex pattern compilation for ripgrep-based content search",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-767b-81c3-803c3f923674",
+      "name": "grep-searcher",
+      "version": "0.1",
+      "license": "Unlicense OR MIT",
+      "rationale": "File search driver from ripgrep with binary detection for content search",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7e1d-a73a-767f7374fc17",
+      "name": "regex-syntax",
+      "version": "0.8",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "Regex literal escaping for safe query handling in content search",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-765e-b16b-0ba52dbbc710",
+      "name": "rmcp",
+      "version": "3.1",
+      "license": "Apache-2.0",
+      "rationale": "Model Context Protocol server implementation for agent tool hosting",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-732f-b818-f874a7c82aaa",
+      "name": "axum",
+      "version": "0.8",
+      "license": "MIT",
+      "rationale": "HTTP framework for MCP transport routing between servers",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7243-8adc-c1bedafde741",
+      "name": "tokio",
+      "version": "1",
+      "license": "MIT",
+      "rationale": "Async runtime for networking and I/O operations in MCP server",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7c18-a07f-7af333f4e275",
+      "name": "tokio-util",
+      "version": "0.7",
+      "license": "MIT",
+      "rationale": "Utility functions for tokio async runtime integration with MCP transport",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7b4c-8e5d-4a89a068809e",
+      "name": "rand",
+      "version": "0.9",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "Random number generation for MCP listener bearer token creation",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7785-950e-a30371fa8e05",
+      "name": "notify",
+      "version": "8",
+      "license": "CC0-1.0",
+      "rationale": "File system watcher for detecting rebuilt plugin cores without manual restart",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7c54-bbf2-e838fea606f6",
+      "name": "ureq",
+      "version": "3",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "Blocking HTTP client for remote tool installation with native TLS trust store",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7323-8e18-14bf5b293cbf",
+      "name": "zip",
+      "version": "2",
+      "license": "MIT",
+      "rationale": "ZIP archive extraction for tool release assets with deflate codec",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-711c-b767-942de08d837f",
+      "name": "sha2",
+      "version": "0.10",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "Cryptographic checksums for release artifact verification before execution",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7dbc-9d85-c55c6f498ac3",
+      "name": "keyring",
+      "version": "3",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "OS credential store integration for private repository tokens on Windows",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-74f0-a3b8-b425c5ec91c0",
+      "name": "webview2-com",
+      "version": "0.38",
+      "license": "MIT",
+      "rationale": "COM interface to WebView2 for screenshot capture and input injection",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7493-91c1-9fa3dc03ef6d",
+      "name": "windows-core",
+      "version": "0.61",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "Windows system bindings for COM and native API access",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7c18-bffd-876468296845",
+      "name": "windows-sys",
+      "version": "0.61",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "Raw Windows API bindings for SetErrorMode hard error suppression",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7c6f-af7f-96f44dbcc89a",
+      "name": "regex",
+      "version": "1",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "Pattern matching for Schematify reconciliation marker token scanning",
+      "decision": null
+    },
+    {
+      "id": "01a07403-c800-7b04-88fc-0ca4063b4aba",
+      "name": "chrono",
+      "version": "0.4",
+      "license": "MIT OR Apache-2.0",
+      "rationale": "Date and time handling for reconciliation operation timestamps",
+      "decision": null
+    }
+  ]
+}

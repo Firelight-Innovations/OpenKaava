@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-771d-b69e-20253069fd47",
+  "slug": "scanner-binary-file-is-skipped-not-panicked-on",
+  "kind": "test-case",
+  "title": "Skip Binary Files Safely",
+  "description": "Binary files with NUL bytes are recorded as skipped, not treated as errors.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-781b-85ef-56660694446e",
+  "given": "binary file with NUL byte early in content",
+  "when": "scan_tree walks the tree",
+  "then": "occurrences is empty and skipped records binary content",
+  "impl_ref": "crates/schematify-reconcile/src/scan.rs::binary_file_is_skipped_not_panicked_on",
+  "status": "declared",
+  "last_result_ms": null
+}

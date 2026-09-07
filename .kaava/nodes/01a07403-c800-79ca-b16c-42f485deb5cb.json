@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-79ca-b16c-42f485deb5cb",
+  "slug": "ingest-two-validation-checks",
+  "kind": "doc-block",
+  "title": "Two Validation Checks",
+  "description": "Budget matching and run number collision prevention.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b60-9878-90ec5353237e",
+  "body": "Two things ingestion checks before it writes anything, because a run file is audit evidence and PRD section 6.6 forbids losing a reference in silence. First, every budget the artifact reports must match a `budget` node under the scope it is filed against. Second, a run number already on disk is never overwritten; a stale or malformed re-ingestion must not corrupt a run that already landed.",
+  "audience": "both"
+}

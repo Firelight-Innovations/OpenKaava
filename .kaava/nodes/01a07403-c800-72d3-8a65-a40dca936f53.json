@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-72d3-8a65-a40dca936f53",
+  "slug": "diff-review-unsent",
+  "kind": "contract-method",
+  "title": "Filter Unsent Comments",
+  "description": "Returns comments that have not been sent to an agent yet.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "signature": "export function unsent(comments: readonly ReviewComment[]): ReviewComment[]",
+  "params": [
+    "comments: readonly ReviewComment[]"
+  ],
+  "returns": "ReviewComment[]",
+  "errors": [],
+  "semantics": "Filters for comments with no sentAt timestamp, treating resolved-but-unsent as unsent.",
+  "exported": false
+}

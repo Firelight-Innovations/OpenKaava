@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-75bd-95d4-4e893a2baf2a",
+  "slug": "config-users-own-servers-round-trip",
+  "kind": "test-case",
+  "title": "User Servers Preserved",
+  "description": "User-configured servers survive a merge unchanged.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-782d-bdc1-e759c21e6408",
+  "given": "An existing .mcp.json with a user's own server entry",
+  "when": "merge is called with enabled servers",
+  "then": "The user's server URL and all non-kaava keys are untouched",
+  "impl_ref": "src-tauri/src/mcp/config.rs::the_users_own_servers_and_keys_round_trip",
+  "status": "declared",
+  "last_result_ms": null
+}

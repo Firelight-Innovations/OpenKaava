@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7111-8d71-9f6a8d488137",
+  "kind": "decision",
+  "slug": "DEC-SCH-STORE-004",
+  "title": "Nothing is deleted; deprecated nodes are superseded",
+  "context": "Alternative approaches: support deletion; archive old versions; use soft deletes elsewhere in the codebase.",
+  "decision": "Nothing in Schematify is ever deleted. A node with an inbound edge cannot be deleted. Such a node moves to `deprecated` and carries `superseded_by` set to its replacement. This rule applies to nodes, edges, rules, screens, flows, decisions, and registry entries. On a dangling reference, Schematify quarantines the referring node and reports the reference.",
+  "consequences": "Full historical traceability and audit trail; no data loss; dangling references are detected and reported; dependencies become explicit through the supersession chain; the `deprecated` state is visually distinct and prevents accidental use.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

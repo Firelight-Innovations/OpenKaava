@@ -1,0 +1,28 @@
+{
+  "id": "01a07403-c800-76bf-8862-2a0547b02435",
+  "kind": "screen",
+  "slug": "schematify-screen-registry",
+  "title": "Screen Registry",
+  "purpose": "Product section listing all defined screens with creation and editing",
+  "states": [
+    "loading",
+    "empty",
+    "populated",
+    "creating",
+    "editing",
+    "saving",
+    "error"
+  ],
+  "acceptance": [
+    "shall display table of all product screens",
+    "shall show screen title, description, and associated nodes",
+    "shall support creating new screen definitions",
+    "shall support editing existing screens",
+    "shall save screen changes to backend",
+    "shall support jumping to screen from schematic",
+    "shall display error if screens cannot be loaded or saved"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-75a3-aa4b-594b7ec3dd79"
+  ]
+}

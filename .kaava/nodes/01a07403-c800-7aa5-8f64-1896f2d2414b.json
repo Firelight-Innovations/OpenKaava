@@ -1,0 +1,16 @@
+{
+  "id": "01a07403-c800-7aa5-8f64-1896f2d2414b",
+  "slug": "echo-tool",
+  "kind": "service",
+  "title": "Echo Tool",
+  "description": "The reference tool core: the smallest binary that satisfies the OpenKaava tool protocol, and the second consumer of kaava-rpc that proves the crate is not orchestrator-specific.",
+  "lifecycle": "specified",
+  "layer": "external",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": null,
+  "entry_point": "examples/echo-tool/src/main.rs, launched as a child process by the plugin host.",
+  "exports": [],
+  "schemas": null
+}

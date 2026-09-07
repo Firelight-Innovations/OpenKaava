@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7de8-ba6b-0413a4603ed7",
+  "slug": "shell-core-next-zoom",
+  "kind": "contract-method",
+  "title": "nextZoom",
+  "description": "Find the next zoom level in the ladder.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-746a-b0bb-73db6ddd45f1",
+  "signature": "function nextZoom(current: number, direction: 1 | -1): number",
+  "params": [
+    "current",
+    "direction"
+  ],
+  "returns": "number",
+  "errors": [],
+  "semantics": "Returns next zoom stop clamped at ends.",
+  "exported": true
+}

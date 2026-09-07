@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-763d-be2e-8880bc08cb00",
+  "slug": "atomic-sharing-violation-transient",
+  "kind": "test-case",
+  "title": "Sharing violation is transient",
+  "description": "OS errors 32 and 33 (Windows file locks) are treated as transient and retried.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7584-85b8-2c8fc4148f9d",
+  "given": "Windows sharing violation error codes",
+  "when": "is_transient_lock is called",
+  "then": "Errors 32 and 33 return true, but NotFound returns false",
+  "impl_ref": "crates/schematify-core/src/atomic.rs::a_sharing_violation_is_treated_as_transient_and_a_real_failure_is_not",
+  "status": "declared",
+  "last_result_ms": null
+}

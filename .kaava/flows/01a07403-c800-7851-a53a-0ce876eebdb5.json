@@ -1,0 +1,34 @@
+{
+  "id": "01a07403-c800-7851-a53a-0ce876eebdb5",
+  "kind": "flow",
+  "slug": "browse-and-edit-files",
+  "title": "Browse and Edit Project Files",
+  "trigger": "User needs to navigate and modify code or text files",
+  "steps": [
+    {
+      "screen": "schematify://screen/01a07403-c800-7b19-815c-ac876d41c9c5",
+      "action": "Open File Explorer from the + in the switcher bar or from the Apps menu"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7b19-815c-ac876d41c9c5",
+      "action": "Click or single-click a file in the tree to browse; it opens in a preview tab in File Viewer"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7b67-ba2c-9ab84ba1d65b",
+      "action": "Double-click or start typing to promote the preview tab and keep the file open"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7b67-ba2c-9ab84ba1d65b",
+      "action": "Edit the file using keyboard and mouse; syntax highlighting and line numbers appear automatically"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7b67-ba2c-9ab84ba1d65b",
+      "action": "Press Ctrl+S to save; unsaved files show a dot on their tab"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7b67-ba2c-9ab84ba1d65b",
+      "action": "Middle-click a tab or click the X to close it; unsaved work prompts to save, discard, or cancel"
+    }
+  ],
+  "outcome": "Files are opened in tabs with syntax highlighting, and changes can be saved"
+}

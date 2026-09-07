@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-75db-9740-596376d66dcb",
+  "slug": "design-app-probe-read-refuses-incomplete-pick",
+  "kind": "test-case",
+  "title": "readProbeMessage refuses incomplete pick",
+  "description": "Rejects pick missing page or target half",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71a3-ae12-251b52dac590",
+  "given": "picked message with empty page or target",
+  "when": "readProbeMessage is called",
+  "then": "returns null",
+  "impl_ref": "apps/design/ui/src/probe.test.ts::refuses a pick that is missing either half",
+  "status": "declared",
+  "last_result_ms": null
+}

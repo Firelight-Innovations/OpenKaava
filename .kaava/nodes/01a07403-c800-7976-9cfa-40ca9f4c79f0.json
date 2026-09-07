@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7976-9cfa-40ca9f4c79f0",
+  "slug": "accelerators-overview",
+  "kind": "doc-block",
+  "title": "Accelerator Module Overview",
+  "description": "Explains Windows-only accelerator handling and PRIMARY_MODIFIER constant.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d53-814c-3c88cf09800b",
+  "body": "OpenKaava ships on Windows only, so keystroke modifiers and checks have one answer: Ctrl and ctrlKey. This module gives PRIMARY_MODIFIER and hasPrimaryModifier as the single place these are defined, replacing the ⌘K the search slot used to draw and the e.metaKey || two listeners used to test. menus.ts and shortcuts.ts keep their accelerators as literals, being data tables.",
+  "audience": "both"
+}

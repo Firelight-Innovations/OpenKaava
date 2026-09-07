@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7f8a-9603-949f531853b8",
+  "kind": "decision",
+  "slug": "DEC-OPS-TESTS-001",
+  "title": "Never fix failing test by deletion or skipping",
+  "context": "Tests are the only way to prevent regressions, especially critical ones. The repository treats test failures as signals that either code or test is wrong, never as optional.",
+  "decision": "A failing test is never fixed by deleting it or skipping it. If a test is genuinely wrong, say so explicitly in the commit message and change it in a separate commit about that change only.",
+  "consequences": "Developers must diagnose and fix the actual problem, not silence the alarm. This takes more time but prevents silent regressions. Per STANDARDS.md §8, a bug fix arrives with the test that would have caught it—this is the one test rule described as non-negotiable.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-06"
+}

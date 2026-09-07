@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-70dd-8f5c-73ff6c5c999c",
+  "slug": "file-operations",
+  "kind": "module",
+  "title": "File Operations",
+  "description": "File operation hooks for deletion confirmation and inline renaming from the tab strip.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-712a-9eb9-455fc102ffe9",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

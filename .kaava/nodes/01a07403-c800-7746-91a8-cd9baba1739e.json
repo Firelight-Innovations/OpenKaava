@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7746-91a8-cd9baba1739e",
+  "slug": "secondary-panel",
+  "kind": "module",
+  "title": "Secondary Panel",
+  "description": "The collapsible side panel for source control and GitHub views, with a 34px collapsed strip showing the branch name.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bb4-bdbe-fe72bc3e7a0c",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-727c-a02d-041e8ac2a84e"
+  ]
+}

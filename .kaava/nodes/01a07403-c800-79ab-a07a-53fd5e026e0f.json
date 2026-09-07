@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79ab-a07a-53fd5e026e0f",
+  "slug": "config-stale-server-removed",
+  "kind": "test-case",
+  "title": "Disabled Server Removed from File",
+  "description": "A server no longer enabled is removed from the file.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-782d-bdc1-e759c21e6408",
+  "given": "An existing .mcp.json with a kaava-gone entry",
+  "when": "merge is called without that server in enabled",
+  "then": "The kaava-gone entry is removed; kaava-echo remains if it is enabled",
+  "impl_ref": "src-tauri/src/mcp/config.rs::a_server_that_is_no_longer_enabled_is_removed",
+  "status": "declared",
+  "last_result_ms": null
+}

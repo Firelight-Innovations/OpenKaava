@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f23-9424-460622f1a446",
+  "slug": "anatomy-life-cycle-distinguishable",
+  "kind": "test-case",
+  "title": "Lifecycle states are distinguishable by geometry alone",
+  "description": "All 8 lifecycle states produce unique colour-blind fingerprints.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b7-95f8-682301adf593",
+  "given": "all 8 lifecycle states",
+  "when": "lifecycle treatments computed",
+  "then": "produces 8 distinct colour-blind signatures",
+  "impl_ref": "apps/schematify/ui/src/engine/anatomy.test.ts::the 8 lifecycle states are mutually distinguishable by geometry alone produces 8 distinct colour-blind fingerprints — proved, not asserted by inspection",
+  "status": "declared",
+  "last_result_ms": null
+}

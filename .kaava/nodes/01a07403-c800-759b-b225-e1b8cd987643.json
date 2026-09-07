@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-759b-b225-e1b8cd987643",
+  "slug": "viewport",
+  "kind": "module",
+  "title": "Viewport Management",
+  "description": "Pan and zoom logic. The only place screen coordinates and world coordinates meet; viewport changes never touch the document. Zoom is screen pixels per world unit.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

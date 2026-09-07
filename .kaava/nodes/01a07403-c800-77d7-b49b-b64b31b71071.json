@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-77d7-b49b-b64b31b71071",
+  "slug": "titlebar-run-menu-explains-disabled-rows",
+  "kind": "test-case",
+  "title": "Run menu disabled reasons",
+  "description": "Every disabled row must carry a hint explaining why it cannot act.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7806-88f7-dafc7969fdd8",
+  "given": "A Run menu in various disabled states",
+  "when": "checking disabled rows",
+  "then": "every disabled row should have a hint",
+  "impl_ref": "src/shell/titlebar/menus.test.ts::it(\"explains every row it disables\")",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7eec-af93-1a417dc86b07",
+  "slug": "design-app-rpc-add-comment",
+  "kind": "contract-method",
+  "title": "addComment",
+  "description": "Creates comment on picked element",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a0-9c27-267f8065604a",
+  "signature": "export const addComment = (picked: PickedElement, request: string, shot: string | null) => invoke<Comment>(...)",
+  "params": [
+    "picked",
+    "request",
+    "shot"
+  ],
+  "returns": "Promise<Comment>",
+  "errors": [
+    "KaavaRpcError"
+  ],
+  "semantics": "Stores new comment with element details, request text, and optional screenshot.",
+  "exported": true
+}

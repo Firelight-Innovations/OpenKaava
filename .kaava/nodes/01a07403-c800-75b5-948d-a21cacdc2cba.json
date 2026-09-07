@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-75b5-948d-a21cacdc2cba",
+  "slug": "context-menu-oversized",
+  "kind": "test-case",
+  "title": "Oversized Menu Positioned Top-Left",
+  "description": "Ensures menu larger than viewport is positioned at top-left with edge gap.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "2000x2000 menu in 1000x800 viewport",
+  "when": "placeMenu() called",
+  "then": "Returns (EDGE_GAP, EDGE_GAP)",
+  "impl_ref": "src/shell/contextMenu.test.ts::placeMenu gives up on the far edge rather than the near one when it cannot fit",
+  "status": "declared",
+  "last_result_ms": null
+}

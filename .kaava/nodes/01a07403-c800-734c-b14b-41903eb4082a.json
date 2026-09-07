@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-734c-b14b-41903eb4082a",
+  "slug": "mermaid",
+  "kind": "external-dep",
+  "title": "Mermaid",
+  "description": "JavaScript-based diagramming and charting tool for diagram rendering.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7fa2-8884-0fddd267d804",
+  "registry_ref": "01a07403-c800-7c20-aa33-06c32d5f2584",
+  "usage_note": "Dynamic import via registry; renders mermaid diagram definitions to SVG"
+}

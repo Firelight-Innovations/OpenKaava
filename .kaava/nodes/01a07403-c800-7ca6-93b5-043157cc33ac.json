@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7ca6-93b5-043157cc33ac",
+  "slug": "shell-bindings-open-instance",
+  "kind": "contract-method",
+  "title": "openInstance",
+  "description": "Open a new instance of an app.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7149-8c4b-15d6ed575d92",
+  "signature": "function openInstance(label: string, appId: string, paneId?: string, dir?: SplitDir): Promise<string>",
+  "params": [
+    "label",
+    "appId",
+    "paneId",
+    "dir"
+  ],
+  "returns": "Promise<string>",
+  "errors": [],
+  "semantics": "Mounts an app instance, optionally splitting a pane, returns instance id.",
+  "exported": true
+}

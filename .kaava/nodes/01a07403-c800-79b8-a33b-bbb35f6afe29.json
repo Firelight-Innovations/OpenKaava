@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-79b8-a33b-bbb35f6afe29",
+  "slug": "marker-token-unit-tests",
+  "kind": "budget",
+  "title": "Marker Token Unit Tests",
+  "description": "Token parsing and validation tests covering grammar acceptance and rejection.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77d3-a0d3-3e27db45a8db",
+  "metric": "test_count",
+  "op": ">=",
+  "value": 10,
+  "unit": "tests",
+  "tier": "soft",
+  "probe": {
+    "command": "pnpm test:rust",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

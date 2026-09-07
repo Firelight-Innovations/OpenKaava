@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7beb-a227-8555adcbcafa",
+  "slug": "shell-bindings-git-checkout",
+  "kind": "contract-method",
+  "title": "gitCheckout",
+  "description": "Move the cluster's checkout onto a branch or commit.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7149-8c4b-15d6ed575d92",
+  "signature": "function gitCheckout(clusterId: string, target: string, detach: boolean): Promise<void>",
+  "params": [
+    "clusterId",
+    "target",
+    "detach"
+  ],
+  "returns": "Promise<void>",
+  "errors": [
+    "Git error message"
+  ],
+  "semantics": "Checks out the target with errors in git's own words.",
+  "exported": true
+}

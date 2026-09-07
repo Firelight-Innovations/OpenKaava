@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7d26-a799-e4317e611494",
+  "slug": "product-isvalidsuccessmetric-function",
+  "kind": "contract-method",
+  "title": "Success Metric Validator",
+  "description": "Returns true if a success metric carries both a non-empty name and unit, per PRD §5.12.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "signature": "isValidSuccessMetric(metric: RawSuccessMetric) => boolean",
+  "params": [
+    "metric: RawSuccessMetric"
+  ],
+  "returns": "boolean",
+  "errors": [],
+  "semantics": "Validates a success metric client-side before round-tripping to Rust, rejecting any metric with empty name or unit fields.",
+  "exported": true
+}

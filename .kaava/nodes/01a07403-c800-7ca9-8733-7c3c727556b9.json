@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7ca9-8733-7c3c727556b9",
+  "slug": "canvas",
+  "kind": "module",
+  "title": "Schematic Canvas",
+  "description": "React component rendering the Schematic. Deliberately thin: every decision is a pointer gesture turned into an engine call. Frame.ts decides what is visible and how edges route; canvas only maps onto markup and CSS.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [
+    "01a07403-c800-7bd1-a062-9c1c49e747dc"
+  ],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7c34-9e8c-646297e0b08b",
+    "schematify://screen/01a07403-c800-74b6-99d1-6754a2c3d666",
+    "schematify://screen/01a07403-c800-7292-8aed-3b29a5d68efd"
+  ]
+}

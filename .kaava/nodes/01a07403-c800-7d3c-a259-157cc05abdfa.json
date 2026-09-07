@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d3c-a259-157cc05abdfa",
+  "slug": "manifest-parser-rejects-unknown-keys",
+  "kind": "test-case",
+  "title": "Unknown Top-Level Keys are Rejected",
+  "description": "A manifest with an unexpected top-level section fails to parse.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "A manifest with a [nonsense] section",
+  "when": "parsed",
+  "then": "returns ManifestError::Toml",
+  "impl_ref": "crates/kaava-tool-manifest/src/lib.rs::rejects_unknown_top_level_key",
+  "status": "declared",
+  "last_result_ms": null
+}

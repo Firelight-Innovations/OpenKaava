@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7626-8ba7-b3541cada591",
+  "slug": "shell-toolbar-component",
+  "kind": "contract-method",
+  "title": "Schematic Toolbar Component",
+  "description": "Renders the Service Schematic toolbar with disabled search, Auto-sort and Fit buttons wired to engine methods.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-743f-ae55-0cbaeb91a62a",
+  "signature": "Toolbar(props: ToolbarProps) => JSX.Element",
+  "params": [
+    "onAutoSort?: () => void",
+    "onFit?: () => void"
+  ],
+  "returns": "React component",
+  "errors": [],
+  "semantics": "Provides engine control buttons that reflow the canvas (Auto-sort) and fit all nodes to view (Fit), with search disabled until Wave 8.",
+  "exported": true
+}

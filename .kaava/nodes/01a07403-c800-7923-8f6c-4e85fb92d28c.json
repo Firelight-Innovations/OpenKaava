@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7923-8f6c-4e85fb92d28c",
+  "slug": "identity-check-rust-const",
+  "kind": "contract-method",
+  "title": "rustConst",
+  "description": "Extracts a pinned string constant from Rust source code.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ef5-b5fd-cb82e357bc20",
+  "signature": "rustConst(text: string, name: string): string | null",
+  "params": [
+    "text: Rust source",
+    "name: constant name"
+  ],
+  "returns": "the constant value or null if not found",
+  "errors": [],
+  "semantics": "Parses a const NAME: &str = \"value\"; pattern from Rust code.",
+  "exported": false
+}

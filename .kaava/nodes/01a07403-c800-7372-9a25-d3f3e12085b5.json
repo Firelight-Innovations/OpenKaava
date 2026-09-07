@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7372-9a25-d3f3e12085b5",
+  "slug": "problems-location-cell",
+  "kind": "contract-method",
+  "title": "locationCell",
+  "description": "Mirrors Location::cell() format from Rust: Stack › Auth Service for service, › Token Verifier for module.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74e7-acd1-ffea4dddd156",
+  "signature": "function locationCell(location: Location): string",
+  "params": [
+    "location: Location"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Formats the breadcrumb path to the location.",
+  "exported": false
+}

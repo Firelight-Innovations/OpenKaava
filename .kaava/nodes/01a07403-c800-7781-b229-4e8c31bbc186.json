@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7781-b229-4e8c31bbc186",
+  "slug": "presets-module-config",
+  "kind": "contract-method",
+  "title": "MODULE_CONFIG",
+  "description": "Tier 3 configuration for Module Schematics.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7919-b359-e87ddc820cbc",
+  "signature": "const MODULE_CONFIG: SchematicConfig",
+  "params": [],
+  "returns": "SchematicConfig",
+  "errors": [],
+  "semantics": "Pre-configured settings for Module Schematics.",
+  "exported": true
+}

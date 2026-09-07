@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-73ae-8775-17990936bad8",
+  "slug": "product-filterdecisions-function",
+  "kind": "contract-method",
+  "title": "Decision Filter",
+  "description": "Returns a subset of decisions filtered by status or all decisions if filter is 'ALL'.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "signature": "filterDecisions(decisions: readonly RawDecision[], filter: DecisionStatusFilter) => RawDecision[]",
+  "params": [
+    "decisions: readonly RawDecision[]",
+    "filter: DecisionStatusFilter"
+  ],
+  "returns": "RawDecision[]",
+  "errors": [],
+  "semantics": "Filters the decision log by status (ALL, ACTIVE, SUPERSEDED) so the DecisionLog table can draw only rows matching the active filter.",
+  "exported": true
+}

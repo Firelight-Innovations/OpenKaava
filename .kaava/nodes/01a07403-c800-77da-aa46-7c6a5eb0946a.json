@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-77da-aa46-7c6a5eb0946a",
+  "slug": "executable-validation",
+  "kind": "module",
+  "title": "Windows Executable Validation",
+  "description": "Validates Windows PE executable headers before spawning to prevent modal dialogs on invalid 16-bit images that CreateProcess cannot handle.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

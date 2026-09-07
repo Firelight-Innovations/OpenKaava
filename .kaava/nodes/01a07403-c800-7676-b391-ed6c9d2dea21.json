@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7676-b391-ed6c9d2dea21",
+  "slug": "drag-use-drag",
+  "kind": "contract-method",
+  "title": "useDrag Hook",
+  "description": "Manages the drag gesture for tabs and cluster chips: press threshold, movement tracking, ghost positioning, and drop target resolution.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71b3-ad71-25691aca6239",
+  "signature": "function useDrag(label: string, activeClusterId: string | null, translateStripIndex: (paneId: string, index: number) => number): { drag: DragState | null }",
+  "params": [
+    "label: string",
+    "activeClusterId: string | null",
+    "translateStripIndex: (paneId: string, index: number) => number"
+  ],
+  "returns": "{ drag: DragState | null; tabHandle: (payload: DragPayload) => DragHandleProps; clusterHandle: (cluster: Cluster) => DragHandleProps; }",
+  "errors": [],
+  "semantics": "Returns drag state and handle factories; coordinates with drop zone registry to compute insertion points, splits, and detach targets.",
+  "exported": true
+}

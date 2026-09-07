@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7911-9a56-c6223c7311ca",
+  "slug": "marker-token-token-prefix",
+  "kind": "contract-method",
+  "title": "Token Prefix Constant",
+  "description": "The literal prefix every marker token starts with.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77d3-a0d3-3e27db45a8db",
+  "signature": "pub const TOKEN_PREFIX: &str",
+  "params": [],
+  "returns": "&'static str",
+  "errors": [],
+  "semantics": "Provides the canonical marker prefix @kaava: used throughout scanning.",
+  "exported": false
+}

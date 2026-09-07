@@ -1,0 +1,26 @@
+{
+  "id": "01a07403-c800-7e68-ba1f-cc74581e910a",
+  "slug": "home-app",
+  "kind": "service",
+  "title": "Home",
+  "description": "The first surface a cluster shows: recent projects, the app library, and the paths into opening or creating a project.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": null,
+  "entry_point": "apps/home/ui/src/main.tsx, mounted into a pane by the shell.",
+  "exports": [
+    "01a07403-c800-7c21-a61c-448eb55f9aee",
+    "01a07403-c800-770e-abfe-520feeb9c361",
+    "01a07403-c800-7130-bc42-953571f1325c",
+    "01a07403-c800-702a-8035-40d3631eaccf",
+    "01a07403-c800-7c63-9186-499d40fcc42e",
+    "01a07403-c800-751a-a230-7cddb1ea2a1a",
+    "01a07403-c800-792e-8ac2-932cfddc61a6",
+    "01a07403-c800-7fce-a1a4-79f7bfecc8d3",
+    "01a07403-c800-781c-8e14-42f5953d1cae"
+  ],
+  "schemas": null
+}

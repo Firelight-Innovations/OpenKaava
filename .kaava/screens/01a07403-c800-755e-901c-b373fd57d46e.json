@@ -1,0 +1,28 @@
+{
+  "id": "01a07403-c800-755e-901c-b373fd57d46e",
+  "kind": "screen",
+  "slug": "viewer-text-editor",
+  "title": "Text Editor",
+  "purpose": "Monaco-based text editor for code and text files with syntax highlighting and editing",
+  "states": [
+    "loading",
+    "ready",
+    "dirty",
+    "saving",
+    "error",
+    "read-only"
+  ],
+  "acceptance": [
+    "shall display file content with syntax highlighting by language",
+    "shall support editing with standard text commands",
+    "shall mark as dirty when unsaved changes exist",
+    "shall support Ctrl+S save and save-on-close prompt",
+    "shall display error if file cannot be read or is not UTF-8",
+    "shall fall back to unsupported viewer for binary files"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7e37-b98c-1d8f3f373264",
+    "schematify://node/01a07403-c800-7ebc-919c-03399a5694e3",
+    "schematify://node/01a07403-c800-7996-96e4-9a298ed54a09"
+  ]
+}

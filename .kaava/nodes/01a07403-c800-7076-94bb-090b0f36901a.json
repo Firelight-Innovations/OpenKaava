@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7076-94bb-090b0f36901a",
+  "slug": "scanner-finds-markers-across-several-comment-syntaxes",
+  "kind": "test-case",
+  "title": "Find Markers in Multiple Languages",
+  "description": "Scan finds the same @kaava: format in Rust, Python, TSX, HTML, TOML, and unknown languages.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-781b-85ef-56660694446e",
+  "given": "six files with markers in different comment styles",
+  "when": "scan_tree walks the directory",
+  "then": "all 6 markers are found, skipped is empty",
+  "impl_ref": "crates/schematify-reconcile/src/scan.rs::finds_markers_across_several_comment_syntaxes",
+  "status": "declared",
+  "last_result_ms": null
+}

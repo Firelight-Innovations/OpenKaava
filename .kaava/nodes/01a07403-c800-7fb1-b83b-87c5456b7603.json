@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7fb1-b83b-87c5456b7603",
+  "slug": "serde-json-loader",
+  "kind": "external-dep",
+  "title": "JSON Parsing",
+  "description": "JSON parsing from disk files during graph loading.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d11-8354-a2669af47406",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "Deserializes node and edge files in parallel during load"
+}

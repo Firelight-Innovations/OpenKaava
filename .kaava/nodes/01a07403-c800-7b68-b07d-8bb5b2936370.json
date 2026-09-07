@@ -1,0 +1,26 @@
+{
+  "id": "01a07403-c800-7b68-b07d-8bb5b2936370",
+  "slug": "terminal-sessions-open",
+  "kind": "contract-method",
+  "title": "Open Terminal Session",
+  "description": "Spawn a shell, wire its output to pty:data:<id>, and remember it.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731a-ab6c-3a00854fdef3",
+  "signature": "pub fn open(&self, app: &AppHandle, id: &str, cwd: &Path, cols: u16, rows: u16) -> Result<String>",
+  "params": [
+    "app",
+    "id",
+    "cwd",
+    "cols",
+    "rows"
+  ],
+  "returns": "Result<String>",
+  "errors": [
+    "AppError::Pty"
+  ],
+  "semantics": "Spawns a new terminal session and returns the shell name that was actually started.",
+  "exported": false
+}

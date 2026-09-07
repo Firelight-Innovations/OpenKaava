@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-70e7-8353-a0618ec42cd6",
+  "slug": "product-screenstatecount-function",
+  "kind": "contract-method",
+  "title": "Screen State Counter",
+  "description": "Counts the states array of a screen, computed at draw time rather than cached.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "signature": "screenStateCount(screen: RawScreen) => number",
+  "params": [
+    "screen: RawScreen"
+  ],
+  "returns": "number",
+  "errors": [],
+  "semantics": "Returns the number of distinct states a screen can inhabit, counted fresh from the screen's states array per PRD §0.4.",
+  "exported": true
+}

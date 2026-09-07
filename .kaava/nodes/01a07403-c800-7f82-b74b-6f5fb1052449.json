@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7f82-b74b-6f5fb1052449",
+  "slug": "reconciliation",
+  "kind": "module",
+  "title": "Reconciliation Algorithm",
+  "description": "Compares marker tokens found in code against design graph nodes to produce one outcome per touched identifier, with error detection based on lifecycle state.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e48-8636-0f44278a1b0e",
+  "allowed_libraries": [
+    "01a07403-c800-71e9-a09e-d51d7c34d3cc"
+  ],
+  "ui_refs": []
+}

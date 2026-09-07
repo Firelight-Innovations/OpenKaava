@@ -1,0 +1,26 @@
+{
+  "id": "01a07403-c800-7404-8366-77fa39bef944",
+  "slug": "host-tool-process-spawn",
+  "kind": "contract-method",
+  "title": "Spawn a Tool Process",
+  "description": "Start a tool binary as a subprocess and set up reader threads for bidirectional communication.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-762d-94d0-4cb8287084c4",
+  "signature": "pub fn spawn(bin: &Path, args: &[String], cwd: &Path, label: &str) -> Result<Self, SpawnError>",
+  "params": [
+    "bin: &Path",
+    "args: &[String]",
+    "cwd: &Path",
+    "label: &str"
+  ],
+  "returns": "Result<Self, SpawnError>",
+  "errors": [
+    "SpawnError::Spawn",
+    "SpawnError::MissingStream"
+  ],
+  "semantics": "Starts the tool process and background reader threads that decode stdout/stderr; label tags stderr lines in the orchestrator's own logs.",
+  "exported": true
+}

@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7861-b8e7-a4a9753b632d",
+  "slug": "clippy-baseline-baseline",
+  "kind": "budget",
+  "title": "Clippy baseline growth",
+  "description": "No new clippy violations beyond the baseline.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-715d-be99-2bd5f35ad08f",
+  "metric": "violations above baseline",
+  "op": "==",
+  "value": 0,
+  "unit": "count",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm lint:rust",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

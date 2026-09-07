@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e33-97e7-90451c5d103a",
+  "slug": "scanner-respects-gitignore",
+  "kind": "test-case",
+  "title": "Respect .gitignore Exclusions",
+  "description": "Files and directories in .gitignore are not scanned.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-781b-85ef-56660694446e",
+  "given": "marker in .gitignore-excluded directory and kept directory",
+  "when": "scan_tree walks",
+  "then": "only the kept marker is found",
+  "impl_ref": "crates/schematify-reconcile/src/scan.rs::respects_gitignore",
+  "status": "declared",
+  "last_result_ms": null
+}

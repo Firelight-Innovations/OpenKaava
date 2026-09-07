@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7f1a-b375-e7fa4e858967",
+  "slug": "navigation",
+  "kind": "module",
+  "title": "Drill Navigation",
+  "description": "Click-to-drill logic per PRD §17 Wave 5. Pure DOM-free decision of where a click navigates: stack tier services drill to service tier, service tier modules drill to module tier. Returns DrillTarget or null.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

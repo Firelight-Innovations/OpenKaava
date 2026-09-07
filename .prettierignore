@@ -61,6 +61,15 @@ Cargo.lock
 # trailing newline, which is what Prettier would have produced anyway.
 crates/schematify-core/fixtures/*/
 
+# This repository's own Schematify project. Unlike the fixtures above, these
+# files are written by the running application: `write_json_atomic` in
+# crates/schematify-core/src/atomic.rs calls `serde_json::to_vec_pretty`, which
+# expands every array onto its own lines. Prettier collapses a short array back
+# onto one (`"params": ["a", "b"]`), so leaving this tree formatted would make
+# `pnpm format:check` fail the moment anybody drags a node or edits a contract
+# in the app. The formatter cannot own a tree another writer also owns.
+.kaava/
+
 # A git worktree an agent is working in: a second checkout of this repository
 # sitting inside it. Formatting someone else's branch from this one is not this
 # checkout's business.

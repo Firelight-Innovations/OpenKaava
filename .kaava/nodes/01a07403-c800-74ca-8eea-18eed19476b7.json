@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-74ca-8eea-18eed19476b7",
+  "slug": "project-open",
+  "kind": "contract-method",
+  "title": "Open a folder as a project in a cluster",
+  "description": "Point a cluster at a folder, adding it to the recent list and applying the open preset.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "signature": "pub fn open(app: &AppHandle, path: &Path, cluster_id: &str) -> Result<ProjectSnapshot>",
+  "params": [
+    "app: &AppHandle",
+    "path: &Path",
+    "cluster_id: &str"
+  ],
+  "returns": "Result<ProjectSnapshot>",
+  "errors": [
+    "NotAProject"
+  ],
+  "semantics": "Opens a folder in a cluster, updates recent history, applies opening preset, and broadcasts the change.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7905-be49-6ce2c12f166f",
+  "slug": "client-open-in-request",
+  "kind": "test-case",
+  "title": "openIn sends kaava/open request",
+  "description": "Verifies that opening another app sends the correct request and resolves with the chosen instance id.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client with completed handshake",
+  "when": "openIn('viewer', {path: 'a.txt', preview: true}) is called",
+  "then": "A kaava/open request is posted and resolves with the instanceId from the response",
+  "impl_ref": "packages/bridge/src/client.test.ts::sends openIn as a kaava/open request and resolves with the chosen instance",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7323-a51d-adb6b8b43330",
+  "slug": "git-operations-git-graph",
+  "kind": "contract-method",
+  "title": "Get Commit Graph",
+  "description": "The local branches of the cluster's repository as one graph, newest first.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "signature": "pub fn git_graph(app: AppHandle, cluster_id: String, limit: u32) -> Result<Vec<GitCommit>>",
+  "params": [
+    "app",
+    "cluster_id",
+    "limit"
+  ],
+  "returns": "Result<Vec<GitCommit>>",
+  "errors": [
+    "AppError::Git"
+  ],
+  "semantics": "Returns empty list if not a repository, otherwise commits with parents and refs.",
+  "exported": true
+}

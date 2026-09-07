@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7558-ae51-ef7f8169d454",
+  "slug": "accelerators-shortcuts-windows-chips",
+  "kind": "test-case",
+  "title": "Shortcuts Screen Uses Windows Modifier Chips",
+  "description": "Ensures keyboard shortcut chips never use Mac terminology.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d53-814c-3c88cf09800b",
+  "given": "All modifier chips in SHORTCUT_GROUPS",
+  "when": "Collected into a set",
+  "then": "Contains PRIMARY_MODIFIER, excludes Cmd, Command, Meta, Option, Opt",
+  "impl_ref": "src/shell/accelerators.test.ts::the shortcuts screen names its modifier chips the Windows way",
+  "status": "declared",
+  "last_result_ms": null
+}

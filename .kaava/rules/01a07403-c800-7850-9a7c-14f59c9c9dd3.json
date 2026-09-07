@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7850-9a7c-14f59c9c9dd3",
+  "slug": "type-vs-interface",
+  "statement": "Use `type` for unions and mirrors, `interface` for object shapes only.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm lint"
+}

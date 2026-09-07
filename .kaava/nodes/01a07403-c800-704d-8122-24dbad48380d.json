@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-704d-8122-24dbad48380d",
+  "slug": "product-types-raw",
+  "kind": "contract-method",
+  "title": "Product Wire Format Types",
+  "description": "Type exports for RawDecision, RawFlow, RawScreen, RawProjectBrief, RawSuccessMetric, RawFlowStep, DecisionStatus and related types.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "signature": "type RawDecision | RawFlow | RawScreen | RawProjectBrief | RawSuccessMetric | RawFlowStep | DecisionStatus | DesignLinkState | DecisionStatusFilter",
+  "params": [],
+  "returns": "TypeScript types",
+  "errors": [],
+  "semantics": "Restates schematify-core's product layer wire vocabulary for use in this app without importing the crate directly.",
+  "exported": true
+}

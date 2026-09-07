@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7ac9-aa15-4a0cb14dc665",
+  "slug": "plugin-remote",
+  "kind": "external-dep",
+  "title": "ureq",
+  "description": "Blocking HTTP client for GitHub API requests and asset downloads.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-764a-b5c5-9f2cce1355f5",
+  "registry_ref": "01a07403-c800-7c54-bbf2-e838fea606f6",
+  "usage_note": "ureq::agent() for HTTP calls to GitHub releases API and asset URLs with TLS verification"
+}

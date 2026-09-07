@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7125-af1f-d6ae84c36bbd",
+  "slug": "shell-quoting-shell-family-mapping",
+  "kind": "test-case",
+  "title": "Shell names map to correct dialects",
+  "description": "Shell executable names resolve to the correct quoting rules.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e0-bbc7-7090d1eeb4e5",
+  "given": "Various shell names with different cases",
+  "when": "ShellFamily::of is called",
+  "then": "PowerShell variants map to PowerShell, cmd to Cmd, others to Posix",
+  "impl_ref": "src-tauri/src/quoting.rs::a_shell_name_maps_to_its_dialect",
+  "status": "declared",
+  "last_result_ms": null
+}

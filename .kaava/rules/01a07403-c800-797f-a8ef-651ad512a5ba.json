@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-797f-a8ef-651ad512a5ba",
+  "slug": "lint-react-hooks-rules",
+  "statement": "React hooks must follow the rules of hooks; dependencies must be properly specified.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm lint:js"
+}

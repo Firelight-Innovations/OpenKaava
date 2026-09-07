@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7c0c-9893-8db1183616cb",
+  "slug": "file-api-format-size",
+  "kind": "contract-method",
+  "title": "Format Byte Size",
+  "description": "Convert bytes to human-readable format with binary units.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export function formatSize(bytes: number): string",
+  "params": [
+    "bytes: number"
+  ],
+  "returns": "String like '1.2 MiB' or '42 B'",
+  "errors": [],
+  "semantics": "Formats byte count as KiB, MiB, GiB, or TiB.",
+  "exported": true
+}

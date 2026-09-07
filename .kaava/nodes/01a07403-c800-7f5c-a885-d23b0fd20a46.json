@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7f5c-a885-d23b0fd20a46",
+  "slug": "protocol-is-response-message",
+  "kind": "contract-method",
+  "title": "isResponseMessage",
+  "description": "Type guard for a response to an invoke request.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e50-b9bf-2c07534a4168",
+  "signature": "isResponseMessage(msg: IncomingMessage): msg is ResponseMessage",
+  "params": [
+    "msg: IncomingMessage"
+  ],
+  "returns": "boolean",
+  "errors": [],
+  "semantics": "Narrows a message to ResponseMessage type.",
+  "exported": false
+}

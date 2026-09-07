@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7046-8132-51d7427a1cd2",
+  "slug": "splash-screen-2",
+  "kind": "external-dep",
+  "title": "framer-motion",
+  "description": "Animation library for splash screen animations.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c00-b2b5-c21de1d221d0",
+  "registry_ref": "01a07403-c800-7417-a580-5d7e987102ee",
+  "usage_note": "Splash.tsx uses framer-motion for loading spinner and status message animations"
+}

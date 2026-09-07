@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-77f1-ade6-7fd62511bc73",
+  "slug": "github-integration-slugify-titles",
+  "kind": "test-case",
+  "title": "GitHub issue titles become safe branch names",
+  "description": "Titles are converted to branch names that pass git validation.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72a7-b1d3-78f88552a561",
+  "given": "Various GitHub issue titles including non-ASCII and punctuation",
+  "when": "slugify is called",
+  "then": "Output contains only lowercase alphanumeric and dashes",
+  "impl_ref": "src-tauri/src/github.rs::every_generated_name_is_one_git_rs_would_accept",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7027-ba79-e78761e28a06",
+  "slug": "window-frame-geometry-rationale",
+  "kind": "doc-block",
+  "title": "Window geometry and frame architecture",
+  "description": "Design rationale for the five-band frame layout and why panel width is stored in Frame rather than in the panel component.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bda-92fe-1e3bdf7870f3",
+  "body": "Five bands stacked in a column, only the middle one growing. The frame knows how tall each bar is and how the middle row splits; it knows nothing about what any of them contain. Regions arrive as slots, already built, and cannot affect each other's size — which is the property that lets them be built in parallel. The panel's width lives here rather than inside the panel for the same reason the bars' heights do: it is the shape of the window, and the thing being resized is the split, not the panel.",
+  "audience": "both"
+}

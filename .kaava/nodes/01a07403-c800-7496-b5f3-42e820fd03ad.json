@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7496-b5f3-42e820fd03ad",
+  "slug": "accelerators-no-mac-glyphs",
+  "kind": "test-case",
+  "title": "No Mac Glyphs in Accelerator Output",
+  "description": "Ensures macGlyphsIn() finds no Mac key glyphs in accelerator strings.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d53-814c-3c88cf09800b",
+  "given": "Accelerator objects for various keys",
+  "when": "Converted to strings via accelerator()",
+  "then": "No Mac glyphs (⌘⌥⌃⇧⌫⏎⌤⎋⇥⇪) appear in output",
+  "impl_ref": "src/shell/accelerators.test.ts::accelerator() renders no Mac glyph for any key it is given",
+  "status": "declared",
+  "last_result_ms": null
+}

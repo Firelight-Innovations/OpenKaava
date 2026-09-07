@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-78e1-94b7-1a6d3507b7a3",
+  "slug": "listener-base64",
+  "kind": "external-dep",
+  "title": "base64",
+  "description": "URL-safe base64 encoding for the 256-bit bearer token so it survives shell environments and JSON without escaping.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7086-80ae-e8b05191e7a8",
+  "registry_ref": "01a07403-c800-7299-afdf-128e540beb73",
+  "usage_note": "Encodes 32 random bytes into URL_SAFE_NO_PAD format for token generation"
+}

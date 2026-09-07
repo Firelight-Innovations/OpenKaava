@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c77-822d-5ff563b89846",
+  "slug": "search-logic-round-trip",
+  "kind": "test-case",
+  "title": "Query Round Trip Invariant",
+  "description": "Tests that parseQuery(toQueryString(p)) equals p for all parseable queries.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "given": "Various query strings including empty, plain words, and complex filters",
+  "when": "parseQuery and toQueryString are chained",
+  "then": "Result parses back to identical ParsedQuery",
+  "impl_ref": "src/shell/search/query.test.ts::the round trip::survives cases",
+  "status": "declared",
+  "last_result_ms": null
+}

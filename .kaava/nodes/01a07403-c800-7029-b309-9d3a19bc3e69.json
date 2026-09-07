@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7029-b309-9d3a19bc3e69",
+  "slug": "shell-frontend-test-js",
+  "kind": "budget",
+  "title": "JavaScript tests",
+  "description": "Vitest and workspace package tests",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7149-8c4b-15d6ed575d92",
+  "metric": "test suites",
+  "op": ">=",
+  "value": 28,
+  "unit": "tests",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm test:js",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

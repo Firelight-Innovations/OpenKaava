@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7761-b8ae-040cdc1e364e",
+  "slug": "graph-seam-serde",
+  "kind": "external-dep",
+  "title": "Serde",
+  "description": "Serialization and deserialization framework.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "Derives Deserialize for NodeEnvelope to parse node JSON files"
+}

@@ -32,6 +32,12 @@ who has never seen the repo.
   the orchestrator and a tool: the exact bytes, the exact field names, and
   the reasoning behind each rule that has one. This is the API every tool
   repository is built against.
+- **[Porting a repository to Schematify](porting-a-repo-to-schematify.md)** —
+  what the `.kaava/` on-disk contract actually is, which file decides each part
+  of it, the thirteen linter rules a finished tree has to satisfy, and how this
+  repository was ported to itself. Written while doing it, so it also records
+  what the repository does *not* document, which is the list a future skills
+  server has to fill.
 - **[Design notes](../design-notes/)** — longer rationale that would have
   overrun a module's comment budget: why a mechanism is shaped the way it
   is, and what was considered and rejected. One page per area, e.g.

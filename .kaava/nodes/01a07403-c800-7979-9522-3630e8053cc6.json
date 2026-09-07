@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7979-9522-3630e8053cc6",
+  "slug": "layout-the-root-may-be-empty-pane",
+  "kind": "test-case",
+  "title": "Root Pane Emptiness",
+  "description": "Verify that the root can be an empty pane, the one exception to the no-empty-leaves rule.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ff9-963f-4bb8df82714f",
+  "given": "A cluster with all instances closed",
+  "when": "Checking the final tree state",
+  "then": "The root remains as an empty leaf",
+  "impl_ref": "src-tauri/src/layout.rs::the_root_may_be_an_empty_pane_when_everything_is_closed",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e58-a2af-ae608f550cb6",
+  "slug": "sync-a-healthy-mutex-locks",
+  "kind": "test-case",
+  "title": "Mutex Healthy State",
+  "description": "Verify that a healthy Mutex can be locked and accessed without error.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7187-a645-d607e5b748cd",
+  "given": "A fresh Mutex<String>",
+  "when": "Lock it twice and push to the string both times",
+  "then": "The string contains the expected content",
+  "impl_ref": "src-tauri/src/sync.rs::a_healthy_mutex_locks",
+  "status": "declared",
+  "last_result_ms": null
+}

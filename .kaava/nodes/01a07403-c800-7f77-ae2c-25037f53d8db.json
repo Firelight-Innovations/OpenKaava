@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f77-ae2c-25037f53d8db",
+  "slug": "viewer-app-notice-bar-component",
+  "kind": "contract-method",
+  "title": "NoticeBar",
+  "description": "Question or report bar for user interaction",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cf8-9c80-ac491fe54767",
+  "signature": "export default function NoticeBar(props: { notice: Notice; onEscape?: () => void }): JSX.Element",
+  "params": [],
+  "returns": "JSX.Element",
+  "errors": [],
+  "semantics": "Renders delete confirmation or status notification with focused safe action.",
+  "exported": false
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-79a3-8ecc-23cff778ca9c",
+  "slug": "reconciliation-has-error",
+  "kind": "contract-method",
+  "title": "Check for Error Outcomes",
+  "description": "Whether any outcome in run counts as an error.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f82-b74b-6f5fb1052449",
+  "signature": "pub fn has_error(run: &ReconcileRun) -> bool",
+  "params": [
+    "run: &ReconcileRun"
+  ],
+  "returns": "bool",
+  "errors": [],
+  "semantics": "Returns true if any outcome is an error.",
+  "exported": false
+}

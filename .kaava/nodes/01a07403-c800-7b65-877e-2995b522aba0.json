@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b65-877e-2995b522aba0",
+  "slug": "report-rendering-render-text-uses-the-drawn-strings",
+  "kind": "test-case",
+  "title": "Text Report Uses PRD Drawn Strings",
+  "description": "render_text output contains the drawn strings from PRD section 9.2.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "given": "a PresentUnknown outcome",
+  "when": "render_text is called",
+  "then": "output contains present, unknown",
+  "impl_ref": "crates/schematify-reconcile/src/report.rs::render_text_uses_the_drawn_strings",
+  "status": "declared",
+  "last_result_ms": null
+}

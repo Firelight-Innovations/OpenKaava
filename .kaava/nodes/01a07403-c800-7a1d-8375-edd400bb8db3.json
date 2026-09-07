@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7a1d-8375-edd400bb8db3",
+  "slug": "monaco-editor",
+  "kind": "external-dep",
+  "title": "Monaco Editor",
+  "description": "Text editor library from VS Code. Used for diff viewing, search result preview, and language tokenization.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7952-92b9-af9078dc30a0",
+  "registry_ref": "01a07403-c800-7009-8eef-cc81f6cacfda",
+  "usage_note": "DiffEditor for side-by-side/interleaved diffs; editor.api for lazy loading and worker setup; theme configuration via defineTheme"
+}

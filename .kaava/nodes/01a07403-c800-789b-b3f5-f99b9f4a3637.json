@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-789b-b3f5-f99b9f4a3637",
+  "slug": "graph-seam-uuid",
+  "kind": "external-dep",
+  "title": "UUID",
+  "description": "Universally unique identifier generation and parsing.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "registry_ref": "01a07403-c800-71e9-a09e-d51d7c34d3cc",
+  "usage_note": "Stores and keys node lookups by Uuid; parses from JSON node files"
+}

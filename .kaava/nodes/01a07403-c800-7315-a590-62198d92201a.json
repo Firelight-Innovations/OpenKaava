@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7315-a590-62198d92201a",
+  "slug": "client-tauri-session-immediate",
+  "kind": "test-case",
+  "title": "Tauri host resolves session immediately",
+  "description": "Verifies that session() resolves synchronously under Tauri host with no project path.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client under Tauri host",
+  "when": "session() is called",
+  "then": "It resolves immediately with {projectPath: null}",
+  "impl_ref": "packages/bridge/src/client.test.ts::resolves session() immediately, with no handshake to wait for",
+  "status": "declared",
+  "last_result_ms": null
+}

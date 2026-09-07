@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7e87-addc-d5f14affaadf",
+  "slug": "home-tauri",
+  "kind": "external-dep",
+  "title": "Tauri",
+  "description": "Desktop framework providing AppHandle and native dialog integration for folder picker.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7db5-a68f-82d64aa2458f",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "AppHandle for state management; Tauri event emission for plugin library actions"
+}

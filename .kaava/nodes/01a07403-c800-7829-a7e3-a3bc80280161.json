@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7829-a7e3-a3bc80280161",
+  "slug": "executable-validation-unrunnable",
+  "kind": "contract-method",
+  "title": "Check Windows Runnable",
+  "description": "Why a program must not be spawned on Windows.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77da-aa46-7c6a5eb0946a",
+  "signature": "pub fn unrunnable(program: &str) -> Option<String>",
+  "params": [
+    "program"
+  ],
+  "returns": "Option<String>",
+  "errors": [],
+  "semantics": "Windows-only: returns None if program may be run, Some with explanation if not.",
+  "exported": false
+}

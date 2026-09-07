@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7130-bc42-953571f1325c",
+  "slug": "home-icons-mark",
+  "kind": "contract-method",
+  "title": "Product Mark Icon",
+  "description": "Three-tone SVG mark of the product for use in the Home hero lockup.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ef6-b0b3-58a1f5c2d12b",
+  "signature": "export function Mark(props: IconProps): JSX.Element",
+  "params": [
+    "size?: number",
+    "className?: string"
+  ],
+  "returns": "SVG element representing the product mark",
+  "errors": [],
+  "semantics": "Renders the colored product mark at the specified size.",
+  "exported": true
+}

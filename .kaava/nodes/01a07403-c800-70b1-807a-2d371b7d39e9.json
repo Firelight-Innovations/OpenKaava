@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-70b1-807a-2d371b7d39e9",
+  "slug": "plugin-registry-contains",
+  "kind": "contract-method",
+  "title": "Check Plugin Installed",
+  "description": "Test whether a package id is registered.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "signature": "pub fn contains(&self, id: &str) -> bool",
+  "params": [
+    "id: &str"
+  ],
+  "returns": "bool",
+  "errors": [],
+  "semantics": "Returns true if record with id exists; ignores enabled state.",
+  "exported": false
+}

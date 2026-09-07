@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-70ee-93f1-c95ba74cde29",
+  "slug": "userdata-store",
+  "kind": "module",
+  "title": "Persistent Store Read/Write",
+  "description": "Implements the common pattern for reading and writing JSON files to %APPDATA%: atomic writes via temp-then-rename, format version checking, and never-fatal fallback to defaults on corruption or format mismatch.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b4-aafe-18e08975027a",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

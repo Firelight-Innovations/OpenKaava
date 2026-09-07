@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7c89-a064-ebbaa49b58e7",
+  "slug": "project-marker-create",
+  "kind": "contract-method",
+  "title": "Write a new project manifest and trace directory",
+  "description": "Create <name>.kaava with an identity and .kaava/ directory beside it.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7742-a1fb-c4253f531eb9",
+  "signature": "pub fn create(dir: &Path, name: &str) -> Result<Marker>",
+  "params": [
+    "dir: &Path",
+    "name: &str"
+  ],
+  "returns": "Result<Marker>",
+  "errors": [
+    "AlreadyAProject",
+    "Io"
+  ],
+  "semantics": "Refuses if a manifest already exists, writes a new one with a stable id and timestamps.",
+  "exported": false
+}

@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-703c-aecf-192ef3050b23",
+  "slug": "project-snapshot",
+  "kind": "contract-method",
+  "title": "Get one cluster's project and the global recent list",
+  "description": "Return the current project and history for one cluster's point of view.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "signature": "pub fn snapshot(app: &AppHandle, cluster_id: Option<&str>) -> ProjectSnapshot",
+  "params": [
+    "app: &AppHandle",
+    "cluster_id: Option<&str>"
+  ],
+  "returns": "ProjectSnapshot",
+  "errors": [],
+  "semantics": "Returns the project open in the cluster and the global list of recent projects.",
+  "exported": true
+}

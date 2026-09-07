@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7c88-8f63-1ec2b3e7758c",
+  "slug": "git-operations-git-head-text",
+  "kind": "contract-method",
+  "title": "Get HEAD File Text",
+  "description": "One file as HEAD has it for diff editor display.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "signature": "pub fn git_head_text(app: AppHandle, cluster_id: String, path: String) -> Result<String>",
+  "params": [
+    "app",
+    "cluster_id",
+    "path"
+  ],
+  "returns": "Result<String>",
+  "errors": [
+    "AppError::Git"
+  ],
+  "semantics": "Returns empty string when HEAD has no such path.",
+  "exported": true
+}

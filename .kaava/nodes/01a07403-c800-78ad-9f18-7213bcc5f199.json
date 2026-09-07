@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-78ad-9f18-7213bcc5f199",
+  "slug": "boundary-check",
+  "kind": "module",
+  "title": "Schematify Architecture Boundary Enforcement",
+  "description": "Blocks pull requests that modify design data and audit data together, except for lifecycle transitions, to maintain the architectural boundary between nodes and runs trees.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

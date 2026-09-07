@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-734c-9a89-5d9ea5dc2cc3",
+  "slug": "plugin-broker-missing-fields-refused",
+  "kind": "test-case",
+  "title": "Broker: Missing Handshake Fields",
+  "description": "Reply missing protocol or id field is rejected.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78db-904b-bb87473e03bb",
+  "given": "Empty object, null, or object with only id",
+  "when": "check_hello() is called",
+  "then": "All return HANDSHAKE_FAILED error",
+  "impl_ref": "src-tauri/src/plugins/broker.rs::a_reply_missing_the_fields_is_refused",
+  "status": "declared",
+  "last_result_ms": null
+}

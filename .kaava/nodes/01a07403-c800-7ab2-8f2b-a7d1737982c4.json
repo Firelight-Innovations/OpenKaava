@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7ab2-8f2b-a7d1737982c4",
+  "slug": "file-api-reveal",
+  "kind": "contract-method",
+  "title": "Reveal in File Manager",
+  "description": "Open the file in the OS file manager.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export const reveal = (path: string) => invoke<null>('files/reveal', { path })",
+  "params": [
+    "path: string"
+  ],
+  "returns": "Promise<null>",
+  "errors": [],
+  "semantics": "Brings file into focus in OS file manager.",
+  "exported": true
+}

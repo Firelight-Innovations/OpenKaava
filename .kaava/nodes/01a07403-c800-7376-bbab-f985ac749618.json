@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7376-bbab-f985ac749618",
+  "slug": "plugin-registry-set-enabled",
+  "kind": "contract-method",
+  "title": "Toggle Plugin Surfaces",
+  "description": "Enable or disable a plugin's surfaces without removing its record.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "signature": "pub fn set_enabled(&self, app: &AppHandle, id: &str, enabled: bool) -> bool",
+  "params": [
+    "app: &AppHandle",
+    "id: &str",
+    "enabled: bool"
+  ],
+  "returns": "bool",
+  "errors": [],
+  "semantics": "Updates enabled flag if record found; returns true if changed; saves and emits event.",
+  "exported": false
+}

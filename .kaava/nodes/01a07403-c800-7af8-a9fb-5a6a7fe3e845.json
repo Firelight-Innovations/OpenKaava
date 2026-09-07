@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7af8-a9fb-5a6a7fe3e845",
+  "slug": "files-tauri",
+  "kind": "external-dep",
+  "title": "Tauri",
+  "description": "Desktop framework for file operation integration and app state access.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d29-9b02-357f7f4c18c2",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "AppHandle for settings and state access; Manager for window operations"
+}

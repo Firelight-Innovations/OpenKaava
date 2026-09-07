@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-75f7-87e7-2977f5946255",
+  "slug": "clipboard-other-keys-pass",
+  "kind": "test-case",
+  "title": "Non-Paste Keys Pass Through",
+  "description": "Ensures only Ctrl+V/Ctrl+Shift+V are intercepted.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7101-96d4-211896bc6c31",
+  "given": "Keys like V alone, Ctrl+C, Shift+V",
+  "when": "Passed to handleKey()",
+  "then": "All return true (pass to xterm)",
+  "impl_ref": "src/shell/terminal/clipboard.test.ts::leaves every other key to the emulator",
+  "status": "declared",
+  "last_result_ms": null
+}

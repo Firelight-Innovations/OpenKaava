@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7aab-b961-b0dae14a3ca7",
+  "slug": "ci-cargo-deny-advisory-check",
+  "statement": "Security advisories against Rust dependencies are checked; known and accepted ones are listed in `deny.toml`.",
+  "severity": "error",
+  "audit": [],
+  "command": "cargo deny check"
+}

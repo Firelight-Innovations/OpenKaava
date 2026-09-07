@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-70f4-9b14-94d55248f470",
+  "slug": "design-comments-resolved-retention",
+  "kind": "budget",
+  "title": "Resolved comments kept after completion",
+  "description": "How many resolved comments are kept before the oldest are forgotten.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cda-ab91-40d777dffd1d",
+  "metric": "comments",
+  "op": ">=",
+  "value": 200,
+  "unit": "comments",
+  "tier": "soft",
+  "probe": {
+    "command": "grep -n 'const KEPT_RESOLVED' src-tauri/src/design_comments.rs",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

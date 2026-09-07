@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7557-9d03-e6591c1ae38b",
+  "slug": "terminal-deck-handle",
+  "kind": "contract-method",
+  "title": "Terminal Deck Handle",
+  "description": "Imperative methods for controlling the terminal deck.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71fa-8cfc-3e06c842aa4b",
+  "signature": "export interface TerminalDeckHandle { clear: (id: string) => void; }",
+  "params": [],
+  "returns": "interface",
+  "errors": [],
+  "semantics": "Allows clearing a specific pane's terminal by session id.",
+  "exported": true
+}

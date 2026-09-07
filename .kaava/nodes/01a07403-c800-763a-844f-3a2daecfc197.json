@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-763a-844f-3a2daecfc197",
+  "slug": "boot-start-function",
+  "kind": "contract-method",
+  "title": "boot::start",
+  "description": "Run the startup sequence on a dedicated OS thread and report progress to the splash window.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f28-b976-1789857ef688",
+  "signature": "pub fn start(app: AppHandle, waiting_for: Vec<(String, String)>)",
+  "params": [
+    "app: AppHandle",
+    "waiting_for: Vec<(String, String)>"
+  ],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Spawns a thread to locate, load, and resolve the manifest while apps boot in parallel.",
+  "exported": false
+}

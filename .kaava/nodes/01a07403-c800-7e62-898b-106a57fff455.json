@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e62-898b-106a57fff455",
+  "slug": "context-menu-flip-left",
+  "kind": "test-case",
+  "title": "Menu Flips Left When Right Is Full",
+  "description": "Ensures menu flips left rather than sliding when right edge is tight.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Point (940, 100) with limited right space",
+  "when": "placeMenu() called",
+  "then": "Flips to (740, 100) keeping pointer off rows",
+  "impl_ref": "src/shell/contextMenu.test.ts::placeMenu flips left rather than sliding, so the pointer stays off the rows",
+  "status": "declared",
+  "last_result_ms": null
+}

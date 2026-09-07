@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7542-8969-cc7264dd8b00",
+  "slug": "design-comments-comments-all",
+  "kind": "contract-method",
+  "title": "List All Comments",
+  "description": "Every comment in written order, oldest first.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cda-ab91-40d777dffd1d",
+  "signature": "pub fn all(&self) -> Vec<Comment>",
+  "params": [],
+  "returns": "Vec<Comment>",
+  "errors": [],
+  "semantics": "Newest first in the app's own sorting; agent works through oldest first.",
+  "exported": false
+}

@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-754b-b02b-d0ca4aeda476",
+  "slug": "entry-point",
+  "kind": "module",
+  "title": "React Entry Point",
+  "description": "React DOM entry point that bootstraps the Schematify application by mounting the root App component and loading design tokens for the iframe document.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [
+    "01a07403-c800-7ea4-bc03-11fc58b51a7e"
+  ],
+  "ui_refs": []
+}

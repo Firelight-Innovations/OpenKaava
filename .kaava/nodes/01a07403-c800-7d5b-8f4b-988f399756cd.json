@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d5b-8f4b-988f399756cd",
+  "slug": "splash-screen-splash",
+  "kind": "contract-method",
+  "title": "Splash",
+  "description": "Boot progress window shown before main shell.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c00-b2b5-c21de1d221d0",
+  "signature": "function Splash(): JSX.Element",
+  "params": [],
+  "returns": "JSX.Element",
+  "errors": [],
+  "semantics": "Displays startup progress with subscribe-then-fetch for boot status.",
+  "exported": true
+}

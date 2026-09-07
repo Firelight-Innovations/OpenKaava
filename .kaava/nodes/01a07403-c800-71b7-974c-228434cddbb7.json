@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-71b7-974c-228434cddbb7",
+  "slug": "git-operations-git-hunks",
+  "kind": "contract-method",
+  "title": "Get File Hunks",
+  "description": "Every changed region of one file against HEAD.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "signature": "pub fn git_hunks(app: AppHandle, cluster_id: String, path: String) -> Result<Vec<GitHunk>>",
+  "params": [
+    "app",
+    "cluster_id",
+    "path"
+  ],
+  "returns": "Result<Vec<GitHunk>>",
+  "errors": [
+    "AppError::Git"
+  ],
+  "semantics": "Returns empty list for unchanged, untracked, or unavailable files.",
+  "exported": true
+}

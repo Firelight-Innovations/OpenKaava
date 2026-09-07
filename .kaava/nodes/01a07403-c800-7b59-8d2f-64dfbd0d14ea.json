@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b59-8d2f-64dfbd0d14ea",
+  "slug": "app-updater-only-standing-offer-installable",
+  "kind": "test-case",
+  "title": "Update Installation Gating",
+  "description": "Only Available state permits installation; all others refuse.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7725-8d89-01b343796845",
+  "given": "UpdateState::Available and all other states",
+  "when": "installable() is called",
+  "then": "Available returns true, others return false",
+  "impl_ref": "src-tauri/src/updater.rs::only_a_standing_offer_can_be_installed",
+  "status": "declared",
+  "last_result_ms": null
+}

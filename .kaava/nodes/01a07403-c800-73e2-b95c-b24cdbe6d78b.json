@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-73e2-b95c-b24cdbe6d78b",
+  "slug": "tool-window",
+  "kind": "module",
+  "title": "Tool Window Orchestrator",
+  "description": "The main tool window for mounting and managing app instances and tools, handling the transport protocol, pane measurement, instance lifecycle, and empty/boot states.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bb4-bdbe-fe72bc3e7a0c",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

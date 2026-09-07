@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7036-869b-6a4763c72207",
+  "slug": "arrange-arrange",
+  "kind": "contract-method",
+  "title": "arrange",
+  "description": "Compute node positions from layout strategy.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7043-95de-367ecfc39299",
+  "signature": "function arrange(doc: SchematicDoc, config: SchematicConfig): Arrangement",
+  "params": [
+    "doc",
+    "config"
+  ],
+  "returns": "Arrangement",
+  "errors": [],
+  "semantics": "Returns map of node ids to rectangles per config strategy.",
+  "exported": false
+}

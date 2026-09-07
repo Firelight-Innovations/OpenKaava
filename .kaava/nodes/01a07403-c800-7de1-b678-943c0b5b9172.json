@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7de1-b678-943c0b5b9172",
+  "slug": "shell-contract-update-failure-tests",
+  "kind": "test-case",
+  "title": "updateNotice handles failures silently",
+  "description": "Confirms offline checks do not show an error in the status bar.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a2b-9c3f-6e98ac6d152b",
+  "given": "UpdateState with state failed or unsupported",
+  "when": "asked is false",
+  "then": "Returns null",
+  "impl_ref": "src/shell/contract.test.ts::a check nobody asked for::says nothing when it fails",
+  "status": "declared",
+  "last_result_ms": null
+}

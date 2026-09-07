@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7beb-9f6d-50737e612cdc",
+  "slug": "api-open-in",
+  "kind": "contract-method",
+  "title": "openIn",
+  "description": "Ask the shell to open a different app in this frame's cluster with an optional payload.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77f3-afe7-a004ea566b14",
+  "signature": "openIn(appId: string, payload?: unknown): Promise<{ instanceId: string }>",
+  "params": [
+    "appId: string",
+    "payload?: unknown"
+  ],
+  "returns": "Promise<{ instanceId: string }>",
+  "errors": [
+    "KaavaRpcError if the app cannot be opened or is running under a standalone Tauri host"
+  ],
+  "semantics": "Routes through the shell to find or create an app instance in the same cluster; rejected under Tauri host.",
+  "exported": true
+}

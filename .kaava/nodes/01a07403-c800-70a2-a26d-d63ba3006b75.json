@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-70a2-a26d-d63ba3006b75",
+  "slug": "core-register-toml",
+  "kind": "contract-method",
+  "title": "Register TOML",
+  "description": "Register the TOML language with a Monaco instance, guarded to be idempotent across multiple calls.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75c0-8343-2b091383cfc2",
+  "signature": "registerToml(monaco: MonacoApi): void",
+  "params": [
+    "monaco: MonacoApi"
+  ],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Registers TOML grammar with Monaco's language registry, safely idempotent when called multiple times.",
+  "exported": true
+}

@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7673-8e11-e69112a68ff3",
+  "slug": "userdata-store-write",
+  "kind": "contract-method",
+  "title": "Write a user-data store file atomically",
+  "description": "Persist a serializable value through a temp file and atomic rename.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-70ee-93f1-c95ba74cde29",
+  "signature": "pub fn write<T: Serialize>(path: &Path, value: &T, context: &str)",
+  "params": [
+    "path: &Path",
+    "value: &T",
+    "context: &str"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Writes atomically with a format field, logging any failure without propagating it.",
+  "exported": false
+}

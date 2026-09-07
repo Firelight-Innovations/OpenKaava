@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7bfa-bfed-6a34d89319ac",
+  "slug": "library-surface-close-library",
+  "kind": "contract-method",
+  "title": "closeLibrary Function",
+  "description": "Dismisses the library screen if open. Safe to call when already closed.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7373-9ec3-080a8122ecb7",
+  "signature": "function closeLibrary(): void",
+  "params": [],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Announces library closed state to all subscribers; ignored if already closed.",
+  "exported": true
+}

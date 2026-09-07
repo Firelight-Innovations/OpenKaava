@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7b0a-8997-b8d5afce800f",
+  "slug": "shell-state",
+  "kind": "external-dep",
+  "title": "react",
+  "description": "React framework providing hooks for state management.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73c6-9a0b-c837d3e517f6",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "All hooks (useShellState, useApps, useOpenables, etc.) use useState, useEffect from React"
+}

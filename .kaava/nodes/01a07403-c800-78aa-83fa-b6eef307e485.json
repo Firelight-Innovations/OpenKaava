@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-78aa-83fa-b6eef307e485",
+  "slug": "eslint-config-3",
+  "kind": "external-dep",
+  "title": "ESLint React Hooks Plugin",
+  "description": "ESLint plugin enforcing Rules of Hooks for React functional components.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d28-97e1-4b31b279f98e",
+  "registry_ref": "01a07403-c800-75e8-b274-b8730d0fc8ce",
+  "usage_note": "Imported in eslint.config.js to check React hooks usage patterns"
+}

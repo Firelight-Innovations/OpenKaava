@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7f2c-9378-133ff9f5bc3f",
+  "slug": "scanner-scan-tree",
+  "kind": "contract-method",
+  "title": "Scan Directory Tree",
+  "description": "Walk a directory tree respecting .gitignore and find all @kaava: marker tokens in text files.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-781b-85ef-56660694446e",
+  "signature": "pub fn scan_tree(root: &Path) -> ScanResult",
+  "params": [
+    "root: &Path"
+  ],
+  "returns": "ScanResult",
+  "errors": [],
+  "semantics": "Scans all readable text files and collects marker occurrences and skipped files.",
+  "exported": false
+}

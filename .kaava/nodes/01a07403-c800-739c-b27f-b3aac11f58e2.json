@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-739c-b27f-b3aac11f58e2",
+  "slug": "settings-surface-use-settings-surface",
+  "kind": "contract-method",
+  "title": "Subscribe to Settings Surface State",
+  "description": "React hook providing current settings surface state with subscriber cleanup.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71c4-89cf-5b234dd86bc6",
+  "signature": "export function useSettingsSurface(): SettingsSurface",
+  "params": [],
+  "returns": "SettingsSurface",
+  "errors": [],
+  "semantics": "Returns current state and subscribes to future changes; seeded from module state on mount.",
+  "exported": false
+}

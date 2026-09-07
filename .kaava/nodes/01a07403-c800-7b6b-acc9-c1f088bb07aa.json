@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7b6b-acc9-c1f088bb07aa",
+  "slug": "app-updater-3",
+  "kind": "external-dep",
+  "title": "serde",
+  "description": "Serialization for update state enums sent to frontend.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7725-8d89-01b343796845",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "#[derive(Serialize)] on UpdateState enum variants"
+}

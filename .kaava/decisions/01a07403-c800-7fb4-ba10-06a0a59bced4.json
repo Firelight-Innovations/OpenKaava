@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7fb4-ba10-06a0a59bced4",
+  "kind": "decision",
+  "slug": "DEC-GOV-LICENSE-001",
+  "title": "Apache-2.0 chosen over MIT or GPL for patent grant",
+  "context": "OpenKaava is a container that runs third-party tools. The license must protect both the core and the tool ecosystem.",
+  "decision": "OpenKaava uses Apache-2.0, not MIT or GPL. Apache-2.0 includes an explicit patent grant. MIT says nothing about patents. GPL and AGPL copyleft would give someone a real argument that private tools mounting into OpenKaava are derivative works.",
+  "consequences": "Apache-2.0 protects patent rights while avoiding copyleft complications. Third-party commercial tools can be mounted without legal ambiguity. The codebase is freely copyable and forkable, but the name is a trademark not covered by the license.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-06"
+}

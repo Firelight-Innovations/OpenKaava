@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7f0a-8719-bbe21ca9c505",
+  "kind": "screen",
+  "slug": "home-main",
+  "title": "Home Screen",
+  "purpose": "Landing surface that displays start actions, recent projects, and available tutorials",
+  "states": [
+    "initial load",
+    "projects loaded",
+    "load error",
+    "no projects",
+    "pending action"
+  ],
+  "acceptance": [
+    "shall display three main actions: New Project, Open Project, Install App",
+    "shall display list of recent projects with last opened time",
+    "shall display tutorial cards from the catalog",
+    "shall show error message if project state cannot be loaded",
+    "shall disable actions while a folder picker is open"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7bf3-b083-b0139d0bad6a"
+  ]
+}

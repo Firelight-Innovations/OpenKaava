@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7833-b3a1-62847e7a3e3e",
+  "slug": "pane-tree-component",
+  "kind": "contract-method",
+  "title": "PaneTree React Component",
+  "description": "Renders the recursive pane layout with splits and dividers, handling pane-to-surface positioning and divider drag gestures.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77d0-8be7-f3b4ac1716af",
+  "signature": "function PaneTree(props: PaneTreeProps): ReactElement",
+  "params": [
+    "props: PaneTreeProps"
+  ],
+  "returns": "ReactElement",
+  "errors": [],
+  "semantics": "Renders a pane tree structure as DOM elements with drag-enabled dividers between split panes.",
+  "exported": false
+}

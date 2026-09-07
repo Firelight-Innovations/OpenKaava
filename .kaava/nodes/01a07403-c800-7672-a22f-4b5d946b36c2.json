@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7672-a22f-4b5d946b36c2",
+  "slug": "manifest-parser-parses-reference",
+  "kind": "test-case",
+  "title": "Reference Manifest Parses Correctly",
+  "description": "The echo tool's real kaava-tool.toml parses with expected field values.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "The reference manifest TOML string",
+  "when": "parsed",
+  "then": "tool.id='echo', version=0.1.0, frontend and core are present, surfaces has one synthesized",
+  "impl_ref": "crates/kaava-tool-manifest/src/lib.rs::parses_reference_manifest",
+  "status": "declared",
+  "last_result_ms": null
+}

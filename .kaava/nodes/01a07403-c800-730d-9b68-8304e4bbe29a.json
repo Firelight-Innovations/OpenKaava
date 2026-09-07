@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-730d-9b68-8304e4bbe29a",
+  "slug": "pane-tree-split-dir-on-open",
+  "kind": "contract-method",
+  "title": "splitDirOnOpen",
+  "description": "Determines the split direction for a pane when something opens into it, based on the pane's aspect ratio or window shape.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77d0-8be7-f3b4ac1716af",
+  "signature": "function splitDirOnOpen(paneId: string | null): SplitDir",
+  "params": [
+    "paneId: string | null"
+  ],
+  "returns": "SplitDir",
+  "errors": [],
+  "semantics": "Returns 'row' or 'column' depending on whether the pane's width or height is longer, with fallback to window dimensions.",
+  "exported": false
+}

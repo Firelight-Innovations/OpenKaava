@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7113-9191-720249d85250",
+  "slug": "file-api-settings-copy",
+  "kind": "doc-block",
+  "title": "Settings Module Copy Between Apps",
+  "description": "Why settings.ts duplicates patterns rather than sharing code.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "body": "settings.ts is restated from apps/viewer/ui/src/settings.ts, deliberately. Unlike topics.ts, this copy is not shorter than the Viewer's. What differs is which keys they name: this one names files.confirmDelete and nothing else. The reader is a generic mechanism underneath.",
+  "audience": "agent"
+}

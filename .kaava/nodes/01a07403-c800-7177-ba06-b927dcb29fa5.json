@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7177-ba06-b927dcb29fa5",
+  "slug": "codec-request-round-trips",
+  "kind": "test-case",
+  "title": "Request Serialization Round-Trip",
+  "description": "A request encodes to JSON and decodes back to the same shape.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "given": "A Request with id=1, method='echo', params={text: 'hi'}",
+  "when": "encoded to JSON and decoded back",
+  "then": "the decoded request matches the original",
+  "impl_ref": "crates/kaava-rpc/src/codec.rs::request_round_trips",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f14-8b2b-c06d802d2714",
+  "slug": "outcome",
+  "kind": "module",
+  "title": "Reconciliation Outcomes",
+  "description": "Defines the four reconciliation outcomes (matched, declared_absent, present_unknown, duplicate) and their serialization as PRD section 9.2 specifies.",
+  "lifecycle": "specified",
+  "layer": "data",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e48-8636-0f44278a1b0e",
+  "allowed_libraries": [
+    "01a07403-c800-75dd-b05c-6d3f11053668",
+    "01a07403-c800-71e9-a09e-d51d7c34d3cc"
+  ],
+  "ui_refs": []
+}

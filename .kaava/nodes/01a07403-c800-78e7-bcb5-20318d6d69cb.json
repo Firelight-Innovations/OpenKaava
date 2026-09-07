@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-78e7-bcb5-20318d6d69cb",
+  "slug": "types-is-annotation",
+  "kind": "contract-method",
+  "title": "isAnnotationNodeKind",
+  "description": "Checks whether a NodeKind is annotation-tier (group or comment), which are drawn but not counted.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a11-b05c-3720ce96e87b",
+  "signature": "function isAnnotationNodeKind(kind: NodeKind): boolean",
+  "params": [
+    "kind: NodeKind"
+  ],
+  "returns": "boolean",
+  "errors": [],
+  "semantics": "Determines if a node is annotation-tier and should be excluded from node counts.",
+  "exported": true
+}

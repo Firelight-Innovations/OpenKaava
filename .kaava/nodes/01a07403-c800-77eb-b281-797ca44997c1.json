@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-77eb-b281-797ca44997c1",
+  "slug": "layout-to-service-graph",
+  "kind": "contract-method",
+  "title": "toServiceGraph",
+  "description": "Project module tier to service tier graph.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79bb-abc8-74d009a7d2da",
+  "signature": "function toServiceGraph(doc: SchematicDoc): ServiceGraph",
+  "params": [
+    "doc"
+  ],
+  "returns": "ServiceGraph",
+  "errors": [],
+  "semantics": "Rolls up modules and aggregates edges.",
+  "exported": true
+}

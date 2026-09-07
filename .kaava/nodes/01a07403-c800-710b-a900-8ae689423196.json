@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-710b-a900-8ae689423196",
+  "slug": "client-tauri-reserved-methods",
+  "kind": "test-case",
+  "title": "Tauri host handles reserved kaava/* methods locally",
+  "description": "Verifies that reserved kaava/* methods are handled locally under Tauri host without reaching the invoke API.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client under Tauri host",
+  "when": "kaava/hello, kaava/shutdown, kaava/painted, or kaava/commands are invoked",
+  "then": "They resolve locally without calling tauri.invoke",
+  "impl_ref": "packages/bridge/src/client.test.ts::resolves kaava/* locally and never reaches tauri invoke",
+  "status": "declared",
+  "last_result_ms": null
+}

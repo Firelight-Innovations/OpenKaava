@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7b59-9e16-b983b5f06fdf",
+  "slug": "git-operations-git-worktrees",
+  "kind": "contract-method",
+  "title": "List Git Worktrees",
+  "description": "Every worktree attached to the cluster's repository.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "signature": "pub fn git_worktrees(app: AppHandle, cluster_id: String) -> Result<Vec<GitWorktree>>",
+  "params": [
+    "app",
+    "cluster_id"
+  ],
+  "returns": "Result<Vec<GitWorktree>>",
+  "errors": [
+    "AppError::Git"
+  ],
+  "semantics": "Returns list of all worktrees, empty list if not a repository.",
+  "exported": true
+}

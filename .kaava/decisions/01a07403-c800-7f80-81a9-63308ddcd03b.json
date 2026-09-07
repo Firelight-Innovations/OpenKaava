@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7f80-81a9-63308ddcd03b",
+  "kind": "decision",
+  "slug": "DEC-STD-RUST-004",
+  "title": "Tauri commands are thin wrappers; logic lives in modules",
+  "context": "Code that lives in command handlers cannot be tested without Tauri mock infrastructure.",
+  "decision": "Every #[tauri::command] lives in src-tauri/src/commands.rs and is thin: resolve arguments, call module that owns logic, return. Business logic belongs in modules that own it.",
+  "consequences": "All testable logic lives outside commands. Commands are skeletal routing layer. Easy to verify correctness without Tauri harness.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-08-16"
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7bf7-820b-1db47a869ec0",
+  "slug": "file-api-extension-of",
+  "kind": "contract-method",
+  "title": "Extract File Extension",
+  "description": "Get the lowercase extension without the dot, or empty string.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export function extensionOf(name: string): string",
+  "params": [
+    "name: string"
+  ],
+  "returns": "Extension without dot, or empty string",
+  "errors": [],
+  "semantics": "Returns file extension; leading dot doesn't start one.",
+  "exported": true
+}

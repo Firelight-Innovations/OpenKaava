@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7fd8-9926-9ae97ac84be6",
+  "slug": "apps-use-bridge",
+  "statement": "Apps must reach the shell only through @openkaava/bridge, never through direct imports.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm lint"
+}

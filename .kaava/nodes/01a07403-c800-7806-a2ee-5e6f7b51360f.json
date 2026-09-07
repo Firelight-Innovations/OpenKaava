@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7806-a2ee-5e6f7b51360f",
+  "slug": "kaava-binary-reconcile",
+  "kind": "contract-method",
+  "title": "Reconcile Subcommand",
+  "description": "kaava reconcile [--root <path>] [--out <path>] [--format text|json]",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-76f3-b30d-63296fe9e9db",
+  "signature": "kaava reconcile [--root <path>] [--out <path>] [--format text|json]",
+  "params": [
+    "--root <path> optional",
+    "--out <path> optional",
+    "--format text|json optional"
+  ],
+  "returns": "exit code 0/1/2/3",
+  "errors": [],
+  "semantics": "CLI command that scans code for markers and reports reconciliation status.",
+  "exported": true
+}

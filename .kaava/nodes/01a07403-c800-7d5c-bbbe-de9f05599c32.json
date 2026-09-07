@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7d5c-bbbe-de9f05599c32",
+  "slug": "graph-seam-graph-load-error",
+  "kind": "contract-method",
+  "title": "Graph Loading Error",
+  "description": "An error loading a JsonFileGraph from disk.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "signature": "pub enum GraphLoadError",
+  "params": [],
+  "returns": "enum",
+  "errors": [
+    "NoProject",
+    "Io",
+    "Parse"
+  ],
+  "semantics": "Enumerates three failure modes: missing .kaava/nodes, I/O, JSON parse.",
+  "exported": false
+}

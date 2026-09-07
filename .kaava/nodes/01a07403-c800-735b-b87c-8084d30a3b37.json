@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-735b-b87c-8084d30a3b37",
+  "slug": "plugin-registry-address",
+  "kind": "contract-method",
+  "title": "Build Surface Address",
+  "description": "Construct package.surface address from two ids.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "signature": "pub fn address(package_id: &str, surface_id: &str) -> String",
+  "params": [
+    "package_id: &str",
+    "surface_id: &str"
+  ],
+  "returns": "String",
+  "errors": [],
+  "semantics": "Joins ids with ADDRESS_SEPARATOR; both must be valid for address to be routable.",
+  "exported": false
+}

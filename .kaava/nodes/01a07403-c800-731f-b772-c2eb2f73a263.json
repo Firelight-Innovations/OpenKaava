@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-731f-b772-c2eb2f73a263",
+  "slug": "problems-test-location-cell",
+  "kind": "test-case",
+  "title": "locationCell formats all 5 surfaces",
+  "description": "Verifies breadcrumb formatting for each location type.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74e7-acd1-ffea4dddd156",
+  "given": "Location objects for stack, service, module, decision_log, and product",
+  "when": "locationCell is called for each",
+  "then": "Returns Stack, Stack › Auth Service, › Token Verifier, Decision Log, Product",
+  "impl_ref": "apps/schematify/ui/src/graph/problems.test.ts::mirrors Location::cell() for all 5 surfaces",
+  "status": "declared",
+  "last_result_ms": null
+}

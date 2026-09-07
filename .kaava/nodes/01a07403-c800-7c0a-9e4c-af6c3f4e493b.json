@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7c0a-9e4c-af6c3f4e493b",
+  "slug": "design-app-probe-absolute-rect",
+  "kind": "contract-method",
+  "title": "absoluteRect",
+  "description": "Converts nested frame coordinates to window coordinates",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71a3-ae12-251b52dac590",
+  "signature": "export function absoluteRect(element: Rect, frames: readonly Rect[]): Rect",
+  "params": [
+    "element",
+    "frames"
+  ],
+  "returns": "Rect",
+  "errors": [],
+  "semantics": "Adds frame offsets inner-to-outer to get element position in top window.",
+  "exported": false
+}

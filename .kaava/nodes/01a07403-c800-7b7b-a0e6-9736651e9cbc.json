@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b7b-a0e6-9736651e9cbc",
+  "slug": "app-updater-note-flattened",
+  "kind": "test-case",
+  "title": "Release Notes: Whitespace Flattening",
+  "description": "Leading blank lines and embedded newlines are collapsed.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7725-8d89-01b343796845",
+  "given": "Notes with leading blank lines and embedded whitespace",
+  "when": "summarise() is called",
+  "then": "Returns flattened single paragraph",
+  "impl_ref": "src-tauri/src/updater.rs::a_note_is_flattened_and_leading_blank_lines_are_skipped",
+  "status": "declared",
+  "last_result_ms": null
+}

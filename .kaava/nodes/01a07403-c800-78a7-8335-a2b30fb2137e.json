@@ -1,0 +1,19 @@
+{
+  "id": "01a07403-c800-78a7-8335-a2b30fb2137e",
+  "slug": "core",
+  "kind": "module",
+  "title": "Identity, References, and Lifecycle",
+  "description": "The identity and lifecycle foundation: UUID v7 minting, human-readable slugs, schematify:// reference scheme, node envelope, and the eight-state lifecycle with transition rules.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7abe-9eed-7510b796f92a",
+  "allowed_libraries": [
+    "01a07403-c800-75dd-b05c-6d3f11053668",
+    "01a07403-c800-71e9-a09e-d51d7c34d3cc",
+    "01a07403-c800-7dd7-be0c-9b86a48f6b68"
+  ],
+  "ui_refs": []
+}

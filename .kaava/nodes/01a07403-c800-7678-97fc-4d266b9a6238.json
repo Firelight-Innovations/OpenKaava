@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7678-97fc-4d266b9a6238",
+  "slug": "accelerators-accelerator-function",
+  "kind": "contract-method",
+  "title": "Accelerator Formatter",
+  "description": "Converts an Accelerator object to a string like 'Ctrl+Shift+P'.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d53-814c-3c88cf09800b",
+  "signature": "export function accelerator(args: Accelerator): string",
+  "params": [
+    "Accelerator"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Formats an accelerator object as a displayable keyboard shortcut string.",
+  "exported": true
+}

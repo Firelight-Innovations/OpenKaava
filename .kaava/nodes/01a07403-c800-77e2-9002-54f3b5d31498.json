@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-77e2-9002-54f3b5d31498",
+  "slug": "design-base64-2",
+  "kind": "external-dep",
+  "title": "base64",
+  "description": "Base64 encoding for image data in design comment screenshots.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b07-98f5-17457c65a2df",
+  "registry_ref": "01a07403-c800-7299-afdf-128e540beb73",
+  "usage_note": "Decodes base64 image data from comment payloads using STANDARD engine"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b59-9a87-b6ceab5552ec",
+  "slug": "anatomy-badges-shared-lca",
+  "kind": "test-case",
+  "title": "badgesFor draws SHARED only when marked shared",
+  "description": "Shared badge appears only when sharedAtLca is true.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b7-95f8-682301adf593",
+  "given": "a node with sharedAtLca field",
+  "when": "badgesFor is called",
+  "then": "badges include SHARED · AT LCA only when sharedAtLca=true",
+  "impl_ref": "apps/schematify/ui/src/engine/anatomy.test.ts::badgesFor draws SHARED · AT LCA only when the node is actually marked shared",
+  "status": "declared",
+  "last_result_ms": null
+}

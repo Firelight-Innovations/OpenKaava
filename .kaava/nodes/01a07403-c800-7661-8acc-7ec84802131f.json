@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7661-8acc-7ec84802131f",
+  "slug": "titlebar-menu-bar",
+  "kind": "contract-method",
+  "title": "MenuBar Component",
+  "description": "Renders six inline menu labels at >=1100px width with dropdown menus for File, Edit, Apps, View, Run, Terminal, Help.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7806-88f7-dafc7969fdd8",
+  "signature": "function MenuBar({ menus }: { menus: Menu[] }): ReactNode",
+  "params": [
+    "menus: Menu[]"
+  ],
+  "returns": "JSX.Element",
+  "errors": [],
+  "semantics": "Displays and manages menu bar interactions: click to open, hover to switch, Escape/blur to close.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7081-b118-1fce55db5d74",
+  "slug": "app-updater-signature-failure-message",
+  "kind": "test-case",
+  "title": "Error Messages: Signature Failure",
+  "description": "Signature errors are reworded for end users.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7725-8d89-01b343796845",
+  "given": "Error message containing 'signature'",
+  "when": "describe() is called",
+  "then": "Returns user-facing message about untrusted key",
+  "impl_ref": "src-tauri/src/updater.rs::a_signature_failure_says_what_to_do_instead",
+  "status": "declared",
+  "last_result_ms": null
+}

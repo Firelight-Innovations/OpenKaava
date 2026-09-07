@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7d4f-a065-2b805ac97275",
+  "slug": "canvas-module-doc",
+  "kind": "doc-block",
+  "title": "Schematic Canvas",
+  "description": "Thin React wrapper around engine for rendering and gestures.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ca9-8733-7c3c727556b9",
+  "body": "The Schematic, drawn. Deliberately thin: every decision this component makes is a pointer gesture turned into one engine call, and everything else — what is visible, where an edge runs, what a caption reads — arrives already decided in the `Frame` (`./frame.ts`). That split is not tidiness. This repository's Vitest runs on `node` with no jsdom, so nothing in this file can be tested and everything in the engine can be. Logic that drifts up into this component leaves the test suite silently.",
+  "audience": "agent"
+}

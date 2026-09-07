@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7adb-8615-ac6f24175961",
+  "slug": "document-visible-nodes",
+  "kind": "contract-method",
+  "title": "visibleNodes",
+  "description": "Get nodes not hidden by collapsed ancestors.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7427-ae73-a0fccec9c7ca",
+  "signature": "function visibleNodes(doc: SchematicDoc, index: DocIndex): SchematicNode[]",
+  "params": [
+    "doc",
+    "index"
+  ],
+  "returns": "SchematicNode[]",
+  "errors": [],
+  "semantics": "Filters to nodes drawn this frame.",
+  "exported": false
+}

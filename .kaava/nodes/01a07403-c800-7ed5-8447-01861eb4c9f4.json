@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7ed5-8447-01861eb4c9f4",
+  "slug": "search-logic-to-query-string",
+  "kind": "contract-method",
+  "title": "Serialize Query Back to String",
+  "description": "Renders a ParsedQuery back to field text, preserving round-trip equality.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "signature": "export function toQueryString(parsed: ParsedQuery): string",
+  "params": [
+    "parsed: ParsedQuery"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Reconstructs field text from query components with proper quoting and escaping so parseQuery(toQueryString(p)) equals p.",
+  "exported": false
+}

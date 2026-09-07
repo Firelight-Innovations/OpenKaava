@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7fd1-8aa6-d7857cacb370",
+  "slug": "reconciliation-uuid",
+  "kind": "external-dep",
+  "title": "UUID",
+  "description": "Universally unique identifier generation and parsing.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f82-b74b-6f5fb1052449",
+  "registry_ref": "01a07403-c800-71e9-a09e-d51d7c34d3cc",
+  "usage_note": "Groups and compares marker IDs from code against graph node IDs; HashMap key"
+}

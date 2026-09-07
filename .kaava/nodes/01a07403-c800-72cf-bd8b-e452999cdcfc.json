@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-72cf-bd8b-e452999cdcfc",
+  "slug": "github-query-describe-query",
+  "kind": "contract-method",
+  "title": "Describe Query as Noun Phrase",
+  "description": "Converts a parsed query into human-readable summary text.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcd-8834-b536584a1dca",
+  "signature": "export function describeQuery(query: ParsedQuery): string",
+  "params": [
+    "query: ParsedQuery"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Returns a phrase like 'open pull requests' or 'draft issues' for empty-list messaging.",
+  "exported": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7896-a3b5-b991600a7555",
+  "slug": "problems-test-drill-target",
+  "kind": "test-case",
+  "title": "drillTargetForLocation resolves navigation",
+  "description": "Verifies navigation target selection for each surface.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74e7-acd1-ffea4dddd156",
+  "given": "Location objects for stack, service, module, decision_log, and product surfaces",
+  "when": "drillTargetForLocation is called",
+  "then": "Returns correct tier/slug targets or null for non-Schematic surfaces",
+  "impl_ref": "apps/schematify/ui/src/graph/problems.test.ts::opens the Stack Schematic for a stack location",
+  "status": "declared",
+  "last_result_ms": null
+}

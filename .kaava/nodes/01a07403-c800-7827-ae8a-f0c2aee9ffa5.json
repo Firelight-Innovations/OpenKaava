@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7827-ae8a-f0c2aee9ffa5",
+  "slug": "launch-target-enum",
+  "kind": "contract-method",
+  "title": "Target Enum",
+  "description": "What a launch was asked to open: either a folder as a project or a file with its parent.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a3-a407-049c1f55dd74",
+  "signature": "pub enum Target { Project { path: String }, File { path: String, parent: Option<String> } }",
+  "params": [],
+  "returns": "Target",
+  "errors": [],
+  "semantics": "Distinguishes the two launch scenarios with all information needed by the shell.",
+  "exported": false
+}

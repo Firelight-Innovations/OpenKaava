@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7d22-8fc8-2a5358cf80ba",
+  "slug": "search-ui-kind-of",
+  "kind": "contract-method",
+  "title": "Classify File by Kind",
+  "description": "Determines a file's search kind (script, data, content, kaava) from its path.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "signature": "export function kindOf(path: string): SearchKind",
+  "params": [
+    "path: string"
+  ],
+  "returns": "SearchKind",
+  "errors": [],
+  "semantics": "Classifies a file by checking .kaava directory membership first, then filename, then extension against a lookup table.",
+  "exported": false
+}

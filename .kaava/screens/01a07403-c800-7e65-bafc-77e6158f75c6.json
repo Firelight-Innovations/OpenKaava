@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7e65-bafc-77e6158f75c6",
+  "kind": "screen",
+  "slug": "splash-screen",
+  "title": "Splash Screen",
+  "purpose": "Initial boot screen shown while OpenKaava is starting up, displaying progress and any errors",
+  "states": [
+    "working - showing boot progress with step indicator",
+    "ready - boot complete, transitioning to main window",
+    "failed - boot error with recovery button"
+  ],
+  "acceptance": [
+    "shall display animated art while boot is in progress",
+    "shall show progress bar fill with current step indicator (e.g. 'step 2 of 3')",
+    "shall display 'Ready' message when boot completes",
+    "shall display error message and 'Continue anyway' button when boot fails",
+    "shall hold visible for minimum 800ms even if boot completes faster",
+    "shall transition to main window after minimum visible time"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7c00-b2b5-c21de1d221d0"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7b9a-9195-21064911dda1",
+  "slug": "storage-store-write-node",
+  "kind": "contract-method",
+  "title": "Write Node",
+  "description": "Serialize a node and write it to the nodes/ layer.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-786a-927d-06cc6a4b0332",
+  "signature": "pub fn write_node(&self, node: &Node) -> Result<()>",
+  "params": [
+    "node: &Node"
+  ],
+  "returns": "Result<()>",
+  "errors": [
+    "CoreError::AtomicWrite"
+  ],
+  "semantics": "Writes a node atomically to its path under .kaava/nodes/, using the node's UUID as the filename.",
+  "exported": true
+}

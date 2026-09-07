@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7a8c-841d-35510c2bd0a0",
+  "kind": "decision",
+  "slug": "DEC-STD-DONE-001",
+  "title": "pnpm verify is the mechanical quality gate",
+  "context": "Quality checks needed to be enforced uniformly before PR is accepted.",
+  "decision": "pnpm verify must pass before PR is ready. Runs: pnpm build (includes tsc), pnpm test (both runners), pnpm lint (ESLint/clippy/comments), pnpm format:check. pnpm verify:fast available for iteration (skips vite bundle), but final run before commit must be full verify.",
+  "consequences": "Single command enforces all mechanical gates. Catches: type errors, test failures, lint violations, formatting, missing vite.config.ts entries (bundle step only). Bundle step catches errors that typecheck but cannot bundle.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-08-16"
+}

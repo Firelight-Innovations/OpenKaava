@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c7e-a601-e88ade540db8",
+  "slug": "diff-prompt-format-comment-2",
+  "kind": "test-case",
+  "title": "Prompt: Format Single Comment",
+  "description": "Tests that review comment is formatted into four lines.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "given": "Review comment with path, lines, scope, and body",
+  "when": "formatComment is called",
+  "then": "Returns four lines: File, Line(s), Diff, User comment",
+  "impl_ref": "src/shell/diff/reviewPrompt.test.ts::formatComment::names the file, the line, the diff and the note",
+  "status": "declared",
+  "last_result_ms": null
+}

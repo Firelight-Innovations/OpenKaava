@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7195-8131-620cbf3c581e",
+  "slug": "manifest-parser-tool-manifest-resolve-dist",
+  "kind": "contract-method",
+  "title": "Resolve Distribution Path",
+  "description": "Get the built frontend bundle's absolute path inside a checkout.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "signature": "pub fn resolve_dist(&self, checkout_root: &Path) -> Option<PathBuf>",
+  "params": [
+    "&self",
+    "checkout_root: &Path"
+  ],
+  "returns": "Option<PathBuf>",
+  "errors": [],
+  "semantics": "Returns None for packages with no frontend section; callers treat that as nothing to serve.",
+  "exported": true
+}

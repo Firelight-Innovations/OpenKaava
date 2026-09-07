@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7b63-b67d-7d0675ab8a07",
+  "slug": "file-api-save-as",
+  "kind": "contract-method",
+  "title": "Save As Dialog",
+  "description": "Write text to a file chosen by the user in the OS save dialog.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export const saveAs = (name: string, text: string) => invoke<SavedAs | null>('files/save-as', { name, text }, 3600000)",
+  "params": [
+    "name: string",
+    "text: string"
+  ],
+  "returns": "Promise<SavedAs | null> with path and mtime, or null if cancelled",
+  "errors": [],
+  "semantics": "Shows OS save dialog; returns null if user cancels.",
+  "exported": true
+}

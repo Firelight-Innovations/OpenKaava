@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-761f-b07f-013afad6b896",
+  "slug": "codec-rpc-error-codes",
+  "kind": "doc-block",
+  "title": "RPC Error Code Constants",
+  "description": "Standard JSON-RPC error codes and OpenKaava-specific error codes for host-generated failures.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "body": "Standard JSON-RPC codes, plus the OpenKaava range the host generates itself (never sent by a tool). Keeping these as constants rather than inlining the numbers lets assertions use symbolic names instead of bare error codes that mean nothing without the spec open.",
+  "audience": "both"
+}

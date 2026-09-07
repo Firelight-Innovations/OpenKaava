@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-74d0-b34d-a2bc9e76919c",
+  "slug": "terminal-clipboard-key-gesture",
+  "kind": "contract-method",
+  "title": "Key Gesture Interface",
+  "description": "Keyboard event properties used by clipboard handlers.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7101-96d4-211896bc6c31",
+  "signature": "export interface KeyGesture { readonly key: string; readonly ctrlKey: boolean; readonly shiftKey: boolean; readonly altKey: boolean; readonly metaKey: boolean; }",
+  "params": [],
+  "returns": "interface",
+  "errors": [],
+  "semantics": "Captures keyboard modifier state for paste detection.",
+  "exported": true
+}

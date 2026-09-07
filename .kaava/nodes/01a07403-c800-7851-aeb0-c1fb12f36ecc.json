@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7851-aeb0-c1fb12f36ecc",
+  "slug": "review-store-load",
+  "kind": "contract-method",
+  "title": "Read a checkout's review comments from disk",
+  "description": "Load .kaava/review-comments.json, degrading to an empty list.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-700b-8fdc-ce83c58300e1",
+  "signature": "pub fn load(root: &Path) -> Vec<ReviewComment>",
+  "params": [
+    "root: &Path"
+  ],
+  "returns": "Vec<ReviewComment>",
+  "errors": [],
+  "semantics": "Never fails; missing or unreadable files return an empty list, and unknown fields are ignored.",
+  "exported": false
+}

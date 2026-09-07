@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-7597-b7dd-eeee05d01e51",
+  "slug": "host-tool-process-call",
+  "kind": "contract-method",
+  "title": "Call a Tool Method (Default Timeout)",
+  "description": "Send a request to the tool and block until a response arrives, using the default 30-second timeout.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-762d-94d0-4cb8287084c4",
+  "signature": "pub fn call(&self, method: &str, params: Option<Value>) -> Result<Value, RpcError>",
+  "params": [
+    "&self",
+    "method: &str",
+    "params: Option<Value>"
+  ],
+  "returns": "Result<Value, RpcError>",
+  "errors": [
+    "RpcError::TOOL_EXITED",
+    "RpcError::TIMED_OUT"
+  ],
+  "semantics": "Sends a request with an auto-allocated id and waits on a background thread to deliver the response.",
+  "exported": true
+}

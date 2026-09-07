@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7db9-9a54-bc28995839c7",
+  "kind": "decision",
+  "slug": "DEC-SCH-BOUND-001",
+  "title": "Boundary enforcement uses CI path checks and CODEOWNERS",
+  "context": "Alternative approaches: runtime permission checks only; honor-system enforcement; per-file access control.",
+  "decision": "CI enforces the architectural boundary using: (1) `cargo-deny` gates Rust dependencies against the library registry; (2) `dependency-cruiser` gates TypeScript imports across package boundaries; (3) a path-scope check blocks pulls that write `runs/` and `nodes/` together (except the lifecycle pair); (4) CODEOWNERS assigns semantic files to the repository owner and leaves runs/ and layout/ unowned.",
+  "consequences": "Enforcement happens at merge time, not runtime; violations are caught in CI; the boundary is organizational (via CODEOWNERS) and technical (via path checks); agents can write to `runs/` and `layout/` without approval; wave 10 writes the CODEOWNERS file.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

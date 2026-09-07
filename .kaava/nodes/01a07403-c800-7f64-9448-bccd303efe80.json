@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f64-9448-bccd303efe80",
+  "slug": "client-message-filter-wrong-source",
+  "kind": "test-case",
+  "title": "Drops messages from sources other than parent",
+  "description": "Verifies that messages appearing to be from the shell but not from the parent frame are rejected.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client listening for messages",
+  "when": "A ready message is dispatched from a source that is not the parent frame",
+  "then": "The session() promise does not resolve",
+  "impl_ref": "packages/bridge/src/client.test.ts::drops a ready message whose source is not the parent frame",
+  "status": "declared",
+  "last_result_ms": null
+}

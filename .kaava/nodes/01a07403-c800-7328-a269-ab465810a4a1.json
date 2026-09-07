@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7328-a269-ab465810a4a1",
+  "slug": "viewport-fitto-nan-infinity",
+  "kind": "test-case",
+  "title": "fitTo commits no NaN zoom for malformed bounds",
+  "description": "fitTo guards against NaN or Infinity in bounds with both early check and result validation.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-759b-b225-e1b8cd987643",
+  "given": "a bounding box with NaN width or Infinity height",
+  "when": "fitTo is called",
+  "then": "returns the starting viewport unchanged rather than committing NaN",
+  "impl_ref": "apps/schematify/ui/src/engine/viewport.test.ts::fitTo leaves the viewport unchanged for a non-finite bounding box, rather than committing NaN",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-769d-916c-122fd28418ff",
+  "slug": "review-anchoring-and-scope",
+  "kind": "doc-block",
+  "title": "Comments are anchored to lines in diffs",
+  "description": "How review comments work across the three diff views.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "body": "A comment is a note anchored to a line range of one file in one of three diffs: unstaged, staged, or branch. Line numbers are 1-based and inclusive at both ends, naming the modified side. A single-line note has start_line == end_line. The note carries no author and no thread — two parties and a diff — so the frontend can hand it to an agent as work.",
+  "audience": "both"
+}

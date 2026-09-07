@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7751-ad2c-145a93e3fd1f",
+  "slug": "layout-pane-node-enum",
+  "kind": "contract-method",
+  "title": "PaneNode Enum",
+  "description": "Tree node representing either a split container or a leaf pane in a cluster's layout.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ff9-963f-4bb8df82714f",
+  "signature": "pub enum PaneNode { Split { id: String, dir: SplitDir, sizes: Vec<f32>, children: Vec<PaneNode> }, Leaf { id: String, tabs: Vec<String>, active_tab: Option<String> } }",
+  "params": [],
+  "returns": "PaneNode",
+  "errors": [],
+  "semantics": "Represents the immutable structure of a cluster's pane tree; mutations are pure functions.",
+  "exported": false
+}

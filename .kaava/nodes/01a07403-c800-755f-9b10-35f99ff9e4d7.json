@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-755f-9b10-35f99ff9e4d7",
+  "slug": "registry-registering-twice-replaces",
+  "kind": "test-case",
+  "title": "Duplicate Registration Replaces",
+  "description": "Registering the same id twice replaces the entry rather than duplicating.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74ba-abfe-06dbc4c59dec",
+  "given": "A registry with one server registered",
+  "when": "The same server id is registered again",
+  "then": "The list contains exactly one entry for that id",
+  "impl_ref": "src-tauri/src/mcp/registry.rs::registering_an_id_twice_replaces_rather_than_duplicates",
+  "status": "declared",
+  "last_result_ms": null
+}

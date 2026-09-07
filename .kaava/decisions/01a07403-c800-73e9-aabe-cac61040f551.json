@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-73e9-aabe-cac61040f551",
+  "kind": "decision",
+  "slug": "DEC-STD-DOORS-001",
+  "title": "src/bindings.ts and src/shell/contract.ts are the only doors",
+  "context": "Frontend needs systematic boundaries to prevent scattered coupling to backend.",
+  "decision": "Two files exist purely as chokepoints: src/bindings.ts (only door to Rust via Tauri) and src/shell/contract.ts (interface vocabulary boundary). Their value is entirely in being the *only* way through.",
+  "consequences": "Cannot add bypasses, even small or obviously-fine ones—the bypass cost exceeds the savings. Every Tauri command has exactly one typed wrapper in bindings.ts. Every type there mirrors a #[derive(Serialize)] struct on Rust side with 'Mirrors' comment.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-08-16"
+}

@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7b38-a4ab-93f55efd511c",
+  "slug": "registry-tools",
+  "kind": "contract-method",
+  "title": "List Server Tools",
+  "description": "Get the tools a server currently exposes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74ba-abfe-06dbc4c59dec",
+  "signature": "pub fn tools(&self, id: &str, dev_mode: bool) -> Vec<ToolDescriptor>",
+  "params": [
+    "id: &str",
+    "dev_mode: bool"
+  ],
+  "returns": "Vec<ToolDescriptor>",
+  "errors": [],
+  "semantics": "Returns an empty list for disabled or unreachable servers; owned descriptors free of protocol field names.",
+  "exported": false
+}

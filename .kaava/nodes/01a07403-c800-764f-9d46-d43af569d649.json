@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-764f-9d46-d43af569d649",
+  "slug": "worktree-logic-describe-line-counts",
+  "kind": "contract-method",
+  "title": "Describe Line Counts in Words",
+  "description": "Converts counts to a human-readable phrase.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71fe-af1c-0dcd2dfd9607",
+  "signature": "export function describeLineCounts(insertions: number | null, deletions: number | null): string | null",
+  "params": [
+    "insertions: number | null",
+    "deletions: number | null"
+  ],
+  "returns": "string | null",
+  "errors": [],
+  "semantics": "Returns plural-aware description like '12 lines added, 3 lines removed', or null for empty.",
+  "exported": false
+}

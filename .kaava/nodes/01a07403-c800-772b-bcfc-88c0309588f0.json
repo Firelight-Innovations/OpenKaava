@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-772b-bcfc-88c0309588f0",
+  "slug": "core",
+  "kind": "external-dep",
+  "title": "Monaco Editor",
+  "description": "API type definitions for language registration and Monaco instance.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75c0-8343-2b091383cfc2",
+  "registry_ref": "01a07403-c800-7009-8eef-cc81f6cacfda",
+  "usage_note": "Type and runtime dependency; MonacoApi type is the primary public interface, requiring consumers to provide their own Monaco instance."
+}

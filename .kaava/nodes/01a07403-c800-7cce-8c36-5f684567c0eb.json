@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7cce-8c36-5f684567c0eb",
+  "slug": "plugin-registry-module-doc",
+  "kind": "doc-block",
+  "title": "Plugin Registry Purpose",
+  "description": "In-memory record of installed plugins with lazy manifest resolution.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "body": "Installed plugins: what is on this machine, and what each one can show. A **plugin** is a checkout carrying a `kaava-tool.toml`. One of them is a *package* holding zero or more *surfaces*, and a surface is the thing that reaches the switcher bar. Deliberately not `discovery.rs`, and the manifest behind a record is re-read rather than cached — which is what the reload loop is built on.",
+  "audience": "agent"
+}

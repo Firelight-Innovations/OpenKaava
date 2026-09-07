@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-78d1-93da-c28fcc3e46cd",
+  "slug": "shell-quoting-quote-all",
+  "kind": "contract-method",
+  "title": "Quote Multiple Paths",
+  "description": "Every path quoted, space-separated, with trailing space.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e0-bbc7-7090d1eeb4e5",
+  "signature": "pub fn quote_all(family: ShellFamily, paths: &[String]) -> String",
+  "params": [
+    "family",
+    "paths"
+  ],
+  "returns": "String",
+  "errors": [],
+  "semantics": "Returns all paths quoted and joined for insertion at a prompt.",
+  "exported": false
+}

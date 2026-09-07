@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-74a7-8e31-0c5f58819292",
+  "slug": "band-geometry-null-cluster-noop",
+  "kind": "test-case",
+  "title": "Null cluster leaves map unchanged",
+  "description": "Calling withBandGeometry with clusterId=null returns the input map unchanged.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bda-92fe-1e3bdf7870f3",
+  "given": "a geometry map and clusterId=null",
+  "when": "withBandGeometry is called with a patch",
+  "then": "the returned map is the same object as the input",
+  "impl_ref": "src/shell/frame/bandGeometry.test.ts::bandGeometry#leaves the map alone when there is no cluster to key by",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,29 @@
+{
+  "id": "01a07403-c800-7d56-a4f0-f12bd453a564",
+  "kind": "screen",
+  "slug": "worktree-view",
+  "title": "Worktree / Source Control View",
+  "purpose": "Git repository browser showing commit history and working tree changes",
+  "states": [
+    "no-cluster - no cluster active",
+    "no-repository - cluster active but not in git repo",
+    "no-worktree - cluster in repo but no worktree checked out",
+    "with-worktree - cluster has checked out worktree with changes",
+    "loading - fetch in progress"
+  ],
+  "acceptance": [
+    "shall display commit history graph for repository",
+    "shall show file changes for active cluster's worktree",
+    "shall display staged and unstaged sections when worktree exists",
+    "shall allow dragging divider between history and changes",
+    "shall show diff viewer for selected files",
+    "shall support review comments on diff lines",
+    "shall display branch checkout UI",
+    "shall show empty state with explanation when no repository"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-723d-9de9-ce112da27296",
+    "schematify://node/01a07403-c800-7de2-b5ae-52b42e75bb02",
+    "schematify://node/01a07403-c800-79b8-a3b4-0ae4ac2141c7"
+  ]
+}

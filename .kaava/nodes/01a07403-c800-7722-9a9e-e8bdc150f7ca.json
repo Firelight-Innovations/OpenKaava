@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7722-9a9e-e8bdc150f7ca",
+  "slug": "palette-registry-initial-index-2",
+  "kind": "test-case",
+  "title": "Registry: Initial Highlight",
+  "description": "Tests that initial highlight skips disabled rows.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d1f-ac55-b6ae705d4545",
+  "given": "Query 'save' with disabled 'File: Save' first",
+  "when": "initialIndex is called",
+  "then": "Returns index of first runnable command, not 0",
+  "impl_ref": "src/shell/palette/registry.test.ts::where the highlight starts::is the first row that can actually run",
+  "status": "declared",
+  "last_result_ms": null
+}

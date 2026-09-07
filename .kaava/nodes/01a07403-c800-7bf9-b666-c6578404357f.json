@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7bf9-b666-c6578404357f",
+  "slug": "tool-window-empty-state",
+  "kind": "contract-method",
+  "title": "EmptyState React Component",
+  "description": "Shown when the active cluster has nothing open, with guidance on three ways to open an app.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e2-b95c-b24cdbe6d78b",
+  "signature": "function EmptyState(): ReactElement",
+  "params": [],
+  "returns": "ReactElement",
+  "errors": [],
+  "semantics": "Renders a brand glyph and text explaining how to open an app via the menu, cluster tab, or drag.",
+  "exported": false
+}

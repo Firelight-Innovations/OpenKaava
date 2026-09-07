@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7605-8786-8f95ab37804f",
+  "slug": "lint-line-endings-lf",
+  "statement": "Text files must use LF line endings, never CRLF, enforced through `.gitattributes` and Prettier configuration.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm format:check"
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7479-a0d3-b50400a8e7c2",
+  "slug": "config-is-annotation-kind",
+  "kind": "contract-method",
+  "title": "isAnnotationKind",
+  "description": "Check whether a node kind belongs to the annotation tier.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74d4-b905-475b4f8fabda",
+  "signature": "function isAnnotationKind(kind: string): boolean",
+  "params": [
+    "kind"
+  ],
+  "returns": "boolean",
+  "errors": [],
+  "semantics": "Returns true only for kinds in ANNOTATION_KINDS.",
+  "exported": false
+}

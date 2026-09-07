@@ -1,0 +1,30 @@
+{
+  "id": "01a07403-c800-7fb0-8a65-eb2277ac05fd",
+  "kind": "flow",
+  "slug": "open-terminal-run-command",
+  "title": "Open Terminal and Run a Command",
+  "trigger": "User needs to run shell commands for the project",
+  "steps": [
+    {
+      "screen": "schematify://screen/01a07403-c800-7c0a-bb93-223be6b8c63c",
+      "action": "Press Ctrl+` (backtick under Escape) to show the terminal band at the bottom"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c0a-bb93-223be6b8c63c",
+      "action": "The terminal appears in the cluster's project folder; if multiple terminals exist, tabs show on the left"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c0a-bb93-223be6b8c63c",
+      "action": "Press Ctrl+Shift+` to open a new terminal, or click the + on the terminal band"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c0a-bb93-223be6b8c63c",
+      "action": "Type a command at the prompt and press Enter; output appears in the terminal"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c0a-bb93-223be6b8c63c",
+      "action": "Press Ctrl+` again to hide the terminal band, or continue working while keeping it visible"
+    }
+  ],
+  "outcome": "A terminal is open in the cluster's project folder, ready to accept commands"
+}

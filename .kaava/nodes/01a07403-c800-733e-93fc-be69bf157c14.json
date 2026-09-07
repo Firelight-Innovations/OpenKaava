@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-733e-93fc-be69bf157c14",
+  "slug": "github-query-matches-query",
+  "kind": "contract-method",
+  "title": "Test Item Against Query",
+  "description": "Determines whether a GitHub item matches all query criteria.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcd-8834-b536584a1dca",
+  "signature": "export function matchesQuery(item: GithubItem, query: ParsedQuery): boolean",
+  "params": [
+    "item: GithubItem",
+    "query: ParsedQuery"
+  ],
+  "returns": "boolean",
+  "errors": [],
+  "semantics": "Tests scope, state, draft flag, author, labels, and free-text title/number match with AND semantics.",
+  "exported": false
+}

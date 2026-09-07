@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-760d-b2aa-896414e9e846",
+  "slug": "report-rendering-chrono",
+  "kind": "external-dep",
+  "title": "chrono",
+  "description": "Date and time library.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "registry_ref": "01a07403-c800-7b04-88fc-0ca4063b4aba",
+  "usage_note": "Version 0.4; Utc::now().to_rfc3339() generates timestamps in reconcile.json files"
+}

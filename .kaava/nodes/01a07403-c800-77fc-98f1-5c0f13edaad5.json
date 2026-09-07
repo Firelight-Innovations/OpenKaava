@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-77fc-98f1-5c0f13edaad5",
+  "slug": "error",
+  "kind": "external-dep",
+  "title": "thiserror",
+  "description": "Procedural macro for generating Display and From impls from error attributes",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7201-bc76-069d8a5755f3",
+  "registry_ref": "01a07403-c800-7565-98ec-498cf9d20d06",
+  "usage_note": "Derives Display and From implementations for AppError enum variants"
+}

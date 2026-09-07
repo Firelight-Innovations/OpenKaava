@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7604-8300-628720f8dac1",
+  "slug": "servers-seeding-registers-all",
+  "kind": "test-case",
+  "title": "Seed Registers All Servers",
+  "description": "Calling seed registers exactly the five servers this build hosts.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e98-ae8d-c1ef00cefddb",
+  "given": "A new registry",
+  "when": "seed is called",
+  "then": "The registry lists [echo, debug, design, ui, agent] in that order",
+  "impl_ref": "src-tauri/src/mcp/servers/mod.rs::seeding_registers_every_server_this_build_hosts",
+  "status": "declared",
+  "last_result_ms": null
+}

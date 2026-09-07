@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7b88-ba3f-b7aa80a95caa",
+  "slug": "viewer-app-commands-use-menu-commands",
+  "kind": "contract-method",
+  "title": "useMenuCommands",
+  "description": "Handles title bar File and Edit menu commands",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-786a-9874-be99239e4df9",
+  "signature": "export function useMenuCommands(deps: MenuCommandDeps): void",
+  "params": [
+    "deps"
+  ],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Declares available commands and handles their execution.",
+  "exported": false
+}

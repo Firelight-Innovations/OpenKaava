@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7b60-9878-90ec5353237e",
+  "slug": "ingest",
+  "kind": "module",
+  "title": "Run Artifact Ingestion",
+  "description": "Ingests CI run artifacts: validates that reported budgets match declared nodes, checks for collisions with existing runs, and writes immutable run files under the run tree.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7abe-9eed-7510b796f92a",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

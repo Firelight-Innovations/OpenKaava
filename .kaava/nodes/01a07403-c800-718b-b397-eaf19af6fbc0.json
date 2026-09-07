@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-718b-b397-eaf19af6fbc0",
+  "slug": "project-marker-find",
+  "kind": "contract-method",
+  "title": "Locate a project manifest in a directory",
+  "description": "Search for a <name>.kaava file in a folder.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7742-a1fb-c4253f531eb9",
+  "signature": "pub fn find(dir: &Path) -> Option<PathBuf>",
+  "params": [
+    "dir: &Path"
+  ],
+  "returns": "Option<PathBuf>",
+  "errors": [],
+  "semantics": "Returns the path to the lexicographically first manifest file, or None if not found.",
+  "exported": false
+}

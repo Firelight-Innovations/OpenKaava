@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7844-a6bc-775702df762a",
+  "slug": "app-root-app",
+  "kind": "contract-method",
+  "title": "App",
+  "description": "Top-level component owning the stack snapshot.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c87-8546-4af3785b349f",
+  "signature": "function App(): JSX.Element",
+  "params": [],
+  "returns": "JSX.Element",
+  "errors": [],
+  "semantics": "Fetches and caches stack snapshot, hosts settings and library screens.",
+  "exported": true
+}

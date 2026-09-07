@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-71ea-9b0c-b158b4cbb148",
+  "kind": "screen",
+  "slug": "tutorial-index",
+  "title": "Tutorial Index",
+  "purpose": "Browsable list of all available tutorials with progress tracking",
+  "states": [
+    "loading",
+    "ready",
+    "error",
+    "empty"
+  ],
+  "acceptance": [
+    "shall display catalog of all tutorials from backend",
+    "shall show completion status for each tutorial",
+    "shall support navigation to individual tutorials",
+    "shall display total count and completed count",
+    "shall show error if catalog cannot be loaded"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-72b5-84db-a6d3d2c16f72",
+    "schematify://node/01a07403-c800-7899-938d-50660dfbbcc0"
+  ]
+}

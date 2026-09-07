@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d49-9f94-62d201568f0a",
+  "slug": "plugin-catalog-optional-flags-default",
+  "kind": "test-case",
+  "title": "Catalog: Default Flags",
+  "description": "Entries without default or private flags are public and not default.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78c4-8878-c792de8f7f2c",
+  "given": "Entry with no default/private fields",
+  "when": "deserialized",
+  "then": "Both flags are false",
+  "impl_ref": "src-tauri/src/plugins/catalog.rs::an_entry_without_the_optional_flags_is_public_and_not_default",
+  "status": "declared",
+  "last_result_ms": null
+}

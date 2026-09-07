@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-71e0-b7b9-eaa3eb21c352",
+  "slug": "tree-state-use-virtual-rows",
+  "kind": "contract-method",
+  "title": "Virtual Windowing Hook",
+  "description": "Computes which row indices should be in the DOM based on scroll position.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75ef-92b8-f1ede6be6e2f",
+  "signature": "export function useVirtualRows(scrollRef: RefObject<HTMLElement | null>, rowCount: number): RowWindow",
+  "params": [
+    "scrollRef: RefObject<HTMLElement>",
+    "rowCount: number"
+  ],
+  "returns": "RowWindow with start, end, padTop, padBottom for layout",
+  "errors": [],
+  "semantics": "Returns DOM range to render based on scrollport, with overscan padding.",
+  "exported": true
+}

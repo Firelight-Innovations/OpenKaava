@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7201-bc76-069d8a5755f3",
+  "slug": "error",
+  "kind": "module",
+  "title": "Error Types",
+  "description": "Unified error type for all orchestrator operations, with Tauri IPC serialization to JSON strings for frontend display.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [
+    "01a07403-c800-7565-98ec-498cf9d20d06",
+    "01a07403-c800-75dd-b05c-6d3f11053668"
+  ],
+  "ui_refs": []
+}

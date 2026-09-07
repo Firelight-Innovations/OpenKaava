@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7109-87a3-e38404928790",
+  "slug": "design-app-comments-for-display-no-mutation",
+  "kind": "test-case",
+  "title": "forDisplay preserves input list",
+  "description": "Does not reorder the array in place",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-76b8-97b0-0d8399c3f37b",
+  "given": "original comment array",
+  "when": "forDisplay is called",
+  "then": "original array order unchanged",
+  "impl_ref": "apps/design/ui/src/comments.test.ts::does not reorder the list it was given",
+  "status": "declared",
+  "last_result_ms": null
+}

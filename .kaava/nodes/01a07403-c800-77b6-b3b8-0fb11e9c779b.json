@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-77b6-b3b8-0fb11e9c779b",
+  "slug": "atomic-module-doc",
+  "kind": "doc-block",
+  "title": "Atomic JSON Writer",
+  "description": "The write mechanism that ensures a reader never sees a partial file.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7584-85b8-2c8fc4148f9d",
+  "body": "Every semantic file in `.kaava/` is written through here, and the three steps each earn their place. The temporary file sits in the same directory, so the rename is inside one filesystem and cannot silently become a copy. `sync_all` runs before it, so the bytes are on the device before anything points at them: without it a crash leaves a correctly named file full of zeroes, which is worse than a half-written one because it parses as absent rather than as damaged. The rename over the target is atomic on every filesystem Schematify runs on.",
+  "audience": "both"
+}

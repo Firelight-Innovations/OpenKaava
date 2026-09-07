@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7df9-a1c9-90e91cdda411",
+  "slug": "react",
+  "kind": "external-dep",
+  "title": "React",
+  "description": "React UI library for components, hooks, and lifecycle management.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77d0-8be7-f3b4ac1716af",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "Used in PaneTree for useCallback and useRef hooks for managing pane splits and dividers."
+}

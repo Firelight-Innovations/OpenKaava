@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-799d-8f58-fdda6d43d966",
+  "slug": "report-rendering-summary-counts-a-mixed-run-into-its-own-buckets",
+  "kind": "test-case",
+  "title": "Summarize Mixed Outcomes",
+  "description": "Each outcome is counted into its correct bucket regardless of order.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "given": "2 Matched, 1 DeclaredAbsent, 3 PresentUnknown, 1 Duplicate",
+  "when": "summarize is called",
+  "then": "counts are 2, 1, 3, 1 respectively",
+  "impl_ref": "crates/schematify-reconcile/src/report.rs::summary_counts_a_mixed_run_into_its_own_buckets",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-754f-b4c6-a5c0456901a3",
+  "slug": "titlebar-menu-design",
+  "kind": "doc-block",
+  "title": "Menu design rationale",
+  "description": "Explains the menu model and the binding of accelerators to actual keystrokes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7806-88f7-dafc7969fdd8",
+  "body": "Accelerators are bound, not displayed-only. Every accelerator that appears is one the keystroke actually performs: `keys/useKeyboard.ts` binds File and View menus and Terminal's two, or the focused text surface already binds it (Edit menu, noted on that menu). Anything that could be neither is not shown. New Window has no accelerator because it has no action; Kill Terminal and Clear lost theirs because Ctrl+K belongs to SearchSlot, and the rule is bind it or drop it. They are Windows text (Ctrl+N, not Mac Command glyph).",
+  "audience": "agent"
+}

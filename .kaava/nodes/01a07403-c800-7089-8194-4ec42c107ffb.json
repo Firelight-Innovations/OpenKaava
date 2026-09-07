@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7089-8194-4ec42c107ffb",
+  "slug": "presets-store",
+  "kind": "module",
+  "title": "Presets Persistence",
+  "description": "Reads and writes presets.json to %APPDATA% with only user-saved presets; built-ins are compiled in and merged on read. Handles atomic writes, forward-compatibility, and never-fatal degradation.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e3f-9d6f-b11a334ab406",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

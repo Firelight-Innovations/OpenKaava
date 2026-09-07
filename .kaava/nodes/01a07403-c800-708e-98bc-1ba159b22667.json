@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-708e-98bc-1ba159b22667",
+  "slug": "config-sync",
+  "kind": "contract-method",
+  "title": "Sync Project Config",
+  "description": "Update a project's .mcp.json to match enabled servers.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-782d-bdc1-e759c21e6408",
+  "signature": "pub fn sync(app: &AppHandle, project: &Path)",
+  "params": [
+    "app: &AppHandle",
+    "project: &Path"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Reads the project's .mcp.json, merges our servers, preserves the user's own entries, and writes back atomically.",
+  "exported": true
+}

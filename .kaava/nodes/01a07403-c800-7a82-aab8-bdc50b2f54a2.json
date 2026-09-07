@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7a82-aab8-bdc50b2f54a2",
+  "slug": "band-geometry-immutability",
+  "kind": "test-case",
+  "title": "Input map is never mutated",
+  "description": "withBandGeometry returns a new map and never modifies the input.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bda-92fe-1e3bdf7870f3",
+  "given": "an empty geometry map",
+  "when": "withBandGeometry is called to add a cluster",
+  "then": "the input map remains empty and a new map is returned",
+  "impl_ref": "src/shell/frame/bandGeometry.test.ts::bandGeometry#never mutates the map it was given",
+  "status": "declared",
+  "last_result_ms": null
+}

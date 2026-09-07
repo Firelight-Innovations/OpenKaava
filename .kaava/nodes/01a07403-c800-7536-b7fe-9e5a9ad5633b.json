@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7536-b7fe-9e5a9ad5633b",
+  "slug": "toml-grammar-language-id",
+  "kind": "contract-method",
+  "title": "TOML Language ID",
+  "description": "The Monaco language identifier for TOML, exported so callers can reference it without owning Monaco's extension table.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72fd-88ee-22fc2f3d05b5",
+  "signature": "const TOML_LANGUAGE_ID = \"toml\": \"toml\"",
+  "params": [],
+  "returns": "\"toml\"",
+  "errors": [],
+  "semantics": "Exports the constant TOML language identifier for use across three Monaco instances in the shell and Files app.",
+  "exported": true
+}

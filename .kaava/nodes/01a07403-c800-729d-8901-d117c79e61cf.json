@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-729d-8901-d117c79e61cf",
+  "slug": "github-query-apply-query",
+  "kind": "contract-method",
+  "title": "Filter Items by Query",
+  "description": "Applies a parsed query to filter and order a list of GitHub items.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcd-8834-b536584a1dca",
+  "signature": "export function applyQuery(items: GithubItem[], query: ParsedQuery): GithubItem[]",
+  "params": [
+    "items: GithubItem[]",
+    "query: ParsedQuery"
+  ],
+  "returns": "GithubItem[]",
+  "errors": [],
+  "semantics": "Filters items using matchesQuery in feed order, so results maintain backend ordering.",
+  "exported": false
+}

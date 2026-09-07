@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-70a0-8d50-5da593252924",
+  "slug": "core-mint-id",
+  "kind": "contract-method",
+  "title": "Mint UUIDv7",
+  "description": "Create one time-ordered identifier from the process-wide minter, monotonic within a millisecond.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a7-8335-a2b30fb2137e",
+  "signature": "pub fn mint_id() -> Uuid",
+  "params": [],
+  "returns": "Uuid",
+  "errors": [],
+  "semantics": "Returns a UUIDv7 that is strictly greater than the previous one, with in-millisecond ordering preserved via a 12-bit counter that borrows from the timestamp when full.",
+  "exported": true
+}

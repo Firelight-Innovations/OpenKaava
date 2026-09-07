@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-74bc-bdc4-c7373d2894c3",
+  "slug": "icon-generation",
+  "kind": "external-dep",
+  "title": "Material Icon Theme",
+  "description": "Provides Material Design icon set and manifest generator for extracting a curated subset of icons.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77ff-8f39-2cb721580f16",
+  "registry_ref": "01a07403-c800-7592-a876-abf51bca0b1b",
+  "usage_note": "Used via createRequire to load generateManifest function for icon set generation"
+}

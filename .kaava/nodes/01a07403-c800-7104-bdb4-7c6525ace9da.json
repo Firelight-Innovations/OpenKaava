@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7104-bdb4-7c6525ace9da",
+  "slug": "design-frame-isolation",
+  "kind": "doc-block",
+  "title": "Design Mode frame isolation",
+  "description": "How Design Mode protects the app from embedded pages.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b07-98f5-17457c65a2df",
+  "body": "Nothing about a *frame* is remembered here, like files::call: a second Design Mode in a second cluster is a second frame with its own probe. The design/comment/* methods are the other side of that rule rather than an exception to it — see docs/design-notes/design-comments.md.",
+  "audience": "both"
+}

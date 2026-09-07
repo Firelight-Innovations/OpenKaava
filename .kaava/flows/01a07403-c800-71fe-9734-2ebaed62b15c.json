@@ -1,0 +1,30 @@
+{
+  "id": "01a07403-c800-71fe-9734-2ebaed62b15c",
+  "kind": "flow",
+  "slug": "create-new-project",
+  "title": "Create and Set Up a New Project",
+  "trigger": "User wants to start a new project from scratch",
+  "steps": [
+    {
+      "screen": "schematify://screen/01a07403-c800-7db3-8dc5-3e05329af44b",
+      "action": "Click New Project in the Start section"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c22-9a7c-148cbffb33c4",
+      "action": "The native folder picker opens to select where to create the new project folder"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7b19-815c-ac876d41c9c5",
+      "action": "The new folder opens in the cluster with File Explorer showing empty or existing contents"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7b19-815c-ac876d41c9c5",
+      "action": "If not yet initialized, Home shows an option to Set up as an OpenKaava project, or the button may auto-initialize it"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7b19-815c-ac876d41c9c5",
+      "action": "After setup, Project.kaava manifest and .kaava/ directory appear in the project root"
+    }
+  ],
+  "outcome": "New folder is created as an OpenKaava project with manifest and .kaava/ directory"
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-70a2-94cf-d3a9a8e2aec9",
+  "kind": "screen",
+  "slug": "viewer-svg",
+  "title": "SVG Viewer",
+  "purpose": "Display SVG images with toggle to view source code",
+  "states": [
+    "rendering",
+    "source view",
+    "error"
+  ],
+  "acceptance": [
+    "shall render SVG as vector graphic",
+    "shall allow toggle to view SVG source code",
+    "shall support reopening with text viewer when toggled to source"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-79f1-bc00-d1ac9ff029f7"
+  ]
+}

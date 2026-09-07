@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-71a7-997d-67c40bfcc7c1",
+  "slug": "design-comments-comments-remove",
+  "kind": "contract-method",
+  "title": "Remove Design Comment",
+  "description": "Drop a comment and its picture.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cda-ab91-40d777dffd1d",
+  "signature": "pub fn remove(&self, app: &AppHandle, id: &str) -> bool",
+  "params": [
+    "app",
+    "id"
+  ],
+  "returns": "bool",
+  "errors": [],
+  "semantics": "Returns true if a comment was removed, false if none found.",
+  "exported": false
+}

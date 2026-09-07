@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-74c7-b1e8-74561858b3a0",
+  "slug": "viewer-app-tab-mgmt-document-store-doc",
+  "kind": "doc-block",
+  "title": "Documents persisted at module scope",
+  "description": "Monaco models outlive viewers to preserve undo history and scroll position",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-712a-9eb9-455fc102ffe9",
+  "body": "One Monaco model per open path, at module scope rather than in hook state. `TextViewer` has no route to a hook's closure, and the whole point of the store is that a model outlives the viewer that mounted it — which is what makes undo history, cursor and scroll survive a tab switch. One Files frame per window, so one store.",
+  "audience": "agent"
+}

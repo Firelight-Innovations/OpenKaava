@@ -1,0 +1,18 @@
+{
+  "schematic": "file-icons",
+  "zoom": 1,
+  "pan": [
+    0,
+    0
+  ],
+  "nodes": {
+    "01a07403-c800-7add-a668-c662fdc1ba08": {
+      "x": 80,
+      "y": 80,
+      "w": 240,
+      "h": 140,
+      "collapsed": false
+    }
+  },
+  "groups": {}
+}

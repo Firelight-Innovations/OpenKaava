@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7564-8bde-b9450ea551ab",
+  "slug": "engine-annotation-edge-refused",
+  "kind": "test-case",
+  "title": "Semantic edge on annotation is refused",
+  "description": "PRD §11.3 refusal quoted exactly in the check.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7346-9c32-cc9d99a7dbc8",
+  "given": "an engine and a comment node",
+  "when": "createEdge targets the comment",
+  "then": "returns refusal matching PRD §11.3 sentence",
+  "impl_ref": "apps/schematify/ui/src/engine/engine.test.ts::a semantic edge dropped on an annotation node is refused draws PRD §11.3's sentence, exactly",
+  "status": "declared",
+  "last_result_ms": null
+}

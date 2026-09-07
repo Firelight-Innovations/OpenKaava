@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-713b-9a41-1cd7b9dc3390",
+  "slug": "settings",
+  "kind": "module",
+  "title": "Editor Settings",
+  "description": "Access to editor preferences like font size, tab width, and other Monaco configuration options.",
+  "lifecycle": "specified",
+  "layer": "data",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7027-b3d8-9a1e046e1067",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

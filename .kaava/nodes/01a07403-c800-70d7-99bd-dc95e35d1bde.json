@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-70d7-99bd-dc95e35d1bde",
+  "slug": "diff-review-comments-for-2",
+  "kind": "test-case",
+  "title": "Review: Filter Comments",
+  "description": "Tests that comments are filtered by file path and diff scope.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "given": "Comments for different files and scopes",
+  "when": "commentsFor is called",
+  "then": "Returns only comments for specified file and scope",
+  "impl_ref": "src/shell/diff/reviewComments.test.ts::commentsFor::keeps only the notes for this file in this diff",
+  "status": "declared",
+  "last_result_ms": null
+}

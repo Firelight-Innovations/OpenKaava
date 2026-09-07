@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7988-9c26-35db1d321327",
+  "slug": "userdata-identity-identifier",
+  "kind": "contract-method",
+  "title": "The current bundle identifier",
+  "description": "The constant bundle id this build uses for the config directory.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7eb9-8c34-08c4ec7b1932",
+  "signature": "pub const IDENTIFIER: &str",
+  "params": [],
+  "returns": "&str",
+  "errors": [],
+  "semantics": "Constant pinned here and in tauri.conf.json to enable adoption of superseded directories.",
+  "exported": false
+}

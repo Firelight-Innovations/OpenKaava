@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-71df-9b74-41041ca1da1b",
+  "kind": "decision",
+  "slug": "DEC-GOV-SCOPE-001",
+  "title": "Schematify and app download system built by maintainer",
+  "context": "OpenKaava has first-party tools that are part of the core product. Community contribution is welcome, but on the right foundation.",
+  "decision": "Schematify and the app download system are built by the maintainer (Braden). Not because outside help is unwelcome, but so nobody spends a weekend on a foundation that is already half-written. Once each one exists, features and quality-of-life work on top are exactly where an outside change lands best.",
+  "consequences": "Outside contributors cannot write Schematify from scratch or build the download system. They can contribute features on top of the maintainer's foundation. A roadmap and starter issues will point to exactly where contributions fit best.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-06"
+}

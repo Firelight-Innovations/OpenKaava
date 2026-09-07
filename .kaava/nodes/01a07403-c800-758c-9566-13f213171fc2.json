@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-758c-9566-13f213171fc2",
+  "slug": "terminal-sessions-shell-candidate-filtering",
+  "kind": "test-case",
+  "title": "Non-image files are dropped as shell candidates",
+  "description": "Windows files beginning with MZ but lacking PE headers trigger modal dialogs and should be filtered.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731a-ab6c-3a00854fdef3",
+  "given": "A file that begins with MZ bytes but has no PE header",
+  "when": "runnable_only processes it as a shell candidate",
+  "then": "The candidate is dropped on Windows, kept on other platforms",
+  "impl_ref": "src-tauri/src/pty.rs::a_candidate_that_is_not_a_program_image_is_dropped",
+  "status": "declared",
+  "last_result_ms": null
+}

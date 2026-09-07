@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7142-ab14-3d45947aa110",
+  "slug": "outcome-json-keys-match-prd-section-9-2",
+  "kind": "test-case",
+  "title": "JSON Serialization Matches PRD Outcome Names",
+  "description": "Serialized JSON outcome field matches the drawn string name from PRD 9.2.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f14-8b2b-c06d802d2714",
+  "given": "a ReconcileOutcome::Matched",
+  "when": "serde_json::to_value serializes it",
+  "then": "outcome field equals matched",
+  "impl_ref": "crates/schematify-reconcile/src/outcome.rs::json_keys_match_prd_section_9_2",
+  "status": "declared",
+  "last_result_ms": null
+}

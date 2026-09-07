@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7a23-998a-be42a4a8d1b5",
+  "slug": "gate-bundle-icons-complete",
+  "statement": "Every bundle icon declared in `tauri.conf.json` must exist and be located within the configured icon directory.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm lint:branding"
+}

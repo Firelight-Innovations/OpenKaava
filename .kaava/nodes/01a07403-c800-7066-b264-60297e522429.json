@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7066-b264-60297e522429",
+  "slug": "home-launcher-2",
+  "kind": "external-dep",
+  "title": "React DOM",
+  "description": "React DOM client for rendering the application root",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bf3-b083-b0139d0bad6a",
+  "registry_ref": "01a07403-c800-7ea4-bc03-11fc58b51a7e",
+  "usage_note": "Client-side rendering in main.tsx"
+}

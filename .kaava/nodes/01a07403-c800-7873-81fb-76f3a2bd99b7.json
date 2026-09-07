@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7873-81fb-76f3a2bd99b7",
+  "slug": "anatomy-module-doc",
+  "kind": "doc-block",
+  "title": "Node Anatomy",
+  "description": "Node display content computed from semantic and visual data.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b7-95f8-682301adf593",
+  "body": "Node anatomy (PRD §12.6, §12.7, §12.8) — Wave 4. Every function here is pure and takes plain data, so it is what `frame.test.ts`-style tests exert directly and what `frame.ts` calls to fill in `DrawnNode`. Nothing in this file touches the DOM; `SchematicCanvas.tsx` only maps what is computed here onto markup. Every literal string quoted in PRD §12.7 and §12.8 is reproduced verbatim below, so a test can compare literally.",
+  "audience": "agent"
+}

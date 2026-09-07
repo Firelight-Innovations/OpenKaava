@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7314-8d95-80f34a87916d",
+  "kind": "screen",
+  "slug": "viewer-tab-strip",
+  "title": "File Tab Strip",
+  "purpose": "Horizontal tab bar showing open files with dirty indicators and close buttons",
+  "states": [
+    "empty",
+    "single tab",
+    "multiple tabs",
+    "tab dirty"
+  ],
+  "acceptance": [
+    "shall display one tab per open file",
+    "shall show relative path from project root",
+    "shall display dot indicator on dirty tabs",
+    "shall support clicking to switch active tab",
+    "shall support close button or middle-click to close",
+    "shall show close confirmation for unsaved tabs"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-712a-9eb9-455fc102ffe9"
+  ]
+}

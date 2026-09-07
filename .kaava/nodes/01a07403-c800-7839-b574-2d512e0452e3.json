@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7839-b574-2d512e0452e3",
+  "slug": "sync-mutex-ext-lock-or-panic",
+  "kind": "contract-method",
+  "title": "Lock a Mutex or Panic",
+  "description": "Exclusive access that panics on poisoning instead of returning an error.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-70a8-92f2-4c023de99985",
+  "signature": "fn lock_or_panic(&self) -> MutexGuard<'_, T>",
+  "params": [
+    "&self"
+  ],
+  "returns": "MutexGuard<'_, T>",
+  "errors": [],
+  "semantics": "Treats poisoning as a crate bug; a thread panic mid-write means the invariant is broken and continuing is unsafe.",
+  "exported": false
+}

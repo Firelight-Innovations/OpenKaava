@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-76f2-9299-f9b5989d43cd",
+  "slug": "ci-annotations-eslint-warnings-ignored",
+  "kind": "test-case",
+  "title": "parse ignores ESLint warnings",
+  "description": "Parses only errors, not warnings, from ESLint output.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73d7-a1af-eac6f5057d04",
+  "given": "ESLint output with 1 error and 1 warning",
+  "when": "parse() is called with eslint tool",
+  "then": "returns only the error finding, ignoring the warning",
+  "impl_ref": "scripts/ci-annotations.test.mjs::eslint",
+  "status": "declared",
+  "last_result_ms": null
+}

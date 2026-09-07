@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7857-b3d6-e867ae95aebc",
+  "slug": "viewer-app-rpc-format-size",
+  "kind": "contract-method",
+  "title": "formatSize",
+  "description": "Formats byte count as human-readable string",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a0-9c27-267f8065604a",
+  "signature": "export function formatSize(bytes: number): string",
+  "params": [
+    "bytes"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Returns binary-unit formatted size like 1.2 MiB or 256 KiB.",
+  "exported": false
+}

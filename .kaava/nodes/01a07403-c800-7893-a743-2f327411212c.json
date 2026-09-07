@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7893-a743-2f327411212c",
+  "slug": "search-logic-parse-query",
+  "kind": "contract-method",
+  "title": "Parse Search Query String",
+  "description": "Parses raw search field text into structured filters and search term components.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "signature": "export function parseQuery(raw: string): ParsedQuery",
+  "params": [
+    "raw: string"
+  ],
+  "returns": "ParsedQuery",
+  "errors": [],
+  "semantics": "Tokenizes field text respecting quoted phrases and classifies tokens into path globs, negations, extensions, kinds, and needle text.",
+  "exported": false
+}

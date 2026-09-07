@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7e3f-9d6f-b11a334ab406",
+  "slug": "presets",
+  "kind": "module",
+  "title": "Layout Presets",
+  "description": "Manages named layout arrangements (files and terminal, two files, etc.). Includes five built-in presets, user preset storage, and the plan/apply logic to reconcile a preset with what is already open without closing anything.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-799f-84e1-450a1b669e7f",
+  "kind": "decision",
+  "slug": "DEC-STD-ENFORCE-001",
+  "title": "Lint baselines are ratchets; all now empty; never pnpm baseline",
+  "context": "Linter rules were introduced against existing codebase; violations needed recording to avoid false failures.",
+  "decision": "Baselines (eslint-suppressions.json, clippy-baseline.json, comment-baseline.json) are ratchets: may shrink, may not grow. All three now empty. Never run `pnpm baseline` (absorbs violations). Use single-check forms with commit message reasoning.",
+  "consequences": "New violations cannot be silently absorbed. Baseline represents deliberate decisions. Re-baselining requires explicit reasoning in commit. Once empty, staying empty is enforced by failing when count increases.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-08-17"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7a93-948d-81c87c04113b",
+  "slug": "viewer-app-app-doc",
+  "kind": "doc-block",
+  "title": "Viewer app architecture",
+  "description": "File Viewer app uses message-based coordination instead of props",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b5-84db-a6d3d2c16f72",
+  "body": "File Viewer — the tabs, and the pane they fill. This file is the join. It owns the two-region layout and the state that spans them — which file is showing — and nothing else. The tab model is `tabs/`, and what a file *looks* like is `viewer/registry.ts`. Four things used to be React props between a tree and a tab strip. They are messages now — `OPENED_EVENT` in, `ACTIVE_PATH` and `DIRTY_PATHS` out, `TREE_CHANGE` both ways.",
+  "audience": "agent"
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7fb5-959a-0a975e87a310",
+  "slug": "diff-review-unresolved",
+  "kind": "contract-method",
+  "title": "Filter Unresolved Comments",
+  "description": "Returns comments still marked as active work.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "signature": "export function unresolved(comments: readonly ReviewComment[]): ReviewComment[]",
+  "params": [
+    "comments: readonly ReviewComment[]"
+  ],
+  "returns": "ReviewComment[]",
+  "errors": [],
+  "semantics": "Filters for comments with resolved: false, regardless of sent status.",
+  "exported": false
+}

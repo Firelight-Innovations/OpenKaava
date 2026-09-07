@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-764c-9ca7-3553e8d2561b",
+  "slug": "plugin-broker",
+  "kind": "external-dep",
+  "title": "tauri",
+  "description": "Desktop framework for AppHandle state management in core spawning.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78db-904b-bb87473e03bb",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "AppHandle, Manager trait for Registry state access"
+}

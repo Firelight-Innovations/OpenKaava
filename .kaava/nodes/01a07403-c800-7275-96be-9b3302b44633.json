@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7275-96be-9b3302b44633",
+  "slug": "xterm",
+  "kind": "external-dep",
+  "title": "xterm.js Terminal Emulator",
+  "description": "Terminal emulation engine, rendering ANSI escape sequences and capturing keyboard/clipboard events.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7011-923c-5233df9ecad3",
+  "registry_ref": "01a07403-c800-7b36-9dd4-94369ecae6ff",
+  "usage_note": "Terminal class instantiation, configuration with theme/scrollback, OSC title parsing, event handlers for data and focus."
+}

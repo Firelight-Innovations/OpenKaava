@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7aac-bde0-071649af8b74",
+  "slug": "github-integration-api-timeout",
+  "kind": "budget",
+  "title": "GitHub API request timeout",
+  "description": "How long one request may take before we stop waiting for it.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72a7-b1d3-78f88552a561",
+  "metric": "seconds",
+  "op": "<=",
+  "value": 20,
+  "unit": "seconds",
+  "tier": "soft",
+  "probe": {
+    "command": "grep -n 'const TIMEOUT' src-tauri/src/github.rs",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

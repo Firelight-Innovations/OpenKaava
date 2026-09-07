@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78c4-8878-c792de8f7f2c",
+  "slug": "plugin-catalog",
+  "kind": "module",
+  "title": "Application Library Catalog",
+  "description": "Read the compiled-in catalog of available apps and compose library rows showing which are installed.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "allowed_libraries": [
+    "01a07403-c800-75dd-b05c-6d3f11053668",
+    "01a07403-c800-7994-a954-210071677424"
+  ],
+  "ui_refs": []
+}

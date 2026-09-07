@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-786d-96e2-c2ee8e1fb12c",
+  "slug": "diagnostics-module-doc",
+  "kind": "doc-block",
+  "title": "Diagnostics ring buffer design",
+  "description": "Why a bounded ring buffer instead of a log file.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-768f-b87f-b17753d9768a",
+  "body": "Every failure path in this crate writes to stderr and moves on, but a release build has no console attached. This is the ring buffer that keeps those lines in memory instead, readable afterwards by the settings UI or an agent over MCP. Process-wide static rather than Tauri state, and bounded rather than growing. Sized for 'what just happened', not for an audit trail: at roughly 120 bytes per record, 500 records is under 64 KB.",
+  "audience": "agent"
+}

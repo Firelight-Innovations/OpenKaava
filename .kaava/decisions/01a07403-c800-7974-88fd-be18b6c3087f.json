@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7974-88fd-be18b6c3087f",
+  "kind": "decision",
+  "slug": "DEC-OPS-PLATFORM-001",
+  "title": "Windows is the only tested platform today",
+  "context": "OpenKaava is built on Tauri v2, which supports all three platforms. The development machine runs Windows.",
+  "decision": "Every prerequisite in the repository is a Windows prerequisite. Nobody has built the orchestrator on macOS or Linux. This is a statement about what has been tested, not a decision to exclude anything.",
+  "consequences": "Breaking changes on other platforms would not be noticed. If someone wants to port it, that is welcome and real work: the prerequisites, a CI runner, and someone who notices when it goes red. An issue should be opened before work starts.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-06"
+}

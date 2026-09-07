@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-782f-8089-c950f2432456",
+  "slug": "diff-prompt-escape-newline",
+  "kind": "test-case",
+  "title": "Prompt: Escape Newlines",
+  "description": "Tests that multi-line bodies are flattened with escaped newlines.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "given": "Comment body 'first\\nsecond'",
+  "when": "formatComment is called",
+  "then": "Result contains 'first\\\\nsecond' and is still four lines",
+  "impl_ref": "src/shell/diff/reviewPrompt.test.ts::escaping::flattens a multi-line body onto one line",
+  "status": "declared",
+  "last_result_ms": null
+}

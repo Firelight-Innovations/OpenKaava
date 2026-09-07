@@ -1,0 +1,26 @@
+{
+  "id": "01a07403-c800-7df0-aba1-823bcd94eba2",
+  "kind": "flow",
+  "slug": "open-existing-project",
+  "title": "Open an Existing Project",
+  "trigger": "User wants to work on a previous project",
+  "steps": [
+    {
+      "screen": "schematify://screen/01a07403-c800-7db3-8dc5-3e05329af44b",
+      "action": "On Home, click a project in the Recents list, or click Open Project to browse for a folder"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c22-9a7c-148cbffb33c4",
+      "action": "If opening a folder for the first time, the native OS folder picker appears"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c22-9a7c-148cbffb33c4",
+      "action": "If the folder is a git repository with no worktree yet, a dialog offers to create a worktree for the cluster or work in the project folder as-is"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-70d7-ab31-286c94355b77",
+      "action": "The project opens in the cluster, with the File Explorer ready and the project path showing in terminals"
+    }
+  ],
+  "outcome": "Project folder is open in the cluster with File Explorer and terminal ready"
+}

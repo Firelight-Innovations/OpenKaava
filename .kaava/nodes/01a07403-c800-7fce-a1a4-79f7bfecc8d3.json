@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7fce-a1a4-79f7bfecc8d3",
+  "slug": "home-icons-book",
+  "kind": "contract-method",
+  "title": "Book Icon",
+  "description": "Icon for tutorial cards.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ef6-b0b3-58a1f5c2d12b",
+  "signature": "export function Book(props: IconProps): JSX.Element",
+  "params": [
+    "size?: number",
+    "className?: string"
+  ],
+  "returns": "SVG icon element",
+  "errors": [],
+  "semantics": "Renders book icon for tutorial card markers.",
+  "exported": true
+}

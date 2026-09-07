@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7682-8639-08c1043978a7",
+  "slug": "search-logic-compile-needle-error",
+  "kind": "test-case",
+  "title": "Compile Needle: Invalid Regex Error",
+  "description": "Tests that regex syntax errors are caught and returned as error discriminant.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "given": "Regex needle '(' with regex flag",
+  "when": "compileNeedle is called",
+  "then": "Result has ok: false with error message",
+  "impl_ref": "src/shell/search/query.test.ts::compileNeedle::reports a half-typed regex instead of throwing",
+  "status": "declared",
+  "last_result_ms": null
+}

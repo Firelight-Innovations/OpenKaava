@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b7b-ad29-1c98800dca3b",
+  "slug": "agent-borrows-ui-and-debug-tools",
+  "kind": "test-case",
+  "title": "Agent Composes Existing Tools",
+  "description": "Every tool ui and debug host is hosted by agent.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d89-9517-725bc751d480",
+  "given": "The agent server's tool list",
+  "when": "It is checked against ui and debug",
+  "then": "All borrowed tools are present",
+  "impl_ref": "src-tauri/src/mcp/servers/agent.rs::every_tool_ui_and_debug_host_is_hosted_here_too",
+  "status": "declared",
+  "last_result_ms": null
+}

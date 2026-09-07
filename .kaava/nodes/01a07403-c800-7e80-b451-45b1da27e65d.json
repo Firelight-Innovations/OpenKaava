@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7e80-b451-45b1da27e65d",
+  "slug": "kaava-binary-module-doc",
+  "kind": "doc-block",
+  "title": "CLI Entry Point",
+  "description": "The kaava command-line tool with reconcile subcommand.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-76f3-b30d-63296fe9e9db",
+  "body": "`kaava` — Schematify's command-line entry point. Today this binary has one subcommand, `reconcile` (`SCHEMATIFY-PRD.md` section 9.3): `kaava reconcile [--root <path>] [--out <path>] [--format text|json]`. A later wave adding another `kaava` subcommand does so by matching on it in `main` below and adding its own module.",
+  "audience": "agent"
+}

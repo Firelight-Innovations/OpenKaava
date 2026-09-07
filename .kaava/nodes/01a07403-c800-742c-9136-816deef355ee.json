@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-742c-9136-816deef355ee",
+  "slug": "viewer-app-rpc-read-bytes",
+  "kind": "contract-method",
+  "title": "readBytes",
+  "description": "Reads binary file content as base64",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a0-9c27-267f8065604a",
+  "signature": "export const readBytes = (path: string) => invoke<FileBytes>(\"files/read-bytes\", { path })",
+  "params": [
+    "path"
+  ],
+  "returns": "Promise<FileBytes>",
+  "errors": [
+    "KaavaRpcError"
+  ],
+  "semantics": "Returns file as base64-encoded string, rejecting oversized files.",
+  "exported": true
+}

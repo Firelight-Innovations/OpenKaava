@@ -1,0 +1,19 @@
+{
+  "id": "01a07403-c800-7ee8-82c9-e4bc6f0a02fe",
+  "slug": "tutorial",
+  "kind": "module",
+  "title": "Tutorials Application",
+  "description": "Tutorials app — which tutorials exist (as static data), and which ones a user has completed (persisted in the config directory). Shares its tutorial catalog with the Home app via a direct function call.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a1-a91f-421d244b774a",
+  "allowed_libraries": [
+    "01a07403-c800-736a-801a-ea4485c6faff",
+    "01a07403-c800-75dd-b05c-6d3f11053668",
+    "01a07403-c800-7565-ae9d-23b929975082"
+  ],
+  "ui_refs": []
+}

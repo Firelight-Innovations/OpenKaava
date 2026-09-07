@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-73d3-b2ff-b7d476cb7e10",
+  "slug": "manifest-parser-duplicate-surface-ids",
+  "kind": "test-case",
+  "title": "Duplicate Surface IDs are Rejected",
+  "description": "Two [[surface]] blocks with the same id are rejected.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "A manifest with two [[surface]] blocks both with id='one'",
+  "when": "parsed",
+  "then": "returns ManifestError::DuplicateSurfaceId",
+  "impl_ref": "crates/kaava-tool-manifest/src/lib.rs::duplicate_surface_ids_are_rejected",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-742d-82ec-71053aee1be2",
+  "slug": "problems-test-click-through",
+  "kind": "test-case",
+  "title": "resolveClickThrough avoids re-opens",
+  "description": "Verifies navigation logic when target is already open.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74e7-acd1-ffea4dddd156",
+  "given": "A finding whose location is already the current Schematic",
+  "when": "resolveClickThrough is called",
+  "then": "Returns just select with no navigate",
+  "impl_ref": "apps/schematify/ui/src/graph/problems.test.ts::selects with no navigation when the target Schematic is already open",
+  "status": "declared",
+  "last_result_ms": null
+}

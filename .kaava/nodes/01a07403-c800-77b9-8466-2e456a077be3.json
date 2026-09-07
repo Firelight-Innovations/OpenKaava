@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-77b9-8466-2e456a077be3",
+  "slug": "viewer-app-app-root",
+  "kind": "contract-method",
+  "title": "App",
+  "description": "Main application component for the file viewer",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b5-84db-a6d3d2c16f72",
+  "signature": "export default function App(): JSX.Element",
+  "params": [],
+  "returns": "JSX.Element",
+  "errors": [
+    "KaavaRpcError"
+  ],
+  "semantics": "Renders the file viewer with tabs and active file viewer, managing layout and orchestrating components.",
+  "exported": false
+}

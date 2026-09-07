@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-72e0-8fe5-d85ffd5938b3",
+  "slug": "manifest-parser-reference-gets-synthesized-surface",
+  "kind": "test-case",
+  "title": "Reference Tool Gets Synthesized Default Surface",
+  "description": "The echo tool, with no explicit [[surface]] blocks, gets one with id='main'.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "The echo tool manifest loaded from disk",
+  "when": "surfaces are inspected",
+  "then": "there is one surface with id=DEFAULT_SURFACE_ID='main' and path=None",
+  "impl_ref": "crates/kaava-tool-manifest/tests/reference_manifest.rs::reference_tool_gets_one_synthesised_surface",
+  "status": "declared",
+  "last_result_ms": null
+}

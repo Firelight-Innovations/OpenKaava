@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-77f5-9b74-a530bc2e378c",
+  "slug": "app-updater-progress-none-without-total",
+  "kind": "test-case",
+  "title": "Download Progress: No Total",
+  "description": "When no Content-Length header, percent() returns None.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7725-8d89-01b343796845",
+  "given": "received=512, total=None",
+  "when": "percent() is called",
+  "then": "Returns None",
+  "impl_ref": "src-tauri/src/updater.rs::progress_is_none_when_nobody_declared_a_total",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7c19-b017-5a445ac7ee82",
+  "slug": "file-api-read-text",
+  "kind": "contract-method",
+  "title": "Read Text File",
+  "description": "Read a text file up to the backend's limit, rejecting non-UTF-8.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export const readText = (path: string) => invoke<FileText>('files/read', { path })",
+  "params": [
+    "path: string"
+  ],
+  "returns": "Promise<FileText> with text, truncated flag, mtime",
+  "errors": [],
+  "semantics": "Returns file contents or rejects if not UTF-8 text.",
+  "exported": true
+}

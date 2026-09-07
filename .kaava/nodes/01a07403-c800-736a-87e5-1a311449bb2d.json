@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-736a-87e5-1a311449bb2d",
+  "slug": "shell-quoting-shell-family-of",
+  "kind": "contract-method",
+  "title": "Detect Shell Family",
+  "description": "Which dialect a shell's short name speaks.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73e0-bbc7-7090d1eeb4e5",
+  "signature": "pub fn of(shell_name: &str) -> Self",
+  "params": [
+    "shell_name"
+  ],
+  "returns": "ShellFamily",
+  "errors": [],
+  "semantics": "Maps shell names to PowerShell, Cmd, or Posix dialects.",
+  "exported": false
+}

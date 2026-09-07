@@ -1,0 +1,19 @@
+{
+  "id": "01a07403-c800-7272-9ebc-980bd4da74e9",
+  "kind": "screen",
+  "slug": "viewer-mermaid",
+  "title": "Mermaid Diagram Viewer",
+  "purpose": "Render Mermaid diagram definitions as visual flowcharts and diagrams",
+  "states": [
+    "rendering",
+    "ready",
+    "error"
+  ],
+  "acceptance": [
+    "shall render Mermaid diagram syntax as visual diagram",
+    "shall display error if diagram syntax is invalid"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7fa2-8884-0fddd267d804"
+  ]
+}

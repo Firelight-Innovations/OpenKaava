@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-714c-8992-d566965350ac",
+  "slug": "core-two-scopes-hold-same-slug",
+  "kind": "test-case",
+  "title": "Two scopes hold same slug",
+  "description": "The same slug in different scopes does not collide.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a7-8335-a2b30fb2137e",
+  "given": "Two different parent scopes",
+  "when": "claim is called for 'cache' in each scope",
+  "then": "Both claims succeed and index.len() is 2",
+  "impl_ref": "crates/schematify-core/src/slug.rs::two_scopes_hold_the_same_slug_without_colliding",
+  "status": "declared",
+  "last_result_ms": null
+}

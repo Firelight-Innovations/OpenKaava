@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-793d-a34b-6a0676b64ba6",
+  "slug": "graph-seam-json-file-graph",
+  "kind": "contract-method",
+  "title": "JSON File Graph Implementation",
+  "description": "A GraphLookup backed by .kaava/nodes/*.json files on disk.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "signature": "pub struct JsonFileGraph",
+  "params": [],
+  "returns": "struct",
+  "errors": [],
+  "semantics": "Production GraphLookup reading nodes from design graph JSON files.",
+  "exported": false
+}

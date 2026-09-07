@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7a00-b1f5-2909e66606f6",
+  "slug": "types-schematic-graph",
+  "kind": "contract-method",
+  "title": "SchematicGraph Interface",
+  "description": "One open Schematic's whole graph at any of the 3 tiers, with nodes, edges, and tier-specific data.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a11-b05c-3720ce96e87b",
+  "signature": "interface SchematicGraph",
+  "params": [],
+  "returns": "SchematicGraph",
+  "errors": [],
+  "semantics": "Complete graph representation for a tier, including all nodes, edges, and derived data.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79b8-b4ee-5e6a6c72d643",
+  "slug": "echo-echo-returns-message-unchanged",
+  "kind": "test-case",
+  "title": "Echo Returns Input",
+  "description": "The echo tool returns the message parameter unchanged.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cfa-a781-a65f57b5eee0",
+  "given": "The echo function with message 'over the wire — and back'",
+  "when": "It is called",
+  "then": "The result is {message: 'over the wire — and back'}",
+  "impl_ref": "src-tauri/src/mcp/servers/echo.rs::echo_returns_the_message_unchanged",
+  "status": "declared",
+  "last_result_ms": null
+}

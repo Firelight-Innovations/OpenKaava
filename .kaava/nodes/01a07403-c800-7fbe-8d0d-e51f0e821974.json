@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7fbe-8d0d-e51f0e821974",
+  "slug": "app-root-3",
+  "kind": "external-dep",
+  "title": "framer-motion",
+  "description": "Animation library for transitions.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c87-8546-4af3785b349f",
+  "registry_ref": "01a07403-c800-7417-a580-5d7e987102ee",
+  "usage_note": "App.tsx uses AnimatePresence for conditional rendering of settings, library, and shortcuts screens"
+}

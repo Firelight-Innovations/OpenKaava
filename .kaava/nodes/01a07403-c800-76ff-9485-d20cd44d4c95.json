@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-76ff-9485-d20cd44d4c95",
+  "slug": "app-updater-note-cut-to-first-paragraph",
+  "kind": "test-case",
+  "title": "Release Notes: Paragraph Extraction",
+  "description": "Multi-paragraph notes are cut after first blank line.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7725-8d89-01b343796845",
+  "given": "Notes: Fixes the terminal.\\n\\n- one thing\\n- another thing",
+  "when": "summarise() is called",
+  "then": "Returns \"Fixes the terminal.\"",
+  "impl_ref": "src-tauri/src/updater.rs::a_note_is_cut_to_its_first_paragraph",
+  "status": "declared",
+  "last_result_ms": null
+}

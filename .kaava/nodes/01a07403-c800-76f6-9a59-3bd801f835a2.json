@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-76f6-9a59-3bd801f835a2",
+  "slug": "stack-discovery-2",
+  "kind": "external-dep",
+  "title": "serde",
+  "description": "Serialization framework for deriving Serialize on snapshot structures.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7987-be21-fd2e593064ee",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "#[derive(Serialize)] on StackSnapshot and ResolvedTool"
+}

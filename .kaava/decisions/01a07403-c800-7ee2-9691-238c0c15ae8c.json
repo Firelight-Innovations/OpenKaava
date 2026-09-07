@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7ee2-9691-238c0c15ae8c",
+  "kind": "decision",
+  "slug": "DEC-STD-LAYER-002",
+  "title": "Protocol crates remain orthogonal to orchestrator-specific logic",
+  "context": "kaava-rpc and kaava-tool-manifest are published and consumed by every tool repository, not just orchestrator.",
+  "decision": "Protocol crates (kaava-rpc, kaava-tool-manifest) depend on nothing above them. Changes specific to the orchestrator go to src-tauri/, not protocol crates.",
+  "consequences": "Enables extraction of apps to separate tool repos without breaking the protocol layer. Tool authors can adopt newer versions without orchestrator-specific coupling.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-08-16"
+}

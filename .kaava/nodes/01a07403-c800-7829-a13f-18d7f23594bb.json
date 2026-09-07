@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "slug": "plugin-registry",
+  "kind": "module",
+  "title": "Plugin Registry",
+  "description": "Core plugin lifecycle management: track installed packages, resolve their manifests, enable/disable, install, uninstall, and reload.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [
+    "01a07403-c800-736a-801a-ea4485c6faff",
+    "01a07403-c800-75dd-b05c-6d3f11053668"
+  ],
+  "ui_refs": []
+}

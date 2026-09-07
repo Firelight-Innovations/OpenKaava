@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7802-bb3f-254f6e9572c5",
+  "slug": "frame-budget-16ms",
+  "kind": "test-case",
+  "title": "buildFrame holds 16 ms budget on dense fixture",
+  "description": "PRD §14.7: frame building at median of 21 runs under 16 ms.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dd1-9e6f-3a5f9034098a",
+  "given": "the dense fixture with many nodes and edges",
+  "when": "buildFrame is called 21 times",
+  "then": "median execution time is under 16 ms",
+  "impl_ref": "apps/schematify/ui/src/engine/frameBudget.test.ts::the dense fixture holds the 16 ms frame budget builds a frame in under 16 ms, at the median of 21 runs",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-783c-8293-acae076da875",
+  "slug": "shell-breadcrumb-component",
+  "kind": "contract-method",
+  "title": "Breadcrumb Navigation Component",
+  "description": "Renders a hierarchical breadcrumb with clickable segments for tier navigation and the active slug display.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-743f-ae55-0cbaeb91a62a",
+  "signature": "Breadcrumb(props: BreadcrumbProps) => JSX.Element",
+  "params": [
+    "segments: string[]",
+    "activeSlug: string",
+    "onNavigate?: (index: number) => void"
+  ],
+  "returns": "React component",
+  "errors": [],
+  "semantics": "Displays a breadcrumb path with the final segment active, earlier segments clickable to navigate back to a prior tier, and the active slug on a second line.",
+  "exported": true
+}

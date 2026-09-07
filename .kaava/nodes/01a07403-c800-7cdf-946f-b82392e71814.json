@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7cdf-946f-b82392e71814",
+  "slug": "outcome-outcome-kind-drawn",
+  "kind": "contract-method",
+  "title": "Drawn String for Outcome",
+  "description": "The wireframe string drawn for one outcome kind.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f14-8b2b-c06d802d2714",
+  "signature": "pub fn drawn(self) -> &'static str",
+  "params": [],
+  "returns": "&'static str",
+  "errors": [],
+  "semantics": "Returns display string: matched, declared absent, present unknown, or duplicate.",
+  "exported": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-73ce-addb-b146fb3ea648",
+  "slug": "plugin-registry-records",
+  "kind": "contract-method",
+  "title": "List All Plugin Records",
+  "description": "Return every installed plugin record in install order.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "signature": "pub fn records(&self) -> Vec<Record>",
+  "params": [],
+  "returns": "Vec<Record>",
+  "errors": [],
+  "semantics": "Clones and returns raw records without resolving manifests.",
+  "exported": false
+}

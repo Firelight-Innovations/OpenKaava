@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-73ee-ab6b-854b680e1658",
+  "slug": "dashboard-test-tests-counter",
+  "kind": "test-case",
+  "title": "testsCounter draws 5 / 7",
+  "description": "Verifies the exact format for test counter.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cc3-bea1-6e72e54f057f",
+  "given": "A DashboardTestCounter with passing: 5, total: 7",
+  "when": "testsCounter is called",
+  "then": "Returns 5 / 7",
+  "impl_ref": "apps/schematify/ui/src/graph/dashboard.test.ts::draws 5 / 7 with both parts of the note",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7a75-8c45-e54b09478999",
+  "slug": "home-launcher",
+  "kind": "external-dep",
+  "title": "React",
+  "description": "React hooks (useState, useCallback, useEffect, useRef) for component state management and lifecycle",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bf3-b083-b0139d0bad6a",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "Core React library for component rendering and state management"
+}

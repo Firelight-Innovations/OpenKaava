@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7ec0-b327-c2bddc8342f2",
+  "slug": "userdata-identity-superseded-valid-ids",
+  "kind": "test-case",
+  "title": "Superseded identifiers are valid bundle ids",
+  "description": "Each superseded id looks like a reverse-dns bundle id.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7eb9-8c34-08c4ec7b1932",
+  "given": "The SUPERSEDED list",
+  "when": "checked",
+  "then": "Each id contains dots and no whitespace",
+  "impl_ref": "src-tauri/src/userdata/identity.rs::every_superseded_identifier_is_reverse_dns",
+  "status": "declared",
+  "last_result_ms": null
+}

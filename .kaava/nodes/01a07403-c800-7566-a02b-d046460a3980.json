@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7566-a02b-d046460a3980",
+  "slug": "client-tauri-publish-no-throw",
+  "kind": "test-case",
+  "title": "Tauri host swallows publish rejection",
+  "description": "Verifies that the rejection from a refused publish under Tauri host does not surface as an unhandled promise.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client under Tauri host with fire-and-forget publish",
+  "when": "publish is called",
+  "then": "No error is thrown despite the internal rejection",
+  "impl_ref": "packages/bridge/src/client.test.ts::swallows the refusal for publish, which nobody awaits",
+  "status": "declared",
+  "last_result_ms": null
+}

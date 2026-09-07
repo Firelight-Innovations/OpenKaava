@@ -1,0 +1,7 @@
+{
+  "id": "01a07403-c800-7382-a9e5-f453db9fa59d",
+  "slug": "crates-have-tests",
+  "statement": "All code in crates/ must have tests because other repositories depend on these.",
+  "severity": "review",
+  "audit": []
+}

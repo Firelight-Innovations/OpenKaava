@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-73f2-902b-c522893f5ada",
+  "slug": "types-graph-node",
+  "kind": "contract-method",
+  "title": "GraphNode Interface",
+  "description": "One node in a Schematic's containment tree, with optional fields for different node kinds and tiers.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a11-b05c-3720ce96e87b",
+  "signature": "interface GraphNode",
+  "params": [],
+  "returns": "GraphNode",
+  "errors": [],
+  "semantics": "Represents a single node with its identity, hierarchy, and tier-specific properties.",
+  "exported": true
+}

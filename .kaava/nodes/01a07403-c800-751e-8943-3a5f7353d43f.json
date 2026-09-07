@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-751e-8943-3a5f7353d43f",
+  "slug": "sync-healthy-mutex-locks",
+  "kind": "test-case",
+  "title": "Healthy Mutex Locks Successfully",
+  "description": "A normal Mutex can be locked with lock_or_panic without panicking.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-70a8-92f2-4c023de99985",
+  "given": "A Mutex<String> in the healthy state",
+  "when": "lock_or_panic is called twice in sequence",
+  "then": "both calls succeed and return guards",
+  "impl_ref": "crates/kaava-rpc/src/sync.rs::a_healthy_mutex_locks",
+  "status": "declared",
+  "last_result_ms": null
+}

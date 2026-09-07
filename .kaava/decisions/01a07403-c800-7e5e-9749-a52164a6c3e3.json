@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7e5e-9749-a52164a6c3e3",
+  "kind": "decision",
+  "slug": "DEC-SCH-LIFEC-001",
+  "title": "Lifecycle has six path states plus two out-of-path states",
+  "context": "Alternative approaches: simpler state machine; unlimited states; branching paths.",
+  "decision": "Nodes move through 6 path states: draft → specified → assigned → implemented → reviewed → accepted. Two out-of-path states exist: `stale` (entered when upstream contract changes) and `deprecated` (entered when node is superseded). No other state exists.",
+  "consequences": "Clear path from creation to acceptance; branching points enforce policy (e.g., only humans can accept); staleness is a system-triggered state, not manual; deprecation is orthogonal to the path; every transition is recorded with actor, time, and reason.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

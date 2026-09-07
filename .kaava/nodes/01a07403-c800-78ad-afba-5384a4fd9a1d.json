@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-78ad-afba-5384a4fd9a1d",
+  "slug": "splash-screen",
+  "kind": "external-dep",
+  "title": "react",
+  "description": "React framework for the splash screen UI.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c00-b2b5-c21de1d221d0",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "Splash.tsx and SplashArt.tsx are React components for the boot screen"
+}

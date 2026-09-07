@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7608-af42-5d393683fc24",
+  "slug": "design-app-probe-doc",
+  "kind": "doc-block",
+  "title": "Probe message protocol",
+  "description": "Untrusted page messages validated and refused by type guards",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71a3-ae12-251b52dac590",
+  "body": "The conversation between this app and the probe inside the page it is showing. The probe is `src-tauri/src/apps/design_probe.js`. Everything arriving is **untrusted**, so this module's real job is not decoding but refusing: `readProbeMessage` returns `null` for anything it cannot fully account for, and the app treats `null` as silence.",
+  "audience": "agent"
+}

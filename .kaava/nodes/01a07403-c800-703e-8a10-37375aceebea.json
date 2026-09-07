@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-703e-8a10-37375aceebea",
+  "slug": "anatomy-badges-agent-draft",
+  "kind": "test-case",
+  "title": "badgesFor supersedes AGENT with AGENT DRAFT when both conditions hold",
+  "description": "Agent authorship takes priority over plain assigned lifecycle state.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b7-95f8-682301adf593",
+  "given": "a node with authoredBy='agent' and lifecycle='assigned'",
+  "when": "badgesFor is called",
+  "then": "badges include AGENT DRAFT not both diamonds",
+  "impl_ref": "apps/schematify/ui/src/engine/anatomy.test.ts::badgesFor draws AGENT DRAFT, not the plain AGENT diamond, when both conditions hold at once",
+  "status": "declared",
+  "last_result_ms": null
+}

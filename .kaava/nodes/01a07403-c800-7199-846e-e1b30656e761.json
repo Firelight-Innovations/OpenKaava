@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7199-846e-e1b30656e761",
+  "slug": "file-operations",
+  "kind": "external-dep",
+  "title": "React",
+  "description": "React hooks for managing delete confirmations and inline renaming state",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ca9-93c6-8fe99d1140a0",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "Hook-based state management for file operations"
+}

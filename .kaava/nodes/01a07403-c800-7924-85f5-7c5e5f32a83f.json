@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7924-85f5-7c5e5f32a83f",
+  "slug": "drop-zones-singleton",
+  "kind": "doc-block",
+  "title": "Drop zone registry design",
+  "description": "Explains why the registry is a module singleton rather than a context.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b01-8375-1c88edc532e9",
+  "body": "The drop-target registry is a module singleton rather than a context because regions opt in (a pane registers itself, a tab strip registers itself and how to measure its tabs) so the drag layer knows only the shapes below, never any region's DOM. Registration is a ref callback rather than an effect, so a zone appears the moment its element does and disappears the moment it unmounts; there is no window in which a pane is on screen but not yet a target, which is exactly what a fast drag falls into.",
+  "audience": "agent"
+}

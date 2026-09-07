@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7619-a567-d0adcb4b378d",
+  "slug": "product-decisionuri-function",
+  "kind": "contract-method",
+  "title": "Decision URI Builder",
+  "description": "Builds a schematify://decision/<id> reference from a RawDecision object.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "signature": "decisionUri(decision: RawDecision) => string",
+  "params": [
+    "decision: RawDecision"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Returns the stored reference form of a decision URI, distinct from the display slug drawn in the Inspector's DECISIONS field.",
+  "exported": true
+}

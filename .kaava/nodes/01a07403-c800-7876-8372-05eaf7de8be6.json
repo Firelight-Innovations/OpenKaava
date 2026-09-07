@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7876-8372-05eaf7de8be6",
+  "slug": "branding-system",
+  "kind": "module",
+  "title": "Product Branding Generation and Validation",
+  "description": "Reads branding.toml, validates consistency across files, and generates TypeScript branding modules for the frontend.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

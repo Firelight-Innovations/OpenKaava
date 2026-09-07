@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-786a-9a7a-4ad41727a53c",
+  "slug": "shortcuts-surface-close-shortcuts",
+  "kind": "contract-method",
+  "title": "Close Shortcuts Screen",
+  "description": "Dismisses the keyboard shortcuts screen.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7728-94ea-ea2af567cdc5",
+  "signature": "export function closeShortcuts(): void",
+  "params": [],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Announces closed state; safe to call when already closed.",
+  "exported": false
+}

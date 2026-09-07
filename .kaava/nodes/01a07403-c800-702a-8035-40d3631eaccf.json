@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-702a-8035-40d3631eaccf",
+  "slug": "home-icons-folder-plus",
+  "kind": "contract-method",
+  "title": "Folder Plus Icon",
+  "description": "Icon for the New Project action.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ef6-b0b3-58a1f5c2d12b",
+  "signature": "export function FolderPlus(props: IconProps): JSX.Element",
+  "params": [
+    "size?: number",
+    "className?: string"
+  ],
+  "returns": "SVG icon element",
+  "errors": [],
+  "semantics": "Renders folder with plus overlay icon.",
+  "exported": true
+}

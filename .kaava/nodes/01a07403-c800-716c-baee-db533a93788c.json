@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-716c-baee-db533a93788c",
+  "slug": "cli-integration-tests-missing-project-exits-2",
+  "kind": "test-case",
+  "title": "CLI Missing Project Exits 2",
+  "description": "kaava reconcile exits with code 2 when .kaava/nodes directory does not exist.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bbc-9c10-9eeeb00a08e3",
+  "given": "directory with no .kaava subdirectory",
+  "when": "kaava reconcile --root is called",
+  "then": "exits with code 2",
+  "impl_ref": "crates/schematify-reconcile/tests/cli_reconcile.rs::missing_project_exits_2",
+  "status": "declared",
+  "last_result_ms": null
+}

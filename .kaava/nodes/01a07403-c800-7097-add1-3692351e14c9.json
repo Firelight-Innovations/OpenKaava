@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7097-add1-3692351e14c9",
+  "slug": "geometry-rectsoverlap",
+  "kind": "contract-method",
+  "title": "rectsOverlap",
+  "description": "Test whether two rectangles share area.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-793f-9f87-ae187d1d6ac0",
+  "signature": "function rectsOverlap(a: Rect, b: Rect): boolean",
+  "params": [
+    "a",
+    "b"
+  ],
+  "returns": "boolean",
+  "errors": [],
+  "semantics": "Returns true when boxes share interior; edges touching do not overlap.",
+  "exported": false
+}

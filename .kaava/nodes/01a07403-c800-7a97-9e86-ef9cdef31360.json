@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7a97-9e86-ef9cdef31360",
+  "slug": "shell-core-command-line-valid",
+  "kind": "test-case",
+  "title": "commandLine accepts valid input",
+  "description": "Confirms single-line commands are accepted and trimmed.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-746a-b0bb-73db6ddd45f1",
+  "given": "A valid command with surrounding whitespace",
+  "when": "commandLine is called",
+  "then": "Returns object with command field",
+  "impl_ref": "src/shell/run.test.ts::a command line off the Run field::takes an ordinary command",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7814-ab07-1e34fb2fc318",
+  "slug": "design-app-probe-absolute-rect-nested-frames",
+  "kind": "test-case",
+  "title": "absoluteRect adds all frame offsets",
+  "description": "Correctly nests frame coordinates for multi-level iframes",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71a3-ae12-251b52dac590",
+  "given": "element in nested iframes with known offsets",
+  "when": "absoluteRect called with frame list",
+  "then": "returns coordinates summed through all frames",
+  "impl_ref": "apps/design/ui/src/probe.test.ts::adds every frame between the element and the window",
+  "status": "declared",
+  "last_result_ms": null
+}

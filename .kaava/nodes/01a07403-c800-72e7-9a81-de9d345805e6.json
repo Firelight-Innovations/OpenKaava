@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-72e7-9a81-de9d345805e6",
+  "slug": "review-store-creates-trace-dir",
+  "kind": "test-case",
+  "title": "Saving creates .kaava/ if missing",
+  "description": "The trace directory is created on first save.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-700b-8fdc-ce83c58300e1",
+  "given": "A repo with no .kaava/ directory",
+  "when": "save is called",
+  "then": ".kaava/ is created",
+  "impl_ref": "src-tauri/src/review/store.rs::saving_creates_the_trace_directory",
+  "status": "declared",
+  "last_result_ms": null
+}

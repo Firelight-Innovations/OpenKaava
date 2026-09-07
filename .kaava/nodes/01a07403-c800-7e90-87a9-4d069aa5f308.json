@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e90-87a9-4d069aa5f308",
+  "slug": "palette-fuzzy-match-runs-2",
+  "kind": "test-case",
+  "title": "Fuzzy: Match Runs Grouping",
+  "description": "Tests that matched positions are grouped into runs.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7497-b529-d3c21db99100",
+  "given": "Text 'Zoom In' with positions [0, 1, 2, 3]",
+  "when": "matchRuns is called",
+  "then": "Returns run with 'Zoom' hit=true and ' In' hit=false",
+  "impl_ref": "src/shell/palette/fuzzy.test.ts::cutting a label into matched and unmatched runs::groups neighbouring matches into one run",
+  "status": "declared",
+  "last_result_ms": null
+}

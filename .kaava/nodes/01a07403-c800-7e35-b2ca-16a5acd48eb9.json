@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e35-b2ca-16a5acd48eb9",
+  "slug": "engine-drag-writes-layout-only",
+  "kind": "test-case",
+  "title": "A node drag writes no semantic file",
+  "description": "PRD §17 Wave 3's acceptance condition: drag writes layout only.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7346-9c32-cc9d99a7dbc8",
+  "given": "an engine open on the SERVICE_CONFIG fixture",
+  "when": "a node is dragged",
+  "then": "semanticWrites is empty and only layout file was written",
+  "impl_ref": "apps/schematify/ui/src/engine/engine.test.ts::a node drag writes no semantic file writes the layout file and nothing else",
+  "status": "declared",
+  "last_result_ms": null
+}

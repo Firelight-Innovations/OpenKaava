@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7b52-95a4-6e174526441f",
+  "slug": "shell-contract-update-notice",
+  "kind": "contract-method",
+  "title": "updateNotice",
+  "description": "Map updater state to a status bar notice.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a2b-9c3f-6e98ac6d152b",
+  "signature": "function updateNotice(state: UpdateState, asked: boolean, onInstall: () => void): UpdateNotice | null",
+  "params": [
+    "state",
+    "asked",
+    "onInstall"
+  ],
+  "returns": "UpdateNotice | null",
+  "errors": [],
+  "semantics": "Returns null for silent states unless asked; offers always shown.",
+  "exported": true
+}

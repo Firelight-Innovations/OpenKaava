@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7180-9f94-88ff1d5ec982",
+  "slug": "graph-seam-node-facts",
+  "kind": "contract-method",
+  "title": "Graph Node Facts",
+  "description": "The facts about one graph node that reconciliation needs: slug, kind, and lifecycle state.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "signature": "pub struct NodeFacts",
+  "params": [
+    "id: Uuid",
+    "slug: String",
+    "kind: String",
+    "lifecycle: String"
+  ],
+  "returns": "struct",
+  "errors": [],
+  "semantics": "Immutable carrier of node metadata needed for reconciliation.",
+  "exported": false
+}

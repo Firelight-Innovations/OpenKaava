@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7b86-a28e-134095b94953",
+  "slug": "config-config-path",
+  "kind": "contract-method",
+  "title": "Config File Path",
+  "description": "Get the .mcp.json path for a project.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-782d-bdc1-e759c21e6408",
+  "signature": "pub fn config_path(project: &Path) -> PathBuf",
+  "params": [
+    "project: &Path"
+  ],
+  "returns": "PathBuf",
+  "errors": [],
+  "semantics": "Returns the project root joined with .mcp.json.",
+  "exported": false
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7908-b346-54418d606145",
+  "slug": "home-serde-json",
+  "kind": "external-dep",
+  "title": "serde_json",
+  "description": "JSON serialization for JSON-RPC method parameters and ProjectSnapshot results.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7db5-a68f-82d64aa2458f",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "Value type for method parameters; json! macro for creating response objects"
+}

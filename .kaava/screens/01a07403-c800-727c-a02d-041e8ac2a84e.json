@@ -1,0 +1,27 @@
+{
+  "id": "01a07403-c800-727c-a02d-041e8ac2a84e",
+  "kind": "screen",
+  "slug": "secondary-panel",
+  "title": "Secondary Panel",
+  "purpose": "Collapsible right sidebar with worktree (source control) and GitHub views",
+  "states": [
+    "collapsed - panel closed showing only edge handle",
+    "open-worktree - panel open on worktree view",
+    "open-github - panel open on GitHub view",
+    "maximized - panel taking full width with panes minimized"
+  ],
+  "acceptance": [
+    "shall display worktree tab showing git status by default",
+    "shall display GitHub tab for viewing issues and PRs",
+    "shall support dragging divider to change panel width",
+    "shall display panel collapsed button to hide completely",
+    "shall allow maximizing panel to full width",
+    "shall show empty state when no cluster is active",
+    "shall remember last open tab view per window"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7746-91a8-cd9baba1739e",
+    "schematify://node/01a07403-c800-723d-9de9-ce112da27296",
+    "schematify://node/01a07403-c800-7d5c-a355-5264280ef828"
+  ]
+}

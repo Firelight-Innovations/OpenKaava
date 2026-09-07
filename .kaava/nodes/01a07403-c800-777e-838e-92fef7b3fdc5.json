@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-777e-838e-92fef7b3fdc5",
+  "slug": "context-menu-exact-fit",
+  "kind": "test-case",
+  "title": "Last Pixel That Fits Counts As Fitting",
+  "description": "Verifies menu positioned exactly to last pixel still considered fitting.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Menu positioned exactly at width boundary",
+  "when": "placeMenu() called",
+  "then": "x coordinate unchanged (not clamped)",
+  "impl_ref": "src/shell/contextMenu.test.ts::placeMenu treats the last pixel that fits as fitting",
+  "status": "declared",
+  "last_result_ms": null
+}

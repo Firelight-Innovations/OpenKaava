@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7e49-9199-51c9ba5976c2",
+  "slug": "settings-surface-settings-surface-interface",
+  "kind": "contract-method",
+  "title": "Settings Screen Surface State",
+  "description": "Whether the settings screen is open and which section to display.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71c4-89cf-5b234dd86bc6",
+  "signature": "export interface SettingsSurface { open: boolean; section: string | null }",
+  "params": [],
+  "returns": "SettingsSurface",
+  "errors": [],
+  "semantics": "Tracks visibility and target section of the settings UI.",
+  "exported": false
+}

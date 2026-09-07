@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7ce1-86c0-322afd0d7a23",
+  "slug": "frame-build-frame",
+  "kind": "contract-method",
+  "title": "buildFrame",
+  "description": "Build frame draw model from document.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dd1-9e6f-3a5f9034098a",
+  "signature": "function buildFrame(props: { doc: SchematicDoc; config: SchematicConfig; viewport: Viewport; size: ViewportSize; selected: readonly string[] }): Frame",
+  "params": [
+    "props"
+  ],
+  "returns": "Frame",
+  "errors": [],
+  "semantics": "Returns Frame with visible nodes, routed edges, legend, zoom, minimap, and counts.",
+  "exported": true
+}

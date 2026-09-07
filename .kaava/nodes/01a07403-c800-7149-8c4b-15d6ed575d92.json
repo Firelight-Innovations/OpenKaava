@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7149-8c4b-15d6ed575d92",
+  "slug": "shell-bindings",
+  "kind": "module",
+  "title": "Shell Bindings",
+  "description": "Typed IPC bridge to the Rust orchestrator backend, providing methods for tool management, plugins, projects, source control, windows, and events.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bb4-bdbe-fe72bc3e7a0c",
+  "allowed_libraries": [
+    "01a07403-c800-7316-86fd-2d4d6903c4f5"
+  ],
+  "ui_refs": []
+}

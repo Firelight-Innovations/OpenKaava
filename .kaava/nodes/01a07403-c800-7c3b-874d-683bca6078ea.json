@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7c3b-874d-683bca6078ea",
+  "slug": "shell-store-module-doc",
+  "kind": "doc-block",
+  "title": "Persistent State Without Crashes",
+  "description": "Design principles for durable session state.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7969-944d-2276968a1b7c",
+  "body": "Restarting a machine should not cost you your workspace. This writes the shell's layout — every window, where it sits, the clusters it holds, the pane trees, the tab order, what was focused — and reads it back at launch. Built to four rules: Never fatal (every read degrades to default), Atomic write (temp file then rename), Forward-compatible (#[serde(default)]), and Not in the repo (config directory, never beside a project). Written on every mutation from inside ShellState::mutate, and never on exit because WindowEvent::Destroyed fires for every window when the app quits.",
+  "audience": "agent"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-770e-9d10-fae4561e9fa3",
+  "slug": "review-store-corrupt-file-ignored",
+  "kind": "test-case",
+  "title": "Corrupt file reads as no notes",
+  "description": "Invalid JSON degrades to empty list.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-700b-8fdc-ce83c58300e1",
+  "given": "A corrupted .kaava/review-comments.json",
+  "when": "load is called",
+  "then": "Returns an empty Vec",
+  "impl_ref": "src-tauri/src/review/store.rs::an_unreadable_file_reads_as_no_notes_rather_than_failing",
+  "status": "declared",
+  "last_result_ms": null
+}

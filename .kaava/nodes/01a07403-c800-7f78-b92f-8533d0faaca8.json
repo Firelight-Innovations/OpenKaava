@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f78-b92f-8533d0faaca8",
+  "slug": "core-monaco-api",
+  "kind": "contract-method",
+  "title": "Monaco API Type",
+  "description": "Type representing the Monaco editor.api namespace, used to register languages without importing monaco-editor at runtime.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75c0-8343-2b091383cfc2",
+  "signature": "type MonacoApi = typeof import(\"monaco-editor/editor/editor.api\")",
+  "params": [],
+  "returns": "typeof import(\"monaco-editor/editor/editor.api\")",
+  "errors": [],
+  "semantics": "Exports a type alias for Monaco's editor.api to allow language registration without a runtime dependency on Monaco.",
+  "exported": true
+}

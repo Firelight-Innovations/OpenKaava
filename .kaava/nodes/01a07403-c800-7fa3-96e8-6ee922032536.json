@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7fa3-96e8-6ee922032536",
+  "slug": "api-declare-commands",
+  "kind": "contract-method",
+  "title": "declareCommands",
+  "description": "Tell the shell which menu commands this frontend can currently execute.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77f3-afe7-a004ea566b14",
+  "signature": "declareCommands(commands: readonly string[]): void",
+  "params": [
+    "commands: readonly string[]"
+  ],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Deduplicates against the last declared set and sends only when changed; fire-and-forget.",
+  "exported": true
+}

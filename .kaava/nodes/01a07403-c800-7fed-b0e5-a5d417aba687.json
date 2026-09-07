@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7fed-b0e5-a5d417aba687",
+  "slug": "library",
+  "kind": "module",
+  "title": "App Library",
+  "description": "Screen for browsing, installing, and managing apps from the default catalog, custom repositories, or local folders.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bb4-bdbe-fe72bc3e7a0c",
+  "allowed_libraries": [
+    "01a07403-c800-7bd1-a062-9c1c49e747dc",
+    "01a07403-c800-7417-a580-5d7e987102ee"
+  ],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7571-bdda-f6f86d0bbe22"
+  ]
+}

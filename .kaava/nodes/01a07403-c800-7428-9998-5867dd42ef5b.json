@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7428-9998-5867dd42ef5b",
+  "slug": "routing-module-doc",
+  "kind": "doc-block",
+  "title": "Edge Routing",
+  "description": "Orthogonal edge routing avoiding obstacles.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7afd-b0e6-03ee26345279",
+  "body": "Orthogonal edge routing (PRD §12.3: Schematify shall route an edge orthogonally. An edge crosses a group border. An edge never enters a sibling box). Both constraints are one predicate — does a segment enter this box — applied to a list the caller chooses. `frame.ts` builds that list, and deliberately leaves containers out of it: a group's border is crossable, a peer's box is not. This module never decides what an obstacle is.",
+  "audience": "agent"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-76c8-adfe-376b0cd39fff",
+  "slug": "ui-writes-and-guarded",
+  "kind": "doc-block",
+  "title": "UI Server Can Click",
+  "description": "This is the one server that can drive the window, so it is developer-only.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c60-bf87-a6ce55a2f177",
+  "body": "This is the one server that writes. Everything else OpenKaava hosts is a read, deliberately, so that a leaked token costs knowledge and not control. A tool that clicks cannot be that, which is why this server is `dev_only`, starts switched off even once developer mode reveals it, and says so on the row that draws it.",
+  "audience": "human"
+}

@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7fca-8bf4-3f0f49d1682b",
+  "slug": "review-mark-sent",
+  "kind": "contract-method",
+  "title": "Stamp comments as handed to an agent",
+  "description": "Set sent_at on comments by id, skipping unknown ids, and return the count.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "signature": "pub fn mark_sent(comments: &mut [ReviewComment], ids: &[String], now: u64) -> usize",
+  "params": [
+    "comments: &mut [ReviewComment]",
+    "ids: &[String]",
+    "now: u64"
+  ],
+  "returns": "usize",
+  "errors": [],
+  "semantics": "Marks comments as sent by setting their sent_at timestamp, forgiving unknown ids.",
+  "exported": false
+}

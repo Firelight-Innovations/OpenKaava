@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7316-8a89-ef2e0221ec81",
+  "slug": "palette-registry-single-source",
+  "kind": "doc-block",
+  "title": "Command Registry as Menu Flattening",
+  "description": "Why the command registry draws directly from the menu tree.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d1f-ac55-b6ae705d4545",
+  "body": "There is no second table of commands here: the menu model is rebuilt from live state every render and already carries every field a palette row needs, so this flattens it. One source of truth by construction rather than by discipline. A command has to be *in a menu* to be in the palette — that is the right constraint, since a palette-only command would be an action with no discoverable home.",
+  "audience": "both"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-75f1-a951-973ad71f6f8a",
+  "slug": "menu-items-overview",
+  "kind": "doc-block",
+  "title": "Menu Item List Component",
+  "description": "Shared item tree for menu bar dropdown and hamburger accordion.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7932-a805-49d0bca71663",
+  "body": "The inline menu bar's dropdown and the hamburger's accordion render the same MenuItem[] the same way — one list component rather than two, so the two responsive states can never drift into showing different trees for the same menu.",
+  "audience": "agent"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-78ab-939f-608b814f0335",
+  "slug": "loader-no-silent-failures",
+  "kind": "doc-block",
+  "title": "Never Silent on Dangling References",
+  "description": "The loader quarantines rather than dropping references.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d11-8354-a2669af47406",
+  "body": "On project open Schematify walks `.kaava/`, parses every file, and builds the graph in memory. There is no index to consult and none to keep in step. The loader never panics and never returns early on bad data. A design tree lives in git, gets hand-edited, gets merged, and arrives with a reference to a node somebody deleted on another branch. PRD section 6.6 says what to do about it: quarantine the referring node, report the reference, and never drop it in silence.",
+  "audience": "both"
+}

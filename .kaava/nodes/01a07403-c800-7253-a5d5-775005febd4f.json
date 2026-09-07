@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7253-a5d5-775005febd4f",
+  "slug": "worktree-logic-follow-across-index",
+  "kind": "contract-method",
+  "title": "Track Selection Across Staging",
+  "description": "Moves the selection to the other side of the index when the file is staged/unstaged.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71fe-af1c-0dcd2dfd9607",
+  "signature": "export function followAcrossIndex(open: { path: string; staged: boolean } | null, paths: string[], wasStagedBefore: boolean): { path: string; staged: boolean } | null",
+  "params": [
+    "open: { path: string; staged: boolean } | null",
+    "paths: string[]",
+    "wasStagedBefore: boolean"
+  ],
+  "returns": "{ path: string; staged: boolean } | null",
+  "errors": [],
+  "semantics": "Moves selection to the opposite staged value if the open file is in the affected paths list.",
+  "exported": false
+}

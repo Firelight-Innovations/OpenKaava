@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7cfd-86cd-5dcbf5aae846",
+  "slug": "rules-validate-edge",
+  "kind": "contract-method",
+  "title": "validateEdge",
+  "description": "Validate edge before creation.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74c0-9507-02a5b468f60f",
+  "signature": "function validateEdge(doc: SchematicDoc, index: DocIndex, config: SchematicConfig, draft: EdgeDraft): Refusal | null",
+  "params": [
+    "doc",
+    "index",
+    "config",
+    "draft"
+  ],
+  "returns": "Refusal | null",
+  "errors": [],
+  "semantics": "Returns null if valid or Refusal with reason.",
+  "exported": true
+}

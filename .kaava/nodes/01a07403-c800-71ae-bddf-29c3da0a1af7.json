@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-71ae-bddf-29c3da0a1af7",
+  "slug": "dashboard-audit-actor-cell",
+  "kind": "contract-method",
+  "title": "auditActorCell",
+  "description": "Formats one audit row's ACTOR cell: m.ross · human or ◇ agent · claude-sdd.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cc3-bea1-6e72e54f057f",
+  "signature": "function auditActorCell(row: AuditLogRow): string",
+  "params": [
+    "row: AuditLogRow"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Displays actor with type-specific formatting.",
+  "exported": false
+}

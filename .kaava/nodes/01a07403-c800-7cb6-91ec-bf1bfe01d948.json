@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7cb6-91ec-bf1bfe01d948",
+  "slug": "viewer-app-rpc-read-text",
+  "kind": "contract-method",
+  "title": "readText",
+  "description": "Reads text file with UTF-8 verification",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a0-9c27-267f8065604a",
+  "signature": "export const readText = (path: string) => invoke<FileText>(\"files/read\", { path })",
+  "params": [
+    "path"
+  ],
+  "returns": "Promise<FileText>",
+  "errors": [
+    "KaavaRpcError"
+  ],
+  "semantics": "Reads file content as text, rejecting non-UTF-8 files and truncating at backend limit.",
+  "exported": true
+}

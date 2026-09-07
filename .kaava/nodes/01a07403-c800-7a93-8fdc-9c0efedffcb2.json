@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7a93-8fdc-9c0efedffcb2",
+  "slug": "dashboard-budgets-note",
+  "kind": "contract-method",
+  "title": "budgetsNote",
+  "description": "The BUDGETS note: e.g., 1 hard budget has no probe, blank when all hard budgets have probes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cc3-bea1-6e72e54f057f",
+  "signature": "function budgetsNote(counter: DashboardBudgetCounter): string",
+  "params": [
+    "counter: DashboardBudgetCounter"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Alerts when hard budgets lack probes per PRD section 12.13.",
+  "exported": false
+}

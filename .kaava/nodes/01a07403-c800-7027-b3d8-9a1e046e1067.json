@@ -1,0 +1,16 @@
+{
+  "id": "01a07403-c800-7027-b3d8-9a1e046e1067",
+  "slug": "viewer-app",
+  "kind": "service",
+  "title": "Viewer",
+  "description": "Read-only renderers for the file kinds an editor should not open: images, PDFs, notebooks and the rest.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": null,
+  "entry_point": "apps/viewer/ui/src/main.tsx, mounted into a pane by the shell.",
+  "exports": [],
+  "schemas": null
+}

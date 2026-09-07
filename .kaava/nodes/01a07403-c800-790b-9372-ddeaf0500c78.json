@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-790b-9372-ddeaf0500c78",
+  "slug": "stack-discovery-only-allowlisted-tools-resolve",
+  "kind": "test-case",
+  "title": "Enabled Tools Filtering",
+  "description": "Only tools on ENABLED_TOOLS appear in snapshot; others are filtered out.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7987-be21-fd2e593064ee",
+  "given": "Manifest with two tools not on ENABLED_TOOLS",
+  "when": "resolve() is called",
+  "then": "snapshot.tools is empty",
+  "impl_ref": "src-tauri/src/discovery.rs::only_allowlisted_tools_reach_the_snapshot",
+  "status": "declared",
+  "last_result_ms": null
+}

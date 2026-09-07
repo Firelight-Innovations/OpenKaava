@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7129-9b97-08a3fbe13beb",
+  "kind": "decision",
+  "slug": "DEC-SCH-MODEL-002",
+  "title": "Support user-defined node kinds with an open node map",
+  "context": "Alternative approaches: closed set of node kinds; only allow built-in kinds; require pre-definition of all types.",
+  "decision": "A user can register a new node kind via surface S-25, declare the edge kinds the schema accepts, and the new kind joins the graph. The system uses an open map for user-defined kinds, not a tagged enum.",
+  "consequences": "Extensibility without code changes; users can model domain-specific concepts; new kinds must follow the same rules (linting, reconciliation) as built-in kinds; schema validation must use allowlisting for edges.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

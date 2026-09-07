@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7263-8e8c-93c0465261da",
+  "slug": "shell-bindings-shell-state",
+  "kind": "contract-method",
+  "title": "shellState",
+  "description": "Fetch the whole shared shell state once.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7149-8c4b-15d6ed575d92",
+  "signature": "function shellState(): Promise<ShellSnapshot>",
+  "params": [],
+  "returns": "Promise<ShellSnapshot>",
+  "errors": [],
+  "semantics": "Returns current layout, instances, and terminal sessions.",
+  "exported": true
+}

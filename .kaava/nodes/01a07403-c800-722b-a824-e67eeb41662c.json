@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-722b-a824-e67eeb41662c",
+  "slug": "shell-core-terminal-input-2",
+  "kind": "test-case",
+  "title": "terminalInput adds newline",
+  "description": "Confirms commands are submitted with Enter.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-746a-b0bb-73db6ddd45f1",
+  "given": "A command string",
+  "when": "terminalInput is called",
+  "then": "Returns command with carriage return appended",
+  "impl_ref": "src/shell/run.test.ts::what reaches the pty::submits the command with Enter",
+  "status": "declared",
+  "last_result_ms": null
+}

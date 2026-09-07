@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-71b0-8a2a-6eda9c1655dc",
+  "slug": "report-rendering-module-doc",
+  "kind": "doc-block",
+  "title": "Report Writing",
+  "description": "Outputs reconciliation results in .kaava/runs and in text or JSON.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79c5-a636-c5fbe469b761",
+  "body": "Writing reconciliation results: `.kaava/runs/<node-uuid>/reconcile.json` per marker identifier touched (PRD `SCHEMATIFY-PRD.md` section 9.3), and the consolidated report `kaava reconcile --out` writes or prints, in `text` or `json` form. Section 9.3 names the path `runs/<node-uuid>/reconcile.json` but not its schema; section 6.1's storage layout is what puts the `runs/` tree inside `.kaava/`, alongside `nodes/`.",
+  "audience": "both"
+}

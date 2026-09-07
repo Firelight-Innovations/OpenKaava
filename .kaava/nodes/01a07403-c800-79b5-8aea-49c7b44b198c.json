@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-79b5-8aea-49c7b44b198c",
+  "slug": "keyboard-hook-use-keyboard",
+  "kind": "contract-method",
+  "title": "Keyboard Listener Hook",
+  "description": "Installs global document-level keyboard shortcut listener.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78e7-856c-cf28278f7c01",
+  "signature": "export function useKeyboard(actions: KeyboardActions): void",
+  "params": [
+    "KeyboardActions"
+  ],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Mounts keyboard listener once per component and keeps action callbacks current.",
+  "exported": true
+}

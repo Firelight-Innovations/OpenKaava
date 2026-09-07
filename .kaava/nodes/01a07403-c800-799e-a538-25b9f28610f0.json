@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-799e-a538-25b9f28610f0",
+  "slug": "tree-state",
+  "kind": "external-dep",
+  "title": "React",
+  "description": "React hooks (useCallback, useEffect, useMemo, useRef, useState) for tree state management",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75ef-92b8-f1ede6be6e2f",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "State management for tree navigation and virtualization"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7f0b-896c-1f73bc3e4ed6",
+  "kind": "decision",
+  "slug": "DEC-OPS-COMMENTS-001",
+  "title": "Comments explain why, not what the code does",
+  "context": "Code that restates what is obvious from reading it wastes space. The codebase is dense and intentional.",
+  "decision": "Every module opens with a doc comment explaining what the module is for and what seam it sits on, not restating its name. Beyond that, record the alternative rejected and why (highest-value comment), document what is deliberately absent, and note when something is safe to call twice, capped, or lossy.",
+  "consequences": "Modules require thoughtful documentation explaining rationale. Comment concentration is capped: no file more than 50% comment lines, no unbroken run over 20 lines. Oversized headers get distributed onto specific items, tightened, then moved to `docs/design-notes/` with the source pointing at the page.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-06"
+}

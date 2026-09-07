@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7130-b14e-4b95760970a2",
+  "slug": "codec-success-response-round-trips",
+  "kind": "test-case",
+  "title": "Success Response Serialization Round-Trip",
+  "description": "A success response with result encodes and decodes correctly.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "given": "A Response with id=7, result={text: 'hi'}",
+  "when": "encoded to JSON and decoded back",
+  "then": "the decoded response matches the original",
+  "impl_ref": "crates/kaava-rpc/src/codec.rs::success_response_round_trips",
+  "status": "declared",
+  "last_result_ms": null
+}

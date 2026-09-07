@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7067-9cd6-0e9cb85629ca",
+  "slug": "file-api-get-root",
+  "kind": "contract-method",
+  "title": "Get Project Root",
+  "description": "Fetch the project root path and name for the tree header.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export const getRoot = () => invoke<Root>('files/root')",
+  "params": [],
+  "returns": "Promise<Root> with path and name",
+  "errors": [],
+  "semantics": "Returns the project root directory being browsed.",
+  "exported": true
+}

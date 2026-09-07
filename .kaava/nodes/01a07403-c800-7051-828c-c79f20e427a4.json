@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7051-828c-c79f20e427a4",
+  "slug": "debug-every-schema-is-object",
+  "kind": "test-case",
+  "title": "All Schemas Are Objects",
+  "description": "Every tool schema is a JSON object, never an array or string.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7768-89f6-f76b82ea5f13",
+  "given": "The debug server's tools",
+  "when": "Each schema function is called",
+  "then": "The result is_object() returns true",
+  "impl_ref": "src-tauri/src/mcp/servers/debug.rs::every_schema_is_an_object",
+  "status": "declared",
+  "last_result_ms": null
+}

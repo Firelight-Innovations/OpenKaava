@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-70ab-b593-96bc9434ab5c",
+  "slug": "plugin-store-exists",
+  "kind": "contract-method",
+  "title": "Check Plugin Store Presence",
+  "description": "Test whether plugin list has been saved before.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c92-b990-0fafa3c719fa",
+  "signature": "pub fn exists(app: &AppHandle) -> bool",
+  "params": [
+    "app: &AppHandle"
+  ],
+  "returns": "bool",
+  "errors": [],
+  "semantics": "Used for first-run detection; empty list still returns true if file exists.",
+  "exported": false
+}

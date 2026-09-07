@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7bc5-afdf-5e52e920f075",
+  "slug": "design-app-rpc-arm",
+  "kind": "contract-method",
+  "title": "arm",
+  "description": "Installs element picker probe in page",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a0-9c27-267f8065604a",
+  "signature": "export const arm = (replaces: string | null) => invoke<Armed>(\"design/arm\", ...)",
+  "params": [
+    "replaces"
+  ],
+  "returns": "Promise<Armed>",
+  "errors": [
+    "KaavaRpcError"
+  ],
+  "semantics": "Injects probe script, returns id for later disarming.",
+  "exported": true
+}

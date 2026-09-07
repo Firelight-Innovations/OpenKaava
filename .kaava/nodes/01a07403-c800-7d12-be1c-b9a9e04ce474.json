@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d12-be1c-b9a9e04ce474",
+  "slug": "launch-a-path-that-is-neither-produces-nothing",
+  "kind": "test-case",
+  "title": "Missing Path Handling",
+  "description": "Verify that a deleted or non-existent path returns None rather than an error.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a3-a407-049c1f55dd74",
+  "given": "A path that does not exist on the filesystem",
+  "when": "Classifying the path",
+  "then": "None is returned",
+  "impl_ref": "src-tauri/src/launch.rs::a_path_that_is_neither_produces_nothing",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7010-8abc-d2d34a37e561",
+  "slug": "clipboard-textarea-cleared",
+  "kind": "test-case",
+  "title": "Paste Clears Hidden Textarea",
+  "description": "Verifies that handlePaste prevents double-paste by clearing textarea.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7101-96d4-211896bc6c31",
+  "given": "Paste event with text 'secret'",
+  "when": "handlePaste() called",
+  "then": "preventDefault called and textarea.value cleared",
+  "impl_ref": "src/shell/terminal/clipboard.test.ts::leaves nothing in the hidden textarea for a later right-click to replay",
+  "status": "declared",
+  "last_result_ms": null
+}

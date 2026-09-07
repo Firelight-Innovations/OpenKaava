@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7ed9-8ae2-79336356e56a",
+  "slug": "types-vocab",
+  "kind": "doc-block",
+  "title": "Graph Vocabulary",
+  "description": "The types module documentation on the narrowed graph vocabulary vs Rust schemas.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a11-b05c-3720ce96e87b",
+  "body": "The graph vocabulary this app's shell draws against — narrower than crates/schematify-core's eventual schemas (PRD §5), since this wave has no Rust graph to mirror. Restated by hand, the way apps/files/ui/src/rpc.ts restates its Rust counterpart.",
+  "audience": "both"
+}

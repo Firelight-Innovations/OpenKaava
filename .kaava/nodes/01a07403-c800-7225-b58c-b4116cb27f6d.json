@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7225-b58c-b4116cb27f6d",
+  "slug": "app-root-2",
+  "kind": "external-dep",
+  "title": "react-dom",
+  "description": "React DOM rendering library.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c87-8546-4af3785b349f",
+  "registry_ref": "01a07403-c800-7ea4-bc03-11fc58b51a7e",
+  "usage_note": "main.tsx uses ReactDOM.createRoot() to render the app into the DOM"
+}

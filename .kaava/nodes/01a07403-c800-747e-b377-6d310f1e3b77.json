@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-747e-b377-6d310f1e3b77",
+  "slug": "serde-json-schema",
+  "kind": "external-dep",
+  "title": "JSON Value Type",
+  "description": "JSON value type for schema validation and transformation.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b26-86ed-11e8b5f08c7a",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "Brief and Registry manipulate and validate JSON objects"
+}

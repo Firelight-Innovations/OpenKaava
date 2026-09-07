@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-782d-bdc1-e759c21e6408",
+  "slug": "config",
+  "kind": "module",
+  "title": "Project Config Sync",
+  "description": "Synchronizes enabled servers into each open project's .mcp.json for client discovery, using environment variable substitution to keep secrets uncommitted.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

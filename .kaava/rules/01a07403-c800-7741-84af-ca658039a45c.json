@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7741-84af-ca658039a45c",
+  "slug": "gate-version-consistency",
+  "statement": "Version must be identical in `package.json`, `Cargo.toml [workspace.package]`, and `tauri.conf.json`.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm lint:version"
+}

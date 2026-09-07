@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7685-bd87-d0fb5a04363e",
+  "slug": "file-api-trash-restore",
+  "kind": "contract-method",
+  "title": "Restore from Recycle Bin",
+  "description": "Move an item back from the Recycle Bin to its original location.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export const trashRestore = (id: string) => invoke<{ path: string; name: string }>('trash/restore', { id })",
+  "params": [
+    "id: string"
+  ],
+  "returns": "Promise with path and name",
+  "errors": [],
+  "semantics": "Restores deleted item to original location; refuses if parent missing.",
+  "exported": true
+}

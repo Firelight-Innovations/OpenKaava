@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7fa0-b826-e062175be623",
+  "slug": "project-marker-manifests",
+  "kind": "doc-block",
+  "title": "Manifest naming and format stability",
+  "description": "Why a project has two files at its root with opposite purposes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7742-a1fb-c4253f531eb9",
+  "body": "Two things sit at the root: <name>.kaava is what the project is (identity and metadata), and .kaava/ is what OpenKaava produced (traces, designs, docs). They cannot share a name — one directory cannot hold both a file and a folder with the same name — so the manifest takes the project's own name. A file from a newer OpenKaava still opens here through forward-compatible loading.",
+  "audience": "both"
+}

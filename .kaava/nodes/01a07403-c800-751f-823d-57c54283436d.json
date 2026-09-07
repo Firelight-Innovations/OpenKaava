@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-751f-823d-57c54283436d",
+  "slug": "marker-token-parse-captures",
+  "kind": "contract-method",
+  "title": "Parse Regex Captures",
+  "description": "Extract the id and optional slug from one regex match.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77d3-a0d3-3e27db45a8db",
+  "signature": "pub fn parse_captures(caps: &Captures<'_>) -> Option<(Uuid, Option<String>)>",
+  "params": [
+    "caps: &Captures"
+  ],
+  "returns": "Option<(Uuid, Option<String>)>",
+  "errors": [],
+  "semantics": "Safely extracts UUID and slug from regex captures.",
+  "exported": false
+}

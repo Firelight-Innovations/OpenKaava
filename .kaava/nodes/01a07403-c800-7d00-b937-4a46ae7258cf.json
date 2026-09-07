@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7d00-b937-4a46ae7258cf",
+  "slug": "app-updater",
+  "kind": "external-dep",
+  "title": "tauri",
+  "description": "Desktop framework providing event emission and state management for updater.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7725-8d89-01b343796845",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "AppHandle, Emitter trait, Manager trait, async_runtime for spawning checks"
+}

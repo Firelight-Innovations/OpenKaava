@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7df7-ab4a-86a13341134d",
+  "slug": "plugin-broker-protocol-namespace-reserved",
+  "kind": "test-case",
+  "title": "Broker: Reserved Methods",
+  "description": "Methods starting with kaava/ are refused, not forwarded.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78db-904b-bb87473e03bb",
+  "given": "Methods 'kaava/hello', 'kaava/shutdown', 'kaava/anything'",
+  "when": "is_reserved() is called",
+  "then": "All return true",
+  "impl_ref": "src-tauri/src/plugins/broker.rs::the_protocol_namespace_is_never_forwarded",
+  "status": "declared",
+  "last_result_ms": null
+}

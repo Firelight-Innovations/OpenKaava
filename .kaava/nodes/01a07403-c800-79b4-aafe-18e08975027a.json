@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-79b4-aafe-18e08975027a",
+  "slug": "userdata",
+  "kind": "module",
+  "title": "User Data Directory Management",
+  "description": "Centralizes read/write logic for all persistent user data files stored in %APPDATA%. Provides atomic writes via temp-then-rename, format versioning, forward-compatibility, and backup management for precious files.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

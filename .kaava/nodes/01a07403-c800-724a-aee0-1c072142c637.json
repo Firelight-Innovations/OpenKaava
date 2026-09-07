@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-724a-aee0-1c072142c637",
+  "slug": "statusbar-2",
+  "kind": "external-dep",
+  "title": "Framer Motion",
+  "description": "Animation library for motion components and variants.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78af-87c4-c75201a2058a",
+  "registry_ref": "01a07403-c800-7417-a580-5d7e987102ee",
+  "usage_note": "AnimatePresence for settings popover entrance/exit animations"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-76ad-bbf6-440a1526ef05",
+  "slug": "shell-core-is-tauri",
+  "kind": "contract-method",
+  "title": "isTauri",
+  "description": "Check whether the window has a Tauri runtime.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-746a-b0bb-73db6ddd45f1",
+  "signature": "function isTauri(): boolean",
+  "params": [],
+  "returns": "boolean",
+  "errors": [],
+  "semantics": "Returns true in Tauri, false in plain browser.",
+  "exported": true
+}

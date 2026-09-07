@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7e10-962a-85a33505f0d9",
+  "slug": "geometry-right",
+  "kind": "contract-method",
+  "title": "right",
+  "description": "Compute the right edge of a rectangle.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-793f-9f87-ae187d1d6ac0",
+  "signature": "function right(rect: Rect): number",
+  "params": [
+    "rect"
+  ],
+  "returns": "number",
+  "errors": [],
+  "semantics": "Returns rect.x + rect.width.",
+  "exported": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7533-80c9-9999bbf65ffc",
+  "slug": "graph-seam-missing-kaava-dir-is-no-project",
+  "kind": "test-case",
+  "title": "Missing .kaava/nodes Returns NoProject Error",
+  "description": "JsonFileGraph.load fails with NoProject when .kaava/nodes does not exist.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "given": "a directory with no .kaava subdirectory",
+  "when": "JsonFileGraph::load is called",
+  "then": "returns GraphLoadError::NoProject",
+  "impl_ref": "crates/schematify-reconcile/src/graph.rs::missing_kaava_dir_is_no_project",
+  "status": "declared",
+  "last_result_ms": null
+}

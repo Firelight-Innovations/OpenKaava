@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7fb6-85e9-76a0ba93c295",
+  "slug": "product-resolveflowsteps-function",
+  "kind": "contract-method",
+  "title": "Flow Step Resolution",
+  "description": "Resolves each step's screen reference to a ResolvedFlowStep with screen title and slug or null for dangling references.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "signature": "resolveFlowSteps(flow: RawFlow, screens: readonly RawScreen[]) => ResolvedFlowStep[]",
+  "params": [
+    "flow: RawFlow",
+    "screens: readonly RawScreen[]"
+  ],
+  "returns": "ResolvedFlowStep[]",
+  "errors": [],
+  "semantics": "Maps a flow's steps through the screens array so the Flow editor can draw titles instead of bare URIs, handling missing screens gracefully.",
+  "exported": true
+}

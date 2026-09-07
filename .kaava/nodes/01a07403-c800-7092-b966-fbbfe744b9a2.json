@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7092-b966-fbbfe744b9a2",
+  "slug": "project-store-save",
+  "kind": "contract-method",
+  "title": "Write the recent projects list atomically",
+  "description": "Persist the recent projects through a temp file and atomic rename.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b76-a547-de7e3176cebe",
+  "signature": "pub fn save(app: &AppHandle, stored: &Stored)",
+  "params": [
+    "app: &AppHandle",
+    "stored: &Stored"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Writes atomically to ensure a reader never sees a partial file.",
+  "exported": false
+}

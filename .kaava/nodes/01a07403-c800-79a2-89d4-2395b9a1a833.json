@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79a2-89d4-2395b9a1a833",
+  "slug": "context-menu-action-firing",
+  "kind": "test-case",
+  "title": "Context Menu Actions Fire",
+  "description": "Ensures the actions supplied to contextItems are called when items selected.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Mock copy callback passed to contextItems",
+  "when": "Copy item's onSelect called",
+  "then": "Mock copy called exactly once",
+  "impl_ref": "src/shell/contextMenu.test.ts::contextItems runs the action the caller supplied",
+  "status": "declared",
+  "last_result_ms": null
+}

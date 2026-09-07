@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b08-81fe-009efcb5806d",
+  "slug": "validators-excludes-transparent",
+  "kind": "test-case",
+  "title": "Positive control for transparent exclusion",
+  "description": "Verifies that 'transparent' and color words in property/pseudo-selector names are not flagged.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7568-b464-c150d28c61e2",
+  "given": "Strings with 'transparent' and 'white-space' and 'red:hover'",
+  "when": "The NAMED_COLOR regex is tested against them",
+  "then": "None of them match",
+  "impl_ref": "apps/schematify/ui/src/noLiteralHex.test.ts::positive control does not flag transparent, or a color name inside a CSS property name or a pseudo-selector",
+  "status": "declared",
+  "last_result_ms": null
+}

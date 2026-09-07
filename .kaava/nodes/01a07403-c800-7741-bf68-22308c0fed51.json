@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7741-bf68-22308c0fed51",
+  "slug": "titlebar-view-menu-has-six-rows",
+  "kind": "test-case",
+  "title": "View menu structure",
+  "description": "Ensures View menu has the exact six rows it declares in its own header.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7806-88f7-dafc7969fdd8",
+  "given": "A View menu",
+  "when": "checking its rows",
+  "then": "should have Command Palette, Show/Hide Panel, Show/Hide Terminal, Enter/Exit Fullscreen, Zoom In, Zoom Out",
+  "impl_ref": "src/shell/titlebar/menus.test.ts::it(\"has the six rows the menu declares\")",
+  "status": "declared",
+  "last_result_ms": null
+}

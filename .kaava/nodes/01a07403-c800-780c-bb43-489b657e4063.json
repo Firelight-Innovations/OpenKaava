@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-780c-bb43-489b657e4063",
+  "slug": "github-query-parsed-query-interface",
+  "kind": "contract-method",
+  "title": "Parsed GitHub Query Structure",
+  "description": "GitHub filter query parsed into semantic components.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcd-8834-b536584a1dca",
+  "signature": "export interface ParsedQuery { scope: QueryScope; state: QueryState; draft: boolean; author: string | null; labels: string[]; freeText: string }",
+  "params": [],
+  "returns": "ParsedQuery",
+  "errors": [],
+  "semantics": "Represents the fully parsed query with separate fields for each axis (kind, state, draft, author, labels, text).",
+  "exported": false
+}

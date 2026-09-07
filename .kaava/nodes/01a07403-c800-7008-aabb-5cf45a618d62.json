@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7008-aabb-5cf45a618d62",
+  "slug": "project-header",
+  "kind": "doc-block",
+  "title": "Service and Module Projection",
+  "description": "The projection module documentation explaining when and how graphs are narrowed.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b17-92da-f10f0c4deca9",
+  "body": "Projects the whole-project graph schematify/load-graph returns (every node, every edge, every kind, per PRD §6.1 and §14.5) down to the one ServiceGraph this app's shell can currently draw — a single service's containment subtree. This narrowing is not something crates/schematify-core or the Rust dispatch owns.",
+  "audience": "both"
+}

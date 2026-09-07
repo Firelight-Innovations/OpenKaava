@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7fe5-9f8f-8f7bc3a29743",
+  "slug": "settings-surface-close-settings",
+  "kind": "contract-method",
+  "title": "Close Settings Screen",
+  "description": "Dismisses the settings screen while preserving section history.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71c4-89cf-5b234dd86bc6",
+  "signature": "export function closeSettings(): void",
+  "params": [],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Announces closed state; safe to call when already closed.",
+  "exported": false
+}

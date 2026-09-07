@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7d77-9d31-92f66be39023",
+  "slug": "outcome-four-variant-tests",
+  "kind": "budget",
+  "title": "Outcome Type Tests",
+  "description": "Tests for all four ReconcileOutcome variants and serialization.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f14-8b2b-c06d802d2714",
+  "metric": "test_count",
+  "op": ">=",
+  "value": 5,
+  "unit": "tests",
+  "tier": "soft",
+  "probe": {
+    "command": "pnpm test:rust",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

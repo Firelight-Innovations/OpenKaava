@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7ac3-8233-8559c59f4afc",
+  "slug": "lint-lint",
+  "kind": "contract-method",
+  "title": "Lint Graph",
+  "description": "Walk the graph and find violations of rules L01 through L13.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-745c-968f-ee2f8eb8951b",
+  "signature": "pub fn lint(graph: &Graph) -> LintReport",
+  "params": [
+    "graph: &Graph"
+  ],
+  "returns": "LintReport",
+  "errors": [],
+  "semantics": "Runs all linter rules in parallel over the graph and returns a report with errors and warnings ordered by severity, with evidence for each.",
+  "exported": true
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-778e-89a4-05e1a9bd3817",
+  "slug": "xterm-clipboard",
+  "kind": "external-dep",
+  "title": "xterm.js Core API",
+  "description": "Terminal clipboard and paste handling via paste(), getSelection(), attachCustomKeyEventHandler().",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7101-96d4-211896bc6c31",
+  "registry_ref": "01a07403-c800-7b36-9dd4-94369ecae6ff",
+  "usage_note": "ClipboardTerminal interface mocks Terminal for testing; production uses real Terminal methods for paste handling."
+}

@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-76e5-84f4-c170d440e2d5",
+  "slug": "file-operations-use-delete",
+  "kind": "contract-method",
+  "title": "Delete Confirmation Hook",
+  "description": "Manages delete flow with confirmation dialog, unsaved file warnings, and error handling.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ca9-93c6-8fe99d1140a0",
+  "signature": "export function useDelete(deps: { unsavedUnder, dropUnder, onDeleted }): DeleteFlow",
+  "params": [
+    "unsavedUnder: (path: string) => string[]",
+    "dropUnder: (path: string) => void",
+    "onDeleted: (target: DeleteTarget) => void"
+  ],
+  "returns": "DeleteFlow with notice, ask, and cancel methods",
+  "errors": [],
+  "semantics": "Handles delete confirmation with file count, unsaved warnings, and Recycle Bin reference.",
+  "exported": true
+}

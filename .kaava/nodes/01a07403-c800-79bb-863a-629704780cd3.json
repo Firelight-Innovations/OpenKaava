@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79bb-863a-629704780cd3",
+  "slug": "accelerators-shortcuts-no-glyphs",
+  "kind": "test-case",
+  "title": "Shortcuts Screen Has No Mac Glyphs",
+  "description": "Verifies shortcuts screen displays no Mac key glyphs.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d53-814c-3c88cf09800b",
+  "given": "SHORTCUT_GROUPS from shortcuts.ts",
+  "when": "All strings extracted",
+  "then": "No Mac glyphs present",
+  "impl_ref": "src/shell/accelerators.test.ts::the shortcuts screen holds no Mac glyph",
+  "status": "declared",
+  "last_result_ms": null
+}

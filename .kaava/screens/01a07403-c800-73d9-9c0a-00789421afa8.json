@@ -1,0 +1,29 @@
+{
+  "id": "01a07403-c800-73d9-9c0a-00789421afa8",
+  "kind": "screen",
+  "slug": "command-palette",
+  "title": "Command Palette",
+  "purpose": "Modal interface for searching and executing commands from the menu hierarchy",
+  "states": [
+    "closed - palette not open",
+    "open-list - palette open showing filtered command list",
+    "asking-arg - palette waiting for user to type argument"
+  ],
+  "acceptance": [
+    "shall open with empty search field",
+    "shall display all executable menu commands when closed",
+    "shall filter commands as user types",
+    "shall show command descriptions",
+    "shall highlight focused command row",
+    "shall allow navigating with arrow keys",
+    "shall execute command on Enter",
+    "shall support commands that require an argument",
+    "shall close on Escape or backdrop click",
+    "shall reset to empty field on next open"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7ea0-adaf-c0946e52d978",
+    "schematify://node/01a07403-c800-7d1f-ac55-b6ae705d4545",
+    "schematify://node/01a07403-c800-7497-b529-d3c21db99100"
+  ]
+}

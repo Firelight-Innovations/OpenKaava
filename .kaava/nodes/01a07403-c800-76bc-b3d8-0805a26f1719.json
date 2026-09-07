@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-76bc-b3d8-0805a26f1719",
+  "slug": "launch-launch-state-struct",
+  "kind": "contract-method",
+  "title": "LaunchState Struct",
+  "description": "Parks the launch target until a frontend window is ready to receive it.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a3-a407-049c1f55dd74",
+  "signature": "pub struct LaunchState { pending: Mutex<Option<Target>> }",
+  "params": [],
+  "returns": "LaunchState",
+  "errors": [],
+  "semantics": "Holds at most one target; clearing on take prevents double-opening.",
+  "exported": false
+}

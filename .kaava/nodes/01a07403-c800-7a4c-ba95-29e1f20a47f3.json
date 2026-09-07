@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7a4c-ba95-29e1f20a47f3",
+  "slug": "index-count-nodes",
+  "kind": "contract-method",
+  "title": "countNodes",
+  "description": "Counts module nodes, excluding annotation-tier kinds per owner's ruling.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7053-b407-040c7111f077",
+  "signature": "function countNodes(graph: ServiceGraph): number",
+  "params": [
+    "graph: ServiceGraph"
+  ],
+  "returns": "number",
+  "errors": [],
+  "semantics": "Computes node count at draw time, excluding annotations.",
+  "exported": true
+}

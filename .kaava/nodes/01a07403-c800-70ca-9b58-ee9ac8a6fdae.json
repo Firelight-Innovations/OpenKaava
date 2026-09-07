@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-70ca-9b58-ee9ac8a6fdae",
+  "slug": "cli-integration-tests-five-exit-codes",
+  "kind": "budget",
+  "title": "CLI Integration Tests",
+  "description": "End-to-end tests of kaava binary covering exit codes 0, 1, 2, 3 and JSON output.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bbc-9c10-9eeeb00a08e3",
+  "metric": "test_count",
+  "op": ">=",
+  "value": 5,
+  "unit": "tests",
+  "tier": "soft",
+  "probe": {
+    "command": "pnpm test:rust",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

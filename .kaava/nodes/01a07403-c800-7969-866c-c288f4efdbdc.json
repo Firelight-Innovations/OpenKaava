@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7969-866c-c288f4efdbdc",
+  "slug": "react-dom",
+  "kind": "external-dep",
+  "title": "React DOM",
+  "description": "React package for rendering to the DOM.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b5-84db-a6d3d2c16f72",
+  "registry_ref": "01a07403-c800-7ea4-bc03-11fc58b51a7e",
+  "usage_note": "Used in main.tsx to render the root component"
+}

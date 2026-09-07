@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-75eb-92d2-60b4be4d1d71",
+  "slug": "shortcuts-overview",
+  "kind": "doc-block",
+  "title": "Shortcuts Data Table",
+  "description": "Explains second table that must stay in sync with useKeyboard.ts.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7755-81bd-95e5849f8e41",
+  "body": "A second table describing bindings in useKeyboard.ts is a copy, and a copy of a keymap goes stale silently — the screen keeps promising a chord that was renamed months ago, and nothing fails. shortcuts.test.ts is what makes that impossible: it walks CHORDS and this list and fails when either holds a binding the other does not.",
+  "audience": "agent"
+}

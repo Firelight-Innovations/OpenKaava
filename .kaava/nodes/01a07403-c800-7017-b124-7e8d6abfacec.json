@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7017-b124-7e8d6abfacec",
+  "slug": "terminal-view-overview",
+  "kind": "doc-block",
+  "title": "Terminal Emulator View",
+  "description": "Explains one xterm instance per session with lifecycle management.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7011-923c-5233df9ecad3",
+  "body": "The Terminal instance is created exactly once per mounted instance and disposed on unmount — never recreated on a prop change. TerminalDeck guarantees that by keying each instance on the session id, so id and transport are effectively constant for this component's lifetime.",
+  "audience": "agent"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f60-994f-2dc38484be8f",
+  "slug": "grep-regex",
+  "kind": "external-dep",
+  "title": "Regex Matcher for Grep",
+  "description": "Regex pattern compiler used by ripgrep for search query matching.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74d5-965b-4ee30086c2f4",
+  "registry_ref": "01a07403-c800-7c62-a5d4-66c790dd740a",
+  "usage_note": "Compiles user search queries into regex matchers for file content scanning"
+}

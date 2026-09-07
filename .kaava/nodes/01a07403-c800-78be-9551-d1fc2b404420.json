@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-78be-9551-d1fc2b404420",
+  "slug": "windows-module-doc",
+  "kind": "doc-block",
+  "title": "Multi-Window Lifecycle",
+  "description": "Creating, positioning, and closing OS windows.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7db8-a655-5ab4032a4733",
+  "body": "Creating and destroying the windows a detached surface lives in. Every window loads the same index.html with a ?window=<label> query — no second frontend, no reduced build: a detached window mounts the same WindowRoot, state, title bar, switcher bar and panel as the main one, which makes it feel like the same application. Labels are opaque win-<n> values minted by ShellState, and Tauri scopes capabilities per window label.",
+  "audience": "agent"
+}

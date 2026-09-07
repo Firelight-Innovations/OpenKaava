@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7b68-91f7-ecdd8196fd29",
+  "slug": "reconciliation-reconcile-run",
+  "kind": "contract-method",
+  "title": "Reconciliation Run Results",
+  "description": "The result of reconciling one tree against one graph.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f82-b74b-6f5fb1052449",
+  "signature": "pub struct ReconcileRun",
+  "params": [
+    "outcomes: Vec<ReconcileOutcome>",
+    "skipped: Vec<SkippedFile>"
+  ],
+  "returns": "struct",
+  "errors": [],
+  "semantics": "Carries all reconciliation results from one operation.",
+  "exported": false
+}

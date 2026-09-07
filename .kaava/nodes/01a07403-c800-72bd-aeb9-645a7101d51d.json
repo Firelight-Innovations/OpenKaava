@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-72bd-aeb9-645a7101d51d",
+  "slug": "file-explorer-app",
+  "kind": "contract-method",
+  "title": "File Explorer App Export",
+  "description": "Default export of the File Explorer application component.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73b0-99ac-cdd1de6b20ef",
+  "signature": "export default function App(): JSX.Element",
+  "params": [],
+  "returns": "React component rendering the file explorer",
+  "errors": [],
+  "semantics": "Renders the file tree, context menus, delete confirmations, and trash view.",
+  "exported": true
+}

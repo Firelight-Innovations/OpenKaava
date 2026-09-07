@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7fe2-8445-bd23bcfc0027",
+  "kind": "decision",
+  "slug": "DEC-SCH-API-002",
+  "title": "Every Tauri command carries an actor argument (human or agent)",
+  "context": "Alternative approaches: no actor tracking; infer from caller context; use permission tokens.",
+  "decision": "Every Tauri command carries an `actor` argument in the payload, holding either `human` or `agent`. The shell supplies an actor token on every command call. Commands that gate by actor (e.g., the accept transition) read this field and enforce the gate at the command boundary.",
+  "consequences": "Commands can make policy decisions based on actor type; the accept transition (human-only) is enforced in the Tauri layer, not the UI layer; agent impersonation attempts fail at the boundary; the field is always present and always correct (supplied by shell, not caller).",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

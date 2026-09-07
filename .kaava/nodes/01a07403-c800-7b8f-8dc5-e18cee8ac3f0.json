@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7b8f-8dc5-e18cee8ac3f0",
+  "slug": "debug-read-only-by-design",
+  "kind": "doc-block",
+  "title": "Debug Server Is Read-Only",
+  "description": "Every tool here is a read, and that boundary is deliberate.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7768-89f6-f76b82ea5f13",
+  "body": "Every tool here is a read, and that boundary is deliberate rather than a matter of what got built first: the endpoint is reachable by anything on the machine holding the token, so a leaked token should cost knowledge of a window layout and not control of it.",
+  "audience": "human"
+}

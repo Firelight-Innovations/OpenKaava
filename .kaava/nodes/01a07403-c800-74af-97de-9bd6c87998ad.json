@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-74af-97de-9bd6c87998ad",
+  "slug": "file-api-base-name",
+  "kind": "contract-method",
+  "title": "Extract Filename",
+  "description": "Get the last path component, detecting both path separators.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export function baseName(path: string): string",
+  "params": [
+    "path: string"
+  ],
+  "returns": "Last path component",
+  "errors": [],
+  "semantics": "Returns filename from a full path.",
+  "exported": true
+}

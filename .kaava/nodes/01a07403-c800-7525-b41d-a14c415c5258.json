@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7525-b41d-a14c415c5258",
+  "slug": "inspector",
+  "kind": "module",
+  "title": "Inspector Content",
+  "description": "Pure computation of inspector tab content per PRD §12.12, following anatomy.ts's rule: no DOM touches, test-exerts-logic-directly. Every count the inspector draws is computed fresh from facet children.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

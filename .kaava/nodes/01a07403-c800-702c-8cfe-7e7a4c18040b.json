@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-702c-8cfe-7e7a4c18040b",
+  "slug": "plugin-catalog-rows",
+  "kind": "contract-method",
+  "title": "Get Library Display Rows",
+  "description": "Build library UI rows: catalog entries with installed status.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78c4-8878-c792de8f7f2c",
+  "signature": "pub fn rows(is_installed: impl Fn(&str) -> bool) -> Vec<CatalogRow>",
+  "params": [
+    "is_installed: impl Fn(&str) -> bool"
+  ],
+  "returns": "Vec<CatalogRow>",
+  "errors": [],
+  "semantics": "Applies predicate to each catalog entry; returns complete list.",
+  "exported": false
+}

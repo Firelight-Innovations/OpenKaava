@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7dd9-a730-868eb54171ed",
+  "slug": "client-publish-per-topic",
+  "kind": "test-case",
+  "title": "publish deduplicates per topic not globally",
+  "description": "Verifies that the same value published to different topics sends twice.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client with completed handshake",
+  "when": "The same value null is published to two different topics",
+  "then": "Two kaava/publish requests are posted (dedup is per-topic)",
+  "impl_ref": "packages/bridge/src/client.test.ts::dedupes per topic rather than globally",
+  "status": "declared",
+  "last_result_ms": null
+}

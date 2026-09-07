@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7988-83e8-a0bd8befac99",
+  "slug": "marker-token-parses-a-token-with-no-slug",
+  "kind": "test-case",
+  "title": "Parse Token Without Slug",
+  "description": "Parse @kaava:UUID pattern without trailing slug.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77d3-a0d3-3e27db45a8db",
+  "given": "@kaava:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8",
+  "when": "parse_token is called",
+  "then": "returns Some with UUID and None slug",
+  "impl_ref": "crates/schematify-reconcile/src/token.rs::parses_a_token_with_no_slug",
+  "status": "declared",
+  "last_result_ms": null
+}

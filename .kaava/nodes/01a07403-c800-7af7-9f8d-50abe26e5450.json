@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-7af7-9f8d-50abe26e5450",
+  "slug": "git-operations-git-divergence-diff",
+  "kind": "contract-method",
+  "title": "Get Worktree File Diff",
+  "description": "One file's whole divergence from fork point to disk.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "signature": "pub fn git_divergence_diff(app: AppHandle, cluster_id: String, path: String, merge_base: String) -> Result<GitDiff>",
+  "params": [
+    "app",
+    "cluster_id",
+    "path",
+    "merge_base"
+  ],
+  "returns": "Result<GitDiff>",
+  "errors": [
+    "AppError::Git"
+  ],
+  "semantics": "Returns full text of both sides for editor display.",
+  "exported": true
+}

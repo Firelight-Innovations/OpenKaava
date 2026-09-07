@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7a5c-98fa-765a20d9d4c9",
+  "slug": "bottom-panel-close-confirm",
+  "kind": "contract-method",
+  "title": "CloseConfirm React Component",
+  "description": "Modal confirmation dialog for closing a terminal session that has an active process running.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ab5-b38c-4cd0ce02ad5d",
+  "signature": "function CloseConfirm(props: CloseConfirmProps): ReactElement",
+  "params": [
+    "props: CloseConfirmProps (title, busy, onConfirm, onCancel)"
+  ],
+  "returns": "ReactElement",
+  "errors": [],
+  "semantics": "Renders a centered modal scrim over the panel with process name and Cancel/Close anyway buttons; Escape cancels.",
+  "exported": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7231-bd58-239f59a1a7fe",
+  "slug": "diagnostics-record-sequence",
+  "kind": "test-case",
+  "title": "Diagnostic records have monotonic sequences",
+  "description": "Sequence numbers never reuse and start at 1.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-768f-b87f-b17753d9768a",
+  "given": "Multiple records written to the buffer",
+  "when": "since() reads them",
+  "then": "Sequence numbers are 1, 2, 3, ... and never reset",
+  "impl_ref": "src-tauri/src/diagnostics.rs::sequence_numbers_start_at_one_and_increase",
+  "status": "declared",
+  "last_result_ms": null
+}

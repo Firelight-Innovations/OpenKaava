@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7654-8afa-7e353c8e8013",
+  "slug": "project-store-forget-removes-entry",
+  "kind": "test-case",
+  "title": "Forgetting removes only that entry",
+  "description": "Forget deletes one project without affecting others.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b76-a547-de7e3176cebe",
+  "given": "A Stored with [a, b, c]",
+  "when": "forget is called with b",
+  "then": "Recents contains only [c, a] in that order",
+  "impl_ref": "src-tauri/src/project/store.rs::forgetting_removes_only_that_entry",
+  "status": "declared",
+  "last_result_ms": null
+}

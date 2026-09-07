@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-768b-8c4c-d2a923595edb",
+  "slug": "routing-group-border-crossable",
+  "kind": "test-case",
+  "title": "routeEdge routes through group border not around",
+  "description": "Group borders are crossable per PRD §12.3, unlike sibling boxes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7afd-b0e6-03ee26345279",
+  "given": "from, to inside group, with group not in obstacles",
+  "when": "routeEdge is called",
+  "then": "route goes straight through group rather than around it",
+  "impl_ref": "apps/schematify/ui/src/engine/routing.test.ts::a group border is crossable routes straight through a group rather than around it",
+  "status": "declared",
+  "last_result_ms": null
+}

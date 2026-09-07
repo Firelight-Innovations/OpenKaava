@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7cff-9415-c70d12ffa217",
+  "slug": "stack-discovery-probe-version-empty-dir",
+  "kind": "test-case",
+  "title": "Version Probing: Empty Directory",
+  "description": "A directory with no Cargo.toml or package.json returns None.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7987-be21-fd2e593064ee",
+  "given": "Empty temporary directory",
+  "when": "probe_version() is called",
+  "then": "Returns None",
+  "impl_ref": "src-tauri/src/discovery.rs::probe_version_is_none_for_a_bare_directory",
+  "status": "declared",
+  "last_result_ms": null
+}

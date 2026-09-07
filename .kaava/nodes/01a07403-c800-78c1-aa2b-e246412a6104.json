@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-78c1-aa2b-e246412a6104",
+  "slug": "codec-rpc-error-with-data",
+  "kind": "contract-method",
+  "title": "Create an RPC Error with Structured Data",
+  "description": "Constructs an error with code, message, and machine-readable detail.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "signature": "pub fn with_data(code: i32, message: impl Into<String>, data: Value) -> Self",
+  "params": [
+    "code: i32",
+    "message: impl Into<String>",
+    "data: Value"
+  ],
+  "returns": "Self",
+  "errors": [],
+  "semantics": "Creates an RPC error that carries optional structured detail for the remote side.",
+  "exported": true
+}

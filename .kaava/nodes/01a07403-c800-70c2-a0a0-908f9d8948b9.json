@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-70c2-a0a0-908f9d8948b9",
+  "slug": "identity-check-rust-list",
+  "kind": "contract-method",
+  "title": "rustList",
+  "description": "Extracts a pinned list constant from Rust source code.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ef5-b5fd-cb82e357bc20",
+  "signature": "rustList(text: string, name: string): string[] | null",
+  "params": [
+    "text: Rust source",
+    "name: constant name"
+  ],
+  "returns": "array of strings from the list or null if not found",
+  "errors": [],
+  "semantics": "Parses a const NAME: &[&str] = &[...]; pattern from Rust code.",
+  "exported": false
+}

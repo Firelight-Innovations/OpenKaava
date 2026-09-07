@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-79e5-be15-52e684c10c54",
+  "slug": "react",
+  "kind": "external-dep",
+  "title": "React",
+  "description": "JavaScript library for building user interfaces with component-based architecture and hooks.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ca9-8733-7c3c727556b9",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "SchematicCanvas uses React hooks (useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore) for component state, external store subscription, and lifecycle management."
+}

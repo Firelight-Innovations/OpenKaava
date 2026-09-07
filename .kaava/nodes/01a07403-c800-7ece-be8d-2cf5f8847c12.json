@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7ece-be8d-2cf5f8847c12",
+  "slug": "staleness-header",
+  "kind": "doc-block",
+  "title": "Staleness Computation",
+  "description": "The staleness module documentation on caption generation and time formatting.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f23-8360-1956f352980f",
+  "body": "PRD §7.4's second caption line: crypto-primitives.sign changed 2h ago. Re-review required — built from the Staleness mark stale_cascade writes onto a node's stale field. The elapsed time is never stored, so it is computed here, at draw time, per PRD §0.4.",
+  "audience": "both"
+}

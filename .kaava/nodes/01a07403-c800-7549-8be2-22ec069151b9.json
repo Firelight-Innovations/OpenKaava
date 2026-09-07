@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7549-8be2-22ec069151b9",
+  "slug": "plugin-registry-separator-outside-id-alphabet",
+  "kind": "test-case",
+  "title": "Separator Validation",
+  "description": "ADDRESS_SEPARATOR is not a valid id character.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "given": "ADDRESS_SEPARATOR='.'",
+  "when": "checked against id rules",
+  "then": "Is not lowercase, digit, or dash",
+  "impl_ref": "src-tauri/src/plugins/mod.rs::the_separator_is_outside_the_id_alphabet",
+  "status": "declared",
+  "last_result_ms": null
+}

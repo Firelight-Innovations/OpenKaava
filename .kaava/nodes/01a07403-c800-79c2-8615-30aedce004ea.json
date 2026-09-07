@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-79c2-8615-30aedce004ea",
+  "slug": "shell-bindings-app-call",
+  "kind": "contract-method",
+  "title": "appCall",
+  "description": "Forward an RPC invoke from an app's iframe to its Rust backend.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7149-8c4b-15d6ed575d92",
+  "signature": "function appCall(id: string, method: string, params?: unknown, scope?: CallScope): Promise<unknown>",
+  "params": [
+    "id",
+    "method",
+    "params",
+    "scope"
+  ],
+  "returns": "Promise<unknown>",
+  "errors": [
+    "JSON-RPC error object"
+  ],
+  "semantics": "Routes method invocation from an iframe to the backend with caller identity.",
+  "exported": true
+}

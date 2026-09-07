@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7431-a901-55654f06209f",
+  "slug": "context-menu-edge-clamp",
+  "kind": "test-case",
+  "title": "Menu Clamped To Edge Gap",
+  "description": "Verifies menu kept at least EDGE_GAP pixels from viewport edge.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Point (10, 10) with large menu",
+  "when": "placeMenu() called",
+  "then": "x position is EDGE_GAP even after flip",
+  "impl_ref": "src/shell/contextMenu.test.ts::placeMenu keeps a gap when a flip would put it off the near edge",
+  "status": "declared",
+  "last_result_ms": null
+}

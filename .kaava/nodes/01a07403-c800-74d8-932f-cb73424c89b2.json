@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-74d8-932f-cb73424c89b2",
+  "slug": "protocol-command-semantics",
+  "kind": "doc-block",
+  "title": "Command vs Event semantics",
+  "description": "Design clarification for the command message type.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e50-b9bf-2c07534a4168",
+  "body": "A menu command, aimed at whichever frame the shell considers active. Distinct from `event` rather than an event with a reserved name, because the two make opposite claims. An event is news — the shell relaying something that happened, which a frame may ignore. A command is an instruction the user just gave through the shell's own chrome, and the shell only sends one the frame has said it can carry out. Keeping them apart is what lets a frontend register a handler for one without having to filter the other out of the same stream.",
+  "audience": "both"
+}

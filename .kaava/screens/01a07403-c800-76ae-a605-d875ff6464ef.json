@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-76ae-a605-d875ff6464ef",
+  "kind": "screen",
+  "slug": "viewer-image",
+  "title": "Image Viewer",
+  "purpose": "Display images with zoom, pan, and fit-to-window controls for PNG, JPG, GIF, WEBP, BMP, ICO, AVIF",
+  "states": [
+    "loading",
+    "ready",
+    "error",
+    "zoomed"
+  ],
+  "acceptance": [
+    "shall display images from supported formats",
+    "shall support zoom in/out and fit-to-window",
+    "shall show image dimensions and file size",
+    "shall display error if image cannot be decoded"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7470-8863-246fe309e166"
+  ]
+}

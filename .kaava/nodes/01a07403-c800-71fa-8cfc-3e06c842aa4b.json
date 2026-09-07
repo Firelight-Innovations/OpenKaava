@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-71fa-8cfc-3e06c842aa4b",
+  "slug": "terminal-deck",
+  "kind": "module",
+  "title": "Terminal Session Manager",
+  "description": "Container managing multiple terminal sessions across tabs and split panes, keeping all instances mounted and hidden until visible.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7374-9333-dfe09d91c1fc",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7c0a-bb93-223be6b8c63c"
+  ]
+}

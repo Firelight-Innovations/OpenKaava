@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7ac7-b364-65827d97af54",
+  "slug": "lint-cognitive-complexity",
+  "statement": "Functions must not exceed cognitive complexity of 25.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm slop"
+}

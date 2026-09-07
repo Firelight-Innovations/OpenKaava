@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7cf5-bbb3-f52d6ab374b2",
+  "slug": "protocol-topic-event-prefix-constant",
+  "kind": "contract-method",
+  "title": "TOPIC_EVENT_PREFIX",
+  "description": "Prefix added to published topic names to prevent apps from impersonating shell events.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e50-b9bf-2c07534a4168",
+  "signature": "const TOPIC_EVENT_PREFIX: 'kaava:topic/'",
+  "params": [],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Ensures a publish(topic, value) call becomes a kaava:topic/TOPIC event internally.",
+  "exported": false
+}

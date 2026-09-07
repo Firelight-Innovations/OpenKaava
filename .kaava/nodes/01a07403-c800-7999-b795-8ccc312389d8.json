@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7999-b795-8ccc312389d8",
+  "slug": "project-store-forget",
+  "kind": "contract-method",
+  "title": "Remove a project from the recent list",
+  "description": "Delete one entry from the recent list without affecting open projects.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b76-a547-de7e3176cebe",
+  "signature": "pub fn forget(&mut self, path: &Path)",
+  "params": [
+    "path: &Path"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Removes all recents entries for the given path.",
+  "exported": false
+}

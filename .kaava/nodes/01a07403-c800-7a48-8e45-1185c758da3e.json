@@ -1,0 +1,26 @@
+{
+  "id": "01a07403-c800-7a48-8e45-1185c758da3e",
+  "slug": "host-tool-process-call-timeout",
+  "kind": "contract-method",
+  "title": "Call a Tool Method (Custom Timeout)",
+  "description": "Send a request to the tool and block with a caller-specified timeout.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-762d-94d0-4cb8287084c4",
+  "signature": "pub fn call_timeout(&self, method: &str, params: Option<Value>, timeout: Duration) -> Result<Value, RpcError>",
+  "params": [
+    "&self",
+    "method: &str",
+    "params: Option<Value>",
+    "timeout: Duration"
+  ],
+  "returns": "Result<Value, RpcError>",
+  "errors": [
+    "RpcError::TOOL_EXITED",
+    "RpcError::TIMED_OUT"
+  ],
+  "semantics": "Sends a request and waits with the given timeout; a timeout abandons the request but does not cancel tool work.",
+  "exported": true
+}

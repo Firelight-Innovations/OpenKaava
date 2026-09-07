@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7d0f-ba0b-0184ccf1e3e1",
+  "slug": "design-app-prompt-doc",
+  "kind": "doc-block",
+  "title": "Agent-readable element description",
+  "description": "Formats element as Markdown for agent context window",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71a3-ae12-251b52dac590",
+  "body": "A picked element, written out for a coding agent to read. This is the end of the feature — everything before it exists so that this function has something to describe. It is deliberately plain Markdown and deliberately pure: what an agent gets is decided in one testable place, not assembled in a click handler beside the clipboard call that ships it.",
+  "audience": "agent"
+}

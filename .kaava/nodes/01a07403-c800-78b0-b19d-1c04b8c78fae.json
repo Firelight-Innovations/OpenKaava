@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-78b0-b19d-1c04b8c78fae",
+  "slug": "drag-2",
+  "kind": "external-dep",
+  "title": "Framer Motion",
+  "description": "Animation library for motion values and springs.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71b3-ad71-25691aca6239",
+  "registry_ref": "01a07403-c800-7417-a580-5d7e987102ee",
+  "usage_note": "useMotionValue, useSpring for smooth ghost cursor following; motion components for animated visuals"
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-74bf-8cc3-64736eed0516",
+  "slug": "problems-severity-glyph",
+  "kind": "contract-method",
+  "title": "severityGlyph",
+  "description": "Returns the wireframe's glyph for error (●), warning (▲), or review (◆).",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74e7-acd1-ffea4dddd156",
+  "signature": "function severityGlyph(severity: Severity): string",
+  "params": [
+    "severity: Severity"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Maps severity to visual glyph per PRD section 12.14.",
+  "exported": false
+}

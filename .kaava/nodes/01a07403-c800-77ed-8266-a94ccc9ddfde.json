@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-77ed-8266-a94ccc9ddfde",
+  "slug": "titlebar-run-menu-gives-every-live-row-something-to-do",
+  "kind": "test-case",
+  "title": "Run menu row liveness",
+  "description": "Every row that is not disabled should carry an onSelect handler or prompt.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7806-88f7-dafc7969fdd8",
+  "given": "A Run menu with some disabled rows",
+  "when": "checking for inert rows",
+  "then": "no live (non-disabled) row should lack onSelect or prompt",
+  "impl_ref": "src/shell/titlebar/menus.test.ts::it(\"gives every live row something to do\")",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-733a-a0ef-1f8838d3a38b",
+  "slug": "terminal-sessions-insert-paths",
+  "kind": "contract-method",
+  "title": "Insert Paths to Terminal",
+  "description": "Put file paths at the shell prompt, quoted the way this shell needs.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731a-ab6c-3a00854fdef3",
+  "signature": "pub fn insert_paths(&self, id: &str, paths: &[String]) -> Option<String>",
+  "params": [
+    "id",
+    "paths"
+  ],
+  "returns": "Option<String>",
+  "errors": [],
+  "semantics": "Returns the quoted text that was inserted, or None if session no longer exists.",
+  "exported": false
+}

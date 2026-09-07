@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7649-b6e5-9a112fc9cba0",
+  "kind": "screen",
+  "slug": "viewer-pdf",
+  "title": "PDF Viewer",
+  "purpose": "Display PDF documents with page navigation and zoom controls",
+  "states": [
+    "loading",
+    "ready",
+    "error",
+    "page changed"
+  ],
+  "acceptance": [
+    "shall display PDF pages sequentially",
+    "shall support page navigation and zoom controls",
+    "shall show current page number and total pages"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-7fab-b591-f27fbcd9bc11"
+  ]
+}

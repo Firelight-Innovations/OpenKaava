@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-767c-bcd1-e864eb6046b2",
+  "slug": "icon-lookup-root-folder-icon-url",
+  "kind": "contract-method",
+  "title": "Root Folder Icon URL",
+  "description": "Get the Material Icon Theme icon for a tree root, with support for expansion states.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7add-a668-c662fdc1ba08",
+  "signature": "rootFolderIconUrl(expanded: boolean): string",
+  "params": [
+    "expanded: boolean"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Returns the Material Icon URL for a project tree root, in open or closed state.",
+  "exported": true
+}

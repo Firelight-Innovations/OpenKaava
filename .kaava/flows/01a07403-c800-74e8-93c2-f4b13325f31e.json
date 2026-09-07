@@ -1,0 +1,30 @@
+{
+  "id": "01a07403-c800-74e8-93c2-f4b13325f31e",
+  "kind": "flow",
+  "slug": "create-git-worktree",
+  "title": "Create a Git Worktree for a Branch",
+  "trigger": "User opens a git repository in a new cluster and wants a separate working directory for the branch",
+  "steps": [
+    {
+      "screen": "schematify://screen/01a07403-c800-7c22-9a7c-148cbffb33c4",
+      "action": "After opening a git repository in a cluster, a dialog appears asking Work in a separate worktree?"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c22-9a7c-148cbffb33c4",
+      "action": "The Worktree name field shows a suggested name (based on the project name), already selected"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c22-9a7c-148cbffb33c4",
+      "action": "Accept the suggestion by pressing Enter or modify the name if needed; the dialog validates that it is a usable folder name and not already in use"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c0a-bb93-223be6b8c63c",
+      "action": "The worktree is created; the cluster's File Explorer roots at the worktree's folder, and terminals open there"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-727c-a02d-041e8ac2a84e",
+      "action": "The source control panel now shows changes relative to the worktree's branch, with committed and uncommitted work together"
+    }
+  ],
+  "outcome": "A new worktree is created with its own folder and branch, isolated from other work on the same repository"
+}

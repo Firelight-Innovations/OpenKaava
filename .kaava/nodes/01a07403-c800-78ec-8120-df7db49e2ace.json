@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-78ec-8120-df7db49e2ace",
+  "slug": "react-dom",
+  "kind": "external-dep",
+  "title": "ReactDOM",
+  "description": "Portal creation for rendering menus and context menus outside the DOM tree hierarchy.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7932-a805-49d0bca71663",
+  "registry_ref": "01a07403-c800-7ea4-bc03-11fc58b51a7e",
+  "usage_note": "createPortal() used in MenuItemList and ContextMenuHost to mount menu surfaces at document.body."
+}

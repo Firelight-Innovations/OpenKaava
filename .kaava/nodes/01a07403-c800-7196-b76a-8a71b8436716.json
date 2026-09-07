@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7196-b76a-8a71b8436716",
+  "slug": "plugin-remote-4",
+  "kind": "external-dep",
+  "title": "serde",
+  "description": "Serialization for Repo struct.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-764a-b5c5-9f2cce1355f5",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "#[derive(Serialize, Deserialize)] on Repo"
+}

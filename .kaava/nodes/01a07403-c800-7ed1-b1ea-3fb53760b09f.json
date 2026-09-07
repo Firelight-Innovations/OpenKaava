@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7ed1-b1ea-3fb53760b09f",
+  "slug": "getrandom",
+  "kind": "external-dep",
+  "title": "Random Number Generation",
+  "description": "Cryptographically secure random bytes for UUID v7 minting.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a7-8335-a2b30fb2137e",
+  "registry_ref": "01a07403-c800-7dd7-be0c-9b86a48f6b68",
+  "usage_note": "Generates random bytes in IdMinter for RFC 9562 v7 identifiers"
+}

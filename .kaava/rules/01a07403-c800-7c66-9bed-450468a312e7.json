@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-7c66-9bed-450468a312e7",
+  "slug": "lint-state-layer-isolation",
+  "statement": "The verb layer `src/shell/state/` may not import any region; it receives arguments instead.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm lint:js"
+}

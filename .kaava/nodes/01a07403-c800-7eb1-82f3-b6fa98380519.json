@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7eb1-82f3-b6fa98380519",
+  "slug": "branding",
+  "kind": "module",
+  "title": "Generated Branding Constants",
+  "description": "Auto-generated module containing product name, tagline, and wordmark constants.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-724f-ac20-c392624f0d9e",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

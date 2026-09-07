@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7586-88b6-562c9bf8553e",
+  "slug": "host-tool-process-shutdown",
+  "kind": "contract-method",
+  "title": "Shut Down a Tool Process",
+  "description": "Send kaava/shutdown, wait for exit, and kill if needed.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-762d-94d0-4cb8287084c4",
+  "signature": "pub fn shutdown(&self) -> Result<(), SpawnError>",
+  "params": [
+    "&self"
+  ],
+  "returns": "Result<(), SpawnError>",
+  "errors": [
+    "SpawnError::Io"
+  ],
+  "semantics": "Idempotent: asks the tool to shut down, waits with a 2-second grace period, then kills if it has not exited.",
+  "exported": true
+}

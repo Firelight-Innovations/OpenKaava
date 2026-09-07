@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-74bf-a937-1e80c6741293",
+  "slug": "userdata-identity-superseded",
+  "kind": "contract-method",
+  "title": "Every bundle identifier this one replaced",
+  "description": "The list of previous identifiers, newest first, for adoption on launch.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7eb9-8c34-08c4ec7b1932",
+  "signature": "pub const SUPERSEDED: &[&str]",
+  "params": [],
+  "returns": "&[&str]",
+  "errors": [],
+  "semantics": "Checked at launch by userdata::adopt to move orphaned config directories to the current identifier.",
+  "exported": false
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-755e-b40b-d803836d4c76",
+  "slug": "core-monaco-integration",
+  "kind": "doc-block",
+  "title": "Monaco Integration and Language Registration",
+  "description": "Design notes on how the Language Registration module integrates with Monaco without a runtime import, and why registerToml guards against double registration.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75c0-8343-2b091383cfc2",
+  "body": "Nothing here imports monaco-editor at runtime; the grammars are plain data and registerToml takes Monaco as an argument. This lets packages that must stay Monaco-free (like SourceControlView.tsx using lazy import) call isTomlPath without pulling in Monaco. MonacoApi is defined as typeof import(\"monaco-editor/editor.api\") rather than import type * as monaco because the latter is not legal — type-only imports bind in type space alone. registerToml uses editor.api deliberately, not editor.main, because all consumers import editor.api and it already exports the languages namespace used for registration. The guard (returning if TOML is already registered) is not defensive — it is the point. Two consumers are shell-side where both chunks can be live in one JS context, and both would otherwise register the same id against the same global registry. Monaco tolerates that by merging extension lists and letting the last provider win, but that is only survivable as long as both registrations stay byte-identical.",
+  "audience": "both"
+}

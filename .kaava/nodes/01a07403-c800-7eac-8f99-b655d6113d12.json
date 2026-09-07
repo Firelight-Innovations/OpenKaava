@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7eac-8f99-b655d6113d12",
+  "slug": "shell-contract-pane-leaves",
+  "kind": "contract-method",
+  "title": "paneLeaves",
+  "description": "Extract all leaf panes from a tree.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a2b-9c3f-6e98ac6d152b",
+  "signature": "function paneLeaves(node: PaneNode): PaneNode[]",
+  "params": [
+    "node"
+  ],
+  "returns": "Extract<PaneNode, { kind: \"leaf\" }>[]",
+  "errors": [],
+  "semantics": "Returns leaf nodes in layout order.",
+  "exported": true
+}

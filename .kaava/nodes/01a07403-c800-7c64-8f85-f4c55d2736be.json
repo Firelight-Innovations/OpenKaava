@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7c64-8f85-f4c55d2736be",
+  "slug": "accelerators-has-primary-modifier",
+  "kind": "contract-method",
+  "title": "Primary Modifier Check",
+  "description": "Tests whether a keyboard event has the primary modifier key held.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d53-814c-3c88cf09800b",
+  "signature": "export function hasPrimaryModifier(event: Pick<KeyboardEvent, 'ctrlKey'>): boolean",
+  "params": [
+    "KeyboardEvent"
+  ],
+  "returns": "boolean",
+  "errors": [],
+  "semantics": "Returns true when the event carries Ctrl on Windows.",
+  "exported": true
+}

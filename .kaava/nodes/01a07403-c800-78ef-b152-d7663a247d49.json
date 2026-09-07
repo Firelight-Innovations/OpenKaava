@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-78ef-b152-d7663a247d49",
+  "slug": "product-unit-tests",
+  "kind": "budget",
+  "title": "Product Module Unit Tests",
+  "description": "All pure functions in the product module have unit tests that prove they can fail.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "metric": "test-pass-rate",
+  "op": "==",
+  "value": 100,
+  "unit": "percent",
+  "tier": "target",
+  "probe": {
+    "command": "pnpm test",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

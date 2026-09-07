@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7b2a-af4b-2660ad6c0d1a",
+  "slug": "review-store-save",
+  "kind": "contract-method",
+  "title": "Write review comments atomically to disk",
+  "description": "Persist comments to .kaava/review-comments.json through atomic rename.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-700b-8fdc-ce83c58300e1",
+  "signature": "pub fn save(root: &Path, comments: &[ReviewComment]) -> Result<()>",
+  "params": [
+    "root: &Path",
+    "comments: &[ReviewComment]"
+  ],
+  "returns": "Result<()>",
+  "errors": [
+    "Io",
+    "Review"
+  ],
+  "semantics": "Creates .kaava/ if needed, writes pretty-printed JSON atomically, reporting failures.",
+  "exported": false
+}

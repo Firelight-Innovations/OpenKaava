@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7165-ab89-97a2575a0a3b",
+  "slug": "review-store-sorting-on-load",
+  "kind": "test-case",
+  "title": "Loading sorts comments",
+  "description": "A hand-edited file is sorted on read.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-700b-8fdc-ce83c58300e1",
+  "given": "An unsorted .kaava/review-comments.json",
+  "when": "load is called",
+  "then": "The returned list is sorted by file, line, age",
+  "impl_ref": "src-tauri/src/review/store.rs::loading_sorts_what_it_found",
+  "status": "declared",
+  "last_result_ms": null
+}

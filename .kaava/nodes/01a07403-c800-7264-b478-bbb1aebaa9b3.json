@@ -1,0 +1,28 @@
+{
+  "id": "01a07403-c800-7264-b478-bbb1aebaa9b3",
+  "slug": "commands-open-instance",
+  "kind": "contract-method",
+  "title": "open_instance",
+  "description": "Open a new instance of an app or tool in a pane.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a15-9205-3403c29c95c2",
+  "signature": "pub fn open_instance(app: tauri::AppHandle, shell: State<ShellState>, label: String, app_id: String, pane_id: Option<String>, dir: Option<SplitDir>) -> Result<String>",
+  "params": [
+    "app: tauri::AppHandle",
+    "shell: State<ShellState>",
+    "label: String",
+    "app_id: String",
+    "pane_id: Option<String>",
+    "dir: Option<SplitDir>"
+  ],
+  "returns": "Result<String>",
+  "errors": [
+    "AppError::Pty if app_id is TERMINAL_ID",
+    "AppError::UnknownTool"
+  ],
+  "semantics": "Returns the new instance id; dir triggers a pane split up to the ceiling.",
+  "exported": true
+}

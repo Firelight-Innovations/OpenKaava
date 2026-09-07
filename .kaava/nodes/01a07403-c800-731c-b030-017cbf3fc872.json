@@ -1,0 +1,16 @@
+{
+  "id": "01a07403-c800-731c-b030-017cbf3fc872",
+  "slug": "build-tooling",
+  "kind": "service",
+  "title": "Build and Verification",
+  "description": "The four verify checks, the three lint ratchets, the benchmark probes, the release and publish workflows, and the generators that rebuild branding and file icons.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": null,
+  "entry_point": "package.json's `verify` script, and the jobs in .github/workflows/verify.yml.",
+  "exports": [],
+  "schemas": null
+}

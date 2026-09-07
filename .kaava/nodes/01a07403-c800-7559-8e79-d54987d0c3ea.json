@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7559-8e79-d54987d0c3ea",
+  "slug": "shell-state-2",
+  "kind": "external-dep",
+  "title": "serde",
+  "description": "Serialization/deserialization framework with derive macro",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-793e-a1dd-5f4c43788377",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "#[derive(Serialize, Deserialize)] for Cluster, SurfaceInstance, TerminalSession and related types"
+}

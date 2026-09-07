@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7ada-9655-c82c16939598",
+  "slug": "tokens-design-tokens-header",
+  "kind": "doc-block",
+  "title": "Design Tokens Specification",
+  "description": "Schematify's design tokens scoped to the iframe document with documented lineage.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7920-9ee5-14ed9a3b2fd5",
+  "body": "Schematify's own design tokens (PRD §13) are scoped to :root in this document, which reaches nothing outside the app iframe and collides with nothing in the shell's own /src/tokens.css. Most values are [W] (read from wireframes), but some are [P] (proposals): --kv-info, --kv-font-sans, --kv-radius-frame are original proposals; --kv-bg-root and --kv-accent-hover are derived tokens (one step darker than --kv-bg-app, and 18% toward white) demoted from [W] claims because neither hex occurs in the 6 product screens. PRD §17 Wave 2's acceptance condition is 'no literal hex value' outside this file, enforced by noLiteralHex.test.ts.",
+  "audience": "both"
+}

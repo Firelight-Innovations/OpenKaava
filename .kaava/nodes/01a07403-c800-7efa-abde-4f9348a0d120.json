@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7efa-abde-4f9348a0d120",
+  "slug": "graph-seam-serde-json",
+  "kind": "external-dep",
+  "title": "serde_json",
+  "description": "JSON serialization and deserialization.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "Parses .kaava/nodes/*.json files and handles serde_json::Value for impl_ref field"
+}

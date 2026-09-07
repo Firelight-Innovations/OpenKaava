@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c23-b5e3-277b4372807a",
+  "slug": "plugin-registry-app-id-not-address",
+  "kind": "test-case",
+  "title": "App ID Non-Addressability",
+  "description": "First-party app ids like 'home' do not split as addresses.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "given": "app_id='home'",
+  "when": "split_address() is called",
+  "then": "Returns None",
+  "impl_ref": "src-tauri/src/plugins/mod.rs::a_bare_app_id_is_not_an_address",
+  "status": "declared",
+  "last_result_ms": null
+}

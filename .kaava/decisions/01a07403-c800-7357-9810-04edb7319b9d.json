@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7357-9810-04edb7319b9d",
+  "kind": "decision",
+  "slug": "DEC-TEC-TERM-004",
+  "title": "Terminals belong to clusters, not windows",
+  "context": "Terminals live in a band under the tool window, drawn inside the cluster's half. A terminal window-scoped would show the wrong worktree when switching clusters.",
+  "decision": "Terminal scope follows the drawing: a terminal belongs to the cluster whose band holds it, spawns in that cluster's project, killed with cluster.",
+  "consequences": "Opening a terminal to work on one branch and finding it still there when switching to another branch is impossible. Cross-cluster shells stay expressible by putting cluster on its own monitor or dragging terminal into a pane.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

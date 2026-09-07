@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-797d-abbf-7d3db253f703",
+  "slug": "search-logic-parse-query-globs",
+  "kind": "test-case",
+  "title": "Parse Query: Globs and Negations",
+  "description": "Tests that glob patterns and negated patterns are sorted into correct buckets.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "given": "Query '*.ts !*.spec.ts src/'",
+  "when": "parseQuery is called",
+  "then": "include has ['*.ts'], exclude has ['*.spec.ts'], paths has ['src/']",
+  "impl_ref": "src/shell/search/query.test.ts::parseQuery::sorts globs, negated globs and directories into their own buckets",
+  "status": "declared",
+  "last_result_ms": null
+}

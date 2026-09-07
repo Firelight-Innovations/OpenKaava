@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c95-abb5-1b8f78643743",
+  "slug": "palette-fuzzy-fuzzy-match-interface",
+  "kind": "contract-method",
+  "title": "Fuzzy Match Result",
+  "description": "A successful fuzzy match with score and matched character positions.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7497-b529-d3c21db99100",
+  "signature": "export interface FuzzyMatch { score: number; positions: number[] }",
+  "params": [],
+  "returns": "FuzzyMatch",
+  "errors": [],
+  "semantics": "Contains the match score and indices of matched characters in the haystack for highlighting.",
+  "exported": false
+}

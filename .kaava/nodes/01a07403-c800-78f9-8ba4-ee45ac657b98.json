@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-78f9-8ba4-ee45ac657b98",
+  "slug": "engine-core-schematic-engine",
+  "kind": "contract-method",
+  "title": "SchematicEngine",
+  "description": "The engine managing one open Schematic.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7346-9c32-cc9d99a7dbc8",
+  "signature": "class SchematicEngine { constructor(config: SchematicConfig, doc: SchematicDoc, seam: SchematifySeam) }",
+  "params": [
+    "config",
+    "doc",
+    "seam"
+  ],
+  "returns": "SchematicEngine",
+  "errors": [],
+  "semantics": "Manages mutations, viewport, selection, history, and writes.",
+  "exported": true
+}

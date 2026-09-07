@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b22-86b6-2b64634bc388",
+  "slug": "launch-taking-a-parked-target-clears-it",
+  "kind": "test-case",
+  "title": "Launch Target Idempotence",
+  "description": "Verify that taking a parked target clears it to prevent double-opening.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a3-a407-049c1f55dd74",
+  "given": "A LaunchState with a parked project target",
+  "when": "Taking the target twice",
+  "then": "The first take returns Some, the second returns None",
+  "impl_ref": "src-tauri/src/launch.rs::taking_a_parked_target_clears_it",
+  "status": "declared",
+  "last_result_ms": null
+}

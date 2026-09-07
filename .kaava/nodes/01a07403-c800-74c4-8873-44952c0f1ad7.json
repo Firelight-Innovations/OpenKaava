@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-74c4-8873-44952c0f1ad7",
+  "slug": "design-digest-row-carries-no-markup",
+  "kind": "test-case",
+  "title": "Digest Omits Markup",
+  "description": "A digest row for scanning includes no HTML or styles.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b07-98f5-17457c65a2df",
+  "given": "A comment with HTML markup",
+  "when": "digest is called",
+  "then": "The row contains id, status, element, replies, hasScreenshot, but not <button",
+  "impl_ref": "src-tauri/src/mcp/servers/design.rs::a_digest_row_carries_no_markup_and_no_styles",
+  "status": "declared",
+  "last_result_ms": null
+}

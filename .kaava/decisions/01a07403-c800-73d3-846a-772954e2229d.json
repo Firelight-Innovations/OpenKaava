@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-73d3-846a-772954e2229d",
+  "kind": "decision",
+  "slug": "DEC-OPS-VERIFICATION-001",
+  "title": "All four checks must pass before committing",
+  "context": "The repository has four orthogonal verification steps: build (with tsc), tests (vitest + cargo test), lint (ESLint + clippy + comment density), and format (Prettier + rustfmt). Each catches different classes of problems.",
+  "decision": "Every commit and every pull request must pass all four checks with no exceptions and no advisory options. One command, `pnpm verify`, runs all of them in order. This is non-negotiable.",
+  "consequences": "Developers must run full `pnpm verify` before pushing, taking ~33 seconds. A faster inner-loop command `pnpm verify:fast` exists but skips bundling, which means it cannot catch missing vite.config.ts entries, unresolved assets, or bad dynamic imports that type-check.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-06"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7182-a067-8875f1dc99a2",
+  "kind": "decision",
+  "slug": "DEC-SCH-IDENT-002",
+  "title": "Slugs are human-readable, mutable, unique within parent scope only",
+  "context": "Identifiers must be memorable and readable; globally unique slugs would collide across projects and prevent natural naming in different contexts.",
+  "decision": "Every node carries a `slug` field as a human-readable string, unique only within its parent scope (e.g., within a service, within a module, within the screen collection). Slug is mutable; `id` is immutable. When a user renames a node, the slug changes but the `id` stays the same.",
+  "consequences": "Identifiers can be natural and readable; no global collision risk; rename operations do not break references because they use `id`; slug scope rules must be enforced by the linter.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

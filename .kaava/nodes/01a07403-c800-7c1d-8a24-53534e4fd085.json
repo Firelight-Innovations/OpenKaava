@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c1d-8a24-53534e4fd085",
+  "slug": "echo-ping-reports-process",
+  "kind": "test-case",
+  "title": "Echo Ping Reports PID",
+  "description": "The ping tool returns the current process id.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cfa-a781-a65f57b5eee0",
+  "given": "The ping function",
+  "when": "It is called",
+  "then": "The result is {ok: true, server: 'echo', pid: std::process::id()}",
+  "impl_ref": "src-tauri/src/mcp/servers/echo.rs::ping_reports_this_process",
+  "status": "declared",
+  "last_result_ms": null
+}

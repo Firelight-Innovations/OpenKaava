@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7878-a22d-53e26487eace",
+  "kind": "screen",
+  "slug": "pane-grid",
+  "title": "Pane Grid",
+  "purpose": "Central area displaying open applications, files, and tools in a hierarchical pane layout",
+  "states": [
+    "empty - no apps open in cluster",
+    "single-pane - one app visible",
+    "split-panes - multiple panes arranged vertically or horizontally",
+    "loading - app is mounting"
+  ],
+  "acceptance": [
+    "shall display apps in their mounted iframes",
+    "shall show tab bar for each pane with active tab highlighted",
+    "shall allow dragging dividers to resize panes",
+    "shall show resizable split handles between panes",
+    "shall apply saved pane proportions on restore",
+    "shall prevent panes from becoming too small (min 240px)"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-77d0-8be7-f3b4ac1716af"
+  ]
+}

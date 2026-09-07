@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-73e0-bbc7-7090d1eeb4e5",
+  "slug": "shell-quoting",
+  "kind": "module",
+  "title": "Shell-Aware Path Quoting",
+  "description": "Quotes file paths for different shell families (PowerShell, Cmd, POSIX) to ensure they are interpreted as single arguments when dropped onto terminals.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

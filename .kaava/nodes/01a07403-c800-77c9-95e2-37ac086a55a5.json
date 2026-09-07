@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-77c9-95e2-37ac086a55a5",
+  "slug": "tutorial-ids-unique-safe",
+  "kind": "test-case",
+  "title": "Tutorial IDs are unique and URL-safe",
+  "description": "All tutorial IDs are distinct and match [a-z0-9-]+.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ee8-82c9-e4bc6f0a02fe",
+  "given": "the TUTORIALS array",
+  "when": "each tutorial ID is checked",
+  "then": "all are unique and lowercase alphanumeric-dash",
+  "impl_ref": "src-tauri/src/apps/tutorial.rs::every_tutorial_id_is_unique_and_url_safe",
+  "status": "declared",
+  "last_result_ms": null
+}

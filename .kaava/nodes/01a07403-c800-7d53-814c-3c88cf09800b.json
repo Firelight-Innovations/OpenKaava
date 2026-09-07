@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7d53-814c-3c88cf09800b",
+  "slug": "accelerators",
+  "kind": "module",
+  "title": "Accelerator Handling",
+  "description": "Core utilities for keystroke formatting and primary modifier detection, defining Windows-only Ctrl as the primary modifier.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bb4-bdbe-fe72bc3e7a0c",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

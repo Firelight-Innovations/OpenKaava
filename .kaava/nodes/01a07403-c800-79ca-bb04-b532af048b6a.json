@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79ca-bb04-b532af048b6a",
+  "slug": "product-uriid-invalid-input",
+  "kind": "test-case",
+  "title": "URI ID extraction from invalid reference",
+  "description": "Verifies that uriId returns null for strings that are not schematify:// references.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "given": "A string that is not a schematify:// reference",
+  "when": "uriId is called with the string",
+  "then": "null is returned",
+  "impl_ref": "apps/schematify/ui/src/product/index.test.ts::uriId returns null for a string that is not a schematify:// reference",
+  "status": "declared",
+  "last_result_ms": null
+}

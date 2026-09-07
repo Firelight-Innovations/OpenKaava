@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7982-9939-55042aba2122",
+  "slug": "file-api-tree-size",
+  "kind": "contract-method",
+  "title": "Count Folder Contents",
+  "description": "Count files and directories inside a folder for delete confirmation.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export const treeSize = (path: string) => invoke<TreeSize>('files/tree-size', { path })",
+  "params": [
+    "path: string"
+  ],
+  "returns": "Promise<TreeSize> with files, dirs count and truncated flag",
+  "errors": [],
+  "semantics": "Returns count of children, capped at backend limit.",
+  "exported": true
+}

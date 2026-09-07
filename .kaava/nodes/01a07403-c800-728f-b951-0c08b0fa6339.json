@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-728f-b951-0c08b0fa6339",
+  "slug": "codec-notification-new",
+  "kind": "contract-method",
+  "title": "Create a JSON-RPC Notification",
+  "description": "Constructs an unsolicited push message with no id and no reply expected.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "signature": "pub fn new(method: impl Into<String>, params: Option<Value>) -> Self",
+  "params": [
+    "method: impl Into<String>",
+    "params: Option<Value>"
+  ],
+  "returns": "Self",
+  "errors": [],
+  "semantics": "Fills in the jsonrpc version string and creates a notification ready for wire serialization.",
+  "exported": false
+}

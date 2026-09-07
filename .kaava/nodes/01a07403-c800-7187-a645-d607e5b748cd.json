@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7187-a645-d607e5b748cd",
+  "slug": "sync",
+  "kind": "module",
+  "title": "Sync Primitives",
+  "description": "Traits for RwLock and Mutex access that panic on poisoning, enforcing the invariant that orphaned state is fatal rather than silent.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

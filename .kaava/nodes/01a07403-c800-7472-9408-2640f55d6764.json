@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7472-9408-2640f55d6764",
+  "slug": "uuid",
+  "kind": "external-dep",
+  "title": "UUID Type and Generation",
+  "description": "Universally unique identifier type used throughout for stable cross-branch identity.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a7-8335-a2b30fb2137e",
+  "registry_ref": "01a07403-c800-71e9-a09e-d51d7c34d3cc",
+  "usage_note": "Uuid type stored in Node and used by IdMinter for v7 generation"
+}

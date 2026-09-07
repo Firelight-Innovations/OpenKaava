@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7cad-a308-2813e63b76a4",
+  "slug": "shortcuts-surface-shortcuts-surface-interface",
+  "kind": "contract-method",
+  "title": "Shortcuts Screen Surface State",
+  "description": "Whether the keyboard shortcuts screen is open.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7728-94ea-ea2af567cdc5",
+  "signature": "export interface ShortcutsSurface { open: boolean }",
+  "params": [],
+  "returns": "ShortcutsSurface",
+  "errors": [],
+  "semantics": "Tracks visibility state of the shortcuts UI.",
+  "exported": false
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7ad7-895f-30542a230a67",
+  "slug": "search-trait-boundary",
+  "kind": "doc-block",
+  "title": "SearchIndex Trait Boundary",
+  "description": "Indexing implementation is hidden behind a trait.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c8c-bf20-524d9b0e548a",
+  "body": "The `SearchIndex` trait is the boundary of PRD wave 8. An adapter takes a `&dyn SearchIndex`, so replacing the linear scan below with a real inverted index changes nothing above it. That is deliberate: PRD section 12.16 says the index rebuilds on load and updates on every semantic write, and neither the storage nor the matching is settled.",
+  "audience": "both"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-76eb-a4fa-ee21d81cc4ef",
+  "slug": "launch-takes-the-first-non-flag-argument",
+  "kind": "test-case",
+  "title": "First Path Argument Extraction",
+  "description": "Verify that first_path_arg skips argv[0] and locates the first path.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a3-a407-049c1f55dd74",
+  "given": "Command line with exe name and project path",
+  "when": "Parsing arguments for a launch target",
+  "then": "The project path is returned",
+  "impl_ref": "src-tauri/src/launch.rs::takes_the_first_non_flag_argument",
+  "status": "declared",
+  "last_result_ms": null
+}

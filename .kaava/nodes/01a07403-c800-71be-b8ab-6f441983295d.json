@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-71be-b8ab-6f441983295d",
+  "slug": "shortcuts-shortcut-groups",
+  "kind": "contract-method",
+  "title": "All Shortcut Groups",
+  "description": "Complete list of shell keyboard shortcuts organized by category.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7755-81bd-95e5849f8e41",
+  "signature": "export const SHORTCUT_GROUPS: ShortcutGroup[]",
+  "params": [],
+  "returns": "ShortcutGroup[]",
+  "errors": [],
+  "semantics": "Provides all keyboard shortcuts for display and validation.",
+  "exported": true
+}

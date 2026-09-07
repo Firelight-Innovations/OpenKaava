@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-74e6-a931-3297ec82933f",
+  "slug": "listener-bound-endpoint-names-variables",
+  "kind": "test-case",
+  "title": "Bound Endpoint Names Variables",
+  "description": "A bound endpoint returns port and token as environment variables.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7086-80ae-e8b05191e7a8",
+  "given": "A bound Endpoint with port 4321 and token 'sekrit'",
+  "when": "env() is called",
+  "then": "The result contains KAAVA_MCP_PORT=4321 and KAAVA_MCP_TOKEN=sekrit",
+  "impl_ref": "src-tauri/src/mcp/listener.rs::a_bound_endpoint_names_both_variables",
+  "status": "declared",
+  "last_result_ms": null
+}

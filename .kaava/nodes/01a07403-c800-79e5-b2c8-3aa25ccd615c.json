@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-79e5-b2c8-3aa25ccd615c",
+  "slug": "serde-json",
+  "kind": "external-dep",
+  "title": "JSON Serialization",
+  "description": "JSON support for Serde, providing JSON parsing, generation, and the Value type for dynamic JSON handling.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7317-a0f1-948948e9e898",
+  "registry_ref": "01a07403-c800-7565-ae9d-23b929975082",
+  "usage_note": "Used in userdata-store, settings, presets for JSON file I/O and dynamic settings values"
+}

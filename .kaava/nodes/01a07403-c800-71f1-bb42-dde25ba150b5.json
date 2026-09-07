@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-71f1-bb42-dde25ba150b5",
+  "slug": "serde-core-schema",
+  "kind": "external-dep",
+  "title": "Serialization Framework",
+  "description": "Serialize and deserialize data model types to and from JSON.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b26-86ed-11e8b5f08c7a",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "Derives Serialize/Deserialize on Edge, Brief, Decision, Product, Registry, Layout types"
+}

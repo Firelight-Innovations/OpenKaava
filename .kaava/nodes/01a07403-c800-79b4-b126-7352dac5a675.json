@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-79b4-b126-7352dac5a675",
+  "slug": "layout-module-doc",
+  "kind": "doc-block",
+  "title": "Pane Tree Structure and Invariants",
+  "description": "Description of the tree representation and mutation rules.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ff9-963f-4bb8df82714f",
+  "body": "The pane tree — how surfaces are arranged inside one cluster. A cluster's layout is a tree with interior nodes (splits) and leaf nodes (panes). Two invariants hold: No empty leaves except the root, and No split with fewer than two children and no split directly inside a split of the same direction. Nothing here knows about Tauri or windows — the operations easy to get subtly wrong (remove a tab, collapse the split it emptied, keep size weights aligned) are pure functions over a plain tree, tested as such.",
+  "audience": "agent"
+}

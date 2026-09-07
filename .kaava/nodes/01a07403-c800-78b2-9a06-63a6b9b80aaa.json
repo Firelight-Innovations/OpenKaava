@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78b2-9a06-63a6b9b80aaa",
+  "slug": "project-folder-name-takes-last-component",
+  "kind": "test-case",
+  "title": "folder_name extracts the last path component",
+  "description": "Folder name is derived from the last component of the path.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "given": "A path like C:\\code\\MyGame",
+  "when": "folder_name is called",
+  "then": "Returns MyGame",
+  "impl_ref": "src-tauri/src/project/mod.rs::folder_name_takes_the_last_component",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7496-be3c-07f8413bab67",
+  "slug": "shell-core-window-primitives",
+  "kind": "doc-block",
+  "title": "Handful of things shell asks of the window",
+  "description": "Tauri window calls wrapped here so they work in plain browser with Tauri guard.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-746a-b0bb-73db6ddd45f1",
+  "body": "The handful of things the shell asks of the window it is drawn in. The Tauri window and webview calls live in `bindings.ts` (STANDARDS.md §1.1 — one door). What stays here is `isTauri`, checked immediately before every one of them rather than once at load: both are reachable in a plain browser (`pnpm dev:agent`), with no Tauri runtime underneath to answer them.",
+  "audience": "both"
+}

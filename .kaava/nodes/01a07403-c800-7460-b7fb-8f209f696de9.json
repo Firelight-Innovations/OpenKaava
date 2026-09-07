@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7460-b7fb-8f209f696de9",
+  "slug": "config-user-owns-file",
+  "kind": "doc-block",
+  "title": "The File Is the User's",
+  "description": "Only kaava- prefixed keys may be modified; everything else is preserved.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-782d-bdc1-e759c21e6408",
+  "body": "The file is the user's, not ours. A project may already configure its own servers, and this must round-trip them untouched. Only the `kaava-` prefixed keys are ours to add, change or remove.",
+  "audience": "human"
+}

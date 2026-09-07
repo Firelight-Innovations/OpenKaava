@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7134-b3d3-38ffacbecdc4",
+  "slug": "diff",
+  "kind": "module",
+  "title": "Diff Viewer",
+  "description": "A read-only diff viewer with support for review comments and side-by-side/interleaved rendering modes.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bb4-bdbe-fe72bc3e7a0c",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

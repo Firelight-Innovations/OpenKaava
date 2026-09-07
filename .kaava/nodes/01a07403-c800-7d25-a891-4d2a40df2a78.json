@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7d25-a891-4d2a40df2a78",
+  "slug": "error-module-doc",
+  "kind": "doc-block",
+  "title": "Error Type System",
+  "description": "Overview of the unified error approach using thiserror.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7201-bc76-069d8a5755f3",
+  "body": "One error type for everything the orchestrator can fail at. Rust has no exceptions: a function that can fail returns Result<T, E> and the caller has to deal with both arms. thiserror generates the boilerplate (the Display impl and the From conversions) from the #[error(...)] attributes.",
+  "audience": "agent"
+}

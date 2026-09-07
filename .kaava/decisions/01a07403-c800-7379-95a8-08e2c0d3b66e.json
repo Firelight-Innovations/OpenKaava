@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7379-95a8-08e2c0d3b66e",
+  "kind": "decision",
+  "slug": "DEC-SCH-RELAT-003",
+  "title": "references_ui edge is authoritative; ui_refs is a derived cache",
+  "context": "Alternative approaches: use ui_refs as the source of truth and derive the edge; allow both to be edited and reconcile them; use neither.",
+  "decision": "The `references_ui` edge is the authoritative source of truth. The `ui_refs` field on a module node is a derived cache, written by Schematify on every edge change and never hand-edited. The linter reports a mismatch as an error.",
+  "consequences": "One source of truth for module-screen relationships; edge creation automatically updates the cache; consistency is enforced; hand-editing ui_refs becomes an error, not a feature.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

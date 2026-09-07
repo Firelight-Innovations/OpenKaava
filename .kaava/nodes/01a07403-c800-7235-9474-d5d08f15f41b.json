@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7235-9474-d5d08f15f41b",
+  "slug": "protocol-is-kaava-message",
+  "kind": "contract-method",
+  "title": "isKaavaMessage",
+  "description": "Type guard that validates a message carries the kaava:1 version marker.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e50-b9bf-2c07534a4168",
+  "signature": "isKaavaMessage(data: unknown): data is IncomingMessage",
+  "params": [
+    "data: unknown"
+  ],
+  "returns": "boolean",
+  "errors": [],
+  "semantics": "Rejects messages from unrelated sources (extensions, embedded widgets) based on the kaava field.",
+  "exported": false
+}

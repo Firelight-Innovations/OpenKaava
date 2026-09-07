@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7328-9de8-4ad47a3aabf0",
+  "kind": "decision",
+  "slug": "DEC-SCH-IDENT-001",
+  "title": "Use UUIDv7 for opaque, immutable node identifiers",
+  "context": "Alternative approaches: sequential numbering (MOD-0042), path-derived naming, or globally unique GUIDs without time-ordering.",
+  "decision": "Every node, edge, rule, decision, screen, flow, and registry entry carries a UUIDv7 as its `id`. The identifier is opaque, immutable, locally generated, and time-sortable. Every internal reference stores the `id` and nothing else.",
+  "consequences": "No risk of collision from parallel agents minting MOD-0042 on different branches; local generation with no coordination needed; time-ordering available for sorting; UUIDs are opaque so humans must use slugs for readability.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

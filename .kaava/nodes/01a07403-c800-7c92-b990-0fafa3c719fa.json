@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c92-b990-0fafa3c719fa",
+  "slug": "plugin-store",
+  "kind": "module",
+  "title": "Plugin Persistence",
+  "description": "Persist the list of installed plugins to disk, tracking their sources (folder or downloaded release), and reload on app launch.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "allowed_libraries": [
+    "01a07403-c800-736a-801a-ea4485c6faff",
+    "01a07403-c800-75dd-b05c-6d3f11053668"
+  ],
+  "ui_refs": []
+}

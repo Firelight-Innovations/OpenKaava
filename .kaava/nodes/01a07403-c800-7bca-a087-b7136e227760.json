@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7bca-a087-b7136e227760",
+  "slug": "dashboard-test-budgets-counter",
+  "kind": "test-case",
+  "title": "budgetsCounter draws 2 / 3",
+  "description": "Verifies the exact format for budget counter.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cc3-bea1-6e72e54f057f",
+  "given": "A DashboardBudgetCounter with withProbe: 2, total: 3",
+  "when": "budgetsCounter is called",
+  "then": "Returns 2 / 3",
+  "impl_ref": "apps/schematify/ui/src/graph/dashboard.test.ts::draws 2 / 3 with the missing-probe note",
+  "status": "declared",
+  "last_result_ms": null
+}

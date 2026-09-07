@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-715d-be99-2bd5f35ad08f",
+  "slug": "clippy-baseline",
+  "kind": "module",
+  "title": "Rust Linter Baseline Management",
+  "description": "Manages baseline violations for clippy linter, permitting old violations while preventing new ones with a ratchet mechanism.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

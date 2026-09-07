@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7d12-abe1-6e025e2726be",
+  "slug": "sync-rwlock-ext-trait",
+  "kind": "contract-method",
+  "title": "RwLockExt Trait",
+  "description": "Extension trait for RwLock that panics on poisoning rather than returning an error.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7187-a645-d607e5b748cd",
+  "signature": "pub trait RwLockExt<T: ?Sized> { fn read_or_panic(&self) -> RwLockReadGuard<'_, T>; fn write_or_panic(&self) -> RwLockWriteGuard<'_, T>; }",
+  "params": [
+    "T"
+  ],
+  "returns": "RwLockReadGuard or RwLockWriteGuard",
+  "errors": [
+    "Panics if lock is poisoned"
+  ],
+  "semantics": "Treats a poisoned lock as a fatal invariant violation, consistent with STANDARDS.md section 5.",
+  "exported": false
+}

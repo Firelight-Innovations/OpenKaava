@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7a61-9b2f-c4e801e64ecb",
+  "slug": "design-app-rpc-list-comments",
+  "kind": "contract-method",
+  "title": "listComments",
+  "description": "Fetches all comments from this machine",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a0-9c27-267f8065604a",
+  "signature": "export const listComments = () => invoke<Comment[]>(\"design/comment/list\")",
+  "params": [],
+  "returns": "Promise<Comment[]>",
+  "errors": [
+    "KaavaRpcError"
+  ],
+  "semantics": "Returns all comments oldest first, unfiltered.",
+  "exported": true
+}

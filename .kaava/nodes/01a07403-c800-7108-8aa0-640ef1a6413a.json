@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7108-8aa0-640ef1a6413a",
+  "slug": "titlebar-run-menu-blocks-without-terminal",
+  "kind": "test-case",
+  "title": "Run menu with no terminal",
+  "description": "All three Run menu rows should disable with the same reason when cluster has no terminal.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7806-88f7-dafc7969fdd8",
+  "given": "A Run menu with blocked = NO_TERMINAL",
+  "when": "checking all three rows",
+  "then": "all should be disabled with the same hint",
+  "impl_ref": "src/shell/titlebar/menus.test.ts::it(\"disables all three rows and gives each the same reason\")",
+  "status": "declared",
+  "last_result_ms": null
+}

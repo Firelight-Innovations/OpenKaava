@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-77f1-bcb0-1f33f145d46f",
+  "slug": "store-save",
+  "kind": "contract-method",
+  "title": "Save Switch Store",
+  "description": "Write down which server switches changed.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7764-9af2-41487069c40b",
+  "signature": "pub fn save(app: &AppHandle, stored: &Stored)",
+  "params": [
+    "app: &AppHandle",
+    "stored: &Stored"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Persists switch positions atomically through userdata::store.",
+  "exported": false
+}

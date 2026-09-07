@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7489-8169-bde85752fcd4",
+  "slug": "config-refuse",
+  "kind": "contract-method",
+  "title": "refuse",
+  "description": "Create a refusal envelope for drag validation.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74d4-b905-475b4f8fabda",
+  "signature": "function refuse(reason: string): Refusal",
+  "params": [
+    "reason"
+  ],
+  "returns": "Refusal",
+  "errors": [],
+  "semantics": "Returns a refusal with heading 'Drop refused'.",
+  "exported": false
+}

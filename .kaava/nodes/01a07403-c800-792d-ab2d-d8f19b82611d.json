@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-792d-ab2d-d8f19b82611d",
+  "slug": "shell-frontend-lint-eslint",
+  "kind": "budget",
+  "title": "ESLint checks",
+  "description": "JavaScript linting with ESLint",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7149-8c4b-15d6ed575d92",
+  "metric": "linter passes",
+  "op": "==",
+  "value": 1,
+  "unit": "pass",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm lint:js",
+    "parser": "kaava-bench-v1"
+  },
+  "sign_off": null
+}

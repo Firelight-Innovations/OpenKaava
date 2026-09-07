@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-75d9-9d67-6371bec845e5",
+  "slug": "userdata-store-atomic-writes",
+  "kind": "doc-block",
+  "title": "All user-data stores use atomic writes",
+  "description": "Why files are written through a temp file and atomic rename.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-70ee-93f1-c95ba74cde29",
+  "body": "Every store uses the same pattern: write a temp file and rename it atomically. A reader seeing a partial file would be worse than a crash — a truncated layout.json is corrupt forever, while a temp file and rename means a reader sees one whole version or the other.",
+  "audience": "agent"
+}

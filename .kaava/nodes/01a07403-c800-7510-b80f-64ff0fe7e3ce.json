@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7510-b80f-64ff0fe7e3ce",
+  "slug": "branding-product-name-validation",
+  "kind": "test-case",
+  "title": "Product name is not engine",
+  "description": "The name must not call the product an engine to avoid confusion.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77e9-8c82-551638f168b7",
+  "given": "The embedded branding.toml file",
+  "when": "product_name is called",
+  "then": "The returned name does not contain the word engine",
+  "impl_ref": "src-tauri/src/branding.rs::the_name_is_not_an_engine",
+  "status": "declared",
+  "last_result_ms": null
+}

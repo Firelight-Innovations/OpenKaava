@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7eac-9884-8e6bfd05dcab",
+  "slug": "serde",
+  "kind": "external-dep",
+  "title": "Serialization Framework",
+  "description": "Generic serialization/deserialization framework for Rust data structures.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-768f-b87f-b17753d9768a",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "Used to serialize diagnostic records and snapshots to JSON for frontend and MCP consumers"
+}

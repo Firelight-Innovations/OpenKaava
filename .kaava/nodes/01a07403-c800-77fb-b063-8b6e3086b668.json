@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-77fb-b063-8b6e3086b668",
+  "slug": "webview-2",
+  "kind": "external-dep",
+  "title": "windows-core",
+  "description": "Windows FFI bindings for COM interfaces and Win32 types",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-799f-97e8-2b2481591957",
+  "registry_ref": "01a07403-c800-7493-91c1-9fa3dc03ef6d",
+  "usage_note": "COM Result type for CoreWebView2Settings SetAreDefaultContextMenusEnabled (Windows-only)"
+}

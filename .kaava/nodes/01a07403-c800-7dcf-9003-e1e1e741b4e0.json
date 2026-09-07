@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "slug": "client",
+  "kind": "module",
+  "title": "Client Implementation",
+  "description": "Testable createClient factory supporting both kaava (tool as shell iframe) and tauri (tool as standalone app) hosts, with request/response routing, event and command delivery, message validation, deduplication, startup queuing, and the sideways inter-app communication channel.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-766e-94db-d0683eb24506",
+  "allowed_libraries": [
+    "01a07403-c800-7316-86fd-2d4d6903c4f5"
+  ],
+  "ui_refs": []
+}

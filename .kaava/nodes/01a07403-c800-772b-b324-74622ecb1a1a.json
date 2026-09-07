@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-772b-b324-74622ecb1a1a",
+  "slug": "design-tokens",
+  "kind": "module",
+  "title": "Design Tokens",
+  "description": "Design system tokens, color palette, typography, spacing, and global CSS resets shared across all shell regions and the splash screen.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bb4-bdbe-fe72bc3e7a0c",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

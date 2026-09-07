@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d5c-b6cb-44ede707bf3c",
+  "slug": "manifest-parser-resolve-dist-joins-root",
+  "kind": "test-case",
+  "title": "Resolve Dist Joins Checkout Root",
+  "description": "resolve_dist appends frontend.dist to the checkout root.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "Reference manifest, checkout_root=/checkout",
+  "when": "resolve_dist is called",
+  "then": "returns /checkout/ui/dist",
+  "impl_ref": "crates/kaava-tool-manifest/src/lib.rs::resolve_dist_joins_checkout_root",
+  "status": "declared",
+  "last_result_ms": null
+}

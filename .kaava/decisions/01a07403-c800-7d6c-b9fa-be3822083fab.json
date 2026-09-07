@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7d6c-b9fa-be3822083fab",
+  "kind": "decision",
+  "slug": "DEC-SCH-STORE-001",
+  "title": "All design data is atomic JSON on the project filesystem, tracked by git",
+  "context": "Alternative approaches: database backend; centralized server; nested file structures; binary formats.",
+  "decision": "All Schematify design data is stored as atomic JSON files in a `.kaava/` directory on the project filesystem, tracked by git. One node per file. No graph index file exists. The atomic file structure enables concurrent agent branches.",
+  "consequences": "Git tracks design history naturally; branches can diverge on design; merge conflicts are resolvable line-by-line; no centralized server needed for local work; loading must walk the directory and parse every file; no index to accelerate queries.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-02"
+}

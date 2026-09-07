@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7bf0-9284-3843e8644597",
+  "slug": "design-app-rpc-resolve-target",
+  "kind": "contract-method",
+  "title": "resolveTarget",
+  "description": "Validates and normalizes URL for iframe embedding",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a0-9c27-267f8065604a",
+  "signature": "export const resolveTarget = (url: string) => invoke<Target>(\"design/target\", { url })",
+  "params": [
+    "url"
+  ],
+  "returns": "Promise<Target>",
+  "errors": [
+    "KaavaRpcError"
+  ],
+  "semantics": "Checks URL is embeddable and returns normalized form.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-762f-b81b-d547426558b0",
+  "slug": "routing-obstacle-avoidance",
+  "kind": "test-case",
+  "title": "routeEdge never enters sibling boxes",
+  "description": "Routing avoids obstacles per PRD §12.3 constraint.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7afd-b0e6-03ee26345279",
+  "given": "obstacles list of sibling boxes",
+  "when": "routeEdge is called with obstacles",
+  "then": "no segment of the route enters any obstacle if one avoids all",
+  "impl_ref": "apps/schematify/ui/src/engine/routing.test.ts::orthogonal routing never enters a box that is neither end of the edge",
+  "status": "declared",
+  "last_result_ms": null
+}

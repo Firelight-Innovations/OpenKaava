@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "slug": "project",
+  "kind": "module",
+  "title": "Project Open/Close State",
+  "description": "Manages project folders, their lifecycle (open, create, initialize, close), and the global recent projects list. Interfaces with the shell to keep the open project in sync per-cluster.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [
+    "01a07403-c800-736a-801a-ea4485c6faff",
+    "01a07403-c800-75dd-b05c-6d3f11053668"
+  ],
+  "ui_refs": []
+}

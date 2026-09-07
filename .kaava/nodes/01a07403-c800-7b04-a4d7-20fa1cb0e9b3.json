@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b04-a4d7-20fa1cb0e9b3",
+  "slug": "diff-prompt-format-comments-2",
+  "kind": "test-case",
+  "title": "Prompt: Format Multiple Comments",
+  "description": "Tests that multiple comments are formatted with appropriate preamble.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "given": "Two review comments",
+  "when": "formatComments is called",
+  "then": "Result starts with 'Here are 2 review notes'",
+  "impl_ref": "src/shell/diff/reviewPrompt.test.ts::formatComments::counts the notes in the preamble and separates them with a blank line",
+  "status": "declared",
+  "last_result_ms": null
+}

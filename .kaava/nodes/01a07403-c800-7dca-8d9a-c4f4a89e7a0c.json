@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7dca-8d9a-c4f4a89e7a0c",
+  "slug": "api-module-doc",
+  "kind": "doc-block",
+  "title": "Bridge module purpose",
+  "description": "Module-level documentation explaining the bridge's role and design.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77f3-afe7-a004ea566b14",
+  "body": "`@openkaava/bridge` is what a tool's `ui/` imports instead of `@tauri-apps/api`. Same tool code runs either host: an iframe under the orchestrator shell, or a top-level window in its own standalone Tauri app. Wires `createClient` (the testable core) to the real `window`. A singleton, not a factory: a frontend has one host for its lifetime, decided once at load.",
+  "audience": "both"
+}

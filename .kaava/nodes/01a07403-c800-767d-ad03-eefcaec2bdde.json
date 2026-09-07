@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-767d-ad03-eefcaec2bdde",
+  "slug": "react-dom",
+  "kind": "external-dep",
+  "title": "React DOM",
+  "description": "React rendering and DOM manipulation library.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bda-92fe-1e3bdf7870f3",
+  "registry_ref": "01a07403-c800-7ea4-bc03-11fc58b51a7e",
+  "usage_note": "Implicitly used through React components for DOM operations and lifecycle."
+}

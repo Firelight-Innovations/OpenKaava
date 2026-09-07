@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7898-a061-09a02e3d75c1",
+  "slug": "graph-seam-in-memory-graph",
+  "kind": "contract-method",
+  "title": "In-Memory Graph Implementation",
+  "description": "A GraphLookup backed by HashMap for tests and embedded graphs.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "signature": "pub struct InMemoryGraph",
+  "params": [],
+  "returns": "struct",
+  "errors": [],
+  "semantics": "Test fixture providing trivial GraphLookup implementation.",
+  "exported": false
+}

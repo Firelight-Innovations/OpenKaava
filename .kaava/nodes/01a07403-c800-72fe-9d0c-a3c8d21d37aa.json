@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-72fe-9d0c-a3c8d21d37aa",
+  "slug": "boot-boot-status-enum",
+  "kind": "contract-method",
+  "title": "BootStatus Enum",
+  "description": "Progress updates reported to the splash window during startup phases.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f28-b976-1789857ef688",
+  "signature": "pub enum BootStatus { Working { step: u8, total: u8, label: String }, Ready, Failed { message: String } }",
+  "params": [],
+  "returns": "BootStatus",
+  "errors": [],
+  "semantics": "Tracks the three scan steps plus one per first-party app waiting for a painted frame.",
+  "exported": false
+}

@@ -1,0 +1,28 @@
+{
+  "id": "01a07403-c800-7c9b-8a54-989d62b8f403",
+  "kind": "screen",
+  "slug": "design-inspector",
+  "title": "Design Inspector",
+  "purpose": "Two-column layout for inspecting web pages: live page on left, captured element details on right",
+  "states": [
+    "empty",
+    "loading",
+    "ready",
+    "picking",
+    "element captured",
+    "comment saved"
+  ],
+  "acceptance": [
+    "shall display address bar to load a web page",
+    "shall show iframe with the requested page",
+    "shall support Pick Element mode to click and capture element details",
+    "shall show captured element's HTML, computed styles, and screenshot",
+    "shall allow leaving comments on captured elements",
+    "shall allow copying element details to clipboard",
+    "shall display any notices or errors from page inspection"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-71d3-82dc-995a0b8d612c",
+    "schematify://node/01a07403-c800-76b8-97b0-0d8399c3f37b"
+  ]
+}

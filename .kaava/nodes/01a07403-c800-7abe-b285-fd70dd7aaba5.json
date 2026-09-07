@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7abe-b285-fd70dd7aaba5",
+  "slug": "plugin-watch-sync",
+  "kind": "contract-method",
+  "title": "Synchronize Plugin Watchers",
+  "description": "Bring file watchers in line with installed plugin set.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a4-91d1-5b52d3a3d82c",
+  "signature": "pub fn sync(&self, app: &AppHandle)",
+  "params": [
+    "app: &AppHandle"
+  ],
+  "returns": "",
+  "errors": [],
+  "semantics": "Idempotent; starts watches for enabled folder installs, drops others.",
+  "exported": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-70e9-b94d-30f9b91f557a",
+  "slug": "update-manifest-classify-platform",
+  "kind": "test-case",
+  "title": "classify extracts platform",
+  "description": "Parses platform and installer type from binary filenames.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71ec-ad11-9f4d2a3ee4d1",
+  "given": "Filenames like OpenKaava_0.2.0_x64-setup.exe and OpenKaava_0.2.0_arm64-setup.exe",
+  "when": "classify() is called",
+  "then": "returns target (windows-x86_64/windows-aarch64) and kind (nsis/msi)",
+  "impl_ref": "scripts/update-manifest.test.mjs::classify",
+  "status": "declared",
+  "last_result_ms": null
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-77c2-a5a2-362bbf953a74",
+  "kind": "decision",
+  "slug": "DEC-TEC-MONACO-023",
+  "title": "TOML grammar packaged separately so shell, search, and diff editors can share it without duplication",
+  "context": "Three editors need TOML highlighting (.kaava, kaava.toml, Cargo.toml). Apps cannot import each other. Importing from packages avoids drift.",
+  "decision": "Hand-write Monarch TOML grammar in @openkaava/monaco-languages package under packages/. All consumers import registerToml from there.",
+  "consequences": "One place where TOML is highlighted. Duplication prevented. Three separate consumers can update once and stay in sync.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7014-a97d-242433cc8d30",
+  "kind": "decision",
+  "slug": "DEC-TEC-DESIGN-019",
+  "title": "Design Mode screenshot captures from focused window only, not named window",
+  "context": "No mapping exists from cluster to OS window. Multiple Design Mode instances could be open in different windows.",
+  "decision": "Always photograph the focused OS window. Frontend refuses to ask design/capture while document.hasFocus() is false.",
+  "consequences": "Window being photographed is guaranteed to be the one the user clicked in. Second Design Mode in unfocused window cannot interfere.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

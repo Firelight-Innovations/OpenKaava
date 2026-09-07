@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f92-acce-a205409b31e3",
+  "slug": "diff-review-line-decoration-interface",
+  "kind": "contract-method",
+  "title": "Line Decoration for Editor Markers",
+  "description": "A distinct line range with all comments anchored to it.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79b8-a3b4-0ae4ac2141c7",
+  "signature": "export interface LineDecoration { startLine: number; endLine: number; comments: ReviewComment[] }",
+  "params": [],
+  "returns": "LineDecoration",
+  "errors": [],
+  "semantics": "Represents one marker entry in the editor, grouping all comments on the same line range.",
+  "exported": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7f5c-9966-cd96a5e3afed",
+  "slug": "product-decisiondisplayslug-drawer",
+  "kind": "test-case",
+  "title": "Decision display slug resolution",
+  "description": "Verifies that decisionDisplaySlug returns the structured slug for display in references.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "given": "A RawDecision with a slug like DEC-TEC-AUTH-004",
+  "when": "decisionDisplaySlug is called",
+  "then": "The slug is returned for use in reference displays",
+  "impl_ref": "apps/schematify/ui/src/product/index.test.ts::decisionDisplaySlug draws the structured slug, per PRD §3.3",
+  "status": "declared",
+  "last_result_ms": null
+}

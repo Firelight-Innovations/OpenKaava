@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7ddd-afcb-1f6aca958cc5",
+  "slug": "review-checkout",
+  "kind": "contract-method",
+  "title": "Get the repository root for a cluster's notes",
+  "description": "Return the repo root where a cluster's review comments are stored.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "signature": "pub fn checkout(app: &AppHandle, cluster_id: &str) -> Option<PathBuf>",
+  "params": [
+    "app: &AppHandle",
+    "cluster_id: &str"
+  ],
+  "returns": "Option<PathBuf>",
+  "errors": [],
+  "semantics": "Returns the git repo root if the cluster has a project open in a git repository.",
+  "exported": false
+}

@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7cef-864a-1ae1a3c77d5c",
+  "kind": "screen",
+  "slug": "status-bar",
+  "title": "Status Bar",
+  "purpose": "Bottom information bar showing git status, GitHub status, and settings access",
+  "states": [
+    "empty - no repository information",
+    "with-branch - showing current branch",
+    "with-changes - showing branch and diff stats",
+    "with-update - showing available update notice"
+  ],
+  "acceptance": [
+    "shall display current branch name when in repository",
+    "shall display modified/added/deleted file counts",
+    "shall show GitHub authentication status indicator",
+    "shall show update notice when newer version available",
+    "shall display settings gear icon and popover on click",
+    "shall remain visible when settings/search/palette open"
+  ],
+  "backed_by": [
+    "schematify://node/01a07403-c800-78af-87c4-c75201a2058a"
+  ]
+}

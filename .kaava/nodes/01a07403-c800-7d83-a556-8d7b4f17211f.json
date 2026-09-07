@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7d83-a556-8d7b4f17211f",
+  "slug": "document-module-doc",
+  "kind": "doc-block",
+  "title": "Schematic Document",
+  "description": "The in-memory representation of an open Schematic.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7427-ae73-a0fccec9c7ca",
+  "body": "The Schematic document: what the engine holds while a Schematic is open. Semantic nodes and edges come from the graph seam (`../graph`); annotation nodes (groups and comments, PRD §11.3) and every position come from the cosmetic layout file. The document is the join of the two, and is the only thing the engine mutates. Containment is `parentId`, never an edge (PRD §4.1). A rect is absolute world geometry rather than parent-relative, because routing, culling and box-select all ask about absolute boxes far more often than a reparent asks about a relative one.",
+  "audience": "agent"
+}

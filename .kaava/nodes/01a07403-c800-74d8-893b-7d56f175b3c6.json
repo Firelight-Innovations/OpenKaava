@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-74d8-893b-7d56f175b3c6",
+  "slug": "ignore",
+  "kind": "external-dep",
+  "title": "Gitignore-Aware Directory Walker",
+  "description": "Respects .gitignore patterns when walking directories, used by VS Code search.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-74d5-965b-4ee30086c2f4",
+  "registry_ref": "01a07403-c800-7021-9c05-f9cb856f667c",
+  "usage_note": "Walks directory tree while respecting .gitignore rules for file filtering"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7a2b-9c3f-6e98ac6d152b",
+  "slug": "shell-contract",
+  "kind": "module",
+  "title": "Shell Contract",
+  "description": "Shared interface seam defining types and contracts for all shell regions, covering tools, terminals, git operations, reviews, menus, layout, and window management.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bb4-bdbe-fe72bc3e7a0c",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

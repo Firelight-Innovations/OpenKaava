@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-793f-9f87-ae187d1d6ac0",
+  "slug": "geometry",
+  "kind": "module",
+  "title": "Geometry Utilities",
+  "description": "Rectangle and segment mathematics in world coordinates, used in every frame's hot path. Provides collision detection, containment checks, and coordinate transformations for routing and layout.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

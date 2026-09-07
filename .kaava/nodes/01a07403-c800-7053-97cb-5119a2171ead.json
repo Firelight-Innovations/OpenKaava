@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7053-97cb-5119a2171ead",
+  "slug": "file-api-rename",
+  "kind": "contract-method",
+  "title": "Rename Entry",
+  "description": "Rename a file or directory in place, refusing if name is taken.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export const rename = (path: string, name: string) => invoke<Created>('files/rename', { path, name })",
+  "params": [
+    "path: string",
+    "name: string"
+  ],
+  "returns": "Promise<Created> with new path, name, kind",
+  "errors": [],
+  "semantics": "Renames entry; refuses when name already taken.",
+  "exported": true
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-78e7-a513-040ac2dbe7b5",
+  "slug": "servers-seed",
+  "kind": "contract-method",
+  "title": "Register All Servers",
+  "description": "Register every MCP server this build hosts.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e98-ae8d-c1ef00cefddb",
+  "signature": "pub fn seed(registry: &Registry)",
+  "params": [
+    "registry: &Registry"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Registers echo, debug, design, ui, and agent in order, unconditionally for echo and debug, gated by dev_only for ui and agent.",
+  "exported": false
+}

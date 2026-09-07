@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7011-923c-5233df9ecad3",
+  "slug": "terminal-view",
+  "kind": "module",
+  "title": "Terminal Emulator Instance",
+  "description": "Individual xterm.js terminal instance with WebGL rendering, resizing via ResizeObserver, clipboard handling, and file drop support.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7374-9333-dfe09d91c1fc",
+  "allowed_libraries": [
+    "01a07403-c800-7b36-9dd4-94369ecae6ff",
+    "01a07403-c800-7e76-b9a7-a6b48c92fb34",
+    "01a07403-c800-7c77-8a9e-694ca2035cda"
+  ],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7c0a-bb93-223be6b8c63c"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-786a-917f-9a5df9096986",
+  "slug": "plugin-catalog-2",
+  "kind": "external-dep",
+  "title": "toml",
+  "description": "TOML parser for reading catalog.toml at compile time.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78c4-8878-c792de8f7f2c",
+  "registry_ref": "01a07403-c800-7994-a954-210071677424",
+  "usage_note": "toml::from_str() to parse compiled-in catalog.toml via include_str!"
+}

@@ -1,0 +1,27 @@
+{
+  "id": "01a07403-c800-7a82-9b88-2e8b4328ced6",
+  "slug": "dispatch-call",
+  "kind": "contract-method",
+  "title": "App dispatcher",
+  "description": "Routes JSON-RPC method invocations from app frontends to their Rust handlers.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a1-a91f-421d244b774a",
+  "signature": "fn call(app: &AppHandle, context: &CallContext, id: &str, method: &str, params: Option<Value>) -> Result<Value, RpcError>",
+  "params": [
+    "app",
+    "context",
+    "id",
+    "method",
+    "params"
+  ],
+  "returns": "Result<Value, RpcError>",
+  "errors": [
+    "METHOD_NOT_FOUND",
+    "INTERNAL_ERROR"
+  ],
+  "semantics": "Routes a method call to the registered app handler, or to the plugin broker for non-first-party surfaces.",
+  "exported": true
+}

@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7fe9-b5e6-0c37c43c941b",
+  "slug": "codec-response-err",
+  "kind": "contract-method",
+  "title": "Create a Failed JSON-RPC Response",
+  "description": "Constructs a response with an RpcError.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "signature": "pub fn err(id: u64, error: RpcError) -> Self",
+  "params": [
+    "id: u64",
+    "error: RpcError"
+  ],
+  "returns": "Self",
+  "errors": [],
+  "semantics": "Creates an error response that echoes the request id and carries the error, with result field absent.",
+  "exported": false
+}

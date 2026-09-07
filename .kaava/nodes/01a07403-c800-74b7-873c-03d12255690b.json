@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-74b7-873c-03d12255690b",
+  "slug": "graph-seam-in-memory-graph-with-node",
+  "kind": "contract-method",
+  "title": "Add Node to Graph",
+  "description": "Add a node to an in-memory graph and return the modified graph.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f80-89f5-1a92a605e1cc",
+  "signature": "pub fn with_node(mut self, facts: NodeFacts, markable: bool) -> Self",
+  "params": [
+    "facts: NodeFacts",
+    "markable: bool"
+  ],
+  "returns": "Self",
+  "errors": [],
+  "semantics": "Builder-style method enabling fluent graph construction.",
+  "exported": false
+}

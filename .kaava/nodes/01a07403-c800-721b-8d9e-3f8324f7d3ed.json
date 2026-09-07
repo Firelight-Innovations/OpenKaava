@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-721b-8d9e-3f8324f7d3ed",
+  "slug": "plugin-store-record-roundtrip",
+  "kind": "test-case",
+  "title": "Plugin Store: Serialization",
+  "description": "Records survive serialization and deserialization.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7c92-b990-0fafa3c719fa",
+  "given": "A plugin record",
+  "when": "serialized and deserialized",
+  "then": "Fields match original",
+  "impl_ref": "src-tauri/src/plugins/store.rs::a_record_survives_a_round_trip_through_the_file_format",
+  "status": "declared",
+  "last_result_ms": null
+}

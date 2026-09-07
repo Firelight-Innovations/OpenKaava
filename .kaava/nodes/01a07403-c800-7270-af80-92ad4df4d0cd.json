@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7270-af80-92ad4df4d0cd",
+  "slug": "review-empty-edit-refused",
+  "kind": "test-case",
+  "title": "Empty edit is refused",
+  "description": "Updating to whitespace-only is rejected and leaves the note unchanged.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "given": "A comment and whitespace-only new body",
+  "when": "update is called",
+  "then": "Returns Err and comment body is unchanged",
+  "impl_ref": "src-tauri/src/review/mod.rs::an_empty_edit_is_refused_and_leaves_the_note_alone",
+  "status": "declared",
+  "last_result_ms": null
+}

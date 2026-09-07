@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-70ef-abcd-b9467356943e",
+  "slug": "file-api-create-file",
+  "kind": "contract-method",
+  "title": "Create File",
+  "description": "Create an empty file in a directory.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7421-9d34-0bfdc2312a1f",
+  "signature": "export const createFile = (parent: string, name: string) => invoke<Created>('files/create-file', { parent, name })",
+  "params": [
+    "parent: string",
+    "name: string"
+  ],
+  "returns": "Promise<Created> with path, name, kind",
+  "errors": [],
+  "semantics": "Creates a new empty file; validates name.",
+  "exported": true
+}

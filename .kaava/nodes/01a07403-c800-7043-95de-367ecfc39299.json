@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7043-95de-367ecfc39299",
+  "slug": "arrange",
+  "kind": "module",
+  "title": "Node Arrangement",
+  "description": "Deterministic layout for nodes without stored positions. Distinguishes default placement on load from auto-sort (undoable toolbar control). Nested row-major flow for stable, predictable arrangement.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7774-a621-37eb7df06cf7",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

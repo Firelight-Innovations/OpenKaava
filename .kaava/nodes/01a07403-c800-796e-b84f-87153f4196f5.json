@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-796e-b84f-87153f4196f5",
+  "slug": "terminal-deck-overview",
+  "kind": "doc-block",
+  "title": "Terminal Deck Layout",
+  "description": "Explains all-mounted-one-shown approach and split pane handling.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71fa-8cfc-3e06c842aa4b",
+  "body": "Every session's emulator is mounted once and kept mounted, with exactly one visible. One XTermView per session, all mounted at once, hidden with display: none rather than unmounted. display: none (not visibility) is deliberate — it makes a hidden container measure 0×0, which is the signal XTermView's ResizeObserver relies on.",
+  "audience": "agent"
+}

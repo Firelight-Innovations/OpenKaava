@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7482-9396-478d7d475855",
+  "slug": "context-menu-host-component",
+  "kind": "contract-method",
+  "title": "Context Menu Host Component",
+  "description": "React component that renders the shell's right-click context menu.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d41-ae1e-744620afb4bf",
+  "signature": "export default function ContextMenuHost(props: { extend?: (subject: ContextSubject) => MenuItem[] }): ReactNode",
+  "params": [
+    "ContextSubject"
+  ],
+  "returns": "ReactNode",
+  "errors": [],
+  "semantics": "Mounts one document-level listener and renders context menu on right-click.",
+  "exported": true
+}

@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-7618-a4ff-8436f0c0d096",
+  "slug": "bench-suite-run-probe",
+  "kind": "contract-method",
+  "title": "runProbe",
+  "description": "Executes a performance benchmark and validates the result against a budget.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-750c-bd32-35fde88f334e",
+  "signature": "runProbe({name, budget, command, args, pattern, unit?}): object",
+  "params": [
+    "name: benchmark name",
+    "budget: max acceptable value",
+    "command: executable name",
+    "args: command args",
+    "pattern: regex to extract metric",
+    "unit: measurement unit (default ms)"
+  ],
+  "returns": "object with name, actual value, budget, and pass/fail status",
+  "errors": [],
+  "semantics": "Runs a real system probe and validates performance against declared budgets.",
+  "exported": false
+}

@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-74f0-8e3b-c4fc87da2747",
+  "slug": "shell-inspector-component",
+  "kind": "contract-method",
+  "title": "Inspector Shell Component",
+  "description": "Renders the right sidebar Inspector with tabbed facet content or the Stack Schematic empty state when no node is selected.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-743f-ae55-0cbaeb91a62a",
+  "signature": "InspectorShell(props: InspectorShellProps) => JSX.Element",
+  "params": [
+    "graph?: SchematicGraph",
+    "selection?: readonly string[]",
+    "engine?: SchematicEngine",
+    "onOpenModuleCanvas?: (target: DrillTarget) => void",
+    "panelWidthPx?: number"
+  ],
+  "returns": "React component",
+  "errors": [],
+  "semantics": "Shows node details in tabs (Identity, Lifecycle, Contract, Tests) when a node is selected, or Canvas Properties when nothing is selected at stack tier.",
+  "exported": true
+}

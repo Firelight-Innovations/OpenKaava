@@ -1,0 +1,26 @@
+{
+  "id": "01a07403-c800-7d44-b668-7f7e055cf033",
+  "kind": "flow",
+  "slug": "install-app-from-library",
+  "title": "Install an App from the Library",
+  "trigger": "User wants to add a new app or tool to OpenKaava",
+  "steps": [
+    {
+      "screen": "schematify://screen/01a07403-c800-7db3-8dc5-3e05329af44b",
+      "action": "Click Install App in the Start section on the Home screen"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7c22-9a7c-148cbffb33c4",
+      "action": "A native folder picker appears to select the app or tool to install"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7953-b112-117deaa747db",
+      "action": "After installation, the new app appears in the + menu in the switcher bar and in the Apps menu in the title bar"
+    },
+    {
+      "screen": "schematify://screen/01a07403-c800-7953-b112-117deaa747db",
+      "action": "Click the + menu and select the new app to mount it into a pane"
+    }
+  ],
+  "outcome": "An app or tool is installed and becomes available in the switcher bar and Apps menu"
+}

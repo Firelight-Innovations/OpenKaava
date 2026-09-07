@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7ab3-ac97-d118d403ceee",
+  "slug": "search-logic-path-matching",
+  "kind": "doc-block",
+  "title": "Path Matching Rules",
+  "description": "How glob patterns and path scopes match files at any depth.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "body": "A pattern with no / (*.md) matches the basename only, at any depth. A pattern with a / (src/*.ts, **/*.spec.ts) matches the full normalized path. A pattern ending in / matches a directory and everything beneath it, using the .gitignore convention.",
+  "audience": "both"
+}

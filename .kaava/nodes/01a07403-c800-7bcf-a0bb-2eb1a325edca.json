@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7bcf-a0bb-2eb1a325edca",
+  "slug": "scanner-serde",
+  "kind": "external-dep",
+  "title": "Serde",
+  "description": "Serialization and deserialization framework.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-781b-85ef-56660694446e",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "Derives Serialize on Occurrence and ScanResult for JSON output"
+}

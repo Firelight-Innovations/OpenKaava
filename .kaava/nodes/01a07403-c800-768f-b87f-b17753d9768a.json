@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-768f-b87f-b17753d9768a",
+  "slug": "diagnostics",
+  "kind": "module",
+  "title": "Error Diagnostics Buffer",
+  "description": "Ring buffer that stores backend and frontend error messages for retrieval by the settings UI or agents over MCP, with sequence-based polling support.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [
+    "01a07403-c800-75dd-b05c-6d3f11053668"
+  ],
+  "ui_refs": []
+}

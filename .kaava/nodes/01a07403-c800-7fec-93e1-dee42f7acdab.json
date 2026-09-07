@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7fec-93e1-dee42f7acdab",
+  "slug": "drop-zones-terminal-at",
+  "kind": "contract-method",
+  "title": "terminalAt Function",
+  "description": "Returns the terminal session ID at a given coordinate, or null if not over a terminal.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b01-8375-1c88edc532e9",
+  "signature": "function terminalAt(x: number, y: number): string | null",
+  "params": [
+    "x: number",
+    "y: number"
+  ],
+  "returns": "string | null",
+  "errors": [],
+  "semantics": "Used for file drops to route files to the correct terminal; does not participate in tab drag hit test.",
+  "exported": true
+}

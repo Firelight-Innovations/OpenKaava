@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7afc-afc7-2723980f09f6",
+  "slug": "ci-annotations-clippy-nested-format",
+  "kind": "test-case",
+  "title": "parse clippy nested blocks",
+  "description": "Handles clippy's file-then-problem nested output structure.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-73d7-a1af-eac6f5057d04",
+  "given": "Clippy output with indented file header and problem block",
+  "when": "parse() is called",
+  "then": "extracts file path and clippy rule name from nested structure",
+  "impl_ref": "scripts/ci-annotations.test.mjs::the three checks",
+  "status": "declared",
+  "last_result_ms": null
+}

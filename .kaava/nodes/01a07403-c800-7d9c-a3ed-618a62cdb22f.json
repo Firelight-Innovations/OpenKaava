@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7d9c-a3ed-618a62cdb22f",
+  "slug": "search-ui",
+  "kind": "module",
+  "title": "Search Overlay Components",
+  "description": "React components that render the search overlay, including the results region, locator tree, and preview pane. These are portalled to the document body and manage user interaction with search results.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bf0-b9c3-c8b9d80222dd",
+  "allowed_libraries": [
+    "01a07403-c800-7bd1-a062-9c1c49e747dc",
+    "01a07403-c800-7ea4-bc03-11fc58b51a7e",
+    "01a07403-c800-7417-a580-5d7e987102ee"
+  ],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-70de-8d8e-d1609ff54137"
+  ]
+}

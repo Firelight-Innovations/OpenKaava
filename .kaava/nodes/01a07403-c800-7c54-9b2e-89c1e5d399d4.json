@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7c54-9b2e-89c1e5d399d4",
+  "slug": "commands-load-stack",
+  "kind": "contract-method",
+  "title": "load_stack",
+  "description": "Read kaava.toml, resolve every declared tool, and cache the result.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a15-9205-3403c29c95c2",
+  "signature": "pub fn load_stack(app: tauri::AppHandle, state: State<AppState>) -> Result<StackSnapshot>",
+  "params": [
+    "app: tauri::AppHandle",
+    "state: State<AppState>"
+  ],
+  "returns": "Result<StackSnapshot>",
+  "errors": [
+    "AppError"
+  ],
+  "semantics": "Always re-reads from disk; doubles as the refresh action.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7ed0-ab6b-990593c718e0",
+  "slug": "design-clipping-counts-characters",
+  "kind": "test-case",
+  "title": "Clip Counts Unicode Characters",
+  "description": "Clipping respects multi-byte characters and does not panic.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b07-98f5-17457c65a2df",
+  "given": "A string of emojis and a character limit",
+  "when": "clip is called",
+  "then": "The result is truncated at the character boundary, not byte boundary",
+  "impl_ref": "src-tauri/src/mcp/servers/design.rs::clipping_counts_characters_rather_than_bytes",
+  "status": "declared",
+  "last_result_ms": null
+}

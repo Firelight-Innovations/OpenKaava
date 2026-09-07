@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7bf3-b083-b0139d0bad6a",
+  "slug": "home-launcher",
+  "kind": "module",
+  "title": "Home App Launcher",
+  "description": "Main home application component that displays the project launcher, recent projects list, and worktree creation dialog for initializing git repositories.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7e68-ba1f-cc74581e910a",
+  "allowed_libraries": [
+    "01a07403-c800-7bd1-a062-9c1c49e747dc",
+    "01a07403-c800-7ea4-bc03-11fc58b51a7e"
+  ],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-7f0a-8719-bbe21ca9c505",
+    "schematify://screen/01a07403-c800-7c22-9a7c-148cbffb33c4",
+    "schematify://screen/01a07403-c800-7db3-8dc5-3e05329af44b"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7754-8320-2f5b1cc16f5a",
+  "slug": "design-app-comments-for-display-order-by-urgency",
+  "kind": "test-case",
+  "title": "forDisplay orders by urgency and recency",
+  "description": "Questions first, then open, then resolved",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-76b8-97b0-0d8399c3f37b",
+  "given": "list of three comments with different statuses",
+  "when": "forDisplay is called",
+  "then": "returns sorted array with question first, then open, then resolved",
+  "impl_ref": "apps/design/ui/src/comments.test.ts::forDisplay puts what is blocked on the reader first and history last",
+  "status": "declared",
+  "last_result_ms": null
+}

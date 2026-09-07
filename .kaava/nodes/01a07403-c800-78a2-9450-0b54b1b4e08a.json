@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78a2-9450-0b54b1b4e08a",
+  "slug": "presets-stack-config",
+  "kind": "contract-method",
+  "title": "STACK_CONFIG",
+  "description": "Tier 1 configuration for Stack Schematic.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7919-b359-e87ddc820cbc",
+  "signature": "const STACK_CONFIG: SchematicConfig",
+  "params": [],
+  "returns": "SchematicConfig",
+  "errors": [],
+  "semantics": "Pre-configured settings for the Stack Schematic.",
+  "exported": true
+}

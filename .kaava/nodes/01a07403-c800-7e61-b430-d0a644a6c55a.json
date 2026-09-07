@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7e61-b430-d0a644a6c55a",
+  "slug": "github-query-fetch-scope-of",
+  "kind": "contract-method",
+  "title": "Map Query to API Fetch Scope",
+  "description": "Translates the parsed query state into the GitHub API scope.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcd-8834-b536584a1dca",
+  "signature": "export function fetchScopeOf(query: ParsedQuery): GithubScope",
+  "params": [
+    "query: ParsedQuery"
+  ],
+  "returns": "GithubScope",
+  "errors": [],
+  "semantics": "Maps merged/closed client states to the API's open/closed fetch scopes.",
+  "exported": false
+}

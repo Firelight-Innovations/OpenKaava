@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-7c45-9c37-4c82548a4644",
+  "kind": "decision",
+  "slug": "DEC-TEC-PANE-008",
+  "title": "Split focused pane along its longer axis when opening an app",
+  "context": "Opening an app should give it its own pane, not a tab in the existing pane. Repeated opening should not slice one axis into slivers.",
+  "decision": "When opening an app into a pane: measure the rendered pane's dimensions in pixels in the frontend; split along the longer axis (wide pane gains right column, tall gains bottom row); pass measured direction to Rust.",
+  "consequences": "Layout stays roughly square on repeated opens. Rust cannot measure pixels so frontend must do it; this keeps frontend and Rust in sync about which way is 'longer'.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-01-15"
+}

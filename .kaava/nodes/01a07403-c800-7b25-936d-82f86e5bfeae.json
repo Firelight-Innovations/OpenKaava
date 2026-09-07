@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7b25-936d-82f86e5bfeae",
+  "slug": "index-status-cell2",
+  "kind": "contract-method",
+  "title": "statusCell2",
+  "description": "Status bar cell 2: layout file path and clean/modified state.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7053-b407-040c7111f077",
+  "signature": "function statusCell2(graph: SchematicGraph, clean?: boolean): string",
+  "params": [
+    "graph: SchematicGraph",
+    "clean?: boolean"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Displays layout file status and git state.",
+  "exported": true
+}

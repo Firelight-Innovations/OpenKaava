@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-7810-8443-192f2b7c21df",
+  "slug": "project-marker-load",
+  "kind": "contract-method",
+  "title": "Read a project manifest file",
+  "description": "Parse a manifest, tolerating unknown fields and forward-compatible with newer formats.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7742-a1fb-c4253f531eb9",
+  "signature": "pub fn load(path: &Path) -> Result<Marker>",
+  "params": [
+    "path: &Path"
+  ],
+  "returns": "Result<Marker>",
+  "errors": [
+    "Io",
+    "Toml"
+  ],
+  "semantics": "Loads manifest tolerantly, reporting the format version so callers know if it is reading partially.",
+  "exported": false
+}

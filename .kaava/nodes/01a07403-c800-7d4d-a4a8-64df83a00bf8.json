@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7d4d-a4a8-64df83a00bf8",
+  "slug": "settings-reset-group",
+  "kind": "contract-method",
+  "title": "Restore all settings in a group to defaults",
+  "description": "Reset every changed setting in a section and broadcast the changes.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7be5-8dc0-57c63dfa6eb1",
+  "signature": "#[tauri::command] pub fn settings_reset_group(app: AppHandle, registry: State<'_, Registry>, id: String) -> usize",
+  "params": [
+    "app: AppHandle",
+    "registry: State<'_, Registry>",
+    "id: String"
+  ],
+  "returns": "usize",
+  "errors": [],
+  "semantics": "Resets all settings in a group, returns the count of settings that moved, persists and broadcasts.",
+  "exported": true
+}

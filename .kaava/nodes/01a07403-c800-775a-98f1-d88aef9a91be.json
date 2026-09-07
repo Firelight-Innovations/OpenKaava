@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-775a-98f1-d88aef9a91be",
+  "slug": "framer-motion",
+  "kind": "external-dep",
+  "title": "Framer Motion",
+  "description": "Animation library providing motion components and AnimatePresence. Coordinates all entrance/exit animations across portalled overlays.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d9c-a3ed-618a62cdb22f",
+  "registry_ref": "01a07403-c800-7417-a580-5d7e987102ee",
+  "usage_note": "motion.div and AnimatePresence imported for animated overlays; motion variants from ../motion passed as props"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7a38-a07e-610dd227746f",
+  "slug": "design-probe-present",
+  "kind": "test-case",
+  "title": "Probe is present and guarded",
+  "description": "The design probe JavaScript is compiled in and guards its sender.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b07-98f5-17457c65a2df",
+  "given": "the PROBE constant",
+  "when": "checked for size and sender validation",
+  "then": "it is >1000 chars and checks event.source",
+  "impl_ref": "src-tauri/src/apps/design.rs::the_probe_is_present_and_guards_its_sender",
+  "status": "declared",
+  "last_result_ms": null
+}

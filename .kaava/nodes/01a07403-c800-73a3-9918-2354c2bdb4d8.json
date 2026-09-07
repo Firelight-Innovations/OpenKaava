@@ -1,0 +1,29 @@
+{
+  "id": "01a07403-c800-73a3-9918-2354c2bdb4d8",
+  "slug": "ingest-ingest-run",
+  "kind": "contract-method",
+  "title": "Ingest Run",
+  "description": "Write a parsed run artifact to disk after validating budgets and preventing re-ingestion.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b60-9878-90ec5353237e",
+  "signature": "pub fn ingest_run(graph: &Graph, store: &Store, scope: Uuid, artifact: RunArtifact) -> Result<()>",
+  "params": [
+    "graph: &Graph",
+    "store: &Store",
+    "scope: Uuid",
+    "artifact: RunArtifact"
+  ],
+  "returns": "Result<()>",
+  "errors": [
+    "CoreError::UnknownRunScope",
+    "CoreError::RunAnswersNoBudget",
+    "CoreError::RunAlreadyIngested",
+    "CoreError::UnknownRunSchema",
+    "CoreError::AtomicWrite"
+  ],
+  "semantics": "Validates that the scope exists, every reported budget matches a child node, and no run with this number exists, then writes the artifact.",
+  "exported": true
+}

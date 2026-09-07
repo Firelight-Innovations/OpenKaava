@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-731f-a0a2-027703fdcaf8",
+  "slug": "eslint-config-region-isolation",
+  "kind": "doc-block",
+  "title": "Shell region isolation",
+  "description": "Why src/shell/<region> directories cannot import each other.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d28-97e1-4b31b279f98e",
+  "body": "Regions are built against src/shell/contract.ts and exchange everything else as props. This enforces STANDARDS.md 1.2 by forbidding relative imports into any other region. State is deliberately not a region and may not import any of them, maintaining the layer where verbs live below regions.",
+  "audience": "both"
+}

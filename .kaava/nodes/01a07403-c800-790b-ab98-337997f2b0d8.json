@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-790b-ab98-337997f2b0d8",
+  "slug": "product-resolveflowsteps-dangling",
+  "kind": "test-case",
+  "title": "Flow step with dangling screen reference",
+  "description": "Verifies that resolveFlowSteps handles dangling references gracefully.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a3-aa4b-594b7ec3dd79",
+  "given": "A RawFlow with a step referencing a screen id not in the screens array",
+  "when": "resolveFlowSteps is called",
+  "then": "The step is returned with null title and slug instead of throwing",
+  "impl_ref": "apps/schematify/ui/src/product/index.test.ts::resolveFlowSteps resolves a dangling screen reference to null rather than throwing",
+  "status": "declared",
+  "last_result_ms": null
+}

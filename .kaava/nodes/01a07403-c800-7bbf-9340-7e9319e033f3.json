@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7bbf-9340-7e9319e033f3",
+  "slug": "dispatch-app-ids-unique",
+  "kind": "test-case",
+  "title": "App IDs are unique",
+  "description": "Verifies no duplicate app IDs exist in registry.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a1-a91f-421d244b774a",
+  "given": "the REGISTRY of compiled-in apps",
+  "when": "IDs are collected and deduplicated",
+  "then": "total count equals deduplicated count",
+  "impl_ref": "src-tauri/src/apps/mod.rs::app_ids_are_unique",
+  "status": "declared",
+  "last_result_ms": null
+}

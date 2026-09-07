@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b70-ad84-a30d1c74feb7",
+  "slug": "context-menu-select-all",
+  "kind": "test-case",
+  "title": "Select All Enabled For Any Field",
+  "description": "Ensures Select All is enabled for any editable field, empty or not.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "given": "Writable editable field without selection",
+  "when": "contextItems() called",
+  "then": "Select All enabled with no hint",
+  "impl_ref": "src/shell/contextMenu.test.ts::contextItems enables Select All for any field, empty or not",
+  "status": "declared",
+  "last_result_ms": null
+}

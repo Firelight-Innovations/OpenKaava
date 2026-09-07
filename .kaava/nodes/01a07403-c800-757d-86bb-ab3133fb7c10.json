@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-757d-86bb-ab3133fb7c10",
+  "slug": "stack-test-node-count",
+  "kind": "test-case",
+  "title": "STACK_GRAPH counts nodes and services",
+  "description": "Verifies the stack fixture has correct counts.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b95-abd9-7e8046be2888",
+  "given": "The STACK_GRAPH fixture",
+  "when": "Nodes and services are counted",
+  "then": "Total 8 nodes (7 services + 1 group), countServices returns 7",
+  "impl_ref": "apps/schematify/ui/src/graph/stack.test.ts::counts 8 nodes: 7 services and 1 group",
+  "status": "declared",
+  "last_result_ms": null
+}

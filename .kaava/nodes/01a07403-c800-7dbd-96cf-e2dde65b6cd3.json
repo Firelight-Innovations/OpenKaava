@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7dbd-96cf-e2dde65b6cd3",
+  "slug": "reconciliation-a-matched-or-duplicate-id-does-not-also-report-declared-absent",
+  "kind": "test-case",
+  "title": "Seen Marker IDs Never Also Report DeclaredAbsent",
+  "description": "If a marker id is found in code, no DeclaredAbsent outcome is reported for it.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f82-b74b-6f5fb1052449",
+  "given": "duplicate marker and a markable node for the same id",
+  "when": "reconcile is called",
+  "then": "only one Duplicate outcome, no DeclaredAbsent",
+  "impl_ref": "crates/schematify-reconcile/src/reconcile.rs::a_matched_or_duplicate_id_does_not_also_report_declared_absent",
+  "status": "declared",
+  "last_result_ms": null
+}

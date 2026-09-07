@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-72d9-84e4-3643a1824af1",
+  "slug": "shortcuts-shortcut-group-interface",
+  "kind": "contract-method",
+  "title": "Shortcut Group",
+  "description": "A titled collection of related shortcuts.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7755-81bd-95e5849f8e41",
+  "signature": "export interface ShortcutGroup { title: string; items: Shortcut[]; }",
+  "params": [],
+  "returns": "interface",
+  "errors": [],
+  "semantics": "Groups shortcuts by category for display.",
+  "exported": true
+}

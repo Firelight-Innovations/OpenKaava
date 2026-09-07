@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7195-8e3e-685f560ac11d",
+  "slug": "search-logic-kind-of-directory",
+  "kind": "test-case",
+  "title": "Kind Classification: .kaava Directory",
+  "description": "Tests that files under .kaava directory are classified as kaava.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "given": "Paths '/repo/.kaava/traces/run.json' and '/repo/traces/run.json'",
+  "when": "kindOf is called",
+  "then": "First is 'kaava', second is 'data'",
+  "impl_ref": "src/shell/search/kinds.test.ts::kindOf::classifies everything beneath a .kaava directory",
+  "status": "declared",
+  "last_result_ms": null
+}

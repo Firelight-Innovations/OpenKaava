@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-74b9-b34e-7a054f5369aa",
+  "slug": "toml",
+  "kind": "external-dep",
+  "title": "TOML Serialization",
+  "description": "TOML format support for Serde, used for configuration file parsing.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7742-a1fb-c4253f531eb9",
+  "registry_ref": "01a07403-c800-7994-a954-210071677424",
+  "usage_note": "Used in project-marker to parse and load .kaava project manifest files"
+}

@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-742e-b180-f473addf23dd",
+  "slug": "git-status-use-git-status",
+  "kind": "contract-method",
+  "title": "Git Status Hook",
+  "description": "Fetches git status and shapes it for tree decoration with support for .gitignore.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7590-be34-b0cc0e99d1db",
+  "signature": "export function useGitStatus(rootPath: string | null, reloadNonce: number): GitDecoration | null",
+  "params": [
+    "rootPath: string | null",
+    "reloadNonce: number"
+  ],
+  "returns": "GitDecoration with changes, ignored paths, and rollup by directory",
+  "errors": [],
+  "semantics": "Provides git status for tree rows, updated on save, focus, visibility change.",
+  "exported": true
+}

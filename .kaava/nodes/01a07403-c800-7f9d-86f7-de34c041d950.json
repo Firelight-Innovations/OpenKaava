@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f9d-86f7-de34c041d950",
+  "slug": "tempfile",
+  "kind": "external-dep",
+  "title": "Temporary File Creation",
+  "description": "Creates temporary directories and files in tests.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d11-8354-a2669af47406",
+  "registry_ref": "01a07403-c800-742b-8645-f7e1a4004134",
+  "usage_note": "load_tests.rs uses tempfile to create test project directories"
+}

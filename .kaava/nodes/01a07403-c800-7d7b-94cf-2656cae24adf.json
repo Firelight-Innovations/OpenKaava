@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7d7b-94cf-2656cae24adf",
+  "slug": "terminal-view-handle",
+  "kind": "contract-method",
+  "title": "XTerm View Handle",
+  "description": "Imperative methods exposed by an XTermView instance via ref.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7011-923c-5233df9ecad3",
+  "signature": "export interface XTermHandle { clear: () => void; }",
+  "params": [],
+  "returns": "interface",
+  "errors": [],
+  "semantics": "Provides imperative access to clear the terminal emulator's screen.",
+  "exported": true
+}

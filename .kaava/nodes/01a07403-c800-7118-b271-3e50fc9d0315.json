@@ -1,0 +1,25 @@
+{
+  "id": "01a07403-c800-7118-b271-3e50fc9d0315",
+  "slug": "review-update",
+  "kind": "contract-method",
+  "title": "Rewrite a review comment's body",
+  "description": "Update a comment's text, clearing the sent timestamp.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "signature": "pub fn update(comments: &mut [ReviewComment], id: &str, body: &str, now: u64) -> Result<ReviewComment>",
+  "params": [
+    "comments: &mut [ReviewComment]",
+    "id: &str",
+    "body: &str",
+    "now: u64"
+  ],
+  "returns": "Result<ReviewComment>",
+  "errors": [
+    "Review"
+  ],
+  "semantics": "Trims and validates the new body, clears sent_at to indicate the agent has not seen these words.",
+  "exported": false
+}

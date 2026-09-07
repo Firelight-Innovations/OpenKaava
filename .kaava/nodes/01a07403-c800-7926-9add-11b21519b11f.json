@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7926-9add-11b21519b11f",
+  "slug": "listener-axum",
+  "kind": "external-dep",
+  "title": "axum",
+  "description": "HTTP framework used to mount MCP server routes and implement bearer token authentication middleware.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7086-80ae-e8b05191e7a8",
+  "registry_ref": "01a07403-c800-732f-b818-f874a7c82aaa",
+  "usage_note": "Routes all MCP protocol requests through StreamableHttpService mounted on axum Router with token validation middleware"
+}

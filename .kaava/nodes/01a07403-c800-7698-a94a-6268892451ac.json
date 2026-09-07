@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7698-a94a-6268892451ac",
+  "slug": "project-initialize",
+  "kind": "contract-method",
+  "title": "Write a manifest into an unopened folder",
+  "description": "Set up a folder as an OpenKaava project without failing if it is already initialized.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7df3-95a6-8ff3c6cde34d",
+  "signature": "pub fn initialize(app: &AppHandle, dir: &Path, cluster_id: &str) -> Result<ProjectSnapshot>",
+  "params": [
+    "app: &AppHandle",
+    "dir: &Path",
+    "cluster_id: &str"
+  ],
+  "returns": "Result<ProjectSnapshot>",
+  "errors": [
+    "Io"
+  ],
+  "semantics": "Creates manifest if it does not exist, then opens the folder as a project.",
+  "exported": true
+}

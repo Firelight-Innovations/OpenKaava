@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7b53-b94b-d9f241808e0e",
+  "slug": "manifest-parser-rejects-checkout-root",
+  "kind": "test-case",
+  "title": "Paths Cannot Resolve to the Checkout Root",
+  "description": "Paths '', '.', and './' are rejected because they name the root.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "given": "frontend.dist='' or '.' or './'",
+  "when": "parsed",
+  "then": "returns ManifestError::PathIsRoot",
+  "impl_ref": "crates/kaava-tool-manifest/src/lib.rs::rejects_paths_that_resolve_to_the_checkout_root",
+  "status": "declared",
+  "last_result_ms": null
+}

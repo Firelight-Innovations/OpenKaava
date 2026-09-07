@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7036-91a5-f8d587e2cb71",
+  "slug": "project-marker-create-refuses-existing",
+  "kind": "test-case",
+  "title": "Creating over an existing manifest is refused",
+  "description": "Second create on same folder errors and preserves the first manifest.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7742-a1fb-c4253f531eb9",
+  "given": "A folder with an existing manifest",
+  "when": "marker::create is called a second time",
+  "then": "Returns AlreadyAProject error and does not overwrite",
+  "impl_ref": "src-tauri/src/project/marker.rs::creating_over_an_existing_project_is_refused",
+  "status": "declared",
+  "last_result_ms": null
+}

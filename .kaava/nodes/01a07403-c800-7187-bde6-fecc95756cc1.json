@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7187-bde6-fecc95756cc1",
+  "slug": "github-query-with-scope",
+  "kind": "contract-method",
+  "title": "Rewrite Query with Different Scope",
+  "description": "Updates the kind filter (issue/pull/all) while preserving other query parts.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcd-8834-b536584a1dca",
+  "signature": "export function withScope(input: string, scope: QueryScope): string",
+  "params": [
+    "input: string",
+    "scope: QueryScope"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Drops and replaces kind qualifiers, removes pull-only states when necessary, and preserves free text and labels.",
+  "exported": false
+}

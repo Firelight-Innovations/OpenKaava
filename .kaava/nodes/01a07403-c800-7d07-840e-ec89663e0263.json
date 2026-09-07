@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7d07-840e-ec89663e0263",
+  "slug": "version-check",
+  "kind": "module",
+  "title": "Version Number Consistency Verification",
+  "description": "Ensures package.json, Cargo.toml workspace, and tauri.conf.json all agree on the version number, and can update them together.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731c-b030-017cbf3fc872",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

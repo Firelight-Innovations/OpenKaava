@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7c84-a997-8407d10c26d9",
+  "slug": "terminal-sessions-attach",
+  "kind": "contract-method",
+  "title": "Attach Terminal Emulator",
+  "description": "Hand emulator everything the shell has said so far and start emitting live.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-731a-ab6c-3a00854fdef3",
+  "signature": "pub fn attach(&self, id: &str) -> Option<Attachment>",
+  "params": [
+    "id"
+  ],
+  "returns": "Option<Attachment>",
+  "errors": [],
+  "semantics": "Returns None for a session that doesn't exist, Some with backlog and next sequence number for valid sessions.",
+  "exported": false
+}

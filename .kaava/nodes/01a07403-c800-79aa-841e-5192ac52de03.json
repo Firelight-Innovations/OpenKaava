@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-79aa-841e-5192ac52de03",
+  "slug": "context-menu-context-items",
+  "kind": "contract-method",
+  "title": "Context Items Builder",
+  "description": "Builds the four edit menu items (Cut, Copy, Paste, Select All) with correct enable states.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "signature": "export function contextItems(subject: ContextSubject, actions: ContextActions, extra?: MenuItem[]): MenuItem[]",
+  "params": [
+    "ContextSubject",
+    "ContextActions",
+    "MenuItem[]"
+  ],
+  "returns": "MenuItem[]",
+  "errors": [],
+  "semantics": "Returns menu items with proper disabled states based on the click target.",
+  "exported": true
+}

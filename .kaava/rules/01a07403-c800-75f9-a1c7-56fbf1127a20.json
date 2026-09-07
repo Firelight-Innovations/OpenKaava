@@ -1,0 +1,8 @@
+{
+  "id": "01a07403-c800-75f9-a1c7-56fbf1127a20",
+  "slug": "product-name-not-hardcoded",
+  "statement": "The product name must never be hardcoded in source; it must come from branding.toml.",
+  "severity": "error",
+  "audit": [],
+  "command": "pnpm lint"
+}

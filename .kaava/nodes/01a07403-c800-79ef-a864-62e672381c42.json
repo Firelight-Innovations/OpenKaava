@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79ef-a864-62e672381c42",
+  "slug": "review-remove-takes-only-that-note",
+  "kind": "test-case",
+  "title": "Removing takes only the target comment",
+  "description": "Deleting one comment leaves others intact.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "given": "Two comments",
+  "when": "remove is called on one",
+  "then": "The other comment remains, list length is 1",
+  "impl_ref": "src-tauri/src/review/mod.rs::removing_takes_only_that_note",
+  "status": "declared",
+  "last_result_ms": null
+}

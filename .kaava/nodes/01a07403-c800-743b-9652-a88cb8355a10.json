@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-743b-9652-a88cb8355a10",
+  "slug": "manifest-loader",
+  "kind": "external-dep",
+  "title": "tauri",
+  "description": "Desktop framework providing AppHandle and Manager trait for Tauri state access.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72b8-a253-bd079c91045f",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "use tauri::{AppHandle, Manager} for app resource directory resolution in locate()"
+}

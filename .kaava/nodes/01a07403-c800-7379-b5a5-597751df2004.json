@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-7379-b5a5-597751df2004",
+  "slug": "api-publish",
+  "kind": "contract-method",
+  "title": "publish",
+  "description": "State a fact about this frame for other apps in its cluster to read.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77f3-afe7-a004ea566b14",
+  "signature": "publish(topic: string, value: unknown): void",
+  "params": [
+    "topic: string",
+    "value: unknown"
+  ],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Deduplicates by serialized value per topic and sends only when changed; fire-and-forget.",
+  "exported": true
+}

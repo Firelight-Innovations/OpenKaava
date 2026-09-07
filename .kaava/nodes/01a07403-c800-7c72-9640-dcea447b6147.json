@@ -1,0 +1,27 @@
+{
+  "id": "01a07403-c800-7c72-9640-dcea447b6147",
+  "slug": "files-call",
+  "kind": "contract-method",
+  "title": "Files app dispatcher",
+  "description": "Handles JSON-RPC method calls for the Files app (Explorer and Viewer).",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7d29-9b02-357f7f4c18c2",
+  "signature": "fn call(app: &AppHandle, context: &CallContext, method: &str, params: Option<Value>) -> Result<Value, RpcError>",
+  "params": [
+    "app",
+    "context",
+    "method",
+    "params"
+  ],
+  "returns": "Result<Value, RpcError>",
+  "errors": [
+    "INVALID_PARAMS",
+    "INTERNAL_ERROR",
+    "METHOD_NOT_FOUND"
+  ],
+  "semantics": "Implements files/{root,list,stat,read,read-bytes,write,create-file,create-dir,rename,duplicate,save-as,delete,tree-size,reveal,open-external,git-status,git-ignored,git-hunks,git-head} and trash/* methods.",
+  "exported": true
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7b43-837d-8f222faefd07",
+  "slug": "dispatch-call-context",
+  "kind": "doc-block",
+  "title": "CallContext: cluster and project",
+  "description": "How calls know which cluster's project they operate on.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-79a1-a91f-421d244b774a",
+  "body": "Where a call is happening: which cluster asked, and what that cluster is working on. This is the thing an app's Rust half could not previously know. A struct rather than a bare Option<PathBuf> because it is going to grow: Cluster::worktree is carried in the layout already and joins this as worktree: Option<WorktreeRef> when git work lands.",
+  "audience": "both"
+}

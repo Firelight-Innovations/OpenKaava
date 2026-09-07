@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78cc-ad4d-7e864443f478",
+  "slug": "client-handshake-posts-hello",
+  "kind": "test-case",
+  "title": "Client posts hello message on initialization",
+  "description": "Verifies that a kaava-host client sends a hello handshake immediately upon creation without waiting for the shell to speak first.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A newly created client under kaava host",
+  "when": "The client is constructed",
+  "then": "parent.postMessage has been called once with the hello message and targetOrigin '*'",
+  "impl_ref": "packages/bridge/src/client.test.ts::posts hello on init, targetOrigin '*', without waiting to be spoken to",
+  "status": "declared",
+  "last_result_ms": null
+}

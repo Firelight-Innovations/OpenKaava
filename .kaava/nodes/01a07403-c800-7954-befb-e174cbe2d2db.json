@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7954-befb-e174cbe2d2db",
+  "slug": "navigation-stack-to-service",
+  "kind": "test-case",
+  "title": "nextDrillTarget: service at stack tier drills to service",
+  "description": "Clicking service on stack opens its Service Schematic.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f1a-b375-e7fa4e858967",
+  "given": "stack tier and a service node",
+  "when": "nextDrillTarget is called",
+  "then": "returns drill target with tier='service'",
+  "impl_ref": "apps/schematify/ui/src/engine/navigation.test.ts",
+  "status": "declared",
+  "last_result_ms": null
+}

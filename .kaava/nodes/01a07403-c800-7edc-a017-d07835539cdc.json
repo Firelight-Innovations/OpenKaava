@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-7edc-a017-d07835539cdc",
+  "slug": "git-operations-git-cluster-stage",
+  "kind": "contract-method",
+  "title": "Stage Files",
+  "description": "Add changed files to the index.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7016-acbb-7309a7ed79d6",
+  "signature": "pub fn git_cluster_stage(app: AppHandle, cluster_id: String, paths: Vec<String>) -> Result<()>",
+  "params": [
+    "app",
+    "cluster_id",
+    "paths"
+  ],
+  "returns": "Result<()>",
+  "errors": [
+    "AppError::Git"
+  ],
+  "semantics": "Stages the given paths using git add --.",
+  "exported": true
+}

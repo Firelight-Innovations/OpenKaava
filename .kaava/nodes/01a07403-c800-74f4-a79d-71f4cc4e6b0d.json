@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-74f4-a79d-71f4cc4e6b0d",
+  "slug": "client-topic-event-separation",
+  "kind": "test-case",
+  "title": "Topics do not impersonate shell events",
+  "description": "Verifies that a shell event with the same name as a topic does not reach topic subscribers.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7dcf-9003-e1e1e741b4e0",
+  "given": "A client listening to both subscribe() and on() for 'project:changed'",
+  "when": "A shell event 'project:changed' (unprefixed) arrives",
+  "then": "Only on() receives it; subscribe() receives nothing",
+  "impl_ref": "packages/bridge/src/client.test.ts::does not confuse a topic with a shell event of the same name",
+  "status": "declared",
+  "last_result_ms": null
+}

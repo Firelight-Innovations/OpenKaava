@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-757a-a987-2eabad9dcac8",
+  "slug": "dashboard-latest-run",
+  "kind": "contract-method",
+  "title": "latestRunLine",
+  "description": "Formats PRD section 12.13's LATEST RUN line: #1184 · 2026-08-25 14:02Z · 4f2c9ab · ci/verify.yml.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7cc3-bea1-6e72e54f057f",
+  "signature": "function latestRunLine(run: DashboardRun | null): string",
+  "params": [
+    "run: DashboardRun | null"
+  ],
+  "returns": "string",
+  "errors": [],
+  "semantics": "Formats the latest run information for dashboard.",
+  "exported": false
+}

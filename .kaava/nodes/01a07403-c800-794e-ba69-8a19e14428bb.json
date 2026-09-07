@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-794e-ba69-8a19e14428bb",
+  "slug": "search-logic-compile-needle-global",
+  "kind": "test-case",
+  "title": "Compile Needle: Global Flag",
+  "description": "Verifies that compiled needle always has global flag.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7da2-8fa0-c89972e8aed8",
+  "given": "Any needle",
+  "when": "compileNeedle is called",
+  "then": "Result regex has 'g' flag",
+  "impl_ref": "src/shell/search/query.test.ts::compileNeedle::always sets the global flag, because callers count every match on a line",
+  "status": "declared",
+  "last_result_ms": null
+}

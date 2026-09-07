@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-79d1-89f2-92f984a764cd",
+  "slug": "plugin-watch-stop-all-safe",
+  "kind": "test-case",
+  "title": "Watch: Stop All Empty",
+  "description": "Stopping all watchers when none exist is safe.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-78a4-91d1-5b52d3a3d82c",
+  "given": "Watchers with no running watches",
+  "when": "stop_all() is called",
+  "then": "Does not error",
+  "impl_ref": "src-tauri/src/plugins/watch.rs::stopping_all_watchers_is_safe_when_there_are_none",
+  "status": "declared",
+  "last_result_ms": null
+}

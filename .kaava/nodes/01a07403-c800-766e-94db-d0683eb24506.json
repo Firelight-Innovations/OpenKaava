@@ -1,0 +1,29 @@
+{
+  "id": "01a07403-c800-766e-94db-d0683eb24506",
+  "slug": "bridge",
+  "kind": "service",
+  "title": "Tool Bridge",
+  "description": "The published @openkaava/bridge package. Every app — first-party and third-party alike — is written against this protocol rather than against the shell's internals.",
+  "lifecycle": "specified",
+  "layer": "external",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": null,
+  "entry_point": "packages/bridge/src/index.ts, imported by every app's UI entry point.",
+  "exports": [
+    "01a07403-c800-7371-ab0f-1898949a7303",
+    "01a07403-c800-7da3-be5d-3206b394f808",
+    "01a07403-c800-7c89-b530-a973404cc98d",
+    "01a07403-c800-7fa3-96e8-6ee922032536",
+    "01a07403-c800-7beb-9f6d-50737e612cdc",
+    "01a07403-c800-7379-b5a5-597751df2004",
+    "01a07403-c800-77c7-bb63-c4707bf90af7",
+    "01a07403-c800-7d6e-8071-139feb9cb7cb",
+    "01a07403-c800-7a69-ba2f-65f09856a5cb",
+    "01a07403-c800-79de-8fb5-754fe7e73584",
+    "01a07403-c800-7538-b9be-888f39462346",
+    "01a07403-c800-7bb9-a3d4-7e877c465c06"
+  ],
+  "schemas": null
+}

@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7469-b3bb-e58eb8200674",
+  "slug": "shell-contract-pane-tabs",
+  "kind": "contract-method",
+  "title": "paneTabs",
+  "description": "Extract all tab ids from a pane tree.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a2b-9c3f-6e98ac6d152b",
+  "signature": "function paneTabs(node: PaneNode): string[]",
+  "params": [
+    "node"
+  ],
+  "returns": "string[]",
+  "errors": [],
+  "semantics": "Returns instance ids in layout order.",
+  "exported": true
+}

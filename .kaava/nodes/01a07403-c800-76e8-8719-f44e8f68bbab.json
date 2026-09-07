@@ -1,0 +1,21 @@
+{
+  "id": "01a07403-c800-76e8-8719-f44e8f68bbab",
+  "slug": "tree-state-scroll-into-view",
+  "kind": "contract-method",
+  "title": "Scroll to Row Function",
+  "description": "Brings a tree row fully into view with minimal scrolling.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75ef-92b8-f1ede6be6e2f",
+  "signature": "export function scrollRowIntoView(el: HTMLElement | null, index: number): void",
+  "params": [
+    "el: HTMLElement | null",
+    "index: number"
+  ],
+  "returns": "void",
+  "errors": [],
+  "semantics": "Scrolls the tree to show the specified row.",
+  "exported": true
+}

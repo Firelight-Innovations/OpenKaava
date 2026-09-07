@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-78a4-91d1-5b52d3a3d82c",
+  "slug": "plugin-watch",
+  "kind": "module",
+  "title": "Plugin Rebuild Watcher",
+  "description": "Watch for changes to manifest and binary output of folder-installed plugins and automatically reload when a rebuild completes.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7829-a13f-18d7f23594bb",
+  "allowed_libraries": [
+    "01a07403-c800-736a-801a-ea4485c6faff",
+    "01a07403-c800-7785-950e-a30371fa8e05"
+  ],
+  "ui_refs": []
+}

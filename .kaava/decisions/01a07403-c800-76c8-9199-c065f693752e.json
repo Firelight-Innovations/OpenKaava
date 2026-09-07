@@ -1,0 +1,13 @@
+{
+  "id": "01a07403-c800-76c8-9199-c065f693752e",
+  "kind": "decision",
+  "slug": "DEC-OPS-LAYERING-001",
+  "title": "Rust owns everything touching the machine; frontend is view only",
+  "context": "OpenKaava has a Rust backend and TypeScript frontend. The boundary between them must be clear and enforced.",
+  "decision": "Rust owns everything that touches the machine: reading paths, shelling out, deciding what is on disk. The frontend is a view. It never reads a path, never shells out, never decides what is on disk; it renders a snapshot Rust produced and sends verbs back. Two files exist as chokepoints: `src/bindings.ts` (the only file calling Tauri's `invoke` or `listen`) and `src/shell/contract.ts` (the vocabulary shells build against).",
+  "consequences": "If a wrapper is needed, it goes in the chokepoint. Reaching past the door is not allowed. ESLint enforces region isolation with nothing grandfathered, so this usually fails before a human sees it.",
+  "status": "ACTIVE",
+  "supersedes": null,
+  "superseded_by": null,
+  "date": "2026-09-06"
+}

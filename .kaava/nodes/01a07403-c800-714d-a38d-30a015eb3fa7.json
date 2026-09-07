@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-714d-a38d-30a015eb3fa7",
+  "slug": "review-sort",
+  "kind": "contract-method",
+  "title": "Order comments for storage",
+  "description": "Sort comments by file, line, and creation time for stable storage.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f2c-982c-9892099bec75",
+  "signature": "pub fn sort(comments: &mut [ReviewComment])",
+  "params": [
+    "comments: &mut [ReviewComment]"
+  ],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Sorts in-place to ensure the stored document is stable and version-controllable.",
+  "exported": false
+}

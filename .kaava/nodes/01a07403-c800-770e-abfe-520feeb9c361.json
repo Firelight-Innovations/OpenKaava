@@ -1,0 +1,23 @@
+{
+  "id": "01a07403-c800-770e-abfe-520feeb9c361",
+  "slug": "home-launcher-worktree-dialog",
+  "kind": "contract-method",
+  "title": "Worktree Dialog Component",
+  "description": "Modal dialog for creating a new git worktree when a project opens without one.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bf3-b083-b0139d0bad6a",
+  "signature": "export default function WorktreeDialog(props: WorktreeDialogProps): JSX.Element",
+  "params": [
+    "projectName: string",
+    "taken: string[]",
+    "onCancel: () => void",
+    "onCreated: () => void"
+  ],
+  "returns": "React component rendering worktree creation dialog",
+  "errors": [],
+  "semantics": "Shows dialog for naming a new worktree, validates input, and calls home/worktree-create on confirm.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c64-9856-5b29aad5dbbf",
+  "slug": "outcome-reconcile-outcome-is-error",
+  "kind": "contract-method",
+  "title": "Check if Outcome is an Error",
+  "description": "Whether this outcome counts toward exit code 1.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7f14-8b2b-c06d802d2714",
+  "signature": "pub fn is_error(&self) -> bool",
+  "params": [],
+  "returns": "bool",
+  "errors": [],
+  "semantics": "True for error outcomes, false for Matched.",
+  "exported": false
+}

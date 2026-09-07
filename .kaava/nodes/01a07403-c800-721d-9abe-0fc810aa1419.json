@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-721d-9abe-0fc810aa1419",
+  "slug": "branding-system-check-surfaces",
+  "kind": "contract-method",
+  "title": "check-branding surfaces",
+  "description": "Validates that product name and assets are consistent across six source files.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7876-8372-05eaf7de8be6",
+  "signature": "Checks index.html, splash.html, kaava.toml, tauri.conf.json, and bundle icons",
+  "params": [],
+  "returns": "list of surface locations and expected values",
+  "errors": [
+    "Reports each surface that disagrees with branding.toml"
+  ],
+  "semantics": "Ensures every reference to the product name and asset paths matches branding.toml single source of truth.",
+  "exported": false
+}

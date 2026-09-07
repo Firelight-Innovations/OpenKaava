@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7dc9-84a0-bd188ef4d308",
+  "slug": "settings-logic-use-settings",
+  "kind": "contract-method",
+  "title": "Settings Session Hook",
+  "description": "React hook providing settings data, values, and mutation methods.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7ebb-a9e9-416f0525893f",
+  "signature": "export function useSettings(): SettingsSession",
+  "params": [],
+  "returns": "SettingsSession",
+  "errors": [],
+  "semantics": "Fetches settings snapshot, subscribes to changes, and provides methods to read and modify settings.",
+  "exported": false
+}

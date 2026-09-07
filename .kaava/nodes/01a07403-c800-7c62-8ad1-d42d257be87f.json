@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7c62-8ad1-d42d257be87f",
+  "slug": "drop-zones",
+  "kind": "external-dep",
+  "title": "React",
+  "description": "React library for hooks and composition.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b01-8375-1c88edc532e9",
+  "registry_ref": "01a07403-c800-7bd1-a062-9c1c49e747dc",
+  "usage_note": "useCallback and useRef for drop zone registration and ref management"
+}

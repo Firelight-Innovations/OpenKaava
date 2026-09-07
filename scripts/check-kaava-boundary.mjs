@@ -20,28 +20,22 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-// PRD §6.3: "A lifecycle transition writes `nodes/<uuid>.json` and appends
-// `runs/<node-uuid>/audit.json` in one action... The gate shall block every
-// other write that touches `runs/` and `nodes/` together." The exception is
-// narrow, shaped exactly like the transition: for one `.kaava/` root, the only
-// nodes/ file touched is one `<uuid>.json`, the only runs/ file touched is
-// that same uuid's `audit.json`, and nothing else under either tree moved.
-//
-// The repository can hold more than one `.kaava/` tree at once (today, three —
-// `crates/schematify-core/fixtures/{dense-service,saas-backend,stress-2000}`),
-// and a project opened at the repository root would add a fourth. Each root is
-// judged independently: regenerating one fixture's `runs/` and another
-// fixture's `nodes/` in the same pull request is two single-tree writes, not
-// one mixed write, and passes.
-
 /**
  * Matches a changed path under some `.../.kaava/nodes/<uuid>.json` and
  * captures the `.kaava` root (everything before `nodes/`) and the uuid.
  * `runs/<uuid>/...` uses the analogous pattern below. Forward slashes only —
  * `git diff --name-only` always reports POSIX separators, on Windows included.
+ *
+ * The leading directory is optional, and that is load-bearing rather than
+ * defensive. These read `.*\/\.kaava` until 2026-09-06, which requires a slash
+ * before `.kaava` and therefore could not match `.kaava/nodes/<uuid>.json` at
+ * the repository root — the one case the comment above and `.github/CODEOWNERS`
+ * both name explicitly. The gate silently covered the three fixtures and
+ * nothing else, and it stayed silent because a pattern that matches nothing
+ * reports no violation.
  */
-const NODE_FILE = /^(?<root>.*\/\.kaava)\/nodes\/(?<uuid>[^/]+)\.json$/;
-const RUNS_FILE = /^(?<root>.*\/\.kaava)\/runs\/(?<uuid>[^/]+)\/(?<rest>.+)$/;
+const NODE_FILE = /^(?<root>(?:.*\/)?\.kaava)\/nodes\/(?<uuid>[^/]+)\.json$/;
+const RUNS_FILE = /^(?<root>(?:.*\/)?\.kaava)\/runs\/(?<uuid>[^/]+)\/(?<rest>.+)$/;
 
 /**
  * Groups changed files by `.kaava` root and classifies each into its nodes/
@@ -79,6 +73,12 @@ export function groupByRoot(changedFiles) {
  * Whether one root's touched nodes/ and runs/ files are exactly the lifecycle
  * pair from PRD §6.3: one `nodes/<uuid>.json`, one `runs/<same uuid>/audit.json`,
  * and nothing else in either tree.
+ *
+ * PRD §6.3 in full: "A lifecycle transition writes `nodes/<uuid>.json` and
+ * appends `runs/<node-uuid>/audit.json` in one action... The gate shall block
+ * every other write that touches `runs/` and `nodes/` together." The exception
+ * is narrow, and shaped exactly like the transition — which is why "nothing
+ * else in either tree" is a condition rather than a nicety.
  */
 function isLifecyclePair(entry) {
   if (entry.nodes.length !== 1 || entry.runs.length !== 1) return false;
@@ -93,6 +93,13 @@ function isLifecyclePair(entry) {
  * clean. A root touching only one tree is never a problem, regardless of how
  * many files move in it — the boundary this check enforces is between the two
  * trees, not a limit on write volume.
+ *
+ * The repository can hold more than one `.kaava/` tree at once (today, four —
+ * `crates/schematify-core/fixtures/{dense-service,saas-backend,stress-2000}`
+ * and the project at the repository root). Each is judged on its own:
+ * regenerating one fixture's `runs/` and another fixture's `nodes/` in a single
+ * pull request is two single-tree writes rather than one mixed write, and
+ * passes.
  */
 export function violations(changedFiles) {
   const roots = groupByRoot(changedFiles);

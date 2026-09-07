@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-7f49-a38a-51adeb6359f8",
+  "slug": "handoff",
+  "kind": "module",
+  "title": "Endpoint Handoff",
+  "description": "Writes mcp-endpoint.json so agents launched outside OpenKaava can discover the MCP endpoint, recording port, token, and pid.",
+  "lifecycle": "specified",
+  "layer": "backend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-72be-9613-638dd6e5d972",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

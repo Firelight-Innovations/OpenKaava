@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-77d7-8d35-6e692611fb96",
+  "slug": "index-build-outline-rows",
+  "kind": "contract-method",
+  "title": "buildOutlineRows",
+  "description": "Flattens graph nodes into Outline rows, hiding collapsed children.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7053-b407-040c7111f077",
+  "signature": "function buildOutlineRows(graph: ServiceGraph): OutlineRow[]",
+  "params": [
+    "graph: ServiceGraph"
+  ],
+  "returns": "OutlineRow[]",
+  "errors": [],
+  "semantics": "Converts tree to flat, indented display rows.",
+  "exported": true
+}

@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7bf3-bf54-a71c9145335a",
+  "slug": "validators-no-functional-colors",
+  "kind": "test-case",
+  "title": "No functional color forms or named colors outside tokens.css",
+  "description": "Regression test that verifies no rgb(), hsl(), color-mix() or CSS named color keywords appear in source except tokens.css.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7568-b464-c150d28c61e2",
+  "given": "All .ts, .tsx, and .css files under apps/schematify/ui/src/ except tokens.css, excluding comment lines",
+  "when": "The test scans for functional color patterns and named color keywords",
+  "then": "No matches are found outside the exempted files",
+  "impl_ref": "apps/schematify/ui/src/noLiteralHex.test.ts::no literal color in Schematify's UI finds no rgb()/hsl()/color-mix() or named-color literal outside tokens.css",
+  "status": "declared",
+  "last_result_ms": null
+}

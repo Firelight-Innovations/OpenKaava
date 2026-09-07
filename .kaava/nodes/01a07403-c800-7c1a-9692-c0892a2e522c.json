@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c1a-9692-c0892a2e522c",
+  "slug": "tutorial-app-catalog-use-catalog",
+  "kind": "contract-method",
+  "title": "useCatalog",
+  "description": "Manages tutorial catalog and completion state",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7697-bf70-29e6a2605cc1",
+  "signature": "export function useCatalog(): CatalogSession",
+  "params": [],
+  "returns": "CatalogSession",
+  "errors": [],
+  "semantics": "Fetches catalog, tracks completions, provides mutation methods.",
+  "exported": false
+}

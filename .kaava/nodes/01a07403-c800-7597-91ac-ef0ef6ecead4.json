@@ -1,0 +1,22 @@
+{
+  "id": "01a07403-c800-7597-91ac-ef0ef6ecead4",
+  "slug": "viewer-app-rpc-remove",
+  "kind": "contract-method",
+  "title": "remove",
+  "description": "Moves entry to Recycle Bin",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-75a0-9c27-267f8065604a",
+  "signature": "export const remove = (path: string) => invoke<Deleted>(\"files/delete\", { path })",
+  "params": [
+    "path"
+  ],
+  "returns": "Promise<Deleted>",
+  "errors": [
+    "KaavaRpcError"
+  ],
+  "semantics": "Moves file or folder to Recycle Bin, recoverable.",
+  "exported": true
+}

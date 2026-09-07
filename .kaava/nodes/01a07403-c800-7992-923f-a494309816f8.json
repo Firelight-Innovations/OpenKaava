@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7992-923f-a494309816f8",
+  "slug": "graph-reindex",
+  "kind": "contract-method",
+  "title": "Rebuild Indexes",
+  "description": "Rebuild the containment and dependency indexes after inserting nodes and edges.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7bcb-9de4-3775dbe05092",
+  "signature": "pub fn reindex(&mut self)",
+  "params": [],
+  "returns": "()",
+  "errors": [],
+  "semantics": "Clears and rebuilds the children, outgoing, and incoming indexes from the current node and edge collections.",
+  "exported": true
+}

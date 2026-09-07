@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7f4b-a0af-ea339e8cb175",
+  "slug": "context-menu-overview",
+  "kind": "doc-block",
+  "title": "Context Menu Module Overview",
+  "description": "Explains pure context menu logic separated from DOM reading.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7b80-ba1c-700263732a2b",
+  "body": "Everything here is pure: the DOM reading lives in ContextMenuHost.tsx, which turns an event into a ContextSubject and hands it back. The split is what lets the three decisions that actually have edge cases — which items are live, where the surface lands near a viewport edge, and what closes it — be tested without a browser.",
+  "audience": "agent"
+}

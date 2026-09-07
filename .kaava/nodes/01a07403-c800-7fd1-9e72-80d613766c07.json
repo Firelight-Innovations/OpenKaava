@@ -1,0 +1,20 @@
+{
+  "id": "01a07403-c800-7fd1-9e72-80d613766c07",
+  "slug": "windows-geometry-of",
+  "kind": "contract-method",
+  "title": "windows::geometry_of",
+  "description": "Get a window's outer rectangle in physical pixels.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7db8-a655-5ab4032a4733",
+  "signature": "pub fn geometry_of(window: &tauri::Window) -> Option<WindowGeometry>",
+  "params": [
+    "window: &tauri::Window"
+  ],
+  "returns": "Option<WindowGeometry>",
+  "errors": [],
+  "semantics": "Used to restore window positions on restart.",
+  "exported": false
+}

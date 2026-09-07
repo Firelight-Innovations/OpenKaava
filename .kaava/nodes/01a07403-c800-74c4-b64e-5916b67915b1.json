@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-74c4-b64e-5916b67915b1",
+  "slug": "codec-serde",
+  "kind": "external-dep",
+  "title": "Serde Serialization",
+  "description": "Serialization framework for deriving Serialize and Deserialize traits on JSON-RPC message types.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-754f-899d-8190848db469",
+  "registry_ref": "01a07403-c800-75dd-b05c-6d3f11053668",
+  "usage_note": "Derive macro for Request, Response, Notification, RpcError, and error variants"
+}

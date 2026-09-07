@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-7c14-b80e-77e067481ca7",
+  "slug": "shell-state-shorten-title-keeps-last-segment",
+  "kind": "test-case",
+  "title": "Path Title Shortening",
+  "description": "Verify that absolute paths are shortened to their final component.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-793e-a1dd-5f4c43788377",
+  "given": "Absolute Windows and POSIX path strings",
+  "when": "Calling shorten_title",
+  "then": "Both return only the final path component",
+  "impl_ref": "src-tauri/src/shell_state.rs::shorten_title_keeps_the_last_segment_of_an_absolute_path",
+  "status": "declared",
+  "last_result_ms": null
+}

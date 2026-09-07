@@ -1,0 +1,17 @@
+{
+  "id": "01a07403-c800-702e-a9b8-69a8bdd8d936",
+  "slug": "reader",
+  "kind": "module",
+  "title": "Tutorial Reader",
+  "description": "Renders a single tutorial with block rendering and navigation to previous/next tutorials.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-718d-b2d6-63127c14155b",
+  "allowed_libraries": [],
+  "ui_refs": [
+    "schematify://screen/01a07403-c800-792e-af7c-c6b7b8831232"
+  ]
+}

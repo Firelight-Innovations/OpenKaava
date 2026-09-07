@@ -1,0 +1,18 @@
+{
+  "id": "01a07403-c800-75ae-8ba2-adb7f18cf86e",
+  "slug": "shortcuts-chord-interface",
+  "kind": "contract-method",
+  "title": "Chord Definition",
+  "description": "A keystroke key and optional shift modifier.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7755-81bd-95e5849f8e41",
+  "signature": "export interface Chord { key: string; shift: boolean; }",
+  "params": [],
+  "returns": "interface",
+  "errors": [],
+  "semantics": "Represents one half of a keyboard shortcut.",
+  "exported": true
+}

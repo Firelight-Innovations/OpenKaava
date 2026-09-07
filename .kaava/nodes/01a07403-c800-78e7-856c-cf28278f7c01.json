@@ -1,0 +1,15 @@
+{
+  "id": "01a07403-c800-78e7-856c-cf28278f7c01",
+  "slug": "keyboard-hook",
+  "kind": "module",
+  "title": "Keyboard Event Hook",
+  "description": "useKeyboard hook that listens for Ctrl-modified chords and dispatch them to action callbacks, with guards to suppress hotkeys inside text fields.",
+  "lifecycle": "specified",
+  "layer": "frontend",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-77ea-a32c-4eee96e848f4",
+  "allowed_libraries": [],
+  "ui_refs": []
+}

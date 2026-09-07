@@ -1,0 +1,24 @@
+{
+  "id": "01a07403-c800-72fb-a810-38a681a387d3",
+  "slug": "manifest-parser-tool-manifest-resolve-bin",
+  "kind": "contract-method",
+  "title": "Resolve Binary Path",
+  "description": "Find the tool binary's absolute path inside a checkout, trying both with and without .exe suffix.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-71f8-9598-ec40e29ada11",
+  "signature": "pub fn resolve_bin(&self, checkout_root: &Path) -> Result<PathBuf, ManifestError>",
+  "params": [
+    "&self",
+    "checkout_root: &Path"
+  ],
+  "returns": "Result<PathBuf, ManifestError>",
+  "errors": [
+    "ManifestError::NoCore",
+    "ManifestError::BinNotFound"
+  ],
+  "semantics": "Tries bin as written first, then with .exe appended; both attempts happen on all platforms for cross-compilation support.",
+  "exported": true
+}

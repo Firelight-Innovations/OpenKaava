@@ -1,0 +1,14 @@
+{
+  "id": "01a07403-c800-7e1f-9da4-15ed6a3cd2d9",
+  "slug": "commands",
+  "kind": "external-dep",
+  "title": "tauri",
+  "description": "Desktop app framework with IPC, plugins, windows and state management",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-06T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a07403-c800-7a15-9205-3403c29c95c2",
+  "registry_ref": "01a07403-c800-736a-801a-ea4485c6faff",
+  "usage_note": "#[tauri::command] macro, Manager and State traits for accessing typed state"
+}
