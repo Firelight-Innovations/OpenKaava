@@ -100,11 +100,21 @@ describe("createBackendSeam().loadGraph", () => {
     expect(graph.serviceSlug).toBe("auth-service");
   });
 
-  it("draws an honest empty graph for the stack tier, never a silently wrong service", async () => {
-    const graph = await createBackendSeam().loadGraph("stack", "saas-backend");
+  /**
+   * This case used to assert the opposite — that the stack tier returned an
+   * empty graph without calling the backend at all, "an honest empty graph
+   * ... never a silently wrong service". That was true of the stand-in and is
+   * no longer true of anything: `projectStackGraph` reads the same
+   * `schematify/load-graph` response every other tier does. The old assertion
+   * is not deleted so much as inverted, because the behaviour it pinned is
+   * exactly what this change replaces.
+   */
+  it("draws the project's own services at the stack tier, not an empty graph", async () => {
+    invokeMock.mockResolvedValue(response([AUTH_SERVICE, BILLING_SERVICE, TOKEN_VERIFIER]));
+    const graph = await createBackendSeam().loadGraph("stack", "stack");
     expect(graph.tier).toBe("stack");
-    expect(graph.nodes).toHaveLength(0);
-    expect(invokeMock).not.toHaveBeenCalled();
+    expect(graph.nodes.map((n) => n.slug).sort()).toEqual(["auth-service", "billing-service"]);
+    expect(invokeMock).toHaveBeenCalledWith("schematify/load-graph", { actor: "human" });
   });
 });
 
@@ -129,6 +139,18 @@ describe("defaultSeam.loadGraph (the real path a click-through calls)", () => {
     const graph = await defaultSeam.loadGraph("service", "billing-service");
     expect(graph.tier).toBe("service");
     expect(graph.serviceSlug).toBe("billing-service");
+  });
+
+  /**
+   * The stack tier through the layer that actually serves it. Once the app
+   * lands on tier 1 this is the first call every open makes — and the one
+   * that used to come back empty whatever the project held.
+   */
+  it("draws the stack tier through the full seam, which is what the landing view opens", async () => {
+    invokeMock.mockResolvedValue(response([AUTH_SERVICE, BILLING_SERVICE]));
+    const graph = await defaultSeam.loadGraph("stack", "stack");
+    expect(graph.tier).toBe("stack");
+    expect(graph.nodes).toHaveLength(2);
   });
 });
 

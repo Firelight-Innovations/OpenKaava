@@ -45,6 +45,7 @@ import {
   sharedNodeCallout,
   zoomTierFor,
 } from "./anatomy";
+import { plural } from "../graph";
 import type { HealthStatus } from "../graph";
 
 /** A node as drawn. The captions are strings rather than numbers because the
@@ -252,7 +253,7 @@ function drawNode(
   // wireframe undercount, and every count here is computed rather than
   // carried as a stored field).
   if (node.role === "schematic-root" && tier === "module") {
-    if (node.layer) counts.push(`layer ${node.layer} · ${kids.length} facets`);
+    if (node.layer) counts.push(`layer ${node.layer} · ${plural(kids.length, "facet")}`);
     if (node.screenRef) counts.push(node.screenRef);
   }
   return {
@@ -261,7 +262,9 @@ function drawNode(
     childCount,
     container,
     selected: selection.has(node.id),
-    collapsedCaption: node.collapsed ? `collapsed · ${childCount} children` : undefined,
+    collapsedCaption: node.collapsed
+      ? `collapsed · ${plural(childCount, "child", "children")}`
+      : undefined,
     rollUpCaption:
       aggregated > 0 ? `${aggregated} edge${aggregated === 1 ? "" : "s"} aggregated` : undefined,
     containsCaption: container ? `contains ${childCount}` : undefined,

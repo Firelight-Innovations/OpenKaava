@@ -52,3 +52,11 @@ export function configFor(target: DrillTarget): SchematicConfig {
   if (target.tier === "stack") return preset;
   return { ...preset, layoutSlug: target.slug };
 }
+
+/** Where the app opens, and the breadcrumb's first entry: the highest tier —
+ *  the only one nameable without already knowing what the project holds. That
+ *  rule, and the defect that produced it, are pinned in `navigation.test.ts`.
+ *  The slug is `STACK_CONFIG`'s own, which `configFor` above ignores here. */
+export const LANDING_PATH: readonly DrillTarget[] = [
+  { tier: "stack", slug: TIER_PRESETS.stack.layoutSlug, title: "Stack" },
+];

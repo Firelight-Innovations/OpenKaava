@@ -151,9 +151,10 @@ function asNodeKind(rawKind: "module" | "group" | "comment"): NodeKind {
  * floating free" — so `CommentFields.anchor` (a node id, or absent) is what
  * this projection has to put in `GraphNode.parentId` for a comment, not the
  * envelope's own containment `parent` the way every other kind uses it.
- * `parent` still decides which tier's subtree the comment belongs to at all
- * (`isDescendantOf` reads it below, kind notwithstanding); `anchor` only
- * decides where a comment that IS included draws relative to another node.
+ * `parent` still decides which tier's subtree the comment belongs to at all —
+ * read below by `nearestAncestor` at tiers 1 and 2 and by `isDescendantOf` at
+ * tier 3, kind notwithstanding. `anchor` only decides where a comment that IS
+ * included draws relative to another node.
  */
 function commentParentId(node: RawNode): string | null {
   return typeof node.anchor === "string" ? node.anchor : null;
@@ -174,10 +175,12 @@ function commentFields(node: RawNode): Pick<GraphNode, "body" | "author"> {
  * `parent` up to the root. Guards against a containment cycle the same way
  * `./index.ts`'s `computeDepth` does — a real project is read off a
  * filesystem a person can hand-edit, so a cycle is a real possibility here,
- * not a hypothetical one a fixture could rule out. Shared by
- * [`projectServiceGraph`] (root = a service) and [`projectModuleGraph`]
- * (root = a module) — the walk itself knows nothing about which tier called
- * it.
+ * not a hypothetical one a fixture could rule out.
+ *
+ * [`projectModuleGraph`]'s alone since 2026-09-06. Tier 2 asked the same
+ * question and got the wrong answer for a service nested in a service — see
+ * [`projectServiceGraph`], which now asks `nearestAncestor` which service a
+ * node belongs to rather than whether this one is somewhere above it.
  */
 function isDescendantOf(
   node: RawNode,
@@ -232,11 +235,27 @@ export function projectServiceGraph(raw: RawGraph, serviceSlug: string): Service
   // pass through every node on the way up, kind notwithstanding. Only the
   // *output* is limited to `SERVICE_SCHEMATIC_KINDS`.
   const byId = new Map(raw.nodes.map((node) => [node.id, node]));
+
+  // Membership is "this is the service I belong to", not "this service is
+  // somewhere above me". The two differ only when a service contains another
+  // service, which PRD §16.1 does (`ledger-store` inside `session-service`) —
+  // and there `isDescendantOf` drew the inner service's modules on the outer
+  // one's Schematic. `SERVICE_SCHEMATIC_KINDS` excludes `service` because it
+  // "is the root the whole graph is drawn under", a rule written when a
+  // subtree held exactly one; the inner service is a second root, so its
+  // modules arrived carrying a `parentId` naming a node that is not in this
+  // list. `nestedFlow` never placed them and they stacked at the world
+  // origin, while `nextDrillTarget` was already offering them their own
+  // Schematic — the same node drawn twice across the app.
+  //
+  // Nearest-ancestor removes the dangling parent by construction: every
+  // surviving node's parent is either this root (rewritten to `null` below)
+  // or another surviving node.
   const included = raw.nodes.filter(
     (node) =>
       node.id !== serviceNode.id &&
       SERVICE_SCHEMATIC_KINDS.has(node.kind) &&
-      isDescendantOf(node, serviceNode.id, byId),
+      nearestAncestor(node, byId, SERVICE_KIND)?.id === serviceNode.id,
   );
 
   // Read once per call rather than once per node — PRD §0.4's "computed at
@@ -499,4 +518,238 @@ function firstScreenRef(uiRefs: unknown): string | undefined {
   if (!Array.isArray(uiRefs) || uiRefs.length === 0) return undefined;
   const first: unknown = uiRefs[0];
   return typeof first === "string" ? first : undefined;
+}
+
+// --- Stack Schematic (PRD §12.9, tier 1) -----------------------------------
+
+/** The kinds a Stack Schematic draws: `service`, plus the 2 annotation-tier
+ *  kinds PRD §11.3 draws on every tier. `module` is never a member — a module
+ *  belongs to its own service's Schematic, and folding tier 2 up onto tier 1
+ *  would repeat the mistake `SERVICE_SCHEMATIC_KINDS` above records for
+ *  tier 3. */
+const STACK_SCHEMATIC_KINDS: ReadonlySet<string> = new Set(["service", "group", "comment"]);
+
+/** The 1 raw kind an edge may connect to on a Stack Schematic — the tier-1
+ *  counterpart of `MODULE_ONLY_EDGE_ENDPOINT_KINDS`. A `depends_on` between 2
+ *  modules is tier 2's line; redrawing it here would state a
+ *  service-to-service dependency the graph does not actually hold. */
+const SERVICE_ONLY_EDGE_ENDPOINT_KINDS: ReadonlySet<string> = new Set(["service"]);
+
+/** Just `service`, for the ancestor walk that decides which service owns a
+ *  module or a contract method. */
+const SERVICE_KIND: ReadonlySet<string> = new Set(["service"]);
+
+/** The kinds that, found as an ancestor, put an annotation node on a tier
+ *  deeper than this one: a group inside a service arranges that service's
+ *  modules, and one inside a module arranges its facets. Neither is tier 1's
+ *  to draw. */
+const DEEPER_TIER_OWNER_KINDS: ReadonlySet<string> = new Set(["service", "module"]);
+
+/**
+ * The nearest containment ancestor of `node` whose kind is in `kinds`, or
+ * `undefined` when the walk reaches the root without finding one.
+ * Cycle-guarded exactly as `isDescendantOf` is, and for the same reason: a
+ * real project is read off a filesystem a person can hand-edit, so a `parent`
+ * chain that loops is a real possibility rather than a hypothetical one.
+ */
+function nearestAncestor(
+  node: RawNode,
+  byId: ReadonlyMap<string, RawNode>,
+  kinds: ReadonlySet<string>,
+): RawNode | undefined {
+  const visiting = new Set<string>([node.id]);
+  let current = node.parent ? byId.get(node.parent) : undefined;
+  while (current && !visiting.has(current.id)) {
+    if (kinds.has(current.kind)) return current;
+    visiting.add(current.id);
+    current = current.parent ? byId.get(current.parent) : undefined;
+  }
+  return undefined;
+}
+
+function asStackKind(rawKind: "service" | "group" | "comment"): NodeKind {
+  return rawKind;
+}
+
+/** A service face's 2 count fields, **absent rather than zero**.
+ *  `../engine/anatomy.ts`'s `countStringsFor` guards on `!== undefined`, so a
+ *  `0` written here draws `0 exports` where the convention draws nothing.
+ *  `./stack.ts` makes the distinction on purpose: `event-bus` carries neither
+ *  field, `notification-service` carries `exportsCount: 0`. Counting nothing
+ *  is not the same claim as counting zero, and only the second is one this
+ *  projection can make — a service with no `contract-method` under it may have
+ *  none, or may simply not have been marked up yet. */
+function serviceCounts(
+  id: string,
+  modules: ReadonlyMap<string, number>,
+  exports: ReadonlyMap<string, number>,
+): Pick<GraphNode, "modulesCount" | "exportsCount"> {
+  const modulesCount = modules.get(id);
+  const exportsCount = exports.get(id);
+  return {
+    ...(modulesCount === undefined ? {} : { modulesCount }),
+    ...(exportsCount === undefined ? {} : { exportsCount }),
+  };
+}
+
+/**
+ * Cuts any `parentId` link that closes a cycle, leaving that node at the top
+ * level. **The one invariant this projection owes the engine**:
+ * `engine/doc.ts`'s `ancestorsOf` walks `parentId` once per node per frame
+ * with no guard, so a cycle reaching it is not a wrong picture but
+ * `buildFrame` allocating until it throws — in render, past where `App.tsx`
+ * catches, with the L01 finding that explains it in a Dock that never draws.
+ *
+ * Tiers 2 and 3 never needed this: `isDescendantOf` asks whether a node lies
+ * inside *this* Schematic's root, and a cyclic chain reaches no root. Tier 1
+ * has no root, so the question is drawability, not membership — and dropping
+ * a service off the landing view because a group above it is malformed is the
+ * worse answer when the landing view is the only way into the project.
+ *
+ * Run over the emitted nodes, not the raw ones, because a `comment` takes its
+ * `parentId` from `anchor`: one pass covers both fields. Every node whose walk
+ * repeats becomes a root, cycle members included, so none can still close one.
+ */
+function withoutContainmentCycles(nodes: GraphNode[]): GraphNode[] {
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  return nodes.map((node) => {
+    const seen = new Set<string>([node.id]);
+    let current = node.parentId ? byId.get(node.parentId) : undefined;
+    while (current) {
+      if (seen.has(current.id)) return { ...node, parentId: null };
+      seen.add(current.id);
+      current = current.parentId ? byId.get(current.parentId) : undefined;
+    }
+    return node;
+  });
+}
+
+/**
+ * The Stack Schematic's own slug. It matches `engine/presets.ts`'s
+ * `STACK_CONFIG.layoutSlug`, which is what `layout/<slug>.json` is keyed on and
+ * what `engine/layout.ts`'s `toGraph` puts back into `serviceSlug` once the
+ * document exists — so this is the identity of the tier-1 layout file, not a
+ * name for any node. Restated here rather than imported: `engine/` already
+ * imports `graph/`, and importing back would close a cycle.
+ */
+const STACK_LAYOUT_SLUG = "stack";
+
+/**
+ * Builds the whole project's Stack Schematic — tier 1, every service the graph
+ * holds, drawn with the dependency edges that run between them.
+ *
+ * Unlike its tier-2 and tier-3 counterparts this takes no slug and cannot
+ * throw: there is exactly 1 Stack Schematic per project, so there is no name to
+ * fail to resolve. A project with no services projects to an empty graph, which
+ * is the honest answer and the state PRD §12.20's first-run view draws.
+ */
+export function projectStackGraph(raw: RawGraph): SchematicGraph {
+  const byId = new Map(raw.nodes.map((node) => [node.id, node]));
+
+  // A service is included at any containment depth — PRD §16.1's `ledger-store`
+  // sits inside `session-service`, and nesting is what `parentId` draws. An
+  // annotation is included only when nothing deeper already owns it.
+  //
+  // An annotation whose `parent` names a deleted id is therefore drawn here and
+  // nowhere else: `nearestAncestor` reads a missing parent as "nothing deeper
+  // owns me", where tier 3's `isDescendantOf` reads it as "not in this
+  // subtree". That asymmetry is deliberate. Surfacing an orphaned comment on
+  // the one Schematic every project has beats it existing on disk and appearing
+  // on none — do not align it downward.
+  const included = raw.nodes.filter((node) => {
+    if (!STACK_SCHEMATIC_KINDS.has(node.kind)) return false;
+    if (node.kind === "service") return true;
+    return nearestAncestor(node, byId, DEEPER_TIER_OWNER_KINDS) === undefined;
+  });
+  const includedIds = new Set(included.map((node) => node.id));
+
+  // Both counts in 1 pass over every node rather than a subtree walk per
+  // service: a module belongs to its *nearest* service ancestor, so a service
+  // containing another service reports its own modules and not its child's as
+  // well. `exportsCount` counts exported contract methods, which is the size of
+  // the service's public surface — a property of the service rather than of the
+  // modules it happens to hold.
+  const modulesByService = new Map<string, number>();
+  const exportsByService = new Map<string, number>();
+  for (const node of raw.nodes) {
+    const counting =
+      node.kind === "module"
+        ? modulesByService
+        : node.kind === "contract-method" && node.exported === true
+          ? exportsByService
+          : undefined;
+    if (!counting) continue;
+    const owner = nearestAncestor(node, byId, SERVICE_KIND);
+    if (!owner) continue;
+    counting.set(owner.id, (counting.get(owner.id) ?? 0) + 1);
+  }
+
+  const nowMs = Date.now();
+
+  // Five fields `./stack.ts`'s hand-typed fixture carries stay unset, because
+  // the real graph states none of them, and each reader already degrades — no
+  // wedge, no badge, no row, `buildSharedNodeCallout` returning `null`:
+  //
+  // - `health`: PRD §12.8's roll-up is over contained modules, and tier 1
+  //   draws none.
+  // - `badge: "ENTRY"`: the same absence `projectServiceGraph` records —
+  //   `ServiceFields.entry_point` is prose, not a flag.
+  // - `sharedAtLca` and `dependentsCount`: PRD §4.3's callout, which is rule
+  //   L10's job. A second implementation in TypeScript is a second answer that
+  //   can disagree with the first, and the two are drawn together, so deriving
+  //   the count alone would state half a finding.
+  // - `techStack` (PRD §12.9): the registry holds a library's version and
+  //   licence, but nothing counts its uses per service and `RawGraph` does not
+  //   carry `registry` at all.
+  const nodes: GraphNode[] = withoutContainmentCycles(
+    included.map((node) => ({
+      id: node.id,
+      slug: node.slug,
+      title: node.title,
+      kind: asStackKind(node.kind as "service" | "group" | "comment"),
+      layer: asLayer(node.layer),
+      lifecycle: asLifecycle(node.lifecycle),
+      // A parent outside this projection — a service somehow nested under a
+      // module — drops to `null` rather than being drawn as a dangling
+      // reference the arranger would then have to interpret.
+      parentId:
+        node.kind === "comment"
+          ? commentParentId(node)
+          : node.parent && includedIds.has(node.parent)
+            ? node.parent
+            : null,
+      ...(node.kind === "service"
+        ? serviceCounts(node.id, modulesByService, exportsByService)
+        : {}),
+      ...staleFields(node, byId, nowMs),
+      ...(node.kind === "comment" ? commentFields(node) : {}),
+    })),
+  );
+
+  const edgeEndpointIds = new Set(
+    included.filter((node) => SERVICE_ONLY_EDGE_ENDPOINT_KINDS.has(node.kind)).map((n) => n.id),
+  );
+  const edges: GraphEdge[] = raw.edges
+    .filter(
+      (edge) =>
+        FRONTEND_EDGE_KINDS.has(edge.kind) &&
+        edgeEndpointIds.has(edge.source) &&
+        edgeEndpointIds.has(edge.target),
+    )
+    .map((edge) => ({
+      id: edge.id,
+      kind: edge.kind as GraphEdge["kind"],
+      from: edge.source,
+      to: edge.target,
+    }));
+
+  return {
+    tier: "stack",
+    serviceSlug: STACK_LAYOUT_SLUG,
+    // The project's own name when `brief.json` states one (PRD §12.17): the
+    // stack has no root node to take a title from the way tiers 2 and 3 do.
+    serviceTitle: raw.brief?.product_name ?? STACK_LAYOUT_SLUG,
+    nodes,
+    edges,
+  };
 }

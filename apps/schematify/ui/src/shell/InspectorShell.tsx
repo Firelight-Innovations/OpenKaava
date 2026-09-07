@@ -28,7 +28,7 @@ import {
   type InspectorTabId,
 } from "../engine/inspector";
 import { nextDrillTarget, type DrillTarget, type SchematicEngine } from "../engine";
-import { countEdges, countServices, computeDepth, type SchematicGraph } from "../graph";
+import { countEdges, countServices, computeDepth, plural, type SchematicGraph } from "../graph";
 
 export interface InspectorShellProps {
   /** Omitted keeps the plain tab-strip placeholder — every caller before
@@ -717,7 +717,7 @@ function CanvasProperties({ graph }: { graph: SchematicGraph }) {
       <div className="kv-inspector__header">CANVAS PROPERTIES</div>
       <p className="kv-inspector__body">
         Nothing selected. The inspector shows canvas-level properties:{" "}
-        {`${services} services, ${edges} dependency edges, containment depth ${depth}, layout saved 4m ago.`}
+        {`${plural(services, "service")}, ${plural(edges, "dependency edge")}, containment depth ${depth}, layout saved 4m ago.`}
       </p>
       {graph.techStack && graph.techStack.length > 0 ? (
         <div className="kv-inspector__techstack">

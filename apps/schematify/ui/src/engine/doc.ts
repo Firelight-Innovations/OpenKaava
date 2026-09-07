@@ -163,25 +163,51 @@ export function childrenOf(index: DocIndex, id: string | null): readonly Schemat
 }
 
 /** Every node under `id`, at any depth. The count a collapsed box draws is
- *  this list's length, computed at draw time and never stored (PRD §0.4). */
+ *  this list's length, computed at draw time and never stored (PRD §0.4).
+ *
+ *  Visits each node once, which is what stops a `parentId` cycle from queueing
+ *  the same pair forever — the descending half of the hazard `ancestorsOf`
+ *  below describes, reached from `drawNode`'s collapsed count and from
+ *  `../engine/anatomy.ts`'s `healthRollupFor`. */
 export function descendantsOf(index: DocIndex, id: string): SchematicNode[] {
   const out: SchematicNode[] = [];
+  const seen = new Set<string>([id]);
   const queue = [...childrenOf(index, id)];
   while (queue.length > 0) {
     const node = queue.pop() as SchematicNode;
+    if (seen.has(node.id)) continue;
+    seen.add(node.id);
     out.push(node);
     queue.push(...childrenOf(index, node.id));
   }
   return out;
 }
 
-/** From a node's parent up to the Schematic root, nearest first. */
+/**
+ * From a node's parent up to the Schematic root, nearest first.
+ *
+ * **Stops on a cycle rather than following one.** `isHidden` calls this for
+ * every node on every frame, so a `parentId` chain that loops does not draw a
+ * wrong picture — it pushes until the array cannot grow, then throws `Invalid
+ * array length` seconds and gigabytes later, inside render, where `App.tsx`'s
+ * `openSchematic` catch cannot reach it.
+ *
+ * Neither source of a document is trusted to be acyclic: `.kaava/nodes/` is
+ * loaded with a loop intact on purpose so rule L01 can report it
+ * (`crates/schematify-core/src/graph.rs`), and `./layout.ts`'s
+ * `fromAnnotation` copies `parentId` off `layout/<slug>.json` unvalidated.
+ * Guarding here makes that invariant one thing to hold rather than one to
+ * remember at each producer. Truncating costs nothing: every ancestor above
+ * the repeat is already in `out`.
+ */
 export function ancestorsOf(index: DocIndex, id: string): SchematicNode[] {
   const out: SchematicNode[] = [];
+  const seen = new Set<string>([id]);
   let current = index.byId.get(id)?.parentId ?? null;
   while (current !== null) {
     const node = index.byId.get(current);
-    if (!node) break;
+    if (!node || seen.has(node.id)) break;
+    seen.add(node.id);
     out.push(node);
     current = node.parentId;
   }

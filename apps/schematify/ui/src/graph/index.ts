@@ -163,6 +163,21 @@ export function loadGraph(
  *  `.kaava/` in that cell."). */
 export const KAAVA_ROOT = ".kaava/";
 
+/** `1 service`, `2 services`. Every count string this app draws is built by
+ *  interpolating a number in front of a noun, and each one was written with
+ *  the noun already plural — correct for the fixtures, where every count
+ *  happens to be above 1, and wrong the moment a real project has one of
+ *  something. The Stack Schematic is where that first shows: several services
+ *  in this repository hold exactly 1 module.
+ *
+ *  PRD §12.13 and §12.20 draw `1 module` and `1 service` in their own
+ *  examples, so this agrees with the source rather than departing from it.
+ *  Most nouns here take a bare `s`, so that is the default; `child` does not,
+ *  and it passes its own plural rather than making this grow a rule table. */
+export function plural(count: number, one: string, many = `${one}s`): string {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
 /** Node count, computed rather than cached on the graph — PRD §0.4.
  *  Excludes annotation-tier kinds (`isAnnotationNodeKind`): a `group` is
  *  drawn on the Schematic but is not a node for counting purposes, per the
@@ -190,7 +205,7 @@ export function countServices(graph: SchematicGraph): number {
 /** The Stack Schematic's own header line (PRD §12.9): `6 services · 7
  *  dependency edges`, both numbers computed. Wave 5. */
 export function stackHeaderCounts(graph: SchematicGraph): string {
-  return `${countServices(graph)} services · ${countEdges(graph)} dependency edges`;
+  return `${plural(countServices(graph), "service")} · ${plural(countEdges(graph), "dependency edge")}`;
 }
 
 /** Status bar cell 1: the storage root and the counts that suit the tier
@@ -198,8 +213,8 @@ export function stackHeaderCounts(graph: SchematicGraph): string {
  *  header (WIREFRAME-EXTRACT.md §5.1: `sdd/ · 6 services`, no edge count in
  *  that cell); the Service and Module Schematics count nodes and edges. */
 export function statusCell1(graph: SchematicGraph): string {
-  if (graph.tier === "stack") return `${KAAVA_ROOT} · ${countServices(graph)} services`;
-  return `${KAAVA_ROOT} · ${countNodes(graph)} nodes · ${countEdges(graph)} edges`;
+  if (graph.tier === "stack") return `${KAAVA_ROOT} · ${plural(countServices(graph), "service")}`;
+  return `${KAAVA_ROOT} · ${plural(countNodes(graph), "node")} · ${plural(countEdges(graph), "edge")}`;
 }
 
 /** Status bar cell 2: the layout file this Schematic's positions persist to
@@ -266,7 +281,7 @@ export function computeDepth(nodes: GraphNode[]): number {
 
 /** The Outline footer string, e.g. `12 nodes · depth 3` (PRD §12.1). */
 export function outlineFooter(graph: SchematicGraph): string {
-  return `${countNodes(graph)} nodes · depth ${computeDepth(graph.nodes)}`;
+  return `${plural(countNodes(graph), "node")} · depth ${computeDepth(graph.nodes)}`;
 }
 
 /** One flattened, indented row of the Outline tree, in the reading order

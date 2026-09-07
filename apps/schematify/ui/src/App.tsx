@@ -1,9 +1,11 @@
 /**
  * Schematify's shell — PRD §17 Wave 2, with Wave 3's Schematic engine and
- * Wave 4's node anatomy mounted inside it. Opens the `auth-service` Service
- * Schematic on first paint (Wave 2/3's own landing view, unchanged) and
- * draws the breadcrumb, the toolbar, the Outline, the Schematic, the
- * Inspector shell, the dock frame, and the status bar around it.
+ * Wave 4's node anatomy mounted inside it. Opens the project's Stack
+ * Schematic on first paint — tier 1, the highest there is, and the only one
+ * nameable without already knowing what the project holds (`LANDING_PATH`,
+ * `engine/navigation.ts`) — and draws the breadcrumb, the toolbar, the
+ * Outline, the Schematic, the Inspector shell, the dock frame, and the status
+ * bar around it.
  *
  * No title bar and no application tab strip: the real shell already draws both,
  * once, outside this iframe — see the Wave 2 handoff for that ruling.
@@ -25,6 +27,7 @@ import { reportPainted } from "@openkaava/bridge";
 // tiers is exactly the same "open a Schematic" path the first paint uses.
 import {
   configFor,
+  LANDING_PATH,
   nextDrillTarget,
   openSchematic,
   toGraph,
@@ -34,6 +37,7 @@ import {
 } from "./engine";
 import { SchematicCanvas } from "./engine/SchematicCanvas";
 import {
+  countServices,
   fetchLintReport,
   fetchModuleDashboard,
   fetchRuns,
@@ -64,16 +68,12 @@ const VIEW_PARAM =
 const SHOW_EMPTY_STACK = VIEW_PARAM === "empty-stack";
 const SHOW_EMPTY_MODULE = VIEW_PARAM === "empty-module";
 
-/** Wave 2/3's original landing view, now the first entry of a walkable path
- *  rather than a fixed breadcrumb string: `["Stack", "Auth Service"]`
- *  drew before Wave 5 gave `Stack` anywhere real to lead. */
-const INITIAL_PATH: readonly DrillTarget[] = [
-  { tier: "stack", slug: "saas-backend", title: "Stack" },
-  { tier: "service", slug: "auth-service", title: "Auth Service" },
-];
-
 export default function App() {
-  const [path, setPath] = useState<readonly DrillTarget[]>(INITIAL_PATH);
+  // The landing view is `engine/navigation.ts`'s `LANDING_PATH` — the stack
+  // tier, the only one nameable without already knowing what the project
+  // holds. That module owns it for the same reason it owns `nextDrillTarget`:
+  // where navigation goes is a decision, and this component only follows one.
+  const [path, setPath] = useState<readonly DrillTarget[]>(LANDING_PATH);
   const target = path[path.length - 1];
   const [engine, setEngine] = useState<SchematicEngine | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -348,6 +348,20 @@ function Schematify({
     setSection("Product");
     if (!productGraph && !productError) loadProduct();
   }
+
+  // PRD §12.20: "A new project opens on an empty Stack Schematic with 1
+  // action: create the first service." Reachable for real now that the app
+  // lands on tier 1 — before this it was drawn only for `?view=empty-stack`,
+  // because the landing view named a service, and a project with no services
+  // has none to name.
+  //
+  // It replaces the canvas, not the shell. The one action it offers is drawn
+  // disabled (`schematify_write_node` is not wired), so a whole-shell takeover
+  // would leave a new project on one dead button with the Outline's `Product`
+  // and `Decisions` sections — the only place a brief can be written, and the
+  // obvious thing to reach for before any service exists — off screen.
+  const emptyStack = graph.tier === "stack" && countServices(graph) === 0;
+
   return (
     <div className="kv-shell">
       <div className="kv-chrome-row">
@@ -388,7 +402,9 @@ function Schematify({
               : undefined
           }
         />
-        {section === "Design" ? (
+        {section === "Design" && emptyStack ? (
+          <EmptyStack />
+        ) : section === "Design" ? (
           <>
             {graph.tier === "module" ? <FacetPalette /> : null}
             <SchematicCanvas

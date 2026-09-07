@@ -12,7 +12,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { AUTH_SERVICE_GRAPH } from "./fixture";
-import type { GraphNode } from "./types";
+import type { GraphNode, SchematicGraph } from "./types";
 import {
   buildOutlineRows,
   computeDepth,
@@ -20,6 +20,8 @@ import {
   countNodes,
   loadGraph,
   outlineFooter,
+  plural,
+  stackHeaderCounts,
   statusCell1,
   statusCell2,
   statusCell5,
@@ -141,5 +143,54 @@ describe("buildOutlineRows", () => {
     const parent = rows.find((row) => row.node.id === "token-verifier");
     const child = rows.find((row) => row.node.id === "jwks-cache");
     expect(child?.depth).toBe((parent?.depth ?? 0) + 1);
+  });
+});
+
+/**
+ * Every count string in this app was written with its noun already plural,
+ * which is correct for the fixtures — every count in them is above 1 — and
+ * wrong for a real project. The Stack Schematic is where it first shows: of
+ * this repository's own 17 services, several hold exactly 1 module, so the
+ * landing view drew `1 modules` on the first screen anyone sees.
+ *
+ * Asserted at 1 and at 0, because the fixtures cover neither and that is why
+ * this went unnoticed.
+ */
+describe("plural", () => {
+  it("draws the singular at 1", () => {
+    expect(plural(1, "service")).toBe("1 service");
+    expect(plural(1, "module")).toBe("1 module");
+    expect(plural(1, "dependency edge")).toBe("1 dependency edge");
+  });
+
+  it("draws the plural at 0 and above 1", () => {
+    expect(plural(0, "export")).toBe("0 exports");
+    expect(plural(2, "export")).toBe("2 exports");
+    expect(plural(17, "service")).toBe("17 services");
+  });
+
+  it("takes an irregular plural rather than guessing one", () => {
+    expect(plural(1, "child", "children")).toBe("1 child");
+    expect(plural(2, "child", "children")).toBe("2 children");
+  });
+});
+
+/** The two strings the Stack Schematic draws from a project holding exactly
+ *  one of everything — the case no fixture covers. */
+describe("the tier-1 count strings at 1", () => {
+  const ONE_SERVICE: SchematicGraph = {
+    tier: "stack",
+    serviceSlug: "stack",
+    serviceTitle: "one",
+    nodes: [{ id: "s", slug: "only", title: "Only", kind: "service", parentId: null }],
+    edges: [{ id: "e", kind: "depends_on", from: "s", to: "s" }],
+  };
+
+  it("draws the header in the singular", () => {
+    expect(stackHeaderCounts(ONE_SERVICE)).toBe("1 service · 1 dependency edge");
+  });
+
+  it("draws status bar cell 1 in the singular", () => {
+    expect(statusCell1(ONE_SERVICE)).toBe(".kaava/ · 1 service");
   });
 });
