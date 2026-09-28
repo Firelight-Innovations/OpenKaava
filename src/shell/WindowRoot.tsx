@@ -38,6 +38,7 @@ import { splitDirOnOpen } from "./panes/splitOnOpen";
 import SecondaryPanel, { type PanelView } from "./panel/SecondaryPanel";
 import BottomPanel from "./panel/BottomPanel";
 import StatusBar from "./statusbar/StatusBar";
+import EnvironmentBar from "./envbar/EnvironmentBar";
 import SearchSlot from "./search/SearchSlot";
 import SearchOverlay from "./search/SearchOverlay";
 import { useSearchSession } from "./search/useSearchSession";
@@ -1270,6 +1271,12 @@ export default function WindowRoot({
   // `TitleBarProps.onOpenProjectSwitcher`'s own doc comment.
   const onOpenProjectSwitcher = useCallback(() => {}, []);
 
+  // The Git page the environment bar's "Review & merge" button would open is
+  // the **panes**/**clusters** workstreams' to build — same reasoning as
+  // `onOpenProjectSwitcher` above. The button stays real and clickable, it
+  // just has nowhere to send the click yet.
+  const onReviewAndMerge = useCallback(() => {}, []);
+
   // The drag layer is the only thing in the shell that spans regions, so it is
   // the only thing that has to be handed down rather than owned locally. The
   // regions never import it — they take a handle factory and stay ignorant of
@@ -1476,6 +1483,18 @@ export default function WindowRoot({
               }
             />
           ),
+          // Omitted while no cluster is open — see the slot's own doc comment
+          // in contract.ts. `onReviewAndMerge` is a no-op for the same reason
+          // `onOpenProjectSwitcher` is above: the Git page it would open is
+          // the **panes**/**clusters** workstreams' to build, not this one's.
+          envBar: environment !== null && (
+            <EnvironmentBar
+              environment={environment}
+              ahead={git.status?.ahead}
+              behind={git.status?.behind}
+              onReviewAndMerge={onReviewAndMerge}
+            />
+          ),
           toolWindow: (
             <ToolWindow
               ref={toolRef}
@@ -1672,6 +1691,8 @@ export default function WindowRoot({
             // of a question already answered, and the totals cannot drift out
             // of step with the change lists they are totals of.
             <StatusBar
+              project={project?.name ?? null}
+              environment={environment}
               git={git.status}
               githubOk={!error}
               update={updateNotice(updates.state, updates.asked, updates.install)}
