@@ -28,4 +28,13 @@ describe("categoriesOption", () => {
       .series as PieSeriesOption[];
     expect(pie.label?.show).toBe(false);
   });
+
+  it("places the forecast total in the ring's centre via a second, silent slice", () => {
+    const categories = [category("machines", "Machines", 60), category("disks", "Disks", 15)];
+    const [, centre] = categoriesOption(categories, TEST_THEME).series as PieSeriesOption[];
+    expect(centre?.radius).toEqual([0, 0]);
+    expect(centre?.silent).toBe(true);
+    const formatter = centre?.label?.formatter as (() => string) | undefined;
+    expect(formatter?.()).toContain("$75.00");
+  });
 });
