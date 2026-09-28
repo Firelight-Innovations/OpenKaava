@@ -116,27 +116,17 @@ export const OPENED_EVENT = "kaava:opened";
 export const TOPIC_EVENT_PREFIX = "kaava:topic/";
 
 /**
- * The event `kaava:theme-changed` is delivered under — the shell telling
- * every app frame the resolved theme and chosen accent, live. A colon rather
- * than `TOPIC_EVENT_PREFIX`'s slash-bearing form, like `OPENED_EVENT` above,
- * because this is shell-authored news broadcast to every app frame, not one
- * app publishing to its cluster-mates. See `packages/bridge/src/theme.ts` for
- * the app-side half and `src/shell/themeBroadcast.ts` for the shell-side one.
+ * The event `kaava:theme-changed` is delivered under — shell-authored news
+ * broadcast to every app frame, so it gets a colon like `OPENED_EVENT`
+ * rather than `TOPIC_EVENT_PREFIX`'s slash form. App side:
+ * `packages/bridge/src/theme.ts`. Shell side: `src/shell/themeBroadcast.ts`.
  */
 export const THEME_CHANGED_EVENT = "kaava:theme-changed";
 
-/**
- * What arrives with a `kaava:theme-changed` event. Mirrors
- * `src/shell/themeBroadcast.ts`'s `ThemeChangedPayload` as a separate
- * declaration rather than an import, the same as `Session` above — the shell
- * and an app frame are different builds, and this package is the one place
- * both agree on the wire shape.
- */
+/** What arrives with a `kaava:theme-changed` event: the resolved theme
+ *  (never "system" — already resolved before send) and the chosen accent. */
 export interface ThemeChangedPayload {
-  /** The resolved theme actually applied. Never "system" — that is a
-   *  setting, resolved to one of these two before this is sent. */
   theme: "dark" | "light";
-  /** One of the five options `docs/design/kaava-ds/tokens.json` defines. */
   accent: "amber" | "blue" | "green" | "violet" | "coral";
 }
 
