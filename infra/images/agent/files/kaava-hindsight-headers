@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Claude Code headersHelper for the Hindsight MCP servers. Prints the Authorization header Cloud
+# Run expects: a Google ID token for this VM's service account (kaava-agent), minted by the
+# metadata server for the Hindsight URL. Tokens last an hour; Claude Code runs this again on each
+# connection and on an authentication error, so nothing caches or stores one.
+
+set -euo pipefail
+. /etc/kaava/env
+
+token=$(curl -fsS -H "Metadata-Flavor: Google" \
+  "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=${KAAVA_HINDSIGHT_URL%/}")
+printf '{"Authorization": "Bearer %s"}\n' "$token"

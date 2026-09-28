@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Stops this agent VM after KAAVA_IDLE_MINUTES with no agent work and nobody logged in.
+# Run every minute by kaava-idle.timer. An always-on e2-standard-8 costs more than the whole
+# monthly budget, so an agent VM runs only while something is using it; `gcloud compute
+# instances start` (or OpenKaava) brings it back. KAAVA_IDLE_MINUTES=0 turns this off.
+#
+# Busy means any of: a claude, godot or blender process; a login session (SSH over IAP); a tmux
+# server. The clock lives in /run, which is empty after every boot, so a fresh boot always gets
+# its full idle window.
+
+set -euo pipefail
+. /etc/kaava/env
+limit=${KAAVA_IDLE_MINUTES:-30}
+[ "$limit" -gt 0 ] || exit 0
+
+stamp=/run/kaava-last-active
+now=$(date +%s)
+
+if pgrep -x 'claude|godot|blender|node' >/dev/null || [ -n "$(who)" ] || pgrep -x tmux >/dev/null; then
+  echo "$now" >"$stamp"
+  exit 0
+fi
+
+[ -f "$stamp" ] || echo "$now" >"$stamp"
+idle=$(((now - $(cat "$stamp")) / 60))
+if [ "$idle" -ge "$limit" ]; then
+  echo "[kaava-idle] idle ${idle}m (limit ${limit}m); powering off"
+  shutdown -h now
+fi

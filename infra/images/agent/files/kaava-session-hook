@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Claude Code hook: records the session for OpenKaava's agent views.
+#
+# Registered for SessionStart, UserPromptSubmit, Stop, SubagentStop and SessionEnd in
+# /etc/claude-code/managed-settings.json. Reads the hook payload on stdin, returns at once, and
+# uploads in the background, so an agent never waits on storage. Writes, per session:
+#
+#   gs://$KAAVA_SESSIONS/<agent>/<session-id>/status.json       replaced on every event
+#   gs://$KAAVA_SESSIONS/<agent>/<session-id>/transcript.jsonl  Claude Code's own transcript
+#
+# infra/README.md documents both, as the contract the UX reads. A workflow runner that starts
+# `claude` with KAAVA_WORKFLOW, KAAVA_WORKFLOW_RUN and KAAVA_WORKFLOW_STEP set gets its progress
+# into status.json for free.
+
+set -uo pipefail
+[ -r /etc/kaava/env ] && . /etc/kaava/env
+[ -n "${KAAVA_SESSIONS:-}" ] || exit 0
+
+payload=$(cat)
+event=$(jq -r '.hook_event_name // empty' <<<"$payload")
+session=$(jq -r '.session_id // empty' <<<"$payload")
+[ -n "$session" ] || exit 0
+
+case "$event" in
+  SessionStart | UserPromptSubmit) state=running ;;
+  Stop) state=idle ;;
+  SubagentStop) state=running ;;
+  SessionEnd) state=ended ;;
+  *) state=unknown ;;
+esac
+
+prefix="gs://$KAAVA_SESSIONS/${KAAVA_AGENT:-$(hostname)}/$session"
+status=$(jq -n \
+  --argjson p "$payload" \
+  --arg agent "${KAAVA_AGENT:-$(hostname)}" --arg user "$(id -un)" \
+  --arg state "$state" --arg now "$(date -u +%FT%TZ)" \
+  --arg wf "${KAAVA_WORKFLOW:-}" --arg run "${KAAVA_WORKFLOW_RUN:-}" --arg step "${KAAVA_WORKFLOW_STEP:-}" \
+  '{
+    schema: 1,
+    session_id: $p.session_id,
+    agent: $agent,
+    user: $user,
+    cwd: $p.cwd,
+    state: $state,
+    last_event: $p.hook_event_name,
+    updated: $now,
+    prompt: (if $p.hook_event_name == "UserPromptSubmit" then ($p.prompt // "" | .[0:500]) else null end),
+    end_reason: $p.reason,
+    workflow: (if $wf == "" then null else {name: $wf, run: $run, step: $step} end)
+  } | with_entries(select(.value != null))')
+
+transcript=$(jq -r '.transcript_path // empty' <<<"$payload")
+
+(
+  echo "$status" | gcloud storage cp --quiet - "$prefix/status.json"
+  if [ -n "$transcript" ] && [ -f "$transcript" ] && [ "$state" != running ]; then
+    gcloud storage cp --quiet "$transcript" "$prefix/transcript.jsonl"
+  fi
+) >/dev/null 2>&1 &
+disown
+exit 0

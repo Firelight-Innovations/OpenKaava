@@ -53,3 +53,14 @@ __pycache__/
 # somebody's debugging session, and it has been swept into a commit by
 # `git add -A` more than once already.
 kaava-shot.png
+
+# Terraform (infra/). Provider plugins are downloaded per checkout; state lives in the
+# `<project>-tfstate` bucket, except bootstrap's before its first migration. tfvars files other
+# than the committed common.tfvars can hold the billing account ID, and this repository is public.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+infra/terraform/*/terraform.tfvars
+# Packer's download cache (infra/images/).
+packer_cache/
