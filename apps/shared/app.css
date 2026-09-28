@@ -27,6 +27,11 @@
  * something of its own adds a second stylesheet next to its entry point.
  */
 
+/* The shared `.k-*` component vocabulary (buttons, badges, chips, dialogs —
+   see `src/kaava-ui.css`'s own header) is available to every app the same
+   way the shell gets it, from one file. */
+@import "/src/kaava-ui.css";
+
 html,
 body,
 #root {
