@@ -4416,7 +4416,7 @@ mod tests {
         let mut s = with_agents_page();
 
         assert!(!rename_cluster_pure(&mut s, "cluster-9", "mine"));
-        assert_eq!(cluster_mut(&mut s, "cluster-9").name, "Agents");
+        assert_eq!(cluster_mut(&mut s, "cluster-9").name, "agents");
         assert!(
             rename_cluster_pure(&mut s, "cluster-1", "mine"),
             "a real one is"
@@ -4553,12 +4553,22 @@ mod tests {
     }
 
     #[test]
-    fn a_page_in_front_is_nowhere_to_work() {
+    fn a_restored_page_in_front_does_not_stop_the_window_working_in_its_cluster() {
+        // Unlike the old page-cluster model this fixture predates, a page is
+        // no longer a cluster the window's `active_cluster_id` can point at —
+        // restoring converts it away into `right_page` and leaves the window
+        // on the real cluster underneath, per `migrate_legacy_page_clusters`.
         let shell = ShellState::default();
         shell.restore(with_agents_page());
 
-        assert_eq!(shell.active_cluster_of("main"), None);
-        assert_eq!(shell.active_pane("main", None), None);
+        assert_eq!(
+            shell.active_cluster_of("main"),
+            Some("cluster-1".to_string())
+        );
+        assert_eq!(
+            shell.active_pane("main", None),
+            Some(("cluster-1".to_string(), "pane-1".to_string()))
+        );
     }
 
     #[test]
