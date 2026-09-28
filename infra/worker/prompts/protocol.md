@@ -8,9 +8,11 @@ You have the `plane` MCP server. Its tools take an `action` argument (`list`, `r
 (`plane.project_id`) and the work item (`plane.work_item_id`). Retrieve that work item first and
 read its description and comments: that is your brief.
 
-MCP servers connect in the background, so the Plane tools may not exist for the first seconds of
-the session. If a tool search says `plane` is still connecting, search again; keep trying for at
-least three minutes. Do not end the session before the Plane tools have appeared.
+MCP servers connect in the background, so the Plane and Hindsight tools may not exist for the
+first seconds of the session. Hindsight takes about 25 seconds when it has been idle. If a tool
+search says a server you need (`plane` or a `hindsight-*` bank) is still connecting, search again,
+and keep trying for at least three minutes. Do not end the session before the Plane tools have
+appeared. Do not skip the Hindsight recall because its server was still connecting.
 
 ## Rules
 
