@@ -47,7 +47,7 @@ export interface DialogProps {
  */
 function focusable(root: HTMLElement): HTMLElement[] {
   const candidates = root.querySelectorAll<HTMLElement>(
-    'a[href], button, input, select, textarea, [tabindex]',
+    "a[href], button, input, select, textarea, [tabindex]",
   );
   return Array.from(candidates).filter((el) => {
     if ("disabled" in el && (el as HTMLButtonElement).disabled) return false;

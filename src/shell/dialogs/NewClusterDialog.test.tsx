@@ -28,14 +28,18 @@ afterEach(cleanup);
 const project = { name: "OpenKaava", path: "C:/repo" };
 
 function renderDialog(onCreated = vi.fn(), onCancel = vi.fn()) {
-  return { onCreated, onCancel, ...render(
-    <NewClusterDialog
-      label="win-1"
-      project={project}
-      onCancel={onCancel}
-      onCreated={onCreated}
-    />,
-  ) };
+  return {
+    onCreated,
+    onCancel,
+    ...render(
+      <NewClusterDialog
+        label="win-1"
+        project={project}
+        onCancel={onCancel}
+        onCreated={onCreated}
+      />,
+    ),
+  };
 }
 
 describe("NewClusterDialog", () => {
@@ -53,7 +57,13 @@ describe("NewClusterDialog", () => {
 
   it("rejects a taken worktree name and keeps Next disabled", async () => {
     const existing: Environment[] = [
-      { kind: "localWorktree", name: "my-feature", path: "C:/repo-my-feature", branch: "wt/my-feature", base: "main" },
+      {
+        kind: "localWorktree",
+        name: "my-feature",
+        path: "C:/repo-my-feature",
+        branch: "wt/my-feature",
+        base: "main",
+      },
     ];
     listClusterEnvironments.mockResolvedValue(existing);
     renderDialog();
@@ -84,7 +94,13 @@ describe("NewClusterDialog", () => {
 
   it("requires picking a row before 'Existing environment' can proceed", async () => {
     const existing: Environment[] = [
-      { kind: "localWorktree", name: "other", path: "C:/repo-other", branch: "wt/other", base: "main" },
+      {
+        kind: "localWorktree",
+        name: "other",
+        path: "C:/repo-other",
+        branch: "wt/other",
+        base: "main",
+      },
     ];
     listClusterEnvironments.mockResolvedValue(existing);
     renderDialog();
@@ -130,7 +146,13 @@ describe("NewClusterDialog", () => {
 
   it("submits an existing-environment choice with that environment and an empty name", async () => {
     const existing: Environment[] = [
-      { kind: "localWorktree", name: "other", path: "C:/repo-other", branch: "wt/other", base: "main" },
+      {
+        kind: "localWorktree",
+        name: "other",
+        path: "C:/repo-other",
+        branch: "wt/other",
+        base: "main",
+      },
     ];
     listClusterEnvironments.mockResolvedValue(existing);
     createClusterWithEnvironment.mockResolvedValue("cluster-2");
@@ -154,7 +176,7 @@ describe("NewClusterDialog", () => {
 
   it("shows the rejection message and re-enables the button on failure, without closing", async () => {
     listClusterEnvironments.mockResolvedValue([]);
-    createClusterWithEnvironment.mockRejectedValue("branch \"wt/my-feature\" already exists");
+    createClusterWithEnvironment.mockRejectedValue('branch "wt/my-feature" already exists');
     const { onCreated } = renderDialog();
 
     fireEvent.change(await screen.findByLabelText("Name"), { target: { value: "my-feature" } });

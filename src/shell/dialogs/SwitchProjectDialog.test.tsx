@@ -83,7 +83,10 @@ describe("SwitchProjectDialog", () => {
   });
 
   it("filters the list by the search field, case-insensitively", async () => {
-    listRecentProjects.mockResolvedValue([row({ name: "Flashlight" }), row({ name: "Torn Apart", path: "C:/torn-apart" })]);
+    listRecentProjects.mockResolvedValue([
+      row({ name: "Flashlight" }),
+      row({ name: "Torn Apart", path: "C:/torn-apart" }),
+    ]);
     renderDialog();
     await screen.findByText("Flashlight");
 

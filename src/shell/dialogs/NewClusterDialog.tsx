@@ -104,7 +104,9 @@ export default function NewClusterDialog({
   const choice = useMemo((): EnvironmentChoice | null => {
     switch (kind) {
       case "newLocalWorktree":
-        return nameProblem ? null : { kind: "newLocalWorktree", name: worktreeName.trim(), base: "main" };
+        return nameProblem
+          ? null
+          : { kind: "newLocalWorktree", name: worktreeName.trim(), base: "main" };
       case "existing":
         return selectedExisting ? { kind: "existing", environment: selectedExisting } : null;
       case "main":
@@ -298,7 +300,8 @@ function EnvironmentStep({
                   key={environmentKey(env)}
                   type="button"
                   className={`new-cluster__existing-row${
-                    selectedExisting !== null && environmentKey(selectedExisting) === environmentKey(env)
+                    selectedExisting !== null &&
+                    environmentKey(selectedExisting) === environmentKey(env)
                       ? " is-selected"
                       : ""
                   }`}
@@ -321,9 +324,7 @@ function EnvironmentStep({
         />
         <span className="new-cluster__card-title">Cloud session</span>
         <span className="new-cluster__card-text">Runs on a worker VM, not on this machine.</span>
-        {kind === "cloud" && (
-          <p className="new-cluster__empty">No cloud sessions in this build.</p>
-        )}
+        {kind === "cloud" && <p className="new-cluster__empty">No cloud sessions in this build.</p>}
       </label>
 
       <label className={`new-cluster__card${kind === "main" ? " is-selected" : ""}`}>
