@@ -31,7 +31,8 @@ a tool be absorbed, without its interface code changing.
 
 ```
 apps/
-  shared/app.css          the chrome every app draws inside
+  shared/                 code more than one app imports: app.css, the comment
+                          model (comments.ts), CommentPanel.tsx, SegmentedControl.tsx, age.ts
   home/ui/                Home's frontend
   files/ui/               File Explorer's frontend
   viewer/ui/              File Viewer's frontend
@@ -41,7 +42,14 @@ apps/
   projects/ui/            Projects' frontend: the project switcher and its embedded Plane workspace
   design/ui/              Design Mode's frontend
   schematify/ui/          Schematify's frontend
+  godot-viewer/ui/        Godot Viewer's frontend: the scene an agent's headless Godot run last produced
+  blender-viewer/ui/      Blender Viewer's frontend: the .glb an agent's headless Blender export last produced
+  play/ui/                Play's frontend: run the environment's debug build and capture a comment on it
 ```
+
+`apps/shared/` is deliberately outside the app-isolation rule ESLint enforces between the apps above
+(`eslint.config.js`'s `APPS` array) — see "Comments", below, for why the Godot Viewer, the Blender
+Viewer and Play needed one.
 
 Each app's Rust half lives in `src-tauri/src/apps/<id>.rs`, and
 `src-tauri/src/apps/mod.rs` is the registry that names it, describes it for the
@@ -256,3 +264,59 @@ an IPC hop with nothing of its own on the other end. It is an ordinary pane
 app — a tab in the switcher and a row in the Apps menu, like Files or the
 Viewer. Scope grows wave by wave; `docs/design/SCHEMATIFY-PRD.md` §17 is
 where that gets filled in.
+
+**Godot Viewer** (`godot-viewer/state`) — read-only: the scene an agent's
+headless `godot --headless` run last produced, a node tree beside a viewport
+render. There is no live game view and no way to change anything from here —
+selecting a node offers a comment, nothing else. `state()` has nothing to walk
+yet, because nothing runs the headless export against this project in this
+build; `nodes` is always `[]` until that lands. "Open in Godot" is visibly
+present and visibly disabled — there is no install handoff behind it yet.
+
+**Blender Viewer** (`blender-viewer/state`) — read-only, the same shape for
+Blender: a Model/Renders/Wire switch, an honest placeholder in place of a real
+3D viewport (deliberately not three.js — see
+`docs/KAAVA-UX-REWORK.md` §3.2), a parts list, a renders strip. Same story as
+the Godot Viewer on emptiness and "Open in Blender".
+
+**Play** (`play/state`) — runs the environment's debug build in a pane and
+lets you comment on what you see: pause/restart/stop, a frame area, a debug
+overlay, and Capture & comment on `F5`/`Ctrl+Shift+C` — bound on the app's own
+root element, not `window`, so it never fires while a different pane has
+focus. `state()` never reports a running build in this build of the app; the
+transport controls stay disabled outside "Preview with sample data" (below)
+because there is no RPC yet that actually starts, pauses or stops a run, and a
+capture never carries a real screenshot for the same reason — see
+`apps/play/ui/src/rpc.ts`.
+
+All three show an honest empty state everywhere they have nothing to show,
+rather than fabricating a render, a part list or a frame. Each has a single
+"Preview with sample data" toggle, off by default, that swaps in a fixture
+(`fixtures.ts` beside each app's `App.tsx`) so the layout can be reviewed
+before anything upstream produces real data — never anything that looks like
+it came from a real run.
+
+## Comments
+
+The Godot Viewer, the Blender Viewer and Play share one comment store rather
+than three: `apps/shared/comments.ts` is the model and the three RPC calls
+(`comments/list`, `comments/create`, `comments/resolve`), and
+`apps/shared/CommentPanel.tsx` is the list every one of them mounts. All three
+delegate to it from their own Rust module (`src-tauri/src/comments.rs`,
+reached through `godot_viewer.rs`/`blender_viewer.rs`/`play.rs`'s `dispatch`),
+which is why it lives under `apps/shared/` rather than in whichever app needed
+it first — see that directory's note above on why the isolation rule excludes
+it.
+
+A comment anchors to one of three things: a Godot node path, a Blender part
+plus material, or a Play scene plus a playhead time (`docs/KAAVA-UX-REWORK.md`
+§3.4). It is a file — one per comment — under `.kaava/comments/` inside the
+calling cluster's environment, not a database row, for the same reason the
+rest of this repo's structured state is files: it travels with the branch and
+merges the way git already merges text. `src-tauri/src/comments.rs`'s doc
+comment has the ID scheme and the merge reasoning in full.
+
+"Send to agent now" is on every comment panel, and it is always disabled: it
+is drawn now so the layout is right, but nothing reads `.kaava/comments/` into
+an agent yet, and the button says so in its tooltip rather than pretending to
+work.

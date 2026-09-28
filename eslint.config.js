@@ -107,10 +107,13 @@ function baseRestrictions() {
  */
 const APPS = [
   "agents",
+  "blender-viewer",
   "costs",
   "design",
   "files",
+  "godot-viewer",
   "home",
+  "play",
   "projects",
   "schematify",
   "tutorial",
