@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import type { PageInfo } from "../contract";
-import { Receipt, Robot } from "../../ui/Icon";
+import { Kanban, Receipt, Robot } from "../../ui/Icon";
 
 /**
  * The glyph for each page's `icon` key. The key comes from `pages.rs`, so a page
@@ -10,6 +10,7 @@ import { Receipt, Robot } from "../../ui/Icon";
 const PAGE_ICONS: Record<string, ComponentType<{ size?: number; className?: string }>> = {
   robot: Robot,
   receipt: Receipt,
+  kanban: Kanban,
 };
 
 /**

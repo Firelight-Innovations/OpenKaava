@@ -74,6 +74,7 @@ export default defineConfig(async ({ mode }) => ({
         tutorial: resolve(__dirname, "apps/tutorial/ui/index.html"),
         agents: resolve(__dirname, "apps/agents/ui/index.html"),
         costs: resolve(__dirname, "apps/costs/ui/index.html"),
+        projects: resolve(__dirname, "apps/projects/ui/index.html"),
         // Design Mode is disabled and ships no bundle unless
         // `KAAVA_DESIGN_MODE=1` — the twin of the `design-mode` Cargo feature.
         ...(DESIGN_MODE ? { design: resolve(__dirname, "apps/design/ui/index.html") } : {}),

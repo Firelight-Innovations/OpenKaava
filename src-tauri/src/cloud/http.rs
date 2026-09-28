@@ -22,7 +22,15 @@ pub struct Reply {
 /// Native TLS against the machine's own certificate store. `root_certs` must
 /// be said outright: ureq defaults to `WebPki`, which swaps the store for a
 /// bundled list that Schannel cannot finish Google's chain against.
-fn agent() -> ureq::Agent {
+///
+/// `pub(crate)` rather than private: `cloud::plane` talks to Plane itself, not
+/// to a Google API, so it cannot go through [`send`] below (that function
+/// always attaches a gcloud bearer token). It still wants the same TLS setup —
+/// a corporate proxy terminating with a private root does not stop existing
+/// once the request is aimed at `plane.kaava.internal` instead of
+/// `storage.googleapis.com` — so it takes this builder rather than repeating
+/// the reasoning in a second copy.
+pub(crate) fn agent() -> ureq::Agent {
     ureq::Agent::config_builder()
         .timeout_global(Some(TIMEOUT))
         .http_status_as_error(false)

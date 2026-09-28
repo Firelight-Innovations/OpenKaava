@@ -82,3 +82,10 @@ infra/plane/compose/
 # Generated Cloud Monitoring answers for the Cost Tracker: a month of hourly points, written compact
 # by the fixture script. Prettier would put every point on six lines of its own.
 src-tauri/fixtures/cloud/monitoring/
+
+# Deliberately invalid JSON: `apps/projects`' B1.3 fixture for a project
+# record that fails to parse, so `projects/list`'s "problems" list has
+# something real to report. Prettier's JSON parser rejects it the same way
+# `serde_json` does, which is the point — a valid replacement would stop
+# testing the failure path it exists for.
+src-tauri/fixtures/cloud/veistra-projects/prod/projects/broken.json

@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "slug": "openkaava",
+  "name": "OpenKaava",
+  "game": null,
+  "plane": {
+    "workspace": "veistra",
+    "project_id": "b6b2b1b0-3333-4a1a-9a1a-000000000003",
+    "identifier": "KAAVA"
+  },
+  "artifacts": "gs://veistra-artifacts/openkaava/",
+  "repo": "https://github.com/Firelight-Innovations/OpenKaava",
+  "hindsight_banks": [],
+  "created": "2026-09-28T00:10:00Z",
+  "archived": false
+}

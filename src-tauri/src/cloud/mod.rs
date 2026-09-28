@@ -17,10 +17,13 @@
 pub mod auth;
 pub mod billing;
 pub mod compute;
-mod http;
+pub(crate) mod http;
 pub mod inventory;
 pub mod monitoring;
+pub mod plane;
 pub mod storage;
+pub mod tunnel;
+pub mod wake;
 
 use kaava_rpc::{RpcError, INTERNAL_ERROR};
 use serde::de::DeserializeOwned;
@@ -33,6 +36,9 @@ pub const DEFAULT_PROJECT: &str = "veistra-prod";
 
 /// Where agent VMs write their session records. `docs/cloud-services.md` §5.
 pub const SESSIONS_BUCKET: &str = "veistra-prod-sessions";
+
+/// Project records and the AI job queue. `OPENKAAVA-PLANE-DESIGN.md` §3.
+pub const PROJECTS_BUCKET: &str = "veistra-projects";
 
 /// Points every read at a local folder instead of Google Cloud.
 pub const FIXTURES_ENV: &str = "KAAVA_CLOUD_FIXTURES";
@@ -134,6 +140,8 @@ pub struct Cloud {
     pub tokens: auth::Tokens,
     pub cache: storage::Cache,
     pub prices: billing::Prices,
+    /// The Plane PAT, once fetched, and its call budget. See [`plane`].
+    pub plane: plane::PlaneState,
 }
 
 /// `2026-09-28T15:12:40Z` from seconds since the Unix epoch — Google's own

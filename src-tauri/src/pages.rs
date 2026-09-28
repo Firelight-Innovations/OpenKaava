@@ -46,6 +46,12 @@ pub const PAGES: &[Page] = &[
         app_id: "costs",
         icon: "receipt",
     },
+    Page {
+        id: "projects",
+        name: "Projects",
+        app_id: "projects",
+        icon: "kanban",
+    },
 ];
 
 /// One page, as the cluster bar needs it.

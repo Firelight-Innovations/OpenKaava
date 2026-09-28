@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "slug": "anomaly",
+  "name": "Anomaly",
+  "game": "anomaly",
+  "plane": {
+    "workspace": "veistra",
+    "project_id": "b6b2b1b0-1111-4a1a-9a1a-000000000001",
+    "identifier": "ANOM"
+  },
+  "artifacts": "gs://veistra-artifacts/anomaly/",
+  "repo": "https://github.com/Firelight-Innovations/anomaly",
+  "hindsight_banks": ["asset-build", "godot-build"],
+  "created": "2026-09-28T00:00:00Z",
+  "archived": false
+}

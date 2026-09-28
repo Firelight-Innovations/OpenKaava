@@ -1,0 +1,60 @@
+/*
+ * The Projects app's own rules, on top of `apps/shared/app.css`. Colours come
+ * from `src/tokens.css` only.
+ */
+
+.projects__body:has(.projects__split) {
+  padding-bottom: 0;
+}
+
+.projects__split {
+  grid-template-columns: minmax(220px, 320px) 1fr;
+}
+
+.projects__badge {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border: 1px solid var(--line-2);
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--warn);
+}
+
+.projects__archived {
+  margin-left: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim-2);
+}
+
+.projects__problem {
+  margin-bottom: 8px;
+}
+
+.projects__plane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.projects__fix {
+  white-space: normal;
+}
+
+.projects__waking {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The one element the child webview is placed over — this app draws nothing
+   inside it. See `App.tsx`'s comment on `projects__pane-target` for why. */
+.projects__pane-target {
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}

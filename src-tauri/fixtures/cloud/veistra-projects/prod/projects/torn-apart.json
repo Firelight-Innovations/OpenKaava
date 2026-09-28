@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "slug": "torn-apart",
+  "name": "Torn Apart",
+  "game": "torn-apart",
+  "plane": {
+    "workspace": "veistra",
+    "project_id": "b6b2b1b0-2222-4a1a-9a1a-000000000002",
+    "identifier": "TORN"
+  },
+  "artifacts": "gs://veistra-artifacts/torn-apart/",
+  "repo": "https://github.com/Firelight-Innovations/torn-apart",
+  "hindsight_banks": ["asset-build"],
+  "created": "2026-09-28T00:05:00Z",
+  "archived": false
+}

@@ -38,7 +38,16 @@ design-mode = []
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+# `unstable` is what gates `Window::add_child` — the multi-webview API
+# `src/plane_webview.rs` uses to embed Plane CE as its own WebView2 instance
+# rather than an `<iframe>` (`OPENKAAVA-PLANE-DESIGN.md` §11: an iframe's
+# third-party-cookie blocking breaks Plane's login session on every restart).
+# Tauri documents the feature as exactly that — an API that has not settled
+# yet — so turning it on is a decision for the owner, not something this PR
+# makes unilaterally; flagged again in the PR description, with §11's
+# fallback (a separate `WebviewWindow`, docked beside the main one) named as
+# what to switch to if it is declined.
+tauri = { version = "2", features = ["unstable"] }
 tauri-plugin-opener = "2"
 
 # One OpenKaava process per machine, and the reason is Explorer's context menu.
@@ -236,6 +245,13 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 # Checksums. The distribution decision in `docs/tool-protocol.md` §6 is a
 # release artifact verified before anything executes, and this is the verifying.
 sha2 = "0.10"
+
+# Parsing and validating the Plane URLs `apps/projects.rs` hands to the child
+# webview (`src/plane_webview.rs`) — same-origin checked against
+# `plane.kaava.internal` before anything is ever opened or navigated. Already
+# in the tree transitively; named directly because this crate now calls it
+# itself rather than only linking it through something else's API.
+url = "2"
 
 # The token for a private repository, in the OS credential store rather than in
 # `plugins.json`. Windows Credential Manager here; the crate abstracts the other
