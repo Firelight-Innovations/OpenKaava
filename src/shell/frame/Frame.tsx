@@ -509,7 +509,11 @@ export default function Frame({
                   <div className="frame__bottomgrip" />
                 </div>
 
-                <motion.div className="frame__bottom" data-region="bottom" style={{ height: bottom }}>
+                <motion.div
+                  className="frame__bottom"
+                  data-region="bottom"
+                  style={{ height: bottom }}
+                >
                   {slots.bottomPanel}
                 </motion.div>
               </>

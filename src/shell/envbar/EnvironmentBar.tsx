@@ -93,7 +93,8 @@ export default function EnvironmentBar({
 
       {!cloud && ahead !== undefined && behind !== undefined && (
         <span className="envbar__ahead-behind">
-          <span className="envbar__ahead">↑{ahead}</span> <span className="envbar__behind">↓{behind}</span>
+          <span className="envbar__ahead">↑{ahead}</span>{" "}
+          <span className="envbar__behind">↓{behind}</span>
         </span>
       )}
 

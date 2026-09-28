@@ -7,12 +7,15 @@
  * **clusters** workstream lands a real `environment` field, only this
  * function's body changes — signature and exports stay put.
  *
- * `cloud` is fully typed and unreachable today — nothing in `Cluster` names
- * a session — but its fields (`branch`/`base`/`path`) already match the
- * written spec's `job-7f3a`/`agent/anom-142` shape, so a real cloud cluster
- * slots in without widening the type.
+ * `sameEnvironment` below is the **panes** workstream's own, narrower
+ * question, kept on `clusterRoot` rather than on `Environment` — see its own
+ * doc comment for why.
+ *
+ * `cloud` is fully typed and unreachable today — nothing in `Cluster` names a
+ * session — but its fields already match the written spec's `job-7f3a`/
+ * `agent/anom-142` shape, so a real cloud cluster slots in without widening it.
  */
-import type { Cluster } from "./contract";
+import { clusterRoot, type Cluster } from "./contract";
 
 export type EnvironmentKind = "worktree" | "cloud" | "main" | "design";
 
@@ -20,8 +23,7 @@ export interface Environment {
   kind: EnvironmentKind;
   /** Absent for `main`, which has no branch of its own. */
   branch?: string;
-  /** `main@<hash>`. No source populates this yet; a caller with the
-   *  divergence separately may merge it in. */
+  /** `main@<hash>`. No source populates this yet; a caller with it separately may merge it in. */
   base?: string;
   /** On-disk path, for a worktree or the design canvas. */
   path?: string;
@@ -60,6 +62,20 @@ export function environmentOf(cluster: Cluster): Environment {
 export function environmentKey(env: Environment): string {
   if (env.kind === "main") return "main";
   return `${env.kind}:${env.path ?? env.branch ?? ""}`;
+}
+
+/**
+ * Whether a tab dragged out of `from` may land in `to` (`docs/KAAVA-UX-
+ * REWORK.md` §5). On `clusterRoot`, not [`environmentKey`] — that keys every
+ * `main` cluster alike, which is wrong here: two clusters each working
+ * directly in a different project share no root and must refuse. A `null`
+ * root (nothing opened yet) refuses too, same reason.
+ */
+export function sameEnvironment(from: Cluster | null, to: Cluster | null): boolean {
+  if (from === null || to === null) return false;
+  const a = clusterRoot(from);
+  const b = clusterRoot(to);
+  return a !== null && a === b;
 }
 
 /** The kind chip's label, shared by the cluster tab and the environment bar. */

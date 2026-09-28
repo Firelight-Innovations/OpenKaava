@@ -1175,6 +1175,27 @@ export function addCluster(label: string, name: string): Promise<string | null> 
   return invoke<string | null>("add_cluster", { label, name });
 }
 
+/**
+ * Drop a tab on the switcher's empty space: a new cluster in the same
+ * environment the tab came from, holding that one tab. `sourceCluster` is
+ * the drag payload's `fromClusterId` — see `SurfaceDrag` in `contract.ts`.
+ * Resolves to the new cluster's id, or `null` if the drop was refused (the
+ * window closed underneath it).
+ */
+export function newClusterForDrop(
+  label: string,
+  name: string,
+  sourceCluster: string,
+  instanceId: string,
+): Promise<string | null> {
+  return invoke<string | null>("new_cluster_for_drop", {
+    label,
+    name,
+    sourceCluster,
+    instanceId,
+  });
+}
+
 export function setActiveCluster(label: string, clusterId: string | null): Promise<void> {
   return invoke("set_active_cluster", { label, clusterId });
 }
