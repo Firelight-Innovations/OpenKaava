@@ -139,6 +139,11 @@
   --syn-string: #9fd89a;
   --syn-number: #e8a868;
   --syn-comment: #7a8185;
+  /* KAAVA-UX-SPEC.md §1.6: the pane tab strip's file-type colour square for
+     `.rs` names a raw hex the boards give with nothing here to reuse — every
+     other extension in that table points at an existing token. Flag for
+     `ux/tokens` to fold into the next `tokens.json` pass. */
+  --syn-rust: #e5734b;
 
   /* --- colour: the mark ---------------------------------------------------
      Brand colours, never used in the interface (see `README.md`'s Mark
@@ -350,6 +355,7 @@
   --syn-string: #23803b;
   --syn-number: #a85a14;
   --syn-comment: #767c7f;
+  --syn-rust: #b8392f;
 
   --mark-skin: #3f6020;
   --mark-flesh: #8fae35;

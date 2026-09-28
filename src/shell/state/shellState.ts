@@ -37,6 +37,7 @@ export {
   detachInstance,
   moveInstance,
   moveTerminal,
+  newClusterForDrop,
   newWindow,
   openInstance,
   openPage,

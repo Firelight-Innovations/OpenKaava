@@ -1,14 +1,22 @@
 /**
  * The environment bar: a 36px strip above the pane grid saying which
  * environment the open cluster is working in, and what you can do about it.
- *
- * `docs/design/KAAVA-UX-SPEC.md` §1.4. Boards 02 (worktree) and 03 (cloud)
- * give this a real variant; this file adds an undrawn third for `main` — a
- * cluster with no worktree works directly in the project folder, which the
- * spec calls read-only, so it gets the bar's own neutral tokens rather than
- * colours guessed from a mock.
+ * `docs/design/KAAVA-UX-SPEC.md` §1.4 — boards 02 (worktree) and 03 (cloud)
+ * draw two of its three variants; `main` is this file's own extrapolation
+ * (no board crops a read-only cluster), styled off the bar's own neutral
+ * tokens rather than guessed from the worktree variant.
  */
-
+// Left out for "never fake data" (`docs/KAAVA-UX-REWORK.md`): the spec's
+// `from base@<hash>` segment (no merge-base source in `contract.ts`/
+// `bindings.ts` yet — see `Environment.base`), the agent-state badge (no
+// live "working now" signal — `TerminalSession.agentFinished` means the
+// opposite, `TerminalControl.busy` is one-shot), and the cloud variant's
+// streaming pill (no latency source, and moot while `environmentOf` cannot
+// return `"cloud"`).
+//
+// Ahead/behind *is* real, though: `GitStatus.ahead`/`.behind`, the same
+// cluster-scoped read `StatusBar` uses, passed in here rather than
+// re-fetched.
 import { Cloud, GitBranch, Lock } from "lucide-react";
 import type { Environment, EnvironmentKind } from "../environment";
 import { ENVIRONMENT_BAR_LABEL } from "../environment";

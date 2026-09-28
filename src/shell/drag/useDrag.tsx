@@ -21,18 +21,29 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { AnimatePresence, useMotionValue, useSpring } from "framer-motion";
-import type { ClusterDrag, DragHandleProps, DragPayload, DragState, DropTarget } from "../contract";
+import type {
+  Cluster,
+  ClusterDrag,
+  DragHandleProps,
+  DragPayload,
+  DragState,
+  DropTarget,
+} from "../contract";
+import { paneLeaves } from "../contract";
 import {
   detachCluster,
   detachInstance,
   moveInstance,
   moveTerminal,
+  newClusterForDrop,
   splitPane,
   windowAtCursor,
 } from "../state/shellState";
+import { sameEnvironment } from "../environment";
 import DragGhost from "./DragGhost";
 import { ghostSpring } from "./ghostSpring";
 import { DetachOutline } from "./DropTargets";
+import DropHint from "./DropHint";
 import { hitTest } from "../dropZones";
 import "./drag.css";
 
@@ -56,26 +67,27 @@ interface Session {
  * `label` and `activeClusterId` are the *destination* half of every commit: a
  * pane belongs to a cluster, and a tab released over another window has to be
  * moved to that window rather than this one. Passed in rather than read from
- * `shell:state` here, because `WindowRoot` has already resolved which cluster
- * this window is showing and a second derivation would be a second chance to
- * disagree with it.
+ * `shell:state` here, since `WindowRoot` has already resolved which cluster
+ * this window is showing.
  *
  * `translateStripIndex` is the same kind of borrowed answer, for a narrower
- * question. A `strip` target's `index` is counted over whatever `ClusterBar`
- * actually rendered for the pane it landed in, and since Home stopped drawing
- * a tab there (see `WindowRoot`'s `members`), that count can disagree with the
- * tab's real position in the tree. `WindowRoot` is the one place that knows a
- * pane's real order and which of its tabs are hidden, so it is the one place
- * that can turn a rendered index back into a tree one; this hook only applies
- * that answer, at the single call in `commit` that writes the index to the
- * backend. The *live* target this hook exposes for `ClusterBar` to draw its
- * caret from is left untranslated on purpose — the caret has to agree with the
- * row that is on screen, not with the tree underneath it.
+ * question: a `strip` target's `index` is counted over whatever `ClusterBar`
+ * actually rendered, which can disagree with the tab's real tree position
+ * since Home stopped drawing a tab there. `WindowRoot` is the one place that
+ * knows a pane's real order, so this hook only applies its answer once — at
+ * the single call in `commit` that writes the index to the backend. The
+ * *live* target exposed for `ClusterBar`'s caret stays untranslated on
+ * purpose, since the caret must agree with the row on screen.
+ *
+ * `clusters` is the live list this window is showing, threaded through to
+ * `resolve` for one question: whether a `cluster` target's environment
+ * agrees with the dragged tab's own (`sameEnvironment`).
  */
 export function useDrag(
   label: string,
   activeClusterId: string | null,
   translateStripIndex: (paneId: string, index: number) => number,
+  clusters: Cluster[],
 ) {
   const [drag, setDrag] = useState<DragState | null>(null);
   const sessionRef = useRef<Session | null>(null);
@@ -133,7 +145,7 @@ export function useDrag(
 
           rawX.set(ev.clientX);
           rawY.set(ev.clientY);
-          const target = resolve(s.payload, ev.clientX, ev.clientY);
+          const target = resolve(s.payload, ev.clientX, ev.clientY, clusters);
           setDrag({ payload: s.payload, x: ev.clientX, y: ev.clientY, target });
         };
 
@@ -151,6 +163,7 @@ export function useDrag(
           window.removeEventListener("pointermove", onMove);
           window.removeEventListener("pointerup", onUp);
           window.removeEventListener("pointercancel", onCancel);
+          window.removeEventListener("keydown", onKeyDown);
 
           // Cleared before the commit rather than after. The pointer is already
           // up, some commits resolve asynchronously, and nothing about ending
@@ -165,10 +178,11 @@ export function useDrag(
           if (!s) return;
           commit(
             s.payload,
-            resolve(s.payload, ev.clientX, ev.clientY),
+            resolve(s.payload, ev.clientX, ev.clientY, clusters),
             label,
             activeClusterId,
             translateStripIndex,
+            clusters,
           );
         };
 
@@ -188,12 +202,36 @@ export function useDrag(
           finish(ev);
         };
 
+        // Board 07's hint bar names this key, so it has to actually work: a
+        // hint that promises "Esc cancel" and does nothing on Esc is worse
+        // than no hint at all. Listens from the moment the press begins
+        // rather than only once `began` flips true, so Escape also cancels a
+        // press that has not cleared the move threshold yet — there is no
+        // reason a gesture too small to look like a drag should be the one
+        // case this key does not reach.
+        //
+        // Ends the session the same way `finish` does but commits nothing:
+        // there is no `PointerEvent` to hand it and nothing to resolve a
+        // target from anyway — a cancelled drag puts the thing back where it
+        // was, full stop.
+        const onKeyDown = (ev: KeyboardEvent) => {
+          if (ev.key !== "Escape") return;
+          ev.preventDefault();
+          sessionRef.current = null;
+          window.removeEventListener("pointermove", onMove);
+          window.removeEventListener("pointerup", onUp);
+          window.removeEventListener("pointercancel", onCancel);
+          window.removeEventListener("keydown", onKeyDown);
+          setDrag(null);
+        };
+
         window.addEventListener("pointermove", onMove);
         window.addEventListener("pointerup", onUp);
         window.addEventListener("pointercancel", onCancel);
+        window.addEventListener("keydown", onKeyDown);
       },
     }),
-    [label, activeClusterId, translateStripIndex, rawX, rawY],
+    [label, activeClusterId, translateStripIndex, clusters, rawX, rawY],
   );
 
   const overlay = useMemo(
@@ -204,6 +242,7 @@ export function useDrag(
           <AnimatePresence>
             {drag.target.kind === "detach" && <DetachOutline key="detach" x={ghostX} y={ghostY} />}
           </AnimatePresence>
+          <DropHint target={drag.target} x={ghostX} y={ghostY} />
         </div>
       ) : null,
     [drag, ghostX, ghostY],
@@ -224,23 +263,46 @@ export function useDrag(
 /**
  * Where *this* payload would land, which is not always what is under the cursor.
  *
- * The zones answer for a tab, because a tab is what they were registered for. A
- * cluster can only be released on a window: it holds panes, so there is no sense
- * in which it goes inside one, and the terminal panel is a region of a window
- * rather than a place a cluster could live. Substituting `none` over those is
- * what stops the row drawing an insertion caret, a pane lighting an edge, and
- * the panel lighting up for a release `commitCluster` would refuse — an
- * indicator that promises something the drop will not do is worse than no
- * indicator, because it is read as a commitment.
+ * The zones answer for a tab, since a tab is what they were registered for. A
+ * cluster can only be released on a window — it holds panes and cannot go
+ * inside a pane or a panel — so `none` is substituted over those targets
+ * rather than drawing an indicator for a release `commitCluster` would refuse.
  *
- * Done here rather than in the regions so that no region has to learn what is
- * being dragged. They are handed a target and draw it; that is the whole of
- * their involvement in the gesture.
+ * A `cluster` target's `refused` is computed here too, and only here:
+ * `hitTest` cannot know it, and `dropLabel`/`commit` both read the value
+ * stamped here rather than recomputing it, so the hint bar and the actual
+ * drop can never disagree about whether a release will do anything.
  */
-function resolve(payload: DragPayload, x: number, y: number): DropTarget {
+function resolve(payload: DragPayload, x: number, y: number, clusters: Cluster[]): DropTarget {
   const target = hitTest(x, y);
-  if (payload.what !== "cluster") return target;
-  return target.kind === "detach" ? target : { kind: "none" };
+  if (payload.what === "cluster") {
+    return target.kind === "detach" ? target : { kind: "none" };
+  }
+  if (target.kind !== "cluster") return target;
+  return { ...target, refused: clusterDropRefused(payload, target.clusterId, clusters) };
+}
+
+/**
+ * Whether releasing a tab on this cluster chip would do anything.
+ *
+ * Two ways to be refused: the chip is the cluster the tab is already in — the
+ * strip is what reorders within a cluster, and a chip has no pane of its own
+ * to say *where* in that cluster the tab would land, so "move to the cluster
+ * you're already showing" is not a question this gesture can answer — or the
+ * two clusters are in different environments, which is KAAVA-UX-REWORK.md
+ * §5's stated rule in full: "Tabs can only move between clusters that share
+ * an environment."
+ */
+function clusterDropRefused(
+  payload: DragPayload,
+  toClusterId: string,
+  clusters: Cluster[],
+): boolean {
+  if (payload.what !== "surface") return true;
+  if (payload.fromClusterId === toClusterId) return true;
+  const from = clusters.find((c) => c.id === payload.fromClusterId) ?? null;
+  const to = clusters.find((c) => c.id === toClusterId) ?? null;
+  return !sameEnvironment(from, to);
 }
 
 /**
@@ -276,6 +338,7 @@ function commit(
   label: string,
   activeClusterId: string | null,
   translateStripIndex: (paneId: string, index: number) => number,
+  clusters: Cluster[],
 ): void {
   if (payload.what === "cluster") return commitCluster(payload, target, label);
 
@@ -343,6 +406,48 @@ function commit(
         `detaching ${payload.instanceId} into a window of its own`,
         windowAtCursor().then(() => detachInstance(payload.instanceId)),
       );
+      return;
+
+    case "cluster":
+      // `refused` was computed once, in `resolve`, off the same
+      // `clusterDropRefused` this would otherwise have to recompute — see
+      // that function's doc comment for why staying refused here is what
+      // keeps the hint bar and the actual drop from disagreeing.
+      if (target.refused) {
+        console.debug(
+          `kaava: ${payload.instanceId} released over cluster ${target.clusterId}, refused`,
+        );
+        return;
+      }
+      {
+        // A chip names a cluster, not a pane — `move_instance` needs one, so
+        // this picks that cluster's own first pane in layout order. Any pane
+        // in the cluster is as good a landing spot as any other for a drop
+        // that named the *cluster*, not a place inside it; a strip or a
+        // pane's own edge is how you aim more precisely than that.
+        const cluster = clusters.find((c) => c.id === target.clusterId);
+        const pane = cluster && paneLeaves(cluster.tree)[0];
+        if (pane) {
+          attempt(
+            `moving ${payload.instanceId} into cluster ${target.clusterId}`,
+            moveInstance(payload.instanceId, target.clusterId, pane.id, null),
+          );
+        }
+      }
+      return;
+
+    case "new-cluster":
+      // `fromClusterId` is the environment `new_cluster_for_drop` clones —
+      // see `ShellState::add_cluster_for_environment`. Only `null` for a
+      // page's surface, which `dragHandleFor` never offers a handle for, so
+      // this is guarded rather than asserted: a payload that somehow lacks
+      // it is a drop that does nothing, not a crash.
+      if (payload.fromClusterId) {
+        attempt(
+          `opening a new cluster for ${payload.instanceId}`,
+          newClusterForDrop(label, "New cluster", payload.fromClusterId, payload.instanceId),
+        );
+      }
       return;
 
     case "none":
