@@ -1,18 +1,15 @@
 /**
  * The seam every region plugs into. Each of the sixteen regions is built against
  * this file and nothing else — a region never imports another region's source,
- * which is what lets them be built in parallel without growing into each other.
- * Anything two regions need lives beside this file (STANDARDS.md §1.2).
- * The long-form argument behind several of these types is in
- * `docs/design-notes/shell-core.md`.
+ * which is what lets them be built in parallel. Anything two regions need lives
+ * beside this file (STANDARDS.md §1.2); the long-form argument behind several of
+ * these types is in `docs/design-notes/shell-core.md`.
  *
- * Two of the review's rules are enforced here rather than hoped for:
- *
- *   * No version number reaches the interface. `ToolPresentation` has no version
- *     field, and `toolPresentation()` is the only door onto a `ResolvedTool`.
- *   * No backend vocabulary reaches the interface. The backend's four states are
- *     `ready | mismatch | unversioned | missing`; the user reads "needs update",
- *     "not tracked", "not installed". The mapping happens once, below.
+ * Two rules enforced here rather than hoped for: no version number reaches the
+ * interface (`ToolPresentation` has none; `toolPresentation()` is the only door
+ * onto a `ResolvedTool`), and no backend vocabulary does either (the backend's
+ * `ready | mismatch | unversioned | missing` becomes "needs update", "not
+ * tracked", "not installed" once, below).
  */
 import type { ReactNode } from "react";
 import type {
@@ -686,11 +683,10 @@ export type {
 // terminals in the band below it, which makes a chip a place rather than a
 // filter. See `TerminalSessionState.clusterId` and `docs/design-notes/shell-core.md`.
 
-/** One entry in the shell's single tab bar: whichever of a cluster's surfaces and
- *  terminals a tab happens to be, flattened to the one shape the bar draws.
- *  `paneId` is the whole distinction — a surface lives in a pane, a terminal in
- *  the panel, and `null` says which. Built fresh from `shell:state` on every
- *  render rather than tracked; see `docs/design-notes/shell-core.md`. */
+/** Whichever of a cluster's surfaces and terminals a tab happens to be,
+ *  flattened to the one shape a strip draws. `paneId` is the whole
+ *  distinction — a surface lives in a pane, a terminal in the panel, `null`
+ *  says which. Built fresh from `shell:state` every render, not tracked. */
 export interface ClusterMember {
   /** The tab's own identity: an instance id, or a terminal tab's group id. */
   id: string;
@@ -731,15 +727,10 @@ export function paneLeaves(node: PaneNode): Extract<PaneNode, { kind: "leaf" }>[
 
 // --- Drag — every interaction, one vocabulary -------------------------------
 
-/** What is currently in the air. Two things can be dragged, and `what` is which;
- *  a union rather than a wide object with half its fields unused is what stops a
- *  cluster falling through the tab branches and landing somewhere it cannot go.
- *  See `docs/design-notes/shell-core.md`. */
+/** What is currently in the air, `what` saying which — a union so a cluster can't fall through the tab branches. */
 export type DragPayload = SurfaceDrag | ClusterDrag;
 
-/** A tab in the air. One kind, where there used to be two: an app surface and a
- *  terminal drag identically, drop in the same places, and split a pane the same
- *  way. `kind` is carried for the ghost's benefit and nothing else. */
+/** A tab in the air — an app surface and a terminal drag identically. `kind` is carried for the ghost. */
 export interface SurfaceDrag {
   what: "surface";
   instanceId: string;
@@ -749,6 +740,9 @@ export interface SurfaceDrag {
   agentFinished?: boolean;
   /** Where it came from, so a drop that lands nowhere can be a no-op. */
   fromPaneId: string | null;
+  /** Which cluster it came from — the other half of the cluster-chip drop's
+   *  environment gate. `null` only for a page's surface, never draggable. */
+  fromClusterId: string | null;
 }
 
 /** A whole cluster in the air — its chip, and with it its entire pane tree. The
@@ -761,17 +755,22 @@ export interface ClusterDrag {
 }
 
 /** Where a drag would land if it were released now. `pane` with an `edge` splits
- *  that pane on that side; `pane` with no edge appends to its tab strip. `strip`
- *  is a drop between two tabs, with `index` naming the insertion point. `panel`
- *  is the terminal band, still named for the panel it used to be. `detach` is
- *  clear of every drop target, and releasing there makes a window. `none` is a
- *  release this *particular* payload cannot make; it is never what a hit test
- *  returns, `useDrag` substitutes it, and releasing on it does nothing at all.
- *  See `docs/design-notes/shell-core.md`. */
+ *  that pane on that side; with no edge it appends to the tab strip. `strip` is
+ *  a drop between two tabs, `index` naming the insertion point. `panel` is the
+ *  terminal band. `detach` is clear of every target, and releases into a window.
+ *  `none` is a release this payload cannot make — never what a hit test
+ *  returns; `useDrag` substitutes it and does nothing on release. */
 export type DropTarget =
   | { kind: "pane"; paneId: string; edge: SplitDir | null; before: boolean }
   | { kind: "strip"; paneId: string; index: number }
   | { kind: "panel" }
+  /** A cluster's own chip — KAAVA-UX-REWORK.md §5's same-environment move.
+   *  `refused` is computed once, by `useDrag`'s `resolve`, and read by the
+   *  chip, the hint bar and `commit` alike. */
+  | { kind: "cluster"; clusterId: string; refused: boolean }
+  /** Empty switcher space — KAAVA-UX-REWORK.md §5's "new cluster in the same
+   *  environment, holding the tab." Always allowed. */
+  | { kind: "new-cluster" }
   | { kind: "detach" }
   | { kind: "none" };
 
@@ -789,10 +788,8 @@ export interface DragState {
  *  not import `panes` (§1.2). See `docs/design-notes/shell-core.md`. */
 export interface PaneTreeProps {
   tree: PaneNode;
-  /** The pane an open acts on, drawn with the active-pane outline. "Acts on"
-   *  rather than "lands in": opening an app splits this pane along its longer
-   *  axis and puts the new surface in the half that produces. See
-   *  `panes/splitOnOpen.ts`. */
+  /** The pane an open acts on, drawn with the active-pane outline — opening
+   *  an app splits this pane along its longer axis. See `panes/splitOnOpen.ts`. */
   focusedPaneId: string | null;
   onFocusPane: (paneId: string) => void;
   /** Commits a divider drag. One weight per child, summing to 1. */
@@ -801,6 +798,17 @@ export interface PaneTreeProps {
   onHostChange: (paneId: string, el: HTMLDivElement | null) => void;
   /** Where a drag would land right now, so the target pane can say so. */
   dropTarget?: DropTarget | null;
+  /** Every tab in the tree, flat — what `ClusterBar` drew inline before the
+   *  per-pane strips came back. `PaneTree` groups it by `paneId` itself. */
+  members?: ClusterMember[];
+  onSelectMember?: (member: ClusterMember) => void;
+  onCloseMember?: (member: ClusterMember) => void;
+  /** A tab's own drag handle. Omitted, a strip's tabs are not draggable. */
+  dragHandleFor?: (member: ClusterMember) => DragHandleProps | undefined;
+  /** The one pane drawn full-size, rest hidden but not unmounted, or `null`
+   *  for the ordinary grid. KAAVA-UX-REWORK.md §5. */
+  maximizedPaneId?: string | null;
+  onToggleMaximizePane?: (paneId: string) => void;
 }
 
 /** What a region spreads onto an element to make it a drag source. */

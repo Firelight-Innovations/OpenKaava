@@ -7,11 +7,13 @@ import {
   appPresentation,
   pluginPresentation,
   clusterRoot,
+  groupTerminalTabs,
   paneLeaves,
   paneOfTab,
   paneTabs,
   toolPresentation,
   updateNotice,
+  type ClusterMember,
   type PaneNode,
   type ReviewSend,
   type TerminalBusy,
@@ -37,6 +39,7 @@ import ToolWindow, { type ToolWindowHandle } from "./toolwindow/ToolWindow";
 import PaneTree from "./panes/PaneTree";
 import XTermView from "./terminal/XTermView";
 import { splitDirOnOpen } from "./panes/splitOnOpen";
+import { toggleMaximize } from "./panes/paneMaximize";
 import SecondaryPanel, { type PanelView } from "./panel/SecondaryPanel";
 import BottomPanel from "./panel/BottomPanel";
 import StatusBar from "./statusbar/StatusBar";
@@ -59,6 +62,7 @@ import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
 import { useUpdates } from "./state/updates";
 import {
+  activateInstance,
   addCluster,
   closeCluster,
   closeInstance,
@@ -379,6 +383,23 @@ export default function WindowRoot({
       setActivePane(paneIds[0] ?? null);
     }
   }, [paneIds, activePaneId]);
+
+  // Which pane, if any, is drawn full-size with the rest hidden but still
+  // mounted — KAAVA-UX-REWORK.md §5's "double-click a tab to maximise its
+  // pane." View-local for the same reason `activePaneId` is: a fact about
+  // this window's screen, not the project. Reset rather than followed when
+  // the maximised pane disappears out from under it (its cluster's tree
+  // changed, or the cluster itself did) — a maximised id naming nothing would
+  // leave `PaneTree` with every child hidden and none stretched to fill it.
+  const [maximizedPaneId, setMaximizedPaneId] = useState<string | null>(null);
+  useEffect(() => {
+    if (maximizedPaneId !== null && !paneIds.includes(maximizedPaneId)) {
+      setMaximizedPaneId(null);
+    }
+  }, [paneIds, maximizedPaneId]);
+  const onToggleMaximizePane = useCallback((paneId: string) => {
+    setMaximizedPaneId((current) => toggleMaximize(current, paneId));
+  }, []);
 
   /**
    * Focus follows what you just opened, into the pane it turned out to be in.
@@ -888,17 +909,71 @@ export default function WindowRoot({
     requestCloseTab({ id: bandTabId, sessions: activeTabSessions });
   }, [activeTabSessions, bandTabId, requestCloseTab]);
 
-  // --- the cluster bar ------------------------------------------------------
+  // --- the cluster's members --------------------------------------------------
   //
   // The switcher row draws cluster tabs only now — `ClusterBar`'s own doc
-  // comment says why. What used to live here (a flattened list of the open
-  // cluster's tabs, and the select/close handlers the row's member tabs
-  // called) went with the member tabs themselves; a pane's own tab strip is
-  // the **panes** workstream's to build, off `paneTabs`/`paneLeaves` directly
-  // rather than off a list this file assembled for a row that no longer draws
-  // it.
+  // comment says why — but every tab *in the open cluster* is still flattened
+  // here, because `PaneTree`'s own per-pane strip (`PaneTabStrip`, the
+  // **panes** workstream's) and its drag handle both need the same list this
+  // file used to hand the switcher row instead.
+  //
+  // The band's terminals are not in this list, and that is the change from
+  // before the rework. A cluster's members are its tree's tabs — a band
+  // terminal is not one, so no cluster's group can list it without claiming
+  // something untrue. The band names its own contents; see `BottomPanel`. A
+  // terminal *dragged into* a tree is still here, because by then it is a
+  // tree tab like any other.
+  //
+  // Derived, never stored: a membership list kept beside the tree would be a
+  // second answer that could drift. Takeover surfaces are filtered out below
+  // — see the `isTakeover` skip inside `members`, and `onSelectCluster` for
+  // where Home's door went instead.
 
-  // Each pane's real tab order, takeover surfaces included. `ClusterBar`
+  // The band's tabs, grouped so a split terminal is one entry rather than two.
+  const bandTabs = useMemo(() => groupTerminalTabs(sessions), [sessions]);
+
+  // Agent-finished state for a terminal that has been dragged *into* the layout.
+  // It is no longer in `sessions` (the panel does not hold it any more), but it
+  // is still a live session with a dot to draw.
+  const terminalsById = useMemo(
+    () => new Map((shell?.terminals ?? []).map((t) => [t.id, t])),
+    [shell?.terminals],
+  );
+
+  const members: ClusterMember[] = useMemo(() => {
+    const list: ClusterMember[] = [];
+
+    // Layout order, pane by pane. A surface that is its pane's active tab is
+    // `showing` — with a split that is true of more than one at once, which is
+    // the honest answer: there really are two surfaces on screen.
+    for (const leaf of paneLeaves(tree)) {
+      for (const id of leaf.tabs) {
+        const instance = instances.get(id);
+        // Skipped, not removed from the tree — `ToolWindow` mounts off `tree`
+        // directly, so Home keeps running behind the chip that now opens it.
+        if (isTakeover(instance?.appId)) continue;
+        list.push({
+          id,
+          dragId: id,
+          // An id in the tree with no instance behind it should not happen, and
+          // drawing the raw id is how you find out that it did. Skipping it
+          // silently would look like a rendering bug rather than a state one.
+          title: instance?.title ?? id,
+          kind: instance?.kind ?? "app",
+          paneId: leaf.id,
+          showing: leaf.activeTab === id,
+          agentFinished: terminalsById.get(id)?.agentFinished ?? false,
+        });
+      }
+    }
+
+    // And nothing else. The band's terminals used to be appended here; they are
+    // not the cluster's tree's, so the cluster's group does not claim them.
+    // `BottomPanel` lists them in its own rail.
+    return list;
+  }, [tree, instances, terminalsById]);
+
+  // Each pane's real tab order, takeover surfaces included. `PaneTabStrip`
   // measures its insertion index over what it actually renders, so the index
   // needs translating back against this before it can name a real tree
   // position. See `translateStripIndex` and `useDrag` for the mechanics.
@@ -917,6 +992,62 @@ export default function WindowRoot({
       return real.indexOf(visible[visibleIndex]);
     },
     [paneTabsById, instances],
+  );
+
+  /**
+   * Clicking a tab in a pane's own strip.
+   *
+   * The two halves land in different places, which is the one thing this
+   * hides from the person using it. A surface is activated in the pane that
+   * already holds it, and that pane becomes the focused one — so the menus
+   * follow the click, the way they would have if you had clicked the surface
+   * itself. A terminal is in the band, so the band is opened if it was shut
+   * and switched to it; a click that revealed nothing would read as a click
+   * that missed.
+   */
+  const onSelectMember = useCallback(
+    (member: ClusterMember) => {
+      // Clicking any of them is choosing what to look at, which is the other
+      // way Home stops covering the window. See `showHome`.
+      hideTakeover();
+      if (member.paneId !== null) {
+        setActivePane(member.paneId);
+        void activateInstance(member.id);
+        return;
+      }
+      setBottomCollapsed(false);
+      onSelectBandTab(member.id);
+    },
+    [onSelectBandTab, hideTakeover, setBottomCollapsed],
+  );
+
+  /**
+   * Closing one, from its ×.
+   *
+   * A surface goes straight away — an app has nothing running that closing it
+   * would interrupt. A terminal goes through the same "still running, close
+   * anyway?" path the Terminal menu's Kill item uses, because it might.
+   */
+  const onCloseMember = useCallback(
+    (member: ClusterMember) => {
+      // A terminal is a terminal wherever it is drawn. One in a pane tree must
+      // still go through the "still running, close anyway?" path and still end
+      // its pty — `closeInstance` only takes a tab out of the tree, which for a
+      // session would leave the shell alive and drop it back into the panel a
+      // frame later, looking like a × that missed.
+      if (member.kind === "terminal") {
+        const session = terminalsById.get(member.dragId);
+        if (session) void requestClose(session);
+        return;
+      }
+      if (member.paneId !== null) {
+        void closeInstance(member.id);
+        return;
+      }
+      const tab = bandTabs.find((t) => t.id === member.id);
+      if (tab) requestCloseTab(tab);
+    },
+    [terminalsById, requestClose, bandTabs, requestCloseTab],
   );
 
   // --- the menu bar ---------------------------------------------------------
@@ -1328,7 +1459,28 @@ export default function WindowRoot({
   // destination: a tab released over another window has to be moved *there*, and
   // a pane belongs to a cluster. `translateStripIndex` is the third thing it
   // cannot resolve on its own — see its own doc comment for why.
-  const drag = useDrag(label, activeClusterId, translateStripIndex);
+  const drag = useDrag(label, activeClusterId, translateStripIndex, clusters);
+
+  /**
+   * The one handle every surface drag is built from — a pane's own tab strip
+   * and the switcher row both hand a member to this rather than each
+   * assembling the payload again. `fromClusterId` is the active cluster: every
+   * member this window can offer a handle for belongs to it, since the ones
+   * drawn are always the shown cluster's own tree.
+   */
+  const surfaceDragHandle = useCallback(
+    (member: ClusterMember) =>
+      drag.tabHandle({
+        what: "surface",
+        instanceId: member.dragId,
+        title: member.title,
+        kind: member.kind,
+        agentFinished: member.agentFinished,
+        fromPaneId: member.paneId,
+        fromClusterId: activeClusterId,
+      }),
+    [drag, activeClusterId],
+  );
 
   // The other drag: files coming in from outside OpenKaava, which the operating
   // system is already carrying by the time we hear about it. Held here for the
@@ -1595,7 +1747,17 @@ export default function WindowRoot({
               // The two regions the tool window draws but may not import. It
               // computes every argument; this is only the wiring, and it lives
               // here because `WindowRoot` is not a region and may see both.
-              renderPanes={(paneProps) => <PaneTree {...paneProps} />}
+              renderPanes={(paneProps) => (
+                <PaneTree
+                  {...paneProps}
+                  members={members}
+                  onSelectMember={onSelectMember}
+                  onCloseMember={onCloseMember}
+                  dragHandleFor={surfaceDragHandle}
+                  maximizedPaneId={maximizedPaneId}
+                  onToggleMaximizePane={onToggleMaximizePane}
+                />
+              )}
               renderTerminal={(instanceId) => (
                 <XTermView
                   id={instanceId}
@@ -1711,6 +1873,7 @@ export default function WindowRoot({
                   kind: "terminal",
                   agentFinished: session.agentFinished,
                   fromPaneId: null,
+                  fromClusterId: activeClusterId,
                 })
               }
             />

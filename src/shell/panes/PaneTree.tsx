@@ -1,43 +1,56 @@
 /**
- * The recursive pane layout — splits and dividers, and nothing else.
+ * The recursive pane layout — splits, dividers, and now each pane's own tab
+ * strip.
  *
- * **No tabs.** Every pane used to draw its own strip, so a window with two
- * splits listed the same surfaces across three rows at once — the cluster bar
- * and one strip per pane. They are all in the cluster bar now (see
- * `switcher/ClusterBar.tsx`); a pane here is a rectangle with a focus outline.
- * A tab listed in two rows is two things that can disagree about which is
- * active, and the second row never told anyone anything the first could not.
+ * **Tabs are back**, and that reverses this file's own former header, kept
+ * below in spirit because the reasoning it gave has not stopped mattering —
+ * only which row wins the argument has changed. The v3 boards (KAAVA-UX-SPEC
+ * §1.6, board 07) draw a 34px strip on every pane; the `chrome` workstream is
+ * pulling the equivalent inline-member listing out of `ClusterBar` in the
+ * same rework, so a tab still appears in exactly *one* row rather than two
+ * that can disagree — it has simply moved from the switcher down to the pane
+ * it belongs to. `docs/design-notes/shell-chrome.md` is the fuller account of
+ * why "one row" mattered enough to write down the first time; nothing about
+ * that constraint changed, only where the row is drawn. See `PaneTabStrip.tsx`.
  *
- * That bar now draws a pane holding several surfaces as one grouped region,
- * worth naming here because it is the thing a reader of the paragraph above
- * will suspect has quietly come back. It has not: there is still exactly one
- * row and every surface still appears in it exactly once. What the bar gained
- * is grouping that mirrors this tree — not a second listing of it, and nothing
- * this component renders. `ClusterBar.tsx` has the argument in full.
- *
- * **No surfaces either**, and that separation is a correctness requirement
- * rather than a tidiness one; see `Pane`'s `pane__host` below.
+ * **No surfaces**, still, and that separation is unchanged and still a
+ * correctness requirement rather than a tidiness one; see `Pane`'s
+ * `pane__host` below.
  */
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDropZone } from "../dropZones";
-import type { PaneNode, PaneTreeProps, SplitDir } from "../contract";
+import { paneLeaves } from "../contract";
+import type { ClusterMember, PaneNode, PaneTreeProps, SplitDir } from "../contract";
+import { dropLabel } from "../dropLabel";
+import { clampDividerShare, MIN_PANE_HEIGHT_PX, MIN_PANE_WIDTH_PX } from "./paneMinSize";
+import PaneTabStrip from "./PaneTabStrip";
 import "./panes.css";
 
 // `PaneTreeProps` is in `contract.ts`, not here: `toolwindow` computes every
 // field of it and hands it back through a `renderPanes` prop, which it could not
 // type without importing this region (STANDARDS.md §1.2).
 
-/**
- * The smallest share a pane may be dragged to, matching `MIN_SIZE` in
- * `src-tauri/src/layout.rs`.
- *
- * Both sides enforce it, which is not redundant: this one keeps the gesture
- * from ever *looking* like it collapsed a pane, and Rust's keeps a hand-edited
- * or stale `layout.json` from producing a pane with no divider left to grab.
- */
-const MIN_SIZE = 0.05;
-
 export default function PaneTree(props: PaneTreeProps) {
+  const maximizedPaneId = props.maximizedPaneId ?? null;
+
+  // `Esc` restores a maximised pane, matching KAAVA-UX-SPEC's "double-click
+  // again or Esc restores." A ref for the callback rather than a dependency
+  // on it directly: `WindowRoot`'s `onToggleMaximizePane` closure is not
+  // guaranteed stable across renders, and re-subscribing on every one of them
+  // would leave a window — small, but real — where this listener is briefly
+  // absent between the old one detaching and the new one attaching.
+  const onToggle = useRef(props.onToggleMaximizePane);
+  onToggle.current = props.onToggleMaximizePane;
+
+  useEffect(() => {
+    if (!maximizedPaneId) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onToggle.current?.(maximizedPaneId);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [maximizedPaneId]);
+
   return <Node node={props.tree} {...props} />;
 }
 
@@ -58,6 +71,7 @@ function Split({
   const childRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const row = split.dir === "row";
+  const maximizedPaneId = props.maximizedPaneId ?? null;
 
   /**
    * Resize the two panes a divider sits between, and only those two.
@@ -93,6 +107,10 @@ function Split({
       const rect = container.getBoundingClientRect();
       const total = row ? rect.width : rect.height;
       if (total <= 0) return;
+      // The pixel floor is on the axis the divider actually moves along: a
+      // row split's panes sit side by side, so it is their *width* that must
+      // not shrink below KAAVA-UX-SPEC's 200px; a column split's is height.
+      const minPx = row ? MIN_PANE_WIDTH_PX : MIN_PANE_HEIGHT_PX;
 
       const start = row ? e.clientX : e.clientY;
       const before = split.sizes[index - 1] ?? 0.5;
@@ -106,7 +124,7 @@ function Split({
       const onMove = (ev: PointerEvent) => {
         const moved = (row ? ev.clientX : ev.clientY) - start;
         const delta = moved / total;
-        nextBefore = Math.min(Math.max(before + delta, MIN_SIZE), pair - MIN_SIZE);
+        nextBefore = clampDividerShare(before + delta, pair, total, minPx);
 
         const first = childRefs.current[index - 1];
         const second = childRefs.current[index];
@@ -134,34 +152,56 @@ function Split({
 
   return (
     <div className="pane-split" data-dir={split.dir} ref={containerRef}>
-      {split.children.map((child, i) => (
-        <div
-          key={child.id}
-          className="pane-split__child"
-          ref={(el) => {
-            childRefs.current[i] = el;
-          }}
-          // The authored share: a fraction of the parent, one per child,
-          // summing to 1 — the same numbers `layout::PaneNode` stores, because
-          // the window is resizable and a layout in pixels would have to be
-          // recomputed on every resize and would restore wrongly onto a
-          // different monitor. A divider drag overwrites this inline for the
-          // duration of the gesture; the next render from `shell:state` puts
-          // the committed value back, which is the same number.
-          style={{ flexBasis: `${(split.sizes[i] ?? 1 / split.children.length) * 100}%` }}
-        >
-          <Node node={child} {...props} />
-          {i > 0 && (
-            <div
-              className="pane-split__divider"
-              data-dir={split.dir}
-              onPointerDown={(e) => onDividerDown(i, e)}
-              role="separator"
-              aria-orientation={row ? "vertical" : "horizontal"}
-            />
-          )}
-        </div>
-      ))}
+      {split.children.map((child, i) => {
+        // While a pane elsewhere in the *window* is maximised — not
+        // necessarily elsewhere in this split; a maximised pane's own
+        // ancestors all "hold" it — every child that does not lead to it is
+        // hidden outright, and the one that does is stretched to the split's
+        // full share so the recursion below (its own `Split`, if it has one)
+        // repeats the same rule one level down, all the way to the maximised
+        // leaf's own `.pane`.
+        const holds = maximizedPaneId
+          ? paneLeaves(child).some((l) => l.id === maximizedPaneId)
+          : true;
+
+        return (
+          <div
+            key={child.id}
+            className="pane-split__child"
+            ref={(el) => {
+              childRefs.current[i] = el;
+            }}
+            style={
+              maximizedPaneId
+                ? { flexBasis: holds ? "100%" : undefined, display: holds ? undefined : "none" }
+                : // The authored share: a fraction of the parent, one per child,
+                  // summing to 1 — the same numbers `layout::PaneNode` stores,
+                  // because the window is resizable and a layout in pixels
+                  // would have to be recomputed on every resize and would
+                  // restore wrongly onto a different monitor. A divider drag
+                  // overwrites this inline for the duration of the gesture; the
+                  // next render from `shell:state` puts the committed value
+                  // back, which is the same number.
+                  { flexBasis: `${(split.sizes[i] ?? 1 / split.children.length) * 100}%` }
+            }
+          >
+            <Node node={child} {...props} />
+            {/* Suppressed outright while anything is maximised: with one
+                visible child there is no boundary left to grab, and a
+                divider drawn at the edge of a hidden sibling would be a
+                grab handle floating over nothing. */}
+            {i > 0 && !maximizedPaneId && (
+              <div
+                className="pane-split__divider"
+                data-dir={split.dir}
+                onPointerDown={(e) => onDividerDown(i, e)}
+                role="separator"
+                aria-orientation={row ? "vertical" : "horizontal"}
+              />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -174,6 +214,11 @@ function Pane({
   onFocusPane,
   onHostChange,
   dropTarget,
+  members = [],
+  onSelectMember,
+  onCloseMember,
+  dragHandleFor,
+  onToggleMaximizePane,
 }: PaneTreeProps & { leaf: Extract<PaneNode, { kind: "leaf" }> }) {
   const hostRef = useCallback(
     (el: HTMLDivElement | null) => onHostChange(leaf.id, el),
@@ -183,13 +228,16 @@ function Pane({
   // Registered rather than found. The drag layer used to locate its targets by
   // querying the DOM, which cannot work now that panes come and go as the user
   // splits things — see `dropZones.ts`.
-  //
-  // A pane registers one zone where it used to register two. The strip zone
-  // went with the strip; the row that answers "insert between these two tabs"
-  // is the cluster bar, and it registers that zone itself.
   const paneZone = useDropZone({ kind: "pane", paneId: leaf.id });
 
   const edge = dropTarget?.kind === "pane" && dropTarget.paneId === leaf.id ? dropTarget : null;
+  const stripDropTarget =
+    dropTarget?.kind === "strip" && dropTarget.paneId === leaf.id ? dropTarget : null;
+
+  const ownMembers = useMemo(
+    () => members.filter((m: ClusterMember) => m.paneId === leaf.id),
+    [members, leaf.id],
+  );
 
   return (
     <div
@@ -198,8 +246,19 @@ function Pane({
       onPointerDown={() => onFocusPane(leaf.id)}
       ref={paneZone}
     >
-      {/* What `ToolWindow` measures. Deliberately empty, and now the pane's
-          whole area rather than everything below a strip: every pane is an
+      {ownMembers.length > 0 && (
+        <PaneTabStrip
+          paneId={leaf.id}
+          members={ownMembers}
+          caret={stripDropTarget?.index ?? null}
+          onSelect={onSelectMember ?? noop}
+          onClose={onCloseMember ?? noop}
+          onToggleMaximize={onToggleMaximizePane ?? noop}
+          dragHandleFor={dragHandleFor}
+        />
+      )}
+
+      {/* What `ToolWindow` measures. Deliberately empty: every pane is an
           empty content box that reports its element up through `onHostChange`,
           and `ToolWindow` positions the actual iframes over those boxes from a
           flat list that never reorders.
@@ -219,17 +278,34 @@ function Pane({
       <div className="pane__host" ref={hostRef} />
 
       {/* Drop indicators sit above the surface, which is a live iframe — an
-          outline drawn under one would be invisible exactly when it matters. */}
-      {edge?.edge === null && <span className="pane__drop" />}
+          outline drawn under one would be invisible exactly when it matters.
+          Board 07's own five: this pane's centre is "add as tab", its four
+          edges each split one way, and both carry `dropLabel`'s own text
+          rather than a second copy of what it says. */}
+      {edge?.edge === null && (
+        <span className="pane__drop">
+          <span className="pane__drop-label">{dropLabel(edge)}</span>
+        </span>
+      )}
       {edge?.edge && (
         <span
           className="pane__drop pane__drop--edge"
           data-dir={edge.edge}
           data-before={edge.before || undefined}
-        />
+        >
+          <span className="pane__drop-label">{dropLabel(edge)}</span>
+        </span>
       )}
     </div>
   );
+}
+
+function noop() {
+  // Default for the optional callbacks a caller (`ToolWindow.tsx`'s own,
+  // strip-unaware `renderPanes` call site) does not supply. A pane with no
+  // members never reaches these — see the `ownMembers.length > 0` guard
+  // above — so this only exists to satisfy the type when `members` is
+  // present but a handler for it was, for whatever reason, left off.
 }
 
 export type { SplitDir };

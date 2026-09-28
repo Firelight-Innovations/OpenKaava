@@ -9,26 +9,26 @@
  * This file's `Environment` is a display type, not `bindings.Environment`
  * re-exported — it adds `ahead`/`behind` divergence nothing on the wire fills
  * in yet, and a cloud session's `sessionId`/`vm` for the environment bar.
+ *
+ * `sameEnvironment` below is the **panes** workstream's own, narrower
+ * question, kept on `clusterRoot` rather than on `Environment` — see its own
+ * doc comment for why.
  */
-import type { Cluster } from "./contract";
+import { clusterRoot, type Cluster } from "./contract";
 import type { Environment as RustEnvironment } from "../bindings";
 
 export type EnvironmentKind = "worktree" | "cloud" | "main" | "design";
 
 export interface Environment {
   kind: EnvironmentKind;
-  /** The checked-out branch. Absent for `main`, which has none to show — it
-   *  is read-only in Kaava by definition, not on a branch of its own. */
+  /** Absent for `main`, which has no branch of its own. */
   branch?: string;
-  /** What the environment forked from, as `main@<hash>`. No source populates
-   *  this yet (see `WorktreeControl.divergence` in `contract.ts`); a caller
-   *  that has fetched the divergence separately may merge it in. */
+  /** `main@<hash>`. No source populates this yet; a caller with it separately may merge it in. */
   base?: string;
-  /** On-disk path, for a worktree or the design canvas's standing one. */
+  /** On-disk path, for a worktree or the design canvas. */
   path?: string;
-  /** Commits ahead of / behind `base`. Also nobody's to fill in yet — see
-   *  `base` above. Omitted rather than `0`, which would claim a worktree is
-   *  caught up when nothing has actually measured that. */
+  /** Commits ahead of / behind `base`. Omitted, not `0` — nothing has
+   *  measured it yet. */
   ahead?: number;
   behind?: number;
   /** A cloud session's id and VM name (`RustEnvironment`'s `cloud` variant).
@@ -92,23 +92,29 @@ export function environmentOf(cluster: Cluster): Environment {
   };
 }
 
-/**
- * A stable key for "is this the same environment as that one", used to count
- * distinct environments in the title bar's `· N environments` segment. Two
- * clusters can share one environment (`docs/KAAVA-UX-REWORK.md` §2.1's
- * "an existing environment"), and a plain worktree path is the one field that
- * is both stable and unique enough to dedupe on — a branch alone is not,
- * since `checkout` can point two worktrees' clusters at the same name only in
- * the git-error sense that never actually happens in practice, but a path
- * never collides.
- */
+/** A stable key for "same environment as that one" — used to count distinct
+ *  environments in the title bar's `· N environments` segment. A worktree
+ *  path, not a branch, since a branch name is not guaranteed unique. */
 export function environmentKey(env: Environment): string {
   if (env.kind === "main") return "main";
   return `${env.kind}:${env.path ?? env.branch ?? ""}`;
 }
 
-/** The kind chip's label, shared by the cluster tab's chip and the
- *  environment bar's kind chip so the two never drift apart. */
+/**
+ * Whether a tab dragged out of `from` may land in `to` (`docs/KAAVA-UX-
+ * REWORK.md` §5). On `clusterRoot`, not [`environmentKey`] — that keys every
+ * `main` cluster alike, which is wrong here: two clusters each working
+ * directly in a different project share no root and must refuse. A `null`
+ * root (nothing opened yet) refuses too, same reason.
+ */
+export function sameEnvironment(from: Cluster | null, to: Cluster | null): boolean {
+  if (from === null || to === null) return false;
+  const a = clusterRoot(from);
+  const b = clusterRoot(to);
+  return a !== null && a === b;
+}
+
+/** The kind chip's label, shared by the cluster tab and the environment bar. */
 export const ENVIRONMENT_LABEL: Record<EnvironmentKind, string> = {
   worktree: "wt",
   cloud: "cloud",

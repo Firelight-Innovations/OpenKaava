@@ -5,20 +5,24 @@ import { settle } from "../motion";
 import "./frame.css";
 
 /**
- * The window's geometry, and nothing else. Bands stacked in a column, only
- * the middle one growing. The frame knows how tall each bar is and how the
- * middle row splits; it knows nothing about what any of them contain —
- * regions arrive as slots, already built, and cannot affect each other's
- * size, which is what lets them be built in parallel.
+ * The window's geometry, and nothing else.
+ *
+ * Five bands stacked in a column, only the middle one growing. The frame knows
+ * how tall each bar is and how the middle row splits; it knows nothing about
+ * what any of them contain. Regions arrive as slots, already built, and cannot
+ * affect each other's size — which is the property that lets them be built in
+ * parallel.
  *
  * The panel's width lives here rather than inside the panel for the same
- * reason: it is the shape of the window, and the thing being resized is the
- * *split*, not the panel, which receives a box. The project-page rail and
- * docked page are two more slots on the same terms — rail fixed-width, page
- * a split with its own handle, expanded page a third geometry covering
- * everything left of the rail while panes stay mounted behind it (see
- * `FrameSlots.projectRail`/`projectPage`/`projectPageExpanded`). `envBar` is
- * the plainest: a fixed-height row atop `.frame__main`, no drag of its own.
+ * reason the bars' heights do: it is the shape of the window, and the thing
+ * being resized is the *split*, not the panel. The panel receives a box.
+ *
+ * The project-page rail, the docked project page and `envBar` are three more
+ * slots on similar terms — a fixed rail, a page split with its own width and
+ * handle (an expanded page is a third geometry, covering everything left of
+ * the rail while the panes stay mounted behind it), and a plain fixed-height
+ * row for `envBar`. See `FrameSlots.projectRail`/`projectPage`/
+ * `projectPageExpanded`/`envBar`.
  */
 export const PANEL_MIN = 240;
 export const PANEL_COLLAPSED = 34;

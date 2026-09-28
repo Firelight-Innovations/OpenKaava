@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { Cluster, DragHandleProps, ToolHealth, ToolPresentation } from "../contract";
 import { environmentOf, ENVIRONMENT_LABEL, type EnvironmentKind } from "../environment";
 import { instant, instantOut, snap } from "../motion";
+import { useDropZone } from "../dropZones";
 import { Cloud, GitBranch, Lock, Pin } from "lucide-react";
 import { Close, Plus, Search, WarningTriangle } from "../../ui/Icon";
 import OverlayScrollbar from "../OverlayScrollbar";
@@ -10,20 +11,20 @@ import HealthPopover, { type UnhealthyTool } from "./HealthPopover";
 import "./switcher.css";
 
 /**
- * The one tab bar — cluster tabs, and nothing else. `docs/design/KAAVA-UX-SPEC.md`
- * §1.3: "cluster tabs only". Everything this row used to hold besides the chips
- * is gone from here, not hidden: the open cluster's member tabs (the **panes**
- * workstream gives each pane its own 34px strip instead); page chips (the
- * **rail** workstream's right rail takes them — see `PageChips.tsx`'s header
- * for why that file is kept rather than deleted); and the switcher-row
- * "open an app" button (the equivalent stays reachable through the title
- * bar's Apps menu, `src/shell/appsMenu.ts`).
+ * The one tab bar — cluster tabs, and nothing else.
  *
- * Added instead: what a *tab* needs to say about an environment rather than a
- * group of tabs — an environment chip (`environmentOf`, §1.3's
- * `wt`/`cloud`/`main` glyphs) and a registration point (`data-cluster-id` +
- * `clusterTabRef`) the **panes** workstream's cluster drop zone reads.
+ * `docs/design/KAAVA-UX-SPEC.md` §1.3: "cluster tabs only". Gone from here,
+ * not hidden: the open cluster's member tabs (**panes** gives each pane its
+ * own 34px strip instead, one place per tab rather than here *and* on its
+ * pane), page chips (the **rail** workstream's right rail takes them —
+ * `PageChips.tsx`'s header says why the file is kept rather than deleted),
+ * and the switcher-row "open an app" button (still reachable through the
+ * title bar's Apps menu, `src/shell/appsMenu.ts`).
  */
+// Added instead, what a *tab* needs to say about an environment rather than
+// about a group of tabs: an environment chip (`environmentOf`, §1.3's
+// `wt`/`cloud`/`main` glyphs) and a registration point (`data-cluster-id` +
+// `clusterTabRef`) the **panes** workstream's cluster drop zone reads.
 export interface ClusterBarProps {
   clusters: Cluster[];
   activeClusterId: string | null;
@@ -105,6 +106,17 @@ export default function ClusterBar({
   const rowRef = useRef<HTMLDivElement | null>(null);
   const unhealthy = (healthOf ?? []).filter(isUnhealthy);
 
+  // Board 07's fifth zone: drop on empty switcher space opens a new cluster
+  // holding the dragged tab, in the source cluster's own environment — see
+  // `useDrag`'s "new-cluster" case. Registered on the whole bar rather than
+  // some carved-out empty stretch of it: `hitTest`'s pass order checks the
+  // strip zones (now on each pane's own `PaneTabStrip`) and the cluster chips
+  // (below) first, so this only ever wins when the pointer is over neither,
+  // which is exactly "empty switcher space" without this component having to
+  // compute where that is. Registered unconditionally — a window with no
+  // clusters at all still has to accept this drop.
+  const switcherZone = useDropZone({ kind: "switcher" });
+
   // Dismiss like every other popover in the shell: a click outside, or Escape.
   useEffect(() => {
     if (!healthOpen) return;
@@ -142,7 +154,7 @@ export default function ClusterBar({
   }, [clusters]);
 
   return (
-    <div className="switcher">
+    <div className="switcher" ref={switcherZone}>
       <div
         className={`switcher__tabs${searchExpanded ? " switcher__tabs--collapsed" : ""}`}
         ref={rowRef}
@@ -271,6 +283,14 @@ function ClusterTab({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(cluster.name);
 
+  // A drop target of its own, for "drop a tab onto a cluster chip moves it
+  // into that cluster" (board 07, and `useDrag`'s `clusterDropRefused`).
+  // `data-cluster-id` alongside it is not read by any drop-zone code — the
+  // registry already has the element, keyed by `clusterId` above — it exists
+  // so the chip itself, and a test, can name which cluster a given DOM node
+  // is.
+  const clusterZone = useDropZone({ kind: "cluster", clusterId: cluster.id });
+
   const commit = () => {
     setEditing(false);
     const next = draft.trim();
@@ -289,13 +309,20 @@ function ClusterTab({
 
   return (
     <div
+      // Two registrations on one node: `clusterZone` is this chip's own drop
+      // target (above), `tabRef` is the external hook `ClusterBarProps`
+      // documents for whatever else needs this DOM node by cluster id.
+      // Composed rather than picking one — neither loses the element.
+      ref={(el) => {
+        clusterZone(el);
+        tabRef?.(el);
+      }}
       role="tab"
       aria-selected={active}
       tabIndex={0}
       className={classes.join(" ")}
       title={cluster.name}
       data-cluster-id={cluster.id}
-      ref={tabRef}
       onClick={() => onSelect(cluster.id)}
       onDoubleClick={() => {
         setDraft(cluster.name);

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { Cluster } from "./contract";
-import { DESIGN_WORKTREE_BRANCH, environmentKey, environmentOf } from "./environment";
+import {
+  DESIGN_WORKTREE_BRANCH,
+  environmentKey,
+  environmentOf,
+  sameEnvironment,
+} from "./environment";
 
 function cluster(overrides: Partial<Cluster>): Cluster {
   return {
@@ -141,5 +146,48 @@ describe("environmentKey", () => {
       cluster({ worktree: { path: "/repo/wt/b", branch: "wt/b", base: null } }),
     );
     expect(environmentKey(a)).not.toBe(environmentKey(b));
+  });
+});
+
+describe("sameEnvironment", () => {
+  it("is true for two clusters checked out at the same place", () => {
+    const a = cluster({ id: "a", project: "/repo" });
+    const b = cluster({ id: "b", project: "/repo" });
+    expect(sameEnvironment(a, b)).toBe(true);
+  });
+
+  it("is false for two different worktrees of the same repo", () => {
+    const a = cluster({
+      id: "a",
+      project: "/repo",
+      worktree: { path: "/wt/one", branch: null, base: null },
+    });
+    const b = cluster({
+      id: "b",
+      project: "/repo",
+      worktree: { path: "/wt/two", branch: null, base: null },
+    });
+    expect(sameEnvironment(a, b)).toBe(false);
+  });
+
+  it("is false for a main cluster against a different project's main cluster", () => {
+    // The case `environmentKey` alone would get wrong — see `sameEnvironment`'s
+    // own doc comment for why it is built on `clusterRoot` instead.
+    const a = cluster({ id: "a", project: "/repo-one" });
+    const b = cluster({ id: "b", project: "/repo-two" });
+    expect(sameEnvironment(a, b)).toBe(false);
+  });
+
+  it("is false for two clusters that both have no project yet", () => {
+    // Nowhere is not a place two clusters can share — see the function's own
+    // doc comment for why this is refused rather than allowed.
+    const a = cluster({ id: "a", project: null });
+    const b = cluster({ id: "b", project: null });
+    expect(sameEnvironment(a, b)).toBe(false);
+  });
+
+  it("is false against null", () => {
+    expect(sameEnvironment(cluster({ project: "/repo" }), null)).toBe(false);
+    expect(sameEnvironment(null, cluster({ project: "/repo" }))).toBe(false);
   });
 });

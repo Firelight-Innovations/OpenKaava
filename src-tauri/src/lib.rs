@@ -461,6 +461,7 @@ pub fn run() {
             commands::create_cluster_with_environment,
             commands::list_cluster_environments,
             commands::create_design_cluster,
+            commands::new_cluster_for_drop,
             commands::set_active_cluster,
             commands::rename_cluster,
             commands::close_cluster,
