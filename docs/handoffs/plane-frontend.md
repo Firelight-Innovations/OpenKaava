@@ -16,8 +16,10 @@ against. Change a name in §3 of the design only, then tell Agent A.
 | PATs in Secret Manager | `plane-pat-kaava` (yours: the OpenKaava backend), `plane-pat-agent` (agent sessions; do not use) |
 | Owner password | `plane-owner-password` (to sign in to the embedded webview) |
 | Rate limit (V4, confirmed) | 300 requests/minute per key |
-| Cold start, stopped → healthy | 163 s measured once from the worker (target 180 s; median of 5 still to come) |
-| Project records bucket | `gs://veistra-projects/prod/projects/` and `dev/projects/` — **empty** (see below) |
+| Cold start, stopped → healthy | 163 s from the worker, 259 s from the laptop through the tunnel (target 180 s; median of 5 still to come). Give up at 300 s, not 240 |
+| Project records | `gs://veistra-projects/prod/projects/{anomaly,torn-apart,openkaava}.json` (§3.1 schema); `dev/projects/` is empty. `openkaava` has `game: null` and `artifacts: null` |
+| Plane projects | `ANOM`, `TORN`, `KAAVA`, each with the seven `ai:*` labels and an `In Review` state. `VEIST` is Plane's own demo project, not ours: it has no record, so it never shows in the list |
+| Project CLI | `tools/kaava-project/` (see its README). "New project" (B3.1) can shell out to `create`, or make the same calls in Rust |
 
 The owner's `gcloud` login can read every secret above. Read them from Rust into memory at app
 start; never into the frontend, a file, or a log (B2.1).
@@ -34,7 +36,7 @@ start; never into the frontend, a file, or a log (B2.1).
      `RUNNING` (about 10 s). If `STOPPING`, wait for `TERMINATED` first.
    - Then poll both health paths through the tunnel every 3 s. Expect `connection refused` or
      **HTTP 502** for about 2 minutes while containers start and migrations run; that is normal,
-     not an error. Give up at 240 s.
+     not an error. Give up at 300 s.
 3. **Tunnel** (B2.2):
    `gcloud compute start-iap-tunnel plane-vm 8765 --local-host-port=localhost:8765 --zone=us-central1-a --project=veistra-prod`.
    Start it once the VM reports `RUNNING` (untested whether it starts against a stopped VM), and
@@ -51,7 +53,6 @@ Python, with tests); mirror its state handling in Rust.
 
 | Missing | Affects | Until then |
 |---|---|---|
-| `kaava-project` CLI and the prod projects `anomaly`, `torn-apart`, `openkaava` | B1.3, B1.5, B3.1 | The bucket lists nothing. Read `gs://veistra-projects/<profile>/projects/*.json` directly in Rust (design §3.1 schema) and handle an empty list. Agent A will create the three records next; there are no Plane projects in `veistra` yet either. |
 | `plane-watch` and the AI job queue | B3.2 | Write job files to `gs://veistra-projects/prod/jobs/pending/<job-id>.json` per §3; nothing consumes them yet. Agent A will publish the job JSON schema with plane-watch. |
 | Local dev instance (§9, `:8766`) | B1.2, B1.4 | Develop against the cloud instance. The `dev` profile's names are reserved and its secrets exist (`plane-dev-*`), but nothing listens on `:8766`. |
 | V5: live WebSocket through the IAP tunnel | collaborative pages | Untested. If page editing misbehaves in the webview, report it rather than work around it. |

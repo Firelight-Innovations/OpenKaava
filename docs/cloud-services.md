@@ -8,10 +8,9 @@ The infrastructure is in [`infra/`](../infra/README.md). The product plan is
 [`kaava-cloud.md`](../kaava-cloud.md). If this document disagrees with the code in `infra/`, the
 code wins. Fix this document in the same change.
 
-> **Status, 2026-09-27.** The code is written and validated, but nothing is deployed. The GCP
-> project `veistra-prod` waits on an open billing account. Until deploy, the URLs below are
-> placeholders, and every call against them fails. Build against these contracts with local
-> fixtures.
+> **Status, 2026-09-28.** Everything below is deployed and live in `veistra-prod`. Plane CE and
+> the project records are in `docs/handoffs/plane-frontend.md`; the whole system, built and
+> planned, is drawn in [`docs/design/CLOUD-SYSTEM-DIAGRAM.md`](design/CLOUD-SYSTEM-DIAGRAM.md).
 
 ## 1. What exists
 
@@ -22,7 +21,7 @@ code wins. Fix this document in the same change.
 | Design store | The same bucket, under `design/` (§4) | `gs://veistra-artifacts` |
 | Session records | Cloud Storage bucket that agent VMs write to | `gs://veistra-prod-sessions` |
 | Render queue | Cloud Storage bucket between agents and the GPU node | `gs://veistra-prod-render-queue` |
-| Hindsight | Agent memory, Cloud Run behind Google IAM | `https://hindsight-<hash>-uc.a.run.app` (known after deploy) |
+| Hindsight | Agent memory, Cloud Run behind Google IAM | `https://hindsight-hsi6ckovra-uc.a.run.app` |
 | Agent VMs | Compute Engine, label `role=agent`, named `kaava-<name>` | `kaava-worker` at first |
 | GPU node | Compute Engine Spot L4, label `role=gpu`, stopped at rest | `kaava-gpu` |
 
