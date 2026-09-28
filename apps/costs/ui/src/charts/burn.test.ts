@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { LineSeriesOption, MarkLineComponentOption } from "echarts";
+import type {
+  LegendComponentOption,
+  LineSeriesOption,
+  MarkLineComponentOption,
+  XAXisComponentOption,
+  YAXisComponentOption,
+} from "echarts";
 import { burnOption, type BurnInput } from "./burn";
 import { TEST_THEME } from "./testTheme";
 
@@ -58,5 +64,15 @@ describe("burnOption", () => {
     const [, , budget] = series(burnOption(base, TEST_THEME));
     const markLine = budget.markLine as MarkLineComponentOption;
     expect(markLine.data).toEqual([{ yAxis: 150 }]);
+  });
+
+  it("strips axes, legend and tooltip for the docked reading's mini sparkline", () => {
+    const option = burnOption(base, TEST_THEME, { compact: true });
+    expect((option.xAxis as XAXisComponentOption).show).toBe(false);
+    expect((option.yAxis as YAXisComponentOption).show).toBe(false);
+    expect(option.legend as LegendComponentOption | undefined).toBeUndefined();
+    const [, , budget] = series(option);
+    const markLine = budget.markLine as MarkLineComponentOption;
+    expect((markLine.label as { show?: boolean } | undefined)?.show).toBe(false);
   });
 });

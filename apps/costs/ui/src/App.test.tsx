@@ -69,6 +69,11 @@ vi.mock("@openkaava/bridge", () => ({
   invoke: bridge.invoke,
   KaavaRpcError: bridge.KaavaRpcError,
   reportPainted: vi.fn(),
+  // `@openkaava/bridge/theme` (`useChart` and `CostCharts`' own theme
+  // re-read) compiles to a relative import of this same module's `on` —
+  // a no-op subscription is enough; the theme-change re-init itself is
+  // `useChart.test.ts`'s own unit test, not this page-level one.
+  on: vi.fn(() => () => {}),
 }));
 
 import App from "./App";
@@ -265,7 +270,10 @@ describe("Cost Tracker", () => {
     render(<App />);
 
     expect(await screen.findByText("From the bill")).toBeTruthy();
-    expect(screen.getByText(/These charts need the Cloud Billing export to BigQuery/)).toBeTruthy();
+    expect(
+      screen.getAllByText(/The Cloud Billing export to BigQuery is off/).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText("What did each day cost, by service?")).toBeTruthy();
     expect(screen.queryByLabelText(/What 202609 cost, by day and service/)).toBeNull();
   });
 

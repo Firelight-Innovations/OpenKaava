@@ -36,6 +36,24 @@ vi.mock("echarts/components", () => ({
 }));
 vi.mock("echarts/renderers", () => ({ CanvasRenderer: {} }));
 
+// `useChart` re-inits on the shell's real theme broadcast now
+// (`@openkaava/bridge/theme`'s `onThemeChanged`), not a raw `message` event —
+// this stands in for the bridge so a test can fire that change itself,
+// without a real bridge client or transport.
+const theme = vi.hoisted(() => {
+  let cb: (() => void) | undefined;
+  return {
+    change: () => cb?.(),
+    onThemeChanged: vi.fn((c?: () => void) => {
+      cb = c;
+      return () => {
+        cb = undefined;
+      };
+    }),
+  };
+});
+vi.mock("@openkaava/bridge/theme", () => ({ onThemeChanged: theme.onThemeChanged }));
+
 import { useChart } from "./useChart";
 
 function TestChart({ option }: { option: EChartsOption }) {
@@ -79,7 +97,7 @@ describe("useChart", () => {
   it("disposes and re-initialises when the shell's theme changes", () => {
     render(createElement(TestChart, { option: { series: [] } }));
     const first = lastChart();
-    window.dispatchEvent(new MessageEvent("message", { data: { type: "kaava:theme-changed" } }));
+    theme.change();
     expect(first.dispose).toHaveBeenCalledTimes(1);
     expect(echarts.init).toHaveBeenCalledTimes(2);
     expect(lastChart().setOption).toHaveBeenCalledTimes(1);

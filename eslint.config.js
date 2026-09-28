@@ -47,6 +47,7 @@ import globals from "globals";
 const REGIONS = [
   "diff",
   "drag",
+  "envbar",
   "frame",
   "github",
   "keys",
