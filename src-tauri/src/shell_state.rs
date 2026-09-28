@@ -4677,6 +4677,8 @@ mod tests {
             active_terminal: None,
             band_height: None,
             page: Some(page_id.to_string()),
+            environment: None,
+            pinned: false,
         }
     }
 
