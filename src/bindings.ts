@@ -399,6 +399,13 @@ export function clusterProject(clusterId: string | null): Promise<ProjectInfo | 
   return invoke<ProjectInfo | null>("cluster_project", { clusterId });
 }
 
+/** One cluster's project and the global Recent list together. Mirrors
+ *  `project::ProjectSnapshot` — what `openProjectInCluster` resolves to. */
+export interface ProjectSnapshot {
+  open: ProjectInfo | null;
+  recents: ProjectInfo[];
+}
+
 /**
  * Point a cluster at a project, or at nothing, without going through Home.
  *
@@ -411,6 +418,43 @@ export function clusterProject(clusterId: string | null): Promise<ProjectInfo | 
  */
 export function setClusterProject(clusterId: string, path: string | null): Promise<void> {
   return invoke("set_cluster_project", { clusterId, path });
+}
+
+/**
+ * One row of the Switch Project dialog (board 08). Mirrors
+ * `commands::RecentProjectRow` — see that type for why `format`/`modified`
+ * are left out. `open`/`clusterCount`/`environmentCount` answer for *this
+ * session* only: a project nobody has opened since launch reads as closed,
+ * even if it looked busy last time — there is no persisted per-project
+ * workspace yet (KAAVA-UX-REWORK.md §6) for a closed one to draw from.
+ */
+export interface RecentProjectRow {
+  name: string;
+  path: string;
+  id: string | null;
+  initialized: boolean;
+  exists: boolean;
+  /** Milliseconds since the Unix epoch. */
+  lastOpened: number | null;
+  open: boolean;
+  clusterCount: number;
+  environmentCount: number;
+}
+
+/** Every project OpenKaava remembers opening, each with how much of it is
+ *  live right now. See `commands::list_recent_projects`. */
+export function listRecentProjects(): Promise<RecentProjectRow[]> {
+  return invoke<RecentProjectRow[]>("list_recent_projects", {});
+}
+
+/**
+ * Open a Recent-list project into a cluster — the Switch Project dialog's one
+ * action. Mirrors `commands::open_project_in_cluster`: the real open path
+ * (Recent list, retitle, preset, pinned Design cluster), not
+ * `setClusterProject`'s quieter pointer move.
+ */
+export function openProjectInCluster(clusterId: string, path: string): Promise<ProjectSnapshot> {
+  return invoke<ProjectSnapshot>("open_project_in_cluster", { clusterId, path });
 }
 
 export const PROJECT_CHANGED_EVENT = "project:changed";
@@ -443,7 +487,24 @@ export interface WorktreeRef {
   path: string;
   /** `null` for a detached HEAD — a state OpenKaava never creates but can find. */
   branch: string | null;
+  /** The branch this one was forked from, recorded at creation. `null` for a
+   *  worktree old enough to predate the field, or one this build never made. */
+  base: string | null;
 }
+
+/**
+ * Where a cluster's work runs: a local worktree, a cloud session, the
+ * read-only main checkout, or the standing Design worktree. Mirrors
+ * `environments::Environment` — see that enum for what each variant means
+ * and why `Cloud` alone has no local path.
+ *
+ * `worktree`'s successor rather than its replacement; see `Cluster.environment`.
+ */
+export type Environment =
+  | { kind: "localWorktree"; name: string; path: string; branch: string; base: string }
+  | { kind: "cloud"; sessionId: string; vm: string; branch: string | null }
+  | { kind: "main" }
+  | { kind: "design"; path: string; branch: string };
 
 /**
  * One entry from `git worktree list`. Mirrors `git::GitWorktree`.
@@ -1049,6 +1110,15 @@ export interface Cluster {
    * one on the way in, which `migrate_legacy_page_clusters` converts.
    */
   page?: string | null;
+  /** Where this cluster's work actually happens. `worktree`'s successor —
+   *  see that field's doc and `Environment` for the precedence between them.
+   *  Absent (not `null`) for the same backward-compatibility reason `page` is. */
+  environment?: Environment | null;
+  /** The pinned Design canvas cluster, and only it — not closable. Always
+   *  present on the wire (unlike `environment`/`page`, `false` still writes),
+   *  and defaults to `false` when reading a `layout.json` old enough to
+   *  predate it. */
+  pinned: boolean;
 }
 
 /** Mirrors `shell_state::WindowGeometry`. Physical pixels. */
@@ -1217,6 +1287,67 @@ export function setPaneSizes(splitId: string, sizes: number[]): Promise<void> {
 
 export function addCluster(label: string, name: string): Promise<string | null> {
   return invoke<string | null>("add_cluster", { label, name });
+}
+
+/**
+ * What the New Cluster dialog's first step chose. Mirrors
+ * `commands::EnvironmentChoice`. `newLocalWorktree` names a worktree that
+ * does not exist yet — the backend creates it as part of resolving this —
+ * where `existing` already carries a fully-formed `Environment` the dialog
+ * read from `listClusterEnvironments` or built for "browse main" itself.
+ */
+export type EnvironmentChoice =
+  | { kind: "newLocalWorktree"; name: string; base: string }
+  | { kind: "existing"; environment: Environment };
+
+/** The New Cluster dialog's second step. Mirrors `commands::StartingLayout`. */
+export type StartingLayout = "code" | "watchAgent" | "godot" | "blender";
+
+/**
+ * The New Cluster dialog's finishing step: create the cluster, resolve (and,
+ * for a new worktree, actually create) the chosen environment, and arrange
+ * the one starting pane. See `commands::create_cluster_with_environment`.
+ *
+ * `label`/`name`/`project` travel together as `target`, matching
+ * `commands::NewClusterTarget` — grouped there to keep the Rust command
+ * under clippy's argument-count lint, and carried through here as one object
+ * rather than reopened into three loose parameters that would just have to
+ * be regrouped on the way across.
+ */
+export function createClusterWithEnvironment(
+  label: string,
+  name: string,
+  project: string,
+  choice: EnvironmentChoice,
+  layout: StartingLayout,
+): Promise<string> {
+  return invoke<string>("create_cluster_with_environment", {
+    target: { label, name, project },
+    choice,
+    layout,
+  });
+}
+
+/** The New Cluster dialog's "existing environment" list. See
+ *  `commands::list_cluster_environments` for what it excludes and why. */
+export function listClusterEnvironments(project: string): Promise<Environment[]> {
+  return invoke<Environment[]>("list_cluster_environments", { project });
+}
+
+/**
+ * Create `wt/design` for a project that doesn't have one yet, and pin the
+ * Design canvas cluster onto it in the calling window — the "offered but not
+ * auto-created" half of the canvas (KAAVA-UX-REWORK.md §5). Mirrors
+ * `commands::create_design_cluster`. Resolves to the new cluster's id, or
+ * `null` if this window already has a pinned cluster (idempotent per window,
+ * same as the auto-created path).
+ */
+export function createDesignCluster(
+  label: string,
+  project: string,
+  base: string,
+): Promise<string | null> {
+  return invoke<string | null>("create_design_cluster", { label, project, base });
 }
 
 /**

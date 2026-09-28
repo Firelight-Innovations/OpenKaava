@@ -16,6 +16,7 @@ mod design_comments;
 mod devtools;
 mod diagnostics;
 mod discovery;
+mod environments;
 mod error;
 mod git;
 mod github;
@@ -464,12 +465,17 @@ pub fn run() {
             commands::split_pane,
             commands::set_pane_sizes,
             commands::add_cluster,
+            commands::create_cluster_with_environment,
+            commands::list_cluster_environments,
+            commands::create_design_cluster,
             commands::new_cluster_for_drop,
             commands::set_active_cluster,
             commands::rename_cluster,
             commands::close_cluster,
             commands::set_cluster_project,
             commands::cluster_project,
+            commands::list_recent_projects,
+            commands::open_project_in_cluster,
             commands::list_presets,
             commands::save_preset,
             commands::apply_preset,

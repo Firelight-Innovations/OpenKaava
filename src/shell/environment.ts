@@ -1,21 +1,21 @@
 /**
- * The environment model — display side only. `docs/KAAVA-UX-REWORK.md` §1-2
- * binds every cluster to one of four environments: a local worktree, a cloud
- * session, the standing design-canvas worktree, or main itself, read-only.
- * Rust only carries `worktree`/`project` today; every caller goes through
- * [`environmentOf`], never `cluster.worktree` directly, so the day the
- * **clusters** workstream lands a real `environment` field, only this
- * function's body changes — signature and exports stay put.
+ * The environment model — display side only. Every cluster is exactly one of
+ * a local worktree, a cloud session, the standing design-canvas worktree, or
+ * main itself, read-only (`docs/KAAVA-UX-REWORK.md` §1-2). [`environmentOf`]
+ * reads `Cluster.environment` when the backend has set it, falling back to
+ * the older `worktree`/`project` fields for a cluster that predates it.
+ * Every caller goes through it rather than either field directly.
+ *
+ * This file's `Environment` is a display type, not `bindings.Environment`
+ * re-exported — it adds `ahead`/`behind` divergence nothing on the wire fills
+ * in yet, and a cloud session's `sessionId`/`vm` for the environment bar.
  *
  * `sameEnvironment` below is the **panes** workstream's own, narrower
  * question, kept on `clusterRoot` rather than on `Environment` — see its own
  * doc comment for why.
- *
- * `cloud` is fully typed and unreachable today — nothing in `Cluster` names a
- * session — but its fields already match the written spec's `job-7f3a`/
- * `agent/anom-142` shape, so a real cloud cluster slots in without widening it.
  */
 import { clusterRoot, type Cluster } from "./contract";
+import type { Environment as RustEnvironment } from "../bindings";
 
 export type EnvironmentKind = "worktree" | "cloud" | "main" | "design";
 
@@ -31,20 +31,56 @@ export interface Environment {
    *  measured it yet. */
   ahead?: number;
   behind?: number;
+  /** A cloud session's id and VM name (`RustEnvironment`'s `cloud` variant).
+   *  Absent for every other kind. */
+  sessionId?: string;
+  vm?: string;
 }
 
-/** The standing design-canvas worktree's branch (§5) — the one real signal
- *  [`environmentOf`] can check until `Cluster` carries its own `pinned`
- *  flag. */
+/**
+ * `cluster.environment`'s kind names, translated to this file's own —
+ * `localWorktree` is this model's plain `worktree`; the rest already agree.
+ * Kept as one table rather than inlined in [`environmentOf`] so the mapping
+ * cannot silently drift if either enum grows a variant the other does not.
+ */
+function fromRustEnvironment(env: RustEnvironment): Environment {
+  switch (env.kind) {
+    case "localWorktree":
+      return { kind: "worktree", branch: env.branch, base: env.base, path: env.path };
+    case "cloud":
+      return {
+        kind: "cloud",
+        sessionId: env.sessionId,
+        vm: env.vm,
+        ...(env.branch !== null && { branch: env.branch }),
+      };
+    case "main":
+      return { kind: "main" };
+    case "design":
+      return { kind: "design", branch: env.branch, path: env.path };
+  }
+}
+
+/**
+ * The branch name of the standing design-canvas worktree
+ * (`docs/KAAVA-UX-REWORK.md` §5) — a worktree checked out to exactly this
+ * branch is the design canvas, independent of `Cluster.pinned`.
+ */
 export const DESIGN_WORKTREE_BRANCH = "wt/design";
 
 /**
- * A cluster's environment, derived from the fields Rust already sends: a
- * worktree on `wt/design` reads as `design`, any other worktree as
- * `worktree`, no worktree at all as `main` (read-only, per the "nobody
- * works on main" rule). `cloud` never comes out of this function today.
+ * A cluster's environment. `cluster.environment` (see the file header) wins
+ * when the backend has set it. Otherwise this falls back to the legacy
+ * derivation from `worktree`: a worktree on `wt/design` reads as `design`;
+ * any other worktree reads as `worktree`; a cluster with no worktree at all
+ * is working directly in the project folder, which this model calls `main`
+ * — read-only, per the written spec's "nobody works on main" rule. `cloud`
+ * cannot come out of the fallback path — nothing in the legacy fields names
+ * a cloud session — only out of a real `cluster.environment`.
  */
 export function environmentOf(cluster: Cluster): Environment {
+  if (cluster.environment) return fromRustEnvironment(cluster.environment);
+
   const worktree = cluster.worktree;
   if (worktree === null) return { kind: "main" };
 

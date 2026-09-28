@@ -272,11 +272,39 @@ pub fn open(app: &AppHandle, path: &Path, cluster_id: &str) -> Result<ProjectSna
 
     retitle(app);
     commands::apply_project_open_preset(app, cluster_id);
+    open_design_cluster_if_present(app, &shell, path, cluster_id);
 
     // The emit lives here rather than in each mutator: `create` and `initialize`
     // both finish by calling this, so emitting in all four would fire twice for
     // a create, and a subscriber cannot tell that from two real switches.
     Ok(changed(app, cluster_id))
+}
+
+/// The auto-create half of the pinned Design canvas — see
+/// `KAAVA-UX-REWORK.md` §5. Only the *auto*-create half: a project with no
+/// `wt/design` worktree yet is left alone here, and is offered the canvas
+/// through a dialog instead (not part of this module — see the New Cluster
+/// / Design canvas UI). Silent on every kind of "cannot", the same way the
+/// rest of `open` already is about the preset it applies: a project that
+/// happens not to be a git repository, or whose worktree list a `git` call
+/// fails to read, opens exactly as it would have before this feature
+/// existed, rather than failing the whole open over a cosmetic extra.
+fn open_design_cluster_if_present(
+    app: &AppHandle,
+    shell: &ShellState,
+    path: &Path,
+    cluster_id: &str,
+) {
+    let Some(main_repo) = crate::git::main_repo_root(path) else {
+        return;
+    };
+    let Some(environment) = crate::environments::detect_design_environment(&main_repo) else {
+        return;
+    };
+    let Some(label) = shell.window_label_of_cluster(cluster_id) else {
+        return;
+    };
+    shell.add_design_cluster(app, &label, &path.display().to_string(), environment);
 }
 
 /// Make `dir` an OpenKaava project and open it in `cluster_id`.

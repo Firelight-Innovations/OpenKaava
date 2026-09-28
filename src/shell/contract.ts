@@ -831,8 +831,7 @@ export interface FrameSlots {
   titleBar: ReactNode;
   /** Omitted in a detached window. */
   switcherBar?: ReactNode;
-  /** The environment bar (§1.4): a 36px `flex: none` row atop `.frame__main`,
-   *  ahead of `toolWindow`. Omitted while no cluster is open. */
+  /** The environment bar (`docs/design/KAAVA-UX-SPEC.md` §1.4). Omitted while no cluster is open. */
   envBar?: ReactNode;
   toolWindow: ReactNode;
   secondaryPanel: ReactNode;
@@ -840,20 +839,11 @@ export interface FrameSlots {
    *  panel's edge — `.frame__main` in frame.css says why it does not span the
    *  window. Omitted, neither the band nor its handle is rendered at all. */
   bottomPanel?: ReactNode;
-  /** The right-side project-page rail (`docs/KAAVA-UX-REWORK.md` §4): Git,
-   *  Plane, Cloud agents, Hindsight, Cost, Artifact registry — a fixed
-   *  `PROJECT_RAIL_WIDTH` column at the far right of the workspace band.
-   *  Chrome owns the slot; the **rail** workstream owns its contents. */
+  /** The right-side project-page rail (`docs/KAAVA-UX-REWORK.md` §4). Chrome owns the slot; **rail** owns what fills it. */
   projectRail?: ReactNode;
-  /** A project page, docked beside the panes — Git's aside is the first.
-   *  Width is `projectPageWidth` (`Frame`'s props), not this slot's markup,
-   *  for `secondaryPanel`'s reason: the split's geometry is `Frame`'s alone. */
+  /** A project page, docked beside the panes — Git's aside is the first. Width is `projectPageWidth`. */
   projectPage?: ReactNode;
-  /** The same page, **expanded**: covers the workspace area (tool window,
-   *  handle, panel and the docked page) while the rail stays visible. Panes
-   *  stay mounted underneath via `visibility`, never unmounted — a long
-   *  agent run keeps going behind an expanded Cost page. Drawn only while
-   *  `projectPageExpanded` is true; `projectPage` is not rendered at once. */
+  /** The same page, **expanded**: covers the tool window, resize handle, secondary panel and docked page, while the rail stays visible. */
   projectPageExpanded?: ReactNode;
   statusBar: ReactNode;
   /** Portalled above everything: drag ghost and drop outlines. */

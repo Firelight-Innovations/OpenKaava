@@ -26,6 +26,8 @@ import { searchBarHoldMs, snap } from "./motion";
 import { INTERRUPT, commandLine, terminalInput } from "./run";
 import ContextMenuHost from "./ContextMenuHost";
 import CommandPalette from "./palette/CommandPalette";
+import NewClusterDialog from "./dialogs/NewClusterDialog";
+import SwitchProjectDialog from "./dialogs/SwitchProjectDialog";
 import { commandsFromMenus } from "./palette/registry";
 import TitleBar from "./titlebar/TitleBar";
 import { APP_COMMAND, defaultMenus, type CommandHandlers } from "./titlebar/menus";
@@ -273,6 +275,11 @@ export default function WindowRoot({
   const activePageId = shownCluster?.page ?? null;
   const activeCluster = activePageId === null ? shownCluster : null;
   const activeClusterId = activeCluster?.id ?? null;
+
+  // Read here, ahead of most of the handlers below, because `onAddCluster`
+  // needs it to decide whether the New Cluster dialog has anywhere to point
+  // its choices at — see that callback's own note.
+  const project = useClusterProject(activeClusterId);
 
   // The band, as the cluster in front left it. Three values and two homes: the
   // height is the cluster's own — restored from the saved layout, and defaulted
@@ -699,12 +706,23 @@ export default function WindowRoot({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [pages, rightPage, onSelectPage, onClosePage, onTogglePageMode]);
 
+  /**
+   * The switcher bar's `+` and Ctrl+Shift+N both land here. `NewClusterDialog`
+   * needs a project to offer worktrees, existing environments and "browse
+   * main" relative to — with none set, there is nothing for those choices to
+   * mean, so this falls back to the old instant "Cluster N" behaviour rather
+   * than opening a dialog with nowhere for its answers to go.
+   */
   const onAddCluster = useCallback(() => {
+    if (project) {
+      setNewClusterOpen(true);
+      return;
+    }
     // Numbered rather than prompting. A dialog before you can see the thing you
     // are naming is the wrong order; the tab is renameable in place the moment
     // it exists.
     void addCluster(label, `Cluster ${clusters.length + 1}`);
-  }, [label, clusters.length]);
+  }, [label, clusters.length, project]);
 
   const onCloseCluster = useCallback((clusterId: string) => {
     void closeCluster(clusterId);
@@ -1214,6 +1232,17 @@ export default function WindowRoot({
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
 
+  // The New Cluster dialog (board 04). `onAddCluster` is the only opener —
+  // see its own note on why a clusterless window skips this and falls back
+  // to the old instant creation instead.
+  const [newClusterOpen, setNewClusterOpen] = useState(false);
+  const closeNewCluster = useCallback(() => setNewClusterOpen(false), []);
+
+  // The Switch Project dialog (board 08). The pill's own click, wherever it
+  // lives, is the only opener — see `onOpenProjectSwitcher` below.
+  const [switchProjectOpen, setSwitchProjectOpen] = useState(false);
+  const closeSwitchProject = useCallback(() => setSwitchProjectOpen(false), []);
+
   // "The terminal is showing" is now just the band being open. It used to need
   // a second clause — the panel could be open on the worktree tab, which is an
   // open panel with no terminal in it — and the band has nothing else to show,
@@ -1458,19 +1487,17 @@ export default function WindowRoot({
     if (runTerminalId !== null) terminalTransport.write(runTerminalId, INTERRUPT);
   }, [runTerminalId]);
 
-  // What the title bar names, and it is the active *cluster's* project rather
-  // than a process-wide one. That is the whole of what lets two windows on two
-  // monitors say two different things: each asks about the cluster it is
-  // showing, and a project switch in one leaves the other alone.
+  // `project` (what the title bar names, and what `onAddCluster` needs) is
+  // read up near `activeClusterId` now — see the note there. It is the active
+  // *cluster's* project rather than a process-wide one, which is what lets two
+  // windows on two monitors say two different things.
   //
   // The title bar no longer reads `git.status` for its environment chip. That
   // was the branch of the checkout the stack manifest resolved, which was
   // never the cluster's worktree — it only looked like it while there was one
-  // project in the process. `environmentOf` names it now, off `Cluster.worktree`
-  // itself (see `environment.ts`). `useGitStatus` is still read here by the
-  // status bar and the source-control tab, which are asking their own question
-  // and not this one.
-  const project = useClusterProject(activeClusterId);
+  // project in the process. `environmentOf` names it now (see `environment.ts`).
+  // `useGitStatus` is still read here, by the status bar and the
+  // source-control tab, which are asking their own question and not this one.
 
   // The pill's trailing chip (`environment`) and its idle-state count
   // (`environmentCount`), both derived through the one function every other
@@ -1483,10 +1510,25 @@ export default function WindowRoot({
     () => new Set(clusters.map((c) => environmentKey(environmentOf(c)))).size,
     [clusters],
   );
-  // The Switch-project dialog is the **clusters** workstream's to build. The
-  // pill stays a real, clickable button in the meantime — see
-  // `TitleBarProps.onOpenProjectSwitcher`'s own doc comment.
-  const onOpenProjectSwitcher = useCallback(() => {}, []);
+  const onOpenProjectSwitcher = useCallback(() => setSwitchProjectOpen(true), []);
+
+  // The dialog's own "Open folder…"/"New project" buttons close it and hand
+  // off to Home's pickers — the same two `home/*` methods the File menu and
+  // Home's own cards already call, scoped to this window's active cluster
+  // for `onOpenProject`'s reason. Both are no-ops with no cluster open,
+  // which the dialog's disabled rows already assume.
+  const onSwitchProjectOpenFolder = useCallback(() => {
+    closeSwitchProject();
+    onOpenProject();
+  }, [closeSwitchProject, onOpenProject]);
+
+  const onSwitchProjectNewProject = useCallback(() => {
+    closeSwitchProject();
+    if (activeClusterId === null) return;
+    void callApp("home", "home/new-project", undefined, { clusterId: activeClusterId }).catch(
+      (err: unknown) => console.error("kaava: New Project failed:", err),
+    );
+  }, [closeSwitchProject, activeClusterId]);
 
   // The environment bar's "Review & merge" opens the same Git page the rail
   // does, through the same door — `onSelectPage`, not a second path onto
@@ -1563,6 +1605,7 @@ export default function WindowRoot({
     // clicking a greyed-out Save does — nothing — rather than posting a command
     // the app has said it cannot carry out.
     newFile: () => runIfAllowed(app, APP_COMMAND.newFile),
+    newCluster: onAddCluster,
     openProject: onOpenProject,
     save: () => runIfAllowed(app, APP_COMMAND.save),
     saveAs: () => runIfAllowed(app, APP_COMMAND.saveAs),
@@ -1681,6 +1724,27 @@ export default function WindowRoot({
         commands={commandsFromMenus(menus)}
         onClose={closePalette}
       />
+      {/* Beside the frame for the same reason as the two above. `project` is
+          never null while this is open — `onAddCluster` only sets
+          `newClusterOpen` when it already has one, and there is no other
+          opener. */}
+      {newClusterOpen && project && (
+        <NewClusterDialog
+          label={label}
+          project={project}
+          onCancel={closeNewCluster}
+          onCreated={closeNewCluster}
+        />
+      )}
+      {switchProjectOpen && (
+        <SwitchProjectDialog
+          clusterId={activeClusterId}
+          onCancel={closeSwitchProject}
+          onOpened={closeSwitchProject}
+          onOpenFolder={onSwitchProjectOpenFolder}
+          onNewProject={onSwitchProjectNewProject}
+        />
+      )}
       <Frame
         kind={kind}
         panelCollapsed={panelCollapsed}

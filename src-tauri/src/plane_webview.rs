@@ -333,6 +333,8 @@ mod tests {
             active_terminal: None,
             band_height: None,
             page: None,
+            environment: None,
+            pinned: false,
         }
     }
 
