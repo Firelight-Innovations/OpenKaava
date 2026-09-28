@@ -57,8 +57,6 @@ describe("applyTheme", () => {
   it("moves cleanly between options — nothing from the old accent survives", () => {
     applyTheme({ theme: "dark", accent: "coral" });
     applyTheme({ theme: "dark", accent: "green" });
-    expect(document.documentElement.style.getPropertyValue("--accent")).toBe(
-      "var(--accent-green)",
-    );
+    expect(document.documentElement.style.getPropertyValue("--accent")).toBe("var(--accent-green)");
   });
 });

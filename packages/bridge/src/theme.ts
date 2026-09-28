@@ -23,7 +23,10 @@ export function parseThemePayload(data: unknown): ThemeChangedPayload | null {
   const { theme, accent } = data as { theme?: unknown; accent?: unknown };
   if (typeof theme !== "string" || !THEMES.has(theme)) return null;
   if (typeof accent !== "string" || !ACCENTS.has(accent)) return null;
-  return { theme: theme as ThemeChangedPayload["theme"], accent: accent as ThemeChangedPayload["accent"] };
+  return {
+    theme: theme as ThemeChangedPayload["theme"],
+    accent: accent as ThemeChangedPayload["accent"],
+  };
 }
 
 /** Apply a theme and accent to *this* document: `data-theme` on `<html>`,

@@ -84,7 +84,9 @@ describe("useAppearance", () => {
   it("stamps data-theme and points the accent trio at the chosen option", () => {
     fakeMatchMedia(false);
     renderHook(() =>
-      useAppearance(fakeSession({ "appearance.theme": "light", "appearance.accentColor": "violet" })),
+      useAppearance(
+        fakeSession({ "appearance.theme": "light", "appearance.accentColor": "violet" }),
+      ),
     );
     const root = document.documentElement;
     expect(root.dataset.theme).toBe("light");
