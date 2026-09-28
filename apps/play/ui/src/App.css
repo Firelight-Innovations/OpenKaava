@@ -1,0 +1,279 @@
+/*
+ * Play — board 05 (U-GodotPlay): a 40px header with transport controls and
+ * Capture & comment, a frame area with a debug overlay, a footer strip with
+ * scene path and playhead. See apps/godot-viewer/ui/src/App.css's header
+ * note on token names.
+ */
+
+.pl {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family: var(--type-font-body, Inter, sans-serif);
+  color: var(--txt-primary);
+  outline: none;
+}
+
+.pl__header {
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-layer-1);
+}
+
+.pl__badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--txt-secondary);
+}
+
+.pl__pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--info-subtle);
+  color: var(--info, #2563eb);
+}
+
+.pl__transport {
+  display: flex;
+  gap: 4px;
+}
+
+.pl__transport-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  background: transparent;
+  color: var(--txt-secondary);
+  cursor: pointer;
+}
+
+.pl__transport-btn:hover:not(:disabled) {
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+}
+
+.pl__transport-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pl__capture {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--txt-on-accent, #fff);
+  cursor: pointer;
+}
+
+.pl__capture:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: var(--bg-surface-1);
+  border-color: var(--border-subtle);
+  color: var(--txt-secondary);
+}
+
+.pl__preview-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--txt-secondary);
+  cursor: pointer;
+}
+
+.pl__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  position: relative;
+}
+
+.pl__frame {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  position: relative;
+}
+
+.pl__stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-surface-1);
+  position: relative;
+}
+
+.pl__scene-path {
+  font-family: var(--type-font-mono, monospace);
+  font-size: 12px;
+  color: var(--txt-primary);
+}
+
+.pl__hint {
+  font-size: 12px;
+  color: var(--txt-secondary);
+  line-height: 1.5;
+  text-align: center;
+  max-width: 34em;
+  margin: 0 auto;
+  padding: 12px;
+}
+
+.pl__debug-overlay {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm, 4px);
+  background: rgba(0, 0, 0, 0.55);
+  font-family: var(--type-font-mono, monospace);
+  font-size: 10px;
+  color: #fff;
+}
+
+.pl__composer {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-layer-1);
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.3));
+}
+
+.pl__composer-target {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--txt-secondary);
+}
+
+.pl__composer-input {
+  font: inherit;
+  font-size: 12px;
+  padding: 6px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+  resize: vertical;
+}
+
+.pl__composer-note {
+  font-size: 10px;
+  color: var(--txt-tertiary, var(--txt-secondary));
+  margin: 0;
+}
+
+.pl__composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.pl__composer-actions button {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+  cursor: pointer;
+}
+
+.pl__composer-submit {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--txt-on-accent, #fff);
+}
+
+.pl__composer-submit:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pl__footer {
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-layer-1);
+  font-size: 11px;
+}
+
+.pl__footer-scene {
+  font-family: var(--type-font-mono, monospace);
+  color: var(--txt-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pl__footer-time {
+  font-family: var(--type-font-mono, monospace);
+  color: var(--txt-secondary);
+}
+
+.pl__footer-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.pl__footer-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pl__footer-btn:last-child {
+  margin-left: 0;
+}

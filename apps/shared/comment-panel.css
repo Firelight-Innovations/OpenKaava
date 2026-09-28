@@ -1,0 +1,205 @@
+/*
+ * Styling for CommentPanel.tsx — the one comment list all three viewer apps
+ * mount. Token names are the new kaava-ds set (docs/design/kaava-ds/tokens.json),
+ * not the old K-Shell v2 names still in src/tokens.css; the ux-tokens
+ * workstream is adding those definitions in parallel (see apps/README.md).
+ */
+
+.k-comment-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  background: var(--bg-layer-1);
+  border-left: 1px solid var(--border-subtle);
+  font-family: var(--type-font-body, Inter, sans-serif);
+}
+
+.k-comment-panel__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.k-comment-panel__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--txt-primary);
+}
+
+.k-comment-panel__count {
+  font-size: 11px;
+  color: var(--txt-secondary);
+}
+
+.k-comment-panel__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.k-comment-panel__hint {
+  font-size: 12px;
+  color: var(--txt-secondary);
+  line-height: 1.5;
+  padding: 8px 4px;
+}
+
+.k-comment-panel__hint--error {
+  color: var(--danger, #c0392b);
+}
+
+.k-comment-panel__footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border-subtle);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.k-comment-panel__footer-note {
+  font-size: 10px;
+  color: var(--txt-tertiary, var(--txt-secondary));
+  line-height: 1.4;
+}
+
+.k-comment-panel__footer-note code {
+  font-family: var(--type-font-mono, monospace);
+}
+
+.k-comment-panel__send-to-agent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--txt-tertiary, var(--txt-secondary));
+  cursor: not-allowed;
+}
+
+.k-comment-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 6px);
+  padding: 8px 10px;
+  background: var(--bg-surface-1);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.k-comment-card--resolved {
+  opacity: 0.75;
+}
+
+.k-comment-card__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.k-comment-card__anchor {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--txt-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.k-comment-card__body {
+  font-size: 12px;
+  color: var(--txt-primary);
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.k-comment-card__resolution {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--success, #2f8a3e);
+  line-height: 1.4;
+}
+
+.k-comment-card__resolve {
+  align-self: flex-start;
+  font-size: 11px;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.k-comment-card__resolve-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.k-comment-card__resolve-input {
+  font: inherit;
+  font-size: 12px;
+  padding: 6px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-layer-1);
+  color: var(--txt-primary);
+  resize: vertical;
+}
+
+.k-comment-card__resolve-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.k-comment-card__resolve-actions button {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+  cursor: pointer;
+}
+
+.k-comment-card__resolve-confirm {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--txt-on-accent, #fff);
+}
+
+.k-status-badge {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill, 999px);
+  flex-shrink: 0;
+}
+
+.k-status-badge--info {
+  background: var(--info-subtle);
+  color: var(--info, #2563eb);
+}
+
+.k-status-badge--success {
+  background: var(--success-subtle, rgba(47, 138, 62, 0.12));
+  color: var(--success, #2f8a3e);
+}

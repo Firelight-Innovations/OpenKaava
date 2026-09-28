@@ -10,6 +10,7 @@ mod boot;
 mod branding;
 mod cloud;
 mod commands;
+mod comments;
 #[cfg(feature = "design-mode")]
 mod design_comments;
 mod devtools;
