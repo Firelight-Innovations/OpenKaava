@@ -1,13 +1,11 @@
 /**
- * The shell's one modal primitive: a scrim over the whole window, a panel
- * (`radius-xl`, `shadow-overlay` — kaava-ds/tokens.json), a focus trap, and
- * Escape or a scrim click to cancel. Everything the New Cluster dialog
- * (board 04) and the Switch Project dialog (board 08) both need before
- * either of them says anything about worktrees or recent projects — see
- * `apps/home/ui/src/WorktreeDialog.tsx` for the pattern this generalizes
- * (scrim, focus trap, Esc, `role="dialog"`), rebuilt shell-side since an app
- * cannot import from `src/shell/**` and this needs to be reused by more than
- * one region.
+ * The shell's one modal primitive: `.k-dialog-scrim`/`.k-dialog` (§4's
+ * Dialog row — `radius-xl`, `shadow-overlay`, `bg-layer-2`, see
+ * `src/kaava-ui.css`) plus a focus trap and Escape-or-scrim-click to cancel.
+ * Everything the New Cluster dialog (board 04) and the Switch Project
+ * dialog (board 08) both need — see `apps/home/ui/src/WorktreeDialog.tsx`
+ * for the pattern this generalizes (scrim, focus trap, Esc, `role="dialog"`),
+ * rebuilt shell-side since an app cannot import from `src/shell/**`.
  *
  * Deliberately just the frame. What goes inside — a form, a list, two steps
  * — is the caller's; this component never reads `children` for content, only
@@ -106,7 +104,7 @@ export default function Dialog({ label, children, onCancel, className }: DialogP
 
   return (
     <motion.div
-      className="dialogs__scrim"
+      className="k-dialog-scrim dialogs__scrim"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1, transition: instant }}
       exit={{ opacity: 0, transition: instantOut }}
@@ -119,7 +117,7 @@ export default function Dialog({ label, children, onCancel, className }: DialogP
       }}
     >
       <motion.div
-        className={className ? `dialogs__panel ${className}` : "dialogs__panel"}
+        className={className ? `k-dialog ${className}` : "k-dialog"}
         ref={panelRef}
         role="dialog"
         aria-modal="true"

@@ -1,46 +1,21 @@
 /*
- * The shared dialog primitive — see Dialog.tsx. Coloured from src/tokens.css
- * throughout, including the focus ring (`--accent-line`, which already is
- * kaava-ds's 45%-alpha accent — the two agree exactly, so this reuses the
- * token instead of re-deriving the same rgba()). Sizing is the one thing
- * tokens.css has no entry for: `radius-xl` (12px, "dialogs, the search
- * palette, settings window") and `shadow-overlay` come straight from
- * kaava-ds/tokens.json as literals, since that spec ships no generated
- * stylesheet of its own to import them from.
+ * The shared dialog primitive — see Dialog.tsx. `.k-dialog-scrim`/`.k-dialog`
+ * (src/kaava-ui.css) supply the surface, radius, shadow and scrim tint; this
+ * file adds only what that shared sheet does not own — the scrim's stacking
+ * order, and a focus ring for the raw `<button>`/`<input>` elements this
+ * region's dialogs still build by hand rather than from `.k-btn`/`.k-field`.
  */
 
 .dialogs__scrim {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.45);
   /* Above the switcher bar, the panel and every popover the shell draws —
      a dialog is the one surface meant to be in front of all of them. */
   z-index: 100;
 }
 
-.dialogs__panel {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 12px; /* kaava-ds radius-xl */
-  box-shadow:
-    0 12px 32px -6px rgba(0, 0, 0, 0.6),
-    0 2px 6px rgba(0, 0, 0, 0.3); /* kaava-ds shadow-overlay, dark */
-  font-family: var(--sans);
-  color: var(--text);
-}
-
-.dialogs__panel:focus-visible {
-  outline: none;
-}
-
-/* Every focusable control inside a dialog panel gets the same ring — the
-   accent, at the alpha and offset kaava-ds/README.md's "Accent is a user
-   setting" section specifies for focus generally (2px at 45% alpha, offset
-   2), rather than each dialog's own buttons and fields inventing one. */
-.dialogs__panel :is(button, input, select, textarea, a[href]):focus-visible {
-  outline: 2px solid var(--accent-line);
-  outline-offset: 2px;
+/* The design system's own ring (`--focus-ring`/`--focus-ring-offset`,
+   src/tokens.css) — the same one `.k-btn`/`.k-toggle` already draw — so a
+   hand-built control here looks identical to one the shared sheet built. */
+.k-dialog :is(button, input, select, textarea, a[href]):focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
 }
