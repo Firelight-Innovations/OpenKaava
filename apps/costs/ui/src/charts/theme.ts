@@ -4,11 +4,9 @@
  * this is the one place a colour change (a new token value, a light theme)
  * reaches the charts (`docs/design/COST-TRACKER-CHARTS.md` §4.2).
  *
- * Reads the new design-system names (`--chart-1`…`--chart-6`, `--success`,
- * `--warning`, `--danger`, `--txt-*`) with the pre-rework names as a fallback,
- * since the tokens workstream lands them in a separate PR and this app must
- * draw something sensible either side of that merge. `readVar` tries each
- * name in order and takes the first non-empty value.
+ * Reads the design-system names directly (`--chart-1`…`--chart-6`,
+ * `--success`, `--warning`, `--danger`, `--txt-*`) — the tokens workstream
+ * (#143) has landed, so there is no older name left to fall back to.
  */
 
 export interface ChartTheme {
@@ -24,12 +22,8 @@ export interface ChartTheme {
   tooltipBorder: string;
 }
 
-function readVar(style: CSSStyleDeclaration, ...names: string[]): string {
-  for (const name of names) {
-    const value = style.getPropertyValue(name).trim();
-    if (value) return value;
-  }
-  return "";
+function readVar(style: CSSStyleDeclaration, name: string): string {
+  return style.getPropertyValue(name).trim();
 }
 
 /** Reads the theme fresh — call again after `kaava:theme-changed`, never cache it. */
@@ -37,24 +31,24 @@ export function readChartTheme(): ChartTheme {
   const style = getComputedStyle(document.documentElement);
   return {
     series: [
-      readVar(style, "--chart-1", "--accent"),
-      readVar(style, "--chart-2", "--graph-blue"),
-      readVar(style, "--chart-3", "--graph-teal"),
-      readVar(style, "--chart-4", "--graph-violet"),
-      readVar(style, "--chart-5", "--graph-pink"),
-      readVar(style, "--chart-6", "--warning", "--warn"),
+      readVar(style, "--chart-1"),
+      readVar(style, "--chart-2"),
+      readVar(style, "--chart-3"),
+      readVar(style, "--chart-4"),
+      readVar(style, "--chart-5"),
+      readVar(style, "--chart-6"),
     ],
     tones: {
-      ok: readVar(style, "--success", "--ok"),
-      warn: readVar(style, "--warning", "--warn"),
-      err: readVar(style, "--danger", "--err"),
+      ok: readVar(style, "--success"),
+      warn: readVar(style, "--warning"),
+      err: readVar(style, "--danger"),
     },
-    grid: readVar(style, "--chart-grid", "--line"),
-    text: readVar(style, "--txt-secondary", "--text"),
-    textDim: readVar(style, "--txt-tertiary", "--text-dim"),
+    grid: readVar(style, "--chart-grid"),
+    text: readVar(style, "--txt-secondary"),
+    textDim: readVar(style, "--txt-tertiary"),
     sans: readVar(style, "--sans") || "sans-serif",
     mono: readVar(style, "--mono") || "monospace",
-    tooltipBg: readVar(style, "--bg-surface-1", "--surface-2", "--surface"),
-    tooltipBorder: readVar(style, "--border-subtle-1", "--line-2"),
+    tooltipBg: readVar(style, "--bg-surface-1"),
+    tooltipBorder: readVar(style, "--border-subtle-1"),
   };
 }

@@ -37,7 +37,17 @@ function cumulative(daily: DailyCost[]): Point[] {
   });
 }
 
-export function burnOption(input: BurnInput, theme: ChartTheme): EChartsOption {
+/**
+ * `compact` is the docked reading's mini sparkline (board 11): no legend, no
+ * axis labels, no tooltip — the headline figures beside it already carry the
+ * exact numbers, so the chart's only job there is the shape of the month.
+ */
+export function burnOption(
+  input: BurnInput,
+  theme: ChartTheme,
+  opts: { compact?: boolean } = {},
+): EChartsOption {
+  const compact = opts.compact ?? false;
   const exported = input.daily && input.daily.length > 0 ? cumulative(input.daily) : null;
   const spentName = exported ? "Spent" : "Spent, estimated";
   const actual: Point[] = exported ?? [
@@ -48,36 +58,44 @@ export function burnOption(input: BurnInput, theme: ChartTheme): EChartsOption {
   const axisLabel = { color: theme.textDim, fontFamily: theme.mono, fontSize: 11 };
   return {
     color: theme.series,
-    grid: { left: 56, right: 20, top: 36, bottom: 28 },
+    grid: compact
+      ? { left: 2, right: 2, top: 6, bottom: 2 }
+      : { left: 56, right: 20, top: 36, bottom: 28 },
     xAxis: {
       type: "time",
+      show: !compact,
       axisLine: { lineStyle: { color: theme.grid } },
       axisLabel: { color: theme.textDim, fontFamily: theme.sans, fontSize: 11 },
     },
     yAxis: {
       type: "value",
+      show: !compact,
       axisLabel: { ...axisLabel, formatter: (value: number) => money(value) },
-      splitLine: { lineStyle: { color: theme.grid } },
+      splitLine: { show: !compact, lineStyle: { color: theme.grid } },
     },
-    legend: {
-      data: [spentName, "Forecast", "Budget"],
-      textStyle: { color: theme.textDim, fontFamily: theme.sans, fontSize: 11 },
-      top: 0,
-      right: 0,
-    },
-    tooltip: {
-      trigger: "axis",
-      backgroundColor: theme.tooltipBg,
-      borderColor: theme.tooltipBorder,
-      textStyle: { color: theme.text },
-      valueFormatter: (value) => money(Number(value)),
-    },
+    legend: compact
+      ? undefined
+      : {
+          data: [spentName, "Forecast", "Budget"],
+          textStyle: { color: theme.textDim, fontFamily: theme.sans, fontSize: 11 },
+          top: 0,
+          right: 0,
+        },
+    tooltip: compact
+      ? { show: false }
+      : {
+          trigger: "axis",
+          backgroundColor: theme.tooltipBg,
+          borderColor: theme.tooltipBorder,
+          textStyle: { color: theme.text },
+          valueFormatter: (value) => money(Number(value)),
+        },
     series: [
       {
         name: spentName,
         type: "line",
         data: actual,
-        symbolSize: 6,
+        symbolSize: compact ? 0 : 6,
         lineStyle: { width: 2.5, color: theme.series[0] },
         itemStyle: { color: theme.series[0] },
       },
@@ -96,7 +114,9 @@ export function burnOption(input: BurnInput, theme: ChartTheme): EChartsOption {
           silent: true,
           symbol: "none",
           lineStyle: { color: theme.tones.err, type: "dashed" },
-          label: { formatter: `Budget ${money(input.budget)}`, color: theme.tones.err },
+          label: compact
+            ? { show: false }
+            : { formatter: `Budget ${money(input.budget)}`, color: theme.tones.err },
           data: [{ yAxis: input.budget }],
         },
       },
