@@ -21,6 +21,7 @@
 
 pub mod agent;
 pub mod debug;
+#[cfg(feature = "design-mode")]
 pub mod design;
 pub mod echo;
 pub mod ui;
@@ -50,6 +51,7 @@ use super::Registry;
 pub fn seed(registry: &Registry) {
     registry.register(&echo::SERVER);
     registry.register(&debug::SERVER);
+    #[cfg(feature = "design-mode")]
     registry.register(&design::SERVER);
     registry.register(&ui::SERVER);
     registry.register(&agent::SERVER);
@@ -65,7 +67,10 @@ mod tests {
         seed(&registry);
 
         let ids: Vec<String> = registry.list(true).into_iter().map(|s| s.id).collect();
+        #[cfg(feature = "design-mode")]
         assert_eq!(ids, vec!["echo", "debug", "design", "ui", "agent"]);
+        #[cfg(not(feature = "design-mode"))]
+        assert_eq!(ids, vec!["echo", "debug", "ui", "agent"]);
     }
 
     /// Every ordinary server is usable the moment OpenKaava starts. The one that
@@ -100,9 +105,14 @@ mod tests {
         let registry = Registry::default();
         seed(&registry);
 
+        #[cfg(feature = "design-mode")]
+        let expected = vec!["echo", "debug", "design"];
+        #[cfg(not(feature = "design-mode"))]
+        let expected = vec!["echo", "debug"];
+
         let ids: Vec<String> = registry.list(false).into_iter().map(|s| s.id).collect();
-        assert_eq!(ids, vec!["echo", "debug", "design"]);
-        assert_eq!(registry.enabled_ids(false), vec!["echo", "debug", "design"]);
+        assert_eq!(ids, expected);
+        assert_eq!(registry.enabled_ids(false), expected);
     }
 
     /// The id reaches two places a typo would not be caught in: a URL path and a
@@ -124,9 +134,10 @@ mod tests {
     fn seeding_is_idempotent() {
         let registry = Registry::default();
         seed(&registry);
+        let once = registry.list(true).len();
         seed(&registry);
 
-        assert_eq!(registry.list(true).len(), 5);
+        assert_eq!(registry.list(true).len(), once);
     }
 
     /// Held against the servers this build actually registers, not against a

@@ -23,6 +23,17 @@ workspace = true
 name = "openkaava_orchestrator_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[features]
+# Schematify is disabled (ORC-SCO-001): off by default, so the switcher bar
+# never offers it. `cargo build --features schematify` brings the app back, and
+# `KAAVA_SCHEMATIFY=1` does the same for its Vite entry in `vite.config.ts`.
+schematify = ["dep:schematify-core"]
+# Design Mode is disabled: it points at web UIs, and OpenKaava no longer
+# targets them. Off by default; `--features design-mode` restores the app, its
+# comment store and the `kaava-design` MCP server, and `KAAVA_DESIGN_MODE=1`
+# restores its Vite entry. See `docs/design-notes/design-mode.md`.
+design-mode = []
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
@@ -85,7 +96,9 @@ kaava-rpc = { path = "../crates/kaava-rpc" }
 # lifecycle rules. `src-tauri/src/apps/schematify.rs` is the thin JSON-RPC
 # layer over this; every schema, every write and every load rule lives there,
 # not here.
-schematify-core = { path = "../crates/schematify-core" }
+#
+# Optional, and off unless the `schematify` feature below turns it on.
+schematify-core = { path = "../crates/schematify-core", optional = true }
 
 # `files/read-bytes` has to hand bytes to the frontend through a JSON value,
 # which has no byte variant — see the doc on that method for why the answer is

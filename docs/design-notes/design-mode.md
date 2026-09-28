@@ -1,5 +1,17 @@
 # Design Mode
 
+> **Disabled, 2026-09-27.** Design Mode exists to point an agent at elements of
+> a *web* UI. OpenKaava now targets game development through OpenKaava Cloud
+> (`kaava-cloud.md`), so web UIs are out of scope. The code stays in the tree,
+> compiled out by default:
+>
+> - `cargo build --features design-mode` restores the app, the comment store
+>   (`design_comments`) and the `kaava-design` MCP server.
+> - `KAAVA_DESIGN_MODE=1` restores the `apps/design/` Vite entry.
+>
+> Turn on both, or neither. Do not confuse this app with the **design canvas**
+> (PRD P7), which is a different feature.
+
 Long-form rationale moved out of the source files under `apps/design/` and
 `src-tauri/src/apps/design*`. See `docs/design-notes/README.md` for why these
 pages exist and what is guaranteed about them.

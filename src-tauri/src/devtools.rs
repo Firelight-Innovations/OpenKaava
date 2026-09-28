@@ -189,6 +189,7 @@ fn dispatch(_window: &WebviewWindow, _method: &str, _params: String) -> Result<V
 /// of its own. `docs/design-notes/design-mode.md` has the whole argument.
 ///
 /// Never call this from the main thread; see [`call`] for why.
+#[cfg_attr(not(feature = "design-mode"), allow(dead_code))]
 pub fn install_script(
     app: &AppHandle,
     window: Option<&str>,
@@ -201,6 +202,7 @@ pub fn install_script(
 /// were given — this stops the next one getting it, and nothing more, which is
 /// why Design Mode reloads the frame it is finished with rather than trusting
 /// this to clean a live page.
+#[cfg_attr(not(feature = "design-mode"), allow(dead_code))]
 pub fn remove_script(app: &AppHandle, window: Option<&str>, id: &str) -> Result<(), Error> {
     drop_script(&pick(app, window)?, id.to_string())
 }
