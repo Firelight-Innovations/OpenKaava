@@ -397,7 +397,10 @@ pub fn seed(app: &AppHandle) {
     // drop it and reset the accent to Amber for every existing install.
     if let Some(Value::String(hex)) = stored.get(schema::keys::APPEARANCE_ACCENT_COLOR) {
         let migrated = schema::migrate_legacy_accent(hex).to_string();
-        stored.insert(schema::keys::APPEARANCE_ACCENT_COLOR.to_string(), json!(migrated));
+        stored.insert(
+            schema::keys::APPEARANCE_ACCENT_COLOR.to_string(),
+            json!(migrated),
+        );
     }
     registry.hydrate(stored);
 }
