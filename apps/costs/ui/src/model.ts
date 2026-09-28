@@ -2,18 +2,25 @@
  * Pure helpers for the Cost Tracker: money and quantity formatting, the
  * budget's tone, and grouping lines by the resource they belong to.
  */
-import type { Estimate, Line } from "./rpc";
+import type { Category, Estimate, Line } from "./rpc";
 
-/** Where the forecast turns from on track to worth watching. */
-export const WATCH_AT = 0.8;
+/**
+ * Where the forecast turns from on track to worth watching, and from worth
+ * watching to over. `docs/KAAVA-UX-REWORK.md` §4's rail-dot table: "Amber at
+ * 50% of budget, red at 90%." Chart C1's line and markLine, the Summary
+ * figures and the project-page rail dot (owned elsewhere) all read this pair.
+ */
+export const AMBER_AT = 0.5;
+export const RED_AT = 0.9;
 
 export type Tone = "ok" | "warn" | "err";
 
-/** `ok` under 80 % of budget, `warn` up to it, `err` past it. */
+/** `ok` under 50 % of budget, `warn` up to 90 %, `err` from there on. */
 export function budgetTone(forecast: number, budget: number): Tone {
   if (budget <= 0) return "warn";
-  if (forecast > budget) return "err";
-  return forecast > budget * WATCH_AT ? "warn" : "ok";
+  const spent = forecast / budget;
+  if (spent >= RED_AT) return "err";
+  return spent >= AMBER_AT ? "warn" : "ok";
 }
 
 /** `$12.34`, `<$0.01` for a cost too small to show, `$0.00` for none. */
@@ -93,6 +100,22 @@ export function exportedLabel(at: string | null): string {
   });
   return `exported through ${text} UTC`;
 }
+
+/**
+ * Which billing-export `service.description` an estimate category's spend
+ * lands under, for chart C6 (estimate vs billed). Compute Engine covers three
+ * categories, since Google bills machines, disks and reserved IPs under the
+ * one service. A billed service with no entry here is drawn billed-only, as
+ * "not estimated" — the estimate does not model every service, see
+ * `Estimate.notEstimated` (`docs/design/COST-TRACKER-CHARTS.md` §3.3).
+ */
+export const CATEGORY_SERVICE: Record<Category["id"], string> = {
+  machines: "Compute Engine",
+  disks: "Compute Engine",
+  addresses: "Compute Engine",
+  storage: "Cloud Storage",
+  run: "Cloud Run",
+};
 
 /** One sentence on where the month is heading. */
 export function verdict(estimate: Estimate): string {

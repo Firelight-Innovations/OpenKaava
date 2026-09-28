@@ -261,3 +261,70 @@
   gap: 10px;
   max-width: 560px;
 }
+
+/* --- the charts (C1-C6) --------------------------------------------------- */
+
+.costs__charts {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.costs__chart-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.costs__chart-row {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Side by side once the pane is wide enough for the expanded reading; the
+   docked reading never shows more than one pane in a row. */
+.costs__chart-row--expanded {
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.costs__chart-pane {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.costs__chart {
+  width: 100%;
+  height: 220px;
+}
+
+.costs__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.costs__legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.costs__legend-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+.costs__legend-label {
+  color: var(--txt-tertiary, var(--text-dim));
+}

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   budgetTone,
   byResource,
+  CATEGORY_SERVICE,
   dayOf,
   exportedLabel,
   money,
@@ -43,11 +44,26 @@ const estimate = (forecast: number, budget = 150): Estimate => ({
 });
 
 describe("budgetTone", () => {
-  it("is ok under 80 %, warn up to the budget, err past it", () => {
-    expect(budgetTone(100, 150)).toBe("ok");
-    expect(budgetTone(120.01, 150)).toBe("warn");
-    expect(budgetTone(150, 150)).toBe("warn");
+  it("is ok under 50 %, warn up to 90 %, err from there on", () => {
+    expect(budgetTone(74.99, 150)).toBe("ok");
+    expect(budgetTone(75, 150)).toBe("warn");
+    expect(budgetTone(134.99, 150)).toBe("warn");
+    expect(budgetTone(135, 150)).toBe("err");
     expect(budgetTone(150.01, 150)).toBe("err");
+  });
+
+  it("warns rather than divides by zero on an unset budget", () => {
+    expect(budgetTone(10, 0)).toBe("warn");
+  });
+});
+
+describe("CATEGORY_SERVICE", () => {
+  it("maps every estimate category to the billing export's service name", () => {
+    expect(CATEGORY_SERVICE.machines).toBe("Compute Engine");
+    expect(CATEGORY_SERVICE.disks).toBe("Compute Engine");
+    expect(CATEGORY_SERVICE.addresses).toBe("Compute Engine");
+    expect(CATEGORY_SERVICE.storage).toBe("Cloud Storage");
+    expect(CATEGORY_SERVICE.run).toBe("Cloud Run");
   });
 });
 

@@ -10,7 +10,7 @@
 //! One method, `costs/estimate`, and it only reads.
 
 use crate::apps::CallContext;
-use crate::cloud::bigquery::{self, Billed};
+use crate::cloud::bigquery::{self, Billed, Trends};
 use crate::cloud::billing::{self, Sku};
 use crate::cloud::inventory::{self, Address, Bucket, Disk, RunService, Vm};
 use crate::cloud::monitoring::{self, Series};
@@ -50,6 +50,13 @@ pub fn call(
             let cloud = app.state::<Cloud>();
             let estimate = estimate(&cloud, &Source::from_env())?;
             serde_json::to_value(estimate).map_err(|e| RpcError::new(INTERNAL_ERROR, e.to_string()))
+        }
+        "costs/trends" => {
+            let cloud = app.state::<Cloud>();
+            let source = Source::from_env();
+            let month = Month::of(now_for(&source));
+            let trends: Trends = bigquery::trends(&cloud, &source, month.start)?;
+            serde_json::to_value(trends).map_err(|e| RpcError::new(INTERNAL_ERROR, e.to_string()))
         }
         _ => Err(RpcError::new(
             METHOD_NOT_FOUND,
