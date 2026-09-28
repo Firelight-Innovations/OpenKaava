@@ -36,6 +36,8 @@ export interface KeyboardActions {
   // --- File -----------------------------------------------------------------
   /** Ctrl+N */
   newFile(): void;
+  /** Ctrl+Shift+N — open the New Cluster dialog (board 04). */
+  newCluster(): void;
   /** Ctrl+O */
   openProject(): void;
   /** Ctrl+S */
@@ -95,13 +97,9 @@ interface Chord {
  */
 // Exported for `shortcuts.test.ts`, which holds the shortcuts screen to it.
 export const CHORDS: Record<string, Chord> = {
-  // Shift+Ctrl+N is New Window, which this build cannot do — see the item's
-  // own note in `TitleBar.tsx`. Unbound rather than bound to nothing, so the
-  // browser's "new incognito window" is at least honest about being the
-  // browser's.
   n: {
     plain: (a) => a.newFile,
-    shift: null,
+    shift: (a) => a.newCluster,
   },
   o: {
     plain: (a) => a.openProject,

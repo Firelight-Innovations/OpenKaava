@@ -68,6 +68,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: "File",
     items: [
       { label: "New File", keys: ["Ctrl", "N"], chords: [ctrl("n")] },
+      { label: "New Cluster", keys: ["Ctrl", "Shift", "N"], chords: [ctrl("n", true)] },
       { label: "Open Project", keys: ["Ctrl", "O"], chords: [ctrl("o")] },
       { label: "Save", keys: ["Ctrl", "S"], chords: [ctrl("s")] },
       { label: "Save As", keys: ["Ctrl", "Shift", "S"], chords: [ctrl("s", true)] },

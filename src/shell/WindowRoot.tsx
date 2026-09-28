@@ -25,6 +25,7 @@ import { searchBarHoldMs, snap } from "./motion";
 import { INTERRUPT, commandLine, terminalInput } from "./run";
 import ContextMenuHost from "./ContextMenuHost";
 import CommandPalette from "./palette/CommandPalette";
+import NewClusterDialog from "./dialogs/NewClusterDialog";
 import { commandsFromMenus } from "./palette/registry";
 import TitleBar from "./titlebar/TitleBar";
 import { APP_COMMAND, defaultMenus, type CommandHandlers } from "./titlebar/menus";
@@ -254,6 +255,11 @@ export default function WindowRoot({
   const activeCluster = activePageId === null ? shownCluster : null;
   const activeClusterId = activeCluster?.id ?? null;
   const pages = usePages();
+
+  // Read here, ahead of most of the handlers below, because `onAddCluster`
+  // needs it to decide whether the New Cluster dialog has anywhere to point
+  // its choices at — see that callback's own note.
+  const project = useClusterProject(activeClusterId);
 
   // The band, as the cluster in front left it. Three values and two homes: the
   // height is the cluster's own — restored from the saved layout, and defaulted
@@ -601,12 +607,23 @@ export default function WindowRoot({
     [label, activePageId, hideTakeover],
   );
 
+  /**
+   * The switcher bar's `+` and Ctrl+Shift+N both land here. `NewClusterDialog`
+   * needs a project to offer worktrees, existing environments and "browse
+   * main" relative to — with none set, there is nothing for those choices to
+   * mean, so this falls back to the old instant "Cluster N" behaviour rather
+   * than opening a dialog with nowhere for its answers to go.
+   */
   const onAddCluster = useCallback(() => {
+    if (project) {
+      setNewClusterOpen(true);
+      return;
+    }
     // Numbered rather than prompting. A dialog before you can see the thing you
     // are naming is the wrong order; the tab is renameable in place the moment
     // it exists.
     void addCluster(label, `Cluster ${clusters.length + 1}`);
-  }, [label, clusters.length]);
+  }, [label, clusters.length, project]);
 
   const onCloseCluster = useCallback((clusterId: string) => {
     void closeCluster(clusterId);
@@ -1127,6 +1144,12 @@ export default function WindowRoot({
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
 
+  // The New Cluster dialog (board 04). `onAddCluster` is the only opener —
+  // see its own note on why a clusterless window skips this and falls back
+  // to the old instant creation instead.
+  const [newClusterOpen, setNewClusterOpen] = useState(false);
+  const closeNewCluster = useCallback(() => setNewClusterOpen(false), []);
+
   // "The terminal is showing" is now just the band being open. It used to need
   // a second clause — the panel could be open on the worktree tab, which is an
   // open panel with no terminal in it — and the band has nothing else to show,
@@ -1371,10 +1394,11 @@ export default function WindowRoot({
     if (runTerminalId !== null) terminalTransport.write(runTerminalId, INTERRUPT);
   }, [runTerminalId]);
 
-  // What the title bar names, and it is the active *cluster's* project rather
-  // than a process-wide one. That is the whole of what lets two windows on two
-  // monitors say two different things: each asks about the cluster it is
-  // showing, and a project switch in one leaves the other alone.
+  // `project` (what the title bar names, and what `onAddCluster` needs) is
+  // read up near `activeClusterId` now — see the note there. It is the active
+  // *cluster's* project rather than a process-wide one, which is what lets two
+  // windows on two monitors say two different things: each asks about the
+  // cluster it is showing, and a project switch in one leaves the other alone.
   //
   // The title bar no longer reads `git.status` for its third segment. That was
   // the branch of the checkout the stack manifest resolved, which was never the
@@ -1383,7 +1407,6 @@ export default function WindowRoot({
   // populates it yet, so the segment is absent and the layout is ready for the
   // git work. `useGitStatus` is still read here by the status bar and the
   // source-control tab, which are asking its own question and not this one.
-  const project = useClusterProject(activeClusterId);
 
   // The drag layer is the only thing in the shell that spans regions, so it is
   // the only thing that has to be handed down rather than owned locally. The
@@ -1432,6 +1455,7 @@ export default function WindowRoot({
     // clicking a greyed-out Save does — nothing — rather than posting a command
     // the app has said it cannot carry out.
     newFile: () => runIfAllowed(app, APP_COMMAND.newFile),
+    newCluster: onAddCluster,
     openProject: onOpenProject,
     save: () => runIfAllowed(app, APP_COMMAND.save),
     saveAs: () => runIfAllowed(app, APP_COMMAND.saveAs),
@@ -1522,6 +1546,18 @@ export default function WindowRoot({
         commands={commandsFromMenus(menus)}
         onClose={closePalette}
       />
+      {/* Beside the frame for the same reason as the two above. `project` is
+          never null while this is open — `onAddCluster` only sets
+          `newClusterOpen` when it already has one, and there is no other
+          opener. */}
+      {newClusterOpen && project && (
+        <NewClusterDialog
+          label={label}
+          project={project}
+          onCancel={closeNewCluster}
+          onCreated={closeNewCluster}
+        />
+      )}
       <Frame
         kind={kind}
         panelCollapsed={panelCollapsed}
