@@ -737,9 +737,8 @@ export function paneLeaves(node: PaneNode): Extract<PaneNode, { kind: "leaf" }>[
  *  See `docs/design-notes/shell-core.md`. */
 export type DragPayload = SurfaceDrag | ClusterDrag;
 
-/** A tab in the air. One kind, where there used to be two: an app surface and a
- *  terminal drag identically, drop in the same places, and split a pane the same
- *  way. `kind` is carried for the ghost's benefit and nothing else. */
+/** A tab in the air. One kind, where there used to be two: an app surface and
+ *  a terminal drag identically. `kind` is carried for the ghost's benefit. */
 export interface SurfaceDrag {
   what: "surface";
   instanceId: string;
@@ -749,6 +748,9 @@ export interface SurfaceDrag {
   agentFinished?: boolean;
   /** Where it came from, so a drop that lands nowhere can be a no-op. */
   fromPaneId: string | null;
+  /** Which cluster it came from — the other half of the cluster-chip drop's
+   *  environment gate. `null` only for a page's surface, never draggable. */
+  fromClusterId: string | null;
 }
 
 /** A whole cluster in the air — its chip, and with it its entire pane tree. The
@@ -772,6 +774,13 @@ export type DropTarget =
   | { kind: "pane"; paneId: string; edge: SplitDir | null; before: boolean }
   | { kind: "strip"; paneId: string; index: number }
   | { kind: "panel" }
+  /** A cluster's own chip — KAAVA-UX-REWORK.md §5's same-environment move.
+   *  `refused` is computed once, by `useDrag`'s `resolve`, and read by the
+   *  chip, the hint bar and `commit` alike. */
+  | { kind: "cluster"; clusterId: string; refused: boolean }
+  /** Empty switcher space — KAAVA-UX-REWORK.md §5's "new cluster in the same
+   *  environment, holding the tab." Always allowed. */
+  | { kind: "new-cluster" }
   | { kind: "detach" }
   | { kind: "none" };
 
@@ -789,10 +798,8 @@ export interface DragState {
  *  not import `panes` (§1.2). See `docs/design-notes/shell-core.md`. */
 export interface PaneTreeProps {
   tree: PaneNode;
-  /** The pane an open acts on, drawn with the active-pane outline. "Acts on"
-   *  rather than "lands in": opening an app splits this pane along its longer
-   *  axis and puts the new surface in the half that produces. See
-   *  `panes/splitOnOpen.ts`. */
+  /** The pane an open acts on, drawn with the active-pane outline — opening
+   *  an app splits this pane along its longer axis. See `panes/splitOnOpen.ts`. */
   focusedPaneId: string | null;
   onFocusPane: (paneId: string) => void;
   /** Commits a divider drag. One weight per child, summing to 1. */
@@ -801,6 +808,17 @@ export interface PaneTreeProps {
   onHostChange: (paneId: string, el: HTMLDivElement | null) => void;
   /** Where a drag would land right now, so the target pane can say so. */
   dropTarget?: DropTarget | null;
+  /** Every tab in the tree, flat — what `ClusterBar` drew inline before the
+   *  per-pane strips came back. `PaneTree` groups it by `paneId` itself. */
+  members?: ClusterMember[];
+  onSelectMember?: (member: ClusterMember) => void;
+  onCloseMember?: (member: ClusterMember) => void;
+  /** A tab's own drag handle. Omitted, a strip's tabs are not draggable. */
+  dragHandleFor?: (member: ClusterMember) => DragHandleProps | undefined;
+  /** The one pane drawn full-size, rest hidden but not unmounted, or `null`
+   *  for the ordinary grid. KAAVA-UX-REWORK.md §5. */
+  maximizedPaneId?: string | null;
+  onToggleMaximizePane?: (paneId: string) => void;
 }
 
 /** What a region spreads onto an element to make it a drag source. */

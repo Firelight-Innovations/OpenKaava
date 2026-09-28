@@ -380,6 +380,39 @@ pub fn add_cluster(
     Some(cluster_id)
 }
 
+/// Drop a tab on the switcher's empty space (KAAVA-UX-REWORK.md §5): a
+/// cluster of its own, in the same environment the tab came from, holding
+/// that one tab.
+///
+/// `source_cluster` is the dragged tab's `fromClusterId` — see `SurfaceDrag`
+/// in `src/shell/contract.ts` — and is only ever the environment source; the
+/// move itself is `move_instance`'s ordinary cross-cluster path, with no
+/// special case for a cluster made a moment earlier. Composed here rather
+/// than folded into `ShellState::add_cluster_for_environment`, for the
+/// reason `add_cluster` above already gives: that stays a primitive, this is
+/// the gesture built out of it.
+///
+/// Fails closed: if the move is refused (the tab has vanished, or is pinned
+/// to a page — `move_instance`'s own guards), the cluster this just made is
+/// still there, holding nothing. That is `add_cluster`'s own steady state —
+/// a cluster with an empty pane draws exactly as a fresh one does — so
+/// nothing here has to clean it back up.
+#[tauri::command]
+pub fn new_cluster_for_drop(
+    app: tauri::AppHandle,
+    shell: State<'_, ShellState>,
+    label: String,
+    name: String,
+    source_cluster: String,
+    instance_id: String,
+) -> Option<String> {
+    let (cluster_id, pane_id) =
+        shell.add_cluster_for_environment(&app, &label, &name, &source_cluster)?;
+    shell.move_instance(&app, &instance_id, &cluster_id, &pane_id, None);
+    project::retitle(&app);
+    Some(cluster_id)
+}
+
 #[tauri::command]
 pub fn set_active_cluster(
     app: tauri::AppHandle,

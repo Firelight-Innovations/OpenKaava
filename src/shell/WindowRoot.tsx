@@ -36,6 +36,7 @@ import ToolWindow, { type ToolWindowHandle } from "./toolwindow/ToolWindow";
 import PaneTree from "./panes/PaneTree";
 import XTermView from "./terminal/XTermView";
 import { splitDirOnOpen } from "./panes/splitOnOpen";
+import { toggleMaximize } from "./panes/paneMaximize";
 import SecondaryPanel, { type PanelView } from "./panel/SecondaryPanel";
 import BottomPanel from "./panel/BottomPanel";
 import StatusBar from "./statusbar/StatusBar";
@@ -375,6 +376,23 @@ export default function WindowRoot({
       setActivePane(paneIds[0] ?? null);
     }
   }, [paneIds, activePaneId]);
+
+  // Which pane, if any, is drawn full-size with the rest hidden but still
+  // mounted — KAAVA-UX-REWORK.md §5's "double-click a tab to maximise its
+  // pane." View-local for the same reason `activePaneId` is: a fact about
+  // this window's screen, not the project. Reset rather than followed when
+  // the maximised pane disappears out from under it (its cluster's tree
+  // changed, or the cluster itself did) — a maximised id naming nothing would
+  // leave `PaneTree` with every child hidden and none stretched to fill it.
+  const [maximizedPaneId, setMaximizedPaneId] = useState<string | null>(null);
+  useEffect(() => {
+    if (maximizedPaneId !== null && !paneIds.includes(maximizedPaneId)) {
+      setMaximizedPaneId(null);
+    }
+  }, [paneIds, maximizedPaneId]);
+  const onToggleMaximizePane = useCallback((paneId: string) => {
+    setMaximizedPaneId((current) => toggleMaximize(current, paneId));
+  }, []);
 
   /**
    * Focus follows what you just opened, into the pane it turned out to be in.
@@ -1394,7 +1412,28 @@ export default function WindowRoot({
   // destination: a tab released over another window has to be moved *there*, and
   // a pane belongs to a cluster. `translateStripIndex` is the third thing it
   // cannot resolve on its own — see its own doc comment for why.
-  const drag = useDrag(label, activeClusterId, translateStripIndex);
+  const drag = useDrag(label, activeClusterId, translateStripIndex, clusters);
+
+  /**
+   * The one handle every surface drag is built from — a pane's own tab strip
+   * and the switcher row both hand a member to this rather than each
+   * assembling the payload again. `fromClusterId` is the active cluster: every
+   * member this window can offer a handle for belongs to it, since the ones
+   * drawn are always the shown cluster's own tree.
+   */
+  const surfaceDragHandle = useCallback(
+    (member: ClusterMember) =>
+      drag.tabHandle({
+        what: "surface",
+        instanceId: member.dragId,
+        title: member.title,
+        kind: member.kind,
+        agentFinished: member.agentFinished,
+        fromPaneId: member.paneId,
+        fromClusterId: activeClusterId,
+      }),
+    [drag, activeClusterId],
+  );
 
   // The other drag: files coming in from outside OpenKaava, which the operating
   // system is already carrying by the time we hear about it. Held here for the
@@ -1582,16 +1621,7 @@ export default function WindowRoot({
               // An app surface and a terminal drag identically — same ghost,
               // same drop targets, same commit — which is what lets a terminal
               // be dropped into the layout and an app be dropped out of it.
-              dragHandleFor={(member) =>
-                drag.tabHandle({
-                  what: "surface",
-                  instanceId: member.dragId,
-                  title: member.title,
-                  kind: member.kind,
-                  agentFinished: member.agentFinished,
-                  fromPaneId: member.paneId,
-                })
-              }
+              dragHandleFor={surfaceDragHandle}
               // A cluster drags too, and it is the one thing in this row that
               // is not a tab: it can only be released on a *window*, so it
               // moves into whichever one it was let go over, or takes a new one
@@ -1657,7 +1687,17 @@ export default function WindowRoot({
               // The two regions the tool window draws but may not import. It
               // computes every argument; this is only the wiring, and it lives
               // here because `WindowRoot` is not a region and may see both.
-              renderPanes={(paneProps) => <PaneTree {...paneProps} />}
+              renderPanes={(paneProps) => (
+                <PaneTree
+                  {...paneProps}
+                  members={members}
+                  onSelectMember={onSelectMember}
+                  onCloseMember={onCloseMember}
+                  dragHandleFor={surfaceDragHandle}
+                  maximizedPaneId={maximizedPaneId}
+                  onToggleMaximizePane={onToggleMaximizePane}
+                />
+              )}
               renderTerminal={(instanceId) => (
                 <XTermView
                   id={instanceId}
@@ -1773,6 +1813,7 @@ export default function WindowRoot({
                   kind: "terminal",
                   agentFinished: session.agentFinished,
                   fromPaneId: null,
+                  fromClusterId: activeClusterId,
                 })
               }
             />
