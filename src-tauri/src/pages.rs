@@ -39,8 +39,7 @@ pub const PAGES: &[Page] = &[
         app_id: "agents",
         icon: "robot",
     },
-    // GCP billing today; every AI development cost later. Listed before its app
-    // exists on `main` — it is not offered until `costs` is in `apps::REGISTRY`.
+    // GCP billing today; every AI development cost later.
     Page {
         id: "costs",
         name: "Cost Tracker",
@@ -94,6 +93,13 @@ mod tests {
     fn agents_is_offered_because_its_app_is_registered() {
         assert!(available().iter().any(|p| p.id == "agents"));
         assert!(find("agents").is_some());
+    }
+
+    #[test]
+    fn the_cost_tracker_is_offered_as_a_page_and_not_as_an_app() {
+        assert!(available().iter().any(|p| p.id == "costs"));
+        assert!(find("costs").is_some());
+        assert!(is_page_app("costs"));
     }
 
     #[test]

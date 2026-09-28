@@ -1,0 +1,21 @@
+[
+  {
+    "name": "plane-ip",
+    "region": "https://www.googleapis.com/compute/v1/projects/fixture/regions/us-central1",
+    "address": "34.9.9.9",
+    "addressType": "EXTERNAL",
+    "status": "IN_USE",
+    "creationTimestamp": "2026-09-26T08:00:00.000-07:00",
+    "users": [
+      "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/instances/plane-vm"
+    ]
+  },
+  {
+    "name": "spare-ip",
+    "region": "https://www.googleapis.com/compute/v1/projects/fixture/regions/us-central1",
+    "address": "34.9.9.10",
+    "addressType": "EXTERNAL",
+    "status": "RESERVED",
+    "creationTimestamp": "2026-09-15T08:00:00.000-07:00"
+  }
+]

@@ -1,0 +1,174 @@
+{
+  "skus": [
+    {
+      "skuId": "E5F0-6A5D-7BAD",
+      "description": "Standard Storage US Regional",
+      "category": {
+        "resourceGroup": "RegionalStorage",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-west1", "us-central1", "us-east1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "GiBy.mo",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 0
+                }
+              },
+              {
+                "startUsageAmount": 5,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 20000000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "E324-3A47-63B4",
+      "description": "Autoclass Standard Storage Iowa",
+      "category": {
+        "resourceGroup": "Storage",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "GiBy.mo",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 20000000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "4EE6-EF73-706C",
+      "description": "Nearline Storage Iowa",
+      "category": {
+        "resourceGroup": "NearlineStorage",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "GiBy.mo",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 10000000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "D716-3E59-667B",
+      "description": "Coldline Storage Iowa",
+      "category": {
+        "resourceGroup": "ColdlineStorage",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "GiBy.mo",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 4000000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "EC4B-C190-470D",
+      "description": "Archive Storage Iowa",
+      "category": {
+        "resourceGroup": "ArchiveStorage",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "GiBy.mo",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 1200000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "141D-1A1B-38E1",
+      "description": "Standard Storage Iowa Dual-region",
+      "category": {
+        "resourceGroup": "MultiRegionalStorage",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "GiBy.mo",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 22000000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    }
+  ]
+}

@@ -41,6 +41,10 @@ struct Instance {
     last_start_timestamp: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     last_stop_timestamp: Option<String>,
+    /// Everything else, kept so a fixture `start` rewrites `instances.json`
+    /// without dropping the fields `inventory` reads.
+    #[serde(flatten)]
+    rest: serde_json::Map<String, serde_json::Value>,
 }
 
 impl From<Instance> for Machine {
@@ -227,6 +231,19 @@ mod tests {
             list(&cloud, &source, "gpu").unwrap()[0].status,
             "TERMINATED"
         );
+    }
+
+    #[test]
+    fn start_in_a_fixture_keeps_fields_it_does_not_read() {
+        let (dir, source) = fixture(
+            r#"[{"name":"kaava-worker","zone":"z/us-central1-a","status":"TERMINATED",
+                 "labels":{"role":"agent"},"scheduling":{"provisioningModel":"SPOT"}}]"#,
+        );
+        let cloud = Cloud::default();
+        let worker = list(&cloud, &source, "agent").unwrap().remove(0);
+        start(&cloud, &source, &worker).unwrap();
+        let text = std::fs::read_to_string(dir.path().join("compute/instances.json")).unwrap();
+        assert!(text.contains("\"provisioningModel\": \"SPOT\""), "{text}");
     }
 
     #[test]

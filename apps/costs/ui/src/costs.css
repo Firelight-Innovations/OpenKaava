@@ -1,0 +1,258 @@
+/*
+ * The Cost Tracker's own styles, on top of `apps/shared/app.css`.
+ *
+ * Money is set in the mono face with tabular figures so columns of prices
+ * line up by the decimal point. Tone colours (`--ok`, `--warn`, `--err`) are
+ * used only where the budget is being judged — the forecast figure, the bar
+ * and the verdict — and never on a row, where colour would read as a verdict
+ * on that one resource.
+ */
+
+.costs__badge {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border: 1px solid var(--line-2);
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--warn);
+}
+
+.costs__refresh {
+  flex: 0 0 auto;
+}
+
+.costs__page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  max-width: 1080px;
+}
+
+.costs__num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.costs__dim {
+  color: var(--text-dim);
+}
+
+.costs__right {
+  text-align: right;
+}
+
+/* --- the summary -------------------------------------------------------- */
+
+.costs__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.costs__figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 40px;
+}
+
+.costs__figure {
+  display: flex;
+  flex-direction: column;
+}
+
+.costs__figure .app__label {
+  margin-bottom: 2px;
+}
+
+.costs__big {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 26px;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.costs__big--ok {
+  color: var(--ok);
+}
+
+.costs__big--warn {
+  color: var(--warn);
+}
+
+.costs__big--err {
+  color: var(--err);
+}
+
+/* Three layers on one track: the forecast (faint), the month so far (solid)
+   over it, and the budget as a hairline marker. */
+.costs__bar {
+  position: relative;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--surface-2);
+  overflow: visible;
+}
+
+.costs__bar-forecast,
+.costs__bar-spent {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 2px;
+}
+
+.costs__bar-forecast {
+  opacity: 0.35;
+}
+
+.costs__bar-forecast--ok,
+.costs__bar-spent--ok {
+  background: var(--ok);
+}
+
+.costs__bar-forecast--warn,
+.costs__bar-spent--warn {
+  background: var(--warn);
+}
+
+.costs__bar-forecast--err,
+.costs__bar-spent--err {
+  background: var(--err);
+}
+
+.costs__bar-budget {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--text);
+}
+
+.costs__verdict {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.costs__split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.costs__split li {
+  display: flex;
+  gap: 8px;
+}
+
+.costs__split-label {
+  color: var(--text-dim);
+}
+
+.costs__problems {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* --- the tables ----------------------------------------------------------- */
+
+.costs__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.costs__heading-sums {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.costs__table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.costs__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.costs__table th,
+.costs__table td {
+  padding: 6px 11px;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.costs__table thead th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-dim-2);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.costs__table .costs__right {
+  text-align: right;
+}
+
+.costs__group + .costs__group {
+  border-top: 1px solid var(--line);
+}
+
+.costs__resource {
+  font-weight: 400;
+  width: 34%;
+  white-space: normal;
+}
+
+.costs__resource-name {
+  display: block;
+  color: var(--text);
+}
+
+.costs__resource-detail {
+  display: block;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.costs__note {
+  display: block;
+  max-width: 280px;
+  white-space: normal;
+  font-size: 11px;
+  color: var(--warn);
+}
+
+.costs__caveats ul {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.costs__blocked {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 560px;
+}

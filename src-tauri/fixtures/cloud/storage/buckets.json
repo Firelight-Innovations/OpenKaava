@@ -1,0 +1,23 @@
+[
+  {
+    "name": "veistra-prod-sessions",
+    "location": "US-CENTRAL1",
+    "locationType": "region",
+    "storageClass": "STANDARD",
+    "timeCreated": "2026-08-02T17:00:00.000Z"
+  },
+  {
+    "name": "veistra-prod-assets",
+    "location": "US-CENTRAL1",
+    "locationType": "region",
+    "storageClass": "STANDARD",
+    "timeCreated": "2026-08-02T17:00:00.000Z"
+  },
+  {
+    "name": "veistra-prod-archive",
+    "location": "US",
+    "locationType": "multi-region",
+    "storageClass": "COLDLINE",
+    "timeCreated": "2026-09-20T17:00:00.000Z"
+  }
+]
