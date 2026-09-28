@@ -17,15 +17,12 @@ import "./frame.css";
  * reason the bars' heights do: it is the shape of the window, and the thing
  * being resized is the *split*, not the panel. The panel receives a box.
  *
- * The project-page rail and the docked project page are two more slots on
- * the same terms: the rail is a fixed width, the page is a split with its
- * own width and its own handle, and an expanded page is a third geometry —
- * covering everything left of the rail while the panes stay mounted behind
- * it. See `FrameSlots.projectRail` / `projectPage` / `projectPageExpanded`.
- *
- * `envBar` is the plainest of the lot: a fixed-height row at the top of
- * `.frame__main`, ahead of the tool window, with no drag of its own — see
- * `FrameSlots.envBar`.
+ * The project-page rail, the docked project page and `envBar` are three more
+ * slots on similar terms — a fixed rail, a page split with its own width and
+ * handle (an expanded page is a third geometry, covering everything left of
+ * the rail while the panes stay mounted behind it), and a plain fixed-height
+ * row for `envBar`. See `FrameSlots.projectRail`/`projectPage`/
+ * `projectPageExpanded`/`envBar`.
  */
 export const PANEL_MIN = 240;
 export const PANEL_COLLAPSED = 34;
