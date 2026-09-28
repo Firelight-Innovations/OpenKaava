@@ -52,6 +52,10 @@
   display: flex;
 }
 
+/* 26px, per `docs/design/KAAVA-UX-SPEC.md` §1.2 — these were already real
+   `<button>`s, where the v3 boards mock them as inert `<span>`s (§5's
+   contradiction 12); only the row height (was 22px) and the colours (now the
+   new token names) move for this rework. */
 .menubar__item {
   appearance: none;
   border: none;
@@ -59,18 +63,18 @@
   background: none;
   display: flex;
   align-items: center;
-  height: 22px;
+  height: 26px;
   padding: 0 8px;
-  border-radius: 3px;
-  font: 400 11px/1 var(--sans);
-  color: var(--text-dim);
+  border-radius: var(--radius-md, 6px);
+  font: 400 13px/1 var(--sans);
+  color: var(--txt-secondary, var(--text-dim));
   white-space: nowrap;
   cursor: default;
 }
 
 .menubar__item:hover,
 .menubar__item[data-open] {
-  background: var(--surface-2);
+  background: var(--bg-layer-1-hover, var(--surface-2));
 }
 
 .menubar__dropdown {
@@ -168,49 +172,11 @@
    regions render that list, so it is not the title bar's to own. The two rules
    above stay here because they are the accordion's, not the widget's. */
 
-/* --- title, absolutely centred ------------------------------------------
-   Spread across the whole bar and left under everything else on purpose —
-   the spec is explicit that it may sit under other elements, and that no
-   collision avoidance should be added. */
-
-/* Flex rather than `text-align: center`, because the title is three segments
-   now and the gaps between them have to be even whether or not the middle one
-   is there. Written as spacing rather than as literal spaces around the bar so
-   an absent segment leaves no gap behind it. */
-.titlebar__title {
-  position: absolute;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  white-space: nowrap;
-  font: 400 11.5px var(--sans);
-  color: var(--text-dim);
-  pointer-events: none;
-}
-
-/* Dimmer than either thing it divides. It is punctuation: it should be
-   findable when reading the line and invisible when scanning past it. */
-.titlebar__title-sep {
-  color: var(--text-dim-3);
-}
-
-.titlebar__title-name {
-  color: var(--text);
-  font-weight: 500;
-}
-
-/* Mono, matching the branch in the status bar — a branch name is an identifier
-   and is read character by character when it matters. Kept at the surrounding
-   dim weight rather than the project's, because the project is what the window
-   is *about* and the branch is a qualifier on it. */
-.titlebar__title-worktree {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  color: var(--text-dim);
-}
+/* The old three-segment title ("OpenKaava | project | branch") that used to
+   live here is gone — replaced by `ProjectPill.tsx`'s pill, which owns its
+   own centring (`projectPill.css`) the same way this block used to. See
+   `TitleBar.tsx`'s header for why the product name itself is not part of the
+   replacement. */
 
 /* --- spacer + window controls -------------------------------------------- */
 

@@ -1,35 +1,84 @@
 import { describe, expect, it } from "vitest";
-import { environmentOf, sameEnvironment } from "./environment";
 import type { Cluster } from "./contract";
+import {
+  DESIGN_WORKTREE_BRANCH,
+  environmentKey,
+  environmentOf,
+  sameEnvironment,
+} from "./environment";
 
-function cluster(over: Partial<Cluster>): Cluster {
+function cluster(overrides: Partial<Cluster>): Cluster {
   return {
-    id: "cluster-1",
+    id: "c1",
     name: "Flashlight",
-    tree: { kind: "leaf", id: "pane-1", tabs: [], activeTab: null },
-    project: null,
+    tree: { kind: "leaf", id: "p1", tabs: [], activeTab: null },
+    project: "anomaly",
     worktree: null,
     activeTerminal: null,
     bandHeight: null,
-    ...over,
+    ...overrides,
   };
 }
 
 describe("environmentOf", () => {
-  it("is the worktree path when the cluster has one", () => {
-    const c = cluster({
-      project: "/repo",
-      worktree: { path: "/repo/../.worktrees/repo/flashlight-cone", branch: "wt/flashlight-cone" },
+  it("reads a cluster with no worktree as main, read-only", () => {
+    expect(environmentOf(cluster({ worktree: null }))).toEqual({ kind: "main" });
+  });
+
+  it("reads a checked-out worktree as a worktree environment", () => {
+    const env = environmentOf(
+      cluster({
+        worktree: { path: "/repo/.kaava/worktrees/flashlight", branch: "wt/flashlight-cone" },
+      }),
+    );
+    expect(env).toEqual({
+      kind: "worktree",
+      branch: "wt/flashlight-cone",
+      path: "/repo/.kaava/worktrees/flashlight",
     });
-    expect(environmentOf(c)).toBe("/repo/../.worktrees/repo/flashlight-cone");
   });
 
-  it("falls back to the project folder with no worktree", () => {
-    expect(environmentOf(cluster({ project: "/repo" }))).toBe("/repo");
+  it("reads the standing wt/design worktree as the design canvas", () => {
+    const env = environmentOf(
+      cluster({
+        worktree: { path: "/repo/.kaava/worktrees/design", branch: DESIGN_WORKTREE_BRANCH },
+      }),
+    );
+    expect(env.kind).toBe("design");
   });
 
-  it("is null for a cluster pointed at nothing yet", () => {
-    expect(environmentOf(cluster({}))).toBeNull();
+  it("drops the branch field for a detached HEAD rather than reporting null", () => {
+    const env = environmentOf(
+      cluster({ worktree: { path: "/repo/.kaava/worktrees/x", branch: null } }),
+    );
+    expect(env.kind).toBe("worktree");
+    expect(env.branch).toBeUndefined();
+  });
+
+  it("never derives cloud — nothing in Cluster names a session yet", () => {
+    for (const worktree of [null, { path: "/a", branch: "wt/a" }]) {
+      expect(environmentOf(cluster({ worktree })).kind).not.toBe("cloud");
+    }
+  });
+});
+
+describe("environmentKey", () => {
+  it("gives every main environment the same key", () => {
+    expect(environmentKey({ kind: "main" })).toBe(environmentKey({ kind: "main" }));
+  });
+
+  it("keys two clusters on the same worktree path identically", () => {
+    const a = environmentOf(cluster({ worktree: { path: "/repo/wt/x", branch: "wt/x" } }));
+    const b = environmentOf(
+      cluster({ id: "c2", worktree: { path: "/repo/wt/x", branch: "wt/x-renamed" } }),
+    );
+    expect(environmentKey(a)).toBe(environmentKey(b));
+  });
+
+  it("keys two different worktree paths differently", () => {
+    const a = environmentOf(cluster({ worktree: { path: "/repo/wt/a", branch: "wt/a" } }));
+    const b = environmentOf(cluster({ worktree: { path: "/repo/wt/b", branch: "wt/b" } }));
+    expect(environmentKey(a)).not.toBe(environmentKey(b));
   });
 });
 
@@ -46,11 +95,19 @@ describe("sameEnvironment", () => {
     expect(sameEnvironment(a, b)).toBe(false);
   });
 
-  /** Nowhere is not a place two clusters can share — see the function's own
-   *  doc comment for why this is refused rather than allowed. */
+  it("is false for a main cluster against a different project's main cluster", () => {
+    // The case `environmentKey` alone would get wrong — see `sameEnvironment`'s
+    // own doc comment for why it is built on `clusterRoot` instead.
+    const a = cluster({ id: "a", project: "/repo-one" });
+    const b = cluster({ id: "b", project: "/repo-two" });
+    expect(sameEnvironment(a, b)).toBe(false);
+  });
+
   it("is false for two clusters that both have no project yet", () => {
-    const a = cluster({ id: "a" });
-    const b = cluster({ id: "b" });
+    // Nowhere is not a place two clusters can share — see the function's own
+    // doc comment for why this is refused rather than allowed.
+    const a = cluster({ id: "a", project: null });
+    const b = cluster({ id: "b", project: null });
     expect(sameEnvironment(a, b)).toBe(false);
   });
 

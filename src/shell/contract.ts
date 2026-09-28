@@ -1,18 +1,15 @@
 /**
  * The seam every region plugs into. Each of the sixteen regions is built against
  * this file and nothing else — a region never imports another region's source,
- * which is what lets them be built in parallel without growing into each other.
- * Anything two regions need lives beside this file (STANDARDS.md §1.2).
- * The long-form argument behind several of these types is in
- * `docs/design-notes/shell-core.md`.
+ * which is what lets them be built in parallel. Anything two regions need lives
+ * beside this file (STANDARDS.md §1.2); the long-form argument behind several of
+ * these types is in `docs/design-notes/shell-core.md`.
  *
- * Two of the review's rules are enforced here rather than hoped for:
- *
- *   * No version number reaches the interface. `ToolPresentation` has no version
- *     field, and `toolPresentation()` is the only door onto a `ResolvedTool`.
- *   * No backend vocabulary reaches the interface. The backend's four states are
- *     `ready | mismatch | unversioned | missing`; the user reads "needs update",
- *     "not tracked", "not installed". The mapping happens once, below.
+ * Two rules enforced here rather than hoped for: no version number reaches the
+ * interface (`ToolPresentation` has none; `toolPresentation()` is the only door
+ * onto a `ResolvedTool`), and no backend vocabulary does either (the backend's
+ * `ready | mismatch | unversioned | missing` becomes "needs update", "not
+ * tracked", "not installed" once, below).
  */
 import type { ReactNode } from "react";
 import type {
@@ -686,11 +683,10 @@ export type {
 // terminals in the band below it, which makes a chip a place rather than a
 // filter. See `TerminalSessionState.clusterId` and `docs/design-notes/shell-core.md`.
 
-/** One entry in the shell's single tab bar: whichever of a cluster's surfaces and
- *  terminals a tab happens to be, flattened to the one shape the bar draws.
- *  `paneId` is the whole distinction — a surface lives in a pane, a terminal in
- *  the panel, and `null` says which. Built fresh from `shell:state` on every
- *  render rather than tracked; see `docs/design-notes/shell-core.md`. */
+/** Whichever of a cluster's surfaces and terminals a tab happens to be,
+ *  flattened to the one shape a strip draws. `paneId` is the whole
+ *  distinction — a surface lives in a pane, a terminal in the panel, `null`
+ *  says which. Built fresh from `shell:state` every render, not tracked. */
 export interface ClusterMember {
   /** The tab's own identity: an instance id, or a terminal tab's group id. */
   id: string;
@@ -731,14 +727,10 @@ export function paneLeaves(node: PaneNode): Extract<PaneNode, { kind: "leaf" }>[
 
 // --- Drag — every interaction, one vocabulary -------------------------------
 
-/** What is currently in the air. Two things can be dragged, and `what` is which;
- *  a union rather than a wide object with half its fields unused is what stops a
- *  cluster falling through the tab branches and landing somewhere it cannot go.
- *  See `docs/design-notes/shell-core.md`. */
+/** What is currently in the air, `what` saying which — a union so a cluster can't fall through the tab branches. */
 export type DragPayload = SurfaceDrag | ClusterDrag;
 
-/** A tab in the air. One kind, where there used to be two: an app surface and
- *  a terminal drag identically. `kind` is carried for the ghost's benefit. */
+/** A tab in the air — an app surface and a terminal drag identically. `kind` is carried for the ghost. */
 export interface SurfaceDrag {
   what: "surface";
   instanceId: string;
@@ -763,13 +755,11 @@ export interface ClusterDrag {
 }
 
 /** Where a drag would land if it were released now. `pane` with an `edge` splits
- *  that pane on that side; `pane` with no edge appends to its tab strip. `strip`
- *  is a drop between two tabs, with `index` naming the insertion point. `panel`
- *  is the terminal band, still named for the panel it used to be. `detach` is
- *  clear of every drop target, and releasing there makes a window. `none` is a
- *  release this *particular* payload cannot make; it is never what a hit test
- *  returns, `useDrag` substitutes it, and releasing on it does nothing at all.
- *  See `docs/design-notes/shell-core.md`. */
+ *  that pane on that side; with no edge it appends to the tab strip. `strip` is
+ *  a drop between two tabs, `index` naming the insertion point. `panel` is the
+ *  terminal band. `detach` is clear of every target, and releases into a window.
+ *  `none` is a release this payload cannot make — never what a hit test
+ *  returns; `useDrag` substitutes it and does nothing on release. */
 export type DropTarget =
   | { kind: "pane"; paneId: string; edge: SplitDir | null; before: boolean }
   | { kind: "strip"; paneId: string; index: number }
@@ -841,12 +831,30 @@ export interface FrameSlots {
   titleBar: ReactNode;
   /** Omitted in a detached window. */
   switcherBar?: ReactNode;
+  /** The environment bar (§1.4): a 36px `flex: none` row atop `.frame__main`,
+   *  ahead of `toolWindow`. Omitted while no cluster is open. */
+  envBar?: ReactNode;
   toolWindow: ReactNode;
   secondaryPanel: ReactNode;
   /** The terminal band, under the tool window and stopping at the secondary
    *  panel's edge — `.frame__main` in frame.css says why it does not span the
    *  window. Omitted, neither the band nor its handle is rendered at all. */
   bottomPanel?: ReactNode;
+  /** The right-side project-page rail (`docs/KAAVA-UX-REWORK.md` §4): Git,
+   *  Plane, Cloud agents, Hindsight, Cost, Artifact registry — a fixed
+   *  `PROJECT_RAIL_WIDTH` column at the far right of the workspace band.
+   *  Chrome owns the slot; the **rail** workstream owns its contents. */
+  projectRail?: ReactNode;
+  /** A project page, docked beside the panes — Git's aside is the first.
+   *  Width is `projectPageWidth` (`Frame`'s props), not this slot's markup,
+   *  for `secondaryPanel`'s reason: the split's geometry is `Frame`'s alone. */
+  projectPage?: ReactNode;
+  /** The same page, **expanded**: covers the workspace area (tool window,
+   *  handle, panel and the docked page) while the rail stays visible. Panes
+   *  stay mounted underneath via `visibility`, never unmounted — a long
+   *  agent run keeps going behind an expanded Cost page. Drawn only while
+   *  `projectPageExpanded` is true; `projectPage` is not rendered at once. */
+  projectPageExpanded?: ReactNode;
   statusBar: ReactNode;
   /** Portalled above everything: drag ghost and drop outlines. */
   overlay?: ReactNode;
