@@ -175,6 +175,10 @@ pub fn run() {
         // `apps::projects::WakeManager`.
         .manage(plane_webview::PlaneWebview::default())
         .manage(apps::projects::WakeManager::default())
+        // The New Project page's step-runner snapshot, for `home/create-
+        // project-status` to poll — the same shape as `WakeManager` above.
+        // See `apps::home_create`.
+        .manage(apps::home_create::CreateManager::default())
         // Which MCP servers this build hosts for whatever agent the user is
         // running in a terminal, and which of them are switched on. Empty until
         // something registers into it — see `mcp`'s module doc for why an app

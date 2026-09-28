@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { KaavaRpcError, invoke, openIn, reportPainted } from "@openkaava/bridge";
 import { PRODUCT_NAME, TAGLINE, WORDMARK } from "./branding.generated";
 import { Book, Close, FolderOpen, FolderPlus, GitBranch, Mark, PackagePlus } from "./icons";
+import NewProject from "./NewProjectPage";
 import WorktreeDialog from "./WorktreeDialog";
 import "./home.css";
 
@@ -120,6 +121,14 @@ export default function App() {
   const [state, setState] = useState<State | null>(null);
   const [error, setError] = useState<string | null>(null);
   /**
+   * Home has no router — there is exactly one other screen, so a boolean is
+   * the whole of the state it takes to choose between them. `home/new-
+   * project` used to open a native folder picker directly from the Start
+   * list; board 14 replaces that with this full page, reached the same way
+   * any other Start action is, but drawn instead of run.
+   */
+  const [showNewProject, setShowNewProject] = useState(false);
+  /**
    * Which method is in flight, or `null`. A boolean would do for disabling, but
    * not for the label — New and Open both open a *native folder picker*, which
    * blocks until the user answers it. On the second monitor, or behind the
@@ -204,6 +213,22 @@ export default function App() {
   }, []);
 
   /**
+   * Reread `home/state` when the New Project page hands control back —
+   * cancelled or finished, the read is the same one call, and a project
+   * Create just opened needs to show up in `open`/`recents` the same way any
+   * other newly opened project does.
+   */
+  const closeNewProject = useCallback(() => {
+    setShowNewProject(false);
+    void invoke<State>("home/state")
+      .then((next) => {
+        setState(next);
+        setError(null);
+      })
+      .catch((e: unknown) => setError(describe(e)));
+  }, []);
+
+  /**
    * Refetched on focus as well as on mount, because the tutorial the reader
    * just finished was finished in a *different* app — this pane has no way to
    * hear about it otherwise, and a column still offering something you have
@@ -248,6 +273,8 @@ export default function App() {
 
   const open = state?.open ?? null;
   const recents = state?.recents ?? [];
+
+  if (showNewProject) return <NewProject onDone={closeNewProject} />;
 
   return (
     <div className="home">
@@ -313,7 +340,10 @@ export default function App() {
                     // be a worse answer than one that never suggested it could.
                     disabled={unavailable !== undefined || pending !== null}
                     title={unavailable}
-                    onClick={() => run(method)}
+                    // New Project no longer opens a native picker directly —
+                    // see `showNewProject` above — every other Start action
+                    // still goes straight through `run`.
+                    onClick={() => (method === "home/new-project" ? setShowNewProject(true) : run(method))}
                   >
                     <Icon size={18} className="home__action-icon" />
                     <span>{label}</span>
