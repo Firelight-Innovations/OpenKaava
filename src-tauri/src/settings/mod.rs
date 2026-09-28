@@ -390,7 +390,19 @@ pub fn seed(app: &AppHandle) {
     for group in crate::apps::settings_groups() {
         registry.register(group);
     }
-    registry.hydrate(store::load(app).values);
+
+    let mut stored = store::load(app).values;
+    // A pre-rework file's accent is a hex the current `Select` no longer
+    // offers (see `schema::migrate_legacy_accent`); `hydrate` would otherwise
+    // drop it and reset the accent to Amber for every existing install.
+    if let Some(Value::String(hex)) = stored.get(schema::keys::APPEARANCE_ACCENT_COLOR) {
+        let migrated = schema::migrate_legacy_accent(hex).to_string();
+        stored.insert(
+            schema::keys::APPEARANCE_ACCENT_COLOR.to_string(),
+            json!(migrated),
+        );
+    }
+    registry.hydrate(stored);
 }
 
 /// Persist and broadcast. Every write goes through here.

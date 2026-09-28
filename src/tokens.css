@@ -1,16 +1,23 @@
 /*
  * Design tokens shared by every entry point.
  *
- * Every interface value here is lifted from `docs/handoffs/shell-spec.html` —
- * the decoded handoff. Nothing in this file is a choice; if a value looks
- * wrong, the spec is the thing to check, not this file. Do not add an interface
- * colour that does not appear there.
+ * Kaava design system v2 (`docs/design/kaava-ds/tokens.json`), decoded into
+ * CSS custom properties named `--<token name>` — `--bg-canvas`, `--accent`,
+ * `--radius-region`, and so on. Dark is `:root`'s default; light is
+ * `:root[data-theme="light"]`, set by `useAppearance` (`src/shell/settings/
+ * appearance.ts`) from the `appearance.theme` setting. If a value here looks
+ * wrong, `tokens.json` is the thing to check first — every colour, spacing,
+ * radius, shadow and size value below is copied from it, not chosen here.
+ * Two kinds of exception say so where they occur: the four extra commit-graph
+ * lane colours, and the mark's three brand tones.
  *
- * Two blocks below are marked as exceptions and say why: the commit-graph lane
- * colours, and the mark's three tones. The lane colours extend a rotation the
- * handoff's four semantic colours cannot cover; the mark's tones are brand
- * colours from the brand packet rather than interface colours, and nothing in
- * the interface may reach for them.
+ * A **second block below this one keeps every pre-rework token name resolving**,
+ * as an alias of whichever new token replaces it. That is what lets every
+ * existing component go on working the moment this file lands — the rest of
+ * the UX rework migrates call sites onto the new names at its own pace, region
+ * by region, without a flag day where the whole app has to move at once. A new
+ * component reaches for the new names on the left; nothing new should reach
+ * for a name on the right.
  *
  * Split out of styles.css so the splash window (src/splash/splash.css) can use
  * the same palette and base resets without pulling in the whole app stylesheet
@@ -18,135 +25,335 @@
  * vite.config.ts if its CSS stays small too.
  */
 
-/* The handoff is drawn in IBM Plex Sans and IBM Plex Mono. Bundled rather than
-   fetched: this is a desktop app, and a webfont that arrives over the network
-   is a webfont that doesn't arrive at all when the machine is offline. */
-@import "@fontsource/ibm-plex-sans/400.css";
-@import "@fontsource/ibm-plex-sans/500.css";
-@import "@fontsource/ibm-plex-sans/600.css";
+/* Inter for the interface, bundled rather than fetched for the same reason the
+   mono face always was: this is a desktop app, and a webfont that arrives over
+   the network is a webfont that doesn't arrive at all when the machine is
+   offline. `@fontsource/inter` ships one file per static weight; 450 (the
+   `body`/`body-strong` styles in tokens.json) isn't one of them, so the
+   nearest face the engine has — 500 — stands in for it. Moving to
+   `@fontsource-variable/inter` would let `font-weight: 450` resolve exactly;
+   not done here because it is a dependency swap and out of this PR's scope. */
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
 @import "@fontsource/ibm-plex-mono/400.css";
 @import "@fontsource/ibm-plex-mono/500.css";
 @import "@fontsource/ibm-plex-mono/600.css";
 
 :root {
-  /* --- the ten named tokens (handoff reference table) ------------------- */
+  color-scheme: dark;
 
-  --bg: #14161a; /* page, tool window, active tab */
-  --surface: #1b1e24; /* all four bars, panel */
-  --surface-2: #22262e; /* selected panel tab, menu hover, ghost chip */
-  --line: #2c313b; /* every hairline and divider */
-  --text: #e4e7ec; /* active tab, selected labels */
-  --text-dim: #949cab; /* inactive tabs, all icon strokes */
-  --accent: #d98a3f; /* active tab rule, focus, drop targets, primary action */
-  --ok: #5fb37a; /* GitHub healthy, agent finished */
-  --warn: #d9a93f; /* warning badge, needs update, modified file */
-  --err: #d9635f; /* not installed, build failed, deleted file */
+  /* ============================================================
+   * Kaava design system v2 — dark (default)
+   * ============================================================ */
 
-  /* --- greys the spec draws with but never names ------------------------
-     These appear throughout the handoff markup with no entry in its token
-     table. They are named here so a component never inlines a raw hex; the
-     names are ours, the values are the spec's. */
+  /* --- colour: surfaces and structure -------------------------------- */
+  --bg-canvas: #0f0f10; /* window root only: title bar, switcher, status bar, region gutters */
+  --bg-surface-1: #141415; /* every region: tool window, editor, bottom panel, right panel */
+  --bg-surface-2: #181a1b; /* a secondary region beside a surface-1 region (rare) */
+  --bg-layer-1: #181a1b; /* rows, inputs and cards inside a region */
+  --bg-layer-1-hover: #1d1f20;
+  --bg-layer-1-selected: #222425; /* selected tree row, terminal, settings section, segmented tab */
+  --bg-layer-2: #1d1f20; /* active switcher tab, menus, the search palette, a chip inside a card */
+  --bg-layer-2-hover: #222425;
+  --bg-layer-3: #222425; /* a chip inside a menu, a code chip inside a card */
+  --bg-inverse: #e4e6e6; /* tooltips only */
+  --bg-backdrop: rgba(0, 0, 0, 0.5); /* behind the palette and modal dialogs */
+  --border-subtle: #222425; /* region edges, every divider */
+  --border-subtle-1: #2c2e30; /* input and search-field edges, overlay edges */
+  --border-strong: #36393a; /* secondary button edge, checkbox edge, detached-window edge */
+  --border-strong-1: #45484a; /* secondary button edge on hover */
 
-  --text-dim-2: #6d747f; /* popover section headers, terminal prompt */
-  --text-dim-3: #5b616c; /* secondary captions, an uninstalled tool's tab */
-  --text-faint: #4a505b; /* keyboard hints (Ctrl+K) */
-  --line-2: #3a404b; /* checkbox borders, detached window edge */
-  --line-3: #343a45; /* the big empty-state glyph */
-  --surface-gap: #191c21; /* the hole a dragged tab leaves behind */
-  --dot-off: #4f5663; /* a status dot with nothing to report */
-  --accent-dim: #8a6431; /* a keyboard hint inside an accent button */
+  /* --- colour: text ---------------------------------------------------- */
+  --txt-primary: #e4e6e6; /* titles, active tabs, selected rows, code text */
+  --txt-secondary: #cacdce; /* tree rows, menu items, body labels */
+  --txt-tertiary: #afb3b6; /* inactive tabs, descriptions, icon strokes */
+  --txt-placeholder: #959a9d; /* placeholders, section labels, kbd hints, paths */
+  --txt-disabled: #7a8185; /* disabled controls, ignored files, line numbers */
 
-  /* --- accent washes ----------------------------------------------------
-     Drop targets and primary actions are drawn as translucent accent rather
-     than as opaque tints, so they read correctly over both --bg and
-     --surface. */
+  /* --- colour: accent (a user setting — see appearance.ts) ------------ */
+  /* Every option's full trio lives here so `appearance.ts` only ever has to
+     point `--accent`/`--accent-hover`/`--accent-subtle` at one of them —
+     no colour math at runtime, and the trio for the option that isn't
+     currently selected still updates correctly across a theme change. Amber
+     is tokens.json's own literal hover/subtle; the other four aren't given
+     one there (just a single flat hex per option), so their hover/subtle are
+     computed in the same relationship amber's sit in: hover blends 15%
+     toward white in dark (toward black in light), subtle blends 20% of the
+     hue into the canvas in dark (12% into white in light). */
+  --accent-amber: #d98a3f;
+  --accent-amber-hover: #e39a55;
+  --accent-amber-subtle: #3b2612;
+  --accent-blue: #4d9be6;
+  --accent-blue-hover: color-mix(in srgb, var(--accent-blue) 85%, white);
+  --accent-blue-subtle: color-mix(in srgb, var(--bg-canvas) 80%, var(--accent-blue));
+  --accent-green: #4cb863;
+  --accent-green-hover: color-mix(in srgb, var(--accent-green) 85%, white);
+  --accent-green-subtle: color-mix(in srgb, var(--bg-canvas) 80%, var(--accent-green));
+  --accent-violet: #a585f0;
+  --accent-violet-hover: color-mix(in srgb, var(--accent-violet) 85%, white);
+  --accent-violet-subtle: color-mix(in srgb, var(--bg-canvas) 80%, var(--accent-violet));
+  --accent-coral: #e5736b;
+  --accent-coral-hover: color-mix(in srgb, var(--accent-coral) 85%, white);
+  --accent-coral-subtle: color-mix(in srgb, var(--bg-canvas) 80%, var(--accent-coral));
 
-  --accent-line: rgba(217, 138, 63, 0.45);
-  --accent-line-strong: rgba(217, 138, 63, 0.7);
-  --accent-wash: rgba(217, 138, 63, 0.08);
-  --accent-wash-faint: rgba(217, 138, 63, 0.05);
+  /* The active choice. `appearance.ts` overwrites these three with
+     `var(--accent-<name>)` etc. once the accent setting is read; until then
+     — and for any surface it never reaches, such as the splash window —
+     amber is what the app draws, which is also tokens.json's own default. */
+  --accent: var(--accent-amber);
+  --accent-hover: var(--accent-amber-hover);
+  --accent-subtle: var(--accent-amber-subtle);
+  --txt-accent: #e8a868; /* links and text on accent-subtle */
+  --txt-on-accent: #0f0f10; /* text and icons on an accent fill: dark in dark theme */
+
+  /* --- colour: status ---------------------------------------------------- */
+  --success: #4cb863;
+  --success-subtle: #12301c;
+  --txt-success: #8fdca1;
+  --warning: #e0a030;
+  --warning-subtle: #3a2a0a;
+  --txt-warning: #f5cf73;
+  --danger: #e5534b;
+  --danger-subtle: #3a1512;
+  --txt-danger: #f4a49c;
+  --info: #6f96ff;
+  --info-subtle: #16244a;
+  --txt-info: #a3c1ff;
+  --state-idle: #7a8185; /* a status dot with nothing to report */
+
+  /* --- colour: charts ---------------------------------------------------- */
+  --chart-1: var(--accent); /* follows the accent */
+  --chart-2: #6f96ff;
+  --chart-3: #4fc4bd;
+  --chart-4: #a585f0;
+  --chart-5: #d96fb1;
+  --chart-6: #9fd89a;
+  --chart-grid: #222425;
+
+  /* --- colour: editor syntax ---------------------------------------------- */
+  --syn-keyword: #c49bf2;
+  --syn-type: #7fc8f8;
+  --syn-function: #f0c674;
+  --syn-string: #9fd89a;
+  --syn-number: #e8a868;
+  --syn-comment: #7a8185;
+
+  /* --- colour: the mark ---------------------------------------------------
+     Brand colours, never used in the interface (see `README.md`'s Mark
+     section). Theme-reactive, like every other colour token here — the
+     `-light` names below stay put for the one reader that wants the light
+     trio regardless of the current theme (`Mark` in
+     `apps/home/ui/src/icons.tsx`, on Home's bone-ground lockup). */
+  --mark-skin: #5c8a2f;
+  --mark-flesh: #d0e878;
+  --mark-seed: #8a5524;
+  --mark-skin-light: #3f6020;
+  --mark-flesh-light: #8fae35;
+  --mark-seed-light: #5e3a18;
+
+  /* --- type ---------------------------------------------------------------
+     Font families are the tokens named directly. The scale below is not in
+     tokens.json's flat token lists — it is a table of styles there — so each
+     row is exposed as one `font` shorthand plus a `-tracking` for the two
+     styles that set letter-spacing, named after tokens.json's own style
+     names rather than invented ones. */
+  --sans: Inter, "Inter Variable", system-ui, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --type-display: 600 40px/1.1 var(--sans); /* the Home wordmark only */
+  --type-display-tracking: -0.02em;
+  --type-h1: 600 24px/1.25 var(--sans); /* settings section title, full-screen page title */
+  --type-h2: 600 16px/1.35 var(--sans); /* a setting's name, a card title */
+  --type-body: 450 13px/1.5 var(--sans); /* the workhorse: tabs, tree rows, menus, buttons */
+  --type-body-strong: 500 13px/1.5 var(--sans); /* active tab, selected row, button label */
+  --type-caption: 450 12px/1.45 var(--sans); /* descriptions, meta, status bar */
+  --type-label: 600 11px/1.3 var(--sans); /* section labels, uppercase */
+  --type-label-tracking: 0.04em;
+  --type-code: 400 13px/22px var(--mono); /* editor text */
+  --type-mono-meta: 400 12px/1.4 var(--mono); /* paths, hashes, ports, kbd hints */
+
+  /* --- spacing ------------------------------------------------------------ */
+  --space-1: 4px; /* icon-to-label gap in small controls */
+  --space-1-5: 6px; /* gutter between regions; icon gap in md controls */
+  --space-2: 8px; /* row padding, gap between buttons */
+  --space-3: 12px; /* panel padding */
+  --space-4: 16px; /* card and settings-row padding */
+  --space-6: 24px; /* section gap in settings and Home */
+
+  /* --- radius --------------------------------------------------------------- */
+  --radius-sm: 4px; /* git chips, kbd hints, tags */
+  --radius-md: 6px; /* buttons, inputs, tree rows, badges */
+  --radius-lg: 8px; /* menus, app-switcher tabs, cards */
+  --radius-region: 10px; /* every region on the canvas */
+  --radius-xl: 12px; /* dialogs, the search palette, settings window */
+
+  /* --- shadow --------------------------------------------------------------- */
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.25);
+  --shadow-overlay: 0 12px 32px -6px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3);
+
+  /* --- size: the control ladder and region geometry -------------------------
+     `w-rail` and `h-envbar` are not in tokens.json — the cluster rail and the
+     environment bar are new to the v3 boards and undocumented there. Added
+     here per the "no token, add it and say so" rule; see the PR description. */
+  --control-sm: 24px; /* row actions, segmented panel tabs, git chips' row */
+  --control-md: 28px; /* default: tree rows, buttons, inputs */
+  --control-lg: 32px; /* settings inputs, commit button, search field */
+  --control-xl: 36px; /* dialog buttons */
+  --control-2xl: 40px; /* Home start actions, onboarding */
+  --h-titlebar: 38px;
+  --h-switcher: 40px;
+  --h-paneltabs: 34px; /* tab strip inside a region */
+  --h-statusbar: 26px;
+  --h-envbar: 36px; /* the environment bar (not in tokens.json — see above) */
+  --w-panel-default: 380px; /* right panel open width, resizable 320-640 */
+  --w-panel-collapsed: 40px;
+  --w-rail: 44px; /* the cluster rail (not in tokens.json — see above) */
+
+  /* --- focus ---------------------------------------------------------------- */
+  --focus-ring: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  --focus-ring-offset: 2px;
+
+  /* ============================================================
+   * Legacy aliases — every pre-rework token name, still resolving.
+   *
+   * Values are derived from the block above rather than restated, so a theme
+   * or accent change reaches old and new names alike with nothing here to
+   * keep in step by hand. Three (`--accent-line*`, `--accent-wash*`,
+   * `--accent-dim`) were originally hand-picked alphas of the stored accent
+   * hex (see the removed `WASHES`/`DIM_RATIO` in appearance.ts); they are
+   * `color-mix` equivalents of the same ratios now that the accent itself is
+   * a CSS variable rather than a value only JS knew.
+   * ============================================================ */
+  --bg: var(--bg-canvas);
+  --surface: var(--bg-surface-1);
+  --surface-2: var(--bg-surface-2);
+  --line: var(--border-subtle);
+  --text: var(--txt-primary);
+  --text-dim: var(--txt-tertiary);
+  --ok: var(--success);
+  --warn: var(--warning);
+  --err: var(--danger);
+
+  --text-dim-2: var(--txt-placeholder);
+  --text-dim-3: var(--txt-disabled); /* the old scale had a step below this; none remains */
+  --text-faint: var(--txt-disabled); /* same reason */
+  --line-2: var(--border-strong);
+  --line-3: var(--border-strong-1);
+  --surface-gap: var(--bg-canvas); /* the hole a dragged tab leaves behind */
+  --dot-off: var(--state-idle);
+  --accent-dim: color-mix(in srgb, var(--accent) 64%, black);
+
+  --accent-line: color-mix(in srgb, var(--accent) 45%, transparent);
+  --accent-line-strong: color-mix(in srgb, var(--accent) 70%, transparent);
+  --accent-wash: color-mix(in srgb, var(--accent) 8%, transparent);
+  --accent-wash-faint: color-mix(in srgb, var(--accent) 5%, transparent);
 
   /* --- commit graph lane colours ------------------------------------------
-     Not from the handoff — everything above this point is, but a commit
-     graph can carry more concurrent lanes than the four semantic status
-     colours (`--accent`/`--ok`/`--warn`/`--err`) cover, and unlike those four
-     a lane colour means nothing beyond "which lane"; reusing a status colour
-     for that would risk implying a lane is an error or a warning. These four
-     extend that rotation (see `LANE_COLORS` in `CommitGraph.tsx`) rather than
-     reaching for a raw hex there, matched to the same mid-tone brightness and
-     ~60% saturation the existing four share so a fifth-through-eighth lane
-     doesn't stand out as an obviously different kind of colour. Do not use
-     these outside the commit graph — they exist for lane-index variety, not
-     as general-purpose palette additions. */
-
+     Not from tokens.json — a commit graph can carry more concurrent lanes
+     than the semantic status colours cover, and unlike those a lane colour
+     means nothing beyond "which lane"; reusing a status colour for that
+     would risk implying a lane is an error or a warning. These four extend
+     that rotation (see `LANE_COLORS` in `CommitGraph.tsx`) rather than
+     reaching for a raw hex there. Do not use these outside the commit
+     graph. */
   --graph-blue: #5f95d9;
   --graph-violet: #956fd9;
   --graph-teal: #4fc4bd;
   --graph-pink: #d96fb1;
 
-  /* --- the mark's three tones ---------------------------------------------
-     The only values in this file that are NOT from the handoff. They come from
-     the brand packet, they are brand colours rather than interface colours, and
-     nothing in the interface may reach for them — a component that wants green
-     wants `--ok`. Their one reader is `Mark` in `apps/home/ui/src/icons.tsx`,
-     which inlines the mark's colour geometry for Home's 52px lockup and would
-     otherwise be three hardcoded hexes — the thing every other token here
-     exists to prevent. Home reaches them the same way it reaches `--bg`, by
-     loading this file (`apps/home/ui/index.html`), not by importing the shell.
-
-     The `-light` three are the same mark for a bone surface, where the dark
-     trio loses its separation. Nothing in the app has a bone surface, so they
-     have no reader here yet; they are recorded because the brand packet
-     specifies them and the next thing to draw the mark on white — a README
-     graphic, a docs page — would otherwise pick three values by eye.
-
-     The seed is the value that carries the mark. Its whole job is to read as a
-     hole, which is how the monochrome silhouette draws it — a counter, cut by
-     winding. So it is chosen by luminance rather than by hue: 0.120 against the
-     flesh's 0.732 is 4.5:1, and the mark survives greyscale and a 15px title
-     bar. The first pass had these two at 0.213 and 0.618, which is 2.5:1, and
-     paired a seed at 0.213 with a skin at 0.240 — near enough the same value
-     that desaturating the mark flattened the seed into the ring around it.
-
-     `--accent` does not move. It stays #d98a3f and stays the interface's
-     accent; it is not the brand colour any more, and it must not appear behind
-     the mark. Amber sits at 0.333 and the skin at 0.207, a contrast ratio of
-     1.5:1, so a green mark on an amber field separates by hue alone and
-     disappears when squinted at. */
-
-  --mark-skin: #5c8a2f; /* outer body, on dark grounds */
-  --mark-flesh: #d0e878; /* inner body */
-  --mark-seed: #8a5524; /* seed */
-
-  --mark-skin-light: #3f6020; /* the same three, for light grounds */
-  --mark-flesh-light: #8fae35;
-  --mark-seed-light: #5e3a18;
-
-  /* --- type ------------------------------------------------------------- */
-
-  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
-
-  /* --- region geometry --------------------------------------------------
-     The four bars and the panel. Exposed as tokens because the verification
-     pass measures against these exact numbers, and because a bar height that
-     lives in one place cannot drift between the main window and a detached
-     one. */
-
-  --h-titlebar: 34px;
-  --h-switcher: 36px;
-  --h-paneltabs: 34px;
-  --h-statusbar: 22px;
   --w-resize-handle: 6px;
-  --w-panel-default: 380px;
-  --w-panel-collapsed: 34px;
   --w-window-button: 46px;
 
-  color-scheme: dark;
   font-family: var(--sans);
   font-size: 14px;
   color: var(--text);
   background: var(--bg);
+}
+
+/* ============================================================
+ * Kaava design system v2 — light
+ *
+ * Set by `useAppearance` as `data-theme="light"` on `<html>`, from the
+ * `appearance.theme` setting (System follows `prefers-color-scheme`). Same
+ * token names throughout; only their values move. Legacy aliases need no
+ * second copy here — a `var()` alias re-resolves against whichever block is
+ * active, so the one set above already covers both themes.
+ * ============================================================ */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-canvas: #f2f2f3;
+  --bg-surface-1: #ffffff;
+  --bg-surface-2: #fcfcfc;
+  --bg-layer-1: #f9f9f9;
+  --bg-layer-1-hover: #f2f2f3;
+  --bg-layer-1-selected: #eaebec;
+  --bg-layer-2: #ffffff;
+  --bg-layer-2-hover: #fcfcfc;
+  --bg-layer-3: #f2f2f3;
+  --bg-inverse: #0f0f10;
+  --bg-backdrop: rgba(15, 15, 16, 0.3);
+  --border-subtle: #eaebec;
+  --border-subtle-1: #e1e2e3;
+  --border-strong: #d5d7d9;
+  --border-strong-1: #cacdcf;
+
+  --txt-primary: #0f0f10;
+  --txt-secondary: #313435;
+  --txt-tertiary: #494d50;
+  --txt-placeholder: #5d6265;
+  --txt-disabled: #767c7f;
+
+  --accent-amber: #a85a14;
+  --accent-amber-hover: #8f4b10;
+  --accent-amber-subtle: #fbf1e6;
+  --accent-blue: #1f63b5;
+  --accent-blue-hover: color-mix(in srgb, var(--accent-blue) 85%, black);
+  --accent-blue-subtle: color-mix(in srgb, white 88%, var(--accent-blue));
+  --accent-green: #23803b;
+  --accent-green-hover: color-mix(in srgb, var(--accent-green) 85%, black);
+  --accent-green-subtle: color-mix(in srgb, white 88%, var(--accent-green));
+  --accent-violet: #6c47c9;
+  --accent-violet-hover: color-mix(in srgb, var(--accent-violet) 85%, black);
+  --accent-violet-subtle: color-mix(in srgb, white 88%, var(--accent-violet));
+  --accent-coral: #b8392f;
+  --accent-coral-hover: color-mix(in srgb, var(--accent-coral) 85%, black);
+  --accent-coral-subtle: color-mix(in srgb, white 88%, var(--accent-coral));
+  --txt-accent: #8f4b10;
+  --txt-on-accent: #ffffff;
+
+  --success: #2f934b;
+  --success-subtle: #e0f5e6;
+  --txt-success: #1f6b35;
+  --warning: #bb4d00;
+  --warning-subtle: #fdf1dc;
+  --txt-warning: #8a3a00;
+  --danger: #bf2c22;
+  --danger-subtle: #fdf0ef;
+  --txt-danger: #9c231b;
+  --info: #155dfc;
+  --info-subtle: #eef3ff;
+  --txt-info: #1447c2;
+  --state-idle: #767c7f;
+
+  --chart-2: #1f63b5;
+  --chart-3: #0e7c74;
+  --chart-4: #6c47c9;
+  --chart-5: #a8326e;
+  --chart-6: #23803b;
+  --chart-grid: #eaebec;
+
+  --syn-keyword: #7a3fc4;
+  --syn-type: #1f63b5;
+  --syn-function: #8a5a00;
+  --syn-string: #23803b;
+  --syn-number: #a85a14;
+  --syn-comment: #767c7f;
+
+  --mark-skin: #3f6020;
+  --mark-flesh: #8fae35;
+  --mark-seed: #5e3a18;
 }
 
 * {

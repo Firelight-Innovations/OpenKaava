@@ -19,6 +19,8 @@ use super::{Applies, Control, Group, SelectOption, Setting};
 /// the type its reader expects. A typo in a literal would fall back to the
 /// zero value silently; a typo here does not compile.
 pub mod keys {
+    pub const APPEARANCE_THEME: &str = "appearance.theme";
+    pub const APPEARANCE_ACCENT_COLOR: &str = "appearance.accentColor";
     pub const TERMINAL_DEFAULT_SHELL: &str = "terminal.defaultShell";
     pub const TERMINAL_OPEN_ON_LAUNCH: &str = "terminal.openOnLaunch";
     pub const SEARCH_MAX_MATCHES: &str = "search.maxMatches";
@@ -54,41 +56,75 @@ static GROUPS: &[&Group] = &[
 // handoff and says nothing in it is a choice; a user's accent is a choice, so
 // it belongs in a layer above rather than as an edit to the spec's own values.
 
+/// One per design-system accent option (`docs/design/kaava-ds/tokens.json`).
+/// The value is a *name*, not a hex — `src/tokens.css` carries the hex for
+/// both themes under `--accent-<name>`, and `appearance.ts` just points
+/// `--accent` at the right one. A name survives a theme switch unchanged,
+/// where a stored hex would have been the wrong theme's colour half the time.
 static ACCENTS: &[SelectOption] = &[
     SelectOption {
-        value: "#d98a3f",
+        value: "amber",
         label: "Amber",
         description: "The colour the interface was designed in.",
     },
     SelectOption {
-        value: "#4f8ff7",
+        value: "blue",
         label: "Blue",
         description: "",
     },
     SelectOption {
-        value: "#5fb37a",
+        value: "green",
         label: "Green",
         description: "",
     },
     SelectOption {
-        value: "#a97bf0",
+        value: "violet",
         label: "Violet",
         description: "",
     },
     SelectOption {
-        value: "#d9635f",
+        value: "coral",
         label: "Coral",
         description: "",
     },
 ];
 
+static THEMES: &[SelectOption] = &[
+    SelectOption {
+        value: "dark",
+        label: "Dark",
+        description: "",
+    },
+    SelectOption {
+        value: "light",
+        label: "Light",
+        description: "",
+    },
+    SelectOption {
+        value: "system",
+        label: "System",
+        description: "Follows the OS light/dark setting, and switches when it does.",
+    },
+];
+
 static APPEARANCE_SETTINGS: &[Setting] = &[
     Setting {
-        key: "appearance.accentColor",
+        key: keys::APPEARANCE_THEME,
+        title: "Theme",
+        description: "Dark is what the interface was designed in. System follows the OS setting \
+                      and moves with it.",
+        control: Control::Select {
+            default: "dark",
+            options: THEMES,
+        },
+        applies: Applies::Now,
+    },
+    Setting {
+        key: keys::APPEARANCE_ACCENT_COLOR,
         title: "Accent colour",
         description: "The active tab's rule, focus rings, drop targets and primary buttons.",
         control: Control::Select {
-            default: "#d98a3f",
+            default: "amber",
             options: ACCENTS,
         },
         applies: Applies::Now,
@@ -124,6 +160,49 @@ static APPEARANCE: Group = Group {
     order: 0,
     settings: APPEARANCE_SETTINGS,
 };
+
+/// A `settings.json` written before this build stored `appearance.accentColor`
+/// as the dark-theme hex the old five-option `Select` offered. Those hexes are
+/// not among `ACCENTS`' values any more — `coerce_against` in `mod.rs` would
+/// reject one on `hydrate` and the accent would silently reset to Amber — so
+/// `seed` runs every stored value through this first and rewrites a hex it
+/// recognises to the name that replaced it. Anything else, including a value
+/// this build already understands, passes through unchanged.
+pub fn migrate_legacy_accent(value: &str) -> &str {
+    match value {
+        "#d98a3f" => "amber",
+        "#4f8ff7" => "blue",
+        "#5fb37a" => "green",
+        "#a97bf0" => "violet",
+        "#d9635f" => "coral",
+        other => other,
+    }
+}
+
+#[cfg(test)]
+mod accent_migration_tests {
+    use super::*;
+
+    #[test]
+    fn every_legacy_hex_lands_on_an_option_this_build_still_offers() {
+        for hex in ["#d98a3f", "#4f8ff7", "#5fb37a", "#a97bf0", "#d9635f"] {
+            let migrated = migrate_legacy_accent(hex);
+            assert!(
+                ACCENTS.iter().any(|o| o.value == migrated),
+                "{hex} migrated to {migrated:?}, which is not one of ACCENTS"
+            );
+        }
+    }
+
+    #[test]
+    fn a_value_this_build_already_understands_passes_through() {
+        assert_eq!(migrate_legacy_accent("amber"), "amber");
+        assert_eq!(
+            migrate_legacy_accent("not-a-real-value"),
+            "not-a-real-value"
+        );
+    }
+}
 
 // --- editor -----------------------------------------------------------------
 //
@@ -598,6 +677,8 @@ mod tests {
         let registry = seeded();
 
         for (key, expected) in [
+            (keys::APPEARANCE_THEME, "string"),
+            (keys::APPEARANCE_ACCENT_COLOR, "string"),
             (keys::TERMINAL_DEFAULT_SHELL, "string"),
             (keys::TERMINAL_OPEN_ON_LAUNCH, "bool"),
             (keys::SEARCH_MAX_MATCHES, "number"),
