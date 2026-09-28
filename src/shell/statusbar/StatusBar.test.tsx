@@ -33,7 +33,11 @@ describe("StatusBar", () => {
   });
 
   it("draws the project name and a bare branch name before git lands", () => {
-    const env: Environment = { kind: "worktree", branch: "wt/flashlight-cone", path: "/repo/wt/fl" };
+    const env: Environment = {
+      kind: "worktree",
+      branch: "wt/flashlight-cone",
+      path: "/repo/wt/fl",
+    };
     render(<StatusBar project="OpenKaava" environment={env} git={null} githubOk update={null} />);
 
     expect(screen.getByText("OpenKaava")).not.toBeNull();
@@ -41,7 +45,11 @@ describe("StatusBar", () => {
   });
 
   it("upgrades the branch segment with ahead/behind once git lands", () => {
-    const env: Environment = { kind: "worktree", branch: "wt/flashlight-cone", path: "/repo/wt/fl" };
+    const env: Environment = {
+      kind: "worktree",
+      branch: "wt/flashlight-cone",
+      path: "/repo/wt/fl",
+    };
     render(
       <StatusBar
         project="OpenKaava"
@@ -56,7 +64,15 @@ describe("StatusBar", () => {
   });
 
   it("reads main as a bare branch segment with no ahead/behind, plus the trailing read-only label", () => {
-    render(<StatusBar project="OpenKaava" environment={{ kind: "main" }} git={null} githubOk update={null} />);
+    render(
+      <StatusBar
+        project="OpenKaava"
+        environment={{ kind: "main" }}
+        git={null}
+        githubOk
+        update={null}
+      />,
+    );
 
     expect(screen.getByText("main")).not.toBeNull();
     expect(screen.getByText("main is read-only")).not.toBeNull();

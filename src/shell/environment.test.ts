@@ -22,7 +22,9 @@ describe("environmentOf", () => {
 
   it("reads a checked-out worktree as a worktree environment", () => {
     const env = environmentOf(
-      cluster({ worktree: { path: "/repo/.kaava/worktrees/flashlight", branch: "wt/flashlight-cone" } }),
+      cluster({
+        worktree: { path: "/repo/.kaava/worktrees/flashlight", branch: "wt/flashlight-cone" },
+      }),
     );
     expect(env).toEqual({
       kind: "worktree",
@@ -33,13 +35,17 @@ describe("environmentOf", () => {
 
   it("reads the standing wt/design worktree as the design canvas", () => {
     const env = environmentOf(
-      cluster({ worktree: { path: "/repo/.kaava/worktrees/design", branch: DESIGN_WORKTREE_BRANCH } }),
+      cluster({
+        worktree: { path: "/repo/.kaava/worktrees/design", branch: DESIGN_WORKTREE_BRANCH },
+      }),
     );
     expect(env.kind).toBe("design");
   });
 
   it("drops the branch field for a detached HEAD rather than reporting null", () => {
-    const env = environmentOf(cluster({ worktree: { path: "/repo/.kaava/worktrees/x", branch: null } }));
+    const env = environmentOf(
+      cluster({ worktree: { path: "/repo/.kaava/worktrees/x", branch: null } }),
+    );
     expect(env.kind).toBe("worktree");
     expect(env.branch).toBeUndefined();
   });
@@ -58,7 +64,9 @@ describe("environmentKey", () => {
 
   it("keys two clusters on the same worktree path identically", () => {
     const a = environmentOf(cluster({ worktree: { path: "/repo/wt/x", branch: "wt/x" } }));
-    const b = environmentOf(cluster({ id: "c2", worktree: { path: "/repo/wt/x", branch: "wt/x-renamed" } }));
+    const b = environmentOf(
+      cluster({ id: "c2", worktree: { path: "/repo/wt/x", branch: "wt/x-renamed" } }),
+    );
     expect(environmentKey(a)).toBe(environmentKey(b));
   });
 

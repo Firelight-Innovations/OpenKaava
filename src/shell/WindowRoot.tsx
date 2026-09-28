@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig } from "framer-motion";
 import type { Openable, StackSnapshot } from "../bindings";
-import Frame, { BOTTOM_DEFAULT } from "./frame/Frame";
+import Frame, { BOTTOM_DEFAULT, PROJECT_PAGE_DEFAULT } from "./frame/Frame";
 import { bandGeometry, withBandGeometry, type BandGeometryByCluster } from "./frame/bandGeometry";
 import {
   appPresentation,
@@ -52,7 +52,7 @@ import GithubPanel from "./github/GithubPanel";
 import WorktreePanel from "./worktree/WorktreePanel";
 import { useGitStatus } from "./worktree/useGitStatus";
 import TerminalDeck, { type TerminalDeckHandle } from "./terminal/TerminalDeck";
-import { callApp, useApps, useOpenables } from "./state/apps";
+import { callApp, useApps, useOpenables, usePages } from "./state/apps";
 import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
 import { useUpdates } from "./state/updates";
@@ -60,13 +60,17 @@ import {
   addCluster,
   closeCluster,
   closeInstance,
+  closePage,
   closeWindow as closeThisWindow,
   newWindow,
   openInstance,
+  openPage,
   renameCluster,
   setActiveCluster,
   setActiveTerminal,
   setBandHeight,
+  setPageMode,
+  setPageWidth,
   setPaneSizes,
   useShellState,
   windowLabel,
@@ -76,6 +80,10 @@ import { gitControl, worktreeControl } from "./state/git";
 import { githubAuthControl, githubControl } from "./state/github";
 import { copyToClipboard, reviewControl } from "./state/review";
 import { isFullscreen, isTauri, nextZoom, setFullscreen, setZoom } from "./hostWindow";
+import Rail from "./rail/Rail";
+import DockedPage from "./rail/DockedPage";
+import ExpandedPage from "./rail/ExpandedPage";
+import HindsightPage from "./rail/HindsightPage";
 
 /**
  * What a window draws before the first `shell:state` arrives.
@@ -222,6 +230,16 @@ export default function WindowRoot({
 
   const shell = useShellState();
   const placement = shell?.windows.find((w) => w.label === label) ?? null;
+
+  // The project-page rail's own state: the six pages Rust declares
+  // (`pages::rail()`, via `usePages`) and this window's `right_page`, if it
+  // has one open. Independent of `clusters`/`activeClusterId` below on
+  // purpose -- `shell_state.rs`'s `RightPage` no longer lives on a cluster,
+  // so a docked or expanded page and a real cluster to work in coexist
+  // rather than one covering the other.
+  const pages = usePages();
+  const rightPage = placement?.rightPage ?? null;
+  const activePage = rightPage ? pages.find((p) => p.id === rightPage.id) : undefined;
 
   // There is no seeding effect any more, and its absence is the point.
   //
@@ -589,8 +607,76 @@ export default function WindowRoot({
   // them. `activePageId`/`shownCluster` above still read a page cluster
   // correctly if one is ever the active one (Rust still keeps them in
   // `placement.clusters`); there is simply no switcher-row UI left in this
-  // rework that opens one. The **rail** workstream's right rail is where that
-  // affordance goes; see `docs/design/KAAVA-UX-SPEC.md` §1.7.
+  // rework that opens one. The rail below is where that affordance lives now
+  // — see `docs/design/KAAVA-UX-SPEC.md` §1.7.
+
+  // --- the project-page rail --------------------------------------------
+  //
+  // One door in: `Rail`'s click and Alt+1…6 both call this, and Rust's
+  // `open_page` toggles a second click of the *same* page shut again
+  // (`shell_state.rs`'s `open_page_pure`) — so this never has to know
+  // whether a given call is an open or a close, only which button fired.
+  const onSelectPage = useCallback(
+    (pageId: string) => {
+      void openPage(label, pageId);
+    },
+    [label],
+  );
+  // The expanded header's back button and Esc both call this — "leaving" a
+  // page always means closing it, not docking it; `onTogglePageMode` below
+  // is the separate action for that.
+  const onClosePage = useCallback(() => {
+    void closePage(label);
+  }, [label]);
+  const onTogglePageMode = useCallback(() => {
+    if (!rightPage) return;
+    void setPageMode(label, rightPage.mode === "docked" ? "expanded" : "docked");
+  }, [label, rightPage]);
+  const onPageWidthChange = useCallback(
+    (width: number) => {
+      void setPageWidth(label, width);
+    },
+    [label],
+  );
+
+  // Alt+1…6 (open/switch the rail's page), Esc (leave an expanded page) and
+  // Ctrl+Shift+E (dock/expand whichever one is open) — kept out of
+  // `useKeyboard` below rather than added to it: none of the three fit its
+  // Ctrl-chord table, Alt is a different modifier, and Escape is
+  // `SearchSlot`'s own key to bind (`useKeyboard.ts`'s header explains why).
+  // `WindowRoot` is not a region, so three more keys wired ad hoc here is
+  // cheaper than teaching the shared hook a shape it would use exactly once.
+  useEffect(() => {
+    function isTextEntry(target: EventTarget | null): boolean {
+      if (!(target instanceof HTMLElement)) return false;
+      return (
+        target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable
+      );
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (isTextEntry(e.target)) return;
+
+      if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.key >= "1" && e.key <= "6") {
+        const page = pages.find((p) => p.key === Number(e.key));
+        if (page && !page.disabled) {
+          e.preventDefault();
+          onSelectPage(page.id);
+        }
+        return;
+      }
+      if (e.key === "Escape" && rightPage?.mode === "expanded") {
+        e.preventDefault();
+        onClosePage();
+        return;
+      }
+      if (e.ctrlKey && e.shiftKey && !e.altKey && e.key.toLowerCase() === "e" && rightPage) {
+        e.preventDefault();
+        onTogglePageMode();
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [pages, rightPage, onSelectPage, onClosePage, onTogglePageMode]);
 
   const onAddCluster = useCallback(() => {
     // Numbered rather than prompting. A dialog before you can see the thing you
@@ -1271,11 +1357,12 @@ export default function WindowRoot({
   // `TitleBarProps.onOpenProjectSwitcher`'s own doc comment.
   const onOpenProjectSwitcher = useCallback(() => {}, []);
 
-  // The Git page the environment bar's "Review & merge" button would open is
-  // the **panes**/**clusters** workstreams' to build — same reasoning as
-  // `onOpenProjectSwitcher` above. The button stays real and clickable, it
-  // just has nowhere to send the click yet.
-  const onReviewAndMerge = useCallback(() => {}, []);
+  // The environment bar's "Review & merge" opens the same Git page the rail
+  // does, through the same door — `onSelectPage`, not a second path onto
+  // `right_page`.
+  const onReviewAndMerge = useCallback(() => {
+    onSelectPage("git");
+  }, [onSelectPage]);
 
   // The drag layer is the only thing in the shell that spans regions, so it is
   // the only thing that has to be handed down rather than owned locally. The
@@ -1396,6 +1483,34 @@ export default function WindowRoot({
     help: { checkForUpdates: updates.check },
   });
 
+  // The open page's body, by id. Git and Hindsight are drawn by the shell
+  // itself (`pages.rs`'s `app_id: None`); `WorktreePanel` here is the exact
+  // component `secondaryPanel` below already mounts for its own `worktreeView`
+  // — reused, not reimplemented, for a second box with the same status this
+  // window already fetched. Plane, Cloud agents and Cost each host an app
+  // instead (`app_id: Some(...)`) — hosting that through a second `ToolWindow`
+  // mount is next, not yet done, so this says so honestly rather than drawing
+  // an empty or a faked frame.
+  const pageBody = rightPage ? (
+    rightPage.id === "git" ? (
+      <WorktreePanel
+        clusterId={activeClusterId}
+        worktreeControl={worktreeControl}
+        gitControl={gitControl}
+        reviewControl={reviewControl}
+        reviewSend={reviewSend}
+        git={git}
+        activeBranch={activeBranch}
+      />
+    ) : rightPage.id === "hindsight" ? (
+      <HindsightPage />
+    ) : (
+      <div style={{ padding: 16, color: "var(--txt-tertiary)", fontSize: 13 }}>
+        {activePage?.name ?? "This page"} is not wired to its app yet.
+      </div>
+    )
+  ) : null;
+
   return (
     <MotionConfig transition={snap} reducedMotion="user">
       {/* Not a slot: it draws nothing until somebody right-clicks, and when it
@@ -1427,6 +1542,9 @@ export default function WindowRoot({
         onBottomHeightChange={setBottomHeight}
         onBottomCollapsedChange={setBottomCollapsed}
         onBottomMaximizedChange={setBottomMaximized}
+        projectPageWidth={rightPage?.width ?? PROJECT_PAGE_DEFAULT}
+        onProjectPageWidthChange={onPageWidthChange}
+        projectPageExpanded={rightPage?.mode === "expanded"}
         slots={{
           // The centred project pill, not a plain title — `docs/design/
           // KAAVA-UX-SPEC.md` §1.2. What the window is *pointed at* rather
@@ -1650,6 +1768,29 @@ export default function WindowRoot({
                 })
               }
             />
+          ),
+          // The project-page rail and, when a page is open, its body — the
+          // **rail** workstream's three slots (`docs/KAAVA-UX-REWORK.md` §4).
+          // `dots` is left empty for now: a rail dot's colour comes from each
+          // page's own live data (Plane asleep/running, Cost's burn against
+          // budget), and none of that is read anywhere yet — a TODO here
+          // rather than an invented colour.
+          projectRail: (
+            <Rail pages={pages} activePageId={rightPage?.id ?? null} onSelect={onSelectPage} />
+          ),
+          projectPage: rightPage && (
+            <DockedPage title={activePage?.name ?? rightPage.id} onClose={onClosePage}>
+              {pageBody}
+            </DockedPage>
+          ),
+          projectPageExpanded: rightPage && (
+            <ExpandedPage
+              backLabel={activeCluster ? activeCluster.name : "Back"}
+              onBack={onClosePage}
+              title={activePage?.name ?? rightPage.id}
+            >
+              {pageBody}
+            </ExpandedPage>
           ),
           // Both drag layers draw into the one overlay slot. Never both at
           // once in practice — a pointer carries one gesture — but composed

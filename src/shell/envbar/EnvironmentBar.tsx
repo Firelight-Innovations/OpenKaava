@@ -2,37 +2,13 @@
  * The environment bar: a 36px strip above the pane grid saying which
  * environment the open cluster is working in, and what you can do about it.
  *
- * `docs/design/KAAVA-UX-SPEC.md` §1.4. Two boards give this a real variant —
- * a local worktree (board 02) and a cloud session (board 03) — and this file
- * builds a third, undrawn one for `main`: a cluster with no worktree is
- * working directly in the project folder, which the written spec calls
- * read-only by definition. No board crops that state, so its colours are the
- * bar's own neutral tokens rather than anything lifted from a mock — flagged
- * here rather than guessed from the worktree variant's.
- *
- * Two things §1.4 draws that this component does not, both because nothing in
- * the shell's state can back them honestly yet — see `docs/KAAVA-UX-REWORK.md`'s
- * "never fake data" rule:
- *
- *   - **`from base@<hash>`**: no source in `contract.ts`/`bindings.ts` carries
- *     a worktree's merge base or the hash it forked from. `Environment.base`
- *     (`environment.ts`) is typed for the day one does; until then the segment
- *     is omitted rather than left blank or invented.
- *   - **the agent-state badge** ("claude working here"): the shell has no live
- *     "an agent is working right now" signal — `TerminalSession.agentFinished`
- *     means the opposite (done, not working), and `TerminalControl.busy` is a
- *     one-shot check called on close, not a continuous state. Omitted for the
- *     same reason `ClusterBar`'s activity dot is (see that file).
- *
- * Ahead/behind *is* real: it is `GitStatus.ahead`/`.behind`, the same
- * cluster-scoped read `StatusBar` already uses, passed in rather than
- * re-fetched here.
- *
- * The cloud variant's **streaming pill** ("streaming · 42 ms") is left out
- * for the same "no source for it" reason as the two bullets above — nothing
- * measures a session's own latency today — and is moot regardless while
- * `environmentOf` cannot return `"cloud"`.
+ * `docs/design/KAAVA-UX-SPEC.md` §1.4. Boards 02 (worktree) and 03 (cloud)
+ * give this a real variant; this file adds an undrawn third for `main` — a
+ * cluster with no worktree works directly in the project folder, which the
+ * spec calls read-only, so it gets the bar's own neutral tokens rather than
+ * colours guessed from a mock.
  */
+
 import { Cloud, GitBranch, Lock } from "lucide-react";
 import type { Environment, EnvironmentKind } from "../environment";
 import { ENVIRONMENT_BAR_LABEL } from "../environment";
@@ -52,12 +28,8 @@ export interface EnvironmentBarProps {
    *  claiming the worktree is caught up. */
   ahead?: number;
   behind?: number;
-  /**
-   * Worktree/design only. Opens the Git page — the **rail** workstream's to
-   * build — so this is `WindowRoot`'s no-op until that page exists, the same
-   * way `TitleBarProps.onOpenProjectSwitcher` is. The button is real and
-   * clickable regardless; it simply has nothing to open yet.
-   */
+  /** Worktree/design only. Opens the rail's Git page (`WindowRoot`'s
+   *  `onSelectPage("git")`). */
   onReviewAndMerge?: () => void;
   /**
    * Cloud only, and both still no-ops: nothing in `Cluster` names a cloud
@@ -71,6 +43,19 @@ export interface EnvironmentBarProps {
   onStopSession?: () => void;
 }
 
+/**
+ * Three things §1.4 draws that this component does not, all because nothing
+ * in the shell's state can back them honestly yet (`docs/KAAVA-UX-REWORK.md`'s
+ * "never fake data" rule): `from base@<hash>` (no source carries a worktree's
+ * merge base yet — see `Environment.base` in `environment.ts`), the
+ * agent-state badge ("claude working here" — the shell has no continuous
+ * "working right now" signal, only `TerminalSession.agentFinished`, which
+ * means the opposite, and one-shot `TerminalControl.busy`; same reason
+ * `ClusterBar`'s activity dot is omitted), and the cloud variant's streaming
+ * pill (nothing measures a session's latency, and it is moot while
+ * `environmentOf` cannot return `"cloud"` anyway). Ahead/behind *is* real —
+ * `GitStatus.ahead`/`.behind`, the same read `StatusBar` already uses.
+ */
 export default function EnvironmentBar({
   environment,
   ahead,
@@ -109,7 +94,8 @@ export default function EnvironmentBar({
 
       {!cloud && ahead !== undefined && behind !== undefined && (
         <span className="envbar__ahead-behind">
-          <span className="envbar__ahead">↑{ahead}</span> <span className="envbar__behind">↓{behind}</span>
+          <span className="envbar__ahead">↑{ahead}</span>{" "}
+          <span className="envbar__behind">↓{behind}</span>
         </span>
       )}
 

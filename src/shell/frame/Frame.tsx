@@ -16,16 +16,6 @@ import "./frame.css";
  * The panel's width lives here rather than inside the panel for the same
  * reason the bars' heights do: it is the shape of the window, and the thing
  * being resized is the *split*, not the panel. The panel receives a box.
- *
- * The project-page rail and the docked project page are two more slots on
- * the same terms: the rail is a fixed width, the page is a split with its
- * own width and its own handle, and an expanded page is a third geometry —
- * covering everything left of the rail while the panes stay mounted behind
- * it. See `FrameSlots.projectRail` / `projectPage` / `projectPageExpanded`.
- *
- * `envBar` is the plainest of the lot: a fixed-height row at the top of
- * `.frame__main`, ahead of the tool window, with no drag of its own — see
- * `FrameSlots.envBar`.
  */
 export const PANEL_MIN = 240;
 export const PANEL_COLLAPSED = 34;
@@ -74,6 +64,18 @@ export const BOTTOM_COLLAPSE_OVERSHOOT = 60;
  */
 export const BOTTOM_MAXIMIZE_OVERSHOOT = 60;
 
+/**
+ * The project-page rail and the docked project page are two more slots on
+ * the same terms as the panel above: the rail is a fixed width, the page is
+ * a split with its own width and its own handle, and an expanded page is a
+ * third geometry — covering everything left of the rail while the panes
+ * stay mounted behind it. See `FrameSlots.projectRail` / `projectPage` /
+ * `projectPageExpanded`.
+ *
+ * `envBar` is the plainest of the lot: a fixed-height row at the top of
+ * `.frame__main`, ahead of the tool window, with no drag of its own — see
+ * `FrameSlots.envBar`.
+ */
 export default function Frame({
   kind,
   slots,
@@ -512,7 +514,11 @@ export default function Frame({
                   <div className="frame__bottomgrip" />
                 </div>
 
-                <motion.div className="frame__bottom" data-region="bottom" style={{ height: bottom }}>
+                <motion.div
+                  className="frame__bottom"
+                  data-region="bottom"
+                  style={{ height: bottom }}
+                >
                   {slots.bottomPanel}
                 </motion.div>
               </>

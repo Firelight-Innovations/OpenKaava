@@ -1,25 +1,13 @@
-/* KAAVA-UX-SPEC.md §1.8 — the docked page aside. */
+/* KAAVA-UX-SPEC.md §1.8 — the docked page's own content. Width, the resize
+   handle and the aside's chrome (background/border/radius) are `Frame`'s
+   `.frame__page` / `.frame__pagehandle` in `frame.css`; this file only
+   styles what `DockedPage.tsx` actually draws. */
 
 .k-docked-page {
-  position: relative;
-  flex-shrink: 0;
+  flex-grow: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  background: var(--bg-surface-1);
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-}
-
-.k-docked-page__handle {
-  position: absolute;
-  left: -4px;
-  top: 0;
-  bottom: 0;
-  width: 8px;
-  cursor: col-resize;
-  touch-action: none;
-  z-index: 1;
 }
 
 .k-docked-page__header {
