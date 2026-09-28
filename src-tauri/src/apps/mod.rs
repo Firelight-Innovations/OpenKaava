@@ -13,6 +13,7 @@
 //! here, reached over transport B and dispatched by [`call`] below — no child
 //! process, no broker in between.
 
+mod agents;
 #[cfg(feature = "design-mode")]
 mod design;
 mod files;
@@ -192,6 +193,13 @@ const REGISTRY: &[Registered] = &[
         // `two_apps_in_one_cluster_resolve_the_same_context` below, which is
         // there to keep that true.
         call: files::call,
+    },
+    Registered {
+        id: "agents",
+        name: "Agents",
+        description: "Agent machines in OpenKaava Cloud, their sessions, and what each one did.",
+        // Reads Google Cloud with the user's own gcloud login; see `cloud`.
+        call: agents::call,
     },
     // Disabled by default; see `[features]` in `Cargo.toml`.
     #[cfg(feature = "design-mode")]

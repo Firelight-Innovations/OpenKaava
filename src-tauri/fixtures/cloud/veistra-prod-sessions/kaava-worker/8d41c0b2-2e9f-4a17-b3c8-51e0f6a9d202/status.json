@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "session_id": "8d41c0b2-2e9f-4a17-b3c8-51e0f6a9d202",
+  "agent": "kaava-worker",
+  "user": "braden_seaborn_firelightinnovations_com",
+  "cwd": "/home/braden_seaborn_firelightinnovations_com/anomaly",
+  "state": "idle",
+  "last_event": "Stop",
+  "updated": "2026-09-28T14:40:10Z",
+  "workflow": {
+    "name": "asset-build",
+    "run": "chair-test-v2",
+    "step": "model"
+  }
+}

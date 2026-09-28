@@ -1,0 +1,35 @@
+[
+  {
+    "name": "kaava-worker",
+    "zone": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a",
+    "status": "RUNNING",
+    "machineType": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/machineTypes/e2-standard-8",
+    "labels": {
+      "role": "agent",
+      "stack": "worker"
+    },
+    "lastStartTimestamp": "2026-09-28T13:55:02.114-07:00"
+  },
+  {
+    "name": "kaava-worker-2",
+    "zone": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a",
+    "status": "TERMINATED",
+    "machineType": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/machineTypes/e2-standard-8",
+    "labels": {
+      "role": "agent",
+      "stack": "worker"
+    },
+    "lastStartTimestamp": "2026-09-27T09:10:40.000-07:00",
+    "lastStopTimestamp": "2026-09-27T11:48:12.000-07:00"
+  },
+  {
+    "name": "kaava-gpu",
+    "zone": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a",
+    "status": "TERMINATED",
+    "machineType": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/machineTypes/g2-standard-8",
+    "labels": {
+      "role": "gpu",
+      "stack": "gpu"
+    }
+  }
+]
