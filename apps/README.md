@@ -174,6 +174,15 @@ cost export has to be switched on once in the Console, into the
 page says how, rather than failing. The export trails the estimate by a few
 hours. Fixtures: `bigquery/tables.json` and `bigquery/billing.json`.
 
+The page draws six charts on Apache ECharts (`apps/costs/ui/src/charts/`, plan
+`docs/design/COST-TRACKER-CHARTS.md`, UI-7): the estimate alone draws the burn
+line, the category donut and the top resources bar; a separate method,
+`costs/trends`, answers the daily-by-service and last-six-months series behind
+the other three once the billing export is on, polled every ten minutes and
+only while the page is visible. Until then those charts show the same
+`notEnabled` note as the billed table. Fixtures: `bigquery/daily.json` and
+`bigquery/monthly.json`.
+
 **Projects** (`projects/list`, `projects/wake-start`, `projects/plane-get`) —
 every OpenKaava Cloud project's Plane workspace, picked from a switcher and
 opened beside it. Selecting one wakes `plane-vm` if it was stopped
