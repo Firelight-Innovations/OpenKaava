@@ -334,6 +334,7 @@ mod tests {
                 }],
                 active_cluster_id: Some("cluster-1".to_string()),
                 geometry: None,
+                right_page: None,
             }],
             instances,
             terminals: Vec::new(),
@@ -521,6 +522,7 @@ mod tests {
                     width: 1440,
                     height: 900,
                 }),
+                right_page: None,
             }],
             instances: vec![
                 SurfaceInstance {

@@ -1,0 +1,79 @@
+/* KAAVA-UX-SPEC.md §1.8 — the expanded page header. */
+
+/* Fills `Frame`'s `.frame__page-expanded`, which is `position: absolute;
+   inset: 0` and sets no `display` of its own -- so this needs its own
+   `height: 100%` rather than a flex-grow that would do nothing without a
+   flex parent. */
+.k-expanded-page {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-canvas);
+}
+
+.k-expanded-page__header {
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px 0 6px;
+}
+
+.k-expanded-page__back {
+  height: 30px;
+  padding: 0 12px 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle-1);
+  background: var(--bg-surface-1);
+  color: var(--txt-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.k-expanded-page__back:hover {
+  color: var(--txt-primary);
+}
+
+.k-expanded-page__back:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.k-expanded-page__esc {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--txt-tertiary);
+}
+
+.k-expanded-page__title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-left: 6px;
+  color: var(--txt-primary);
+}
+
+.k-expanded-page__subtitle {
+  font-size: 13px;
+  color: var(--txt-secondary);
+}
+
+.k-expanded-page__actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.k-expanded-page__body {
+  flex-grow: 1;
+  min-height: 0;
+  display: flex;
+  gap: 6px;
+  padding: 0 6px 6px 6px;
+}

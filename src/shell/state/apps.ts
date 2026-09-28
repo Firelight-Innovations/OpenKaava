@@ -45,9 +45,10 @@ export function useApps(): AppInfo[] {
 }
 
 /**
- * The pages this build offers — the chips at the left of the cluster bar.
- * Asked once, like `useApps`: the page table is compiled in. Empty until it
- * answers, which draws the bar without its page group for a frame.
+ * The pages this build offers — the six buttons on the project rail,
+ * including the disabled one. Asked once, like `useApps`: the page table is
+ * compiled in. Empty until it answers, which draws the rail empty for a
+ * frame.
  */
 export function usePages(): PageInfo[] {
   const [pages, setPages] = useState<PageInfo[]>([]);

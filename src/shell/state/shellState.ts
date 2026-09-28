@@ -19,6 +19,8 @@ import { useEffect, useState } from "react";
 import { onShellStateChanged, shellState, type ShellSnapshot } from "../../bindings";
 
 export type {
+  PageMode,
+  RightPage,
   ShellSnapshot,
   TerminalSessionState,
   WindowGeometry,
@@ -29,6 +31,7 @@ export {
   addCluster,
   closeCluster,
   closeInstance,
+  closePage,
   closeWindow,
   detachCluster,
   detachInstance,
@@ -43,6 +46,8 @@ export {
   setActiveTerminal,
   setBandHeight,
   setInstanceTitle,
+  setPageMode,
+  setPageWidth,
   setPaneSizes,
   setWindowGeometry,
   splitPane,

@@ -195,14 +195,19 @@ pub struct Cluster {
     /// and a layout that failed to load is a session lost.
     #[serde(default)]
     pub band_height: Option<f32>,
-    /// The page this cluster is, or `None` for an ordinary cluster. See `crate::pages`.
+    /// **Legacy, migration-only.** Before pages moved to the rail (see
+    /// [`RightPage`]), a page was a cluster kind and this named which one — a
+    /// page cluster had no project, and a tree of exactly one pane holding one
+    /// instance of the page's app, which every mutator below refused to close,
+    /// rename, move, split, drop into or drag a tab out of.
     ///
-    /// A page cluster has no project, and a tree of exactly one pane holding one
-    /// instance of the page's app. Every mutator below that could change that
-    /// refuses to for a page — close, rename, move to another window, split,
-    /// drop a tab in, drag its tab out — so the invariant is the state's rather
-    /// than the cluster bar's. There is at most one per page id per window,
-    /// created by `open_page` the first time its chip is chosen.
+    /// Nothing sets this to `Some` any more. It stays on the struct only so
+    /// `restore`'s `migrate_legacy_page_clusters` can recognise a page cluster
+    /// in a `layout.json` an older build wrote, convert it to a `RightPage` on
+    /// the window that held it, and drop the cluster — after which no cluster
+    /// in the running process ever carries one again, which is what lets every
+    /// `is_page()` guard below stay in place as dead-but-harmless defence
+    /// rather than something each of those call sites has to unlearn.
     ///
     /// Omitted from the JSON when `None`, and `default` when absent, so a
     /// `layout.json` from before pages loads unchanged and one written now reads
@@ -250,6 +255,47 @@ pub struct WindowPlacement {
     /// `None` until the window has reported where it is. Only ever written from
     /// the window's own move and resize events.
     pub geometry: Option<WindowGeometry>,
+    /// The project page this window is showing, or `None` for a window
+    /// showing its panes only. See [`RightPage`] and `crate::pages`.
+    ///
+    /// A fact about the *window*, not a cluster: a page is project-wide, and
+    /// switching clusters must not close it. `open_page`/`close_page` are the
+    /// only doors; every other mutator here leaves this alone.
+    ///
+    /// `default` and omitted when absent so a `layout.json` written before
+    /// this field existed loads unchanged, and one written now reads the same
+    /// to an older build for every window with no page open.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub right_page: Option<RightPage>,
+}
+
+/// A page shown on a window's rail, docked or expanded. See `crate::pages`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RightPage {
+    /// `crate::pages::Page::id`. Kept even if a future build drops the page —
+    /// `migrate_legacy_page_clusters`'s restore-time cleanup is the only place
+    /// that drops a stale one; nothing else has to check `pages::find` before
+    /// reading this.
+    pub id: String,
+    pub mode: crate::pages::PageMode,
+    /// The docked width, in CSS pixels, clamped to `pages::MIN_WIDTH..=MAX_WIDTH`
+    /// by every mutator that sets it. Kept even while `mode` is `Expanded`, so
+    /// toggling back to docked restores the width instead of resetting it.
+    pub width: f32,
+    /// The app instance backing this page, for the three pages that host one
+    /// (Plane, Cloud agents, Cost). `None` for Git, Hindsight and the Artifact
+    /// registry, which the shell draws itself.
+    ///
+    /// Minted once per window the first time that page opens with something in
+    /// this slot, and kept for as long as this `RightPage` names that page —
+    /// toggling `mode` never changes it, which is what lets the frontend's
+    /// `ToolWindow` keep the same iframe mounted across a dock/expand toggle
+    /// instead of reloading it. Switching to a *different* page and back mints
+    /// a fresh one; nothing here remembers an instance for a page that is not
+    /// the one currently open.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub instance_id: Option<String>,
 }
 
 impl WindowPlacement {
@@ -415,6 +461,7 @@ fn seed_window(counters: &mut Counters, label: &str) -> WindowPlacement {
         clusters: vec![cluster],
         active_cluster_id: Some(cluster_id),
         geometry: None,
+        right_page: None,
     }
 }
 
@@ -442,9 +489,9 @@ impl ShellState {
             *counters = counters_for(&snapshot);
         }
         let mut snapshot = snapshot;
-        // First, so a terminal in a dropped page's band is re-homed below
+        // First, so a terminal in a converted page's band is re-homed below
         // rather than left naming a cluster that has gone.
-        drop_unavailable_pages(&mut snapshot, &|id| crate::pages::find(id).is_some());
+        migrate_legacy_page_clusters(&mut snapshot);
         // Order matters: a terminal has to be given a cluster before anything
         // asks which cluster's band it is in.
         adopt_orphan_terminals(&mut snapshot);
@@ -1357,43 +1404,38 @@ impl ShellState {
         work_cluster(w).map(|c| c.id.clone())
     }
 
-    /// Show a page in `label`'s window, creating its cluster the first time.
+    /// Show a page in `label`'s window, or close it if it is already the one
+    /// showing. Opens docked or expanded per [`crate::pages::Page::mode`], at
+    /// [`crate::pages::DEFAULT_WIDTH`] when docked. Does nothing for an
+    /// unknown window.
     ///
-    /// Returns the page cluster's id, or `None` when the window does not exist.
-    /// Ids are minted only when there is no page cluster to reuse — peeked
-    /// under the read lock first, so a click on a chip that already has one
-    /// burns nothing. The peek can race another window's open; the loser's ids
-    /// go unused, which is the gap `open_instance` already accepts.
-    pub fn open_page(
-        &self,
-        app: &AppHandle,
-        label: &str,
-        page: &crate::pages::Page,
-    ) -> Option<String> {
-        let needs_seed = {
-            let guard = self.read();
-            !page_cluster_is_whole(&guard, label, page.id)
-        };
-        let seed = needs_seed.then(|| {
-            let mut counters = self.counters.write_or_panic();
-            counters.clusters += 1;
-            counters.panes += 1;
-            let ordinal = counters
-                .instances
-                .entry(page.app_id.to_string())
-                .or_insert(0);
-            *ordinal += 1;
-            let ordinal = *ordinal;
-            PageSeed {
-                cluster_id: format!("cluster-{}", counters.clusters),
-                pane_id: format!("pane-{}", counters.panes),
-                instance_id: format!("{}-{ordinal}", page.app_id),
-            }
-        });
+    /// An app-backed page's instance is minted once per window and reused on
+    /// every later open, keyed by window label and app id rather than by a
+    /// counter — see [`page_instance_id`] — so opening, closing and reopening
+    /// the same page never leaves a second copy of its instance behind.
+    pub fn open_page(&self, app: &AppHandle, label: &str, page: &crate::pages::Page) {
+        self.mutate(app, |s| open_page_pure(s, label, page));
+    }
 
-        let mut opened = None;
-        self.mutate(app, |s| opened = open_page_pure(s, label, page, seed));
-        opened
+    /// Close whatever page `label`'s window is showing, if any, returning it
+    /// to its panes. Does nothing if no page is open.
+    pub fn close_page(&self, app: &AppHandle, label: &str) {
+        self.mutate(app, |s| close_page_pure(s, label));
+    }
+
+    /// Dock or expand `label`'s open page in place. Does nothing if no page
+    /// is open.
+    pub fn set_page_mode(&self, app: &AppHandle, label: &str, mode: crate::pages::PageMode) {
+        self.mutate(app, |s| set_page_mode_pure(s, label, mode));
+    }
+
+    /// Resize `label`'s docked page, clamped to
+    /// [`crate::pages::MIN_WIDTH`]..=[`crate::pages::MAX_WIDTH`]. Does
+    /// nothing if no page is open — a docked page dragged before its handle
+    /// exists cannot happen from the UI, but a stray call should not conjure
+    /// one.
+    pub fn set_page_width(&self, app: &AppHandle, label: &str, width: f32) {
+        self.mutate(app, |s| set_page_width_pure(s, label, width));
     }
 
     /// Publish a session whose shell is already running, into a cluster's band.
@@ -2009,6 +2051,7 @@ fn move_cluster_pure(s: &mut ShellSnapshot, cluster_id: &str, to_label: &str) ->
             active_cluster_id: Some(cluster.id.clone()),
             clusters: vec![cluster],
             geometry: None,
+            right_page: None,
         }),
     }
     true
@@ -2344,90 +2387,170 @@ fn detach_instance_pure(
             clusters: vec![cluster],
             active_cluster_id: Some(cluster_id.to_string()),
             geometry: None,
+            right_page: None,
         }),
     }
     true
 }
 
-/// The ids a new page cluster needs, minted by `ShellState::open_page` before
-/// it takes the state lock.
-struct PageSeed {
-    cluster_id: String,
-    pane_id: String,
-    instance_id: String,
+/// The instance id an app-backed page uses in `label`'s window: stable and
+/// deterministic, not minted from a counter, so a page's iframe can be found
+/// again — and reused rather than duplicated — on every later open without
+/// `ShellState` having to remember anything beyond the snapshot itself.
+fn page_instance_id(label: &str, app_id: &str) -> String {
+    format!("{app_id}-page-{label}")
 }
 
-/// Whether `label`'s window already has this page's cluster with something in it
-/// — the peek that decides whether `open_page` mints any ids at all.
-fn page_cluster_is_whole(s: &ShellSnapshot, label: &str, page_id: &str) -> bool {
-    s.windows
-        .iter()
-        .find(|w| w.label == label)
-        .and_then(|w| {
-            w.clusters
-                .iter()
-                .find(|c| c.page.as_deref() == Some(page_id))
-        })
-        .is_some_and(|c| !c.tree.tabs().is_empty())
-}
-
-/// Find `label`'s page cluster for `page`, or make it from `seed`, and show it.
+/// Show `page` in `label`'s window, or close it if it is already showing —
+/// the whole of `ShellState::open_page` once the lock is held.
 ///
-/// Returns its id, or `None` when the window does not exist or there is nothing
-/// to reuse and no seed to build from. A page cluster found empty — its instance
-/// lost to a state no path here produces, but a hand-edited `layout.json` could —
-/// is refilled from the seed rather than shown blank.
-fn open_page_pure(
-    s: &mut ShellSnapshot,
-    label: &str,
-    page: &crate::pages::Page,
-    seed: Option<PageSeed>,
-) -> Option<String> {
+/// An app-backed page reuses its window's existing instance if one is
+/// already registered (left over from an earlier open of the same page in
+/// this window) and mints one at [`page_instance_id`] otherwise. A page with
+/// no app — Git, Hindsight, the registry — opens with no instance at all;
+/// the shell draws those itself.
+fn open_page_pure(s: &mut ShellSnapshot, label: &str, page: &crate::pages::Page) {
     let ShellSnapshot {
         windows, instances, ..
     } = s;
-    let w = windows.iter_mut().find(|w| w.label == label)?;
-    let instance = |seed: &PageSeed| SurfaceInstance {
-        id: seed.instance_id.clone(),
-        app_id: page.app_id.to_string(),
-        kind: SurfaceKind::App,
-        title: page.name.to_string(),
+    let Some(w) = windows.iter_mut().find(|w| w.label == label) else {
+        return;
     };
 
-    let id = match w
-        .clusters
-        .iter_mut()
-        .find(|c| c.page.as_deref() == Some(page.id))
-    {
-        Some(c) => {
-            if c.tree.tabs().is_empty() {
-                let seed = seed?;
-                let pane = c.tree.first_pane_id().to_string();
-                c.tree.insert_tab(&pane, &seed.instance_id, None);
-                instances.push(instance(&seed));
-            }
-            c.id.clone()
-        }
-        None => {
-            let seed = seed?;
-            let mut tree = PaneNode::leaf(seed.pane_id.clone());
-            tree.insert_tab(&seed.pane_id, &seed.instance_id, None);
-            instances.push(instance(&seed));
-            w.clusters.push(Cluster {
-                id: seed.cluster_id.clone(),
-                name: page.name.to_string(),
-                tree,
-                project: None,
-                worktree: None,
-                active_terminal: None,
-                band_height: None,
-                page: Some(page.id.to_string()),
+    if w.right_page.as_ref().is_some_and(|rp| rp.id == page.id) {
+        w.right_page = None;
+        return;
+    }
+
+    let instance_id = page.app_id.map(|app_id| {
+        let id = page_instance_id(label, app_id);
+        if !instances.iter().any(|i| i.id == id) {
+            instances.push(SurfaceInstance {
+                id: id.clone(),
+                app_id: app_id.to_string(),
+                kind: SurfaceKind::App,
+                title: page.name.to_string(),
             });
-            seed.cluster_id
         }
-    };
-    w.active_cluster_id = Some(id.clone());
-    Some(id)
+        id
+    });
+
+    w.right_page = Some(RightPage {
+        id: page.id.to_string(),
+        mode: page.mode,
+        width: crate::pages::DEFAULT_WIDTH,
+        instance_id,
+    });
+}
+
+/// Close whatever page `label`'s window is showing — the whole of
+/// `ShellState::close_page` once the lock is held.
+fn close_page_pure(s: &mut ShellSnapshot, label: &str) {
+    if let Some(w) = s.windows.iter_mut().find(|w| w.label == label) {
+        w.right_page = None;
+    }
+}
+
+/// Dock or expand `label`'s open page — the whole of
+/// `ShellState::set_page_mode` once the lock is held.
+fn set_page_mode_pure(s: &mut ShellSnapshot, label: &str, mode: crate::pages::PageMode) {
+    if let Some(rp) = s
+        .windows
+        .iter_mut()
+        .find(|w| w.label == label)
+        .and_then(|w| w.right_page.as_mut())
+    {
+        rp.mode = mode;
+    }
+}
+
+/// Resize `label`'s docked page — the whole of `ShellState::set_page_width`
+/// once the lock is held.
+fn set_page_width_pure(s: &mut ShellSnapshot, label: &str, width: f32) {
+    if let Some(rp) = s
+        .windows
+        .iter_mut()
+        .find(|w| w.label == label)
+        .and_then(|w| w.right_page.as_mut())
+    {
+        rp.width = crate::pages::clamp_width(width);
+    }
+}
+
+/// `"projects"` became `"plane"` in the rework — the page kept the app, not
+/// the id. Every other page id is unchanged.
+fn migrated_page_id(old: &str) -> &str {
+    if old == "projects" {
+        "plane"
+    } else {
+        old
+    }
+}
+
+/// Convert a `layout.json` written by the old page-cluster build into the
+/// current `right_page` model, on the way in.
+///
+/// A page used to be its own cluster, one per page per window, tagged by
+/// [`Cluster::page`]. This drops every such cluster and its instance — a
+/// page cluster is never something the switcher should draw again, in this
+/// or any later build — and, when the cluster that named the window's
+/// `active_cluster_id` was one of them, reopens that same page as the
+/// window's new `right_page` instead, so a window that had a page in front
+/// still has one in front after loading. A page this build no longer knows
+/// (there is none today, but a future removal would produce one) is simply
+/// not reopened.
+///
+/// Reached from `restore` only.
+fn migrate_legacy_page_clusters(s: &mut ShellSnapshot) {
+    let mut dropped_instances = Vec::new();
+
+    for w in s.windows.iter_mut() {
+        let page_ids: Vec<String> = w
+            .clusters
+            .iter()
+            .filter(|c| c.is_page())
+            .map(|c| c.id.clone())
+            .collect();
+        if page_ids.is_empty() {
+            continue;
+        }
+
+        // The page cluster's own instance, if it has one, travels with it
+        // into the `right_page` rather than being dropped along with the
+        // cluster below — an app-backed page reopened after a restore should
+        // not have to remint the surface it already had.
+        let reopen = w
+            .active_cluster_id
+            .as_deref()
+            .and_then(|active| w.clusters.iter().find(|c| c.id == active))
+            .filter(|c| c.is_page())
+            .and_then(|c| {
+                let page = c.page.as_deref().map(migrated_page_id)?;
+                let page = crate::pages::find(page)?;
+                let instance_id = c.tree.tabs().first().map(|id| id.to_string());
+                Some((page, instance_id))
+            });
+
+        for id in &page_ids {
+            if let Some(c) = take_cluster(w, id) {
+                dropped_instances.extend(c.tree.tabs().into_iter().map(str::to_string));
+            }
+        }
+
+        if let Some((page, instance_id)) = reopen {
+            if let Some(id) = &instance_id {
+                dropped_instances.retain(|d| d != id);
+            }
+            w.right_page = Some(RightPage {
+                id: page.id.to_string(),
+                mode: page.mode,
+                width: crate::pages::DEFAULT_WIDTH,
+                instance_id: page.app_id.and(instance_id),
+            });
+        }
+    }
+
+    s.instances.retain(|i| !dropped_instances.contains(&i.id));
 }
 
 /// The whole of `ShellState::reclaim_window` once the close is confirmed: fold a
@@ -2461,29 +2584,6 @@ fn reclaim_window_pure(s: &mut ShellSnapshot, label: &str) {
         }
         main.clusters.extend(clusters);
     }
-}
-
-/// Drop every page cluster whose page this build cannot draw, with its instance.
-///
-/// Reached from `restore` only. A layout saved by a build that had a page this
-/// one lacks would otherwise restore a cluster no chip offers — possibly as the
-/// active one, drawing a frame with no app behind it and no way to leave.
-fn drop_unavailable_pages(s: &mut ShellSnapshot, available: &dyn Fn(&str) -> bool) {
-    let mut dropped = Vec::new();
-    for w in s.windows.iter_mut() {
-        let gone: Vec<String> = w
-            .clusters
-            .iter()
-            .filter(|c| c.page.as_deref().is_some_and(|p| !available(p)))
-            .map(|c| c.id.clone())
-            .collect();
-        for id in gone {
-            if let Some(c) = take_cluster(w, &id) {
-                dropped.extend(c.tree.tabs().into_iter().map(str::to_string));
-            }
-        }
-    }
-    s.instances.retain(|i| !dropped.contains(&i.id));
 }
 
 /// Give every terminal a cluster, for a state restored from a file that did not
@@ -2946,6 +3046,7 @@ mod tests {
                 }],
                 active_cluster_id: Some("cluster-3".to_string()),
                 geometry: None,
+                right_page: None,
             }],
             instances: instances
                 .iter()
@@ -3055,6 +3156,7 @@ mod tests {
             }],
             active_cluster_id: Some(cluster.to_string()),
             geometry: None,
+            right_page: None,
         }
     }
 
@@ -4248,99 +4350,224 @@ mod tests {
         crate::pages::find("agents").expect("Agents is a page in this build")
     }
 
-    fn seed(n: u32) -> Option<PageSeed> {
-        Some(PageSeed {
-            cluster_id: format!("cluster-{n}"),
-            pane_id: format!("pane-{n}"),
-            instance_id: format!("agents-{n}"),
-        })
+    /// A page cluster, as the pre-rework build would have written it —
+    /// exactly what `migrate_legacy_page_clusters` needs to find, and never
+    /// what `open_page` produces anymore. Built by hand rather than through
+    /// deleted machinery, so the many guards below (a page is not renamed, not
+    /// closed, not moved, not split into...) still exercise real state.
+    fn page_cluster(id: &str, pane_id: &str, instance_id: &str, page_id: &str) -> Cluster {
+        let mut tree = PaneNode::leaf(pane_id);
+        tree.insert_tab(pane_id, instance_id, None);
+        Cluster {
+            id: id.to_string(),
+            name: page_id.to_string(),
+            tree,
+            project: None,
+            worktree: None,
+            active_terminal: None,
+            band_height: None,
+            page: Some(page_id.to_string()),
+        }
     }
 
-    /// `main` with a real cluster holding `files-1`, then the Agents page
-    /// opened into it as `cluster-9`, which leaves the page in front.
+    /// `main` with a real cluster holding `files-1`, plus a legacy Agents page
+    /// cluster (`cluster-9`) left in front — the shape a `layout.json` written
+    /// before the rework would restore with, not something `open_page` can
+    /// produce today.
     fn with_agents_page() -> ShellSnapshot {
         let mut s = state(vec![window("main", "cluster-1", &["files-1"])], Vec::new());
         s.instances.push(app_instance("files-1", "files"));
-        open_page_pure(&mut s, "main", agents(), seed(9)).expect("the page opens");
+        s.instances.push(app_instance("agents-9", "agents"));
+        s.windows[0]
+            .clusters
+            .push(page_cluster("cluster-9", "pane-9", "agents-9", "agents"));
+        s.windows[0].active_cluster_id = Some("cluster-9".to_string());
         s
     }
 
     #[test]
-    fn a_page_cluster_is_made_the_first_time_it_is_opened() {
-        let s = with_agents_page();
-        let w = &s.windows[0];
+    fn opening_a_page_sets_the_windows_right_page() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
 
-        assert_eq!(w.clusters.len(), 2);
-        let page = &w.clusters[1];
-        assert_eq!(page.id, "cluster-9");
-        assert_eq!(page.page.as_deref(), Some("agents"));
-        assert_eq!(page.name, "Agents");
-        assert_eq!(page.project, None);
-        assert_eq!(page.tree.leaf_ids(), vec!["pane-9"], "one pane");
-        assert_eq!(page.tree.tabs(), vec!["agents-9"], "one instance");
+        open_page_pure(&mut s, "main", agents());
+
+        let rp = s.windows[0].right_page.as_ref().expect("the page opened");
+        assert_eq!(rp.id, "agents");
+        assert_eq!(rp.mode, crate::pages::PageMode::Expanded);
+        assert_eq!(rp.width, crate::pages::DEFAULT_WIDTH);
+        let instance_id = rp.instance_id.clone().expect("agents draws an app");
         assert!(s
             .instances
             .iter()
-            .any(|i| i.id == "agents-9" && i.app_id == "agents"));
-        assert_eq!(w.active_cluster_id.as_deref(), Some("cluster-9"));
+            .any(|i| i.id == instance_id && i.app_id == "agents"));
     }
 
     #[test]
-    fn a_page_cluster_is_reused_rather_than_made_twice() {
-        let mut s = with_agents_page();
-        s.windows[0].active_cluster_id = Some("cluster-1".to_string());
+    fn a_page_with_no_app_opens_with_no_instance() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        let git = crate::pages::find("git").expect("Git is a page in this build");
 
-        assert!(
-            page_cluster_is_whole(&s, "main", "agents"),
-            "so no seed is minted"
-        );
-        let again = open_page_pure(&mut s, "main", agents(), None);
+        open_page_pure(&mut s, "main", git);
 
-        assert_eq!(again.as_deref(), Some("cluster-9"));
+        assert_eq!(s.windows[0].right_page.as_ref().unwrap().instance_id, None);
+        assert!(s.instances.is_empty());
+    }
+
+    #[test]
+    fn opening_the_open_page_again_closes_it() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        open_page_pure(&mut s, "main", agents());
+
+        open_page_pure(&mut s, "main", agents());
+
+        assert!(s.windows[0].right_page.is_none());
+    }
+
+    #[test]
+    fn opening_a_different_page_replaces_the_open_one() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        open_page_pure(&mut s, "main", agents());
+        let git = crate::pages::find("git").unwrap();
+
+        open_page_pure(&mut s, "main", git);
+
+        assert_eq!(s.windows[0].right_page.as_ref().unwrap().id, "git");
+    }
+
+    #[test]
+    fn reopening_a_page_reuses_its_instance_rather_than_making_a_second_one() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        open_page_pure(&mut s, "main", agents()); // opens
+        open_page_pure(&mut s, "main", agents()); // closes
+
+        open_page_pure(&mut s, "main", agents()); // reopens
+
         assert_eq!(
-            s.windows[0].clusters.len(),
-            2,
-            "not a second Agents cluster"
-        );
-        assert_eq!(s.instances.len(), 2, "not a second Agents instance");
-        assert_eq!(s.windows[0].active_cluster_id.as_deref(), Some("cluster-9"));
-    }
-
-    #[test]
-    fn a_page_is_one_per_window() {
-        let mut s = with_agents_page();
-        s.windows.push(window("tear-1", "cluster-2", &[]));
-
-        assert!(!page_cluster_is_whole(&s, "tear-1", "agents"));
-        let opened = open_page_pure(&mut s, "tear-1", agents(), seed(10));
-
-        assert_eq!(opened.as_deref(), Some("cluster-10"));
-        assert_eq!(s.windows[1].clusters.len(), 2);
-        assert_eq!(s.windows[0].clusters.len(), 2, "main's page is its own");
-    }
-
-    #[test]
-    fn a_page_cluster_found_empty_is_refilled_not_shown_blank() {
-        let mut s = with_agents_page();
-        cluster_mut(&mut s, "cluster-9")
-            .tree
-            .remove_tab_unpruned("agents-9");
-        s.instances.retain(|i| i.id != "agents-9");
-
-        assert!(!page_cluster_is_whole(&s, "main", "agents"));
-        let opened = open_page_pure(&mut s, "main", agents(), seed(11));
-
-        assert_eq!(opened.as_deref(), Some("cluster-9"));
-        assert_eq!(
-            cluster_mut(&mut s, "cluster-9").tree.tabs(),
-            vec!["agents-11"]
+            s.instances.iter().filter(|i| i.app_id == "agents").count(),
+            1
         );
     }
 
     #[test]
     fn a_page_opens_nowhere_in_a_window_that_does_not_exist() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+
+        open_page_pure(&mut s, "nonesuch", agents());
+
+        assert!(s.windows[0].right_page.is_none());
+        assert!(s.instances.is_empty());
+    }
+
+    #[test]
+    fn close_page_clears_the_right_page() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        open_page_pure(&mut s, "main", agents());
+
+        close_page_pure(&mut s, "main");
+
+        assert!(s.windows[0].right_page.is_none());
+    }
+
+    #[test]
+    fn set_page_mode_docks_and_expands_the_open_page() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        open_page_pure(&mut s, "main", agents());
+
+        set_page_mode_pure(&mut s, "main", crate::pages::PageMode::Docked);
+
+        assert_eq!(
+            s.windows[0].right_page.as_ref().unwrap().mode,
+            crate::pages::PageMode::Docked
+        );
+    }
+
+    #[test]
+    fn set_page_mode_does_nothing_with_no_page_open() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+
+        set_page_mode_pure(&mut s, "main", crate::pages::PageMode::Docked);
+
+        assert!(s.windows[0].right_page.is_none());
+    }
+
+    #[test]
+    fn set_page_width_clamps_to_the_written_range() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        let git = crate::pages::find("git").unwrap();
+        open_page_pure(&mut s, "main", git);
+
+        set_page_width_pure(&mut s, "main", 10.0);
+        assert_eq!(
+            s.windows[0].right_page.as_ref().unwrap().width,
+            crate::pages::MIN_WIDTH
+        );
+
+        set_page_width_pure(&mut s, "main", 9000.0);
+        assert_eq!(
+            s.windows[0].right_page.as_ref().unwrap().width,
+            crate::pages::MAX_WIDTH
+        );
+    }
+
+    #[test]
+    fn migrate_drops_the_page_cluster_and_reopens_it_as_a_right_page() {
         let mut s = with_agents_page();
-        assert_eq!(open_page_pure(&mut s, "nonesuch", agents(), seed(12)), None);
+
+        migrate_legacy_page_clusters(&mut s);
+
+        assert_eq!(s.windows[0].clusters.len(), 1, "the page cluster is gone");
+        assert_eq!(
+            s.windows[0].active_cluster_id.as_deref(),
+            Some("cluster-1"),
+            "the window falls back to a real cluster"
+        );
+        let rp = s.windows[0]
+            .right_page
+            .as_ref()
+            .expect("it was the active cluster, so it reopens as a right_page");
+        assert_eq!(rp.id, "agents");
+        assert_eq!(rp.mode, crate::pages::PageMode::Expanded);
+        assert_eq!(
+            rp.instance_id.as_deref(),
+            Some("agents-9"),
+            "the page cluster's own instance travels with it"
+        );
+        assert!(
+            s.instances.iter().any(|i| i.id == "agents-9"),
+            "so it is not among the dropped instances either"
+        );
+    }
+
+    #[test]
+    fn migrate_renames_the_old_projects_page_id_to_plane() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        s.instances.push(app_instance("projects-1", "projects"));
+        s.windows[0].clusters.push(page_cluster(
+            "cluster-2",
+            "pane-2",
+            "projects-1",
+            "projects",
+        ));
+        s.windows[0].active_cluster_id = Some("cluster-2".to_string());
+
+        migrate_legacy_page_clusters(&mut s);
+
+        assert_eq!(
+            s.windows[0].right_page.as_ref().map(|rp| rp.id.as_str()),
+            Some("plane")
+        );
+    }
+
+    #[test]
+    fn migrating_a_page_cluster_that_was_not_active_just_drops_it() {
+        let mut s = with_agents_page();
+        s.windows[0].active_cluster_id = Some("cluster-1".to_string());
+
+        migrate_legacy_page_clusters(&mut s);
+
+        assert_eq!(s.windows[0].clusters.len(), 1);
+        assert!(s.windows[0].right_page.is_none());
+        assert!(!s.instances.iter().any(|i| i.id == "agents-9"));
     }
 
     #[test]
@@ -4348,7 +4575,7 @@ mod tests {
         let mut s = with_agents_page();
 
         assert!(!rename_cluster_pure(&mut s, "cluster-9", "mine"));
-        assert_eq!(cluster_mut(&mut s, "cluster-9").name, "Agents");
+        assert_eq!(cluster_mut(&mut s, "cluster-9").name, "agents");
         assert!(
             rename_cluster_pure(&mut s, "cluster-1", "mine"),
             "a real one is"
@@ -4485,12 +4712,22 @@ mod tests {
     }
 
     #[test]
-    fn a_page_in_front_is_nowhere_to_work() {
+    fn a_restored_page_in_front_does_not_stop_the_window_working_in_its_cluster() {
+        // Unlike the old page-cluster model this fixture predates, a page is
+        // no longer a cluster the window's `active_cluster_id` can point at —
+        // restoring converts it away into `right_page` and leaves the window
+        // on the real cluster underneath, per `migrate_legacy_page_clusters`.
         let shell = ShellState::default();
         shell.restore(with_agents_page());
 
-        assert_eq!(shell.active_cluster_of("main"), None);
-        assert_eq!(shell.active_pane("main", None), None);
+        assert_eq!(
+            shell.active_cluster_of("main"),
+            Some("cluster-1".to_string())
+        );
+        assert_eq!(
+            shell.active_pane("main", None),
+            Some(("cluster-1".to_string(), "pane-1".to_string()))
+        );
     }
 
     #[test]
@@ -4525,7 +4762,10 @@ mod tests {
     fn a_closing_windows_pages_are_dropped_not_folded_into_main() {
         let mut s = with_agents_page();
         s.windows.push(window("tear-1", "cluster-2", &[]));
-        open_page_pure(&mut s, "tear-1", agents(), seed(10));
+        s.instances.push(app_instance("agents-10", "agents"));
+        s.windows[1]
+            .clusters
+            .push(page_cluster("cluster-10", "pane-10", "agents-10", "agents"));
 
         reclaim_window_pure(&mut s, "tear-1");
 
@@ -4541,21 +4781,6 @@ mod tests {
             "real ones fold in"
         );
         assert!(!s.instances.iter().any(|i| i.id == "agents-10"));
-    }
-
-    #[test]
-    fn a_page_this_build_cannot_draw_is_dropped_on_restore() {
-        let mut s = with_agents_page();
-
-        drop_unavailable_pages(&mut s, &|_| false);
-
-        assert_eq!(s.windows[0].clusters.len(), 1);
-        assert!(!s.instances.iter().any(|i| i.id == "agents-9"));
-        assert_eq!(
-            s.windows[0].active_cluster_id.as_deref(),
-            Some("cluster-1"),
-            "the window falls back to a real cluster"
-        );
     }
 
     #[test]

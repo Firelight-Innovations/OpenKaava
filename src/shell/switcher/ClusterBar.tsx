@@ -14,17 +14,17 @@ import "./switcher.css";
  * The one tab bar — cluster tabs, and nothing else.
  *
  * `docs/design/KAAVA-UX-SPEC.md` §1.3: "cluster tabs only". Gone from here,
- * not hidden: the open cluster's member tabs (**panes** gives each pane its
- * own 34px strip instead, one place per tab rather than here *and* on its
- * pane), page chips (the **rail** workstream's right rail takes them —
- * `PageChips.tsx`'s header says why the file is kept rather than deleted),
- * and the switcher-row "open an app" button (still reachable through the
- * title bar's Apps menu, `src/shell/appsMenu.ts`).
+ * not hidden: a cluster's member tabs (the **panes** workstream gives each
+ * pane its own strip instead), page chips (the **rail** workstream's
+ * `src/shell/rail/Rail.tsx` takes them; the old `PageChips.tsx` is gone), and
+ * the switcher-row "open an app" button (still reachable through the title
+ * bar's Apps menu, `src/shell/appsMenu.ts`).
+ *
+ * Added instead: what a *tab* needs to say about an environment rather than
+ * a group of tabs — an environment chip (`environmentOf`, §1.3's
+ * `wt`/`cloud`/`main` glyphs) and a registration point (`data-cluster-id` +
+ * `clusterTabRef`) the **panes** workstream's cluster drop zone reads.
  */
-// Added instead, what a *tab* needs to say about an environment rather than
-// about a group of tabs: an environment chip (`environmentOf`, §1.3's
-// `wt`/`cloud`/`main` glyphs) and a registration point (`data-cluster-id` +
-// `clusterTabRef`) the **panes** workstream's cluster drop zone reads.
 export interface ClusterBarProps {
   clusters: Cluster[];
   activeClusterId: string | null;
