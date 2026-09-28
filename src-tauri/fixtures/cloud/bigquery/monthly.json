@@ -1,0 +1,23 @@
+{
+  "kind": "bigquery#queryResponse",
+  "schema": {
+    "fields": [
+      { "name": "month", "type": "STRING", "mode": "NULLABLE" },
+      { "name": "net", "type": "FLOAT", "mode": "NULLABLE" },
+      { "name": "exported", "type": "TIMESTAMP", "mode": "NULLABLE" }
+    ]
+  },
+  "jobReference": { "projectId": "fixture", "jobId": "job_fixture_monthly", "location": "US" },
+  "totalRows": "6",
+  "rows": [
+    { "f": [{ "v": "202604" }, { "v": "61.20" }, { "v": "1.7783280E9" }] },
+    { "f": [{ "v": "202605" }, { "v": "68.45" }, { "v": "1.7808480E9" }] },
+    { "f": [{ "v": "202606" }, { "v": "72.10" }, { "v": "1.7834400E9" }] },
+    { "f": [{ "v": "202607" }, { "v": "77.85" }, { "v": "1.7859600E9" }] },
+    { "f": [{ "v": "202608" }, { "v": "81.30" }, { "v": "1.7885520E9" }] },
+    { "f": [{ "v": "202609" }, { "v": "63.20" }, { "v": "1.7906004E9" }] }
+  ],
+  "totalBytesProcessed": "48912",
+  "jobComplete": true,
+  "cacheHit": false
+}

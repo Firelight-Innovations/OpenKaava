@@ -1,0 +1,61 @@
+{
+  "kind": "bigquery#queryResponse",
+  "schema": {
+    "fields": [
+      { "name": "day", "type": "DATE", "mode": "NULLABLE" },
+      { "name": "service", "type": "STRING", "mode": "NULLABLE" },
+      { "name": "net", "type": "FLOAT", "mode": "NULLABLE" },
+      { "name": "exported", "type": "TIMESTAMP", "mode": "NULLABLE" }
+    ]
+  },
+  "jobReference": { "projectId": "fixture", "jobId": "job_fixture_daily", "location": "US" },
+  "totalRows": "6",
+  "rows": [
+    {
+      "f": [
+        { "v": "2026-09-01" },
+        { "v": "Cloud Storage" },
+        { "v": "0.0401" },
+        { "v": "1.7834400E9" }
+      ]
+    },
+    {
+      "f": [
+        { "v": "2026-09-01" },
+        { "v": "Compute Engine" },
+        { "v": "2.5013" },
+        { "v": "1.7834400E9" }
+      ]
+    },
+    {
+      "f": [
+        { "v": "2026-09-15" },
+        { "v": "Cloud Storage" },
+        { "v": "0.0412" },
+        { "v": "1.7870400E9" }
+      ]
+    },
+    {
+      "f": [
+        { "v": "2026-09-15" },
+        { "v": "Compute Engine" },
+        { "v": "2.7788" },
+        { "v": "1.7870400E9" }
+      ]
+    },
+    {
+      "f": [{ "v": "2026-09-28" }, { "v": "Cloud Run" }, { "v": "0.9120" }, { "v": "1.7906004E9" }]
+    },
+    {
+      "f": [
+        { "v": "2026-09-28" },
+        { "v": "Compute Engine" },
+        { "v": "3.1042" },
+        { "v": "1.7906004E9" }
+      ]
+    }
+  ],
+  "totalBytesProcessed": "61402",
+  "jobComplete": true,
+  "cacheHit": false
+}
