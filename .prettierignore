@@ -74,3 +74,7 @@ crates/schematify-core/fixtures/*/
 # sitting inside it. Formatting someone else's branch from this one is not this
 # checkout's business.
 .claude/worktrees/
+
+# Plane CE's release compose file, committed byte-for-byte as the release published it (Plane
+# design, section 6.1). Its sha256 is in the commit that added it; reformatting would break that.
+infra/plane/compose/

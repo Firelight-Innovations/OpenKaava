@@ -66,6 +66,7 @@ locals {
     "cloudresourcemanager.googleapis.com",
     "compute.googleapis.com",
     "discoveryengine.googleapis.com", # Hindsight's reranker
+    "dns.googleapis.com",             # the kaava.internal private zone (plane/)
     "iam.googleapis.com",
     "iap.googleapis.com",
     "logging.googleapis.com",
