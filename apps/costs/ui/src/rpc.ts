@@ -61,6 +61,35 @@ export type Billed =
   | { state: "notEnabled"; dataset: string }
   | { state: "unavailable"; message: string };
 
+export interface DailyCost {
+  /** `2026-09-28`. */
+  day: string;
+  service: string;
+  net: number;
+}
+
+export interface MonthlyCost {
+  /** `202609`. */
+  month: string;
+  net: number;
+  /** The current invoice month, which has not finished yet. */
+  partial: boolean;
+}
+
+/** The daily and monthly series behind charts C4–C6, tagged by `state`. */
+export type Trends =
+  | {
+      state: "ok";
+      currency: string;
+      /** This invoice month, by day and service. */
+      daily: DailyCost[];
+      /** The last six invoice months, oldest first. */
+      monthly: MonthlyCost[];
+      exportedAt: string | null;
+    }
+  | { state: "notEnabled"; dataset: string }
+  | { state: "unavailable"; message: string };
+
 export interface Estimate {
   source: "live" | "fixture";
   project: string;
@@ -93,6 +122,12 @@ const ESTIMATE_TIMEOUT_MS = 90_000;
 
 export const estimate = (): Promise<Estimate> =>
   invoke<Estimate>("costs/estimate", undefined, ESTIMATE_TIMEOUT_MS);
+
+/** Two full-month BigQuery scans; slower than the estimate, and polled far less often. */
+const TRENDS_TIMEOUT_MS = 30_000;
+
+export const trends = (): Promise<Trends> =>
+  invoke<Trends>("costs/trends", undefined, TRENDS_TIMEOUT_MS);
 
 /** The trouble an error carries, when the backend attached one. */
 export function troubleOf(error: unknown): Trouble | null {

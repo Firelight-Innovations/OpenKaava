@@ -1041,7 +1041,13 @@ export interface Cluster {
   /** How tall this cluster's band was left, in CSS pixels, or `null` for one
    *  nobody has dragged it in — which opens at `BOTTOM_DEFAULT`. */
   bandHeight: number | null;
-  /** The page this cluster *is* (`agents`), absent for a real one. See `pages.rs`. */
+  /**
+   * Legacy, migration-only: the page this cluster *was* under the pre-rework
+   * page-cluster model, absent for a real one. A running build never
+   * produces this anymore — `right_page` on `WindowPlacement` is where a
+   * page lives now — but a `layout.json` an old build wrote can still carry
+   * one on the way in, which `migrate_legacy_page_clusters` converts.
+   */
   page?: string | null;
 }
 
@@ -1053,12 +1059,31 @@ export interface WindowGeometry {
   height: number;
 }
 
+/** Mirrors `pages::PageMode`. */
+export type PageMode = "docked" | "expanded";
+
+/**
+ * Mirrors `shell_state::RightPage` — the page a window is showing on its
+ * rail, docked beside the panes or expanded over them. `instanceId` is
+ * `null` for a page the shell draws itself (Git, Hindsight, the registry);
+ * present for one hosted in an iframe (Plane, Cloud agents, Cost), naming
+ * its entry in `ShellSnapshot.instances`.
+ */
+export interface RightPage {
+  id: string;
+  mode: PageMode;
+  width: number;
+  instanceId?: string | null;
+}
+
 /** Mirrors `shell_state::WindowPlacement`. */
 export interface WindowPlacement {
   label: string;
   clusters: Cluster[];
   activeClusterId: string | null;
   geometry: WindowGeometry | null;
+  /** The page this window is showing on its rail, absent for none. See `pages.rs`. */
+  rightPage?: RightPage | null;
 }
 
 /**
@@ -1120,20 +1145,39 @@ export function openInstance(
   });
 }
 
-/** Mirrors `pages::PageInfo`. `icon` keys `PAGE_ICONS` in `PageChips.tsx`. */
+/** Mirrors `pages::PageInfo`. `icon` keys `PAGE_ICONS` in `rail/Rail.tsx`. */
 export interface PageInfo {
   id: string;
   name: string;
   icon: string;
+  mode: PageMode;
+  key: number;
+  disabled: boolean;
 }
 
+/** The pages this build offers, in rail order — including the disabled one. */
 export function listPages(): Promise<PageInfo[]> {
   return invoke<PageInfo[]>("list_pages");
 }
 
-/** Show a page, making its cluster the first time. Resolves to its cluster id. */
-export function openPage(label: string, pageId: string): Promise<string> {
-  return invoke<string>("open_page", { label, pageId });
+/** Show a page in `label`'s window, or close it if it is already the one showing. */
+export function openPage(label: string, pageId: string): Promise<void> {
+  return invoke("open_page", { label, pageId });
+}
+
+/** Close whatever page `label`'s window is showing, returning it to its panes. */
+export function closePage(label: string): Promise<void> {
+  return invoke("close_page", { label });
+}
+
+/** Dock or expand `label`'s open page in place. */
+export function setPageMode(label: string, mode: PageMode): Promise<void> {
+  return invoke("set_page_mode", { label, mode });
+}
+
+/** Resize `label`'s docked page, clamped to the written 320-640 range. */
+export function setPageWidth(label: string, width: number): Promise<void> {
+  return invoke("set_page_width", { label, width });
 }
 
 export function closeInstance(instanceId: string): Promise<void> {
@@ -1173,6 +1217,27 @@ export function setPaneSizes(splitId: string, sizes: number[]): Promise<void> {
 
 export function addCluster(label: string, name: string): Promise<string | null> {
   return invoke<string | null>("add_cluster", { label, name });
+}
+
+/**
+ * Drop a tab on the switcher's empty space: a new cluster in the same
+ * environment the tab came from, holding that one tab. `sourceCluster` is
+ * the drag payload's `fromClusterId` — see `SurfaceDrag` in `contract.ts`.
+ * Resolves to the new cluster's id, or `null` if the drop was refused (the
+ * window closed underneath it).
+ */
+export function newClusterForDrop(
+  label: string,
+  name: string,
+  sourceCluster: string,
+  instanceId: string,
+): Promise<string | null> {
+  return invoke<string | null>("new_cluster_for_drop", {
+    label,
+    name,
+    sourceCluster,
+    instanceId,
+  });
 }
 
 export function setActiveCluster(label: string, clusterId: string | null): Promise<void> {

@@ -33,7 +33,7 @@ pub const PLANE_HOST: &str = "plane.kaava.internal";
 /// ever shows the webview for. Hardcoded rather than looked up: `PAGES` is
 /// keyed by which *app* draws a page, not the other way around, and this is
 /// the one spot that needs the reverse answer.
-const PROJECTS_PAGE_ID: &str = "projects";
+const PLANE_PAGE_ID: &str = "plane";
 
 /// §11: "The webview uses a dedicated data directory (`<app data>/plane-webview/`)".
 pub const DATA_DIR_NAME: &str = "plane-webview";
@@ -226,23 +226,23 @@ fn allow_navigation(url: &Url) -> bool {
     is_plane_url(url)
 }
 
-/// Which page, if any, `label`'s window is showing right now. `ShellState`
-/// itself answers the opposite question — [`crate::shell_state::ShellState::active_cluster_of`]
-/// returns `None` for exactly this case, because every one of *its* callers
-/// wants a cluster to work in and a page is never that.
+/// Which page, if any, `label`'s window is showing on its rail right now.
+/// A page is a fact about the window (`WindowPlacement::right_page`), not
+/// about whichever cluster is active underneath it — unlike the old page
+/// clusters, opening the Plane page no longer changes which cluster the
+/// window's panes are showing.
 fn active_page<'a>(snapshot: &'a ShellSnapshot, label: &str) -> Option<&'a str> {
     let window = snapshot.windows.iter().find(|w| w.label == label)?;
-    let active_id = window.active_cluster_id.as_deref()?;
-    let cluster = window.clusters.iter().find(|c| c.id == active_id)?;
-    cluster.page.as_deref()
+    Some(window.right_page.as_ref()?.id.as_str())
 }
 
-/// Whether the Plane webview belongs on screen right now: the projects page
-/// is `main`'s active cluster, and the window is not minimized. Pure — no
-/// lookup, no I/O — so this is exercised without a real window, webview or
+/// Whether the Plane webview belongs on screen right now: the Plane page is
+/// open on `main`'s rail (docked or expanded — both place the webview, just
+/// at a different rect), and the window is not minimized. Pure — no lookup,
+/// no I/O — so this is exercised without a real window, webview or
 /// `ShellState`. See [`sync_visibility`] for where its two inputs come from.
 pub fn should_show(main_active_page: Option<&str>, minimized: bool) -> bool {
-    !minimized && main_active_page == Some(PROJECTS_PAGE_ID)
+    !minimized && main_active_page == Some(PLANE_PAGE_ID)
 }
 
 /// Recompute whether the webview should be visible, and `hide`/`show` it if
@@ -280,7 +280,8 @@ pub fn sync_visibility(app: &AppHandle, snapshot: &ShellSnapshot) {
 mod tests {
     use super::*;
     use crate::layout::PaneNode;
-    use crate::shell_state::{Cluster, WindowPlacement};
+    use crate::pages::PageMode;
+    use crate::shell_state::{Cluster, RightPage, WindowPlacement};
 
     fn url(s: &str) -> Url {
         s.parse().unwrap()
@@ -307,16 +308,22 @@ mod tests {
         assert!(!allow_navigation(&url("https://evil.example/")));
     }
 
-    fn window(label: &str, clusters: Vec<Cluster>, active: Option<&str>) -> WindowPlacement {
+    fn window(label: &str, cluster: Cluster, right_page: Option<&str>) -> WindowPlacement {
         WindowPlacement {
             label: label.to_string(),
-            clusters,
-            active_cluster_id: active.map(str::to_string),
+            active_cluster_id: Some(cluster.id.clone()),
+            clusters: vec![cluster],
             geometry: None,
+            right_page: right_page.map(|id| RightPage {
+                id: id.to_string(),
+                mode: PageMode::Expanded,
+                width: 380.0,
+                instance_id: None,
+            }),
         }
     }
 
-    fn cluster(id: &str, page: Option<&str>) -> Cluster {
+    fn cluster(id: &str) -> Cluster {
         Cluster {
             id: id.to_string(),
             name: id.to_string(),
@@ -325,32 +332,24 @@ mod tests {
             worktree: None,
             active_terminal: None,
             band_height: None,
-            page: page.map(str::to_string),
+            page: None,
         }
     }
 
     #[test]
-    fn active_page_reads_the_page_cluster_the_window_is_showing() {
+    fn active_page_reads_the_windows_right_page() {
         let snapshot = ShellSnapshot {
-            windows: vec![window(
-                "main",
-                vec![cluster("cluster-1", Some("projects"))],
-                Some("cluster-1"),
-            )],
+            windows: vec![window("main", cluster("cluster-1"), Some("plane"))],
             instances: vec![],
             terminals: vec![],
         };
-        assert_eq!(active_page(&snapshot, "main"), Some("projects"));
+        assert_eq!(active_page(&snapshot, "main"), Some("plane"));
     }
 
     #[test]
-    fn active_page_is_none_for_an_ordinary_cluster() {
+    fn active_page_is_none_with_no_page_open() {
         let snapshot = ShellSnapshot {
-            windows: vec![window(
-                "main",
-                vec![cluster("cluster-1", None)],
-                Some("cluster-1"),
-            )],
+            windows: vec![window("main", cluster("cluster-1"), None)],
             instances: vec![],
             terminals: vec![],
         };
@@ -368,9 +367,9 @@ mod tests {
     }
 
     #[test]
-    fn should_show_wants_the_projects_page_active_and_unminimized() {
-        assert!(should_show(Some("projects"), false));
-        assert!(!should_show(Some("projects"), true));
+    fn should_show_wants_the_plane_page_active_and_unminimized() {
+        assert!(should_show(Some("plane"), false));
+        assert!(!should_show(Some("plane"), true));
         assert!(!should_show(Some("costs"), false));
         assert!(!should_show(None, false));
     }

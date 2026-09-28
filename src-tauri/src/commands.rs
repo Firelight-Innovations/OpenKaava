@@ -196,7 +196,8 @@ pub fn open_instance(
         });
     }
     // A page's app is an app, and would open — as a second copy of the page,
-    // loose in a pane. `open_page` is the only door to it; see `pages`.
+    // loose in a pane. `open_page` (the rail button) is the only door to it;
+    // see `pages`.
     if pages::is_page_app(&app_id) {
         return Err(AppError::PageApp(app_id));
     }
@@ -228,28 +229,60 @@ pub fn open_instance(
         .ok_or_else(|| AppError::UnknownTool(app_id))
 }
 
-/// The pages this build offers, in chip order. See `pages::available`.
+/// The pages this build offers, in rail order — including the disabled one.
+/// See `pages::rail`.
 #[tauri::command]
 pub fn list_pages() -> Vec<pages::PageInfo> {
-    pages::available()
+    pages::rail()
 }
 
-/// Show a page in `label`'s window, creating its cluster the first time, and
-/// answer with that cluster's id. See `ShellState::open_page`.
+/// Show a page in `label`'s window, or close it if it is already the one
+/// showing. See `ShellState::open_page`.
 #[tauri::command]
 pub fn open_page(
     app: tauri::AppHandle,
     shell: State<'_, ShellState>,
     label: String,
     page_id: String,
-) -> Result<String> {
+) -> Result<()> {
     let page = pages::find(&page_id).ok_or_else(|| AppError::UnknownPage(page_id.clone()))?;
-    let opened = shell
-        .open_page(&app, &label, page)
-        .ok_or(AppError::NoCluster("show a page in"));
+    if page.disabled {
+        return Err(AppError::PageDisabled(page_id));
+    }
+    shell.open_page(&app, &label, page);
     // The title follows the active cluster's project, and a page has none.
     project::retitle(&app);
-    opened
+    Ok(())
+}
+
+/// Close whatever page `label`'s window is showing, returning it to its
+/// panes. See `ShellState::close_page`.
+#[tauri::command]
+pub fn close_page(app: tauri::AppHandle, shell: State<'_, ShellState>, label: String) {
+    shell.close_page(&app, &label);
+    project::retitle(&app);
+}
+
+/// Dock or expand `label`'s open page in place. See `ShellState::set_page_mode`.
+#[tauri::command]
+pub fn set_page_mode(
+    app: tauri::AppHandle,
+    shell: State<'_, ShellState>,
+    label: String,
+    mode: pages::PageMode,
+) {
+    shell.set_page_mode(&app, &label, mode);
+}
+
+/// Resize `label`'s docked page. See `ShellState::set_page_width`.
+#[tauri::command]
+pub fn set_page_width(
+    app: tauri::AppHandle,
+    shell: State<'_, ShellState>,
+    label: String,
+    width: f32,
+) {
+    shell.set_page_width(&app, &label, width);
 }
 
 #[tauri::command]
@@ -376,6 +409,39 @@ pub fn add_cluster(
             dir: None,
         },
     );
+    project::retitle(&app);
+    Some(cluster_id)
+}
+
+/// Drop a tab on the switcher's empty space (KAAVA-UX-REWORK.md §5): a
+/// cluster of its own, in the same environment the tab came from, holding
+/// that one tab.
+///
+/// `source_cluster` is the dragged tab's `fromClusterId` — see `SurfaceDrag`
+/// in `src/shell/contract.ts` — and is only ever the environment source; the
+/// move itself is `move_instance`'s ordinary cross-cluster path, with no
+/// special case for a cluster made a moment earlier. Composed here rather
+/// than folded into `ShellState::add_cluster_for_environment`, for the
+/// reason `add_cluster` above already gives: that stays a primitive, this is
+/// the gesture built out of it.
+///
+/// Fails closed: if the move is refused (the tab has vanished, or is pinned
+/// to a page — `move_instance`'s own guards), the cluster this just made is
+/// still there, holding nothing. That is `add_cluster`'s own steady state —
+/// a cluster with an empty pane draws exactly as a fresh one does — so
+/// nothing here has to clean it back up.
+#[tauri::command]
+pub fn new_cluster_for_drop(
+    app: tauri::AppHandle,
+    shell: State<'_, ShellState>,
+    label: String,
+    name: String,
+    source_cluster: String,
+    instance_id: String,
+) -> Option<String> {
+    let (cluster_id, pane_id) =
+        shell.add_cluster_for_environment(&app, &label, &name, &source_cluster)?;
+    shell.move_instance(&app, &instance_id, &cluster_id, &pane_id, None);
     project::retitle(&app);
     Some(cluster_id)
 }

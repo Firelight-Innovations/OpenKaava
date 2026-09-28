@@ -1,0 +1,59 @@
+/* KAAVA-UX-SPEC.md §1.7 — the right-side project-page rail. */
+
+.k-rail {
+  width: var(--w-rail, 44px);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0 6px;
+  /* Chrome, not a bordered region -- it sits directly on bg-canvas. */
+  background: var(--bg-canvas);
+}
+
+.k-rail__btn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--txt-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+
+.k-rail__btn:hover:not(:disabled) {
+  color: var(--txt-primary);
+}
+
+.k-rail__btn:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.k-rail__btn[data-active] {
+  border-color: var(--border-subtle-1);
+  background: var(--bg-layer-2);
+  color: var(--accent);
+}
+
+.k-rail__btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.k-rail__dot {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 4px;
+  border: 2px solid var(--bg-canvas);
+}

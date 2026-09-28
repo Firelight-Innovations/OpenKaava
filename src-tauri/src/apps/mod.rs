@@ -21,6 +21,12 @@ mod design;
 mod files;
 mod godot_viewer;
 mod home;
+// `pub(crate)`, for the same reason `apps::projects` is: `lib.rs` needs
+// `apps::home_create::CreateManager` to `.manage()` it. `home::call` reaches
+// straight into this module's `start`/`status` for its two `home/create-
+// project*` methods, rather than this having a `Dispatch` of its own — the
+// New Project page is still Home, and `REGISTRY` has one row for it.
+pub(crate) mod home_create;
 mod play;
 // `pub(crate)` rather than private: `lib.rs` needs `apps::projects::WakeManager`
 // to `.manage()` it, the same reason `design_comments::Comments` lives outside

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig } from "framer-motion";
 import type { Openable, StackSnapshot } from "../bindings";
-import Frame, { BOTTOM_DEFAULT } from "./frame/Frame";
+import Frame, { BOTTOM_DEFAULT, PROJECT_PAGE_DEFAULT } from "./frame/Frame";
 import { bandGeometry, withBandGeometry, type BandGeometryByCluster } from "./frame/bandGeometry";
 import {
   appPresentation,
@@ -21,6 +21,7 @@ import {
   type TerminalTabGroup,
   type WindowKind,
 } from "./contract";
+import { environmentOf, environmentKey } from "./environment";
 import { searchBarHoldMs, snap } from "./motion";
 import { INTERRUPT, commandLine, terminalInput } from "./run";
 import ContextMenuHost from "./ContextMenuHost";
@@ -36,9 +37,11 @@ import ToolWindow, { type ToolWindowHandle } from "./toolwindow/ToolWindow";
 import PaneTree from "./panes/PaneTree";
 import XTermView from "./terminal/XTermView";
 import { splitDirOnOpen } from "./panes/splitOnOpen";
+import { toggleMaximize } from "./panes/paneMaximize";
 import SecondaryPanel, { type PanelView } from "./panel/SecondaryPanel";
 import BottomPanel from "./panel/BottomPanel";
 import StatusBar from "./statusbar/StatusBar";
+import EnvironmentBar from "./envbar/EnvironmentBar";
 import SearchSlot from "./search/SearchSlot";
 import SearchOverlay from "./search/SearchOverlay";
 import { useSearchSession } from "./search/useSearchSession";
@@ -61,6 +64,7 @@ import {
   addCluster,
   closeCluster,
   closeInstance,
+  closePage,
   closeWindow as closeThisWindow,
   newWindow,
   openInstance,
@@ -69,6 +73,8 @@ import {
   setActiveCluster,
   setActiveTerminal,
   setBandHeight,
+  setPageMode,
+  setPageWidth,
   setPaneSizes,
   useShellState,
   windowLabel,
@@ -78,6 +84,10 @@ import { gitControl, worktreeControl } from "./state/git";
 import { githubAuthControl, githubControl } from "./state/github";
 import { copyToClipboard, reviewControl } from "./state/review";
 import { isFullscreen, isTauri, nextZoom, setFullscreen, setZoom } from "./hostWindow";
+import Rail from "./rail/Rail";
+import DockedPage from "./rail/DockedPage";
+import ExpandedPage from "./rail/ExpandedPage";
+import HindsightPage from "./rail/HindsightPage";
 
 /**
  * What a window draws before the first `shell:state` arrives.
@@ -225,6 +235,16 @@ export default function WindowRoot({
   const shell = useShellState();
   const placement = shell?.windows.find((w) => w.label === label) ?? null;
 
+  // The project-page rail's own state: the six pages Rust declares
+  // (`pages::rail()`, via `usePages`) and this window's `right_page`, if it
+  // has one open. Independent of `clusters`/`activeClusterId` below on
+  // purpose -- `shell_state.rs`'s `RightPage` no longer lives on a cluster,
+  // so a docked or expanded page and a real cluster to work in coexist
+  // rather than one covering the other.
+  const pages = usePages();
+  const rightPage = placement?.rightPage ?? null;
+  const activePage = rightPage ? pages.find((p) => p.id === rightPage.id) : undefined;
+
   // There is no seeding effect any more, and its absence is the point.
   //
   // What used to be here docked every app into the bar on first run, because
@@ -253,7 +273,6 @@ export default function WindowRoot({
   const activePageId = shownCluster?.page ?? null;
   const activeCluster = activePageId === null ? shownCluster : null;
   const activeClusterId = activeCluster?.id ?? null;
-  const pages = usePages();
 
   // The band, as the cluster in front left it. Three values and two homes: the
   // height is the cluster's own — restored from the saved layout, and defaulted
@@ -376,6 +395,23 @@ export default function WindowRoot({
     }
   }, [paneIds, activePaneId]);
 
+  // Which pane, if any, is drawn full-size with the rest hidden but still
+  // mounted — KAAVA-UX-REWORK.md §5's "double-click a tab to maximise its
+  // pane." View-local for the same reason `activePaneId` is: a fact about
+  // this window's screen, not the project. Reset rather than followed when
+  // the maximised pane disappears out from under it (its cluster's tree
+  // changed, or the cluster itself did) — a maximised id naming nothing would
+  // leave `PaneTree` with every child hidden and none stretched to fill it.
+  const [maximizedPaneId, setMaximizedPaneId] = useState<string | null>(null);
+  useEffect(() => {
+    if (maximizedPaneId !== null && !paneIds.includes(maximizedPaneId)) {
+      setMaximizedPaneId(null);
+    }
+  }, [paneIds, maximizedPaneId]);
+  const onToggleMaximizePane = useCallback((paneId: string) => {
+    setMaximizedPaneId((current) => toggleMaximize(current, paneId));
+  }, []);
+
   /**
    * Focus follows what you just opened, into the pane it turned out to be in.
    *
@@ -483,9 +519,10 @@ export default function WindowRoot({
 
   const activeInstance = activeInstanceId ? instances.get(activeInstanceId) : undefined;
 
-  // Selecting and closing a tab live further down, with the terminals: one bar
-  // lists both, and the terminal half needs state declared below this point.
-  // See `onSelectMember`.
+  // Selecting and closing a tab used to live further down, alongside the
+  // switcher row's own member-tab handlers — both gone now that the switcher
+  // draws cluster tabs only; see `ClusterBar.tsx`'s header for where a pane's
+  // own tab selection lives instead.
 
   /**
    * The Apps menu, and the switcher's `+`.
@@ -587,19 +624,80 @@ export default function WindowRoot({
     [label, activeClusterId, homeShowing, tutorialInstanceId, showHome, hideTakeover],
   );
 
-  // A page chip. Rust finds this window's cluster for the page or makes it, and
-  // shows it. No Home toggle on the open chip: a page is not somewhere you work,
-  // so there is nothing for Home to cover and nothing to toggle back to.
+  // The page chips — and the "open this page" call they made — are gone with
+  // them. `activePageId`/`shownCluster` above still read a page cluster
+  // correctly if one is ever the active one (Rust still keeps them in
+  // `placement.clusters`); there is simply no switcher-row UI left in this
+  // rework that opens one. The rail below is where that affordance lives now
+  // — see `docs/design/KAAVA-UX-SPEC.md` §1.7.
+
+  // --- the project-page rail --------------------------------------------
+  //
+  // One door in: `Rail`'s click and Alt+1…6 both call this, and Rust's
+  // `open_page` toggles a second click of the *same* page shut again
+  // (`shell_state.rs`'s `open_page_pure`) — so this never has to know
+  // whether a given call is an open or a close, only which button fired.
   const onSelectPage = useCallback(
     (pageId: string) => {
-      if (pageId === activePageId) return;
-      hideTakeover();
-      void openPage(label, pageId).catch((err: unknown) =>
-        console.error("kaava: could not open that page:", err),
-      );
+      void openPage(label, pageId);
     },
-    [label, activePageId, hideTakeover],
+    [label],
   );
+  // The expanded header's back button and Esc both call this — "leaving" a
+  // page always means closing it, not docking it; `onTogglePageMode` below
+  // is the separate action for that.
+  const onClosePage = useCallback(() => {
+    void closePage(label);
+  }, [label]);
+  const onTogglePageMode = useCallback(() => {
+    if (!rightPage) return;
+    void setPageMode(label, rightPage.mode === "docked" ? "expanded" : "docked");
+  }, [label, rightPage]);
+  const onPageWidthChange = useCallback(
+    (width: number) => {
+      void setPageWidth(label, width);
+    },
+    [label],
+  );
+
+  // Alt+1…6 (open/switch the rail's page), Esc (leave an expanded page) and
+  // Ctrl+Shift+E (dock/expand whichever one is open) — kept out of
+  // `useKeyboard` below rather than added to it: none of the three fit its
+  // Ctrl-chord table, Alt is a different modifier, and Escape is
+  // `SearchSlot`'s own key to bind (`useKeyboard.ts`'s header explains why).
+  // `WindowRoot` is not a region, so three more keys wired ad hoc here is
+  // cheaper than teaching the shared hook a shape it would use exactly once.
+  useEffect(() => {
+    function isTextEntry(target: EventTarget | null): boolean {
+      if (!(target instanceof HTMLElement)) return false;
+      return (
+        target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable
+      );
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (isTextEntry(e.target)) return;
+
+      if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.key >= "1" && e.key <= "6") {
+        const page = pages.find((p) => p.key === Number(e.key));
+        if (page && !page.disabled) {
+          e.preventDefault();
+          onSelectPage(page.id);
+        }
+        return;
+      }
+      if (e.key === "Escape" && rightPage?.mode === "expanded") {
+        e.preventDefault();
+        onClosePage();
+        return;
+      }
+      if (e.ctrlKey && e.shiftKey && !e.altKey && e.key.toLowerCase() === "e" && rightPage) {
+        e.preventDefault();
+        onTogglePageMode();
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [pages, rightPage, onSelectPage, onClosePage, onTogglePageMode]);
 
   const onAddCluster = useCallback(() => {
     // Numbered rather than prompting. A dialog before you can see the thing you
@@ -879,26 +977,27 @@ export default function WindowRoot({
     requestCloseTab({ id: bandTabId, sessions: activeTabSessions });
   }, [activeTabSessions, bandTabId, requestCloseTab]);
 
-  // --- the cluster bar ------------------------------------------------------
+  // --- the cluster's members --------------------------------------------------
   //
-  // Every tab *in the open cluster*, flattened into the row that draws them. The
-  // per-pane strips that used to share this job are gone; see `ClusterBar`'s doc
-  // comment for why listing the same surface in several rows was worse.
+  // The switcher row draws cluster tabs only now — `ClusterBar`'s own doc
+  // comment says why — but every tab *in the open cluster* is still flattened
+  // here, because `PaneTree`'s own per-pane strip (`PaneTabStrip`, the
+  // **panes** workstream's) and its drag handle both need the same list this
+  // file used to hand the switcher row instead.
   //
-  // The band's terminals are not in this list, and that is the change. A
-  // cluster's members are its tree's tabs — a band terminal is not one, so no
-  // cluster's group can list it without claiming something untrue. The band
-  // names its own contents; see `BottomPanel`. A terminal *dragged into* a tree
-  // is still here, because by then it is a tree tab like any other.
+  // The band's terminals are not in this list, and that is the change from
+  // before the rework. A cluster's members are its tree's tabs — a band
+  // terminal is not one, so no cluster's group can list it without claiming
+  // something untrue. The band names its own contents; see `BottomPanel`. A
+  // terminal *dragged into* a tree is still here, because by then it is a
+  // tree tab like any other.
   //
   // Derived, never stored: a membership list kept beside the tree would be a
-  // second answer that could drift. Takeover surfaces are filtered out below —
-  // see the `isTakeover` skip inside `members`, and `onSelectCluster` for where
-  // Home's door went instead.
+  // second answer that could drift. Takeover surfaces are filtered out below
+  // — see the `isTakeover` skip inside `members`, and `onSelectCluster` for
+  // where Home's door went instead.
 
   // The band's tabs, grouped so a split terminal is one entry rather than two.
-  // Computed once here because several things below want the same grouping and
-  // recomputing it per caller is that many chances to group differently.
   const bandTabs = useMemo(() => groupTerminalTabs(sessions), [sessions]);
 
   // Agent-finished state for a terminal that has been dragged *into* the layout.
@@ -942,19 +1041,7 @@ export default function WindowRoot({
     return list;
   }, [tree, instances, terminalsById]);
 
-  // What a collapsed chip shows instead of its contents. Counted the same way
-  // `members` is built — its tree's tabs, minus the takeover surfaces — so the
-  // number a chip promises is the number that appears once you click it.
-  const memberCount = useCallback(
-    (clusterId: string) => {
-      const cluster = clusters.find((c) => c.id === clusterId);
-      if (!cluster) return 0;
-      return paneTabs(cluster.tree).filter((id) => !isTakeover(instances.get(id)?.appId)).length;
-    },
-    [clusters, instances],
-  );
-
-  // Each pane's real tab order, takeover surfaces included. `ClusterBar`
+  // Each pane's real tab order, takeover surfaces included. `PaneTabStrip`
   // measures its insertion index over what it actually renders, so the index
   // needs translating back against this before it can name a real tree
   // position. See `translateStripIndex` and `useDrag` for the mechanics.
@@ -976,15 +1063,15 @@ export default function WindowRoot({
   );
 
   /**
-   * Clicking a tab in the bar.
+   * Clicking a tab in a pane's own strip.
    *
-   * The two halves land in different places, which is the one thing this row
+   * The two halves land in different places, which is the one thing this
    * hides from the person using it. A surface is activated in the pane that
    * already holds it, and that pane becomes the focused one — so the menus
    * follow the click, the way they would have if you had clicked the surface
-   * itself. A terminal is in the band, so the band is opened if it was shut and
-   * switched to it; a click that revealed nothing would read as a click that
-   * missed.
+   * itself. A terminal is in the band, so the band is opened if it was shut
+   * and switched to it; a click that revealed nothing would read as a click
+   * that missed.
    */
   const onSelectMember = useCallback(
     (member: ClusterMember) => {
@@ -1376,14 +1463,37 @@ export default function WindowRoot({
   // monitors say two different things: each asks about the cluster it is
   // showing, and a project switch in one leaves the other alone.
   //
-  // The title bar no longer reads `git.status` for its third segment. That was
-  // the branch of the checkout the stack manifest resolved, which was never the
-  // cluster's worktree — it only looked like it while there was one project in
-  // the process. `Cluster.worktree` is the field it names now; nothing
-  // populates it yet, so the segment is absent and the layout is ready for the
-  // git work. `useGitStatus` is still read here by the status bar and the
-  // source-control tab, which are asking its own question and not this one.
+  // The title bar no longer reads `git.status` for its environment chip. That
+  // was the branch of the checkout the stack manifest resolved, which was
+  // never the cluster's worktree — it only looked like it while there was one
+  // project in the process. `environmentOf` names it now, off `Cluster.worktree`
+  // itself (see `environment.ts`). `useGitStatus` is still read here by the
+  // status bar and the source-control tab, which are asking their own question
+  // and not this one.
   const project = useClusterProject(activeClusterId);
+
+  // The pill's trailing chip (`environment`) and its idle-state count
+  // (`environmentCount`), both derived through the one function every other
+  // environment-aware surface in this rework uses — see `environment.ts`'s
+  // header for why the derivation stays in one place. `environmentKey` is what
+  // lets two clusters pointed at the same worktree count as one environment
+  // rather than two.
+  const environment = activeCluster ? environmentOf(activeCluster) : null;
+  const environmentCount = useMemo(
+    () => new Set(clusters.map((c) => environmentKey(environmentOf(c)))).size,
+    [clusters],
+  );
+  // The Switch-project dialog is the **clusters** workstream's to build. The
+  // pill stays a real, clickable button in the meantime — see
+  // `TitleBarProps.onOpenProjectSwitcher`'s own doc comment.
+  const onOpenProjectSwitcher = useCallback(() => {}, []);
+
+  // The environment bar's "Review & merge" opens the same Git page the rail
+  // does, through the same door — `onSelectPage`, not a second path onto
+  // `right_page`.
+  const onReviewAndMerge = useCallback(() => {
+    onSelectPage("git");
+  }, [onSelectPage]);
 
   // The drag layer is the only thing in the shell that spans regions, so it is
   // the only thing that has to be handed down rather than owned locally. The
@@ -1394,7 +1504,28 @@ export default function WindowRoot({
   // destination: a tab released over another window has to be moved *there*, and
   // a pane belongs to a cluster. `translateStripIndex` is the third thing it
   // cannot resolve on its own — see its own doc comment for why.
-  const drag = useDrag(label, activeClusterId, translateStripIndex);
+  const drag = useDrag(label, activeClusterId, translateStripIndex, clusters);
+
+  /**
+   * The one handle every surface drag is built from — a pane's own tab strip
+   * and the switcher row both hand a member to this rather than each
+   * assembling the payload again. `fromClusterId` is the active cluster: every
+   * member this window can offer a handle for belongs to it, since the ones
+   * drawn are always the shown cluster's own tree.
+   */
+  const surfaceDragHandle = useCallback(
+    (member: ClusterMember) =>
+      drag.tabHandle({
+        what: "surface",
+        instanceId: member.dragId,
+        title: member.title,
+        kind: member.kind,
+        agentFinished: member.agentFinished,
+        fromPaneId: member.paneId,
+        fromClusterId: activeClusterId,
+      }),
+    [drag, activeClusterId],
+  );
 
   // The other drag: files coming in from outside OpenKaava, which the operating
   // system is already carrying by the time we hear about it. Held here for the
@@ -1504,6 +1635,34 @@ export default function WindowRoot({
     help: { checkForUpdates: updates.check },
   });
 
+  // The open page's body, by id. Git and Hindsight are drawn by the shell
+  // itself (`pages.rs`'s `app_id: None`); `WorktreePanel` here is the exact
+  // component `secondaryPanel` below already mounts for its own `worktreeView`
+  // — reused, not reimplemented, for a second box with the same status this
+  // window already fetched. Plane, Cloud agents and Cost each host an app
+  // instead (`app_id: Some(...)`) — hosting that through a second `ToolWindow`
+  // mount is next, not yet done, so this says so honestly rather than drawing
+  // an empty or a faked frame.
+  const pageBody = rightPage ? (
+    rightPage.id === "git" ? (
+      <WorktreePanel
+        clusterId={activeClusterId}
+        worktreeControl={worktreeControl}
+        gitControl={gitControl}
+        reviewControl={reviewControl}
+        reviewSend={reviewSend}
+        git={git}
+        activeBranch={activeBranch}
+      />
+    ) : rightPage.id === "hindsight" ? (
+      <HindsightPage />
+    ) : (
+      <div style={{ padding: 16, color: "var(--txt-tertiary)", fontSize: 13 }}>
+        {activePage?.name ?? "This page"} is not wired to its app yet.
+      </div>
+    )
+  ) : null;
+
   return (
     <MotionConfig transition={snap} reducedMotion="user">
       {/* Not a slot: it draws nothing until somebody right-clicks, and when it
@@ -1535,20 +1694,22 @@ export default function WindowRoot({
         onBottomHeightChange={setBottomHeight}
         onBottomCollapsedChange={setBottomCollapsed}
         onBottomMaximizedChange={setBottomMaximized}
+        projectPageWidth={rightPage?.width ?? PROJECT_PAGE_DEFAULT}
+        onProjectPageWidthChange={onPageWidthChange}
+        projectPageExpanded={rightPage?.mode === "expanded"}
         slots={{
-          // "OpenKaava | project | branch". What the window is *pointed at*,
-          // rather than which surface happens to be in front — the tab strip
-          // already says that, and says it next to the thing it names. See the
-          // note on the title element in `TitleBar.tsx`.
+          // The centred project pill, not a plain title — `docs/design/
+          // KAAVA-UX-SPEC.md` §1.2. What the window is *pointed at* rather
+          // than which surface happens to be in front, same as the old
+          // three-segment title this replaces; see `TitleBar.tsx`'s header.
           titleBar: (
             <TitleBar
               kind={kind}
               project={project?.name ?? null}
-              // The cluster's own worktree, not the stack's branch. A stub that
-              // nothing populates, so this is `null` today and the segment is
-              // dropped — see the note on the title element in `TitleBar.tsx`
-              // for why an approximation would be worse than an absence.
-              worktree={activeCluster?.worktree?.branch ?? null}
+              environment={environment}
+              environmentLabel={activeCluster?.name ?? null}
+              environmentCount={environmentCount}
+              onOpenProjectSwitcher={onOpenProjectSwitcher}
               menus={menus}
             />
           ),
@@ -1557,41 +1718,16 @@ export default function WindowRoot({
           // exactly one tool and so had nothing to switch between; it holds real
           // clusters that can be added to and switched between, so there is.
           //
-          // It is also the only tab strip in the window. The panes and the panel
-          // used to draw their own, listing the same surfaces two and three
-          // times over; this row lists each of them once.
+          // Cluster tabs only, per §1.3 — see `ClusterBar.tsx`'s header for
+          // where the tabs this row used to list inline went instead.
           switcherBar: (
             <ClusterBar
               clusters={clusters}
               activeClusterId={activeClusterId}
-              pages={pages}
-              activePageId={activePageId}
-              onSelectPage={onSelectPage}
-              members={members}
-              memberCount={memberCount}
-              // No strip zone over a page: Rust refuses any tab dropped into
-              // one, so the row must not draw a caret promising otherwise.
-              dropPaneId={activePageId === null ? activePaneId : null}
-              dropTarget={drag.target}
               onSelect={onSelectCluster}
               onAdd={onAddCluster}
               onClose={onCloseCluster}
               onRename={onRenameCluster}
-              onSelectMember={onSelectMember}
-              onCloseMember={onCloseMember}
-              // An app surface and a terminal drag identically — same ghost,
-              // same drop targets, same commit — which is what lets a terminal
-              // be dropped into the layout and an app be dropped out of it.
-              dragHandleFor={(member) =>
-                drag.tabHandle({
-                  what: "surface",
-                  instanceId: member.dragId,
-                  title: member.title,
-                  kind: member.kind,
-                  agentFinished: member.agentFinished,
-                  fromPaneId: member.paneId,
-                })
-              }
               // A cluster drags too, and it is the one thing in this row that
               // is not a tab: it can only be released on a *window*, so it
               // moves into whichever one it was let go over, or takes a new one
@@ -1601,10 +1737,6 @@ export default function WindowRoot({
               dragHandleForCluster={(cluster) =>
                 drag.tabHandle({ what: "cluster", clusterId: cluster.id, name: cluster.name })
               }
-              // The same object the Apps menu above is built from, so the
-              // button at the end of the open cluster's tabs offers exactly
-              // what that menu offers and opens it exactly the same way.
-              apps={appsHandlers}
               healthOf={stackTools}
               onRescan={onRescan}
               // The held flag, not the live one: the bar is the second beat on
@@ -1619,6 +1751,18 @@ export default function WindowRoot({
                   onSubmit={onSubmitSearch}
                 />
               }
+            />
+          ),
+          // Omitted while no cluster is open — see the slot's own doc comment
+          // in contract.ts. `onReviewAndMerge` is a no-op for the same reason
+          // `onOpenProjectSwitcher` is above: the Git page it would open is
+          // the **panes**/**clusters** workstreams' to build, not this one's.
+          envBar: environment !== null && (
+            <EnvironmentBar
+              environment={environment}
+              ahead={git.status?.ahead}
+              behind={git.status?.behind}
+              onReviewAndMerge={onReviewAndMerge}
             />
           ),
           toolWindow: (
@@ -1657,7 +1801,17 @@ export default function WindowRoot({
               // The two regions the tool window draws but may not import. It
               // computes every argument; this is only the wiring, and it lives
               // here because `WindowRoot` is not a region and may see both.
-              renderPanes={(paneProps) => <PaneTree {...paneProps} />}
+              renderPanes={(paneProps) => (
+                <PaneTree
+                  {...paneProps}
+                  members={members}
+                  onSelectMember={onSelectMember}
+                  onCloseMember={onCloseMember}
+                  dragHandleFor={surfaceDragHandle}
+                  maximizedPaneId={maximizedPaneId}
+                  onToggleMaximizePane={onToggleMaximizePane}
+                />
+              )}
               renderTerminal={(instanceId) => (
                 <XTermView
                   id={instanceId}
@@ -1773,9 +1927,33 @@ export default function WindowRoot({
                   kind: "terminal",
                   agentFinished: session.agentFinished,
                   fromPaneId: null,
+                  fromClusterId: activeClusterId,
                 })
               }
             />
+          ),
+          // The project-page rail and, when a page is open, its body — the
+          // **rail** workstream's three slots (`docs/KAAVA-UX-REWORK.md` §4).
+          // `dots` is left empty for now: a rail dot's colour comes from each
+          // page's own live data (Plane asleep/running, Cost's burn against
+          // budget), and none of that is read anywhere yet — a TODO here
+          // rather than an invented colour.
+          projectRail: (
+            <Rail pages={pages} activePageId={rightPage?.id ?? null} onSelect={onSelectPage} />
+          ),
+          projectPage: rightPage && (
+            <DockedPage title={activePage?.name ?? rightPage.id} onClose={onClosePage}>
+              {pageBody}
+            </DockedPage>
+          ),
+          projectPageExpanded: rightPage && (
+            <ExpandedPage
+              backLabel={activeCluster ? activeCluster.name : "Back"}
+              onBack={onClosePage}
+              title={activePage?.name ?? rightPage.id}
+            >
+              {pageBody}
+            </ExpandedPage>
           ),
           // Both drag layers draw into the one overlay slot. Never both at
           // once in practice — a pointer carries one gesture — but composed
@@ -1817,6 +1995,8 @@ export default function WindowRoot({
             // of a question already answered, and the totals cannot drift out
             // of step with the change lists they are totals of.
             <StatusBar
+              project={project?.name ?? null}
+              environment={environment}
               git={git.status}
               githubOk={!error}
               update={updateNotice(updates.state, updates.asked, updates.install)}
