@@ -106,45 +106,74 @@
   visibility: hidden;
 }
 
-/* A tab is an environment chip, a name and a close button — no version, no
-   per-cluster colour, no count. Left padding was 16px to seat a leading
-   marker dot that no longer exists; 12px is the plain-text inset, a couple
-   of px past the right side's 8px since raw text sitting flush on an edge
-   reads tighter than a control does. */
+/* §1.3: `role="tab"`, height 30px, `radius-lg` (8px), a gap between the env
+   chip and the label. Selected takes a hairline border, `bg-layer-2` and the
+   spec's own `shadow-raised`; inactive is fully transparent — no border, no
+   fill — so a row of clusters reads as tabs rather than as boxes. Token
+   fallbacks throughout, for the reason `frame.css` gives: the tokens
+   workstream lands these names on a parallel branch. */
 .switcher__tab {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 8px 0 12px;
-  border: none;
-  border-right: 1px solid var(--line);
+  gap: 7px;
+  height: 30px;
+  padding: 0 8px 0 10px;
+  margin: 0 2px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg, 8px);
   background: transparent;
+  color: var(--txt-tertiary, var(--text-dim));
   font: inherit;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   user-select: none;
   position: relative;
 }
 
+.switcher__tab--active {
+  border-color: var(--border-subtle, var(--line));
+  background: var(--bg-layer-2, var(--surface-gap));
+  color: var(--txt-primary, var(--text));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
 /* The environment chip — `docs/design/KAAVA-UX-SPEC.md` §1.3's `wt`/`cloud`/
-   `main` glyph-and-label. One shade up from the tab so it reads as a chip
-   sitting on the tab rather than more tab. */
+   `main` glyph-and-label. `wt`/`main` share the same neutral treatment (a
+   padlock reads "browse-only" on its own, so `main` needs no colour of its
+   own to say it); `cloud` takes the info-subtle/txt-info pair, which is also
+   `--info-subtle`/`--txt-info` once the tokens workstream lands them —
+   `#16244a`/`#a3c1ff` kept as the literal fallback since neither name exists
+   in `tokens.css` yet. */
 .switcher__tab-env {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 3px;
-  padding: 0 5px;
-  border-radius: 3px;
-  background: var(--surface-gap);
-  font-family: var(--mono);
-  font-size: 9.5px;
-  line-height: 16px;
-  color: var(--text-dim-2);
+  gap: 4px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 5px;
+  background: var(--bg-layer-2, var(--surface-gap));
+  color: var(--txt-secondary, var(--text-dim));
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.switcher__tab-env[data-env-kind="cloud"] {
+  background: var(--info-subtle, #16244a);
+  color: var(--txt-info, #a3c1ff);
 }
 
 .switcher__tab-env-icon {
   flex: none;
+}
+
+/* The Design canvas cluster's own marker, after its env chip — §1.3. */
+.switcher__tab-pin {
+  flex: none;
+  color: var(--txt-tertiary, var(--text-dim-2));
 }
 
 /* Between the pinned Design canvas cluster and the rest — heavier than the
@@ -153,8 +182,10 @@
 .switcher__divider {
   flex: none;
   width: 1px;
-  align-self: stretch;
-  background: var(--line-2);
+  height: 18px;
+  align-self: center;
+  margin: 0 4px;
+  background: var(--border-subtle, var(--line-2));
 }
 
 /* The name, truncated rather than allowed to set the tab's width. A cluster
@@ -165,6 +196,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--sans);
+  line-height: 1;
 }
 
 /* Editing in place. Sized and coloured to sit exactly where the label was, so
@@ -221,22 +254,27 @@
 
 /* Matches `.panel__newbtn`, so adding a cluster reads as the same kind of
    action as adding a terminal. */
+/* §1.3: `30×30` icon-only ghost. No trailing hairline any more — the tabs
+   beside it are pills now, not hairline-divided cells, so a border here would
+   be the one stray divider left in the row. */
 .switcher__newbtn {
   flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 30px;
+  height: 30px;
+  margin: 0 2px;
   border: none;
-  border-right: 1px solid var(--line);
+  border-radius: var(--radius-lg, 8px);
   background: transparent;
-  color: var(--text-dim);
+  color: var(--txt-tertiary, var(--text-dim));
   cursor: pointer;
 }
 
 .switcher__newbtn:hover {
-  color: var(--text);
-  background: var(--surface-gap);
+  color: var(--txt-primary, var(--text));
+  background: var(--bg-layer-2, var(--surface-gap));
 }
 
 /* --- the page chips --------------------------------------------------------
@@ -323,27 +361,6 @@
   /* Belt and braces alongside the `disabled` attribute: a not-installed tab
      takes no hover state at all. */
   pointer-events: none;
-}
-
-/* The selected tab's own lift — `--bg`, the same depth an active tool tab
-   always took, now that there is nothing left in this row for it to be
-   confused with. */
-.switcher__tab--active {
-  background: var(--bg);
-}
-
-.switcher__tab-label {
-  font-family: var(--sans);
-  font-size: 12px;
-  line-height: 1;
-  font-weight: 400;
-  color: var(--text-dim);
-  white-space: nowrap;
-}
-
-.switcher__tab--active .switcher__tab-label {
-  font-weight: 500;
-  color: var(--text);
 }
 
 .switcher__spacer {

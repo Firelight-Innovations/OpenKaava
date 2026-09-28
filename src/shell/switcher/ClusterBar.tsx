@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { Cluster, DragHandleProps, ToolHealth, ToolPresentation } from "../contract";
 import { environmentOf, ENVIRONMENT_LABEL, type EnvironmentKind } from "../environment";
 import { instant, instantOut, snap } from "../motion";
-import { Cloud, GitBranch, Lock } from "lucide-react";
+import { Cloud, GitBranch, Lock, Pin } from "lucide-react";
 import { Close, Plus, Search, WarningTriangle } from "../../ui/Icon";
 import OverlayScrollbar from "../OverlayScrollbar";
 import HealthPopover, { type UnhealthyTool } from "./HealthPopover";
@@ -159,6 +159,7 @@ export default function ClusterBar({
             <ClusterTab
               cluster={design}
               active={design.id === activeClusterId}
+              pinned
               dragHandle={dragHandleForCluster?.(design)}
               tabRef={clusterTabRef?.(design.id)}
               onSelect={onSelect}
@@ -257,6 +258,7 @@ export default function ClusterBar({
 function ClusterTab({
   cluster,
   active,
+  pinned = false,
   dragHandle,
   tabRef,
   onSelect,
@@ -265,6 +267,8 @@ function ClusterTab({
 }: {
   cluster: Cluster;
   active: boolean;
+  /** The Design canvas cluster, §1.3 — draws the pin glyph after the env chip. */
+  pinned?: boolean;
   dragHandle?: DragHandleProps;
   tabRef?: (el: HTMLDivElement | null) => void;
   onSelect: (clusterId: string) => void;
@@ -326,6 +330,8 @@ function ClusterTab({
         <Glyph size={10} strokeWidth={1.5} className="switcher__tab-env-icon" />
         {ENVIRONMENT_LABEL[env.kind]}
       </span>
+
+      {pinned && <Pin size={12} strokeWidth={1.5} className="switcher__tab-pin" aria-hidden="true" />}
 
       {editing ? (
         <input
