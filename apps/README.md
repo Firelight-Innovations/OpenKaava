@@ -38,6 +38,7 @@ apps/
   tutorial/ui/            Tutorials' frontend
   agents/ui/              Agents' frontend: OpenKaava Cloud's agent machines and sessions
   costs/ui/               Cost Tracker's frontend: this month's Google Cloud spend and forecast
+  projects/ui/            Projects' frontend: the project switcher and its embedded Plane workspace
   design/ui/              Design Mode's frontend
   schematify/ui/          Schematify's frontend
 ```
@@ -165,6 +166,22 @@ discounts and credits are left out, and the page lists them. The same
 `KAAVA_CLOUD_FIXTURES` folder answers it, with `clock.json` fixing "now".
 `src-tauri/fixtures/cloud/billing/` holds real catalog SKUs, trimmed. It is a
 page, like Agents: its chip opens it, and the Apps menu does not list it.
+
+**Projects** (`projects/list`, `projects/wake-start`, `projects/plane-get`) —
+every OpenKaava Cloud project's Plane workspace, picked from a switcher and
+opened beside it. Selecting one wakes `plane-vm` if it was stopped
+(`projects/wake-start`, polled by `projects/wake-status`), then lands a native
+child webview over the pane — not an `<iframe>`, so Plane's own login session
+survives a restart — positioned and resized by `src-tauri/src/plane_webview.rs`.
+`projects/plane-get`/`-post`/`-patch` proxy the rest of Plane's REST API
+through the backend's own PAT, out of Secret Manager, so nothing but that
+same-origin webview ever needs one. Needs `plane.kaava.internal` resolving to
+the tunnel's local port in the hosts file; the app surfaces the fix inline
+when it does not. The same `KAAVA_CLOUD_FIXTURES` folder runs it against a
+fixture project list instead of the live bucket.
+
+Projects is a page too, like Agents and Cost Tracker: its chip opens it, and
+the Apps menu does not list it.
 
 **File Viewer** (`files/read`, `files/write`) — open files in tabs, and what
 each one looks like. Reads are capped at 256 KiB and say so when they truncate.

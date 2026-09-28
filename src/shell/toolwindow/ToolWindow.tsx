@@ -46,6 +46,7 @@ import ToolMount from "./ToolMount";
 import EmptyState from "./EmptyState";
 import NoClustersState from "./NoClustersState";
 import { registerToolWindow, unregisterToolWindow } from "../toolWindowRegistry";
+import { sameWindowRect, windowRectOfPane, type WindowRect } from "./surfaceRect";
 import "./toolwindow.css";
 
 /**
@@ -54,6 +55,18 @@ import "./toolwindow.css";
  * the person clicking made.
  */
 const VIEWER_APP = "viewer";
+
+/**
+ * Apps whose native content Rust places directly onto the window rather than
+ * drawing it in the iframe — so their instance needs its surface's true
+ * window-space rect pushed down as `kaava/window-rect`, not just the
+ * pane-relative geometry an iframe can already see for itself.
+ *
+ * `projects` (`plane_webview`) is the only one today. A second consumer is
+ * the point to turn this into a declared capability on `ToolPresentation`
+ * instead of growing a hardcoded list here.
+ */
+const NEEDS_WINDOW_RECT = new Set(["projects"]);
 
 /**
  * The tool window — the container every docked tool mounts into, plus its boot
@@ -463,6 +476,40 @@ const ToolWindow = forwardRef<
       deliverEvent(instanceId, msg.event, msg.payload);
     }
   }, [readyIds, deliverEvent]);
+
+  // Push each `NEEDS_WINDOW_RECT` instance its surface's window-space rect,
+  // whenever `rects` (or the tree owning it) changes. This is the only place
+  // that reads the container's own `getBoundingClientRect()` — `measure()`
+  // above throws its copy away once `rects` is built, since everything else
+  // here only needs the pane-relative geometry.
+  //
+  // Sent regardless of whether this window's cluster is the one showing: a
+  // page's own tool window always has exactly one active tab in its one pane
+  // (`pages.rs`'s module doc), so there is no "not active" case to skip here.
+  // Whether the *cluster* is the one on screen is a different question,
+  // answered on the Rust side (`shell_state`) for `plane_webview::hide`/`show`
+  // — this effect only ever reports geometry, never visibility.
+  const lastWindowRect = useRef<Map<string, WindowRect>>(new Map());
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const origin = container.getBoundingClientRect();
+    if (origin.width === 0 || origin.height === 0) return;
+
+    for (const instanceId of paneTabs(tree)) {
+      const instance = instances.get(instanceId);
+      if (!instance || !NEEDS_WINDOW_RECT.has(instance.appId)) continue;
+      const paneId = paneOfTab(tree, instanceId);
+      const rect = paneId ? rects.get(paneId) : undefined;
+      if (!rect) continue;
+
+      const next = windowRectOfPane(origin, rect);
+      const prev = lastWindowRect.current.get(instanceId);
+      if (prev && sameWindowRect(prev, next)) continue;
+      lastWindowRect.current.set(instanceId, next);
+      sendEventWhenReady(instanceId, "kaava/window-rect", next);
+    }
+  }, [rects, tree, instances, sendEventWhenReady]);
 
   /**
    * The last value published under each topic, and which instance published it.
