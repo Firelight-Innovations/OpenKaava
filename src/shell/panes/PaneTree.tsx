@@ -160,7 +160,9 @@ function Split({
         // full share so the recursion below (its own `Split`, if it has one)
         // repeats the same rule one level down, all the way to the maximised
         // leaf's own `.pane`.
-        const holds = maximizedPaneId ? paneLeaves(child).some((l) => l.id === maximizedPaneId) : true;
+        const holds = maximizedPaneId
+          ? paneLeaves(child).some((l) => l.id === maximizedPaneId)
+          : true;
 
         return (
           <div
@@ -229,7 +231,8 @@ function Pane({
   const paneZone = useDropZone({ kind: "pane", paneId: leaf.id });
 
   const edge = dropTarget?.kind === "pane" && dropTarget.paneId === leaf.id ? dropTarget : null;
-  const stripDropTarget = dropTarget?.kind === "strip" && dropTarget.paneId === leaf.id ? dropTarget : null;
+  const stripDropTarget =
+    dropTarget?.kind === "strip" && dropTarget.paneId === leaf.id ? dropTarget : null;
 
   const ownMembers = useMemo(
     () => members.filter((m: ClusterMember) => m.paneId === leaf.id),

@@ -623,29 +623,17 @@ impl ShellState {
 
     /// `add_cluster`'s counterpart for the one gesture that *should* inherit
     /// the project: dropping a tab on the switcher's empty space
-    /// (KAAVA-UX-REWORK.md §5), which reads as "give this tab a cluster of its
-    /// own, here" rather than "start something new." `add_cluster`'s own doc
-    /// comment above explains why *that* one starts blank; this is the
-    /// narrower case where blank would be wrong; the tab dragged out of
-    /// `source_cluster` is mid-flight over the very project it already
-    /// belongs to, and a picker would ask a question the drop already
-    /// answered.
+    /// (KAAVA-UX-REWORK.md §5), which is "give this tab a cluster of its own,
+    /// here" rather than "start something new" — the dragged tab is already
+    /// mid-flight over the project it belongs to, so a picker would ask a
+    /// question the drop already answered.
     ///
     /// `source_cluster` is searched for across every window, not just
-    /// `label`'s: the tab being dragged and the cluster it came from can be in
-    /// a different window from the one the drop lands in (a multi-monitor
-    /// drag), and there is nothing about the source cluster's environment
-    /// that is specific to which window happens to hold it.
-    ///
-    /// Home is not opened here, unlike `add_cluster` — the caller
-    /// (`commands::new_cluster_for_drop`) fills the new cluster's one pane
-    /// with the dragged tab in the same breath, so there is never a moment a
-    /// blank Home would be seen.
-    ///
-    /// Returns `(cluster_id, pane_id)` rather than only the cluster id, unlike
-    /// `add_cluster` — the caller has no surface to open into this one for
-    /// `move_instance` to find it with, so the pane it made has to come back
-    /// too.
+    /// `label`'s, since a multi-monitor drag can cross windows. Home is not
+    /// opened here, unlike `add_cluster` — the caller
+    /// (`commands::new_cluster_for_drop`) fills the one pane with the dragged
+    /// tab in the same breath. Returns the pane id too, unlike `add_cluster`,
+    /// since the caller has no other surface to find it by.
     pub fn add_cluster_for_environment(
         &self,
         app: &AppHandle,
@@ -3134,9 +3122,15 @@ mod tests {
             base: None,
         });
 
-        let created =
-            add_cluster_for_environment_pure(&mut s, "main", "New", "cluster-1", "cluster-2", "pane-2")
-                .expect("main exists");
+        let created = add_cluster_for_environment_pure(
+            &mut s,
+            "main",
+            "New",
+            "cluster-1",
+            "cluster-2",
+            "pane-2",
+        )
+        .expect("main exists");
         assert_eq!(created, ("cluster-2".to_string(), "pane-2".to_string()));
 
         let made = cluster_mut(&mut s, "cluster-2");

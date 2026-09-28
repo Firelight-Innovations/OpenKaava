@@ -67,26 +67,21 @@ interface Session {
  * `label` and `activeClusterId` are the *destination* half of every commit: a
  * pane belongs to a cluster, and a tab released over another window has to be
  * moved to that window rather than this one. Passed in rather than read from
- * `shell:state` here, because `WindowRoot` has already resolved which cluster
- * this window is showing and a second derivation would be a second chance to
- * disagree with it.
+ * `shell:state` here, since `WindowRoot` has already resolved which cluster
+ * this window is showing.
  *
  * `translateStripIndex` is the same kind of borrowed answer, for a narrower
- * question. A `strip` target's `index` is counted over whatever `ClusterBar`
- * actually rendered for the pane it landed in, and since Home stopped drawing
- * a tab there (see `WindowRoot`'s `members`), that count can disagree with the
- * tab's real position in the tree. `WindowRoot` is the one place that knows a
- * pane's real order and which of its tabs are hidden, so it is the one place
- * that can turn a rendered index back into a tree one; this hook only applies
- * that answer, at the single call in `commit` that writes the index to the
- * backend. The *live* target this hook exposes for `ClusterBar` to draw its
- * caret from is left untranslated on purpose — the caret has to agree with the
- * row that is on screen, not with the tree underneath it.
+ * question: a `strip` target's `index` is counted over whatever `ClusterBar`
+ * actually rendered, which can disagree with the tab's real tree position
+ * since Home stopped drawing a tab there. `WindowRoot` is the one place that
+ * knows a pane's real order, so this hook only applies its answer once — at
+ * the single call in `commit` that writes the index to the backend. The
+ * *live* target exposed for `ClusterBar`'s caret stays untranslated on
+ * purpose, since the caret must agree with the row on screen.
  *
  * `clusters` is the live list this window is showing, threaded through to
- * `resolve` for exactly one question: whether a `cluster` target's
- * environment agrees with the dragged tab's own (`sameEnvironment`, in
- * `environment.ts`). Nothing else in the gesture reads it.
+ * `resolve` for one question: whether a `cluster` target's environment
+ * agrees with the dragged tab's own (`sameEnvironment`).
  */
 export function useDrag(
   label: string,
@@ -268,24 +263,15 @@ export function useDrag(
 /**
  * Where *this* payload would land, which is not always what is under the cursor.
  *
- * The zones answer for a tab, because a tab is what they were registered for. A
- * cluster can only be released on a window: it holds panes, so there is no sense
- * in which it goes inside one, and the terminal panel is a region of a window
- * rather than a place a cluster could live. Substituting `none` over those is
- * what stops the row drawing an insertion caret, a pane lighting an edge, and
- * the panel lighting up for a release `commitCluster` would refuse — an
- * indicator that promises something the drop will not do is worse than no
- * indicator, because it is read as a commitment.
+ * The zones answer for a tab, since a tab is what they were registered for. A
+ * cluster can only be released on a window — it holds panes and cannot go
+ * inside a pane or a panel — so `none` is substituted over those targets
+ * rather than drawing an indicator for a release `commitCluster` would refuse.
  *
- * Done here rather than in the regions so that no region has to learn what is
- * being dragged. They are handed a target and draw it; that is the whole of
- * their involvement in the gesture.
- *
- * A `cluster` target's `refused` comes from here too, and only from here:
- * `hitTest` cannot know it (see its own comment on the field), and
- * `dropLabel`/`commit` both read the value this function stamps on rather
- * than recomputing it, so the hint bar and the actual drop can never disagree
- * about whether a release will do anything.
+ * A `cluster` target's `refused` is computed here too, and only here:
+ * `hitTest` cannot know it, and `dropLabel`/`commit` both read the value
+ * stamped here rather than recomputing it, so the hint bar and the actual
+ * drop can never disagree about whether a release will do anything.
  */
 function resolve(payload: DragPayload, x: number, y: number, clusters: Cluster[]): DropTarget {
   const target = hitTest(x, y);
@@ -307,7 +293,11 @@ function resolve(payload: DragPayload, x: number, y: number, clusters: Cluster[]
  * §5's stated rule in full: "Tabs can only move between clusters that share
  * an environment."
  */
-function clusterDropRefused(payload: DragPayload, toClusterId: string, clusters: Cluster[]): boolean {
+function clusterDropRefused(
+  payload: DragPayload,
+  toClusterId: string,
+  clusters: Cluster[],
+): boolean {
   if (payload.what !== "surface") return true;
   if (payload.fromClusterId === toClusterId) return true;
   const from = clusters.find((c) => c.id === payload.fromClusterId) ?? null;

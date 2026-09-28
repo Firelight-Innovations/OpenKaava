@@ -50,7 +50,9 @@ export default function PaneTabStrip({
     kind: "strip",
     at: () => ({
       paneId,
-      tabRects: members.map((m) => tabRefs.current.get(m.id)?.getBoundingClientRect() ?? new DOMRect()),
+      tabRects: members.map(
+        (m) => tabRefs.current.get(m.id)?.getBoundingClientRect() ?? new DOMRect(),
+      ),
     }),
   });
 

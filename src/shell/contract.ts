@@ -737,9 +737,8 @@ export function paneLeaves(node: PaneNode): Extract<PaneNode, { kind: "leaf" }>[
  *  See `docs/design-notes/shell-core.md`. */
 export type DragPayload = SurfaceDrag | ClusterDrag;
 
-/** A tab in the air. One kind, where there used to be two: an app surface and a
- *  terminal drag identically, drop in the same places, and split a pane the same
- *  way. `kind` is carried for the ghost's benefit and nothing else. */
+/** A tab in the air. One kind, where there used to be two: an app surface and
+ *  a terminal drag identically. `kind` is carried for the ghost's benefit. */
 export interface SurfaceDrag {
   what: "surface";
   instanceId: string;
@@ -749,12 +748,8 @@ export interface SurfaceDrag {
   agentFinished?: boolean;
   /** Where it came from, so a drop that lands nowhere can be a no-op. */
   fromPaneId: string | null;
-  /**
-   * Which cluster it came from — the other half of the environment gate a
-   * drop onto a cluster chip has to pass. `null` only for a page's surface,
-   * which cannot be dragged at all (`dragHandleFor` is never offered one), so
-   * in practice this is always set for anything actually in the air.
-   */
+  /** Which cluster it came from — the other half of the cluster-chip drop's
+   *  environment gate. `null` only for a page's surface, never draggable. */
   fromClusterId: string | null;
 }
 
@@ -779,21 +774,12 @@ export type DropTarget =
   | { kind: "pane"; paneId: string; edge: SplitDir | null; before: boolean }
   | { kind: "strip"; paneId: string; index: number }
   | { kind: "panel" }
-  /**
-   * A cluster's own chip in the switcher — KAAVA-UX-REWORK.md §5's "drop it
-   * on a cluster tab to move it there (same environment only)". `refused` is
-   * carried on the target itself rather than decided by whatever draws it,
-   * so the chip, the hint bar and `commit` all read the same answer: see
-   * `useDrag`'s `resolve`, which is the one place that computes it.
-   */
+  /** A cluster's own chip — KAAVA-UX-REWORK.md §5's same-environment move.
+   *  `refused` is computed once, by `useDrag`'s `resolve`, and read by the
+   *  chip, the hint bar and `commit` alike. */
   | { kind: "cluster"; clusterId: string; refused: boolean }
-  /**
-   * Empty space in the switcher — past the last chip, or the row itself once
-   * it draws nothing between the chips. "Create a new cluster in the same
-   * environment, holding the tab" (KAAVA-UX-REWORK.md §5). Always allowed:
-   * the new cluster inherits the dragged tab's own environment, so there is
-   * nothing to refuse.
-   */
+  /** Empty switcher space — KAAVA-UX-REWORK.md §5's "new cluster in the same
+   *  environment, holding the tab." Always allowed. */
   | { kind: "new-cluster" }
   | { kind: "detach" }
   | { kind: "none" };
@@ -812,10 +798,8 @@ export interface DragState {
  *  not import `panes` (§1.2). See `docs/design-notes/shell-core.md`. */
 export interface PaneTreeProps {
   tree: PaneNode;
-  /** The pane an open acts on, drawn with the active-pane outline. "Acts on"
-   *  rather than "lands in": opening an app splits this pane along its longer
-   *  axis and puts the new surface in the half that produces. See
-   *  `panes/splitOnOpen.ts`. */
+  /** The pane an open acts on, drawn with the active-pane outline — opening
+   *  an app splits this pane along its longer axis. See `panes/splitOnOpen.ts`. */
   focusedPaneId: string | null;
   onFocusPane: (paneId: string) => void;
   /** Commits a divider drag. One weight per child, summing to 1. */
@@ -824,29 +808,15 @@ export interface PaneTreeProps {
   onHostChange: (paneId: string, el: HTMLDivElement | null) => void;
   /** Where a drag would land right now, so the target pane can say so. */
   dropTarget?: DropTarget | null;
-  /**
-   * Every tab in the tree, flat — the same list `ClusterBar` used to draw
-   * inline before the per-pane strips came back (see
-   * `docs/design-notes/shell-chrome.md`'s "why every tab is here" for the
-   * history). `PaneTree` groups it by `paneId` itself, one group per leaf, so
-   * this can stay a flat list rather than something its caller has to
-   * pre-shape. Omitted or empty, a pane draws no strip — the state before
-   * this workstream, and the right thing for a caller with nothing to show.
-   */
+  /** Every tab in the tree, flat — what `ClusterBar` drew inline before the
+   *  per-pane strips came back. `PaneTree` groups it by `paneId` itself. */
   members?: ClusterMember[];
   onSelectMember?: (member: ClusterMember) => void;
   onCloseMember?: (member: ClusterMember) => void;
-  /** A tab's own drag handle, for reordering within a strip and for the five
-   *  drop zones a strip and a pane both answer to. Omitted, a strip's tabs
-   *  are not draggable — a page's one pane, which `WindowRoot` never offers
-   *  one for. */
+  /** A tab's own drag handle. Omitted, a strip's tabs are not draggable. */
   dragHandleFor?: (member: ClusterMember) => DragHandleProps | undefined;
-  /**
-   * The one pane drawn full-size with every other pane hidden — not
-   * unmounted, so nothing inside them loses state — or `null` for the
-   * ordinary grid. KAAVA-UX-REWORK.md §5: "Double-click a tab to maximise
-   * its pane."
-   */
+  /** The one pane drawn full-size, rest hidden but not unmounted, or `null`
+   *  for the ordinary grid. KAAVA-UX-REWORK.md §5. */
   maximizedPaneId?: string | null;
   onToggleMaximizePane?: (paneId: string) => void;
 }

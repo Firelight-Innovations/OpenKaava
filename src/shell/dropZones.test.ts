@@ -23,7 +23,10 @@ function rectEl(rect: { left: number; top: number; width: number; height: number
  *  registry is a module singleton, so cleanup is the caller's job via the
  *  returned unregister, which every test runs in `afterEach`. */
 const cleanups: Array<() => void> = [];
-function register(zone: Parameters<typeof useDropZone>[0], rect: Parameters<typeof rectEl>[0]): void {
+function register(
+  zone: Parameters<typeof useDropZone>[0],
+  rect: Parameters<typeof rectEl>[0],
+): void {
   const { result } = renderHook(() => useDropZone(zone));
   const el = rectEl(rect);
   result.current(el);
@@ -45,13 +48,21 @@ describe("hitTest", () => {
     expect(hitTest(5, 100)).toEqual({ kind: "pane", paneId: "p1", edge: "row", before: true });
     expect(hitTest(195, 100)).toEqual({ kind: "pane", paneId: "p1", edge: "row", before: false });
     expect(hitTest(100, 5)).toEqual({ kind: "pane", paneId: "p1", edge: "column", before: true });
-    expect(hitTest(100, 195)).toEqual({ kind: "pane", paneId: "p1", edge: "column", before: false });
+    expect(hitTest(100, 195)).toEqual({
+      kind: "pane",
+      paneId: "p1",
+      edge: "column",
+      before: false,
+    });
   });
 
   it("prefers a strip over the pane beneath it", () => {
     register({ kind: "pane", paneId: "p1" }, { left: 0, top: 0, width: 200, height: 200 });
     register(
-      { kind: "strip", at: (_x) => ({ paneId: "p1", tabRects: [{ left: 0, width: 40 } as DOMRect] }) },
+      {
+        kind: "strip",
+        at: (_x) => ({ paneId: "p1", tabRects: [{ left: 0, width: 40 } as DOMRect] }),
+      },
       { left: 0, top: 0, width: 200, height: 34 },
     );
     expect(hitTest(100, 10)).toEqual({ kind: "strip", paneId: "p1", index: 1 });
