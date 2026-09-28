@@ -15,6 +15,7 @@ use crate::error::{AppError, Result};
 use crate::launch;
 use crate::layout::SplitDir;
 use crate::manifest::{self, Manifest};
+use crate::pages;
 use crate::plugins;
 use crate::presets;
 use crate::project;
@@ -194,6 +195,11 @@ pub fn open_instance(
                 .to_string(),
         });
     }
+    // A page's app is an app, and would open — as a second copy of the page,
+    // loose in a pane. `open_page` is the only door to it; see `pages`.
+    if pages::is_page_app(&app_id) {
+        return Err(AppError::PageApp(app_id));
+    }
 
     // An app ships in this binary; a plugin is a checkout that may not be here.
     // The distinction decides where an `invoke` from the resulting frame is
@@ -220,6 +226,30 @@ pub fn open_instance(
             },
         )
         .ok_or_else(|| AppError::UnknownTool(app_id))
+}
+
+/// The pages this build offers, in chip order. See `pages::available`.
+#[tauri::command]
+pub fn list_pages() -> Vec<pages::PageInfo> {
+    pages::available()
+}
+
+/// Show a page in `label`'s window, creating its cluster the first time, and
+/// answer with that cluster's id. See `ShellState::open_page`.
+#[tauri::command]
+pub fn open_page(
+    app: tauri::AppHandle,
+    shell: State<'_, ShellState>,
+    label: String,
+    page_id: String,
+) -> Result<String> {
+    let page = pages::find(&page_id).ok_or_else(|| AppError::UnknownPage(page_id.clone()))?;
+    let opened = shell
+        .open_page(&app, &label, page)
+        .ok_or(AppError::NoCluster("show a page in"));
+    // The title follows the active cluster's project, and a page has none.
+    project::retitle(&app);
+    opened
 }
 
 #[tauri::command]

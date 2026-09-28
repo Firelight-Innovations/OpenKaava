@@ -1041,6 +1041,8 @@ export interface Cluster {
   /** How tall this cluster's band was left, in CSS pixels, or `null` for one
    *  nobody has dragged it in — which opens at `BOTTOM_DEFAULT`. */
   bandHeight: number | null;
+  /** The page this cluster *is* (`agents`), absent for a real one. See `pages.rs`. */
+  page?: string | null;
 }
 
 /** Mirrors `shell_state::WindowGeometry`. Physical pixels. */
@@ -1116,6 +1118,22 @@ export function openInstance(
     paneId: paneId ?? null,
     dir: dir ?? null,
   });
+}
+
+/** Mirrors `pages::PageInfo`. `icon` keys `PAGE_ICONS` in `PageChips.tsx`. */
+export interface PageInfo {
+  id: string;
+  name: string;
+  icon: string;
+}
+
+export function listPages(): Promise<PageInfo[]> {
+  return invoke<PageInfo[]>("list_pages");
+}
+
+/** Show a page, making its cluster the first time. Resolves to its cluster id. */
+export function openPage(label: string, pageId: string): Promise<string> {
+  return invoke<string>("open_page", { label, pageId });
 }
 
 export function closeInstance(instanceId: string): Promise<void> {

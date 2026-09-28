@@ -146,6 +146,13 @@ stopped agent VM, which only a press of Start calls. Set
 `KAAVA_CLOUD_FIXTURES` to the absolute path of `src-tauri/fixtures/cloud` to run it against the committed
 fixture instead of the live project.
 
+Agents is a **page**, not an app you open into a pane. It is left out of the
+Apps menu, the add-app button, presets and `kaava/open`, and `open_instance`
+refuses it by name. Its chip at the left of the cluster bar opens it into its
+own dedicated cluster instead. `src-tauri/src/pages.rs` declares which apps are
+pages. Making another app a page takes a row there, on top of the app's usual
+three edits.
+
 **File Viewer** (`files/read`, `files/write`) — open files in tabs, and what
 each one looks like. Reads are capped at 256 KiB and say so when they truncate.
 Single-clicking a row in the Explorer opens a *preview* tab here, which the next

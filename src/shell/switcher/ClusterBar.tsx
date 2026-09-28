@@ -5,6 +5,7 @@ import type {
   ClusterMember,
   DragHandleProps,
   DropTarget,
+  PageInfo,
   ToolHealth,
   ToolPresentation,
 } from "../contract";
@@ -14,6 +15,7 @@ import { Close, Plus, Search, WarningTriangle } from "../../ui/Icon";
 import OverlayScrollbar from "../OverlayScrollbar";
 import HealthPopover, { type UnhealthyTool } from "./HealthPopover";
 import AddAppButton, { type AppsMenuHandlers } from "./AddAppButton";
+import PageChips from "./PageChips";
 import "./switcher.css";
 
 /**
@@ -37,8 +39,14 @@ import "./switcher.css";
  * cluster group.
  */
 export interface ClusterBarProps {
+  /** The real clusters only. Page clusters are drawn from `pages` instead. */
   clusters: Cluster[];
   activeClusterId: string | null;
+  /** The pages this build offers, as chips at the left. See `PageChips.tsx`. */
+  pages?: PageInfo[];
+  /** The page on screen, or `null` while a real cluster (or nothing) is. */
+  activePageId?: string | null;
+  onSelectPage?: (pageId: string) => void;
   /**
    * The open cluster's contents, in bar order: the layout's surfaces, in layout
    * order. Empty for a cluster holding nothing, which is a state a new cluster
@@ -138,6 +146,9 @@ const pop = {
 export default function ClusterBar({
   clusters,
   activeClusterId,
+  pages = [],
+  activePageId = null,
+  onSelectPage,
   members,
   memberCount,
   dropPaneId,
@@ -317,6 +328,12 @@ export default function ClusterBar({
           rowZone(dropPaneId ? el : null);
         }}
       >
+        {/* First in the row and never moved by anything beside it, so it needs
+            no `layout` of its own. Without a handler it is not drawn at all. */}
+        {onSelectPage && (
+          <PageChips pages={pages} activePageId={activePageId} onSelect={onSelectPage} />
+        )}
+
         {clusters.map((cluster) => {
           const active = cluster.id === activeClusterId;
           return (

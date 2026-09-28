@@ -627,6 +627,10 @@ export function updateNotice(
 /** The layout itself. Mirrors Rust and is declared in `bindings.ts`. */
 export type { PaneNode, SplitDir, SurfaceInstance, SurfaceKind } from "../bindings";
 
+/** One page — a cluster kind drawn as a chip, not a cluster you work in. Mirrors
+ *  `pages::PageInfo`; `Cluster.page` names one. See `src-tauri/src/pages.rs`. */
+export type { PageInfo } from "../bindings";
+
 // --- Layout presets — an arrangement, and which app belongs in each pane ----
 //
 // Mirrors `src-tauri/src/presets/mod.rs`: a `PaneNode` is made of *identities*, a

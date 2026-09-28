@@ -55,6 +55,48 @@ The terminal panel keeps its `+`, its worktree toggle and its collapse
 chevron. Those operate the *region*; they are not tabs, and none of them names
 a session.
 
+### Page chips, which are not clusters
+
+The OpenKaava Cloud screens — Agents and Cost Tracker today, Projects later —
+are *pages*: each one gets its own cluster, separate from every real cluster,
+rather than being an app you add to a pane. Braden's brief was that they must
+not be separate apps and must keep their buttons small. So they sit as a
+group of chips at the left of this row, set off from the cluster chips by a
+divider. Each chip shows only its icon at rest. It widens to icon and label on
+hover or keyboard focus, and stays wide while its page is on screen.
+`PageChips.tsx` draws them.
+
+**Rust owns the rules, not this row.** `src-tauri/src/pages.rs` declares
+which pages exist and which app draws each one. `Cluster.page` names the
+page a cluster *is*. `shell_state.rs` refuses everything that would make a
+page cluster anything other than one pane holding one instance of its app:
+close, rename, move to another window, split, dropping a tab in, and dragging
+its tab out. Each of those refusals has its own test. The chips therefore
+offer none of a cluster chip's furniture: no count, no ×, no rename, no drag
+handle, and no members expanding beside them. That keeps the chips honest; it
+is not what enforces the rules.
+
+**The width animates in CSS, not framer.** Hover causes no React render, so
+there is nothing for a `layout` animation to hang off. The label is a
+one-column grid whose track goes from `0fr` to `1fr`, which is how CSS reaches
+an intrinsic width without a guessed `max-width`. The label only grows in
+place, so nothing in this scroll row travels sideways. That is the row's
+standing rule — see the `fade` comment in `ClusterBar.tsx`.
+
+**While a page is in front, the window reads as having no cluster to work
+in.** `WindowRoot` keeps two names apart:
+
+- `shownCluster` is what the tool window draws.
+- `activeCluster` is `null` for a page.
+
+The band, search, the Apps menu, presets and File > Open all see `null`.
+Rust's `active_cluster_of` agrees, so a new terminal has nowhere to go. The
+Home takeover does not apply either: a page has no Home, and its open chip
+does not toggle one.
+
+Closing the last real cluster never lands on a page. The window shows
+`NoClustersState`, with the page chips still there to click.
+
 ## src/shell/titlebar/useEditTarget.ts
 
 ### Paste is disabled on both branches

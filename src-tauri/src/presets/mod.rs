@@ -477,7 +477,10 @@ impl PresetNode {
                 slots: slots
                     .into_iter()
                     .filter(|slot| match slot {
-                        PresetSlot::App { app_id } => apps::is_app(app_id),
+                        // A page's app has its own cluster; see `pages`.
+                        PresetSlot::App { app_id } => {
+                            apps::is_app(app_id) && !crate::pages::is_page_app(app_id)
+                        }
                         PresetSlot::Terminal => true,
                     })
                     .collect(),
@@ -903,6 +906,20 @@ mod tests {
             },
             "a preset from a newer build degrades to what this one can fill"
         );
+    }
+
+    /// A page lives in its own cluster, so a preset cannot put it in a pane —
+    /// not even one saved before the app became a page.
+    #[test]
+    fn a_slot_naming_a_page_app_is_dropped() {
+        let root = PresetNode::Split {
+            dir: SplitDir::Row,
+            sizes: vec![0.5, 0.5],
+            children: vec![app_pane("files"), app_pane("agents")],
+        }
+        .normalized(0);
+
+        assert_eq!(root, app_pane("files"));
     }
 
     #[test]

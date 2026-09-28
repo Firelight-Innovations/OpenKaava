@@ -36,6 +36,7 @@ export {
   moveTerminal,
   newWindow,
   openInstance,
+  openPage,
   renameCluster,
   setActiveCluster,
   setActiveTerminal,

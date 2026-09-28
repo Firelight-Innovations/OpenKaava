@@ -376,6 +376,8 @@ pub fn openables(app: &AppHandle) -> Vec<Openable> {
 fn compose_openables(installed: Vec<Openable>) -> Vec<Openable> {
     REGISTRY
         .iter()
+        // A page's app is reached through its chip, never opened into a pane.
+        .filter(|a| !crate::pages::is_page_app(a.id))
         .map(|a| Openable {
             id: a.id.to_string(),
             name: a.name.to_string(),
@@ -636,19 +638,41 @@ mod tests {
 
     // --- the terminal is offered like an app and is not one ------------------
 
+    /// How many registry rows the Apps menu offers: all of them but the pages'.
+    fn offered_apps() -> usize {
+        REGISTRY
+            .iter()
+            .filter(|a| !crate::pages::is_page_app(a.id))
+            .count()
+    }
+
     #[test]
-    fn everything_in_the_registry_is_offered_plus_a_terminal() {
+    fn every_app_but_a_page_is_offered_plus_a_terminal() {
         let composed = compose_openables(Vec::new());
         let offered: Vec<&str> = composed.iter().map(|o| o.id.as_str()).collect();
         for app in REGISTRY {
-            assert!(offered.contains(&app.id), "{} is not offered", app.id);
+            assert_eq!(
+                offered.contains(&app.id),
+                !crate::pages::is_page_app(app.id),
+                "{} is offered if and only if it is not a page",
+                app.id
+            );
         }
         assert_eq!(
             offered.last(),
             Some(&TERMINAL_ID),
             "the terminal comes last, after the apps"
         );
-        assert_eq!(offered.len(), REGISTRY.len() + 1);
+        assert_eq!(offered.len(), offered_apps() + 1);
+    }
+
+    /// Agents is a page: its chip in the cluster bar is the only way in.
+    #[test]
+    fn a_page_app_is_not_in_the_apps_menu() {
+        assert!(is_app("agents"), "still registered, so its frame mounts");
+        assert!(!compose_openables(Vec::new())
+            .iter()
+            .any(|o| o.id == "agents"));
     }
 
     // --- plugin surfaces sit between the apps and the terminal ---------------
@@ -671,7 +695,7 @@ mod tests {
         let composed = compose_openables(vec![plugin_row("acme.specs")]);
 
         assert_eq!(composed.last().map(|o| o.id.as_str()), Some(TERMINAL_ID));
-        assert_eq!(composed.len(), REGISTRY.len() + 2);
+        assert_eq!(composed.len(), offered_apps() + 2);
 
         let plugin_at = composed
             .iter()
@@ -679,7 +703,7 @@ mod tests {
             .expect("the plugin surface is offered");
         assert_eq!(
             plugin_at,
-            REGISTRY.len(),
+            offered_apps(),
             "plugins come after every app and before the terminal"
         );
     }

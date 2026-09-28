@@ -218,6 +218,12 @@ rather than a filter. See `TerminalSessionState.clusterId`. A terminal dragged i
 in `tree` like any other surface and the band stops listing it: membership of one excludes the other,
 and both are derived from the tree rather than tracked.
 
+`Cluster.page`, when present, says the cluster is a *page* (`agents`). It is absent from the JSON for
+an ordinary cluster, so a `layout.json` written before pages existed loads unchanged. A page cluster
+never shows among the chips. It is one pane holding one instance of its page's app, and Rust refuses
+every change to that. `open_page` is the only way to make or show one. See `src-tauri/src/pages.rs`,
+and `shell-chrome.md` for how the bar draws it.
+
 `ClusterMember`: the bar is one row — a chip per cluster, and, for the cluster that is expanded, every
 surface and terminal inside it, inline. So a member is whichever of those two things a tab happens to
 be, flattened to the one shape the bar draws. `paneId` is the whole distinction: a surface lives in a
