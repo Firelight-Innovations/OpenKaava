@@ -9,7 +9,12 @@ import {
   MessageSquarePlus,
 } from "lucide-react";
 import { CommentPanel } from "../../../shared/CommentPanel";
-import { createComment, listComments, resolveComment, type Comment } from "../../../shared/comments";
+import {
+  createComment,
+  listComments,
+  resolveComment,
+  type Comment,
+} from "../../../shared/comments";
 import { formatRenderAge } from "../../../shared/age";
 import { SegmentedControl } from "../../../shared/SegmentedControl";
 import { getState, type GodotNode, type GodotViewerState } from "./rpc";
@@ -116,7 +121,13 @@ export default function App() {
               ) : (
                 <div className="gv__tree-list">
                   {shown.nodes.map((n) => (
-                    <TreeRow key={n.path} node={n} depth={0} selected={selected} onSelect={setSelected} />
+                    <TreeRow
+                      key={n.path}
+                      node={n}
+                      depth={0}
+                      selected={selected}
+                      onSelect={setSelected}
+                    />
                   ))}
                 </div>
               )}
@@ -125,15 +136,15 @@ export default function App() {
             <main className="gv__viewport">
               {shown.scenePath === null ? (
                 <p className="gv__hint">
-                  No render to show. Once an agent runs Godot headless against this project, its output
-                  appears here.
+                  No render to show. Once an agent runs Godot headless against this project, its
+                  output appears here.
                 </p>
               ) : (
                 <div className="gv__render">
                   <span className="gv__render-path">{shown.scenePath}</span>
                   <p className="gv__hint">
-                    Placeholder — the actual rendered frame from the headless run isn't wired up in this
-                    build.
+                    Placeholder — the actual rendered frame from the headless run isn't wired up in
+                    this build.
                   </p>
                 </div>
               )}
@@ -171,8 +182,8 @@ export default function App() {
         ) : (
           <div className="gv__play-redirect">
             <p className="gv__hint">
-              Play runs in its own pane, with transport controls and Capture &amp; comment. This viewer
-              only shows the scene Godot last rendered headless.
+              Play runs in its own pane, with transport controls and Capture &amp; comment. This
+              viewer only shows the scene Godot last rendered headless.
             </p>
             <button
               type="button"
@@ -265,7 +276,13 @@ function TreeRow({
       {hasChildren && expanded && (
         <div>
           {node.children.map((child) => (
-            <TreeRow key={child.path} node={child} depth={depth + 1} selected={selected} onSelect={onSelect} />
+            <TreeRow
+              key={child.path}
+              node={child}
+              depth={depth + 1}
+              selected={selected}
+              onSelect={onSelect}
+            />
           ))}
         </div>
       )}

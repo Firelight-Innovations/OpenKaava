@@ -89,8 +89,8 @@ mod tests {
             "anchor": { "kind": "mesh", "part": "headboard", "material": "oak" },
             "body": "make this thinner",
         });
-        let created = dispatch(&context(env.path()), "comments/create", Some(params))
-            .expect("create");
+        let created =
+            dispatch(&context(env.path()), "comments/create", Some(params)).expect("create");
         assert_eq!(created["anchor"]["kind"], "mesh");
 
         let listed = dispatch(&context(env.path()), "comments/list", None).expect("list");

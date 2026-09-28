@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { reportPainted } from "@openkaava/bridge";
-import { Camera, ExternalLink, MessageSquarePlus, Pause, Play as PlayIcon, RotateCcw, Square } from "lucide-react";
+import {
+  Camera,
+  ExternalLink,
+  MessageSquarePlus,
+  Pause,
+  Play as PlayIcon,
+  RotateCcw,
+  Square,
+} from "lucide-react";
 import { CommentPanel } from "../../../shared/CommentPanel";
 import {
   createComment,
@@ -126,7 +134,9 @@ export default function App() {
             type="button"
             className="pl__transport-btn"
             disabled={!preview || !hasBuild}
-            title={preview ? (running ? "Pause" : "Play") : "Not wired yet — no run behind this pane."}
+            title={
+              preview ? (running ? "Pause" : "Play") : "Not wired yet — no run behind this pane."
+            }
             onClick={() => setRunning((v) => !v)}
           >
             {running ? (
@@ -158,7 +168,9 @@ export default function App() {
           type="button"
           className="pl__capture"
           disabled={!hasBuild}
-          title={hasBuild ? "Capture & comment (Ctrl+Shift+C)" : "No debug build to capture from yet."}
+          title={
+            hasBuild ? "Capture & comment (Ctrl+Shift+C)" : "No debug build to capture from yet."
+          }
           onClick={() => setComposerOpen(true)}
         >
           <Camera size={13} strokeWidth={1.5} aria-hidden="true" />
@@ -179,7 +191,9 @@ export default function App() {
           ) : (
             <div className="pl__stage">
               <span className="pl__scene-path">{shown.build?.scenePath}</span>
-              <p className="pl__hint">Placeholder — no live game frame is wired up in this build.</p>
+              <p className="pl__hint">
+                Placeholder — no live game frame is wired up in this build.
+              </p>
               <div className="pl__debug-overlay">
                 <span>t={formatPlayTime(playhead)}</span>
                 <span>{running && preview ? "running" : "paused"}</span>

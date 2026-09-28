@@ -474,8 +474,12 @@ mod tests {
         let env = TempDir::new().expect("tempdir");
         let comment = create(&context(env.path()), node_draft("tighten this")).expect("create");
 
-        let resolved = resolve(&context(env.path()), &comment.id, "done — tightened".to_string())
-            .expect("resolve");
+        let resolved = resolve(
+            &context(env.path()),
+            &comment.id,
+            "done — tightened".to_string(),
+        )
+        .expect("resolve");
         assert_eq!(resolved.status, Status::Resolved);
         assert_eq!(
             resolved.resolution.as_ref().map(|r| r.note.as_str()),
@@ -489,8 +493,8 @@ mod tests {
     #[test]
     fn resolving_an_unknown_id_says_so_rather_than_creating_one() {
         let env = TempDir::new().expect("tempdir");
-        let err = resolve(&context(env.path()), "nonesuch", "note".to_string())
-            .expect_err("unknown id");
+        let err =
+            resolve(&context(env.path()), "nonesuch", "note".to_string()).expect_err("unknown id");
         assert_eq!(err.code, INVALID_PARAMS);
     }
 

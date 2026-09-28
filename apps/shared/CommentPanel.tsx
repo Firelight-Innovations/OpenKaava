@@ -23,7 +23,13 @@ export interface CommentPanelProps {
   emptyHint: string;
 }
 
-export function CommentPanel({ comments, loading, error, onResolve, emptyHint }: CommentPanelProps) {
+export function CommentPanel({
+  comments,
+  loading,
+  error,
+  onResolve,
+  emptyHint,
+}: CommentPanelProps) {
   const open = comments.filter((c) => c.status === "open").sort((a, b) => b.created - a.created);
   const resolved = comments
     .filter((c) => c.status === "resolved")
@@ -97,7 +103,8 @@ function CommentCard({
     <div className={`k-comment-card k-comment-card--${comment.status}`}>
       <div className="k-comment-card__meta">
         <span className="k-comment-card__anchor">{anchorLabel(comment.anchor)}</span>
-        <span className={`k-status-badge k-status-badge--${comment.status === "open" ? "info" : "success"}`}>
+        <span className={`k-badge k-badge--${comment.status === "open" ? "info" : "success"}`}>
+          <span className="k-badge__dot" aria-hidden="true" />
           {comment.status === "open" ? "Open" : "Resolved"}
         </span>
       </div>
@@ -111,7 +118,11 @@ function CommentCard({
       )}
 
       {comment.status === "open" && !resolving && (
-        <button type="button" className="k-comment-card__resolve" onClick={() => setResolving(true)}>
+        <button
+          type="button"
+          className="k-comment-card__resolve"
+          onClick={() => setResolving(true)}
+        >
           Resolve with a note
         </button>
       )}
@@ -130,7 +141,12 @@ function CommentCard({
             <button type="button" onClick={() => setResolving(false)} disabled={busy}>
               Cancel
             </button>
-            <button type="button" className="k-comment-card__resolve-confirm" onClick={submit} disabled={busy}>
+            <button
+              type="button"
+              className="k-comment-card__resolve-confirm"
+              onClick={submit}
+              disabled={busy}
+            >
               {busy ? "Resolving…" : "Resolve"}
             </button>
           </div>

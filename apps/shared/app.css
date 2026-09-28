@@ -327,39 +327,3 @@ button.app__row:focus-visible {
   opacity: 0.4;
   cursor: default;
 }
-
-/*
- * The segmented control (`SegmentedControl.tsx`) — Scene/Play, Model/Renders/
- * Wire. New kaava-ds token names (`docs/design/kaava-ds/tokens.json`), not the
- * `--surface`/`--line`/`--text-dim` set above: the viewer apps were built
- * against the new palette while `ux-tokens` lands its definitions in parallel,
- * per the workstream brief.
- */
-.k-segmented {
-  display: inline-flex;
-  gap: 2px;
-  padding: 2px;
-  background: var(--bg-surface-1);
-  border-radius: var(--radius-md, 6px);
-}
-
-.k-segmented__option {
-  font: inherit;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 3px 10px;
-  border: none;
-  border-radius: var(--radius-sm, 4px);
-  background: transparent;
-  color: var(--txt-secondary);
-  cursor: pointer;
-}
-
-.k-segmented__option:hover {
-  color: var(--txt-primary);
-}
-
-.k-segmented__option--active {
-  background: var(--bg-layer-1);
-  color: var(--txt-primary);
-}

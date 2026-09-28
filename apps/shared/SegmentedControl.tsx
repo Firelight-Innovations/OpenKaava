@@ -1,8 +1,10 @@
 /**
  * The small pill-group control every header in this workstream uses: Scene/Play
- * in the Godot Viewer, Model/Renders/Wire in the Blender Viewer. One component
- * so the three apps don't each hand-roll their own button row with slightly
- * different keyboard handling.
+ * in the Godot Viewer, Model/Renders/Wire in the Blender Viewer. Markup follows
+ * the design system's own Tabs component (`src/kaava-ui.css`'s `.k-tabs--segmented`
+ * variant — `.k-tabs[role=tablist]` wrapping `.k-tab[role=tab]` children) rather
+ * than a hand-rolled equivalent, per `docs/design-notes/` (see
+ * `tokens-merged.md`'s note to use the shared classes where they fit).
  */
 export interface SegmentedControlProps<T extends string> {
   value: T;
@@ -18,14 +20,14 @@ export function SegmentedControl<T extends string>({
   "aria-label": ariaLabel,
 }: SegmentedControlProps<T>) {
   return (
-    <div className="k-segmented" role="radiogroup" aria-label={ariaLabel}>
+    <div className="k-tabs k-tabs--segmented" role="tablist" aria-label={ariaLabel}>
       {options.map((opt) => (
         <button
           key={opt.value}
           type="button"
-          role="radio"
-          aria-checked={opt.value === value}
-          className={`k-segmented__option${opt.value === value ? " k-segmented__option--active" : ""}`}
+          role="tab"
+          aria-selected={opt.value === value}
+          className="k-tab"
           onClick={() => onChange(opt.value)}
         >
           {opt.label}

@@ -18,7 +18,12 @@ const nodes: GodotNode[] = [
         type: "CharacterBody3D",
         children: [
           { path: "World/Player/Camera3D", name: "Camera3D", type: "Camera3D", children: [] },
-          { path: "World/Player/Flashlight", name: "Flashlight", type: "SpotLight3D", children: [] },
+          {
+            path: "World/Player/Flashlight",
+            name: "Flashlight",
+            type: "SpotLight3D",
+            children: [],
+          },
         ],
       },
       {

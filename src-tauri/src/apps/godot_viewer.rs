@@ -83,8 +83,8 @@ mod tests {
     #[test]
     fn an_unknown_method_is_method_not_found() {
         let env = TempDir::new().expect("tempdir");
-        let err = dispatch(&context(env.path()), "godot-viewer/nope", None)
-            .expect_err("unknown method");
+        let err =
+            dispatch(&context(env.path()), "godot-viewer/nope", None).expect_err("unknown method");
         assert_eq!(err.code, kaava_rpc::METHOD_NOT_FOUND);
     }
 
@@ -98,8 +98,8 @@ mod tests {
             "anchor": { "kind": "node", "path": "Player/Flashlight" },
             "body": "brighten this",
         });
-        let created = dispatch(&context(env.path()), "comments/create", Some(params))
-            .expect("create");
+        let created =
+            dispatch(&context(env.path()), "comments/create", Some(params)).expect("create");
         assert_eq!(created["anchor"]["kind"], "node");
 
         let listed = dispatch(&context(env.path()), "comments/list", None).expect("list");

@@ -184,22 +184,6 @@
   color: var(--txt-on-accent, #fff);
 }
 
-.k-status-badge {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  padding: 2px 6px;
-  border-radius: var(--radius-pill, 999px);
-  flex-shrink: 0;
-}
-
-.k-status-badge--info {
-  background: var(--info-subtle);
-  color: var(--info, #2563eb);
-}
-
-.k-status-badge--success {
-  background: var(--success-subtle, rgba(47, 138, 62, 0.12));
-  color: var(--success, #2f8a3e);
-}
+/* The Open/Resolved pill uses the shared `.k-badge` (src/kaava-ui.css)
+ * rather than a hand-rolled equivalent — see SegmentedControl.tsx's note on
+ * the same rule for tabs. */

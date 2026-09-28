@@ -2,7 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { reportPainted } from "@openkaava/bridge";
 import { Clock, ExternalLink, MessageSquarePlus, Orbit, Package } from "lucide-react";
 import { CommentPanel } from "../../../shared/CommentPanel";
-import { createComment, listComments, resolveComment, type Comment } from "../../../shared/comments";
+import {
+  createComment,
+  listComments,
+  resolveComment,
+  type Comment,
+} from "../../../shared/comments";
 import { formatRenderAge } from "../../../shared/age";
 import { SegmentedControl } from "../../../shared/SegmentedControl";
 import { getState, type BlenderPart, type BlenderViewerState } from "./rpc";
@@ -58,7 +63,8 @@ export default function App() {
   // most recent render's createdAt is the best honest stand-in for "age of
   // what's on screen", and null when there isn't one.
   const shown = preview ? sampleState : state;
-  const renderedAt = shown.renders.length > 0 ? Math.max(...shown.renders.map((r) => r.createdAt)) : null;
+  const renderedAt =
+    shown.renders.length > 0 ? Math.max(...shown.renders.map((r) => r.createdAt)) : null;
   const openCount = useMemo(() => comments.filter((c) => c.status === "open").length, [comments]);
 
   const postComment = async () => {

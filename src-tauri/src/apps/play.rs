@@ -87,8 +87,8 @@ mod tests {
             "anchor": { "kind": "scene", "scene": "hospital_wing", "time": 42.8 },
             "body": "why is the light flickering here?",
         });
-        let created = dispatch(&context(env.path()), "comments/create", Some(params))
-            .expect("create");
+        let created =
+            dispatch(&context(env.path()), "comments/create", Some(params)).expect("create");
         assert_eq!(created["anchor"]["kind"], "scene");
         assert_eq!(created["anchor"]["screenshot"], false);
 

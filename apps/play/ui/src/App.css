@@ -174,7 +174,7 @@
   border-radius: var(--radius-md, 6px);
   border: 1px solid var(--border-subtle);
   background: var(--bg-layer-1);
-  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.3));
+  box-shadow: var(--shadow-overlay);
 }
 
 .pl__composer-target {
