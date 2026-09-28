@@ -19,8 +19,9 @@ export type {
   ReadyMessage,
   RequestMessage,
   Session,
+  ThemeChangedPayload,
 } from "./protocol.js";
-export { OPENED_EVENT, TOPIC_EVENT_PREFIX } from "./protocol.js";
+export { OPENED_EVENT, THEME_CHANGED_EVENT, TOPIC_EVENT_PREFIX } from "./protocol.js";
 export { KaavaErrorCode, KaavaRpcError } from "./errors.js";
 
 // The cast narrows `addEventListener`: `Window`'s takes any event type, an
