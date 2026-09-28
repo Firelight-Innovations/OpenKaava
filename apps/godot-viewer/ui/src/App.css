@@ -1,0 +1,283 @@
+/*
+ * Godot Viewer — board 02 (U-Workspace): a 34px header, a node tree beside the
+ * viewport render area, and a footer strip. New kaava-ds token names (see
+ * apps/shared/app.css's note on this) — the tokens workstream is landing their
+ * definitions in `src/tokens.css` in parallel.
+ */
+
+.gv {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family: var(--type-font-body, Inter, sans-serif);
+  color: var(--txt-primary);
+}
+
+.gv__header {
+  height: 34px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-layer-1);
+}
+
+.gv__badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--txt-secondary);
+}
+
+.gv__age {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--txt-secondary);
+}
+
+.gv__preview-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--txt-secondary);
+  cursor: pointer;
+}
+
+.gv__body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  position: relative;
+}
+
+.gv__tree {
+  border-right: 1px solid var(--border-subtle);
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.gv__tree-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--txt-secondary);
+}
+
+.gv__tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  padding-right: 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.gv__tree-row:hover {
+  background: var(--bg-surface-1);
+}
+
+.gv__tree-row--selected {
+  background: var(--info-subtle);
+}
+
+.gv__tree-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: none;
+  background: none;
+  color: var(--txt-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.gv__tree-toggle-spacer {
+  width: 14px;
+  flex-shrink: 0;
+}
+
+.gv__tree-name {
+  color: var(--txt-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gv__tree-type {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--txt-tertiary, var(--txt-secondary));
+  flex-shrink: 0;
+}
+
+.gv__viewport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow: auto;
+}
+
+.gv__render {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-surface-1);
+}
+
+.gv__render-path {
+  font-family: var(--type-font-mono, monospace);
+  font-size: 12px;
+  color: var(--txt-primary);
+}
+
+.gv__hint {
+  font-size: 12px;
+  color: var(--txt-secondary);
+  line-height: 1.5;
+  text-align: center;
+  max-width: 34em;
+  margin: 0 auto;
+  padding: 12px;
+}
+
+.gv__hint code {
+  font-family: var(--type-font-mono, monospace);
+}
+
+.gv__play-redirect {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+}
+
+.gv__open-play {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--txt-on-accent, #fff);
+  cursor: pointer;
+}
+
+.gv__composer {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-layer-1);
+  box-shadow: var(--shadow-overlay);
+}
+
+.gv__composer-target {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--txt-secondary);
+}
+
+.gv__composer-target code {
+  font-family: var(--type-font-mono, monospace);
+  color: var(--txt-primary);
+}
+
+.gv__composer-input {
+  font: inherit;
+  font-size: 12px;
+  padding: 6px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+  resize: vertical;
+}
+
+.gv__composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.gv__composer-actions button {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+  cursor: pointer;
+}
+
+.gv__composer-submit {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--txt-on-accent, #fff);
+}
+
+.gv__composer-submit:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.gv__footer {
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-layer-1);
+}
+
+.gv__footer-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+  cursor: pointer;
+}
+
+.gv__footer-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

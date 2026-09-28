@@ -1,0 +1,302 @@
+/*
+ * Blender Viewer — board 03 (U-CloudCluster): Model/Renders/Wire, an honest
+ * placeholder viewport (no three.js — see the workstream brief), a parts
+ * list, a renders strip. See apps/godot-viewer/ui/src/App.css's header note
+ * on token names.
+ */
+
+.bv {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family: var(--type-font-body, Inter, sans-serif);
+  color: var(--txt-primary);
+}
+
+.bv__header {
+  height: 34px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-layer-1);
+}
+
+.bv__badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--txt-secondary);
+}
+
+.bv__age {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--txt-secondary);
+}
+
+.bv__preview-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--txt-secondary);
+  cursor: pointer;
+}
+
+.bv__body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  position: relative;
+}
+
+.bv__viewport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow: auto;
+}
+
+.bv__stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-surface-1);
+}
+
+.bv__viewport--wire .bv__stage {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      var(--bg-surface-1),
+      var(--bg-surface-1) 15px,
+      var(--border-subtle) 16px
+    ),
+    repeating-linear-gradient(90deg, transparent, transparent 15px, var(--border-subtle) 16px);
+}
+
+.bv__model-path {
+  font-family: var(--type-font-mono, monospace);
+  font-size: 12px;
+  color: var(--txt-primary);
+}
+
+.bv__orbit-hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--txt-tertiary, var(--txt-secondary));
+}
+
+.bv__hint {
+  font-size: 12px;
+  color: var(--txt-secondary);
+  line-height: 1.5;
+  text-align: center;
+  max-width: 34em;
+  margin: 0 auto;
+  padding: 12px;
+}
+
+.bv__hint code {
+  font-family: var(--type-font-mono, monospace);
+}
+
+.bv__parts {
+  border-left: 1px solid var(--border-subtle);
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.bv__parts-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--txt-secondary);
+}
+
+.bv__parts-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.bv__part-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  width: 100%;
+  padding: 5px 10px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bv__part-row:hover {
+  background: var(--bg-surface-1);
+}
+
+.bv__part-row--selected {
+  background: var(--info-subtle);
+}
+
+.bv__part-name {
+  font-size: 12px;
+  color: var(--txt-primary);
+}
+
+.bv__part-material {
+  font-size: 10px;
+  color: var(--txt-tertiary, var(--txt-secondary));
+}
+
+.bv__renders {
+  grid-column: 1 / -1;
+  padding: 16px;
+  overflow: auto;
+}
+
+.bv__renders-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.bv__render-tile {
+  width: 160px;
+  height: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-surface-1);
+}
+
+.bv__render-tile-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--txt-primary);
+}
+
+.bv__render-tile-hint {
+  font-size: 10px;
+  color: var(--txt-tertiary, var(--txt-secondary));
+}
+
+.bv__composer {
+  position: absolute;
+  right: 232px;
+  bottom: 12px;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-layer-1);
+  box-shadow: var(--shadow-overlay);
+}
+
+.bv__composer-target {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--txt-secondary);
+}
+
+.bv__composer-target code {
+  font-family: var(--type-font-mono, monospace);
+  color: var(--txt-primary);
+}
+
+.bv__composer-input {
+  font: inherit;
+  font-size: 12px;
+  padding: 6px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+  resize: vertical;
+}
+
+.bv__composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.bv__composer-actions button {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+  cursor: pointer;
+}
+
+.bv__composer-submit {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--txt-on-accent, #fff);
+}
+
+.bv__composer-submit:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.bv__footer {
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-layer-1);
+}
+
+.bv__footer-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+  cursor: pointer;
+}
+
+.bv__footer-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
