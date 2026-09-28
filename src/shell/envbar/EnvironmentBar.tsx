@@ -36,12 +36,8 @@ export interface EnvironmentBarProps {
    *  claiming the worktree is caught up. */
   ahead?: number;
   behind?: number;
-  /**
-   * Worktree/design only. Opens the Git page — the **rail** workstream's to
-   * build — so this is `WindowRoot`'s no-op until that page exists, the same
-   * way `TitleBarProps.onOpenProjectSwitcher` is. The button is real and
-   * clickable regardless; it simply has nothing to open yet.
-   */
+  /** Worktree/design only. Opens the rail's Git page (`WindowRoot`'s
+   *  `onSelectPage("git")`). */
   onReviewAndMerge?: () => void;
   /**
    * Cloud only, and both still no-ops: nothing in `Cluster` names a cloud
@@ -55,6 +51,19 @@ export interface EnvironmentBarProps {
   onStopSession?: () => void;
 }
 
+/**
+ * Three things §1.4 draws that this component does not, all because nothing
+ * in the shell's state can back them honestly yet (`docs/KAAVA-UX-REWORK.md`'s
+ * "never fake data" rule): `from base@<hash>` (no source carries a worktree's
+ * merge base yet — see `Environment.base` in `environment.ts`), the
+ * agent-state badge ("claude working here" — the shell has no continuous
+ * "working right now" signal, only `TerminalSession.agentFinished`, which
+ * means the opposite, and one-shot `TerminalControl.busy`; same reason
+ * `ClusterBar`'s activity dot is omitted), and the cloud variant's streaming
+ * pill (nothing measures a session's latency, and it is moot while
+ * `environmentOf` cannot return `"cloud"` anyway). Ahead/behind *is* real —
+ * `GitStatus.ahead`/`.behind`, the same read `StatusBar` already uses.
+ */
 export default function EnvironmentBar({
   environment,
   ahead,

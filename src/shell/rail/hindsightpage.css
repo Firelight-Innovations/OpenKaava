@@ -1,0 +1,46 @@
+/* An honest placeholder -- Hindsight has no app to host yet. */
+
+.k-hindsight {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.k-hindsight__search {
+  margin: 10px 12px 6px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle-1);
+  background: var(--bg-layer-1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--txt-tertiary);
+  font-size: 12.5px;
+}
+
+.k-hindsight__section {
+  padding: 4px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.k-hindsight__heading {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--txt-secondary);
+}
+
+.k-hindsight__empty {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px dashed var(--border-subtle-1);
+  color: var(--txt-tertiary);
+  font-size: 12.5px;
+}

@@ -197,7 +197,8 @@ pub fn open_instance(
         });
     }
     // A page's app is an app, and would open — as a second copy of the page,
-    // loose in a pane. `open_page` is the only door to it; see `pages`.
+    // loose in a pane. `open_page` (the rail button) is the only door to it;
+    // see `pages`.
     if pages::is_page_app(&app_id) {
         return Err(AppError::PageApp(app_id));
     }
@@ -229,28 +230,60 @@ pub fn open_instance(
         .ok_or_else(|| AppError::UnknownTool(app_id))
 }
 
-/// The pages this build offers, in chip order. See `pages::available`.
+/// The pages this build offers, in rail order — including the disabled one.
+/// See `pages::rail`.
 #[tauri::command]
 pub fn list_pages() -> Vec<pages::PageInfo> {
-    pages::available()
+    pages::rail()
 }
 
-/// Show a page in `label`'s window, creating its cluster the first time, and
-/// answer with that cluster's id. See `ShellState::open_page`.
+/// Show a page in `label`'s window, or close it if it is already the one
+/// showing. See `ShellState::open_page`.
 #[tauri::command]
 pub fn open_page(
     app: tauri::AppHandle,
     shell: State<'_, ShellState>,
     label: String,
     page_id: String,
-) -> Result<String> {
+) -> Result<()> {
     let page = pages::find(&page_id).ok_or_else(|| AppError::UnknownPage(page_id.clone()))?;
-    let opened = shell
-        .open_page(&app, &label, page)
-        .ok_or(AppError::NoCluster("show a page in"));
+    if page.disabled {
+        return Err(AppError::PageDisabled(page_id));
+    }
+    shell.open_page(&app, &label, page);
     // The title follows the active cluster's project, and a page has none.
     project::retitle(&app);
-    opened
+    Ok(())
+}
+
+/// Close whatever page `label`'s window is showing, returning it to its
+/// panes. See `ShellState::close_page`.
+#[tauri::command]
+pub fn close_page(app: tauri::AppHandle, shell: State<'_, ShellState>, label: String) {
+    shell.close_page(&app, &label);
+    project::retitle(&app);
+}
+
+/// Dock or expand `label`'s open page in place. See `ShellState::set_page_mode`.
+#[tauri::command]
+pub fn set_page_mode(
+    app: tauri::AppHandle,
+    shell: State<'_, ShellState>,
+    label: String,
+    mode: pages::PageMode,
+) {
+    shell.set_page_mode(&app, &label, mode);
+}
+
+/// Resize `label`'s docked page. See `ShellState::set_page_width`.
+#[tauri::command]
+pub fn set_page_width(
+    app: tauri::AppHandle,
+    shell: State<'_, ShellState>,
+    label: String,
+    width: f32,
+) {
+    shell.set_page_width(&app, &label, width);
 }
 
 #[tauri::command]
