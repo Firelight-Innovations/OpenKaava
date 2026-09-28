@@ -74,14 +74,10 @@ export default defineConfig(async ({ mode }) => ({
         tutorial: resolve(__dirname, "apps/tutorial/ui/index.html"),
         // Design Mode is disabled and ships no bundle unless
         // `KAAVA_DESIGN_MODE=1` — the twin of the `design-mode` Cargo feature.
-        ...(DESIGN_MODE
-          ? { design: resolve(__dirname, "apps/design/ui/index.html") }
-          : {}),
+        ...(DESIGN_MODE ? { design: resolve(__dirname, "apps/design/ui/index.html") } : {}),
         // Schematify is disabled (ORC-SCO-001) and ships no bundle unless
         // `KAAVA_SCHEMATIFY=1` — the twin of the `schematify` Cargo feature.
-        ...(SCHEMATIFY
-          ? { schematify: resolve(__dirname, "apps/schematify/ui/index.html") }
-          : {}),
+        ...(SCHEMATIFY ? { schematify: resolve(__dirname, "apps/schematify/ui/index.html") } : {}),
       },
     },
   },
