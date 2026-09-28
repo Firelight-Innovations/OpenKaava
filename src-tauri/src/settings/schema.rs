@@ -197,7 +197,10 @@ mod accent_migration_tests {
     #[test]
     fn a_value_this_build_already_understands_passes_through() {
         assert_eq!(migrate_legacy_accent("amber"), "amber");
-        assert_eq!(migrate_legacy_accent("not-a-real-value"), "not-a-real-value");
+        assert_eq!(
+            migrate_legacy_accent("not-a-real-value"),
+            "not-a-real-value"
+        );
     }
 }
 
