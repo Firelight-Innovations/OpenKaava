@@ -1,0 +1,34 @@
+# plane-watch on plane-vm (Plane design §7.3). Its own compose project, beside Plane's, never in it.
+#
+# The stock Python image, pinned by digest, with plane_watch.py mounted in: there is no image of
+# ours to build or push. It joins Plane's network and talks to Plane's proxy there, so its polling
+# never touches port 8765 on the host and never keeps plane-vm awake (kaava-idle counts that port).
+#
+# infra/plane/boot.sh writes this file and the script to /opt/plane/plane-watch/ and runs
+#   docker compose -p plane-watch -f /opt/plane/plane-watch/compose.yaml up -d
+services:
+  plane-watch:
+    # python:3.12-slim, 3.12.14 on Debian trixie, 2026-09-28.
+    image: python@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f
+    command: ["python", "-u", "/app/plane_watch.py", "run"]
+    restart: unless-stopped
+    environment:
+      PLANE_URL: http://proxy:80
+      PLANE_HOST: plane.kaava.internal:8765
+      KAAVA_PROFILE: prod
+      KAAVA_PROJECTS: veistra-projects
+      KAAVA_WORKER: ${KAAVA_WORKER:-kaava-worker}
+      KAAVA_ZONE: ${KAAVA_ZONE:-us-central1-a}
+      STATE_DIR: /state
+    volumes:
+      - ./plane_watch.py:/app/plane_watch.py:ro
+      - ./state:/state
+    networks: [plane]
+    logging:
+      driver: json-file
+      options: { max-size: 5m, max-file: "2" }
+
+networks:
+  plane:
+    name: plane_default
+    external: true
