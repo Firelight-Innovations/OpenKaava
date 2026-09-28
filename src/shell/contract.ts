@@ -823,6 +823,15 @@ export interface FrameSlots {
   titleBar: ReactNode;
   /** Omitted in a detached window. */
   switcherBar?: ReactNode;
+  /**
+   * The environment bar (`docs/design/KAAVA-UX-SPEC.md` §1.4): a 36px strip
+   * above the pane grid naming the open cluster's environment. Rendered as a
+   * `flex: none` child at the top of `.frame__main`, ahead of `toolWindow`,
+   * so it never competes with the pane grid's own height. Omitted while no
+   * cluster is open — a window with nothing to say about "which environment"
+   * draws no bar promising one.
+   */
+  envBar?: ReactNode;
   toolWindow: ReactNode;
   secondaryPanel: ReactNode;
   /** The terminal band, under the tool window and stopping at the secondary

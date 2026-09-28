@@ -22,6 +22,10 @@ import "./frame.css";
  * own width and its own handle, and an expanded page is a third geometry —
  * covering everything left of the rail while the panes stay mounted behind
  * it. See `FrameSlots.projectRail` / `projectPage` / `projectPageExpanded`.
+ *
+ * `envBar` is the plainest of the lot: a fixed-height row at the top of
+ * `.frame__main`, ahead of the tool window, with no drag of its own — see
+ * `FrameSlots.envBar`.
  */
 export const PANEL_MIN = 240;
 export const PANEL_COLLAPSED = 34;
@@ -486,6 +490,12 @@ export default function Frame({
               stops at the secondary panel's edge instead of spanning the window.
               See `FrameSlots.bottomPanel` for why that is the arrangement. */}
           <div className="frame__main" ref={mainRef}>
+            {slots.envBar !== undefined && (
+              <div className="frame__envbar" data-region="envbar">
+                {slots.envBar}
+              </div>
+            )}
+
             <div className="frame__toolwindow" data-region="toolwindow">
               {slots.toolWindow}
             </div>

@@ -72,6 +72,15 @@
   min-height: 0;
 }
 
+/* The environment bar's own box. `flex: none` and nothing else — its height,
+   margin and background are `envbar.css`'s (`EnvironmentBar.tsx`), the same
+   division of labour `.frame__page` gives the docked project page: this file
+   reserves the row, the region draws what fills it. */
+.frame__envbar {
+  flex: none;
+  min-width: 0;
+}
+
 .frame__toolwindow {
   flex: 1;
   min-height: 0;
