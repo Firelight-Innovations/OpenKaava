@@ -36,12 +36,13 @@ import type {
   RequestMessage,
   ResponseMessage,
 } from "@openkaava/bridge/protocol";
-import { OPENED_EVENT, TOPIC_EVENT_PREFIX } from "@openkaava/bridge/protocol";
+import { OPENED_EVENT, THEME_CHANGED_EVENT, TOPIC_EVENT_PREFIX } from "@openkaava/bridge/protocol";
 import { KaavaErrorCode } from "@openkaava/bridge/errors";
 import { appPainted, onLaunchTarget, onProjectChanged, takeLaunchTarget } from "../../bindings";
 import { instantOutCss, instantOutMs } from "../motion";
 import { callApp } from "../state/apps";
 import { windowLabel } from "../state/shellState";
+import { currentTheme, onThemeChange, type ThemeChangedPayload } from "../themeBroadcast";
 import ToolMount from "./ToolMount";
 import EmptyState from "./EmptyState";
 import NoClustersState from "./NoClustersState";
@@ -369,6 +370,33 @@ const ToolWindow = forwardRef<
   const relayDrag = useRef(onFramePathDrag);
   relayDrag.current = onFramePathDrag;
 
+  // The shell's resolved theme and accent, as `useAppearance` last computed
+  // them (`src/shell/themeBroadcast.ts`) — read once for whatever frame is
+  // already mounted when this component itself mounts, then kept current by
+  // the subscription below. A ref because it is read from `answerHello`,
+  // installed once inside the message-listener effect further down, which
+  // must see the latest value rather than the one current when it subscribed.
+  const lastTheme = useRef<ThemeChangedPayload | null>(currentTheme());
+
+  // Every app frame in this window, told live. Apps only — a tool frame has
+  // no use for `tokens.css`'s custom properties, and `frame.isApp` is the same
+  // filter the `project:changed` relay below uses. Unlike that relay, this one
+  // is not scoped to the active cluster: theme is a window-wide fact, not a
+  // per-project one, so every app in every pane of every cluster this window
+  // holds gets it, not only the ones currently on screen.
+  useEffect(() => {
+    return onThemeChange((payload) => {
+      lastTheme.current = payload;
+      for (const [win, frame] of frames.current) {
+        if (!frame.isApp || frame.origin === null) continue;
+        win.postMessage(
+          { kaava: 1, kind: "event", event: THEME_CHANGED_EVENT, payload } satisfies EventMessage,
+          frame.origin,
+        );
+      }
+    });
+  }, []);
+
   const registerFrame = useCallback(
     (instanceId: string, appId: string, isApp: boolean, win: Window) => {
       frames.current.set(win, {
@@ -663,6 +691,27 @@ const ToolWindow = forwardRef<
       };
       source.postMessage(reply, origin);
       frame.origin = origin;
+
+      // The shell's current theme and accent, for an app frame — before it has
+      // any tab open, before it has published anything, and regardless of
+      // whether a change has happened since this window opened. Without this,
+      // an app that mounts after boot would draw in whatever `tokens.css`'s
+      // own defaults are (Dark, Amber) until the next time the person actually
+      // changes a setting. `null` only when no window in this process has run
+      // `useAppearance` yet, which `App.tsx` does above everything else — so in
+      // practice this is only ever unset for an instant during the very first
+      // paint.
+      if (frame.isApp && lastTheme.current) {
+        source.postMessage(
+          {
+            kaava: 1,
+            kind: "event",
+            event: THEME_CHANGED_EVENT,
+            payload: lastTheme.current,
+          } satisfies EventMessage,
+          origin,
+        );
+      }
 
       // Everything this frame's cluster-mates have already published, before it
       // says anything itself. A frame that mounts late is otherwise blind to

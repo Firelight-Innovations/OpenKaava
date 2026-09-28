@@ -115,6 +115,21 @@ export const OPENED_EVENT = "kaava:opened";
  */
 export const TOPIC_EVENT_PREFIX = "kaava:topic/";
 
+/**
+ * The event `kaava:theme-changed` is delivered under — shell-authored news
+ * broadcast to every app frame, so it gets a colon like `OPENED_EVENT`
+ * rather than `TOPIC_EVENT_PREFIX`'s slash form. App side:
+ * `packages/bridge/src/theme.ts`. Shell side: `src/shell/themeBroadcast.ts`.
+ */
+export const THEME_CHANGED_EVENT = "kaava:theme-changed";
+
+/** What arrives with a `kaava:theme-changed` event: the resolved theme
+ *  (never "system" — already resolved before send) and the chosen accent. */
+export interface ThemeChangedPayload {
+  theme: "dark" | "light";
+  accent: "amber" | "blue" | "green" | "violet" | "coral";
+}
+
 /** What arrives with a `kaava:topic/*` event. */
 export interface PublishedTopic {
   value: unknown;
