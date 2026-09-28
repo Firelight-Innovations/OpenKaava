@@ -302,6 +302,11 @@
   height: 220px;
 }
 
+/* The docked reading's mini C1 (board 11): a sparkline, not a full chart. */
+.costs__chart--sparkline {
+  height: 90px;
+}
+
 .costs__legend {
   display: flex;
   flex-wrap: wrap;
@@ -326,5 +331,117 @@
 }
 
 .costs__legend-label {
-  color: var(--txt-tertiary, var(--text-dim));
+  color: var(--txt-tertiary);
+  flex: 1 1 auto;
+}
+
+.costs__legend-pct {
+  color: var(--txt-placeholder);
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A chart's own visible heading: the question it answers, plus its C1-C6 id. */
+.costs__chart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.costs__chart-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--txt-secondary);
+}
+
+.costs__chart-id {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--txt-placeholder);
+}
+
+.costs__chart-caption {
+  margin: 0;
+  font-size: 11px;
+  color: var(--txt-tertiary);
+}
+
+/* "FROM THE BILL" and the docked "BY CATEGORY - FORECAST" section labels. */
+.costs__chart-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--txt-placeholder);
+}
+
+.costs__chart-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+}
+
+/* The three C4-C6 placeholder cards, and the real chart panes beside them,
+   read as one bordered card each once the pane is wide enough to show them
+   side by side. */
+.costs__chart-row--expanded > .costs__chart-pane {
+  border: 1px solid var(--border-subtle-1);
+  border-radius: var(--radius-region, 10px);
+  padding: 12px 14px;
+}
+
+.costs__chart-pane--placeholder {
+  min-height: 96px;
+  justify-content: center;
+  border-style: dashed;
+}
+
+.costs__chart-placeholder-note {
+  margin: 0;
+}
+
+.costs__chart-placeholder-note--docked {
+  border: 1px dashed var(--border-subtle-1);
+  border-radius: var(--radius-region, 10px);
+  padding: 8px 10px;
+}
+
+/* The docked reading's compact swap for C2's donut: a bar per category. */
+.costs__catbars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.costs__catbars li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.costs__catbars-name {
+  flex: 0 0 auto;
+  min-width: 72px;
+  color: var(--txt-tertiary);
+}
+
+.costs__catbars-track {
+  flex: 1 1 auto;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-layer-2);
+  overflow: hidden;
+}
+
+.costs__catbars-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
 }
