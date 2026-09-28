@@ -15,14 +15,14 @@
       white rectangle in a dark window. A render-blocking `<link>` plus these
       two lines are applied before the first paint instead.
 
-      No hex here: the colour is `--bg` from the same `src/tokens.css` the shell
-      draws from, so an app cannot drift from the window around it.
+      No hex here: the colour is `--bg-surface-1` from the same `src/tokens.css`
+      the shell draws from, so an app cannot drift from the window around it.
     -->
     <link rel="stylesheet" href="/src/tokens.css" />
     <style>
       html,
       body {
-        background: var(--bg);
+        background: var(--bg-surface-1);
       }
     </style>
   </head>
