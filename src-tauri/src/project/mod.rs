@@ -17,6 +17,7 @@
 //! why every mutator broadcasts [`PROJECT_CHANGED_EVENT`] with a whole snapshot
 //! stamped with its cluster, is in `docs/design-notes/backend-project.md`.
 
+pub mod create;
 mod marker;
 mod store;
 
@@ -334,6 +335,56 @@ pub fn initialize(app: &AppHandle, dir: &Path, cluster_id: &str) -> Result<Proje
         marker::create(dir, &folder_name(dir))?;
     }
     open(app, dir, cluster_id)
+}
+
+/// Whether `dir` already has a `<name>.kaava` manifest.
+///
+/// For `project::create`'s land-the-code step: it needs to know, before it
+/// writes anything, whether a folder is already a project — "Open existing"
+/// only links one that is, and a fresh Game or Tool writes one only when
+/// there isn't one already. Exposed rather than folded into [`create`] or
+/// [`initialize`] because both of those are AppHandle-scoped mutators (they
+/// point a *cluster* at the result), and a plain filesystem check has no
+/// business needing one.
+pub fn has_manifest(dir: &Path) -> bool {
+    marker::find(dir).is_some()
+}
+
+/// Write a manifest into `dir` if it does not already have one. Returns
+/// whether this call is the one that wrote it — `false` means a manifest was
+/// already there and nothing changed.
+///
+/// The same distinction [`initialize`] draws, without the `AppHandle` and the
+/// `open` that follows it: `project::create`'s land-the-code step needs to
+/// write a manifest as part of preparing a folder, not as part of pointing a
+/// cluster at it.
+pub fn ensure_manifest(dir: &Path) -> Result<bool> {
+    if marker::find(dir).is_some() {
+        return Ok(false);
+    }
+    marker::create(dir, &folder_name(dir))?;
+    Ok(true)
+}
+
+/// Undo [`ensure_manifest`]: delete the manifest it wrote, and the `.kaava/`
+/// trace directory beside it if `ensure_manifest`'s `marker::create` left it
+/// empty. Only called by `project::create`'s rollback, and only on a folder
+/// [`ensure_manifest`] itself just wrote into — never on one this run merely
+/// linked, whose manifest (if any) was already there before Kaava touched it.
+pub fn remove_manifest(dir: &Path) -> Result<()> {
+    let Some(path) = marker::find(dir) else {
+        return Ok(());
+    };
+    std::fs::remove_file(&path).map_err(|source| AppError::Io {
+        path: path.display().to_string(),
+        source,
+    })?;
+
+    // Best-effort: `remove_dir` refuses a non-empty directory on its own, so
+    // this is a no-op rather than a data-loss risk if anything (an agent
+    // trace, a design canvas) has already been written into `.kaava/`.
+    let _ = std::fs::remove_dir(dir.join(TRACE_DIR));
+    Ok(())
 }
 
 /// Point `cluster_id` at nothing, without touching the history.

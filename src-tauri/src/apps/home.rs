@@ -142,6 +142,23 @@ pub fn call(
             worktree_state(app, context)
         }
 
+        // The New Project page (board 14) — a view inside Home, not a
+        // separate app, so its two methods dispatch through this same `call`
+        // rather than getting a `REGISTRY` row of their own. The step-runner
+        // itself lives in `apps::home_create`; see its module doc for why.
+        "home/create-project" => super::home_create::start(app, context, params),
+        "home/create-project-status" => super::home_create::status(app),
+
+        // The New Project page's optional Browse button, for the folder and
+        // clone-to fields. Reuses `pick` exactly as `home/new-project` and
+        // `home/open-project` do — same modal-to-the-window folder dialog,
+        // just answering with the chosen path instead of acting on it, since
+        // this page decides what to do with a folder itself. `None` on a
+        // cancel, same as everywhere else `pick` is used.
+        "home/browse-folder" => Ok(json!({
+            "path": pick(app, "Choose a folder").map(|dir| dir.display().to_string()),
+        })),
+
         _ => Err(RpcError::new(
             METHOD_NOT_FOUND,
             format!("no such method: {method}"),

@@ -1,0 +1,333 @@
+/*
+ * New Project (board 14, `docs/design/KAAVA-UX-SPEC.md`). Page-specific
+ * layout only — buttons, fields and toggles come from the shared `.k-btn`,
+ * `.k-field`, `.k-toggle` and `.k-tabs--segmented` vocabulary in
+ * `src/kaava-ui.css` (loaded by every app through `apps/shared/app.css`),
+ * and every colour, radius and spacing value below is one of `src/
+ * tokens.css`'s own tokens. Nothing here hardcodes a hex or invents a
+ * duplicate of a token that already exists — see the `ux-tokens` PR (#143)
+ * for what that shared sheet now covers.
+ */
+
+.new-project {
+  height: 100%;
+  overflow-y: auto;
+  background: var(--bg-canvas);
+  color: var(--txt-primary);
+  font: var(--type-body);
+}
+
+.new-project__inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) 48px;
+}
+
+/* --- header: "<- Home", title, caption ----------------------------------- */
+
+.new-project__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.new-project__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.new-project__title {
+  margin: 0;
+  font: var(--type-h1);
+  color: var(--txt-primary);
+}
+
+.new-project__caption {
+  margin: 0;
+  font: var(--type-caption);
+  color: var(--txt-tertiary);
+}
+
+/* --- the two-column layout: form + the Create rail ------------------------ */
+
+.new-project__body {
+  display: grid;
+  /* 420px per the board — wider than `--w-panel-default` (380px), which is
+     the shell's own right-panel width and not this rail's. */
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.new-project__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.new-project__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-region);
+}
+
+.new-project__section-title {
+  margin: 0;
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
+  color: var(--txt-tertiary);
+}
+
+/* --- Kind: a radiogroup drawn as three cards, not a tab strip — each needs
+   room for its own description, which `.k-tab` has no room for. ----------- */
+
+.new-project__kinds {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.new-project__kind {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle-1);
+  border-radius: var(--radius-md);
+  background: var(--bg-layer-1);
+  text-align: left;
+  cursor: pointer;
+  font: var(--type-body);
+}
+
+.new-project__kind:hover {
+  background: var(--bg-layer-1-hover);
+}
+
+.new-project__kind:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.new-project__kind--selected {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.new-project__kind-name {
+  font: var(--type-body-strong);
+  color: var(--txt-primary);
+}
+
+.new-project__kind-desc {
+  font: var(--type-caption);
+  color: var(--txt-tertiary);
+}
+
+/* --- field layout: rows of k-field, and a field plus a Browse k-btn ------- */
+
+.new-project__field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.new-project__input-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.new-project__input-row .k-field__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.new-project__hint {
+  font: var(--type-caption);
+  color: var(--txt-tertiary);
+}
+
+.new-project__checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--txt-secondary);
+}
+
+/* The segmented control is disabled as a group while Create is running;
+   `.k-tab` itself has no disabled styling to fall back on. */
+.new-project .k-tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Project services: one toggle row per resource ------------------------ */
+
+.new-project__services {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.new-project__service {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.new-project__service:last-child {
+  border-bottom: none;
+}
+
+.new-project__service-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.new-project__service-name {
+  color: var(--txt-primary);
+}
+
+.new-project__service-desc {
+  font: var(--type-caption);
+  color: var(--txt-tertiary);
+}
+
+.new-project__service--disabled .new-project__service-name,
+.new-project__service--disabled .new-project__service-desc {
+  color: var(--txt-disabled);
+}
+
+/* --- the right rail: "What Create does" ------------------------------------ */
+
+.new-project__rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-region);
+  position: sticky;
+  top: var(--space-6);
+}
+
+.new-project__rail-title {
+  margin: 0;
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
+  color: var(--txt-tertiary);
+}
+
+.new-project__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.new-project__step {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2) 4px;
+}
+
+.new-project__step-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  margin-top: 1px;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle-1);
+  background: var(--bg-layer-1);
+  color: var(--txt-tertiary);
+  font: var(--type-mono-meta);
+}
+
+.new-project__step--done .new-project__step-mark {
+  background: var(--success-subtle);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.new-project__step--running .new-project__step-mark {
+  background: var(--accent-subtle);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.new-project__step--failed .new-project__step-mark {
+  background: var(--danger-subtle);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.new-project__step--skipped .new-project__step-mark,
+.new-project__step--rolledBack .new-project__step-mark {
+  color: var(--txt-disabled);
+}
+
+.new-project__step-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.new-project__step-title {
+  color: var(--txt-primary);
+}
+
+.new-project__step--skipped .new-project__step-title,
+.new-project__step--pending .new-project__step-title {
+  color: var(--txt-tertiary);
+}
+
+.new-project__step-detail {
+  font: var(--type-caption);
+  color: var(--txt-tertiary);
+  word-break: break-word;
+}
+
+.new-project__step-detail--mono {
+  font: var(--type-mono-meta);
+}
+
+.new-project__step--failed .new-project__step-detail {
+  color: var(--txt-danger);
+}
+
+/* --- footer: Cancel / Create ------------------------------------------------ */
+
+.new-project__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.new-project__run-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font: var(--type-caption);
+  color: var(--txt-danger);
+}
