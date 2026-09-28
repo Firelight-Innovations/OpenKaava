@@ -12,8 +12,8 @@
  * design system's, and an app inventing its own would be visibly not part of
  * the same product the moment the two sat side by side. An app follows the
  * shell's live theme and accent too — see `packages/bridge/src/theme.ts`,
- * wired into every entry point (`apps/*/ui/src/main.tsx`) — so nothing here
- * needs to be theme-specific on its own.
+ * wired into every first-party app's entry point (`main.tsx`) — so nothing
+ * here needs to be theme-specific on its own.
  *
  * `bg-surface-1` throughout, not `bg-canvas`: a pane *is* a region in the
  * design system's canvas → surface → layer model (`README.md` rule 1), and an
