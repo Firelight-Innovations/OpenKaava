@@ -18,7 +18,7 @@
 //! only ever fail. See the note on `git_cluster_status` for what that cost.
 
 use crate::error::{AppError, Result};
-use crate::shell_state::WorktreeRef;
+use crate::shell_state::{ShellState, WorktreeRef};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -580,8 +580,15 @@ fn parse_rename_pairs(out: &str) -> Vec<(String, String)> {
     pairs
 }
 
+/// Staging changes writes to a cluster's index, and a `Main` cluster's index
+/// is the project's real one — see `environments::refuse_write_on_main`. This
+/// is one of the two write paths this build guards; `git_cluster_unstage` is
+/// deliberately not, since removing something from the index creates no new
+/// change for Main's read-only rule to be protecting against.
 #[tauri::command]
 pub fn git_cluster_stage(app: AppHandle, cluster_id: String, paths: Vec<String>) -> Result<()> {
+    let env = app.state::<ShellState>().cluster_environment(&cluster_id);
+    crate::environments::refuse_write_on_main(env.as_ref(), "add")?;
     let cwd = cluster_checkout(&app, &cluster_id, "add")?;
     let mut args = vec!["add", "--"];
     args.extend(paths.iter().map(String::as_str));
@@ -603,8 +610,14 @@ pub fn git_cluster_unstage(app: AppHandle, cluster_id: String, paths: Vec<String
 /// Nothing staged, an empty message, a failing hook: all of those come back
 /// from `git` on stderr with a better explanation than this could invent, so
 /// they surface as `AppError::Git` carrying git's own words.
+///
+/// Refused outright for a `Main` cluster, before any of that — a commit is
+/// the clearest possible write, and Main is meant to be browsed, not worked
+/// in. See `environments::refuse_write_on_main`.
 #[tauri::command]
 pub fn git_cluster_commit(app: AppHandle, cluster_id: String, message: String) -> Result<()> {
+    let env = app.state::<ShellState>().cluster_environment(&cluster_id);
+    crate::environments::refuse_write_on_main(env.as_ref(), "commit")?;
     let cwd = cluster_checkout(&app, &cluster_id, "commit")?;
     run_git(&cwd, "commit", &["commit", "-m", &message])?;
     Ok(())
@@ -792,6 +805,25 @@ pub fn add_worktree(repo: &Path, path: &Path, branch: &str) -> Result<()> {
         repo,
         "worktree add",
         &["worktree", "add", "-b", branch, path.as_ref()],
+    )?;
+    Ok(())
+}
+
+/// Like `add_worktree`, but forks `branch` from `start_point` instead of
+/// implicitly from HEAD.
+///
+/// The environment model (`environments.rs`) needs this: a New Cluster
+/// dialog's "new local worktree" step lets the base be any branch, not just
+/// whatever the main checkout happens to have checked out at the moment —
+/// and `git worktree add -b <branch> <path> <start-point>` is the one-command
+/// way to do that without a separate `checkout`/`branch` step that would
+/// leave a half-created worktree behind on failure.
+pub fn add_worktree_from(repo: &Path, path: &Path, branch: &str, start_point: &str) -> Result<()> {
+    let path = path.to_string_lossy();
+    run_git(
+        repo,
+        "worktree add",
+        &["worktree", "add", "-b", branch, path.as_ref(), start_point],
     )?;
     Ok(())
 }

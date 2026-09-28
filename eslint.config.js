@@ -45,6 +45,7 @@ import globals from "globals";
  * `contract.ts`, `motion.ts` and `dropZones.ts`.
  */
 const REGIONS = [
+  "dialogs",
   "diff",
   "drag",
   "frame",

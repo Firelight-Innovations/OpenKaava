@@ -326,6 +326,8 @@ mod tests {
             active_terminal: None,
             band_height: None,
             page: page.map(str::to_string),
+            environment: None,
+            pinned: false,
         }
     }
 

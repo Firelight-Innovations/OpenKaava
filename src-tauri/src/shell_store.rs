@@ -331,6 +331,8 @@ mod tests {
                     active_terminal: None,
                     band_height: None,
                     page: None,
+                    environment: None,
+                    pinned: false,
                 }],
                 active_cluster_id: Some("cluster-1".to_string()),
                 geometry: None,
@@ -513,6 +515,8 @@ mod tests {
                     active_terminal: Some("term-1".to_string()),
                     band_height: Some(320.0),
                     page: None,
+                    environment: None,
+                    pinned: false,
                 }],
                 active_cluster_id: Some("cluster-1".to_string()),
                 geometry: Some(WindowGeometry {

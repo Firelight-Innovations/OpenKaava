@@ -1,0 +1,488 @@
+//! What a cluster's work runs against: a local worktree, a cloud session, the
+//! read-only main checkout, or the one standing Design worktree.
+//!
+//! Before this module, a cluster's only notion of "where" was
+//! [`crate::shell_state::WorktreeRef`] — a worktree, or nothing, with
+//! "nothing" silently meaning "the project folder itself". That collapsed two
+//! different cases (a cluster with no checkout concept at all, and a cluster
+//! deliberately browsing the main checkout) into one, and had no way to name
+//! a cloud session at all. [`Environment`] replaces the collapse with four
+//! named cases — see the variant docs — while [`crate::shell_state::Cluster`]
+//! keeps `worktree` for backward compatibility; [`migrate_environment`] is
+//! the bridge between the two.
+
+use crate::error::{AppError, Result};
+use crate::git;
+use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
+
+/// Where a cluster's work runs.
+///
+/// Tagged on the wire as `{ "kind": "localWorktree" | "cloud" | "main" | "design", ... }`
+/// (camelCase, per this codebase's convention for anything crossing into
+/// JSON) so the frontend can switch on `kind` without also having to know
+/// which fields go with which — see `src/shell/environment.ts`'s
+/// `environmentOf`, the TypeScript-side reader of this same shape.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum Environment {
+    /// A second checkout of the project's repository, on its own branch,
+    /// created and owned by OpenKaava under `.kaava/worktrees/<name>`.
+    ///
+    /// The ordinary case for real work: a cluster on a `LocalWorktree` reads
+    /// and writes files nowhere near the project folder, so two clusters can
+    /// hold two branches open — and two agents editing — at once without
+    /// either one's changes showing up in the other's file tree.
+    #[serde(rename_all = "camelCase")]
+    LocalWorktree {
+        /// The worktree's own name — `feat-x`, not `wt/feat-x` — used as both
+        /// its folder name under `.kaava/worktrees/` and, prefixed, its
+        /// branch. Kept separate from `branch` because the dialog that
+        /// creates one shows this alone; the `wt/` prefix is this module's
+        /// convention, not something a user types.
+        name: String,
+        /// Absolute path to the worktree's checkout.
+        path: String,
+        /// The branch checked out there — `wt/<name>`.
+        branch: String,
+        /// The branch this one was forked from, recorded at creation for the
+        /// same reason [`crate::shell_state::WorktreeRef::base`] records it:
+        /// nothing in git remembers a branch's fork point, and the obvious
+        /// guess (whatever the main checkout is on right now) goes stale the
+        /// moment somebody switches it.
+        base: String,
+    },
+    /// A session running on a remote VM rather than on this machine at all.
+    ///
+    /// Deliberately the one variant [`Environment::root`] cannot answer for —
+    /// there is no local path, and claiming one (the project's, say) would
+    /// have a terminal opened against it silently run commands nowhere near
+    /// where the session's agent is actually working. See `root`'s doc for
+    /// how callers are expected to handle the `None`.
+    #[serde(rename_all = "camelCase")]
+    Cloud {
+        session_id: String,
+        vm: String,
+        branch: Option<String>,
+    },
+    /// The project's own primary checkout, browsed rather than worked in.
+    ///
+    /// The one variant with no payload: "main" names a place — the project
+    /// root every cluster already knows how to find — not a resource this
+    /// module created and has to remember. See [`refuse_write_on_main`] for
+    /// what "browsed rather than worked in" means in practice.
+    Main,
+    /// The standing worktree that hosts the pinned Design canvas cluster —
+    /// see `ShellState::add_design_cluster`.
+    ///
+    /// Structurally identical to `LocalWorktree` and deliberately a separate
+    /// variant anyway: "is this cluster the Design canvas" has to be
+    /// answerable without comparing a branch name against the string
+    /// literal `"wt/design"` everywhere that question comes up, and a cluster
+    /// either carries `pinned: true` and a `Design` environment together or
+    /// it carries neither — see `Cluster::pinned`'s doc for why that
+    /// invariant lives on a separate field instead of being derived from this
+    /// one.
+    #[serde(rename_all = "camelCase")]
+    Design { path: String, branch: String },
+}
+
+/// The one worktree name and branch the Design canvas always uses.
+const DESIGN_NAME: &str = "design";
+const DESIGN_BRANCH: &str = "wt/design";
+
+impl Environment {
+    /// Where this environment's files actually are, or `None` for the one
+    /// case that honestly has no local answer.
+    ///
+    /// `project` is the cluster's project folder, needed only for `Main` —
+    /// every other variant already carries its own absolute path. Passing it
+    /// through rather than having `Main` carry a copy keeps the project's
+    /// path the one place it is recorded, per `Cluster::project`'s own doc.
+    pub fn root(&self, project: Option<&Path>) -> Option<PathBuf> {
+        match self {
+            Environment::LocalWorktree { path, .. } => Some(PathBuf::from(path)),
+            Environment::Design { path, .. } => Some(PathBuf::from(path)),
+            Environment::Main => project.map(Path::to_path_buf),
+            // No local path exists to hand back — see the variant's own doc.
+            // A caller that needs a terminal's cwd (`project::cluster_path`)
+            // has to fall back honestly rather than lying with the project's
+            // path, which would run commands nowhere near the cloud session.
+            Environment::Cloud { .. } => None,
+        }
+    }
+
+    pub fn is_main(&self) -> bool {
+        matches!(self, Environment::Main)
+    }
+
+    /// A stable key naming *this* environment, not just its kind — what
+    /// `ShellState::project_live_counts` dedups on to turn "N clusters" into
+    /// "N environments" when two clusters happen to point at the same one
+    /// (two panes on one worktree is one environment, not two). `Main` has
+    /// no per-instance identity of its own, so every `Main` cluster in a
+    /// project collapses to the same key, which is the right answer: a
+    /// project has exactly one main checkout.
+    pub fn identity(&self) -> String {
+        match self {
+            Environment::LocalWorktree { path, .. } => format!("worktree:{path}"),
+            Environment::Design { path, .. } => format!("design:{path}"),
+            Environment::Cloud { session_id, .. } => format!("cloud:{session_id}"),
+            Environment::Main => "main".to_string(),
+        }
+    }
+
+    /// The branch this environment is on, where that concept applies.
+    /// `Main`'s is not this module's to name — the main checkout can be on
+    /// any branch, changed from outside OpenKaava at any time, so answering
+    /// would mean shelling out to `git` from a getter with no error path.
+    /// Callers that want it already have `git::git_cluster_status` for that.
+    pub fn branch(&self) -> Option<&str> {
+        match self {
+            Environment::LocalWorktree { branch, .. } => Some(branch),
+            Environment::Design { branch, .. } => Some(branch),
+            Environment::Cloud { branch, .. } => branch.as_deref(),
+            Environment::Main => None,
+        }
+    }
+}
+
+/// Bridge from the legacy field to the new one, for a `layout.json` written
+/// before `Environment` existed.
+///
+/// A cluster with a `worktree` migrates to `LocalWorktree` — `name` is
+/// recovered from the worktree's folder name, since the legacy shape never
+/// recorded one separately, and `branch`/`base` fall back to the worktree's
+/// path-derived name when git never told it a branch (a detached checkout,
+/// which `WorktreeRef::branch` already allows for).
+///
+/// A cluster with **no** worktree is left `None`, deliberately not inferred
+/// as `Main`: it is a project worked in directly, with no worktree concept at
+/// all, in a build old enough to predate this field — and reading that as
+/// "read-only" would retroactively lock every such cluster out of the write
+/// paths it already had, the moment this build opens the file. `None` here
+/// defers to the legacy fields exactly as before; see `Cluster::environment`'s
+/// own doc for the fuller version of this reasoning.
+pub fn migrate_environment(worktree: Option<&crate::shell_state::WorktreeRef>) -> Option<Environment> {
+    let wt = worktree?;
+    let name = Path::new(&wt.path)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or(&wt.path)
+        .to_string();
+    let branch = wt.branch.clone().unwrap_or_else(|| name.clone());
+    let base = wt.base.clone().unwrap_or_else(|| "main".to_string());
+    Some(Environment::LocalWorktree {
+        name,
+        path: wt.path.clone(),
+        branch,
+        base,
+    })
+}
+
+/// Refuse a write aimed at a `Main` cluster.
+///
+/// Main is the project's real checkout, browsed rather than worked in — see
+/// [`Environment::Main`] — so anything that would create a commit or change
+/// the index on it is refused here, once, rather than trusted to every
+/// command that could reach it. `env` is `None` for a cluster with no
+/// environment set at all (the legacy, pre-migration case): that is *not*
+/// read as `Main` for the same reason [`migrate_environment`] declines to —
+/// a cluster nobody has ever pointed at "read-only" stays writable.
+///
+/// `op` names the action for the error message (`"commit"`, `"stage"`) —
+/// see `git::run_git`'s own `op` parameter for the same reasoning about why
+/// this is a separate argument rather than folded into a single string.
+pub fn refuse_write_on_main(env: Option<&Environment>, op: &str) -> Result<()> {
+    if env.is_some_and(Environment::is_main) {
+        return Err(AppError::Git {
+            op: op.to_string(),
+            reason: "This cluster is browsing the main checkout, which is read-only — \
+                     open a worktree to make changes."
+                .to_string(),
+        });
+    }
+    Ok(())
+}
+
+/// Create a new local worktree under `.kaava/worktrees/<name>`, on branch
+/// `wt/<name>` forked from `base`.
+///
+/// `main_repo` must already be the *primary* checkout — see
+/// `git::main_repo_root` — since that is where `.kaava/worktrees` lives and
+/// where `git worktree add` has to run. This deliberately does not share
+/// `git.rs`'s existing `git_worktree_create` command: that one serves the
+/// older per-tool worktree convention (`<project>/../.worktrees/<project
+/// name>/<name>`, branch named bare) which a different, already-shipped
+/// feature depends on, and changing its layout out from under it is a
+/// separate, unwanted migration. This is the New Cluster dialog's own
+/// convention, kept inside the project so a cluster's worktrees travel with
+/// the project instead of living beside it.
+pub fn create_local_worktree(main_repo: &Path, name: &str, base: &str) -> Result<Environment> {
+    git::validate_worktree_name(name)?;
+
+    let path = main_repo.join(".kaava").join("worktrees").join(name);
+    let branch = format!("wt/{name}");
+    git::add_worktree_from(main_repo, &path, &branch, base)?;
+
+    Ok(Environment::LocalWorktree {
+        name: name.to_string(),
+        path: path.to_string_lossy().to_string(),
+        branch,
+        base: base.to_string(),
+    })
+}
+
+/// Every local worktree of `main_repo` the New Cluster dialog can offer as
+/// an existing environment.
+///
+/// The primary checkout and the standing Design worktree are both left out
+/// — not because they are not worktrees, but because the dialog already
+/// offers each through its own entry ("browse main, read-only" and the
+/// pinned Design cluster), and listing them again here would be the same
+/// choice twice under two different names.
+pub fn list_local_worktrees(main_repo: &Path) -> Result<Vec<Environment>> {
+    let worktrees = git::worktrees(main_repo)?;
+    Ok(worktrees
+        .into_iter()
+        .filter(|w| !w.is_main && w.branch.as_deref() != Some(DESIGN_BRANCH))
+        .map(|w| Environment::LocalWorktree {
+            name: Path::new(&w.path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or(&w.path)
+                .to_string(),
+            path: w.path,
+            branch: w.branch.unwrap_or_default(),
+            // Git does not remember a worktree's fork point once it exists —
+            // see `crate::shell_state::WorktreeRef::base`'s doc for the
+            // fuller version of why. Empty rather than a guess: nothing here
+            // treats an *existing* worktree's `base` as meaningful, only a
+            // freshly created one's, where this module is the one recording it.
+            base: String::new(),
+        })
+        .collect())
+}
+
+/// The Design canvas's environment, if `wt/design` already exists as a
+/// worktree of `main_repo` — checked, not assumed, since the canvas is only
+/// auto-created for a project that already has one (see
+/// `ShellState::add_design_cluster`'s caller in `project::open`).
+pub fn detect_design_environment(main_repo: &Path) -> Option<Environment> {
+    let worktrees = git::worktrees(main_repo).ok()?;
+    let wt = worktrees
+        .iter()
+        .find(|w| w.branch.as_deref() == Some(DESIGN_BRANCH))?;
+    Some(Environment::Design {
+        path: wt.path.clone(),
+        branch: DESIGN_BRANCH.to_string(),
+    })
+}
+
+/// Create `wt/design` fresh, for a project that does not have one yet and
+/// asked for the canvas anyway (the "offered but not auto-created" half of
+/// the Design canvas's behaviour — see `KAAVA-UX-REWORK.md` §5).
+pub fn create_design_environment(main_repo: &Path, base: &str) -> Result<Environment> {
+    let path = main_repo.join(".kaava").join("worktrees").join(DESIGN_NAME);
+    git::add_worktree_from(main_repo, &path, DESIGN_BRANCH, base)?;
+    Ok(Environment::Design {
+        path: path.to_string_lossy().to_string(),
+        branch: DESIGN_BRANCH.to_string(),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::shell_state::WorktreeRef;
+
+    fn wt(path: &str, branch: Option<&str>, base: Option<&str>) -> WorktreeRef {
+        WorktreeRef {
+            path: path.to_string(),
+            branch: branch.map(str::to_string),
+            base: base.map(str::to_string),
+        }
+    }
+
+    // --- serde back-compat ---------------------------------------------------
+
+    /// A `layout.json` written before `environment` existed has no such key —
+    /// it must still deserialize, with the field defaulting to `None` rather
+    /// than failing the whole file.
+    #[test]
+    fn cluster_json_without_environment_field_still_parses() {
+        let json = r#"{
+            "id": "cluster-1",
+            "name": "cluster-1",
+            "tree": { "kind": "leaf", "id": "pane-1", "tabs": [], "activeTab": null },
+            "project": null,
+            "worktree": null
+        }"#;
+        let cluster: crate::shell_state::Cluster = serde_json::from_str(json).unwrap();
+        assert_eq!(cluster.environment, None);
+        assert!(!cluster.pinned);
+    }
+
+    /// An `Environment` round-trips through JSON with a camelCase `kind` tag,
+    /// matching the convention every other tagged enum on the wire uses.
+    #[test]
+    fn local_worktree_serializes_with_camel_case_kind() {
+        let env = Environment::LocalWorktree {
+            name: "feat-x".to_string(),
+            path: "C:/proj/.kaava/worktrees/feat-x".to_string(),
+            branch: "wt/feat-x".to_string(),
+            base: "main".to_string(),
+        };
+        let json = serde_json::to_value(&env).unwrap();
+        assert_eq!(json["kind"], "localWorktree");
+        assert_eq!(json["name"], "feat-x");
+
+        let back: Environment = serde_json::from_value(json).unwrap();
+        assert_eq!(back, env);
+    }
+
+    #[test]
+    fn main_serializes_as_bare_kind() {
+        let json = serde_json::to_value(Environment::Main).unwrap();
+        assert_eq!(json["kind"], "main");
+        let back: Environment = serde_json::from_value(json).unwrap();
+        assert_eq!(back, Environment::Main);
+    }
+
+    // --- environment resolution -----------------------------------------------
+
+    #[test]
+    fn root_prefers_the_environments_own_path_over_the_project() {
+        let env = Environment::LocalWorktree {
+            name: "x".to_string(),
+            path: "C:/wt/x".to_string(),
+            branch: "wt/x".to_string(),
+            base: "main".to_string(),
+        };
+        assert_eq!(
+            env.root(Some(Path::new("C:/proj"))),
+            Some(PathBuf::from("C:/wt/x"))
+        );
+    }
+
+    #[test]
+    fn main_root_falls_back_to_the_project_path() {
+        assert_eq!(
+            Environment::Main.root(Some(Path::new("C:/proj"))),
+            Some(PathBuf::from("C:/proj"))
+        );
+        assert_eq!(Environment::Main.root(None), None);
+    }
+
+    /// The one case with no honest local answer — see the variant's doc.
+    /// A caller must not paper over this with the project's path.
+    #[test]
+    fn cloud_root_is_none_even_with_a_project_to_fall_back_to() {
+        let env = Environment::Cloud {
+            session_id: "s1".to_string(),
+            vm: "vm1".to_string(),
+            branch: None,
+        };
+        assert_eq!(env.root(Some(Path::new("C:/proj"))), None);
+    }
+
+    #[test]
+    fn is_main_is_true_only_for_main() {
+        assert!(Environment::Main.is_main());
+        assert!(!Environment::Design {
+            path: "C:/wt/design".to_string(),
+            branch: "wt/design".to_string()
+        }
+        .is_main());
+    }
+
+    // --- migration --------------------------------------------------------
+
+    #[test]
+    fn migrate_environment_of_none_is_none() {
+        assert_eq!(migrate_environment(None), None);
+    }
+
+    #[test]
+    fn migrate_environment_recovers_name_from_the_worktree_path() {
+        let legacy = wt("C:/proj/../.worktrees/proj/feat-x", Some("feat-x"), Some("main"));
+        let migrated = migrate_environment(Some(&legacy)).unwrap();
+        assert_eq!(
+            migrated,
+            Environment::LocalWorktree {
+                name: "feat-x".to_string(),
+                path: legacy.path.clone(),
+                branch: "feat-x".to_string(),
+                base: "main".to_string(),
+            }
+        );
+    }
+
+    /// A worktree with no recorded branch (older `layout.json`, before
+    /// `WorktreeRef::branch` was populated for every cluster) still migrates
+    /// — the folder name stands in, same as it does for `name`.
+    #[test]
+    fn migrate_environment_falls_back_when_branch_and_base_are_missing() {
+        let legacy = wt("C:/proj/../.worktrees/proj/feat-x", None, None);
+        let migrated = migrate_environment(Some(&legacy)).unwrap();
+        assert_eq!(
+            migrated,
+            Environment::LocalWorktree {
+                name: "feat-x".to_string(),
+                path: legacy.path.clone(),
+                branch: "feat-x".to_string(),
+                base: "main".to_string(),
+            }
+        );
+    }
+
+    // --- the main-write guard -----------------------------------------------
+
+    #[test]
+    fn refuse_write_on_main_refuses_main() {
+        let err = refuse_write_on_main(Some(&Environment::Main), "commit").unwrap_err();
+        match err {
+            AppError::Git { op, .. } => assert_eq!(op, "commit"),
+            other => panic!("expected AppError::Git, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn refuse_write_on_main_allows_everything_else() {
+        assert!(refuse_write_on_main(None, "commit").is_ok());
+        assert!(refuse_write_on_main(
+            Some(&Environment::LocalWorktree {
+                name: "x".to_string(),
+                path: "C:/wt/x".to_string(),
+                branch: "wt/x".to_string(),
+                base: "main".to_string(),
+            }),
+            "commit"
+        )
+        .is_ok());
+        assert!(refuse_write_on_main(
+            Some(&Environment::Cloud {
+                session_id: "s".to_string(),
+                vm: "v".to_string(),
+                branch: None,
+            }),
+            "commit"
+        )
+        .is_ok());
+    }
+
+    // --- worktree naming / branch validation ---------------------------------
+
+    /// `create_local_worktree` validates the name before ever shelling out to
+    /// git — a bad name fails with the friendly message from
+    /// `git::validate_worktree_name`, not a raw git error about `refs/heads/`.
+    #[test]
+    fn create_local_worktree_rejects_a_bad_name_before_touching_git() {
+        let dir = std::env::temp_dir().join("kaava-env-test-does-not-exist");
+        let err = create_local_worktree(&dir, "../escape", "main").unwrap_err();
+        match err {
+            AppError::Git { op, .. } => assert_eq!(op, "worktree add"),
+            other => panic!("expected AppError::Git, got {other:?}"),
+        }
+    }
+}

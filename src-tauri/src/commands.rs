@@ -25,6 +25,7 @@ use crate::shell_state::{OpenRequest, ShellSnapshot, ShellState, SurfaceKind, Wi
 use crate::state::AppState;
 use crate::tool_frontend;
 use crate::windows;
+use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use tauri::{Manager, State};
 use tauri_plugin_opener::OpenerExt;
@@ -378,6 +379,198 @@ pub fn add_cluster(
     );
     project::retitle(&app);
     Some(cluster_id)
+}
+
+/// Where the New Cluster dialog's first step said this cluster's work
+/// should run. Not [`crate::environments::Environment`] itself: the dialog
+/// can offer "a new local worktree" before that worktree exists, and only
+/// this command's own resolution step (see [`resolve_environment_choice`])
+/// turns it into the real thing, by actually creating it. The other two
+/// arms carry an `Environment` the dialog already had in hand — an existing
+/// worktree from the environment list, or the standing Design one — and
+/// need no resolution at all.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum EnvironmentChoice {
+    /// "New local worktree", with the name and base the dialog collected.
+    /// `crate::git::validate_worktree_name` is what actually enforces the
+    /// name is usable — this struct makes no claim about it.
+    NewLocalWorktree { name: String, base: String },
+    /// "An existing environment" or "browse main, read-only" — anything the
+    /// dialog already had a fully-formed [`crate::environments::Environment`]
+    /// for, including `Environment::Main` itself.
+    Existing {
+        environment: crate::environments::Environment,
+    },
+}
+
+/// The New Cluster dialog's second step: what to put in the new cluster's
+/// one pane before anyone has arranged anything by hand.
+///
+/// `Code` and `WatchAgent` map onto arrangements this build can actually
+/// open. `Godot` and `Blender` cannot yet — there is no dedicated viewer for
+/// either, only `crate::apps`'s generic one — so both open that instead of
+/// claiming an app id (`godot`, `blender`) this build has never registered,
+/// which `fill_preset_gaps` would otherwise just silently drop.
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum StartingLayout {
+    Code,
+    WatchAgent,
+    Godot,
+    Blender,
+}
+
+fn starting_layout_preset(layout: StartingLayout) -> presets::PresetNode {
+    use presets::{PresetNode, PresetSlot};
+    let app_pane = |app_id: &str| PresetNode::Pane {
+        slots: vec![PresetSlot::App {
+            app_id: app_id.to_string(),
+        }],
+    };
+    match layout {
+        StartingLayout::Code => PresetNode::Split {
+            dir: SplitDir::Row,
+            sizes: vec![0.65, 0.35],
+            children: vec![
+                app_pane("files"),
+                PresetNode::Pane {
+                    slots: vec![PresetSlot::Terminal],
+                },
+            ],
+        },
+        StartingLayout::WatchAgent => app_pane("agents"),
+        // See the variant docs on `StartingLayout` for why this is
+        // deliberately not a `godot`/`blender` app id.
+        StartingLayout::Godot | StartingLayout::Blender => app_pane("viewer"),
+    }
+}
+
+/// The New Cluster dialog's first step, the "existing environment" list —
+/// see `environments::list_local_worktrees` for what it excludes and why.
+#[tauri::command]
+pub fn list_cluster_environments(project: String) -> Result<Vec<crate::environments::Environment>> {
+    let main_repo =
+        crate::git::main_repo_root(Path::new(&project)).ok_or_else(|| AppError::Git {
+            op: "worktree list".to_string(),
+            reason: format!("`{project}` is not inside a git repository."),
+        })?;
+    crate::environments::list_local_worktrees(&main_repo)
+}
+
+fn resolve_environment_choice(
+    project: &str,
+    choice: EnvironmentChoice,
+) -> Result<crate::environments::Environment> {
+    match choice {
+        EnvironmentChoice::NewLocalWorktree { name, base } => {
+            let main_repo = crate::git::main_repo_root(Path::new(project)).ok_or_else(|| {
+                AppError::Git {
+                    op: "worktree add".to_string(),
+                    reason: format!("`{project}` is not inside a git repository."),
+                }
+            })?;
+            crate::environments::create_local_worktree(&main_repo, &name, &base)
+        }
+        EnvironmentChoice::Existing { environment } => Ok(environment),
+    }
+}
+
+/// Where the new cluster goes and what it starts out named — the part of
+/// `create_cluster_with_environment`'s payload that is about the *cluster*,
+/// grouped into one struct so the command itself stays under clippy's
+/// seven-argument line. `choice` and `layout` stay separate parameters
+/// because they are each already their own type with their own doc; folding
+/// everything into one struct would just move the crowding from the
+/// function signature into that struct's field list.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewClusterTarget {
+    pub label: String,
+    pub name: String,
+    pub project: String,
+}
+
+/// The New Cluster dialog's finishing step: create the cluster, resolve
+/// (and, for a new worktree, actually create) the environment it chose, and
+/// arrange its one pane per the starting layout its second step chose.
+///
+/// Three `ShellState` mutations rather than one — `add_cluster`, then
+/// `set_cluster_project`, then `set_cluster_environment` — each broadcasting
+/// and persisting on its own. `project::open` already accepts this same
+/// multi-step shape for the same reason: nothing here can be collapsed into
+/// a single atomic write without `ShellState::mutate` growing a bespoke
+/// closure for this one caller, and three ordinary calls read the whole
+/// operation over the wire as three small, individually-understandable
+/// state changes rather than one large exception to how everything else
+/// here writes.
+#[tauri::command]
+pub fn create_cluster_with_environment(
+    app: tauri::AppHandle,
+    shell: State<'_, ShellState>,
+    ptys: State<'_, PtySessions>,
+    target: NewClusterTarget,
+    choice: EnvironmentChoice,
+    layout: StartingLayout,
+) -> Result<String> {
+    let NewClusterTarget { label, name, project } = target;
+    let environment = resolve_environment_choice(&project, choice)?;
+    let name = cluster_name_or_environment_fallback(&name, &environment);
+
+    let cluster_id = shell
+        .add_cluster(&app, &label, &name)
+        .ok_or(AppError::NoCluster("create"))?;
+    shell.set_cluster_project(&app, &cluster_id, Some(project));
+    shell.set_cluster_environment(&app, &cluster_id, Some(environment));
+
+    let root = starting_layout_preset(layout);
+    if let Some((label, gaps)) = shell.apply_preset_to_cluster(&app, &cluster_id, &root) {
+        fill_preset_gaps(&app, &shell, &ptys, &label, &cluster_id, gaps);
+    }
+
+    project::retitle(&app);
+    Ok(cluster_id)
+}
+
+/// A cluster always shows *something* in the switcher, so a blank or
+/// whitespace-only `name` from the dialog falls back to a name the chosen
+/// environment already carries — its branch, when it has one, and "Main" for
+/// the one variant that doesn't ([`crate::environments::Environment::branch`]
+/// is `None` there by design, not by omission — see that method's doc).
+/// Pulled out of [`create_cluster_with_environment`] so this fallback is
+/// tested directly rather than only through a command that needs a live
+/// `AppHandle` to call at all.
+fn cluster_name_or_environment_fallback(name: &str, environment: &crate::environments::Environment) -> String {
+    let trimmed = name.trim();
+    if !trimmed.is_empty() {
+        return trimmed.to_string();
+    }
+    environment.branch().unwrap_or("Main").to_string()
+}
+
+/// Create `wt/design` for a project that doesn't have one yet, and pin the
+/// Design canvas cluster onto it in the calling window.
+///
+/// The "offered but not auto-created" half of the canvas's behaviour
+/// (KAAVA-UX-REWORK.md §5) — `project::open`'s `open_design_cluster_if_present`
+/// is the *auto* half, run once at open time for a project that already has
+/// `wt/design`; this is the same finish for one that doesn't, reachable
+/// without closing and reopening the project to get it. `base` is the branch
+/// `wt/design` forks from, same as the New Cluster dialog's own worktree step.
+#[tauri::command]
+pub fn create_design_cluster(
+    app: tauri::AppHandle,
+    shell: State<'_, ShellState>,
+    label: String,
+    project: String,
+    base: String,
+) -> Result<Option<String>> {
+    let main_repo = crate::git::main_repo_root(Path::new(&project)).ok_or_else(|| AppError::Git {
+        op: "worktree add".to_string(),
+        reason: format!("`{project}` is not inside a git repository."),
+    })?;
+    let environment = crate::environments::create_design_environment(&main_repo, &base)?;
+    Ok(shell.add_design_cluster(&app, &label, &project, environment))
 }
 
 #[tauri::command]
@@ -1253,6 +1446,73 @@ pub fn set_cluster_project(
     crate::mcp::sync_all(&app);
 }
 
+/// One row of the Switch Project dialog (board 08): a Recent-list entry plus
+/// how much of it is live right now. Flattens `project::ProjectInfo` rather
+/// than nesting it, so the frontend reads one flat object per row instead of
+/// reaching through `.info.name` — this type exists for exactly one dialog
+/// and has no other shape to agree with.
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecentProjectRow {
+    pub name: String,
+    pub path: String,
+    pub id: Option<String>,
+    pub initialized: bool,
+    pub exists: bool,
+    pub last_opened: Option<u64>,
+    /// Whether any cluster, in any window, has this project open right now.
+    pub open: bool,
+    pub cluster_count: usize,
+    pub environment_count: usize,
+}
+
+/// The Switch Project dialog's row list: every Recent entry, each carrying
+/// [`ShellState::project_live_counts`]'s answer for it. `format`/`modified`
+/// from `project::ProjectInfo` are left out — the dialog names in board 08's
+/// spec (`environmentCount`, `clusterCount`, a relative "last opened" the
+/// frontend derives from `lastOpened`) don't use them, and a field with no
+/// reader is a field nobody notices going stale.
+#[tauri::command]
+pub fn list_recent_projects(
+    app: tauri::AppHandle,
+    shell: State<'_, ShellState>,
+) -> Vec<RecentProjectRow> {
+    project::snapshot(&app, None)
+        .recents
+        .into_iter()
+        .map(|info| {
+            let counts = shell.project_live_counts(&info.path);
+            RecentProjectRow {
+                name: info.name,
+                path: info.path,
+                id: info.id,
+                initialized: info.initialized,
+                exists: info.exists,
+                last_opened: info.last_opened,
+                open: counts.open,
+                cluster_count: counts.cluster_count,
+                environment_count: counts.environment_count,
+            }
+        })
+        .collect()
+}
+
+/// Open a Recent-list project into a cluster, for the Switch Project dialog.
+///
+/// Goes through `project::open` directly rather than `set_cluster_project` —
+/// this is a person choosing a project, so it belongs in the Recent list and
+/// gets the pinned Design cluster and the open-preset the same way Home's own
+/// "Open project" does; `set_cluster_project` is the quieter primitive under
+/// that, for callers restoring or seeding a cluster rather than opening one.
+#[tauri::command]
+pub fn open_project_in_cluster(
+    app: tauri::AppHandle,
+    cluster_id: String,
+    path: String,
+) -> Result<project::ProjectSnapshot> {
+    project::open(&app, Path::new(&path), &cluster_id)
+}
+
 // --- layout presets ---------------------------------------------------------
 //
 // A preset is a named arrangement: the split shape, and which app belongs in
@@ -1526,4 +1786,49 @@ pub(crate) fn apply_project_open_preset(app: &tauri::AppHandle, cluster_id: &str
 
     let ptys = app.state::<PtySessions>();
     fill_preset_gaps(app, &shell, &ptys, &label, cluster_id, gaps);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::environments::Environment;
+
+    fn local_worktree() -> Environment {
+        Environment::LocalWorktree {
+            name: "feat-x".to_string(),
+            path: "C:/proj/.kaava/worktrees/feat-x".to_string(),
+            branch: "wt/feat-x".to_string(),
+            base: "main".to_string(),
+        }
+    }
+
+    #[test]
+    fn a_typed_name_is_kept_as_is() {
+        assert_eq!(
+            cluster_name_or_environment_fallback("Flashlight", &local_worktree()),
+            "Flashlight"
+        );
+    }
+
+    #[test]
+    fn a_blank_name_falls_back_to_the_environments_branch() {
+        assert_eq!(
+            cluster_name_or_environment_fallback("", &local_worktree()),
+            "wt/feat-x"
+        );
+        assert_eq!(
+            cluster_name_or_environment_fallback("   ", &local_worktree()),
+            "wt/feat-x",
+            "whitespace-only counts as blank too"
+        );
+    }
+
+    #[test]
+    fn a_blank_name_on_main_falls_back_to_main_itself() {
+        assert_eq!(
+            cluster_name_or_environment_fallback("", &Environment::Main),
+            "Main",
+            "Main has no branch of its own — see Environment::branch's doc"
+        );
+    }
 }
