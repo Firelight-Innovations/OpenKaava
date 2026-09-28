@@ -4,12 +4,13 @@
 //! An estimate, not a bill. It multiplies what exists (`cloud::inventory`) by
 //! how much it ran or held (`cloud::monitoring`) by the public price sheet
 //! (`cloud::billing`). Discounts, credits, taxes and the services listed in
-//! [`NOT_ESTIMATED`] are left out, and the page says so. The billed figure
-//! from the BigQuery export is a later step.
+//! [`NOT_ESTIMATED`] are left out, and the page says so. Beside it goes what
+//! Google has actually billed, from the BigQuery export (`cloud::bigquery`).
 //!
 //! One method, `costs/estimate`, and it only reads.
 
 use crate::apps::CallContext;
+use crate::cloud::bigquery::{self, Billed};
 use crate::cloud::billing::{self, Sku};
 use crate::cloud::inventory::{self, Address, Bucket, Disk, RunService, Vm};
 use crate::cloud::monitoring::{self, Series};
@@ -77,6 +78,8 @@ pub struct Estimate {
     pub not_estimated: Vec<&'static str>,
     /// The newest `effectiveTime` among the prices used.
     pub prices_as_of: Option<String>,
+    /// What the billing export says was charged, net of credits.
+    pub billed: Billed,
 }
 
 #[derive(Debug, Serialize)]
@@ -283,6 +286,7 @@ pub struct Inputs {
     pub compute_prices: Arc<Vec<Sku>>,
     pub storage_prices: Arc<Vec<Sku>>,
     pub run_prices: Arc<Vec<Sku>>,
+    pub billed: Option<Billed>,
 }
 
 #[derive(Default, Deserialize)]
@@ -312,8 +316,11 @@ fn budget() -> f64 {
 
 pub fn estimate(cloud: &Cloud, source: &Source) -> Result<Estimate, Trouble> {
     let month = Month::of(now_for(source));
-    let (inputs, problems) = gather(cloud, source, &month)?;
+    let (mut inputs, problems) = gather(cloud, source, &month)?;
     let (categories, prices_as_of) = price(&inputs, &month);
+    let billed = inputs.billed.take().unwrap_or(Billed::Unavailable {
+        message: "the billing export was not read".into(),
+    });
     Ok(Estimate {
         source: source.kind(),
         project: source.project().to_string(),
@@ -328,6 +335,7 @@ pub fn estimate(cloud: &Cloud, source: &Source) -> Result<Estimate, Trouble> {
         problems,
         not_estimated: NOT_ESTIMATED.to_vec(),
         prices_as_of,
+        billed,
     })
 }
 
@@ -397,6 +405,7 @@ fn gather(
         let storage_prices =
             scope.spawn(|| billing::catalog(cloud, source, billing::CLOUD_STORAGE));
         let run_prices = scope.spawn(|| billing::catalog(cloud, source, billing::CLOUD_RUN));
+        let billed = scope.spawn(|| bigquery::billed(cloud, source, month.start));
 
         keep("Machines", joined(vms).map(|v| inputs.vms = v));
         keep("Disks", joined(disks).map(|v| inputs.disks = v));
@@ -424,6 +433,18 @@ fn gather(
             "Cloud Run prices",
             joined(run_prices).map(|v| inputs.run_prices = v),
         );
+        // Drawn in its own place on the page, so a failure is its state
+        // rather than a problem line; only a signed-out gcloud goes to `keep`.
+        inputs.billed = Some(match joined(billed) {
+            Ok(billed) => billed,
+            Err(t @ (Trouble::GcloudMissing | Trouble::SignedOut { .. })) => {
+                keep("Billing export", Err(t));
+                return;
+            }
+            Err(other) => Billed::Unavailable {
+                message: other.message(),
+            },
+        });
     });
     match hard {
         Some(trouble) => Err(trouble),
@@ -968,6 +989,22 @@ mod tests {
         assert!((e.to_date - sum).abs() < 1e-9);
         assert!(e.forecast >= e.to_date);
         assert!(e.prices_as_of.is_some());
+    }
+
+    #[test]
+    fn the_estimate_carries_the_billed_figure_beside_it() {
+        let e = estimate(&Cloud::default(), &fixtures()).unwrap();
+        let Billed::Ok {
+            invoice_month, net, ..
+        } = &e.billed
+        else {
+            panic!("expected the fixture's export, got {:?}", e.billed);
+        };
+        assert_eq!(invoice_month, "202609");
+        assert!(*net > 0.0);
+        let json = serde_json::to_value(&e).unwrap();
+        assert_eq!(json["billed"]["state"], "ok");
+        assert_eq!(json["billed"]["invoiceMonth"], "202609");
     }
 
     #[test]

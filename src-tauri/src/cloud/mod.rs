@@ -15,6 +15,7 @@
 //! tests and for building UI while the cloud is down.
 
 pub mod auth;
+pub mod bigquery;
 pub mod billing;
 pub mod compute;
 pub(crate) mod http;

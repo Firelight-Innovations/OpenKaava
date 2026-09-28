@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { budgetTone, byResource, dayOf, money, quantity, unitPrice, verdict } from "./model";
+import {
+  budgetTone,
+  byResource,
+  dayOf,
+  exportedLabel,
+  money,
+  quantity,
+  unitPrice,
+  verdict,
+} from "./model";
 import type { Estimate, Line } from "./rpc";
 
 const line = (resource: string, item: string, toDate: number, forecast: number): Line => ({
@@ -30,6 +39,7 @@ const estimate = (forecast: number, budget = 150): Estimate => ({
   problems: [],
   notEstimated: [],
   pricesAsOf: null,
+  billed: { state: "notEnabled", dataset: "billing_export" },
 });
 
 describe("budgetTone", () => {
@@ -84,5 +94,12 @@ describe("the month", () => {
   it("says how far under or over the budget the forecast is", () => {
     expect(verdict(estimate(92.82))).toBe("$57.18 under the $150.00 budget");
     expect(verdict(estimate(160))).toBe("$10.00 over the $150.00 budget");
+  });
+});
+
+describe("the billing export", () => {
+  it("says when it last wrote a row, in UTC", () => {
+    expect(exportedLabel("2026-09-28T13:00:00Z")).toBe("exported through Sep 28, 1:00 PM UTC");
+    expect(exportedLabel(null)).toBe("no rows exported yet this month");
   });
 });

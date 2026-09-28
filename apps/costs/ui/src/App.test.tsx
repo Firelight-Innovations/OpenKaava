@@ -100,6 +100,20 @@ const estimate: Estimate = {
   problems: [{ part: "Cloud Run usage", message: "Google Cloud refused the request: no access" }],
   notEstimated: ["Network egress and Cloud NAT."],
   pricesAsOf: "2026-09-27T07:00:00Z",
+  billed: {
+    state: "ok",
+    table: "gcp_billing_export_v1_01A2B3_C4D5E6_F7A8B9",
+    invoiceMonth: "202609",
+    currency: "USD",
+    cost: 30.03,
+    credits: -0.78,
+    net: 29.25,
+    exportedAt: "2026-09-28T13:00:00Z",
+    services: [
+      { service: "Compute Engine", cost: 28.12, credits: -0.78, net: 27.34 },
+      { service: "Cloud Storage", cost: 1.91, credits: 0, net: 1.91 },
+    ],
+  },
 };
 
 afterEach(() => {
@@ -112,7 +126,7 @@ describe("Cost Tracker", () => {
     bridge.invoke.mockResolvedValue(estimate);
     render(<App />);
 
-    expect(await screen.findByText("So far in September")).toBeTruthy();
+    expect(await screen.findByText("Estimated so far in September")).toBeTruthy();
     expect(screen.getByText("$30.94", { selector: ".costs__big" })).toBeTruthy();
     expect(screen.getByText("$33.22", { selector: ".costs__big" }).className).toContain(
       "costs__big--ok",
@@ -144,6 +158,43 @@ describe("Cost Tracker", () => {
     const forecast = await screen.findByText("$162.50", { selector: ".costs__big" });
     expect(forecast.className).toContain("costs__big--err");
     expect(screen.getByText(/\$12\.50 over the \$150\.00 budget/)).toBeTruthy();
+  });
+
+  it("puts the billed figure beside the estimate, with a row per service", async () => {
+    bridge.invoke.mockResolvedValue(estimate);
+    render(<App />);
+
+    expect(await screen.findByText("Billed so far")).toBeTruthy();
+    expect(screen.getByText("$29.25", { selector: ".costs__big" })).toBeTruthy();
+    expect(screen.getByText(/exported through Sep 28, 1:00 PM UTC\)/)).toBeTruthy();
+    const billed = screen.getByRole("region", { name: "Billed by service" });
+    expect(within(billed).getByText("Compute Engine")).toBeTruthy();
+    expect(within(billed).getByText("−$0.78")).toBeTruthy();
+    expect(within(billed).getByText("$27.34")).toBeTruthy();
+  });
+
+  it("says how to turn the export on when it is not enabled", async () => {
+    bridge.invoke.mockResolvedValue({
+      ...estimate,
+      billed: { state: "notEnabled", dataset: "billing_export" },
+    });
+    render(<App />);
+
+    expect(await screen.findByText(/Billed cost appears once/)).toBeTruthy();
+    expect(screen.getByText("billing_export")).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Billed by service" })).toBeNull();
+    expect(screen.getByText("Billed so far").nextElementSibling?.textContent).toBe("—");
+  });
+
+  it("keeps the estimate when the export cannot be read", async () => {
+    bridge.invoke.mockResolvedValue({
+      ...estimate,
+      billed: { state: "unavailable", message: "Google Cloud refused the request: no bigquery" },
+    });
+    render(<App />);
+
+    expect(await screen.findByText(/Could not read the billing export/)).toBeTruthy();
+    expect(screen.getByText("$30.94", { selector: ".costs__big" })).toBeTruthy();
   });
 
   it("draws the fix when gcloud is signed out", async () => {

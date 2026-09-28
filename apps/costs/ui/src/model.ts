@@ -81,6 +81,19 @@ export function byResource(lines: Line[]): ResourceGroup[] {
   return [...groups.values()];
 }
 
+/** `Sep 28, 1:00 PM UTC` — when the billing export last wrote a row. */
+export function exportedLabel(at: string | null): string {
+  if (!at) return "no rows exported yet this month";
+  const text = new Date(at).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+  });
+  return `exported through ${text} UTC`;
+}
+
 /** One sentence on where the month is heading. */
 export function verdict(estimate: Estimate): string {
   const gap = estimate.budget - estimate.forecast;
