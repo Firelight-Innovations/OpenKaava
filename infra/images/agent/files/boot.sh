@@ -24,6 +24,8 @@ KAAVA_GPU_INSTANCE=$(attr kaava-gpu-instance)
 KAAVA_HINDSIGHT_URL=$hindsight_url
 KAAVA_IDLE_MINUTES=$(attr kaava-idle-minutes 30)
 KAAVA_PLANE_URL=$(attr kaava-plane-url)
+KAAVA_PROJECTS_BUCKET=$(attr kaava-projects veistra-projects)
+KAAVA_PROFILE=prod
 EOF
 
 # One MCP server per memory bank (P5-3), each authenticated with a fresh Google ID token at

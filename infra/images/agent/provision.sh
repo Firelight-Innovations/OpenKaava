@@ -76,6 +76,40 @@ install -m 755 /tmp/kaava-files/worker/plane-mcp.sh /opt/kaava/bin/plane-mcp
 chmod 755 /opt/kaava/bin/plane-mcp-check
 ln -sfn /opt/kaava/bin/plane-mcp-check /usr/local/bin/plane-mcp-check
 
+# AI jobs (Plane design 8.1): kaava-jobs claims queued jobs and runs each as `claude -p`, one at a
+# time, as its own user so a session never runs as root. The timer ticks every minute while the
+# VM is up; an empty queue costs two bucket listings.
+log "kaava-jobs"
+install -m 755 /tmp/kaava-files/worker/kaava_jobs.py /opt/kaava/bin/kaava-jobs
+ln -sfn /opt/kaava/bin/kaava-jobs /usr/local/bin/kaava-jobs
+rm -rf /opt/kaava/prompts && install -d /opt/kaava/prompts
+install -m 644 /tmp/kaava-files/worker/prompts/*.md /opt/kaava/prompts/
+id kaava-jobs >/dev/null 2>&1 || useradd --system --create-home --home-dir /var/lib/kaava-jobs --shell /usr/sbin/nologin kaava-jobs
+cat >/etc/systemd/system/kaava-jobs.service <<'EOF'
+[Unit]
+Description=Run queued AI jobs from Plane
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=kaava-jobs
+Environment=KAAVA_JOBS_PROMPTS=/opt/kaava/prompts
+ExecStart=/opt/kaava/bin/kaava-jobs run
+EOF
+cat >/etc/systemd/system/kaava-jobs.timer <<'EOF'
+[Unit]
+Description=Look for queued AI jobs every minute
+
+[Timer]
+OnBootSec=30s
+OnUnitInactiveSec=1min
+
+[Install]
+WantedBy=timers.target
+EOF
+systemctl enable kaava-jobs.timer
+
 # Every login shell: deployment config from boot.sh, and the Claude token read fresh from Secret
 # Manager into the environment only. An empty secret leaves the variable unset.
 cat >/etc/profile.d/kaava.sh <<'EOF'

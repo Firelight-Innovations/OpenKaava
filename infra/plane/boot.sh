@@ -21,7 +21,7 @@ data=/opt/plane
 dev=/dev/disk/by-id/google-plane-data
 conf=/opt/plane/compose
 
-log "1/5 mount plane-data"
+log "1/6 mount plane-data"
 blkid "$dev" >/dev/null 2>&1 || mkfs.ext4 -q -m 0 -E lazy_itable_init=0,lazy_journal_init=0 "$dev"
 mkdir -p "$data"
 if ! grep -q " $data " /etc/fstab; then
@@ -29,7 +29,7 @@ if ! grep -q " $data " /etc/fstab; then
 fi
 mountpoint -q "$data" || mount "$data"
 
-log "2/5 docker"
+log "2/6 docker"
 if ! command -v docker >/dev/null; then
   # Configure before installing, so the daemon's first start already uses plane-data, and never
   # starts before the disk is mounted on a later boot.
@@ -47,7 +47,7 @@ EOF
 fi
 systemctl is-active -q docker || systemctl start docker
 
-log "3/5 render plane.env"
+log "3/6 render plane.env"
 mkdir -p "$conf" /run/plane
 chmod 700 /run/plane
 md plane-compose >"$conf/docker-compose.yaml"
@@ -60,13 +60,23 @@ python3 "$conf/render_env.py" --template "$conf/plane.env.tmpl" --out /run/plane
   --prefix plane- --param "domain=$(md plane-domain)" --param "web_url=$url" \
   --param "port=$port" --param "https_port=8443"
 
-log "4/5 compose up"
+log "4/6 compose up"
 # --force-recreate rebuilds every container from the tmpfs env, so the secrets in Docker's
 # container config last only as long as this boot (section 5.3, owner's default).
 compose=(docker compose -p plane --env-file /run/plane/plane.env -f "$conf/docker-compose.yaml" -f "$conf/compose.override.yaml")
 "${compose[@]}" up -d --force-recreate --remove-orphans --quiet-pull
 
-log "5/5 kaava-idle"
+log "5/6 plane-watch"
+# Our own compose project on Plane's network (section 7.3). Its state (the poll cursor and the
+# jobs in flight) lives on plane-data, so a stop and boot carries on where it left off.
+watch=$data/plane-watch
+mkdir -p "$watch/state"
+md plane-watch >"$watch/plane_watch.py"
+md plane-watch-compose >"$watch/compose.yaml"
+KAAVA_WORKER=$(md kaava-worker) KAAVA_ZONE=$(md kaava-worker-zone) \
+  docker compose -p plane-watch -f "$watch/compose.yaml" up -d --force-recreate --quiet-pull
+
+log "6/6 kaava-idle"
 md kaava-idle >/tmp/kaava_idle.py
 cat >/etc/kaava-idle.conf <<EOF
 # Written by infra/plane/boot.sh on every boot.
@@ -74,7 +84,8 @@ PORTS=$port
 IDLE_MINUTES=$(md kaava-idle-minutes)
 MIN_UPTIME_MINUTES=20
 ACTIVITY_COMMAND=docker logs --since {minutes}m plane-proxy-1
-PRE_STOP=${compose[*]} stop
+EXTRA_CHECK=test -e $watch/state/busy
+PRE_STOP=docker compose -p plane-watch stop; ${compose[*]} stop
 EOF
 python3 /tmp/kaava_idle.py install
 

@@ -278,6 +278,10 @@ resource "google_compute_instance" "plane" {
     plane-render-env       = file("${path.module}/../../plane/render_env.py")
     kaava-idle             = file("${path.module}/../../common/kaava-idle/kaava_idle.py")
     kaava-idle-minutes     = tostring(var.idle_minutes)
+    plane-watch            = file("${path.module}/../../../services/plane-watch/plane_watch.py")
+    plane-watch-compose    = file("${path.module}/../../../services/plane-watch/compose.yaml")
+    kaava-worker           = var.worker_instance
+    kaava-worker-zone      = var.zone
     plane-url              = local.url
     plane-domain           = local.domain
   }
