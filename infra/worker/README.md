@@ -19,6 +19,34 @@ an agent VM, so a server added that way would be ignored.
 A stopped plane-vm takes 3 to 4.5 minutes to answer. Claude Code waits for the launcher because
 the image's managed settings set `MCP_TIMEOUT=300000` (5 minutes); the default is 30 seconds.
 
+## AI jobs (kaava-jobs)
+
+plane-watch (`services/plane-watch/`) queues a job when a work item gets an `ai:*` label.
+`kaava-jobs.timer` runs `kaava-jobs run` every minute while the worker is up:
+
+1. It closes as failed any job this worker claimed but never finished. That happens when the VM
+   stopped mid-job.
+2. It claims the oldest file in `gs://veistra-projects/prod/jobs/pending/`. It copies the file to
+   `claimed/` with `ifGenerationMatch=0`, so only one worker gets each job.
+3. It wakes plane-vm, then runs `claude -p` as the `kaava-jobs` user. The prompt is
+   `prompts/protocol.md` plus the kind's own prompt, the job and the project record. Plane must be
+   awake first, because `claude -p` does not wait for MCP servers; the first live job failed that
+   way.
+4. It reads the outcome from the item's labels. If the agent set neither `ai:done` nor
+   `ai:failed`, kaava-jobs sets `ai:failed` and comments why. Either way the job moves to `done/`
+   with the session's result.
+
+| File | On the VM |
+|---|---|
+| `kaava_jobs.py` | `/opt/kaava/bin/kaava-jobs` (`run`, `status`) |
+| `prompts/*.md` | `/opt/kaava/prompts/` |
+
+Only `do` jobs get Bash and file tools; the others get Plane and the project's Hindsight banks.
+Each job times out after one hour. An empty queue costs two bucket listings and never wakes Plane.
+
+On the worker, `kaava-jobs status` lists the queue, and
+`sudo journalctl -u kaava-jobs` shows the runs. Unit tests: `python infra/worker/test_kaava_jobs.py`.
+
 ## Checking it
 
 On the worker:
