@@ -422,14 +422,11 @@ export function setClusterProject(clusterId: string, path: string | null): Promi
 
 /**
  * One row of the Switch Project dialog (board 08). Mirrors
- * `commands::RecentProjectRow` — see that type for why it is flat rather
- * than `ProjectInfo` plus a nested counts object, and for why `format`/
- * `modified` are left out entirely.
- *
- * `open`/`clusterCount`/`environmentCount` answer for *this session*: a
- * project nobody has opened since OpenKaava last launched reads as fully
- * closed, even if it looked busy last time. There is no persisted per-project
- * workspace yet (KAAVA-UX-REWORK.md §6) for a closed project to draw from.
+ * `commands::RecentProjectRow` — see that type for why `format`/`modified`
+ * are left out. `open`/`clusterCount`/`environmentCount` answer for *this
+ * session* only: a project nobody has opened since launch reads as closed,
+ * even if it looked busy last time — there is no persisted per-project
+ * workspace yet (KAAVA-UX-REWORK.md §6) for a closed one to draw from.
  */
 export interface RecentProjectRow {
   name: string;
@@ -1250,12 +1247,10 @@ export function addCluster(label: string, name: string): Promise<string | null> 
 
 /**
  * What the New Cluster dialog's first step chose. Mirrors
- * `commands::EnvironmentChoice`.
- *
- * `newLocalWorktree` names a worktree that does not exist yet — the backend
- * creates it as part of resolving this — where `existing` already carries a
- * fully-formed `Environment` the dialog read from `listClusterEnvironments`
- * or built for "browse main, read-only" itself (`{ kind: "main" }`).
+ * `commands::EnvironmentChoice`. `newLocalWorktree` names a worktree that
+ * does not exist yet — the backend creates it as part of resolving this —
+ * where `existing` already carries a fully-formed `Environment` the dialog
+ * read from `listClusterEnvironments` or built for "browse main" itself.
  */
 export type EnvironmentChoice =
   | { kind: "newLocalWorktree"; name: string; base: string }

@@ -215,29 +215,21 @@ pub struct Cluster {
     /// See [`crate::environments::Environment`].
     ///
     /// **The new field, and [`WorktreeRef::path`]'s successor rather than its
-    /// replacement.** `worktree` stays on the struct — an old `layout.json` has
-    /// it and nothing else, and every reader that resolved a working root
-    /// through it (`cluster_root`, `git.rs`'s `cluster_checkout`) still has to
-    /// keep answering for a cluster this field has never been set on. What
-    /// changes is precedence: `cluster_root` below prefers `environment` when
-    /// it is `Some`, so a cluster carrying both — the ordinary case once
-    /// something has written this field — is unambiguous rather than resolved
-    /// by which of two fields happens to agree.
+    /// replacement.** `worktree` stays on the struct for every reader that
+    /// resolved a working root through it (`cluster_root`, `git.rs`'s
+    /// `cluster_checkout`); `cluster_root` below prefers `environment` when
+    /// it is `Some`, so a cluster carrying both is unambiguous rather than
+    /// resolved by which of two fields happens to agree.
     ///
     /// `None` covers two different pasts, deliberately conflated: a
     /// `layout.json` old enough to have never heard of this field, and a
-    /// cluster this build's own migration declined to guess at (a project
-    /// worked in directly, with no worktree — see `migrate_environment`'s doc
-    /// comment for why that is not read as `Main`). Both want the same
-    /// treatment — defer to the legacy fields, refuse nothing — so one `None`
-    /// serves both rather than a third variant that would have to explain the
-    /// difference to every caller.
+    /// cluster this build's own migration declined to guess at (see
+    /// `migrate_environment`'s doc for why that is not read as `Main`). Both
+    /// want the same treatment — defer to the legacy fields — so one `None`
+    /// serves both rather than a third variant explaining the difference.
     ///
-    /// `default` for the reason every other optional field on this struct
-    /// gives: a `layout.json` written before this key existed has no such key,
-    /// and a layout that fails to load is a session lost. Omitted when absent
-    /// so a file this build writes still opens, unchanged, in a build that
-    /// predates the field.
+    /// `default`/`skip_serializing_if`, as on every optional field here, so a
+    /// `layout.json` from before this key existed still loads.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub environment: Option<crate::environments::Environment>,
     /// The pinned Design canvas cluster, and only it. Not closable — see
@@ -890,19 +882,14 @@ impl ShellState {
     /// *about*.
     ///
     /// `environment` wins whenever it is `Some` — see `Cluster::environment`'s
-    /// doc for why that field takes precedence over the legacy `worktree` it
-    /// is replacing. A cluster on `Cloud` then honestly answers `None`: there
-    /// is no local checkout to name, and falling back to the project's path
+    /// doc for why it takes precedence over the legacy `worktree` it is
+    /// replacing. A cluster on `Cloud` then honestly answers `None`: there is
+    /// no local checkout to name, and falling back to the project's path
     /// would have a terminal or a file tree open against a folder the cloud
-    /// session never touches. Only a cluster with **no** `environment` at all
-    /// falls through to the pre-migration rule below.
-    ///
-    /// A cluster with a worktree (and no `environment`) is doing its work in
-    /// that worktree, not in the project it was branched from — a terminal, a
-    /// file tree, or a search that started from the project path would be
-    /// reading the wrong checkout the moment a worktree exists. So the
-    /// worktree wins whenever one is set, and the project is the fallback for
-    /// a cluster that has none.
+    /// session never touches. Only a cluster with **no** `environment` falls
+    /// through to the pre-migration rule: the worktree wins whenever one is
+    /// set (the project path would otherwise be the wrong checkout), and the
+    /// project is the fallback for a cluster that has neither.
     ///
     /// Deliberately does not check whether the resolved path still exists on
     /// disk — this module does no disk I/O, by design; see [`crate::project`]

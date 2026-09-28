@@ -1395,18 +1395,9 @@ export default function WindowRoot({
   }, [runTerminalId]);
 
   // `project` (what the title bar names, and what `onAddCluster` needs) is
-  // read up near `activeClusterId` now — see the note there. It is the active
-  // *cluster's* project rather than a process-wide one, which is what lets two
-  // windows on two monitors say two different things: each asks about the
-  // cluster it is showing, and a project switch in one leaves the other alone.
-  //
-  // The title bar no longer reads `git.status` for its third segment. That was
-  // the branch of the checkout the stack manifest resolved, which was never the
-  // cluster's worktree — it only looked like it while there was one project in
-  // the process. `Cluster.worktree` is the field it names now; nothing
-  // populates it yet, so the segment is absent and the layout is ready for the
-  // git work. `useGitStatus` is still read here by the status bar and the
-  // source-control tab, which are asking its own question and not this one.
+  // read up near `activeClusterId` now — see the note there. `useGitStatus`
+  // is still read here, by the status bar and the source-control tab, which
+  // are asking their own question and not this one.
 
   // The drag layer is the only thing in the shell that spans regions, so it is
   // the only thing that has to be handed down rather than owned locally. The

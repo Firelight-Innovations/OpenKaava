@@ -4,22 +4,20 @@
  * remembers opening, lets you filter them by name, and switches the active
  * cluster to whichever one you pick.
  *
- * The full board draws a **restore toast** alongside this dialog — "2
- * environments · 6 panes · cloud stream reattached · Git docked" — depicting
- * KAAVA-UX-REWORK.md §6's restore order (environments, then clusters, then
- * tabs, then right page). That toast, and the layout it describes, depend on
- * the per-project workspace file §6 defines; nothing persists one yet, so
- * this dialog only does the one thing that is real today — pointing the
- * active cluster at a different project through `openProjectInCluster`,
- * the same path Home's own Recent list uses. The summary line below is
- * built only from counts `list_recent_projects` actually answers (see
- * `RecentProjectRow`'s own doc on why `format`/`modified`/pane counts and
- * the board's status chips are left out rather than invented).
- *
- * The title-bar pill itself is not wired to open this yet — see this PR's
- * description for why (`TitleBar.tsx`'s title block is `pointer-events:
- * none` by design, and is mid-restyle on a parallel branch).
+ * The full board also draws a **restore toast** — "2 environments · 6 panes
+ * · cloud stream reattached · Git docked" — depicting KAAVA-UX-REWORK.md
+ * §6's restore order. That depends on the per-project workspace file §6
+ * defines, which nothing persists yet, so this dialog only does the one
+ * thing that is real today: pointing the active cluster at a different
+ * project through `openProjectInCluster`, the path Home's Recent list uses.
+ * The row summary is built only from what `list_recent_projects` actually
+ * answers — see `RecentProjectRow`'s own doc for why the board's fuller
+ * line and status chips are left out rather than invented.
  */
+
+// Not wired to a trigger yet — see this PR's description. The title-bar
+// pill it hangs off is mid-restyle on a parallel branch, and this file's
+// title block is `pointer-events: none` here until that lands.
 import { useEffect, useMemo, useState } from "react";
 import Dialog from "./Dialog";
 import "./SwitchProjectDialog.css";
