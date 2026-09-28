@@ -621,6 +621,62 @@ impl ShellState {
         created
     }
 
+    /// `add_cluster`'s counterpart for the one gesture that *should* inherit
+    /// the project: dropping a tab on the switcher's empty space
+    /// (KAAVA-UX-REWORK.md §5), which reads as "give this tab a cluster of its
+    /// own, here" rather than "start something new." `add_cluster`'s own doc
+    /// comment above explains why *that* one starts blank; this is the
+    /// narrower case where blank would be wrong; the tab dragged out of
+    /// `source_cluster` is mid-flight over the very project it already
+    /// belongs to, and a picker would ask a question the drop already
+    /// answered.
+    ///
+    /// `source_cluster` is searched for across every window, not just
+    /// `label`'s: the tab being dragged and the cluster it came from can be in
+    /// a different window from the one the drop lands in (a multi-monitor
+    /// drag), and there is nothing about the source cluster's environment
+    /// that is specific to which window happens to hold it.
+    ///
+    /// Home is not opened here, unlike `add_cluster` — the caller
+    /// (`commands::new_cluster_for_drop`) fills the new cluster's one pane
+    /// with the dragged tab in the same breath, so there is never a moment a
+    /// blank Home would be seen.
+    ///
+    /// Returns `(cluster_id, pane_id)` rather than only the cluster id, unlike
+    /// `add_cluster` — the caller has no surface to open into this one for
+    /// `move_instance` to find it with, so the pane it made has to come back
+    /// too.
+    pub fn add_cluster_for_environment(
+        &self,
+        app: &AppHandle,
+        label: &str,
+        name: &str,
+        source_cluster: &str,
+    ) -> Option<(String, String)> {
+        let (cluster_id, pane_id) = {
+            let mut counters = self.counters.write_or_panic();
+            counters.clusters += 1;
+            counters.panes += 1;
+            (
+                format!("cluster-{}", counters.clusters),
+                format!("pane-{}", counters.panes),
+            )
+        };
+
+        let mut created = None;
+        self.mutate(app, |s| {
+            created = add_cluster_for_environment_pure(
+                s,
+                label,
+                name,
+                source_cluster,
+                &cluster_id,
+                &pane_id,
+            );
+        });
+        created
+    }
+
     pub fn set_active_cluster(&self, app: &AppHandle, label: &str, cluster_id: Option<String>) {
         self.mutate(app, |s| {
             let Some(w) = s.windows.iter_mut().find(|w| w.label == label) else {
@@ -2481,6 +2537,49 @@ fn adopt_orphan_terminals(snapshot: &mut ShellSnapshot) {
     }
 }
 
+/// The whole of `ShellState::add_cluster_for_environment`, minus the lock, the
+/// id minting and the broadcast — written as a free function for the same
+/// reason `set_cluster_band_height` below is: there is no `AppHandle` to hand
+/// a `#[cfg(test)]` module, and the property worth pinning (the new cluster's
+/// `project`/`worktree` match `source_cluster`'s) is a property of this walk,
+/// not of the broadcast around it.
+fn add_cluster_for_environment_pure(
+    s: &mut ShellSnapshot,
+    label: &str,
+    name: &str,
+    source_cluster: &str,
+    cluster_id: &str,
+    pane_id: &str,
+) -> Option<(String, String)> {
+    let source = s
+        .windows
+        .iter()
+        .flat_map(|w| w.clusters.iter())
+        .find(|c| c.id == source_cluster);
+    let (project, worktree) = match source {
+        Some(c) => (c.project.clone(), c.worktree.clone()),
+        // The source cluster closed between the release and this call — a
+        // narrow race, not a reason to fail the drop. The tab still gets a
+        // home; it opens to Home's picker exactly as a plain `add_cluster`
+        // would.
+        None => (None, None),
+    };
+
+    let w = s.windows.iter_mut().find(|w| w.label == label)?;
+    w.clusters.push(Cluster {
+        id: cluster_id.to_string(),
+        name: name.to_string(),
+        tree: PaneNode::leaf(pane_id.to_string()),
+        project,
+        worktree,
+        active_terminal: None,
+        band_height: None,
+        page: None,
+    });
+    w.active_cluster_id = Some(cluster_id.to_string());
+    Some((cluster_id.to_string(), pane_id.to_string()))
+}
+
 /// Record how tall one cluster's terminal band was left, wherever that cluster is.
 ///
 /// Written as a free function so it can be unit-tested: every `ShellState` mutator takes an
@@ -3020,6 +3119,72 @@ mod tests {
         assert_eq!(
             s.windows[0].clusters[1].active_terminal, None,
             "and the one beside it has an empty band, not a borrowed terminal"
+        );
+    }
+
+    // --- new-cluster-from-drop inherits its source's environment -----------
+
+    #[test]
+    fn a_new_cluster_inherits_its_sources_project_and_worktree() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        cluster_mut(&mut s, "cluster-1").project = Some("/repo".to_string());
+        cluster_mut(&mut s, "cluster-1").worktree = Some(WorktreeRef {
+            path: "/repo/../.worktrees/repo/flashlight".to_string(),
+            branch: Some("wt/flashlight".to_string()),
+            base: None,
+        });
+
+        let created =
+            add_cluster_for_environment_pure(&mut s, "main", "New", "cluster-1", "cluster-2", "pane-2")
+                .expect("main exists");
+        assert_eq!(created, ("cluster-2".to_string(), "pane-2".to_string()));
+
+        let made = cluster_mut(&mut s, "cluster-2");
+        assert_eq!(made.project.as_deref(), Some("/repo"));
+        assert_eq!(
+            made.worktree.as_ref().map(|w| w.path.as_str()),
+            Some("/repo/../.worktrees/repo/flashlight")
+        );
+        assert_eq!(
+            s.windows[0].active_cluster_id.as_deref(),
+            Some("cluster-2"),
+            "the new cluster becomes the one on screen, same as add_cluster"
+        );
+    }
+
+    #[test]
+    fn a_new_cluster_from_an_unknown_source_gets_no_environment() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+
+        let created = add_cluster_for_environment_pure(
+            &mut s,
+            "main",
+            "New",
+            "cluster-missing",
+            "cluster-2",
+            "pane-2",
+        )
+        .expect("main exists");
+
+        let made = cluster_mut(&mut s, &created.0);
+        assert!(made.project.is_none());
+        assert!(made.worktree.is_none());
+    }
+
+    #[test]
+    fn add_cluster_for_environment_is_refused_for_an_unknown_window() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+
+        assert_eq!(
+            add_cluster_for_environment_pure(
+                &mut s,
+                "win-missing",
+                "New",
+                "cluster-1",
+                "cluster-2",
+                "pane-2"
+            ),
+            None
         );
     }
 

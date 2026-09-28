@@ -21,6 +21,12 @@
   display: flex;
   min-width: 0;
   min-height: 0;
+  /* KAAVA-UX-SPEC.md §1.5: "CSS Grid, gap 6px" — this stays a flex row/column
+     rather than becoming an actual grid (the split tree is recursive and a
+     fixed track count does not describe it), but flex `gap` gives the same
+     6px seam between panes with none of the double-padding a per-child
+     margin would risk at nested boundaries. */
+  gap: var(--space-1-5, 6px);
 }
 
 .pane-split[data-dir="row"] {
@@ -44,29 +50,29 @@
   min-height: 0;
 }
 
-/* The grab band is wider than the hairline it draws, because a 1px target is
-   not a target. It is centred on the seam by a negative offset rather than by
-   shifting the panes, so the line stays exactly on the boundary. */
+/* The grab band sits inside the gap `.pane-split`'s own `gap` opened up,
+   rather than overlaid on the panes themselves the way it was before that gap
+   existed. `left`/`top` here is exactly `-1 * the gap`, so the band spans the
+   gap precisely with no overlap onto either neighbour's box. */
 .pane-split__divider {
   position: absolute;
   z-index: 4;
+  cursor: col-resize;
 }
 
 .pane-split__divider[data-dir="row"] {
   top: 0;
   bottom: 0;
-  left: 0;
-  width: 7px;
-  margin-left: -3px;
+  left: calc(-1 * var(--space-1-5, 6px));
+  width: var(--space-1-5, 6px);
   cursor: col-resize;
 }
 
 .pane-split__divider[data-dir="column"] {
   left: 0;
   right: 0;
-  top: 0;
-  height: 7px;
-  margin-top: -3px;
+  top: calc(-1 * var(--space-1-5, 6px));
+  height: var(--space-1-5, 6px);
   cursor: row-resize;
 }
 
@@ -79,15 +85,17 @@
 .pane-split__divider[data-dir="row"]::after {
   top: 0;
   bottom: 0;
-  left: 3px;
+  left: 50%;
   width: 1px;
+  transform: translateX(-50%);
 }
 
 .pane-split__divider[data-dir="column"]::after {
   left: 0;
   right: 0;
-  top: 3px;
+  top: 50%;
   height: 1px;
+  transform: translateY(-50%);
 }
 
 .pane-split__divider:hover::after,
@@ -97,6 +105,11 @@
 
 /* --- panes ---------------------------------------------------------------- */
 
+/* KAAVA-UX-SPEC.md §1.5: every pane region is `bg-surface-1` with a
+   `radius-region` border, `1px solid #222425` (border-subtle) normally and
+   `border-strong` when focused. The border is drawn at both states rather
+   than only on focus — see `[data-focused]` below for why that is what keeps
+   the surface from shifting under it by a pixel when focus changes. */
 .pane {
   position: absolute;
   inset: 0;
@@ -104,25 +117,155 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  background: var(--bg);
+  background: var(--bg-surface-1, var(--bg));
+  border: 1px solid var(--border-subtle, var(--line));
+  border-radius: var(--radius-region, 0);
+  overflow: hidden;
 }
 
-/* Which pane a keystroke or a new surface would land in. An inset shadow
-   rather than a border: a border would take a pixel from the pane's content
-   box and shift every surface inside it by one on focus. */
-.pane[data-focused]::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-  box-shadow: inset 0 0 0 1px var(--accent-wash, var(--line));
+/* Which pane a keystroke or a new surface would land in. A border-*colour*
+   change rather than the inset box-shadow this used to be: the border is now
+   always present (see `.pane` above), so recolouring it on focus moves
+   nothing — the old overlay existed only because adding a border where none
+   had been would have shifted every surface inside by a pixel, and that
+   reason is gone now that every pane already reserves the space for one. */
+.pane[data-focused] {
+  border-color: var(--border-strong, var(--accent));
 }
 
-/* --- the measured box -----------------------------------------------------
-   No tab strip above it any more. Every tab in the window is in the cluster
-   bar (src/shell/switcher/switcher.css), so a pane is its host and nothing
-   else, and the host is the pane's whole area. */
+/* --- the tab strip ---------------------------------------------------------
+   KAAVA-UX-SPEC.md §1.6: `height 34px` in every v3 cluster board — see
+   `PaneTabStrip.tsx` for why the strips are back after this file's own
+   header once said they were gone for good. */
+
+.pane-tabstrip {
+  flex: none;
+  height: var(--h-paneltabs, 34px);
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-bottom: 1px solid var(--border-subtle, var(--line));
+  scrollbar-width: none;
+}
+
+.pane-tabstrip::-webkit-scrollbar {
+  display: none;
+}
+
+.pane-tab {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  cursor: default;
+  user-select: none;
+  color: var(--txt-tertiary, var(--text-dim));
+  border-right: 1px solid var(--border-subtle, var(--line));
+  /* The 2px accent underline an active tab carries, drawn for every tab and
+     left transparent on the inactive ones so the label never shifts by a
+     pixel when a tab becomes active. */
+  box-shadow: inset 0 -2px 0 transparent;
+}
+
+.pane-tab--active {
+  color: var(--txt-primary, var(--text));
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.pane-tab__swatch {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+}
+
+.pane-tab__icon {
+  flex: none;
+  color: inherit;
+}
+
+/* The swatch already says which file kind this is; the app glyph beside it is
+   the fallback identity for a title `fileTypeColor` did not recognise — see
+   that function's own header on how often that is the common case today. */
+.pane-tab__icon--app {
+  opacity: 0.7;
+}
+
+.pane-tab__label {
+  font-family: var(--sans);
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+/* One box, two mutually exclusive occupants — the agent-finished dot normally,
+   the close button on hover or keyboard focus — matching `switcher.css`'s own
+   member tab, which this strip is the sibling of rather than a redesign of. */
+.pane-tab__end {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+
+.pane-tab__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+
+.pane-tab__dot ~ .pane-tab__close,
+.pane-tab__close {
+  display: none;
+}
+
+.pane-tab:hover .pane-tab__dot,
+.pane-tab:focus-within .pane-tab__dot {
+  display: none;
+}
+
+.pane-tab:hover .pane-tab__close,
+.pane-tab:focus-within .pane-tab__close {
+  display: flex;
+}
+
+.pane-tab__close {
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: default;
+}
+
+.pane-tab__close:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.pane-tabstrip__caret {
+  flex: none;
+  width: 2px;
+  align-self: stretch;
+  margin: 4px 0;
+  background: var(--accent);
+  border-radius: 1px;
+}
+
+/* --- the measured box ------------------------------------------------------
+   Still empty, still the pane's whole area below its strip (or all of it, on
+   a pane with nothing open to show one for). */
 
 .pane__host {
   flex: 1;
@@ -138,9 +281,24 @@
   position: absolute;
   inset: 0;
   z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   pointer-events: none;
   background: rgb(217 138 63 / 12%);
   box-shadow: inset 0 0 0 1.5px rgb(217 138 63 / 60%);
+}
+
+.pane__drop-label {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--accent-line-strong);
+  border-radius: 4px;
+  padding: 3px 8px;
+  white-space: nowrap;
 }
 
 /* Half the pane, on the side the split would open. `data-before` is the
@@ -163,5 +321,6 @@
   bottom: 0;
 }
 
-/* The insertion caret used to be here too. It moved with the tabs: see
-   `.switcher__caret`. */
+/* The insertion caret used to be here too, and moved with the tabs when they
+   left for the switcher; it is back for the same reason the strip is — see
+   `.pane-tabstrip__caret` above. */

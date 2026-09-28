@@ -456,6 +456,7 @@ pub fn run() {
             commands::split_pane,
             commands::set_pane_sizes,
             commands::add_cluster,
+            commands::new_cluster_for_drop,
             commands::set_active_cluster,
             commands::rename_cluster,
             commands::close_cluster,

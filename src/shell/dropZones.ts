@@ -32,6 +32,23 @@ export type DropZone =
     }
   | { kind: "panel" }
   /**
+   * A cluster's own chip in the switcher bar — the target for KAAVA-UX-REWORK.md
+   * §5's "drop a tab on a cluster tab to move it into that cluster." Registered
+   * by `ClusterBar` via `clusterTabRef(id)`, one per chip; whether the drop is
+   * actually allowed (same environment) is not this module's question — see
+   * `useDrag`'s `resolve`, which stamps `refused` onto the `DropTarget` itself.
+   */
+  | { kind: "cluster"; clusterId: string }
+  /**
+   * The switcher bar's own background, behind and around every chip — the
+   * catch-all for KAAVA-UX-REWORK.md §5's "drop on empty switcher space creates
+   * a new cluster." One zone spanning the row, the same shape as `strip`'s
+   * reasoning: a chip already answers `cluster` for the pixels it covers, so
+   * this only wins where nothing more specific does, which `hitTest`'s pass
+   * order enforces rather than this zone's bounds.
+   */
+  | { kind: "switcher" }
+  /**
    * One session's emulator, wherever it is drawn — the band or a pane. The
    * target for **files** dragged in, and deliberately invisible to `hitTest`,
    * which answers for a dragged *tab*. An emulator sits inside a pane and
@@ -94,8 +111,26 @@ export function hitTest(x: number, y: number): DropTarget {
   }
 
   for (const { zone: held, el } of zones) {
+    const zone = held.current;
+    if (zone.kind !== "cluster") continue;
+    if (within(el.getBoundingClientRect(), x, y)) {
+      // `refused` is a geometric hit test's business only in the sense that
+      // it must set *something*: whether the environments actually agree is
+      // not information this module has. `useDrag`'s `resolve` recomputes it
+      // from the payload before the caller ever sees this value — see
+      // `DropTarget`'s own doc comment on the field.
+      return { kind: "cluster", clusterId: zone.clusterId, refused: false };
+    }
+  }
+
+  for (const { zone: held, el } of zones) {
     if (held.current.kind !== "panel") continue;
     if (within(el.getBoundingClientRect(), x, y)) return { kind: "panel" };
+  }
+
+  for (const { zone: held, el } of zones) {
+    if (held.current.kind !== "switcher") continue;
+    if (within(el.getBoundingClientRect(), x, y)) return { kind: "new-cluster" };
   }
 
   // Over no registered zone. Releasing here makes a window.

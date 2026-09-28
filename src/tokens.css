@@ -142,6 +142,43 @@
   --w-panel-collapsed: 34px;
   --w-window-button: 46px;
 
+  /* --- Kaava design-system tokens (v0.3 rework) --------------------------
+     Named exactly as docs/design/kaava-ds/tokens.json, so a component built
+     against the boards can read `--<token name>` and get the boards' own
+     value rather than a guess at one of the ten above. `ux/tokens` owns the
+     full migration (every token, the light-theme block this file still has
+     none of) — these are only the ones the panes/drag work below reaches
+     for, added here per the rework brief's "add it and say so" rule rather
+     than left as raw hex in a component. Values are that file's `dark`
+     variants; expect this block to be replaced wholesale once the
+     migration lands, and flag any second definition of these names for it
+     to reconcile rather than deleting either silently. */
+
+  --bg-surface-1: #141415;
+  --border-subtle: #222425;
+  --border-strong: #36393a;
+  --txt-primary: #e4e6e6;
+  --txt-tertiary: #afb3b6;
+  --txt-disabled: #7a8185;
+  --accent-subtle: #3b2612;
+  --info: #6f96ff;
+  --accent-coral: #e5736b;
+  --accent-violet: #a585f0;
+  --syn-type: #7fc8f8;
+  --syn-function: #f0c674;
+  --danger: #e5534b;
+  --danger-subtle: #3a1512;
+  --txt-danger: #f4a49c;
+  --radius-region: 10px;
+  --space-1-5: 6px;
+  /* KAAVA-UX-SPEC.md §1.6: the tab strip's file-type colour square for `.rs`
+     is called out as "unlisted colour" — every other extension in that table
+     names an existing token (`.gd`→syn-type, `.tscn`→info), but `.rs` names a
+     raw hex with nothing to reuse. Added here rather than inlined in
+     `fileTypeColor.ts`, per the rework brief's rule for a board colour with
+     no token. Flag for `ux/tokens` to fold into the real migration. */
+  --syn-rust: #e5734b;
+
   color-scheme: dark;
   font-family: var(--sans);
   font-size: 14px;
