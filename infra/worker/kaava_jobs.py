@@ -305,6 +305,10 @@ class Jobs:
             self.close_as_failed(job, reason)
             return self.finish(job, {"outcome": "failed", "reason": reason})
 
+        # Wake plane-vm before the session starts. `claude -p` does not wait for MCP servers, and
+        # the Plane launcher waking a stopped VM takes minutes, which is longer than an agent will
+        # retry for. With the VM already up the launcher connects in seconds.
+        self.plane()
         with open(os.path.join(PROMPTS, "protocol.md")) as f:
             protocol = f.read()
         with open(os.path.join(PROMPTS, f"{job['kind']}.md")) as f:

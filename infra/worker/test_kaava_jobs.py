@@ -167,6 +167,18 @@ class LoopTest(unittest.TestCase):
         self.assertEqual(kwargs["env"]["KAAVA_WORKFLOW_RUN"], "KAAVA-12-breakdown-1")
         self.assertTrue(kwargs["cwd"].endswith("KAAVA-12-breakdown-1"))
 
+    def test_plane_is_woken_before_the_session_starts(self):
+        self.google.put("prod/jobs/pending/KAAVA-12-breakdown-1.json", job())
+        order = []
+        runner = Runner(self.plane, effect=lambda plane: (order.append("session"), agent_finishes(plane)))
+
+        def wake():
+            order.append("wake")
+            return self.plane
+
+        kaava_jobs.Jobs({}, self.google, wake, runner=runner, agent="kaava-worker").run(lambda: "tok")
+        self.assertEqual(order, ["wake", "session"])
+
     def test_a_session_that_never_reports_is_closed_as_failed_on_the_work_item(self):
         self.google.put("prod/jobs/pending/KAAVA-12-breakdown-1.json", job())
         self.jobs(Runner(self.plane, stdout='{"is_error": true, "result": "usage limit"}', code=1)).run(lambda: "tok")
