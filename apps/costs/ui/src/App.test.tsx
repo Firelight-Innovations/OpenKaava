@@ -7,7 +7,50 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
-import type { Estimate } from "./rpc";
+import type { Estimate, Trends } from "./rpc";
+
+// jsdom implements no `ResizeObserver` — see `apps/schematify/ui/src/App.landing.test.tsx`
+// for the same stub. `CostCharts` uses one to measure its own pane width.
+class NoopResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+vi.stubGlobal("ResizeObserver", NoopResizeObserver);
+
+// jsdom lays out nothing, so every element's own rect is all zeros, which
+// would pin `CostCharts` to the docked reading in every test. Stand the pane
+// at a width past `DOCKED_MAX_WIDTH`, the expanded desktop case this file
+// otherwise exercises throughout.
+vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+  width: 900,
+  height: 600,
+  top: 0,
+  left: 0,
+  right: 900,
+  bottom: 600,
+  x: 0,
+  y: 0,
+  toJSON: () => ({}),
+});
+
+// jsdom has no canvas, so `echarts/core` is mocked throughout — this file
+// checks that the page asks for the right charts, not what ECharts draws
+// with them (`docs/design/COST-TRACKER-CHARTS.md` §4.3).
+const echarts = vi.hoisted(() => ({
+  init: vi.fn(() => ({ setOption: vi.fn(), resize: vi.fn(), dispose: vi.fn() })),
+  use: vi.fn(),
+}));
+vi.mock("echarts/core", () => echarts);
+vi.mock("echarts/charts", () => ({ BarChart: {}, LineChart: {}, PieChart: {} }));
+vi.mock("echarts/components", () => ({
+  DatasetComponent: {},
+  GridComponent: {},
+  LegendComponent: {},
+  MarkLineComponent: {},
+  TooltipComponent: {},
+}));
+vi.mock("echarts/renderers", () => ({ CanvasRenderer: {} }));
 
 const bridge = vi.hoisted(() => {
   class KaavaRpcError extends Error {
@@ -29,6 +72,15 @@ vi.mock("@openkaava/bridge", () => ({
 }));
 
 import App from "./App";
+
+const trendsNotEnabled: Trends = { state: "notEnabled", dataset: "billing_export" };
+
+/** Routes `costs/estimate` and `costs/trends` to their own answers, as the real bridge would. */
+function mockRpc(estimateValue: Estimate, trendsValue: Trends = trendsNotEnabled): void {
+  bridge.invoke.mockImplementation((method: unknown) =>
+    method === "costs/trends" ? Promise.resolve(trendsValue) : Promise.resolve(estimateValue),
+  );
+}
 
 const estimate: Estimate = {
   source: "fixture",
@@ -119,11 +171,12 @@ const estimate: Estimate = {
 afterEach(() => {
   cleanup();
   bridge.invoke.mockReset();
+  echarts.init.mockClear();
 });
 
 describe("Cost Tracker", () => {
   it("draws the month, the forecast against the budget, and each resource", async () => {
-    bridge.invoke.mockResolvedValue(estimate);
+    mockRpc(estimate);
     render(<App />);
 
     expect(await screen.findByText("Estimated so far in September")).toBeTruthy();
@@ -142,7 +195,7 @@ describe("Cost Tracker", () => {
   });
 
   it("shows an unpriced line and a failed part rather than hiding them", async () => {
-    bridge.invoke.mockResolvedValue(estimate);
+    mockRpc(estimate);
     render(<App />);
 
     const storage = await screen.findByRole("region", { name: "Cloud Storage" });
@@ -152,7 +205,7 @@ describe("Cost Tracker", () => {
   });
 
   it("turns the forecast red once it passes the budget", async () => {
-    bridge.invoke.mockResolvedValue({ ...estimate, forecast: 162.5 });
+    mockRpc({ ...estimate, forecast: 162.5 });
     render(<App />);
 
     const forecast = await screen.findByText("$162.50", { selector: ".costs__big" });
@@ -161,7 +214,7 @@ describe("Cost Tracker", () => {
   });
 
   it("puts the billed figure beside the estimate, with a row per service", async () => {
-    bridge.invoke.mockResolvedValue(estimate);
+    mockRpc(estimate);
     render(<App />);
 
     expect(await screen.findByText("Billed so far")).toBeTruthy();
@@ -174,10 +227,7 @@ describe("Cost Tracker", () => {
   });
 
   it("says how to turn the export on when it is not enabled", async () => {
-    bridge.invoke.mockResolvedValue({
-      ...estimate,
-      billed: { state: "notEnabled", dataset: "billing_export" },
-    });
+    mockRpc({ ...estimate, billed: { state: "notEnabled", dataset: "billing_export" } });
     render(<App />);
 
     expect(await screen.findByText(/Billed cost appears once/)).toBeTruthy();
@@ -187,7 +237,7 @@ describe("Cost Tracker", () => {
   });
 
   it("keeps the estimate when the export cannot be read", async () => {
-    bridge.invoke.mockResolvedValue({
+    mockRpc({
       ...estimate,
       billed: { state: "unavailable", message: "Google Cloud refused the request: no bigquery" },
     });
@@ -208,5 +258,43 @@ describe("Cost Tracker", () => {
 
     expect(await screen.findByText("Signed out of Google Cloud")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+  });
+
+  it("says the export is needed for the daily and monthly charts until trends says otherwise", async () => {
+    mockRpc(estimate);
+    render(<App />);
+
+    expect(await screen.findByText("From the bill")).toBeTruthy();
+    expect(screen.getByText(/These charts need the Cloud Billing export to BigQuery/)).toBeTruthy();
+    expect(screen.queryByLabelText(/What 202609 cost, by day and service/)).toBeNull();
+  });
+
+  it("draws the day-by-day and month-by-month charts once trends answers ok", async () => {
+    mockRpc(estimate, {
+      state: "ok",
+      currency: "USD",
+      daily: [{ day: "2026-09-01", service: "Compute Engine", net: 10 }],
+      monthly: [{ month: "202609", net: 10, partial: true }],
+      exportedAt: "2026-09-28T13:00:00Z",
+    });
+    render(<App />);
+
+    expect(await screen.findByLabelText(/What 202609 cost, by day and service/)).toBeTruthy();
+    expect(screen.getByLabelText("Net cost, the last six invoice months")).toBeTruthy();
+    expect(bridge.invoke).toHaveBeenCalledWith("costs/trends", undefined, 30_000);
+  });
+
+  it("initialises a chart per pane and disposes every one of them on unmount", async () => {
+    mockRpc(estimate);
+    const { unmount } = render(<App />);
+    await screen.findByText("Estimated so far in September");
+
+    const chartsInit = echarts.init.mock.results.length;
+    expect(chartsInit).toBeGreaterThan(0);
+    const charts = echarts.init.mock.results.map((r) => r.value as { dispose: () => void });
+
+    unmount();
+
+    for (const chart of charts) expect(chart.dispose).toHaveBeenCalledTimes(1);
   });
 });
