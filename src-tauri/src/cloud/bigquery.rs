@@ -1,17 +1,23 @@
-//! What Google has actually billed this month, from the Cloud Billing export
-//! to BigQuery: the other half of the Cost Tracker, beside its estimate.
+//! What Google has actually billed, from the Cloud Billing export to
+//! BigQuery: the other half of the Cost Tracker, beside its estimate.
+//! [`billed`] answers this invoice month's total by service; [`trends`]
+//! answers the daily and monthly series behind the Cost Tracker's charts
+//! C4–C6 (`docs/design/COST-TRACKER-CHARTS.md`).
 //!
 //! The export has to be switched on once in the Console, into the dataset
-//! [`dataset`] names. Until it is, the answer is [`Billed::NotEnabled`], which
-//! the page draws as the setup step rather than as an error. The export lags
-//! by hours, so the figure trails the estimate; `exportedAt` says by how much.
+//! [`dataset`] names. Until it is, both answers say so ([`Billed::NotEnabled`],
+//! [`Trends::NotEnabled`]) rather than drawing an error. The export lags by
+//! hours, so the figures trail the estimate; `exportedAt` says by how much.
 //!
-//! One read: find the standard usage-cost table, then one parameterized query
-//! summing this invoice month by service. Fixtures are
-//! `bigquery/tables.json` (a `tables.list` answer) and `bigquery/billing.json`
-//! (a `jobs.query` answer); with no tables file, the export is not enabled.
+//! Every read starts the same way: find the standard usage-cost table, then
+//! run one parameterized query. Fixtures are `bigquery/tables.json` (a
+//! `tables.list` answer), `bigquery/billing.json`, `bigquery/daily.json` and
+//! `bigquery/monthly.json` (each a `jobs.query` answer); with no tables file,
+//! the export is not enabled.
 
-use super::{fixture_json, get_json, http, rfc3339, Cloud, Result, Source, Trouble};
+use super::{
+    days_from_civil, fixture_json, get_json, http, rfc3339, Cloud, Result, Source, Trouble,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -24,6 +30,16 @@ const TABLE_PREFIX: &str = "gcp_billing_export_v1_";
 
 /// How long BigQuery may take before answering; under `http`'s own 20 s.
 const QUERY_TIMEOUT_MS: u32 = 15_000;
+
+/// How many invoice months [`trends`] returns, the current one included.
+const TRENDS_MONTHS: i64 = 6;
+
+/// How far before the earliest month the partition filter reaches, so a
+/// usage row that lands a few days late is not excluded.
+const PARTITION_MARGIN_SECS: i64 = 3 * 86_400;
+
+/// The message every `Unavailable` shares when BigQuery did not finish in time.
+const UNFINISHED: &str = "BigQuery did not finish the query in time; the next refresh tries again.";
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "state", rename_all = "camelCase")]
@@ -56,6 +72,49 @@ pub struct ServiceCost {
     pub net: f64,
 }
 
+/// The daily and monthly series behind charts C4–C6. Same shape rules as
+/// [`Billed`]: a missing table or a disabled BigQuery API is [`Trends::NotEnabled`],
+/// a signed-out `gcloud` stays an `Err`, anything else past that is [`Trends::Unavailable`].
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "state", rename_all = "camelCase")]
+pub enum Trends {
+    #[serde(rename_all = "camelCase")]
+    Ok {
+        currency: String,
+        /// This invoice month, by day and service — chart C4.
+        daily: Vec<DailyCost>,
+        /// The last [`TRENDS_MONTHS`] invoice months, oldest first — chart C5.
+        monthly: Vec<MonthlyCost>,
+        /// The newest `export_time` either query saw, if any row has arrived.
+        exported_at: Option<String>,
+    },
+    NotEnabled {
+        dataset: String,
+    },
+    Unavailable {
+        message: String,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DailyCost {
+    /// `2026-09-28`, the export's own `usage_start_time` date.
+    pub day: String,
+    pub service: String,
+    pub net: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MonthlyCost {
+    /// `202609`, the export's own `invoice.month`.
+    pub month: String,
+    pub net: f64,
+    /// True for the current invoice month, which has not finished yet.
+    pub partial: bool,
+}
+
 pub fn dataset() -> String {
     std::env::var("KAAVA_BILLING_DATASET")
         .ok()
@@ -86,41 +145,124 @@ pub fn invoice_month(month_start: i64) -> String {
     format!("{}{}", &text[0..4], &text[5..7])
 }
 
+/// Whether the export has a table to query yet. Shared by [`billed`] and
+/// [`trends`] so both treat a missing export, or a BigQuery API that is
+/// simply off, as the same setup step rather than as an error.
+enum Table {
+    Found(String),
+    NotEnabled,
+}
+
+fn locate_table(cloud: &Cloud, source: &Source, dataset: &str) -> Result<Table> {
+    match find_table(cloud, source, dataset) {
+        Ok(Some(table)) => Ok(Table::Found(table)),
+        Ok(None) | Err(Trouble::Missing { .. }) => Ok(Table::NotEnabled),
+        Err(trouble) if api_disabled(&trouble) => Ok(Table::NotEnabled),
+        Err(trouble) => Err(trouble),
+    }
+}
+
+/// One `jobs.query`, parsed. `what` names the query for the error a bad
+/// answer would carry.
+fn run_query(cloud: &Cloud, project: &str, body: &Value) -> Result<QueryAnswer> {
+    let url = format!(
+        "https://bigquery.googleapis.com/bigquery/v2/projects/{}/queries",
+        http::encode(project)
+    );
+    let reply = http::send(
+        &cloud.tokens,
+        http::Verb::PostJson(body.to_string()),
+        &url,
+        "the billing export query",
+        None,
+        4 << 20,
+    )?;
+    serde_json::from_slice(&reply.body).map_err(|e| Trouble::Api {
+        status: 200,
+        detail: format!("unreadable BigQuery answer: {e}"),
+    })
+}
+
 /// This month's billed cost. A signed-out `gcloud` is still an `Err`, so the
 /// caller can treat it like every other read; anything else past the table
 /// lookup becomes [`Billed::Unavailable`].
 pub fn billed(cloud: &Cloud, source: &Source, month_start: i64) -> Result<Billed> {
     let dataset = dataset();
-    let table = match find_table(cloud, source, &dataset) {
-        Ok(Some(table)) => table,
-        Ok(None) | Err(Trouble::Missing { .. }) => return Ok(Billed::NotEnabled { dataset }),
-        Err(trouble) if api_disabled(&trouble) => return Ok(Billed::NotEnabled { dataset }),
-        Err(trouble) => return Err(trouble),
+    let table = match locate_table(cloud, source, &dataset)? {
+        Table::Found(table) => table,
+        Table::NotEnabled => return Ok(Billed::NotEnabled { dataset }),
     };
     let month = invoice_month(month_start);
     let answer = match source {
         Source::Fixture { root } => fixture_json(root, "bigquery/billing.json")?,
         Source::Live { project } => {
-            let body = request(project, &dataset, &table, &month).to_string();
-            let url = format!(
-                "https://bigquery.googleapis.com/bigquery/v2/projects/{}/queries",
-                http::encode(project)
-            );
-            let reply = http::send(
-                &cloud.tokens,
-                http::Verb::PostJson(body),
-                &url,
-                "the billing export query",
-                None,
-                4 << 20,
-            )?;
-            serde_json::from_slice(&reply.body).map_err(|e| Trouble::Api {
-                status: 200,
-                detail: format!("unreadable BigQuery answer: {e}"),
-            })?
+            run_query(cloud, project, &request(project, &dataset, &table, &month))?
         }
     };
     Ok(summarise(table, month, &answer))
+}
+
+/// The daily and monthly spend behind charts C4–C6. Polled far less often
+/// than [`billed`] — every ten minutes, and only while the page is visible —
+/// since it runs two full-month scans rather than one.
+pub fn trends(cloud: &Cloud, source: &Source, month_start: i64) -> Result<Trends> {
+    let dataset = dataset();
+    let table = match locate_table(cloud, source, &dataset)? {
+        Table::Found(table) => table,
+        Table::NotEnabled => return Ok(Trends::NotEnabled { dataset }),
+    };
+    let month = invoice_month(month_start);
+    let first_month_start = shift_months(month_start, -(TRENDS_MONTHS - 1));
+    let first_month = invoice_month(first_month_start);
+    let partition_start = rfc3339(first_month_start - PARTITION_MARGIN_SECS);
+
+    let (daily_answer, monthly_answer) = match source {
+        Source::Fixture { root } => (
+            fixture_json(root, "bigquery/daily.json")?,
+            fixture_json(root, "bigquery/monthly.json")?,
+        ),
+        Source::Live { project } => (
+            run_query(
+                cloud,
+                project,
+                &daily_request(project, &dataset, &table, &month, &partition_start),
+            )?,
+            run_query(
+                cloud,
+                project,
+                &monthly_request(project, &dataset, &table, &first_month, &partition_start),
+            )?,
+        ),
+    };
+    if !daily_answer.job_complete || !monthly_answer.job_complete {
+        return Ok(Trends::Unavailable {
+            message: UNFINISHED.into(),
+        });
+    }
+    let (daily, daily_newest) = parse_daily(&daily_answer);
+    let (monthly, monthly_newest) = parse_monthly(&monthly_answer, &month);
+    let exported_at = match (daily_newest, monthly_newest) {
+        (Some(a), Some(b)) => Some(a.max(b)),
+        (Some(t), None) | (None, Some(t)) => Some(t),
+        (None, None) => None,
+    };
+    Ok(Trends::Ok {
+        currency: "USD".into(),
+        daily,
+        monthly,
+        exported_at: exported_at.map(|t| rfc3339(t as i64)),
+    })
+}
+
+/// `month_start` shifted by `delta` whole calendar months — negative walks
+/// back — landing on that month's first day at 00:00 UTC. [`trends`] uses it
+/// to find the earliest of the last [`TRENDS_MONTHS`] invoice months.
+fn shift_months(month_start: i64, delta: i64) -> i64 {
+    let text = rfc3339(month_start);
+    let year: i64 = text[0..4].parse().unwrap_or(1970);
+    let month: i64 = text[5..7].parse().unwrap_or(1);
+    let total = year * 12 + (month - 1) + delta;
+    days_from_civil(total.div_euclid(12), total.rem_euclid(12) + 1, 1) * 86_400
 }
 
 /// BigQuery names: letters, digits and underscores. Anything else is refused
@@ -180,16 +322,40 @@ fn pick_table(ids: impl Iterator<Item = String>) -> Option<String> {
         .min()
 }
 
-/// The `jobs.query` body. Month and project travel as parameters; only the
-/// table's own name is spliced, and only after [`is_identifier`].
-fn request(project: &str, dataset: &str, table: &str, month: &str) -> Value {
-    let from = if is_project_id(project) && is_identifier(dataset) && is_identifier(table) {
+/// A table's fully qualified name, or a name that cannot match anything.
+/// Every caller here only ever passes a `project` [`is_project_id`] and a
+/// `dataset`/`table` [`is_identifier`] has already checked, so the fallback
+/// is unreachable in practice — a query that fails is still safer than one
+/// built from a name that was not checked.
+fn qualified(project: &str, dataset: &str, table: &str) -> String {
+    if is_project_id(project) && is_identifier(dataset) && is_identifier(table) {
         format!("`{project}.{dataset}.{table}`")
     } else {
-        // Unreachable from `billed`, which only passes checked names; a query
-        // that fails is still better than one that splices something else.
         "`invalid`".to_string()
-    };
+    }
+}
+
+fn param(name: &str, value: &str) -> Value {
+    json!({
+        "name": name,
+        "parameterType": { "type": "STRING" },
+        "parameterValue": { "value": value },
+    })
+}
+
+fn param_ts(name: &str, value: &str) -> Value {
+    json!({
+        "name": name,
+        "parameterType": { "type": "TIMESTAMP" },
+        "parameterValue": { "value": value },
+    })
+}
+
+/// The `jobs.query` body for [`billed`]. Month and project travel as
+/// parameters; only the table's own name is spliced, and only after
+/// [`qualified`] has checked it.
+fn request(project: &str, dataset: &str, table: &str, month: &str) -> Value {
+    let from = qualified(project, dataset, table);
     let sql = format!(
         "SELECT service.description AS service, SUM(cost) AS cost, \
          SUM(IFNULL((SELECT SUM(c.amount) FROM UNNEST(credits) AS c), 0)) AS credits, \
@@ -197,19 +363,75 @@ fn request(project: &str, dataset: &str, table: &str, month: &str) -> Value {
          FROM {from} WHERE invoice.month = @month AND project.id = @project \
          GROUP BY service ORDER BY cost DESC"
     );
-    let param = |name: &str, value: &str| {
-        json!({
-            "name": name,
-            "parameterType": { "type": "STRING" },
-            "parameterValue": { "value": value },
-        })
-    };
     json!({
         "query": sql,
         "useLegacySql": false,
         "timeoutMs": QUERY_TIMEOUT_MS,
         "parameterMode": "NAMED",
         "queryParameters": [param("month", month), param("project", project)],
+    })
+}
+
+/// The `jobs.query` body for chart C4: this invoice month, by day and
+/// service. `partition_start` keeps the scan to the months trends actually
+/// covers (`docs/design/COST-TRACKER-CHARTS.md` §3.2).
+fn daily_request(
+    project: &str,
+    dataset: &str,
+    table: &str,
+    month: &str,
+    partition_start: &str,
+) -> Value {
+    let from = qualified(project, dataset, table);
+    let sql = format!(
+        "SELECT DATE(usage_start_time) AS day, service.description AS service, \
+         SUM(cost) + SUM(IFNULL((SELECT SUM(c.amount) FROM UNNEST(credits) AS c), 0)) AS net, \
+         MAX(export_time) AS exported \
+         FROM {from} WHERE invoice.month = @month AND project.id = @project \
+         AND _PARTITIONTIME >= @partition_start \
+         GROUP BY day, service ORDER BY day, service"
+    );
+    json!({
+        "query": sql,
+        "useLegacySql": false,
+        "timeoutMs": QUERY_TIMEOUT_MS,
+        "parameterMode": "NAMED",
+        "queryParameters": [
+            param("month", month),
+            param("project", project),
+            param_ts("partition_start", partition_start),
+        ],
+    })
+}
+
+/// The `jobs.query` body for chart C5: the last [`TRENDS_MONTHS`] invoice
+/// months. `first_month` is the earliest one, inclusive.
+fn monthly_request(
+    project: &str,
+    dataset: &str,
+    table: &str,
+    first_month: &str,
+    partition_start: &str,
+) -> Value {
+    let from = qualified(project, dataset, table);
+    let sql = format!(
+        "SELECT invoice.month AS month, \
+         SUM(cost) + SUM(IFNULL((SELECT SUM(c.amount) FROM UNNEST(credits) AS c), 0)) AS net, \
+         MAX(export_time) AS exported \
+         FROM {from} WHERE invoice.month >= @first_month AND project.id = @project \
+         AND _PARTITIONTIME >= @partition_start \
+         GROUP BY month ORDER BY month"
+    );
+    json!({
+        "query": sql,
+        "useLegacySql": false,
+        "timeoutMs": QUERY_TIMEOUT_MS,
+        "parameterMode": "NAMED",
+        "queryParameters": [
+            param("first_month", first_month),
+            param("project", project),
+            param_ts("partition_start", partition_start),
+        ],
     })
 }
 
@@ -245,6 +467,14 @@ struct Cell {
     v: Value,
 }
 
+fn column(answer: &QueryAnswer, name: &str) -> Option<usize> {
+    answer.schema.fields.iter().position(|f| f.name == name)
+}
+
+fn cell(row: &Row, at: Option<usize>) -> Option<&Value> {
+    at.and_then(|i| row.f.get(i)).map(|c| &c.v)
+}
+
 /// BigQuery sends every scalar as a string; a TIMESTAMP is epoch seconds.
 fn number(value: &Value) -> Option<f64> {
     match value {
@@ -257,22 +487,16 @@ fn number(value: &Value) -> Option<f64> {
 fn summarise(table: String, invoice_month: String, answer: &QueryAnswer) -> Billed {
     if !answer.job_complete {
         return Billed::Unavailable {
-            message: "BigQuery did not finish the query in time; the next refresh tries again."
-                .into(),
+            message: UNFINISHED.into(),
         };
     }
-    let column = |name: &str| answer.schema.fields.iter().position(|f| f.name == name);
     let (service, cost, credits, currency, exported) = (
-        column("service"),
-        column("cost"),
-        column("credits"),
-        column("currency"),
-        column("exported"),
+        column(answer, "service"),
+        column(answer, "cost"),
+        column(answer, "credits"),
+        column(answer, "currency"),
+        column(answer, "exported"),
     );
-    fn cell(row: &Row, at: Option<usize>) -> Option<&Value> {
-        at.and_then(|i| row.f.get(i)).map(|c| &c.v)
-    }
-
     let mut services = Vec::new();
     let mut currency_seen: Option<String> = None;
     let mut newest: Option<f64> = None;
@@ -307,6 +531,63 @@ fn summarise(table: String, invoice_month: String, answer: &QueryAnswer) -> Bill
         exported_at: newest.map(|t| rfc3339(t as i64)),
         services,
     }
+}
+
+/// Rows plus the newest `exported` seen among them — the shared shape
+/// [`trends`] pulls out of both queries' answers.
+fn parse_daily(answer: &QueryAnswer) -> (Vec<DailyCost>, Option<f64>) {
+    let (day, service, net, exported) = (
+        column(answer, "day"),
+        column(answer, "service"),
+        column(answer, "net"),
+        column(answer, "exported"),
+    );
+    let mut rows = Vec::new();
+    let mut newest: Option<f64> = None;
+    for row in &answer.rows {
+        rows.push(DailyCost {
+            day: cell(row, day)
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_string(),
+            service: cell(row, service)
+                .and_then(Value::as_str)
+                .unwrap_or("Unnamed service")
+                .to_string(),
+            net: cell(row, net).and_then(number).unwrap_or(0.0),
+        });
+        if let Some(t) = cell(row, exported).and_then(number) {
+            newest = Some(newest.map_or(t, |n| n.max(t)));
+        }
+    }
+    (rows, newest)
+}
+
+/// Same shape as [`parse_daily`], and marks whichever row is `current_month`
+/// as partial — the only month the query can still be mid-way through.
+fn parse_monthly(answer: &QueryAnswer, current_month: &str) -> (Vec<MonthlyCost>, Option<f64>) {
+    let (month, net, exported) = (
+        column(answer, "month"),
+        column(answer, "net"),
+        column(answer, "exported"),
+    );
+    let mut rows = Vec::new();
+    let mut newest: Option<f64> = None;
+    for row in &answer.rows {
+        let month = cell(row, month)
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string();
+        rows.push(MonthlyCost {
+            partial: month == current_month,
+            month,
+            net: cell(row, net).and_then(number).unwrap_or(0.0),
+        });
+        if let Some(t) = cell(row, exported).and_then(number) {
+            newest = Some(newest.map_or(t, |n| n.max(t)));
+        }
+    }
+    (rows, newest)
 }
 
 #[cfg(test)]
@@ -437,5 +718,88 @@ mod tests {
             summarise("t".into(), "202609".into(), &answer),
             Billed::Unavailable { .. }
         ));
+    }
+
+    #[test]
+    fn shift_months_walks_back_across_a_year_boundary() {
+        let jan = super::super::parse_rfc3339("2027-01-01T00:00:00Z").unwrap();
+        assert_eq!(rfc3339(shift_months(jan, -6)), "2026-07-01T00:00:00Z");
+        assert_eq!(rfc3339(shift_months(jan, 0)), "2027-01-01T00:00:00Z");
+        let sep = super::super::parse_rfc3339("2026-09-01T00:00:00Z").unwrap();
+        assert_eq!(rfc3339(shift_months(sep, -5)), "2026-04-01T00:00:00Z");
+    }
+
+    #[test]
+    fn trends_queries_are_parameterized_and_scoped_by_partition() {
+        let body = daily_request(
+            "veistra-prod",
+            "billing_export",
+            "gcp_billing_export_v1_X",
+            "202609",
+            "2026-03-29T00:00:00Z",
+        );
+        let sql = body["query"].as_str().unwrap();
+        assert!(sql.contains("_PARTITIONTIME >= @partition_start"));
+        assert!(sql.contains("@month") && !sql.contains("202609"));
+        assert_eq!(body["queryParameters"].as_array().unwrap().len(), 3);
+
+        let body = monthly_request(
+            "veistra-prod",
+            "billing_export",
+            "gcp_billing_export_v1_X",
+            "202604",
+            "2026-03-29T00:00:00Z",
+        );
+        let sql = body["query"].as_str().unwrap();
+        assert!(sql.contains("@first_month") && !sql.contains("202604"));
+        assert!(sql.contains("_PARTITIONTIME >= @partition_start"));
+    }
+
+    #[test]
+    fn the_fixture_answers_daily_and_monthly_with_the_newest_export_seen() {
+        let start = super::super::parse_rfc3339("2026-09-01T00:00:00Z").unwrap();
+        let trends = trends(&Cloud::default(), &fixtures(), start).unwrap();
+        let Trends::Ok {
+            daily,
+            monthly,
+            exported_at,
+            ..
+        } = &trends
+        else {
+            panic!("expected Ok, got {trends:?}");
+        };
+        assert_eq!(daily.len(), 6);
+        assert_eq!(
+            (daily[0].day.as_str(), daily[0].service.as_str()),
+            ("2026-09-01", "Cloud Storage")
+        );
+        assert_eq!(monthly.len(), 6);
+        assert_eq!(monthly[0].month, "202604");
+        assert!(!monthly[0].partial);
+        assert_eq!(monthly[5].month, "202609");
+        assert!(monthly[5].partial, "the current month has not finished yet");
+        assert_eq!(
+            exported_at.as_deref(),
+            Some(rfc3339(1_790_600_400).as_str())
+        );
+
+        let json = serde_json::to_value(&trends).unwrap();
+        assert_eq!(json["state"], "ok");
+        assert_eq!(json["exportedAt"], rfc3339(1_790_600_400));
+        assert!(json["daily"][0]["day"].is_string());
+    }
+
+    #[test]
+    fn no_export_table_means_trends_are_not_enabled_either() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = Source::Fixture {
+            root: dir.path().to_path_buf(),
+        };
+        assert_eq!(
+            trends(&Cloud::default(), &source, 0).unwrap(),
+            Trends::NotEnabled {
+                dataset: DEFAULT_DATASET.into()
+            }
+        );
     }
 }
