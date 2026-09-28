@@ -8,14 +8,18 @@ Generic across VMs: each VM describes its own activity in /etc/kaava-idle.conf.
 """
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
 import sys
+import time
 
 CONFIG_PATH = "/etc/kaava-idle.conf"
 INSTALL_PATH = "/usr/local/bin/kaava-idle"
 UNIT_DIR = "/etc/systemd/system"
+STATE_PATH = "/var/lib/kaava-idle/state.json"
+BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id"
 
 DEFAULTS = {
     "PORTS": "",
@@ -83,19 +87,51 @@ def conntrack_ports(text):
     return ports
 
 
-def decide(config, uptime_minutes, open_ports, activity_output, extra_check_busy):
-    """The whole busy/idle decision, with every observation passed in. Returns (busy, reason)."""
+def counter_ports(text, ports):
+    """Ports whose kaava-idle SYN counter, in `iptables -nvxL` output, is above zero: {port: pkts}."""
+    counts = {}
+    for line in text.splitlines():
+        fields = line.split()
+        for port in ports:
+            if f"kaava-idle-{port}" in line and fields and fields[0].isdigit():
+                counts[port] = int(fields[0])
+    return counts
+
+
+def new_connections(previous, current):
+    """Ports that took a connection since the last check, from two counter readings."""
+    return {port for port, count in current.items() if count > previous.get(str(port), 0)}
+
+
+def current_activity(config, open_ports, new_ports, activity_output, extra_check_busy):
+    """Why the VM counts as in use at this check, or None."""
+    watched = parse_ports(config["PORTS"])
+    if watched & open_ports:
+        return "established connection on port " + ",".join(map(str, sorted(watched & open_ports)))
+    if watched & new_ports:
+        return "new connections on port " + ",".join(map(str, sorted(watched & new_ports)))
+    if activity_output and activity_output.strip():
+        return f"activity in the last {config['IDLE_MINUTES']} min"
+    if extra_check_busy:
+        return "EXTRA_CHECK reports busy"
+    return None
+
+
+def decide(config, uptime_minutes, minutes_since_active, active_reason):
+    """The whole busy/idle decision, with every observation passed in. Returns (busy, reason).
+
+    A check sees one instant, and the timer runs every few minutes, so seeing nothing now is not
+    idleness: the VM is idle only when no check has seen activity for IDLE_MINUTES.
+    """
     min_uptime = float(config["MIN_UPTIME_MINUTES"])
+    idle_minutes = float(config["IDLE_MINUTES"])
     if uptime_minutes < min_uptime:
         return True, f"uptime {uptime_minutes:.0f} min is under MIN_UPTIME_MINUTES={min_uptime:g}"
-    watched = parse_ports(config["PORTS"]) & open_ports
-    if watched:
-        return True, "established connection on port " + ",".join(map(str, sorted(watched)))
-    if activity_output and activity_output.strip():
-        return True, f"activity in the last {config['IDLE_MINUTES']} min"
-    if extra_check_busy:
-        return True, "EXTRA_CHECK reports busy"
-    return False, f"no activity for {config['IDLE_MINUTES']} min"
+    if active_reason:
+        return True, active_reason
+    if minutes_since_active < idle_minutes:
+        return True, f"last activity {minutes_since_active:.0f} min ago, under IDLE_MINUTES={idle_minutes:g}"
+    return False, f"no activity for {minutes_since_active:.0f} min"
 
 
 def log(message):
@@ -124,6 +160,49 @@ def read_file(path):
 def read_open_ports():
     local = established_ports([read_file("/proc/net/tcp"), read_file("/proc/net/tcp6")])
     return local | conntrack_ports(read_file("/proc/net/nf_conntrack"))
+
+
+def iptables(*args):
+    return subprocess.run(["iptables", "-w", *args], capture_output=True, text=True, timeout=30)
+
+
+def read_syn_counters(ports):
+    """Counts SYNs to each watched port, so a request that starts and ends between two checks
+    still counts. mangle PREROUTING sees the original port, before Docker's NAT rewrites it.
+    Best effort: without iptables the other signals still apply."""
+    if not ports:
+        return {}
+    try:
+        for port in ports:
+            rule = ["PREROUTING", "-p", "tcp", "--dport", str(port), "--syn",
+                    "-m", "comment", "--comment", f"kaava-idle-{port}"]
+            if iptables("-t", "mangle", "-C", *rule).returncode != 0:
+                made = iptables("-t", "mangle", "-I", *rule)
+                if made.returncode != 0:
+                    log(f"cannot add the SYN counter for port {port}: {made.stderr.strip()}")
+        return counter_ports(iptables("-t", "mangle", "-nvxL", "PREROUTING").stdout, ports)
+    except (OSError, subprocess.SubprocessError) as err:
+        log(f"no SYN counters ({err})")
+        return {}
+
+
+def load_state(path, boot_id):
+    """This boot's state, or an empty one: counters and timestamps do not survive a reboot."""
+    try:
+        with open(path) as f:
+            state = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    return state if state.get("boot_id") == boot_id else {}
+
+
+def save_state(path, state):
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            json.dump(state, f)
+    except OSError as err:
+        log(f"cannot save {path} ({err})")
 
 
 def run_activity(config):
@@ -157,20 +236,28 @@ def stop(config):
     subprocess.run(["shutdown", "-h", "now"], check=False)
 
 
-def check(config_path):
+def check(config_path, state_path=STATE_PATH):
     try:
         with open(config_path) as f:
             config = parse_config(f.read())
     except OSError as err:
         log(f"no config at {config_path} ({err}); staying up")
         return 0
-    busy, reason = decide(
+    now, uptime = time.time(), read_uptime_minutes()
+    boot_id = read_file(BOOT_ID_PATH).strip()
+    state = load_state(state_path, boot_id)
+    counters = read_syn_counters(parse_ports(config["PORTS"]))
+    reason_now = current_activity(
         config,
-        read_uptime_minutes(),
         read_open_ports(),
+        new_connections(state.get("syn", {}), counters),
         run_activity(config),
         run_extra_check(config),
     )
+    last_active = now if reason_now else state.get("last_active", now - uptime * 60)
+    save_state(state_path, {"boot_id": boot_id, "last_active": last_active,
+                            "syn": {str(p): c for p, c in counters.items()}})
+    busy, reason = decide(config, uptime, (now - last_active) / 60, reason_now)
     if busy:
         log(f"busy: {reason}")
         return 0
