@@ -124,6 +124,16 @@ pub enum AppError {
     #[error("this window has no cluster to {0}")]
     NoCluster(&'static str),
 
+    /// A page id this build does not offer — unknown, or its app not registered.
+    /// See `pages::find`, which treats those two the same.
+    #[error("no page with id `{0}` in this build")]
+    UnknownPage(String),
+
+    /// An app that draws a page, asked for as an ordinary surface. A page has
+    /// one cluster per window and one instance in it; see `pages`.
+    #[error("`{0}` is a page, not an app — open it from its chip in the cluster bar")]
+    PageApp(String),
+
     /// A search that could not run at all — an unusable regex pattern, or the
     /// blocking worker it ran on panicked. See `search.rs`. Not used for an
     /// ordinary empty result: a cluster with no project searches to an empty

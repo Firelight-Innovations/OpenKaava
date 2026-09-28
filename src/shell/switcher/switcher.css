@@ -271,6 +271,85 @@
   background: var(--surface-gap);
 }
 
+/* --- the page chips --------------------------------------------------------
+   Agents, Cost Tracker: cluster kinds, not clusters (see PageChips.tsx). They sit
+   as one group at the left of the row, set off from the real clusters by a
+   heavier hairline than the one between two cluster chips. */
+
+.switcher__pages {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  border-right: 1px solid var(--line-2);
+}
+
+.switcher__page {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding: 0 9px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.switcher__page:hover {
+  color: var(--text);
+}
+
+.switcher__page:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* The open page takes the open cluster's treatment — the darker ground and the
+   accent along the top — so "which thing is on screen" reads the same whichever
+   kind it is. An inset shadow rather than the framer band, which belongs to the
+   cluster groups and is not handed to a page. */
+.switcher__page--active {
+  color: var(--text);
+  background: var(--surface-gap);
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+
+.switcher__page-icon {
+  flex: none;
+}
+
+/* The label, clipped to nothing at rest and grown to its own width on hover,
+   focus, or while open. A one-column grid animating `0fr` to `1fr` is what lets
+   CSS animate to an intrinsic width; `max-width` would need a guessed ceiling.
+   The label only grows in place, so nothing in this scroll row travels sideways.
+   Timing is `motion.ts`'s `instant`, written as CSS. */
+.switcher__page-label {
+  display: grid;
+  grid-template-columns: 0fr;
+  transition: grid-template-columns 0.09s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.switcher__page:hover .switcher__page-label,
+.switcher__page:focus-visible .switcher__page-label,
+.switcher__page--active .switcher__page-label {
+  grid-template-columns: 1fr;
+}
+
+.switcher__page-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* The gap between icon and label, inside the clipped box so that it closes
+   with the label. A `gap` on the chip would leave 6px of nothing beside a bare
+   icon, and padding on the clipped box itself could not shrink below 6px. */
+.switcher__page-name {
+  padding-left: 6px;
+}
+
 .switcher__tab:disabled {
   cursor: default;
   /* Belt and braces alongside the `disabled` attribute: a not-installed tab

@@ -278,6 +278,25 @@ export function PullRequest({ size = 13, className }: IconProps) {
   );
 }
 
+/** The Agents page's chip. Tabler's `robot`, outline. */
+export function Robot({ size = 14, className }: IconProps) {
+  return (
+    <Outline size={size} className={className} linejoin="round">
+      <path d="M6 6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z" />
+      <path d="M12 2v2M9 12v9M15 12v9M5 16l4-2M15 14l4 2M9 18h6M10 8v.01M14 8v.01" />
+    </Outline>
+  );
+}
+
+/** The Cost Tracker page's chip. Tabler's `receipt`, outline. */
+export function Receipt({ size = 14, className }: IconProps) {
+  return (
+    <Outline size={size} className={className} linejoin="round">
+      <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-3-2-2 2-2-2-2 2-2-2-3 2M9 7h6M9 11h6M13 15h2" />
+    </Outline>
+  );
+}
+
 export function WindowMinimise(props: IconProps) {
   return (
     <Control {...props}>

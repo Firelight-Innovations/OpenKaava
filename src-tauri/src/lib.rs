@@ -22,6 +22,7 @@ mod launch;
 mod layout;
 mod manifest;
 mod mcp;
+mod pages;
 mod plugins;
 mod presets;
 mod project;
@@ -425,6 +426,8 @@ pub fn run() {
             commands::shell_state,
             commands::open_instance,
             commands::close_instance,
+            commands::list_pages,
+            commands::open_page,
             commands::activate_instance,
             commands::set_instance_title,
             commands::move_instance,

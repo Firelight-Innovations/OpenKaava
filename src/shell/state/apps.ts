@@ -14,11 +14,15 @@ import {
   appCall,
   listApps,
   listOpenables,
+  listPages,
   onPluginsChanged,
   type AppInfo,
   type CallScope,
   type Openable,
+  type PageInfo,
 } from "../../bindings";
+
+export type { PageInfo } from "../../bindings";
 
 export function useApps(): AppInfo[] {
   const [apps, setApps] = useState<AppInfo[]>([]);
@@ -38,6 +42,28 @@ export function useApps(): AppInfo[] {
   }, []);
 
   return apps;
+}
+
+/**
+ * The pages this build offers — the chips at the left of the cluster bar.
+ * Asked once, like `useApps`: the page table is compiled in. Empty until it
+ * answers, which draws the bar without its page group for a frame.
+ */
+export function usePages(): PageInfo[] {
+  const [pages, setPages] = useState<PageInfo[]>([]);
+
+  useEffect(() => {
+    let live = true;
+    void listPages()
+      .then((result) => live && setPages(result))
+      .catch((err: unknown) => console.error("kaava: could not list pages:", err));
+
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  return pages;
 }
 
 /**

@@ -195,6 +195,26 @@ pub struct Cluster {
     /// and a layout that failed to load is a session lost.
     #[serde(default)]
     pub band_height: Option<f32>,
+    /// The page this cluster is, or `None` for an ordinary cluster. See `crate::pages`.
+    ///
+    /// A page cluster has no project, and a tree of exactly one pane holding one
+    /// instance of the page's app. Every mutator below that could change that
+    /// refuses to for a page — close, rename, move to another window, split,
+    /// drop a tab in, drag its tab out — so the invariant is the state's rather
+    /// than the cluster bar's. There is at most one per page id per window,
+    /// created by `open_page` the first time its chip is chosen.
+    ///
+    /// Omitted from the JSON when `None`, and `default` when absent, so a
+    /// `layout.json` from before pages loads unchanged and one written now reads
+    /// the same to an older build for every ordinary cluster.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub page: Option<String>,
+}
+
+impl Cluster {
+    pub fn is_page(&self) -> bool {
+        self.page.is_some()
+    }
 }
 
 /// A window's outer rectangle, in physical pixels.
@@ -387,6 +407,7 @@ fn seed_window(counters: &mut Counters, label: &str) -> WindowPlacement {
         worktree: None,
         active_terminal: None,
         band_height: None,
+        page: None,
     };
 
     WindowPlacement {
@@ -421,6 +442,9 @@ impl ShellState {
             *counters = counters_for(&snapshot);
         }
         let mut snapshot = snapshot;
+        // First, so a terminal in a dropped page's band is re-homed below
+        // rather than left naming a cluster that has gone.
+        drop_unavailable_pages(&mut snapshot, &|id| crate::pages::find(id).is_some());
         // Order matters: a terminal has to be given a cluster before anything
         // asks which cluster's band it is in.
         adopt_orphan_terminals(&mut snapshot);
@@ -548,23 +572,7 @@ impl ShellState {
         if label == "main" || !self.take_closing(label) {
             return false;
         }
-        self.mutate(app, |s| {
-            let Some(i) = s.windows.iter().position(|w| w.label == label) else {
-                return;
-            };
-            let gone = s.windows.remove(i);
-            // The terminals need no attention here, and their absence is the
-            // point of naming a cluster. They travel with the clusters being
-            // folded in, because that is the only thing they name — where this
-            // used to rewrite a window label on every one of them, and would
-            // have stranded any it missed as a live shell with no tab.
-            if let Some(main) = s.windows.iter_mut().find(|w| w.label == "main") {
-                if main.active_cluster_id.is_none() {
-                    main.active_cluster_id = gone.clusters.first().map(|c| c.id.clone());
-                }
-                main.clusters.extend(gone.clusters);
-            }
-        });
+        self.mutate(app, |s| reclaim_window_pure(s, label));
         true
     }
 
@@ -599,6 +607,7 @@ impl ShellState {
                 worktree: None,
                 active_terminal: None,
                 band_height: None,
+                page: None,
             });
             w.active_cluster_id = Some(cluster_id.clone());
             created = Some(cluster_id.clone());
@@ -643,7 +652,8 @@ impl ShellState {
     pub fn set_cluster_project(&self, app: &AppHandle, cluster_id: &str, path: Option<String>) {
         self.mutate(app, |s| {
             for w in s.windows.iter_mut() {
-                if let Some(c) = w.cluster_mut(cluster_id) {
+                // A page is about the cloud, never a folder: silent, as for a gone id.
+                if let Some(c) = w.cluster_mut(cluster_id).filter(|c| !c.is_page()) {
                     c.project = path;
                     return;
                 }
@@ -778,7 +788,7 @@ impl ShellState {
             .iter()
             .find(|w| w.label == "main")
             .or_else(|| guard.windows.first())
-            .and_then(|w| w.clusters.first())
+            .and_then(|w| w.clusters.iter().find(|c| !c.is_page()))
             .map(|c| c.id.clone())
     }
 
@@ -793,14 +803,10 @@ impl ShellState {
             .any(|c| c.project.is_some())
     }
 
+    /// Rename a cluster. A page keeps the name its chip draws; see `rename_cluster_pure`.
     pub fn rename_cluster(&self, app: &AppHandle, cluster_id: &str, name: &str) {
         self.mutate(app, |s| {
-            for w in s.windows.iter_mut() {
-                if let Some(c) = w.cluster_mut(cluster_id) {
-                    c.name = name.to_string();
-                    return;
-                }
-            }
+            rename_cluster_pure(s, cluster_id, name);
         });
     }
 
@@ -822,39 +828,11 @@ impl ShellState {
     /// `move_cluster_pure` reaches the same window state by the other route, and deliberately: it
     /// used to refuse to move the last cluster out, on the grounds that emptying the source was a
     /// side effect nobody asked for, and that refusal is gone. The two now agree, which is one
-    /// fewer rule to hold and one fewer gesture the interface has to hide.
+    /// fewer rule to hold and one fewer gesture the interface has to hide. A page is never closed.
     pub fn close_cluster(&self, app: &AppHandle, cluster_id: &str) -> (Vec<String>, Vec<String>) {
-        let mut instances = Vec::new();
-        let mut terminals = Vec::new();
-
-        self.mutate(app, |s| {
-            let Some(w) = s
-                .windows
-                .iter_mut()
-                .find(|w| w.clusters.iter().any(|c| c.id == cluster_id))
-            else {
-                return;
-            };
-            let Some(gone) = take_cluster(w, cluster_id) else {
-                return;
-            };
-            let held: Vec<String> = gone.tree.tabs().iter().map(|t| t.to_string()).collect();
-
-            (terminals, instances) = sort_held(held, &s.terminals);
-            // And the band's, which are not in the tree and are this cluster's
-            // all the same. A second call rather than something folded into
-            // `sort_held`: that function answers "which of these tabs are
-            // terminals", and this is a different question with no tabs in it.
-            for id in terminals_of_cluster(&s.terminals, cluster_id) {
-                if !terminals.contains(&id) {
-                    terminals.push(id);
-                }
-            }
-            s.terminals.retain(|t| !terminals.contains(&t.id));
-            s.instances.retain(|i| !instances.contains(&i.id));
-        });
-
-        (instances, terminals)
+        let mut closed = (Vec::new(), Vec::new());
+        self.mutate(app, |s| closed = close_cluster_pure(s, cluster_id));
+        closed
     }
 
     /// Move a whole cluster — its tree, its tabs and all — into another window.
@@ -894,8 +872,8 @@ impl ShellState {
     pub fn active_pane(&self, label: &str, pane_id: Option<&str>) -> Option<(String, String)> {
         let guard = self.read();
         let w = guard.windows.iter().find(|w| w.label == label)?;
-        let active = w.active_cluster_id.as_deref()?;
-        let cluster = w.clusters.iter().find(|c| c.id == active)?;
+        // A page's one pane is its app's, so a page in front is no pane at all.
+        let cluster = work_cluster(w)?;
 
         let pane = pane_id
             .filter(|id| cluster.tree.pane_of_id(id))
@@ -926,8 +904,7 @@ impl ShellState {
     pub fn capture_preset(&self, label: &str) -> Option<presets::PresetNode> {
         let guard = self.read();
         let w = guard.windows.iter().find(|w| w.label == label)?;
-        let active = w.active_cluster_id.as_deref()?;
-        let cluster = w.clusters.iter().find(|c| c.id == active)?;
+        let cluster = work_cluster(w)?;
 
         Some(presets::capture(&cluster.tree, &|id: &str| {
             slot_of_tab(&guard, id)
@@ -970,7 +947,7 @@ impl ShellState {
             let Some(w) = windows.iter_mut().find(|w| w.label == label) else {
                 return;
             };
-            let Some(cluster) = w.active_cluster_mut() else {
+            let Some(cluster) = w.active_cluster_mut().filter(|c| !c.is_page()) else {
                 return;
             };
 
@@ -1016,7 +993,11 @@ impl ShellState {
             } = s;
 
             for w in windows.iter_mut() {
-                let Some(cluster) = w.clusters.iter_mut().find(|c| c.id == cluster_id) else {
+                let Some(cluster) = w
+                    .clusters
+                    .iter_mut()
+                    .find(|c| c.id == cluster_id && !c.is_page())
+                else {
                     continue;
                 };
                 let gaps = rearrange(cluster, instances, terminals, root, &mut ids);
@@ -1103,11 +1084,7 @@ impl ShellState {
             // not now that `place_surface` falls back to a first pane. Forgiving
             // a stale id *within* a cluster is right; dropping a surface into a
             // cluster the caller was not talking about is not.
-            let owner = pane_id.and_then(|p| w.clusters.iter().position(|c| c.tree.holds_pane(p)));
-            let Some(cluster) = (match owner {
-                Some(i) => w.clusters.get_mut(i),
-                None => w.active_cluster_mut(),
-            }) else {
+            let Some(cluster) = open_target(w, pane_id) else {
                 return;
             };
 
@@ -1144,21 +1121,11 @@ impl ShellState {
         opened
     }
 
-    /// Take an instance off screen. Returns true if it was there.
+    /// Take an instance off screen. Returns true if it was there — and false for
+    /// a page's own instance, which is never closed; see `close_instance_pure`.
     pub fn close_instance(&self, app: &AppHandle, instance_id: &str) -> bool {
         let mut found = false;
-        self.mutate(app, |s| {
-            for w in s.windows.iter_mut() {
-                for c in w.clusters.iter_mut() {
-                    if c.tree.remove_tab(instance_id) {
-                        found = true;
-                    }
-                }
-            }
-            if found {
-                s.instances.retain(|i| i.id != instance_id);
-            }
-        });
+        self.mutate(app, |s| found = close_instance_pure(s, instance_id));
         found
     }
 
@@ -1212,65 +1179,7 @@ impl ShellState {
     ) -> bool {
         let mut moved = false;
         self.mutate(app, |s| {
-            let ShellSnapshot {
-                windows, instances, ..
-            } = s;
-
-            // Look before leaping, for the reason `split_with_instance`'s doc
-            // comment sets out at length: the sweep below takes the tab out of
-            // wherever it was, and running that ahead of a target that turns
-            // out not to exist is how a drop *deletes* what was dragged.
-            //
-            // It also holds `place_surface`'s first-pane fallback off this one
-            // gesture, deliberately. An open must produce a surface somewhere,
-            // so falling back is right for it; a drop onto a pane that has gone
-            // should leave the tab exactly where it was, because that is what a
-            // cancelled drag looks like and the user is watching.
-            let known = windows
-                .iter()
-                .flat_map(|w| w.clusters.iter())
-                .any(|c| c.id == to_cluster && c.tree.holds_pane(to_pane));
-            if !known {
-                return;
-            }
-
-            // Every *other* cluster loses the tab before anything gains it, so a
-            // drag across clusters cannot leave two copies behind. The target
-            // cluster is deliberately not swept here: `place_surface` removes
-            // the tab from that tree itself, without pruning, because the pane
-            // being dropped into may be the pane the tab was the only occupant
-            // of. Sweeping it here with the pruning `remove_tab` would delete
-            // that pane and the drop would land nowhere.
-            for w in windows.iter_mut() {
-                for c in w.clusters.iter_mut() {
-                    if c.id != to_cluster {
-                        c.tree.remove_tab(instance_id);
-                    }
-                }
-            }
-
-            for w in windows.iter_mut() {
-                if let Some(c) = w.cluster_mut(to_cluster) {
-                    // Dragging Home itself must not evict Home; every other
-                    // tab landing in its pane does — see `dismiss_takeover`.
-                    // Read before the call rather than in the argument list,
-                    // which would want `instances` shared and mutable at once.
-                    let evict = !is_takeover(instances, instance_id);
-                    moved = place_surface(
-                        &mut c.tree,
-                        instances,
-                        instance_id,
-                        Some(to_pane),
-                        index,
-                        None,
-                        evict,
-                    );
-                    if moved {
-                        w.active_cluster_id = Some(to_cluster.to_string());
-                    }
-                    return;
-                }
-            }
+            moved = move_instance_pure(s, instance_id, to_cluster, to_pane, index);
         });
         moved
     }
@@ -1311,35 +1220,8 @@ impl ShellState {
 
         let mut split = false;
         self.mutate(app, |s| {
-            // Look before leaping. A pane nobody holds means the drop named
-            // somewhere that is not on screen, and the right answer to that is to
-            // change nothing at all — see the doc comment for what the other
-            // order cost.
-            let known = s
-                .windows
-                .iter()
-                .flat_map(|w| w.clusters.iter())
-                .any(|c| c.tree.holds_pane(pane_id));
-            if !known {
-                return;
-            }
-
-            for w in s.windows.iter_mut() {
-                for c in w.clusters.iter_mut() {
-                    c.tree.remove_tab(instance_id);
-                }
-            }
-            for w in s.windows.iter_mut() {
-                for c in w.clusters.iter_mut() {
-                    if c.tree
-                        .split_pane(pane_id, dir, &split_id, &new_pane_id, instance_id, before)
-                    {
-                        w.active_cluster_id = Some(c.id.clone());
-                        split = true;
-                        return;
-                    }
-                }
-            }
+            let ids = (split_id.as_str(), new_pane_id.as_str());
+            split = split_with_instance_pure(s, pane_id, dir, ids, instance_id, before);
         });
         split
     }
@@ -1374,82 +1256,7 @@ impl ShellState {
 
         let mut detached = false;
         self.mutate(app, |s| {
-            if !s.instances.iter().any(|i| i.id == instance_id)
-                && !s.terminals.iter().any(|t| t.id == instance_id)
-            {
-                return;
-            }
-
-            let name = s
-                .instances
-                .iter()
-                .find(|i| i.id == instance_id)
-                .map(|i| i.title.clone())
-                .or_else(|| {
-                    s.terminals
-                        .iter()
-                        .find(|t| t.id == instance_id)
-                        .map(|t| t.title.clone())
-                })
-                .unwrap_or_else(|| "Workspace".to_string());
-
-            // The project the surface was already working in, read *before* the
-            // tab is pulled out of the tree that answers this.
-            //
-            // Inherited here where `add_cluster` deliberately does not inherit,
-            // and the two are not inconsistent: adding a cluster starts a new
-            // piece of work, while detaching *moves an existing surface* that is
-            // already rooted somewhere. A Files dragged onto a second monitor
-            // that came back rooted at nothing would read as the drag having
-            // broken it.
-            let project = s
-                .windows
-                .iter()
-                .flat_map(|w| w.clusters.iter())
-                .find(|c| c.tree.tabs().contains(&instance_id))
-                .and_then(|c| c.project.clone());
-
-            for w in s.windows.iter_mut() {
-                for c in w.clusters.iter_mut() {
-                    c.tree.remove_tab(instance_id);
-                }
-            }
-
-            let mut tree = PaneNode::leaf(pane_id.clone());
-            tree.insert_tab(&pane_id, instance_id, None);
-
-            let cluster = Cluster {
-                id: cluster_id.clone(),
-                name,
-                tree,
-                project,
-                worktree: None,
-                active_terminal: None,
-                band_height: None,
-            };
-
-            // A terminal dragged out has to bring its band home with it. It is
-            // drawn in the new cluster's tree, so it is not in a band at all
-            // right now — but the moment it is dragged back out of that tree it
-            // lands in one, and it must be the band of the cluster it is
-            // actually on screen in.
-            if let Some(t) = s.terminals.iter_mut().find(|t| t.id == instance_id) {
-                t.cluster_id = cluster_id.clone();
-            }
-
-            match s.windows.iter_mut().find(|w| w.label == new_label) {
-                Some(w) => {
-                    w.clusters.push(cluster);
-                    w.active_cluster_id = Some(cluster_id.clone());
-                }
-                None => s.windows.push(WindowPlacement {
-                    label: new_label.to_string(),
-                    clusters: vec![cluster],
-                    active_cluster_id: Some(cluster_id.clone()),
-                    geometry: None,
-                }),
-            }
-            detached = true;
+            detached = detach_instance_pure(s, instance_id, new_label, &cluster_id, &pane_id);
         });
         detached
     }
@@ -1490,14 +1297,53 @@ impl ShellState {
     /// Which cluster a window is showing, if it is showing one. What
     /// `create_terminal` resolves its caller's window label through — the band
     /// the `+` was clicked in is the active cluster's, by construction.
+    ///
+    /// `None` while a page is in front. Every caller wants somewhere to *work* —
+    /// a terminal, a launch's project, an agent's `set_project` — and a page is
+    /// none of those. See [`work_cluster`].
     pub fn active_cluster_of(&self, label: &str) -> Option<String> {
         let guard = self.read();
-        guard
-            .windows
-            .iter()
-            .find(|w| w.label == label)?
-            .active_cluster_id
-            .clone()
+        let w = guard.windows.iter().find(|w| w.label == label)?;
+        work_cluster(w).map(|c| c.id.clone())
+    }
+
+    /// Show a page in `label`'s window, creating its cluster the first time.
+    ///
+    /// Returns the page cluster's id, or `None` when the window does not exist.
+    /// Ids are minted only when there is no page cluster to reuse — peeked
+    /// under the read lock first, so a click on a chip that already has one
+    /// burns nothing. The peek can race another window's open; the loser's ids
+    /// go unused, which is the gap `open_instance` already accepts.
+    pub fn open_page(
+        &self,
+        app: &AppHandle,
+        label: &str,
+        page: &crate::pages::Page,
+    ) -> Option<String> {
+        let needs_seed = {
+            let guard = self.read();
+            !page_cluster_is_whole(&guard, label, page.id)
+        };
+        let seed = needs_seed.then(|| {
+            let mut counters = self.counters.write_or_panic();
+            counters.clusters += 1;
+            counters.panes += 1;
+            let ordinal = counters
+                .instances
+                .entry(page.app_id.to_string())
+                .or_insert(0);
+            *ordinal += 1;
+            let ordinal = *ordinal;
+            PageSeed {
+                cluster_id: format!("cluster-{}", counters.clusters),
+                pane_id: format!("pane-{}", counters.panes),
+                instance_id: format!("{}-{ordinal}", page.app_id),
+            }
+        });
+
+        let mut opened = None;
+        self.mutate(app, |s| opened = open_page_pure(s, label, page, seed));
+        opened
     }
 
     /// Publish a session whose shell is already running, into a cluster's band.
@@ -1657,11 +1503,14 @@ impl ShellState {
     /// gesture that visibly did nothing rather than a session that vanished.
     pub fn move_terminal(&self, app: &AppHandle, id: &str, to_label: &str) {
         self.mutate(app, |s| {
+            // A page in front has no band, so it refuses exactly as an empty
+            // window does.
             let Some(cluster_id) = s
                 .windows
                 .iter()
                 .find(|w| w.label == to_label)
-                .and_then(|w| w.active_cluster_id.clone())
+                .and_then(work_cluster)
+                .map(|c| c.id.clone())
             else {
                 return;
             };
@@ -2042,15 +1891,20 @@ fn terminals_of_cluster(terminals: &[TerminalSession], cluster_id: &str) -> Vec<
 /// — is the same one tabs use, and it is written once here because closing a
 /// cluster and moving one to another window are the same event as far as the
 /// window losing it is concerned.
+///
+/// A page is never the survivor. Closing the last real cluster leaves the
+/// window on `NoClustersState` — with the page chips still there to click —
+/// rather than landing it on whichever page happened to sit beside it, which
+/// would read as the close having opened something.
 fn take_cluster(w: &mut WindowPlacement, cluster_id: &str) -> Option<Cluster> {
     let i = w.clusters.iter().position(|c| c.id == cluster_id)?;
     let gone = w.clusters.remove(i);
 
     if w.active_cluster_id.as_deref() == Some(cluster_id) {
-        w.active_cluster_id = w
-            .clusters
-            .get(i)
-            .or_else(|| w.clusters.last())
+        w.active_cluster_id = w.clusters[i..]
+            .iter()
+            .find(|c| !c.is_page())
+            .or_else(|| w.clusters.iter().rev().find(|c| !c.is_page()))
             .map(|c| c.id.clone());
     }
     Some(gone)
@@ -2072,7 +1926,12 @@ fn take_cluster(w: &mut WindowPlacement, cluster_id: &str) -> Option<Cluster> {
 /// to rewrite a `window_label` on every terminal held in the tree; that field is gone, and the
 /// docs page above records the bug its absence removed. Instances never needed one: they are a
 /// flat global list keyed by id, and the tree is the only thing that says where any of them are.
+///
+/// A page is refused too: each window has its own, so there is nothing to carry across.
 fn move_cluster_pure(s: &mut ShellSnapshot, cluster_id: &str, to_label: &str) -> bool {
+    if is_page_cluster(s, cluster_id) {
+        return false;
+    }
     let Some(source) = s
         .windows
         .iter_mut()
@@ -2105,6 +1964,478 @@ fn move_cluster_pure(s: &mut ShellSnapshot, cluster_id: &str, to_label: &str) ->
     true
 }
 
+// --- pages ---------------------------------------------------------------------
+//
+// A page cluster is one pane holding one instance of its page's app, and stays
+// that way: see `Cluster::page`. Each mutator a page could be named to is split
+// out here as a pure function over a bare `ShellSnapshot`, which is where the
+// refusal lives and where it is tested — not in the cluster bar, which merely
+// never offers the gesture.
+
+fn is_page_cluster(s: &ShellSnapshot, cluster_id: &str) -> bool {
+    s.windows
+        .iter()
+        .flat_map(|w| w.clusters.iter())
+        .any(|c| c.id == cluster_id && c.is_page())
+}
+
+/// Whether a page's tree holds this tab — the one tab that is not draggable.
+fn pinned_to_page(s: &ShellSnapshot, tab_id: &str) -> bool {
+    s.windows
+        .iter()
+        .flat_map(|w| w.clusters.iter())
+        .any(|c| c.is_page() && c.tree.tabs().contains(&tab_id))
+}
+
+fn pane_in_page(s: &ShellSnapshot, pane_id: &str) -> bool {
+    s.windows
+        .iter()
+        .flat_map(|w| w.clusters.iter())
+        .any(|c| c.is_page() && c.tree.holds_pane(pane_id))
+}
+
+/// The cluster a window is *working* in: its active one, unless that is a page.
+///
+/// What every "where does this go" question asks — a terminal, the Apps menu, a
+/// preset, a project — because a page's pane is its app's and it has no band.
+fn work_cluster(w: &WindowPlacement) -> Option<&Cluster> {
+    let active = w.active_cluster_id.as_deref()?;
+    w.clusters.iter().find(|c| c.id == active && !c.is_page())
+}
+
+/// Which cluster `open_instance` puts a new surface in: the one owning the
+/// named pane, or failing that the active one — and neither, if it is a page.
+/// A page's pane named explicitly is refused rather than redirected, because
+/// sending the surface somewhere else would be a cluster switch nobody asked for.
+fn open_target<'w>(w: &'w mut WindowPlacement, pane_id: Option<&str>) -> Option<&'w mut Cluster> {
+    let owner = pane_id.and_then(|p| w.clusters.iter().position(|c| c.tree.holds_pane(p)));
+    let cluster = match owner {
+        Some(i) => w.clusters.get_mut(i),
+        None => w.active_cluster_mut(),
+    }?;
+    (!cluster.is_page()).then_some(cluster)
+}
+
+/// Rename a cluster; `false`, unchanged, for a page or an id naming nothing.
+/// A page's name is its chip's label, which is the page table's to decide.
+fn rename_cluster_pure(s: &mut ShellSnapshot, cluster_id: &str, name: &str) -> bool {
+    if is_page_cluster(s, cluster_id) {
+        return false;
+    }
+    for w in s.windows.iter_mut() {
+        if let Some(c) = w.cluster_mut(cluster_id) {
+            c.name = name.to_string();
+            return true;
+        }
+    }
+    false
+}
+
+/// The whole of `ShellState::close_cluster`, minus the lock: returns the
+/// `(instances, terminals)` that went with it. A page is never closed — it has
+/// no ×, and there is no gesture that would bring it back other than its chip,
+/// which would only make another — so both lists come back empty for one.
+fn close_cluster_pure(s: &mut ShellSnapshot, cluster_id: &str) -> (Vec<String>, Vec<String>) {
+    if is_page_cluster(s, cluster_id) {
+        return (Vec::new(), Vec::new());
+    }
+    let Some(w) = s
+        .windows
+        .iter_mut()
+        .find(|w| w.clusters.iter().any(|c| c.id == cluster_id))
+    else {
+        return (Vec::new(), Vec::new());
+    };
+    let Some(gone) = take_cluster(w, cluster_id) else {
+        return (Vec::new(), Vec::new());
+    };
+    let held: Vec<String> = gone.tree.tabs().iter().map(|t| t.to_string()).collect();
+
+    let (mut terminals, instances) = sort_held(held, &s.terminals);
+    // And the band's, which are not in the tree and are this cluster's
+    // all the same. A second call rather than something folded into
+    // `sort_held`: that function answers "which of these tabs are
+    // terminals", and this is a different question with no tabs in it.
+    for id in terminals_of_cluster(&s.terminals, cluster_id) {
+        if !terminals.contains(&id) {
+            terminals.push(id);
+        }
+    }
+    s.terminals.retain(|t| !terminals.contains(&t.id));
+    s.instances.retain(|i| !instances.contains(&i.id));
+    (instances, terminals)
+}
+
+/// The whole of `ShellState::close_instance`, minus the lock. A page's own
+/// instance is refused: closing it would leave a page cluster with nothing in it.
+fn close_instance_pure(s: &mut ShellSnapshot, instance_id: &str) -> bool {
+    if pinned_to_page(s, instance_id) {
+        return false;
+    }
+    let mut found = false;
+    for w in s.windows.iter_mut() {
+        for c in w.clusters.iter_mut() {
+            if c.tree.remove_tab(instance_id) {
+                found = true;
+            }
+        }
+    }
+    if found {
+        s.instances.retain(|i| i.id != instance_id);
+    }
+    found
+}
+
+/// The whole of `ShellState::move_instance`, minus the lock and the broadcast.
+///
+/// Refuses — `false`, nothing changed — a target that is a page, and a tab a
+/// page holds: nothing is dropped into a page, and its tab is not dragged out.
+fn move_instance_pure(
+    s: &mut ShellSnapshot,
+    instance_id: &str,
+    to_cluster: &str,
+    to_pane: &str,
+    index: Option<usize>,
+) -> bool {
+    if is_page_cluster(s, to_cluster) || pinned_to_page(s, instance_id) {
+        return false;
+    }
+    let ShellSnapshot {
+        windows, instances, ..
+    } = s;
+
+    // Look before leaping, for the reason `split_with_instance`'s doc
+    // comment sets out at length: the sweep below takes the tab out of
+    // wherever it was, and running that ahead of a target that turns
+    // out not to exist is how a drop *deletes* what was dragged.
+    //
+    // It also holds `place_surface`'s first-pane fallback off this one
+    // gesture, deliberately. An open must produce a surface somewhere,
+    // so falling back is right for it; a drop onto a pane that has gone
+    // should leave the tab exactly where it was, because that is what a
+    // cancelled drag looks like and the user is watching.
+    let known = windows
+        .iter()
+        .flat_map(|w| w.clusters.iter())
+        .any(|c| c.id == to_cluster && c.tree.holds_pane(to_pane));
+    if !known {
+        return false;
+    }
+
+    // Every *other* cluster loses the tab before anything gains it, so a
+    // drag across clusters cannot leave two copies behind. The target
+    // cluster is deliberately not swept here: `place_surface` removes
+    // the tab from that tree itself, without pruning, because the pane
+    // being dropped into may be the pane the tab was the only occupant
+    // of. Sweeping it here with the pruning `remove_tab` would delete
+    // that pane and the drop would land nowhere.
+    for w in windows.iter_mut() {
+        for c in w.clusters.iter_mut() {
+            if c.id != to_cluster {
+                c.tree.remove_tab(instance_id);
+            }
+        }
+    }
+
+    for w in windows.iter_mut() {
+        if let Some(c) = w.cluster_mut(to_cluster) {
+            // Dragging Home itself must not evict Home; every other
+            // tab landing in its pane does — see `dismiss_takeover`.
+            // Read before the call rather than in the argument list,
+            // which would want `instances` shared and mutable at once.
+            let evict = !is_takeover(instances, instance_id);
+            let moved = place_surface(
+                &mut c.tree,
+                instances,
+                instance_id,
+                Some(to_pane),
+                index,
+                None,
+                evict,
+            );
+            if moved {
+                w.active_cluster_id = Some(to_cluster.to_string());
+            }
+            return moved;
+        }
+    }
+    false
+}
+
+/// The whole of `ShellState::split_with_instance`, minus the lock and the id
+/// minting. `ids` is the `(split, new pane)` pair minted before the lock. A
+/// page's pane is never split, and a page's tab never dragged out to split one.
+fn split_with_instance_pure(
+    s: &mut ShellSnapshot,
+    pane_id: &str,
+    dir: SplitDir,
+    ids: (&str, &str),
+    instance_id: &str,
+    before: bool,
+) -> bool {
+    if pane_in_page(s, pane_id) || pinned_to_page(s, instance_id) {
+        return false;
+    }
+    // Look before leaping. A pane nobody holds means the drop named
+    // somewhere that is not on screen, and the right answer to that is to
+    // change nothing at all — see the method's doc comment for what the
+    // other order cost.
+    let known = s
+        .windows
+        .iter()
+        .flat_map(|w| w.clusters.iter())
+        .any(|c| c.tree.holds_pane(pane_id));
+    if !known {
+        return false;
+    }
+
+    let (split_id, new_pane_id) = ids;
+    for w in s.windows.iter_mut() {
+        for c in w.clusters.iter_mut() {
+            c.tree.remove_tab(instance_id);
+        }
+    }
+    for w in s.windows.iter_mut() {
+        for c in w.clusters.iter_mut() {
+            if c.tree
+                .split_pane(pane_id, dir, split_id, new_pane_id, instance_id, before)
+            {
+                w.active_cluster_id = Some(c.id.clone());
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// The whole of `ShellState::detach_instance`, minus the lock and the id
+/// minting. A page's tab is refused: it does not leave its page.
+fn detach_instance_pure(
+    s: &mut ShellSnapshot,
+    instance_id: &str,
+    new_label: &str,
+    cluster_id: &str,
+    pane_id: &str,
+) -> bool {
+    if pinned_to_page(s, instance_id) {
+        return false;
+    }
+    if !s.instances.iter().any(|i| i.id == instance_id)
+        && !s.terminals.iter().any(|t| t.id == instance_id)
+    {
+        return false;
+    }
+
+    let name = s
+        .instances
+        .iter()
+        .find(|i| i.id == instance_id)
+        .map(|i| i.title.clone())
+        .or_else(|| {
+            s.terminals
+                .iter()
+                .find(|t| t.id == instance_id)
+                .map(|t| t.title.clone())
+        })
+        .unwrap_or_else(|| "Workspace".to_string());
+
+    // The project the surface was already working in, read *before* the
+    // tab is pulled out of the tree that answers this.
+    //
+    // Inherited here where `add_cluster` deliberately does not inherit,
+    // and the two are not inconsistent: adding a cluster starts a new
+    // piece of work, while detaching *moves an existing surface* that is
+    // already rooted somewhere. A Files dragged onto a second monitor
+    // that came back rooted at nothing would read as the drag having
+    // broken it.
+    let project = s
+        .windows
+        .iter()
+        .flat_map(|w| w.clusters.iter())
+        .find(|c| c.tree.tabs().contains(&instance_id))
+        .and_then(|c| c.project.clone());
+
+    for w in s.windows.iter_mut() {
+        for c in w.clusters.iter_mut() {
+            c.tree.remove_tab(instance_id);
+        }
+    }
+
+    let mut tree = PaneNode::leaf(pane_id);
+    tree.insert_tab(pane_id, instance_id, None);
+
+    let cluster = Cluster {
+        id: cluster_id.to_string(),
+        name,
+        tree,
+        project,
+        worktree: None,
+        active_terminal: None,
+        band_height: None,
+        page: None,
+    };
+
+    // A terminal dragged out has to bring its band home with it. It is
+    // drawn in the new cluster's tree, so it is not in a band at all
+    // right now — but the moment it is dragged back out of that tree it
+    // lands in one, and it must be the band of the cluster it is
+    // actually on screen in.
+    if let Some(t) = s.terminals.iter_mut().find(|t| t.id == instance_id) {
+        t.cluster_id = cluster_id.to_string();
+    }
+
+    match s.windows.iter_mut().find(|w| w.label == new_label) {
+        Some(w) => {
+            w.clusters.push(cluster);
+            w.active_cluster_id = Some(cluster_id.to_string());
+        }
+        None => s.windows.push(WindowPlacement {
+            label: new_label.to_string(),
+            clusters: vec![cluster],
+            active_cluster_id: Some(cluster_id.to_string()),
+            geometry: None,
+        }),
+    }
+    true
+}
+
+/// The ids a new page cluster needs, minted by `ShellState::open_page` before
+/// it takes the state lock.
+struct PageSeed {
+    cluster_id: String,
+    pane_id: String,
+    instance_id: String,
+}
+
+/// Whether `label`'s window already has this page's cluster with something in it
+/// — the peek that decides whether `open_page` mints any ids at all.
+fn page_cluster_is_whole(s: &ShellSnapshot, label: &str, page_id: &str) -> bool {
+    s.windows
+        .iter()
+        .find(|w| w.label == label)
+        .and_then(|w| {
+            w.clusters
+                .iter()
+                .find(|c| c.page.as_deref() == Some(page_id))
+        })
+        .is_some_and(|c| !c.tree.tabs().is_empty())
+}
+
+/// Find `label`'s page cluster for `page`, or make it from `seed`, and show it.
+///
+/// Returns its id, or `None` when the window does not exist or there is nothing
+/// to reuse and no seed to build from. A page cluster found empty — its instance
+/// lost to a state no path here produces, but a hand-edited `layout.json` could —
+/// is refilled from the seed rather than shown blank.
+fn open_page_pure(
+    s: &mut ShellSnapshot,
+    label: &str,
+    page: &crate::pages::Page,
+    seed: Option<PageSeed>,
+) -> Option<String> {
+    let ShellSnapshot {
+        windows, instances, ..
+    } = s;
+    let w = windows.iter_mut().find(|w| w.label == label)?;
+    let instance = |seed: &PageSeed| SurfaceInstance {
+        id: seed.instance_id.clone(),
+        app_id: page.app_id.to_string(),
+        kind: SurfaceKind::App,
+        title: page.name.to_string(),
+    };
+
+    let id = match w
+        .clusters
+        .iter_mut()
+        .find(|c| c.page.as_deref() == Some(page.id))
+    {
+        Some(c) => {
+            if c.tree.tabs().is_empty() {
+                let seed = seed?;
+                let pane = c.tree.first_pane_id().to_string();
+                c.tree.insert_tab(&pane, &seed.instance_id, None);
+                instances.push(instance(&seed));
+            }
+            c.id.clone()
+        }
+        None => {
+            let seed = seed?;
+            let mut tree = PaneNode::leaf(seed.pane_id.clone());
+            tree.insert_tab(&seed.pane_id, &seed.instance_id, None);
+            instances.push(instance(&seed));
+            w.clusters.push(Cluster {
+                id: seed.cluster_id.clone(),
+                name: page.name.to_string(),
+                tree,
+                project: None,
+                worktree: None,
+                active_terminal: None,
+                band_height: None,
+                page: Some(page.id.to_string()),
+            });
+            seed.cluster_id
+        }
+    };
+    w.active_cluster_id = Some(id.clone());
+    Some(id)
+}
+
+/// The whole of `ShellState::reclaim_window` once the close is confirmed: fold a
+/// closing window's clusters into `main`.
+///
+/// Its **pages are dropped**, instances and all, rather than folded. Pages are
+/// one per page per window; `main` has its own or makes one on the next click,
+/// and folding would give it two Agents chips.
+fn reclaim_window_pure(s: &mut ShellSnapshot, label: &str) {
+    let Some(i) = s.windows.iter().position(|w| w.label == label) else {
+        return;
+    };
+    let gone = s.windows.remove(i);
+    let (pages, clusters): (Vec<Cluster>, Vec<Cluster>) =
+        gone.clusters.into_iter().partition(Cluster::is_page);
+    let dropped: Vec<String> = pages
+        .iter()
+        .flat_map(|c| c.tree.tabs())
+        .map(str::to_string)
+        .collect();
+    s.instances.retain(|i| !dropped.contains(&i.id));
+
+    // The terminals need no attention here, and their absence is the
+    // point of naming a cluster. They travel with the clusters being
+    // folded in, because that is the only thing they name — where this
+    // used to rewrite a window label on every one of them, and would
+    // have stranded any it missed as a live shell with no tab.
+    if let Some(main) = s.windows.iter_mut().find(|w| w.label == "main") {
+        if main.active_cluster_id.is_none() {
+            main.active_cluster_id = clusters.first().map(|c| c.id.clone());
+        }
+        main.clusters.extend(clusters);
+    }
+}
+
+/// Drop every page cluster whose page this build cannot draw, with its instance.
+///
+/// Reached from `restore` only. A layout saved by a build that had a page this
+/// one lacks would otherwise restore a cluster no chip offers — possibly as the
+/// active one, drawing a frame with no app behind it and no way to leave.
+fn drop_unavailable_pages(s: &mut ShellSnapshot, available: &dyn Fn(&str) -> bool) {
+    let mut dropped = Vec::new();
+    for w in s.windows.iter_mut() {
+        let gone: Vec<String> = w
+            .clusters
+            .iter()
+            .filter(|c| c.page.as_deref().is_some_and(|p| !available(p)))
+            .map(|c| c.id.clone())
+            .collect();
+        for id in gone {
+            if let Some(c) = take_cluster(w, &id) {
+                dropped.extend(c.tree.tabs().into_iter().map(str::to_string));
+            }
+        }
+    }
+    s.instances.retain(|i| !dropped.contains(&i.id));
+}
+
 /// Give every terminal a cluster, for a state restored from a file that did not
 /// record one.
 ///
@@ -2120,11 +2451,14 @@ fn move_cluster_pure(s: &mut ShellSnapshot, cluster_id: &str, to_label: &str) ->
 /// there is no pty behind it yet — `lib.rs` spawns those from this list
 /// afterwards — so dropping costs nothing that exists, where keeping it would
 /// mint a shell that no band anywhere could draw or close.
+///
+/// A page has no band, so a terminal naming one is an orphan too.
 fn adopt_orphan_terminals(snapshot: &mut ShellSnapshot) {
     let live: Vec<&str> = snapshot
         .windows
         .iter()
         .flat_map(|w| w.clusters.iter())
+        .filter(|c| !c.is_page())
         .map(|c| c.id.as_str())
         .collect();
 
@@ -2515,6 +2849,7 @@ mod tests {
                     worktree: None,
                     active_terminal: None,
                     band_height: None,
+                    page: None,
                 }],
                 active_cluster_id: Some("cluster-3".to_string()),
                 geometry: None,
@@ -2623,6 +2958,7 @@ mod tests {
                 worktree: None,
                 active_terminal: None,
                 band_height: None,
+                page: None,
             }],
             active_cluster_id: Some(cluster.to_string()),
             geometry: None,
@@ -2666,6 +3002,7 @@ mod tests {
             worktree: None,
             active_terminal: None,
             band_height: None,
+            page: None,
         });
 
         reseat_active_terminals(&mut s);
@@ -2698,6 +3035,7 @@ mod tests {
             worktree: None,
             active_terminal: None,
             band_height: None,
+            page: None,
         });
 
         // Cluster 1, dragged nearly to the top of the window.
@@ -2927,6 +3265,7 @@ mod tests {
             worktree: None,
             active_terminal: None,
             band_height: None,
+            page: None,
         });
         state(vec![placement], Vec::new())
     }
@@ -3735,6 +4074,337 @@ mod tests {
             placement.clusters[0].tree.tabs_in(&terminal_gap.pane_id),
             Some(&["term-1".to_string()][..]),
             "the terminal is in the pane the preset asked for, not banished to the band"
+        );
+    }
+
+    // --- pages ---------------------------------------------------------------
+
+    fn agents() -> &'static crate::pages::Page {
+        crate::pages::find("agents").expect("Agents is a page in this build")
+    }
+
+    fn seed(n: u32) -> Option<PageSeed> {
+        Some(PageSeed {
+            cluster_id: format!("cluster-{n}"),
+            pane_id: format!("pane-{n}"),
+            instance_id: format!("agents-{n}"),
+        })
+    }
+
+    /// `main` with a real cluster holding `files-1`, then the Agents page
+    /// opened into it as `cluster-9`, which leaves the page in front.
+    fn with_agents_page() -> ShellSnapshot {
+        let mut s = state(vec![window("main", "cluster-1", &["files-1"])], Vec::new());
+        s.instances.push(app_instance("files-1", "files"));
+        open_page_pure(&mut s, "main", agents(), seed(9)).expect("the page opens");
+        s
+    }
+
+    #[test]
+    fn a_page_cluster_is_made_the_first_time_it_is_opened() {
+        let s = with_agents_page();
+        let w = &s.windows[0];
+
+        assert_eq!(w.clusters.len(), 2);
+        let page = &w.clusters[1];
+        assert_eq!(page.id, "cluster-9");
+        assert_eq!(page.page.as_deref(), Some("agents"));
+        assert_eq!(page.name, "Agents");
+        assert_eq!(page.project, None);
+        assert_eq!(page.tree.leaf_ids(), vec!["pane-9"], "one pane");
+        assert_eq!(page.tree.tabs(), vec!["agents-9"], "one instance");
+        assert!(s
+            .instances
+            .iter()
+            .any(|i| i.id == "agents-9" && i.app_id == "agents"));
+        assert_eq!(w.active_cluster_id.as_deref(), Some("cluster-9"));
+    }
+
+    #[test]
+    fn a_page_cluster_is_reused_rather_than_made_twice() {
+        let mut s = with_agents_page();
+        s.windows[0].active_cluster_id = Some("cluster-1".to_string());
+
+        assert!(
+            page_cluster_is_whole(&s, "main", "agents"),
+            "so no seed is minted"
+        );
+        let again = open_page_pure(&mut s, "main", agents(), None);
+
+        assert_eq!(again.as_deref(), Some("cluster-9"));
+        assert_eq!(
+            s.windows[0].clusters.len(),
+            2,
+            "not a second Agents cluster"
+        );
+        assert_eq!(s.instances.len(), 2, "not a second Agents instance");
+        assert_eq!(s.windows[0].active_cluster_id.as_deref(), Some("cluster-9"));
+    }
+
+    #[test]
+    fn a_page_is_one_per_window() {
+        let mut s = with_agents_page();
+        s.windows.push(window("tear-1", "cluster-2", &[]));
+
+        assert!(!page_cluster_is_whole(&s, "tear-1", "agents"));
+        let opened = open_page_pure(&mut s, "tear-1", agents(), seed(10));
+
+        assert_eq!(opened.as_deref(), Some("cluster-10"));
+        assert_eq!(s.windows[1].clusters.len(), 2);
+        assert_eq!(s.windows[0].clusters.len(), 2, "main's page is its own");
+    }
+
+    #[test]
+    fn a_page_cluster_found_empty_is_refilled_not_shown_blank() {
+        let mut s = with_agents_page();
+        cluster_mut(&mut s, "cluster-9")
+            .tree
+            .remove_tab_unpruned("agents-9");
+        s.instances.retain(|i| i.id != "agents-9");
+
+        assert!(!page_cluster_is_whole(&s, "main", "agents"));
+        let opened = open_page_pure(&mut s, "main", agents(), seed(11));
+
+        assert_eq!(opened.as_deref(), Some("cluster-9"));
+        assert_eq!(
+            cluster_mut(&mut s, "cluster-9").tree.tabs(),
+            vec!["agents-11"]
+        );
+    }
+
+    #[test]
+    fn a_page_opens_nowhere_in_a_window_that_does_not_exist() {
+        let mut s = with_agents_page();
+        assert_eq!(open_page_pure(&mut s, "nonesuch", agents(), seed(12)), None);
+    }
+
+    #[test]
+    fn a_page_is_not_renamed() {
+        let mut s = with_agents_page();
+
+        assert!(!rename_cluster_pure(&mut s, "cluster-9", "mine"));
+        assert_eq!(cluster_mut(&mut s, "cluster-9").name, "Agents");
+        assert!(
+            rename_cluster_pure(&mut s, "cluster-1", "mine"),
+            "a real one is"
+        );
+    }
+
+    #[test]
+    fn a_page_is_not_closed() {
+        let mut s = with_agents_page();
+
+        let (instances, terminals) = close_cluster_pure(&mut s, "cluster-9");
+
+        assert!(instances.is_empty() && terminals.is_empty());
+        assert_eq!(s.windows[0].clusters.len(), 2);
+        assert!(s.instances.iter().any(|i| i.id == "agents-9"));
+    }
+
+    #[test]
+    fn a_pages_instance_is_not_closed() {
+        let mut s = with_agents_page();
+
+        assert!(!close_instance_pure(&mut s, "agents-9"));
+        assert_eq!(
+            cluster_mut(&mut s, "cluster-9").tree.tabs(),
+            vec!["agents-9"]
+        );
+        assert!(close_instance_pure(&mut s, "files-1"), "a real tab is");
+    }
+
+    #[test]
+    fn a_page_is_not_moved_to_another_window() {
+        let mut s = with_agents_page();
+        s.windows.push(window("tear-1", "cluster-2", &[]));
+
+        assert!(!move_cluster_pure(&mut s, "cluster-9", "tear-1"));
+        assert!(!move_cluster_pure(&mut s, "cluster-9", "tear-new"));
+        assert_eq!(s.windows[0].clusters.len(), 2);
+        assert_eq!(s.windows.len(), 2, "no window was made for it");
+    }
+
+    #[test]
+    fn nothing_is_dropped_into_a_page() {
+        let mut s = with_agents_page();
+
+        assert!(!move_instance_pure(
+            &mut s,
+            "files-1",
+            "cluster-9",
+            "pane-9",
+            None
+        ));
+        assert_eq!(
+            cluster_mut(&mut s, "cluster-9").tree.tabs(),
+            vec!["agents-9"]
+        );
+        assert_eq!(
+            cluster_mut(&mut s, "cluster-1").tree.tabs(),
+            vec!["files-1"]
+        );
+    }
+
+    #[test]
+    fn a_pages_tab_is_not_dragged_out() {
+        let mut s = with_agents_page();
+
+        assert!(!move_instance_pure(
+            &mut s,
+            "agents-9",
+            "cluster-1",
+            "pane-1",
+            None
+        ));
+        assert!(!detach_instance_pure(
+            &mut s,
+            "agents-9",
+            "tear-1",
+            "cluster-3",
+            "pane-3"
+        ));
+        assert_eq!(
+            cluster_mut(&mut s, "cluster-9").tree.tabs(),
+            vec!["agents-9"]
+        );
+        assert_eq!(s.windows.len(), 1, "no window was torn off for it");
+    }
+
+    #[test]
+    fn a_pages_pane_is_not_split() {
+        let mut s = with_agents_page();
+        let ids = ("split-1", "pane-20");
+
+        assert!(!split_with_instance_pure(
+            &mut s,
+            "pane-9",
+            SplitDir::Row,
+            ids,
+            "files-1",
+            false
+        ));
+        assert!(
+            !split_with_instance_pure(&mut s, "pane-1", SplitDir::Row, ids, "agents-9", false),
+            "nor its tab used to split somebody else's"
+        );
+        assert_eq!(
+            cluster_mut(&mut s, "cluster-9").tree.leaf_ids(),
+            vec!["pane-9"]
+        );
+        assert_eq!(
+            cluster_mut(&mut s, "cluster-1").tree.leaf_ids(),
+            vec!["pane-1"]
+        );
+    }
+
+    #[test]
+    fn nothing_opens_into_a_page() {
+        let mut s = with_agents_page();
+        let w = &mut s.windows[0];
+
+        assert!(
+            open_target(w, None).is_none(),
+            "the page is the active cluster"
+        );
+        assert!(
+            open_target(w, Some("pane-9")).is_none(),
+            "its pane, by name"
+        );
+        assert_eq!(
+            open_target(w, Some("pane-1"))
+                .map(|c| c.id.clone())
+                .as_deref(),
+            Some("cluster-1"),
+            "a real cluster's pane, by name, still works from behind a page"
+        );
+    }
+
+    #[test]
+    fn a_page_in_front_is_nowhere_to_work() {
+        let shell = ShellState::default();
+        shell.restore(with_agents_page());
+
+        assert_eq!(shell.active_cluster_of("main"), None);
+        assert_eq!(shell.active_pane("main", None), None);
+    }
+
+    #[test]
+    fn closing_the_last_real_cluster_does_not_land_on_a_page() {
+        let mut s = with_agents_page();
+        s.windows[0].active_cluster_id = Some("cluster-1".to_string());
+
+        close_cluster_pure(&mut s, "cluster-1");
+
+        assert_eq!(s.windows[0].active_cluster_id, None);
+        assert_eq!(
+            s.windows[0].clusters.len(),
+            1,
+            "the page is still there to click"
+        );
+    }
+
+    #[test]
+    fn a_closed_cluster_falls_to_a_real_neighbour_past_a_page() {
+        let mut s = with_agents_page();
+        s.windows[0]
+            .clusters
+            .push(window("x", "cluster-2", &[]).clusters.remove(0));
+        s.windows[0].active_cluster_id = Some("cluster-1".to_string());
+
+        close_cluster_pure(&mut s, "cluster-1");
+
+        assert_eq!(s.windows[0].active_cluster_id.as_deref(), Some("cluster-2"));
+    }
+
+    #[test]
+    fn a_closing_windows_pages_are_dropped_not_folded_into_main() {
+        let mut s = with_agents_page();
+        s.windows.push(window("tear-1", "cluster-2", &[]));
+        open_page_pure(&mut s, "tear-1", agents(), seed(10));
+
+        reclaim_window_pure(&mut s, "tear-1");
+
+        let main = &s.windows[0];
+        assert_eq!(s.windows.len(), 1);
+        assert_eq!(
+            main.clusters.iter().filter(|c| c.is_page()).count(),
+            1,
+            "main keeps its own Agents and gains no second one"
+        );
+        assert!(
+            main.clusters.iter().any(|c| c.id == "cluster-2"),
+            "real ones fold in"
+        );
+        assert!(!s.instances.iter().any(|i| i.id == "agents-10"));
+    }
+
+    #[test]
+    fn a_page_this_build_cannot_draw_is_dropped_on_restore() {
+        let mut s = with_agents_page();
+
+        drop_unavailable_pages(&mut s, &|_| false);
+
+        assert_eq!(s.windows[0].clusters.len(), 1);
+        assert!(!s.instances.iter().any(|i| i.id == "agents-9"));
+        assert_eq!(
+            s.windows[0].active_cluster_id.as_deref(),
+            Some("cluster-1"),
+            "the window falls back to a real cluster"
+        );
+    }
+
+    #[test]
+    fn a_page_survives_a_json_round_trip_and_a_real_cluster_omits_the_key() {
+        let s = with_agents_page();
+        let json = serde_json::to_string(&s).expect("serializes");
+        let back: ShellSnapshot = serde_json::from_str(&json).expect("deserializes");
+
+        assert_eq!(back.windows[0].clusters[1].page.as_deref(), Some("agents"));
+        assert_eq!(back.windows[0].clusters[0].page, None);
+        assert_eq!(
+            json.matches("\"page\"").count(),
+            1,
+            "only the page writes one"
         );
     }
 }

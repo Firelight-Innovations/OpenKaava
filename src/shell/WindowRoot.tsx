@@ -52,7 +52,7 @@ import GithubPanel from "./github/GithubPanel";
 import WorktreePanel from "./worktree/WorktreePanel";
 import { useGitStatus } from "./worktree/useGitStatus";
 import TerminalDeck, { type TerminalDeckHandle } from "./terminal/TerminalDeck";
-import { callApp, useApps, useOpenables } from "./state/apps";
+import { callApp, useApps, useOpenables, usePages } from "./state/apps";
 import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
 import { useUpdates } from "./state/updates";
@@ -64,6 +64,7 @@ import {
   closeWindow as closeThisWindow,
   newWindow,
   openInstance,
+  openPage,
   renameCluster,
   setActiveCluster,
   setActiveTerminal,
@@ -238,10 +239,21 @@ export default function WindowRoot({
   // `shell:state`: closing the last cluster in a window leaves it with none.
   // The app area draws `NoClustersState` for it and the terminal panel — which
   // is the window's, not any cluster's — carries on working beside it.
-  const clusters = placement?.clusters ?? [];
-  const activeCluster =
-    clusters.find((c) => c.id === placement?.activeClusterId) ?? clusters[0] ?? null;
+  //
+  // A page (Agents, Cost Tracker) is a cluster in Rust's list and not one here.
+  // `shownCluster` is whatever the tool window draws, page or not; `activeCluster`
+  // is the one you *work* in, and is `null` while a page is in front — so the
+  // band, search, the Apps menu, presets and File > Open all read a page exactly
+  // as they read a window with no cluster. `clusters` is the real ones only,
+  // which is what the bar's chips, Ctrl+1…9 and the new-cluster number count.
+  const allClusters = placement?.clusters;
+  const clusters = useMemo(() => (allClusters ?? []).filter((c) => !c.page), [allClusters]);
+  const shownCluster =
+    allClusters?.find((c) => c.id === placement?.activeClusterId) ?? clusters[0] ?? null;
+  const activePageId = shownCluster?.page ?? null;
+  const activeCluster = activePageId === null ? shownCluster : null;
   const activeClusterId = activeCluster?.id ?? null;
+  const pages = usePages();
 
   // The band, as the cluster in front left it. Three values and two homes: the
   // height is the cluster's own — restored from the saved layout, and defaulted
@@ -350,7 +362,7 @@ export default function WindowRoot({
   // The tree this window draws. An empty leaf covers the moment before the
   // first `shell:state` lands — there is always a pane, so there is always
   // somewhere for a surface to go.
-  const tree: PaneNode = activeCluster?.tree ?? EMPTY_TREE;
+  const tree: PaneNode = shownCluster?.tree ?? EMPTY_TREE;
 
   // Which pane an open acts on, and which pane's tabs the menus act on. Local,
   // because "which pane you were last looking at" is a fact about this screen;
@@ -573,6 +585,20 @@ export default function WindowRoot({
       void setActiveCluster(label, clusterId);
     },
     [label, activeClusterId, homeShowing, tutorialInstanceId, showHome, hideTakeover],
+  );
+
+  // A page chip. Rust finds this window's cluster for the page or makes it, and
+  // shows it. No Home toggle on the open chip: a page is not somewhere you work,
+  // so there is nothing for Home to cover and nothing to toggle back to.
+  const onSelectPage = useCallback(
+    (pageId: string) => {
+      if (pageId === activePageId) return;
+      hideTakeover();
+      void openPage(label, pageId).catch((err: unknown) =>
+        console.error("kaava: could not open that page:", err),
+      );
+    },
+    [label, activePageId, hideTakeover],
   );
 
   const onAddCluster = useCallback(() => {
@@ -1206,10 +1232,13 @@ export default function WindowRoot({
       // same absence for the same reason. And the Terminal row, which lands in a
       // pane like everything else here — the *band's* `+` is a separate control
       // with its own reach, and is not governed by this.
+      // A page in front reads the same way: its one pane is its app's.
       blocked:
-        activeClusterId === null
-          ? "This opens into a cluster, and this window has none. Make one with the + in the bar."
-          : undefined,
+        activePageId !== null
+          ? "This opens into a cluster, and a page is not one. Pick a cluster in the bar first."
+          : activeClusterId === null
+            ? "This opens into a cluster, and this window has none. Make one with the + in the bar."
+            : undefined,
       presets: {
         available: presets,
         apply: onApplyPreset,
@@ -1224,6 +1253,7 @@ export default function WindowRoot({
     [
       openables,
       onOpenSurface,
+      activePageId,
       activeClusterId,
       presets,
       onApplyPreset,
@@ -1534,9 +1564,14 @@ export default function WindowRoot({
             <ClusterBar
               clusters={clusters}
               activeClusterId={activeClusterId}
+              pages={pages}
+              activePageId={activePageId}
+              onSelectPage={onSelectPage}
               members={members}
               memberCount={memberCount}
-              dropPaneId={activePaneId}
+              // No strip zone over a page: Rust refuses any tab dropped into
+              // one, so the row must not draw a caret promising otherwise.
+              dropPaneId={activePageId === null ? activePaneId : null}
               dropTarget={drag.target}
               onSelect={onSelectCluster}
               onAdd={onAddCluster}
@@ -1595,7 +1630,9 @@ export default function WindowRoot({
               // another cluster must not reach them — and `null` is what tells
               // the empty state that this window has no clusters at all rather
               // than one with nothing open in it.
-              clusterId={activeClusterId}
+              // The *shown* cluster, a page included — a page draws its tree
+              // like any cluster, and `null` here would draw `NoClustersState`.
+              clusterId={shownCluster?.id ?? null}
               // Whether that `null` means anything yet. `shell` is null until
               // the first `shell:state` lands, and until then this window's
               // cluster list is empty for a reason that has nothing to do with
