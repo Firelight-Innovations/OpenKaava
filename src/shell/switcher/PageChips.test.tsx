@@ -16,8 +16,8 @@ import PageChips from "./PageChips";
 afterEach(cleanup);
 
 const PAGES: PageInfo[] = [
-  { id: "agents", name: "Agents", icon: "robot" },
-  { id: "costs", name: "Cost Tracker", icon: "receipt" },
+  { id: "agents", name: "Agents", icon: "robot", mode: "expanded", key: 2, disabled: false },
+  { id: "costs", name: "Cost Tracker", icon: "receipt", mode: "docked", key: 4, disabled: false },
 ];
 
 describe("PageChips", () => {

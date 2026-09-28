@@ -1,0 +1,75 @@
+/* KAAVA-UX-SPEC.md §1.8 — the docked page aside. */
+
+.k-docked-page {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+.k-docked-page__handle {
+  position: absolute;
+  left: -4px;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 1;
+}
+
+.k-docked-page__header {
+  height: 40px;
+  flex-shrink: 0;
+  padding: 0 6px 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.k-docked-page__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--txt-primary);
+}
+
+.k-docked-page__subtitle {
+  font-size: 12px;
+  color: var(--txt-tertiary);
+}
+
+.k-docked-page__close {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--txt-tertiary);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.k-docked-page__close:hover {
+  color: var(--txt-primary);
+  background: var(--bg-layer-1-hover);
+}
+
+.k-docked-page__close:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.k-docked-page__body {
+  flex-grow: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
