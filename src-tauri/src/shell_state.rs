@@ -2820,13 +2820,13 @@ fn add_cluster_for_environment_pure(
         .iter()
         .flat_map(|w| w.clusters.iter())
         .find(|c| c.id == source_cluster);
-    let (project, worktree) = match source {
-        Some(c) => (c.project.clone(), c.worktree.clone()),
+    let (project, worktree, environment) = match source {
+        Some(c) => (c.project.clone(), c.worktree.clone(), c.environment.clone()),
         // The source cluster closed between the release and this call — a
         // narrow race, not a reason to fail the drop. The tab still gets a
         // home; it opens to Home's picker exactly as a plain `add_cluster`
         // would.
-        None => (None, None),
+        None => (None, None, None),
     };
 
     let w = s.windows.iter_mut().find(|w| w.label == label)?;
@@ -2839,6 +2839,8 @@ fn add_cluster_for_environment_pure(
         active_terminal: None,
         band_height: None,
         page: None,
+        environment,
+        pinned: false,
     });
     w.active_cluster_id = Some(cluster_id.to_string());
     Some((cluster_id.to_string(), pane_id.to_string()))
