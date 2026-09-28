@@ -129,9 +129,14 @@ pub enum AppError {
     #[error("no page with id `{0}` in this build")]
     UnknownPage(String),
 
+    /// A page listed on the rail but not openable yet — the Artifact registry,
+    /// today. See `pages::Page::disabled`.
+    #[error("`{0}` is not open for this build yet")]
+    PageDisabled(String),
+
     /// An app that draws a page, asked for as an ordinary surface. A page has
-    /// one cluster per window and one instance in it; see `pages`.
-    #[error("`{0}` is a page, not an app — open it from its chip in the cluster bar")]
+    /// its own instance, reused across opens; see `pages`.
+    #[error("`{0}` is a page, not an app — open it from its button on the rail")]
     PageApp(String),
 
     /// A search that could not run at all — an unusable regex pattern, or the

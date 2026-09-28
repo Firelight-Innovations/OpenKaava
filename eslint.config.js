@@ -53,6 +53,7 @@ const REGIONS = [
   "palette",
   "panel",
   "panes",
+  "rail",
   "search",
   "settings",
   "statusbar",
