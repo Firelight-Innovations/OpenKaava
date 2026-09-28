@@ -8,7 +8,26 @@
       "role": "agent",
       "stack": "worker"
     },
-    "lastStartTimestamp": "2026-09-28T13:55:02.114-07:00"
+    "lastStartTimestamp": "2026-09-28T13:55:02.114-07:00",
+    "id": "1001",
+    "creationTimestamp": "2026-08-02T10:00:00.000-07:00",
+    "scheduling": {
+      "provisioningModel": "STANDARD"
+    },
+    "networkInterfaces": [
+      {
+        "accessConfigs": [
+          {
+            "natIP": "34.1.2.3"
+          }
+        ]
+      }
+    ],
+    "disks": [
+      {
+        "source": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/disks/kaava-worker"
+      }
+    ]
   },
   {
     "name": "kaava-worker-2",
@@ -20,7 +39,26 @@
       "stack": "worker"
     },
     "lastStartTimestamp": "2026-09-27T09:10:40.000-07:00",
-    "lastStopTimestamp": "2026-09-27T11:48:12.000-07:00"
+    "lastStopTimestamp": "2026-09-27T11:48:12.000-07:00",
+    "id": "1002",
+    "creationTimestamp": "2026-09-10T10:00:00.000-07:00",
+    "scheduling": {
+      "provisioningModel": "SPOT"
+    },
+    "networkInterfaces": [
+      {
+        "accessConfigs": [
+          {
+            "natIP": "34.1.2.4"
+          }
+        ]
+      }
+    ],
+    "disks": [
+      {
+        "source": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/disks/kaava-worker-2"
+      }
+    ]
   },
   {
     "name": "kaava-gpu",
@@ -30,6 +68,54 @@
     "labels": {
       "role": "gpu",
       "stack": "gpu"
-    }
+    },
+    "id": "1003",
+    "creationTimestamp": "2026-08-02T10:00:00.000-07:00",
+    "scheduling": {
+      "provisioningModel": "STANDARD"
+    },
+    "networkInterfaces": [
+      {
+        "accessConfigs": [
+          {
+            "natIP": "34.1.2.5"
+          }
+        ]
+      }
+    ],
+    "disks": [
+      {
+        "source": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/disks/kaava-gpu"
+      }
+    ]
+  },
+  {
+    "name": "plane-vm",
+    "zone": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a",
+    "status": "TERMINATED",
+    "machineType": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/machineTypes/e2-standard-2",
+    "labels": {
+      "role": "plane",
+      "stack": "plane"
+    },
+    "id": "1004",
+    "creationTimestamp": "2026-09-26T08:00:00.000-07:00",
+    "scheduling": {
+      "provisioningModel": "STANDARD"
+    },
+    "networkInterfaces": [
+      {
+        "accessConfigs": [
+          {
+            "natIP": "34.9.9.9"
+          }
+        ]
+      }
+    ],
+    "disks": [
+      {
+        "source": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/disks/plane-vm"
+      }
+    ]
   }
 ]

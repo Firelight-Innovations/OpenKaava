@@ -37,6 +37,7 @@ apps/
   viewer/ui/              File Viewer's frontend
   tutorial/ui/            Tutorials' frontend
   agents/ui/              Agents' frontend: OpenKaava Cloud's agent machines and sessions
+  costs/ui/               Cost Tracker's frontend: this month's Google Cloud spend and forecast
   design/ui/              Design Mode's frontend
   schematify/ui/          Schematify's frontend
 ```
@@ -152,6 +153,18 @@ refuses it by name. Its chip at the left of the cluster bar opens it into its
 own dedicated cluster instead. `src-tauri/src/pages.rs` declares which apps are
 pages. Making another app a page takes a row there, on top of the app's usual
 three edits.
+
+**Cost Tracker** (`costs/estimate`) — what OpenKaava Cloud has cost so far this
+month at list price, and the month's forecast against its 150 USD budget
+(`KAAVA_GCP_BUDGET` overrides it). It multiplies what exists (machines, disks,
+reserved IPs, buckets, Cloud Run services) by how much each ran or held, from
+Cloud Monitoring, by the public Cloud Billing Catalog price. The price lists
+are cached for a day; the page refreshes every minute while visible. It only
+reads. Egress, NAT, Secret Manager, logging, Artifact Registry, free tiers,
+discounts and credits are left out, and the page lists them. The same
+`KAAVA_CLOUD_FIXTURES` folder answers it, with `clock.json` fixing "now".
+`src-tauri/fixtures/cloud/billing/` holds real catalog SKUs, trimmed. It is a
+page, like Agents: its chip opens it, and the Apps menu does not list it.
 
 **File Viewer** (`files/read`, `files/write`) — open files in tabs, and what
 each one looks like. Reads are capped at 256 KiB and say so when they truncate.

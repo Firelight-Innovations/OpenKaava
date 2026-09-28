@@ -1,0 +1,42 @@
+[
+  {
+    "name": "kaava-worker",
+    "zone": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a",
+    "sizeGb": "100",
+    "type": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/diskTypes/pd-balanced",
+    "creationTimestamp": "2026-08-02T10:00:00.000-07:00",
+    "users": [
+      "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/instances/kaava-worker"
+    ]
+  },
+  {
+    "name": "kaava-worker-2",
+    "zone": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a",
+    "sizeGb": "100",
+    "type": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/diskTypes/pd-balanced",
+    "creationTimestamp": "2026-09-10T10:00:00.000-07:00",
+    "users": [
+      "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/instances/kaava-worker-2"
+    ]
+  },
+  {
+    "name": "kaava-gpu",
+    "zone": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a",
+    "sizeGb": "200",
+    "type": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/diskTypes/pd-balanced",
+    "creationTimestamp": "2026-08-02T10:00:00.000-07:00",
+    "users": [
+      "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/instances/kaava-gpu"
+    ]
+  },
+  {
+    "name": "plane-vm",
+    "zone": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a",
+    "sizeGb": "50",
+    "type": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/diskTypes/pd-standard",
+    "creationTimestamp": "2026-09-26T08:00:00.000-07:00",
+    "users": [
+      "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/instances/plane-vm"
+    ]
+  }
+]

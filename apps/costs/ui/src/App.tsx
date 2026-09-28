@@ -1,0 +1,293 @@
+import { reportPainted } from "@openkaava/bridge";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
+import {
+  budgetTone,
+  byResource,
+  dayOf,
+  money,
+  monthName,
+  quantity,
+  unitPrice,
+  verdict,
+} from "./model";
+import * as rpc from "./rpc";
+import type { Category, Estimate, Trouble } from "./rpc";
+import { useVisiblePoll } from "./useVisiblePoll";
+
+/**
+ * Usage moves by the hour and prices by the day, so a minute is plenty. Each
+ * refresh is a round of inventory and Monitoring reads; the price lists are
+ * cached by the backend for a day.
+ */
+const POLL_MS = 60_000;
+
+export default function App() {
+  const [estimate, setEstimate] = useState<Estimate | null>(null);
+  const [failure, setFailure] = useState<unknown>(null);
+  const [busy, setBusy] = useState(false);
+  const [updated, setUpdated] = useState<Date | null>(null);
+
+  const refresh = useCallback(async () => {
+    setBusy(true);
+    try {
+      setEstimate(await rpc.estimate());
+      setFailure(null);
+      setUpdated(new Date());
+    } catch (e) {
+      setFailure(e);
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+  useVisiblePoll(refresh, POLL_MS);
+
+  useEffect(() => {
+    if (estimate || failure) reportPainted();
+  }, [estimate, failure]);
+
+  const blocking = !estimate && failure !== null;
+
+  return (
+    <div className="app">
+      <header className="app__head">
+        <h1 className="app__title">Cost Tracker</h1>
+        {estimate && (
+          <span className="app__sub">
+            Google Cloud · {estimate.project}
+            {estimate.source === "fixture" && <span className="costs__badge">fixture</span>}
+          </span>
+        )}
+        <span className="app__host">
+          {updated
+            ? `updated ${updated.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+            : "reading…"}
+        </span>
+        <button
+          type="button"
+          className="app__up costs__refresh"
+          disabled={busy}
+          onClick={() => void refresh()}
+        >
+          {busy ? "Refreshing…" : "Refresh"}
+        </button>
+      </header>
+      <div className="app__body">
+        {blocking ? (
+          <Blocked failure={failure} onRetry={() => void refresh()} />
+        ) : !estimate ? (
+          <p className="app__note">
+            Reading the project and the price lists. The first read of the day downloads Google's
+            price sheet and can take a minute.
+          </p>
+        ) : (
+          <div className="costs__page">
+            {failure !== null && (
+              <p className="app__error">
+                Last refresh failed: {rpc.messageOf(failure)}. Showing the previous estimate.
+              </p>
+            )}
+            <Summary estimate={estimate} />
+            {estimate.problems.length > 0 && (
+              <section className="costs__problems" aria-label="Parts that could not be read">
+                {estimate.problems.map((p) => (
+                  <p key={p.part} className="app__error">
+                    {p.part}: {p.message}
+                  </p>
+                ))}
+              </section>
+            )}
+            {estimate.categories.map((c) => (
+              <CategoryTable key={c.id} category={c} />
+            ))}
+            <Caveats estimate={estimate} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** The month so far, the forecast, and the budget bar. */
+function Summary({ estimate }: { estimate: Estimate }) {
+  const tone = budgetTone(estimate.forecast, estimate.budget);
+  const { day, days } = dayOf(estimate);
+  const month = monthName(estimate);
+  // The bar's scale reaches past both the budget and the forecast, so the
+  // marker and the forecast's end are never drawn off the edge.
+  const scale = Math.max(estimate.budget, estimate.forecast) * 1.1 || 1;
+  const pct = (v: number) => `${Math.min(100, (v / scale) * 100).toFixed(2)}%`;
+  return (
+    <section className="costs__summary" aria-label="This month">
+      <div className="costs__figures">
+        <Figure label={`So far in ${month}`} value={money(estimate.toDate)} />
+        <Figure label={`Forecast for ${month}`} value={money(estimate.forecast)} tone={tone} />
+        <Figure label="Budget" value={money(estimate.budget)} />
+      </div>
+      <div
+        className="costs__bar"
+        role="img"
+        aria-label={`${money(estimate.toDate)} so far, ${money(estimate.forecast)} forecast, against a ${money(estimate.budget)} budget`}
+      >
+        <span
+          className={`costs__bar-forecast costs__bar-forecast--${tone}`}
+          style={{ width: pct(estimate.forecast) }}
+        />
+        <span
+          className={`costs__bar-spent costs__bar-spent--${tone}`}
+          style={{ width: pct(estimate.toDate) }}
+        />
+        <span className="costs__bar-budget" style={{ left: pct(estimate.budget) }} />
+      </div>
+      <p className={`costs__verdict costs__verdict--${tone}`}>
+        Forecast {verdict(estimate)}. Day {day} of {days}
+        {estimate.pricesAsOf && (
+          <>
+            {" "}
+            · list prices as of{" "}
+            {new Date(estimate.pricesAsOf).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              timeZone: "UTC",
+            })}
+          </>
+        )}
+        .
+      </p>
+      <ul className="costs__split" aria-label="Forecast by category">
+        {estimate.categories.map((c) => (
+          <li key={c.id}>
+            <span className="costs__split-label">{c.label}</span>
+            <span className="costs__num">{money(c.forecast)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function Figure({ label, value, tone }: { label: string; value: string; tone?: string }) {
+  return (
+    <div className="costs__figure">
+      <span className="app__label">{label}</span>
+      <span className={tone ? `costs__big costs__big--${tone}` : "costs__big"}>{value}</span>
+    </div>
+  );
+}
+
+/** One category: a row per billed item, grouped under its resource. */
+function CategoryTable({ category }: { category: Category }) {
+  const groups = byResource(category.lines);
+  return (
+    <section className="costs__category" aria-label={category.label}>
+      <h2 className="costs__heading">
+        <span>{category.label}</span>
+        <span className="costs__heading-sums">
+          <span className="costs__num">{money(category.toDate)}</span> so far ·{" "}
+          <span className="costs__num">{money(category.forecast)}</span> forecast
+        </span>
+      </h2>
+      <div className="costs__table-wrap">
+        <table className="costs__table">
+          <thead>
+            <tr>
+              <th scope="col">Resource</th>
+              <th scope="col">Billed for</th>
+              <th scope="col" className="costs__right">
+                Used so far
+              </th>
+              <th scope="col" className="costs__right">
+                List price
+              </th>
+              <th scope="col" className="costs__right">
+                So far
+              </th>
+              <th scope="col" className="costs__right">
+                Forecast
+              </th>
+            </tr>
+          </thead>
+          {groups.map((g) => (
+            <tbody key={g.resource} className="costs__group">
+              {g.lines.map((line, i) => (
+                <tr key={line.item}>
+                  {i === 0 && (
+                    <th scope="rowgroup" rowSpan={g.lines.length} className="costs__resource">
+                      <span className="costs__resource-name">{g.resource}</span>
+                      <span className="costs__resource-detail">{g.detail}</span>
+                    </th>
+                  )}
+                  <td title={line.sku ?? undefined}>
+                    {line.item}
+                    {line.note && <span className="costs__note">{line.note}</span>}
+                  </td>
+                  <td className="costs__right costs__num">
+                    {quantity(line.quantityToDate, line.unit)}
+                  </td>
+                  <td className="costs__right costs__num costs__dim">
+                    {unitPrice(line.unitPrice, line.unit)}
+                  </td>
+                  <td className="costs__right costs__num">
+                    {line.unitPrice === null ? "—" : money(line.toDate)}
+                  </td>
+                  <td className="costs__right costs__num">
+                    {line.unitPrice === null ? "—" : money(line.forecast)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          ))}
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function Caveats({ estimate }: { estimate: Estimate }) {
+  return (
+    <section className="costs__caveats" aria-label="What this estimate leaves out">
+      <h2 className="app__label">Not in this estimate</h2>
+      <ul>
+        {estimate.notEstimated.map((n) => (
+          <li key={n}>{n}</li>
+        ))}
+      </ul>
+      <p className="app__note">
+        List prices times measured usage — an estimate, not the bill. The forecast runs the last
+        seven days' rate to the end of the month; disks and reserved IPs bill for the whole month
+        they exist.
+      </p>
+    </section>
+  );
+}
+
+/** The whole-pane state for a failure nothing else can get past. */
+function Blocked({ failure, onRetry }: { failure: unknown; onRetry: () => void }) {
+  const trouble: Trouble | null = rpc.troubleOf(failure);
+  let heading = "Could not read Google Cloud";
+  let fix: ReactNode = null;
+  if (trouble?.kind === "gcloudMissing") {
+    heading = "The Google Cloud CLI is not installed";
+    fix = (
+      <p className="app__note">
+        Install it from cloud.google.com/sdk, then run <code>gcloud auth login</code>.
+      </p>
+    );
+  } else if (trouble?.kind === "signedOut") {
+    heading = "Signed out of Google Cloud";
+    fix = (
+      <p className="app__note">
+        Run <code>gcloud auth login</code> in a terminal, then retry.
+      </p>
+    );
+  }
+  return (
+    <section className="app__section costs__blocked">
+      <h2 className="costs__heading">{heading}</h2>
+      {fix}
+      <p className="app__error">{rpc.messageOf(failure)}</p>
+      <button type="button" className="app__up" onClick={onRetry}>
+        Retry
+      </button>
+    </section>
+  );
+}

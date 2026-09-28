@@ -14,6 +14,7 @@
 //! process, no broker in between.
 
 mod agents;
+mod costs;
 #[cfg(feature = "design-mode")]
 mod design;
 mod files;
@@ -200,6 +201,13 @@ const REGISTRY: &[Registered] = &[
         description: "Agent machines in OpenKaava Cloud, their sessions, and what each one did.",
         // Reads Google Cloud with the user's own gcloud login; see `cloud`.
         call: agents::call,
+    },
+    Registered {
+        id: "costs",
+        name: "Cost Tracker",
+        description: "What OpenKaava Cloud has cost this month at list price, and the forecast against its budget.",
+        // Read-only: inventory, Cloud Monitoring usage and the Billing Catalog.
+        call: costs::call,
     },
     // Disabled by default; see `[features]` in `Cargo.toml`.
     #[cfg(feature = "design-mode")]

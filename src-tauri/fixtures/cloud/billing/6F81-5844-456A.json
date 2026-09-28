@@ -1,0 +1,590 @@
+{
+  "skus": [
+    {
+      "skuId": "CF4E-A0C7-E3BF",
+      "description": "E2 Instance Core running in Americas",
+      "category": {
+        "resourceGroup": "CPU",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1", "us-east1", "us-west1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "h",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 21811590
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "F449-33EC-A5EF",
+      "description": "E2 Instance Ram running in Americas",
+      "category": {
+        "resourceGroup": "RAM",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1", "us-east1", "us-west1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "GiBy.h",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 2923530
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "F179-E1EA-D97A",
+      "description": "Spot Preemptible E2 Instance Core running in Americas",
+      "category": {
+        "resourceGroup": "CPU",
+        "usageType": "Preemptible"
+      },
+      "serviceRegions": ["us-central1", "us-east1", "us-west1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "h",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 13090000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "9B1F-1E62-4061",
+      "description": "Spot Preemptible E2 Instance Ram running in Americas",
+      "category": {
+        "resourceGroup": "RAM",
+        "usageType": "Preemptible"
+      },
+      "serviceRegions": ["us-central1", "us-east1", "us-west1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "GiBy.h",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 1754000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "D18E-3563-415F",
+      "description": "G2 Instance Core running in Americas",
+      "category": {
+        "resourceGroup": "CPU",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1", "us-east1", "us-west1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "h",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 24988212
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "F0A4-E3D3-33BD",
+      "description": "G2 Instance Ram running in Americas",
+      "category": {
+        "resourceGroup": "RAM",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1", "us-east1", "us-west1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "GiBy.h",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 2927448
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "59A6-9C49-BDDB",
+      "description": "Spot Preemptible G2 Instance Core running in Americas",
+      "category": {
+        "resourceGroup": "CPU",
+        "usageType": "Preemptible"
+      },
+      "serviceRegions": ["us-central1", "us-east1", "us-west1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "h",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 14990000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "BF80-650A-78E6",
+      "description": "Spot Preemptible G2 Instance Ram running in Americas",
+      "category": {
+        "resourceGroup": "RAM",
+        "usageType": "Preemptible"
+      },
+      "serviceRegions": ["us-central1", "us-east1", "us-west1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "GiBy.h",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 1756000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "A88A-5A60-E821",
+      "description": "Nvidia L4 GPU running in Americas",
+      "category": {
+        "resourceGroup": "GPU",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1", "us-east1", "us-west1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "h",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 560040239
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "AEC2-3D5C-61BF",
+      "description": "Nvidia L4 GPU attached to Spot Preemptible VMs running in Americas",
+      "category": {
+        "resourceGroup": "GPU",
+        "usageType": "Preemptible"
+      },
+      "serviceRegions": ["us-central1", "us-east1", "us-west1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "h",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 336000000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "6AE1-525F-8B80",
+      "description": "Balanced PD Capacity",
+      "category": {
+        "resourceGroup": "SSD",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": [
+        "us-central1",
+        "us-central2",
+        "us-east1",
+        "us-west1",
+        "asia-east1",
+        "europe-west1"
+      ],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "GiBy.mo",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 100000000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "D973-5D65-BAB2",
+      "description": "Storage PD Capacity",
+      "category": {
+        "resourceGroup": "PDStandard",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1", "us-east1", "us-west1", "asia-east1", "europe-west1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "GiBy.mo",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 0
+                }
+              },
+              {
+                "startUsageAmount": 30,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 40000000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "B188-61DD-52E4",
+      "description": "SSD backed PD Capacity",
+      "category": {
+        "resourceGroup": "SSD",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1", "us-east1", "us-west1", "asia-east1", "europe-west1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "GiBy.mo",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 170000000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "66A2-68EA-56BE",
+      "description": "Static Ip Charge",
+      "category": {
+        "resourceGroup": "IpAddress",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1", "us-east1", "us-west1", "asia-east1", "europe-west1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "h",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 0
+                }
+              },
+              {
+                "startUsageAmount": 1,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 10000000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "C054-7F72-A02E",
+      "description": "External IP Charge on a Standard VM",
+      "category": {
+        "resourceGroup": "IpAddress",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["global"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "h",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 0
+                }
+              },
+              {
+                "startUsageAmount": 720,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 5000000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "4AF8-7C1F-39C4",
+      "description": "External IP Charge on a Spot Preemptible VM",
+      "category": {
+        "resourceGroup": "IpAddress",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["global"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "h",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 2500000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "60B2-2A10-9A50",
+      "description": "Commitment v1: Nvidia L4 GPU running in Americas for 3 Years",
+      "category": {
+        "resourceGroup": "GPU",
+        "usageType": "Commit3Yr"
+      },
+      "serviceRegions": ["us-central1", "us-east1", "us-west1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "h",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 252018107
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "67E2-6600-34C2",
+      "description": "Nvidia L4 GPU attached to DWS Defined Duration VMs running in Americas",
+      "category": {
+        "resourceGroup": "GPU",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1", "us-east1", "us-west1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "h",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 560040239
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "0FE3-CAB9-E7E3",
+      "description": "Regional Balanced PD Capacity",
+      "category": {
+        "resourceGroup": "SSD",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": [
+        "us-central1",
+        "us-central2",
+        "us-east1",
+        "us-west1",
+        "asia-east1",
+        "europe-west1"
+      ],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "GiBy.mo",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 200000000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "07B6-1DE8-E0B7",
+      "description": "Static Ip Charge in Melbourne",
+      "category": {
+        "resourceGroup": "IpAddress",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["australia-southeast2"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "h",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 0
+                }
+              },
+              {
+                "startUsageAmount": 1,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 14000000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    }
+  ]
+}

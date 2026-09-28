@@ -1,0 +1,216 @@
+{
+  "skus": [
+    {
+      "skuId": "011E-3072-CBDB",
+      "description": "Services CPU (Instance-based billing) in us-central1",
+      "category": {
+        "resourceGroup": "Compute",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "s",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 18000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "F6D2-B591-E54F",
+      "description": "Services Memory (Instance-based billing) in us-central1",
+      "category": {
+        "resourceGroup": "Compute",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "GiBy.s",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 2000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "4856-B847-F1EB",
+      "description": "Services CPU (Request-based billing)",
+      "category": {
+        "resourceGroup": "Compute",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": [
+        "asia-east1",
+        "asia-northeast1",
+        "asia-northeast2",
+        "europe-north1",
+        "europe-north2",
+        "europe-southwest1",
+        "europe-west1",
+        "europe-west4",
+        "europe-west8",
+        "europe-west9",
+        "me-west1",
+        "northamerica-south1",
+        "us-central1",
+        "us-east1",
+        "us-east4",
+        "us-east5",
+        "us-east7",
+        "us-south1",
+        "us-west1",
+        "us-west8",
+        "asia-south1",
+        "asia-southeast3",
+        "africa-south1",
+        "asia-southeast4"
+      ],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "s",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 24000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "02A2-9231-36A6",
+      "description": "Services Memory (Request-based billing)",
+      "category": {
+        "resourceGroup": "Compute",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": [
+        "asia-east1",
+        "asia-northeast1",
+        "asia-northeast2",
+        "europe-north1",
+        "europe-north2",
+        "europe-southwest1",
+        "europe-west1",
+        "europe-west4",
+        "europe-west8",
+        "europe-west9",
+        "me-west1",
+        "northamerica-south1",
+        "us-central1",
+        "us-east1",
+        "us-east4",
+        "us-east5",
+        "us-east7",
+        "us-south1",
+        "us-west1",
+        "us-west8",
+        "asia-south1",
+        "asia-southeast3",
+        "africa-south1",
+        "asia-southeast4"
+      ],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "GiBy.s",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 2500
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "257B-2A84-3396",
+      "description": "Jobs CPU in us-central1",
+      "category": {
+        "resourceGroup": "Compute",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "s",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 18000
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "skuId": "5DC7-6178-B93F",
+      "description": "Instances Memory in us-central1",
+      "category": {
+        "resourceGroup": "Compute",
+        "usageType": "OnDemand"
+      },
+      "serviceRegions": ["us-central1"],
+      "pricingInfo": [
+        {
+          "pricingExpression": {
+            "usageUnit": "GiBy.s",
+            "tieredRates": [
+              {
+                "startUsageAmount": 0,
+                "unitPrice": {
+                  "currencyCode": "USD",
+                  "units": "0",
+                  "nanos": 1930
+                }
+              }
+            ]
+          },
+          "effectiveTime": "2026-09-27T07:00:00Z"
+        }
+      ]
+    }
+  ]
+}

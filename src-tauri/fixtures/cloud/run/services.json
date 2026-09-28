@@ -1,0 +1,21 @@
+[
+  {
+    "name": "projects/fixture/locations/us-central1/services/hindsight",
+    "template": {
+      "containers": [
+        {
+          "resources": {
+            "limits": {
+              "cpu": "1",
+              "memory": "512Mi"
+            },
+            "cpuIdle": true
+          }
+        }
+      ],
+      "scaling": {
+        "minInstanceCount": 0
+      }
+    }
+  }
+]

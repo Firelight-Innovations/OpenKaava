@@ -1,0 +1,20 @@
+{
+  "e2-standard-2": {
+    "guestCpus": 2,
+    "memoryMb": 8192
+  },
+  "e2-standard-8": {
+    "guestCpus": 8,
+    "memoryMb": 32768
+  },
+  "g2-standard-8": {
+    "guestCpus": 8,
+    "memoryMb": 32768,
+    "accelerators": [
+      {
+        "guestAcceleratorType": "nvidia-l4",
+        "guestAcceleratorCount": 1
+      }
+    ]
+  }
+}
