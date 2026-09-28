@@ -1,0 +1,637 @@
+/*
+ * Shared component CSS vocabulary for the Kaava design system, v2.
+ *
+ * Class-based primitives (`.k-*`) that the shell and every first-party app
+ * can reach for instead of hand-rolling a button or a badge again. Plain CSS
+ * only, by design: no React component ships from this file, so a consumer
+ * stays free to mark up a `.k-btn` as a `<button>`, an anchor, or whatever
+ * the moment needs, and no app takes a runtime dependency on `src/` to get
+ * the house look.
+ *
+ * Every rule here follows a component README under
+ * `docs/design/kaava-ds/` (Button, StatusBadge, GitChip, Toggle, Field,
+ * Tabs, TreeRow) or, where no README exists yet (env chip, kbd hint,
+ * dialog, menu), the token table and board notes in
+ * `docs/design/KAAVA-UX-SPEC.md` §3-4. Colours and sizes are tokens from
+ * `src/tokens.css`, never hex — the whole point of a shared sheet is that
+ * drift shows up here once, not per app.
+ *
+ * Imported by `src/styles.css` (the shell) and `apps/shared/app.css` (every
+ * app's pane chrome), after `tokens.css` in both.
+ */
+
+/* --- k-btn ------------------------------------------------------------- *
+ * Button README: five variants, five sizes on the control ladder. Default
+ * size is `control-md` (28px); a consumer opts into another rung with a
+ * size modifier. Only one primary per region — that rule is editorial, not
+ * something CSS can enforce.
+ */
+
+.k-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1-5);
+  height: var(--control-md);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--txt-primary);
+  font: var(--type-body-strong);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.k-btn:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.k-btn:disabled,
+.k-btn[aria-disabled="true"] {
+  background: var(--bg-layer-1-selected);
+  color: var(--txt-disabled);
+  cursor: default;
+}
+
+.k-btn--primary {
+  background: var(--accent);
+  color: var(--txt-on-accent);
+}
+
+.k-btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.k-btn--secondary {
+  background: var(--bg-layer-2);
+  border: 1px solid var(--border-strong);
+  color: var(--txt-primary);
+}
+
+.k-btn--secondary:hover:not(:disabled) {
+  border-color: var(--border-strong-1);
+}
+
+.k-btn--ghost {
+  background: transparent;
+  color: var(--txt-secondary);
+}
+
+.k-btn--ghost:hover:not(:disabled) {
+  background: var(--bg-layer-1-hover);
+  color: var(--txt-primary);
+}
+
+.k-btn--danger {
+  background: var(--danger-subtle);
+  color: var(--txt-danger);
+}
+
+/* Always behind a confirmation (README) — the solid fill is the confirmed
+   state's own hover, not a hint offered on every render. */
+.k-btn--danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: var(--txt-on-accent);
+}
+
+/* Square, icon-only: padding drops to zero and width matches height so the
+   glyph centers. `aria-label` is the consumer's job — this file has no way
+   to enforce it. */
+.k-btn--icon {
+  padding: 0;
+  width: var(--control-md);
+  color: var(--txt-tertiary);
+}
+
+.k-btn--icon:hover:not(:disabled) {
+  background: var(--bg-layer-1-hover);
+  color: var(--txt-primary);
+}
+
+.k-btn--sm {
+  height: var(--control-sm);
+  padding: 0 var(--space-2);
+  gap: var(--space-1);
+}
+
+.k-btn--sm.k-btn--icon {
+  width: var(--control-sm);
+}
+
+.k-btn--lg {
+  height: var(--control-lg);
+}
+
+.k-btn--lg.k-btn--icon {
+  width: var(--control-lg);
+}
+
+.k-btn--xl {
+  height: var(--control-xl);
+}
+
+.k-btn--xl.k-btn--icon {
+  width: var(--control-xl);
+}
+
+.k-btn--2xl {
+  height: var(--control-2xl);
+  padding: 0 var(--space-4);
+}
+
+.k-btn--2xl.k-btn--icon {
+  width: var(--control-2xl);
+}
+
+/* --- k-badge ------------------------------------------------------------ *
+ * StatusBadge README: a 22px tinted pill, a 6px dot plus a required word —
+ * colour alone never carries the state. The count variant drops the dot and
+ * shrinks to an 18px unread pill.
+ */
+
+.k-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  height: 22px;
+  padding: 0 var(--space-2);
+  border-radius: 11px;
+  font: var(--type-caption);
+  white-space: nowrap;
+}
+
+.k-badge__dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.k-badge--success {
+  background: var(--success-subtle);
+  color: var(--txt-success);
+}
+
+.k-badge--success .k-badge__dot {
+  background: var(--success);
+}
+
+.k-badge--warning {
+  background: var(--warning-subtle);
+  color: var(--txt-warning);
+}
+
+.k-badge--warning .k-badge__dot {
+  background: var(--warning);
+}
+
+.k-badge--danger {
+  background: var(--danger-subtle);
+  color: var(--txt-danger);
+}
+
+.k-badge--danger .k-badge__dot {
+  background: var(--danger);
+}
+
+.k-badge--info {
+  background: var(--info-subtle);
+  color: var(--txt-info);
+}
+
+.k-badge--info .k-badge__dot {
+  background: var(--info);
+}
+
+.k-badge--idle {
+  background: var(--bg-layer-1-selected);
+  color: var(--txt-tertiary);
+}
+
+.k-badge--idle .k-badge__dot {
+  background: var(--state-idle);
+}
+
+.k-badge--accent {
+  background: var(--accent-subtle);
+  color: var(--txt-accent);
+}
+
+.k-badge--accent .k-badge__dot {
+  background: var(--accent);
+}
+
+/* The unread-count pill: no dot, a number instead. */
+.k-badge--count {
+  height: 18px;
+  padding: 0 var(--space-1-5);
+  background: var(--accent-subtle);
+  color: var(--txt-accent);
+  font: var(--type-mono-meta);
+}
+
+/* --- k-gitchip ----------------------------------------------------------*
+ * GitChip README: an 18px mono letter on a tinted square, one per git
+ * status. `aria-label` with the full word is the consumer's job.
+ */
+
+.k-gitchip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  font: var(--type-mono-meta);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.k-gitchip--m {
+  background: var(--warning-subtle);
+  color: var(--txt-warning);
+}
+
+.k-gitchip--a {
+  background: var(--success-subtle);
+  color: var(--txt-success);
+}
+
+.k-gitchip--d {
+  background: var(--danger-subtle);
+  color: var(--txt-danger);
+}
+
+.k-gitchip--u {
+  background: var(--info-subtle);
+  color: var(--txt-info);
+}
+
+.k-gitchip--r {
+  background: var(--bg-layer-1-selected);
+  color: var(--txt-tertiary);
+}
+
+/* A deleted file's own name, next to the chip — not the chip itself. */
+.k-gitchip-deleted-name {
+  color: var(--txt-placeholder);
+  text-decoration: line-through;
+}
+
+/* --- k-toggle ------------------------------------------------------------*
+ * Toggle README: a 36x20 switch for settings that take effect immediately.
+ * Marked up as a button, not a checkbox — `role="switch"` reads its own
+ * state from `aria-checked`, so no hidden input is needed to drive this
+ * plain-CSS version.
+ */
+
+.k-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 36px;
+  height: 20px;
+  padding: 2px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--border-strong);
+  cursor: pointer;
+}
+
+.k-toggle:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.k-toggle__knob {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--txt-tertiary);
+  transform: translateX(0);
+  transition: transform 0.12s ease;
+}
+
+.k-toggle[aria-checked="true"] {
+  background: var(--accent);
+}
+
+.k-toggle[aria-checked="true"] .k-toggle__knob {
+  background: var(--txt-on-accent);
+  transform: translateX(16px);
+}
+
+/* --- k-field --------------------------------------------------------------
+ * Field README: a labelled text input, 32px in settings and 28px in dense
+ * panels. Structure: `.k-field` wraps a `.k-field__label`, a `.k-field__input`
+ * and an optional `.k-field__hint`; `.k-field--error` on the wrapper flips
+ * both the input edge and the hint colour.
+ */
+
+.k-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.k-field__label {
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
+  color: var(--txt-secondary);
+}
+
+.k-field__input {
+  height: var(--control-lg);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-subtle-1);
+  border-radius: var(--radius-md);
+  background: var(--bg-layer-1);
+  color: var(--txt-primary);
+  font: var(--type-body);
+}
+
+/* A dense panel (a row inside a pane, not a settings page) uses the next
+   rung down on the control ladder. */
+.k-field--dense .k-field__input {
+  height: var(--control-md);
+}
+
+.k-field__input:focus {
+  border-color: var(--accent);
+  outline: 3px solid var(--accent-subtle);
+  outline-offset: 0;
+}
+
+.k-field__hint {
+  font: var(--type-caption);
+  color: var(--txt-tertiary);
+}
+
+.k-field--error .k-field__input {
+  border-color: var(--danger);
+}
+
+.k-field--error .k-field__hint {
+  color: var(--txt-danger);
+}
+
+/* Code-like values — fonts, paths, URLs — may opt into the mono family. */
+.k-field__input--mono {
+  font-family: var(--mono);
+}
+
+/* --- k-tabs ---------------------------------------------------------------
+ * Tabs README: three styles, one per level. Structure is the same in all
+ * three — `.k-tabs.k-tabs--<style>[role="tablist"]` wrapping `.k-tab
+ * [role="tab"]` children — with the modifier deciding which look applies.
+ */
+
+.k-tabs {
+  display: flex;
+  align-items: center;
+}
+
+.k-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: var(--type-body);
+  cursor: pointer;
+}
+
+/* App-switcher pills: clusters and apps on the canvas. */
+.k-tabs--switcher {
+  gap: var(--space-1);
+}
+
+.k-tabs--switcher .k-tab {
+  height: 30px;
+  padding: 0 var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  color: var(--txt-tertiary);
+}
+
+.k-tabs--switcher .k-tab[aria-selected="true"] {
+  background: var(--bg-layer-2);
+  border-color: var(--border-subtle-1);
+  box-shadow: var(--shadow-raised);
+  color: var(--txt-primary);
+}
+
+/* A 6px dot after the label means the tab wants attention. */
+.k-tab__attention {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warning);
+}
+
+/* A drop target while dragging a tab. */
+.k-tabs--switcher .k-tab--drop-target {
+  border: 1px dashed var(--accent);
+  background: var(--accent-subtle);
+}
+
+/* Editor / pane tabs: a flat strip inside a region. */
+.k-tabs--pane {
+  height: var(--h-paneltabs);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.k-tabs--pane .k-tab {
+  height: 100%;
+  padding: 0 var(--space-3);
+  color: var(--txt-tertiary);
+}
+
+.k-tabs--pane .k-tab[aria-selected="true"] {
+  color: var(--txt-primary);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+/* A 7px "modified" dot that turns into a close button on hover. */
+.k-tab__modified {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--warning);
+}
+
+.k-tab:hover .k-tab__modified {
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Segmented: a 2px-padded track for right-panel views. */
+.k-tabs--segmented {
+  padding: 2px;
+  gap: 2px;
+  background: var(--bg-canvas);
+  border-radius: var(--radius-md);
+}
+
+.k-tabs--segmented .k-tab {
+  height: var(--control-sm);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--txt-tertiary);
+}
+
+.k-tabs--segmented .k-tab[aria-selected="true"] {
+  background: var(--bg-layer-1-selected);
+  color: var(--txt-primary);
+}
+
+/* --- k-chip (environment chip) ---------------------------------------- *
+ * Undocumented in the component READMEs — only in the UX spec's v3 boards
+ * (§1.3, §4 "Env chip" row). `wt` and `main` share one neutral look; `cloud`
+ * gets the info tint; `canvas` is the pinned Design cluster's own icon on
+ * the same neutral chip. 20px inside a cluster tab, 22px standalone in the
+ * environment bar — the taller size is `.k-chip--standalone`.
+ */
+
+.k-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 20px;
+  padding: 0 var(--space-1-5);
+  border-radius: var(--radius-sm);
+  background: var(--bg-layer-3);
+  color: var(--txt-secondary);
+  font: var(--type-mono-meta);
+  font-weight: 500;
+}
+
+.k-chip--standalone {
+  height: 22px;
+}
+
+.k-chip--cloud {
+  background: var(--info-subtle);
+  color: var(--txt-info);
+}
+
+/* --- k-kbd ------------------------------------------------------------- *
+ * A keyboard-shortcut hint. Not in a component README; the token table
+ * (§4) lists "kbd hints" under both `txt-placeholder` (the label colour)
+ * and `mono-meta` (the type). Squared off with `radius-sm`, like a git chip.
+ */
+
+.k-kbd {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  border: 1px solid var(--border-subtle-1);
+  border-radius: var(--radius-sm);
+  background: var(--bg-layer-3);
+  color: var(--txt-placeholder);
+  font: var(--type-mono-meta);
+}
+
+/* --- k-dialog ------------------------------------------------------------
+ * §4's Dialog row: `radius-xl`, `shadow-overlay`, a `bg-backdrop` scrim, a
+ * header/body/footer layout. No panel colour is named in the spec; this
+ * follows the background table's own "menus, palette" line for `bg-layer-2`
+ * and gives the dialog the same surface a menu already uses. Structure:
+ * `.k-dialog-scrim` (fixed, full-viewport) wraps `.k-dialog[role="dialog"]`.
+ */
+
+.k-dialog-scrim {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-backdrop);
+}
+
+.k-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  border-radius: var(--radius-xl);
+  background: var(--bg-layer-2);
+  box-shadow: var(--shadow-overlay);
+}
+
+.k-dialog__header {
+  flex: 0 0 auto;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  font: var(--type-h2);
+  color: var(--txt-primary);
+}
+
+.k-dialog__body {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: var(--space-4);
+}
+
+.k-dialog__footer {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* --- k-menu ----------------------------------------------------------- *
+ * A dropdown/context menu. Not in a component README; follows the same
+ * `bg-layer-2` surface as the dialog and the palette (§4's background
+ * table), with `bg-layer-2-hover` on the item a pointer or arrow key is on.
+ */
+
+.k-menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: var(--space-1);
+  border: 1px solid var(--border-subtle-1);
+  border-radius: var(--radius-lg);
+  background: var(--bg-layer-2);
+  box-shadow: var(--shadow-overlay);
+}
+
+.k-menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--control-md);
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--txt-primary);
+  font: var(--type-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.k-menu__item:hover,
+.k-menu__item:focus-visible {
+  background: var(--bg-layer-2-hover);
+}
+
+.k-menu__item:disabled {
+  color: var(--txt-disabled);
+  cursor: default;
+}
+
+.k-menu__separator {
+  height: 1px;
+  margin: var(--space-1) 0;
+  background: var(--border-subtle);
+}
