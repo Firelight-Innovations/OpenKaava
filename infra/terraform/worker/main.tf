@@ -48,6 +48,12 @@ variable "gpu_instance" {
   default     = "kaava-gpu"
 }
 
+variable "plane_url" {
+  type        = string
+  description = "Plane CE for the `plane` MCP server; empty leaves it out. Must match plane/."
+  default     = "http://plane.kaava.internal:8765"
+}
+
 provider "google" {
   project = var.project_id
   region  = var.region
@@ -113,6 +119,7 @@ resource "google_compute_instance" "agent" {
     kaava-sessions      = "${var.project_id}-sessions"
     kaava-gpu-instance  = var.gpu_instance
     kaava-hindsight-url = data.google_cloud_run_v2_service.hindsight.uri
+    kaava-plane-url     = var.plane_url
     kaava-memory-banks  = join(",", each.value.memory_banks)
     kaava-idle-minutes  = tostring(each.value.idle_minutes)
   }

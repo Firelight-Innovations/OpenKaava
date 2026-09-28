@@ -56,10 +56,25 @@ ste100 --help >/dev/null
 log "Kaava tools"
 install -d /opt/kaava/bin /etc/kaava /etc/claude-code
 install -m 755 /tmp/kaava-files/boot.sh /opt/kaava/boot.sh
-for tool in kaava-render kaava-smoke-test kaava-session-hook kaava-hindsight-headers kaava-idle-check; do
+for tool in kaava-render kaava-smoke-test kaava-session-hook kaava-hindsight-headers kaava-idle-check kaava-wake; do
   install -m 755 "/tmp/kaava-files/$tool" "/opt/kaava/bin/$tool"
   ln -sfn "/opt/kaava/bin/$tool" "/usr/local/bin/$tool"
 done
+
+# Plane MCP (Plane design 7.2): its own venv, every package pinned by hash. boot.sh registers the
+# launcher as the `plane` MCP server; plane-mcp-check is the verify-first test and smoke step.
+log "Plane MCP server"
+python3 -m venv /opt/kaava/plane-mcp
+/opt/kaava/plane-mcp/bin/pip install -q --no-deps --require-hashes \
+  -r /tmp/kaava-files/worker/requirements-mcp.txt
+/opt/kaava/plane-mcp/bin/python -c "import plane_mcp, mcp"
+install -m 755 /tmp/kaava-files/worker/plane-mcp.sh /opt/kaava/bin/plane-mcp
+{
+  echo '#!/opt/kaava/plane-mcp/bin/python'
+  tail -n +2 /tmp/kaava-files/worker/plane_mcp_check.py
+} >/opt/kaava/bin/plane-mcp-check
+chmod 755 /opt/kaava/bin/plane-mcp-check
+ln -sfn /opt/kaava/bin/plane-mcp-check /usr/local/bin/plane-mcp-check
 
 # Every login shell: deployment config from boot.sh, and the Claude token read fresh from Secret
 # Manager into the environment only. An empty secret leaves the variable unset.
@@ -74,9 +89,11 @@ EOF
 # Claude Code settings every user on the VM gets and cannot override. The hooks record each
 # session to the sessions bucket for OpenKaava's agent views; each returns at once and uploads in
 # the background, so an agent never waits on them. The Hindsight MCP servers are written at boot
-# by boot.sh, because their URL is per deployment.
+# by boot.sh, because their URL is per deployment. MCP_TIMEOUT covers the Plane MCP launcher
+# waking a stopped plane-vm, which takes up to 4.5 minutes; the default is 30 seconds.
 hook='{ "hooks": [{ "type": "command", "command": "/opt/kaava/bin/kaava-session-hook", "timeout": 5 }] }'
 jq -n --argjson h "$hook" '{
+  env: { MCP_TIMEOUT: "300000" },
   hooks: {
     SessionStart: [$h], UserPromptSubmit: [$h], Stop: [$h], SubagentStop: [$h], SessionEnd: [$h]
   }
@@ -109,7 +126,8 @@ jq -n \
   --arg godot "$GODOT_VERSION" --arg blender "$BLENDER_VERSION" \
   --arg node "$(node --version)" --arg python "$(python3 --version | cut -d' ' -f2)" \
   --arg ste100 "vendored tools/ste_lint.py" \
-  '{built: $built, claude: $claude, godot: $godot, blender: $blender, node: $node, python: $python, ste100: $ste100}' \
+  --arg plane_mcp "$(/opt/kaava/plane-mcp/bin/pip show plane-mcp-server | awk '/^Version/{print $2}')" \
+  '{built: $built, claude: $claude, godot: $godot, blender: $blender, node: $node, python: $python, ste100: $ste100, plane_mcp: $plane_mcp}' \
   >/etc/kaava/image.json
 cat /etc/kaava/image.json
 
