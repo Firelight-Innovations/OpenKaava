@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "session_id": "3f2a9c1e-7b40-4d2a-9e61-0c5d8b7a1f01",
+  "agent": "kaava-worker",
+  "user": "braden_seaborn_firelightinnovations_com",
+  "cwd": "/home/braden_seaborn_firelightinnovations_com/anomaly",
+  "state": "running",
+  "last_event": "UserPromptSubmit",
+  "updated": "2026-09-28T15:12:40Z",
+  "prompt": "Render the four turntable frames for chair-test v2 and push them to the registry.",
+  "workflow": {
+    "name": "asset-build",
+    "run": "chair-test-v2",
+    "step": "render"
+  }
+}

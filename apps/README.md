@@ -36,6 +36,7 @@ apps/
   files/ui/               File Explorer's frontend
   viewer/ui/              File Viewer's frontend
   tutorial/ui/            Tutorials' frontend
+  agents/ui/              Agents' frontend: OpenKaava Cloud's agent machines and sessions
   design/ui/              Design Mode's frontend
   schematify/ui/          Schematify's frontend
 ```
@@ -135,6 +136,15 @@ is in them, plus everything that changes the shape of it: create, rename,
 duplicate, delete, trash. It does not show a file's contents. Clicking a row
 asks the shell for a File Viewer in the same cluster (`kaava/open`) rather than
 drawing the file itself.
+
+**Agents** (`agents/overview`, `agents/transcript`, `agents/start`) — the agent
+VMs in OpenKaava Cloud, every session each one has run, which workflow run a
+session belongs to, and what the agent did in it. It reads the sessions bucket
+and Compute Engine through `src-tauri/src/cloud/`, with the caller's own
+`gcloud` sign-in, and polls only while visible. Its one write is starting a
+stopped agent VM, which only a press of Start calls. Set
+`KAAVA_CLOUD_FIXTURES` to the absolute path of `src-tauri/fixtures/cloud` to run it against the committed
+fixture instead of the live project.
 
 **File Viewer** (`files/read`, `files/write`) — open files in tabs, and what
 each one looks like. Reads are capped at 256 KiB and say so when they truncate.

@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "session_id": "e5b8f214-6c3d-4e9a-a0b7-2d1c9e8f7a04",
+  "agent": "kaava-worker",
+  "user": "braden_seaborn_firelightinnovations_com",
+  "cwd": "/home/braden_seaborn_firelightinnovations_com/anomaly",
+  "state": "running",
+  "last_event": "SessionStart",
+  "updated": "2026-09-28T15:14:02Z"
+}

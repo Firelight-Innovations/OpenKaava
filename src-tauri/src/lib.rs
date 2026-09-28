@@ -8,6 +8,7 @@
 mod apps;
 mod boot;
 mod branding;
+mod cloud;
 mod commands;
 #[cfg(feature = "design-mode")]
 mod design_comments;
@@ -157,6 +158,10 @@ pub fn run() {
         // launch, because almost every launch is somebody opening the app
         // rather than opening something with it.
         .manage(launch::LaunchState::default())
+        // The gcloud token cache and parsed cloud objects, for the Agents app.
+        // Empty until a cloud app first asks; nothing here calls Google at
+        // startup (`docs/cloud-services.md` §8).
+        .manage(cloud::Cloud::default())
         // Which MCP servers this build hosts for whatever agent the user is
         // running in a terminal, and which of them are switched on. Empty until
         // something registers into it — see `mcp`'s module doc for why an app

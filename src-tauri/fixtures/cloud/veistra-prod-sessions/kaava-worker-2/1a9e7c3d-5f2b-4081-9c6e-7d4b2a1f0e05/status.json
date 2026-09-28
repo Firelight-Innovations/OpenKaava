@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "session_id": "1a9e7c3d-5f2b-4081-9c6e-7d4b2a1f0e05",
+  "agent": "kaava-worker-2",
+  "user": "braden_seaborn_firelightinnovations_com",
+  "cwd": "/home/braden_seaborn_firelightinnovations_com/anomaly",
+  "state": "idle",
+  "last_event": "Stop",
+  "updated": "2026-09-27T11:40:00Z",
+  "workflow": {
+    "name": "godot-build",
+    "run": "level-1-v1",
+    "step": "import"
+  }
+}

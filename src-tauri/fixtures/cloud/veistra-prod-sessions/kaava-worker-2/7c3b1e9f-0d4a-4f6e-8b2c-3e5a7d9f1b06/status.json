@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "session_id": "7c3b1e9f-0d4a-4f6e-8b2c-3e5a7d9f1b06",
+  "agent": "kaava-worker-2",
+  "user": "braden_seaborn_firelightinnovations_com",
+  "cwd": "/home/braden_seaborn_firelightinnovations_com/anomaly",
+  "state": "ended",
+  "last_event": "SessionEnd",
+  "updated": "2026-09-27T10:02:15Z",
+  "end_reason": "prompt_input_exit",
+  "prompt": "Build the lamp from spec lamp.",
+  "workflow": {
+    "name": "asset-build",
+    "run": "lamp-v1",
+    "step": "build"
+  }
+}
