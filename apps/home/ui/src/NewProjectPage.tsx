@@ -117,7 +117,7 @@ export default function NewProject({ onDone }: NewProjectProps) {
         <header className="new-project__header">
           <button
             type="button"
-            className="new-project__back"
+            className="k-btn k-btn--ghost"
             disabled={creating && !finished}
             onClick={onDone}
           >
@@ -183,7 +183,7 @@ export default function NewProject({ onDone }: NewProjectProps) {
               </p>
             )}
             {finished && !succeeded && (
-              <button type="button" className="new-project__step-retry" onClick={startCreate}>
+              <button type="button" className="k-btn k-btn--secondary k-btn--sm" onClick={startCreate}>
                 Retry
               </button>
             )}
@@ -191,17 +191,22 @@ export default function NewProject({ onDone }: NewProjectProps) {
         </div>
 
         <div className="new-project__footer">
-          <button type="button" className="new-project__cancel" onClick={onDone} disabled={creating && !finished}>
+          <button
+            type="button"
+            className="k-btn k-btn--secondary"
+            onClick={onDone}
+            disabled={creating && !finished}
+          >
             Cancel
           </button>
           {succeeded ? (
-            <button type="button" className="new-project__create" onClick={onDone}>
+            <button type="button" className="k-btn k-btn--primary" onClick={onDone}>
               Done
             </button>
           ) : (
             <button
               type="button"
-              className="new-project__create"
+              className="k-btn k-btn--primary"
               disabled={!valid || (creating && !finished)}
               onClick={startCreate}
             >
@@ -282,7 +287,7 @@ function NameSection({
       <h2 className="new-project__section-title">2 · Name</h2>
       <Field label="Project name" error={errors.name}>
         <input
-          className="new-project__input"
+          className="k-field__input"
           value={form.name}
           disabled={disabled}
           autoComplete="off"
@@ -294,7 +299,7 @@ function NameSection({
       <div className="new-project__field-row">
         <Field label="Slug" hint="Can't change later." error={errors.slug}>
           <input
-            className="new-project__input new-project__input--mono"
+            className="k-field__input k-field__input--mono"
             value={form.slug}
             disabled={disabled}
             autoComplete="off"
@@ -304,7 +309,7 @@ function NameSection({
         </Field>
         <Field label="Plane ID" hint="3-5 capitals." error={errors.planeId}>
           <input
-            className="new-project__input new-project__input--mono"
+            className="k-field__input k-field__input--mono"
             value={form.planeId}
             disabled={disabled}
             autoComplete="off"
@@ -357,14 +362,19 @@ function CodeSection({
         <Field label="Project folder" hint="Must already contain a Kaava project file." error={errors.path}>
           <div className="new-project__input-row">
             <input
-              className="new-project__input"
+              className="k-field__input"
               value={form.path}
               disabled={disabled}
               autoComplete="off"
               spellCheck={false}
               onChange={(e) => onChange({ path: e.target.value })}
             />
-            <button type="button" className="new-project__browse" disabled={disabled} onClick={browse}>
+            <button
+              type="button"
+              className="k-btn k-btn--secondary k-btn--sm"
+              disabled={disabled}
+              onClick={browse}
+            >
               Browse…
             </button>
           </div>
@@ -376,17 +386,15 @@ function CodeSection({
   return (
     <section className="new-project__section">
       <h2 className="new-project__section-title">3 · Code</h2>
-      <div className="new-project__segmented" role="radiogroup" aria-label="Where the code comes from">
+      <div className="k-tabs k-tabs--segmented" role="tablist" aria-label="Where the code comes from">
         {CODE_SOURCES.map((s) => (
           <button
             key={s.value}
             type="button"
-            role="radio"
-            aria-checked={form.codeSource === s.value}
+            role="tab"
+            aria-selected={form.codeSource === s.value}
             disabled={disabled}
-            className={`new-project__segment${
-              form.codeSource === s.value ? " new-project__segment--selected" : ""
-            }`}
+            className="k-tab"
             onClick={() => onChange({ codeSource: s.value })}
           >
             {s.label}
@@ -398,7 +406,7 @@ function CodeSection({
         <>
           <Field label="Owner / name" error={errors.ownerRepo}>
             <input
-              className="new-project__input new-project__input--mono"
+              className="k-field__input k-field__input--mono"
               value={form.ownerRepo}
               disabled={disabled}
               placeholder="Firelight-Innovations/torn-apart"
@@ -415,7 +423,7 @@ function CodeSection({
         <>
           <Field label="Repository URL" error={errors.repoUrl}>
             <input
-              className="new-project__input new-project__input--mono"
+              className="k-field__input k-field__input--mono"
               value={form.repoUrl}
               disabled={disabled}
               autoComplete="off"
@@ -426,14 +434,19 @@ function CodeSection({
           <Field label="Clone to" error={errors.path}>
             <div className="new-project__input-row">
               <input
-                className="new-project__input"
+                className="k-field__input"
                 value={form.path}
                 disabled={disabled}
                 autoComplete="off"
                 spellCheck={false}
                 onChange={(e) => onChange({ path: e.target.value })}
               />
-              <button type="button" className="new-project__browse" disabled={disabled} onClick={browse}>
+              <button
+                type="button"
+                className="k-btn k-btn--secondary k-btn--sm"
+                disabled={disabled}
+                onClick={browse}
+              >
                 Browse…
               </button>
             </div>
@@ -445,14 +458,19 @@ function CodeSection({
         <Field label="Folder" error={errors.path}>
           <div className="new-project__input-row">
             <input
-              className="new-project__input"
+              className="k-field__input"
               value={form.path}
               disabled={disabled}
               autoComplete="off"
               spellCheck={false}
               onChange={(e) => onChange({ path: e.target.value })}
             />
-            <button type="button" className="new-project__browse" disabled={disabled} onClick={browse}>
+            <button
+              type="button"
+              className="k-btn k-btn--secondary k-btn--sm"
+              disabled={disabled}
+              onClick={browse}
+            >
               Browse…
             </button>
           </div>
@@ -516,9 +534,11 @@ function ServicesSection({
                   role="switch"
                   aria-checked={form.services[row.key]}
                   disabled={rowDisabled}
-                  className={`new-project__toggle${form.services[row.key] ? " new-project__toggle--on" : ""}`}
+                  className="k-toggle"
                   onClick={() => onChange({ ...form.services, [row.key]: !form.services[row.key] })}
-                />
+                >
+                  <span className="k-toggle__knob" />
+                </button>
               </div>
             );
           })}
@@ -529,6 +549,11 @@ function ServicesSection({
 
 // --- shared bits --------------------------------------------------------------
 
+/**
+ * A `.k-field` — see the Field README (`src/kaava-ui.css`'s own header on
+ * that class): label, input, one hint line that flips to the error message
+ * and `--error`'s colour once there is one to show.
+ */
 function Field({
   label,
   hint,
@@ -541,15 +566,12 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <label className="new-project__field">
-      <span className="new-project__label">
-        {label}
-        {hint && <span className="new-project__hint"> — {hint}</span>}
-      </span>
+    <label className={`k-field${error ? " k-field--error" : ""}`}>
+      <span className="k-field__label">{label}</span>
       {children}
-      {error && (
-        <span className="new-project__error">
-          <AlertCircle size={12} /> {error}
+      {(error ?? hint) && (
+        <span className="k-field__hint">
+          {error && <AlertCircle size={12} />} {error ?? hint}
         </span>
       )}
     </label>

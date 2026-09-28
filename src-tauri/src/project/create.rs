@@ -159,20 +159,29 @@ pub struct CodeResult {
 
 /// What [`run`] can do to the world, injected so the sequencing above is
 /// tested without either a filesystem or a network — see the module doc.
+///
+/// Boxed rather than `&'a dyn Fn`: a closure literal is itself a temporary,
+/// and a `&'a dyn Fn` field would have to borrow one that outlives whatever
+/// builds it. That is fine for `apps::home_create::run_create`, which builds
+/// an `Ops` and calls [`run`] in the same breath, but the tests below build
+/// one inside a helper method that *returns* `Ops<'_>` — a reference into a
+/// closure that method's own stack frame just dropped. Owning the closure
+/// instead of borrowing one sidesteps that without giving the tests a
+/// different shape than the real caller uses.
 pub struct Ops<'a> {
     /// Clone or link the code onto disk, and write a manifest if the folder
     /// does not already have one. Never called for [`CodeSource::
     /// NewGithubRepo`] — `run` skips [`StepId::CloneOrLink`] before this
     /// would be reached.
-    pub land_code: &'a dyn Fn(&CodeSource, Kind) -> Result<CodeResult, String>,
+    pub land_code: Box<dyn Fn(&CodeSource, Kind) -> Result<CodeResult, String> + 'a>,
     /// Undo [`Self::land_code`]: delete the directory it created, or just the
     /// manifest it wrote into a folder that already existed. Told which by
     /// the [`CodeResult`] it is passed.
-    pub unland_code: &'a dyn Fn(&CodeResult) -> Result<(), String>,
-    pub is_git_repo: &'a dyn Fn(&Path) -> bool,
-    pub create_worktree: &'a dyn Fn(&Path) -> Result<(), String>,
-    pub remove_worktree: &'a dyn Fn(&Path) -> Result<(), String>,
-    pub open_project: &'a dyn Fn(&Path) -> Result<(), String>,
+    pub unland_code: Box<dyn Fn(&CodeResult) -> Result<(), String> + 'a>,
+    pub is_git_repo: Box<dyn Fn(&Path) -> bool + 'a>,
+    pub create_worktree: Box<dyn Fn(&Path) -> Result<(), String> + 'a>,
+    pub remove_worktree: Box<dyn Fn(&Path) -> Result<(), String> + 'a>,
+    pub open_project: Box<dyn Fn(&Path) -> Result<(), String> + 'a>,
 }
 
 /// Run the plan once, reporting progress after every step settles.
@@ -412,7 +421,7 @@ mod tests {
     impl Spy {
         fn ops(&self) -> Ops<'_> {
             Ops {
-                land_code: &|source, _kind| {
+                land_code: Box::new(|source, _kind| {
                     if self.land_fails {
                         return Err("clone failed".to_string());
                     }
@@ -427,30 +436,30 @@ mod tests {
                         created_dir: self.landed_created_dir,
                         wrote_manifest: self.landed_wrote_manifest,
                     })
-                },
-                unland_code: &|result| {
+                }),
+                unland_code: Box::new(|result| {
                     self.unlanded.borrow_mut().push(result.path.clone());
                     Ok(())
-                },
-                is_git_repo: &|_path| self.is_repo,
-                create_worktree: &|path| {
+                }),
+                is_git_repo: Box::new(|_path| self.is_repo),
+                create_worktree: Box::new(|path| {
                     if self.worktree_fails {
                         return Err("worktree add failed".to_string());
                     }
                     self.worktrees_created.borrow_mut().push(path.to_path_buf());
                     Ok(())
-                },
-                remove_worktree: &|path| {
+                }),
+                remove_worktree: Box::new(|path| {
                     self.worktrees_removed.borrow_mut().push(path.to_path_buf());
                     Ok(())
-                },
-                open_project: &|path| {
+                }),
+                open_project: Box::new(|path| {
                     if self.open_fails {
                         return Err("could not open".to_string());
                     }
                     self.opened.borrow_mut().push(path.to_path_buf());
                     Ok(())
-                },
+                }),
             }
         }
     }

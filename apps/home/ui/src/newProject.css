@@ -1,69 +1,26 @@
 /*
- * New Project (board 14, `docs/design/KAAVA-UX-SPEC.md`). Its own stylesheet
- * rather than an addition to `home.css`, and its own tokens rather than a
- * reach into `src/tokens.css` — two deliberate choices, both explained here
- * so nobody "fixes" them later without reading why.
- *
- * `src/tokens.css` is explicitly the *old* handoff spec's ten named colours:
- * its own header says "do not add an interface colour that does not appear
- * [in the handoff]". Board 14 is drawn from the newer Kaava design-system
- * tokens (`docs/design/kaava-ds/tokens.json`), which is a different palette
- * on a different handoff and has no shared file yet — the tokens workstream
- * (`ux-tokens`) owns adding it to `apps/shared/app.css` for every app to
- * share. Until that lands, this page carries its own copy, scoped under
- * `.new-project` so it cannot leak into the rest of Home or collide with
- * whatever `ux-tokens` publishes under the same names. When that PR merges,
- * this block should shrink to nothing and every rule below should read the
- * shared tokens instead — see the PR description for this branch.
+ * New Project (board 14, `docs/design/KAAVA-UX-SPEC.md`). Page-specific
+ * layout only — buttons, fields and toggles come from the shared `.k-btn`,
+ * `.k-field`, `.k-toggle` and `.k-tabs--segmented` vocabulary in
+ * `src/kaava-ui.css` (loaded by every app through `apps/shared/app.css`),
+ * and every colour, radius and spacing value below is one of `src/
+ * tokens.css`'s own tokens. Nothing here hardcodes a hex or invents a
+ * duplicate of a token that already exists — see the `ux-tokens` PR (#143)
+ * for what that shared sheet now covers.
  */
 
 .new-project {
-  --bg-canvas: #0f0f10;
-  --bg-surface-1: #141415;
-  --bg-layer-1: #18191b;
-  --bg-layer-1-hover: #1e2021;
-  --bg-layer-1-selected: #242627;
-  --bg-layer-2: #1c1e1f;
-  --border-subtle: #232526;
-  --border-subtle-1: #2b2d2f;
-  --border-strong: #363839;
-  --txt-primary: #e6e7e8;
-  --txt-secondary: #c7cacc;
-  --txt-tertiary: #a3a7aa;
-  --txt-placeholder: #8a8e91;
-  --txt-disabled: #6b6f72;
-  --accent: #d98a3f;
-  --accent-hover: #e59a52;
-  --accent-subtle: rgba(217, 138, 63, 0.12);
-  --txt-accent: #e8a868;
-  --txt-on-accent: #14161a;
-  --success: #4cb863;
-  --success-subtle: rgba(76, 184, 99, 0.12);
-  --txt-success: #8fdca1;
-  --warning: #e0a030;
-  --warning-subtle: rgba(224, 160, 48, 0.12);
-  --txt-warning: #f0c674;
-  --danger: #e5534b;
-  --danger-subtle: rgba(229, 83, 75, 0.12);
-  --txt-danger: #f4a49c;
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
-  --control-height: 28px;
-  --focus-ring: 0 0 0 2px rgba(217, 138, 63, 0.45);
-
   height: 100%;
   overflow-y: auto;
   background: var(--bg-canvas);
   color: var(--txt-primary);
-  font-size: 13px;
-  line-height: 1.5;
+  font: var(--type-body);
 }
 
 .new-project__inner {
   max-width: 960px;
   margin: 0 auto;
-  padding: 24px 32px 48px;
+  padding: var(--space-6) var(--space-4) 48px;
 }
 
 /* --- header: "<- Home", title, caption ----------------------------------- */
@@ -71,32 +28,8 @@
 .new-project__header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.new-project__back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: var(--control-height);
-  padding: 0 10px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--txt-secondary);
-  font: inherit;
-  cursor: pointer;
-}
-
-.new-project__back:hover {
-  background: var(--bg-layer-1-hover);
-  color: var(--txt-primary);
-}
-
-.new-project__back:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .new-project__titles {
@@ -107,13 +40,13 @@
 
 .new-project__title {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
+  font: var(--type-h1);
   color: var(--txt-primary);
 }
 
 .new-project__caption {
   margin: 0;
+  font: var(--type-caption);
   color: var(--txt-tertiary);
 }
 
@@ -121,56 +54,57 @@
 
 .new-project__body {
   display: grid;
+  /* 420px per the board — wider than `--w-panel-default` (380px), which is
+     the shell's own right-panel width and not this rail's. */
   grid-template-columns: minmax(0, 1fr) 420px;
-  gap: 24px;
+  gap: var(--space-4);
   align-items: start;
 }
 
 .new-project__form {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-4);
 }
 
 .new-project__section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 16px;
+  gap: var(--space-2);
+  padding: var(--space-4);
   background: var(--bg-surface-1);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-region);
 }
 
 .new-project__section-title {
   margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
   text-transform: uppercase;
   color: var(--txt-tertiary);
 }
 
-/* --- Kind: a radiogroup drawn as three cards ------------------------------ */
+/* --- Kind: a radiogroup drawn as three cards, not a tab strip — each needs
+   room for its own description, which `.k-tab` has no room for. ----------- */
 
 .new-project__kinds {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .new-project__kind {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 10px 12px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border-subtle-1);
   border-radius: var(--radius-md);
   background: var(--bg-layer-1);
-  color: var(--txt-secondary);
   text-align: left;
   cursor: pointer;
-  font: inherit;
+  font: var(--type-body);
 }
 
 .new-project__kind:hover {
@@ -178,143 +112,60 @@
 }
 
 .new-project__kind:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
 }
 
 .new-project__kind--selected {
   border-color: var(--accent);
   background: var(--accent-subtle);
-  color: var(--txt-primary);
 }
 
 .new-project__kind-name {
-  font-weight: 600;
+  font: var(--type-body-strong);
   color: var(--txt-primary);
 }
 
 .new-project__kind-desc {
+  font: var(--type-caption);
   color: var(--txt-tertiary);
 }
 
-/* --- fields shared by Name, the Code detail rows, etc. -------------------- */
-
-.new-project__field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+/* --- field layout: rows of k-field, and a field plus a Browse k-btn ------- */
 
 .new-project__field-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.new-project__label {
-  color: var(--txt-secondary);
-  font-weight: 500;
-}
-
-.new-project__hint {
-  color: var(--txt-tertiary);
-}
-
-.new-project__input {
-  height: var(--control-height);
-  padding: 0 10px;
-  border: 1px solid var(--border-subtle-1);
-  border-radius: var(--radius-sm);
-  background: var(--bg-layer-1);
-  color: var(--txt-primary);
-  font: inherit;
-}
-
-.new-project__input::placeholder {
-  color: var(--txt-placeholder);
-}
-
-.new-project__input:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: var(--focus-ring);
-}
-
-.new-project__input--mono {
-  font-family: var(--mono);
+  gap: var(--space-3);
 }
 
 .new-project__input-row {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
-.new-project__input-row .new-project__input {
+.new-project__input-row .k-field__input {
   flex: 1;
   min-width: 0;
 }
 
-.new-project__error {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--txt-danger);
-}
-
-/* --- Code: a segmented control over three sources -------------------------- */
-
-.new-project__segmented {
-  display: flex;
-  gap: 4px;
-  padding: 3px;
-  background: var(--bg-layer-1);
-  border: 1px solid var(--border-subtle-1);
-  border-radius: var(--radius-md);
-  width: fit-content;
-}
-
-.new-project__segment {
-  height: 24px;
-  padding: 0 10px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--txt-secondary);
-  font: inherit;
-  cursor: pointer;
-}
-
-.new-project__segment:hover {
-  color: var(--txt-primary);
-}
-
-.new-project__segment--selected {
-  background: var(--bg-layer-1-selected);
-  color: var(--txt-primary);
-}
-
-.new-project__browse {
-  height: var(--control-height);
-  padding: 0 10px;
-  border: 1px solid var(--border-subtle-1);
-  border-radius: var(--radius-sm);
-  background: var(--bg-layer-1);
-  color: var(--txt-secondary);
-  font: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.new-project__browse:hover {
-  background: var(--bg-layer-1-hover);
-  color: var(--txt-primary);
+.new-project__hint {
+  font: var(--type-caption);
+  color: var(--txt-tertiary);
 }
 
 .new-project__checkbox-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   color: var(--txt-secondary);
+}
+
+/* The segmented control is disabled as a group while Create is running;
+   `.k-tab` itself has no disabled styling to fall back on. */
+.new-project .k-tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* --- Project services: one toggle row per resource ------------------------ */
@@ -328,8 +179,8 @@
 .new-project__service {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 4px;
+  gap: var(--space-3);
+  padding: var(--space-2) 4px;
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -349,61 +200,14 @@
   color: var(--txt-primary);
 }
 
-.new-project__service--disabled .new-project__service-name,
-.new-project__service--disabled .new-project__service-desc {
-  color: var(--txt-disabled);
-}
-
 .new-project__service-desc {
+  font: var(--type-caption);
   color: var(--txt-tertiary);
 }
 
-/* A minimal on/off switch — not `.k-toggle` (that class doesn't exist until
-   `ux-tokens` adds it to `apps/shared/app.css`), just enough to read clearly
-   as a toggle rather than borrowing a native checkbox that looks out of
-   place next to the rest of this page. */
-.new-project__toggle {
-  position: relative;
-  width: 32px;
-  height: 18px;
-  border-radius: 999px;
-  border: 1px solid var(--border-subtle-1);
-  background: var(--bg-layer-1);
-  cursor: pointer;
-  flex: none;
-  padding: 0;
-}
-
-.new-project__toggle::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--txt-tertiary);
-  transition: transform 0.1s ease-out;
-}
-
-.new-project__toggle--on {
-  background: var(--accent-subtle);
-  border-color: var(--accent);
-}
-
-.new-project__toggle--on::after {
-  transform: translateX(14px);
-  background: var(--accent);
-}
-
-.new-project__toggle:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.new-project__toggle:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
+.new-project__service--disabled .new-project__service-name,
+.new-project__service--disabled .new-project__service-desc {
+  color: var(--txt-disabled);
 }
 
 /* --- the right rail: "What Create does" ------------------------------------ */
@@ -411,20 +215,19 @@
 .new-project__rail {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  gap: var(--space-3);
+  padding: var(--space-4);
   background: var(--bg-surface-1);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-region);
   position: sticky;
-  top: 24px;
+  top: var(--space-6);
 }
 
 .new-project__rail-title {
   margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
   text-transform: uppercase;
   color: var(--txt-tertiary);
 }
@@ -440,8 +243,8 @@
 
 .new-project__step {
   display: flex;
-  gap: 10px;
-  padding: 8px 4px;
+  gap: var(--space-2);
+  padding: var(--space-2) 4px;
 }
 
 .new-project__step-mark {
@@ -451,12 +254,12 @@
   width: 20px;
   height: 20px;
   flex: none;
+  margin-top: 1px;
   border-radius: 50%;
   border: 1px solid var(--border-subtle-1);
   background: var(--bg-layer-1);
   color: var(--txt-tertiary);
-  font-size: 11px;
-  margin-top: 1px;
+  font: var(--type-mono-meta);
 }
 
 .new-project__step--done .new-project__step-mark {
@@ -499,34 +302,17 @@
 }
 
 .new-project__step-detail {
+  font: var(--type-caption);
   color: var(--txt-tertiary);
   word-break: break-word;
 }
 
 .new-project__step-detail--mono {
-  font-family: var(--mono);
+  font: var(--type-mono-meta);
 }
 
 .new-project__step--failed .new-project__step-detail {
   color: var(--txt-danger);
-}
-
-.new-project__step-retry {
-  align-self: flex-start;
-  height: 22px;
-  padding: 0 8px;
-  margin-top: 4px;
-  border: 1px solid var(--border-subtle-1);
-  border-radius: var(--radius-sm);
-  background: var(--bg-layer-1);
-  color: var(--txt-secondary);
-  font: inherit;
-  cursor: pointer;
-}
-
-.new-project__step-retry:hover {
-  background: var(--bg-layer-1-hover);
-  color: var(--txt-primary);
 }
 
 /* --- footer: Cancel / Create ------------------------------------------------ */
@@ -534,56 +320,14 @@
 .new-project__footer {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.new-project__cancel,
-.new-project__create {
-  height: 32px;
-  padding: 0 16px;
-  border-radius: var(--radius-md);
-  font: inherit;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.new-project__cancel {
-  border: 1px solid var(--border-subtle-1);
-  background: transparent;
-  color: var(--txt-secondary);
-}
-
-.new-project__cancel:hover {
-  background: var(--bg-layer-1-hover);
-  color: var(--txt-primary);
-}
-
-.new-project__create {
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: var(--txt-on-accent);
-}
-
-.new-project__create:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-}
-
-.new-project__create:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.new-project__cancel:focus-visible,
-.new-project__create:focus-visible,
-.new-project__segment:focus-visible,
-.new-project__browse:focus-visible,
-.new-project__step-retry:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
 .new-project__run-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font: var(--type-caption);
   color: var(--txt-danger);
 }

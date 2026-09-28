@@ -113,12 +113,12 @@ fn run_create(app: &AppHandle, cluster_id: &str, request: &create::Request) {
     };
 
     let ops = create::Ops {
-        land_code: &land_code,
-        unland_code: &unland_code,
-        is_git_repo: &is_git_repo,
-        create_worktree: &create_worktree,
-        remove_worktree: &remove_worktree,
-        open_project: &open_project,
+        land_code: Box::new(land_code),
+        unland_code: Box::new(unland_code),
+        is_git_repo: Box::new(is_git_repo),
+        create_worktree: Box::new(create_worktree),
+        remove_worktree: Box::new(remove_worktree),
+        open_project: Box::new(open_project),
     };
 
     let manager = app.state::<CreateManager>();
