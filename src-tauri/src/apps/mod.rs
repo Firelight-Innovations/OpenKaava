@@ -13,9 +13,11 @@
 //! here, reached over transport B and dispatched by [`call`] below — no child
 //! process, no broker in between.
 
+#[cfg(feature = "design-mode")]
 mod design;
 mod files;
 mod home;
+#[cfg(feature = "schematify")]
 mod schematify;
 mod trash;
 pub mod tutorial;
@@ -191,6 +193,8 @@ const REGISTRY: &[Registered] = &[
         // there to keep that true.
         call: files::call,
     },
+    // Disabled by default; see `[features]` in `Cargo.toml`.
+    #[cfg(feature = "design-mode")]
     Registered {
         id: "design",
         name: "Design Mode",
@@ -201,6 +205,8 @@ const REGISTRY: &[Registered] = &[
         // decision the frontend is allowed to make.
         call: design::call,
     },
+    // Disabled by default (ORC-SCO-001); see `[features]` in `Cargo.toml`.
+    #[cfg(feature = "schematify")]
     Registered {
         id: "schematify",
         name: "Schematify",
@@ -543,6 +549,22 @@ mod tests {
     #[test]
     fn an_unknown_app_id_is_method_not_found_rather_than_a_panic() {
         assert!(!is_app("nonesuch"));
+    }
+
+    /// ORC-SCO-001: a default build offers no Schematify tab.
+    #[cfg(not(feature = "schematify"))]
+    #[test]
+    fn schematify_is_not_registered_without_its_feature() {
+        assert!(!is_app("schematify"));
+        assert!(list().iter().all(|a| a.id != "schematify"));
+    }
+
+    /// Design Mode is off by default; see `docs/design-notes/design-mode.md`.
+    #[cfg(not(feature = "design-mode"))]
+    #[test]
+    fn design_mode_is_not_registered_without_its_feature() {
+        assert!(!is_app("design"));
+        assert!(list().iter().all(|a| a.id != "design"));
     }
 
     // --- the Explorer and the Viewer are answered by one filesystem ----------

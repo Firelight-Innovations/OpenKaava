@@ -24,6 +24,11 @@ const host = process.env.TAURI_DEV_HOST;
 const AGENT_PORT = 1430;
 const TAURI_PORT = 1420;
 
+// @ts-expect-error process is a nodejs global
+const SCHEMATIFY = process.env.KAAVA_SCHEMATIFY === "1";
+// @ts-expect-error process is a nodejs global
+const DESIGN_MODE = process.env.KAAVA_DESIGN_MODE === "1";
+
 // https://vite.dev/config/
 export default defineConfig(async ({ mode }) => ({
   plugins: [react()],
@@ -67,8 +72,16 @@ export default defineConfig(async ({ mode }) => ({
         files: resolve(__dirname, "apps/files/ui/index.html"),
         viewer: resolve(__dirname, "apps/viewer/ui/index.html"),
         tutorial: resolve(__dirname, "apps/tutorial/ui/index.html"),
-        design: resolve(__dirname, "apps/design/ui/index.html"),
-        schematify: resolve(__dirname, "apps/schematify/ui/index.html"),
+        // Design Mode is disabled and ships no bundle unless
+        // `KAAVA_DESIGN_MODE=1` — the twin of the `design-mode` Cargo feature.
+        ...(DESIGN_MODE
+          ? { design: resolve(__dirname, "apps/design/ui/index.html") }
+          : {}),
+        // Schematify is disabled (ORC-SCO-001) and ships no bundle unless
+        // `KAAVA_SCHEMATIFY=1` — the twin of the `schematify` Cargo feature.
+        ...(SCHEMATIFY
+          ? { schematify: resolve(__dirname, "apps/schematify/ui/index.html") }
+          : {}),
       },
     },
   },
