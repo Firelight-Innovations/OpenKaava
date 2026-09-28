@@ -13,7 +13,11 @@ afterEach(cleanup);
 
 describe("EnvironmentBar", () => {
   it("draws a worktree's kind chip, branch, ahead/behind and path", () => {
-    const env: Environment = { kind: "worktree", branch: "wt/flashlight-cone", path: "/repo/wt/fl" };
+    const env: Environment = {
+      kind: "worktree",
+      branch: "wt/flashlight-cone",
+      path: "/repo/wt/fl",
+    };
     render(<EnvironmentBar environment={env} ahead={3} behind={0} />);
 
     expect(screen.getByText("Local worktree")).not.toBeNull();
@@ -60,10 +64,12 @@ describe("EnvironmentBar", () => {
     const onStop = vi.fn();
     render(<EnvironmentBar environment={env} onPullIntoWorktree={onPull} onStopSession={onStop} />);
 
-    expect(screen.getByRole("button", { name: "Pull into local worktree" }).hasAttribute("disabled")).toBe(
+    expect(
+      screen.getByRole("button", { name: "Pull into local worktree" }).hasAttribute("disabled"),
+    ).toBe(false);
+    expect(screen.getByRole("button", { name: "Stop session" }).hasAttribute("disabled")).toBe(
       false,
     );
-    expect(screen.getByRole("button", { name: "Stop session" }).hasAttribute("disabled")).toBe(false);
   });
 
   it("calls onReviewAndMerge when the worktree action is pressed", () => {
