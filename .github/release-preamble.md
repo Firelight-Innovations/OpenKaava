@@ -15,10 +15,9 @@ Viewer with their folder as the project.
 ### Before you file a bug
 
 **OpenKaava is pre-alpha.** The window runs, and so do its own apps: Home, the File
-Explorer, the File Viewer and Tutorials. Schematify, the design layer, now has
-a screen behind its tab — an outline, an inspector, a flow editor and a
-decision log — and this is the first release in which it is worth opening. It
-is also the newest thing here, so it is where bugs are most likely.
+Explorer, the File Viewer, Tutorials and Agents. Whatever the notes below call
+new is where bugs are most likely. When you report one, include the message
+the app showed.
 
 **Windows only.** macOS and Linux are untested rather than excluded.
 
