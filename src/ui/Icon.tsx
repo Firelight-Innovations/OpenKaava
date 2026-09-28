@@ -297,6 +297,16 @@ export function Receipt({ size = 14, className }: IconProps) {
   );
 }
 
+/** The Projects page's chip. Tabler's `layout-kanban`, outline. */
+export function Kanban({ size = 14, className }: IconProps) {
+  return (
+    <Outline size={size} className={className} linejoin="round">
+      <path d="M4 4h6M14 4h6" />
+      <path d="M4 10a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM14 10a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z" />
+    </Outline>
+  );
+}
+
 export function WindowMinimise(props: IconProps) {
   return (
     <Control {...props}>
