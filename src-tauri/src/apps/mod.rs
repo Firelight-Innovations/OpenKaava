@@ -14,11 +14,14 @@
 //! process, no broker in between.
 
 mod agents;
+mod blender_viewer;
 mod costs;
 #[cfg(feature = "design-mode")]
 mod design;
 mod files;
+mod godot_viewer;
 mod home;
+mod play;
 // `pub(crate)` rather than private: `lib.rs` needs `apps::projects::WakeManager`
 // to `.manage()` it, the same reason `design_comments::Comments` lives outside
 // `apps::design` altogether — this one stays nested because nothing else in
@@ -199,6 +202,30 @@ const REGISTRY: &[Registered] = &[
         // `two_apps_in_one_cluster_resolve_the_same_context` below, which is
         // there to keep that true.
         call: files::call,
+    },
+    Registered {
+        id: "godot-viewer",
+        name: "Godot Viewer",
+        description: "The scene an agent's headless Godot run last produced — read-only, node tree \
+                      plus a viewport render.",
+        // A fourth app sharing no dispatch with anything else: this is the
+        // first of three (with `blender-viewer` and `play`) whose only real
+        // work today is `crate::comments` — see `godot_viewer.rs`.
+        call: godot_viewer::call,
+    },
+    Registered {
+        id: "blender-viewer",
+        name: "Blender Viewer",
+        description: "The .glb an agent's headless Blender export last produced — read-only, orbit \
+                      and select a part, plus its renders.",
+        call: blender_viewer::call,
+    },
+    Registered {
+        id: "play",
+        name: "Play",
+        description: "Run the environment's debug build in a pane, and capture a comment on what \
+                      you see.",
+        call: play::call,
     },
     Registered {
         id: "agents",
