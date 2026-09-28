@@ -19,6 +19,9 @@ pub struct Reply {
     pub generation: Option<i64>,
 }
 
+/// Native TLS against the machine's own certificate store. `root_certs` must
+/// be said outright: ureq defaults to `WebPki`, which swaps the store for a
+/// bundled list that Schannel cannot finish Google's chain against.
 fn agent() -> ureq::Agent {
     ureq::Agent::config_builder()
         .timeout_global(Some(TIMEOUT))
@@ -26,6 +29,7 @@ fn agent() -> ureq::Agent {
         .tls_config(
             ureq::tls::TlsConfig::builder()
                 .provider(ureq::tls::TlsProvider::NativeTls)
+                .root_certs(ureq::tls::RootCerts::PlatformVerifier)
                 .build(),
         )
         .user_agent(USER_AGENT)
@@ -127,6 +131,26 @@ pub fn encode(part: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The Windows store, not a bundled list. ureq's default is `WebPki`,
+    /// which on native-tls replaces the platform roots, and Schannel then
+    /// rejects Google's chain with "unable to find any user-specified roots".
+    #[test]
+    fn the_agent_trusts_the_platform_roots() {
+        assert!(matches!(
+            agent().config().tls_config().root_certs(),
+            ureq::tls::RootCerts::PlatformVerifier
+        ));
+    }
+
+    /// The same, against a real Google endpoint. Needs a network, so it runs
+    /// only when asked: `cargo test -- --ignored a_google_handshake`.
+    #[test]
+    #[ignore]
+    fn a_google_handshake_succeeds() {
+        let reply = agent().get("https://storage.googleapis.com/").call();
+        assert!(reply.is_ok(), "{:?}", reply.err());
+    }
 
     #[test]
     fn encode_escapes_slashes_and_spaces() {
