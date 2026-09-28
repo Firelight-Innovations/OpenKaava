@@ -33,6 +33,39 @@
   padding: 18px;
 }
 
+/* The Code / Build steps switch, spec'd as a trailing segmented control on
+   the viewer header (KAAVA-UX-SPEC.md §board 03). This app draws no header of
+   its own — see this file's top note — so the strip sits alone, above the tab
+   strip, and only while a file is open: nothing to switch modes on otherwise. */
+.viewerapp__modebar {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 10px 0;
+}
+
+/* The "LATER" micro-label the spec calls for on the Build steps tab — plain
+   text rather than `.k-badge`, which is sized for a status pill and would
+   overflow this control's dense row. */
+.viewerapp__later {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--txt-tertiary);
+}
+
+.viewerapp__buildsteps {
+  margin: auto;
+  padding: 18px;
+  max-width: 40em;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.viewerapp__buildsteps code {
+  font-family: var(--mono);
+}
+
 /* An error from a call that belongs to the app rather than to the editor —
    `files/root` failing, or a save the tab strip started. Pinned above the strip
    because neither region owns it. */

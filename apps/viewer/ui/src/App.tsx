@@ -14,6 +14,9 @@
  * What it deliberately does not own, unchanged from before: the list of file
  * formats. Adding a viewer touches `viewer/registry.ts` and one new component,
  * and never this file.
+ *
+ * `viewMode` stays local: Code vs. Build steps (docs/KAAVA-UX-REWORK.md §8)
+ * has nothing behind the second option yet.
  */
 import { useCallback, useEffect, useState } from "react";
 import { on, publish, reportPainted, subscribe, OPENED_EVENT } from "@openkaava/bridge";
@@ -178,9 +181,46 @@ export default function App() {
 
   const active = files.tabs.find((tab) => tab.path === files.activePath) ?? null;
 
+  /**
+   * Code vs. Build steps, per view rather than per tab: nothing builds the
+   * diagram yet, so there is no state worth carrying from one open file to
+   * the next. Falls back to Code whenever the active file changes, rather
+   * than leaving a placeholder view stuck on screen for a file it was never
+   * chosen for — see docs/KAAVA-UX-REWORK.md §8.
+   */
+  const [viewMode, setViewMode] = useState<"code" | "build-steps">("code");
+  useEffect(() => setViewMode("code"), [files.activePath]);
+
   return (
     <div className="viewerapp">
       {error && <p className="app__error viewerapp__error">{error}</p>}
+
+      {active && (
+        <div className="viewerapp__modebar">
+          <div className="k-tabs k-tabs--segmented" role="tablist" aria-label="Code or build steps">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === "code"}
+              className="k-tab"
+              onClick={() => setViewMode("code")}
+            >
+              Code
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === "build-steps"}
+              className="k-tab"
+              onClick={() => setViewMode("build-steps")}
+              title="Not wired up yet. Planned: a step diagram for scripts like build_bed.py — frame, legs, materials, export, render — each step commentable like a Blender mesh part. See docs/KAAVA-UX-REWORK.md §8."
+            >
+              Build steps
+              <span className="viewerapp__later">LATER</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       <TabStrip
         tabs={files.tabs}
@@ -205,7 +245,7 @@ export default function App() {
           this app appears. Escape answers it the same way Cancel does. */}
       {del.notice && <NoticeBar notice={del.notice} onEscape={del.cancel} />}
 
-      {active ? (
+      {active && viewMode === "code" && (
         <Viewer
           // The nonce is in the key so an external reload remounts the viewer
           // and it re-reads from disk. The path alone would not: reloading the
@@ -215,9 +255,17 @@ export default function App() {
           onDirty={(dirty) => files.setDirty(active.path, dirty)}
           registerSave={(save) => files.registerSave(active.path, save)}
         />
-      ) : (
-        <p className="app__note viewerapp__empty">Select a file to open it.</p>
       )}
+
+      {active && viewMode === "build-steps" && (
+        <p className="app__note viewerapp__buildsteps">
+          Build steps isn&rsquo;t built yet. The plan is a step diagram for scripts like{" "}
+          <code>build_bed.py</code> — frame, legs, materials, export, render — each step commentable
+          the way a Blender mesh part is. See <code>docs/KAAVA-UX-REWORK.md</code> §8.
+        </p>
+      )}
+
+      {!active && <p className="app__note viewerapp__empty">Select a file to open it.</p>}
     </div>
   );
 }
