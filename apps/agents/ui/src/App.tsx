@@ -2,7 +2,7 @@ import { reportPainted } from "@openkaava/bridge";
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { MachineRail, type RowContext, WorkflowRail } from "./Rail";
 import { SessionView } from "./SessionView";
-import { byMachine, byWorkflow, keyOf } from "./model";
+import { byMachine, byWorkflow, keyOf, machineStatusOf } from "./model";
 import * as rpc from "./rpc";
 import type { Overview, Trouble } from "./rpc";
 import { useVisiblePoll } from "./useVisiblePoll";
@@ -71,6 +71,7 @@ export default function App() {
     selected: current ? keyOf(current) : null,
     onSelect: setSelected,
     requests,
+    machineStatus: (agent) => (overview ? machineStatusOf(overview, agent) : null),
   };
 
   const blocking = !overview && failure !== null;
@@ -135,6 +136,7 @@ export default function App() {
                 now={now}
                 request={requests[keyOf(current)]}
                 onRequest={onRequest}
+                machineStatus={overview ? machineStatusOf(overview, current.agent) : null}
               />
             ) : (
               <p className="app__note">Pick a session to read what the agent did.</p>

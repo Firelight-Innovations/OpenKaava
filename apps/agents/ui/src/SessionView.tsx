@@ -21,14 +21,16 @@ export function SessionView({
   now,
   request,
   onRequest,
+  machineStatus,
 }: {
   session: Session;
   now: number;
+  machineStatus: string | null;
   request: string | undefined;
   onRequest: (key: string, text: string) => void;
 }) {
   const key = keyOf(session);
-  const state = stateOf(session, now);
+  const state = stateOf(session, now, machineStatus);
   const status = session.status;
   const wf = status?.workflow;
   const [loaded, setLoaded] = useState<Loaded | null>(null);

@@ -39,6 +39,18 @@ describe("stateOf", () => {
     expect(stateOf(session("a", "1", { state: "ended", updated: old }), NOW)).toBe("ended");
   });
 
+  it("calls a live session on a machine that is not running stopped", () => {
+    const recent = new Date(NOW - 60_000).toISOString();
+    const idle = session("a", "1", { state: "idle", updated: recent });
+    const running = session("a", "1", { state: "running", updated: recent });
+    const ended = session("a", "1", { state: "ended", updated: recent });
+    expect(stateOf(idle, NOW, "TERMINATED")).toBe("stopped");
+    expect(stateOf(running, NOW, "STOPPING")).toBe("stopped");
+    expect(stateOf(ended, NOW, "TERMINATED")).toBe("ended");
+    expect(stateOf(idle, NOW, "RUNNING")).toBe("idle");
+    expect(stateOf(idle, NOW, null)).toBe("idle");
+  });
+
   it("reports an unreadable status as unknown", () => {
     expect(stateOf(session("a", "1", null), NOW)).toBe("unknown");
   });
@@ -74,6 +86,20 @@ describe("byMachine", () => {
     expect(groups[0].recent.map((s) => s.sessionId)).toEqual(["done"]);
     expect(groups[1].live).toEqual([]);
     expect(groups[2].machine).toBeNull();
+  });
+
+  it("files a waiting session on a stopped machine under recent, not live", () => {
+    const recent = new Date(NOW - 60_000).toISOString();
+    const overview: Overview = {
+      source: "fixture",
+      project: "p",
+      machines: [machine("w2", "TERMINATED")],
+      sessions: [session("w2", "left", { state: "idle", updated: recent })],
+      problems: [],
+    };
+    const [group] = byMachine(overview, NOW);
+    expect(group.live).toEqual([]);
+    expect(group.recent.map((s) => s.sessionId)).toEqual(["left"]);
   });
 });
 

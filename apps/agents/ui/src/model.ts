@@ -12,10 +12,17 @@ import type { Machine, Overview, Session } from "./rpc";
  */
 export const STALE_AFTER_MS = 30 * 60 * 1000;
 
-export type State = "running" | "idle" | "ended" | "stale" | "unknown";
+export type State = "running" | "idle" | "ended" | "stale" | "stopped" | "unknown";
 
-export function stateOf(session: Session, now: number): State {
+/**
+ * `machineStatus` is the session's VM as Compute reports it, or `null` when
+ * the VM is not in the list. A session that last said running or idle on a
+ * machine that is not `RUNNING` has no process behind it any more.
+ */
+export function stateOf(session: Session, now: number, machineStatus: string | null = null): State {
   const state = session.status?.state;
+  const live = state === "running" || state === "idle";
+  if (live && machineStatus !== null && machineStatus !== "RUNNING") return "stopped";
   if (state === "running") {
     const at = Date.parse(updatedOf(session));
     return Number.isFinite(at) && now - at > STALE_AFTER_MS ? "stale" : "running";
@@ -78,7 +85,8 @@ export function byMachine(overview: Overview, now: number): MachineGroup[] {
       group = { name: session.agent, machine: null, live: [], recent: [] };
       groups.set(session.agent, group);
     }
-    (isLive(stateOf(session, now)) ? group.live : group.recent).push(session);
+    const state = stateOf(session, now, group.machine?.status ?? null);
+    (isLive(state) ? group.live : group.recent).push(session);
   }
   return [...groups.values()].sort(
     (a, b) => Number(!a.machine) - Number(!b.machine) || a.name.localeCompare(b.name),
@@ -143,8 +151,14 @@ export const stateTone: Record<State, Tone> = {
   idle: "warn",
   ended: "off",
   stale: "err",
+  stopped: "off",
   unknown: "off",
 };
+
+/** The status of the machine a session ran on, or `null` if it is not listed. */
+export function machineStatusOf(overview: Overview, agent: string): string | null {
+  return overview.machines.find((m) => m.name === agent)?.status ?? null;
+}
 
 /** Compute Engine's word for stopped, in the words the rail uses. */
 export function machineLabel(status: string): string {
