@@ -868,7 +868,10 @@ impl ShellState {
     /// both for a cluster with no environment set and for an id that names no
     /// cluster — see [`Self::cluster_project`], which this matches case for
     /// case.
-    pub fn cluster_environment(&self, cluster_id: &str) -> Option<crate::environments::Environment> {
+    pub fn cluster_environment(
+        &self,
+        cluster_id: &str,
+    ) -> Option<crate::environments::Environment> {
         let guard = self.read();
         guard
             .windows
@@ -2183,7 +2186,11 @@ fn project_live_counts_pure(s: &ShellSnapshot, path: &str) -> ProjectLiveCounts 
 
     let mut environments: Vec<String> = clusters
         .iter()
-        .filter_map(|c| c.environment.as_ref().map(crate::environments::Environment::identity))
+        .filter_map(|c| {
+            c.environment
+                .as_ref()
+                .map(crate::environments::Environment::identity)
+        })
         .collect();
     environments.sort();
     environments.dedup();
@@ -4787,7 +4794,11 @@ mod tests {
         let (instances, terminals) = close_cluster_pure(&mut s, "cluster-9");
 
         assert!(instances.is_empty() && terminals.is_empty());
-        assert_eq!(s.windows[0].clusters.len(), 2, "the pin survives the attempt");
+        assert_eq!(
+            s.windows[0].clusters.len(),
+            2,
+            "the pin survives the attempt"
+        );
         assert!(
             s.windows[0].clusters.iter().any(|c| c.id == "cluster-9"),
             "still there afterward"

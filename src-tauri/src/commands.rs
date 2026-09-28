@@ -509,12 +509,11 @@ fn resolve_environment_choice(
 ) -> Result<crate::environments::Environment> {
     match choice {
         EnvironmentChoice::NewLocalWorktree { name, base } => {
-            let main_repo = crate::git::main_repo_root(Path::new(project)).ok_or_else(|| {
-                AppError::Git {
+            let main_repo =
+                crate::git::main_repo_root(Path::new(project)).ok_or_else(|| AppError::Git {
                     op: "worktree add".to_string(),
                     reason: format!("`{project}` is not inside a git repository."),
-                }
-            })?;
+                })?;
             crate::environments::create_local_worktree(&main_repo, &name, &base)
         }
         EnvironmentChoice::Existing { environment } => Ok(environment),
@@ -558,7 +557,11 @@ pub fn create_cluster_with_environment(
     choice: EnvironmentChoice,
     layout: StartingLayout,
 ) -> Result<String> {
-    let NewClusterTarget { label, name, project } = target;
+    let NewClusterTarget {
+        label,
+        name,
+        project,
+    } = target;
     let environment = resolve_environment_choice(&project, choice)?;
     let name = cluster_name_or_environment_fallback(&name, &environment);
 
@@ -585,7 +588,10 @@ pub fn create_cluster_with_environment(
 /// Pulled out of [`create_cluster_with_environment`] so this fallback is
 /// tested directly rather than only through a command that needs a live
 /// `AppHandle` to call at all.
-fn cluster_name_or_environment_fallback(name: &str, environment: &crate::environments::Environment) -> String {
+fn cluster_name_or_environment_fallback(
+    name: &str,
+    environment: &crate::environments::Environment,
+) -> String {
     let trimmed = name.trim();
     if !trimmed.is_empty() {
         return trimmed.to_string();
@@ -610,10 +616,11 @@ pub fn create_design_cluster(
     project: String,
     base: String,
 ) -> Result<Option<String>> {
-    let main_repo = crate::git::main_repo_root(Path::new(&project)).ok_or_else(|| AppError::Git {
-        op: "worktree add".to_string(),
-        reason: format!("`{project}` is not inside a git repository."),
-    })?;
+    let main_repo =
+        crate::git::main_repo_root(Path::new(&project)).ok_or_else(|| AppError::Git {
+            op: "worktree add".to_string(),
+            reason: format!("`{project}` is not inside a git repository."),
+        })?;
     let environment = crate::environments::create_design_environment(&main_repo, &base)?;
     Ok(shell.add_design_cluster(&app, &label, &project, environment))
 }
@@ -1860,9 +1867,7 @@ mod tests {
                     PresetSlot::Terminal => None,
                 })
                 .collect(),
-            PresetNode::Split { children, .. } => {
-                children.iter().flat_map(app_ids).collect()
-            }
+            PresetNode::Split { children, .. } => children.iter().flat_map(app_ids).collect(),
         }
     }
 

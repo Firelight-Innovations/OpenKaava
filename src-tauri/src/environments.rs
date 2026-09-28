@@ -163,7 +163,9 @@ impl Environment {
 /// paths it already had, the moment this build opens the file. `None` here
 /// defers to the legacy fields exactly as before; see `Cluster::environment`'s
 /// own doc for the fuller version of this reasoning.
-pub fn migrate_environment(worktree: Option<&crate::shell_state::WorktreeRef>) -> Option<Environment> {
+pub fn migrate_environment(
+    worktree: Option<&crate::shell_state::WorktreeRef>,
+) -> Option<Environment> {
     let wt = worktree?;
     let name = Path::new(&wt.path)
         .file_name()
@@ -405,7 +407,11 @@ mod tests {
 
     #[test]
     fn migrate_environment_recovers_name_from_the_worktree_path() {
-        let legacy = wt("C:/proj/../.worktrees/proj/feat-x", Some("feat-x"), Some("main"));
+        let legacy = wt(
+            "C:/proj/../.worktrees/proj/feat-x",
+            Some("feat-x"),
+            Some("main"),
+        );
         let migrated = migrate_environment(Some(&legacy)).unwrap();
         assert_eq!(
             migrated,

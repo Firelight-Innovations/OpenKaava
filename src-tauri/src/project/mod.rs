@@ -288,7 +288,12 @@ pub fn open(app: &AppHandle, path: &Path, cluster_id: &str) -> Result<ProjectSna
 /// happens not to be a git repository, or whose worktree list a `git` call
 /// fails to read, opens exactly as it would have before this feature
 /// existed, rather than failing the whole open over a cosmetic extra.
-fn open_design_cluster_if_present(app: &AppHandle, shell: &ShellState, path: &Path, cluster_id: &str) {
+fn open_design_cluster_if_present(
+    app: &AppHandle,
+    shell: &ShellState,
+    path: &Path,
+    cluster_id: &str,
+) {
     let Some(main_repo) = crate::git::main_repo_root(path) else {
         return;
     };
