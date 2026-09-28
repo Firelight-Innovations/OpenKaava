@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import { onThemeChanged } from "@openkaava/bridge/theme";
 // Root-relative, which Vite resolves against the project root — the same
 // palette the shell and the splash window draw from. An app is part of this
 // product, not a guest in it, so it takes the tokens rather than restating
@@ -12,6 +13,13 @@ import "/apps/shared/app.css";
 // imports the shell stylesheet directly, following `apps/files/ui`'s
 // component-level pattern (`explorer/Explorer.tsx` imports its own CSS).
 import "./tokens.css";
+
+// Follows the shell's live theme and accent — see
+// `packages/bridge/src/theme.ts`. This only stamps `data-theme` and the
+// `--accent*` trio on `<html>`; Schematify's own `--kv-*` palette (PRD §13,
+// `./tokens.css`) does not yet read either, so this is a no-op here until
+// that file is rebuilt to react to them.
+onThemeChanged();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
