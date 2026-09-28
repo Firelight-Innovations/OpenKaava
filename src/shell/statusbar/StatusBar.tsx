@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import type { GitStatus, UpdateNotice } from "../contract";
+import type { Environment } from "../environment";
 import { Sliders } from "../../ui/Icon";
 import SettingsPopover from "./SettingsPopover";
 import "./statusbar.css";
@@ -12,32 +13,38 @@ export interface StatusBarProps {
    * component only draws what it is given.
    */
   update: UpdateNotice | null;
+  /** The active cluster's project, `null` while none is open — `§1.9`'s left
+   *  cluster starts here. */
+  project: string | null;
+  /** The active cluster's environment, on the same `null`-while-no-cluster
+   *  terms as `project` — drives the branch/environment segment and the
+   *  trailing "main is read-only" label. See `environment.ts`. */
+  environment: Environment | null;
   /**
-   * One status, read for both the branch line and the diff-stat readout
-   * beside it — the same handle the source-control view reads, cluster-scoped
-   * (see `useGitStatus` in `WindowRoot.tsx`). `null` renders neither slot: no
-   * repository for the active cluster, or the fetch has not landed yet.
+   * One status, read for the ahead/behind upgrade to the branch segment and
+   * for the diff-stat readout beside it — the same handle the source-control
+   * view reads, cluster-scoped (see `useGitStatus` in `WindowRoot.tsx`).
+   * `null` while the fetch has not landed yet or the environment has no
+   * repository to read; the branch segment still draws from `environment`
+   * alone in that case, just without the arrows.
    */
   git: GitStatus | null;
   githubOk: boolean;
 }
 
 /**
- * Left to right: a spacer, the update notice, the branch line, the diff-stat
- * readout, GitHub status, then settings. The bar's own height is
- * `.frame__statusbar`'s — this component only lays out its contents and never
- * touches that box.
+ * Left cluster, then right cluster, per §1.9: project name, branch/
+ * environment and the diff-stat readout on the left; the update notice,
+ * GitHub status, "main is read-only" and settings on the right. The bar's own
+ * height is `.frame__statusbar`'s — this component only lays out its
+ * contents and never touches that box.
  *
  * Settings is the shell's only entry point for it: there is no left rail,
- * and settings moved here when the rail was removed.
- *
- * The update notice sits at the left end of the run, before the branch, because
- * it is the only thing in the bar that is ever *new* — everything to its right
- * is a reading of a state the user already knows they are in. It renders
- * nothing at all when there is nothing to say, which is the usual case; see
- * `updateNotice` in `contract.ts` for what counts.
+ * and settings moved here when the rail was removed. Kept rightmost, past
+ * the spec's own right-cluster chips, since it predates this rework and the
+ * spec has no board that draws it.
  */
-export default function StatusBar({ git, githubOk, update }: StatusBarProps) {
+export default function StatusBar({ project, environment, git, githubOk, update }: StatusBarProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsWrapRef = useRef<HTMLDivElement>(null);
 
@@ -62,13 +69,17 @@ export default function StatusBar({ git, githubOk, update }: StatusBarProps) {
 
   return (
     <div className="statusbar">
+      {environment !== null && (
+        <>
+          {project !== null && <span className="statusbar__project">{project}</span>}
+          <span className="statusbar__branch">{branchSegment(environment, git)}</span>
+          {git !== null && filesTouched(git) > 0 && <DiffStat status={git} />}
+        </>
+      )}
+
       <div className="statusbar__spacer" />
 
       {update !== null && <UpdateNoticeRow notice={update} />}
-
-      {git !== null && <span className="statusbar__branch">{branchText(git)}</span>}
-
-      {git !== null && filesTouched(git) > 0 && <DiffStat status={git} />}
 
       <div className="statusbar__github">
         {/* The handoff only draws GitHub healthy (--ok). --err is this
@@ -80,6 +91,10 @@ export default function StatusBar({ git, githubOk, update }: StatusBarProps) {
         />
         <span className="statusbar__label">GitHub</span>
       </div>
+
+      {environment?.kind === "main" && (
+        <span className="statusbar__readonly">main is read-only</span>
+      )}
 
       <div className="statusbar__settings-wrap" ref={settingsWrapRef}>
         <button
@@ -164,6 +179,26 @@ const TONE_TOKEN: Record<UpdateNotice["tone"], string> = {
 function branchText(status: { branch: string; ahead: number; behind: number }): string {
   if (status.ahead === 0 && status.behind === 0) return status.branch;
   return `${status.branch} · ↑${status.ahead} ↓${status.behind}`;
+}
+
+/**
+ * The branch/environment segment's text: `main`, a bare branch name, or the
+ * ahead/behind form above once `git` has landed for it.
+ *
+ * `main` short-circuits before touching `git` — a read-only checkout has no
+ * upstream to be ahead or behind of, and the trailing "main is read-only"
+ * chip already says the rest. Every other kind reads its name from
+ * `environment.branch`, falling back to the environment's own kind label
+ * only for the odd case a worktree or cloud session reports no branch yet;
+ * `git` is assumed scoped to the same cluster (`useGitStatus` in
+ * `WindowRoot.tsx`), so its ahead/behind numbers are trusted without
+ * re-checking its own `branch` field against this one.
+ */
+function branchSegment(environment: Environment, git: GitStatus | null): string {
+  if (environment.kind === "main") return "main";
+  const name = environment.branch ?? environment.kind;
+  if (git === null) return name;
+  return branchText({ branch: name, ahead: git.ahead, behind: git.behind });
 }
 
 /**

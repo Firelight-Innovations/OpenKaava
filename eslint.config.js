@@ -48,6 +48,7 @@ const REGIONS = [
   "dialogs",
   "diff",
   "drag",
+  "envbar",
   "frame",
   "github",
   "keys",
