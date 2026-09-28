@@ -405,13 +405,13 @@ pub enum EnvironmentChoice {
 }
 
 /// The New Cluster dialog's second step: what to put in the new cluster's
-/// one pane before anyone has arranged anything by hand.
+/// panes before anyone has arranged anything by hand.
 ///
-/// `Code` and `WatchAgent` map onto arrangements this build can actually
-/// open. `Godot` and `Blender` cannot yet — there is no dedicated viewer for
-/// either, only `crate::apps`'s generic one — so both open that instead of
-/// claiming an app id (`godot`, `blender`) this build has never registered,
-/// which `fill_preset_gaps` would otherwise just silently drop.
+/// `Code` and `WatchAgent` map onto app ids this build ships. `Godot` and
+/// `Blender` reach for [`VIEWER_APPS`] instead — ids `ux/viewers` is
+/// building, not yet on this branch. `fill_preset_gaps` degrades an
+/// unregistered id to an empty pane rather than failing (see its own doc),
+/// so opening either today is honest, just empty, until that branch merges.
 #[derive(Debug, Clone, Copy, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum StartingLayout {
@@ -421,6 +421,22 @@ pub enum StartingLayout {
     Blender,
 }
 
+/// The pane apps a Godot or Blender starting layout wants, kept as one table
+/// rather than spelled out at each call site in [`starting_layout_preset`] —
+/// a different id from `ux/viewers` than the one guessed here is then a
+/// one-line fix rather than a hunt through a tree of `PresetNode::Split`s.
+struct ViewerApps {
+    godot: &'static str,
+    blender: &'static str,
+    play: &'static str,
+}
+
+const VIEWER_APPS: ViewerApps = ViewerApps {
+    godot: "godot-viewer",
+    blender: "blender-viewer",
+    play: "play",
+};
+
 fn starting_layout_preset(layout: StartingLayout) -> presets::PresetNode {
     use presets::{PresetNode, PresetSlot};
     let app_pane = |app_id: &str| PresetNode::Pane {
@@ -428,21 +444,50 @@ fn starting_layout_preset(layout: StartingLayout) -> presets::PresetNode {
             app_id: app_id.to_string(),
         }],
     };
+    let terminal_pane = || PresetNode::Pane {
+        slots: vec![PresetSlot::Terminal],
+    };
     match layout {
         StartingLayout::Code => PresetNode::Split {
             dir: SplitDir::Row,
             sizes: vec![0.65, 0.35],
+            children: vec![app_pane("files"), terminal_pane()],
+        },
+        StartingLayout::WatchAgent => app_pane("agents"),
+        // Explorer · Godot viewer · Play · terminal — matches the New
+        // Cluster dialog's own description of this layout.
+        StartingLayout::Godot => PresetNode::Split {
+            dir: SplitDir::Row,
+            sizes: vec![0.2, 0.8],
             children: vec![
                 app_pane("files"),
-                PresetNode::Pane {
-                    slots: vec![PresetSlot::Terminal],
+                PresetNode::Split {
+                    dir: SplitDir::Column,
+                    sizes: vec![0.7, 0.3],
+                    children: vec![
+                        PresetNode::Split {
+                            dir: SplitDir::Row,
+                            sizes: vec![0.7, 0.3],
+                            children: vec![app_pane(VIEWER_APPS.godot), app_pane(VIEWER_APPS.play)],
+                        },
+                        terminal_pane(),
+                    ],
                 },
             ],
         },
-        StartingLayout::WatchAgent => app_pane("agents"),
-        // See the variant docs on `StartingLayout` for why this is
-        // deliberately not a `godot`/`blender` app id.
-        StartingLayout::Godot | StartingLayout::Blender => app_pane("viewer"),
+        // Explorer · Blender viewer · terminal.
+        StartingLayout::Blender => PresetNode::Split {
+            dir: SplitDir::Row,
+            sizes: vec![0.2, 0.8],
+            children: vec![
+                app_pane("files"),
+                PresetNode::Split {
+                    dir: SplitDir::Column,
+                    sizes: vec![0.75, 0.25],
+                    children: vec![app_pane(VIEWER_APPS.blender), terminal_pane()],
+                },
+            ],
+        },
     }
 }
 
@@ -1800,6 +1845,37 @@ mod tests {
             branch: "wt/feat-x".to_string(),
             base: "main".to_string(),
         }
+    }
+
+    /// Every `PresetSlot::App`'s `app_id`, in tree order — what the
+    /// `starting_layout_preset` tests below check against [`VIEWER_APPS`]
+    /// without caring how deeply the split nests.
+    fn app_ids(node: &presets::PresetNode) -> Vec<String> {
+        use presets::{PresetNode, PresetSlot};
+        match node {
+            PresetNode::Pane { slots } => slots
+                .iter()
+                .filter_map(|s| match s {
+                    PresetSlot::App { app_id } => Some(app_id.clone()),
+                    PresetSlot::Terminal => None,
+                })
+                .collect(),
+            PresetNode::Split { children, .. } => {
+                children.iter().flat_map(app_ids).collect()
+            }
+        }
+    }
+
+    #[test]
+    fn godot_layout_references_the_viewer_app_table() {
+        let ids = app_ids(&starting_layout_preset(StartingLayout::Godot));
+        assert_eq!(ids, vec!["files", VIEWER_APPS.godot, VIEWER_APPS.play]);
+    }
+
+    #[test]
+    fn blender_layout_references_the_viewer_app_table() {
+        let ids = app_ids(&starting_layout_preset(StartingLayout::Blender));
+        assert_eq!(ids, vec!["files", VIEWER_APPS.blender]);
     }
 
     #[test]

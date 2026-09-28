@@ -45,6 +45,10 @@ interface LayoutOption {
   panes: string;
 }
 
+// `panes` is prose, not data the backend reads — but it describes the exact
+// tree `starting_layout_preset` builds (`commands.rs`), including the
+// `godot-viewer`/`blender-viewer`/`play` ids in its `VIEWER_APPS` table.
+// Change one side, change the other.
 const LAYOUTS: LayoutOption[] = [
   { value: "code", title: "Code", panes: "Explorer · editor · terminal" },
   { value: "godot", title: "Godot", panes: "Explorer · Godot viewer · Play · terminal" },
