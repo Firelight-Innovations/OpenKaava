@@ -96,12 +96,47 @@ resource "google_storage_bucket" "sessions" {
   }
 }
 
+# Project records and the AI job queue (Plane design, section 3). Each record links one Plane
+# project to its artifacts, repository and Hindsight banks, so OpenKaava lists projects from here
+# without waking plane-vm. prod/ and dev/ split the cloud and local Plane instances.
+resource "google_storage_bucket" "projects" {
+  name                        = "veistra-projects"
+  location                    = var.region
+  uniform_bucket_level_access = true
+  public_access_prevention    = "enforced"
+  labels                      = { stack = "registry" }
+
+  versioning {
+    enabled = true
+  }
+
+  lifecycle_rule {
+    condition {
+      num_newer_versions = 5
+      with_state         = "ARCHIVED"
+    }
+    action {
+      type = "Delete"
+    }
+  }
+}
+
+# GCS has no directories. A placeholder makes both prefixes show in a listing before the first
+# record lands.
+resource "google_storage_bucket_object" "projects_prefix" {
+  for_each = toset(["prod", "dev"])
+  bucket   = google_storage_bucket.projects.name
+  name     = "${each.value}/.keep"
+  content  = "\n"
+}
+
 # Every agent VM runs as kaava-agent (foundation/), so these grants cover all of them.
 resource "google_storage_bucket_iam_member" "agent" {
   for_each = {
     artifacts    = google_storage_bucket.artifacts.name
     render_queue = google_storage_bucket.render_queue.name
     sessions     = google_storage_bucket.sessions.name
+    projects     = google_storage_bucket.projects.name
   }
   bucket = each.value
   role   = "roles/storage.objectAdmin"
@@ -114,6 +149,10 @@ output "sessions_bucket" {
 
 output "artifacts_bucket" {
   value = google_storage_bucket.artifacts.name
+}
+
+output "projects_bucket" {
+  value = google_storage_bucket.projects.name
 }
 
 output "render_queue_bucket" {

@@ -20,7 +20,7 @@ set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
 tf="$here/terraform"
-order=(bootstrap foundation secrets registry hindsight image worker gpu)
+order=(bootstrap foundation secrets registry hindsight image worker gpu plane)
 
 action=${1:-plan}
 shift || true

@@ -1,0 +1,13 @@
+# Our one override of Plane's release compose file, which stays byte-for-byte as released.
+#
+# Plane v1.4.2 runs `minio/minio:latest`, and MinIO has withdrawn its public images from Docker
+# Hub and Quay, so the release cannot install anywhere (makeplane/plane#9834, open on 2026-09-27).
+# This swaps in Chainguard's build of the same MinIO server: same binary, same `server /export`
+# command from Plane's file, same environment. Pinned by digest, like everything else here.
+#
+# Delete this file once a Plane release ships a pullable object store, then re-test uploads.
+services:
+  plane-minio:
+    image: chainguard/minio@sha256:3d9014eab095d4f2a12fbac3573546866f80187b7b2de1a8c6a2b1fda2e55ba0
+    # Chainguard runs as uid 65532; Plane's `uploads` volume is created root-owned.
+    user: "0:0"
