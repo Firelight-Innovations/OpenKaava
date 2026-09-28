@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "slug": "sandbox",
+  "name": "Sandbox",
+  "game": null,
+  "plane": {
+    "workspace": "veistra",
+    "project_id": "b6b2b1b0-4444-4a1a-9a1a-000000000004",
+    "identifier": "SAND"
+  },
+  "artifacts": "gs://veistra-artifacts/sandbox/",
+  "repo": null,
+  "hindsight_banks": [],
+  "created": "2026-08-01T00:00:00Z",
+  "archived": true
+}

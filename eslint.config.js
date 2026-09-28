@@ -105,7 +105,17 @@ function baseRestrictions() {
  * chrome every app opts into by an absolute `/apps/shared/app.css` import, and
  * is not an app with a source tree of its own to be isolated from.
  */
-const APPS = ["agents", "costs", "design", "files", "home", "schematify", "tutorial", "viewer"];
+const APPS = [
+  "agents",
+  "costs",
+  "design",
+  "files",
+  "home",
+  "projects",
+  "schematify",
+  "tutorial",
+  "viewer",
+];
 
 /**
  * PRD §14.6 / Schematify wave 10a scope item 2: gate TypeScript imports across

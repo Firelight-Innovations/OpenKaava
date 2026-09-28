@@ -1,0 +1,19 @@
+{
+  "grouped_by": null,
+  "sub_grouped_by": null,
+  "total_count": 1,
+  "next_cursor": "10:0:0",
+  "prev_cursor": "10:1:0",
+  "next_page_results": false,
+  "prev_page_results": false,
+  "count": 1,
+  "total_pages": 1,
+  "results": [
+    {
+      "id": "b6b2b1b0-1111-4a1a-9a1a-000000000001",
+      "name": "Anomaly",
+      "identifier": "ANOM",
+      "workspace": "veistra"
+    }
+  ]
+}

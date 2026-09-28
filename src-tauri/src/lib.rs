@@ -23,6 +23,7 @@ mod layout;
 mod manifest;
 mod mcp;
 mod pages;
+mod plane_webview;
 mod plugins;
 mod presets;
 mod project;
@@ -163,6 +164,17 @@ pub fn run() {
         // Empty until a cloud app first asks; nothing here calls Google at
         // startup (`docs/cloud-services.md` §8).
         .manage(cloud::Cloud::default())
+        // The IAP tunnel to `plane-vm`, for the Projects app. Not started here —
+        // only `projects/plane-*` and `projects/wake-start` call `Tunnel::start`,
+        // and only against a `Source::Live` — so nothing opens a tunnel before a
+        // person has asked Plane for something. `RunEvent::Exit` below is what
+        // stops it. See `cloud::tunnel`.
+        .manage(cloud::tunnel::Tunnel::default())
+        // Whether the Plane child webview is open, and the wake flow's snapshot
+        // for `projects/wake-status` to poll. See `plane_webview` and
+        // `apps::projects::WakeManager`.
+        .manage(plane_webview::PlaneWebview::default())
+        .manage(apps::projects::WakeManager::default())
         // Which MCP servers this build hosts for whatever agent the user is
         // running in a terminal, and which of them are switched on. Empty until
         // something registers into it — see `mcp`'s module doc for why an app
@@ -525,6 +537,11 @@ pub fn run() {
                 if matches!(event, tauri::RunEvent::Exit) {
                     handle.state::<plugins::Watchers>().stop_all();
                     handle.state::<plugins::Broker>().stop_all();
+                    // Kills the `gcloud` process tree it supervises, if one is
+                    // running — see `cloud::tunnel`'s doc for why this, rather
+                    // than the OS cleaning up an orphan, is what makes "no
+                    // gcloud process remains after exit" true.
+                    handle.state::<cloud::tunnel::Tunnel>().stop();
                 }
             });
         });

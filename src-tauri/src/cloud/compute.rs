@@ -173,6 +173,98 @@ fn list_live(cloud: &Cloud, project: &str, role: &str) -> Result<Vec<Machine>> {
     }
 }
 
+/// One instance's status by name, bypassing the role-filtered [`list`] above —
+/// what the wake flow (`cloud::wake`) needs, since `plane-vm` carries no
+/// `role` label of its own and has no reason to.
+pub fn status(
+    cloud: &Cloud,
+    source: &Source,
+    project: &str,
+    zone: &str,
+    name: &str,
+) -> Result<String> {
+    match source {
+        Source::Live { .. } => {
+            let url = format!(
+                "https://compute.googleapis.com/compute/v1/projects/{}/zones/{}/instances/{}",
+                http::encode(project),
+                http::encode(zone),
+                http::encode(name)
+            );
+            let reply = http::send(
+                &cloud.tokens,
+                Verb::Get,
+                &url,
+                &format!("machine {name}"),
+                None,
+                1 << 16,
+            )?;
+            #[derive(Deserialize)]
+            struct Status {
+                status: String,
+            }
+            let parsed: Status = serde_json::from_slice(&reply.body).map_err(|e| Trouble::Api {
+                status: 200,
+                detail: format!("unreadable instance status: {e}"),
+            })?;
+            Ok(parsed.status)
+        }
+        Source::Fixture { root } => read_fixture(root)?
+            .into_iter()
+            .find(|i| i.name == name)
+            .map(|i| i.status)
+            .ok_or_else(|| Trouble::Missing {
+                what: format!("machine {name}"),
+            }),
+    }
+}
+
+/// Ask Compute Engine to start `name` directly, by name rather than through a
+/// [`Machine`] the role-filtered [`list`] already found. The wake flow calls
+/// this before `plane-vm` has ever appeared in any list this process has
+/// made.
+pub fn start_named(
+    cloud: &Cloud,
+    source: &Source,
+    project: &str,
+    zone: &str,
+    name: &str,
+) -> Result<()> {
+    match source {
+        Source::Live { .. } => {
+            let url = format!(
+                "https://compute.googleapis.com/compute/v1/projects/{}/zones/{}/instances/{}/start",
+                http::encode(project),
+                http::encode(zone),
+                http::encode(name)
+            );
+            http::send(
+                &cloud.tokens,
+                Verb::Post,
+                &url,
+                &format!("machine {name}"),
+                None,
+                1 << 20,
+            )?;
+            Ok(())
+        }
+        Source::Fixture { root } => {
+            let mut instances = read_fixture(root)?;
+            for i in instances.iter_mut().filter(|i| i.name == name) {
+                i.status = "RUNNING".into();
+            }
+            let text = serde_json::to_string_pretty(&instances).map_err(|e| Trouble::Fixture {
+                detail: e.to_string(),
+            })?;
+            std::fs::write(root.join("compute").join("instances.json"), text).map_err(|e| {
+                Trouble::Fixture {
+                    detail: e.to_string(),
+                }
+            })
+        }
+    }
+}
+
 fn read_fixture(root: &Path) -> Result<Vec<Instance>> {
     let path = root.join("compute").join("instances.json");
     let text = match std::fs::read_to_string(&path) {
@@ -244,6 +336,47 @@ mod tests {
         start(&cloud, &source, &worker).unwrap();
         let text = std::fs::read_to_string(dir.path().join("compute/instances.json")).unwrap();
         assert!(text.contains("\"provisioningModel\": \"SPOT\""), "{text}");
+    }
+
+    #[test]
+    fn status_finds_a_named_machine_outside_the_role_filter() {
+        let (_dir, source) = fixture(TWO);
+        assert_eq!(
+            status(
+                &Cloud::default(),
+                &source,
+                "fixture",
+                "us-central1-a",
+                "kaava-gpu"
+            )
+            .unwrap(),
+            "TERMINATED"
+        );
+    }
+
+    #[test]
+    fn status_of_an_unknown_name_is_missing() {
+        let (_dir, source) = fixture(TWO);
+        let err = status(
+            &Cloud::default(),
+            &source,
+            "fixture",
+            "us-central1-a",
+            "nope",
+        )
+        .unwrap_err();
+        assert!(matches!(err, Trouble::Missing { .. }));
+    }
+
+    #[test]
+    fn start_named_marks_the_machine_running_without_a_role_label() {
+        let (_dir, source) = fixture(TWO);
+        let cloud = Cloud::default();
+        start_named(&cloud, &source, "fixture", "us-central1-a", "kaava-gpu").unwrap();
+        assert_eq!(
+            status(&cloud, &source, "fixture", "us-central1-a", "kaava-gpu").unwrap(),
+            "RUNNING"
+        );
     }
 
     #[test]

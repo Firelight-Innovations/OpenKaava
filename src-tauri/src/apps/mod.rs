@@ -19,6 +19,11 @@ mod costs;
 mod design;
 mod files;
 mod home;
+// `pub(crate)` rather than private: `lib.rs` needs `apps::projects::WakeManager`
+// to `.manage()` it, the same reason `design_comments::Comments` lives outside
+// `apps::design` altogether — this one stays nested because nothing else in
+// the crate needs it, only `lib.rs`'s one setup call.
+pub(crate) mod projects;
 #[cfg(feature = "schematify")]
 mod schematify;
 mod trash;
@@ -208,6 +213,15 @@ const REGISTRY: &[Registered] = &[
         description: "What OpenKaava Cloud has cost this month at list price, and the forecast against its budget.",
         // Read-only: inventory, Cloud Monitoring usage and the Billing Catalog.
         call: costs::call,
+    },
+    Registered {
+        id: "projects",
+        name: "Projects",
+        description: "Switch between projects, and open the shared Plane workspace for one.",
+        // Reads `gs://veistra-projects` the same way Agents reads Google Cloud,
+        // and — once a project is picked — wakes and embeds Plane CE. See
+        // `apps/projects.rs` and `OPENKAAVA-PLANE-DESIGN.md`.
+        call: projects::call,
     },
     // Disabled by default; see `[features]` in `Cargo.toml`.
     #[cfg(feature = "design-mode")]
