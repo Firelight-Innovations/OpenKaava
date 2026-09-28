@@ -9,16 +9,17 @@
 //! in once.
 //!
 //! **This needs the `unstable` Cargo feature** (`Window::add_child` is gated
-//! behind it) — flagged in the PR this shipped with as a decision for the
-//! owner. If it is rejected, §11's fallback is a separate `WebviewWindow`
-//! docked beside the main one; that would replace [`open`]'s `add_child`
-//! call with `WebviewWindowBuilder`, and everything else here (the origin
-//! check, the data directory, the bounds tracking) carries over unchanged.
+//! behind it) — approved by the owner (`Cargo.toml`'s own comment on the
+//! feature has the same note). If that ever changes, §11's fallback is a
+//! separate `WebviewWindow` docked beside the main one; that would replace
+//! [`open`]'s `add_child` call with `WebviewWindowBuilder`, and everything
+//! else here (the origin check, the data directory, the bounds tracking, the
+//! navigation guard) carries over unchanged.
 //!
-//! **Not exercised against a real WebView2** — V7 in the design's verify-first
-//! table, and this PR does not launch the app to check it. What is checked
-//! here is [`is_plane_url`], the one piece that is pure.
+//! **Not exercised against a real WebView2** (V7 in the design's verify-first
+//! table); the tests cover only the pure pieces.
 
+use crate::shell_state::ShellSnapshot;
 use std::sync::Mutex;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, Manager, WebviewUrl};
 use url::Url;
@@ -27,6 +28,12 @@ use url::Url;
 /// pointed at. `OPENKAAVA-PLANE-DESIGN.md` §2/§3.
 pub const LABEL: &str = "plane";
 pub const PLANE_HOST: &str = "plane.kaava.internal";
+
+/// `pages.rs`'s row id for this app, and the one page [`sync_visibility`]
+/// ever shows the webview for. Hardcoded rather than looked up: `PAGES` is
+/// keyed by which *app* draws a page, not the other way around, and this is
+/// the one spot that needs the reverse answer.
+const PROJECTS_PAGE_ID: &str = "projects";
 
 /// §11: "The webview uses a dedicated data directory (`<app data>/plane-webview/`)".
 pub const DATA_DIR_NAME: &str = "plane-webview";
@@ -50,6 +57,13 @@ pub struct Bounds {
 #[derive(Default)]
 pub struct PlaneWebview {
     open: Mutex<bool>,
+    /// Whether [`sync_visibility`] believes the webview is on screen right
+    /// now — its own record of the last `hide`/`show` it issued, so a
+    /// mutation that leaves the decision unchanged costs nothing. Meaningless
+    /// while `open` is false; [`open`] sets it to `true` itself, matching
+    /// what `add_child` actually does (a freshly created webview is on
+    /// screen), rather than trusting this field's struct-default.
+    showing: Mutex<bool>,
 }
 
 impl PlaneWebview {
@@ -92,8 +106,22 @@ pub fn open(app: &AppHandle, bounds: Bounds, url: Url) -> Result<(), String> {
         .map_err(|e| e.to_string())?
         .join(DATA_DIR_NAME);
 
+    // Guards every navigation after the first, not just the ones this app's
+    // own `projects/plane-*` routes ask for — a link on a Plane page, a
+    // redirect from a misconfigured integration, anything. `allow_navigation`
+    // is the same check as the one above; kept as its own call so a test can
+    // exercise the decision without building a webview.
+    let app_for_nav = app.clone();
     let builder = tauri::webview::WebviewBuilder::new(LABEL, WebviewUrl::External(url))
-        .data_directory(data_dir);
+        .data_directory(data_dir)
+        .on_navigation(move |nav_url| {
+            if allow_navigation(nav_url) {
+                return true;
+            }
+            let _ = tauri_plugin_opener::OpenerExt::opener(&app_for_nav)
+                .open_url(nav_url.as_str(), None::<&str>);
+            false
+        });
 
     window
         .as_ref()
@@ -106,6 +134,19 @@ pub fn open(app: &AppHandle, bounds: Bounds, url: Url) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
 
     *state.open.lock().unwrap_or_else(|e| e.into_inner()) = true;
+    // `add_child` leaves the webview on screen, matching `showing`'s own
+    // default meaning — see its doc comment.
+    *state.showing.lock().unwrap_or_else(|e| e.into_inner()) = true;
+
+    // Reconciles the ordinary case (the projects page is what the user just
+    // opened this from) into a no-op, and the unlikely one (the window went
+    // minimized in the instant between the frontend's call and this line)
+    // into an immediate `hide`, rather than leaving the webview shown until
+    // whatever mutation happens to run next.
+    sync_visibility(
+        app,
+        &app.state::<crate::shell_state::ShellState>().snapshot(),
+    );
     Ok(())
 }
 
@@ -152,12 +193,94 @@ pub fn close(app: &AppHandle) -> Result<(), String> {
         webview.close().map_err(|e| e.to_string())?;
     }
     *state.open.lock().unwrap_or_else(|e| e.into_inner()) = false;
+    *state.showing.lock().unwrap_or_else(|e| e.into_inner()) = true;
     Ok(())
+}
+
+/// Hide the webview without closing it: the WebView2 instance, and the
+/// signed-in session it holds, both survive — only what [`sync_visibility`]
+/// draws changes. The pair to [`show`].
+///
+/// A quiet no-op before [`open`] has run, same as [`close`] and [`navigate`]
+/// answering rather than panicking when there is nothing to act on yet.
+pub fn hide(app: &AppHandle) -> Result<(), String> {
+    let Some(webview) = app.get_webview(LABEL) else {
+        return Ok(());
+    };
+    webview.hide().map_err(|e| e.to_string())
+}
+
+/// Show a webview [`hide`] put away. See its doc comment.
+pub fn show(app: &AppHandle) -> Result<(), String> {
+    let Some(webview) = app.get_webview(LABEL) else {
+        return Ok(());
+    };
+    webview.show().map_err(|e| e.to_string())
+}
+
+/// Whether a navigation inside the Plane webview should be allowed to
+/// proceed. The same question [`is_plane_url`] answers for the URLs this app
+/// hands the webview directly; kept as its own name for the one caller that
+/// is a navigation decision rather than an input validation.
+fn allow_navigation(url: &Url) -> bool {
+    is_plane_url(url)
+}
+
+/// Which page, if any, `label`'s window is showing right now. `ShellState`
+/// itself answers the opposite question — [`crate::shell_state::ShellState::active_cluster_of`]
+/// returns `None` for exactly this case, because every one of *its* callers
+/// wants a cluster to work in and a page is never that.
+fn active_page<'a>(snapshot: &'a ShellSnapshot, label: &str) -> Option<&'a str> {
+    let window = snapshot.windows.iter().find(|w| w.label == label)?;
+    let active_id = window.active_cluster_id.as_deref()?;
+    let cluster = window.clusters.iter().find(|c| c.id == active_id)?;
+    cluster.page.as_deref()
+}
+
+/// Whether the Plane webview belongs on screen right now: the projects page
+/// is `main`'s active cluster, and the window is not minimized. Pure — no
+/// lookup, no I/O — so this is exercised without a real window, webview or
+/// `ShellState`. See [`sync_visibility`] for where its two inputs come from.
+pub fn should_show(main_active_page: Option<&str>, minimized: bool) -> bool {
+    !minimized && main_active_page == Some(PROJECTS_PAGE_ID)
+}
+
+/// Recompute whether the webview should be visible, and `hide`/`show` it if
+/// that disagrees with what it is doing now.
+///
+/// Called from two places: `shell_state::ShellState::mutate`, after every
+/// change to the shared shell state (a page switch, a cluster switch, a
+/// window closing), and `lib.rs`'s `on_window_event`, on every resize of
+/// `main` — `WindowEvent` has no dedicated minimize/restore variant, so a
+/// resize is the signal Tauri gives for it too. Both call sites hand this the
+/// whole snapshot; a no-op before [`open`] has ever run, since there is
+/// nothing yet to place regardless of what either says.
+pub fn sync_visibility(app: &AppHandle, snapshot: &ShellSnapshot) {
+    let state = app.state::<PlaneWebview>();
+    if !state.is_open() {
+        return;
+    }
+    let minimized = app
+        .get_webview_window("main")
+        .and_then(|w| w.is_minimized().ok())
+        .unwrap_or(false);
+    let visible = should_show(active_page(snapshot, "main"), minimized);
+
+    let mut showing = state.showing.lock().unwrap_or_else(|e| e.into_inner());
+    if *showing == visible {
+        return;
+    }
+    let result = if visible { show(app) } else { hide(app) };
+    if result.is_ok() {
+        *showing = visible;
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::layout::PaneNode;
+    use crate::shell_state::{Cluster, WindowPlacement};
 
     fn url(s: &str) -> Url {
         s.parse().unwrap()
@@ -176,5 +299,79 @@ mod tests {
         assert!(!is_plane_url(&url(
             "https://evil.example/plane.kaava.internal"
         )));
+    }
+
+    #[test]
+    fn navigation_follows_the_same_rule_as_opening() {
+        assert!(allow_navigation(&url("http://plane.kaava.internal/x")));
+        assert!(!allow_navigation(&url("https://evil.example/")));
+    }
+
+    fn window(label: &str, clusters: Vec<Cluster>, active: Option<&str>) -> WindowPlacement {
+        WindowPlacement {
+            label: label.to_string(),
+            clusters,
+            active_cluster_id: active.map(str::to_string),
+            geometry: None,
+        }
+    }
+
+    fn cluster(id: &str, page: Option<&str>) -> Cluster {
+        Cluster {
+            id: id.to_string(),
+            name: id.to_string(),
+            tree: PaneNode::leaf("pane-1"),
+            project: None,
+            worktree: None,
+            active_terminal: None,
+            band_height: None,
+            page: page.map(str::to_string),
+        }
+    }
+
+    #[test]
+    fn active_page_reads_the_page_cluster_the_window_is_showing() {
+        let snapshot = ShellSnapshot {
+            windows: vec![window(
+                "main",
+                vec![cluster("cluster-1", Some("projects"))],
+                Some("cluster-1"),
+            )],
+            instances: vec![],
+            terminals: vec![],
+        };
+        assert_eq!(active_page(&snapshot, "main"), Some("projects"));
+    }
+
+    #[test]
+    fn active_page_is_none_for_an_ordinary_cluster() {
+        let snapshot = ShellSnapshot {
+            windows: vec![window(
+                "main",
+                vec![cluster("cluster-1", None)],
+                Some("cluster-1"),
+            )],
+            instances: vec![],
+            terminals: vec![],
+        };
+        assert_eq!(active_page(&snapshot, "main"), None);
+    }
+
+    #[test]
+    fn active_page_is_none_for_an_unknown_window() {
+        let snapshot = ShellSnapshot {
+            windows: vec![],
+            instances: vec![],
+            terminals: vec![],
+        };
+        assert_eq!(active_page(&snapshot, "main"), None);
+    }
+
+    #[test]
+    fn should_show_wants_the_projects_page_active_and_unminimized() {
+        assert!(should_show(Some("projects"), false));
+        assert!(!should_show(Some("projects"), true));
+        assert!(!should_show(Some("costs"), false));
+        assert!(!should_show(None, false));
     }
 }

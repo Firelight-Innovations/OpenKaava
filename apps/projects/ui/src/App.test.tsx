@@ -37,6 +37,14 @@ vi.mock("@openkaava/bridge", () => ({
   invoke: bridge.invoke,
   KaavaRpcError: bridge.KaavaRpcError,
   reportPainted: vi.fn(),
+  // The real shell reports this moments after the iframe mounts. Answering it
+  // synchronously here stands in for that, rather than making every test that
+  // exercises the wake flow also drive a fake `kaava/window-rect` message —
+  // `frameRect.test.ts` is where the combining logic itself is covered.
+  on: vi.fn((event: string, cb: (payload: unknown) => void) => {
+    if (event === "kaava/window-rect") cb({ x: 10, y: 20, width: 300, height: 300 });
+    return () => {};
+  }),
 }));
 
 import App from "./App";

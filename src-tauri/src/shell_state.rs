@@ -480,6 +480,12 @@ impl ShellState {
             guard.clone()
         };
         let _ = app.emit(SHELL_STATE_EVENT, &updated);
+        // Every page switch, cluster switch and window close is a mutation
+        // through here, so this is the one place that can tell whether the
+        // projects page just stopped (or started) being what `main` shows —
+        // see `plane_webview::sync_visibility`'s own doc for the other call
+        // site, the one this can't reach: a resize with nothing else changed.
+        crate::plane_webview::sync_visibility(app, &updated);
         crate::shell_store::persist(app, &updated);
     }
 

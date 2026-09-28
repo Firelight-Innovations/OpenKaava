@@ -43,10 +43,10 @@ tauri-build = { version = "2", features = [] }
 # rather than an `<iframe>` (`OPENKAAVA-PLANE-DESIGN.md` §11: an iframe's
 # third-party-cookie blocking breaks Plane's login session on every restart).
 # Tauri documents the feature as exactly that — an API that has not settled
-# yet — so turning it on is a decision for the owner, not something this PR
-# makes unilaterally; flagged again in the PR description, with §11's
-# fallback (a separate `WebviewWindow`, docked beside the main one) named as
-# what to switch to if it is declined.
+# yet — so this was flagged as a decision for the owner rather than switched
+# on unilaterally; approved. §11's fallback (a separate `WebviewWindow`,
+# docked beside the main one) stays named in `plane_webview.rs`'s module doc
+# as what to switch to if that ever changes.
 tauri = { version = "2", features = ["unstable"] }
 tauri-plugin-opener = "2"
 

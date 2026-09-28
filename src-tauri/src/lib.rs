@@ -243,6 +243,16 @@ pub fn run() {
                         app.state::<ShellState>()
                             .set_geometry(window.label(), geometry);
                     }
+                    // `WindowEvent` has no dedicated minimize/restore variant
+                    // on every platform Tauri targets — a resize is the event
+                    // both fire, so this is also where the Plane webview
+                    // learns the window went to (or came back from) the
+                    // taskbar. `set_geometry` above never runs `mutate`, so
+                    // this is the only other trigger `sync_visibility` needs
+                    // beside the one inside it.
+                    if window.label() == "main" {
+                        plane_webview::sync_visibility(app, &app.state::<ShellState>().snapshot());
+                    }
                 }
                 // A window has been asked to close — by our own titlebar's ×,
                 // by Alt+F4, by the taskbar, or by the OS shutting down

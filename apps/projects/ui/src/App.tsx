@@ -1,5 +1,6 @@
-import { reportPainted } from "@openkaava/bridge";
+import { on, reportPainted } from "@openkaava/bridge";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { absoluteBounds, isFrameRect, type FrameRect } from "./frameRect";
 import { projectUrl } from "./planeRoutes";
 import * as rpc from "./rpc";
 import type { HostsCheck, ProjectRecord, ProjectsList, WakeSnapshot } from "./rpc";
@@ -16,8 +17,28 @@ export default function App() {
   const [wake, setWake] = useState<WakeSnapshot>({ phase: "idle" });
   const [hosts, setHosts] = useState<HostsCheck | null>(null);
   const [webviewError, setWebviewError] = useState<string | null>(null);
+  const [frameRect, setFrameRect] = useState<FrameRect | null>(null);
   const paneRef = useRef<HTMLDivElement | null>(null);
   const openedFor = useRef<string | null>(null);
+  // A ref mirror of `frameRect`, read from the `ResizeObserver` callback below
+  // so that effect does not need to be torn down and rebuilt every time the
+  // shell reports a new one — it only cares about the *latest* value when a
+  // local resize happens to fire.
+  const frameRectRef = useRef<FrameRect | null>(null);
+
+  // The shell's report of where this app's own iframe sits in the window —
+  // see `kaava/window-rect` in `src/shell/toolwindow/ToolWindow.tsx`. Needed
+  // because `paneRef`'s `getBoundingClientRect()` is relative to this iframe's
+  // own viewport, not the window `add_child`/`set_position` place things in.
+  useEffect(
+    () =>
+      on("kaava/window-rect", (payload) => {
+        if (!isFrameRect(payload)) return;
+        frameRectRef.current = payload;
+        setFrameRect(payload);
+      }),
+    [],
+  );
 
   useEffect(() => {
     rpc.list().then(setList).catch(setListError);
@@ -60,34 +81,49 @@ export default function App() {
 
   // Once healthy, open (or navigate) the webview at this project's issue
   // board. Guarded by `openedFor` so a re-render mid-wake does not re-issue
-  // the same open call every poll tick.
+  // the same open call every poll tick. Also waits on `frameRect`: the shell
+  // reports it moments after this iframe mounts, well before a wake finishes,
+  // but a call landing before the first report would combine `paneRef` with
+  // nothing and place the webview wrong on its very first open.
   useEffect(() => {
-    if (wake.phase !== "healthy" || !project) return;
+    if (wake.phase !== "healthy" || !project || !frameRect) return;
     if (openedFor.current === project.slug) return;
-    const rect = paneRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    const local = paneRef.current?.getBoundingClientRect();
+    if (!local) return;
     openedFor.current = project.slug;
     const url = projectUrl(project.plane.project_id);
-    const bounds = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
-    rpc.webviewOpen(bounds, url).catch((e) => setWebviewError(rpc.messageOf(e)));
-  }, [wake, project]);
+    rpc.webviewOpen(absoluteBounds(frameRect, local), url).catch((e) => {
+      setWebviewError(rpc.messageOf(e));
+    });
+  }, [wake, project, frameRect]);
 
-  // Track the pane's own rect so a resize (a split changing, the window
+  // Track the pane's own rect so a local resize (a split changing, the window
   // itself resizing) keeps the webview lined up. Rust places the webview
-  // because its position is a platform property an iframe cannot reach
-  // across the process boundary — see `plane_webview`'s module doc.
+  // because its position is a platform property an iframe cannot reach across
+  // the process boundary — see `plane_webview`'s module doc.
   useEffect(() => {
     const el = paneRef.current;
     if (!el || wake.phase !== "healthy") return;
     const observer = new ResizeObserver(() => {
-      const rect = el.getBoundingClientRect();
-      void rpc
-        .webviewBounds({ x: rect.x, y: rect.y, width: rect.width, height: rect.height })
-        .catch(() => {});
+      const frame = frameRectRef.current;
+      if (!frame) return;
+      void rpc.webviewBounds(absoluteBounds(frame, el.getBoundingClientRect())).catch(() => {});
     });
     observer.observe(el);
     return () => observer.disconnect();
   }, [wake.phase]);
+
+  // The other half: a `ResizeObserver` inside this iframe never fires when the
+  // iframe itself *moves* without changing size — the terminal band
+  // collapsing, for instance, shifts every pane above it but resizes none of
+  // them. Only the shell can see that, hence a second trigger keyed on its
+  // report rather than on anything measured in here. Skipped until the first
+  // open has actually happened, so this never races ahead of `openedFor`.
+  useEffect(() => {
+    const el = paneRef.current;
+    if (!el || wake.phase !== "healthy" || !frameRect || !openedFor.current) return;
+    void rpc.webviewBounds(absoluteBounds(frameRect, el.getBoundingClientRect())).catch(() => {});
+  }, [frameRect, wake.phase]);
 
   const select = useCallback(async (record: ProjectRecord) => {
     setSelected(record.slug);
