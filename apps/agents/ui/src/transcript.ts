@@ -34,6 +34,19 @@ export interface Parsed {
 
 type Json = Record<string, unknown>;
 
+/**
+ * Line types Claude Code writes for its own bookkeeping. None carries a turn
+ * of the conversation, and each would otherwise draw as an empty "other" row.
+ */
+const BOOKKEEPING = new Set([
+  "attachment",
+  "atis-latch",
+  "cost-state",
+  "file-history-snapshot",
+  "last-prompt",
+  "queue-operation",
+]);
+
 const isObject = (v: unknown): v is Json =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 const str = (v: unknown): string | null => (typeof v === "string" ? v : null);
@@ -61,6 +74,7 @@ export function parseTranscript(text: string): Parsed {
     const at = str(line.timestamp);
     const message = isObject(line.message) ? line.message : null;
 
+    if (BOOKKEEPING.has(type)) continue;
     if (type === "summary") {
       summary = str(line.summary) ?? summary;
     } else if (type === "user" && message) {

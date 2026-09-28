@@ -22,6 +22,8 @@ export interface RowContext {
   onSelect: (key: string) => void;
   /** First requests learned from transcripts already opened, by session key. */
   requests: Record<string, string>;
+  /** The status of the machine an agent runs on, or `null` if it is not listed. */
+  machineStatus: (agent: string) => string | null;
 }
 
 const STATE_WORD: Record<State, string> = {
@@ -29,6 +31,7 @@ const STATE_WORD: Record<State, string> = {
   idle: "waiting for input",
   ended: "ended",
   stale: "no word for 30 min",
+  stopped: "machine stopped",
   unknown: "status unreadable",
 };
 
@@ -47,7 +50,7 @@ function SessionRow({
   detail?: string;
 }) {
   const key = keyOf(session);
-  const state = stateOf(session, ctx.now);
+  const state = stateOf(session, ctx.now, ctx.machineStatus(session.agent));
   const updated = session.status?.updated ?? session.written;
   return (
     <li>

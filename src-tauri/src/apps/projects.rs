@@ -113,7 +113,9 @@ pub struct ProjectRecord {
     pub name: String,
     pub game: Option<String>,
     pub plane: PlaneProjectRef,
-    pub artifacts: String,
+    /// `null` on a project with no artifact prefix, such as OpenKaava itself.
+    #[serde(default)]
+    pub artifacts: Option<String>,
     #[serde(default)]
     pub repo: Option<String>,
     #[serde(default)]
@@ -181,10 +183,14 @@ fn list(cloud: &Cloud, source: &Source) -> Result<ProjectsList, Trouble> {
 pub enum WakeSnapshot {
     #[default]
     Idle,
+    // `rename_all` on the enum renames the tags only; each variant's fields
+    // need their own, or `elapsed_seconds` reaches the UI in snake_case.
+    #[serde(rename_all = "camelCase")]
     Waking {
         elapsed_seconds: f64,
         detail: String,
     },
+    #[serde(rename_all = "camelCase")]
     Healthy {
         elapsed_seconds: f64,
     },
@@ -573,5 +579,35 @@ mod tests {
         let manager = WakeManager::default();
         let snapshot = manager.snapshot.lock().unwrap();
         assert!(matches!(*snapshot, WakeSnapshot::Idle));
+    }
+
+    #[test]
+    fn a_wake_snapshot_names_its_fields_in_camel_case() {
+        let waking = WakeSnapshot::Waking {
+            elapsed_seconds: 4.5,
+            detail: "starting".into(),
+        };
+        assert_eq!(
+            serde_json::to_value(&waking).unwrap(),
+            json!({ "phase": "waking", "elapsedSeconds": 4.5, "detail": "starting" })
+        );
+        let healthy = WakeSnapshot::Healthy {
+            elapsed_seconds: 30.0,
+        };
+        assert_eq!(
+            serde_json::to_value(&healthy).unwrap(),
+            json!({ "phase": "healthy", "elapsedSeconds": 30.0 })
+        );
+    }
+
+    #[test]
+    fn a_project_with_no_artifacts_prefix_still_lists() {
+        let list = list(&Cloud::default(), &committed_fixture()).unwrap();
+        let kaava = list
+            .projects
+            .iter()
+            .find(|p| p.slug == "openkaava")
+            .unwrap();
+        assert_eq!(kaava.artifacts, None);
     }
 }

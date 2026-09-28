@@ -63,6 +63,23 @@ pub fn dataset() -> String {
         .unwrap_or_else(|| DEFAULT_DATASET.to_string())
 }
 
+/// Google's answer when the BigQuery API is off in the project: a 400 or 403
+/// whose text names it. That is the same setup step as a missing export, so
+/// it is not drawn as an error.
+fn api_disabled(trouble: &Trouble) -> bool {
+    let detail = match trouble {
+        Trouble::Api { detail, .. } | Trouble::Denied { detail } => detail,
+        _ => return false,
+    };
+    [
+        "has not enabled BigQuery",
+        "SERVICE_DISABLED",
+        "BigQuery API has not been used",
+    ]
+    .iter()
+    .any(|needle| detail.contains(needle))
+}
+
 /// `202609` for the month that starts at `month_start`.
 pub fn invoice_month(month_start: i64) -> String {
     let text = rfc3339(month_start);
@@ -77,6 +94,7 @@ pub fn billed(cloud: &Cloud, source: &Source, month_start: i64) -> Result<Billed
     let table = match find_table(cloud, source, &dataset) {
         Ok(Some(table)) => table,
         Ok(None) | Err(Trouble::Missing { .. }) => return Ok(Billed::NotEnabled { dataset }),
+        Err(trouble) if api_disabled(&trouble) => return Ok(Billed::NotEnabled { dataset }),
         Err(trouble) => return Err(trouble),
     };
     let month = invoice_month(month_start);
@@ -392,6 +410,24 @@ mod tests {
                 dataset: DEFAULT_DATASET.into()
             }
         );
+    }
+
+    #[test]
+    fn a_disabled_bigquery_api_is_the_setup_step_not_an_error() {
+        assert!(api_disabled(&Trouble::Api {
+            status: 400,
+            detail: "project veistra-prod has not enabled BigQuery.".into(),
+        }));
+        assert!(api_disabled(&Trouble::Denied {
+            detail: "reason: SERVICE_DISABLED".into(),
+        }));
+        assert!(!api_disabled(&Trouble::Api {
+            status: 500,
+            detail: "backend error".into(),
+        }));
+        assert!(!api_disabled(&Trouble::Unreachable {
+            detail: "has not enabled BigQuery".into(),
+        }));
     }
 
     #[test]

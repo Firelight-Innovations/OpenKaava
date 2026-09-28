@@ -196,9 +196,9 @@ function BilledNote({ billed }: { billed: Billed }) {
     case "notEnabled":
       return (
         <p className="app__note costs__billed-note">
-          Billed cost appears once the Cloud Billing export to BigQuery is on. In the Console, open
-          Billing → Billing export, and send the standard usage cost export to the{" "}
-          <code>{billed.dataset}</code> dataset in this project.
+          Billed cost appears once the Cloud Billing export to BigQuery is on. Enable the BigQuery
+          API in this project, then in the Console open Billing → Billing export, and send the
+          standard usage cost export to the <code>{billed.dataset}</code> dataset in this project.
         </p>
       );
     case "unavailable":

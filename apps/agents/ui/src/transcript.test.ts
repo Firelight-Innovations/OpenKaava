@@ -34,15 +34,30 @@ describe("parseTranscript", () => {
   });
 
   it("keeps an unknown line type as opaque and counts garbage", () => {
-    const parsed = parseTranscript(`${lines({ type: "file-history-snapshot", x: 1 })}\nnot json\n`);
+    const parsed = parseTranscript(`${lines({ type: "some-future-type", x: 1 })}\nnot json\n`);
     expect(parsed.entries).toEqual([
       {
         kind: "other",
-        type: "file-history-snapshot",
-        raw: '{"type":"file-history-snapshot","x":1}',
+        type: "some-future-type",
+        raw: '{"type":"some-future-type","x":1}',
       },
     ]);
     expect(parsed.unreadable).toBe(1);
+  });
+
+  it("drops Claude Code's bookkeeping lines rather than drawing empty rows", () => {
+    const parsed = parseTranscript(
+      lines(
+        { type: "file-history-snapshot", snapshot: {} },
+        { type: "attachment", attachment: { type: "todo" } },
+        { type: "last-prompt", lastPrompt: "x" },
+        { type: "atis-latch", latched: true },
+        { type: "cost-state", costUSD: 0.1 },
+        { type: "queue-operation", operation: "enqueue" },
+        { type: "user", message: { role: "user", content: "Hello" } },
+      ),
+    );
+    expect(parsed.entries.map((e) => e.kind)).toEqual(["user"]);
   });
 
   it("skips meta lines and thinking blocks", () => {

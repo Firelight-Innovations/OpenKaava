@@ -24,7 +24,7 @@ export interface ProjectRecord {
   name: string;
   game: string | null;
   plane: PlaneProjectRef;
-  artifacts: string;
+  artifacts: string | null;
   repo: string | null;
   hindsight_banks: string[];
   created: string;
