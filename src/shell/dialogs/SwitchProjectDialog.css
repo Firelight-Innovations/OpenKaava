@@ -1,0 +1,200 @@
+/*
+ * The Switch Project dialog (board 08). `.switch-project` sizes and
+ * positions the shared `.dialogs__panel` this dialog is rendered inside —
+ * `top: 46px`, under the title bar rather than screen-centred, so it reads
+ * as the project pill's own dropdown. Colours and type come from
+ * src/tokens.css throughout, the same as every other dialog in this region.
+ */
+
+.switch-project {
+  width: 620px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* `.dialogs__scrim` centres its panel by default; this dialog is the one
+   exception the board draws — dropped from the pill instead. */
+.dialogs__scrim:has(.switch-project) {
+  align-items: flex-start;
+  padding-top: 46px;
+}
+
+.switch-project__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+}
+
+.switch-project__search-icon {
+  color: var(--text-dim-2);
+  font-size: 13px;
+}
+
+.switch-project__search-field {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+}
+
+.switch-project__search-field:focus-visible {
+  outline: none;
+}
+
+.switch-project__search-hint {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim-3);
+}
+
+.switch-project__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.switch-project__empty {
+  margin: 4px 0;
+  font-size: 12px;
+  color: var(--text-dim-2);
+}
+
+.switch-project__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.switch-project__row:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--line-2);
+}
+
+.switch-project__row:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.switch-project__tile {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bg);
+  background: var(--accent);
+}
+
+.switch-project__row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.switch-project__row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.switch-project__row-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.switch-project__badge {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  border: 1px solid var(--accent-line);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.switch-project__row-summary {
+  font-size: 11px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.switch-project__row-time {
+  flex: none;
+  font-size: 11px;
+  color: var(--text-dim-2);
+}
+
+.switch-project__error {
+  margin: 0;
+  font-size: 11px;
+  color: var(--err);
+}
+
+.switch-project__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.switch-project__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.switch-project__ghost {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+.switch-project__note {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-dim-3);
+}
