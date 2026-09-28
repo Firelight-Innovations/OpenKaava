@@ -157,6 +157,19 @@ pub struct CodeResult {
     pub wrote_manifest: bool,
 }
 
+/// Named the way `cloud::wake::HealthCheck` names its own single-field `dyn
+/// Fn` — clippy's `type_complexity` lint draws the line at a handful of
+/// nested generic args, and every closure field on [`Ops`] was past it
+/// spelled out in full.
+pub type LandCode<'a> = dyn Fn(&CodeSource, Kind) -> Result<CodeResult, String> + 'a;
+/// See [`LandCode`].
+pub type UnlandCode<'a> = dyn Fn(&CodeResult) -> Result<(), String> + 'a;
+/// Shared by `create_worktree`, `remove_worktree` and `open_project` below —
+/// all three take just a path and report success or a message, and giving
+/// each its own type name would suggest a difference between them that
+/// isn't there.
+pub type PathAction<'a> = dyn Fn(&Path) -> Result<(), String> + 'a;
+
 /// What [`run`] can do to the world, injected so the sequencing above is
 /// tested without either a filesystem or a network — see the module doc.
 ///
@@ -173,15 +186,15 @@ pub struct Ops<'a> {
     /// does not already have one. Never called for [`CodeSource::
     /// NewGithubRepo`] — `run` skips [`StepId::CloneOrLink`] before this
     /// would be reached.
-    pub land_code: Box<dyn Fn(&CodeSource, Kind) -> Result<CodeResult, String> + 'a>,
+    pub land_code: Box<LandCode<'a>>,
     /// Undo [`Self::land_code`]: delete the directory it created, or just the
     /// manifest it wrote into a folder that already existed. Told which by
     /// the [`CodeResult`] it is passed.
-    pub unland_code: Box<dyn Fn(&CodeResult) -> Result<(), String> + 'a>,
+    pub unland_code: Box<UnlandCode<'a>>,
     pub is_git_repo: Box<dyn Fn(&Path) -> bool + 'a>,
-    pub create_worktree: Box<dyn Fn(&Path) -> Result<(), String> + 'a>,
-    pub remove_worktree: Box<dyn Fn(&Path) -> Result<(), String> + 'a>,
-    pub open_project: Box<dyn Fn(&Path) -> Result<(), String> + 'a>,
+    pub create_worktree: Box<PathAction<'a>>,
+    pub remove_worktree: Box<PathAction<'a>>,
+    pub open_project: Box<PathAction<'a>>,
 }
 
 /// Run the plan once, reporting progress after every step settles.
@@ -215,7 +228,10 @@ pub fn run(request: &Request, ops: &Ops, mut on_progress: impl FnMut(&Snapshot))
 
     // Step 1: the GitHub repo from the template. Nothing here ever calls
     // GitHub — see the module doc.
-    set!(StepId::GithubRepo, StepStatus::Skipped(NOT_WIRED.to_string()));
+    set!(
+        StepId::GithubRepo,
+        StepStatus::Skipped(NOT_WIRED.to_string())
+    );
     emit!();
 
     // Step 2 needs a repository that already exists somewhere reachable.
@@ -273,9 +289,10 @@ pub fn run(request: &Request, ops: &Ops, mut on_progress: impl FnMut(&Snapshot))
                 }
                 Err(message) => {
                     set!(StepId::DesignWorktree, StepStatus::Failed(message));
-                    set!(StepId::OpenProject, StepStatus::Skipped(
-                        "the previous step failed".to_string(),
-                    ));
+                    set!(
+                        StepId::OpenProject,
+                        StepStatus::Skipped("the previous step failed".to_string(),)
+                    );
                     rollback(&mut steps, ops, &code_result, false);
                     return finish(steps, Some(StepId::DesignWorktree), None);
                 }
@@ -312,7 +329,9 @@ pub fn run(request: &Request, ops: &Ops, mut on_progress: impl FnMut(&Snapshot))
         Ok(()) => {
             set!(
                 StepId::OpenProject,
-                StepStatus::Done("Design canvas cluster, then \"New cluster\" to start work".to_string())
+                StepStatus::Done(
+                    "Design canvas cluster, then \"New cluster\" to start work".to_string()
+                )
             );
             finish(steps, None, Some(result.path.display().to_string()))
         }
@@ -324,7 +343,11 @@ pub fn run(request: &Request, ops: &Ops, mut on_progress: impl FnMut(&Snapshot))
     }
 }
 
-fn finish(steps: Vec<StepState>, failed_step: Option<StepId>, opened_path: Option<String>) -> Snapshot {
+fn finish(
+    steps: Vec<StepState>,
+    failed_step: Option<StepId>,
+    opened_path: Option<String>,
+) -> Snapshot {
     Snapshot {
         steps,
         running: false,
@@ -338,7 +361,10 @@ fn finish(steps: Vec<StepState>, failed_step: Option<StepId>, opened_path: Optio
 /// failure that has already ended the run. Marked `Skipped` instead, with the
 /// plain reason, matching how a `notWired` dependency reads.
 fn skip_the_rest(steps: &mut [StepState], failed_at: StepId) {
-    let index = STEP_ORDER.iter().position(|&id| id == failed_at).unwrap_or(0);
+    let index = STEP_ORDER
+        .iter()
+        .position(|&id| id == failed_at)
+        .unwrap_or(0);
     for &id in STEP_ORDER.iter().skip(index + 1) {
         if let Some(step) = steps.iter_mut().find(|s| s.id == id) {
             if step.status == StepStatus::Pending {
@@ -355,13 +381,20 @@ fn skip_the_rest(steps: &mut [StepState], failed_at: StepId) {
 /// `Failed` rather than `RolledBack`, which is the honest answer — "Kaava
 /// could not finish undoing this" is not the same claim as "there was
 /// nothing here to undo" or "this was undone".
-fn rollback(steps: &mut [StepState], ops: &Ops, code_result: &Option<CodeResult>, worktree_created: bool) {
+fn rollback(
+    steps: &mut [StepState],
+    ops: &Ops,
+    code_result: &Option<CodeResult>,
+    worktree_created: bool,
+) {
     if worktree_created {
         if let Some(result) = code_result {
             if let Some(step) = steps.iter_mut().find(|s| s.id == StepId::DesignWorktree) {
                 match (ops.remove_worktree)(&result.path) {
                     Ok(()) => step.status = StepStatus::RolledBack,
-                    Err(message) => step.status = StepStatus::Failed(format!("could not roll back: {message}")),
+                    Err(message) => {
+                        step.status = StepStatus::Failed(format!("could not roll back: {message}"))
+                    }
                 }
             }
         }
@@ -372,7 +405,9 @@ fn rollback(steps: &mut [StepState], ops: &Ops, code_result: &Option<CodeResult>
             if matches!(step.status, StepStatus::Done(_)) {
                 match (ops.unland_code)(result) {
                     Ok(()) => step.status = StepStatus::RolledBack,
-                    Err(message) => step.status = StepStatus::Failed(format!("could not roll back: {message}")),
+                    Err(message) => {
+                        step.status = StepStatus::Failed(format!("could not roll back: {message}"))
+                    }
                 }
             }
         }
@@ -428,7 +463,9 @@ mod tests {
                     let path = match source {
                         CodeSource::ExistingRepo { clone_to, .. } => clone_to.clone(),
                         CodeSource::LocalFolder { path } => path.clone(),
-                        CodeSource::NewGithubRepo => unreachable!("run never lands a NewGithubRepo"),
+                        CodeSource::NewGithubRepo => {
+                            unreachable!("run never lands a NewGithubRepo")
+                        }
                     };
                     self.landed.borrow_mut().push(path.display().to_string());
                     Ok(CodeResult {
@@ -473,7 +510,7 @@ mod tests {
         }
     }
 
-    fn status_of<'a>(snapshot: &'a Snapshot, id: StepId) -> &'a StepStatus {
+    fn status_of(snapshot: &Snapshot, id: StepId) -> &StepStatus {
         &snapshot.steps.iter().find(|s| s.id == id).unwrap().status
     }
 
@@ -487,9 +524,18 @@ mod tests {
         assert_eq!(snapshot.opened_path, Some("C:/code/torn-apart".to_string()));
         assert_eq!(spy.opened.borrow().len(), 1);
         assert_eq!(spy.worktrees_created.borrow().len(), 1);
-        assert!(matches!(status_of(&snapshot, StepId::CloneOrLink), StepStatus::Done(_)));
-        assert!(matches!(status_of(&snapshot, StepId::DesignWorktree), StepStatus::Done(_)));
-        assert!(matches!(status_of(&snapshot, StepId::OpenProject), StepStatus::Done(_)));
+        assert!(matches!(
+            status_of(&snapshot, StepId::CloneOrLink),
+            StepStatus::Done(_)
+        ));
+        assert!(matches!(
+            status_of(&snapshot, StepId::DesignWorktree),
+            StepStatus::Done(_)
+        ));
+        assert!(matches!(
+            status_of(&snapshot, StepId::OpenProject),
+            StepStatus::Done(_)
+        ));
     }
 
     /// The five steps this build never wires up are `Skipped`, never
@@ -527,32 +573,57 @@ mod tests {
         assert_eq!(snapshot.opened_path, None);
         assert_eq!(snapshot.failed_step, None, "a skip is not a failure");
         assert!(spy.landed.borrow().is_empty(), "land_code is never called");
-        assert!(matches!(status_of(&snapshot, StepId::CloneOrLink), StepStatus::Skipped(_)));
-        assert!(matches!(status_of(&snapshot, StepId::DesignWorktree), StepStatus::Skipped(_)));
-        assert!(matches!(status_of(&snapshot, StepId::OpenProject), StepStatus::Skipped(_)));
+        assert!(matches!(
+            status_of(&snapshot, StepId::CloneOrLink),
+            StepStatus::Skipped(_)
+        ));
+        assert!(matches!(
+            status_of(&snapshot, StepId::DesignWorktree),
+            StepStatus::Skipped(_)
+        ));
+        assert!(matches!(
+            status_of(&snapshot, StepId::OpenProject),
+            StepStatus::Skipped(_)
+        ));
     }
 
     #[test]
     fn a_non_repository_folder_skips_the_worktree_but_still_opens() {
-        let mut spy = Spy::default();
-        spy.is_repo = false;
+        let spy = Spy {
+            is_repo: false,
+            ..Default::default()
+        };
         let snapshot = run(&local_request(Kind::Tool), &spy.ops(), |_| {});
 
-        assert!(matches!(status_of(&snapshot, StepId::DesignWorktree), StepStatus::Skipped(_)));
+        assert!(matches!(
+            status_of(&snapshot, StepId::DesignWorktree),
+            StepStatus::Skipped(_)
+        ));
         assert_eq!(snapshot.opened_path, Some("C:/code/torn-apart".to_string()));
     }
 
     #[test]
     fn a_project_never_opens_when_the_clone_fails() {
-        let mut spy = Spy::default();
-        spy.land_fails = true;
+        let spy = Spy {
+            land_fails: true,
+            ..Default::default()
+        };
         let snapshot = run(&local_request(Kind::Game), &spy.ops(), |_| {});
 
         assert_eq!(snapshot.failed_step, Some(StepId::CloneOrLink));
-        assert_eq!(snapshot.opened_path, None, "a half-made project never opens");
+        assert_eq!(
+            snapshot.opened_path, None,
+            "a half-made project never opens"
+        );
         assert!(spy.opened.borrow().is_empty());
-        assert!(matches!(status_of(&snapshot, StepId::CloneOrLink), StepStatus::Failed(_)));
-        assert!(matches!(status_of(&snapshot, StepId::DesignWorktree), StepStatus::Skipped(_)));
+        assert!(matches!(
+            status_of(&snapshot, StepId::CloneOrLink),
+            StepStatus::Failed(_)
+        ));
+        assert!(matches!(
+            status_of(&snapshot, StepId::DesignWorktree),
+            StepStatus::Skipped(_)
+        ));
     }
 
     /// Rollback ordering: a worktree failure undoes the worktree (nothing to
@@ -560,8 +631,10 @@ mod tests {
     /// order — the reverse of the plan.
     #[test]
     fn a_worktree_failure_rolls_back_the_clone_but_not_a_worktree_that_never_finished() {
-        let mut spy = Spy::default();
-        spy.worktree_fails = true;
+        let spy = Spy {
+            worktree_fails: true,
+            ..Default::default()
+        };
         let snapshot = run(&local_request(Kind::Game), &spy.ops(), |_| {});
 
         assert_eq!(snapshot.failed_step, Some(StepId::DesignWorktree));
@@ -573,8 +646,14 @@ mod tests {
             "the worktree never finished creating, so there is nothing to remove"
         );
         assert_eq!(spy.unlanded.borrow().len(), 1, "the clone is rolled back");
-        assert!(matches!(status_of(&snapshot, StepId::CloneOrLink), StepStatus::RolledBack));
-        assert!(matches!(status_of(&snapshot, StepId::DesignWorktree), StepStatus::Failed(_)));
+        assert!(matches!(
+            status_of(&snapshot, StepId::CloneOrLink),
+            StepStatus::RolledBack
+        ));
+        assert!(matches!(
+            status_of(&snapshot, StepId::DesignWorktree),
+            StepStatus::Failed(_)
+        ));
     }
 
     /// Rollback ordering when the *later* step fails: the worktree it made
@@ -583,16 +662,27 @@ mod tests {
     /// depends on it.
     #[test]
     fn an_open_failure_rolls_back_the_worktree_before_the_clone() {
-        let mut spy = Spy::default();
-        spy.open_fails = true;
+        let spy = Spy {
+            open_fails: true,
+            ..Default::default()
+        };
         let snapshot = run(&local_request(Kind::Game), &spy.ops(), |_| {});
 
         assert_eq!(snapshot.failed_step, Some(StepId::OpenProject));
-        assert_eq!(snapshot.opened_path, None, "a half-made project never opens");
+        assert_eq!(
+            snapshot.opened_path, None,
+            "a half-made project never opens"
+        );
         assert_eq!(spy.worktrees_removed.borrow().len(), 1);
         assert_eq!(spy.unlanded.borrow().len(), 1);
-        assert!(matches!(status_of(&snapshot, StepId::DesignWorktree), StepStatus::RolledBack));
-        assert!(matches!(status_of(&snapshot, StepId::CloneOrLink), StepStatus::RolledBack));
+        assert!(matches!(
+            status_of(&snapshot, StepId::DesignWorktree),
+            StepStatus::RolledBack
+        ));
+        assert!(matches!(
+            status_of(&snapshot, StepId::CloneOrLink),
+            StepStatus::RolledBack
+        ));
     }
 
     /// A folder that was only linked, not created — [`CodeResult::
@@ -604,9 +694,11 @@ mod tests {
     /// honour it.
     #[test]
     fn rollback_always_defers_the_created_dir_decision_to_unland_code() {
-        let mut spy = Spy::default();
-        spy.landed_created_dir = false;
-        spy.open_fails = true;
+        let spy = Spy {
+            landed_created_dir: false,
+            open_fails: true,
+            ..Default::default()
+        };
         run(&local_request(Kind::OpenExisting), &spy.ops(), |_| {});
 
         assert_eq!(spy.unlanded.borrow().len(), 1);
@@ -620,7 +712,10 @@ mod tests {
             seen.borrow_mut().push(snapshot.clone());
         });
 
-        assert!(seen.borrow().len() >= 4, "at least one emit per settled group of steps");
+        assert!(
+            seen.borrow().len() >= 4,
+            "at least one emit per settled group of steps"
+        );
         assert!(seen.borrow().iter().all(|s| s.running));
     }
 

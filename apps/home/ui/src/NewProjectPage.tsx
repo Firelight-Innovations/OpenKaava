@@ -183,7 +183,11 @@ export default function NewProject({ onDone }: NewProjectProps) {
               </p>
             )}
             {finished && !succeeded && (
-              <button type="button" className="k-btn k-btn--secondary k-btn--sm" onClick={startCreate}>
+              <button
+                type="button"
+                className="k-btn k-btn--secondary k-btn--sm"
+                onClick={startCreate}
+              >
                 Retry
               </button>
             )}
@@ -359,7 +363,11 @@ function CodeSection({
     return (
       <section className="new-project__section">
         <h2 className="new-project__section-title">3 · Code</h2>
-        <Field label="Project folder" hint="Must already contain a Kaava project file." error={errors.path}>
+        <Field
+          label="Project folder"
+          hint="Must already contain a Kaava project file."
+          error={errors.path}
+        >
           <div className="new-project__input-row">
             <input
               className="k-field__input"
@@ -386,7 +394,11 @@ function CodeSection({
   return (
     <section className="new-project__section">
       <h2 className="new-project__section-title">3 · Code</h2>
-      <div className="k-tabs k-tabs--segmented" role="tablist" aria-label="Where the code comes from">
+      <div
+        className="k-tabs k-tabs--segmented"
+        role="tablist"
+        aria-label="Where the code comes from"
+      >
         {CODE_SOURCES.map((s) => (
           <button
             key={s.value}
@@ -415,7 +427,9 @@ function CodeSection({
               onChange={(e) => onChange({ ownerRepo: e.target.value })}
             />
           </Field>
-          <p className="new-project__hint">Step 1 isn't wired yet — Create will skip it. See the rail.</p>
+          <p className="new-project__hint">
+            Step 1 isn't wired yet — Create will skip it. See the rail.
+          </p>
         </>
       )}
 
@@ -503,10 +517,22 @@ function ServicesSection({
 }) {
   const rows: { key: keyof NewProjectForm["services"]; name: string; desc: string }[] = [
     { key: "plane", name: "Plane project", desc: `A Plane project named ${form.planeId || "—"}.` },
-    { key: "registry", name: "Artifact registry prefix", desc: "A registry prefix for build artifacts." },
+    {
+      key: "registry",
+      name: "Artifact registry prefix",
+      desc: "A registry prefix for build artifacts.",
+    },
     { key: "hindsight", name: "Hindsight banks", desc: "Memory banks scoped to this project." },
-    { key: "designWorktree", name: "Design canvas worktree", desc: "wt/design, alongside the main checkout." },
-    { key: "costLabel", name: "Cost label", desc: "Not built yet — resource cost labels are out of scope." },
+    {
+      key: "designWorktree",
+      name: "Design canvas worktree",
+      desc: "wt/design, alongside the main checkout.",
+    },
+    {
+      key: "costLabel",
+      name: "Cost label",
+      desc: "Not built yet — resource cost labels are out of scope.",
+    },
   ];
 
   return (
@@ -600,11 +626,15 @@ function StepRow({
 
   return (
     <li className={`new-project__step new-project__step--${status}`}>
-      <span className="new-project__step-mark">{status === "done" ? <Check size={12} /> : number}</span>
+      <span className="new-project__step-mark">
+        {status === "done" ? <Check size={12} /> : number}
+      </span>
       <span className="new-project__step-text">
         <span className="new-project__step-title">{stepTitle(id, kind)}</span>
         {detail && (
-          <span className={`new-project__step-detail${mono ? " new-project__step-detail--mono" : ""}`}>
+          <span
+            className={`new-project__step-detail${mono ? " new-project__step-detail--mono" : ""}`}
+          >
             {detail}
           </span>
         )}

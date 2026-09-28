@@ -39,7 +39,11 @@ pub(crate) struct CreateManager {
 
 /// Start a run, unless one is already going. Returns at once — poll
 /// `home/create-project-status` for what happens next.
-pub fn start(app: &AppHandle, context: &CallContext, params: Option<Value>) -> Result<Value, RpcError> {
+pub fn start(
+    app: &AppHandle,
+    context: &CallContext,
+    params: Option<Value>,
+) -> Result<Value, RpcError> {
     let cluster_id = context.require_cluster()?.to_string();
     let request = parse_request(params.as_ref())?;
 
@@ -237,9 +241,7 @@ fn git_clone(url: &str, dest: &Path) -> Result<(), String> {
         command.creation_flags(CREATE_NO_WINDOW);
     }
 
-    let output = command
-        .output()
-        .map_err(|e| format!("git clone: {e}"))?;
+    let output = command.output().map_err(|e| format!("git clone: {e}"))?;
     if !output.status.success() {
         return Err(format!(
             "git clone: {}",
@@ -393,7 +395,10 @@ mod tests {
         });
         let request = parse_request(Some(&params)).unwrap();
         assert_eq!(request.kind, create::Kind::Tool);
-        assert!(matches!(request.code, create::CodeSource::LocalFolder { .. }));
+        assert!(matches!(
+            request.code,
+            create::CodeSource::LocalFolder { .. }
+        ));
     }
 
     #[test]
@@ -437,7 +442,8 @@ mod tests {
     /// between "Open existing" and every other kind.
     #[test]
     fn a_game_writes_a_manifest_into_an_existing_empty_folder() {
-        let dir = std::env::temp_dir().join(format!("kaava-create-test-game-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("kaava-create-test-game-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
 
         let source = create::CodeSource::LocalFolder { path: dir.clone() };

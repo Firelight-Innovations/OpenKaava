@@ -343,7 +343,9 @@ export default function App() {
                     // New Project no longer opens a native picker directly —
                     // see `showNewProject` above — every other Start action
                     // still goes straight through `run`.
-                    onClick={() => (method === "home/new-project" ? setShowNewProject(true) : run(method))}
+                    onClick={() =>
+                      method === "home/new-project" ? setShowNewProject(true) : run(method)
+                    }
                   >
                     <Icon size={18} className="home__action-icon" />
                     <span>{label}</span>

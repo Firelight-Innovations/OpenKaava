@@ -194,7 +194,11 @@ describe("buildCreateRequest", () => {
     };
     expect(buildCreateRequest(form)).toEqual({
       kind: "game",
-      code: { source: "existingRepo", url: "https://github.com/x/y.git", cloneTo: "C:/code/torn-apart" },
+      code: {
+        source: "existingRepo",
+        url: "https://github.com/x/y.git",
+        cloneTo: "C:/code/torn-apart",
+      },
     });
   });
 
