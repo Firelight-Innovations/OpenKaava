@@ -1,0 +1,279 @@
+/*
+ * The New Cluster dialog (board 04). `.new-cluster` sizes the shared
+ * `.dialogs__panel` this dialog is rendered inside — everything else here is
+ * this dialog's own content, laid out as a two-column body while colours
+ * and type still come from src/tokens.css throughout.
+ */
+
+.new-cluster {
+  width: 980px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.new-cluster__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.new-cluster__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.new-cluster__subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* --- step 1: environment ------------------------------------------------- */
+
+.new-cluster__environment {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.new-cluster__card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.new-cluster__card.is-selected {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+/* The radio input drives selection and keyboard/AT semantics; the card's own
+   dot is drawn from its state class rather than the native control, matching
+   every other custom-styled radio in the shell (see worktree's own rows). */
+.new-cluster__card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.new-cluster__card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.new-cluster__card-text {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.new-cluster__worktree-detail {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: default;
+}
+
+.new-cluster__field-label {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.new-cluster__field {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.new-cluster__field:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 1px;
+}
+
+.new-cluster__branch-preview {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-dim-2);
+}
+
+.new-cluster__branch-preview code {
+  font-family: var(--mono);
+  color: var(--text-dim);
+}
+
+.new-cluster__existing-list {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+  cursor: default;
+}
+
+.new-cluster__existing-row {
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.new-cluster__existing-row.is-selected {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+.new-cluster__empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-dim-2);
+}
+
+.new-cluster__error {
+  margin: 0;
+  font-size: 11px;
+  color: var(--err);
+}
+
+/* --- step 2: starting layout ---------------------------------------------- */
+
+.new-cluster__layout {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.new-cluster__layout-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.new-cluster__layout-row.is-selected {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+.new-cluster__layout-row input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.new-cluster__layout-icon {
+  width: 64px;
+  height: 42px;
+  flex: none;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+
+.new-cluster__layout-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.new-cluster__layout-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.new-cluster__layout-panes {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.new-cluster__caption {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--text-dim-2);
+}
+
+/* --- footer ---------------------------------------------------------------- */
+
+.new-cluster__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.new-cluster__note {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-dim-3);
+}
+
+.new-cluster__actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+
+.new-cluster__ghost,
+.new-cluster__primary {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 7px 14px;
+  cursor: pointer;
+}
+
+.new-cluster__ghost {
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--line-2);
+}
+
+.new-cluster__ghost:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.new-cluster__primary {
+  color: var(--bg);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.new-cluster__primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
