@@ -1,0 +1,3 @@
+# Copy to terraform.tfvars (gitignored) and fill in. `gcloud billing accounts list` prints the ID;
+# it must show OPEN = True.
+billing_account = "XXXXXX-XXXXXX-XXXXXX"

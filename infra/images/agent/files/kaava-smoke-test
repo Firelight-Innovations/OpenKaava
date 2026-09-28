@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# Agent VM smoke test (PRD P2-1, P2-3, P2-4, P5-1). On every agent image as kaava-smoke-test.
+#
+#   gcloud compute ssh kaava-worker --tunnel-through-iap --zone us-central1-a -- kaava-smoke-test
+#
+# Pass --agent to have Claude write the chair script instead of the fixed one below; that is the
+# full P2-4 condition. Without it the test still proves Blender -> .glb -> Godot import headless.
+
+set -euo pipefail
+. /etc/profile.d/kaava.sh
+
+fail=0
+check() {
+  local name=$1
+  shift
+  # Read all of the output before taking its first line: piping into head would kill a command
+  # that writes more after it, and pipefail then reports that as a failure.
+  if out=$("$@" 2>&1); then
+    printf '  ok    %-10s %s\n' "$name" "${out%%$'\n'*}"
+  else
+    printf '  FAIL  %-10s %s\n' "$name" "${out%%$'\n'*}"
+    fail=1
+  fi
+}
+
+echo "versions (P2-1)"
+check claude claude --version
+check godot godot --headless --version
+check blender blender --version
+check python python3 --version
+check ste100 ste100 --help
+
+echo "claude auth (P2-3)"
+if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+  echo "  FAIL  claude-oauth-token has no version in Secret Manager"
+  fail=1
+else
+  check reply claude -p "reply ok"
+fi
+
+echo "hindsight (P5-1, P5-2)"
+if [ -z "${KAAVA_HINDSIGHT_URL:-}" ]; then
+  echo "  FAIL  no kaava-hindsight-url in instance metadata"
+  fail=1
+else
+  auth=$(kaava-hindsight-headers | jq -r .Authorization)
+  check health curl -fsS -H "Authorization: $auth" "${KAAVA_HINDSIGHT_URL%/}/health"
+  check mcp jq -r '.mcpServers | keys | join(", ")' /etc/claude-code/managed-mcp.json
+fi
+
+echo "chair pipeline (P2-4)"
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+mkdir -p "$work/godot"
+
+if [ "${1:-}" = "--agent" ]; then
+  (cd "$work" && claude -p --permission-mode acceptEdits \
+    "Write chair.py: a Blender Python script that builds a simple wooden chair from primitives (seat, four legs, backrest) and exports it with bpy.ops.export_scene.gltf to the path in sys.argv after '--'. Write only the file.")
+else
+  cat >"$work/chair.py" <<'EOF'
+import sys
+import bpy
+
+bpy.ops.wm.read_factory_settings(use_empty=True)
+parts = [
+    ((0, 0, 0.45), (0.45, 0.45, 0.04)),
+    ((0.2, 0.2, 0.22), (0.04, 0.04, 0.44)),
+    ((-0.2, 0.2, 0.22), (0.04, 0.04, 0.44)),
+    ((0.2, -0.2, 0.22), (0.04, 0.04, 0.44)),
+    ((-0.2, -0.2, 0.22), (0.04, 0.04, 0.44)),
+    ((0, -0.21, 0.75), (0.45, 0.04, 0.56)),
+]
+for loc, size in parts:
+    bpy.ops.mesh.primitive_cube_add(location=loc)
+    bpy.context.object.scale = [s / 2 for s in size]
+bpy.ops.export_scene.gltf(filepath=sys.argv[sys.argv.index("--") + 1])
+EOF
+fi
+
+blender -b --python "$work/chair.py" -- "$work/godot/chair.glb" >"$work/blender.log" 2>&1 \
+  || { echo "  FAIL  blender export; last lines:"; tail -5 "$work/blender.log"; exit 1; }
+[ -s "$work/godot/chair.glb" ] && echo "  ok    chair.glb $(stat -c %s "$work/godot/chair.glb") bytes"
+
+printf '[application]\nconfig/name="smoke"\n' >"$work/godot/project.godot"
+if godot --headless --path "$work/godot" --import >"$work/godot.log" 2>&1; then
+  echo "  ok    godot import exited 0"
+else
+  echo "  FAIL  godot import exited $?; last lines:"
+  tail -5 "$work/godot.log"
+  fail=1
+fi
+
+exit $fail
