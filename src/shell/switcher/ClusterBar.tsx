@@ -10,26 +10,19 @@ import HealthPopover, { type UnhealthyTool } from "./HealthPopover";
 import "./switcher.css";
 
 /**
- * The one tab bar — cluster tabs, and nothing else.
+ * The one tab bar — cluster tabs, and nothing else. `docs/design/KAAVA-UX-SPEC.md`
+ * §1.3: "cluster tabs only". Everything this row used to hold besides the chips
+ * is gone from here, not hidden: the open cluster's member tabs (the **panes**
+ * workstream gives each pane its own 34px strip instead); page chips (the
+ * **rail** workstream's right rail takes them — see `PageChips.tsx`'s header
+ * for why that file is kept rather than deleted); and the switcher-row
+ * "open an app" button (the equivalent stays reachable through the title
+ * bar's Apps menu, `src/shell/appsMenu.ts`).
  *
- * `docs/design/KAAVA-UX-SPEC.md` §1.3: "cluster tabs only". Everything this row
- * used to hold besides the chips is gone from here, not hidden:
- *
- *   - the open cluster's member tabs (apps, terminals) — the **panes**
- *     workstream gives each pane its own 34px strip instead, so a tab lives in
- *     exactly one place rather than here *and* on its pane.
- *   - page chips (Agents, Cost Tracker) — the **rail** workstream's right rail
- *     takes them; see `PageChips.tsx`'s header for why the file itself is kept
- *     rather than deleted.
- *   - the switcher-row "open an app" button — the equivalent action stays
- *     reachable through the title bar's Apps menu (`src/shell/appsMenu.ts`),
- *     which this rework does not touch.
- *
- * What is added instead is what a *tab* needs to say about an environment
- * rather than about a group of tabs: an environment chip (`environmentOf`,
- * §1.3's `wt`/`cloud`/`main` glyphs) and a registration point
- * (`data-cluster-id` + `clusterTabRef`) the **panes** workstream's cluster
- * drop zone reads.
+ * Added instead: what a *tab* needs to say about an environment rather than a
+ * group of tabs — an environment chip (`environmentOf`, §1.3's
+ * `wt`/`cloud`/`main` glyphs) and a registration point (`data-cluster-id` +
+ * `clusterTabRef`) the **panes** workstream's cluster drop zone reads.
  */
 export interface ClusterBarProps {
   clusters: Cluster[];
@@ -331,7 +324,9 @@ function ClusterTab({
         {ENVIRONMENT_LABEL[env.kind]}
       </span>
 
-      {pinned && <Pin size={12} strokeWidth={1.5} className="switcher__tab-pin" aria-hidden="true" />}
+      {pinned && (
+        <Pin size={12} strokeWidth={1.5} className="switcher__tab-pin" aria-hidden="true" />
+      )}
 
       {editing ? (
         <input

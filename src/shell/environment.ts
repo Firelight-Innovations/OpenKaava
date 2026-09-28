@@ -1,21 +1,14 @@
 /**
- * The environment model — display side only.
+ * The environment model — display side only. Every cluster is exactly one of
+ * a local worktree, a cloud session, the standing design-canvas worktree, or
+ * main itself, read-only (`docs/KAAVA-UX-REWORK.md` §1-2). [`environmentOf`]
+ * reads `Cluster.environment` when the backend has set it, falling back to
+ * the older `worktree`/`project` fields for a cluster that predates it.
+ * Every caller goes through it rather than either field directly.
  *
- * The written spec (`docs/KAAVA-UX-REWORK.md` §1-2) binds every cluster to
- * exactly one environment: a local worktree, a cloud session, the standing
- * design-canvas worktree, or main itself, read-only. [`environmentOf`] reads
- * the **clusters** workstream's `Cluster.environment` (mirrored from Rust in
- * `bindings.ts`) when present, and falls back to deriving one from the older
- * `worktree`/`project` fields when it is not — a cluster restored from a
- * `layout.json` predating that field, or one the backend has not started
- * setting it on yet. Every caller in this workstream goes through
- * [`environmentOf`], not through `cluster.worktree` or `cluster.environment`
- * directly, so only this function has to know about both.
- *
- * This file's own `Environment` is a display type, not `bindings.Environment`
- * re-exported — the boards want `ahead`/`behind` divergence counts nothing on
- * the wire fills in yet, and a cloud session's `sessionId`/`vm` are here only
- * for the environment bar to show, never to key off of.
+ * This file's `Environment` is a display type, not `bindings.Environment`
+ * re-exported — it adds `ahead`/`behind` divergence nothing on the wire fills
+ * in yet, and a cloud session's `sessionId`/`vm` for the environment bar.
  */
 import type { Cluster } from "./contract";
 import type { Environment as RustEnvironment } from "../bindings";
@@ -70,11 +63,8 @@ function fromRustEnvironment(env: RustEnvironment): Environment {
 
 /**
  * The branch name of the standing design-canvas worktree
- * (`docs/KAAVA-UX-REWORK.md` §5). `Cluster` carries no `pinned` flag yet — the
- * **clusters** workstream adds one, and a pinned cluster's own field will be
- * the honest signal once it exists — so until then this is the one thing
- * [`environmentOf`] can check against real data: a worktree checked out to
- * exactly this branch is the design canvas.
+ * (`docs/KAAVA-UX-REWORK.md` §5) — a worktree checked out to exactly this
+ * branch is the design canvas, independent of `Cluster.pinned`.
  */
 export const DESIGN_WORKTREE_BRANCH = "wt/design";
 

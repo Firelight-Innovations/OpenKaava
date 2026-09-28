@@ -823,14 +823,7 @@ export interface FrameSlots {
   titleBar: ReactNode;
   /** Omitted in a detached window. */
   switcherBar?: ReactNode;
-  /**
-   * The environment bar (`docs/design/KAAVA-UX-SPEC.md` §1.4): a 36px strip
-   * above the pane grid naming the open cluster's environment. Rendered as a
-   * `flex: none` child at the top of `.frame__main`, ahead of `toolWindow`,
-   * so it never competes with the pane grid's own height. Omitted while no
-   * cluster is open — a window with nothing to say about "which environment"
-   * draws no bar promising one.
-   */
+  /** The environment bar (`docs/design/KAAVA-UX-SPEC.md` §1.4). Omitted while no cluster is open. */
   envBar?: ReactNode;
   toolWindow: ReactNode;
   secondaryPanel: ReactNode;
@@ -838,35 +831,11 @@ export interface FrameSlots {
    *  panel's edge — `.frame__main` in frame.css says why it does not span the
    *  window. Omitted, neither the band nor its handle is rendered at all. */
   bottomPanel?: ReactNode;
-  /**
-   * The right-side project-page rail (`docs/KAAVA-UX-REWORK.md` §4): Git,
-   * Plane, Cloud agents, Hindsight, Cost, Artifact registry, drawn as a fixed
-   * `PROJECT_RAIL_WIDTH` column at the far right of the workspace band,
-   * spanning from the switcher row down to the status bar. Chrome owns the
-   * slot and its geometry; the **rail** workstream owns what is drawn inside
-   * it. Omitted, nothing is reserved for it — a build with no project pages
-   * yet draws exactly as it did before this slot existed.
-   */
+  /** The right-side project-page rail (`docs/KAAVA-UX-REWORK.md` §4). Chrome owns the slot; **rail** owns what fills it. */
   projectRail?: ReactNode;
-  /**
-   * A project page, docked beside the panes — Git's aside is the first of
-   * these. Width is `projectPageWidth` (see `Frame`'s props), not anything in
-   * this slot's own markup, for `secondaryPanel`'s reason: the thing being
-   * resized is the split, and `Frame` is the one place that already owns a
-   * split's geometry. Omitted (and `projectPageExpanded` unused), no space is
-   * reserved — a build with no docked page yet need not fill this at all.
-   */
+  /** A project page, docked beside the panes — Git's aside is the first. Width is `projectPageWidth`. */
   projectPage?: ReactNode;
-  /**
-   * The same page, **expanded**: it covers the workspace area — the tool
-   * window, its resize handle, the secondary panel and the docked page above —
-   * while the rail stays visible beside it. The panes underneath stay mounted
-   * throughout (`docs/KAAVA-UX-REWORK.md` §4: "panes never unmount"); `Frame`
-   * hides them with `visibility`, never by unmounting `toolWindow`, so a long
-   * agent run in a terminal keeps running behind an expanded Cost page. Drawn
-   * only while `Frame`'s `projectPageExpanded` prop is true; the docked
-   * `projectPage` slot above is not rendered at the same time.
-   */
+  /** The same page, **expanded**: covers the tool window, resize handle, secondary panel and docked page, while the rail stays visible. */
   projectPageExpanded?: ReactNode;
   statusBar: ReactNode;
   /** Portalled above everything: drag ghost and drop outlines. */
