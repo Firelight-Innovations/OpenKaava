@@ -49,11 +49,47 @@ start; never into the frontend, a file, or a log (B2.1).
 A reference implementation of the wake loop is `infra/common/kaava-wake/kaava_wake.py` (stdlib
 Python, with tests); mirror its state handling in Rust.
 
+## AI jobs (B3.2)
+
+The job loop is live (PRs #132, #134). **To request a job, put a label on the work item** through
+the Plane API: `ai:breakdown`, `ai:plan-cycle`, `ai:context` or `ai:do`. plane-watch picks the
+label up within a minute and swaps it for `ai:queued`. It then writes the job file, starts
+kaava-worker, and keeps plane-vm awake until the job finishes. The agent reports back on the item
+itself: one summary comment, then `ai:done` or `ai:failed` in place of `ai:queued`. A breakdown
+took 62 s end to end.
+
+Don't write job files yourself. plane-watch starts the worker only for jobs it queued, so a file
+written by the app waits until something else wakes the worker.
+
+To show progress, read the item's labels, or the job files in
+`gs://veistra-projects/prod/jobs/{pending,claimed,done}/<job-id>.json`:
+
+```json
+{
+  "schema": 1,
+  "id": "KAAVA-5-breakdown-20260928T143146106415",
+  "kind": "breakdown",
+  "profile": "prod",
+  "project": "openkaava",
+  "plane": {"workspace": "veistra", "project_id": "…", "identifier": "KAAVA",
+            "work_item_id": "…", "sequence_id": 5, "name": "…"},
+  "requested_by": "plane-watch",
+  "created": "2026-09-28T14:31:46Z",
+  "claimed_by": "kaava-worker", "claimed_at": "…",
+  "finished_at": "…",
+  "result": {"outcome": "done", "result": "one-sentence summary", "session_id": "…",
+             "num_turns": 14, "seconds": 62}
+}
+```
+
+`claimed_*` appears once a worker takes the job, and `finished_at` and `result` only in `done/`.
+`result.outcome` is `done` or `failed`. `result.session_id` is the Claude session, which the
+sessions bucket records like any other.
+
 ## Not built yet (plan around these)
 
 | Missing | Affects | Until then |
 |---|---|---|
-| `plane-watch` and the AI job queue | B3.2 | Write job files to `gs://veistra-projects/prod/jobs/pending/<job-id>.json` per §3; nothing consumes them yet. Agent A will publish the job JSON schema with plane-watch. |
 | Local dev instance (§9, `:8766`) | B1.2, B1.4 | Develop against the cloud instance. The `dev` profile's names are reserved and its secrets exist (`plane-dev-*`), but nothing listens on `:8766`. |
 | V5: live WebSocket through the IAP tunnel | collaborative pages | Untested. If page editing misbehaves in the webview, report it rather than work around it. |
 

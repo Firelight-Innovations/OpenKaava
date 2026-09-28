@@ -84,7 +84,8 @@ if [ "$profile" = prod ]; then
     done
   fi
   gcloud compute ssh kaava-worker --zone "$zone" --project "$gcp" --tunnel-through-iap \
-    --command 'plane-mcp-check 2>/dev/null | grep "^plane-mcp-check"' | tail -1 | grep -q 'passed' ||
+    --command 'plane-mcp-check >/dev/null 2>&1 && echo plane-mcp-check-passed' 2>/dev/null |
+    grep -q plane-mcp-check-passed ||
     fail "plane-mcp-check on kaava-worker"
   pass "MCP: plane-mcp-check on kaava-worker"
 
