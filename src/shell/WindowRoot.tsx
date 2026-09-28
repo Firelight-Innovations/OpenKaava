@@ -25,6 +25,7 @@ import { INTERRUPT, commandLine, terminalInput } from "./run";
 import ContextMenuHost from "./ContextMenuHost";
 import CommandPalette from "./palette/CommandPalette";
 import NewClusterDialog from "./dialogs/NewClusterDialog";
+import SwitchProjectDialog from "./dialogs/SwitchProjectDialog";
 import { commandsFromMenus } from "./palette/registry";
 import TitleBar from "./titlebar/TitleBar";
 import { APP_COMMAND, defaultMenus, type CommandHandlers } from "./titlebar/menus";
@@ -1020,6 +1021,11 @@ export default function WindowRoot({
   const [newClusterOpen, setNewClusterOpen] = useState(false);
   const closeNewCluster = useCallback(() => setNewClusterOpen(false), []);
 
+  // The Switch Project dialog (board 08). The pill's own click, wherever it
+  // lives, is the only opener — see `onOpenProjectSwitcher` below.
+  const [switchProjectOpen, setSwitchProjectOpen] = useState(false);
+  const closeSwitchProject = useCallback(() => setSwitchProjectOpen(false), []);
+
   // "The terminal is showing" is now just the band being open. It used to need
   // a second clause — the panel could be open on the worktree tab, which is an
   // open panel with no terminal in it — and the band has nothing else to show,
@@ -1287,10 +1293,25 @@ export default function WindowRoot({
     () => new Set(clusters.map((c) => environmentKey(environmentOf(c)))).size,
     [clusters],
   );
-  // The Switch-project dialog is the **clusters** workstream's to build. The
-  // pill stays a real, clickable button in the meantime — see
-  // `TitleBarProps.onOpenProjectSwitcher`'s own doc comment.
-  const onOpenProjectSwitcher = useCallback(() => {}, []);
+  const onOpenProjectSwitcher = useCallback(() => setSwitchProjectOpen(true), []);
+
+  // The dialog's own "Open folder…"/"New project" buttons close it and hand
+  // off to Home's pickers — the same two `home/*` methods the File menu and
+  // Home's own cards already call, scoped to this window's active cluster
+  // for `onOpenProject`'s reason. Both are no-ops with no cluster open,
+  // which the dialog's disabled rows already assume.
+  const onSwitchProjectOpenFolder = useCallback(() => {
+    closeSwitchProject();
+    onOpenProject();
+  }, [closeSwitchProject, onOpenProject]);
+
+  const onSwitchProjectNewProject = useCallback(() => {
+    closeSwitchProject();
+    if (activeClusterId === null) return;
+    void callApp("home", "home/new-project", undefined, { clusterId: activeClusterId }).catch(
+      (err: unknown) => console.error("kaava: New Project failed:", err),
+    );
+  }, [closeSwitchProject, activeClusterId]);
 
   // The Git page the environment bar's "Review & merge" button would open is
   // the **panes**/**clusters** workstreams' to build — same reasoning as
@@ -1446,6 +1467,15 @@ export default function WindowRoot({
           project={project}
           onCancel={closeNewCluster}
           onCreated={closeNewCluster}
+        />
+      )}
+      {switchProjectOpen && (
+        <SwitchProjectDialog
+          clusterId={activeClusterId}
+          onCancel={closeSwitchProject}
+          onOpened={closeSwitchProject}
+          onOpenFolder={onSwitchProjectOpenFolder}
+          onNewProject={onSwitchProjectNewProject}
         />
       )}
       <Frame
