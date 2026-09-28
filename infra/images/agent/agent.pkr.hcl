@@ -62,7 +62,7 @@ build {
   # A directory upload copies into its destination and does not create it; without this the
   # first upload leaves /tmp/kaava-files as a plain file.
   provisioner "shell" {
-    inline = ["mkdir -p /tmp/kaava-files/ste100"]
+    inline = ["mkdir -p /tmp/kaava-files/ste100 /tmp/kaava-files/worker"]
   }
 
   provisioner "file" {
@@ -80,6 +80,17 @@ build {
   provisioner "file" {
     source      = "${path.root}/../../../tools/"
     destination = "/tmp/kaava-files/ste100"
+  }
+
+  # The Plane MCP launcher, its pinned server, its check, and the wake it needs (Plane design 7.2).
+  provisioner "file" {
+    source      = "${path.root}/../../worker/"
+    destination = "/tmp/kaava-files/worker"
+  }
+
+  provisioner "file" {
+    source      = "${path.root}/../../common/kaava-wake/kaava_wake.py"
+    destination = "/tmp/kaava-files/kaava-wake"
   }
 
   provisioner "shell" {
