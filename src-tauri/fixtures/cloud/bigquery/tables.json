@@ -1,0 +1,24 @@
+{
+  "kind": "bigquery#tableList",
+  "tables": [
+    {
+      "kind": "bigquery#table",
+      "tableReference": {
+        "projectId": "fixture",
+        "datasetId": "billing_export",
+        "tableId": "gcp_billing_export_resource_v1_01A2B3_C4D5E6_F7A8B9"
+      },
+      "type": "TABLE"
+    },
+    {
+      "kind": "bigquery#table",
+      "tableReference": {
+        "projectId": "fixture",
+        "datasetId": "billing_export",
+        "tableId": "gcp_billing_export_v1_01A2B3_C4D5E6_F7A8B9"
+      },
+      "type": "TABLE"
+    }
+  ],
+  "totalItems": 2
+}

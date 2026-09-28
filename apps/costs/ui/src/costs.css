@@ -136,6 +136,11 @@
   color: var(--text-dim);
 }
 
+.costs__billed-note {
+  margin: 0;
+  font-size: 12px;
+}
+
 .costs__split {
   display: flex;
   flex-wrap: wrap;

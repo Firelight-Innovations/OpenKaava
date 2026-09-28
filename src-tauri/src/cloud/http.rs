@@ -11,6 +11,8 @@ const USER_AGENT: &str = concat!("OpenKaava/", env!("CARGO_PKG_VERSION"));
 pub enum Verb {
     Get,
     Post,
+    /// A POST with a JSON body, such as a BigQuery query.
+    PostJson(String),
 }
 
 pub struct Reply {
@@ -60,7 +62,7 @@ pub fn send(
         let token = tokens.access()?;
         let bearer = format!("Bearer {token}");
         let agent = agent();
-        let result = match verb {
+        let result = match &verb {
             Verb::Get => {
                 let mut request = agent.get(url).header("Authorization", &bearer);
                 if let Some(range) = range {
@@ -72,6 +74,11 @@ pub fn send(
                 .post(url)
                 .header("Authorization", &bearer)
                 .send_empty(),
+            Verb::PostJson(body) => agent
+                .post(url)
+                .header("Authorization", &bearer)
+                .header("Content-Type", "application/json")
+                .send(body.as_bytes()),
         };
         let mut response = result.map_err(|err| Trouble::Unreachable {
             detail: err.to_string(),

@@ -167,6 +167,13 @@ discounts and credits are left out, and the page lists them. The same
 `src-tauri/fixtures/cloud/billing/` holds real catalog SKUs, trimmed. It is a
 page, like Agents: its chip opens it, and the Apps menu does not list it.
 
+Beside the estimate it shows what Google actually billed, net of credits, from
+the Cloud Billing export to BigQuery (`cloud::bigquery`). The standard usage
+cost export has to be switched on once in the Console, into the
+`billing_export` dataset (`KAAVA_BILLING_DATASET` overrides it). Until then the
+page says how, rather than failing. The export trails the estimate by a few
+hours. Fixtures: `bigquery/tables.json` and `bigquery/billing.json`.
+
 **Projects** (`projects/list`, `projects/wake-start`, `projects/plane-get`) —
 every OpenKaava Cloud project's Plane workspace, picked from a switcher and
 opened beside it. Selecting one wakes `plane-vm` if it was stopped

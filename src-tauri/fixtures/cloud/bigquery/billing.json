@@ -1,0 +1,64 @@
+{
+  "kind": "bigquery#queryResponse",
+  "schema": {
+    "fields": [
+      { "name": "service", "type": "STRING", "mode": "NULLABLE" },
+      { "name": "cost", "type": "FLOAT", "mode": "NULLABLE" },
+      { "name": "credits", "type": "FLOAT", "mode": "NULLABLE" },
+      { "name": "currency", "type": "STRING", "mode": "NULLABLE" },
+      { "name": "exported", "type": "TIMESTAMP", "mode": "NULLABLE" }
+    ]
+  },
+  "jobReference": { "projectId": "fixture", "jobId": "job_fixture", "location": "US" },
+  "totalRows": "5",
+  "rows": [
+    {
+      "f": [
+        { "v": "Compute Engine" },
+        { "v": "27.4163" },
+        { "v": "-0.8712" },
+        { "v": "USD" },
+        { "v": "1.7906004E9" }
+      ]
+    },
+    {
+      "f": [
+        { "v": "Cloud Storage" },
+        { "v": "1.2031" },
+        { "v": "0.0" },
+        { "v": "USD" },
+        { "v": "1.7905968E9" }
+      ]
+    },
+    {
+      "f": [
+        { "v": "Cloud Run" },
+        { "v": "0.9120" },
+        { "v": "-0.9120" },
+        { "v": "USD" },
+        { "v": "1.7906004E9" }
+      ]
+    },
+    {
+      "f": [
+        { "v": "Networking" },
+        { "v": "0.4418" },
+        { "v": "0.0" },
+        { "v": "USD" },
+        { "v": "1.7905932E9" }
+      ]
+    },
+    {
+      "f": [
+        { "v": "Secret Manager" },
+        { "v": "0.0612" },
+        { "v": "0.0" },
+        { "v": "USD" },
+        { "v": "1.7905968E9" }
+      ]
+    }
+  ],
+  "totalBytesProcessed": "48213",
+  "jobComplete": true,
+  "cacheHit": false
+}

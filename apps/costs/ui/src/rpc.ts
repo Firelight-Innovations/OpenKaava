@@ -36,6 +36,31 @@ export interface Problem {
   message: string;
 }
 
+export interface ServiceCost {
+  service: string;
+  cost: number;
+  /** Negative, as the export writes them. */
+  credits: number;
+  net: number;
+}
+
+/** What the BigQuery billing export says was charged, tagged by `state`. */
+export type Billed =
+  | {
+      state: "ok";
+      table: string;
+      /** `202609`. */
+      invoiceMonth: string;
+      currency: string;
+      cost: number;
+      credits: number;
+      net: number;
+      exportedAt: string | null;
+      services: ServiceCost[];
+    }
+  | { state: "notEnabled"; dataset: string }
+  | { state: "unavailable"; message: string };
+
 export interface Estimate {
   source: "live" | "fixture";
   project: string;
@@ -50,6 +75,7 @@ export interface Estimate {
   problems: Problem[];
   notEstimated: string[];
   pricesAsOf: string | null;
+  billed: Billed;
 }
 
 /** The backend's `cloud::Trouble`, tagged by `kind`. */

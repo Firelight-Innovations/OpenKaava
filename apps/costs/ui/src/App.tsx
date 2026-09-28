@@ -4,6 +4,7 @@ import {
   budgetTone,
   byResource,
   dayOf,
+  exportedLabel,
   money,
   monthName,
   quantity,
@@ -11,7 +12,7 @@ import {
   verdict,
 } from "./model";
 import * as rpc from "./rpc";
-import type { Category, Estimate, Trouble } from "./rpc";
+import type { Billed, Category, Estimate, Trouble } from "./rpc";
 import { useVisiblePoll } from "./useVisiblePoll";
 
 /**
@@ -96,6 +97,9 @@ export default function App() {
                 ))}
               </section>
             )}
+            {estimate.billed.state === "ok" && estimate.billed.services.length > 0 && (
+              <BilledTable billed={estimate.billed} />
+            )}
             {estimate.categories.map((c) => (
               <CategoryTable key={c.id} category={c} />
             ))}
@@ -119,10 +123,15 @@ function Summary({ estimate }: { estimate: Estimate }) {
   return (
     <section className="costs__summary" aria-label="This month">
       <div className="costs__figures">
-        <Figure label={`So far in ${month}`} value={money(estimate.toDate)} />
+        <Figure label={`Estimated so far in ${month}`} value={money(estimate.toDate)} />
+        <Figure
+          label="Billed so far"
+          value={estimate.billed.state === "ok" ? money(estimate.billed.net) : "—"}
+        />
         <Figure label={`Forecast for ${month}`} value={money(estimate.forecast)} tone={tone} />
         <Figure label="Budget" value={money(estimate.budget)} />
       </div>
+      <BilledNote billed={estimate.billed} />
       <div
         className="costs__bar"
         role="img"
@@ -171,6 +180,78 @@ function Figure({ label, value, tone }: { label: string; value: string; tone?: s
       <span className="app__label">{label}</span>
       <span className={tone ? `costs__big costs__big--${tone}` : "costs__big"}>{value}</span>
     </div>
+  );
+}
+
+/** One line under the figures on where "Billed so far" comes from, or why it is empty. */
+function BilledNote({ billed }: { billed: Billed }) {
+  switch (billed.state) {
+    case "ok":
+      return (
+        <p className="app__note costs__billed-note">
+          Billed is Google's own figure, net of credits, from the BigQuery billing export (
+          {exportedLabel(billed.exportedAt)}). It trails the estimate by a few hours.
+        </p>
+      );
+    case "notEnabled":
+      return (
+        <p className="app__note costs__billed-note">
+          Billed cost appears once the Cloud Billing export to BigQuery is on. In the Console, open
+          Billing → Billing export, and send the standard usage cost export to the{" "}
+          <code>{billed.dataset}</code> dataset in this project.
+        </p>
+      );
+    case "unavailable":
+      return (
+        <p className="app__error costs__billed-note">
+          Could not read the billing export: {billed.message}
+        </p>
+      );
+  }
+}
+
+/** The export's month so far, one row per Google Cloud service. */
+function BilledTable({ billed }: { billed: Extract<Billed, { state: "ok" }> }) {
+  return (
+    <section className="costs__category" aria-label="Billed by service">
+      <h2 className="costs__heading">
+        <span>Billed by service</span>
+        <span className="costs__heading-sums">
+          <span className="costs__num">{money(billed.net)}</span> net ·{" "}
+          {exportedLabel(billed.exportedAt)}
+        </span>
+      </h2>
+      <div className="costs__table-wrap">
+        <table className="costs__table">
+          <thead>
+            <tr>
+              <th scope="col">Service</th>
+              <th scope="col" className="costs__right">
+                Cost
+              </th>
+              <th scope="col" className="costs__right">
+                Credits
+              </th>
+              <th scope="col" className="costs__right">
+                Net
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {billed.services.map((s) => (
+              <tr key={s.service}>
+                <td>{s.service}</td>
+                <td className="costs__right costs__num">{money(s.cost)}</td>
+                <td className="costs__right costs__num costs__dim">
+                  {s.credits === 0 ? "—" : `−${money(-s.credits)}`}
+                </td>
+                <td className="costs__right costs__num">{money(s.net)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
