@@ -50,7 +50,16 @@ const nodes: GodotNode[] = [
 ];
 
 export const sampleState: GodotViewerState = {
+  project: ".",
+  scenes: ["res://scenes/hospital_wing.tscn"],
+  scene: "res://scenes/hospital_wing.tscn",
   renderedAt: Date.now() - 3 * 60_000,
   scenePath: "res://scenes/hospital_wing.tscn",
   nodes,
+  source: "headless",
+  godot: "4.3.stable",
+  note: null,
+  imageAt: null,
+  job: null,
+  engineFound: true,
 };

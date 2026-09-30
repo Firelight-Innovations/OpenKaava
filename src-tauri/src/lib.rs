@@ -20,6 +20,7 @@ mod environments;
 mod error;
 mod git;
 mod github;
+mod godot;
 mod launch;
 mod layout;
 mod manifest;
@@ -172,6 +173,8 @@ pub fn run() {
         // person has asked Plane for something. `RunEvent::Exit` below is what
         // stops it. See `cloud::tunnel`.
         .manage(cloud::tunnel::Tunnel::default())
+        // Games Play started and the Godot Viewer's jobs; `RunEvent::Exit` stops the games.
+        .manage(godot::Godot::default())
         // Whether the Plane child webview is open, and the wake flow's snapshot
         // for `projects/wake-status` to poll. See `plane_webview` and
         // `apps::projects::WakeManager`.
@@ -569,6 +572,7 @@ pub fn run() {
                     // than the OS cleaning up an orphan, is what makes "no
                     // gcloud process remains after exit" true.
                     handle.state::<cloud::tunnel::Tunnel>().stop();
+                    handle.state::<godot::Godot>().shutdown();
                 }
             });
         });

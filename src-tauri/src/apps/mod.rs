@@ -604,6 +604,9 @@ pub const WRITE_METHODS: &[&str] = &[
     "schematify/supersede-decision",
     "schematify/transition",
     "schematify/ingest-run",
+    "godot/open-editor",
+    "play/addon-install",
+    "play/addon-remove",
 ];
 
 /// Whether `method` is a write to the cluster's checkout.
@@ -637,7 +640,7 @@ pub fn settings_groups() -> &'static [&'static crate::settings::Group] {
     APP_SETTINGS
 }
 
-static APP_SETTINGS: &[&crate::settings::Group] = &[&files::SETTINGS];
+static APP_SETTINGS: &[&crate::settings::Group] = &[&files::SETTINGS, &crate::godot::SETTINGS];
 
 #[cfg(test)]
 mod tests {
