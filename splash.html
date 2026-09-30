@@ -25,12 +25,12 @@
       shared module graph landed in the splash's critical path too.
 
       So everything it needs is inlined here instead:
-        - the styles, with the token hex values copied literally out of
-          src/tokens.css (this file cannot @import it — that would be a
-          request, and a dependency)
+        - the styles, with the token values copied literally out of
+          src/tokens.css under the same names (this file cannot @import it —
+          that would be a request, and a dependency)
         - the status-bar spinner, copied from `BootArc` in src/ui/Icon.tsx
           and recoloured — see `.splash-art` below
-        - the wordmark's typeface, as a base64 woff2 subset (see @font-face)
+        - the typefaces, as base64 woff2 subsets (see @font-face)
         - the boot logic, as a plain non-module <script> at the bottom
 
       One deliberate exception: `.splash__field` loads `/kaava-splash-field.svg`
@@ -51,35 +51,196 @@
       one width, and two `hidden` attributes.
 
       The cost is that the values here are copies. If a token in
-      src/tokens.css changes, change it here too — nothing will fail loudly.
-      That is the deliberate trade: this window's whole job is to be on
-      screen instantly, and it cannot do that while it depends on the
-      application it is covering for.
+      src/tokens.css changes, change it here too: src/splash/splash.test.ts
+      compares the two and fails `pnpm test` on any difference. That is the
+      deliberate trade: this window's whole job is to be on screen instantly,
+      and it cannot do that while it depends on the application it is
+      covering for.
     -->
+    <!--
+      Theme and accent, read before first paint. The shell mirrors the two
+      appearance settings into localStorage (src/shell/settings/
+      splashAppearance.ts) and this window shares that origin, so a stored
+      value is available synchronously with no IPC round-trip. Nothing stored
+      (a first launch) leaves the neutral palette in the CSS below. The test
+      in src/splash/splash.test.ts runs this script, so the key and the value
+      shape are checked against the writer.
+    -->
+    <script id="splash-appearance">
+      (function () {
+        try {
+          var stored = JSON.parse(localStorage.getItem("kaava.splash-appearance"));
+          var root = document.documentElement;
+          var theme = stored.theme;
+          if (theme === "system") {
+            theme = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+          }
+          if (theme === "light") root.dataset.theme = "light";
+          if (/^(amber|blue|green|violet|coral)$/.test(stored.accent)) {
+            root.dataset.accent = stored.accent;
+          }
+        } catch (err) {
+          /* unset or unreadable: the neutral defaults stand */
+        }
+      })();
+    </script>
     <style>
       /*
-       * IBM Plex Sans 600, subset to U+0041-005A (uppercase Latin) — 4.8kB,
-       * ~6.4kB as base64. Inlined rather than linked because a linked font
-       * is a request that resolves *after* first paint, so the wordmark
-       * would paint in the fallback face and then visibly reflow into this
-       * one. Regenerate with:
+       * Three faces, each subset so it can be inlined (a linked font resolves
+       * after first paint, and the text would reflow into it). Regenerate with
+       * `pyftsubset <fontsource woff2> --unicodes=<range> --flavor=woff2`:
        *
-       *   pyftsubset node_modules/@fontsource/ibm-plex-sans/files/\
-       *     ibm-plex-sans-latin-600-normal.woff2 \
-       *     --unicodes="U+0041-005A" --flavor=woff2 --output-file=out.woff2
+       *   Inter 600          U+0041-005A          the wordmark, 2kB
+       *   Inter 500          U+0020-007E, U+2026  the status line and button, 8kB
+       *   IBM Plex Mono 500  U+0020-007E, U+2014  the step count and error text, 7kB
        *
-       * Only the wordmark gets a bundled face. The status line and error
-       * text below deliberately use the system stack: their content is
-       * arbitrary (labels from boot.rs, error strings containing file
-       * paths), so they cannot be subset down to anything this small, and
-       * bundling full faces for a line of transient chrome would cost more
-       * than the rest of this file put together.
+       * The status line and error text are arbitrary strings (labels from
+       * boot.rs, error messages with file paths), so the ranges cover printable
+       * ASCII rather than only what today's labels use. Anything outside falls
+       * through to the system stack named after each face.
        */
       @font-face {
-        font-family: "Wordmark";
+        font-family: "Inter";
         font-style: normal;
         font-weight: 600;
-        src: url(data:font/woff2;base64,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) format("woff2");
+        src: url(data:font/woff2;base64,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) format("woff2");
+      }
+
+      @font-face {
+        font-family: "Inter";
+        font-style: normal;
+        font-weight: 500;
+        src: url(data:font/woff2;base64,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) format("woff2");
+      }
+
+      @font-face {
+        font-family: "IBM Plex Mono";
+        font-style: normal;
+        font-weight: 500;
+        src: url(data:font/woff2;base64,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) format("woff2");
+      }
+
+      /*
+       * Tokens, copied from src/tokens.css under the same names. Only the ones
+       * this file reads are here; src/splash/splash.test.ts fails if any of
+       * them drifts from tokens.css, so a stale copy is caught by `pnpm test`
+       * rather than noticed on a launch.
+       */
+      :root {
+        color-scheme: dark;
+
+        --bg-canvas: #0f0f10;
+        --bg-surface-1: #141415;
+        --bg-layer-1: #181a1b;
+        --border-subtle: #222425;
+        --border-subtle-1: #2c2e30;
+        --border-strong: #36393a;
+        --border-strong-1: #45484a;
+
+        --txt-primary: #e4e6e6;
+        --txt-secondary: #cacdce;
+        --txt-tertiary: #afb3b6;
+        --txt-danger: #f4a49c;
+        --danger: #e5534b;
+
+        --accent-amber: #d98a3f;
+        --accent-blue: #4d9be6;
+        --accent-green: #4cb863;
+        --accent-violet: #a585f0;
+        --accent-coral: #e5736b;
+
+        --sans: Inter, "Inter Variable", system-ui, "Segoe UI", sans-serif;
+        --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+        --radius-md: 6px;
+        --radius-xl: 12px;
+        --control-md: 28px;
+        --focus-ring: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+        --focus-ring-offset: 2px;
+
+        /* Not tokens: what the accent means for the splash's own parts.
+           Neutral until the head script has found a stored accent, so a first
+           launch is never drawn in a colour the user did not pick. */
+        --accent: var(--txt-primary);
+        --art-base: brightness(1);
+        --art-rot: 0deg;
+        --art-tail: grayscale(1);
+        --ground: var(--bg-surface-1);
+      }
+
+      :root[data-theme="light"] {
+        color-scheme: light;
+
+        --bg-canvas: #f2f2f3;
+        --bg-surface-1: #ffffff;
+        --bg-layer-1: #f9f9f9;
+        --border-subtle: #eaebec;
+        --border-subtle-1: #e1e2e3;
+        --border-strong: #d5d7d9;
+        --border-strong-1: #cacdcf;
+
+        --txt-primary: #0f0f10;
+        --txt-secondary: #313435;
+        --txt-tertiary: #494d50;
+        --txt-danger: #9c231b;
+        --danger: #bf2c22;
+
+        --accent-amber: #a85a14;
+        --accent-blue: #1f63b5;
+        --accent-green: #23803b;
+        --accent-violet: #6c47c9;
+        --accent-coral: #b8392f;
+
+        /* The field art is drawn on a dark ground, so a light theme inverts
+           it; the 1.06 brightness lifts the inverted ground from #ebebea to
+           about --bg-layer-1, where it then sits under the seam gradient. */
+        --art-base: invert(1) brightness(1.06);
+        --ground: var(--bg-layer-1);
+      }
+
+      /*
+       * The accent, and the art's hue turn to match it. The art has amber
+       * baked in (hue 29); each rotation moves that to the accent's own hue.
+       * In the light theme the invert has already turned the hue 180, so the
+       * rotation is measured from the complement (209) instead.
+       */
+      :root[data-accent] {
+        --art-tail: brightness(1);
+      }
+      :root[data-accent="amber"] {
+        --accent: var(--accent-amber);
+        --art-rot: 0deg;
+      }
+      :root[data-accent="blue"] {
+        --accent: var(--accent-blue);
+        --art-rot: 180deg;
+      }
+      :root[data-accent="green"] {
+        --accent: var(--accent-green);
+        --art-rot: 104deg;
+      }
+      :root[data-accent="violet"] {
+        --accent: var(--accent-violet);
+        --art-rot: 229deg;
+      }
+      :root[data-accent="coral"] {
+        --accent: var(--accent-coral);
+        --art-rot: 335deg;
+      }
+      :root[data-theme="light"][data-accent="amber"] {
+        --art-rot: 180deg;
+      }
+      :root[data-theme="light"][data-accent="blue"] {
+        --art-rot: 0deg;
+      }
+      :root[data-theme="light"][data-accent="green"] {
+        --art-rot: 284deg;
+      }
+      :root[data-theme="light"][data-accent="violet"] {
+        --art-rot: 49deg;
+      }
+      :root[data-theme="light"][data-accent="coral"] {
+        --art-rot: 155deg;
       }
 
       *,
@@ -98,63 +259,43 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
-        background: #14161a;
+        background: var(--bg-canvas);
       }
 
       /* Not `display: flex` on body. `.splash` already fills the window on
-         its own, so there is nothing to centre — and as a flex row its lone
-         child would shrink to fit its content instead of filling the line,
-         collapsing every percentage width inside it. A block child with no
-         width set simply fills its parent, which is what is wanted. */
+         its own, so there is nothing to centre, and as a flex row its lone
+         child would shrink to fit its content and collapse every percentage
+         width inside it. The window itself is opaque and square (no
+         `transparent` in tauri.conf.json), so there is no radius on the frame:
+         rounded corners would need a transparent WebView2, which is not worth
+         the risk on a screen whose job is to appear instantly. */
       .splash {
         display: flex;
         flex-direction: column;
         width: 100%;
         height: 100%;
         overflow: hidden;
-        background: #1b1e24; /* --surface */
-        border: 1px solid #2c313b; /* --line */
-        color: #e4e7ec; /* --text */
-        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: var(--bg-surface-1);
+        border: 1px solid var(--border-subtle-1);
+        color: var(--txt-primary);
+        font-family: var(--sans);
       }
 
-      /* The top 90%: the field art filling it edge to edge, the wordmark
-         over its bottom-left corner, and — once boot fails — the error
-         panel over its centre. Everything in here is positioned, not
-         flexed: with a background image involved there is no single "the
-         content" to centre as a group any more, so each piece places
-         itself instead. `min-height: 0` matters regardless: a flex item
-         (`.splash__content` is one, of `.splash`) defaults to
-         `min-height: auto`, so without it this would refuse to shrink and
-         would push the bar off the bottom edge instead of being clipped. */
+      /* The art fills this, the wordmark sits over its bottom-left corner and
+         the error panel over its centre. `min-height: 0` lets the flex item
+         shrink rather than push the status strip off the bottom. */
       .splash__content {
         position: relative;
         flex: 1;
         min-height: 0;
         overflow: hidden;
+        background: var(--ground);
       }
 
-      /* `object-fit: cover` rather than shipping the art pre-cropped: the
-         source is 1920x805 (≈2.39:1) and this box is roughly 1.73:1 at the
-         window's default size, so cover trims a little over an eighth off
-         each side — and window size is the one thing here that is not
-         fixed by this file, so that crop has to be computed, not baked in.
-
-         A plain 100%-tall box is all this needs. It used to be
-         `height: 120%` + `object-position: top`, and that was a workaround
-         for the asset rather than a layout choice: the source was a
-         1080-tall canvas whose linework stopped dead at y≈815, so its
-         bottom ~24% was flat, undrawn background (not a fade — rendering
-         the source with its overlay rects stripped out left the same dead
-         band, so it was the line geometry itself that ended there). A
-         full-height box stretched that band across the bottom of the
-         content area as a wide strip of nothing before the bar even
-         started — that strip *was* the "gap" this kept coming back to, and
-         overscaling to 120% only pushed it out of frame. The asset is
-         cropped to where its art actually ends now, so there is nothing
-         left to hide: cover fills this box with drawn field top to bottom,
-         and `object-position` only ever mattered for a vertical crop that
-         no longer happens. */
+      /* `object-fit: cover`: the source is 1920x805 and this box is about
+         1.7:1 at the default window size, so cover trims the sides rather than
+         baking a crop in. The filter is what makes the baked-in amber follow
+         the theme and accent; see the rotations above. */
       .splash__field {
         position: absolute;
         top: 0;
@@ -163,29 +304,14 @@
         height: 100%;
         object-fit: cover;
         display: block;
+        filter: var(--art-base) hue-rotate(var(--art-rot)) var(--art-tail);
       }
 
-      /* Where the art meets `.splash__bar`. The field's own ground is `--bg`
-         (#14161a), one step darker than the bar right below it
-         (`--surface-2`, #22262e), and its linework now runs live all the
-         way to the bottom edge — since the asset was cropped to where its
-         art ends, nothing thins out on the way down for free any more.
-         Left alone that boundary reads as a seam: a colour step *and* a row
-         of lines stopping mid-stroke, right where the eye is already
-         looking for the edge of the panel. This carries the art the last
-         stretch into the exact colour the bar already is, so the two meet
-         instead of meeting a step.
-
-         The easing is the part worth keeping. A flat 28px linear fade was
-         tried first and traded one visible seam for a fainter one: over a
-         busy field, a short fade concentrates the whole change into a thin
-         strip, and the sudden change in fade *rate* at its top edge is
-         itself a line the eye catches even when the colours match exactly
-         at both ends of it (Mach banding). Spreading the fade over 110px
-         and backloading it fixes that — it stays flat through its first
-         third, doing nothing at all, then puts the actual blending into its
-         final third, so the *rate* of darkening comes on gradually rather
-         than switching on at a boundary. */
+      /* Carries the art's last stretch into the strip's colour so the two
+         meet without a seam. Backloaded on purpose: a short linear fade puts
+         its whole change into a thin band, and the eye catches the sudden
+         change in rate at its top edge even when the colours match at both
+         ends. */
       .splash__field-seam {
         position: absolute;
         left: 0;
@@ -196,19 +322,17 @@
           to bottom,
           transparent 0%,
           transparent 35%,
-          rgba(34, 38, 46, 0.25) 65%,
-          rgba(34, 38, 46, 0.65) 85%,
-          #22262e 100% /* --surface-2 */
+          color-mix(in srgb, var(--bg-surface-1) 25%, transparent) 65%,
+          color-mix(in srgb, var(--bg-surface-1) 65%, transparent) 85%,
+          var(--bg-surface-1) 100%
         );
         pointer-events: none;
       }
 
-      /* Now just the status-bar spinner (see the bottom 10% below) — sized
-         for that context, not for centre stage. */
       .splash-art {
         display: flex;
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
         flex: none;
       }
 
@@ -218,8 +342,16 @@
         animation: splash-spin 0.9s linear infinite;
       }
 
-      /* Paused rather than stopped, so the ring freezes exactly where it
-         was instead of snapping back to its starting angle. */
+      .splash-art__track {
+        stroke: var(--border-strong);
+      }
+
+      .splash-art__arc {
+        stroke: var(--accent);
+      }
+
+      /* Paused rather than stopped, so the ring freezes where it was instead
+         of snapping back to its starting angle. */
       .splash-art--settled .splash-art__ring {
         animation-play-state: paused;
       }
@@ -235,26 +367,23 @@
         left: 20px;
         bottom: 18px;
         margin: 0;
-        font-family: "Wordmark", system-ui, sans-serif;
-        font-size: 22px;
+        font-family: var(--sans);
+        font-size: 20px;
         font-weight: 600;
         letter-spacing: 0.16em;
-        /* The markup holds "OpenKaava" and this uppercases it, which is the
-           trade `home.css` already makes for the lockup: a screen reader is
-           handed a word rather than letters to spell. The face above is
-           subset to uppercase Latin, and `text-transform` runs before
-           shaping, so the glyphs it needs are the ones it has. */
+        /* The markup holds "OpenKaava" and this uppercases it, so a screen
+           reader is handed a word. The face is subset to uppercase Latin and
+           `text-transform` runs before shaping. */
         text-transform: uppercase;
-        /* The field art behind this varies in brightness by pixel, unlike
-           the flat surface colour it sat on before — a fixed text colour
-           alone cannot guarantee contrast against every part of it, so this
-           carries its own contrast instead of borrowing the background's. */
-        text-shadow: 0 1px 4px rgba(10, 11, 13, 0.7), 0 0 20px rgba(10, 11, 13, 0.4);
+        color: var(--txt-primary);
+        /* The art varies in brightness by pixel, so a fixed text colour
+           cannot promise contrast everywhere; the shadow is the ground colour
+           and works in both themes. */
+        text-shadow:
+          0 1px 4px color-mix(in srgb, var(--ground) 80%, transparent),
+          0 0 20px color-mix(in srgb, var(--ground) 60%, transparent);
       }
 
-      /* Centres the panel below over the art rather than over the whole
-         window — this is `.splash__content`-scoped (the top 90%), sized
-         independently from `.splash__bar` underneath it. */
       .splash__error {
         position: absolute;
         inset: 0;
@@ -264,75 +393,88 @@
         padding: 24px;
       }
 
-      /* A backdrop panel, not just centred text: the message needs to stay
-         legible over the busiest part of the field art it might land on,
-         and `.splash__wordmark`'s text-shadow trick alone would not be
-         enough contrast for a multi-line paragraph the way it is for one
-         short word. */
+      /* A panel rather than bare text: the message has to stay legible over
+         the busiest part of the art. */
       .splash__error-panel {
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 12px;
         max-width: 400px;
-        padding: 20px 26px;
-        border: 1px solid #2c313b; /* --line */
-        border-radius: 8px;
-        background: rgba(20, 22, 26, 0.85);
+        padding: 20px 24px;
+        border: 1px solid var(--border-subtle-1);
+        border-radius: var(--radius-xl);
+        background: color-mix(in srgb, var(--bg-surface-1) 88%, transparent);
       }
 
       .splash__error-message {
         margin: 0;
         text-align: center;
-        font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+        font-family: var(--mono);
         font-size: 12px;
-        color: #d9635f; /* --err */
+        line-height: 1.45;
+        color: var(--txt-danger);
       }
 
+      /* The design system's secondary button: layer fill, strong border. */
       .splash__continue {
-        padding: 5px 14px;
-        border: 1px solid #2c313b;
-        border-radius: 5px;
-        background: #22262e; /* --surface-2 */
-        color: #e4e7ec;
-        font: inherit;
+        height: var(--control-md);
+        padding: 0 12px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-md);
+        background: var(--bg-layer-1);
+        color: var(--txt-primary);
+        font-family: var(--sans);
         font-size: 13px;
+        font-weight: 500;
         cursor: pointer;
       }
 
-      .splash__continue:hover,
-      .splash__continue:focus-visible {
-        border-color: #d98a3f; /* --accent */
-        color: #d98a3f;
+      .splash__continue:hover {
+        border-color: var(--border-strong-1);
       }
 
-      /* The bottom 10%: one bar doing two jobs — its fill is the progress
-         indicator, and it also carries the current label and step count.
+      .splash__continue:focus-visible {
+        outline: var(--focus-ring);
+        outline-offset: var(--focus-ring-offset);
+      }
 
-         Kept in the flex flow rather than absolutely positioned: as a flex
-         item in a column, `flex-basis: 10%` resolves against the parent's
-         height, and the content above simply gets the other 90% for free. */
+      /* The status strip: a fixed 40px rather than a share of the window, so
+         the bar reads as a hairline whatever the window size. The 2px
+         determinate bar is its top edge; the status line sits beneath it. */
       .splash__bar {
         position: relative;
-        flex: 0 0 10%;
-        width: 100%;
-        background: #22262e;
-        overflow: hidden;
+        flex: none;
+        height: 40px;
+        background: var(--bg-surface-1);
+        border-top: 1px solid var(--border-subtle);
       }
 
-      /* Translucent rather than a solid fill: solid accent under light text
-         reads fine at 100% width but fights the label at 30-60%, which is
-         most of what a three-step boot actually shows. */
-      .splash__bar-fill {
+      .splash__bar-track {
         position: absolute;
-        inset: 0;
+        top: -1px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--border-subtle);
+      }
+
+      .splash__bar-fill {
+        height: 100%;
         width: 0%;
-        background: rgba(217, 138, 63, 0.7); /* --accent-line-strong */
-        transition: width 180ms ease-out;
+        background: var(--accent);
+        transition: width 160ms ease-out;
+      }
+
+      .splash[data-phase="failed"] .splash__bar-fill {
+        background: var(--danger);
+      }
+
+      .splash[data-phase="failed"] .splash-art__arc {
+        stroke: var(--danger);
       }
 
       .splash__bar-row {
-        position: relative;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -341,27 +483,31 @@
         padding: 0 16px;
       }
 
-      /* Groups the spinner and the label as one unit against
-         `.splash__bar-row`'s `space-between`, so the step count is the only
-         thing pushed to the far right — without this, `space-between` would
-         spread all three evenly and put daylight between the spinner and
-         the label it belongs next to. */
+      /* Groups the spinner and the label so the step count is the only thing
+         pushed to the far right by `space-between`. */
       .splash__bar-status {
         display: flex;
         align-items: center;
         gap: 8px;
+        min-width: 0;
       }
 
       .splash__bar-label {
-        font-size: 12.5px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 12px;
         font-weight: 500;
+        color: var(--txt-secondary);
       }
 
       .splash__bar-step {
         flex: none;
-        font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+        font-family: var(--mono);
         font-size: 11px;
-        color: #e4e7ec; /* --text */
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+        color: var(--txt-tertiary);
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -375,7 +521,7 @@
     </style>
   </head>
   <body>
-    <div class="splash">
+    <div class="splash" data-phase="working">
       <div class="splash__content">
         <!-- kaava-splash-field.svg, from public/ — see the file-level
              comment above for why this one asset is external. -->
@@ -393,20 +539,17 @@
       </div>
 
       <div class="splash__bar" role="progressbar" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0">
-        <div class="splash__bar-fill"></div>
+        <div class="splash__bar-track"><div class="splash__bar-fill"></div></div>
         <div class="splash__bar-row">
           <div class="splash__bar-status">
-            <!-- `BootArc`, copied from src/ui/Icon.tsx and recoloured: white
-                 for the moving arc, grey for the track. The brand mark that
-                 used to sit in its centre (`BrandGlyph`, four squares) is
-                 gone rather than moved — OpenKaava is now written out in
-                 full as the wordmark, so the icon no longer needs to carry the
-                 brand on its own too. `aria-hidden`: the label right next
-                 to it already says the same thing as text. -->
+            <!-- `BootArc`, copied from src/ui/Icon.tsx: the track and the moving
+                 arc take their colours from CSS (border-strong and accent).
+                 `aria-hidden`: the label right next to it says the same thing
+                 as text. -->
             <span class="splash-art" aria-hidden="true">
-              <svg class="splash-art__ring" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round">
-                <circle cx="12" cy="12" r="9" stroke="#949cab" />
-                <path d="M12 3a9 9 0 0 1 9 9" stroke="#e4e7ec" />
+              <svg class="splash-art__ring" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round">
+                <circle class="splash-art__track" cx="12" cy="12" r="9" />
+                <path class="splash-art__arc" d="M12 3a9 9 0 0 1 9 9" />
               </svg>
             </span>
             <span class="splash__bar-label">Starting…</span>
@@ -488,6 +631,7 @@
         var errorMessage = document.querySelector(".splash__error-message");
         var continueButton = document.querySelector(".splash__continue");
         var bar = document.querySelector(".splash__bar");
+        var root = document.querySelector(".splash");
         var fill = document.querySelector(".splash__bar-fill");
         var label = document.querySelector(".splash__bar-label");
         var step = document.querySelector(".splash__bar-step");
@@ -520,6 +664,7 @@
           // rest, waiting on the person reading it rather than a timer.
           art.classList.toggle("splash-art--settled", failed);
 
+          root.dataset.phase = status.phase;
           fill.style.width = progress * 100 + "%";
           bar.setAttribute("aria-valuenow", String(progress));
 
@@ -529,7 +674,7 @@
           // starts, but it is not a step — so it is blanked here alongside
           // `ready` and `failed` rather than only those two.
           step.textContent =
-            working && status.step > 0 ? "step " + status.step + " of " + status.total : "";
+            working && status.step > 0 ? status.step + " / " + status.total : "";
 
           wordmark.hidden = failed;
           errorBox.hidden = !failed;
