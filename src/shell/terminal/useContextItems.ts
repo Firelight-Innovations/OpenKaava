@@ -7,6 +7,7 @@ import {
   type ContextItem,
   type HarnessInfo,
 } from "../../bindings";
+import { mergeItems } from "./mergeContext";
 
 /**
  * The context items of the environment this terminal is in, newest first,
@@ -18,7 +19,10 @@ export function useContextItems(sessionId: string): ContextItem[] {
   const [items, setItems] = useState<ContextItem[]>([]);
 
   const refresh = useCallback(() => {
-    contextList(sessionId).then(setItems, () => setItems([]));
+    contextList(sessionId).then(
+      (list) => setItems(mergeItems(list)),
+      () => setItems([]),
+    );
   }, [sessionId]);
 
   useEffect(() => {
@@ -56,28 +60,34 @@ export function useHarnessInfo(
 
 const thumbs = new Map<string, string>();
 
+/** What identifies one version of an item's bytes: a re-send keeps the id and
+ *  changes the hash, so the thumbnail is fetched again. */
+function thumbKey(item: ContextItem): string {
+  return `${item.id}:${item.sha256 ?? item.updatedAt ?? item.createdAt}`;
+}
+
 /** A `data:` URL for an image item, or `null` until it has loaded (or for a
- *  kind with no picture). Cached for the life of the window: an item's bytes
- *  never change, they are only ever removed. */
+ *  kind with no picture). Cached per version of the bytes for the life of the
+ *  window; a re-send of the same source is a new version. */
 export function useThumb(sessionId: string, item: ContextItem): string | null {
   const wants = (item.kind === "image" || item.kind === "panel") && !item.missing;
-  const [url, setUrl] = useState<string | null>(thumbs.get(item.id) ?? null);
+  const cacheKey = thumbKey(item);
+  const [, setLoaded] = useState(0);
 
   useEffect(() => {
-    if (!wants || thumbs.has(item.id)) return;
+    if (!wants || thumbs.has(cacheKey)) return;
     let live = true;
     contextThumb(sessionId, item.id).then(
       ([mime, base64]) => {
-        const data = `data:${mime};base64,${base64}`;
-        thumbs.set(item.id, data);
-        if (live) setUrl(data);
+        thumbs.set(cacheKey, `data:${mime};base64,${base64}`);
+        if (live) setLoaded((n) => n + 1);
       },
       () => {},
     );
     return () => {
       live = false;
     };
-  }, [sessionId, item.id, wants]);
+  }, [sessionId, item.id, cacheKey, wants]);
 
-  return wants ? url : null;
+  return wants ? (thumbs.get(cacheKey) ?? null) : null;
 }

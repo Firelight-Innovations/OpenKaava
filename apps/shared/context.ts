@@ -12,6 +12,25 @@ export interface ContextRef {
   id: string;
 }
 
+/**
+ * The stable key for what is being sent, `blender/<blend>/<view>` or
+ * `godot/<scene>/frame`. Sending the same key again replaces the earlier item
+ * (same file, same strip entry) instead of adding a copy, so a key names the
+ * source and never the moment. Schemes like `res://` are dropped and empty
+ * parts skipped; Rust lower-cases and sanitises the rest.
+ */
+export function contextKey(...parts: Array<string | null | undefined>): string {
+  return parts
+    .map((p) =>
+      (p ?? "")
+        .replace(/^[a-z][a-z0-9+.-]*:\/\//i, "")
+        .replace(/\\/g, "/")
+        .replace(/^\/+|\/+$/g, ""),
+    )
+    .filter((p) => p.length > 0)
+    .join("/");
+}
+
 const PRESS_THRESHOLD = 4;
 
 function tell(phase: "begin" | "end", items: string[]): void {
