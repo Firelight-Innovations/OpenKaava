@@ -21,7 +21,7 @@ import {
   type TerminalTabGroup,
   type WindowKind,
 } from "./contract";
-import { environmentOf, environmentKey } from "./environment";
+import { environmentOf, environmentKey, isReadOnly } from "./environment";
 import { snap } from "./motion";
 import { INTERRUPT, commandLine, terminalInput } from "./run";
 import ContextMenuHost from "./ContextMenuHost";
@@ -1742,6 +1742,7 @@ export default function WindowRoot({
         reviewSend={reviewSend}
         git={git}
         activeBranch={activeBranch}
+        readOnly={isReadOnly(environment)}
       />
     ) : rightPage.id === "hindsight" ? (
       <HindsightPage />
@@ -1968,6 +1969,7 @@ export default function WindowRoot({
                   reviewSend={reviewSend}
                   git={git}
                   activeBranch={activeBranch}
+                  readOnly={isReadOnly(environment)}
                 />
               }
               githubView={

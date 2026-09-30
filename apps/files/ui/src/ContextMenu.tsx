@@ -65,9 +65,13 @@ export interface MenuTarget {
 /** Kept off the viewport edges so the border is never flush with the frame. */
 const MARGIN = 4;
 
+/** The tooltip on a write item in a main cluster; same words as the shell's. */
+const READ_ONLY_HINT = "main is read-only — open a worktree to edit";
+
 export default function ContextMenu({
   target,
   rootPath,
+  readOnly = false,
   onCreate,
   onRename,
   onDelete,
@@ -76,6 +80,8 @@ export default function ContextMenu({
   target: MenuTarget;
   /** What "relative" is relative to. */
   rootPath: string;
+  /** The cluster is browsing main: New, Rename and Delete are disabled. */
+  readOnly?: boolean;
   /**
    * Begin naming a new entry in `target.createIn`. Nothing is created here —
    * this hands the opener an empty row to type into, and the opener calls the
@@ -205,6 +211,8 @@ export default function ContextMenu({
             type="button"
             className="menu__item"
             role="menuitem"
+            disabled={readOnly}
+            title={readOnly ? READ_ONLY_HINT : undefined}
             onClick={() => begin(() => onCreate(createIn, "file"))}
           >
             New File
@@ -213,6 +221,8 @@ export default function ContextMenu({
             type="button"
             className="menu__item"
             role="menuitem"
+            disabled={readOnly}
+            title={readOnly ? READ_ONLY_HINT : undefined}
             onClick={() => begin(() => onCreate(createIn, "dir"))}
           >
             New Folder
@@ -227,6 +237,8 @@ export default function ContextMenu({
             type="button"
             className="menu__item"
             role="menuitem"
+            disabled={readOnly}
+            title={readOnly ? READ_ONLY_HINT : undefined}
             onClick={() => begin(() => onRename(path, name))}
           >
             Rename
@@ -239,6 +251,8 @@ export default function ContextMenu({
             // opens, not the colour of the word.
             className="menu__item menu__item--danger"
             role="menuitem"
+            disabled={readOnly}
+            title={readOnly ? READ_ONLY_HINT : undefined}
             onClick={() => begin(() => onDelete({ path, name, kind: kind ?? "file" }))}
           >
             Delete
