@@ -17,6 +17,9 @@ const LIFETIME: Duration = Duration::from_secs(50 * 60);
 #[derive(Default)]
 pub struct Tokens {
     access: Mutex<Option<(String, Instant)>>,
+    /// The Google ID token Cloud Run wants (Hindsight), kept apart from the
+    /// access token: they are different tokens with different audiences.
+    identity: Mutex<Option<(String, Instant)>>,
 }
 
 impl Tokens {
@@ -31,6 +34,24 @@ impl Tokens {
         let token = print_token(&["auth", "print-access-token"])?;
         *slot = Some((token.clone(), Instant::now()));
         Ok(token)
+    }
+
+    /// An ID token from `gcloud auth print-identity-token`, cached the same way.
+    pub fn identity(&self) -> Result<String> {
+        let mut slot = self.identity.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some((token, at)) = slot.as_ref() {
+            if at.elapsed() < LIFETIME {
+                return Ok(token.clone());
+            }
+        }
+        let token = print_token(&["auth", "print-identity-token"])?;
+        *slot = Some((token.clone(), Instant::now()));
+        Ok(token)
+    }
+
+    /// Drop the cached ID token after a 401 or 403 from the service.
+    pub fn forget_identity(&self) {
+        *self.identity.lock().unwrap_or_else(|e| e.into_inner()) = None;
     }
 
     /// Drop the cached token after a 401, so the retry asks `gcloud` again.

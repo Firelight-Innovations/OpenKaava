@@ -1,10 +1,11 @@
 import { reportPainted } from "@openkaava/bridge";
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { TroubleNote } from "../../../shared/trouble";
 import { MachineRail, type RowContext, WorkflowRail } from "./Rail";
 import { SessionView } from "./SessionView";
 import { byMachine, byWorkflow, keyOf, machineStatusOf } from "./model";
 import * as rpc from "./rpc";
-import type { Overview, Trouble } from "./rpc";
+import type { Overview } from "./rpc";
 import { useVisiblePoll } from "./useVisiblePoll";
 
 /** `docs/cloud-services.md` §8: poll the bucket every few seconds while shown. */
@@ -100,7 +101,9 @@ export default function App() {
             </button>
           ))}
         </div>
-        <span className="app__host">{overview ? "every 5 s while shown" : "connecting…"}</span>
+        <span className="app__host">
+          {overview ? "every 5 s while shown" : blocking ? "not connected" : "connecting…"}
+        </span>
       </header>
       <div className="app__body">
         {blocking ? (
@@ -108,7 +111,7 @@ export default function App() {
         ) : !overview ? (
           <p className="app__note">Reading the project…</p>
         ) : (
-          <div className="app__split agents__split">
+          <div className="app__split app__split--stack agents__split">
             <nav className="app__pane" aria-label="Sessions">
               <div className="app__scroll agents__rail">
                 {failure !== null && (
@@ -150,32 +153,5 @@ export default function App() {
 
 /** The whole-pane state for a failure nothing else can get past. */
 function Blocked({ failure, onRetry }: { failure: unknown; onRetry: () => void }) {
-  const trouble: Trouble | null = rpc.troubleOf(failure);
-  let heading = "Could not reach OpenKaava Cloud";
-  let fix: ReactNode = null;
-  if (trouble?.kind === "gcloudMissing") {
-    heading = "The Google Cloud CLI is not installed";
-    fix = (
-      <p className="app__note">
-        Install it from cloud.google.com/sdk, then run <code>gcloud auth login</code>.
-      </p>
-    );
-  } else if (trouble?.kind === "signedOut") {
-    heading = "Signed out of Google Cloud";
-    fix = (
-      <p className="app__note">
-        Run <code>gcloud auth login</code> in a terminal, then retry.
-      </p>
-    );
-  }
-  return (
-    <section className="app__section agents__blocked">
-      <h2 className="agents__title">{heading}</h2>
-      {fix}
-      <p className="app__error">{rpc.messageOf(failure)}</p>
-      <button type="button" className="app__up" onClick={onRetry}>
-        Retry
-      </button>
-    </section>
-  );
+  return <TroubleNote failure={failure} subject="Agents" onRetry={onRetry} />;
 }
