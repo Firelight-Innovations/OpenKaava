@@ -28,30 +28,67 @@ vi.mock("@openkaava/bridge", () => ({
 }));
 
 // Excalidraw needs a real canvas and layout; the wiring around it is what is under test.
+// The fake keeps the scene it was given, so the app's `updateScene` calls land somewhere.
+const live = vi.hoisted(() => ({ elements: [] as unknown[], seed: null as unknown }));
+
 vi.mock("./Editor", () => ({
   default: ({
     initial,
     onChange,
+    onApi,
+    onOpenChild,
   }: {
     initial: SceneFile;
     onChange: (e: unknown[], a: Record<string, unknown>, f: Record<string, unknown>) => void;
-  }) => (
-    <div data-testid="editor">
-      <span>{initial.elements.length} elements</span>
-      <button
-        type="button"
-        onClick={() =>
-          onChange(
-            [...initial.elements, { id: "new", type: "rectangle", version: 1, versionNonce: 1 }],
-            {},
-            {},
-          )
-        }
-      >
-        draw
-      </button>
-    </div>
-  ),
+    onApi: (api: unknown) => void;
+    onOpenChild: (id: string) => void;
+  }) => {
+    if (live.seed !== initial) {
+      live.seed = initial;
+      live.elements = [...initial.elements];
+    }
+    onApi({
+      getSceneElementsIncludingDeleted: () => live.elements,
+      updateScene: ({ elements }: { elements: unknown[] }) => {
+        live.elements = elements;
+      },
+      getAppState: () => ({ viewBackgroundColor: "#ffffff" }),
+      getFiles: () => ({}),
+    });
+    const frame = { id: "f1", type: "frame", name: "Ward B", version: 1, versionNonce: 1 };
+    return (
+      <div data-testid="editor">
+        <span>{initial.elements.length} elements</span>
+        <button
+          type="button"
+          onClick={() =>
+            onChange(
+              [...initial.elements, { id: "new", type: "rectangle", version: 1, versionNonce: 1 }],
+              {},
+              {},
+            )
+          }
+        >
+          draw
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            live.elements = [...initial.elements, frame];
+            onChange([...initial.elements, frame], { selectedElementIds: { f1: true } }, {});
+          }}
+        >
+          select frame
+        </button>
+        <button type="button" onClick={() => onOpenChild("world/ward-b")}>
+          double-click linked frame
+        </button>
+        <button type="button" onClick={() => onOpenChild("world/ghost")}>
+          double-click dangling frame
+        </button>
+      </div>
+    );
+  },
 }));
 
 import App from "./App";
@@ -96,7 +133,7 @@ function fake(b: Backend) {
         b.rows.push({
           id: params!.id as string,
           title: params!.title as string,
-          parent: null,
+          parent: (params!.parent as string | undefined) ?? null,
           error: null,
         });
         b.reads[params!.id as string] = scene(0, params!.title as string);
@@ -196,5 +233,79 @@ describe("Canvas app", () => {
       }),
     );
     expect(await screen.findByTestId("editor")).toBeTruthy();
+  });
+
+  describe("nesting", () => {
+    const tree = (): Backend => ({
+      readOnly: false,
+      rows: [
+        { id: "world", title: "World", parent: null, error: null },
+        { id: "world/ward-b", title: "Ward B", parent: "world", error: null },
+      ],
+      reads: { world: scene(2), "world/ward-b": scene(1, "Ward B") },
+    });
+
+    it("opens the child when a linked frame is double-clicked, and the breadcrumb returns", async () => {
+      fake(tree());
+      render(<App />);
+      expect(await screen.findByText("2 elements")).toBeTruthy();
+      expect(screen.queryByLabelText("Canvas path")).toBeNull();
+
+      fireEvent.click(screen.getByText("double-click linked frame"));
+      expect(await screen.findByText("1 elements")).toBeTruthy();
+      const crumbs = screen.getByLabelText("Canvas path");
+      expect(crumbs.textContent).toContain("World");
+      expect(crumbs.textContent).toContain("Ward B");
+
+      fireEvent.click(screen.getByText("World", { selector: "button" }));
+      expect(await screen.findByText("2 elements")).toBeTruthy();
+    });
+
+    it("says so, and stays put, when the linked canvas is not in the checkout", async () => {
+      fake(tree());
+      render(<App />);
+      await screen.findByText("2 elements");
+      fireEvent.click(screen.getByText("double-click dangling frame"));
+      expect(await screen.findByText(/"world\/ghost" does not exist/)).toBeTruthy();
+      expect(screen.getByText("2 elements")).toBeTruthy();
+    });
+
+    it("creates a child canvas for a selected frame, saves the link, then opens it", async () => {
+      const backend: Backend = {
+        readOnly: false,
+        rows: [{ id: "world", title: "World", parent: null, error: null }],
+        reads: { world: scene(1) },
+      };
+      fake(backend);
+      render(<App />);
+      await screen.findByText("1 elements");
+      fireEvent.click(screen.getByText("select frame"));
+      fireEvent.click(await screen.findByText("Create child canvas"));
+
+      await waitFor(() =>
+        expect(bridge.invoke).toHaveBeenCalledWith("canvas/create", {
+          id: "world/ward-b",
+          title: "Ward B",
+          parent: "world",
+        }),
+      );
+      const write = bridge.invoke.mock.calls.find((c) => c[0] === "canvas/write");
+      expect(write).toBeTruthy();
+      const linked = (write![1].scene.elements as { id: string; customData?: unknown }[]).find(
+        (e) => e.id === "f1",
+      );
+      expect(linked?.customData).toEqual({ kaava: { child: "world/ward-b" } });
+      const order = bridge.invoke.mock.calls.map((c) => c[0]);
+      expect(order.indexOf("canvas/create")).toBeLessThan(order.indexOf("canvas/write"));
+      expect(await screen.findByLabelText("Canvas path")).toBeTruthy();
+    });
+
+    it("offers no linking on read-only main, but still opens an existing link", async () => {
+      fake({ ...tree(), readOnly: true });
+      render(<App />);
+      await screen.findByText("2 elements");
+      fireEvent.click(screen.getByText("select frame"));
+      expect(screen.queryByText("Create child canvas")).toBeNull();
+    });
   });
 });

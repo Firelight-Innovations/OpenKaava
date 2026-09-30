@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { reportPainted } from "@openkaava/bridge";
-import { AlertTriangle, FilePlus2, Lock } from "lucide-react";
+import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import { AlertTriangle, ChevronRight, ExternalLink, FilePlus2, Link2Off, Lock } from "lucide-react";
 import {
   createCanvas,
   getState,
@@ -16,8 +17,9 @@ import {
   type CanvasState,
   type CanvasSummary,
 } from "./rpc";
+import { ancestry, childId, childOf, selectedFrame, withChild } from "./nesting";
 import { Autosaver, type SaveState } from "./saver";
-import { signature, slugify, toSaved, uniqueId, type SceneFile } from "./scene";
+import { signature, slugify, toSaved, uniqueId, type SceneElement, type SceneFile } from "./scene";
 import "./App.css";
 
 // The editor is the bulk of this app's weight; load it only once a canvas is open.
@@ -82,6 +84,12 @@ export default function App() {
   const [draftName, setDraftName] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
 
+  const [notice, setNotice] = useState<string | null>(null);
+  const [frame, setFrame] = useState<{ id: string; name: string; child: string | null } | null>(
+    null,
+  );
+  const [childName, setChildName] = useState("");
+  const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
   const saverRef = useRef<Autosaver | null>(null);
   const docRef = useRef<CanvasDoc | null>(null);
   docRef.current = doc;
@@ -141,6 +149,8 @@ export default function App() {
       saver.setBase(next.mtime, signature(toSaved(s.elements, s.appState, s.files, s.kaava)));
       saverRef.current = saver;
       setDoc(next);
+      setFrame(null);
+      setNotice(null);
       setLoadKey((k) => k + 1);
       writeLast(id);
     } catch (err) {
@@ -198,6 +208,18 @@ export default function App() {
       appState: Record<string, unknown>,
       files: Record<string, unknown>,
     ) => {
+      const picked = selectedFrame(
+        elements as readonly SceneElement[],
+        appState.selectedElementIds as Record<string, unknown> | undefined,
+      );
+      const next = picked
+        ? { id: picked.id, name: String(picked.name ?? ""), child: childOf(picked) }
+        : null;
+      setFrame((prev) =>
+        prev?.id === next?.id && prev?.child === next?.child && prev?.name === next?.name
+          ? prev
+          : next,
+      );
       const saver = saverRef.current;
       const open = docRef.current;
       if (!saver || !open || readOnly) return;
@@ -211,6 +233,68 @@ export default function App() {
     await saverRef.current?.flush();
     setCurrent(id);
   }, []);
+
+  /** Open a linked canvas, if it exists; a link to one that is not there
+   *  (deleted, or not pulled yet) says so and leaves the drawing where it is. */
+  const openChild = useCallback(
+    async (id: string) => {
+      const rows = (await refreshList()) ?? list ?? [];
+      if (!rows.some((r) => r.id === id)) {
+        setNotice(
+          `The linked canvas "${id}" does not exist in this checkout. Pull, or unlink the frame.`,
+        );
+        return;
+      }
+      setNotice(null);
+      await switchTo(id);
+    },
+    [list, refreshList, switchTo],
+  );
+
+  /** Replace one element in the live scene and write it now, so the link is on
+   *  disk before the view moves to the child. */
+  const patchElement = useCallback(async (id: string, edit: (el: SceneElement) => SceneElement) => {
+    const api = apiRef.current;
+    const saver = saverRef.current;
+    const open = docRef.current;
+    if (!api || !saver || !open) return;
+    const elements = (api.getSceneElementsIncludingDeleted() as unknown as SceneElement[]).map(
+      (el) => (el.id === id ? edit(el) : el),
+    );
+    api.updateScene({ elements: elements as never });
+    const scene = toSaved(
+      elements,
+      api.getAppState() as unknown as Record<string, unknown>,
+      api.getFiles() as unknown as Record<string, unknown>,
+      open.scene.kaava,
+    );
+    saver.schedule(scene, signature(scene));
+    await saver.flush();
+  }, []);
+
+  const createChild = useCallback(async () => {
+    const open = docRef.current;
+    if (!frame || !open) return;
+    const title = (childName.trim() || frame.name || "Child canvas").trim();
+    const taken = new Set((list ?? []).map((r) => r.id));
+    const id = uniqueId(childId(open.id, slugify(title) || "canvas"), taken);
+    try {
+      await createCanvas(id, title, open.id);
+      await patchElement(frame.id, (el) => withChild(el, id));
+      setChildName("");
+      await refreshList();
+      await switchTo(id);
+    } catch (err) {
+      setNotice(messageOf(err));
+    }
+  }, [childName, frame, list, patchElement, refreshList, switchTo]);
+
+  const unlinkChild = useCallback(async () => {
+    if (!frame) return;
+    await patchElement(frame.id, (el) => withChild(el, null));
+  }, [frame, patchElement]);
+
+  const chain = useMemo(() => (current ? ancestry(list ?? [], current) : []), [current, list]);
 
   const takenIds = useMemo(() => new Set((list ?? []).map((r) => r.id)), [list]);
 
@@ -305,6 +389,26 @@ export default function App() {
           ))}
           {empty && <option value="">No canvases yet</option>}
         </select>
+        {chain.length > 1 && (
+          <nav className="cv__crumbs" aria-label="Canvas path">
+            {chain.map((row, i) => (
+              <span key={row.id} className="cv__crumb">
+                {i > 0 && <ChevronRight size={12} aria-hidden />}
+                {i === chain.length - 1 ? (
+                  <span aria-current="page">{row.title}</span>
+                ) : (
+                  <button
+                    type="button"
+                    className="cv__crumb-link"
+                    onClick={() => void switchTo(row.id)}
+                  >
+                    {row.title}
+                  </button>
+                )}
+              </span>
+            ))}
+          </nav>
+        )}
         <button
           type="button"
           className="k-btn k-btn--secondary k-btn--sm"
@@ -371,7 +475,67 @@ export default function App() {
         </div>
       )}
 
+      {notice && (
+        <div className="cv__notice cv__notice--warn" role="alert">
+          <AlertTriangle size={14} aria-hidden />
+          <span>{notice}</span>
+          <button
+            type="button"
+            className="k-btn k-btn--ghost k-btn--sm"
+            onClick={() => setNotice(null)}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       <main className="cv__body">
+        {doc && frame && (frame.child || !readOnly) && (
+          <aside className="cv__frame" aria-label="Frame link">
+            {frame.child ? (
+              <>
+                <span className="cv__frame-label">
+                  Child canvas <code>{frame.child}</code>
+                </span>
+                <button
+                  type="button"
+                  className="k-btn k-btn--primary k-btn--sm"
+                  onClick={() => void openChild(frame.child!)}
+                >
+                  <ExternalLink size={14} aria-hidden /> Open
+                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    className="k-btn k-btn--ghost k-btn--sm"
+                    onClick={() => void unlinkChild()}
+                  >
+                    <Link2Off size={14} aria-hidden /> Unlink
+                  </button>
+                )}
+              </>
+            ) : (
+              <form
+                className="cv__frame-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void createChild();
+                }}
+              >
+                <input
+                  className="cv__input"
+                  aria-label="Child canvas name"
+                  placeholder={frame.name || "Child canvas name"}
+                  value={childName}
+                  onChange={(e) => setChildName(e.target.value)}
+                />
+                <button type="submit" className="k-btn k-btn--secondary k-btn--sm">
+                  Create child canvas
+                </button>
+              </form>
+            )}
+          </aside>
+        )}
         {loadError ? (
           <div className="cv__empty" role="alert">
             <AlertTriangle size={20} aria-hidden />
@@ -400,7 +564,10 @@ export default function App() {
               theme={theme}
               readOnly={readOnly}
               onChange={onEditorChange}
-              onApi={() => {}}
+              onApi={(api) => {
+                apiRef.current = api;
+              }}
+              onOpenChild={(id) => void openChild(id)}
             />
           </Suspense>
         ) : (

@@ -265,6 +265,14 @@ refused centrally and the pane opens in Excalidraw's view mode. A file that is n
 is reported and never overwritten. Only the background colour and grid are kept from Excalidraw's
 view state, and deleted elements and unreferenced images are dropped, so a save is a small diff.
 
+Canvases nest. Select a frame and "Create child canvas" makes a new canvas in a folder named
+after its parent (`levels` becomes `levels/ward-b`), sets `customData.kaava.child` on the frame and
+`kaava.parent` in the child's file, and opens it. Double-clicking a frame that has a child opens
+it (the app takes that double-click before Excalidraw's own text edit does), and the breadcrumb
+in the header follows `parent` back up. A frame whose child file is missing says so and stays
+put. Unlinking only removes the frame's link; the child file is left alone. Linking a frame to an
+already existing canvas is not built: it would have to rewrite that canvas's `parent`.
+
 Excalidraw is loaded lazily (`React.lazy`), and its fonts are served from
 `/vendor/excalidraw/fonts/` by the `excalidrawFonts` plugin in `vite.config.ts` rather than from
 a CDN. The 13 MB CJK fallback font is not shipped.
