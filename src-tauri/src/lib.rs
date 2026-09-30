@@ -715,7 +715,10 @@ fn respawn_terminals(app: &tauri::AppHandle, shell: &ShellState) {
         let cwd = project::cluster_path(app, &terminal.cluster_id)
             .unwrap_or_else(|| std::path::PathBuf::from("."));
 
-        if let Err(e) = ptys.open(app, &terminal.id, &cwd, 80, 24) {
+        let marker = crate::environments::read_only_env(
+            shell.cluster_environment(&terminal.cluster_id).as_ref(),
+        );
+        if let Err(e) = ptys.open(app, &terminal.id, &cwd, 80, 24, &marker) {
             crate::kaava_log!("could not restore the shell behind {}: {e}", terminal.id);
             shell.close_terminal(app, &terminal.id);
         }

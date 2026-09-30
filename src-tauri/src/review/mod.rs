@@ -250,6 +250,9 @@ pub fn edit<T>(
     cluster_id: &str,
     change: impl FnOnce(&mut Vec<ReviewComment>) -> Result<T>,
 ) -> Result<T> {
+    // Every note mutation goes through here, and the notes live in the checkout's
+    // own `.kaava/`, so main is refused once for all five commands.
+    crate::environments::guard_cluster_write(app, cluster_id, "review comment")?;
     let root = checkout(app, cluster_id).ok_or_else(|| {
         AppError::Review(
             "This cluster has no project open, or its project is not a git repository.".to_string(),
@@ -316,6 +319,38 @@ fn mint_id(path: &str, line: u32) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `edit` needs an app handle, which a unit test cannot build, so the two
+    /// facts that make main read-only here are checked in the source: the
+    /// guard runs before the checkout is resolved, and every note-writing
+    /// command reaches the store through `edit` and nothing else.
+    #[test]
+    fn review_writes_are_guarded_at_the_single_entry_point() {
+        let source = include_str!("mod.rs");
+        let edit = &source[source.find("pub fn edit<T>(").unwrap()..];
+        let guard = edit.find("guard_cluster_write(").expect("edit guards");
+        assert!(guard < edit.find("checkout(app").unwrap());
+
+        let commands = include_str!("../commands.rs");
+        for name in [
+            "review_comment_add",
+            "review_comment_update",
+            "review_comment_resolve",
+            "review_comment_remove",
+            "review_comments_mark_sent",
+        ] {
+            let body = &commands[commands.find(&format!("pub fn {name}(")).unwrap()..];
+            let body = &body[..body.find("#[tauri::command]").unwrap_or(body.len())];
+            assert!(body.contains("review::edit("), "{name} bypasses edit");
+        }
+    }
+
+    #[test]
+    fn a_review_write_is_refused_on_main_and_allowed_elsewhere() {
+        use crate::environments::{refuse_write_on_main, Environment};
+        assert!(refuse_write_on_main(Some(&Environment::Main), "review comment").is_err());
+        assert!(refuse_write_on_main(None, "review comment").is_ok());
+    }
 
     fn draft(path: &str, start: u32, end: u32, body: &str) -> ReviewDraft {
         ReviewDraft {

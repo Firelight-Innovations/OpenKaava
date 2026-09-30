@@ -185,9 +185,11 @@ pub fn migrate_environment(
 /// Refuse a write aimed at a `Main` cluster.
 ///
 /// Main is the project's real checkout, browsed rather than worked in — see
-/// [`Environment::Main`] — so anything that would create a commit or change
-/// the index on it is refused here, once, rather than trusted to every
-/// command that could reach it. `env` is `None` for a cluster with no
+/// [`Environment::Main`] — so anything that would change a file, the index or
+/// `HEAD` on it is refused here, once, rather than trusted to every
+/// command that could reach it. Every write path funnels through this
+/// function or through `apps::write_refusal`, which wraps it for app
+/// methods. `env` is `None` for a cluster with no
 /// environment set at all (the legacy, pre-migration case): that is *not*
 /// read as `Main` for the same reason [`migrate_environment`] declines to —
 /// a cluster nobody has ever pointed at "read-only" stays writable.
@@ -197,14 +199,40 @@ pub fn migrate_environment(
 /// this is a separate argument rather than folded into a single string.
 pub fn refuse_write_on_main(env: Option<&Environment>, op: &str) -> Result<()> {
     if env.is_some_and(Environment::is_main) {
-        return Err(AppError::Git {
-            op: op.to_string(),
-            reason: "This cluster is browsing the main checkout, which is read-only — \
-                     open a worktree to make changes."
-                .to_string(),
-        });
+        return Err(AppError::ReadOnlyMain { op: op.to_string() });
     }
     Ok(())
+}
+
+/// [`refuse_write_on_main`] for a caller that has a cluster id and an app
+/// handle rather than an environment in hand — the shape of every command.
+///
+/// An id naming no cluster reads as "no environment", so is allowed: the
+/// command's own resolution step reports the missing cluster better than this
+/// could.
+pub fn guard_cluster_write(app: &tauri::AppHandle, cluster_id: &str, op: &str) -> Result<()> {
+    use tauri::Manager;
+    let env = app
+        .state::<crate::shell_state::ShellState>()
+        .cluster_environment(cluster_id);
+    refuse_write_on_main(env.as_ref(), op)
+}
+
+/// The environment variables a shell opened in this environment is given so a
+/// program inside it can tell it is somewhere read-only.
+///
+/// Advisory only: a shell cannot be sandboxed from here, so this is a marker
+/// an agent harness or a hook can honour, not a wall. Empty for every
+/// environment but `Main`.
+pub fn read_only_env(env: Option<&Environment>) -> Vec<(String, String)> {
+    if env.is_some_and(Environment::is_main) {
+        vec![
+            ("KAAVA_READ_ONLY".to_string(), "1".to_string()),
+            ("KAAVA_ENVIRONMENT".to_string(), "main".to_string()),
+        ]
+    } else {
+        Vec::new()
+    }
 }
 
 /// Create a new local worktree under `.kaava/worktrees/<name>`, on branch
@@ -448,9 +476,23 @@ mod tests {
     fn refuse_write_on_main_refuses_main() {
         let err = refuse_write_on_main(Some(&Environment::Main), "commit").unwrap_err();
         match err {
-            AppError::Git { op, .. } => assert_eq!(op, "commit"),
-            other => panic!("expected AppError::Git, got {other:?}"),
+            AppError::ReadOnlyMain { op } => assert_eq!(op, "commit"),
+            other => panic!("expected AppError::ReadOnlyMain, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn read_only_env_marks_main_shells_only() {
+        let main = read_only_env(Some(&Environment::Main));
+        assert!(main.contains(&("KAAVA_READ_ONLY".to_string(), "1".to_string())));
+        assert!(read_only_env(None).is_empty());
+        let wt = Environment::LocalWorktree {
+            name: "x".to_string(),
+            path: "C:/wt/x".to_string(),
+            branch: "wt/x".to_string(),
+            base: "main".to_string(),
+        };
+        assert!(read_only_env(Some(&wt)).is_empty());
     }
 
     #[test]

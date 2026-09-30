@@ -63,6 +63,10 @@ pub enum AppError {
     #[error("git {op} failed: {reason}")]
     Git { op: String, reason: String },
 
+    /// A write refused on a main cluster; see `environments::refuse_write_on_main`.
+    #[error("main is read-only — open a worktree to edit ({op} refused)")]
+    ReadOnlyMain { op: String },
+
     // A flattened string for the same reason `Git` above uses one: the cause is
     // a `plugins::InstallError` whose whole value is its `Display` text, written
     // to be shown in the dialog the person just used rather than matched on.

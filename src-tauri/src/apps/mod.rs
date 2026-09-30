@@ -534,6 +534,13 @@ pub fn call(
     }
 
     if let Some(registered) = REGISTRY.iter().find(|a| a.id == id) {
+        // One choke point for every first-party write, whoever is calling: the
+        // app's own frontend, the shell's menu, or an agent over MCP `app_call`
+        // all arrive here with a resolved cluster.
+        if let Some(cluster) = context.cluster_id.as_deref() {
+            let env = app.state::<ShellState>().cluster_environment(cluster);
+            write_refusal(env.as_ref(), method)?;
+        }
         return (registered.call)(app, context, method, params);
     }
 
@@ -561,6 +568,62 @@ pub fn call(
     ))
 }
 
+/// The JSON-RPC code for a write refused because the cluster is on main.
+/// Outside the range `kaava_rpc` reserves; the bridge hands it to the app
+/// unchanged and the message is what gets shown.
+pub const READ_ONLY: i32 = -32003;
+
+/// Every first-party app method that changes something inside the cluster's
+/// checkout. A method missing from here is treated as a read, which is why
+/// `every_write_shaped_method_is_listed` scans the apps' own sources.
+///
+/// Not listed on purpose: `home/worktree-create` (the way out of a read-only
+/// main), the `home/*-project` openers (they repoint a cluster, they do not
+/// write to a checkout), and everything that touches user data rather than the
+/// project (`tutorial/*`, `costs/*`, `projects/*`).
+pub const WRITE_METHODS: &[&str] = &[
+    "files/write",
+    "files/create-file",
+    "files/create-dir",
+    "files/rename",
+    "files/duplicate",
+    "files/save-as",
+    "files/delete",
+    "trash/restore",
+    "trash/purge",
+    "home/initialize-project",
+    "comments/create",
+    "comments/resolve",
+    "schematify/write-node",
+    "schematify/write-edge",
+    "schematify/write-layout",
+    "schematify/write-screen",
+    "schematify/write-flow",
+    "schematify/write-brief",
+    "schematify/write-decision",
+    "schematify/supersede-decision",
+    "schematify/transition",
+    "schematify/ingest-run",
+];
+
+/// Whether `method` is a write to the cluster's checkout.
+pub fn is_write_method(method: &str) -> bool {
+    WRITE_METHODS.contains(&method)
+}
+
+/// The refusal for an app call, or `Ok` if it may run. Pure, so it is tested
+/// without an app handle; [`call`] supplies the cluster's environment.
+pub fn write_refusal(
+    env: Option<&crate::environments::Environment>,
+    method: &str,
+) -> Result<(), RpcError> {
+    if !is_write_method(method) {
+        return Ok(());
+    }
+    crate::environments::refuse_write_on_main(env, method)
+        .map_err(|e| RpcError::new(READ_ONLY, e.to_string()))
+}
+
 /// What any app frontend calls to read the settings, over the ordinary bridge.
 ///
 /// A method rather than a Tauri command because an app has no door to Tauri, and
@@ -579,6 +642,101 @@ static APP_SETTINGS: &[&crate::settings::Group] = &[&files::SETTINGS];
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::environments::Environment;
+
+    fn worktree() -> Environment {
+        Environment::LocalWorktree {
+            name: "x".to_string(),
+            path: "C:/wt/x".to_string(),
+            branch: "wt/x".to_string(),
+            base: "main".to_string(),
+        }
+    }
+
+    /// Each app family that writes: Files, Trash, Schematify, viewer comments
+    /// and Home's initialize. Main refuses with the read-only code; a worktree,
+    /// and a cluster with no environment, allow.
+    #[test]
+    fn every_write_method_refuses_main_and_allows_a_worktree() {
+        for method in WRITE_METHODS {
+            let err = write_refusal(Some(&Environment::Main), method).unwrap_err();
+            assert_eq!(err.code, READ_ONLY, "{method}");
+            assert!(write_refusal(Some(&worktree()), method).is_ok(), "{method}");
+            assert!(write_refusal(None, method).is_ok(), "{method}");
+        }
+    }
+
+    #[test]
+    fn reads_still_work_on_main() {
+        for method in [
+            "files/read",
+            "files/list",
+            "files/git-status",
+            "trash/list",
+            "comments/list",
+            "schematify/load-graph",
+            "schematify/lint",
+            "home/worktree-create",
+        ] {
+            assert!(write_refusal(Some(&Environment::Main), method).is_ok());
+        }
+    }
+
+    /// A ratchet on the table: any method in these apps whose verb says it
+    /// writes has to be in [`WRITE_METHODS`], so a new `files/move` cannot
+    /// quietly land as a read.
+    #[test]
+    fn every_write_shaped_method_is_listed() {
+        let sources = [
+            include_str!("files.rs"),
+            include_str!("trash.rs"),
+            include_str!("schematify.rs"),
+            include_str!("home.rs"),
+            include_str!("../comments.rs"),
+        ];
+        let verbs = [
+            "write",
+            "create",
+            "delete",
+            "rename",
+            "duplicate",
+            "save",
+            "restore",
+            "purge",
+            "transition",
+            "ingest",
+            "supersede",
+            "initialize",
+            "resolve",
+            "move",
+            "remove",
+        ];
+        for source in sources {
+            let production = source.split("#[cfg(test)]").next().unwrap();
+            for line in production.lines() {
+                let Some(start) = line.find('"') else {
+                    continue;
+                };
+                let rest = &line[start + 1..];
+                let Some(end) = rest.find('"') else { continue };
+                let method = &rest[..end];
+                if !line.contains("=>") || method.matches('/').count() != 1 {
+                    continue;
+                }
+                let (app, verb) = method.split_once('/').unwrap();
+                let plain = app.chars().all(|c| c.is_ascii_lowercase() || c == '-');
+                let shaped = verbs.iter().any(|v| verb.starts_with(v));
+                if plain && shaped && !method.contains(' ') {
+                    // `create-project` builds a new folder elsewhere, and
+                    // `home/open-*` opens; neither writes into the checkout.
+                    if method.starts_with("home/create-project") {
+                        continue;
+                    }
+                    assert!(is_write_method(method), "{method} looks like a write");
+                }
+            }
+        }
+    }
 
     /// Ids reach the frontend as URL path segments and as the key the shell
     /// routes messages by, so a duplicate would mean two surfaces answering to
