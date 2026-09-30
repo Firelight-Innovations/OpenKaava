@@ -190,4 +190,19 @@ describe("NewClusterDialog", () => {
       false,
     );
   });
+
+  it("opens on the environment it is asked for", async () => {
+    listClusterEnvironments.mockResolvedValue([]);
+    render(
+      <NewClusterDialog
+        label="win-1"
+        project={project}
+        initialKind="main"
+        onCancel={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    );
+    // "Browse main" needs no name, so Next is live straight away.
+    expect(screen.getByRole("button", { name: "Next" })).toHaveProperty("disabled", false);
+  });
 });

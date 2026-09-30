@@ -1,7 +1,7 @@
 import type { Body } from "./blocks";
 
 /**
- * How the switcher bar's health badge reads a pinned stack of tools.
+ * How the title bar's health badge reads a pinned stack of tools.
  *
  * The one tutorial with almost nothing to click. It is here because every other
  * page says "the stack" as though the reader already knows, and because a fresh
@@ -13,7 +13,7 @@ import type { Body } from "./blocks";
  */
 export const theStack: Body = {
   takeaway:
-    "You can find the stack's health in the switcher bar and tell a missing tool from a broken one.",
+    "You can find the stack's health in the title bar and tell a missing tool from a broken one.",
   blocks: [
     {
       kind: "text",
@@ -21,7 +21,7 @@ export const theStack: Body = {
     },
     {
       kind: "text",
-      body: "A tool's health is reported in the **switcher bar**, behind a warning triangle carrying a count. Clicking it lists the tools that are not well — and only those. A tool that is where it should be says nothing at all.",
+      body: "A tool's health is reported in the **title bar**, behind a warning triangle carrying a count. Clicking it lists the tools that are not well — and only those. A tool that is where it should be says nothing at all.",
     },
     {
       kind: "note",

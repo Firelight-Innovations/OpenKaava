@@ -15,7 +15,7 @@
   background: var(--bg);
 }
 
-/* --- the four bars ---------------------------------------------------------
+/* --- the two bars ---------------------------------------------------------
    `flex: none` on all of them so a long tool or a flood of terminal output can
    never push a bar off screen — the split row is the only thing that grows. */
 
@@ -27,16 +27,6 @@
   /* The title is absolutely centred against this box, so it has to be the
      positioning context. */
   position: relative;
-}
-
-/* The hairline is an inset shadow, not a border: a border-box border would
-   take a pixel out of `--h-switcher`, and the 30px cluster tabs would centre
-   in 39px instead of 40 — half a pixel high, which is what read as "off". */
-.frame__switcher {
-  flex: none;
-  height: var(--h-switcher);
-  background: var(--surface);
-  box-shadow: inset 0 -1px 0 var(--line);
 }
 
 .frame__statusbar {
