@@ -53,6 +53,7 @@ vi.mock("../../bindings", () => ({
 
 import ContextStrip, { ContextNotice, formatSize, itemMeta } from "./ContextStrip";
 import { clear, notify } from "../terminalNotice";
+import { requestHarnessRefresh, resetHarnessRefresh } from "../harnessRefresh";
 
 function item(over: Partial<ContextItem> = {}): ContextItem {
   return {
@@ -109,10 +110,34 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   clear("t1");
+  resetHarnessRefresh();
   vi.clearAllMocks();
 });
 
 describe("ContextStrip", () => {
+  it("re-runs harness detection on a focus/title request and after an insert", async () => {
+    contextList.mockResolvedValue([item()]);
+    render(<ContextStrip sessionId="t1" />);
+    fireEvent.click(await screen.findByLabelText("Insert Play frame at the prompt"));
+    await waitFor(() => expect(terminalInsertItems).toHaveBeenCalled());
+    await waitFor(() => expect(terminalHarness.mock.calls.length).toBeGreaterThanOrEqual(2));
+    const afterInsert = terminalHarness.mock.calls.length;
+
+    // Inside the 2s window the request is held back, not dropped.
+    vi.useFakeTimers();
+    try {
+      requestHarnessRefresh("t1");
+      requestHarnessRefresh("t1");
+      expect(terminalHarness.mock.calls.length).toBe(afterInsert);
+      await act(async () => {
+        vi.advanceTimersByTime(2500);
+      });
+      expect(terminalHarness.mock.calls.length).toBe(afterInsert + 1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("renders nothing while the environment has no context", async () => {
     contextList.mockResolvedValue([]);
     const { container } = render(<ContextStrip sessionId="t1" />);

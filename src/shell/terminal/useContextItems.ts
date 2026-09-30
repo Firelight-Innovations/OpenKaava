@@ -7,6 +7,7 @@ import {
   type ContextItem,
   type HarnessInfo,
 } from "../../bindings";
+import { subscribeHarnessRefresh } from "../harnessRefresh";
 
 /**
  * The context items of the environment this terminal is in, newest first,
@@ -51,6 +52,9 @@ export function useHarnessInfo(
     terminalHarness(sessionId).then(setInfo, () => setInfo(null));
   }, [sessionId]);
   useEffect(refresh, [refresh, refreshKey]);
+  // Focus, a title change or an insert may mean a different program is now
+  // running; `harnessRefresh.ts` throttles those to one detection per ~2s.
+  useEffect(() => subscribeHarnessRefresh(sessionId, refresh), [sessionId, refresh]);
   return { info, refresh };
 }
 

@@ -5,6 +5,7 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import type { TerminalTransport } from "../contract";
 import { useDropZone } from "../dropZones";
 import { attachClipboard } from "./clipboard";
+import { requestHarnessRefresh } from "../harnessRefresh";
 import { createFitController } from "./fitController";
 import { isResizing, subscribeResizing } from "../resizeGate";
 import { pasteImage } from "../contextInput";
@@ -161,12 +162,20 @@ function XTermView(
     // in the Rust module for why the parsing happens here rather than in the
     // pty layer: xterm already copes with a title sequence split across two
     // reads, which a from-scratch Rust parser would have to redo.
-    const onTitleChange = term.onTitleChange((title) => onTitleRef.current?.(title));
+    // Claude Code and the other harnesses set the title when they start, so a
+    // title change is a cheap hint that detection's answer may have changed.
+    const onTitleChange = term.onTitleChange((title) => {
+      requestHarnessRefresh(id);
+      onTitleRef.current?.(title);
+    });
     // xterm has no `onFocus` event of its own — focus lands on the hidden
     // `<textarea>` it types into (`term.textarea`), which only exists once
     // `open()` has run, so this is wired here rather than declared up front
     // with the other `on*` handlers.
-    const onTextareaFocus = () => onFocusRef.current?.();
+    const onTextareaFocus = () => {
+      requestHarnessRefresh(id);
+      onFocusRef.current?.();
+    };
     term.textarea?.addEventListener("focus", onTextareaFocus);
 
     // Ctrl+V, and what a right-click may and may not do. Wired after `open()`
