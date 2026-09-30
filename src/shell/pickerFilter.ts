@@ -1,4 +1,4 @@
-import type { Openable } from "../../bindings";
+import type { Openable } from "../bindings";
 
 /**
  * The picker's filter, kept out of the component so it can be tested without a

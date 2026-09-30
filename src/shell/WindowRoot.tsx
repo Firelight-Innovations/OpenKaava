@@ -25,12 +25,11 @@ import { environmentOf, environmentKey, isReadOnly } from "./environment";
 import { snap } from "./motion";
 import { INTERRUPT, commandLine, terminalInput } from "./run";
 import ContextMenuHost from "./ContextMenuHost";
-import CommandPalette from "./palette/CommandPalette";
+import CommandPalette, { type PalettePage } from "./palette/CommandPalette";
 import NewClusterDialog from "./dialogs/NewClusterDialog";
 import SwitchProjectDialog from "./dialogs/SwitchProjectDialog";
 import { nextAddClusterStep } from "./addClusterFlow";
 import { commandsFromMenus, withOpenAppCommands } from "./palette/registry";
-import AppPicker from "./panes/AppPicker";
 import TitleBar from "./titlebar/TitleBar";
 import { APP_COMMAND, defaultMenus, type CommandHandlers } from "./titlebar/menus";
 import { editHandlers, useEditTarget } from "./titlebar/useEditTarget";
@@ -1232,15 +1231,21 @@ export default function WindowRoot({
   // looks inside the open project's files and can neither list nor run a
   // command. Both point here now, and Ctrl+K still opens search.
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const openPalette = useCallback(() => setPaletteOpen(true), []);
+  const [palettePage, setPalettePage] = useState<PalettePage>("commands");
+  const openPalette = useCallback(() => {
+    setPalettePage("commands");
+    setPaletteOpen(true);
+  }, []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
 
-  // The app picker raised over the window: by the empty state's button, by
-  // Ctrl+Shift+A, and by the palette's "Open app…". The `+` on a pane's strip
-  // draws its own copy of the same component, anchored to itself.
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const openPicker = useCallback(() => setPickerOpen(true), []);
-  const closePicker = useCallback(() => setPickerOpen(false), []);
+  // The app list raised over the window, by the empty state's button and by
+  // Ctrl+Shift+A: the command palette opened on its apps page, so both share
+  // one panel and one scrim. The `+` on a pane's strip draws its own anchored
+  // `AppPicker`.
+  const openPicker = useCallback(() => {
+    setPalettePage("apps");
+    setPaletteOpen(true);
+  }, []);
 
   /**
    * Opens `entry` as a **tab in `paneId`** — the picker, the strip's `+` and the
@@ -1772,7 +1777,6 @@ export default function WindowRoot({
   };
   const paletteCommands = withOpenAppCommands(commandsFromMenus(menus), {
     apps: appsHandlers.available,
-    openPicker,
     open: (entry) => onOpenInPane(entry, activePaneId),
     blocked: appsHandlers.blocked,
     accelerator: "Ctrl+Shift+A",
@@ -1841,15 +1845,16 @@ export default function WindowRoot({
           than occupying a band, and `Frame` has no slot it belongs in. The
           commands are the menu tree above, flattened — one source of truth for
           the bar and the palette both. */}
-      <CommandPalette open={paletteOpen} commands={paletteCommands} onClose={closePalette} />
-      {pickerOpen && (
-        <AppPicker
-          apps={appsHandlers.available}
-          blocked={appsHandlers.blocked}
-          onPick={(entry) => onOpenInPane(entry, activePaneId)}
-          onClose={closePicker}
-        />
-      )}
+      <CommandPalette
+        open={paletteOpen}
+        page={palettePage}
+        commands={paletteCommands}
+        apps={appsHandlers.available}
+        blocked={appsHandlers.blocked}
+        onPickApp={(entry) => onOpenInPane(entry, activePaneId)}
+        onClose={closePalette}
+      />
+
       {/* Beside the frame for the same reason as the two above. `project` is
           never null while this is open — `onAddCluster` only sets
           `newClusterOpen` when it already has one, and the after-project

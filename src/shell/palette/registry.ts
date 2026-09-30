@@ -12,8 +12,10 @@
  * that is the right constraint, since a palette-only command would be an action
  * with no discoverable home, which is the problem a palette exists to solve.
  */
+import { AppWindow, type LucideIcon } from "lucide-react";
 import type { Openable } from "../../bindings";
 import type { Menu, MenuItem, MenuPrompt } from "../contract";
+import { iconFor } from "../PickerParts";
 import { fuzzyMatch } from "./fuzzy";
 
 /** One runnable row, flattened out of the menu tree. */
@@ -40,6 +42,11 @@ export interface Command {
   /** Added to the fuzzy score, so a row that names exactly what was typed beats
    *  a loose subsequence hit in another row ("files" vs "File: Save"). */
   boost?: number;
+  /** The row's glyph. Rows without one draw the palette's default. */
+  icon?: LucideIcon;
+  /** The row opens another page of the palette in place instead of running
+   *  anything, and is drawn with a right-facing chevron. */
+  drill?: "apps";
 }
 
 /** A command the field matched, with the characters it matched on. */
@@ -137,8 +144,6 @@ const OPEN_APP_BOOST = 60;
 /** What `openAppCommands` needs: the Apps menu's list, and how to open one. */
 export interface OpenAppSource {
   apps: Openable[];
-  /** Opens the app picker over the window, for "Open app…". */
-  openPicker: () => void;
   /** Opens `entry` as a new tab in the focused pane. */
   open: (entry: Openable) => void;
   /** Why nothing can be opened right now, or `undefined`. */
@@ -171,7 +176,8 @@ export function withOpenAppCommands(commands: Command[], source: OpenAppSource):
     accelerator: source.accelerator,
     disabled,
     hint: source.blocked ?? "Pick an app to open in the focused pane.",
-    onSelect: source.openPicker,
+    drill: "apps",
+    icon: AppWindow,
   };
   const perApp: Command[] = source.apps.map((entry) => ({
     category: "Apps",
@@ -180,6 +186,7 @@ export function withOpenAppCommands(commands: Command[], source: OpenAppSource):
     disabled,
     hint: source.blocked ?? entry.description,
     onSelect: () => source.open(entry),
+    icon: iconFor(entry),
     queryOnly: true,
     boost: OPEN_APP_BOOST,
   }));

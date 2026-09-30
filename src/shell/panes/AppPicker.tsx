@@ -15,13 +15,9 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AppWindow, FileText, Terminal, type LucideIcon } from "lucide-react";
 import type { Openable } from "../../bindings";
-import { filterApps, stepIndex } from "./pickerFilter";
-import "./picker.css";
-
-/** A per-app glyph where one is obvious; everything else is a generic window. */
-const ICONS: Record<string, LucideIcon> = { terminal: Terminal, files: FileText };
+import { filterApps, stepIndex } from "../pickerFilter";
+import { PickerField, PickerRow, iconFor } from "../PickerParts";
 
 export interface AppPickerProps {
   apps: Openable[];
@@ -99,18 +95,14 @@ export default function AppPicker({ apps, blocked, anchor, onPick, onClose }: Ap
         role="dialog"
         aria-label="Open an app"
       >
-        <input
+        <PickerField
           ref={fieldRef}
-          className="app-picker__field"
-          type="text"
-          role="combobox"
-          aria-expanded="true"
-          aria-controls="app-picker-list"
-          aria-label="Filter apps"
+          listId="app-picker-list"
+          label="Filter apps"
           placeholder="Open an app…"
           value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
+          onChange={(value) => {
+            setQuery(value);
             setIndex(0);
           }}
           onKeyDown={onKeyDown}
@@ -120,25 +112,19 @@ export default function AppPicker({ apps, blocked, anchor, onPick, onClose }: Ap
           <p className="app-picker__empty">No app matches that.</p>
         ) : (
           <ul id="app-picker-list" ref={listRef} className="app-picker__list" role="listbox">
-            {rows.map((entry, i) => {
-              const Icon = ICONS[entry.id] ?? (entry.kind === "terminal" ? Terminal : AppWindow);
-              return (
-                <li
-                  key={entry.id}
-                  role="option"
-                  aria-selected={i === active}
-                  aria-disabled={blocked !== undefined || undefined}
-                  className="app-picker__row"
-                  data-active={i === active || undefined}
-                  title={entry.description}
-                  onMouseEnter={() => setIndex(i)}
-                  onClick={() => pick(entry)}
-                >
-                  <Icon size={16} strokeWidth={1.5} className="app-picker__icon" aria-hidden />
-                  <span className="app-picker__name">{entry.name}</span>
-                </li>
-              );
-            })}
+            {rows.map((entry, i) => (
+              <PickerRow
+                key={entry.id}
+                icon={iconFor(entry)}
+                active={i === active}
+                disabled={blocked !== undefined}
+                title={entry.description}
+                onHover={() => setIndex(i)}
+                onRun={() => pick(entry)}
+              >
+                {entry.name}
+              </PickerRow>
+            ))}
           </ul>
         )}
       </div>
