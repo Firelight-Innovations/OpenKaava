@@ -6,6 +6,7 @@
 //! joins them, and the only place that both resolves a terminal's environment
 //! and writes to its pty.
 
+use crate::agent_saw;
 use crate::context::{self, ContextItem, Kind, Method, Payload, PutRequest};
 use crate::error::{AppError, Result};
 use crate::harness::{self, Harness};
@@ -319,6 +320,40 @@ pub fn context_thumb(
 ) -> Result<(String, String)> {
     let root = root_of(&app, &terminal_id)?;
     context::read_image(&root, &item_id).map_err(|e| pty_err(&terminal_id, e.message))
+}
+
+/// Whether the "Agent saw" hook is in this environment's Claude settings.
+#[tauri::command]
+pub fn agent_saw_status(app: AppHandle, terminal_id: String) -> Result<agent_saw::Status> {
+    Ok(agent_saw::status(&root_of(&app, &terminal_id)?))
+}
+
+/// Add the hook. The frontend asks for consent first; this is what it consents to.
+#[tauri::command]
+pub fn agent_saw_enable(app: AppHandle, terminal_id: String) -> Result<agent_saw::Status> {
+    agent_saw::enable(&root_of(&app, &terminal_id)?).map_err(|e| pty_err(&terminal_id, e))
+}
+
+#[tauri::command]
+pub fn agent_saw_disable(app: AppHandle, terminal_id: String) -> Result<agent_saw::Status> {
+    agent_saw::disable(&root_of(&app, &terminal_id)?).map_err(|e| pty_err(&terminal_id, e))
+}
+
+#[tauri::command]
+pub fn agent_saw_list(app: AppHandle, terminal_id: String) -> Result<Vec<agent_saw::Seen>> {
+    Ok(agent_saw::seen(&root_of(&app, &terminal_id)?))
+}
+
+/// `(mime, base64)` of an image the agent read.
+#[tauri::command]
+pub fn agent_saw_thumb(
+    app: AppHandle,
+    terminal_id: String,
+    path: String,
+) -> Result<(String, String)> {
+    let (mime, bytes) = agent_saw::thumb(&root_of(&app, &terminal_id)?, &path)
+        .map_err(|e| pty_err(&terminal_id, e))?;
+    Ok((mime, BASE64.encode(bytes)))
 }
 
 #[cfg(test)]

@@ -16,6 +16,11 @@ const {
   terminalHarness,
   terminalSetHarness,
   terminalInsertItems,
+  agentSawStatus,
+  agentSawEnable,
+  agentSawDisable,
+  agentSawList,
+  agentSawThumb,
 } = vi.hoisted(() => ({
   contextList: vi.fn(),
   contextRemove: vi.fn(),
@@ -24,6 +29,11 @@ const {
   terminalHarness: vi.fn(),
   terminalSetHarness: vi.fn(),
   terminalInsertItems: vi.fn(),
+  agentSawStatus: vi.fn(),
+  agentSawEnable: vi.fn(),
+  agentSawDisable: vi.fn(),
+  agentSawList: vi.fn(),
+  agentSawThumb: vi.fn(),
 }));
 
 vi.mock("../../bindings", () => ({
@@ -34,6 +44,11 @@ vi.mock("../../bindings", () => ({
   terminalHarness,
   terminalSetHarness,
   terminalInsertItems,
+  agentSawStatus,
+  agentSawEnable,
+  agentSawDisable,
+  agentSawList,
+  agentSawThumb,
 }));
 
 import ContextStrip, { ContextNotice, formatSize, itemMeta } from "./ContextStrip";
@@ -78,6 +93,12 @@ beforeEach(() => {
     refused: [],
   });
   contextRemove.mockResolvedValue(undefined);
+  agentSawStatus.mockResolvedValue({
+    installed: false,
+    settingsPath: "C:/p/.claude/settings.local.json",
+  });
+  agentSawList.mockResolvedValue([]);
+  agentSawThumb.mockResolvedValue(["image/png", "BBBB"]);
   try {
     localStorage.clear();
   } catch {
@@ -174,6 +195,59 @@ describe("ContextStrip", () => {
     await waitFor(() => expect(select.options[0].textContent).toBe("Auto (Claude Code)"));
     fireEvent.change(select, { target: { value: "shell" } });
     expect(terminalSetHarness).toHaveBeenCalledWith("t1", "shell");
+  });
+});
+
+describe("Agent saw", () => {
+  const seen = {
+    path: "C:/p/shot.png",
+    name: "shot.png",
+    mime: "image/png",
+    missing: false,
+    modified: 1,
+  };
+
+  it("asks before touching settings, and names the file it would edit", async () => {
+    contextList.mockResolvedValue([item()]);
+    render(<ContextStrip sessionId="t1" />);
+    fireEvent.click(await screen.findByText("Show images the agent reads…"));
+    expect(agentSawEnable).not.toHaveBeenCalled();
+    expect(screen.getByText("C:/p/.claude/settings.local.json")).toBeTruthy();
+    agentSawEnable.mockResolvedValue({ installed: true, settingsPath: "x" });
+    fireEvent.click(screen.getByText("Add hook"));
+    await waitFor(() => expect(agentSawEnable).toHaveBeenCalledWith("t1"));
+  });
+
+  it("cancelling changes nothing", async () => {
+    contextList.mockResolvedValue([item()]);
+    render(<ContextStrip sessionId="t1" />);
+    fireEvent.click(await screen.findByText("Show images the agent reads…"));
+    fireEvent.click(screen.getByText("Cancel"));
+    expect(agentSawEnable).not.toHaveBeenCalled();
+    expect(screen.getByText("Show images the agent reads…")).toBeTruthy();
+  });
+
+  it("lists what the agent read under its own heading, even with no items", async () => {
+    contextList.mockResolvedValue([]);
+    agentSawStatus.mockResolvedValue({ installed: true, settingsPath: "x" });
+    agentSawList.mockResolvedValue([seen]);
+    const { container } = render(<ContextStrip sessionId="t1" />);
+    expect(await screen.findByText("Agent saw")).toBeTruthy();
+    expect(screen.getByText("shot.png")).toBeTruthy();
+    await waitFor(() =>
+      expect(container.querySelector("img")?.getAttribute("src")).toBe(
+        "data:image/png;base64,BBBB",
+      ),
+    );
+    fireEvent.click(screen.getByText("Stop tracking what the agent reads"));
+    expect(agentSawDisable).toHaveBeenCalledWith("t1");
+  });
+
+  it("does not poll or list while the hook is not installed", async () => {
+    contextList.mockResolvedValue([item()]);
+    render(<ContextStrip sessionId="t1" />);
+    await screen.findByText("Play frame");
+    expect(agentSawList).not.toHaveBeenCalled();
   });
 });
 

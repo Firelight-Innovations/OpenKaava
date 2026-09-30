@@ -381,3 +381,15 @@ strip beside each terminal listens to it. To let a user drag an item onto a
 terminal, register it with `context/put` first and then send
 `kaava/drag { phase: "begin", items: [item.id] }` (`paths` and `items` may be
 mixed); the drop inserts the reference the running harness understands.
+
+### Agent saw (Claude Code)
+
+The strip can also show images the agent *read*. It is off until the person
+turns it on in the strip, which asks first and then merges one `PostToolUse`
+hook (matcher `Read`) into `<env>/.claude/settings.local.json`, keeping every
+other key and hook. The hook appends each payload to
+`.kaava/context/.saw.jsonl` (gitignored) and Kaava reads that file; a file
+append was chosen over a hook binary posting to the local listener because it
+needs no shipped executable, port or token, and works with Kaava closed. The
+strip's "Stop tracking" removes exactly that hook. Codex and Gemini have no
+adapter yet.

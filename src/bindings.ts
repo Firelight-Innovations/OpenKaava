@@ -2050,3 +2050,42 @@ export function searchContent(
     regex,
   });
 }
+
+/** Whether Kaava's "Agent saw" hook is in this environment's Claude settings. */
+export interface AgentSawStatus {
+  installed: boolean;
+  /** The settings file that is, or would be, edited. */
+  settingsPath: string;
+}
+
+/** An image file the agent read. */
+export interface AgentSeen {
+  path: string;
+  name: string;
+  mime: string;
+  missing: boolean;
+  /** Milliseconds since the epoch; changes when the file is rewritten. */
+  modified: number;
+}
+
+export function agentSawStatus(terminalId: string): Promise<AgentSawStatus> {
+  return invoke<AgentSawStatus>("agent_saw_status", { terminalId });
+}
+
+/** Adds the hook to `.claude/settings.local.json`. Ask the person first. */
+export function agentSawEnable(terminalId: string): Promise<AgentSawStatus> {
+  return invoke<AgentSawStatus>("agent_saw_enable", { terminalId });
+}
+
+export function agentSawDisable(terminalId: string): Promise<AgentSawStatus> {
+  return invoke<AgentSawStatus>("agent_saw_disable", { terminalId });
+}
+
+export function agentSawList(terminalId: string): Promise<AgentSeen[]> {
+  return invoke<AgentSeen[]>("agent_saw_list", { terminalId });
+}
+
+/** `[mime, base64]` of an image the agent read. */
+export function agentSawThumb(terminalId: string, path: string): Promise<[string, string]> {
+  return invoke<[string, string]>("agent_saw_thumb", { terminalId, path });
+}

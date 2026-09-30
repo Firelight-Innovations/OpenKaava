@@ -1,8 +1,15 @@
 import { useState, useSyncExternalStore } from "react";
 import { ChevronRight, FileText, File as FileIcon, CornerDownLeft, X, Image } from "lucide-react";
-import { contextRemove, terminalSetHarness, type ContextItem, type Harness } from "../../bindings";
+import {
+  contextRemove,
+  terminalSetHarness,
+  type AgentSeen,
+  type ContextItem,
+  type Harness,
+} from "../../bindings";
 import { HARNESS_LABEL, insertItems } from "../contextInput";
 import { noticeFor, subscribe } from "../terminalNotice";
+import { useAgentSaw, useSeenThumb } from "./useAgentSaw";
 import { useContextItems, useHarnessInfo, useThumb } from "./useContextItems";
 import "./contextStrip.css";
 
@@ -52,9 +59,12 @@ export function itemMeta(item: ContextItem): string {
 export default function ContextStrip({ sessionId }: { sessionId: string }) {
   const items = useContextItems(sessionId);
   const [collapsed, setCollapsed] = useState(readCollapsed);
+  const saw = useAgentSaw(sessionId);
+  const [asking, setAsking] = useState(false);
   const { info, refresh } = useHarnessInfo(sessionId, items.length);
+  const count = items.length + saw.seen.length;
 
-  if (items.length === 0) return null;
+  if (count === 0) return null;
 
   const toggle = () => {
     setCollapsed((c) => {
@@ -70,11 +80,11 @@ export default function ContextStrip({ sessionId }: { sessionId: string }) {
           type="button"
           className="ctxstrip__expand"
           onClick={toggle}
-          aria-label={`Show context, ${items.length} ${items.length === 1 ? "item" : "items"}`}
+          aria-label={`Show context, ${count} ${count === 1 ? "item" : "items"}`}
           aria-expanded={false}
         >
           <Image size={14} strokeWidth={1.5} aria-hidden />
-          <span className="ctxstrip__count">{items.length}</span>
+          <span className="ctxstrip__count">{count}</span>
         </button>
       </aside>
     );
@@ -87,7 +97,7 @@ export default function ContextStrip({ sessionId }: { sessionId: string }) {
     <aside className="ctxstrip" aria-label="Context" onPointerEnter={refresh}>
       <header className="ctxstrip__head">
         <span className="ctxstrip__title">Context</span>
-        <span className="ctxstrip__total">{items.length}</span>
+        <span className="ctxstrip__total">{count}</span>
         <button
           type="button"
           className="ctxstrip__icon"
@@ -115,11 +125,64 @@ export default function ContextStrip({ sessionId }: { sessionId: string }) {
         </select>
       </label>
 
-      <ul className="ctxstrip__list">
-        {items.map((item) => (
-          <Chip key={item.id} sessionId={sessionId} item={item} />
-        ))}
-      </ul>
+      <div className="ctxstrip__scroll">
+        {items.length > 0 && (
+          <ul className="ctxstrip__list">
+            {items.map((item) => (
+              <Chip key={item.id} sessionId={sessionId} item={item} />
+            ))}
+          </ul>
+        )}
+        {saw.seen.length > 0 && (
+          <section aria-label="Agent saw">
+            <h3 className="ctxstrip__section">Agent saw</h3>
+            <ul className="ctxstrip__list">
+              {saw.seen.map((seen) => (
+                <SeenChip key={seen.path} sessionId={sessionId} seen={seen} />
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+
+      <footer className="ctxstrip__foot">
+        {saw.status?.installed ? (
+          <button type="button" className="ctxstrip__link" onClick={() => void saw.disable()}>
+            Stop tracking what the agent reads
+          </button>
+        ) : asking ? (
+          <div className="ctxstrip__consent" role="group" aria-label="Track what the agent reads">
+            <p>
+              Kaava will add a hook to{" "}
+              <code>{saw.status?.settingsPath ?? ".claude/settings.local.json"}</code> that records
+              the path of each file Claude Code reads, so images it looked at show here. Your other
+              settings are kept. Nothing leaves this machine, and you can remove it here at any
+              time.
+            </p>
+            <div className="ctxstrip__consent-actions">
+              <button
+                type="button"
+                className="ctxstrip__link"
+                onClick={() => void saw.enable().then(() => setAsking(false))}
+              >
+                Add hook
+              </button>
+              <button type="button" className="ctxstrip__link" onClick={() => setAsking(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" className="ctxstrip__link" onClick={() => setAsking(true)}>
+            Show images the agent reads…
+          </button>
+        )}
+        {saw.error && (
+          <p className="ctxstrip__error" role="alert">
+            {saw.error}
+          </p>
+        )}
+      </footer>
     </aside>
   );
 }
@@ -165,6 +228,27 @@ function Chip({ sessionId, item }: { sessionId: string; item: ContextItem }) {
         >
           <X size={14} strokeWidth={1.5} aria-hidden />
         </button>
+      </div>
+    </li>
+  );
+}
+
+function SeenChip({ sessionId, seen }: { sessionId: string; seen: AgentSeen }) {
+  const thumb = useSeenThumb(sessionId, seen);
+  return (
+    <li className="ctxchip" data-missing={seen.missing || undefined}>
+      <div className="ctxchip__thumb" aria-hidden>
+        {thumb ? (
+          <img src={thumb} alt="" draggable={false} />
+        ) : (
+          <Image size={16} strokeWidth={1.5} />
+        )}
+      </div>
+      <div className="ctxchip__body">
+        <span className="ctxchip__title" title={seen.path}>
+          {seen.name}
+        </span>
+        <span className="ctxchip__meta">{seen.missing ? "File missing" : "Read by the agent"}</span>
       </div>
     </li>
   );
