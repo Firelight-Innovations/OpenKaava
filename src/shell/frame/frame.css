@@ -62,9 +62,9 @@
 
 /* The tool window stacked over the terminal band. Only this column grows.
 
-   The band stops at the secondary panel's edge rather than spanning the window,
+   The band stops at the docked page's edge rather than spanning the window,
    which is VS Code's arrangement and the right one here for a concrete reason:
-   that panel holds the repository's history and this cluster's changes, and
+   the Git page holds the repository's history and this cluster's changes, and
    those are things you read *while* a terminal is running. A full-width band
    would shorten them every time it opened. */
 .frame__main {
@@ -141,46 +141,7 @@
   display: flex;
   min-height: 0;
   /* The height is driven by a motion value in Frame.tsx and deliberately not
-     set here, for the reason `.frame__panel` gives about its width. */
-  overflow: hidden;
-}
-
-.frame__handle {
-  flex: none;
-  width: var(--w-resize-handle);
-  background: var(--bg);
-  border-left: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: col-resize;
-  /* The pointer is captured on this element during a drag; letting the browser
-     start a text selection or a touch scroll at the same time makes the drag
-     stutter. */
-  touch-action: none;
-  user-select: none;
-}
-
-.frame__handle[data-collapsed] {
-  cursor: default;
-}
-
-.frame__grip {
-  width: 2px;
-  height: 24px;
-  border-radius: 1px;
-  background: var(--line);
-}
-
-.frame__panel {
-  flex: none;
-  background: var(--surface);
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  /* The width is driven by a motion value from Frame.tsx. It is deliberately
-     not set here: two owners of one property is how a resize drag ends up
-     fighting a stylesheet. */
+     set here, for the reason `.frame__page` gives about its width. */
   overflow: hidden;
 }
 
@@ -219,8 +180,18 @@
   align-items: center;
   justify-content: center;
   cursor: col-resize;
+  /* The pointer is captured on this element during a drag; letting the browser
+     start a text selection or a touch scroll at the same time makes the drag
+     stutter. */
   touch-action: none;
   user-select: none;
+}
+
+.frame__grip {
+  width: 2px;
+  height: 24px;
+  border-radius: 1px;
+  background: var(--line);
 }
 
 .frame__page {
@@ -232,13 +203,14 @@
   flex-direction: column;
   min-height: 0;
   margin: 6px 0;
-  /* The width is driven by a motion value from Frame.tsx, for `.frame__panel`'s
-     reason. */
+  /* The width is driven by a motion value from Frame.tsx. It is deliberately
+     not set here: two owners of one property is how a resize drag ends up
+     fighting a stylesheet. */
   overflow: hidden;
 }
 
-/* The expanded page covers this wrapper's own box — the tool window, its
-   handle, the secondary panel and the docked page above — and nothing past
+/* The expanded page covers this wrapper's own box — the tool window and the
+   docked page above — and nothing past
    it, because the wrapper stops exactly at the rail. `visibility: visible`
    overrides the hidden ancestor `.frame__workspace-body[data-hidden]` sets;
    see `Frame.tsx` for why that is the mechanism rather than a portal. */
