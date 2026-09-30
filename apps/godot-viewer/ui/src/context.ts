@@ -4,7 +4,7 @@
  * store and the strip beside each terminal are the host's (`context/put`).
  */
 import { invoke } from "@openkaava/bridge";
-import type { ContextRef } from "../../../shared/context";
+import { contextKey, type ContextRef } from "../../../shared/context";
 import type { GodotNode, GodotViewerState } from "./rpc";
 
 export { dragContext } from "../../../shared/context";
@@ -29,6 +29,7 @@ export function treeText(state: Pick<GodotViewerState, "scenePath" | "source" | 
 
 export function putTree(state: GodotViewerState) {
   return invoke<ContextRef>("context/put", {
+    key: contextKey("godot", state.scenePath ?? "scene", "tree"),
     kind: "text",
     title: `${state.scenePath ?? "Godot"} - scene tree`,
     label: "Godot - scene tree",
@@ -38,6 +39,7 @@ export function putTree(state: GodotViewerState) {
 
 export function putFrame(base64: string, scenePath: string | null) {
   return invoke<ContextRef>("context/put", {
+    key: contextKey("godot", scenePath ?? "scene", "frame"),
     kind: "image",
     title: `${scenePath ?? "Godot"} - rendered view`,
     label: "Godot - rendered view",

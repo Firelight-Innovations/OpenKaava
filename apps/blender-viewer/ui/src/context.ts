@@ -5,7 +5,7 @@
  * item it becomes, so the viewer's buttons and its drag share one path.
  */
 import { invoke } from "@openkaava/bridge";
-import type { ContextRef } from "../../../shared/context";
+import { contextKey, type ContextRef } from "../../../shared/context";
 import type { BlenderPart, BlenderViewerState } from "./rpc";
 
 export { dragContext } from "../../../shared/context";
@@ -32,8 +32,15 @@ export function partsText(state: BlenderViewerState): string {
   return [head, ...rows].join("\n");
 }
 
-export function putRender(base64: string, label: string, rel: string | null) {
+/** The blend as a key part: `art/crate.blend` is `art/crate`. */
+function blendKey(rel: string | null): string {
+  return (rel ?? "scene").replace(/\.blend$/i, "");
+}
+
+/** `view` is the render's own id (front, top, three-quarter...), not its label. */
+export function putRender(base64: string, label: string, rel: string | null, view: string = label) {
   return invoke<ContextRef>("context/put", {
+    key: contextKey("blender", blendKey(rel), view),
     kind: "image",
     title: `${rel ?? "Blender"} - ${label}`,
     label: `Blender - ${label}`,
@@ -43,6 +50,7 @@ export function putRender(base64: string, label: string, rel: string | null) {
 
 export function putParts(state: BlenderViewerState) {
   return invoke<ContextRef>("context/put", {
+    key: contextKey("blender", blendKey(state.rel), "parts"),
     kind: "text",
     title: `${state.rel ?? "Blender"} - parts`,
     label: "Blender - parts list",
@@ -52,6 +60,7 @@ export function putParts(state: BlenderViewerState) {
 
 export function putGlb(state: BlenderViewerState) {
   return invoke<ContextRef>("context/put", {
+    key: contextKey("blender", blendKey(state.rel), "model"),
     kind: "file",
     title: `${state.rel ?? "Blender"} - model`,
     label: "Blender - .glb",

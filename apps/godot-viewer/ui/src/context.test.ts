@@ -58,6 +58,7 @@ describe("putFrame", () => {
   it("sends the frame as an image with its bytes", async () => {
     await putFrame("QUJD", "res://main.tscn");
     expect(invoke).toHaveBeenCalledWith("context/put", {
+      key: "godot/main.tscn/frame",
       kind: "image",
       title: "res://main.tscn - rendered view",
       label: "Godot - rendered view",

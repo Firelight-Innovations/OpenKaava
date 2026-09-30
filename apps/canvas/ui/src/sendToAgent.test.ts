@@ -71,6 +71,7 @@ describe("what is put in the store", () => {
   it("sends a selection as an image with its bytes, named for canvas and count", async () => {
     await putSelectionImage(new Blob(["hi"]), "World", 3);
     expect(bridge.invoke).toHaveBeenCalledWith("context/put", {
+      key: "canvas/World/selection",
       kind: "image",
       title: "Canvas - World, 3 elements",
       label: "Canvas - World",

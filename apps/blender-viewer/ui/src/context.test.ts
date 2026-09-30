@@ -49,6 +49,13 @@ describe("context puts", () => {
     );
   });
 
+  it("keys a render by blend and view, so the same view replaces itself", async () => {
+    await putRender("AAAA", "3/4", "art/crate.blend", "three-quarter");
+    await putRender("BBBB", "Top", "art/crate.blend", "top");
+    const keys = invoke.mock.calls.map((c) => (c[1] as { key: string }).key);
+    expect(keys).toEqual(["blender/art/crate/three-quarter", "blender/art/crate/top"]);
+  });
+
   it("sends the parts list as text", async () => {
     await putParts(state);
     const [method, params] = invoke.mock.calls[0] as [string, { kind: string; text: string }];
