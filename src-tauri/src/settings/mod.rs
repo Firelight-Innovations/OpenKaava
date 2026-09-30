@@ -438,6 +438,9 @@ fn react(app: &AppHandle, key: &str) {
     if matches!(key, keys::MCP_WRITE_PROJECT_CONFIG | keys::DEVELOPER_MODE) {
         crate::mcp::sync_all(app);
     }
+    if key == keys::KEYS_COPILOT_GLOBAL {
+        crate::copilot_key::sync(app);
+    }
 }
 
 /// The same, for a whole section going back to its defaults.
@@ -448,6 +451,9 @@ fn react(app: &AppHandle, key: &str) {
 fn react_group(app: &AppHandle, id: &str) {
     if matches!(id, "mcp" | "developer") {
         crate::mcp::sync_all(app);
+    }
+    if id == "keys" {
+        crate::copilot_key::sync(app);
     }
 }
 

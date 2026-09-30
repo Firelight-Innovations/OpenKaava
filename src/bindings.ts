@@ -1760,6 +1760,17 @@ export function onSettingsChanged(
   return listen<Record<string, SettingValue>>(SETTINGS_CHANGED_EVENT, (e) => cb(e.payload));
 }
 
+/**
+ * The Windows Copilot key, caught below the webview by the global hook
+ * (`copilot_key.rs`). Sent only to the window that should act on it, and only
+ * while `keys.copilotGlobal` is on; otherwise the page's own `keydown` sees it.
+ */
+export const COPILOT_KEY_EVENT = "copilot-key:pressed";
+
+export function onCopilotKey(cb: () => void): Promise<UnlistenFn> {
+  return listen(COPILOT_KEY_EVENT, () => cb());
+}
+
 /* --- updates ---------------------------------------------------------------
  *
  * Mirrors `src-tauri/src/updater.rs`, which runs the check, the download and
