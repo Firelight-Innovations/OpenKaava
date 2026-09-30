@@ -1,0 +1,177 @@
+/*
+ * The markup layer sits over its host and fills it. Off, it must not catch a
+ * single pointer event; on, it is the only thing that does.
+ */
+.kaava-markup {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  font-family: var(--sans);
+}
+
+.kaava-markup--active {
+  pointer-events: auto;
+}
+
+/* Transparent all the way down, so the render shows through. */
+.kaava-markup .excalidraw,
+.kaava-markup .excalidraw .canvas-container {
+  background: transparent;
+}
+
+/* Excalidraw's chrome: tool rows, property panel, menu, library, zoom, undo. */
+.kaava-markup .layer-ui__wrapper,
+.kaava-markup .scroll-back-to-content {
+  display: none;
+}
+
+.kaava-markup__toolbar {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  max-width: calc(100% - 16px);
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle-1);
+  border-radius: var(--radius-lg);
+  background: var(--bg-layer-2);
+  box-shadow: var(--shadow-overlay);
+  pointer-events: auto;
+}
+
+.kaava-markup__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--control-md);
+  height: var(--control-md);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--txt-tertiary);
+  cursor: pointer;
+}
+
+.kaava-markup__btn:hover {
+  background: var(--bg-layer-2-hover);
+  color: var(--txt-primary);
+}
+
+.kaava-markup__btn[aria-pressed="true"] {
+  background: var(--bg-layer-1-selected);
+  color: var(--txt-primary);
+}
+
+.kaava-markup__btn:focus-visible,
+.kaava-markup__done:focus-visible,
+.kaava-markup__chip button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.kaava-markup__swatch::after {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--swatch);
+}
+
+.kaava-markup__swatch[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--border-subtle-1);
+}
+
+.kaava-markup__sep {
+  flex: none;
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--border-subtle-1);
+}
+
+.kaava-markup__done {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  height: var(--control-md);
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: var(--txt-on-accent);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.kaava-markup__done:hover {
+  background: var(--accent-hover);
+}
+
+.kaava-markup__note {
+  position: absolute;
+  width: 220px;
+  height: var(--control-md);
+  padding: 0 8px;
+  border: 1px solid var(--border-subtle-1);
+  border-radius: var(--radius-md);
+  background: var(--bg-layer-2);
+  color: var(--txt-primary);
+  font: inherit;
+  font-size: 13px;
+  box-shadow: var(--shadow-overlay);
+  pointer-events: auto;
+}
+
+.kaava-markup__note::placeholder {
+  color: var(--txt-placeholder);
+}
+
+.kaava-markup__note:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+
+.kaava-markup__chip {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--control-lg);
+  padding: 0 6px 0 12px;
+  border: 1px solid var(--border-subtle-1);
+  border-radius: var(--radius-lg);
+  background: var(--bg-layer-2);
+  color: var(--txt-secondary);
+  font-size: 13px;
+  box-shadow: var(--shadow-overlay);
+  pointer-events: auto;
+}
+
+.kaava-markup__chip button {
+  height: var(--control-md);
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: var(--txt-on-accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .kaava-markup__btn,
+  .kaava-markup__done {
+    transition: background-color 120ms;
+  }
+}
