@@ -172,6 +172,69 @@ struct Session {
     /// The user's "this terminal is running..." choice, which beats detection.
     /// See [`crate::harness`].
     harness_override: Option<crate::harness::Harness>,
+    /// Whether a person has typed into this shell. Automatic emulator replies
+    /// (cursor-position answers, focus reports) do not count; see
+    /// [`is_user_input`]. A shell nobody has typed in can be moved to a new
+    /// directory without pulling anything out from under them.
+    typed: bool,
+}
+
+/// Whether `data` contains anything a person typed, as opposed to the escape
+/// sequences an emulator sends by itself.
+///
+/// ConPTY's opening `ESC[6n` is answered automatically, so a session's first
+/// write says nothing about whether anyone is using it. Every escape sequence
+/// is skipped, which also skips arrow keys; a session touched only by those has
+/// still had nothing run in it.
+fn is_user_input(data: &str) -> bool {
+    let mut chars = data.chars();
+    while let Some(c) = chars.next() {
+        if c != '\u{1b}' {
+            return true;
+        }
+        match chars.next() {
+            Some('[') => {
+                for f in chars.by_ref() {
+                    if ('@'..='~').contains(&f) {
+                        break;
+                    }
+                }
+            }
+            Some(']') => {
+                while let Some(f) = chars.next() {
+                    if f == '\u{7}' {
+                        break;
+                    }
+                    if f == '\u{1b}' {
+                        chars.next();
+                        break;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
+/// Whether a `cd` may be written into a session: nobody typed in it, and no
+/// program is running under its shell. Either one means the bytes would land in
+/// someone's input, or in a program's (an agent harness would read it as a
+/// prompt).
+pub fn may_retarget(typed: bool, has_child_process: bool) -> bool {
+    !typed && !has_child_process
+}
+
+/// The line that moves a shell into `dir`, quoted for its dialect.
+///
+/// `cmd` needs `/d` to change drive as well as directory.
+pub fn cd_line(family: crate::quoting::ShellFamily, dir: &Path) -> String {
+    use crate::quoting::ShellFamily;
+    let quoted = crate::quoting::quote(family, &dir.display().to_string());
+    match family {
+        ShellFamily::Cmd => format!("cd /d {quoted}\r"),
+        ShellFamily::PowerShell | ShellFamily::Posix => format!("cd {quoted}\r"),
+    }
 }
 
 /// Where a reference inserted into a session should be aimed.
@@ -274,6 +337,7 @@ impl PtySessions {
                 backlog,
                 shell: name.clone(),
                 harness_override: None,
+                typed: false,
             },
         );
 
@@ -308,6 +372,7 @@ impl PtySessions {
         let data = tap_input(id, data);
         let mut map = self.inner.lock_or_panic();
         if let Some(s) = map.get_mut(id) {
+            s.typed |= is_user_input(&data);
             // Deliberately ignored. A write failing means the shell is already
             // gone, and the read loop's end-of-file is what tells the frontend
             // that — reporting it twice, from two threads, would race.
@@ -411,6 +476,62 @@ impl PtySessions {
                 pixel_height: 0,
             });
         }
+    }
+
+    /// Move every listed session that is an idle, untouched default shell to
+    /// `dir`, and leave the rest alone. Returns the ids that were moved.
+    ///
+    /// A session is moved only if [`may_retarget`] allows it: nobody has typed
+    /// in it, and the shell has no child process right now. Every session
+    /// opened by [`PtySessions::open`] is a plain default shell; there is no
+    /// startup-command path, and anything launched into a shell afterwards
+    /// arrives through [`PtySessions::write`], which marks it typed. The
+    /// remaining gap is a program started by the shell's own rc files, which
+    /// shows up as a child process only once it has actually spawned.
+    ///
+    /// The `cd` is written straight to the pty rather than through [`write`],
+    /// so it does not mark the session as used.
+    pub fn retarget_untyped(&self, ids: &[String], dir: &Path) -> Vec<String> {
+        let mut candidates: Vec<(String, Option<u32>)> = Vec::new();
+        {
+            let mut map = self.inner.lock_or_panic();
+            for id in ids {
+                if let Some(s) = map.get_mut(id) {
+                    if !s.typed {
+                        candidates.push((id.clone(), s.child.process_id()));
+                    }
+                }
+            }
+        }
+        if candidates.is_empty() {
+            return Vec::new();
+        }
+
+        let mut sys = sysinfo::System::new();
+        sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+        let has_child = |pid: Option<u32>| {
+            // An unknown pid cannot be shown idle, so it is treated as busy.
+            pid.is_none_or(|pid| {
+                sys.processes()
+                    .values()
+                    .any(|p| p.parent().is_some_and(|pp| pp.as_u32() == pid))
+            })
+        };
+
+        let mut moved = Vec::new();
+        let mut map = self.inner.lock_or_panic();
+        for (id, pid) in candidates {
+            let Some(s) = map.get_mut(&id) else { continue };
+            if !may_retarget(s.typed, has_child(pid)) {
+                continue;
+            }
+            let line = cd_line(crate::quoting::ShellFamily::of(&s.shell), dir);
+            if s.writer.write_all(line.as_bytes()).is_ok() {
+                let _ = s.writer.flush();
+                moved.push(id);
+            }
+        }
+        moved
     }
 
     /// Kill the shell and forget the session. Idempotent — closing a tab whose
@@ -748,6 +869,57 @@ pub fn busy(sessions: &PtySessions, id: &str) -> Option<Busy> {
 mod tests {
     use super::*;
     use std::sync::mpsc;
+
+    #[test]
+    fn emulator_replies_are_not_typing() {
+        assert!(!is_user_input("\u{1b}[1;1R"));
+        assert!(!is_user_input("\u{1b}[I\u{1b}[O"));
+        assert!(!is_user_input("\u{1b}]11;rgb:0/0/0\u{7}"));
+        assert!(!is_user_input("\u{1b}]11;rgb:0/0/0\u{1b}\\"));
+        assert!(!is_user_input(""));
+    }
+
+    #[test]
+    fn a_character_or_enter_is_typing() {
+        assert!(is_user_input("l"));
+        assert!(is_user_input("\r"));
+        assert!(is_user_input("\u{1b}[1;1Rx"));
+    }
+
+    #[test]
+    fn only_an_untyped_shell_with_no_child_is_retargeted() {
+        assert!(may_retarget(false, false));
+        assert!(!may_retarget(true, false), "typed in");
+        assert!(!may_retarget(false, true), "a program is running under it");
+        assert!(!may_retarget(true, true));
+    }
+
+    #[test]
+    fn a_missing_session_is_skipped() {
+        let pty = PtySessions::default();
+        // An id with no session is skipped rather than moved.
+        assert!(pty
+            .retarget_untyped(&["nope".to_string()], Path::new("."))
+            .is_empty());
+    }
+
+    #[test]
+    fn cd_line_is_quoted_per_dialect() {
+        use crate::quoting::ShellFamily;
+        let dir = Path::new("C:/My Projects/demo");
+        assert_eq!(
+            cd_line(ShellFamily::Cmd, dir),
+            "cd /d \"C:/My Projects/demo\"\r"
+        );
+        assert_eq!(
+            cd_line(ShellFamily::PowerShell, dir),
+            "cd 'C:/My Projects/demo'\r"
+        );
+        assert_eq!(
+            cd_line(ShellFamily::Posix, dir),
+            "cd 'C:/My Projects/demo'\r"
+        );
+    }
     use std::time::Duration;
 
     /// The test that would have caught issue #36. A file on `PATH` that begins
