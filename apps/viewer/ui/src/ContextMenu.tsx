@@ -19,6 +19,7 @@
  * anything on a single click, and that is the line, not the length of the list.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { canSendToAgent, putFile, relativePath } from "../../../shared/fileContext";
 import { describe, openExternal, reveal, type EntryKind } from "./rpc";
 import type { DeleteTarget } from "./useDelete";
 import "./contextMenu.css";
@@ -256,6 +257,21 @@ export default function ContextMenu({
           offered them greyed out would be four rows of nothing. */}
       {path !== null && (
         <>
+          {canSendToAgent(target) && (
+            <>
+              <div className="menu__rule" role="separator" />
+              <button
+                type="button"
+                className="menu__item"
+                role="menuitem"
+                onClick={() =>
+                  run("context/put", () => putFile(path, relativePath(rootPath, path)))
+                }
+              >
+                Send to agent
+              </button>
+            </>
+          )}
           <div className="menu__rule" role="separator" />
           <button
             type="button"
