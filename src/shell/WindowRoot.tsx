@@ -28,6 +28,7 @@ import ContextMenuHost from "./ContextMenuHost";
 import CommandPalette from "./palette/CommandPalette";
 import NewClusterDialog from "./dialogs/NewClusterDialog";
 import SwitchProjectDialog from "./dialogs/SwitchProjectDialog";
+import { nextAddClusterStep } from "./addClusterFlow";
 import { commandsFromMenus, withOpenAppCommands } from "./palette/registry";
 import AppPicker from "./panes/AppPicker";
 import TitleBar from "./titlebar/TitleBar";
@@ -704,22 +705,24 @@ export default function WindowRoot({
   }, [pages, rightPage, onSelectPage, onClosePage, onTogglePageMode]);
 
   /**
-   * The switcher bar's `+` and Ctrl+Shift+N both land here. `NewClusterDialog`
-   * needs a project to offer worktrees, existing environments and "browse
-   * main" relative to — with none set, there is nothing for those choices to
-   * mean, so this falls back to the old instant "Cluster N" behaviour rather
-   * than opening a dialog with nowhere for its answers to go.
+   * The switcher bar's `+` and Ctrl+Shift+N both land here. Every new cluster
+   * needs a project and an environment, and `NewClusterDialog` supplies the
+   * environment relative to a project — so with none set, Switch project opens
+   * first and the New Cluster dialog follows once a project lands (see the
+   * effect below). Only a window with no cluster at all, which has nowhere to
+   * put a project, still gets a bare numbered cluster. See `nextAddClusterStep`.
    */
   const onAddCluster = useCallback(() => {
-    if (project) {
+    const step = nextAddClusterStep(project !== null, activeClusterId !== null);
+    if (step === "new-cluster") {
       setNewClusterOpen(true);
-      return;
+    } else if (step === "pick-project") {
+      setNewClusterAfterProject(true);
+      setSwitchProjectOpen(true);
+    } else {
+      void addCluster(label, `Cluster ${clusters.length + 1}`);
     }
-    // Numbered rather than prompting. A dialog before you can see the thing you
-    // are naming is the wrong order; the tab is renameable in place the moment
-    // it exists.
-    void addCluster(label, `Cluster ${clusters.length + 1}`);
-  }, [label, clusters.length, project]);
+  }, [label, clusters.length, project, activeClusterId]);
 
   const onCloseCluster = useCallback((clusterId: string) => {
     void closeCluster(clusterId);
@@ -1267,6 +1270,22 @@ export default function WindowRoot({
   const [switchProjectOpen, setSwitchProjectOpen] = useState(false);
   const closeSwitchProject = useCallback(() => setSwitchProjectOpen(false), []);
 
+  // Set when the `+` had no project and opened Switch project first: once a
+  // project lands, the New Cluster dialog follows. Cancelling, or handing off
+  // to a native picker, drops it so a later project switch cannot pop a dialog
+  // nobody asked for.
+  const [newClusterAfterProject, setNewClusterAfterProject] = useState(false);
+  const cancelSwitchProject = useCallback(() => {
+    setNewClusterAfterProject(false);
+    setSwitchProjectOpen(false);
+  }, []);
+  useEffect(() => {
+    if (newClusterAfterProject && project && !switchProjectOpen) {
+      setNewClusterAfterProject(false);
+      setNewClusterOpen(true);
+    }
+  }, [newClusterAfterProject, project, switchProjectOpen]);
+
   // "The terminal is showing" is now just the band being open. It used to need
   // a second clause — the panel could be open on the worktree tab, which is an
   // open panel with no terminal in it — and the band has nothing else to show,
@@ -1547,17 +1566,17 @@ export default function WindowRoot({
   // for `onOpenProject`'s reason. Both are no-ops with no cluster open,
   // which the dialog's disabled rows already assume.
   const onSwitchProjectOpenFolder = useCallback(() => {
-    closeSwitchProject();
+    cancelSwitchProject();
     onOpenProject();
-  }, [closeSwitchProject, onOpenProject]);
+  }, [cancelSwitchProject, onOpenProject]);
 
   const onSwitchProjectNewProject = useCallback(() => {
-    closeSwitchProject();
+    cancelSwitchProject();
     if (activeClusterId === null) return;
     void callApp("home", "home/new-project", undefined, { clusterId: activeClusterId }).catch(
       (err: unknown) => console.error("kaava: New Project failed:", err),
     );
-  }, [closeSwitchProject, activeClusterId]);
+  }, [cancelSwitchProject, activeClusterId]);
 
   // The environment bar's "Review & merge" opens the same Git page the rail
   // does, through the same door — `onSelectPage`, not a second path onto
@@ -1777,8 +1796,8 @@ export default function WindowRoot({
       )}
       {/* Beside the frame for the same reason as the two above. `project` is
           never null while this is open — `onAddCluster` only sets
-          `newClusterOpen` when it already has one, and there is no other
-          opener. */}
+          `newClusterOpen` when it already has one, and the after-project
+          effect waits for one. */}
       {newClusterOpen && project && (
         <NewClusterDialog
           label={label}
@@ -1790,7 +1809,7 @@ export default function WindowRoot({
       {switchProjectOpen && (
         <SwitchProjectDialog
           clusterId={activeClusterId}
-          onCancel={closeSwitchProject}
+          onCancel={cancelSwitchProject}
           onOpened={closeSwitchProject}
           onOpenFolder={onSwitchProjectOpenFolder}
           onNewProject={onSwitchProjectNewProject}
