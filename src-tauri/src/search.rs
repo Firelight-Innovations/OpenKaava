@@ -28,7 +28,8 @@ use serde::Serialize;
 use std::ffi::OsStr;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
-use tauri::{AppHandle, Manager, State};
+use std::time::{Duration, Instant};
+use tauri::{AppHandle, Manager};
 
 /// One occurrence of the query inside a file, positioned for an editor to jump to it.
 ///
@@ -106,6 +107,9 @@ struct Caps {
     /// `search.maxFileSizeMb`) comfortably covers real source files — the generated ones this
     /// excludes are exactly the ones nobody is searching by hand.
     max_content_bytes: u64,
+
+    /// How long one search may walk before it returns what it has, marked truncated.
+    time_budget: Duration,
 }
 
 impl Caps {
@@ -114,9 +118,14 @@ impl Caps {
             max_matches: settings::number(app, keys::SEARCH_MAX_MATCHES).max(1) as usize,
             max_files: settings::number(app, keys::SEARCH_MAX_FILES).max(1) as usize,
             max_content_bytes: mb_to_bytes(settings::number(app, keys::SEARCH_MAX_FILE_SIZE_MB)),
+            time_budget: SEARCH_TIME_BUDGET,
         }
     }
 }
+
+/// The longest one search walks. Long enough for a warm tree of any ordinary size to finish, short
+/// enough that a cold or huge one answers while the person is still looking at the dialog.
+const SEARCH_TIME_BUDGET: Duration = Duration::from_secs(5);
 
 /// A setting in megabytes, as the control draws it, converted to the bytes the walk actually
 /// compares against. `.max(1)` before the multiply rather than after: a stored `0` or a negative
@@ -210,7 +219,12 @@ pub async fn search_content(
         // is a mutex lock per key, and the loop below runs once per directory entry.
         let caps = Caps::read(&app);
 
-        Ok(walk(&root, &matcher, &state, generation, &caps))
+        Ok(walk(
+            &root,
+            &matcher,
+            &|| state.is_current(generation),
+            &caps,
+        ))
     })
     .await
     // The worker panicked or the runtime is shutting down — `app_call`'s own comment on the
@@ -260,10 +274,10 @@ fn build_matcher(
 fn walk(
     root: &Path,
     matcher: &grep_regex::RegexMatcher,
-    state: &State<'_, SearchState>,
-    generation: u64,
+    is_current: &dyn Fn() -> bool,
     caps: &Caps,
 ) -> SearchResponse {
+    let started = Instant::now();
     let mut hits = Vec::new();
     let mut total_matches = 0usize;
     let mut truncated = false;
@@ -281,13 +295,37 @@ fn walk(
         // unlike ripgrep's default, which is tuned for a terminal user who types `--hidden` when
         // they want them. A GUI search box has no equivalent flag, so this always includes them.
         .hidden(false)
+        // Pruned, not merely skipped as an entry: `ignore` still descends into a directory the loop
+        // below `continue`s past, so the old `.git` check further down left every object and ref in
+        // it being opened and scanned. A directory holding its own `.git` is another checkout, not
+        // part of this project's tree — in practice a linked worktree under `.worktrees/`, which
+        // otherwise duplicates the whole project once per agent and is what a search burns its
+        // budget on before it ever reaches `src/`.
+        .filter_entry(|entry| {
+            if entry.file_name() == OsStr::new(".git") {
+                return false;
+            }
+            let is_dir = entry.file_type().is_some_and(|t| t.is_dir());
+            !(is_dir && entry.depth() > 0 && entry.path().join(".git").exists())
+        })
         .build();
 
     for entry in walker {
         // Checked once per entry — cheap compared to the filesystem work around it — so a
         // superseded search stops within one directory listing of the newer one starting, not
         // after walking whatever was left of the tree.
-        if !state.is_current(generation) {
+        if !is_current() {
+            truncated = true;
+            break;
+        }
+
+        // The wall-clock backstop. The caps above bound the *answer*, not the time it takes to reach
+        // it: a query that matches little walks the whole tree, and on a cold Windows disk every
+        // first read of a file goes through the antivirus scanner, so a tree of ten thousand files
+        // measured over a minute. The command answers once, not as a stream, so without this the
+        // dialog sat on "Searching…" for that whole time. Past the budget the walk returns what it
+        // has, marked truncated, and the UI says so.
+        if started.elapsed() >= caps.time_budget {
             truncated = true;
             break;
         }
@@ -297,15 +335,6 @@ fn walk(
             // reason to lose every hit found so far.
             continue;
         };
-
-        // `.git` is excluded regardless of `.gitignore` — nothing in a normal repository *lists*
-        // `.git` there, since it is not inside the working tree `.gitignore` describes, so
-        // `hidden(false)` above would otherwise walk straight into it. Its contents are git's
-        // internal object store, never something a text search is aimed at, and on a worktree it
-        // can be large enough on its own to dominate the walk.
-        if entry.file_name() == OsStr::new(".git") {
-            continue;
-        }
 
         if !entry.file_type().is_some_and(|t| t.is_file()) {
             continue;
@@ -442,6 +471,113 @@ fn utf16_len(text: &str) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn caps(time_budget: Duration) -> Caps {
+        Caps {
+            max_matches: 1000,
+            max_files: 500,
+            max_content_bytes: 8 * 1024 * 1024,
+            time_budget,
+        }
+    }
+
+    fn run(root: &Path, query: &str, time_budget: Duration) -> SearchResponse {
+        let matcher = build_matcher(query, false, false, false).unwrap();
+        walk(root, &matcher, &|| true, &caps(time_budget))
+    }
+
+    #[test]
+    fn a_walk_finds_matches_in_file_contents() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("a.txt"),
+            "one
+the stack here
+",
+        )
+        .unwrap();
+
+        let response = run(dir.path(), "stack", Duration::from_secs(30));
+        assert_eq!(response.hits.len(), 1);
+        assert_eq!(response.hits[0].matches[0].line, 2);
+        assert!(!response.truncated);
+    }
+
+    /// The hang's shape: a walk with no time left stops and says so instead of running on.
+    #[test]
+    fn an_exhausted_time_budget_returns_truncated_rather_than_walking_on() {
+        let dir = tempfile::tempdir().unwrap();
+        for i in 0..20 {
+            std::fs::write(
+                dir.path().join(format!("f{i}.txt")),
+                "stack
+",
+            )
+            .unwrap();
+        }
+
+        let response = run(dir.path(), "stack", Duration::ZERO);
+        assert!(response.truncated);
+        assert!(response.hits.is_empty());
+    }
+
+    #[test]
+    fn a_superseded_walk_stops_and_reports_truncated() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("a.txt"),
+            "stack
+",
+        )
+        .unwrap();
+        let matcher = build_matcher("stack", false, false, false).unwrap();
+
+        let response = walk(
+            dir.path(),
+            &matcher,
+            &|| false,
+            &caps(Duration::from_secs(30)),
+        );
+        assert!(response.truncated);
+    }
+
+    #[test]
+    fn the_walk_does_not_descend_into_dot_git_or_a_nested_checkout() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("keep.txt"),
+            "stack
+",
+        )
+        .unwrap();
+        std::fs::create_dir(dir.path().join(".git")).unwrap();
+        std::fs::write(
+            dir.path().join(".git").join("config"),
+            "stack
+",
+        )
+        .unwrap();
+        // A linked worktree: `.git` is a *file* there, not a directory.
+        let nested = dir.path().join(".worktrees").join("agent");
+        std::fs::create_dir_all(&nested).unwrap();
+        std::fs::write(
+            nested.join(".git"),
+            "gitdir: elsewhere
+",
+        )
+        .unwrap();
+        std::fs::write(
+            nested.join("copy.txt"),
+            "stack
+",
+        )
+        .unwrap();
+
+        let response = run(dir.path(), "stack", Duration::from_secs(30));
+        let paths: Vec<&str> = response.hits.iter().map(|h| h.path.as_str()).collect();
+        assert_eq!(paths.len(), 1, "{paths:?}");
+        assert!(paths[0].ends_with("keep.txt"));
+    }
 
     #[test]
     fn mb_to_bytes_converts_megabytes_to_bytes() {
