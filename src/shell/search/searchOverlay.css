@@ -77,8 +77,14 @@
   color: var(--txt-placeholder);
 }
 
+.search-dialog .search-dialog__input,
+.search-dialog .search-dialog__input:focus,
 .search-dialog .search-dialog__input:focus-visible {
   outline: none;
+  box-shadow: none;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 /* --- the type filters ---------------------------------------------------- */
@@ -87,7 +93,7 @@
   flex: none;
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 0;
   padding: 0 var(--space-3) var(--space-2);
   border-bottom: 1px solid var(--border-subtle);
 }
@@ -101,6 +107,22 @@
   color: var(--txt-placeholder);
   font: var(--type-caption);
   cursor: pointer;
+}
+
+/* A hairline between chips so each type reads as its own; the gap is spent on the divider. */
+.search-dialog__chip + .search-dialog__chip {
+  margin-left: var(--space-2);
+  position: relative;
+}
+
+.search-dialog__chip + .search-dialog__chip::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--space-1) * -1);
+  top: 20%;
+  bottom: 20%;
+  width: 1px;
+  background: var(--border-subtle-1);
 }
 
 .search-dialog__chip:hover {
@@ -148,11 +170,19 @@
 }
 
 .search-dialog__group {
+  /* Section divider: every group after the first is cut off from the one above. */
+  margin-top: var(--space-1);
+  border-top: 1px solid var(--border-subtle);
   padding: var(--space-2) var(--space-2) var(--space-1);
   color: var(--txt-placeholder);
   font: var(--type-label);
   letter-spacing: var(--type-label-tracking);
   text-transform: uppercase;
+}
+
+.search-dialog__list > .search-dialog__group:first-child {
+  margin-top: 0;
+  border-top: none;
 }
 
 .search-dialog__row {
