@@ -39,6 +39,10 @@ describe("narrowCopilotAction", () => {
     expect(narrowCopilotAction(null)).toBe("palette");
   });
 
+  it("maps the removed side-panel action to the Git page", () => {
+    expect(narrowCopilotAction("togglePanel")).toBe("toggleGit");
+  });
+
   it("falls back on a value this build does not know", () => {
     expect(narrowCopilotAction("openCopilot")).toBe("palette");
     expect(narrowCopilotAction(3)).toBe("palette");
@@ -57,7 +61,6 @@ describe("dispatchCopilotKey", () => {
       switchProject: vi.fn(),
       newCluster: vi.fn(),
       toggleGit: vi.fn(),
-      togglePanel: vi.fn(),
       toggleTerminal: vi.fn(),
     };
   }

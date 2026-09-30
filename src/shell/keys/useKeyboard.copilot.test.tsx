@@ -18,7 +18,7 @@ function actions(copilotKey: () => boolean): KeyboardActions {
     duplicate: noop,
     closeWindow: noop,
     commandPalette: noop,
-    togglePanel: noop,
+    toggleSourceControl: noop,
     toggleTerminal: noop,
     toggleFullscreen: noop,
     zoomIn: noop,
