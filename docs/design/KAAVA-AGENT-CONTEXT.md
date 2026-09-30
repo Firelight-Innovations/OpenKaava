@@ -1,8 +1,21 @@
 # Kaava agent context: images, video and text from any panel into any harness
 
-Owner: Braden Seaborn. Date: 2026-09-29. State: DRAFT FOR REVIEW (v0.1, spec only, no code). Builds on `docs/KAAVA-UX-REWORK.md` (environments, viewers, Play, comments) and `docs/design/KAAVA-UX-SPEC.md`.
+Owner: Braden Seaborn. Date: 2026-09-29. State: DRAFT FOR REVIEW (v0.2, spec only, no code; updated 2026-09-29 with Braden's answers to the open questions). Builds on `docs/KAAVA-UX-REWORK.md` (environments, viewers, Play, comments) and `docs/design/KAAVA-UX-SPEC.md`.
 
 Facts about the three harnesses come from public docs and issue trackers read on 2026-09-29 (sources in section 12). Each fact carries a confidence tag: **V** means read in the vendor's own docs or repo this pass, **R** means reported in an issue, PR or third-party write-up, **U** means unverified or inferred. Nothing tagged **U** is a reason to skip the phase-1 spikes in section 10; they exist to turn those tags into **V**.
+
+## Friday scope (ships by 2026-10-02)
+
+Given Braden's decisions below, the cut for Friday is the smallest slice that gives a working loop: put context in, see it, see what Claude Code read.
+
+| Ships Friday | From | Notes |
+|---|---|---|
+| Phase 0 spikes, trimmed to Claude Code | 10 | Only the Claude rows: `Alt+V` and `Ctrl+V`, bare path versus `@path`, forward slashes, process-tree shape on Windows. |
+| File transport: drop and paste into `.kaava/context/` | Phase 1 | OS file drops and clipboard images, materialised by a minimal Rust `context.put`. Claude Code adapter plus the plain-shell fallback. |
+| The Context strip beside the main terminal | Phase 2, reduced | A strip of what was put in, with send, undo and remove. No producer API, no capture providers, no streams. |
+| Hooks-based "agent saw" for Claude Code | Phase 4, reduced | Consent-gated `<env>/.claude/settings.local.json` write, `PostToolUse` on `Read`, and the strip shows the images Claude opened. |
+
+Not Friday: the Codex and Gemini adapters (they follow the same pattern and wait on their spikes), the `ContextItem` bridge API for other apps, the `kaava-context` MCP server, transcript watchers, Play and canvas providers, video, cloud, and scroll-anchoring. The reduced strip should still be built on the `ContextItem` record from section 6 so phase 2 grows into it rather than replacing it.
 
 ## 0. Summary and decisions asked for
 
@@ -24,7 +37,10 @@ Decisions this spec makes, each explained in the section named:
 | D4 | A `ContextItem` is a small record plus a file. Bytes travel once, into Rust, and everything after that passes ids. | 6 |
 | D5 | Output path is a sidecar: hooks first (Claude Code, Gemini), transcript watcher for Codex on Windows. No inline terminal image protocol for now. | 5 |
 | D6 | `kaava-context` is a new MCP server so agents can pull context and ask for a capture themselves. | 7 |
-| D7 | Video degrades to keyframes plus metadata for every harness in this pass, because none of the three is confirmed to take video from a terminal session. | 8 |
+| D7 | Video degrades to keyframes plus metadata for every harness in this pass, because none of the three is confirmed to take video from a terminal session. Deferred: no v1 work (open question 4). | 8 |
+| D8 | Cloud sessions are out of v1. Claude Code's own cloud sessions cover that case. | 13 |
+| D9 | Hook and MCP config writes into `<env>/.claude`, `.codex` and `.gemini` are approved, and always ask before writing. | 5.3, 7.3 |
+| D10 | Clipboard images are written to `.kaava/context/` and shown in the Context strip beside the main terminal. Native harness paste is not the default. | 4.2 |
 
 ## 1. What exists today
 
@@ -136,7 +152,7 @@ Change `clipboard.ts` so that `handlePaste` looks at `clipboardData.files` as we
 1. Text present: unchanged behaviour. Text always wins, because a copied spreadsheet range carries both text and a bitmap and the text is what the user meant.
 2. No text, an image file present: hand the image bytes to `context/put` (kind `image`, source `clipboard`), and insert the adapter's reference. This replaces the dead `Ctrl+V` for image clipboards.
 3. Also let `Alt+V` through to the pty untouched. Claude Code and Gemini use it on Windows [S1] [S11], and `isPasteKey` already excludes `Alt` deliberately.
-4. For harnesses with native clipboard paste (Claude Code, Codex), offer a setting **"Pass Ctrl+V to the harness when the clipboard holds an image"**. The harness then reads the OS clipboard itself and shows its own `[Image #1]` chip, which is the best experience. The catch: the harness's copy of the image is not in `.kaava/context/`, so it is invisible to the tray and to retention. Default is off. Recorded in open questions.
+4. **Decided (D10): Kaava owns the paste.** The image is written to `.kaava/context/`, the agent is pointed at the path, and the item shows in the Context strip beside the main terminal (4.4). Passing `Ctrl+V` through to the harness's native paste is not offered in v1, because the harness's own copy would be invisible to the strip and to retention.
 
 ### 4.3 Harness detection and adapters
 
@@ -260,7 +276,7 @@ Sources, in priority order per harness:
 | Codex | `<env>/.codex/hooks.json` [S13] | Same. Whether Codex asks the user to trust project hooks is **U**. |
 | Gemini | `<env>/.gemini/settings.json` [S14] | Same. |
 
-Editing a harness's config is a standing rule change, which this workspace treats as needing consent (same as the `.mcp.json` write today). Kaava shows the diff, writes once, and offers **Remove** in the same place. Nothing is written until the user says yes.
+Editing a harness's config is a standing rule change, which this workspace treats as needing consent (same as the `.mcp.json` write today). **Approved by Braden (D9), on the condition that Kaava always asks before writing.** Kaava shows the diff, writes once, and offers **Remove** in the same place. Nothing is written until the user says yes.
 
 **Transcript watcher.** A Rust task using the `notify` crate on the harness's session directory, tailing appended lines. It parses only the fields it needs. Two cautions from the sources: transcripts can hold images inline as base64 [S16], so it must never copy a line into an event, only a path or a hash; and the session file for a terminal is identified by cwd and start time, or by `transcript_path` when a hook has supplied it.
 
@@ -474,13 +490,13 @@ A producer never asks about harnesses. It publishes a `ContextItem` and the **co
 | selection | none | It is already a text or image item made by the provider. |
 | audio | all | Not handled in v1. The tray refuses with a clear message. |
 
-Frame extraction needs a decoder. **ffmpeg is the obvious tool and a heavy dependency to bundle** (size, licence review, Windows packaging). Options are in section 11. Providers that already render frames themselves (Play, the canvas) avoid the dependency, which is the argument for making derivatives a provider field.
+**Deferred (open question 4): no video work in v1.** The rest of this subsection records the intended design so it is not lost. Frame extraction needs a decoder. **ffmpeg is the obvious tool and a heavy dependency to bundle** (size, licence review, Windows packaging). Options are in section 11. Providers that already render frames themselves (Play, the canvas) avoid the dependency, which is the argument for making derivatives a provider field.
 
 ### 8.3 Privacy
 
 1. Kaava sends nothing anywhere. The listener binds `127.0.0.1` only and the hook route and MCP route both need the bearer token (section 9.5).
 2. **Once an item reaches a harness, that harness may send it to its model provider.** Kaava cannot prevent that and does not pretend to. The first send of each session shows one line under the tray: "This goes to Claude Code and from there to its model provider." A setting removes it.
-3. Thumbnails, keyframes and the index are local files under the environment. Nothing is uploaded to the cloud services, and cloud sessions are out of scope for phases 1 to 5 (section 11).
+3. Thumbnails, keyframes and the index are local files under the environment. Nothing is uploaded to the cloud services, and cloud sessions are out of scope for v1 (section 13).
 4. A **"do not capture"** flag on a provider (for example the design canvas holding a private board) makes its `capture` refuse for `context_capture` calls while still allowing the human to drag.
 
 ### 8.4 Retention and cleanup
@@ -643,20 +659,40 @@ Acceptance:
 
 ## 11. Open questions for Braden
 
-Ordered by how much they change the work.
+Answered on PR #153 and now closed: cloud sessions (out of v1, section 13), hook and MCP config writes (approved, consent-gated, D9), and the `Ctrl+V` policy (Kaava writes the file, D10). What remains, ordered by how much it changes the work.
 
-1. **Cloud sessions.** A streamed cloud terminal runs on a VM that cannot see local `.kaava/context/`. Options: no context drops for cloud in v1, or upload the item to the VM over the same IAP channel the explorer uses. Which do you want, and does "nothing leaves the machine" allow the second, given the VM is your own?
-2. **Hook and config installs.** Is a consent-gated write into `<env>/.claude`, `.codex` and `.gemini` acceptable, or do you want agents launched only through OpenKaava presets with the settings passed at launch? The latter needs each harness to support a settings-file flag at launch, which I did not confirm. **U**
-3. **Sidecar binary.** OK to ship `kaava-hook` as a bundled Rust sidecar, versus asking users to have `node` or `curl`? It adds a second binary to sign and update.
-4. **Per-terminal tokens.** Should the bearer token become per-terminal so the MCP and hook routes know the environment without a header, at the cost of reworking `mcp::listener` and `handoff`?
-5. **ffmpeg.** Bundle it (size and licence), rely on an optional install, or make video keyframes a provider duty only (Play and canvas render their own frames, and arbitrary dropped videos are refused)? I lean to the third for v1.
-6. **`Ctrl+V` policy.** Default the image paste to Kaava materialising a file (visible to the tray and gallery) or to the harness's native paste (nicer, invisible to us)? I lean to materialising.
-7. **The gallery's promise.** "Opened by the agent" is what hooks can prove. Do you also want an "agent made" feed from a file watcher on new images in the worktree? It catches screenshots the agent produced, and it is noisy.
-8. **Default retention.** Seven days and 500 MB per environment. Fine, or should context be session-scoped and cleared when the terminal closes?
-9. **Where the tray lives.** Per terminal pane (proposed), or one per cluster shared by all its terminals? Per cluster is simpler when two agents run side by side, and worse when they should not share.
-10. **A fourth harness.** The adapter table is closed at three. Do you want an adapters-as-data escape hatch (a small TOML rule per harness) from the start, given how fast these tools change their input syntax? It costs a parser now and saves a release later.
-11. **Naming.** "Context" collides with model context in an agent conversation. Candidates: Context, Attachments, Handoff, Bundle. Add the winner to `core/terminology.csv`.
-12. **Privacy line.** The first-send notice says the harness may pass the item to its model provider. Is that the right level of warning, or do you want a per-project allow list of harnesses items may be sent to?
+1. **`kaava-hook` sidecar.** Still open, and Braden asked what it is for. Short answer: the harness runs a hook as a command and pipes it JSON. That command has to reach Kaava's local server with the token. On Windows the harness's hook shell is unpredictable, so the command has to work without quoting tricks and without needing `node` or `curl`. A small bundled binary is that command. The alternative is a hook written as a `curl.exe` line with the token in an environment variable, which works in Git Bash and is fragile elsewhere. Decide after the Friday spike shows how Claude Code's hook shell behaves on this machine. The cost of the sidecar is a second binary to sign and update.
+2. **Per-terminal tokens.** Still open. Should the bearer token become per terminal, so the MCP and hook routes learn which environment a call belongs to without a header, at the cost of reworking `mcp::listener` and `handoff`? Not needed for Friday, where a hook can carry `KAAVA_TERMINAL_ID`.
+3. **The gallery's promise.** "Opened by the agent" is what hooks can prove. Do you also want an "agent made" feed from a file watcher on new images in the worktree? It catches screenshots the agent produced, and it is noisy.
+4. **Video and ffmpeg (deferred).** Revisit when a real need arrives. Options then: bundle ffmpeg (size, licence), rely on an optional install, or make keyframes a provider duty only (Play and canvas render their own frames, arbitrary dropped videos are refused). The last is the lightest.
+5. **Default retention.** Seven days and 500 MB per environment. Fine, or should context be session-scoped and cleared when the terminal closes?
+6. **Where the strip lives.** Beside the main terminal (decided, D10). Open: one strip per terminal, or one per cluster shared by all its terminals? Per cluster is simpler when two agents run side by side, and worse when they should not share.
+7. **A fourth harness.** Adapters-as-data (a small TOML rule per harness) from the start, or Rust only? It costs a parser now and saves a release later.
+8. **Naming.** "Context" collides with model context in an agent conversation. Candidates: Context, Attachments, Handoff, Bundle. Add the winner to `core/terminology.csv`. The UI label in D10 is "Context" for now.
+9. **Privacy line.** The first-send notice says the harness may pass the item to its model provider. Is that the right level of warning, or do you want a per-project allow list?
+
+## 13. Later
+
+Captured, not in v1.
+
+### 13.1 Cloud sessions
+
+**Out of v1 (D8).** A streamed cloud terminal runs on a VM that cannot see local `.kaava/context/`. Claude Code's own cloud sessions already cover the case where an agent needs an image, so Kaava does not duplicate it. If it returns, the sketch is an upload of the item to the VM over the channel the explorer already uses, with the reference pointing at the VM path. That needs a decision on whether "nothing leaves the machine" extends to your own VM. Until then the tray and Context strip show "Not available for cloud sessions" on a cloud cluster.
+
+### 13.2 Context strip that scrolls with the conversation (stretch)
+
+**A like, not a want.** The strip would move in step with the terminal's chat content, so each item sits next to the point in the conversation where it appeared, the way an inline image would in a chat app.
+
+**Likely hard.** The pty scrollback has no stable anchors. Claude Code, Codex and Gemini redraw their live region with cursor moves and line erases, so a row number recorded now points at different text after the next repaint. A resize reflows every line, and the harness may clear and rewrite history (a compact, a resume). The terminal buffer is a picture of the screen, not a list of messages.
+
+**The most plausible approach: anchor to the transcript, not to the terminal.** The harness's transcript (section 5.3) is an ordered list of turns with stable ids. Every context event already has a transcript position: a drop is recorded against the last turn id at send time, and an "agent saw" event carries the turn where the `Read` happened. The strip then renders its own ordered timeline keyed by turn id, and keeps it aligned to the terminal only roughly. When the user scrolls the terminal, Kaava estimates which turn is at the top of the viewport by matching visible text (a distinctive prompt line or the harness's turn markers, read from xterm's buffer with `buffer.active.getLine`) against the transcript's turns, and scrolls the strip to that turn. Where the match fails the strip does nothing rather than jumping. A cheaper first step keeps most of the value: a "jump to context" link on each terminal turn marker and a "jump to turn" link on each strip item, with no continuous sync. Both depend on the transcript watcher from phase 4 existing for that harness.
+
+### 13.3 Also later
+
+- Codex and Gemini adapters, hooks and transcript watchers (Friday scope covers Claude Code only).
+- The `kaava-context` MCP server (phase 3) and the producer API (phase 2 in full).
+- Play and design-canvas providers (phase 5).
+- Video and ffmpeg (open question 4).
 
 ## 12. Sources
 
