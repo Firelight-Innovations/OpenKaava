@@ -60,6 +60,7 @@ import TerminalDeck, { type TerminalDeckHandle } from "./terminal/TerminalDeck";
 import { callApp, useApps, useOpenables, usePages } from "./state/apps";
 import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
+import { useProjectIcon } from "./state/projectIcon";
 import { useUpdates } from "./state/updates";
 import {
   activateInstance,
@@ -280,6 +281,7 @@ export default function WindowRoot({
   // needs it to decide whether the New Cluster dialog has anywhere to point
   // its choices at — see that callback's own note.
   const project = useClusterProject(activeClusterId);
+  const projectIcon = useProjectIcon(project?.path ?? null);
 
   // The band, as the cluster in front left it. Three values and two homes: the
   // height is the cluster's own — restored from the saved layout, and defaulted
@@ -1776,6 +1778,7 @@ export default function WindowRoot({
             <TitleBar
               kind={kind}
               project={project?.name ?? null}
+              projectIcon={projectIcon}
               environment={environment}
               environmentLabel={activeCluster?.name ?? null}
               environmentCount={environmentCount}

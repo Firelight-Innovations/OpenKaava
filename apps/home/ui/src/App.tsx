@@ -310,6 +310,7 @@ export default function App() {
         {open && (
           <div className="home__open">
             <span className="home__open-label">Open</span>
+            <ProjectTile project={open} className="home__tile home__tile--open" />
             <span className="home__open-name">{open.name}</span>
             <span className="home__open-path" title={open.path}>
               {open.path}
@@ -452,6 +453,55 @@ export default function App() {
   );
 }
 
+/**
+ * A project's own icon (`.kaava/icon.*`), or its initial when it has none.
+ *
+ * Asked per project rather than folded into `home/state`: the icon is a data
+ * URL, and carrying one for every Recent row on every state read would make the
+ * common read the expensive one. Asked again when this pane regains focus, the
+ * same way the tutorial column is, since the icon is set from the shell's
+ * Switch project dialog and nothing tells this pane it changed.
+ */
+function ProjectTile({ project, className }: { project: Project; className: string }) {
+  const [icon, setIcon] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    setIcon(null);
+    if (!project.exists) return;
+
+    const read = () => {
+      void invoke<{ icon: string | null }>("home/project-icon", { path: project.path })
+        .then((next) => {
+          if (live) setIcon(next.icon);
+        })
+        .catch(() => {
+          // The initial, which is what `null` already draws.
+        });
+    };
+
+    read();
+    window.addEventListener("focus", read);
+    return () => {
+      live = false;
+      window.removeEventListener("focus", read);
+    };
+  }, [project.path, project.exists]);
+
+  if (icon !== null) {
+    return (
+      <span className={`${className} home__tile--image`} aria-hidden="true">
+        <img src={icon} alt="" draggable={false} />
+      </span>
+    );
+  }
+  return (
+    <span className={className} aria-hidden="true">
+      {project.name.charAt(0).toUpperCase() || "?"}
+    </span>
+  );
+}
+
 function Recent({
   project,
   busy,
@@ -477,6 +527,7 @@ function Recent({
         onClick={onOpen}
         title={project.path}
       >
+        <ProjectTile project={project} className="home__tile" />
         <span className="home__recent-name">{project.name}</span>
         <span className="home__recent-path">{project.path}</span>
         <span className="home__recent-meta">

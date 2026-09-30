@@ -18,6 +18,7 @@
 //! stamped with its cluster, is in `docs/design-notes/backend-project.md`.
 
 pub mod create;
+pub mod icon;
 mod marker;
 mod store;
 
