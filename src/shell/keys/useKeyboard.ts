@@ -52,6 +52,8 @@ export interface KeyboardActions {
   // --- View -----------------------------------------------------------------
   /** Ctrl+Shift+P */
   commandPalette(): void;
+  /** Ctrl+Shift+A — the app picker. */
+  openApp(): void;
   /** Ctrl+Alt+P and Shift+Alt+P — open the Switch project dialog (board 08). */
   switchProject(): void;
   /** Ctrl+B — opens or closes the rail's Git page, which holds source control. */
@@ -125,6 +127,11 @@ export const CHORDS: Record<string, Chord> = {
   p: {
     plain: null,
     shift: (a) => a.commandPalette,
+  },
+  // Only with Shift: plain Ctrl+A is select-all in every field and editor.
+  a: {
+    plain: null,
+    shift: (a) => a.openApp,
   },
   b: {
     plain: (a) => a.toggleSourceControl,

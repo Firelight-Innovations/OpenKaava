@@ -13,11 +13,13 @@
  * argument has stopped being true, only which row won.
  */
 import { AppWindow, Terminal } from "lucide-react";
-import type { ClusterMember, DragHandleProps } from "../contract";
+import type { ClusterMember, DragHandleProps, PaneAppPicker } from "../contract";
 import { useDropZone } from "../dropZones";
 import { fileTypeColor } from "./fileTypeColor";
 import { Close } from "../../ui/Icon";
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { Plus } from "../../ui/Icon";
+import AppPicker from "./AppPicker";
 
 export default function PaneTabStrip({
   paneId,
@@ -27,6 +29,7 @@ export default function PaneTabStrip({
   onClose,
   onToggleMaximize,
   dragHandleFor,
+  appPicker,
 }: {
   paneId: string;
   /** This pane's own tabs, in layout order — already filtered by the caller. */
@@ -40,6 +43,8 @@ export default function PaneTabStrip({
   /** Double-click a tab: maximise this pane, or restore it if it already is. */
   onToggleMaximize: (paneId: string) => void;
   dragHandleFor?: (member: ClusterMember) => DragHandleProps | undefined;
+  /** The list behind the trailing `+`. Omitted, the strip has no `+`. */
+  appPicker?: PaneAppPicker;
 }) {
   const tabRefs = useRef<Map<string, HTMLElement>>(new Map());
 
@@ -74,7 +79,50 @@ export default function PaneTabStrip({
         />
       ))}
       {caret === members.length && <span className="pane-tabstrip__caret" />}
+      {appPicker && <AddAppTab paneId={paneId} picker={appPicker} />}
     </div>
+  );
+}
+
+/**
+ * The `+` at the end of a pane's tabs: opens the app picker, and the chosen app
+ * becomes a new tab in this pane. Distinct from the cluster switcher's `+`, which
+ * makes a whole cluster — the label says which one this is.
+ */
+function AddAppTab({ paneId, picker }: { paneId: string; picker: PaneAppPicker }) {
+  const [at, setAt] = useState<{ top: number; left: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        className="pane-tabstrip__add"
+        data-open={at !== null || undefined}
+        aria-haspopup="dialog"
+        aria-expanded={at !== null}
+        aria-label="Open an app in this pane"
+        title="Open an app in this pane"
+        onClick={() => {
+          const rect = buttonRef.current?.getBoundingClientRect();
+          if (rect) setAt({ top: rect.bottom + 2, left: rect.left });
+        }}
+        // A press here must not start a tab drag or refocus through the strip.
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <Plus size={13} />
+      </button>
+      {at !== null && (
+        <AppPicker
+          apps={picker.apps}
+          blocked={picker.blocked}
+          anchor={at}
+          onPick={(entry) => picker.onOpen(entry, paneId)}
+          onClose={() => setAt(null)}
+        />
+      )}
+    </>
   );
 }
 
