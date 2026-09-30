@@ -6,7 +6,7 @@
  */
 import { invoke } from "@openkaava/bridge";
 import { formatPlayTime } from "../../../shared/comments";
-import type { ContextRef } from "../../../shared/context";
+import { contextKey, type ContextRef } from "../../../shared/context";
 import type { Capture, LogLine } from "./rpc";
 
 export { dragContext } from "../../../shared/context";
@@ -30,6 +30,7 @@ function leaf(scene: string): string {
 export function putShot(shot: Capture) {
   const scene = shot.scene || "the running scene";
   return invoke<ContextRef>("context/put", {
+    key: contextKey("play", scene, "frame"),
     kind: "panel",
     title: `Play - ${scene} at ${formatPlayTime(shot.time)}`,
     label: `Play - ${leaf(scene)} ${formatPlayTime(shot.time)}`,
@@ -39,6 +40,7 @@ export function putShot(shot: Capture) {
 
 export function putLog(lines: LogLine[], scene: string | null) {
   return invoke<ContextRef>("context/put", {
+    key: contextKey("play", scene ?? "game", "log"),
     kind: "text",
     title: `Play - output${scene ? ` of ${leaf(scene)}` : ""}`,
     label: "Play - game output",

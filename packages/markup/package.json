@@ -1,0 +1,33 @@
+{
+  "name": "@kaava/markup",
+  "version": "0.1.0",
+  "private": true,
+  "description": "One markup system for the Canvas app and the 3D scene viewer: a transparent Excalidraw layer, pins, a host adapter and one JSON format agents can read.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./layer": "./src/layer.ts"
+  },
+  "scripts": {
+    "test": "tsc --noEmit -p tsconfig.json && vitest run"
+  },
+  "dependencies": {
+    "@excalidraw/excalidraw": "0.18.1"
+  },
+  "peerDependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "lucide-react": "^1.48.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "typescript": "~5.8.3",
+    "vitest": "^4.1.10"
+  }
+}

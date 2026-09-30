@@ -20,6 +20,7 @@ import { HARNESS_LABEL, insertItems } from "../contextInput";
 import { noticeFor, subscribe } from "../terminalNotice";
 import type { StripLayout } from "./contextLayout";
 import { useAgentSaw, useSeenThumb } from "./useAgentSaw";
+import { wasUpdated } from "./mergeContext";
 import { useContextItems, useHarnessInfo, useThumb } from "./useContextItems";
 import "./contextStrip.css";
 
@@ -55,6 +56,7 @@ export function itemMeta(item: ContextItem): string {
   if (item.image) parts.push(`${item.image.width} × ${item.image.height}`);
   if (item.text) parts.push(`${item.text.lines} ${item.text.lines === 1 ? "line" : "lines"}`);
   parts.push(formatSize(item.size));
+  if (wasUpdated(item)) parts.push("updated");
   return parts.join(" · ");
 }
 

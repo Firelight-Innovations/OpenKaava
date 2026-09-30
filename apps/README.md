@@ -404,6 +404,13 @@ await invoke("context/get", { id: item.id });
 await invoke("context/remove", { id: item.id });
 ```
 
+Pass a stable `key` that names the source, never the moment
+(`blender/<blend>/<view>`, `godot/<scene>/frame`, `file/<relpath>`). Sending
+the same key again overwrites the one file and record and moves the strip entry
+to the top; the path an agent was given for a key always holds the latest
+version. Without a key, a file is keyed by its path and anything else by its
+content hash, so identical pastes are stored once.
+
 Send exactly one of `bytesBase64`, `text` or `path`. The item is a file under
 `<environment>/.kaava/context/` plus a `<id>.json` record (id, kind, sniffed
 mime, title, `source.appId`, size, `path`, `relPath`); that directory carries

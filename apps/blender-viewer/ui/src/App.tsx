@@ -280,7 +280,7 @@ export default function App() {
   const renderPut = (id: string, label: string) => () => {
     const url = images[id];
     if (!url) return Promise.reject(new Error("the render has not loaded"));
-    return putRender(url.slice(url.indexOf(",") + 1), label, state?.rel ?? null);
+    return putRender(url.slice(url.indexOf(",") + 1), label, state?.rel ?? null, id);
   };
 
   const saveExecutable = async () => {
