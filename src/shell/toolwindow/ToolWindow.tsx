@@ -37,6 +37,7 @@ import type {
   RequestMessage,
   ResponseMessage,
 } from "@openkaava/bridge/protocol";
+import { relayPageEscape } from "./pageEscape";
 import { OPENED_EVENT, THEME_CHANGED_EVENT, TOPIC_EVENT_PREFIX } from "@openkaava/bridge/protocol";
 import { KaavaErrorCode } from "@openkaava/bridge/errors";
 import { appPainted, onLaunchTarget, onProjectChanged, takeLaunchTarget } from "../../bindings";
@@ -568,6 +569,8 @@ const ToolWindow = forwardRef<
   const pageInstance = pageSurface ? instances.get(pageSurface.instanceId) : undefined;
   const pageHostEl = pageSurface?.host ?? null;
   const pageInstanceId = pageInstance?.id ?? null;
+  const pageIdRef = useRef(pageInstanceId);
+  pageIdRef.current = pageInstanceId;
   const pageNeedsRect = pageInstance ? NEEDS_WINDOW_RECT.has(pageInstance.appId) : false;
   useEffect(() => {
     if (!pageHostEl || !pageInstanceId || !pageNeedsRect) return;
@@ -991,6 +994,14 @@ const ToolWindow = forwardRef<
       // table in `docs/tool-protocol.md` §1, reserved and unenforced today.
       if (method === "kaava/open") {
         answerOpen(params, respond, id);
+        return;
+      }
+
+      // Escape typed inside a frame, forwarded by the bridge because the shell's
+      // own key handler cannot hear it. Only the rail page's frame is honoured.
+      if (method === "kaava/escape") {
+        respond({ id, result: null });
+        relayPageEscape(frame.id, pageIdRef.current, document);
         return;
       }
 
