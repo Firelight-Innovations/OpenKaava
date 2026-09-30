@@ -1,5 +1,14 @@
 import { useState, useSyncExternalStore } from "react";
-import { ChevronRight, FileText, File as FileIcon, CornerDownLeft, X, Image } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  FileText,
+  File as FileIcon,
+  CornerDownLeft,
+  X,
+  Image,
+} from "lucide-react";
 import {
   contextRemove,
   terminalSetHarness,
@@ -9,6 +18,7 @@ import {
 } from "../../bindings";
 import { HARNESS_LABEL, insertItems } from "../contextInput";
 import { noticeFor, subscribe } from "../terminalNotice";
+import type { StripLayout } from "./contextLayout";
 import { useAgentSaw, useSeenThumb } from "./useAgentSaw";
 import { wasUpdated } from "./mergeContext";
 import { useContextItems, useHarnessInfo, useThumb } from "./useContextItems";
@@ -58,7 +68,16 @@ export function itemMeta(item: ContextItem): string {
  * change. Collapsible to a thin bar that keeps the count, and that choice is
  * remembered.
  */
-export default function ContextStrip({ sessionId }: { sessionId: string }) {
+export default function ContextStrip({
+  sessionId,
+  layout = "side",
+}: {
+  sessionId: string;
+  /** `side` is the column beside the terminal; `bottom` is the horizontal band
+   *  under it, for a tall narrow pane. Same actions either way. */
+  layout?: StripLayout;
+}) {
+  const bottom = layout === "bottom";
   const items = useContextItems(sessionId);
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const saw = useAgentSaw(sessionId);
@@ -77,7 +96,7 @@ export default function ContextStrip({ sessionId }: { sessionId: string }) {
 
   if (collapsed) {
     return (
-      <aside className="ctxstrip ctxstrip--collapsed" aria-label="Context">
+      <aside className={`ctxstrip ctxstrip--${layout} ctxstrip--collapsed`} aria-label="Context">
         <button
           type="button"
           className="ctxstrip__expand"
@@ -86,7 +105,9 @@ export default function ContextStrip({ sessionId }: { sessionId: string }) {
           aria-expanded={false}
         >
           <Image size={14} strokeWidth={1.5} aria-hidden />
+          {bottom && <span className="ctxstrip__title">Context</span>}
           <span className="ctxstrip__count">{count}</span>
+          {bottom && <ChevronUp size={14} strokeWidth={1.5} aria-hidden />}
         </button>
       </aside>
     );
@@ -95,11 +116,75 @@ export default function ContextStrip({ sessionId }: { sessionId: string }) {
   const value: Harness | "auto" = info?.overridden ?? "auto";
   const autoLabel = info?.detected ? HARNESS_LABEL[info.detected] : "plain shell";
 
+  const target = (
+    <label className="ctxstrip__target">
+      <span>Insert as</span>
+      <select
+        value={value}
+        onChange={(e) => {
+          void terminalSetHarness(sessionId, e.target.value as Harness | "auto").then(refresh);
+        }}
+      >
+        <option value="auto">Auto ({autoLabel})</option>
+        <option value="claude">Claude Code</option>
+        <option value="codex">Codex</option>
+        <option value="gemini">Gemini</option>
+        <option value="shell">Plain shell</option>
+      </select>
+    </label>
+  );
+
+  // In the band the plain "Show images the agent reads" link rides in the
+  // header row to save a row of height; the consent text and any error still
+  // need room, so they take their own row below the cards.
+  const footInHeader = bottom && !asking && !saw.error;
+  const foot = (
+    <footer className="ctxstrip__foot">
+      {saw.status?.installed ? (
+        <button type="button" className="ctxstrip__link" onClick={() => void saw.disable()}>
+          Stop tracking what the agent reads
+        </button>
+      ) : asking ? (
+        <div className="ctxstrip__consent" role="group" aria-label="Track what the agent reads">
+          <p>
+            Kaava will add a hook to{" "}
+            <code>{saw.status?.settingsPath ?? ".claude/settings.local.json"}</code> that records
+            the path of each file Claude Code reads, so images it looked at show here. Your other
+            settings are kept. Nothing leaves this machine, and you can remove it here at any time.
+          </p>
+          <div className="ctxstrip__consent-actions">
+            <button
+              type="button"
+              className="ctxstrip__link"
+              onClick={() => void saw.enable().then(() => setAsking(false))}
+            >
+              Add hook
+            </button>
+            <button type="button" className="ctxstrip__link" onClick={() => setAsking(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="ctxstrip__link" onClick={() => setAsking(true)}>
+          Show images the agent reads…
+        </button>
+      )}
+      {saw.error && (
+        <p className="ctxstrip__error" role="alert">
+          {saw.error}
+        </p>
+      )}
+    </footer>
+  );
+
   return (
-    <aside className="ctxstrip" aria-label="Context" onPointerEnter={refresh}>
+    <aside className={`ctxstrip ctxstrip--${layout}`} aria-label="Context" onPointerEnter={refresh}>
       <header className="ctxstrip__head">
         <span className="ctxstrip__title">Context</span>
         <span className="ctxstrip__total">{count}</span>
+        {bottom && target}
+        {footInHeader && foot}
         <button
           type="button"
           className="ctxstrip__icon"
@@ -107,25 +192,15 @@ export default function ContextStrip({ sessionId }: { sessionId: string }) {
           aria-label="Hide context"
           aria-expanded
         >
-          <ChevronRight size={14} strokeWidth={1.5} aria-hidden />
+          {bottom ? (
+            <ChevronDown size={14} strokeWidth={1.5} aria-hidden />
+          ) : (
+            <ChevronRight size={14} strokeWidth={1.5} aria-hidden />
+          )}
         </button>
       </header>
 
-      <label className="ctxstrip__target">
-        <span>Insert as</span>
-        <select
-          value={value}
-          onChange={(e) => {
-            void terminalSetHarness(sessionId, e.target.value as Harness | "auto").then(refresh);
-          }}
-        >
-          <option value="auto">Auto ({autoLabel})</option>
-          <option value="claude">Claude Code</option>
-          <option value="codex">Codex</option>
-          <option value="gemini">Gemini</option>
-          <option value="shell">Plain shell</option>
-        </select>
-      </label>
+      {!bottom && target}
 
       <div className="ctxstrip__scroll">
         {items.length > 0 && (
@@ -147,44 +222,7 @@ export default function ContextStrip({ sessionId }: { sessionId: string }) {
         )}
       </div>
 
-      <footer className="ctxstrip__foot">
-        {saw.status?.installed ? (
-          <button type="button" className="ctxstrip__link" onClick={() => void saw.disable()}>
-            Stop tracking what the agent reads
-          </button>
-        ) : asking ? (
-          <div className="ctxstrip__consent" role="group" aria-label="Track what the agent reads">
-            <p>
-              Kaava will add a hook to{" "}
-              <code>{saw.status?.settingsPath ?? ".claude/settings.local.json"}</code> that records
-              the path of each file Claude Code reads, so images it looked at show here. Your other
-              settings are kept. Nothing leaves this machine, and you can remove it here at any
-              time.
-            </p>
-            <div className="ctxstrip__consent-actions">
-              <button
-                type="button"
-                className="ctxstrip__link"
-                onClick={() => void saw.enable().then(() => setAsking(false))}
-              >
-                Add hook
-              </button>
-              <button type="button" className="ctxstrip__link" onClick={() => setAsking(false)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button type="button" className="ctxstrip__link" onClick={() => setAsking(true)}>
-            Show images the agent reads…
-          </button>
-        )}
-        {saw.error && (
-          <p className="ctxstrip__error" role="alert">
-            {saw.error}
-          </p>
-        )}
-      </footer>
+      {!footInHeader && foot}
     </aside>
   );
 }

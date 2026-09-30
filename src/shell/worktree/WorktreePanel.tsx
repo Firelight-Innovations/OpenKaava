@@ -37,6 +37,7 @@ import { GIT_KIND_LETTER, GIT_KIND_TOKEN } from "../contract";
 import { GitBranch as BranchGlyph } from "../../ui/Icon";
 import { READ_ONLY_HINT } from "../environment";
 import CommitGraph from "./CommitGraph";
+import { beginResize } from "../resizeGate";
 import { focusWithoutScrolling } from "./rowFocus";
 import { clampTopRatio, clipFloorPx, type PanelSection } from "./sectionFloor";
 import SourceControlView from "./SourceControlView";
@@ -268,6 +269,7 @@ export default function WorktreePanel({
       const startY = e.clientY;
       const startRatio = topRatio;
       let nextRatio = startRatio;
+      const endResize = beginResize();
 
       const onMove = (ev: PointerEvent) => {
         const delta = (ev.clientY - startY) / total;
@@ -286,6 +288,7 @@ export default function WorktreePanel({
         // panel means nothing in another window and has no business in
         // Rust's `shell:state`.
         setTopRatio(nextRatio);
+        endResize();
       };
 
       window.addEventListener("pointermove", onMove);

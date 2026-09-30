@@ -1,7 +1,7 @@
 import { forwardRef, useImperativeHandle, useRef } from "react";
 import type { TerminalSession, TerminalTransport } from "../contract";
 import XTermView, { type XTermHandle } from "./XTermView";
-import ContextStrip, { ContextNotice } from "./ContextStrip";
+import TerminalSlot from "./TerminalSlot";
 import "./terminal.css";
 
 export interface TerminalDeckHandle {
@@ -110,11 +110,12 @@ function TerminalDeck(
         const focused = isSplit && session.id === focusedId;
 
         return (
-          <div
+          <TerminalSlot
             key={session.id}
+            sessionId={session.id}
             className={isSplit ? "terminal__slot terminal__slot--split" : "terminal__slot"}
-            data-active={isActive || undefined}
-            data-focused={focused || undefined}
+            active={isActive}
+            focused={focused}
             style={
               isSplit
                 ? ({
@@ -140,12 +141,7 @@ function TerminalDeck(
               onFocus={isSplit ? () => onFocusPane(session.id) : undefined}
               fileDropActive={session.id === fileDropTargetId}
             />
-            {/* Mounted for every session, hidden slots included, so a strip
-                keeps its subscription and never refetches on a tab switch. It
-                renders nothing until the environment has context. */}
-            <ContextStrip sessionId={session.id} />
-            <ContextNotice sessionId={session.id} />
-          </div>
+          </TerminalSlot>
         );
       })}
 

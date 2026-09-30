@@ -53,6 +53,7 @@ vi.mock("../../bindings", () => ({
 
 import ContextStrip, { ContextNotice, formatSize, itemMeta } from "./ContextStrip";
 import { clear, notify } from "../terminalNotice";
+import { requestHarnessRefresh, resetHarnessRefresh } from "../harnessRefresh";
 
 function item(over: Partial<ContextItem> = {}): ContextItem {
   return {
@@ -109,10 +110,34 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   clear("t1");
+  resetHarnessRefresh();
   vi.clearAllMocks();
 });
 
 describe("ContextStrip", () => {
+  it("re-runs harness detection on a focus/title request and after an insert", async () => {
+    contextList.mockResolvedValue([item()]);
+    render(<ContextStrip sessionId="t1" />);
+    fireEvent.click(await screen.findByLabelText("Insert Play frame at the prompt"));
+    await waitFor(() => expect(terminalInsertItems).toHaveBeenCalled());
+    await waitFor(() => expect(terminalHarness.mock.calls.length).toBeGreaterThanOrEqual(2));
+    const afterInsert = terminalHarness.mock.calls.length;
+
+    // Inside the 2s window the request is held back, not dropped.
+    vi.useFakeTimers();
+    try {
+      requestHarnessRefresh("t1");
+      requestHarnessRefresh("t1");
+      expect(terminalHarness.mock.calls.length).toBe(afterInsert);
+      await act(async () => {
+        vi.advanceTimersByTime(2500);
+      });
+      expect(terminalHarness.mock.calls.length).toBe(afterInsert + 1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("renders nothing while the environment has no context", async () => {
     contextList.mockResolvedValue([]);
     const { container } = render(<ContextStrip sessionId="t1" />);
@@ -272,5 +297,46 @@ describe("chip text", () => {
     expect(
       itemMeta(item({ image: undefined, text: { chars: 1, lines: 1, truncated: false }, size: 5 })),
     ).toBe("1 line · 5 B");
+  });
+});
+
+describe.each(["side", "bottom"] as const)("ContextStrip in the %s layout", (layout) => {
+  it("offers the same controls and the same calls", async () => {
+    contextList.mockResolvedValue([item()]);
+    const { container } = render(<ContextStrip sessionId="t1" layout={layout} />);
+
+    expect(await screen.findByText("Play frame")).toBeTruthy();
+    expect(container.querySelector(`.ctxstrip--${layout}`)).not.toBeNull();
+    expect(screen.getByText("Insert as")).toBeTruthy();
+    expect(screen.getByLabelText("Hide context")).toBeTruthy();
+    expect(screen.getByText("Show images the agent reads…")).toBeTruthy();
+
+    fireEvent.click(screen.getByLabelText("Insert Play frame at the prompt"));
+    expect(terminalInsertItems).toHaveBeenCalledWith("t1", ["ctx_a"]);
+    fireEvent.click(screen.getByLabelText("Remove Play frame"));
+    expect(contextRemove).toHaveBeenCalledWith("t1", "ctx_a");
+
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "codex" } });
+    expect(terminalSetHarness).toHaveBeenCalledWith("t1", "codex");
+  });
+
+  it("asks before adding the hook, then enables it", async () => {
+    contextList.mockResolvedValue([item()]);
+    agentSawEnable.mockResolvedValue(undefined);
+    render(<ContextStrip sessionId="t1" layout={layout} />);
+    fireEvent.click(await screen.findByText("Show images the agent reads…"));
+    fireEvent.click(screen.getByText("Add hook"));
+    expect(agentSawEnable).toHaveBeenCalled();
+  });
+
+  it("collapses to its header with the count, and expands again", async () => {
+    contextList.mockResolvedValue([item(), item({ id: "ctx_b" })]);
+    render(<ContextStrip sessionId="t1" layout={layout} />);
+    fireEvent.click(await screen.findByLabelText("Hide context"));
+    expect(screen.queryByText("Play frame")).toBeNull();
+    expect(screen.getByLabelText("Show context, 2 items")).toBeTruthy();
+    expect(localStorage.getItem("kaava.contextStrip.collapsed")).toBe("1");
+    fireEvent.click(screen.getByLabelText("Show context, 2 items"));
+    expect((await screen.findAllByText("Play frame")).length).toBe(2);
   });
 });
