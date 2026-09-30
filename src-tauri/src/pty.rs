@@ -217,6 +217,14 @@ fn is_user_input(data: &str) -> bool {
     false
 }
 
+/// Whether a `cd` may be written into a session: nobody typed in it, and no
+/// program is running under its shell. Either one means the bytes would land in
+/// someone's input, or in a program's (an agent harness would read it as a
+/// prompt).
+pub fn may_retarget(typed: bool, has_child_process: bool) -> bool {
+    !typed && !has_child_process
+}
+
 /// The line that moves a shell into `dir`, quoted for its dialect.
 ///
 /// `cmd` needs `/d` to change drive as well as directory.
@@ -470,24 +478,57 @@ impl PtySessions {
         }
     }
 
-    /// Move every listed session that nobody has typed in to `dir`, and leave
-    /// the rest alone. Returns the ids that were moved.
+    /// Move every listed session that is an idle, untouched default shell to
+    /// `dir`, and leave the rest alone. Returns the ids that were moved.
+    ///
+    /// A session is moved only if [`may_retarget`] allows it: nobody has typed
+    /// in it, and the shell has no child process right now. Every session
+    /// opened by [`PtySessions::open`] is a plain default shell; there is no
+    /// startup-command path, and anything launched into a shell afterwards
+    /// arrives through [`PtySessions::write`], which marks it typed. The
+    /// remaining gap is a program started by the shell's own rc files, which
+    /// shows up as a child process only once it has actually spawned.
     ///
     /// The `cd` is written straight to the pty rather than through [`write`],
-    /// so it does not mark the session as used: a second project switch may
-    /// move it again.
+    /// so it does not mark the session as used.
     pub fn retarget_untyped(&self, ids: &[String], dir: &Path) -> Vec<String> {
+        let mut candidates: Vec<(String, Option<u32>)> = Vec::new();
+        {
+            let mut map = self.inner.lock_or_panic();
+            for id in ids {
+                if let Some(s) = map.get_mut(id) {
+                    if !s.typed {
+                        candidates.push((id.clone(), s.child.process_id()));
+                    }
+                }
+            }
+        }
+        if candidates.is_empty() {
+            return Vec::new();
+        }
+
+        let mut sys = sysinfo::System::new();
+        sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+        let has_child = |pid: Option<u32>| {
+            // An unknown pid cannot be shown idle, so it is treated as busy.
+            pid.is_none_or(|pid| {
+                sys.processes()
+                    .values()
+                    .any(|p| p.parent().is_some_and(|pp| pp.as_u32() == pid))
+            })
+        };
+
         let mut moved = Vec::new();
         let mut map = self.inner.lock_or_panic();
-        for id in ids {
-            let Some(s) = map.get_mut(id) else { continue };
-            if s.typed {
+        for (id, pid) in candidates {
+            let Some(s) = map.get_mut(&id) else { continue };
+            if !may_retarget(s.typed, has_child(pid)) {
                 continue;
             }
             let line = cd_line(crate::quoting::ShellFamily::of(&s.shell), dir);
             if s.writer.write_all(line.as_bytes()).is_ok() {
                 let _ = s.writer.flush();
-                moved.push(id.clone());
+                moved.push(id);
             }
         }
         moved
@@ -843,6 +884,23 @@ mod tests {
         assert!(is_user_input("l"));
         assert!(is_user_input("\r"));
         assert!(is_user_input("\u{1b}[1;1Rx"));
+    }
+
+    #[test]
+    fn only_an_untyped_shell_with_no_child_is_retargeted() {
+        assert!(may_retarget(false, false));
+        assert!(!may_retarget(true, false), "typed in");
+        assert!(!may_retarget(false, true), "a program is running under it");
+        assert!(!may_retarget(true, true));
+    }
+
+    #[test]
+    fn a_missing_session_is_skipped() {
+        let pty = PtySessions::default();
+        // An id with no session is skipped rather than moved.
+        assert!(pty
+            .retarget_untyped(&["nope".to_string()], Path::new("."))
+            .is_empty());
     }
 
     #[test]
