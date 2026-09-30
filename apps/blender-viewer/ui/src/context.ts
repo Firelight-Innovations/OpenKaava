@@ -5,14 +5,10 @@
  * item it becomes, so the viewer's buttons and its drag share one path.
  */
 import { invoke } from "@openkaava/bridge";
+import type { ContextRef } from "../../../shared/context";
 import type { BlenderPart, BlenderViewerState } from "./rpc";
 
-/** The slice of `ContextItem` this app reads back. */
-export interface ContextRef {
-  id: string;
-}
-
-const PRESS_THRESHOLD = 4;
+export { dragContext } from "../../../shared/context";
 
 /** The parts list as the plain text an agent reads: one line per object. */
 export function partsText(state: BlenderViewerState): string {
@@ -61,59 +57,4 @@ export function putGlb(state: BlenderViewerState) {
     label: "Blender - .glb",
     path: state.model,
   });
-}
-
-function tell(phase: "begin" | "end", items: string[]): void {
-  void invoke("kaava/drag", { phase, items }).catch((e: unknown) => {
-    console.error(`kaava: blender could not report a ${phase} drag`, e);
-  });
-}
-
-let endPrevious: (() => void) | null = null;
-
-/**
- * Press handler that turns a moved press into a drag of one context item. The
- * item is registered lazily, when the press becomes a drag, because most
- * presses are clicks and should not fill the store. Same split as Files: this
- * half reports begin and cancel; the shell owns the drop.
- */
-export function dragContext(put: () => Promise<ContextRef>) {
-  return (event: React.PointerEvent): void => {
-    if (event.button !== 0) return;
-    endPrevious?.();
-    const pointerId = event.pointerId;
-    const startX = event.clientX;
-    const startY = event.clientY;
-    let began = false;
-    let live = true;
-
-    const onMove = (e: PointerEvent) => {
-      if (e.pointerId !== pointerId || began) return;
-      if (Math.hypot(e.clientX - startX, e.clientY - startY) < PRESS_THRESHOLD) return;
-      began = true;
-      void put()
-        .then((item) => {
-          // Released while the put was in flight: there is nothing to drag.
-          if (live) tell("begin", [item.id]);
-        })
-        .catch((err: unknown) => console.error("kaava: blender could not add context", err));
-    };
-    const detach = () => {
-      live = false;
-      endPrevious = null;
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onEnd);
-      window.removeEventListener("pointercancel", onEnd);
-    };
-    const onEnd = (e: PointerEvent) => {
-      if (e.pointerId !== pointerId) return;
-      const wasDrag = began;
-      detach();
-      if (wasDrag) tell("end", []);
-    };
-    endPrevious = detach;
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onEnd);
-    window.addEventListener("pointercancel", onEnd);
-  };
 }
