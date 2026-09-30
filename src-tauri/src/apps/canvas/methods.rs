@@ -299,9 +299,15 @@ pub fn author(
         obj.remove("id");
         obj.remove("actor");
     }
+    // The layout needs each image's `kaavaRef` to place `{type: image, ref}`,
+    // and never its bytes, so an inline `dataURL` stays behind.
     let mut light = scene.clone();
-    if let Some(obj) = light.as_object_mut() {
-        obj.remove("files");
+    if let Some(files) = light.get_mut("files").and_then(Value::as_object_mut) {
+        for entry in files.values_mut() {
+            if let Some(obj) = entry.as_object_mut() {
+                obj.remove("dataURL");
+            }
+        }
     }
     let out = web.run(op, &json!({ "scene": light, "spec": spec }), None)?;
     let elements = out
@@ -681,7 +687,7 @@ mod tests {
         assert_eq!(saved["kaava"]["updated_by"], "agent");
         assert_eq!(saved["kaava"]["values"]["gravity"]["value"], 30);
         let (_, payload) = web.calls.borrow()[0].clone();
-        assert!(payload["scene"].get("files").is_none(), "images stay behind");
+        assert_eq!(payload["scene"]["files"], json!({}));
         assert!(payload["spec"].get("actor").is_none());
         let back = run(
             &dir,
@@ -696,6 +702,31 @@ mod tests {
         )
         .unwrap();
         assert_eq!(restored["elements"].as_array().unwrap().len(), 2);
+    }
+
+    /// The layout places `{type: image, ref: "refs/a.png"}` by finding that
+    /// `kaavaRef` in `files`. Dropping `files` to keep the payload small made
+    /// every image placement fail with "no reference image"; only the bytes
+    /// may stay behind.
+    #[test]
+    fn add_shapes_sends_image_refs_but_not_their_bytes() {
+        let dir = setup();
+        let mut with_image = scene();
+        with_image["files"] = json!({ "img1": { "id": "img1", "mimeType": "image/png",
+            "kaavaRef": "refs/a.png", "dataURL": "data:image/png;base64,AAAA" } });
+        std::fs::write(dir.path().join("canvas/game.json"), with_image.to_string()).unwrap();
+        let web = Fake::default();
+        run(
+            &dir,
+            &web,
+            "canvas/add-shapes",
+            json!({ "id": "game", "actor": "agent", "frame": { "id": "playfield" }, "shapes": [] }),
+        )
+        .unwrap();
+        let (_, payload) = web.calls.borrow()[0].clone();
+        let sent = &payload["scene"]["files"]["img1"];
+        assert_eq!(sent["kaavaRef"], "refs/a.png");
+        assert!(sent.get("dataURL").is_none(), "{sent}");
     }
 
     #[test]
