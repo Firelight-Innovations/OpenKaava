@@ -134,8 +134,9 @@ somebody was using, since both run from a binary of that name.
 
 `kaava-debug` and `kaava-ui` answer different questions. The debug server reads
 Rust-side truth — the state the backend holds and the failures it recorded — and
-is on by default in every build, because a shipped OpenKaava misbehaving on a machine
-none of us have is exactly when that is worth the most. The UI server sees pixels
+is developer-only like the UI server (it was on by default in every build until
+`echo` and `debug` were moved behind developer mode; it is still compiled into
+release, so turning developer mode on is enough to diagnose a shipped build). The UI server sees pixels
 and the DOM, and can act on them.
 
 The debug server's ring buffer also keeps failures from *before* a tool connected,

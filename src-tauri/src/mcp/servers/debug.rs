@@ -16,8 +16,8 @@
 //!
 //! [`super::agent`] hosts these three by delegation, next to the tools that
 //! drive the window; prefer it while *working on* OpenKaava. This module is what
-//! diagnoses a shipped build, being the one there without developer mode —
-//! which is why both are registered rather than one replacing the other.
+//! diagnoses a build with only the reads. Both need developer mode, and both
+//! are registered rather than one replacing the other.
 
 use crate::diagnostics::diagnostics;
 use crate::mcp::{McpServer, McpTool, ToolAnswer};
@@ -33,9 +33,9 @@ pub static SERVER: McpServer = McpServer {
     description: "Read the running shell: its layout, its recent failures, and how boot went.",
     tools: TOOLS,
     call,
-    // Read-only, and useful to anybody diagnosing an OpenKaava that is misbehaving —
-    // which is not only the people who write it. See the module doc.
-    dev_only: false,
+    // Read-only, but a diagnostic surface for whoever is working on OpenKaava, so
+    // it sits behind developer mode with `ui` and `agent`. See the module doc.
+    dev_only: true,
 };
 
 /// How many records [`recent_errors`] returns when it is not told.
