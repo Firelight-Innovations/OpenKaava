@@ -274,3 +274,44 @@ describe("chip text", () => {
     ).toBe("1 line · 5 B");
   });
 });
+
+describe.each(["side", "bottom"] as const)("ContextStrip in the %s layout", (layout) => {
+  it("offers the same controls and the same calls", async () => {
+    contextList.mockResolvedValue([item()]);
+    const { container } = render(<ContextStrip sessionId="t1" layout={layout} />);
+
+    expect(await screen.findByText("Play frame")).toBeTruthy();
+    expect(container.querySelector(`.ctxstrip--${layout}`)).not.toBeNull();
+    expect(screen.getByText("Insert as")).toBeTruthy();
+    expect(screen.getByLabelText("Hide context")).toBeTruthy();
+    expect(screen.getByText("Show images the agent reads…")).toBeTruthy();
+
+    fireEvent.click(screen.getByLabelText("Insert Play frame at the prompt"));
+    expect(terminalInsertItems).toHaveBeenCalledWith("t1", ["ctx_a"]);
+    fireEvent.click(screen.getByLabelText("Remove Play frame"));
+    expect(contextRemove).toHaveBeenCalledWith("t1", "ctx_a");
+
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "codex" } });
+    expect(terminalSetHarness).toHaveBeenCalledWith("t1", "codex");
+  });
+
+  it("asks before adding the hook, then enables it", async () => {
+    contextList.mockResolvedValue([item()]);
+    agentSawEnable.mockResolvedValue(undefined);
+    render(<ContextStrip sessionId="t1" layout={layout} />);
+    fireEvent.click(await screen.findByText("Show images the agent reads…"));
+    fireEvent.click(screen.getByText("Add hook"));
+    expect(agentSawEnable).toHaveBeenCalled();
+  });
+
+  it("collapses to its header with the count, and expands again", async () => {
+    contextList.mockResolvedValue([item(), item({ id: "ctx_b" })]);
+    render(<ContextStrip sessionId="t1" layout={layout} />);
+    fireEvent.click(await screen.findByLabelText("Hide context"));
+    expect(screen.queryByText("Play frame")).toBeNull();
+    expect(screen.getByLabelText("Show context, 2 items")).toBeTruthy();
+    expect(localStorage.getItem("kaava.contextStrip.collapsed")).toBe("1");
+    fireEvent.click(screen.getByLabelText("Show context, 2 items"));
+    expect((await screen.findAllByText("Play frame")).length).toBe(2);
+  });
+});

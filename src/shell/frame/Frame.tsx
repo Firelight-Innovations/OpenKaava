@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { animate, motion, useMotionValue } from "framer-motion";
 import type { FrameSlots, WindowKind } from "../contract";
 import { settle } from "../motion";
+import { beginResize } from "../resizeGate";
 import { pageGeometry, pageWidthFromPointer } from "./pageGeometry";
 import "./frame.css";
 
@@ -200,6 +201,7 @@ export default function Frame({
         // Optimisation only; the window listeners below are the mechanism.
       }
       bottomDragging.current = true;
+      const endResize = beginResize();
 
       const colRect = col.getBoundingClientRect();
       const colBottom = colRect.bottom;
@@ -238,6 +240,7 @@ export default function Frame({
 
       const onUp = () => {
         bottomDragging.current = false;
+        endResize();
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);
@@ -284,6 +287,7 @@ export default function Frame({
         // actually track the drag.
       }
       pageDragging.current = true;
+      const endResize = beginResize();
 
       const rowRight = row.getBoundingClientRect().right;
 
@@ -294,6 +298,7 @@ export default function Frame({
 
       const onUp = () => {
         pageDragging.current = false;
+        endResize();
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);

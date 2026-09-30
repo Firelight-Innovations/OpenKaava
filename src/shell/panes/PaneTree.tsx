@@ -22,6 +22,7 @@ import { useDropZone } from "../dropZones";
 import { paneLeaves } from "../contract";
 import type { ClusterMember, PaneNode, PaneTreeProps, SplitDir } from "../contract";
 import { dropLabel } from "../dropLabel";
+import { beginResize } from "../resizeGate";
 import { clampDividerShare, MIN_PANE_HEIGHT_PX, MIN_PANE_WIDTH_PX } from "./paneMinSize";
 import PaneTabStrip from "./PaneTabStrip";
 import "./panes.css";
@@ -120,6 +121,7 @@ function Split({
       const pair = before + after;
 
       let nextBefore = before;
+      const endResize = beginResize();
 
       const onMove = (ev: PointerEvent) => {
         const moved = (row ? ev.clientX : ev.clientY) - start;
@@ -141,6 +143,8 @@ function Split({
         sizes[index - 1] = nextBefore;
         sizes[index] = pair - nextBefore;
         props.onResize(split.id, sizes);
+        // After the sizes are committed, so the one fit sees the final layout.
+        endResize();
       };
 
       window.addEventListener("pointermove", onMove);

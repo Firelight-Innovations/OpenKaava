@@ -5,6 +5,8 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import type { TerminalTransport } from "../contract";
 import { useDropZone } from "../dropZones";
 import { attachClipboard } from "./clipboard";
+import { createFitController } from "./fitController";
+import { isResizing, subscribeResizing } from "../resizeGate";
 import { pasteImage } from "../contextInput";
 // Imported here, not from a global entry, so nothing pays for xterm's CSS
 // until a terminal actually mounts — the tool window and every other region
@@ -178,54 +180,31 @@ function XTermView(
 
     // Fits are driven by a `ResizeObserver` on the container, not `window`'s
     // resize event — the panel is resized by a drag handle and by collapse,
-    // neither of which touches the window. Coalesced to one fit per repaint
-    // so a drag doesn't emit hundreds of pty resizes a second.
-    let rafHandle: number | null = null;
-    const runFit = () => {
-      rafHandle = null;
-      // A hidden terminal (the deck sets `display: none` on the inactive
-      // ones) or one that hasn't been laid out yet measures 0×0 — checked
-      // against this element's own rect, not `FitAddon.proposeDimensions()`.
-      // `proposeDimensions` reads its *parent's* `getComputedStyle(...).width`
-      // and runs it through `parseInt`; with a `display: none` ancestor that
-      // percentage can't resolve to a pixel value, so the browser hands back
-      // the literal string `"100%"` and `parseInt` truncates that to `100` —
-      // a small but finite, non-zero number that sails straight past a
-      // `cols <= 0` guard. Measured this way instead, a hidden container
-      // reliably reports zero. Fitting to a degenerate size would hand the
-      // pty a corrupt viewport, and a pty that disagrees with the emulator
-      // about its size renders a corrupt frame — so skip and wait for the
-      // next real measurement. The observer fires again on the 0→real
-      // transition when the deck makes this one visible, which is what
-      // re-establishes the correct size without any extra wiring here.
-      const rect = container.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return;
-
-      const dims = fitAddon.proposeDimensions();
-      if (
-        !dims ||
-        !Number.isFinite(dims.cols) ||
-        !Number.isFinite(dims.rows) ||
-        dims.cols <= 0 ||
-        dims.rows <= 0
-      ) {
-        return;
-      }
-      fitAddon.fit();
-      transport.resize(id, dims.cols, dims.rows);
-    };
-    const scheduleFit = () => {
-      if (rafHandle !== null) return;
-      rafHandle = requestAnimationFrame(runFit);
-    };
-
-    const observer = new ResizeObserver(scheduleFit);
+    // neither of which touches the window. The policy — no fit during a
+    // splitter drag, one fit on release, debounced otherwise — is
+    // `fitController.ts`; this only supplies the measurements.
+    const controller = createFitController({
+      isResizing,
+      subscribeResizing,
+      measure: () => container.getBoundingClientRect(),
+      propose: () => fitAddon.proposeDimensions(),
+      fit: () => fitAddon.fit(),
+      resize: (cols, rows) => transport.resize(id, cols, rows),
+    });
+    // A hidden terminal (the deck sets `display: none` on the inactive ones)
+    // measures 0x0 by this element's own rect, and the controller skips it. It
+    // is not measured with `FitAddon.proposeDimensions()`, which reads its
+    // parent's computed width through `parseInt`: under `display: none` that
+    // is the string "100%", which parses to a small finite 100 and sails past
+    // a `cols <= 0` guard. The observer fires again on the 0 to real
+    // transition, which is what re-establishes the size on a tab switch.
+    const observer = new ResizeObserver(controller.notify);
     observer.observe(container);
-    scheduleFit(); // the container already has its first-paint size by now.
+    controller.notify(); // the container already has its first-paint size by now.
 
     return () => {
       observer.disconnect();
-      if (rafHandle !== null) cancelAnimationFrame(rafHandle);
+      controller.dispose();
       onData.dispose();
       onTitleChange.dispose();
       detachClipboard();
