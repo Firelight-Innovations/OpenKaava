@@ -54,6 +54,8 @@ export interface KeyboardActions {
   commandPalette(): void;
   /** Ctrl+Shift+A — the app picker. */
   openApp(): void;
+  /** Ctrl+Alt+P and Shift+Alt+P — open the Switch project dialog (board 08). */
+  switchProject(): void;
   /** Ctrl+B */
   togglePanel(): void;
   /** Ctrl+` */
@@ -160,6 +162,40 @@ export const CHORDS: Record<string, Chord> = {
   },
 };
 
+/** One Alt-modified binding. `code` is the physical key, not the character. */
+export interface AltChord {
+  code: string;
+  ctrl: boolean;
+  shift: boolean;
+  run: ChordRun;
+}
+
+/**
+ * The bindings that hold Alt, kept apart from `CHORDS` because not all of them
+ * hold Ctrl — Shift+Alt+P is here because it is what Braden reached for first.
+ *
+ * Matched on `e.code` rather than `e.key`: with Alt held, `key` is whatever the
+ * layout's Alt layer produces, which on several layouts is not the letter at
+ * all. The modifiers are matched exactly, so Ctrl+Shift+Alt+P is neither.
+ */
+// Exported for `shortcuts.test.ts`, the same as `CHORDS`.
+export const ALT_CHORDS: AltChord[] = [
+  { code: "KeyP", ctrl: true, shift: false, run: (a) => a.switchProject },
+  { code: "KeyP", ctrl: false, shift: true, run: (a) => a.switchProject },
+];
+
+/** The `ALT_CHORDS` row this event is, if any. Pure, for the test. */
+export function altChordFor(
+  e: Pick<KeyboardEvent, "code" | "altKey" | "ctrlKey" | "shiftKey" | "metaKey">,
+): AltChord | null {
+  if (!e.altKey || e.metaKey) return null;
+  return (
+    ALT_CHORDS.find(
+      (row) => row.code === e.code && row.ctrl === e.ctrlKey && row.shift === e.shiftKey,
+    ) ?? null
+  );
+}
+
 /**
  * The menu-bar accelerators, in one table. `true` when the key was ours.
  *
@@ -231,6 +267,16 @@ export function useKeyboard(actions: KeyboardActions): void {
       if (e.key === "F11" && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
         e.preventDefault();
         a.toggleFullscreen();
+        return;
+      }
+
+      // Alt chords ahead of the primary-modifier gate, since Shift+Alt+P
+      // holds no Ctrl. Ahead of the text-entry guard too: no Alt chord is
+      // typing, and the dialog these open is itself mostly a text field.
+      const alt = altChordFor(e);
+      if (alt) {
+        e.preventDefault();
+        alt.run(a)();
         return;
       }
 

@@ -113,6 +113,14 @@ pub fn call(
         )),
         "home/close-project" => shape(project::close(app, context.require_cluster()?)),
 
+        // A project's `.kaava/icon.*` as a `data:` URL, or null for the letter
+        // tile — the same answer the shell's `project_icon` command gives, for a
+        // pane that can only reach Rust through this dispatcher. Read-only:
+        // setting one needs a picker, and Home's pickers are for folders.
+        "home/project-icon" => Ok(json!({
+            "icon": project::icon::data_url(&path_param(params.as_ref())?),
+        })),
+
         // Opens the shell's app library rather than a folder picker.
         //
         // A `home/*` method rather than a Tauri command, because Home is an
