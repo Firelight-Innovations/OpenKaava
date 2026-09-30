@@ -15,8 +15,7 @@ export interface DockedPageProps {
  *
  * Width, the resize handle and the aside's background/border/radius all
  * belong to `Frame` (`frame.css`'s `.frame__page` / `.frame__pagehandle`,
- * driven by `projectPageWidth`/`onProjectPageWidthChange`) for the same
- * reason `slots.secondaryPanel` carries none of those either: the thing
+ * driven by `projectPageWidth`/`onProjectPageWidthChange`): the thing
  * being resized is the split, and `Frame` is the one place that already
  * owns a split's geometry. This component only ever fills the box it is
  * handed.

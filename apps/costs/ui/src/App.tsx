@@ -102,8 +102,11 @@ export default function App() {
                 Last refresh failed: {rpc.messageOf(failure)}. Showing the previous estimate.
               </p>
             )}
-            <Summary estimate={estimate} />
-            <CostCharts estimate={estimate} trends={trends} />
+            <CostCharts
+              estimate={estimate}
+              trends={trends}
+              summary={<Summary estimate={estimate} />}
+            />
             {estimate.problems.length > 0 && (
               <section className="costs__problems" aria-label="Parts that could not be read">
                 {estimate.problems.map((p) => (

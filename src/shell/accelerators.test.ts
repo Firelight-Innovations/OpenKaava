@@ -40,8 +40,8 @@ function stubHandlers(view: Partial<MenuHandlers["view"]> = {}): MenuHandlers {
     file: { newWindow: noop, openProject: noop, openRecent: noop, closeWindow: noop },
     view: {
       commandPalette: noop,
-      panelCollapsed: false,
-      togglePanel: noop,
+      sourceControlShowing: false,
+      toggleSourceControl: noop,
       terminalShowing: false,
       toggleTerminal: noop,
       fullscreen: false,
@@ -101,7 +101,7 @@ describe("the menu bar", () => {
     // and a glyph could hide in the half that is off by default.
     const off = defaultMenus(stubHandlers());
     const on = defaultMenus(
-      stubHandlers({ panelCollapsed: true, terminalShowing: true, fullscreen: true }),
+      stubHandlers({ sourceControlShowing: true, terminalShowing: true, fullscreen: true }),
     );
     expect(offenders(stringsIn([off, on]))).toEqual([]);
   });

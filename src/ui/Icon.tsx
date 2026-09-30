@@ -136,7 +136,7 @@ export function GitBranch({
   );
 }
 
-/** Collapses the secondary panel. */
+/** A submenu's disclosure arrow (`MenuItemList`). */
 export function ChevronRight({ size = 13, className }: IconProps) {
   return (
     <Outline size={size} className={className} linejoin="round">
@@ -145,7 +145,7 @@ export function ChevronRight({ size = 13, className }: IconProps) {
   );
 }
 
-/** Restores it from the collapsed strip. */
+/** The mirror of `ChevronRight`. */
 export function ChevronLeft({ size = 13, className }: IconProps) {
   return (
     <Outline size={size} className={className} linejoin="round">

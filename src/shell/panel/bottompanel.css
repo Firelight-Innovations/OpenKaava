@@ -3,8 +3,8 @@
  * emulator deck filling the rest.
  *
  * This renders into `.frame__bottom`, which owns the band's height and its
- * collapse — nothing here sets a height, for the same reason `panel.css` sets
- * no width. Two owners of one dimension is how a resize drag ends up fighting
+ * collapse — nothing here sets a height, for the same reason the docked page
+ * sets no width. Two owners of one dimension is how a resize drag ends up fighting
  * a stylesheet.
  */
 

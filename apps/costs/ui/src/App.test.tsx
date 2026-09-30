@@ -305,4 +305,17 @@ describe("Cost Tracker", () => {
 
     for (const chart of charts) expect(chart.dispose).toHaveBeenCalledTimes(1);
   });
+
+  it("puts the headline figures in the same hero as C1, so the layout can place them beside it", async () => {
+    mockRpc(estimate);
+    const { container } = render(<App />);
+    await screen.findByText("Estimated so far in September");
+
+    const hero = container.querySelector(".costs__hero");
+    expect(hero).not.toBeNull();
+    expect(hero?.querySelector(".costs__summary")).not.toBeNull();
+    expect(hero?.querySelector(".costs__hero-chart")).not.toBeNull();
+    // Unmeasured width reads as docked: no expanded modifier.
+    expect(hero?.className).not.toContain("costs__hero--expanded");
+  });
 });

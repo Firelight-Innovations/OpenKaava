@@ -88,9 +88,10 @@ export interface FileMenuHandlers {
 /** The View menu. Almost all of it is `WindowRoot`'s own state. */
 export interface ViewMenuHandlers {
   commandPalette(): void;
-  panelCollapsed: boolean;
-  togglePanel(): void;
-  /** Whether the panel is open *and* showing a terminal rather than the worktree. */
+  /** Whether the rail's Git page, which holds source control, is open. */
+  sourceControlShowing: boolean;
+  toggleSourceControl(): void;
+  /** Whether the terminal band is open. */
   terminalShowing: boolean;
   toggleTerminal(): void;
   fullscreen: boolean;
@@ -340,13 +341,13 @@ export function defaultMenus(handlers: MenuHandlers): Menu[] {
       items: [
         { label: "Command Palette…", accelerator: "Ctrl+Shift+P", onSelect: view.commandPalette },
         // The three toggles say which way they will go rather than reading
-        // "Toggle …", so the menu answers "is the panel open?" without the user
+        // "Toggle …", so the menu answers "is it open?" without the user
         // having to close it to find out.
         {
-          label: view.panelCollapsed ? "Show Secondary Panel" : "Hide Secondary Panel",
+          label: view.sourceControlShowing ? "Hide Source Control" : "Show Source Control",
           accelerator: "Ctrl+B",
           separatorBefore: true,
-          onSelect: view.togglePanel,
+          onSelect: view.toggleSourceControl,
         },
         {
           label: view.terminalShowing ? "Hide Terminal" : "Show Terminal",
