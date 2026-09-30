@@ -1396,8 +1396,13 @@ export default function WindowRoot({
   //
   // `Cluster.worktree` is populated now, and `gitControl` resolves a cluster
   // through `project::cluster_path`, which follows the worktree when there is
-  // one and the project when there is not.
-  const git = useGitStatus(gitControl, activeClusterId);
+  // one and the project when there is not. The same pair is the third argument,
+  // so a repointed cluster re-asks.
+  const git = useGitStatus(
+    gitControl,
+    activeClusterId,
+    activeCluster?.worktree?.path ?? activeCluster?.project ?? null,
+  );
 
   // Whether a newer OpenKaava exists. Per-window, but not a per-window *answer*:
   // the state is one value in Rust and arrives on `updater:changed`, so two

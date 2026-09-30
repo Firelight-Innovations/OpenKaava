@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { KaavaRpcError, invoke, openIn, reportPainted } from "@openkaava/bridge";
+import { KaavaRpcError, invoke, on, openIn, reportPainted } from "@openkaava/bridge";
 import { PRODUCT_NAME, TAGLINE, WORDMARK } from "./branding.generated";
 import { Book, Close, FolderOpen, FolderPlus, GitBranch, Mark, PackagePlus } from "./icons";
 import NewProject from "./NewProjectPage";
@@ -193,21 +193,31 @@ export default function App() {
     [pending, checkWorktree],
   );
 
+  // Read on mount, and again whenever this cluster is repointed by something
+  // other than Home: the title bar's switcher, an agent's `set_project`. The
+  // shell relays `project:changed` only into frames in the cluster it names,
+  // so every one that arrives here is about this Home's own cluster.
   useEffect(() => {
     let live = true;
 
-    void invoke<State>("home/state")
-      .then((next) => {
-        if (live) {
-          setState(next);
-          setError(null);
-        }
-      })
-      .catch((e: unknown) => {
-        if (live) setError(describe(e));
-      });
+    const read = () => {
+      void invoke<State>("home/state")
+        .then((next) => {
+          if (live) {
+            setState(next);
+            setError(null);
+          }
+        })
+        .catch((e: unknown) => {
+          if (live) setError(describe(e));
+        });
+    };
+
+    read();
+    const stop = on("project:changed", read);
 
     return () => {
+      stop();
       live = false;
     };
   }, []);
