@@ -168,6 +168,7 @@ export default function App() {
             {list.source === "fixture" && <span className="projects__badge">fixture</span>}
           </span>
         )}
+        {!list && <span className="app__host">{blocking ? "not connected" : "connecting…"}</span>}
       </header>
       <div className="app__body projects__body">
         {blocking ? (

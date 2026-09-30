@@ -205,6 +205,7 @@ describe("Projects", () => {
     );
     render(<App />);
     expect(await screen.findByText("Reading Projects timed out")).toBeTruthy();
+    expect(screen.getByText("not connected")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
   });
 
