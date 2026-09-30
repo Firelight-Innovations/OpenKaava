@@ -135,8 +135,8 @@ static APPEARANCE_SETTINGS: &[Setting] = &[
         description: "Tabs, menus, labels. The bundled fallbacks stay behind whatever you name, \
                       so a font this machine does not have degrades rather than breaks.",
         control: Control::Text {
-            default: "IBM Plex Sans",
-            placeholder: "IBM Plex Sans",
+            default: "Inter",
+            placeholder: "Inter",
         },
         applies: Applies::Now,
     },

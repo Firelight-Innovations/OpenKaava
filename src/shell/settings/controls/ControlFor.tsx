@@ -67,6 +67,7 @@ export default function ControlFor({
     case "select":
       return (
         <SelectControl
+          settingKey={setting.key}
           options={control.options}
           value={typeof stored === "string" ? stored : control.default}
           label={setting.title}
