@@ -77,13 +77,13 @@
 
 .diff__add-glyph:hover {
   background-image:
-    linear-gradient(#d98a3f, #d98a3f), linear-gradient(#d98a3f, #d98a3f); /* --accent */
+    linear-gradient(var(--accent), var(--accent)), linear-gradient(var(--accent), var(--accent));
 }
 
 /* A filled dot: a line somebody has already written on. --accent, so a note
    reads as the one thing on this surface a person put there by hand. */
 .diff__noted-glyph {
-  background-image: radial-gradient(circle, #d98a3f 0 3px, transparent 3px);
+  background-image: radial-gradient(circle, var(--accent) 0 3px, transparent 3px);
   background-size: 100% 100%;
 }
 

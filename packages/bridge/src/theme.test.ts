@@ -5,7 +5,7 @@
 // bridge is otherwise pure protocol code with no DOM), so this file opts in
 // alone, the same convention the root `vitest.config.ts` documents.
 import { afterEach, describe, expect, it } from "vitest";
-import { applyTheme, parseThemePayload } from "./theme.js";
+import { accentThemeColors, applyTheme, hexWithAlpha, parseThemePayload } from "./theme.js";
 import type { ThemeChangedPayload } from "./protocol.js";
 
 describe("parseThemePayload", () => {
@@ -58,5 +58,34 @@ describe("applyTheme", () => {
     applyTheme({ theme: "dark", accent: "coral" });
     applyTheme({ theme: "dark", accent: "green" });
     expect(document.documentElement.style.getPropertyValue("--accent")).toBe("var(--accent-green)");
+  });
+});
+
+describe("hexWithAlpha", () => {
+  it("writes 8-digit hex, never rgba()", () => {
+    expect(hexWithAlpha("#3f76ff", 0.25)).toBe("#3f76ff40");
+    expect(hexWithAlpha("#3f76ff", 1)).toBe("#3f76ffff");
+  });
+
+  it("reads short hex and rgb() the way a computed style may hand them back", () => {
+    expect(hexWithAlpha("#fff", 0)).toBe("#ffffff00");
+    expect(hexWithAlpha("rgb(76, 184, 99)", 0.08)).toBe("#4cb86314");
+  });
+
+  it("falls back to the default accent, not to red, when it cannot parse", () => {
+    expect(hexWithAlpha("", 1)).toBe("#3f76ffff");
+    expect(hexWithAlpha("var(--nope)", 1)).toBe("#3f76ffff");
+  });
+});
+
+describe("accentThemeColors", () => {
+  afterEach(() => document.documentElement.style.removeProperty("--accent"));
+
+  it("follows the live --accent rather than a fixed amber", () => {
+    document.documentElement.style.setProperty("--accent", "#a585f0");
+    const colors = accentThemeColors();
+    expect(colors.focusBorder).toBe("#a585f0ff");
+    expect(colors["editor.selectionBackground"]).toBe("#a585f040");
+    expect(Object.values(colors).join(" ")).not.toContain("d98a3f");
   });
 });
