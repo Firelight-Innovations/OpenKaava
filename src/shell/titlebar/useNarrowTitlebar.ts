@@ -1,7 +1,7 @@
 /**
  * The responsive rule, measured.
  *
- * "Below roughly 1100px [the inline menu block and the centred title] collide
+ * "Below roughly 1180px [the inline menu block and the centred title] collide
  * — collapse the six menu items into a single hamburger button." The spec
  * calls for `matchMedia` with a listener rather than a `ResizeObserver` on the
  * bar, so the collapse tracks the *window's* width — the thing the rule is
@@ -10,7 +10,7 @@
  */
 import { useEffect, useState } from "react";
 
-const QUERY = "(max-width: 1099px)";
+const QUERY = "(max-width: 1179px)";
 
 export function useNarrowTitlebar(): boolean {
   const [narrow, setNarrow] = useState(() => window.matchMedia(QUERY).matches);

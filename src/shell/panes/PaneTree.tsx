@@ -58,6 +58,9 @@ function Node({ node, ...props }: PaneTreeProps & { node: PaneNode }) {
   return node.kind === "leaf" ? <Pane leaf={node} {...props} /> : <Split split={node} {...props} />;
 }
 
+/** `.pane-split`'s `gap`, which `--space-1-5` sets to 6px. */
+const SEAM_PX = 6;
+
 // --- splits -----------------------------------------------------------------
 
 function Split({
@@ -105,7 +108,11 @@ function Split({
       }
 
       const rect = container.getBoundingClientRect();
-      const total = row ? rect.width : rect.height;
+      // The space the shares divide is the box less the seams between panes:
+      // shares are flex-grow weights over that free space, so 1:1 tracking
+      // needs the same denominator.
+      const gaps = (split.children.length - 1) * SEAM_PX;
+      const total = (row ? rect.width : rect.height) - gaps;
       if (total <= 0) return;
       // The pixel floor is on the axis the divider actually moves along: a
       // row split's panes sit side by side, so it is their *width* that must
@@ -128,8 +135,8 @@ function Split({
 
         const first = childRefs.current[index - 1];
         const second = childRefs.current[index];
-        if (first) first.style.flexBasis = `${nextBefore * 100}%`;
-        if (second) second.style.flexBasis = `${(pair - nextBefore) * 100}%`;
+        if (first) first.style.flexGrow = `${nextBefore}`;
+        if (second) second.style.flexGrow = `${pair - nextBefore}`;
       };
 
       const onUp = () => {
@@ -147,7 +154,7 @@ function Split({
       window.addEventListener("pointerup", onUp);
       window.addEventListener("pointercancel", onUp);
     },
-    [row, split.id, split.sizes, props],
+    [row, split.id, split.sizes, split.children.length, props],
   );
 
   return (
@@ -173,7 +180,7 @@ function Split({
             }}
             style={
               maximizedPaneId
-                ? { flexBasis: holds ? "100%" : undefined, display: holds ? undefined : "none" }
+                ? { flexGrow: holds ? 1 : undefined, display: holds ? undefined : "none" }
                 : // The authored share: a fraction of the parent, one per child,
                   // summing to 1 — the same numbers `layout::PaneNode` stores,
                   // because the window is resizable and a layout in pixels
@@ -182,7 +189,7 @@ function Split({
                   // overwrites this inline for the duration of the gesture; the
                   // next render from `shell:state` puts the committed value
                   // back, which is the same number.
-                  { flexBasis: `${(split.sizes[i] ?? 1 / split.children.length) * 100}%` }
+                  { flexGrow: split.sizes[i] ?? 1 / split.children.length }
             }
           >
             <Node node={child} {...props} />

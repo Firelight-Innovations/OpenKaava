@@ -843,8 +843,6 @@ export interface FrameSlots {
   titleBar: ReactNode;
   /** Omitted in a detached window. */
   switcherBar?: ReactNode;
-  /** The environment bar (`docs/design/KAAVA-UX-SPEC.md` §1.4). Omitted while no cluster is open. */
-  envBar?: ReactNode;
   toolWindow: ReactNode;
   /** The terminal band, under the tool window and stopping at the docked
    *  page's edge — `.frame__main` in frame.css says why it does not span the

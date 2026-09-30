@@ -44,6 +44,7 @@ import { toggleMaximize } from "./panes/paneMaximize";
 import BottomPanel from "./panel/BottomPanel";
 import StatusBar from "./statusbar/StatusBar";
 import EnvironmentBar from "./envbar/EnvironmentBar";
+import ReviewMergeButton from "./titlebar/ReviewMergeButton";
 import SearchSlot from "./search/SearchSlot";
 import SearchOverlay from "./search/SearchOverlay";
 import { useSearchSession } from "./search/useSearchSession";
@@ -1944,6 +1945,24 @@ export default function WindowRoot({
               environmentCount={environmentCount}
               onOpenProjectSwitcher={onOpenProjectSwitcher}
               menus={menus}
+              environmentSlot={
+                environment !== null && (
+                  <EnvironmentBar
+                    environment={environment}
+                    ahead={git.status?.ahead}
+                    behind={git.status?.behind}
+                  />
+                )
+              }
+              actionsSlot={
+                <>
+                  <SearchSlot open={searchExpanded} onOpen={openSearch} />
+                  {environment !== null &&
+                    (environment.kind === "worktree" || environment.kind === "design") && (
+                      <ReviewMergeButton onClick={onReviewAndMerge} />
+                    )}
+                </>
+              }
             />
           ),
           // Present in *every* window now, where it used to be omitted from a
@@ -1972,18 +1991,6 @@ export default function WindowRoot({
               }
               healthOf={stackTools}
               onRescan={onRescan}
-              searchSlot={<SearchSlot open={searchExpanded} onOpen={openSearch} />}
-            />
-          ),
-          // Omitted while no cluster is open — see the slot's own doc comment
-          // in contract.ts. `onReviewAndMerge` opens the Git page on its
-          // Source Control tab.
-          envBar: environment !== null && (
-            <EnvironmentBar
-              environment={environment}
-              ahead={git.status?.ahead}
-              behind={git.status?.behind}
-              onReviewAndMerge={onReviewAndMerge}
             />
           ),
           toolWindow: (

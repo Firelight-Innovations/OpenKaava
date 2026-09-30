@@ -1075,6 +1075,19 @@ export function toggleHostMaximize(): Promise<void> {
   return getCurrentWindow().toggleMaximize();
 }
 
+export function hostWindowIsMaximized(): Promise<boolean> {
+  return getCurrentWindow().isMaximized();
+}
+
+/**
+ * Calls `handler` whenever the window is resized, which is how a maximise or a
+ * restore announces itself (Tauri has no dedicated event for either). Returns
+ * the unlisten function.
+ */
+export function onHostWindowResized(handler: () => void): Promise<UnlistenFn> {
+  return getCurrentWindow().onResized(handler);
+}
+
 export function hostWindowIsFullscreen(): Promise<boolean> {
   return getCurrentWindow().isFullscreen();
 }
