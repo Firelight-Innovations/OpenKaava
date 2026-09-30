@@ -29,3 +29,12 @@ export function pageGeometry(
     expanded: showExpanded,
   };
 }
+
+/** `.frame__rail`'s `margin-left`: the docked page ends here, not at the rail. */
+export const PROJECT_RAIL_GAP = 6;
+
+/** The docked page's width with its handle dragged to `clientX`. The rail's
+ *  margin counts, or the page lands `PROJECT_RAIL_GAP` px off the pointer. */
+export function pageWidthFromPointer(rowRight: number, railWidth: number, clientX: number): number {
+  return rowRight - railWidth - PROJECT_RAIL_GAP - clientX;
+}

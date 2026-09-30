@@ -6,7 +6,7 @@
  * and an empty bordered column whenever no page was open. These pin both.
  */
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { cleanup, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import type { FrameSlots } from "../contract";
 import Frame from "./Frame";
 
@@ -59,5 +59,30 @@ describe("Frame's right side", () => {
     );
     expect(container.querySelector('[data-region="page"]')).toBeNull();
     expect(container.querySelector('[data-region="page-expanded"]')?.textContent).toBe("expanded");
+  });
+});
+
+describe("Frame's docked page handle", () => {
+  it("puts the page's leading edge under the pointer, past the rail and its margin", () => {
+    const widths: number[] = [];
+    const { container } = render(
+      <Frame
+        kind="main"
+        slots={slots({ projectPage: <div>page</div> })}
+        onProjectPageWidthChange={(w) => widths.push(w)}
+      />,
+    );
+    const split = container.querySelector(".frame__split") as HTMLElement;
+    split.getBoundingClientRect = () => ({ right: 1000 }) as DOMRect;
+    const handle = container.querySelector('[data-region="pagehandle"]') as HTMLElement;
+
+    fireEvent(handle, new MouseEvent("pointerdown", { bubbles: true, clientX: 566 }));
+    act(() => {
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 500 }));
+      window.dispatchEvent(new MouseEvent("pointerup"));
+    });
+
+    // 1000 (row right) - 44 (rail) - 6 (rail margin) - 500 (pointer) = 450.
+    expect(widths).toEqual([450]);
   });
 });

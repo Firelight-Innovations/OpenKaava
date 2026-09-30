@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pageGeometry, slotFilled } from "./pageGeometry";
+import { PROJECT_RAIL_GAP, pageGeometry, pageWidthFromPointer, slotFilled } from "./pageGeometry";
 
 describe("slotFilled", () => {
   it("treats every value React draws nothing for as empty", () => {
@@ -36,5 +36,18 @@ describe("pageGeometry", () => {
 
   it("draws neither when expanded is asked for with nothing to expand", () => {
     expect(pageGeometry(page, null, true)).toEqual({ docked: false, expanded: false });
+  });
+});
+
+describe("pageWidthFromPointer", () => {
+  // The bug: the page's right edge is the rail's left margin further in than the
+  // rail itself, and the old maths forgot the margin, so the page landed 6px off.
+  it("measures from the page's own right edge, past the rail and its margin", () => {
+    expect(PROJECT_RAIL_GAP).toBe(6);
+    expect(pageWidthFromPointer(1000, 44, 500)).toBe(450);
+  });
+
+  it("is wider the further left the pointer goes", () => {
+    expect(pageWidthFromPointer(1000, 44, 400)).toBe(550);
   });
 });
