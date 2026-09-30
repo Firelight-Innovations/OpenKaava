@@ -18,6 +18,7 @@ import {
   type Comment,
 } from "../../../shared/comments";
 import { errorText, getStatus, openInGodot, type GodotStatus } from "../../../shared/godot";
+import { SendButton, SendFooter, useSendAction } from "../../../shared/SendFooter";
 import {
   addonStatus,
   capture,
@@ -56,7 +57,6 @@ export default function App() {
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
-  const [sent, setSent] = useState<string | null>(null);
   const cursor = useRef(0);
   const runId = useRef<number | null>(null);
   const logEnd = useRef<HTMLDivElement | null>(null);
@@ -225,16 +225,7 @@ export default function App() {
     }
   };
 
-  const send = async (what: string, put: () => Promise<unknown>) => {
-    setProblem(null);
-    try {
-      await put();
-      setSent(what);
-      setTimeout(() => setSent((s) => (s === what ? null : s)), 1800);
-    } catch (e) {
-      setProblem(`Couldn't send ${what} to the agent: ${errorText(e)}`);
-    }
-  };
+  const { sent, send } = useSendAction(setProblem, errorText);
 
   const openCount = useMemo(() => comments.filter((c) => c.status === "open").length, [comments]);
 
@@ -436,9 +427,6 @@ export default function App() {
                 <button type="button" onClick={() => setShot(null)} disabled={posting}>
                   Discard
                 </button>
-                <button type="button" onClick={() => void send("frame", () => putShot(shot))}>
-                  {sent === "frame" ? "Sent" : "Send to agent"}
-                </button>
                 <button
                   type="button"
                   className="pl__composer-submit"
@@ -491,61 +479,79 @@ export default function App() {
         </div>
       )}
 
-      <footer className="pl__footer">
-        <span className="pl__footer-scene">
-          {info?.scene ?? chosen?.mainScenePath ?? chosen?.mainScene ?? "no scene"}
-        </span>
-        {found && (
-          <span className="pl__footer-time">
-            Godot {found.version.split(".").slice(0, 2).join(".")}
-          </span>
-        )}
-        {chosen && addon && !readOnly && (
-          <button
-            type="button"
-            className="pl__footer-btn"
-            onClick={() => (addon.addon === "yes" ? void changeAddon(false) : setConsentOpen(true))}
-            title={
-              addon.addon === "yes"
-                ? "Remove the capture script and its project.godot line."
-                : "Add the capture script so Play can screenshot and pause the game."
-            }
-          >
-            {addon.addon === "yes" ? "Disable capture" : "Enable capture"}
-            {addon.needsRestart ? " (restart the game)" : ""}
-          </button>
-        )}
-        <button
-          type="button"
-          className="pl__footer-btn"
+      <SendFooter
+        trailing={
+          <>
+            <span className="pl__footer-scene">
+              {info?.scene ?? chosen?.mainScenePath ?? chosen?.mainScene ?? "no scene"}
+            </span>
+            {found && (
+              <span className="pl__footer-time">
+                Godot {found.version.split(".").slice(0, 2).join(".")}
+              </span>
+            )}
+            {chosen && addon && !readOnly && (
+              <button
+                type="button"
+                className="pl__footer-btn"
+                onClick={() =>
+                  addon.addon === "yes" ? void changeAddon(false) : setConsentOpen(true)
+                }
+                title={
+                  addon.addon === "yes"
+                    ? "Remove the capture script and its project.godot line."
+                    : "Add the capture script so Play can screenshot and pause the game."
+                }
+              >
+                {addon.addon === "yes" ? "Disable capture" : "Enable capture"}
+                {addon.needsRestart ? " (restart the game)" : ""}
+              </button>
+            )}
+            <button
+              type="button"
+              className="pl__footer-btn"
+              onClick={() => setCommentsOpen((v) => !v)}
+            >
+              <MessageSquarePlus size={13} strokeWidth={1.5} aria-hidden="true" />
+              Comments {openCount > 0 ? `· ${openCount} open` : ""}
+            </button>
+            <button
+              type="button"
+              className="pl__footer-btn"
+              disabled={!found || !chosen || readOnly}
+              onClick={() => void doOpenEditor()}
+              title={
+                readOnly
+                  ? "The main checkout is read-only; open a worktree to edit."
+                  : found
+                    ? "Open this project in the Godot editor (Ctrl+Shift+O)"
+                    : "Godot 4 was not found."
+              }
+            >
+              <ExternalLink size={13} strokeWidth={1.5} aria-hidden="true" />
+              Open in Godot
+            </button>
+          </>
+        }
+      >
+        <SendButton
+          label="Send log"
+          sent={sent === "log"}
           disabled={lines.length === 0}
           title="Send the last lines of the game's output to the agent, or drag this onto a terminal"
-          onClick={() => void send("log", () => putLog(lines, info?.scene ?? null))}
+          onClick={() => void send("log", "log", () => putLog(lines, info?.scene ?? null))}
           onPointerDown={dragContext(() => putLog(lines, info?.scene ?? null))}
-        >
-          {sent === "log" ? "Sent" : "Send log"}
-        </button>
-        <button type="button" className="pl__footer-btn" onClick={() => setCommentsOpen((v) => !v)}>
-          <MessageSquarePlus size={13} strokeWidth={1.5} aria-hidden="true" />
-          Comments {openCount > 0 ? `· ${openCount} open` : ""}
-        </button>
-        <button
-          type="button"
-          className="pl__footer-btn"
-          disabled={!found || !chosen || readOnly}
-          onClick={() => void doOpenEditor()}
-          title={
-            readOnly
-              ? "The main checkout is read-only; open a worktree to edit."
-              : found
-                ? "Open this project in the Godot editor (Ctrl+Shift+O)"
-                : "Godot 4 was not found."
-          }
-        >
-          <ExternalLink size={13} strokeWidth={1.5} aria-hidden="true" />
-          Open in Godot
-        </button>
-      </footer>
+        />
+        {shot && (
+          <SendButton
+            label="Send frame"
+            sent={sent === "frame"}
+            title="Send the captured frame to the agent, or drag this onto a terminal"
+            onClick={() => void send("frame", "frame", () => putShot(shot))}
+            onPointerDown={dragContext(() => putShot(shot))}
+          />
+        )}
+      </SendFooter>
     </div>
   );
 }

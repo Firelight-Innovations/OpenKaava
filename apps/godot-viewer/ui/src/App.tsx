@@ -21,6 +21,7 @@ import {
 import { formatRenderAge } from "../../../shared/age";
 import { errorText, getStatus, openInGodot, type GodotStatus } from "../../../shared/godot";
 import { SegmentedControl } from "../../../shared/SegmentedControl";
+import { SendButton, SendFooter, useSendAction } from "../../../shared/SendFooter";
 import { getImage, getState, refresh, type GodotNode, type GodotViewerState } from "./rpc";
 import { sampleState } from "./fixtures";
 import { dragContext, putFrame, putMarkup, putTree } from "./context";
@@ -61,7 +62,6 @@ export default function App() {
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
-  const [sent, setSent] = useState<string | null>(null);
   const [view, setView] = useState<View>("3d");
   const [markup, setMarkup] = useState<PendingMarkup | null>(null);
 
@@ -161,16 +161,16 @@ export default function App() {
   const busy = job?.running === true;
   const noScenes = !preview && state !== null && state.scenes.length === 0;
 
-  const send = async (what: string, put: () => Promise<unknown>) => {
-    setProblem(null);
-    try {
-      await put();
-      setSent(what);
-      setTimeout(() => setSent((s) => (s === what ? null : s)), 1800);
-    } catch (e) {
-      setProblem(`Couldn't send ${what} to the agent: ${errorText(e)}`);
-    }
-  };
+  const { sent, send } = useSendAction(setProblem, errorText);
+  // What the pane is showing decides which send buttons the footer offers: the
+  // markup only exists over the 3D view, the frame only over the rendered one.
+  const inThreeD = p3d.state.kind === "ready" && lookup !== null && view === "3d";
+  const frameShown =
+    !inThreeD &&
+    !(view === "3d" && p3d.state.kind === "loading") &&
+    shown?.scenePath != null &&
+    image !== null &&
+    !preview;
 
   const postComment = async () => {
     if (!selected || !draft.trim()) return;
@@ -314,16 +314,6 @@ export default function App() {
                   <ImageIcon size={13} strokeWidth={1.5} aria-hidden="true" />
                   Render view
                 </button>
-                <button
-                  type="button"
-                  className="gv__action"
-                  disabled={preview || busy || nodes.length === 0 || !state}
-                  title="Send the scene tree to the agent, or drag this onto a terminal"
-                  onClick={() => state && void send("tree", () => putTree(state))}
-                  onPointerDown={state ? dragContext(() => putTree(state)) : undefined}
-                >
-                  {sent === "tree" ? "Sent" : "Send tree"}
-                </button>
                 {busy && <span className="gv__phase">{job?.phase}...</span>}
                 {sourceLabel && !busy && <span className="gv__phase">{sourceLabel}</span>}
               </div>
@@ -363,17 +353,6 @@ export default function App() {
                         )}
                       />
                       <span className="gv__markup-summary">{markupSummary(markup.export)}</span>
-                      <button
-                        type="button"
-                        className="gv__action"
-                        onClick={() =>
-                          void send("markup", () =>
-                            putMarkup(markup.export.png, markup.export.json, state?.scene ?? null),
-                          )
-                        }
-                      >
-                        {sent === "markup" ? "Sent" : "Send to agent"}
-                      </button>
                       <button type="button" className="gv__action" onClick={() => setMarkup(null)}>
                         Discard
                       </button>
@@ -400,13 +379,6 @@ export default function App() {
                         title="Drag onto a terminal to send to the agent"
                         onPointerDown={dragContext(() => putFrame(image, shown.scenePath))}
                       />
-                      <button
-                        type="button"
-                        className="gv__action"
-                        onClick={() => void send("frame", () => putFrame(image, shown.scenePath))}
-                      >
-                        {sent === "frame" ? "Sent" : "Send frame"}
-                      </button>
                       <span className="gv__frame-age">
                         {formatRenderAge(shown.imageAt).replace("rendered", "frame rendered")}
                       </span>
@@ -483,31 +455,74 @@ export default function App() {
         )}
       </div>
 
-      <footer className="gv__footer">
-        <button type="button" className="gv__footer-btn" onClick={() => setCommentsOpen((v) => !v)}>
-          <MessageSquarePlus size={13} strokeWidth={1.5} aria-hidden="true" />
-          Comments {openCount > 0 ? `· ${openCount} open` : ""}
-        </button>
-        <button
-          type="button"
-          className="gv__footer-btn"
-          disabled={!found || readOnly}
-          title={
-            readOnly
-              ? "The main checkout is read-only; open a worktree to edit."
-              : found
-                ? "Open this project in the Godot editor"
-                : "Godot 4 was not found."
-          }
-          onClick={() => {
-            setProblem(null);
-            openInGodot().catch((e) => setProblem(errorText(e)));
-          }}
-        >
-          <ExternalLink size={13} strokeWidth={1.5} aria-hidden="true" />
-          Open in Godot
-        </button>
-      </footer>
+      <SendFooter
+        trailing={
+          <>
+            <button
+              type="button"
+              className="gv__footer-btn"
+              onClick={() => setCommentsOpen((v) => !v)}
+            >
+              <MessageSquarePlus size={13} strokeWidth={1.5} aria-hidden="true" />
+              Comments {openCount > 0 ? `· ${openCount} open` : ""}
+            </button>
+            <button
+              type="button"
+              className="gv__footer-btn"
+              disabled={!found || readOnly}
+              title={
+                readOnly
+                  ? "The main checkout is read-only; open a worktree to edit."
+                  : found
+                    ? "Open this project in the Godot editor"
+                    : "Godot 4 was not found."
+              }
+              onClick={() => {
+                setProblem(null);
+                openInGodot().catch((e) => setProblem(errorText(e)));
+              }}
+            >
+              <ExternalLink size={13} strokeWidth={1.5} aria-hidden="true" />
+              Open in Godot
+            </button>
+          </>
+        }
+      >
+        {mode === "scene" && (
+          <SendButton
+            label="Send tree"
+            sent={sent === "tree"}
+            disabled={preview || busy || nodes.length === 0 || !state}
+            title="Send the scene tree to the agent, or drag this onto a terminal"
+            onClick={() => state && void send("tree", "tree", () => putTree(state))}
+            onPointerDown={state ? dragContext(() => putTree(state)) : undefined}
+          />
+        )}
+        {mode === "scene" && frameShown && shown && image && (
+          <SendButton
+            label="Send frame"
+            sent={sent === "frame"}
+            title="Send the rendered frame to the agent, or drag this onto a terminal"
+            onClick={() => void send("frame", "frame", () => putFrame(image, shown.scenePath))}
+            onPointerDown={dragContext(() => putFrame(image, shown.scenePath))}
+          />
+        )}
+        {mode === "scene" && inThreeD && markup && (
+          <SendButton
+            label="Send markup"
+            sent={sent === "markup"}
+            title="Send the markup you drew to the agent, or drag this onto a terminal"
+            onClick={() =>
+              void send("markup", "markup", () =>
+                putMarkup(markup.export.png, markup.export.json, state?.scene ?? null),
+              )
+            }
+            onPointerDown={dragContext(() =>
+              putMarkup(markup.export.png, markup.export.json, state?.scene ?? null),
+            )}
+          />
+        )}
+      </SendFooter>
     </div>
   );
 }
