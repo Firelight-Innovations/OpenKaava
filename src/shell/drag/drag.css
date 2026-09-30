@@ -129,9 +129,9 @@
   width: 220px;
   height: 140px;
   border-radius: 5px;
-  /* Exact crop value (rgba(217,138,63,.6)) — no named token lands on .6,
+  /* The crop's .6 of the accent — no named token lands on .6,
      see DropTargets.tsx. */
-  border: 1.5px dashed rgba(217, 138, 63, 0.6);
+  border: 1.5px dashed color-mix(in srgb, var(--accent) 60%, transparent);
   background: var(--accent-wash-faint);
   pointer-events: none;
   transform: translate(-24px, 8px);
@@ -190,7 +190,7 @@
   position: fixed;
   height: var(--h-paneltabs);
   background: var(--surface-gap);
-  /* Exact crop value (rgba(217,138,63,.55)) — no named token lands on .55. */
-  border-bottom: 2px solid rgba(217, 138, 63, 0.55);
+  /* The crop's .55 of the accent — no named token lands on .55. */
+  border-bottom: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
   pointer-events: none;
 }

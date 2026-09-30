@@ -6,6 +6,7 @@
 //! `StackSnapshot` this produces.
 
 mod apps;
+mod blender;
 mod boot;
 mod branding;
 mod cloud;
@@ -181,6 +182,8 @@ pub fn run() {
         // `apps::projects::WakeManager`.
         .manage(plane_webview::PlaneWebview::default())
         .manage(apps::projects::WakeManager::default())
+        .manage(blender::job::Jobs::default())
+        .manage(blender::detect::VersionCache::default())
         // The New Project page's step-runner snapshot, for `home/create-
         // project-status` to poll — the same shape as `WakeManager` above.
         // See `apps::home_create`.
@@ -567,6 +570,7 @@ pub fn run() {
         .map(|app| {
             app.run(|handle, event| {
                 if matches!(event, tauri::RunEvent::Exit) {
+                    handle.state::<blender::job::Jobs>().stop_all();
                     handle.state::<plugins::Watchers>().stop_all();
                     handle.state::<plugins::Broker>().stop_all();
                     // Kills the `gcloud` process tree it supervises, if one is

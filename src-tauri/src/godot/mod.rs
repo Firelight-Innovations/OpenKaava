@@ -32,7 +32,7 @@ pub static SETTINGS: crate::settings::Group = crate::settings::Group {
     id: "godot",
     title: "Godot",
     description: "The engine Play and the Godot Viewer run, and how to reach it.",
-    order: 110,
+    order: 111,
     settings: SETTINGS_ROWS,
 };
 
