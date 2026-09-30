@@ -33,6 +33,7 @@ import {
   type LogLine,
   type RunInfo,
 } from "./rpc";
+import { dragContext, putLog, putShot } from "./context";
 import "./App.css";
 
 /** Lines kept in the pane; the backend keeps its own, larger, bound. */
@@ -55,6 +56,7 @@ export default function App() {
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
+  const [sent, setSent] = useState<string | null>(null);
   const cursor = useRef(0);
   const runId = useRef<number | null>(null);
   const logEnd = useRef<HTMLDivElement | null>(null);
@@ -220,6 +222,17 @@ export default function App() {
       setProblem(errorText(e));
     } finally {
       setPosting(false);
+    }
+  };
+
+  const send = async (what: string, put: () => Promise<unknown>) => {
+    setProblem(null);
+    try {
+      await put();
+      setSent(what);
+      setTimeout(() => setSent((s) => (s === what ? null : s)), 1800);
+    } catch (e) {
+      setProblem(`Couldn't send ${what} to the agent: ${errorText(e)}`);
     }
   };
 
@@ -407,6 +420,9 @@ export default function App() {
                 className="pl__shot"
                 alt="Captured frame"
                 src={`data:image/png;base64,${shot.png}`}
+                draggable={false}
+                title="Drag onto a terminal to send to the agent"
+                onPointerDown={dragContext(() => putShot(shot))}
               />
               <textarea
                 className="pl__composer-input"
@@ -419,6 +435,9 @@ export default function App() {
               <div className="pl__composer-actions">
                 <button type="button" onClick={() => setShot(null)} disabled={posting}>
                   Discard
+                </button>
+                <button type="button" onClick={() => void send("frame", () => putShot(shot))}>
+                  {sent === "frame" ? "Sent" : "Send to agent"}
                 </button>
                 <button
                   type="button"
@@ -496,6 +515,16 @@ export default function App() {
             {addon.needsRestart ? " (restart the game)" : ""}
           </button>
         )}
+        <button
+          type="button"
+          className="pl__footer-btn"
+          disabled={lines.length === 0}
+          title="Send the last lines of the game's output to the agent, or drag this onto a terminal"
+          onClick={() => void send("log", () => putLog(lines, info?.scene ?? null))}
+          onPointerDown={dragContext(() => putLog(lines, info?.scene ?? null))}
+        >
+          {sent === "log" ? "Sent" : "Send log"}
+        </button>
         <button type="button" className="pl__footer-btn" onClick={() => setCommentsOpen((v) => !v)}>
           <MessageSquarePlus size={13} strokeWidth={1.5} aria-hidden="true" />
           Comments {openCount > 0 ? `· ${openCount} open` : ""}

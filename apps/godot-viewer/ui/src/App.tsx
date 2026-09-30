@@ -22,6 +22,7 @@ import { errorText, getStatus, openInGodot, type GodotStatus } from "../../../sh
 import { SegmentedControl } from "../../../shared/SegmentedControl";
 import { getImage, getState, refresh, type GodotNode, type GodotViewerState } from "./rpc";
 import { sampleState } from "./fixtures";
+import { dragContext, putFrame, putTree } from "./context";
 import "./App.css";
 
 type Mode = "scene" | "play";
@@ -43,6 +44,7 @@ export default function App() {
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
+  const [sent, setSent] = useState<string | null>(null);
 
   const refreshComments = useCallback(async () => {
     setCommentsLoading(true);
@@ -105,6 +107,17 @@ export default function App() {
   const job = preview ? null : (state?.job ?? null);
   const busy = job?.running === true;
   const noScenes = !preview && state !== null && state.scenes.length === 0;
+
+  const send = async (what: string, put: () => Promise<unknown>) => {
+    setProblem(null);
+    try {
+      await put();
+      setSent(what);
+      setTimeout(() => setSent((s) => (s === what ? null : s)), 1800);
+    } catch (e) {
+      setProblem(`Couldn't send ${what} to the agent: ${errorText(e)}`);
+    }
+  };
 
   const postComment = async () => {
     if (!selected || !draft.trim()) return;
@@ -239,6 +252,16 @@ export default function App() {
                   <ImageIcon size={13} strokeWidth={1.5} aria-hidden="true" />
                   Render view
                 </button>
+                <button
+                  type="button"
+                  className="gv__action"
+                  disabled={preview || busy || nodes.length === 0 || !state}
+                  title="Send the scene tree to the agent, or drag this onto a terminal"
+                  onClick={() => state && void send("tree", () => putTree(state))}
+                  onPointerDown={state ? dragContext(() => putTree(state)) : undefined}
+                >
+                  {sent === "tree" ? "Sent" : "Send tree"}
+                </button>
                 {busy && <span className="gv__phase">{job?.phase}...</span>}
                 {sourceLabel && !busy && <span className="gv__phase">{sourceLabel}</span>}
               </div>
@@ -258,7 +281,17 @@ export default function App() {
                         className="gv__frame"
                         alt="Rendered frame of the scene"
                         src={`data:image/png;base64,${image}`}
+                        draggable={false}
+                        title="Drag onto a terminal to send to the agent"
+                        onPointerDown={dragContext(() => putFrame(image, shown.scenePath))}
                       />
+                      <button
+                        type="button"
+                        className="gv__action"
+                        onClick={() => void send("frame", () => putFrame(image, shown.scenePath))}
+                      >
+                        {sent === "frame" ? "Sent" : "Send frame"}
+                      </button>
                       <span className="gv__frame-age">
                         {formatRenderAge(shown.imageAt).replace("rendered", "frame rendered")}
                       </span>
