@@ -89,8 +89,7 @@ import { githubAuthControl, githubControl } from "./state/github";
 import { copyToClipboard, reviewControl } from "./state/review";
 import { isFullscreen, isTauri, nextZoom, setFullscreen, setZoom } from "./hostWindow";
 import Rail from "./rail/Rail";
-import DockedPage from "./rail/DockedPage";
-import ExpandedPage from "./rail/ExpandedPage";
+import PageShell from "./rail/PageShell";
 import AppPage from "./rail/AppPage";
 import HindsightPage from "./rail/HindsightPage";
 import GitPage, { type GitPageView } from "./rail/GitPage";
@@ -239,9 +238,35 @@ export default function WindowRoot({
   const pages = usePages();
   const rightPage = placement?.rightPage ?? null;
   const activePage = rightPage ? pages.find((p) => p.id === rightPage.id) : undefined;
+
+  // Focus follows the rail page. Opening or switching lands focus on the page
+  // (the surface is focusable; an app's iframe cannot be focused from here),
+  // and closing hands it back to that page's rail button. The close half runs
+  // while the page is still mounted, tucking away, so it can tell whether
+  // focus was inside it; focus that is somewhere else entirely is left alone.
+  const openPageId = rightPage?.id ?? null;
+  const previousPageId = useRef<string | null>(null);
+  useEffect(() => {
+    const previous = previousPageId.current;
+    previousPageId.current = openPageId;
+    if (openPageId !== null) {
+      if (openPageId !== previous) pageShellRef.current?.focus({ preventScroll: true });
+      return;
+    }
+    if (previous === null) return;
+    const active = document.activeElement;
+    const inPage =
+      active instanceof HTMLElement && active.closest(".k-docked-page, .k-expanded-page") !== null;
+    if (inPage || active === document.body || active === null) {
+      document
+        .querySelector<HTMLElement>(`.k-rail__btn[data-page-id="${previous}"]`)
+        ?.focus({ preventScroll: true });
+    }
+  }, [openPageId]);
   // The element an app-backed page's iframe is portaled into; `AppPage` reports
   // it. State, not a ref, so `ToolWindow` re-renders once it exists.
   const [pageHost, setPageHost] = useState<HTMLElement | null>(null);
+  const pageShellRef = useRef<HTMLDivElement>(null);
 
   // There is no seeding effect any more, and its absence is the point.
   //
@@ -2104,19 +2129,34 @@ export default function WindowRoot({
           projectRail: (
             <Rail pages={pages} activePageId={rightPage?.id ?? null} onSelect={onSelectPage} />
           ),
+          // Both slots are the same component type on purpose: `Frame` draws
+          // one surface and swaps which slot fills it, and a page's app iframe
+          // is portalled into a host inside `pageBody`. Two types would make
+          // React remount that host — and reload the iframe — on every
+          // dock/expand toggle.
           projectPage: rightPage && (
-            <DockedPage title={activePage?.name ?? rightPage.id} onClose={onClosePage}>
-              {pageBody}
-            </DockedPage>
-          ),
-          projectPageExpanded: rightPage && (
-            <ExpandedPage
-              backLabel={activeCluster ? activeCluster.name : "Back"}
-              onBack={onClosePage}
+            <PageShell
+              ref={pageShellRef}
+              mode="docked"
+              pageId={rightPage.id}
               title={activePage?.name ?? rightPage.id}
+              backLabel={activeCluster ? activeCluster.name : "Back"}
+              onClose={onClosePage}
             >
               {pageBody}
-            </ExpandedPage>
+            </PageShell>
+          ),
+          projectPageExpanded: rightPage && (
+            <PageShell
+              ref={pageShellRef}
+              mode="expanded"
+              pageId={rightPage.id}
+              title={activePage?.name ?? rightPage.id}
+              backLabel={activeCluster ? activeCluster.name : "Back"}
+              onClose={onClosePage}
+            >
+              {pageBody}
+            </PageShell>
           ),
           // Both drag layers draw into the one overlay slot. Never both at
           // once in practice — a pointer carries one gesture — but composed

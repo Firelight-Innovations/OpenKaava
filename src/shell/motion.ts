@@ -99,3 +99,21 @@ export const spinArc: Transition = {
   ease: "linear",
   repeat: Infinity,
 };
+
+/* --- rail pages, which pull out of the rail rather than appear -------------
+ *
+ * One progress value runs 0 (tucked into the rail) to 1 (settled). Arriving
+ * uses `snap`, so a page opened and closed in quick succession reverses from
+ * wherever it got to. Leaving is a short tween, faster than arriving by the
+ * rule `instantOut` states. `docs/design-notes/shell-core.md` has the rest.
+ */
+
+/** How long a rail page takes to tuck back into the rail. */
+export const pageOut: Transition = {
+  duration: 0.12,
+  ease: [0.4, 0, 1, 1],
+};
+
+/** Where a dock/expand toggle restarts the reveal from, so the geometry change
+ *  reads as a short pull rather than replaying the whole pull-out. */
+export const PAGE_TOGGLE_FROM = 0.55;
