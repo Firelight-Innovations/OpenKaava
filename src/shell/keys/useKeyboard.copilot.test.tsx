@@ -26,6 +26,7 @@ function actions(copilotKey: () => boolean): KeyboardActions {
     newTerminal: noop,
     splitTerminal: noop,
     switchProject: noop,
+    openApp: noop,
     copilotKey,
   };
 }
