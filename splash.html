@@ -154,6 +154,7 @@
 
         --radius-md: 6px;
         --radius-xl: 12px;
+        --shadow-overlay: 0 12px 32px -6px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3);
         --control-md: 28px;
         --focus-ring: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
         --focus-ring-offset: 2px;
@@ -253,22 +254,34 @@
         display: none !important;
       }
 
+      /* Transparent, not a colour: the window is transparent too, so the
+         desktop shows through everywhere except the card below. Any fill
+         here would be the square backing the rounded card is meant to
+         remove. */
       html,
       body {
         margin: 0;
         width: 100%;
         height: 100%;
         overflow: hidden;
-        background: var(--bg-canvas);
+        background: transparent;
+      }
+
+      /* The window is 72px larger than the card in each direction, and this
+         padding is that gutter: room for the shadow to fall on transparent
+         pixels instead of being clipped at the window edge. */
+      body {
+        padding: 36px;
       }
 
       /* Not `display: flex` on body. `.splash` already fills the window on
          its own, so there is nothing to centre, and as a flex row its lone
          child would shrink to fit its content and collapse every percentage
-         width inside it. The window itself is opaque and square (no
-         `transparent` in tauri.conf.json), so there is no radius on the frame:
-         rounded corners would need a transparent WebView2, which is not worth
-         the risk on a screen whose job is to appear instantly. */
+         width inside it. The window is transparent and undecorated (see
+         tauri.conf.json), so this card IS the visible window: the app
+         window's radius, the hairline border and the overlay shadow are
+         drawn here, anti-aliased by the compositor. The clip on `overflow`
+         is what rounds the art and the status strip's corners. */
       .splash {
         display: flex;
         flex-direction: column;
@@ -277,6 +290,8 @@
         overflow: hidden;
         background: var(--bg-surface-1);
         border: 1px solid var(--border-subtle-1);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-overlay);
         color: var(--txt-primary);
         font-family: var(--sans);
       }
