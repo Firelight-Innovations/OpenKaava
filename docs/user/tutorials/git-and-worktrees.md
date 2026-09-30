@@ -6,9 +6,10 @@ Read what changed, and give a branch a folder of its own.
 
 ---
 
-If the cluster's project is a git repository, the **secondary panel** on the
-right of the tool window is source control. `Ctrl+B` collapses it to a strip
-and brings it back.
+If the cluster's project is a git repository, the **Git page** on the right-hand
+rail is source control. It has two tabs, **Source Control** and **GitHub**.
+Click the branch icon on the rail, press `Alt+1` or press `Ctrl+B` to open it,
+and do the same again to close it.
 
 > OpenKaava runs the `git` binary on your machine rather than linking a git
 > library. That means your credential helper, SSH agent, `.gitconfig`, hooks

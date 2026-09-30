@@ -41,7 +41,6 @@ import PaneTree from "./panes/PaneTree";
 import XTermView from "./terminal/XTermView";
 import { splitDirOnOpen } from "./panes/splitOnOpen";
 import { toggleMaximize } from "./panes/paneMaximize";
-import SecondaryPanel, { type PanelView } from "./panel/SecondaryPanel";
 import BottomPanel from "./panel/BottomPanel";
 import StatusBar from "./statusbar/StatusBar";
 import EnvironmentBar from "./envbar/EnvironmentBar";
@@ -91,6 +90,7 @@ import Rail from "./rail/Rail";
 import DockedPage from "./rail/DockedPage";
 import ExpandedPage from "./rail/ExpandedPage";
 import HindsightPage from "./rail/HindsightPage";
+import GitPage, { type GitPageView } from "./rail/GitPage";
 
 /**
  * What a window draws before the first `shell:state` arrives.
@@ -145,21 +145,12 @@ export default function WindowRoot({
   const label = useMemo(() => windowLabel(), []);
   const kind: WindowKind = label === "main" ? "main" : "detached";
 
-  // View-local, and deliberately never shared with the other windows: two
-  // windows are allowed to have differently-sized panels, and routing this
-  // through the backend would make one of them wrong. panelMaximized carries
-  // the same reasoning — whether this window's terminal has taken over the
-  // split row is a fact about this window's screen, not about the project.
-  const [panelWidth, setPanelWidth] = useState(380);
-  const [panelCollapsed, setPanelCollapsed] = useState(false);
-  const [panelMaximized, setPanelMaximized] = useState(false);
-
-  // Which of the secondary panel's views is showing, view-local for the same
-  // reason its width is: two windows on two monitors can honestly be looking at
-  // two different things, and one of them switching to GitHub is not a fact
-  // about the project. Source control first, because it is the one that answers
-  // without a network.
-  const [panelView, setPanelView] = useState<PanelView>("worktree");
+  // Which of the Git page's two tabs is showing. View-local: two windows on
+  // two monitors can honestly be looking at two different things, and one of
+  // them switching to GitHub is not a fact about the project. Source control
+  // first, because it is the one that answers without a network. The page's
+  // width is not here; it is the window's `rightPage.width`, persisted by Rust.
+  const [gitView, setGitView] = useState<GitPageView>("worktree");
 
   // The terminal band's open state — shut, or pulled all the way to the top
   // with the apps minimized under it — **per cluster**, not per window.
@@ -653,6 +644,10 @@ export default function WindowRoot({
   const onClosePage = useCallback(() => {
     void closePage(label);
   }, [label]);
+  // Ctrl+B and View > Show/Hide Source Control. The secondary panel this key
+  // used to collapse is the Git page now, so the key opens and closes that
+  // page — `open_page`'s toggle does the closing when Git is already open.
+  const onToggleSourceControl = useCallback(() => onSelectPage("git"), [onSelectPage]);
   const onTogglePageMode = useCallback(() => {
     if (!rightPage) return;
     void setPageMode(label, rightPage.mode === "docked" ? "expanded" : "docked");
@@ -1405,9 +1400,9 @@ export default function WindowRoot({
   // The status bar and the source-control tab read one status. Two fetches
   // would be two chances to disagree about which branch is checked out, and the
   // whole point of the branch appearing in the status bar is that it is the
-  // answer, not a second opinion. It also has to outlive the tab: the panel
-  // keeps `worktreeView` mounted but hidden, and a status owned by the view
-  // would still be re-fetched on every remount of it.
+  // answer, not a second opinion. It also has to outlive the tab: the Git
+  // page unmounts when it closes, and a status owned by the view would be
+  // re-fetched on every reopening of it.
   // Keyed on the active *cluster*. This is the "where this goes next" the
   // previous note here promised, and it turned out to be load-bearing rather
   // than a refinement: keyed on the active app id, this handle could not
@@ -1561,10 +1556,13 @@ export default function WindowRoot({
 
   // The environment bar's "Review & merge" opens the same Git page the rail
   // does, through the same door — `onSelectPage`, not a second path onto
-  // `right_page`.
+  // `right_page`. Guarded, because that door toggles: a second click with Git
+  // already open would otherwise close the page it asked to see. It lands on
+  // the Source Control tab, which is where a review happens.
   const onReviewAndMerge = useCallback(() => {
-    onSelectPage("git");
-  }, [onSelectPage]);
+    if (rightPage?.id !== "git") onSelectPage("git");
+    setGitView("worktree");
+  }, [onSelectPage, rightPage?.id]);
 
   // The drag layer is the only thing in the shell that spans regions, so it is
   // the only thing that has to be handed down rather than owned locally. The
@@ -1644,7 +1642,7 @@ export default function WindowRoot({
     commandPalette: openPalette,
     openApp: openPicker,
     switchProject: onOpenProjectSwitcher,
-    togglePanel: () => setPanelCollapsed((c) => !c),
+    toggleSourceControl: onToggleSourceControl,
     toggleTerminal: onToggleTerminal,
     toggleFullscreen: onToggleFullscreen,
     zoomIn: () => onZoom(1),
@@ -1682,8 +1680,8 @@ export default function WindowRoot({
     },
     view: {
       commandPalette: openPalette,
-      panelCollapsed,
-      togglePanel: () => setPanelCollapsed((c) => !c),
+      sourceControlShowing: rightPage?.id === "git",
+      toggleSourceControl: onToggleSourceControl,
       terminalShowing,
       toggleTerminal: onToggleTerminal,
       fullscreen,
@@ -1725,24 +1723,47 @@ export default function WindowRoot({
   });
 
   // The open page's body, by id. Git and Hindsight are drawn by the shell
-  // itself (`pages.rs`'s `app_id: None`); `WorktreePanel` here is the exact
-  // component `secondaryPanel` below already mounts for its own `worktreeView`
-  // — reused, not reimplemented, for a second box with the same status this
-  // window already fetched. Plane, Cloud agents and Cost each host an app
-  // instead (`app_id: Some(...)`) — hosting that through a second `ToolWindow`
-  // mount is next, not yet done, so this says so honestly rather than drawing
-  // an empty or a faked frame.
+  // itself (`pages.rs`'s `app_id: None`). Git is the window's one source
+  // control and GitHub sidebar: `GitPage` holds both as tabs, where a separate
+  // secondary panel used to hold them beside this column. Plane, Cloud agents
+  // and Cost each host an app instead (`app_id: Some(...)`) — hosting that
+  // through a second `ToolWindow` mount is next, not yet done, so this says so
+  // honestly rather than drawing an empty or a faked frame.
   const pageBody = rightPage ? (
     rightPage.id === "git" ? (
-      <WorktreePanel
-        clusterId={activeClusterId}
-        worktreeControl={worktreeControl}
-        gitControl={gitControl}
-        reviewControl={reviewControl}
-        reviewSend={reviewSend}
-        git={git}
-        activeBranch={activeBranch}
-        readOnly={isReadOnly(environment)}
+      <GitPage
+        view={gitView}
+        onSelectView={setGitView}
+        worktreeView={
+          <WorktreePanel
+            clusterId={activeClusterId}
+            worktreeControl={worktreeControl}
+            gitControl={gitControl}
+            reviewControl={reviewControl}
+            reviewSend={reviewSend}
+            git={git}
+            activeBranch={activeBranch}
+            readOnly={isReadOnly(environment)}
+          />
+        }
+        githubView={
+          <GithubPanel
+            clusterId={activeClusterId}
+            // Mounted while the page is open, fetching only while its tab
+            // is the one showing: a hidden tab has nothing on screen to read.
+            active={gitView === "github"}
+            githubControl={githubControl}
+            authControl={githubAuthControl}
+            // The same interface source control uses. Opening an item is
+            // `create` with a name the backend put on it, and passing the
+            // control down rather than wrapping it keeps that visible.
+            worktreeControl={worktreeControl}
+            // A new worktree repoints the cluster, which arrives on
+            // `shell:state` on its own. What does not is the change list,
+            // which is now a different checkout's — so ask again.
+            onWorktreeCreated={git.refresh}
+          />
+        }
       />
     ) : rightPage.id === "hindsight" ? (
       <HindsightPage />
@@ -1814,11 +1835,6 @@ export default function WindowRoot({
       </AnimatePresence>
       <Frame
         kind={kind}
-        panelCollapsed={panelCollapsed}
-        panelWidth={panelWidth}
-        onPanelWidthChange={setPanelWidth}
-        panelMaximized={panelMaximized}
-        onPanelMaximizedChange={setPanelMaximized}
         bottomHeight={bottomHeight}
         bottomCollapsed={bottomCollapsed}
         bottomMaximized={bottomMaximized}
@@ -1875,9 +1891,8 @@ export default function WindowRoot({
             />
           ),
           // Omitted while no cluster is open — see the slot's own doc comment
-          // in contract.ts. `onReviewAndMerge` is a no-op for the same reason
-          // `onOpenProjectSwitcher` is above: the Git page it would open is
-          // the **panes**/**clusters** workstreams' to build, not this one's.
+          // in contract.ts. `onReviewAndMerge` opens the Git page on its
+          // Source Control tab.
           envBar: environment !== null && (
             <EnvironmentBar
               environment={environment}
@@ -1946,51 +1961,6 @@ export default function WindowRoot({
                   fileDropActive={instanceId === fileDrag.targetId}
                 />
               )}
-            />
-          ),
-          // Source control and GitHub. The terminals that used to share this
-          // panel's tab row are in the band below the tool window now; what
-          // brought a switcher back is a second *view* rather than a second
-          // kind of thing, which is the shape `SecondaryPanel` said it was
-          // waiting for.
-          secondaryPanel: (
-            <SecondaryPanel
-              collapsed={panelCollapsed}
-              onToggleCollapse={() => setPanelCollapsed((c) => !c)}
-              branch={activeBranch}
-              view={panelView}
-              onSelectView={setPanelView}
-              worktreeView={
-                <WorktreePanel
-                  clusterId={activeClusterId}
-                  worktreeControl={worktreeControl}
-                  gitControl={gitControl}
-                  reviewControl={reviewControl}
-                  reviewSend={reviewSend}
-                  git={git}
-                  activeBranch={activeBranch}
-                  readOnly={isReadOnly(environment)}
-                />
-              }
-              githubView={
-                <GithubPanel
-                  clusterId={activeClusterId}
-                  // Mounted always, fetching only when shown. A collapsed panel
-                  // counts as not shown: nothing is on screen to read.
-                  active={panelView === "github" && !panelCollapsed}
-                  githubControl={githubControl}
-                  authControl={githubAuthControl}
-                  // The same interface source control uses. Opening an item is
-                  // `create` with a name the backend put on it, and passing the
-                  // control down rather than wrapping it is what keeps that
-                  // visible instead of hidden behind a GitHub-shaped helper.
-                  worktreeControl={worktreeControl}
-                  // A new worktree repoints the cluster, which arrives on
-                  // `shell:state` on its own. What does not is the change list,
-                  // which is now a different checkout's — so ask again.
-                  onWorktreeCreated={git.refresh}
-                />
-              }
             />
           ),
           bottomPanel: (

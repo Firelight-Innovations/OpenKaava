@@ -163,7 +163,7 @@ export interface TerminalSession {
 /** One entry in the tab row: a solo session, or every session that shares a group
  *  id, in the order they first appear in `sessions`. `id` is the tab's own
  *  identity — a session id for a solo tab, the shared group id for a split one —
- *  and is what `SecondaryPanel`'s `activeTabId` and `TerminalDeck`'s `activeId`
+ *  and is what `BottomPanel`'s `activeTabId` and `TerminalDeck`'s `activeId`
  *  compare against. Computed fresh from `sessions` rather than tracked, so no
  *  second place can drift from what Rust reports. */
 export interface TerminalTabGroup {
@@ -832,7 +832,7 @@ export interface DragHandleProps {
 // --- The frame --------------------------------------------------------------
 
 /** Which window this is. Only the title bar's traffic-light treatment still turns
- *  on this: both kinds now have a switcher bar and a panel, because a detached
+ *  on this: both kinds now have a switcher bar and a rail, because a detached
  *  window holds real clusters that can be added to and switched between. */
 export type WindowKind = "main" | "detached";
 
@@ -846,21 +846,22 @@ export interface FrameSlots {
   /** The environment bar (`docs/design/KAAVA-UX-SPEC.md` §1.4). Omitted while no cluster is open. */
   envBar?: ReactNode;
   toolWindow: ReactNode;
-  secondaryPanel: ReactNode;
-  /** The terminal band, under the tool window and stopping at the secondary
-   *  panel's edge — `.frame__main` in frame.css says why it does not span the
+  /** The terminal band, under the tool window and stopping at the docked
+   *  page's edge — `.frame__main` in frame.css says why it does not span the
    *  window. Omitted, neither the band nor its handle is rendered at all. */
   bottomPanel?: ReactNode;
   /** The right-side project-page rail (`docs/KAAVA-UX-REWORK.md` §4). Chrome owns the slot; **rail** owns what fills it. */
   projectRail?: ReactNode;
-  /** A project page, docked beside the panes — Git's aside is the first. Width is `projectPageWidth`. */
+  /** A project page, docked beside the panes — Git's aside is the first. Width is `projectPageWidth`.
+   *  The window's only right-hand sidebar. `null`, `false` and `undefined` all mean no page is open,
+   *  and then no column, handle or border is drawn at all. */
   projectPage?: ReactNode;
-  /** The same page, **expanded**: covers the tool window, resize handle, secondary panel and docked page, while the rail stays visible. */
+  /** The same page, **expanded**: covers the tool window and docked page, while the rail stays visible. */
   projectPageExpanded?: ReactNode;
   statusBar: ReactNode;
   /** Portalled above everything: drag ghost and drop outlines. */
   overlay?: ReactNode;
-  /** Covers the split row — tool window, handle and panel — while search is open,
+  /** Covers the split row — tool window, band and docked page — while search is open,
    *  leaving the switcher bar above and the status bar below untouched. Its own
    *  band rather than part of `overlay`; see `docs/design-notes/shell-core.md`. */
   splitOverlay?: ReactNode;
