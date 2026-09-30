@@ -779,6 +779,7 @@ const Explorer = forwardRef<
         <ContextMenu
           target={menu}
           rootPath={root.path}
+          readOnly={root.readOnly === true}
           onCreate={beginDraft}
           onRename={beginRename}
           onDelete={onDelete}

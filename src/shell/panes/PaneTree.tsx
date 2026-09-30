@@ -219,6 +219,7 @@ function Pane({
   onCloseMember,
   dragHandleFor,
   onToggleMaximizePane,
+  appPicker,
 }: PaneTreeProps & { leaf: Extract<PaneNode, { kind: "leaf" }> }) {
   const hostRef = useCallback(
     (el: HTMLDivElement | null) => onHostChange(leaf.id, el),
@@ -255,6 +256,7 @@ function Pane({
           onClose={onCloseMember ?? noop}
           onToggleMaximize={onToggleMaximizePane ?? noop}
           dragHandleFor={dragHandleFor}
+          appPicker={appPicker}
         />
       )}
 

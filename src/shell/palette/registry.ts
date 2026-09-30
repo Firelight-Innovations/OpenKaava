@@ -12,6 +12,7 @@
  * that is the right constraint, since a palette-only command would be an action
  * with no discoverable home, which is the problem a palette exists to solve.
  */
+import type { Openable } from "../../bindings";
 import type { Menu, MenuItem, MenuPrompt } from "../contract";
 import { fuzzyMatch } from "./fuzzy";
 
@@ -33,6 +34,12 @@ export interface Command {
   /** A command that wants one line of text first. The palette asks for it in
    *  its own field rather than sending you to the menu to find the row. */
   prompt?: MenuPrompt;
+  /** Left out of the list until something is typed. The per-app "Open <App>"
+   *  rows use it: one row each would bury the menus under the apps. */
+  queryOnly?: boolean;
+  /** Added to the fuzzy score, so a row that names exactly what was typed beats
+   *  a loose subsequence hit in another row ("files" vs "File: Save"). */
+  boost?: number;
 }
 
 /** A command the field matched, with the characters it matched on. */
@@ -95,12 +102,16 @@ function itemsToCommands(items: MenuItem[], category: string): Command[] {
  */
 export function rankCommands(commands: Command[], query: string): RankedCommand[] {
   const needle = query.trim();
-  if (needle === "") return commands.map((command) => ({ command, positions: [] }));
+  if (needle === "") {
+    return commands.filter((c) => !c.queryOnly).map((command) => ({ command, positions: [] }));
+  }
 
   return commands
     .flatMap((command) => {
       const hit = fuzzyMatch(needle, command.label);
-      return hit === null ? [] : [{ command, positions: hit.positions, score: hit.score }];
+      return hit === null
+        ? []
+        : [{ command, positions: hit.positions, score: hit.score + (command.boost ?? 0) }];
     })
     .sort((a, b) => b.score - a.score || a.command.label.localeCompare(b.command.label))
     .map(({ command, positions }) => ({ command, positions }));
@@ -118,4 +129,60 @@ export function rankCommands(commands: Command[], query: string): RankedCommand[
 export function initialIndex(rows: RankedCommand[]): number {
   const live = rows.findIndex((row) => !row.command.disabled);
   return live === -1 ? 0 : live;
+}
+
+/** Comfortably above the spread a single fuzzy match can score on a short label. */
+const OPEN_APP_BOOST = 60;
+
+/** What `openAppCommands` needs: the Apps menu's list, and how to open one. */
+export interface OpenAppSource {
+  apps: Openable[];
+  /** Opens the app picker over the window, for "Open app…". */
+  openPicker: () => void;
+  /** Opens `entry` as a new tab in the focused pane. */
+  open: (entry: Openable) => void;
+  /** Why nothing can be opened right now, or `undefined`. */
+  blocked?: string;
+  /** The picker's keyboard shortcut, drawn beside "Open app…". */
+  accelerator?: string;
+}
+
+/**
+ * "Open app…", then one "Open <App>" per app, in front of the menu's own rows.
+ *
+ * They are not a second command table: the app list is the Apps menu's list,
+ * handed in by the caller. What they replace is the menu's own per-app rows
+ * ("Apps: Files"), which would otherwise tie with "Open Files" on the query
+ * "files" and win the tie alphabetically — and those split the pane, where a
+ * name typed into the palette means "here". Presets and the App Library stay.
+ *
+ * "Open app…" leads the list; the per-app rows show only once something is
+ * typed, so the empty palette is not forty rows of apps.
+ */
+export function withOpenAppCommands(commands: Command[], source: OpenAppSource): Command[] {
+  const names = new Set(source.apps.map((a) => a.name));
+  const rest = commands.filter((c) => !(c.category === "Apps" && names.has(c.title)));
+  const disabled = source.blocked !== undefined;
+
+  const opener: Command = {
+    category: "Apps",
+    title: "Open app…",
+    label: "Open app…",
+    accelerator: source.accelerator,
+    disabled,
+    hint: source.blocked ?? "Pick an app to open in the focused pane.",
+    onSelect: source.openPicker,
+  };
+  const perApp: Command[] = source.apps.map((entry) => ({
+    category: "Apps",
+    title: `Open ${entry.name}`,
+    label: `Open ${entry.name}`,
+    disabled,
+    hint: source.blocked ?? entry.description,
+    onSelect: () => source.open(entry),
+    queryOnly: true,
+    boost: OPEN_APP_BOOST,
+  }));
+
+  return [opener, ...perApp, ...rest];
 }

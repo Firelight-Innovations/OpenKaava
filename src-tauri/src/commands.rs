@@ -972,7 +972,15 @@ fn spawn_terminal(
     }
 
     let (id, ordinal) = shell.claim_terminal_id();
-    let name = ptys.open(app, &id, &terminal_cwd(app, cluster_id), cols, rows)?;
+    let marker = crate::environments::read_only_env(shell.cluster_environment(cluster_id).as_ref());
+    let name = ptys.open(
+        app,
+        &id,
+        &terminal_cwd(app, cluster_id),
+        cols,
+        rows,
+        &marker,
+    )?;
 
     // "pwsh", then "pwsh 2", "pwsh 3" — the first of a kind goes unnumbered,
     // which is what the handoff's panel draws and what every terminal

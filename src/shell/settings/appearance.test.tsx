@@ -5,6 +5,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useAppearance } from "./appearance";
+import { SPLASH_APPEARANCE_KEY } from "./splashAppearance";
 import { currentTheme, onThemeChange } from "../themeBroadcast";
 import type { Setting, SettingsGroup, SettingValue } from "../../bindings";
 import type { SettingsSession } from "./useSettings";
@@ -105,6 +106,20 @@ describe("useAppearance", () => {
     fakeMatchMedia(false);
     renderHook(() => useAppearance(fakeSession({ "appearance.accentColor": "amber" })));
     expect(document.documentElement.style.getPropertyValue("--accent")).toBe("var(--accent-amber)");
+  });
+
+  it("mirrors the raw theme setting and the accent for the splash window", () => {
+    fakeMatchMedia(true);
+    localStorage.removeItem(SPLASH_APPEARANCE_KEY);
+    renderHook(() =>
+      useAppearance(
+        fakeSession({ "appearance.theme": "system", "appearance.accentColor": "coral" }),
+      ),
+    );
+    expect(JSON.parse(localStorage.getItem(SPLASH_APPEARANCE_KEY) ?? "null")).toEqual({
+      theme: "system",
+      accent: "coral",
+    });
   });
 
   it("resolves 'system' against the OS preference, and follows it live", () => {
