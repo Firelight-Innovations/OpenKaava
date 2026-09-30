@@ -263,6 +263,9 @@ export function splitRefs(refs: string[], activeBranch: string | null): RefSplit
 export interface CommitGraphProps {
   /** Newest first, as `WorktreeControl.graph` returns it. */
   commits: GitCommit[];
+  /** The message from a failed history read. Shown instead of "No commits",
+   *  which would claim the repository is empty when it merely could not be read. */
+  error?: string | null;
   worktrees: GitWorktree[];
   /** The branch the current cluster is on — highlighted distinctly from any
    *  other branch that merely has a worktree somewhere. */
@@ -273,6 +276,7 @@ export interface CommitGraphProps {
 
 export default function CommitGraph({
   commits,
+  error,
   worktrees,
   activeBranch,
   onSelect,
@@ -301,6 +305,14 @@ export default function CommitGraph({
     MAX_COLS,
     placed.reduce((max, p) => Math.max(max, p.lanesBefore.length, p.lanesAfter.length), 0),
   );
+
+  if (error) {
+    return (
+      <div className="commitgraph__quiet commitgraph__error" role="alert">
+        Could not read history: {error}
+      </div>
+    );
+  }
 
   if (placed.length === 0) {
     return <div className="commitgraph__quiet">No commits</div>;

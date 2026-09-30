@@ -172,6 +172,10 @@
   color: var(--text-dim-3);
 }
 
+.commitgraph__error {
+  color: var(--err);
+}
+
 .commitgraph__quiet {
   padding: 10px 14px;
   font-family: var(--sans);

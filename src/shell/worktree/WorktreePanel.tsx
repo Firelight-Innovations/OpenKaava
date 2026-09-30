@@ -117,6 +117,10 @@ export interface WorktreePanelProps {
 
 interface RepoData {
   commits: GitCommit[];
+  /** Why the history could not be read, when `git log` failed. The rest of the
+   *  panel still works, so this is drawn in the graph's place rather than
+   *  failing the whole panel — and never as an empty "No commits". */
+  graphError: string | null;
   worktrees: GitWorktree[];
   /** Every local branch, most recently committed to first — what `CheckoutBar`
    *  offers. Fetched alongside the graph rather than on opening the menu, so
@@ -162,14 +166,17 @@ export default function WorktreePanel({
     setLoading(true);
 
     Promise.all([
-      worktreeControl.graph(clusterId, GRAPH_LIMIT),
+      worktreeControl.graph(clusterId, GRAPH_LIMIT).then(
+        (commits) => ({ commits, graphError: null as string | null }),
+        (reason: unknown) => ({ commits: [] as GitCommit[], graphError: gitMessage(reason) }),
+      ),
       worktreeControl.list(clusterId),
       worktreeControl.branches(clusterId),
       worktreeControl.divergence(clusterId),
     ]).then(
-      ([commits, worktrees, branches, divergence]) => {
+      ([{ commits, graphError }, worktrees, branches, divergence]) => {
         if (!live) return;
-        setData({ commits, worktrees, branches, divergence });
+        setData({ commits, graphError, worktrees, branches, divergence });
         setError(null);
         setLoading(false);
       },
@@ -323,6 +330,7 @@ export default function WorktreePanel({
         <div className="worktreepanel__graph-scroll">
           <CommitGraph
             commits={data.commits}
+            error={data.graphError}
             worktrees={data.worktrees}
             activeBranch={activeBranch}
             selected={selectedSha}
