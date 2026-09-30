@@ -114,10 +114,18 @@ export interface WorktreePanelProps {
   /** The cluster is browsing main: checkout, staging and committing are
    *  disabled with `READ_ONLY_HINT`. Rust refuses them regardless. */
   readOnly?: boolean;
+  /** Where the cluster is pointed (worktree, else project). Only compared: a
+   *  repointed cluster keeps its id, so without this the graph kept drawing
+   *  the previous project's history until the panel was reopened. */
+  root?: string | null;
 }
 
 interface RepoData {
   commits: GitCommit[];
+  /** Why the history could not be read, when `git log` failed. The rest of the
+   *  panel still works, so this is drawn in the graph's place rather than
+   *  failing the whole panel — and never as an empty "No commits". */
+  graphError: string | null;
   worktrees: GitWorktree[];
   /** Every local branch, most recently committed to first — what `CheckoutBar`
    *  offers. Fetched alongside the graph rather than on opening the menu, so
@@ -138,6 +146,7 @@ export default function WorktreePanel({
   git,
   activeBranch,
   readOnly = false,
+  root = null,
 }: WorktreePanelProps) {
   const [data, setData] = useState<RepoData | null>(null);
   const [loading, setLoading] = useState(clusterId !== null);
@@ -163,14 +172,17 @@ export default function WorktreePanel({
     setLoading(true);
 
     Promise.all([
-      worktreeControl.graph(clusterId, GRAPH_LIMIT),
+      worktreeControl.graph(clusterId, GRAPH_LIMIT).then(
+        (commits) => ({ commits, graphError: null as string | null }),
+        (reason: unknown) => ({ commits: [] as GitCommit[], graphError: gitMessage(reason) }),
+      ),
       worktreeControl.list(clusterId),
       worktreeControl.branches(clusterId),
       worktreeControl.divergence(clusterId),
     ]).then(
-      ([commits, worktrees, branches, divergence]) => {
+      ([{ commits, graphError }, worktrees, branches, divergence]) => {
         if (!live) return;
-        setData({ commits, worktrees, branches, divergence });
+        setData({ commits, graphError, worktrees, branches, divergence });
         setError(null);
         setLoading(false);
       },
@@ -185,7 +197,10 @@ export default function WorktreePanel({
     return () => {
       live = false;
     };
-  }, [clusterId, worktreeControl, nonce]);
+    // `git.status` is a fresh object after every status fetch, which happens on
+    // a repoint and after every commit, stage or checkout — so keying on it
+    // re-reads the history whenever the branch picker's own data moved.
+  }, [clusterId, worktreeControl, nonce, root, git.status]);
 
   // A commit selected in one repository means nothing in another's graph.
   useEffect(() => setSelectedSha(null), [clusterId]);
@@ -326,6 +341,7 @@ export default function WorktreePanel({
         <div className="worktreepanel__graph-scroll">
           <CommitGraph
             commits={data.commits}
+            error={data.graphError}
             worktrees={data.worktrees}
             activeBranch={activeBranch}
             selected={selectedSha}

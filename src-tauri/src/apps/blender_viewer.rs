@@ -181,12 +181,15 @@ fn state(
 
     let blends = blender::find_blends(project);
     let requested = params.and_then(|p| p.get("blend")).and_then(Value::as_str);
-    let selected = match requested {
-        Some(raw) => Some(resolve_blend(project, raw)?),
-        None => blends
-            .first()
-            .and_then(|b| resolve_blend(project, &b.path).ok()),
-    };
+    // A path from before the project changed is no longer inside it: fall back
+    // to this project's first .blend (or none) rather than failing the poll.
+    let selected = requested
+        .and_then(|raw| resolve_blend(project, raw).ok())
+        .or_else(|| {
+            blends
+                .first()
+                .and_then(|b| resolve_blend(project, &b.path).ok())
+        });
 
     let mut value = json!({
         "blender": blender, "project": true, "readOnly": services.read_only,
@@ -476,6 +479,37 @@ mod tests {
         assert_eq!(value["renders"], json!([]));
         assert_eq!(value["blender"]["found"], false);
         assert_eq!(value["blends"], json!([]));
+    }
+
+    #[test]
+    fn state_drops_a_blend_from_another_project() {
+        let old = TempDir::new().expect("tempdir");
+        let stale = old.path().join("room.blend");
+        std::fs::write(&stale, b"x").expect("write");
+        let env = TempDir::new().expect("tempdir");
+        let fx = Fixture::new();
+        let services = fx.services(Config::default(), false);
+        let params = json!({ "blend": stale.display().to_string() });
+
+        let empty = dispatch(
+            &context(env.path()),
+            &services,
+            "blender-viewer/state",
+            Some(params.clone()),
+        )
+        .expect("a stale path is not an error");
+        assert_eq!(empty["blend"], Value::Null);
+        assert_eq!(empty["blends"], json!([]));
+
+        std::fs::write(env.path().join("new.blend"), b"x").expect("write");
+        let listed = dispatch(
+            &context(env.path()),
+            &services,
+            "blender-viewer/state",
+            Some(params),
+        )
+        .expect("state");
+        assert_eq!(listed["rel"], "new.blend");
     }
 
     #[test]

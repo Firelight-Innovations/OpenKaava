@@ -1620,27 +1620,40 @@ const FIELD: char = '\u{1f}';
 /// draw the same empty state.
 #[tauri::command]
 pub fn git_graph(app: AppHandle, cluster_id: String, limit: u32) -> Result<Vec<GitCommit>> {
-    let Ok((_, root)) = cluster_repo(&app, &cluster_id, "log") else {
+    // Resolved the way `git_cluster_status` and `git_branches` resolve, through
+    // the cluster's working root, so the graph reads the repository the rest of
+    // the panel is showing. `main_repo_root` then steps to the checkout that
+    // owns the object database, which is the same repository for every
+    // worktree.
+    let Some(working) = crate::project::cluster_path(&app, &cluster_id) else {
+        return Ok(Vec::new());
+    };
+    let Some(root) = main_repo_root(&working) else {
         return Ok(Vec::new());
     };
 
-    // Built here rather than inline because `run_git` borrows its arguments and
-    // a temporary formatted inside the call would not outlive it.
+    graph_in(&root, limit)
+}
+
+/// The body of `git_graph`, once its cluster has become a directory.
+///
+/// A failing `git log` is an error the panel shows, not an empty list. It was
+/// swallowed into `Vec::new()` before, which drew a repository with thousands
+/// of commits as "No commits" and gave nobody a reason to look for the cause.
+/// The one failure that is an honest empty is a repository with no commits.
+fn graph_in(root: &Path, limit: u32) -> Result<Vec<GitCommit>> {
+    // Built here because `run_git` borrows its arguments and a temporary
+    // formatted inside the call would not outlive it.
     let format = format!("--format=%H{FIELD}%h{FIELD}%s{FIELD}%an{FIELD}%at{FIELD}%P{FIELD}%D");
     let max = format!("--max-count={limit}");
 
-    // A repository with no commits makes `git log` exit non-zero rather than
-    // print nothing, and that is a normal state for a project someone just ran
-    // `git init` in — so it reads as an empty history, not a failure.
     // `--decorate-refs` is doing real work, not tidying. `--branches` limits
     // which commits are *walked*, but `%D` decorates whatever it reaches with
-    // every ref pointing at it — so without this, `origin/main` and
-    // `origin/HEAD` appear as badges on a graph that is supposed to be local
-    // branches only. Filtering them out by name afterwards is not possible:
-    // a local branch is allowed to be called `origin/main`, and this repo's own
-    // `feat/search-and-git` proves a slash is no evidence of a remote.
-    let Ok(out) = run_git(
-        &root,
+    // every ref pointing at it, so without this `origin/main` appears as a
+    // badge on a graph that is supposed to be local branches only. Filtering by
+    // name afterwards is impossible: a local branch may be called `origin/main`.
+    let result = run_git(
+        root,
         "log",
         &[
             "log",
@@ -1650,8 +1663,15 @@ pub fn git_graph(app: AppHandle, cluster_id: String, limit: u32) -> Result<Vec<G
             &max,
             &format,
         ],
-    ) else {
-        return Ok(Vec::new());
+    );
+
+    let out = match result {
+        Ok(out) => out,
+        // A repository someone just ran `git init` in has no history to draw.
+        Err(AppError::Git { reason, .. }) if reason.contains("does not have any commits") => {
+            return Ok(Vec::new())
+        }
+        Err(err) => return Err(err),
     };
 
     Ok(out.lines().filter_map(parse_commit).collect())
@@ -2028,6 +2048,63 @@ mod tests {
         let rest = &source[start..];
         let end = rest.find("#[tauri::command]").unwrap_or(rest.len());
         &rest[..end]
+    }
+
+    /// Runs `git` in `dir` for a fixture, panicking with git's own message.
+    fn fixture_git(dir: &Path, args: &[&str]) {
+        let out = std::process::Command::new("git")
+            .current_dir(dir)
+            .args(["-c", "user.name=t", "-c", "user.email=t@example.com"])
+            .args(args)
+            .output()
+            .expect("git runs");
+        assert!(
+            out.status.success(),
+            "git {args:?}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+
+    #[test]
+    fn graph_lists_local_branch_commits_newest_first_with_refs() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path();
+        fixture_git(p, &["init", "-q", "-b", "trunk"]);
+        fixture_git(p, &["commit", "-q", "--allow-empty", "-m", "first"]);
+        fixture_git(p, &["checkout", "-q", "-b", "feature"]);
+        fixture_git(
+            p,
+            &[
+                "commit",
+                "-q",
+                "--allow-empty",
+                "-m",
+                "second
+
+body line",
+            ],
+        );
+
+        let commits = graph_in(p, 50).unwrap();
+        assert_eq!(commits.len(), 2);
+        assert_eq!(commits[0].summary, "second");
+        assert_eq!(commits[0].parents, vec![commits[1].sha.clone()]);
+        assert!(commits[0].refs.iter().any(|r| r.contains("feature")));
+        assert!(commits[1].refs.contains(&"trunk".to_string()));
+    }
+
+    #[test]
+    fn graph_of_a_repository_with_no_commits_is_empty() {
+        let dir = tempfile::tempdir().unwrap();
+        fixture_git(dir.path(), &["init", "-q"]);
+        assert!(graph_in(dir.path(), 50).unwrap().is_empty());
+    }
+
+    #[test]
+    fn graph_reports_a_git_failure_instead_of_an_empty_list() {
+        let dir = tempfile::tempdir().unwrap();
+        // Not a repository: git log fails, and that must surface.
+        assert!(graph_in(dir.path(), 50).is_err());
     }
 
     #[test]

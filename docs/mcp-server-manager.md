@@ -308,6 +308,9 @@ happen at all:
 
 ## 11. Developer-only servers
 
+`echo`, `debug`, `ui` and `agent` are all `dev_only`. `design` is the only server
+an ordinary build serves.
+
 `dev_only: true` on an `McpServer` makes it **absent** until `developer.mode` is
 switched on in settings. Not greyed out, not marked unavailable: no row in the
 panel, no key in `.mcp.json`, nothing from `tools/list`, and a `tools/call` that

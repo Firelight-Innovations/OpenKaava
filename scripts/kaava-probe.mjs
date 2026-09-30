@@ -209,6 +209,18 @@ async function connect(endpoint, server) {
   return opened.sessionId;
 }
 
+/**
+ * What to add when a server answers as if it were not there.
+ *
+ * `debug`, `echo`, `ui` and `agent` are all developer-only: they are absent, not
+ * merely off, until `developer.mode` is on and the server's own switch in
+ * Settings -> MCP servers is on too. `pnpm ui launch` does both for the agent's
+ * own instance, which is what `--agent` reaches.
+ */
+function notServedHint(server) {
+  return ` If OpenKaava is not serving \`${server}\`, turn on developer mode (Settings -> Developer) and switch the ${server} server on under Settings -> MCP servers. An instance from \`pnpm ui launch\` has both already; use --agent to reach it.`;
+}
+
 async function main() {
   const args = process.argv.slice(2);
 
@@ -248,13 +260,21 @@ async function main() {
 
   const { message } = await rpc(endpoint, server, request, sessionId);
 
-  if (message?.error) die(`${request.method} failed: ${message.error.message}`);
+  if (message?.error)
+    die(`${request.method} failed: ${message.error.message}${notServedHint(server)}`);
+
+  if (!tool && message?.result?.tools?.length === 0) {
+    die(`the ${server} server lists no tools.${notServedHint(server)}`);
+  }
 
   // A tool that fails answers with `isError` and its reason as content rather
   // than with a JSON-RPC error, so a caller checking only for `error` would read
   // a failure as a result.
   if (message?.result?.isError) {
-    die(`${tool} reported an error: ${JSON.stringify(message.result.content)}`);
+    const reason = JSON.stringify(message.result.content);
+    die(
+      `${tool} reported an error: ${reason}${/no MCP server/i.test(reason) ? notServedHint(server) : ""}`,
+    );
   }
 
   const image = message?.result?.content?.find((block) => block.type === "image");

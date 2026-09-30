@@ -23,11 +23,12 @@ use crate::settings::{self, keys};
 use grep_matcher::Matcher;
 use grep_regex::RegexMatcherBuilder;
 use grep_searcher::{sinks, BinaryDetection, SearcherBuilder};
-use ignore::WalkBuilder;
+use ignore::{WalkBuilder, WalkState};
 use serde::Serialize;
 use std::ffi::OsStr;
 use std::path::Path;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Manager};
 
@@ -266,115 +267,202 @@ fn build_matcher(
         .map_err(|e| AppError::Search(format!("`{query}` is not a usable search pattern: {e}")))
 }
 
+/// Directories that are generated output or dependency caches, never something a person searches
+/// by hand. `.gitignore` already excludes these in a normal repo; naming them here as well covers
+/// a project that has no `.gitignore` (or no `.git`) and costs nothing where it does. Matched on
+/// the directory's own name, at any depth.
+const SKIPPED_DIRS: &[&str] = &[
+    "node_modules",
+    "target",
+    "dist",
+    "dist-ssr",
+    "__pycache__",
+    ".venv",
+    ".next",
+    ".nuxt",
+    ".gradle",
+    ".cache",
+];
+
+/// Extensions of files that are never text. They are still matched by *name*, but never opened:
+/// on Windows every first open goes through the antivirus scanner, and opening a texture only for
+/// binary detection to reject it is the single most wasteful thing the walk could do.
+const BINARY_EXTENSIONS: &[&str] = &[
+    "png", "jpg", "jpeg", "gif", "webp", "ico", "bmp", "psd", "tga", "dds", "exr", "hdr", "mp3",
+    "wav", "ogg", "flac", "mp4", "mov", "avi", "mkv", "webm", "zip", "gz", "tgz", "7z", "rar",
+    "tar", "exe", "dll", "pdb", "so", "dylib", "lib", "a", "o", "obj", "rlib", "ttf", "otf",
+    "woff", "woff2", "pck", "glb", "fbx", "blend", "wasm", "bin", "pdf", "class", "jar",
+];
+
+/// Whether the walk should not descend into a directory called `name`.
+fn is_skipped_dir(name: &OsStr) -> bool {
+    SKIPPED_DIRS.iter().any(|d| name == OsStr::new(d))
+}
+
+/// Whether `path` has an extension that marks it as a non-text file.
+fn is_binary_extension(path: &Path) -> bool {
+    path.extension().and_then(OsStr::to_str).is_some_and(|ext| {
+        BINARY_EXTENSIONS
+            .iter()
+            .any(|b| ext.eq_ignore_ascii_case(b))
+    })
+}
+
+/// How many walker threads. The work is dominated by opening files (an antivirus scan per first
+/// open on Windows), which is latency, not CPU, so more threads than cores still help.
+fn walk_threads() -> usize {
+    let cpus = std::thread::available_parallelism().map_or(4, |n| n.get());
+    (cpus * 2).clamp(4, 16)
+}
+
 /// The walk itself, once there is a directory and a compiled matcher.
 ///
-/// Never returns an error: an unreadable entry, an unreadable file, or a generation that has moved
-/// on are all ordinary outcomes here, the same way `git.rs`'s walk-adjacent functions treat one bad
-/// record as something to skip rather than something to fail the whole call over.
+/// Runs on `ignore`'s parallel walker: a serial walk measured ~10 ms per file on this repo because
+/// each first open waits on the antivirus scanner, and that wait overlaps across threads. Never
+/// returns an error: an unreadable entry, an unreadable file, or a generation that has moved on
+/// are all ordinary outcomes here.
+///
+/// Threads race, so hits arrive in no particular order and each file only knows the match total as
+/// of when it started. The result is therefore sorted by path and trimmed back to the caps at the
+/// end, which keeps both the order and the limits exactly what a serial walk would have promised.
 fn walk(
     root: &Path,
     matcher: &grep_regex::RegexMatcher,
-    is_current: &dyn Fn() -> bool,
+    is_current: &(dyn Fn() -> bool + Sync),
     caps: &Caps,
 ) -> SearchResponse {
     let started = Instant::now();
-    let mut hits = Vec::new();
-    let mut total_matches = 0usize;
-    let mut truncated = false;
-
-    let mut searcher = SearcherBuilder::new()
-        // Ripgrep's own default: the first NUL byte in a file's opening bytes is proof the file is
-        // not text, and it is skipped rather than scanned line by line for a query that was never
-        // going to appear in it meaningfully.
-        .binary_detection(BinaryDetection::quit(0))
-        .line_number(true)
-        .build();
+    let hits: Mutex<Vec<SearchFileHit>> = Mutex::new(Vec::new());
+    let total_matches = AtomicUsize::new(0);
+    let file_count = AtomicUsize::new(0);
+    let truncated = AtomicBool::new(false);
 
     let walker = WalkBuilder::new(root)
         // Dotfiles are ordinary search targets here — `.env`, `.github/`, OpenKaava's own `.kaava/` —
         // unlike ripgrep's default, which is tuned for a terminal user who types `--hidden` when
         // they want them. A GUI search box has no equivalent flag, so this always includes them.
         .hidden(false)
-        // Pruned, not merely skipped as an entry: `ignore` still descends into a directory the loop
-        // below `continue`s past, so the old `.git` check further down left every object and ref in
-        // it being opened and scanned. A directory holding its own `.git` is another checkout, not
-        // part of this project's tree — in practice a linked worktree under `.worktrees/`, which
-        // otherwise duplicates the whole project once per agent and is what a search burns its
-        // budget on before it ever reaches `src/`.
+        // Honour `.gitignore` even where there is no `.git` directory yet (a fresh folder, an
+        // exported archive) — the default only reads it inside a repository.
+        .require_git(false)
+        .threads(walk_threads())
+        // Pruned, not merely skipped as an entry: `ignore` still descends into a directory the
+        // visitor below returns `Continue` for. A directory holding its own `.git` is another
+        // checkout, not part of this project's tree — in practice a linked worktree under
+        // `.worktrees/`, which otherwise duplicates the whole project once per agent.
         .filter_entry(|entry| {
             if entry.file_name() == OsStr::new(".git") {
                 return false;
             }
             let is_dir = entry.file_type().is_some_and(|t| t.is_dir());
-            !(is_dir && entry.depth() > 0 && entry.path().join(".git").exists())
-        })
-        .build();
-
-    for entry in walker {
-        // Checked once per entry — cheap compared to the filesystem work around it — so a
-        // superseded search stops within one directory listing of the newer one starting, not
-        // after walking whatever was left of the tree.
-        if !is_current() {
-            truncated = true;
-            break;
-        }
-
-        // The wall-clock backstop. The caps above bound the *answer*, not the time it takes to reach
-        // it: a query that matches little walks the whole tree, and on a cold Windows disk every
-        // first read of a file goes through the antivirus scanner, so a tree of ten thousand files
-        // measured over a minute. The command answers once, not as a stream, so without this the
-        // dialog sat on "Searching…" for that whole time. Past the budget the walk returns what it
-        // has, marked truncated, and the UI says so.
-        if started.elapsed() >= caps.time_budget {
-            truncated = true;
-            break;
-        }
-
-        let Ok(entry) = entry else {
-            // A permission error or a path that vanished mid-walk. One unreadable entry is not
-            // reason to lose every hit found so far.
-            continue;
-        };
-
-        if !entry.file_type().is_some_and(|t| t.is_file()) {
-            continue;
-        }
-
-        let path = entry.path();
-        let name = entry.file_name().to_string_lossy();
-        let name_matches = matcher.find(name.as_bytes()).ok().flatten().is_some();
-
-        let too_large = entry
-            .metadata()
-            .map(|m| m.len() > caps.max_content_bytes)
-            .unwrap_or(false);
-
-        let mut matches = Vec::new();
-        if !too_large {
-            let hit_cap = search_file(
-                &mut searcher,
-                matcher,
-                path,
-                &mut matches,
-                &mut total_matches,
-                caps.max_matches,
-            );
-            if hit_cap {
-                truncated = true;
+            if is_dir && entry.depth() > 0 {
+                return !is_skipped_dir(entry.file_name()) && !entry.path().join(".git").exists();
             }
-        }
+            true
+        })
+        .build_parallel();
 
-        if name_matches || !matches.is_empty() {
-            hits.push(SearchFileHit {
-                path: path.display().to_string(),
-                matches,
-            });
-        }
+    let (hits_ref, total_ref, files_ref, truncated_ref) =
+        (&hits, &total_matches, &file_count, &truncated);
+    walker.run(|| {
+        let (hits, total_matches, file_count, truncated) =
+            (hits_ref, total_ref, files_ref, truncated_ref);
+        let mut searcher = SearcherBuilder::new()
+            // Ripgrep's own default: the first NUL byte in a file's opening bytes is proof the file
+            // is not text, and it is skipped rather than scanned line by line.
+            .binary_detection(BinaryDetection::quit(0))
+            .line_number(true)
+            .build();
 
-        if total_matches >= caps.max_matches || hits.len() >= caps.max_files {
+        Box::new(move |entry| {
+            // Once per entry — cheap next to the filesystem work around it — so a superseded
+            // search stops within one entry per thread of the newer one starting.
+            if !is_current() {
+                truncated.store(true, Ordering::Relaxed);
+                return WalkState::Quit;
+            }
+
+            // The wall-clock backstop. The caps bound the *answer*, not the time to reach it, and
+            // the command answers once rather than streaming. Past the budget the walk returns
+            // what it has, marked truncated, and the UI says so.
+            if started.elapsed() >= caps.time_budget {
+                truncated.store(true, Ordering::Relaxed);
+                return WalkState::Quit;
+            }
+
+            // A permission error or a path that vanished mid-walk is not reason to lose every hit
+            // found so far.
+            let Ok(entry) = entry else {
+                return WalkState::Continue;
+            };
+            if !entry.file_type().is_some_and(|t| t.is_file()) {
+                return WalkState::Continue;
+            }
+
+            let path = entry.path();
+            let name = entry.file_name().to_string_lossy();
+            let name_matches = matcher.find(name.as_bytes()).ok().flatten().is_some();
+
+            let too_large = entry
+                .metadata()
+                .map(|m| m.len() > caps.max_content_bytes)
+                .unwrap_or(false);
+
+            let mut matches = Vec::new();
+            if !too_large && !is_binary_extension(path) {
+                // Each file counts against the running total as of now; the final trim below
+                // corrects for files that were scanned at the same moment.
+                let before = total_matches.load(Ordering::Relaxed);
+                let mut local_total = before;
+                if search_file(
+                    &mut searcher,
+                    matcher,
+                    path,
+                    &mut matches,
+                    &mut local_total,
+                    caps.max_matches,
+                ) {
+                    truncated.store(true, Ordering::Relaxed);
+                }
+                total_matches.fetch_add(local_total - before, Ordering::Relaxed);
+            }
+
+            if name_matches || !matches.is_empty() {
+                hits.lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .push(SearchFileHit {
+                        path: path.display().to_string(),
+                        matches,
+                    });
+                file_count.fetch_add(1, Ordering::Relaxed);
+            }
+
+            if total_matches.load(Ordering::Relaxed) >= caps.max_matches
+                || file_count.load(Ordering::Relaxed) >= caps.max_files
+            {
+                truncated.store(true, Ordering::Relaxed);
+                return WalkState::Quit;
+            }
+            WalkState::Continue
+        })
+    });
+
+    let mut hits = hits.into_inner().unwrap_or_else(|e| e.into_inner());
+    hits.sort_by(|a, b| a.path.cmp(&b.path));
+    let mut truncated = truncated.load(Ordering::Relaxed);
+
+    // Threads overshoot the caps by whatever was in flight; trim to exactly the promised size.
+    if hits.len() > caps.max_files {
+        hits.truncate(caps.max_files);
+        truncated = true;
+    }
+    let mut budget = caps.max_matches;
+    for hit in hits.iter_mut() {
+        if hit.matches.len() > budget {
+            hit.matches.truncate(budget);
             truncated = true;
-            break;
         }
+        budget -= hit.matches.len();
     }
 
     SearchResponse { hits, truncated }
@@ -577,6 +665,137 @@ the stack here
         let paths: Vec<&str> = response.hits.iter().map(|h| h.path.as_str()).collect();
         assert_eq!(paths.len(), 1, "{paths:?}");
         assert!(paths[0].ends_with("keep.txt"));
+    }
+
+    #[test]
+    fn generated_directories_are_skipped_even_without_a_gitignore() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("keep.txt"),
+            "stack
+",
+        )
+        .unwrap();
+        for skipped in ["node_modules", "target", "dist", "sub/node_modules"] {
+            let d = dir.path().join(skipped);
+            std::fs::create_dir_all(&d).unwrap();
+            std::fs::write(
+                d.join("junk.txt"),
+                "stack
+",
+            )
+            .unwrap();
+        }
+
+        let response = run(dir.path(), "stack", Duration::from_secs(30));
+        let paths: Vec<&str> = response.hits.iter().map(|h| h.path.as_str()).collect();
+        assert_eq!(paths.len(), 1, "{paths:?}");
+        assert!(paths[0].ends_with("keep.txt"));
+    }
+
+    #[test]
+    fn a_gitignore_is_honoured_even_without_a_git_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join(".gitignore"),
+            "secret/
+*.gen.txt
+",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.path().join("keep.txt"),
+            "stack
+",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.path().join("a.gen.txt"),
+            "stack
+",
+        )
+        .unwrap();
+        std::fs::create_dir(dir.path().join("secret")).unwrap();
+        std::fs::write(
+            dir.path().join("secret").join("x.txt"),
+            "stack
+",
+        )
+        .unwrap();
+
+        let response = run(dir.path(), "stack", Duration::from_secs(30));
+        let paths: Vec<&str> = response.hits.iter().map(|h| h.path.as_str()).collect();
+        assert_eq!(paths.len(), 1, "{paths:?}");
+        assert!(paths[0].ends_with("keep.txt"));
+    }
+
+    #[test]
+    fn a_binary_extension_is_matched_by_name_but_never_opened_for_content() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("stack.png"),
+            "stack in the body
+",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.path().join("other.png"),
+            "stack in the body
+",
+        )
+        .unwrap();
+
+        let response = run(dir.path(), "stack", Duration::from_secs(30));
+        assert_eq!(response.hits.len(), 1);
+        assert!(response.hits[0].path.ends_with("stack.png"));
+        assert!(response.hits[0].matches.is_empty());
+    }
+
+    #[test]
+    fn the_file_cap_trims_a_parallel_walk_to_exactly_the_cap() {
+        let dir = tempfile::tempdir().unwrap();
+        for i in 0..50 {
+            std::fs::write(
+                dir.path().join(format!("f{i:02}.txt")),
+                "stack
+",
+            )
+            .unwrap();
+        }
+        let matcher = build_matcher("stack", false, false, false).unwrap();
+        let mut c = caps(Duration::from_secs(30));
+        c.max_files = 5;
+
+        let response = walk(dir.path(), &matcher, &|| true, &c);
+        assert_eq!(response.hits.len(), 5);
+        assert!(response.truncated);
+    }
+
+    #[test]
+    fn skip_rules_match_by_name_and_extension() {
+        assert!(is_skipped_dir(OsStr::new("node_modules")));
+        assert!(!is_skipped_dir(OsStr::new("src")));
+        assert!(is_binary_extension(Path::new("a/b/TEXTURE.PNG")));
+        assert!(!is_binary_extension(Path::new("a/b/main.rs")));
+        assert!(!is_binary_extension(Path::new("Makefile")));
+    }
+
+    /// Manual profiling, not a check: `OPENKAAVA_BENCH_ROOT=<dir> cargo test bench_walk -- --ignored
+    /// --nocapture` prints how long a real tree takes for a query that matches little.
+    #[test]
+    #[ignore]
+    fn bench_walk() {
+        let root = std::env::var("OPENKAAVA_BENCH_ROOT").expect("set OPENKAAVA_BENCH_ROOT");
+        for query in ["zzqxnomatch", "stack", "a"] {
+            let started = Instant::now();
+            let response = run(Path::new(&root), query, Duration::from_secs(600));
+            eprintln!(
+                "bench {query:?}: {:?}, {} hits, truncated={}",
+                started.elapsed(),
+                response.hits.len(),
+                response.truncated
+            );
+        }
     }
 
     #[test]

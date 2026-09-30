@@ -21,7 +21,8 @@ pub static SERVER: McpServer = McpServer {
     description: "A test server. Proves an agent can reach OpenKaava, and nothing more.",
     tools: TOOLS,
     call,
-    dev_only: false,
+    // A plumbing fixture, of use to whoever is working on OpenKaava and nobody else.
+    dev_only: true,
 };
 
 static TOOLS: &[McpTool] = &[

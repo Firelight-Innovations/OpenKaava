@@ -89,10 +89,12 @@ function enable() {
   // launch that answers both spellings is worth the second key.
   const mcpPath = join(dir, "mcp.json");
   const mcp = read(mcpPath);
-  mcp.switched = { ...mcp.switched, ui: true, agent: true };
+  // `debug` and `echo` are developer-only too, and `pnpm probe` defaults to
+  // `debug`, so `pnpm probe --agent` needs it on as much as `agent` is.
+  mcp.switched = { ...mcp.switched, ui: true, agent: true, debug: true, echo: true };
   writeFileSync(mcpPath, `${JSON.stringify(mcp, null, 2)}\n`);
 
-  note(`developer mode and the agent server switched on in ${dir}`);
+  note(`developer mode and the agent, debug and echo servers switched on in ${dir}`);
 }
 
 function launch() {

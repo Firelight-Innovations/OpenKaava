@@ -153,6 +153,10 @@
    as direct children of the row. */
 .frame__workspace-body {
   flex: 1;
+  /* A rail page pulls out from beyond this box's right edge; clip it here so
+     it never paints over the rail beside. `clip`, not `hidden`, so this does
+     not become a scroll container. */
+  overflow: clip;
   display: flex;
   min-width: 0;
   min-height: 0;

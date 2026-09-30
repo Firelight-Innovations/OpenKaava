@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Openable } from "../../bindings";
+import type { Openable } from "../bindings";
 import { filterApps, stepIndex } from "./pickerFilter";
 
 const app = (id: string, name: string, description = ""): Openable => ({

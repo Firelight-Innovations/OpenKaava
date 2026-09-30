@@ -242,6 +242,12 @@ pub fn probe_version(path: &Path) -> Option<(String, u32)> {
     parse_version(&text)
 }
 
+/// The export script runs on Blender 4.x and 5.x (tested on 5.2); older and
+/// newer majors get a warning.
+pub fn is_supported_major(major: u32) -> bool {
+    (4..=5).contains(&major)
+}
+
 /// Whole-word summary for the viewer: what was found and how sure we are.
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -251,7 +257,7 @@ pub struct Detected {
     pub source: Option<Source>,
     pub version: Option<String>,
     pub major: Option<u32>,
-    /// Blender 4.x is what the pipeline is written and tested against.
+    /// Blender 4.x and 5.x are accepted; see `is_supported_major`.
     pub supported: bool,
     pub configured_missing: bool,
 }
@@ -294,7 +300,9 @@ pub fn detect(host: &dyn Host, configured: &str, versions: &VersionCache) -> Det
                 found: true,
                 path: Some(path.display().to_string()),
                 source: Some(source),
-                supported: version.as_ref().is_some_and(|(_, major)| *major == 4),
+                supported: version
+                    .as_ref()
+                    .is_some_and(|(_, major)| is_supported_major(*major)),
                 major: version.as_ref().map(|(_, m)| *m),
                 version: version.map(|(v, _)| v),
                 configured_missing,
@@ -307,6 +315,14 @@ pub fn detect(host: &dyn Host, configured: &str, versions: &VersionCache) -> Det
 pub(crate) mod tests {
     use super::*;
     use std::collections::BTreeSet;
+
+    #[test]
+    fn supported_majors_are_four_and_five() {
+        assert!(!is_supported_major(3));
+        assert!(is_supported_major(4));
+        assert!(is_supported_major(5));
+        assert!(!is_supported_major(6));
+    }
 
     #[derive(Default)]
     pub(crate) struct FakeHost {

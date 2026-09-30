@@ -565,3 +565,19 @@ for one to install.
 
 It rides in `appsMenu()` rather than the title bar, so — like Presets, and for the reason that
 section gives — the switcher row's `+` gained it at the same time, with nothing to keep in sync.
+
+### Rail pages pull out of the rail
+
+A rail page, docked or expanded, is one `PageSurface` in `Frame`, driven by a single progress value
+(0 tucked into the rail, 1 settled). Docked slides by `translateX`; expanded is revealed by a clip
+that opens from the rail side, so the app inside is never scaled. The box is at its final size from
+the first frame — panes and the app iframe measure the settled layout, and `pageGeometry`'s
+`getBoundingClientRect` reads never see a mid-flight one. Arrival is `snap`; leaving is `pageOut`, a
+120ms tween, faster by the rule `instantOut` states.
+
+Switching straight from one page to another does not close and reopen: the panel stays and the new
+body fades in (`instant`, opacity only). Dock/expand re-shapes the same element and replays the
+last 45% of the reveal. The mode is a prop rather than a key, and `WindowRoot` gives both slots the
+same component (`PageShell`), because an app page's iframe is portalled into a host inside the
+body; a different component type or key would remount it and reload the frame. Under
+`prefers-reduced-motion` nothing slides or clips; opacity only, and a close unmounts at once.

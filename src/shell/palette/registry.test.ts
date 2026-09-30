@@ -167,7 +167,6 @@ describe("open-app commands", () => {
   ];
   const source = (over: Partial<OpenAppSource> = {}): OpenAppSource => ({
     apps,
-    openPicker: vi.fn(),
     open: vi.fn(),
     ...over,
   });
@@ -192,13 +191,13 @@ describe("open-app commands", () => {
     expect(all.some((c) => c.label === "Apps: Files")).toBe(false);
   });
 
-  it("runs the open handler with the app, and the picker for 'Open app…'", () => {
+  it("runs the open handler with the app, and drills into the apps page for 'Open app…'", () => {
     const s = source();
     const all = withOpenAppCommands([], s);
     rankCommands(all, "files")[0]?.command.onSelect?.();
     expect(s.open).toHaveBeenCalledWith(apps[0]);
-    all[0]?.onSelect?.();
-    expect(s.openPicker).toHaveBeenCalledTimes(1);
+    expect(all[0]?.drill).toBe("apps");
+    expect(all[0]?.onSelect).toBeUndefined();
   });
 
   it("disables every row with the reason when opening is blocked", () => {

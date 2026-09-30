@@ -30,16 +30,9 @@ use super::Registry;
 
 /// Register every server this build hosts, in the order settings lists them.
 ///
-/// The echo server is registered unconditionally, release included, because a
-/// feature whose whole surface is compiled out cannot be verified by the person
-/// who most needs to verify it. Now that real servers have landed this is the
-/// line that should grow a `cfg` — left alone so that switching echo off is its
-/// own decision rather than a side effect of adding something beside it.
-///
-/// `debug` is likewise unconditional, for a reason that will outlast echo's: a
-/// shipped OpenKaava misbehaving on a machine none of us have is exactly where
-/// reading its layout and its failures is worth the most, and a server compiled
-/// out of that build cannot answer.
+/// `echo` and `debug` are registered in every build, release included, but are
+/// `dev_only`: a `cfg` would put them out of reach of the build somebody most
+/// needs to diagnose, so the gate is developer mode, checked at the point of use.
 ///
 /// `design` ships for the ordinary user rather than for us — the comments it
 /// serves are theirs — which is why it is the one write surface with no gate.
@@ -90,29 +83,49 @@ mod tests {
         }
     }
 
-    /// With developer mode off, the shipped build looks exactly as it did before
-    /// the UI server existed. This is the assertion that would fail if a future
-    /// change leaked one of them into the ordinary list.
-    ///
-    /// `design` is in this list and is meant to be: it is the one write surface
-    /// an ordinary user is supposed to have, for the reasons in its module doc.
-    /// Two servers are now absent rather than one — `agent` can click for the
-    /// same reason `ui` can, and composing `debug`'s three reads into it does
-    /// not pull them out from behind that gate, which is why `debug` itself
-    /// stays registered and stays in the list below.
+    /// With developer mode off, the ordinary user sees only what is for them.
+    /// `design` is meant to be here: it is the one write surface an ordinary
+    /// user is supposed to have, for the reasons in its module doc. `echo`,
+    /// `debug`, `ui` and `agent` are all developer-only.
     #[test]
-    fn a_default_install_sees_no_server_that_can_click() {
+    fn a_default_install_sees_only_the_servers_that_are_not_developer_only() {
         let registry = Registry::default();
         seed(&registry);
 
         #[cfg(feature = "design-mode")]
-        let expected = vec!["echo", "debug", "design"];
+        let expected: Vec<&str> = vec!["design"];
         #[cfg(not(feature = "design-mode"))]
-        let expected = vec!["echo", "debug"];
+        let expected: Vec<&str> = vec![];
 
         let ids: Vec<String> = registry.list(false).into_iter().map(|s| s.id).collect();
         assert_eq!(ids, expected);
         assert_eq!(registry.enabled_ids(false), expected);
+    }
+
+    /// With developer mode on, echo and debug are listed and badged, but start
+    /// off like `ui` and `agent`: revealing is not enabling. Once switched on
+    /// they are reachable, and switching developer mode off takes them away.
+    #[test]
+    fn echo_and_debug_appear_with_developer_mode_and_need_their_own_switch() {
+        let registry = Registry::default();
+        seed(&registry);
+
+        for id in ["echo", "debug"] {
+            let row = registry
+                .list(true)
+                .into_iter()
+                .find(|s| s.id == id)
+                .unwrap_or_else(|| panic!("{id} is listed with developer mode on"));
+            assert!(row.dev_only, "{id} carries the developer badge");
+            assert!(!row.enabled, "{id} starts off");
+            assert!(!registry.enabled_ids(true).contains(&id.to_string()));
+
+            assert!(registry.set_enabled(id, true));
+            assert!(registry.enabled_ids(true).contains(&id.to_string()));
+            assert!(!registry.enabled_ids(false).contains(&id.to_string()));
+            assert!(registry.tools(id, false).is_empty());
+            assert!(!registry.tools(id, true).is_empty());
+        }
     }
 
     /// The id reaches two places a typo would not be caught in: a URL path and a

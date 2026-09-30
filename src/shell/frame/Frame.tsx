@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef } from "react";
-import { animate, motion, useMotionValue } from "framer-motion";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion } from "framer-motion";
 import type { FrameSlots, WindowKind } from "../contract";
 import { settle } from "../motion";
 import { beginResize } from "../resizeGate";
+import PageSurface, { type PageMode } from "./PageSurface";
 import { pageGeometry, pageWidthFromPointer } from "./pageGeometry";
 import "./frame.css";
 
@@ -318,6 +319,17 @@ export default function Frame({
     projectPageExpanded,
   );
 
+  // The panes stay painted until the expanded page has finished growing over
+  // them; hiding them on the first frame would show an empty canvas through
+  // the part of the page that has not arrived yet. Reset the moment the page
+  // is no longer expanded, so a close reveals them at once.
+  const reducedMotion = useReducedMotion() ?? false;
+  const [covered, setCovered] = useState(false);
+  const onPageSettled = useCallback((mode: PageMode) => setCovered(mode === "expanded"), []);
+  useEffect(() => {
+    if (!expanded) setCovered(false);
+  }, [expanded]);
+
   return (
     <div className="frame" data-window-kind={kind}>
       {/* Plain divs, fixed heights, no `layout` prop. The four bars never
@@ -339,7 +351,7 @@ export default function Frame({
             `display`, and not an unmount, so the panes underneath (and any
             terminal running in them) keep going behind it. See
             `FrameSlots.projectPageExpanded`. */}
-        <div className="frame__workspace-body" data-hidden={expanded || undefined}>
+        <div className="frame__workspace-body" data-hidden={(expanded && covered) || undefined}>
           {/* The tool window and the terminal band are one column, so the band
               stops at the docked page's edge instead of spanning the window.
               See `FrameSlots.bottomPanel` for why that is the arrangement. */}
@@ -377,36 +389,42 @@ export default function Frame({
             )}
           </div>
 
-          {/* The docked project page and its own handle — omitted, not just
-              empty, while no page is open or a page is showing expanded
-              instead (`Board 12`'s rule: the two geometries are never both on
-              screen). Omitted means no border and no gap: an empty bordered
-              column is what `slotFilled` exists to prevent. */}
+          {/* The docked page's handle — omitted, not just empty, while no page
+              is open or a page is showing expanded instead (`Board 12`'s
+              rule: the two geometries are never both on screen). Omitted means
+              no border and no gap: an empty bordered column is what
+              `slotFilled` exists to prevent. */}
           {docked && (
-            <>
-              <div
-                className="frame__pagehandle"
-                data-region="pagehandle"
-                onPointerDown={onPageHandleDown}
-              >
-                <div className="frame__grip" />
-              </div>
-
-              <motion.div className="frame__page" data-region="page" style={{ width: pageWidth }}>
-                {slots.projectPage}
-              </motion.div>
-            </>
-          )}
-
-          {/* The expanded page. `visibility: visible` fights its own hidden
-              ancestor above by design — CSS lets a descendant do that — which
-              is what keeps this on screen while the wrapper it sits inside
-              hides everything else in one declaration. */}
-          {expanded && (
-            <div className="frame__page-expanded" data-region="page-expanded">
-              {slots.projectPageExpanded}
+            <div
+              className="frame__pagehandle"
+              data-region="pagehandle"
+              onPointerDown={onPageHandleDown}
+            >
+              <div className="frame__grip" />
             </div>
           )}
+
+          {/* The page itself, docked or expanded, as ONE surface. It pulls out
+              of the rail on open and tucks back in on close (`PageSurface`),
+              and `AnimatePresence` holds it mounted through the close. The
+              mode is a prop, never a key: a dock/expand toggle re-shapes this
+              element instead of replacing it, which is what keeps an app
+              page's iframe host from being remounted. The expanded shape
+              relies on `visibility: visible` fighting its hidden ancestor
+              above by design — CSS lets a descendant do that. */}
+          <AnimatePresence>
+            {(docked || expanded) && (
+              <PageSurface
+                key="page"
+                mode={expanded ? "expanded" : "docked"}
+                reduced={reducedMotion}
+                width={pageWidth}
+                onSettled={onPageSettled}
+              >
+                {expanded ? slots.projectPageExpanded : slots.projectPage}
+              </PageSurface>
+            )}
+          </AnimatePresence>
 
           {/* Last child of the hidden wrapper rather than of the row, so it
               covers the tool window and the docked page without reaching

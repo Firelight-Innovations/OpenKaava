@@ -32,16 +32,21 @@ Turn on a server → Lands in `.mcp.json` → Connect an agent from a terminal
 
 1. Open the status bar's sliders glyph and pick **MCP servers**, which lands
    you on that section of Settings.
-2. Toggle the server you want. Each registered server is its own endpoint and
+2. Turn on **developer mode** (Settings, Developer). Echo and Debug are
+   developer servers, like UI and Agent: they stay out of the list, and out of
+   `.mcp.json`, until it is on.
+3. Toggle the server you want. Each developer server starts off, so switch it
+   on yourself. Each registered server is its own endpoint and
    its own entry in a project's config, so this is a per-server decision
    rather than one switch for the lot.
-3. Leave **Write .mcp.json into open projects** on. That is the switch that
+4. Leave **Write .mcp.json into open projects** on. That is the switch that
    gets the server into a file your agent will actually read.
 
-> **Not yet:** One server exists today: **Echo**, with a `ping` and an
-> `echo` tool. It exists to prove the transport end to end. Schematify's is
-> the first real one, and it is not written yet. What you are turning on
-> right now is a working pipe with a toy on the end of it.
+> **Not yet:** The servers you can turn on today are all developer servers.
+> **Echo** has a `ping` and an `echo` tool and exists to prove the transport
+> end to end. **Debug** reads the running shell: its layout, recent failures
+> and boot status. Schematify's is the first real one, and it is not written
+> yet.
 
 ## What lands in your project
 

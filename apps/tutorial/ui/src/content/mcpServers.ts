@@ -4,7 +4,7 @@ import type { Body } from "./blocks";
  * The MCP server manager, from the user's side.
  *
  * Deliberately blunt about the two things that will otherwise waste somebody's
- * afternoon: only the Echo server exists today, and a terminal OpenKaava did not
+ * afternoon: the servers that exist today are developer-mode only, and a terminal OpenKaava did not
  * spawn cannot connect at all — which looks exactly like a broken config.
  */
 export const mcpServers: Body = {
@@ -39,7 +39,11 @@ export const mcpServers: Body = {
     },
     {
       kind: "step",
-      body: "Toggle the server you want. Each registered server is its own endpoint and its own entry in a project's config, so this is a per-server decision rather than one switch for the lot.",
+      body: "Turn on **developer mode** (Settings, Developer). Echo and Debug are developer servers, like UI and Agent: they stay out of the list, and out of `.mcp.json`, until it is on.",
+    },
+    {
+      kind: "step",
+      body: "Toggle the server you want. Each developer server starts off, so switch it on yourself. Each registered server is its own endpoint and its own entry in a project's config, so this is a per-server decision rather than one switch for the lot.",
     },
     {
       kind: "step",
@@ -47,7 +51,7 @@ export const mcpServers: Body = {
     },
     {
       kind: "soon",
-      body: "One server exists today: **Echo**, with a `ping` and an `echo` tool. It exists to prove the transport end to end. Schematify's is the first real one, and it is not written yet. What you are turning on right now is a working pipe with a toy on the end of it.",
+      body: "The servers you can turn on today are all developer servers. **Echo** has a `ping` and an `echo` tool and exists to prove the transport end to end. **Debug** reads the running shell: its layout, recent failures and boot status. Schematify's is the first real one, and it is not written yet.",
     },
 
     { kind: "heading", body: "What lands in your project" },
