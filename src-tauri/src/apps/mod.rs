@@ -533,6 +533,20 @@ pub fn call(
             .map_err(|e| RpcError::new(INTERNAL_ERROR, format!("could not read settings: {e}")));
     }
 
+    // The context store, likewise answered by the host so every app (and every
+    // plugin surface) reaches one implementation. Deliberately *before* the
+    // write refusal: `.kaava/context/` is Kaava's own gitignored state, not the
+    // checkout, so a read-only main may still collect context. See `context.rs`.
+    if crate::context::is_method(method) {
+        let result = crate::context::call(context.project.as_deref(), id, method, params);
+        if let (Ok(_), Some(root)) = (&result, context.project.as_deref()) {
+            if matches!(method, "context/put" | "context/remove") {
+                crate::context::notify(app, root);
+            }
+        }
+        return result;
+    }
+
     if let Some(registered) = REGISTRY.iter().find(|a| a.id == id) {
         // One choke point for every first-party write, whoever is calling: the
         // app's own frontend, the shell's menu, or an agent over MCP `app_call`
@@ -663,6 +677,25 @@ mod tests {
             assert_eq!(err.code, READ_ONLY, "{method}");
             assert!(write_refusal(Some(&worktree()), method).is_ok(), "{method}");
             assert!(write_refusal(None, method).is_ok(), "{method}");
+        }
+    }
+
+    /// Context is allowed on main by design (it is gitignored, and nothing
+    /// tracked changes), so no context method may sit in the refusal list.
+    #[test]
+    fn context_methods_are_never_write_refused() {
+        for method in [
+            "context/put",
+            "context/list",
+            "context/get",
+            "context/remove",
+        ] {
+            assert!(crate::context::is_method(method), "{method}");
+            assert!(!WRITE_METHODS.contains(&method), "{method}");
+            assert!(
+                write_refusal(Some(&Environment::Main), method).is_ok(),
+                "{method}"
+            );
         }
     }
 

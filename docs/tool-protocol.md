@@ -245,7 +245,7 @@ the shell answers these itself and never forwards them to a core.
 | `kaava/title` | `{"title":string}` | `null` | Call this surface's tab something other than its app's name. |
 | `kaava/open` | `{"appId":string,"payload"?:any}` | `{"instanceId":string}` | Put something on screen in another app, in my cluster. |
 | `kaava/publish` | `{"topic":string,"value":any}` | `null` | State a fact about myself for my cluster-mates to read. |
-| `kaava/drag` | `{"phase":"begin"\|"end","paths"?:string[]}` | `null` | I have picked up these file paths, or put them down. |
+| `kaava/drag` | `{"phase":"begin"\|"end","paths"?:string[],"items"?:string[]}` | `null` | I have picked up these file paths and context items (ids from `context/put`), or put them down. |
 
 `kaava/painted` is a report, not a request. The orchestrator holds its splash
 window up until every first-party app has sent one, so that the window it hands
