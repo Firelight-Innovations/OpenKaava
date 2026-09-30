@@ -253,17 +253,6 @@
   cursor: default;
 }
 
-.gv__footer {
-  height: 36px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 10px;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--bg-layer-1);
-}
-
 .gv__footer-btn {
   display: flex;
   align-items: center;

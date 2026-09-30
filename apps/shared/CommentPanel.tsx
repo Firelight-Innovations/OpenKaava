@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { CircleCheck, Send } from "lucide-react";
+import { CircleCheck } from "lucide-react";
 import { anchorLabel, type Comment } from "./comments";
+import { SendButton, SendFooter } from "./SendFooter";
 import "./comment-panel.css";
 
 /**
@@ -59,20 +60,16 @@ export function CommentPanel({
           ))}
       </div>
 
-      <div className="k-comment-panel__footer">
-        <span className="k-comment-panel__footer-note">
-          Comments are files in <code>.kaava/comments/</code>, inside this environment.
-        </span>
-        <button
-          type="button"
-          className="k-comment-panel__send-to-agent"
+      <p className="k-comment-panel__footer-note">
+        Comments are files in <code>.kaava/comments/</code>, inside this environment.
+      </p>
+      <SendFooter>
+        <SendButton
+          label="Send to agent now"
           disabled
           title="Nothing reads .kaava/comments/ into an agent yet — this button has nothing to nudge."
-        >
-          <Send size={14} strokeWidth={1.5} aria-hidden="true" />
-          Send to agent now
-        </button>
-      </div>
+        />
+      </SendFooter>
     </div>
   );
 }

@@ -496,6 +496,23 @@ describe("Canvas app", () => {
     });
     const puts = () => bridge.invoke.mock.calls.filter((c) => c[0] === "context/put");
 
+    it("keeps Send selection and Send card together in the shared footer", async () => {
+      fake(one());
+      const { container } = render(<App />);
+      await screen.findByText("1 elements");
+      const footer = container.querySelector(".k-send-footer") as HTMLElement;
+      expect(footer.contains(screen.getByText("Send selection"))).toBe(true);
+      expect(
+        container.querySelector(".cv__header")?.contains(screen.getByText("Send selection")),
+      ).toBe(false);
+      fireEvent.click(screen.getByText("select frame"));
+      await screen.findByText("Make a spec card");
+      expect(footer.contains(screen.getByText("Send card"))).toBe(true);
+      expect(container.querySelector(".cv__side")?.contains(screen.getByText("Send card"))).toBe(
+        false,
+      );
+    });
+
     it("sends the selection as an image, even on read-only main", async () => {
       fake(one(true));
       render(<App />);

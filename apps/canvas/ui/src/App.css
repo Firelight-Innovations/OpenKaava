@@ -472,6 +472,11 @@
   color: var(--txt-primary);
 }
 
+/* The Send card button is portalled in here; the wrapper adds no box of its own. */
+.cv__send-slot {
+  display: contents;
+}
+
 .cv__spec-actions {
   display: flex;
   flex-wrap: wrap;
