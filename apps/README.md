@@ -292,6 +292,50 @@ Excalidraw is loaded lazily (`React.lazy`), and its fonts are served from
 `/vendor/excalidraw/fonts/` by the `excalidrawFonts` plugin in `vite.config.ts` rather than from
 a CDN. The 13 MB CJK fallback font is not shipped.
 
+The editor wears the shell's tokens in both themes (`native.css`), and its links out to
+excalidraw.com, the library site and socials are hidden. Excalidraw's MIT notice is under the main
+menu's "About this editor". The app's own panels (Inspector, Diagrams, Comments) dock to the right
+of the drawing and collapse to a strip; nothing floats over the drawing.
+
+**For agents.** A design is a set of named frames (diagrams). These methods take an `actor` of
+`"agent"` or `"human"` (never `"system"`) and an `id` (the canvas). How to draw is in
+`docs/canvas-drawing-guide.md`.
+
+| Method | Does |
+|---|---|
+| `canvas/list-diagrams` | Every named frame: id, title, summary, parent, level, covers. |
+| `canvas/describe-diagram` | `{diagram}`: its shapes, labels and what each arrow joins, as text. |
+| `canvas/view-diagram` | `{diagram, region?, scale?, theme?}`: a PNG of that frame alone, at `.kaava/canvas-views/<id>/<diagram>.png`, overwritten each time. |
+| `canvas/save` | Flushes the open editor, then reports the file's path, element count and diagrams. |
+| `canvas/add-shapes` | `{frame, shapes, replace?, nudge?, values?}` or `{index: true}`: measured layout, returns ids and warnings, checkpoints first. |
+| `canvas/import-mermaid` | `{frame, source}`: a Mermaid flowchart or state diagram as a new frame. |
+| `canvas/checkpoints`, `canvas/restore-checkpoint` | The last five saves before a bulk edit; restore one (default the newest). |
+| `canvas/values`, `canvas/set-values` | The `{{name}}` value table, where each is used, and labels that no longer match. |
+| `canvas/coverage` | Which frames cover each checklist topic, and which topics none do. |
+| `canvas/refs` | Reference images under `canvas/<id>/refs/`. |
+| `canvas/list-comments` | `{status?: open\|resolved\|all, diagram?}`. |
+| `canvas/create-comment` | `{diagram, elementIds \| region, text}`; the region is frame-relative. |
+| `canvas/view-comment` | `{commentId}`: a PNG of what the comment points at, with a margin. |
+| `canvas/resolve-comment`, `canvas/reopen-comment` | `{commentId, note}` / `{commentId}`. |
+
+`view-diagram`, `add-shapes`, `import-mermaid` and `view-comment` render and measure in the canvas
+app's webview, so they need a canvas pane open in some window; without one they fail with
+`kind: "canvas-not-open"` and say so. The rest read and write files and work either way. Through the
+agent MCP server:
+
+```sh
+pnpm probe --agent --server agent app_call @view.json
+# view.json: {"app":"canvas","method":"canvas/view-diagram",
+#             "params":{"id":"flap-ball","diagram":"playfield","actor":"agent"}}
+```
+
+Comments are one JSON file each in `canvas/<id>.comments/`, beside the canvas, so they are
+committed with it. The shape (`id`, `frameId`, `elementIds` or `region`, `text`, `author`,
+`createdAt`, `status`, `resolution`) follows `@kaava/markup`'s annotation in spirit, pinned to a
+frame instead of a page, without depending on that package. Images dropped into the editor are
+written to `canvas/<id>/refs/` and the scene keeps a `kaavaRef` path instead of base64; a read puts
+the bytes back, so the editor never knows.
+
 **Tutorials** (`tutorial/catalog`, `tutorial/complete`, `tutorial/reset`) — short
 walkthroughs of what OpenKaava does today, with a tick against the ones you have
 read. `docs/tutorials.md` is how to add one.

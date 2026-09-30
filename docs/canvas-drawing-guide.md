@@ -1,0 +1,174 @@
+# Drawing on the canvas
+
+How to draw a design on an OpenKaava canvas, for people and for agents. The worked example is
+`docs/canvas-examples/flap-ball.json`, a small game designed in four diagrams plus an index.
+
+## The rule: show, don't describe
+
+A canvas is a set of pictures. Someone who has never seen the thing should be able to rebuild it
+from the diagrams alone. Text labels the picture and does not replace it.
+
+- **Draw it to scale.** If a ball sits at 25% of the width, draw it there and add a dimension
+  line. Don't write "ball at 25%".
+- **Draw motion as paths.** Draw a jump as its arc, with tap marks on the arc. Don't write "the
+  ball rises 1.35 units".
+- **Draw states as boxes and arrows,** with the trigger on each arrow.
+- **Draw rules as geometry.** For a hit test, draw the circle, the rectangle, the nearest point
+  and the distance.
+- Put a sentence of prose only where no picture can carry the idea, and keep it short.
+
+## Diagrams are named frames
+
+Every diagram is an Excalidraw frame with a stable id. `canvas/add-shapes` creates it, or you can
+draw a frame and name it. The frame carries `customData.kaava.diagram`:
+
+| Field | Meaning |
+|---|---|
+| `id` | Lowercase letters, digits and `-`. Stable: comments and links point at it. |
+| `title` | What a person reads at the top of the frame. |
+| `summary` | One line: what this diagram shows. |
+| `parent` | The id of the diagram this one details, if any. |
+| `level` | `overview`, `subsystem` or `detail`. The index has `index`. |
+| `covers` | Which checklist topics it covers (see below). |
+
+**Naming.** Name a diagram after what it shows, not after its shape: `playfield`, `flap-timing`,
+`game-states`. Use `overview` for the one-screen picture of the whole thing. A subsystem
+(physics, spawning, collision, states, UI) gets its own frame, and a detail (an algorithm, a
+timing chart, a transition table) gets its own frame with that subsystem as its `parent`.
+
+**The index.** Build it with `{"index": true, "title": "…"}` in `canvas/add-shapes`. It lists
+every diagram by level with its summary and topics. Each title is a `kaava://diagram/<id>` link,
+so clicking it moves to that diagram. Rebuild it after adding diagrams.
+
+**One concern per canvas.** A game's design and the spec cards for its 3D assets are different
+things. A spec card (name, size in metres, triangle budget, style notes, reference images, review
+state) belongs to one asset. The game's rules belong in diagrams.
+
+## Palette
+
+Use the eight palette names, never hex values. They are the editor's own picker shades, and its
+dark mode inverts the canvas through a filter tuned for those shades. A colour from outside the
+palette can turn muddy or disappear in dark mode.
+
+| Name | Use it for |
+|---|---|
+| `ink` | Outlines, labels, most text. The default. |
+| `muted` | Summaries, dimension lines, notes, anything secondary. |
+| `blue` | The player, input, links. |
+| `green` | Success, safe space, the gap you fly through, scoring. |
+| `red` | Failure, danger, collisions, "don't". |
+| `orange` | Forces and motion: gravity, velocity, scrolling. |
+| `violet` | Timing and state. |
+| `teal` | Spawning and the world generator. |
+
+`fill` takes a palette name for its light shade, `solid` for the stroke colour, or `none`. Keep
+fills light. A large solid fill hides the text around it.
+
+## Fonts and sizes
+
+There is one font: Nunito, the editor's "Normal" face. `canvas/add-shapes` measures every label
+with it before placing anything. There are four sizes, and nothing smaller than 14 px reads at 1x.
+
+| Size | px | Use |
+|---|---|---|
+| `title` | 28 | The frame's title (added for you). |
+| `heading` | 20 | Section heads inside a frame, index links. |
+| `body` | 16 | Labels and the summary. The default. |
+| `small` | 14 | Arrow labels, dimensions, notes. |
+
+## Spacing
+
+- Everything snaps to a **10 px grid**.
+- A frame has **40 px** of padding. Its title and summary sit at the top, and shape coordinates
+  are measured from just below them. So `{x: 0, y: 0}` is the top-left of the drawing area, not of
+  the frame.
+- Leave at least **20 px** between unrelated shapes and **40 px** between groups.
+- Boxes grow to fit their labels. Give a `width` only when size means something (to scale).
+- Text that lands on other text, or partly across a filled shape, is moved clear and reported in
+  `warnings`. Pass `"nudge": false` to only report it, or `"fixed": true` on a shape to pin it.
+- Frames fit their content unless you give a size. If you give a size that is too small, the
+  warning says it will be clipped.
+
+## Drawing with `canvas/add-shapes`
+
+```json
+{
+  "id": "flap-ball", "actor": "agent",
+  "frame": { "id": "game-states", "title": "Game states", "level": "subsystem",
+             "summary": "Ready, Playing and Dead, and what moves between them.",
+             "covers": ["states", "input"] },
+  "shapes": [
+    { "id": "ready",   "type": "rectangle", "x": 0,   "y": 0, "label": "Ready",   "color": "blue" },
+    { "id": "playing", "type": "rectangle", "x": 240, "y": 0, "label": "Playing", "color": "green" },
+    { "id": "dead",    "type": "rectangle", "x": 480, "y": 0, "label": "Dead",    "color": "red" },
+    { "id": "t1", "type": "arrow", "from": "ready",   "to": "playing", "label": "tap" },
+    { "id": "t2", "type": "arrow", "from": "playing", "to": "dead",    "label": "hit" }
+  ]
+}
+```
+
+- **Shape types:** `rectangle`, `ellipse`, `diamond`, `text`, `arrow`, `line` and `image`.
+- **Arrows and lines** join shape ids (`from`/`to`) or points (`[x, y]`), or follow `points`.
+  They can carry a `label`, and can be `dashed` or `curved`.
+- **Images:** `{"type": "image", "ref": "refs/sketch.png"}` places a reference image (see below).
+- **Ids:** every element's id is `<diagram>:<shape>`, so `game-states:ready` here. The answer
+  maps your ids to them. Rebuilding a frame (the default, `"replace": true`) gives the same ids,
+  so a rebuild is a readable diff.
+- **Undo:** each call saves a checkpoint first. `canvas/restore-checkpoint` undoes it, and
+  `canvas/checkpoints` lists the last five.
+- **Mermaid:** `canvas/import-mermaid` with `{"frame": {...}, "source": "stateDiagram-v2 …"}` is
+  quicker for a flowchart. Its text is not measured the same way, so check it with
+  `view-diagram`.
+
+## Look at what you drew
+
+Always run `canvas/view-diagram` after drawing. It renders only that frame, with nothing from the
+editor around it, to `.kaava/canvas-views/<canvas>/<diagram>.png`. Read the PNG.
+
+- **Zoom in:** pass `"region": {"x", "y", "width", "height"}` (frame-relative) to read small labels.
+- **Theme:** pass `"theme": "dark"` to check that the colours survive dark mode.
+- **Structure:** `canvas/describe-diagram` gives the same frame as text: shapes, labels and what
+  each arrow joins.
+
+## Linked values
+
+A number that appears on a diagram and in the spec must not drift. Keep it in the canvas's value
+table (`canvas/set-values`, `{"values": {"gravity": {"value": 30, "unit": "u/s²"}}}`) and write
+`{{gravity}}` in a label.
+
+- **Tracking:** the label shows the number and remembers its template.
+- **Checking:** `canvas/values` lists every value, where it is used, and any label that no longer
+  matches its template (for example, someone typed over it).
+- **Updating:** `set-values` changes the table and rewrites every label that uses it.
+
+## Coverage checklist
+
+`canvas/coverage` reports which frames cover each topic, from the frames' `covers` lists. By
+default the topics are the game checklist:
+
+**input · physics · spawning · scoring · states · UI · audio · tuning**
+
+A missing topic is a gap in the design, not a formatting problem. Draw it, or write in a frame why
+it does not apply. Pass `{"checklist": [...]}` for a different kind of design.
+
+## Reference images
+
+Real designs start from pictures.
+
+- **Adding:** drop an image into the editor. It is stored beside the design at
+  `canvas/<name>/refs/<file>` rather than as base64 inside the JSON.
+- **Placing:** put it inside a frame so `view-diagram` shows it.
+- **Listing:** `canvas/refs` lists what there is.
+- **Linking:** the Inspector's Reference images chips add one to a spec card.
+- **Citing:** refer to one by its `refs/<file>` name in a comment or a label.
+
+## Review: comments
+
+A person selects elements, or drags a box, and leaves a comment for the agent. The agent's loop:
+
+1. `canvas/list-comments` lists the open comments, with the frame and the elements or region.
+2. `canvas/view-comment` renders the area the comment points at, with a margin.
+3. Fix the diagram, then view it again.
+4. `canvas/resolve-comment` with a `note` saying what changed.
+
+Comments live in `canvas/<name>.comments/`, one JSON file each, and are committed with the design.
