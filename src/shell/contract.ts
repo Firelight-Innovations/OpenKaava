@@ -809,6 +809,18 @@ export interface PaneTreeProps {
    *  for the ordinary grid. KAAVA-UX-REWORK.md §5. */
   maximizedPaneId?: string | null;
   onToggleMaximizePane?: (paneId: string) => void;
+  /** What the `+` at the end of each pane's tab strip offers. Omitted, no `+`. */
+  appPicker?: PaneAppPicker;
+}
+
+/** The list and the action behind a pane's `+` (add app) button. */
+export interface PaneAppPicker {
+  /** The same list the Apps menu is built from. */
+  apps: Openable[];
+  /** Why nothing can be opened right now, or `undefined`. */
+  blocked?: string;
+  /** Opens `entry` as a new tab in `paneId` — never a split. */
+  onOpen: (entry: Openable, paneId: string) => void;
 }
 
 /** What a region spreads onto an element to make it a drag source. */

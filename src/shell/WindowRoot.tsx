@@ -28,7 +28,8 @@ import ContextMenuHost from "./ContextMenuHost";
 import CommandPalette from "./palette/CommandPalette";
 import NewClusterDialog from "./dialogs/NewClusterDialog";
 import SwitchProjectDialog from "./dialogs/SwitchProjectDialog";
-import { commandsFromMenus } from "./palette/registry";
+import { commandsFromMenus, withOpenAppCommands } from "./palette/registry";
+import AppPicker from "./panes/AppPicker";
 import TitleBar from "./titlebar/TitleBar";
 import { APP_COMMAND, defaultMenus, type CommandHandlers } from "./titlebar/menus";
 import { editHandlers, useEditTarget } from "./titlebar/useEditTarget";
@@ -1232,6 +1233,33 @@ export default function WindowRoot({
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
 
+  // The app picker raised over the window: by the empty state's button, by
+  // Ctrl+Shift+A, and by the palette's "Open app…". The `+` on a pane's strip
+  // draws its own copy of the same component, anchored to itself.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const openPicker = useCallback(() => setPickerOpen(true), []);
+  const closePicker = useCallback(() => setPickerOpen(false), []);
+
+  /**
+   * Opens `entry` as a **tab in `paneId`** — the picker, the strip's `+` and the
+   * palette's "Open <App>" all come here. Unlike `onOpenSurface`, which splits
+   * the focused pane for the Apps menu, these three are asked in the place the
+   * app should land, and passing no split direction is what asks Rust to stack.
+   */
+  const onOpenInPane = useCallback(
+    (entry: Openable, paneId: string | null) => {
+      hideTakeover();
+      const opened =
+        entry.kind === "terminal"
+          ? terminalControl.createInPane(label, paneId ?? undefined)
+          : openInstance(label, entry.id, paneId ?? undefined);
+      void opened
+        .then(setOpenedInstance)
+        .catch((err: unknown) => console.error("kaava: could not open that app:", err));
+    },
+    [label, hideTakeover],
+  );
+
   // The New Cluster dialog (board 04). `onAddCluster` is the only opener —
   // see its own note on why a clusterless window skips this and falls back
   // to the old instant creation instead.
@@ -1613,6 +1641,7 @@ export default function WindowRoot({
     closeWindow: onCloseWindow,
 
     commandPalette: openPalette,
+    openApp: openPicker,
     togglePanel: () => setPanelCollapsed((c) => !c),
     toggleTerminal: onToggleTerminal,
     toggleFullscreen: onToggleFullscreen,
@@ -1678,6 +1707,21 @@ export default function WindowRoot({
     help: { checkForUpdates: updates.check },
   });
 
+  // What the strips' `+` and the palette's open-app rows offer: the Apps menu's
+  // own list and blocked reason, so neither can disagree with the menu.
+  const paneAppPicker = {
+    apps: appsHandlers.available,
+    blocked: appsHandlers.blocked,
+    onOpen: (entry: Openable, paneId: string) => onOpenInPane(entry, paneId),
+  };
+  const paletteCommands = withOpenAppCommands(commandsFromMenus(menus), {
+    apps: appsHandlers.available,
+    openPicker,
+    open: (entry) => onOpenInPane(entry, activePaneId),
+    blocked: appsHandlers.blocked,
+    accelerator: "Ctrl+Shift+A",
+  });
+
   // The open page's body, by id. Git and Hindsight are drawn by the shell
   // itself (`pages.rs`'s `app_id: None`); `WorktreePanel` here is the exact
   // component `secondaryPanel` below already mounts for its own `worktreeView`
@@ -1719,11 +1763,15 @@ export default function WindowRoot({
           than occupying a band, and `Frame` has no slot it belongs in. The
           commands are the menu tree above, flattened — one source of truth for
           the bar and the palette both. */}
-      <CommandPalette
-        open={paletteOpen}
-        commands={commandsFromMenus(menus)}
-        onClose={closePalette}
-      />
+      <CommandPalette open={paletteOpen} commands={paletteCommands} onClose={closePalette} />
+      {pickerOpen && (
+        <AppPicker
+          apps={appsHandlers.available}
+          blocked={appsHandlers.blocked}
+          onPick={(entry) => onOpenInPane(entry, activePaneId)}
+          onClose={closePicker}
+        />
+      )}
       {/* Beside the frame for the same reason as the two above. `project` is
           never null while this is open — `onAddCluster` only sets
           `newClusterOpen` when it already has one, and there is no other
@@ -1856,6 +1904,7 @@ export default function WindowRoot({
               onResize={onResizePane}
               dropTarget={drag.target}
               onCommandsChange={onCommandsChange}
+              onOpenAppPicker={openPicker}
               // A frame dragging paths out of itself. The tool window only
               // relays it — see its own prop for why an iframe's gesture has
               // to be announced rather than observed.
@@ -1874,6 +1923,7 @@ export default function WindowRoot({
                   dragHandleFor={surfaceDragHandle}
                   maximizedPaneId={maximizedPaneId}
                   onToggleMaximizePane={onToggleMaximizePane}
+                  appPicker={paneAppPicker}
                 />
               )}
               renderTerminal={(instanceId) => (

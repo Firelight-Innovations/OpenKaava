@@ -229,3 +229,20 @@
   line-height: 1.6;
   color: var(--text-dim-3);
 }
+
+/* The empty state's one primary action. */
+.toolwindow__empty-action {
+  padding: 7px 16px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--txt-on-accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.toolwindow__empty-action:hover {
+  filter: brightness(1.1);
+}

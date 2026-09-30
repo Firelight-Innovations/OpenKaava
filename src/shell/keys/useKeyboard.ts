@@ -52,6 +52,8 @@ export interface KeyboardActions {
   // --- View -----------------------------------------------------------------
   /** Ctrl+Shift+P */
   commandPalette(): void;
+  /** Ctrl+Shift+A — the app picker. */
+  openApp(): void;
   /** Ctrl+B */
   togglePanel(): void;
   /** Ctrl+` */
@@ -123,6 +125,11 @@ export const CHORDS: Record<string, Chord> = {
   p: {
     plain: null,
     shift: (a) => a.commandPalette,
+  },
+  // Only with Shift: plain Ctrl+A is select-all in every field and editor.
+  a: {
+    plain: null,
+    shift: (a) => a.openApp,
   },
   b: {
     plain: (a) => a.togglePanel,

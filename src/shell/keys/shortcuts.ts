@@ -85,6 +85,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: "View",
     items: [
       { label: "Command Palette", keys: ["Ctrl", "Shift", "P"], chords: [ctrl("p", true)] },
+      { label: "Open App…", keys: ["Ctrl", "Shift", "A"], chords: [ctrl("a", true)] },
       { label: "Show/Hide Panel", keys: ["Ctrl", "B"], chords: [ctrl("b")] },
       { label: "Show/Hide Terminal", keys: ["Ctrl", "`"] },
       { label: "Full Screen", keys: ["F11"] },
