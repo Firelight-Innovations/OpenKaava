@@ -697,6 +697,9 @@ export interface ClusterMember {
   dragId: string;
   title: string;
   kind: SurfaceKind;
+  /** Which app this is an instance of. Absent for a terminal tab; the strip
+   *  reads it to give a File Viewer its file icon. */
+  appId?: string;
   /** The pane holding it, or `null` when it lives in the terminal band. */
   paneId: string | null;
   /** On screen right now — its pane's active tab, or the band's. */

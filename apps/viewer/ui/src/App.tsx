@@ -1,34 +1,30 @@
 /**
- * File Viewer — the tabs, and the pane they fill.
+ * File Viewer — one file, and the pane it fills.
  *
- * This file is the join. It owns the two-region layout and the state that spans
- * them — which file is showing — and nothing else. The tab model is `tabs/`,
- * and what a file *looks* like is `viewer/registry.ts`. Each can be read
- * without reading this one.
+ * Opening another file opens another viewer as a pane tab (the shell routes
+ * that; see `src/shell/viewerSubjects.ts`), so there is no tab row here. This
+ * app tells the shell which file it has, and floats the Code / Preview / Steps
+ * switch over the editor.
  *
- * Four things used to be React props between a tree and a tab strip in one
- * component. They are messages now — `OPENED_EVENT` in, `ACTIVE_PATH` and
- * `DIRTY_PATHS` out, `TREE_CHANGE` both ways — and each is a listener or a
- * publish below rather than a line in someone's JSX.
+ * This file is the join. The open-file model is `tabs/useOpenFiles.ts` (a list,
+ * only ever asked for one entry), and what a file looks like is
+ * `viewer/registry.ts`; adding a format never touches this file.
  *
- * What it deliberately does not own, unchanged from before: the list of file
- * formats. Adding a viewer touches `viewer/registry.ts` and one new component,
- * and never this file.
- *
- * `viewMode` stays local: Code vs. Build steps (docs/KAAVA-UX-REWORK.md §8)
- * has nothing behind the second option yet.
+ * What used to be props between a tree and a tab strip is messages now:
+ * `OPENED_EVENT` in, `ACTIVE_PATH` and `DIRTY_PATHS` out, `TREE_CHANGE` both ways.
  */
-import { useCallback, useEffect, useState } from "react";
-import { on, publish, reportPainted, subscribe, OPENED_EVENT } from "@openkaava/bridge";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { invoke, on, publish, reportPainted, subscribe, OPENED_EVENT } from "@openkaava/bridge";
 import NoticeBar from "./NoticeBar";
 import { useMenuCommands } from "./commands";
 import { useDelete } from "./useDelete";
 import SendToAgent from "./SendToAgent";
 import { SendFooter } from "../../../shared/SendFooter";
-import TabStrip from "./tabs/TabStrip";
 import { useOpenFiles } from "./tabs/useOpenFiles";
 import Viewer from "./viewer/Viewer";
-import PreviewToggle from "./preview/PreviewToggle";
+import ModeSwitch from "./ModeSwitch";
+import type { ViewMode } from "./modeRules";
+import { loadSettings } from "./settings";
 import { ACTIVE_PATH, DIRTY_PATHS, TREE_CHANGE, asTreeChange } from "./topics";
 import { describe, getRoot, type Root } from "./rpc";
 
@@ -183,96 +179,103 @@ export default function App() {
   });
 
   const active = files.tabs.find((tab) => tab.path === files.activePath) ?? null;
+  const activeDirty = active !== null && files.dirty.has(active.path);
 
   /**
-   * Code vs. Build steps, per view rather than per tab: nothing builds the
-   * diagram yet, so there is no state worth carrying from one open file to
-   * the next. Falls back to Code whenever the active file changes, rather
-   * than leaving a placeholder view stuck on screen for a file it was never
-   * chosen for — see docs/KAAVA-UX-REWORK.md §8.
+   * One file per viewer. The shell only ever sends this instance the file it
+   * has, or a peek that replaces it, so a second tab can only be left over — a
+   * peek that was dirty when the next one arrived. Anything clean that is not
+   * the file on screen is closed; unsaved work is never discarded here.
    */
-  const [viewMode, setViewMode] = useState<"code" | "build-steps">("code");
+  useEffect(() => {
+    for (const tab of files.tabs) {
+      if (tab.path !== files.activePath && !files.dirty.has(tab.path)) files.close(tab.path);
+    }
+  }, [files]);
+
+  /**
+   * Tell the shell which file this is, so the pane tab can be named for it and
+   * wear its icon, and so a second request for the same file focuses this
+   * viewer rather than opening another. `preview` is false once there are edits:
+   * a peek with unsaved work must not be taken over.
+   */
+  const activeName = active?.name ?? null;
+  const activePath = active?.path ?? null;
+  const activePreview = active?.preview ?? false;
+  useEffect(() => {
+    if (activeName === null || activePath === null) return;
+    void invoke("kaava/title", {
+      title: activeName,
+      subject: activePath,
+      preview: activePreview && !activeDirty,
+      dirty: activeDirty,
+    }).catch(() => {});
+  }, [activeName, activePath, activePreview, activeDirty]);
+
+  /**
+   * Code vs. Steps, per view rather than per file: nothing builds the diagram
+   * yet, so there is no state worth carrying. The viewer stays mounted under
+   * the placeholder, so the preview control survives a visit to Steps and
+   * Monaco keeps its scroll and undo history.
+   */
+  const [viewMode, setViewMode] = useState<ViewMode>("code");
   useEffect(() => setViewMode("code"), [files.activePath]);
+
+  /**
+   * How far from the right edge the floating switch sits: past the scrollbar,
+   * and past the minimap when the editor draws one. Read once; the setting
+   * applies on next launch (see `settings.ts`).
+   */
+  const [floatRight, setFloatRight] = useState(28);
+  useEffect(() => {
+    let live = true;
+    void loadSettings().then((settings) => {
+      if (live && settings.toggle("editor.minimap", true)) setFloatRight(112);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   return (
     <div className="viewerapp">
       {error && <p className="app__error viewerapp__error">{error}</p>}
 
-      <TabStrip
-        tabs={files.tabs}
-        activePath={files.activePath}
-        dirty={files.dirty}
-        rootPath={root?.path ?? null}
-        onActivate={files.activate}
-        onClose={files.close}
-        // A rename started from a tab has no idea which folder it happened in,
-        // so the Explorer is told to re-read whatever it has open. Heavier than
-        // re-listing one directory, and the right trade for a path this app
-        // takes rarely: the alternative is teaching this app to work out a
-        // parent directory, which is the one thing a frontend must not do.
-        onRenamed={(from, to) => {
-          files.rename(from, to);
-          publish(TREE_CHANGE, { kind: "renamed", from, to });
-        }}
-        onDelete={del.ask}
-        trailing={
-          active && (
-            <>
-              <PreviewToggle />
-              <div
-                className="k-tabs k-tabs--segmented viewerapp__mode"
-                role="tablist"
-                aria-label="Code or build steps"
-              >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={viewMode === "code"}
-                  className="k-tab"
-                  onClick={() => setViewMode("code")}
-                >
-                  Code
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={viewMode === "build-steps"}
-                  className="k-tab"
-                  onClick={() => setViewMode("build-steps")}
-                  title="Not wired up yet. Planned: a step diagram for scripts like build_bed.py — frame, legs, materials, export, render — each step commentable like a Blender mesh part. See docs/KAAVA-UX-REWORK.md §8."
-                >
-                  Build steps
-                  <span className="viewerapp__later">LATER</span>
-                </button>
-              </div>
-            </>
-          )
-        }
-      />
+      {active?.notice && <NoticeBar notice={active.notice} />}
 
       {/* The delete confirmation, under the strip where every other question in
           this app appears. Escape answers it the same way Cancel does. */}
       {del.notice && <NoticeBar notice={del.notice} onEscape={del.cancel} />}
 
-      {active && viewMode === "code" && (
-        <Viewer
-          // The nonce is in the key so an external reload remounts the viewer
-          // and it re-reads from disk. The path alone would not: reloading the
-          // same file is not a different file.
-          key={`${active.path}:${active.nonce}`}
-          file={active}
-          onDirty={(dirty) => files.setDirty(active.path, dirty)}
-          registerSave={(save) => files.registerSave(active.path, save)}
-          openPath={(path) => files.open(path, false)}
-        />
-      )}
+      {active && (
+        <div
+          className="viewerapp__body"
+          style={{ "--viewer-float-right": `${floatRight}px` } as CSSProperties}
+        >
+          <div className="viewerapp__file" hidden={viewMode !== "code"}>
+            <Viewer
+              // The nonce is in the key so an external reload remounts the viewer
+              // and it re-reads from disk. The path alone would not: reloading the
+              // same file is not a different file.
+              key={`${active.path}:${active.nonce}`}
+              file={active}
+              onDirty={(dirty) => files.setDirty(active.path, dirty)}
+              registerSave={(save) => files.registerSave(active.path, save)}
+              openPath={(path) => files.open(path, false)}
+            />
+          </div>
 
-      {active && viewMode === "build-steps" && (
-        <p className="app__note viewerapp__buildsteps">
-          Build steps isn&rsquo;t built yet. The plan is a step diagram for scripts like{" "}
-          <code>build_bed.py</code> — frame, legs, materials, export, render — each step commentable
-          the way a Blender mesh part is. See <code>docs/KAAVA-UX-REWORK.md</code> §8.
-        </p>
+          {viewMode === "steps" && (
+            <p className="app__note viewerapp__steps">
+              Steps isn&rsquo;t built yet. The plan is a step diagram for scripts like{" "}
+              <code>build_bed.py</code> — frame, legs, materials, export, render — each step
+              commentable the way a Blender mesh part is. See <code>docs/KAAVA-UX-REWORK.md</code>{" "}
+              §8.
+            </p>
+          )}
+
+          <ModeSwitch view={viewMode} onView={setViewMode} />
+        </div>
       )}
 
       {/* Send to agent lives at the bottom, out of the way of the file: a slim

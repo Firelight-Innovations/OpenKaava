@@ -15,9 +15,10 @@
 import { AppWindow, Terminal } from "lucide-react";
 import type { ClusterMember, DragHandleProps, PaneAppPicker } from "../contract";
 import { useDropZone } from "../dropZones";
-import { fileTypeColor } from "./fileTypeColor";
+import { fileIconUrl } from "@openkaava/file-icons";
+import { getSubject, subjectsVersion, subscribeSubjects } from "../viewerSubjects";
 import { Close } from "../../ui/Icon";
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { Plus } from "../../ui/Icon";
 import AppPicker from "./AppPicker";
 
@@ -146,6 +147,12 @@ function PaneTab({
   const classes = ["pane-tab"];
   if (member.showing) classes.push("pane-tab--active");
 
+  // A File Viewer is one file: its tab is named for it, wears its icon, and
+  // says where it is and whether it has unsaved edits. Re-read when the shell
+  // learns something new about a viewer.
+  useSyncExternalStore(subscribeSubjects, subjectsVersion);
+  const file = member.appId === "viewer" ? getSubject(member.id) : undefined;
+
   return (
     <>
       {caretBefore && <span className="pane-tabstrip__caret" />}
@@ -155,7 +162,7 @@ function PaneTab({
         aria-selected={member.showing}
         tabIndex={0}
         className={classes.join(" ")}
-        title={member.title}
+        title={file ? file.path : member.title}
         onClick={() => onSelect(member)}
         onDoubleClick={onToggleMaximize}
         onKeyDown={(e) => {
@@ -179,22 +186,23 @@ function PaneTab({
           <Terminal size={16} strokeWidth={1.5} className="pane-tab__icon" aria-hidden="true" />
         ) : (
           <>
-            {/* The file-type square the board draws. It is only ever as
-                informative as `member.title` is a filename — see
-                `fileTypeColor`'s own header for what that means in
-                practice today, and `AppWindow` is the fallback for
-                everything else the strip has no per-app icon for. */}
-            <span
-              className="pane-tab__swatch"
-              style={{ background: fileTypeColor(member.title) }}
-              aria-hidden="true"
-            />
-            <AppWindow
-              size={14}
-              strokeWidth={1.5}
-              className="pane-tab__icon pane-tab__icon--app"
-              aria-hidden="true"
-            />
+            {file ? (
+              <img
+                className="pane-tab__fileicon"
+                src={fileIconUrl(member.title)}
+                alt=""
+                width={14}
+                height={14}
+                draggable={false}
+              />
+            ) : (
+              <AppWindow
+                size={14}
+                strokeWidth={1.5}
+                className="pane-tab__icon pane-tab__icon--app"
+                aria-hidden="true"
+              />
+            )}
           </>
         )}
 
@@ -206,9 +214,13 @@ function PaneTab({
             change under the pointer. There is no modified-file dot here —
             nothing in `ClusterMember`/`SurfaceInstance` tracks a dirty
             state, and drawing one from nothing is exactly what the rework
-            brief's "never fake data" rule forbids. */}
+            brief's "never fake data" rule forbids. A File Viewer is the one
+            exception, because it reports its own (`viewerSubjects`). */}
         <span className="pane-tab__end">
           {member.agentFinished && <span className="pane-tab__dot" />}
+          {file?.dirty && (
+            <span className="pane-tab__dot pane-tab__dot--dirty" title="Unsaved changes" />
+          )}
           <button
             type="button"
             className="pane-tab__close"

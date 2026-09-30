@@ -20,6 +20,8 @@ import type {
 } from "../contract";
 import { paneLeaves, paneOfTab, paneTabs } from "../contract";
 import { activateInstance, openInstance, setInstanceTitle } from "../state/shellState";
+import { declaredSubject, getSubject, planViewerOpen, setSubject } from "../viewerSubjects";
+import { baseNameOf } from "../viewerTitle";
 // The wire types come from `@openkaava/bridge`'s `protocol`/`errors` subpaths
 // rather than its root entry. The root package does depend on `@openkaava/bridge`
 // now — the first-party apps under `apps/` import it, and they are built by
@@ -528,6 +530,21 @@ const ToolWindow = forwardRef<
     }
   }, [readyIds, deliverEvent]);
 
+  // A File Viewer that has just come up is handed the file it was showing, if
+  // the shell remembers one. This is what makes a restored layout show its
+  // files again: the layout persists the instance, and `viewerSubjects` the path.
+  // Once per instance; a viewer opened fresh already has its file queued above.
+  const restoredViewers = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const id of readyIds) {
+      if (restoredViewers.current.has(id)) continue;
+      if (roster.current.get(id)?.appId !== VIEWER_APP) continue;
+      restoredViewers.current.add(id);
+      const subject = getSubject(id);
+      if (subject) deliverEvent(id, OPENED_EVENT, { path: subject.path, preview: subject.preview });
+    }
+  }, [readyIds, deliverEvent]);
+
   // Push each `NEEDS_WINDOW_RECT` instance its surface's window-space rect,
   // whenever `rects` (or the tree owning it) changes. This is the only place
   // that reads the container's own `getBoundingClientRect()` — `measure()`
@@ -658,6 +675,44 @@ const ToolWindow = forwardRef<
   }, []);
 
   /**
+   * Which File Viewer shows `path`. One viewer is one file, so this is not
+   * `resolveOpenTarget`'s "first instance of the app": `planViewerOpen` picks
+   * the instance already showing the file, the cluster's peek, or an empty one,
+   * and only otherwise is a new viewer opened — as a tab in the pane the
+   * cluster's viewers already share, so files collect in one place.
+   *
+   * The subject is recorded here, before the viewer has said anything, or two
+   * quick opens of one file would both find no instance and open two.
+   */
+  const resolveViewerTarget = useCallback(
+    async (path: string, preview: boolean): Promise<string> => {
+      const viewerIds = paneTabs(layout.current).filter((id) => {
+        const instance = roster.current.get(id);
+        return instance && instance.kind !== "terminal" && instance.appId === VIEWER_APP;
+      });
+      const plan = planViewerOpen(viewerIds, getSubject, path, preview);
+      let id: string;
+      if (plan.kind === "new") {
+        const anchor = viewerIds.length > 0 ? paneOfTab(layout.current, viewerIds[0]) : null;
+        id = await openInstance(windowLabel(), VIEWER_APP, anchor ?? undefined);
+      } else {
+        id = plan.id;
+        void activateInstance(id);
+      }
+      const keep = plan.kind === "focus" ? getSubject(id) : undefined;
+      setSubject(id, {
+        path,
+        // Asking again for a file that is already a settled tab does not make it a peek.
+        preview: keep ? keep.preview && preview : preview,
+        dirty: keep?.dirty ?? false,
+      });
+      void setInstanceTitle(id, baseNameOf(path));
+      return id;
+    },
+    [],
+  );
+
+  /**
    * Explorer's "Open with OpenKaava", pointed at a file.
    *
    * Only the file case arrives here. A folder is already open as a project by
@@ -687,7 +742,7 @@ const ToolWindow = forwardRef<
       // Narrowed rather than assumed. Rust only ever parks a file, but this is
       // a wire boundary and the check costs nothing.
       if (!live || target === null || target.kind !== "file") return;
-      const instanceId = await resolveOpenTarget(VIEWER_APP);
+      const instanceId = await resolveViewerTarget(target.path, false);
       if (!live) return;
       // Queued if the viewer was just opened and has not finished its
       // handshake, which is the common case here — see `sendEventWhenReady`.
@@ -710,7 +765,7 @@ const ToolWindow = forwardRef<
       live = false;
       unlisten?.();
     };
-  }, [resolveOpenTarget, sendEventWhenReady]);
+  }, [resolveViewerTarget, sendEventWhenReady]);
 
   // Reachable from outside this component tree, by window label — see
   // `toolWindowRegistry.ts`'s header for why this exists instead of a prop.
@@ -822,7 +877,14 @@ const ToolWindow = forwardRef<
         });
         return;
       }
-      void resolveOpenTarget(target.appId)
+      // A file for the viewer is routed by path, not by app: see
+      // `resolveViewerTarget`. The payload is still not interpreted beyond the
+      // two fields that decide *which* viewer — the rest goes through as is.
+      const file = viewerFileRequest(target.appId, target.payload);
+      const resolved = file
+        ? resolveViewerTarget(file.path, file.preview)
+        : resolveOpenTarget(target.appId);
+      void resolved
         .then((instanceId) => {
           // Queued if that frame has not finished its handshake, which is the
           // common case for the branch that just opened one — see
@@ -949,6 +1011,16 @@ const ToolWindow = forwardRef<
         respond({ id, result: null });
         const title = declaredTitle(params);
         if (title) void setInstanceTitle(frame.id, title);
+        // A File Viewer also says which file that title is, and whether it is
+        // a peek or holds unsaved edits. See `viewerSubjects.ts`.
+        const subject = frame.appId === VIEWER_APP ? declaredSubject(params) : null;
+        if (subject) {
+          setSubject(frame.id, {
+            path: subject.path,
+            preview: subject.preview,
+            dirty: subject.dirty,
+          });
+        }
         return;
       }
 
@@ -1485,6 +1557,16 @@ function changedCluster(payload: unknown): string | null {
   if (typeof payload !== "object" || payload === null) return null;
   const { clusterId } = payload as { clusterId?: unknown };
   return typeof clusterId === "string" ? clusterId : null;
+}
+
+/** `{path, preview}` when this is a request to show a file in the viewer, else `null`. */
+function viewerFileRequest(
+  appId: string,
+  payload: unknown,
+): { path: string; preview: boolean } | null {
+  if (appId !== VIEWER_APP || typeof payload !== "object" || payload === null) return null;
+  const { path, preview } = payload as { path?: unknown; preview?: unknown };
+  return typeof path === "string" && path !== "" ? { path, preview: preview === true } : null;
 }
 
 /**
