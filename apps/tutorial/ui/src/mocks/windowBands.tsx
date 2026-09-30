@@ -1,4 +1,4 @@
-/** The whole OpenKaava window, five bands stacked and each one named — the picture
+/** The whole OpenKaava window, four bands stacked and each one named — the picture
  *  `theWindow.ts` is a transcript of. Its own six-menu list is repeated here
  *  rather than imported from `titleBar.tsx`, the same way that file states its
  *  own — two small arrays are cheaper than a cross-mock import for a picture. */
@@ -31,16 +31,6 @@ export default function WindowBands() {
         </Band>
       </Labelled>
 
-      <Labelled label="Switcher bar">
-        <Band tone="surface">
-          <span className="tut__mock-tab tut__mock-tab--selected">Anvil</span>
-          <span className="tut__mock-tab">Website</span>
-          <span className="tut__mock-btn">+</span>
-          <div className="tut__mock-grow" />
-          <span className="tut__mock-field">Search</span>
-        </Band>
-      </Labelled>
-
       <Labelled label="Tool window">
         <div className="tut__mock-panebox tut__mock-panebox--tall">panes</div>
       </Labelled>
@@ -65,7 +55,7 @@ export default function WindowBands() {
   );
 }
 
-/** One band plus the callout naming it, repeated five times above. */
+/** One band plus the callout naming it, repeated four times above. */
 function Labelled({ label, children }: { label: string; children: ReactNode }) {
   return (
     <Row gap="sm" align="center">

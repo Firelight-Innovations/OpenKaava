@@ -678,7 +678,7 @@ export type {
   WorktreeRef,
 } from "../bindings";
 
-// `Cluster` — one tab in the switcher bar — is re-exported above. Switching
+// `Cluster` — one badge in the rail's strip — is re-exported above. Switching
 // cluster tabs swaps the pane tree, the project underneath it, *and* the
 // terminals in the band below it, which makes a chip a place rather than a
 // filter. See `TerminalSessionState.clusterId` and `docs/design-notes/shell-core.md`.
@@ -832,17 +832,16 @@ export interface DragHandleProps {
 // --- The frame --------------------------------------------------------------
 
 /** Which window this is. Only the title bar's traffic-light treatment still turns
- *  on this: both kinds now have a switcher bar and a rail, because a detached
- *  window holds real clusters that can be added to and switched between. */
+ *  on this: both kinds now have a cluster strip in the rail and a switcher in
+ *  the title bar, because a detached window holds real clusters that can be
+ *  added to and switched between. */
 export type WindowKind = "main" | "detached";
 
-/** The six regions, as slots. `Frame` owns the geometry and knows nothing about
+/** The regions, as slots. `Frame` owns the geometry and knows nothing about
  *  what goes in them, which is the whole reason the regions can be built in
  *  parallel. See `docs/design-notes/shell-core.md`. */
 export interface FrameSlots {
   titleBar: ReactNode;
-  /** Omitted in a detached window. */
-  switcherBar?: ReactNode;
   toolWindow: ReactNode;
   /** The terminal band, under the tool window and stopping at the docked
    *  page's edge — `.frame__main` in frame.css says why it does not span the
@@ -860,7 +859,7 @@ export interface FrameSlots {
   /** Portalled above everything: drag ghost and drop outlines. */
   overlay?: ReactNode;
   /** Covers the split row — tool window, band and docked page — while search is open,
-   *  leaving the switcher bar above and the status bar below untouched. Its own
+   *  leaving the title bar above and the status bar below untouched. Its own
    *  band rather than part of `overlay`; see `docs/design-notes/shell-core.md`. */
   splitOverlay?: ReactNode;
 }

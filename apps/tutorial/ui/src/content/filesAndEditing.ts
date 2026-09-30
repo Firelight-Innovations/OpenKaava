@@ -30,7 +30,7 @@ export const filesAndEditing: Body = {
     },
     {
       kind: "step",
-      body: "Open a **File Explorer** from the `+` in the switcher bar. It roots itself at the cluster's project.",
+      body: "Open a **File Explorer** from the **Apps** menu. It roots itself at the cluster's project.",
     },
     {
       kind: "step",

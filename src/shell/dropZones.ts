@@ -32,10 +32,10 @@ export type DropZone =
     }
   | { kind: "panel" }
   /** A cluster's own chip — KAAVA-UX-REWORK.md §5's "drop a tab on a cluster
-   *  tab to move it there." One per chip, registered by `ClusterBar`. Whether
+   *  tab to move it there." One per chip, registered by `ClusterStrip`. Whether
    *  the move is actually allowed is `useDrag`'s `resolve`, not this module's. */
   | { kind: "cluster"; clusterId: string }
-  /** The switcher bar's own background — KAAVA-UX-REWORK.md §5's "drop on
+  /** The cluster strip's own background — KAAVA-UX-REWORK.md §5's "drop on
    *  empty switcher space creates a new cluster." One zone spanning the row;
    *  a chip already answers `cluster` for its own pixels, so this only wins
    *  where `hitTest`'s pass order lets it. */
