@@ -24,19 +24,31 @@ use crate::shell_state::{
 };
 use crate::userdata::store::Keep;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, OnceLock};
+use std::time::Duration;
 use tauri::{AppHandle, Manager};
 
 const FILE: &str = "layout.json";
 
-/// Reconstructible, and the deliberate asymmetry in `userdata::store`.
+/// A corrupt or newer-format layout is set aside rather than written over.
 ///
-/// This is the file written most often — `persist` runs inside every
-/// `ShellState::mutate`, so a divider drag writes it — which makes it both the
-/// one most likely to be caught mid-write and the worst candidate for keeping a
-/// copy of each failure. Rearranging the windows again costs a minute. A
-/// directory holding a hundred `layout.json.corrupt-…` files costs more.
-const KEEP: Keep = Keep::Nothing;
+/// This used to be `Keep::Nothing`, on the worry that the file is written on
+/// every mutation and a backup per failure would pile up. Two things changed
+/// that: writes are debounced now (see [`WriteBehind`]) and atomic, so a corrupt
+/// file is rare rather than routine, and `userdata::backup` caps copies at three
+/// per file, so the pile cannot grow. What is left is the argument for keeping:
+/// the layout is the whole workspace, and "never wipe" is worth three small files.
+const KEEP: Keep = Keep::Aside;
+
+/// How long a burst of mutations waits before the layout is written.
+///
+/// A divider drag fires a mutation per pointer move, and each write ends in a
+/// `sync_all`. The trailing edge is what is written, so the disk sees the state
+/// the drag ended on. Short enough that a crash loses at most a fraction of a
+/// second of arrangement; `flush` and `flush_pending` close the remaining gap
+/// on every orderly exit.
+const DEBOUNCE: Duration = Duration::from_millis(300);
 
 /// What survives a restart.
 ///
@@ -78,10 +90,131 @@ impl Stored {
     }
 }
 
-/// Write the current state. Called from `ShellState::mutate`, so every change
-/// that reaches a window reaches the disk too.
+/// Coalesces a burst of writes into one, written after things go quiet.
+///
+/// Generic over what it writes so the timing can be tested without an
+/// `AppHandle` or a disk. The rules it keeps, which are the whole reason it is
+/// not a bare `thread::sleep`:
+///   * **Newest wins.** A submit replaces whatever is pending; nothing older is
+///     ever written after something newer.
+///   * **One writer at a time.** `writing` is taken *before* the pending value
+///     is, by the timer and by `flush_now` alike, so a slow timer write can
+///     never land after a `flush_now` that overtook it.
+///   * **`flush_now` is synchronous** and cancels what was pending, for the
+///     moments the process is about to end.
+pub struct WriteBehind<T: Send + 'static> {
+    inner: Arc<WriteBehindInner<T>>,
+}
+
+struct WriteBehindInner<T> {
+    slot: Mutex<Slot<T>>,
+    writing: Mutex<()>,
+    delay: Duration,
+    sink: Box<dyn Fn(T) + Send + Sync>,
+}
+
+struct Slot<T> {
+    pending: Option<T>,
+    scheduled: bool,
+}
+
+impl<T: Send + 'static> WriteBehind<T> {
+    pub fn new(delay: Duration, sink: impl Fn(T) + Send + Sync + 'static) -> Self {
+        WriteBehind {
+            inner: Arc::new(WriteBehindInner {
+                slot: Mutex::new(Slot {
+                    pending: None,
+                    scheduled: false,
+                }),
+                writing: Mutex::new(()),
+                delay,
+                sink: Box::new(sink),
+            }),
+        }
+    }
+
+    /// Record `value` as the one to write, and make sure a write is coming.
+    pub fn submit(&self, value: T) {
+        let start = {
+            let mut slot = lock(&self.inner.slot);
+            slot.pending = Some(value);
+            !std::mem::replace(&mut slot.scheduled, true)
+        };
+        if !start {
+            return;
+        }
+        let inner = Arc::clone(&self.inner);
+        std::thread::spawn(move || {
+            std::thread::sleep(inner.delay);
+            // Writing lock first, then the value: see the type's doc.
+            let _writing = lock(&inner.writing);
+            let value = {
+                let mut slot = lock(&inner.slot);
+                slot.scheduled = false;
+                slot.pending.take()
+            };
+            if let Some(value) = value {
+                (inner.sink)(value);
+            }
+        });
+    }
+
+    /// Write now, discarding whatever was pending. `value` is the state to
+    /// write; `None` writes only a pending value, if there is one.
+    pub fn flush_now(&self, value: Option<T>) {
+        let _writing = lock(&self.inner.writing);
+        let pending = {
+            let mut slot = lock(&self.inner.slot);
+            let pending = slot.pending.take();
+            value.or(pending)
+        };
+        if let Some(value) = pending {
+            (self.inner.sink)(value);
+        }
+    }
+}
+
+/// A poisoned lock here means a sink panicked mid-write; the data behind it is
+/// still just "the latest snapshot", so carry on rather than turning one failed
+/// write into every later one failing too.
+fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    m.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+type Job = (PathBuf, Stored);
+
+fn writer() -> &'static WriteBehind<Job> {
+    static WRITER: OnceLock<WriteBehind<Job>> = OnceLock::new();
+    WRITER.get_or_init(|| {
+        WriteBehind::new(DEBOUNCE, |(path, stored): Job| {
+            write_to(&path, &stored);
+        })
+    })
+}
+
+/// Write the current state, soon. Called from `ShellState::mutate`, so every
+/// change that reaches a window reaches the disk too — after a short quiet.
 pub fn persist(app: &AppHandle, snapshot: &ShellSnapshot) {
-    save(app, &Stored::from_snapshot(snapshot));
+    if let Some(path) = file(app) {
+        writer().submit((path, Stored::from_snapshot(snapshot)));
+    }
+}
+
+/// Write the current state *now*. For a window closing on purpose, where the
+/// next debounce tick may never come.
+pub fn persist_now(app: &AppHandle, snapshot: &ShellSnapshot) {
+    if let Some(path) = file(app) {
+        writer().flush_now(Some((path, Stored::from_snapshot(snapshot))));
+    }
+}
+
+/// Write whatever is still waiting on the debounce, and nothing else. Safe on
+/// the way out of the process precisely because it never *computes* a state: a
+/// pending value was a real snapshot at some mutation, whereas the state at
+/// exit may already have been collapsed by windows being destroyed (see the
+/// module doc).
+pub fn flush_pending() {
+    writer().flush_now(None);
 }
 
 /// Drop anything the layout can no longer reach.
@@ -101,11 +234,23 @@ pub fn persist(app: &AppHandle, snapshot: &ShellSnapshot) {
 /// Self-healing, therefore. The next mutation writes the pruned set back, so a
 /// file that has been accumulating orphans is cleaned once and stays clean.
 fn prune_unreachable(mut stored: Stored) -> Stored {
+    // A window's right page hosts its app instance outside every tree — that is
+    // what lets it stay mounted across a dock/expand toggle — so the page's
+    // `instance_id` is a second way to be reachable. Leaving it out pruned the
+    // Plane / Cloud agents / Cost instance at every load and left the restored
+    // page pointing at an instance that no longer existed.
     let live: std::collections::HashSet<&str> = stored
         .windows
         .iter()
         .flat_map(|w| w.clusters.iter())
         .flat_map(|c| c.tree.tabs())
+        .chain(
+            stored
+                .windows
+                .iter()
+                .filter_map(|w| w.right_page.as_ref())
+                .filter_map(|p| p.instance_id.as_deref()),
+        )
         .collect();
 
     let clusters: std::collections::HashSet<&str> = stored
@@ -151,18 +296,22 @@ fn prune_unreachable(mut stored: Stored) -> Stored {
 
 /// Read the store, or start empty. Never fails — see the module doc.
 pub fn load(app: &AppHandle) -> Stored {
-    let stored = file(app)
-        .map(|path| crate::userdata::store::read(&path, KEEP))
-        .unwrap_or_default();
+    file(app).map(|path| load_from(&path)).unwrap_or_default()
+}
 
-    prune_unreachable(stored)
+/// [`load`], against a path — the half with no `AppHandle` in it, so the whole
+/// read path (missing, corrupt, older, newer) is testable against a real file.
+///
+/// Failures are logged through `kaava_log!`, which is what `recent_errors`
+/// reads, and degrade to an empty `Stored`, which `restore_session` turns into
+/// a first-run workspace. With `KEEP` the bad file was already moved aside.
+pub fn load_from(path: &Path) -> Stored {
+    prune_unreachable(crate::userdata::store::read(path, KEEP))
 }
 
 /// Write the store, atomically, through `userdata::store`.
-pub fn save(app: &AppHandle, stored: &Stored) {
-    if let Some(path) = file(app) {
-        crate::userdata::store::write(&path, stored, "the layout");
-    }
+pub fn write_to(path: &Path, stored: &Stored) {
+    crate::userdata::store::write(path, stored, "the layout");
 }
 
 fn file(app: &AppHandle) -> Option<PathBuf> {
@@ -333,6 +482,7 @@ mod tests {
                     page: None,
                     environment: None,
                     pinned: false,
+                    environment_missing: false,
                 }],
                 active_cluster_id: Some("cluster-1".to_string()),
                 geometry: None,
@@ -518,6 +668,7 @@ mod tests {
                     page: None,
                     environment: None,
                     pinned: false,
+                    environment_missing: false,
                 }],
                 active_cluster_id: Some("cluster-1".to_string()),
                 geometry: Some(WindowGeometry {
@@ -713,5 +864,435 @@ mod tests {
             !stored.terminals[0].agent_finished,
             "`this agent finished while you were away` is not a fact about tomorrow"
         );
+    }
+
+    // --- the whole workspace survives a restart --------------------------------
+
+    use crate::environments::Environment;
+    use crate::pages::PageMode;
+    use crate::shell_state::{RightPage, ShellState, WorktreeRef};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    /// A directory of its own per test; the tests here run in parallel.
+    fn scratch_dir(tag: &str) -> PathBuf {
+        static N: AtomicUsize = AtomicUsize::new(0);
+        let at = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or_default();
+        let dir = std::env::temp_dir().join(format!(
+            "kaava-shell-store-{tag}-{at}-{}",
+            N.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(&dir).expect("the temp directory is writable");
+        dir
+    }
+
+    fn json(stored: &Stored) -> serde_json::Value {
+        serde_json::to_value(stored).expect("serializes")
+    }
+
+    fn leaf(pane: &str, tab: &str) -> PaneNode {
+        PaneNode::Leaf {
+            id: pane.to_string(),
+            tabs: vec![tab.to_string()],
+            active_tab: Some(tab.to_string()),
+        }
+    }
+
+    fn plain_cluster(id: &str, name: &str, tree: PaneNode) -> Cluster {
+        Cluster {
+            id: id.to_string(),
+            name: name.to_string(),
+            tree,
+            project: Some("C:/games/skyfall".to_string()),
+            worktree: None,
+            active_terminal: None,
+            band_height: None,
+            page: None,
+            environment: None,
+            pinned: false,
+            environment_missing: false,
+        }
+    }
+
+    fn app_instance(id: &str, app_id: &str, title: &str) -> SurfaceInstance {
+        SurfaceInstance {
+            id: id.to_string(),
+            app_id: app_id.to_string(),
+            kind: SurfaceKind::App,
+            title: title.to_string(),
+        }
+    }
+
+    /// Everything the acceptance names, at once: two windows (one with a saved
+    /// position and a docked page), clusters bound to a worktree, the Design
+    /// worktree (pinned) and a legacy worktree ref, a split tree with sizes,
+    /// several app instances, an active cluster, a band height and a terminal
+    /// selection, and grouped terminals. `wt` and `design` must exist on disk
+    /// or the restore would (correctly) flag them missing.
+    fn everything(wt: &Path, design: &Path) -> Stored {
+        let tree = PaneNode::Split {
+            id: "split-1".to_string(),
+            dir: SplitDir::Row,
+            sizes: vec![0.25, 0.75],
+            children: vec![
+                PaneNode::Leaf {
+                    id: "pane-1".to_string(),
+                    tabs: vec!["home-1".to_string(), "files-1".to_string()],
+                    active_tab: Some("files-1".to_string()),
+                },
+                PaneNode::Split {
+                    id: "split-2".to_string(),
+                    dir: SplitDir::Column,
+                    sizes: vec![0.5, 0.5],
+                    children: vec![leaf("pane-2", "viewer-1"), leaf("pane-3", "term-3")],
+                },
+            ],
+        };
+
+        let mut main_cluster = plain_cluster("cluster-1", "auth", tree);
+        main_cluster.environment = Some(Environment::LocalWorktree {
+            name: "auth".to_string(),
+            path: wt.display().to_string(),
+            branch: "wt/auth".to_string(),
+            base: "main".to_string(),
+        });
+        main_cluster.band_height = Some(312.5);
+        main_cluster.active_terminal = Some("term-1".to_string());
+
+        let mut design_cluster = plain_cluster("cluster-2", "Design", leaf("pane-4", "design-1"));
+        design_cluster.environment = Some(Environment::Design {
+            path: design.display().to_string(),
+            branch: "wt/design".to_string(),
+        });
+        design_cluster.pinned = true;
+
+        let mut legacy = plain_cluster("cluster-3", "legacy", leaf("pane-5", "home-2"));
+        legacy.worktree = Some(WorktreeRef {
+            path: wt.display().to_string(),
+            branch: Some("wt/auth".to_string()),
+            base: Some("main".to_string()),
+        });
+        legacy.environment = Some(Environment::Main);
+        legacy.project = None;
+
+        let mut second = plain_cluster("cluster-4", "billing", leaf("pane-6", "files-2"));
+        // `reseat_active_terminals` would pick this itself; stated so the
+        // round trip compares like with like.
+        second.active_terminal = Some("term-4".to_string());
+
+        Stored {
+            windows: vec![
+                WindowPlacement {
+                    label: "main".to_string(),
+                    clusters: vec![main_cluster, design_cluster, legacy],
+                    active_cluster_id: Some("cluster-3".to_string()),
+                    geometry: Some(WindowGeometry {
+                        x: -1920,
+                        y: 40,
+                        width: 1600,
+                        height: 900,
+                    }),
+                    right_page: Some(RightPage {
+                        id: "costs".to_string(),
+                        mode: PageMode::Docked,
+                        width: 455.0,
+                        instance_id: Some("costs-page-main".to_string()),
+                    }),
+                },
+                WindowPlacement {
+                    label: "win-2".to_string(),
+                    clusters: vec![second],
+                    active_cluster_id: Some("cluster-4".to_string()),
+                    geometry: None,
+                    right_page: Some(RightPage {
+                        id: "git".to_string(),
+                        mode: PageMode::Expanded,
+                        width: 340.0,
+                        instance_id: None,
+                    }),
+                },
+            ],
+            instances: vec![
+                instance("home-1"),
+                app_instance("files-1", "files", "Files"),
+                app_instance("viewer-1", "viewer", "hero.png"),
+                instance("design-1"),
+                instance("home-2"),
+                instance("files-2"),
+                app_instance("costs-page-main", "costs", "Cost"),
+            ],
+            terminals: vec![
+                terminal("term-1", "cluster-1"),
+                TerminalSession {
+                    group_id: Some("group-1".to_string()),
+                    title: "claude".to_string(),
+                    ..terminal("term-2", "cluster-1")
+                },
+                // Dragged into the layout: reachable through the tree.
+                terminal("term-3", "cluster-1"),
+                terminal("term-4", "cluster-4"),
+            ],
+        }
+    }
+
+    fn worktree_dirs(tag: &str) -> (PathBuf, PathBuf) {
+        let root = scratch_dir(tag);
+        let wt = root.join("auth");
+        let design = root.join("design");
+        std::fs::create_dir_all(&wt).unwrap();
+        std::fs::create_dir_all(&design).unwrap();
+        (wt, design)
+    }
+
+    fn restored_shell(stored: Stored) -> ShellState {
+        let shell = ShellState::default();
+        shell.restore(ShellSnapshot {
+            windows: stored.windows,
+            instances: stored.instances,
+            terminals: stored.terminals,
+        });
+        shell
+    }
+
+    /// state -> save -> load -> equal, for every item in the acceptance.
+    #[test]
+    fn the_whole_workspace_round_trips_through_the_file() {
+        let (wt, design) = worktree_dirs("round-trip");
+        let path = scratch_dir("round-trip-file").join("layout.json");
+        let before = everything(&wt, &design);
+
+        write_to(&path, &before);
+        let after = load_from(&path);
+
+        assert_eq!(json(&before), json(&after));
+        // Spelled out too, so a failure names the item rather than a diff of
+        // one very long value.
+        let main = &after.windows[0];
+        assert_eq!(main.active_cluster_id.as_deref(), Some("cluster-3"));
+        assert_eq!(main.geometry.map(|g| g.x), Some(-1920));
+        assert_eq!(main.right_page.as_ref().map(|p| p.width), Some(455.0));
+        assert_eq!(
+            main.right_page
+                .as_ref()
+                .and_then(|p| p.instance_id.as_deref()),
+            Some("costs-page-main")
+        );
+        assert_eq!(main.clusters[0].band_height, Some(312.5));
+        assert!(main.clusters[1].pinned);
+        assert_eq!(after.windows[1].label, "win-2");
+        assert_eq!(after.terminals.len(), 4);
+    }
+
+    /// The same, one step further: through `ShellState::restore`, which is what
+    /// `restore_session` calls. Migrations must not disturb a current file.
+    #[test]
+    fn a_current_layout_restores_into_the_shell_unchanged() {
+        let (wt, design) = worktree_dirs("restore");
+        let path = scratch_dir("restore-file").join("layout.json");
+        let before = everything(&wt, &design);
+        write_to(&path, &before);
+
+        let shell = restored_shell(load_from(&path));
+        let restored = shell.snapshot();
+
+        assert_eq!(json(&before), json(&Stored::from_snapshot(&restored)));
+        assert!(restored
+            .windows
+            .iter()
+            .flat_map(|w| w.clusters.iter())
+            .all(|c| !c.environment_missing));
+    }
+
+    /// The bug found while writing the round trip: a page's app instance is in
+    /// no tree, so pruning judged it unreachable and dropped it at every load.
+    #[test]
+    fn a_right_pages_instance_is_not_pruned_as_unreachable() {
+        let (wt, design) = worktree_dirs("page-instance");
+        let pruned = prune_unreachable(everything(&wt, &design));
+        assert!(pruned.instances.iter().any(|i| i.id == "costs-page-main"));
+    }
+
+    #[test]
+    fn a_missing_file_is_a_first_run_not_an_error() {
+        let path = scratch_dir("missing").join("layout.json");
+        assert!(load_from(&path).windows.is_empty());
+    }
+
+    /// Corrupt: degrades to empty, and keeps a copy rather than leaving the
+    /// next save to write over the only evidence.
+    #[test]
+    fn a_corrupt_file_falls_back_to_defaults_and_is_kept_aside() {
+        let path = scratch_dir("corrupt").join("layout.json");
+        std::fs::write(&path, "{ \"windows\": [ {\"label\": ").unwrap();
+
+        let stored = load_from(&path);
+
+        assert!(stored.windows.is_empty() && stored.terminals.is_empty());
+        assert!(
+            crate::userdata::backup::newest(&path, "corrupt").is_some(),
+            "the unreadable file is set aside, not lost"
+        );
+    }
+
+    /// Well-formed JSON of the wrong shape is corrupt too.
+    #[test]
+    fn a_layout_of_the_wrong_shape_is_corrupt_not_a_crash() {
+        let path = scratch_dir("shape").join("layout.json");
+        std::fs::write(&path, r#"{"windows": "not a list"}"#).unwrap();
+        assert!(load_from(&path).windows.is_empty());
+        assert!(crate::userdata::backup::newest(&path, "corrupt").is_some());
+    }
+
+    /// A file from before `environment`, `pinned`, `rightPage`, `bandHeight`,
+    /// the format stamp and cluster-owned terminals: only what the oldest
+    /// builds wrote. It loads, and restoring it migrates rather than drops.
+    #[test]
+    fn an_older_schema_loads_and_migrates() {
+        let (wt, _) = worktree_dirs("older");
+        let path = scratch_dir("older-file").join("layout.json");
+        let old = serde_json::json!({
+            "windows": [{
+                "label": "main",
+                "clusters": [{
+                    "id": "cluster-1",
+                    "name": "auth",
+                    "tree": {"kind": "leaf", "id": "pane-1", "tabs": ["home-1"], "activeTab": "home-1"},
+                    "worktree": {"path": wt.display().to_string(), "branch": "wt/auth"}
+                }],
+                "activeClusterId": "cluster-1"
+            }],
+            "instances": [{"id": "home-1", "appId": "home", "kind": "app", "title": "Home"}],
+            "terminals": [{"id": "term-1", "title": "bash", "agentFinished": false, "groupId": null}]
+        });
+        std::fs::write(&path, old.to_string()).unwrap();
+
+        let loaded = load_from(&path);
+        assert_eq!(loaded.windows.len(), 1, "an old file is not set aside");
+        assert_eq!(loaded.instances.len(), 1);
+        assert_eq!(loaded.terminals.len(), 1);
+
+        let snap = restored_shell(loaded).snapshot();
+        let cluster = &snap.windows[0].clusters[0];
+        assert!(matches!(
+            cluster.environment,
+            Some(Environment::LocalWorktree { .. })
+        ));
+        assert!(!cluster.pinned && cluster.band_height.is_none());
+        assert_eq!(snap.terminals[0].cluster_id, "cluster-1", "orphan adopted");
+    }
+
+    /// A file a *newer* build wrote is intact and belongs to that build: this
+    /// one starts empty and moves it aside instead of writing over it.
+    #[test]
+    fn a_newer_format_is_set_aside_intact() {
+        let path = scratch_dir("newer").join("layout.json");
+        let text = r#"{"format": 99, "windows": []}"#;
+        std::fs::write(&path, text).unwrap();
+
+        assert!(load_from(&path).windows.is_empty());
+
+        let kept = crate::userdata::backup::newest(&path, "format-99").expect("kept");
+        assert_eq!(std::fs::read_to_string(kept).unwrap(), text);
+    }
+
+    /// A saved file always carries the format, so a future bump can tell it
+    /// from a legacy one.
+    #[test]
+    fn a_saved_layout_is_stamped_with_the_format() {
+        let path = scratch_dir("stamp").join("layout.json");
+        write_to(&path, &Stored::default());
+        let raw: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(raw["format"], crate::userdata::store::FORMAT);
+    }
+
+    /// A worktree deleted between launches: the cluster comes back, flagged,
+    /// with its layout intact, rather than vanishing or crashing the restore.
+    #[test]
+    fn a_missing_worktree_restores_as_a_flagged_cluster() {
+        let (wt, design) = worktree_dirs("gone");
+        let before = everything(&wt, &design);
+        std::fs::remove_dir_all(&wt).unwrap();
+
+        let shell = restored_shell(before);
+        let snap = shell.snapshot();
+        let clusters: Vec<&Cluster> = snap
+            .windows
+            .iter()
+            .flat_map(|w| w.clusters.iter())
+            .collect();
+
+        let auth = clusters.iter().find(|c| c.id == "cluster-1").unwrap();
+        assert!(auth.environment_missing);
+        assert_eq!(auth.tree.tabs().len(), 4, "its layout is untouched");
+        assert_eq!(auth.band_height, Some(312.5));
+
+        let design = clusters.iter().find(|c| c.id == "cluster-2").unwrap();
+        assert!(!design.environment_missing, "the ones that exist are fine");
+        assert!(shell.cluster_environment_missing("cluster-1"));
+        assert!(!shell.cluster_environment_missing("cluster-2"));
+        // Main / cloud / no environment have no local folder of their own to
+        // lose, so they can never be flagged.
+        let legacy = clusters.iter().find(|c| c.id == "cluster-3").unwrap();
+        assert!(!legacy.environment_missing);
+    }
+
+    // --- the debounce ----------------------------------------------------------
+
+    fn recorder(delay_ms: u64) -> (WriteBehind<u32>, Arc<Mutex<Vec<u32>>>) {
+        let written = Arc::new(Mutex::new(Vec::new()));
+        let sink = Arc::clone(&written);
+        let wb = WriteBehind::new(Duration::from_millis(delay_ms), move |v| {
+            sink.lock().unwrap().push(v);
+        });
+        (wb, written)
+    }
+
+    /// A drag's worth of mutations is one write, of the last state.
+    #[test]
+    fn a_burst_of_submits_writes_once_with_the_newest_value() {
+        let (wb, written) = recorder(150);
+        for v in 1..=50 {
+            wb.submit(v);
+        }
+        assert!(written.lock().unwrap().is_empty(), "nothing yet: debounced");
+        std::thread::sleep(Duration::from_millis(600));
+        assert_eq!(*written.lock().unwrap(), vec![50]);
+    }
+
+    /// Closing the window: written synchronously, and the timer that was
+    /// already running must not write an older state afterwards.
+    #[test]
+    fn flush_now_writes_immediately_and_cancels_the_pending_write() {
+        let (wb, written) = recorder(100);
+        wb.submit(1);
+        wb.flush_now(Some(2));
+        assert_eq!(*written.lock().unwrap(), vec![2]);
+        std::thread::sleep(Duration::from_millis(400));
+        assert_eq!(*written.lock().unwrap(), vec![2], "no stale write after");
+    }
+
+    /// The exit hook: commits what was waiting, invents nothing.
+    #[test]
+    fn flushing_pending_writes_only_what_was_waiting() {
+        let (wb, written) = recorder(5000);
+        wb.flush_now(None);
+        assert!(written.lock().unwrap().is_empty());
+        wb.submit(7);
+        wb.flush_now(None);
+        assert_eq!(*written.lock().unwrap(), vec![7]);
+    }
+
+    /// A later burst schedules again; the writer is not one-shot.
+    #[test]
+    fn a_second_burst_writes_again() {
+        let (wb, written) = recorder(50);
+        wb.submit(1);
+        std::thread::sleep(Duration::from_millis(400));
+        wb.submit(2);
+        std::thread::sleep(Duration::from_millis(400));
+        assert_eq!(*written.lock().unwrap(), vec![1, 2]);
     }
 }
