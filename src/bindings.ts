@@ -1149,6 +1149,11 @@ export interface Cluster {
    *  and defaults to `false` when reading a `layout.json` old enough to
    *  predate it. */
   pinned: boolean;
+  /** The environment's worktree folder was not on disk when the layout was
+   *  restored at launch. Recomputed by the backend at every restore, so a
+   *  stale value never survives a restart. Optional so fixtures that predate
+   *  it stay valid; absent means present. */
+  environmentMissing?: boolean;
 }
 
 /** Mirrors `shell_state::WindowGeometry`. Physical pixels. */

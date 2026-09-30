@@ -251,6 +251,20 @@ pub struct Cluster {
     /// environment enum just to answer "can this be closed".
     #[serde(default)]
     pub pinned: bool,
+    /// The environment's folder was not on disk when the layout was restored.
+    ///
+    /// A **runtime fact, recomputed at every restore** by
+    /// `mark_missing_environments` and never trusted from the file: a stale
+    /// `true` written last launch is overwritten before anything reads it. It
+    /// is on the wire so the switcher can draw the cluster as "missing" rather
+    /// than the cluster vanishing (a worktree deleted outside OpenKaava) or
+    /// quietly pointing at the wrong folder. Only worktree-backed environments
+    /// can be missing; `Main` follows the project (Home already draws an
+    /// unavailable project) and `Cloud` has no local path to lose.
+    ///
+    /// `default` because a `layout.json` from before this key has none.
+    #[serde(default)]
+    pub environment_missing: bool,
 }
 
 impl Cluster {
@@ -503,6 +517,7 @@ fn seed_window(counters: &mut Counters, label: &str) -> WindowPlacement {
         page: None,
         environment: None,
         pinned: false,
+        environment_missing: false,
     };
 
     WindowPlacement {
@@ -547,6 +562,7 @@ impl ShellState {
         // filled in before `cluster_root`/`cluster_environment` are asked
         // about it.
         migrate_environments(&mut snapshot);
+        mark_missing_environments(&mut snapshot, &|p| Path::new(p).is_dir());
         // Order matters: a terminal has to be given a cluster before anything
         // asks which cluster's band it is in.
         adopt_orphan_terminals(&mut snapshot);
@@ -668,7 +684,7 @@ impl ShellState {
     /// commit those quiet updates eventually, and a window closing on purpose
     /// is the last chance to.
     pub fn flush(&self, app: &AppHandle) {
-        crate::shell_store::persist(app, &self.snapshot());
+        crate::shell_store::persist_now(app, &self.snapshot());
     }
 
     /// Fold a closing window's clusters into the main window, so nothing is
@@ -728,6 +744,7 @@ impl ShellState {
                 page: None,
                 environment: None,
                 pinned: false,
+                environment_missing: false,
             });
             w.active_cluster_id = Some(cluster_id.clone());
             created = Some(cluster_id.clone());
@@ -970,6 +987,14 @@ impl ShellState {
     /// both for a cluster with no environment set and for an id that names no
     /// cluster — see [`Self::cluster_project`], which this matches case for
     /// case.
+    pub fn cluster_environment_missing(&self, cluster_id: &str) -> bool {
+        self.read()
+            .windows
+            .iter()
+            .flat_map(|w| w.clusters.iter())
+            .any(|c| c.id == cluster_id && c.environment_missing)
+    }
+
     pub fn cluster_environment(
         &self,
         cluster_id: &str,
@@ -2397,6 +2422,7 @@ fn add_design_cluster_pure(
             page: None,
             environment: Some(environment),
             pinned: true,
+            environment_missing: false,
         },
     );
     Some(cluster_id.to_string())
@@ -2664,6 +2690,7 @@ fn detach_instance_pure(
         page: None,
         environment: None,
         pinned: false,
+        environment_missing: false,
     };
 
     // A terminal dragged out has to bring its band home with it. It is
@@ -2925,6 +2952,36 @@ fn migrate_environments(snapshot: &mut ShellSnapshot) {
     }
 }
 
+/// Flag every cluster whose worktree folder is gone, and say so in the log.
+///
+/// `exists` is the disk, injected so the rule can be tested without one. The
+/// cluster is **kept**: its layout, name and branch are still the user's, and
+/// the folder may be an unplugged drive. Only the flag changes, which the
+/// switcher draws and `respawn_terminals` reads (a shell started in a folder
+/// that does not exist would land in the process's own directory).
+fn mark_missing_environments(snapshot: &mut ShellSnapshot, exists: &dyn Fn(&str) -> bool) {
+    use crate::environments::Environment;
+    for c in snapshot
+        .windows
+        .iter_mut()
+        .flat_map(|w| w.clusters.iter_mut())
+    {
+        let path = match &c.environment {
+            Some(Environment::LocalWorktree { path, .. })
+            | Some(Environment::Design { path, .. }) => Some(path.as_str()),
+            _ => None,
+        };
+        c.environment_missing = path.is_some_and(|p| !exists(p));
+        if c.environment_missing {
+            crate::kaava_log!(
+                "cluster {} ({}): its worktree folder is missing on disk, keeping the cluster",
+                c.id,
+                c.name
+            );
+        }
+    }
+}
+
 /// Give every terminal a cluster, for a state restored from a file that did not
 /// record one.
 ///
@@ -3004,6 +3061,7 @@ fn add_cluster_for_environment_pure(
         page: None,
         environment,
         pinned: false,
+        environment_missing: false,
     });
     w.active_cluster_id = Some(cluster_id.to_string());
     Some((cluster_id.to_string(), pane_id.to_string()))
@@ -3386,6 +3444,7 @@ mod tests {
                     page: None,
                     environment: None,
                     pinned: false,
+                    environment_missing: false,
                 }],
                 active_cluster_id: Some("cluster-3".to_string()),
                 geometry: None,
@@ -3498,6 +3557,7 @@ mod tests {
                 page: None,
                 environment: None,
                 pinned: false,
+                environment_missing: false,
             }],
             active_cluster_id: Some(cluster.to_string()),
             geometry: None,
@@ -3605,6 +3665,7 @@ mod tests {
             page: None,
             environment: None,
             pinned: false,
+            environment_missing: false,
         });
 
         reseat_active_terminals(&mut s);
@@ -3712,6 +3773,7 @@ mod tests {
             page: None,
             environment: None,
             pinned: false,
+            environment_missing: false,
         });
 
         // Cluster 1, dragged nearly to the top of the window.
@@ -3944,6 +4006,7 @@ mod tests {
             page: None,
             environment: None,
             pinned: false,
+            environment_missing: false,
         });
         state(vec![placement], Vec::new())
     }
@@ -4780,6 +4843,7 @@ mod tests {
             page: Some(page_id.to_string()),
             environment: None,
             pinned: false,
+            environment_missing: false,
         }
     }
 
@@ -5458,6 +5522,7 @@ mod tests {
             // Same environment as cluster-1 — one worktree, opened twice.
             environment: Some(design_environment()),
             pinned: false,
+            environment_missing: false,
         });
         let s = state(vec![w], Vec::new());
 

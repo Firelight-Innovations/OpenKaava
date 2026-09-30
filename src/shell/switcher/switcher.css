@@ -186,6 +186,18 @@
   flex: none;
 }
 
+/* A cluster whose worktree folder is gone from disk: kept, with its layout,
+   and marked so it does not read as an ordinary working cluster. */
+.switcher__tab-missing-icon {
+  flex: none;
+  color: var(--warn);
+}
+
+.switcher__tab--missing .switcher__tab-label {
+  text-decoration: line-through;
+  text-decoration-color: var(--warn);
+}
+
 /* The Design canvas cluster's own marker, after its env chip — §1.3. */
 .switcher__tab-pin {
   flex: none;
