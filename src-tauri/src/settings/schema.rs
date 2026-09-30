@@ -30,6 +30,8 @@ pub mod keys {
     pub const MCP_WRITE_PROJECT_CONFIG: &str = "mcp.writeProjectConfig";
     pub const UPDATES_CHECK_AUTOMATICALLY: &str = "updates.checkAutomatically";
     pub const DEVELOPER_MODE: &str = "developer.mode";
+    pub const KEYS_COPILOT_ACTION: &str = "keys.copilotAction";
+    pub const KEYS_COPILOT_GLOBAL: &str = "keys.copilotGlobal";
 }
 
 /// Every group the shell itself registers, in no particular order — `Group::order`
@@ -42,6 +44,7 @@ static GROUPS: &[&Group] = &[
     &APPEARANCE,
     &EDITOR,
     &TERMINAL,
+    &KEYS,
     &SEARCH,
     &GITHUB,
     &UPDATES,
@@ -427,6 +430,83 @@ static TERMINAL: Group = Group {
     settings: TERMINAL_SETTINGS,
 };
 
+// --- keys -------------------------------------------------------------------
+//
+// `keys.copilotAction` is read by the shell's key handler (`src/shell/copilotKey.ts`
+// lists the same ids and falls back to "palette" on any it does not know).
+// `keys.copilotGlobal` is read by `copilot_key.rs` on every F23 the hook sees.
+
+static COPILOT_ACTIONS: &[SelectOption] = &[
+    SelectOption {
+        value: "palette",
+        label: "Open the Command Palette",
+        description: "",
+    },
+    SelectOption {
+        value: "search",
+        label: "Search",
+        description: "",
+    },
+    SelectOption {
+        value: "switchProject",
+        label: "Switch project",
+        description: "",
+    },
+    SelectOption {
+        value: "newCluster",
+        label: "New cluster",
+        description: "",
+    },
+    SelectOption {
+        value: "toggleGit",
+        label: "Show or hide the Git page",
+        description: "",
+    },
+    SelectOption {
+        value: "togglePanel",
+        label: "Show or hide the side panel",
+        description: "",
+    },
+    SelectOption {
+        value: "toggleTerminal",
+        label: "Show or hide the terminal",
+        description: "",
+    },
+    SelectOption {
+        value: "none",
+        label: "Do nothing (let Windows handle it)",
+        description: "The key is not claimed, so Windows starts Copilot as it normally would.",
+    },
+];
+
+static KEYS_SETTINGS: &[Setting] = &[
+    Setting {
+        key: keys::KEYS_COPILOT_ACTION,
+        title: "Copilot key",
+        description: "What the Copilot key on a Windows keyboard does while OpenKaava has focus.                       Windows sends it as Win+Shift+F23.",
+        control: Control::Select {
+            default: "palette",
+            options: COPILOT_ACTIONS,
+        },
+        applies: Applies::Now,
+    },
+    Setting {
+        key: keys::KEYS_COPILOT_GLOBAL,
+        title: "Claim the Copilot key everywhere",
+        description: "Installs a keyboard hook so the key reaches OpenKaava even when it is not                       the focused window, and stops Windows launching Copilot. Off, only a focused                       OpenKaava sees the key, and Windows may still act on it first.",
+        control: Control::Toggle { default: false },
+        applies: Applies::Now,
+    },
+];
+
+static KEYS: Group = Group {
+    id: "keys",
+    title: "Keyboard",
+    description: "What the keys the shell does not bind by chord are for.",
+    order: 35,
+    settings: KEYS_SETTINGS,
+};
+
 // --- search -----------------------------------------------------------------
 //
 // The three caps `search.rs` used to hold as constants. They are settings
@@ -682,6 +762,18 @@ mod tests {
         assert_eq!(total, keys.len(), "two settings share a key");
     }
 
+    /// The Copilot key opens the Command Palette until somebody chooses otherwise,
+    /// and the global hook stays off until somebody opts in.
+    #[test]
+    fn the_copilot_key_defaults_are_the_palette_and_no_global_hook() {
+        let registry = seeded();
+        assert_eq!(
+            registry.get(keys::KEYS_COPILOT_ACTION),
+            Some(json!("palette"))
+        );
+        assert_eq!(registry.get(keys::KEYS_COPILOT_GLOBAL), Some(json!(false)));
+    }
+
     /// The point of the `keys` module: a constant that no longer names a
     /// setting, or names one of a different type, would make its reader fall
     /// back to a zero value with nothing on screen to say so.
@@ -694,6 +786,8 @@ mod tests {
             (keys::APPEARANCE_ACCENT_COLOR, "string"),
             (keys::TERMINAL_DEFAULT_SHELL, "string"),
             (keys::TERMINAL_OPEN_ON_LAUNCH, "bool"),
+            (keys::KEYS_COPILOT_ACTION, "string"),
+            (keys::KEYS_COPILOT_GLOBAL, "bool"),
             (keys::SEARCH_MAX_MATCHES, "number"),
             (keys::SEARCH_MAX_FILES, "number"),
             (keys::SEARCH_MAX_FILE_SIZE_MB, "number"),

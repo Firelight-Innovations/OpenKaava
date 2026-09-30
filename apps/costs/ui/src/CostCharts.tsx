@@ -15,7 +15,7 @@
  */
 import { onThemeChanged } from "@openkaava/bridge/theme";
 import type { EChartsOption } from "echarts";
-import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { burnOption } from "./charts/burn";
 import { categoriesOption } from "./charts/categories";
 import { dailyOption } from "./charts/daily";
@@ -161,7 +161,16 @@ function BillPlaceholder({
   );
 }
 
-export function CostCharts({ estimate, trends }: { estimate: Estimate; trends: Trends | null }) {
+export function CostCharts({
+  estimate,
+  trends,
+  summary,
+}: {
+  estimate: Estimate;
+  trends: Trends | null;
+  /** The headline figures. They sit beside C1 when expanded and above it when docked. */
+  summary?: ReactNode;
+}) {
   const [root, width] = useOwnWidth();
   const layout = layoutFor(width);
   const theme = useChartTheme();
@@ -229,20 +238,23 @@ export function CostCharts({ estimate, trends }: { estimate: Estimate; trends: T
 
   return (
     <div className="costs__charts" ref={root}>
-      <section className="costs__chart-section" aria-label="Spend this month">
-        {!docked && <ChartHead id="C1" title="Will this month land under budget?" />}
-        <Chart
-          option={burn}
-          label="Cumulative spend against the budget, this month"
-          compact={docked}
-        />
-        {!docked && !daily?.length && (
-          <p className="costs__chart-caption">
-            Two real points from the estimate. It becomes a daily line when the billing export is
-            on.
-          </p>
-        )}
-      </section>
+      <div className={docked ? "costs__hero" : "costs__hero costs__hero--expanded"}>
+        {summary}
+        <section className="costs__chart-section costs__hero-chart" aria-label="Spend this month">
+          {!docked && <ChartHead id="C1" title="Will this month land under budget?" />}
+          <Chart
+            option={burn}
+            label="Cumulative spend against the budget, this month"
+            compact={docked}
+          />
+          {!docked && !daily?.length && (
+            <p className="costs__chart-caption">
+              Two real points from the estimate. It becomes a daily line when the billing export is
+              on.
+            </p>
+          )}
+        </section>
+      </div>
       {docked ? (
         <section className="costs__chart-section" aria-label="Where the money goes">
           <span className="costs__chart-label">By category · forecast</span>

@@ -61,8 +61,10 @@ whichever cluster is showing, each with an app in it.
 
 One pane fills it → split it → two panes, each with its own app
 
-To its right is the **secondary panel**, which today shows source control and
-nothing else. `Ctrl+B` collapses it to a strip and brings it back.
+To its right is the **rail**, a column of page buttons along the window's edge.
+A page opens docked beside the tool window. The **Git** page holds source
+control and GitHub as two tabs. `Ctrl+B` opens and closes it. With no page
+open, the tool window runs all the way to the rail.
 
 ## 4. The terminal band
 
@@ -93,7 +95,7 @@ row.
 | Chord           | What                                                                 |
 | ---------------- | --------------------------------------------------------------------- |
 | `Ctrl+K`         | Search this project.                                                  |
-| `Ctrl+B`         | Show or hide the secondary panel.                                     |
+| `Ctrl+B`         | Open or close the Git page (source control).                          |
 | `` Ctrl+` ``     | Show or hide the terminal band.                                       |
 | `` Ctrl+Shift+` ``| New terminal.                                                        |
 | `F11`            | Full screen.                                                           |

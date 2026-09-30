@@ -12,6 +12,7 @@ mod branding;
 mod cloud;
 mod commands;
 mod comments;
+mod copilot_key;
 #[cfg(feature = "design-mode")]
 mod design_comments;
 mod devtools;
@@ -308,6 +309,7 @@ pub fn run() {
             // registration puts static descriptors on a list, and the only file
             // it touches is its own.
             settings::seed(app.handle());
+            copilot_key::sync(app.handle());
 
             // Before the layout, because `restore_session` reads the old global
             // open project out of this store to migrate it onto a cluster. The
