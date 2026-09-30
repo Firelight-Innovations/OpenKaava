@@ -126,9 +126,9 @@
 
 .gv__viewport {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0 16px 16px;
   overflow: auto;
 }
 
@@ -137,8 +137,9 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  height: 100%;
+  flex: 1;
+  margin-top: 10px;
+  min-height: 0;
   justify-content: center;
   border: 1px dashed var(--border-subtle);
   border-radius: var(--radius-md, 6px);
@@ -280,4 +281,95 @@
 .gv__footer-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.gv__select {
+  min-width: 0;
+  max-width: 220px;
+  font: inherit;
+  font-size: 11px;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+}
+
+.gv__notices {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.gv__notice {
+  margin: 0;
+  padding: 6px 12px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--txt-secondary);
+  background: var(--warning-subtle);
+}
+
+.gv__notice--error {
+  color: var(--txt-primary);
+  background: var(--danger-subtle);
+}
+
+.gv__output {
+  display: block;
+  margin-top: 4px;
+  white-space: pre-wrap;
+  font-family: var(--type-font-mono, monospace);
+  font-size: 10px;
+}
+
+.gv__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 0;
+}
+
+.gv__action {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+  cursor: pointer;
+}
+
+.gv__action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gv__phase {
+  font-size: 11px;
+  color: var(--txt-secondary);
+}
+
+.gv__note {
+  margin: 6px 10px 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--txt-secondary);
+}
+
+.gv__frame {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-sm, 4px);
+}
+
+.gv__frame-age {
+  font-size: 10px;
+  color: var(--txt-secondary);
 }
