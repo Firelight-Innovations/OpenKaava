@@ -26,7 +26,6 @@ use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::{Component, Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Stored-image ceiling. Not downscaled here: there is no image codec in the
 /// tree, and the honest answer to "too big" is a refusal the user can act on.
@@ -297,7 +296,7 @@ pub fn put(root: &Path, request: PutRequest) -> Result<ContextItem, RpcError> {
         Payload::Path(p) => p.file_name().map(|n| n.to_string_lossy().into_owned()),
         _ => None,
     });
-    let created_at = now_ms();
+    let created_at = crate::comments::monotonic_ms();
     let id = new_id(created_at);
 
     // What the content is, and the bytes to write (or the file to reference).
@@ -762,13 +761,6 @@ pub fn relative_to(root: &Path, path: &Path) -> Option<String> {
             .into_owned()
     };
     Some(rel)
-}
-
-fn now_ms() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis() as u64)
-        .unwrap_or(0)
 }
 
 fn new_id(ms: u64) -> String {
