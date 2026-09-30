@@ -45,6 +45,7 @@ apps/
   godot-viewer/ui/        Godot Viewer's frontend: the scene an agent's headless Godot run last produced
   blender-viewer/ui/      Blender Viewer's frontend: the .glb an agent's headless Blender export last produced
   play/ui/                Play's frontend: run the environment's debug build and capture a comment on it
+  canvas/ui/              Canvas's frontend: Excalidraw design canvases, one JSON file each in the checkout
 ```
 
 `apps/shared/` is deliberately outside the app-isolation rule ESLint enforces between the apps above
@@ -244,6 +245,29 @@ in the shell can put a listener inside it, so `design/arm` installs a probe
 through WebView2's `AddScriptToExecuteOnDocumentCreated`, which reaches child
 frames the DevTools Protocol's equivalent cannot. The probe answers over
 `postMessage` and is inert in every frame but the one this app armed.
+
+**Canvas** (`canvas/list`, `canvas/read`, `canvas/write`, `canvas/create`) — the design
+canvas of `docs/KAAVA-UX-REWORK.md` §5: draw on [Excalidraw](https://excalidraw.com), and each
+canvas is one file, `<environment>/canvas/<id>.json` (`<id>` may nest folders: `levels/ward-b`),
+so it is committed with the game and survives a clone. The file is an Excalidraw scene plus a
+`kaava` object (`schema`, `id`, `title`, `parent`, `updated`, `updated_by`) — the shape of
+`docs/cloud-services.md` §4, minus its bucket. **That section proposes the artifact store instead
+and is marked "decision needed"; this follows `KAAVA-UX-REWORK.md` §6 and the PRD's P7-2, which
+are decided.** The app id is `canvas`, not `design`: `design` is the feature-gated Design Mode
+app that points at a running page.
+
+Saving is debounced (700 ms after the last change) and atomic (a sibling temp file, then
+rename), and refuses if the file moved since it was read (`baseMtime`, the `files/write`
+contract). The pane polls the file's mtime every two seconds while visible, and reloads when a
+`git pull` or an agent changed it; with unsaved work it offers "Load the disk version" or "Keep
+mine" instead. `canvas/write` and `canvas/create` are in `WRITE_METHODS`, so read-only main is
+refused centrally and the pane opens in Excalidraw's view mode. A file that is not a valid scene
+is reported and never overwritten. Only the background colour and grid are kept from Excalidraw's
+view state, and deleted elements and unreferenced images are dropped, so a save is a small diff.
+
+Excalidraw is loaded lazily (`React.lazy`), and its fonts are served from
+`/vendor/excalidraw/fonts/` by the `excalidrawFonts` plugin in `vite.config.ts` rather than from
+a CDN. The 13 MB CJK fallback font is not shipped.
 
 **Tutorials** (`tutorial/catalog`, `tutorial/complete`, `tutorial/reset`) — short
 walkthroughs of what OpenKaava does today, with a tick against the ones you have

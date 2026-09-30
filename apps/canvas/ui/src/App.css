@@ -1,0 +1,150 @@
+/*
+ * Canvas. The chrome around Excalidraw uses the same tokens as every other app;
+ * the editor itself is themed through Excalidraw's own custom properties, set
+ * below from those tokens so a change of accent reaches it too.
+ */
+
+.cv {
+  color: var(--txt-primary);
+}
+
+.cv__header {
+  height: 34px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-layer-1);
+}
+
+.cv__spacer {
+  flex: 1;
+}
+
+.cv__select,
+.cv__input {
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--border-subtle-1);
+  border-radius: var(--radius-md);
+  background: var(--bg-layer-2);
+  color: var(--txt-primary);
+  font: inherit;
+  font-size: 12px;
+}
+
+.cv__select {
+  max-width: 220px;
+}
+
+.cv__input {
+  width: 260px;
+}
+
+.cv__select:focus-visible,
+.cv__input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.cv__path {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--txt-placeholder);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cv__status {
+  font-size: 11px;
+  color: var(--txt-tertiary);
+}
+
+.cv__status--dirty,
+.cv__status--saving {
+  color: var(--txt-secondary);
+}
+
+.cv__status--conflict,
+.cv__status--error {
+  color: var(--txt-warning);
+}
+
+.cv__create {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-layer-1);
+}
+
+.cv__error {
+  font-size: 12px;
+  color: var(--txt-danger);
+}
+
+.cv__notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-layer-1);
+  color: var(--txt-secondary);
+  font-size: 12px;
+}
+
+.cv__notice--warn {
+  background: var(--warning-subtle);
+  color: var(--txt-warning);
+}
+
+.cv__body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.cv__empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  color: var(--txt-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+
+.cv__empty p {
+  margin: 0;
+  max-width: 44em;
+}
+
+.cv__hint {
+  color: var(--txt-placeholder);
+  font-size: 12px;
+}
+
+/* Excalidraw fills the body, and takes its accent and panels from the tokens. */
+.cv__body .excalidraw {
+  height: 100%;
+  --color-primary: var(--accent);
+  --color-primary-darker: var(--accent-hover);
+  --island-bg-color: var(--bg-layer-2);
+  --focus-highlight-color: var(--accent);
+}
+
+.cv__body .excalidraw.theme--dark {
+  --color-surface-lowest: var(--bg-surface-1);
+  --color-surface-low: var(--bg-layer-1);
+  --color-surface-mid: var(--bg-layer-2);
+  --color-surface-high: var(--bg-layer-3);
+}
