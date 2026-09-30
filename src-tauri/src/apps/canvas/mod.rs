@@ -18,6 +18,17 @@
 //! against the `mtime` the caller last read, the same contract as `files/write`.
 //! The methods that write are in `apps::WRITE_METHODS`, so a read-only main
 //! checkout is refused centrally before any handler here runs.
+//!
+//! What an agent works through (named diagrams, views, comments, drawing,
+//! linked values) is in [`methods`]; reference images, checkpoints and views on
+//! disk in [`store`]; and the frontend work only a webview can do in
+//! [`webview`]. `docs/canvas-drawing-guide.md` is the agent-facing manual.
+
+mod comments;
+mod diagrams;
+mod methods;
+mod store;
+mod webview;
 
 use crate::apps::CallContext;
 use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
@@ -49,10 +60,58 @@ pub fn call_live(
             .cluster_environment(cluster)
             .is_some_and(|env| env.is_main())
     });
-    call(context, read_only, method, params)
+    call_with(
+        context,
+        read_only,
+        &webview::Live { app },
+        method,
+        params,
+    )
 }
 
+/// [`call_with`] with no webview: every method that needs one reports that no
+/// canvas is open. What the tests and any caller without an app handle use.
 pub fn call(
+    context: &CallContext,
+    read_only: bool,
+    method: &str,
+    params: Option<Value>,
+) -> Result<Value, RpcError> {
+    call_with(context, read_only, &webview::Absent, method, params)
+}
+
+pub fn call_with(
+    context: &CallContext,
+    read_only: bool,
+    web: &dyn webview::Webview,
+    method: &str,
+    params: Option<Value>,
+) -> Result<Value, RpcError> {
+    let p = params.as_ref();
+    match method {
+        "canvas/list-diagrams" => methods::list_diagrams(&root(context)?, p),
+        "canvas/describe-diagram" => methods::describe_diagram(&root(context)?, p),
+        "canvas/view-diagram" => methods::view_diagram(&root(context)?, web, p),
+        "canvas/save" => methods::save(&root(context)?, web, p),
+        "canvas/add-shapes" => methods::author(&root(context)?, web, p, "addShapes"),
+        "canvas/import-mermaid" => methods::author(&root(context)?, web, p, "mermaid"),
+        "canvas/coverage" => methods::coverage(&root(context)?, p),
+        "canvas/values" => methods::values(&root(context)?, p),
+        "canvas/set-values" => methods::set_values(&root(context)?, p),
+        "canvas/refs" => methods::refs(&root(context)?, p),
+        "canvas/checkpoints" => methods::checkpoints(&root(context)?, p),
+        "canvas/restore-checkpoint" => methods::restore_checkpoint(&root(context)?, p),
+        "canvas/list-comments" => methods::list_comments(&root(context)?, p),
+        "canvas/create-comment" => methods::create_comment(&root(context)?, p),
+        "canvas/resolve-comment" => methods::resolve_comment(&root(context)?, p, true),
+        "canvas/reopen-comment" => methods::resolve_comment(&root(context)?, p, false),
+        "canvas/view-comment" => methods::view_comment(&root(context)?, web, p),
+        _ => call_file(context, read_only, method, params),
+    }
+}
+
+/// The file-level methods the editor itself uses.
+fn call_file(
     context: &CallContext,
     read_only: bool,
     method: &str,
@@ -110,7 +169,14 @@ pub fn validate_id(id: &str) -> Result<(), RpcError> {
             "canvas id `{id}` nests more than {MAX_DEPTH} folders deep"
         )));
     }
-    for segment in segments {
+    for (n, segment) in segments.into_iter().enumerate() {
+        // `<canvas>/refs/` holds a canvas's reference images, so a nested
+        // canvas may not be called `refs`.
+        if n > 0 && segment == "refs" {
+            return Err(bad(format!(
+                "canvas id `{id}`: `refs` is reserved for reference images"
+            )));
+        }
         let ok = !segment.is_empty()
             && segment.len() <= 64
             && segment
@@ -280,7 +346,7 @@ pub fn files(root: &Path) -> Vec<(String, PathBuf)> {
                 continue;
             };
             if kind.is_dir() {
-                if depth + 1 < MAX_DEPTH {
+                if depth + 1 < MAX_DEPTH && !(depth > 0 && name == "refs") {
                     walk(&path, &format!("{prefix}{name}/"), depth + 1, out);
                 }
             } else if let Some(stem) = name.strip_suffix(".json") {
@@ -376,12 +442,14 @@ fn read(root: &Path, id: &str) -> Result<Value, RpcError> {
             json!({ "kind": "missing" }),
         ));
     }
-    let scene = load(&path)?;
+    let mut scene = load(&path)?;
+    let missing = store::inflate(root, id, &mut scene);
     Ok(json!({
         "id": id,
         "path": relative(root, &path),
         "scene": scene,
         "mtime": mtime_at(&path),
+        "missingRefs": missing,
     }))
 }
 
@@ -482,9 +550,10 @@ fn write(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
         ));
     }
 
+    let refs = store::externalize(root, &p.id, &mut scene)?;
     stamp(&mut scene, &p.id, actor);
     write_file(&path, &scene)?;
-    Ok(json!({ "id": p.id, "mtime": mtime_at(&path) }))
+    Ok(json!({ "id": p.id, "mtime": mtime_at(&path), "refs": refs }))
 }
 
 /// Set the bookkeeping fields the host owns: `schema`, `id` (always the file's
@@ -511,30 +580,7 @@ fn write_file(path: &Path, scene: &Value) -> Result<(), RpcError> {
     let mut text = serde_json::to_string_pretty(scene)
         .map_err(|e| RpcError::new(INTERNAL_ERROR, format!("could not serialize: {e}")))?;
     text.push('\n');
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| {
-            RpcError::new(
-                INTERNAL_ERROR,
-                format!("could not create {}: {e}", parent.display()),
-            )
-        })?;
-    }
-    let mut name = path.file_name().unwrap_or_default().to_os_string();
-    name.push(".kaava-tmp");
-    let temp = path.with_file_name(name);
-    std::fs::write(&temp, text).map_err(|e| {
-        RpcError::new(
-            INTERNAL_ERROR,
-            format!("could not write {}: {e}", temp.display()),
-        )
-    })?;
-    std::fs::rename(&temp, path).map_err(|e| {
-        let _ = std::fs::remove_file(&temp);
-        RpcError::new(
-            INTERNAL_ERROR,
-            format!("could not replace {}: {e}", path.display()),
-        )
-    })
+    store::atomic_write(path, text.as_bytes())
 }
 
 #[cfg(test)]
