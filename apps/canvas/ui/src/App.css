@@ -148,3 +148,71 @@
   --color-surface-mid: var(--bg-layer-2);
   --color-surface-high: var(--bg-layer-3);
 }
+
+.cv__editor {
+  height: 100%;
+}
+
+.cv__crumbs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--txt-secondary);
+}
+
+.cv__crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.cv__crumb-link {
+  padding: 2px 4px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--txt-accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cv__crumb-link:hover {
+  background: var(--bg-layer-1-hover);
+}
+
+.cv__crumb-link:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
+/* The link controls for the selected frame float over the canvas, top centre,
+   clear of Excalidraw's own toolbar. */
+.cv__frame {
+  position: absolute;
+  z-index: 5;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-layer-2);
+  color: var(--txt-secondary);
+  font-size: 12px;
+}
+
+.cv__frame-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cv__frame-label code {
+  font-family: var(--mono);
+  color: var(--txt-primary);
+}
