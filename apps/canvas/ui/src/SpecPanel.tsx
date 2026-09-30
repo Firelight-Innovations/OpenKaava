@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
-import { ClipboardCopy, Trash2 } from "lucide-react";
+import { ClipboardCopy, Send, Trash2 } from "lucide-react";
+import type { ContextRef } from "../../../shared/context";
+import { dragContext } from "./sendToAgent";
 import {
   STATUSES,
   cardToDraft,
@@ -17,6 +19,9 @@ interface Props {
   readOnly: boolean;
   onSave: (card: SpecCard) => void;
   onRemove: () => void;
+  /** Put the card's JSON where the agent reads it. */
+  putCard: (name: string, json: string) => Promise<ContextRef>;
+  onSendError: (message: string) => void;
 }
 
 /**
@@ -24,10 +29,18 @@ interface Props {
  * `docs/cloud-services.md` §4 plus the card's review state. Remount it (`key`)
  * per element, so a draft never leaks from one card to another.
  */
-export default function SpecPanel({ stored, readOnly, onSave, onRemove }: Props) {
+export default function SpecPanel({
+  stored,
+  readOnly,
+  onSave,
+  onRemove,
+  putCard,
+  onSendError,
+}: Props) {
   const [draft, setDraft] = useState<SpecDraft>(() => cardToDraft(stored));
   const [touched, setTouched] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
 
   const issues = useMemo(() => validateDraft(draft), [draft]);
   const exported = useMemo(() => exportDraft(draft), [draft]);
@@ -52,6 +65,21 @@ export default function SpecPanel({ stored, readOnly, onSave, onRemove }: Props)
     } catch {
       setCopied("The clipboard is not available. Select the JSON below and copy it.");
     }
+  };
+
+  const sendCard = () => {
+    setTouched(true);
+    if (!exported.ok) return;
+    putCard(draft.name.trim(), exported.json).then(
+      () => {
+        setSent(true);
+        setTimeout(() => setSent(false), 1800);
+      },
+      (err: unknown) =>
+        onSendError(
+          `Couldn't send the card to the agent: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+    );
   };
 
   const field = (
@@ -136,6 +164,18 @@ export default function SpecPanel({ stored, readOnly, onSave, onRemove }: Props)
           onClick={() => void copy()}
         >
           <ClipboardCopy size={14} aria-hidden /> Copy JSON
+        </button>
+        <button
+          type="button"
+          className="k-btn k-btn--secondary k-btn--sm"
+          disabled={!exported.ok}
+          title="Add this card, as JSON, to the agent's context. Drag to a terminal to send it."
+          onPointerDown={
+            exported.ok ? dragContext(() => putCard(draft.name.trim(), exported.json)) : undefined
+          }
+          onClick={sendCard}
+        >
+          <Send size={14} aria-hidden /> {sent ? "Sent" : "Send card"}
         </button>
         {!readOnly && stored && (
           <button type="button" className="k-btn k-btn--ghost k-btn--sm" onClick={onRemove}>
