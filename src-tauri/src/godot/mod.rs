@@ -12,10 +12,12 @@
 //! * [`runner`] - a game run as a child process, with a bounded classified log.
 //! * [`addon`]  - the opt-in capture script and its file channel.
 //! * [`scene`]  - the viewer's headless tree read, render and cache.
+//! * [`preview`] - a scene exported to glTF for the viewer's interactive 3D view.
 //! * [`rpc`]    - the methods `play` and `godot-viewer` answer.
 
 pub mod addon;
 pub mod detect;
+pub mod preview;
 pub mod rpc;
 pub mod runner;
 pub mod scene;

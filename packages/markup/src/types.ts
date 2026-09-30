@@ -62,11 +62,11 @@ export interface MarkupHost {
 }
 
 /**
- * The contract `@kaava/scene-view` implements for its handle. Mirrored here
- * rather than imported because that package is not merged yet.
- *
- * TODO(dedupe): once `packages/scene-view` lands on ux/rework, delete this
- * interface and `CameraPose` above and import them from `@kaava/scene-view`.
+ * The contract `@kaava/scene-view` implements for its handle, mirrored here
+ * rather than imported: importing it, even as a type, would make this package
+ * typecheck three.js and the viewer's CSS. It is not left to drift. The Godot
+ * viewer passes a real `SceneViewHandle` to `sceneHost`, so a change to either
+ * side fails `tsc` there. Keep `capture`'s options identical to scene-view's.
  */
 export interface SceneViewHandle {
   getCamera(): CameraPose;
@@ -74,7 +74,7 @@ export interface SceneViewHandle {
   setInteractive(interactive: boolean): void;
   pick(x: number, y: number): PickHit | null;
   project(p: Vec3): Projected;
-  capture(opts?: { width?: number; height?: number; pixelRatio?: number }): Promise<Blob>;
+  capture(opts?: { scale?: number }): Promise<Blob>;
   viewportSize(): ViewSize;
   onCameraChange(cb: (pose: CameraPose) => void): () => void;
 }

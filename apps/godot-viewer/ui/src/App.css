@@ -374,3 +374,57 @@
   font-size: 10px;
   color: var(--txt-secondary);
 }
+
+/* The 3D view: a bar above a stage that takes the rest of the pane. */
+.gv__3d {
+  flex: 1;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.gv__3d-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.gv__hint-inline {
+  font-size: 11px;
+  color: var(--txt-secondary);
+}
+
+.gv__3d-stage {
+  position: relative;
+  flex: 1;
+  min-height: 280px;
+}
+
+/* A markup that has been drawn and not yet sent. */
+.gv__markup-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-layer-1);
+}
+
+.gv__markup-thumb {
+  height: 40px;
+  max-width: 96px;
+  object-fit: cover;
+  border-radius: var(--radius-sm, 4px);
+  cursor: grab;
+}
+
+.gv__markup-summary {
+  font-size: 11px;
+  color: var(--txt-secondary);
+  margin-right: auto;
+}
