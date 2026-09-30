@@ -40,6 +40,34 @@ describe("Autosaver", () => {
     expect(saver.mtime).toBe(11);
   });
 
+  it("still writes when the same unsaved state is reported over and over", async () => {
+    const write = vi.fn().mockResolvedValue(11);
+    const { saver } = make(write);
+    saver.setBase(10, "s0");
+    for (let i = 0; i < 10; i++) {
+      saver.schedule(scene(1), "s1");
+      await vi.advanceTimersByTimeAsync(400);
+    }
+    expect(write).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not write again when the write's own re-render reports the same state", async () => {
+    let saver!: Autosaver;
+    const write = vi.fn(async () => {
+      // The save-state change re-renders the editor, which reports its scene again.
+      await Promise.resolve();
+      saver.schedule(scene(1), "s1");
+      return 11;
+    });
+    const made = make(write);
+    saver = made.saver;
+    saver.setBase(10, "s0");
+    saver.schedule(scene(1), "s1");
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(write).toHaveBeenCalledTimes(1);
+    expect(made.states[made.states.length - 1]).toBe("saved");
+  });
+
   it("does not write a change that matches what is already saved", async () => {
     const write = vi.fn().mockResolvedValue(11);
     const { saver, states } = make(write);

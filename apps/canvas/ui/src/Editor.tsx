@@ -5,7 +5,7 @@
  */
 import "./assetPath";
 import "@excalidraw/excalidraw/index.css";
-import { useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { Excalidraw } from "@excalidraw/excalidraw";
 import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { childOf, hitLinkedFrame, viewportToScene } from "./nesting";
@@ -26,6 +26,23 @@ export interface EditorProps {
   onOpenChild: (id: string) => void;
 }
 
+/**
+ * Module-level on purpose. Excalidraw re-renders, and fires `onChange`, whenever
+ * a prop is not referentially equal to last time; an inline object here made
+ * every re-render of the app (a save-state change, say) reach Excalidraw as a
+ * change, which the saver then treated as a fresh edit.
+ */
+const UI_OPTIONS = {
+  canvasActions: {
+    // The canvas is a file in the repository; opening or saving another
+    // one from the menu would bypass the app's own save path.
+    loadScene: false,
+    saveToActiveFile: false,
+    saveAsImage: true,
+    export: false,
+  },
+} as const;
+
 export default function Editor({
   initial,
   theme,
@@ -35,6 +52,38 @@ export default function Editor({
   onOpenChild,
 }: EditorProps) {
   const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
+  // Held in refs so the props handed to Excalidraw below stay the same objects
+  // across renders, whatever the parent passes.
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const onApiRef = useRef(onApi);
+  onApiRef.current = onApi;
+
+  // The scene is restored once, on mount; later changes to it are ignored.
+  const initialData = useMemo(
+    () =>
+      ({
+        elements: initial.elements,
+        appState: { ...initial.appState, theme },
+        files: initial.files,
+        scrollToContent: true,
+      }) as never,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [initial],
+  );
+  const handleApi = useCallback((api: ExcalidrawImperativeAPI) => {
+    apiRef.current = api;
+    onApiRef.current(api);
+  }, []);
+  const handleChange = useCallback(
+    (elements: readonly unknown[], appState: AppState, files: BinaryFiles) =>
+      onChangeRef.current(
+        elements as readonly SceneElement[],
+        appState as unknown as Record<string, unknown>,
+        files,
+      ),
+    [],
+  );
 
   // Captured before Excalidraw sees it: on a frame, its own double-click would
   // start a text edit. Only a frame that has a child link is taken over.
@@ -55,37 +104,12 @@ export default function Editor({
       <Excalidraw
         // The scene is plain JSON that Excalidraw restores on load; its element
         // type is stricter than the file's, and the file is what is validated.
-        initialData={
-          {
-            elements: initial.elements,
-            appState: { ...initial.appState, theme },
-            files: initial.files,
-            scrollToContent: true,
-          } as never
-        }
-        excalidrawAPI={(api) => {
-          apiRef.current = api;
-          onApi(api);
-        }}
+        initialData={initialData}
+        excalidrawAPI={handleApi}
         theme={theme}
         viewModeEnabled={readOnly}
-        UIOptions={{
-          canvasActions: {
-            // The canvas is a file in the repository; opening or saving another
-            // one from the menu would bypass the app's own save path.
-            loadScene: false,
-            saveToActiveFile: false,
-            saveAsImage: true,
-            export: false,
-          },
-        }}
-        onChange={(elements: readonly unknown[], appState: AppState, files: BinaryFiles) =>
-          onChange(
-            elements as readonly SceneElement[],
-            appState as unknown as Record<string, unknown>,
-            files,
-          )
-        }
+        UIOptions={UI_OPTIONS}
+        onChange={handleChange}
       />
     </div>
   );
