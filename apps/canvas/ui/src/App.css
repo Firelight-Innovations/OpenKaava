@@ -104,9 +104,17 @@
   color: var(--txt-warning);
 }
 
+/* The drawing and the docked panels side by side; nothing floats over the
+   drawing but Excalidraw's own toolbars and the area picker while it is on. */
 .cv__body {
   flex: 1;
   min-height: 0;
+  display: flex;
+}
+
+.cv__stage {
+  flex: 1;
+  min-width: 0;
   position: relative;
 }
 
@@ -133,20 +141,9 @@
   font-size: 12px;
 }
 
-/* Excalidraw fills the body, and takes its accent and panels from the tokens. */
-.cv__body .excalidraw {
+/* Excalidraw fills the stage; `native.css` gives it the tokens. */
+.cv__stage .excalidraw {
   height: 100%;
-  --color-primary: var(--accent);
-  --color-primary-darker: var(--accent-hover);
-  --island-bg-color: var(--bg-layer-2);
-  --focus-highlight-color: var(--accent);
-}
-
-.cv__body .excalidraw.theme--dark {
-  --color-surface-lowest: var(--bg-surface-1);
-  --color-surface-low: var(--bg-layer-1);
-  --color-surface-mid: var(--bg-layer-2);
-  --color-surface-high: var(--bg-layer-3);
 }
 
 .cv__editor {
@@ -187,29 +184,31 @@
   outline: 2px solid var(--accent);
 }
 
-/* The link controls for the selected frame float over the canvas, top centre,
-   clear of Excalidraw's own toolbar. */
+/* The selected frame's link controls, first in the Inspector. */
 .cv__frame {
-  position: absolute;
-  z-index: 5;
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  background: var(--bg-layer-2);
+  flex-direction: column;
+  gap: 6px;
   color: var(--txt-secondary);
-  font-size: 12px;
 }
 
 .cv__frame-form {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cv__frame .cv__input,
+.cv__side .cv__input,
+.cv__side .cv__select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cv__side textarea.cv__input {
+  height: auto;
+  padding: 6px 8px;
+  resize: vertical;
 }
 
 .cv__frame-label code {
@@ -248,24 +247,222 @@
   outline: 2px solid var(--accent);
 }
 
-/* The spec inspector sits at the right edge, under the editor toolbar. */
 .cv__spec {
-  position: absolute;
-  z-index: 5;
-  top: 60px;
-  right: 12px;
-  bottom: 12px;
-  width: 280px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  color: var(--txt-secondary);
+}
+
+/* --- the docked panels ------------------------------------------------------ */
+
+.cv__side {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--border-subtle);
+  background: var(--bg-layer-1);
+  font-size: 12px;
+}
+
+.cv__side.is-collapsed {
+  width: 34px;
+}
+
+.cv__side-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.cv__side.is-collapsed .cv__side-bar {
+  flex-direction: column;
+  border-bottom: 0;
+}
+
+.cv__side-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--txt-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cv__side-tab:hover {
+  background: var(--bg-layer-1-hover);
+}
+
+.cv__side-tab.is-on {
+  background: var(--bg-layer-2);
+  color: var(--txt-primary);
+}
+
+.cv__side-tab:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
+.cv__count {
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent-subtle);
+  color: var(--txt-accent);
+  font-size: 10px;
+  text-align: center;
+}
+
+.cv__side-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   padding: 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
+}
+
+.cv__side-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cv__side-section h3 {
+  margin: 0;
+  color: var(--txt-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cv__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.cv__meta {
+  color: var(--txt-tertiary);
+  font-size: 11px;
+}
+
+.cv__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cv__list-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--txt-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cv__list-item:hover {
+  background: var(--bg-layer-1-hover);
+}
+
+.cv__list-item:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
+.cv__comments {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cv__comment-new {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cv__comment-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cv__comment {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-layer-2);
+}
+
+.cv__comment--resolved {
+  opacity: 0.75;
+}
+
+.cv__comment-text {
+  margin: 0;
+  color: var(--txt-primary);
+  white-space: pre-wrap;
+}
+
+.cv__comment-resolution {
+  margin: 0;
+  color: var(--txt-success);
+}
+
+/* The area picker: on only while a person drags out a box to comment on. */
+.cv__pick {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  cursor: crosshair;
+  background: var(--accent-wash-faint);
+}
+
+.cv__pick-hint {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
   background: var(--bg-layer-2);
   color: var(--txt-secondary);
   font-size: 12px;
+  pointer-events: none;
+}
+
+.cv__pick-box {
+  position: absolute;
+  border: 2px dashed var(--accent);
+  background: var(--accent-wash);
+  pointer-events: none;
 }
 
 .cv__spec-head {

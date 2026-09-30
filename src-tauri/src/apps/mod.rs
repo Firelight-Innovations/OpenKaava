@@ -633,6 +633,14 @@ pub const WRITE_METHODS: &[&str] = &[
     "play/addon-remove",
     "canvas/create",
     "canvas/write",
+    "canvas/save",
+    "canvas/add-shapes",
+    "canvas/import-mermaid",
+    "canvas/set-values",
+    "canvas/restore-checkpoint",
+    "canvas/create-comment",
+    "canvas/resolve-comment",
+    "canvas/reopen-comment",
 ];
 
 /// Whether `method` is a write to the cluster's checkout.
@@ -744,7 +752,8 @@ mod tests {
             include_str!("trash.rs"),
             include_str!("schematify.rs"),
             include_str!("home.rs"),
-            include_str!("canvas.rs"),
+            include_str!("canvas/mod.rs"),
+            include_str!("canvas/methods.rs"),
             include_str!("../comments.rs"),
         ];
         let verbs = [

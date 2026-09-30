@@ -240,10 +240,20 @@ async function main() {
 
   const [tool, rawParams] = args;
 
+  // `@path` reads the parameters from a file, and `-` from stdin. A long
+  // add-shapes spec or a value with quotes and braces does not survive
+  // Windows command-line quoting, and `pnpm probe` goes through cmd.exe.
   let params = {};
   if (rawParams) {
+    let text = rawParams;
     try {
-      params = JSON.parse(rawParams);
+      if (rawParams === "-") text = readFileSync(0, "utf8");
+      else if (rawParams.startsWith("@")) text = readFileSync(rawParams.slice(1), "utf8");
+    } catch (e) {
+      die(`could not read the parameters from ${rawParams}: ${e.message}`);
+    }
+    try {
+      params = JSON.parse(text);
     } catch (e) {
       die(`the parameters are not valid JSON: ${e.message}`);
     }

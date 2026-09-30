@@ -1,7 +1,7 @@
 /**
  * The wire shapes `canvas/*` answers with, restated for the same reason the
  * other apps restate theirs: a frontend calls the bridge, not the Rust module
- * (`src-tauri/src/apps/canvas.rs`).
+ * (`src-tauri/src/apps/canvas/`).
  */
 import { invoke, KaavaRpcError } from "@openkaava/bridge";
 import type { SceneFile } from "./scene";
@@ -41,6 +41,64 @@ export const createCanvas = (id: string, title: string, parent?: string) =>
   invoke<CanvasDoc>("canvas/create", { id, title, parent });
 export const writeCanvas = (id: string, scene: SceneFile, baseMtime: number | null) =>
   invoke<{ id: string; mtime: number | null }>("canvas/write", { id, scene, baseMtime });
+
+// --- review comments and reference images -------------------------------------
+// Every one of these names its actor; the sidebar is always a person.
+
+export interface CommentRegion {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface CanvasComment {
+  id: string;
+  canvas: string;
+  /** The diagram id, or the frame element id for an unnamed frame. */
+  frameId: string;
+  elementIds: string[];
+  region: CommentRegion | null;
+  text: string;
+  author: string;
+  createdAt: string;
+  status: "open" | "resolved";
+  resolution: { note: string; by: string; at: string } | null;
+  path: string;
+}
+
+export interface CommentList {
+  comments: CanvasComment[];
+  open: number;
+  total: number;
+  unreadable: string[];
+}
+
+export interface RefRow {
+  name: string;
+  ref: string;
+  path: string;
+  mimeType: string;
+  /** The scene's file id for it, when it is placed. */
+  fileId: string | null;
+}
+
+const HUMAN = { actor: "human" } as const;
+
+export const listComments = (id: string) =>
+  invoke<CommentList>("canvas/list-comments", { id, status: "all", ...HUMAN });
+export const createComment = (
+  id: string,
+  diagram: string,
+  target: { elementIds: string[] } | { region: CommentRegion },
+  text: string,
+) => invoke<CanvasComment>("canvas/create-comment", { id, diagram, ...target, text, ...HUMAN });
+export const resolveComment = (id: string, commentId: string, note: string) =>
+  invoke<CanvasComment>("canvas/resolve-comment", { id, commentId, note, ...HUMAN });
+export const reopenComment = (id: string, commentId: string) =>
+  invoke<CanvasComment>("canvas/reopen-comment", { id, commentId, ...HUMAN });
+export const listRefs = (id: string) =>
+  invoke<{ refs: RefRow[]; dir: string }>("canvas/refs", { id, ...HUMAN });
 
 // --- reading the errors -------------------------------------------------------
 
