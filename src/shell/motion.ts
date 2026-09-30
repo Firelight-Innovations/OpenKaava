@@ -60,59 +60,6 @@ export const popover = {
   exit: { opacity: 0, y: -2, scale: 0.99, transition: instantOut },
 };
 
-/* --- search, which is the one thing in the shell that opens in two beats ----
- *
- * The field flies across the switcher bar, and *then* the overlay comes down out
- * from under it; closing runs the two backwards. That is the only reason a
- * `delay` appears anywhere in this file, and both delays are named here rather
- * than at the call sites so the two halves of the handoff cannot drift apart.
- * The full account is in `docs/design-notes/shell-core.md`.
- */
-
-/** How long the overlay waits before it starts coming down. */
-const SEARCH_FOLLOW_DELAY = 0.14;
-
-/** The overlay arriving: a clip that unrolls downward, not a slide. Load-bearing
- *  rather than aesthetic — the overlay holds a Monaco editor on
- *  `automaticLayout`, and animating height or `bottom` would re-layout it every
- *  frame; a clip is paint-only. `settle` because this is the larger travel of
- *  the two. See `docs/design-notes/shell-core.md`. */
-const searchOverlayIn: Transition = { ...settle, delay: SEARCH_FOLLOW_DELAY };
-
-/** The overlay leaving. A tween, faster than it arrived — the rule `instantOut`
- *  states. Its duration is what the bar waits out before collapsing, so it is a
- *  constant rather than written inline. */
-const SEARCH_OUT_MS = 110;
-
-const searchOverlayOut: Transition = {
-  duration: SEARCH_OUT_MS / 1000,
-  ease: [0.4, 0, 1, 1],
-};
-
-/** How long the switcher bar holds its expanded state after search is dismissed.
- *  A timer's milliseconds, not a framer transition: it delays the state change
- *  itself, not an animation. `.switcher__tabs--collapsed` in switcher.css is
- *  explicit that the chips return drawn rather than animating, so the whole bar
- *  has to wait — see `docs/design-notes/shell-core.md`. */
-export const searchBarHoldMs = SEARCH_OUT_MS;
-
-/** The overlay's two states. Percentages on all four sides, in both keyframes,
- *  so framer interpolates the string rather than giving up and snapping. */
-export const searchOverlay = {
-  initial: { clipPath: "inset(0% 0% 100% 0%)" },
-  animate: { clipPath: "inset(0% 0% 0% 0%)", transition: searchOverlayIn },
-  exit: { clipPath: "inset(0% 0% 100% 0%)", transition: searchOverlayOut },
-};
-
-/** The overlay's contents, offset upward at rest and settling as the clip above
- *  uncovers them. Without this the reveal reads as a wipe rather than as the
- *  panel coming down from behind the bar. */
-export const searchOverlayBody = {
-  initial: { y: -10 },
-  animate: { y: 0, transition: searchOverlayIn },
-  exit: { y: -6, transition: searchOverlayOut },
-};
-
 /* --- settings, which is a place rather than a mode ------------------------
  *
  * Settings is attached to nothing, so it gets a sheet rather than search's

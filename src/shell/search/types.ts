@@ -46,22 +46,6 @@ export type ResultRow =
       ordinal: number;
     };
 
-/** A node in the locator tree — the read-only explorer in the lower left.
- *  Mirrors the `Entry` shape `files/list` returns, with Files' `"other"` case
- *  folded into `"file"`; see the design note. */
-export interface LocatorNode {
-  name: string;
-  path: string;
-  kind: "dir" | "file";
-  depth: number;
-  /** Directories only. A leaf is never expanded. */
-  expanded: boolean;
-  /** True for the node that is the hovered hit itself, as opposed to an
-   *  ancestor directory revealed to get to it. Drawn differently: the pane
-   *  answers "where is this", so the "this" must stand out from the path. */
-  isTarget: boolean;
-}
-
 /** What the overlay is currently pointing at, and why. */
 export interface LocatorFocus {
   /** Absolute path of the file to reveal and preview. */
