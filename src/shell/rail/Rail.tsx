@@ -51,6 +51,7 @@ export default function Rail({ pages, activePageId, dots, onSelect }: RailProps)
             key={page.id}
             type="button"
             className="k-rail__btn"
+            data-page-id={page.id}
             data-active={active ? "" : undefined}
             disabled={page.disabled}
             aria-pressed={active}
