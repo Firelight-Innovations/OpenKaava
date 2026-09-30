@@ -7,7 +7,14 @@
  * "appears in `writes`" and "reaches the pty" are the same statement here.
  */
 import { describe, expect, it } from "vitest";
-import { firstImage, handleContextMenu, handleKey, handlePaste, isPasteKey } from "./clipboard";
+import {
+  firstImage,
+  handleContextMenu,
+  handleKey,
+  handlePaste,
+  isClusterCycleKey,
+  isPasteKey,
+} from "./clipboard";
 
 function fakeTerminal(selection = "", textareaValue = "") {
   const writes: string[] = [];
@@ -185,5 +192,18 @@ describe("Ctrl+V with an image", () => {
     expect(firstImage(files)?.name).toBe("b");
     expect(firstImage([])).toBeUndefined();
     expect(firstImage(undefined)).toBeUndefined();
+  });
+});
+
+describe("the shell's cluster-cycle chords", () => {
+  it("are declined by xterm so they bubble up to the shell", () => {
+    expect(handleKey(key("Tab", { ctrl: true }))).toBe(false);
+    expect(handleKey(key("Tab", { ctrl: true, shift: true }))).toBe(false);
+  });
+
+  it("leave a plain Tab, and Alt or Meta chords, to the terminal", () => {
+    expect(handleKey(key("Tab"))).toBe(true);
+    expect(handleKey(key("Tab", { shift: true }))).toBe(true);
+    expect(isClusterCycleKey(key("Tab", { ctrl: true, alt: true }))).toBe(false);
   });
 });

@@ -5,7 +5,7 @@
  * thing is called and what kind of item it becomes is `shared/fileContext`.
  */
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { Send } from "lucide-react";
+import { SendButton } from "../../../shared/SendFooter";
 import { dragContext } from "../../../shared/context";
 import { putFile, putSelection, relativePath } from "../../../shared/fileContext";
 import { activeEditor, subscribeActiveEditor } from "./viewer/activeEditor";
@@ -79,10 +79,10 @@ export default function SendToAgent({
   };
 
   return (
-    <div className="viewerapp__send">
-      <button
-        type="button"
-        className="k-btn k-btn--secondary k-btn--sm"
+    <>
+      <SendButton
+        label="Send file"
+        sent={sent === "file"}
         disabled={missing}
         title="Add this file to the agent's context. Drag to a terminal to send it."
         onPointerDown={dirty || missing ? undefined : dragContext(() => putFile(path, rel))}
@@ -92,14 +92,11 @@ export default function SendToAgent({
             onError(`Couldn't send ${rel} to the agent: it has unsaved changes. Save it first.`);
           else send("file", () => putFile(path, rel));
         }}
-      >
-        <Send size={13} strokeWidth={1.5} aria-hidden="true" />
-        {sent === "file" ? "Sent" : "Send file"}
-      </button>
+      />
       {picked && (
-        <button
-          type="button"
-          className="k-btn k-btn--secondary k-btn--sm"
+        <SendButton
+          label="Send selection"
+          sent={sent === "selection"}
           title="Add the selected lines, with their file and line range, to the agent's context. Drag to a terminal to send it."
           onPointerDown={dragContext(() =>
             putSelection(rel, picked.startLine, picked.endLine, picked.text),
@@ -109,11 +106,8 @@ export default function SendToAgent({
               putSelection(rel, picked.startLine, picked.endLine, picked.text),
             )
           }
-        >
-          <Send size={13} strokeWidth={1.5} aria-hidden="true" />
-          {sent === "selection" ? "Sent" : "Send selection"}
-        </button>
+        />
       )}
-    </div>
+    </>
   );
 }

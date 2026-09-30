@@ -55,12 +55,20 @@ export function isPasteKey(ev: KeyGesture): boolean {
   return ev.key === "v" || ev.key === "V";
 }
 
+/** Ctrl+Tab and Ctrl+Shift+Tab — the shell's next/previous-cluster chords. xterm
+ *  would otherwise type a Tab into the pty and cancel the event, so the shell's
+ *  document listener would never see it. */
+export function isClusterCycleKey(ev: KeyGesture): boolean {
+  return ev.key === "Tab" && ev.ctrlKey && !ev.altKey && !ev.metaKey;
+}
+
 /** The handler for xterm's `attachCustomKeyEventHandler`. `false` means "not yours"
  *  — xterm returns without emitting anything **and without cancelling the event**,
  *  so the webview runs its own paste and `handlePaste` below turns that into one
- *  write to the pty. Reading the clipboard here was rejected; see the design note. */
+ *  write to the pty. Reading the clipboard here was rejected; see the design note.
+ *  The cluster-cycle chords are declined the same way, so they bubble to the shell. */
 export function handleKey(ev: KeyGesture): boolean {
-  return !isPasteKey(ev);
+  return !isPasteKey(ev) && !isClusterCycleKey(ev);
 }
 
 /** The first image among a clipboard's files, or `undefined`. */

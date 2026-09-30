@@ -14,7 +14,7 @@ export const search: Body = {
   blocks: [
     {
       kind: "step",
-      body: "Press the chord from anywhere, or click the field on the right of the switcher bar.",
+      body: "Press the chord from anywhere, or click the search box in the title bar.",
       chord: "Ctrl+K",
     },
     {

@@ -241,6 +241,7 @@ impl ServerHandler for Bridge {
             format!("kaava-{}", self.id),
             env!("CARGO_PKG_VERSION").to_string(),
         );
+        info.instructions = super::servers::instructions(&self.id).map(str::to_string);
 
         info
     }

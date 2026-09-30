@@ -78,6 +78,18 @@ pub fn call(
     dispatch(&pick(app, window)?, method, params.to_string())
 }
 
+/// Every window a call could act on, splash excluded, sorted by label so two
+/// calls in a row walk them in the same order.
+pub fn window_labels(app: &AppHandle) -> Vec<String> {
+    let mut labels: Vec<String> = app
+        .webview_windows()
+        .into_keys()
+        .filter(|label| label != SPLASH)
+        .collect();
+    labels.sort();
+    labels
+}
+
 /// Which window a call acts on.
 ///
 /// Named, else focused, else whichever sorts first — and never the splash. The

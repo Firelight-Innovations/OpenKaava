@@ -9,7 +9,6 @@ import {
   MessageSquarePlus,
   Package,
   RefreshCw,
-  Send,
   Square,
 } from "lucide-react";
 import { CommentPanel } from "../../../shared/CommentPanel";
@@ -21,6 +20,7 @@ import {
 } from "../../../shared/comments";
 import { formatRenderAge } from "../../../shared/age";
 import { SegmentedControl } from "../../../shared/SegmentedControl";
+import { SendButton, SendFooter, useSendAction } from "../../../shared/SendFooter";
 import {
   cancelExport,
   detectBlender,
@@ -108,7 +108,6 @@ export default function App() {
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [sent, setSent] = useState<string | null>(null);
   const autoStartedFor = useRef<number | null>(null);
   const lastSeenMtime = useRef<number | null>(null);
   const [root, setRoot] = useState<HTMLDivElement | null>(null);
@@ -265,16 +264,7 @@ export default function App() {
     }
   };
 
-  const send = async (what: string, put: () => Promise<unknown>) => {
-    setError(null);
-    try {
-      await put();
-      setSent(what);
-      setTimeout(() => setSent((s) => (s === what ? null : s)), 1800);
-    } catch (err) {
-      setError(`Couldn't send ${what} to the agent: ${message(err)}`);
-    }
-  };
+  const { sent, send } = useSendAction(setError, message);
 
   // A render is already in memory as a data URL; the bytes cross the bridge once.
   const renderPut = (id: string, label: string) => () => {
@@ -470,7 +460,7 @@ export default function App() {
                       <button
                         type="button"
                         className="bv__send"
-                        onClick={() => void send(r.label, renderPut(r.id, r.label))}
+                        onClick={() => void send(r.label, r.label, renderPut(r.id, r.label))}
                       >
                         {sent === r.label ? "Sent" : "Send to agent"}
                       </button>
@@ -614,102 +604,100 @@ export default function App() {
         )}
       </div>
 
-      <footer className="bv__footer">
-        {job.running ? (
-          <button
-            type="button"
-            className="bv__footer-btn"
-            onClick={() => void cancelExport().then(refresh)}
-          >
-            <Square size={13} strokeWidth={1.5} aria-hidden="true" />
-            Cancel export
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="bv__footer-btn"
-            disabled={!blend || !state.blender.found}
-            onClick={runExport}
-            title={
-              state.blender.found
-                ? "Run Blender headless on this file"
-                : "Blender was not found — set it up first"
-            }
-          >
-            <RefreshCw size={13} strokeWidth={1.5} aria-hidden="true" />
-            {hasExport ? "Re-export" : "Export"}
-          </button>
-        )}
-        <label className="bv__auto" title="Re-export when the .blend is saved">
-          <input type="checkbox" checked={auto} onChange={(e) => toggleAuto(e.target.checked)} />
-          Auto
-        </label>
-        <FooterAction
-          label={`Comments${openCount > 0 ? ` · ${openCount} open` : ""}`}
-          icon={<MessageSquarePlus size={13} strokeWidth={1.5} aria-hidden="true" />}
-          compact={compact}
-          onClick={() => setCommentsOpen((v) => !v)}
-        />
-        <span className="bv__footer-spacer" />
+      <SendFooter
+        trailing={
+          <>
+            {job.running ? (
+              <button
+                type="button"
+                className="bv__footer-btn"
+                onClick={() => void cancelExport().then(refresh)}
+              >
+                <Square size={13} strokeWidth={1.5} aria-hidden="true" />
+                Cancel export
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="bv__footer-btn"
+                disabled={!blend || !state.blender.found}
+                onClick={runExport}
+                title={
+                  state.blender.found
+                    ? "Run Blender headless on this file"
+                    : "Blender was not found — set it up first"
+                }
+              >
+                <RefreshCw size={13} strokeWidth={1.5} aria-hidden="true" />
+                {hasExport ? "Re-export" : "Export"}
+              </button>
+            )}
+            <label className="bv__auto" title="Re-export when the .blend is saved">
+              <input
+                type="checkbox"
+                checked={auto}
+                onChange={(e) => toggleAuto(e.target.checked)}
+              />
+              Auto
+            </label>
+            <FooterAction
+              label={`Comments${openCount > 0 ? ` · ${openCount} open` : ""}`}
+              icon={<MessageSquarePlus size={13} strokeWidth={1.5} aria-hidden="true" />}
+              compact={compact}
+              onClick={() => setCommentsOpen((v) => !v)}
+            />
+            {state.model && (
+              <FooterAction
+                label={copied ? "Copied" : "Copy .glb path"}
+                icon={<Copy size={13} strokeWidth={1.5} aria-hidden="true" />}
+                compact={compact}
+                onClick={copyGlb}
+              />
+            )}
+            <button
+              type="button"
+              className="bv__footer-btn"
+              disabled={!blend || !state.blender.found}
+              onClick={() => {
+                if (!blend) return;
+                setError(null);
+                openInBlender(blend).catch((err: unknown) => setError(message(err)));
+              }}
+              title={
+                state.blender.found
+                  ? `Open ${state.rel ?? "the file"} in Blender ${state.blender.version ?? ""}`
+                  : "Blender was not found — set it up first"
+              }
+            >
+              <ExternalLink size={13} strokeWidth={1.5} aria-hidden="true" />
+              Open in Blender
+            </button>
+          </>
+        }
+      >
         {state.parts.length > 0 && (
-          <FooterAction
-            label={sent === "parts" ? "Sent" : "Send parts"}
-            icon={
-              compact ? (
-                <List size={13} strokeWidth={1.5} aria-hidden="true" />
-              ) : (
-                <Send size={13} strokeWidth={1.5} aria-hidden="true" />
-              )
-            }
+          <SendButton
+            label="Send parts"
+            sent={sent === "parts"}
+            icon={<List size={13} strokeWidth={1.5} aria-hidden="true" />}
             compact={compact}
             title="Add the parts list to the agent's context. Drag to a terminal to send it."
             onPointerDown={dragContext(() => putParts(state))}
-            onClick={() => void send("parts", () => putParts(state))}
+            onClick={() => void send("parts", "parts", () => putParts(state))}
           />
         )}
         {state.model && (
-          <FooterAction
-            label={sent === ".glb" ? "Sent" : "Send .glb"}
-            icon={
-              compact ? (
-                <Box size={13} strokeWidth={1.5} aria-hidden="true" />
-              ) : (
-                <Send size={13} strokeWidth={1.5} aria-hidden="true" />
-              )
-            }
+          <SendButton
+            label="Send .glb"
+            sent={sent === ".glb"}
+            icon={<Box size={13} strokeWidth={1.5} aria-hidden="true" />}
             compact={compact}
             title="Add the .glb to the agent's context. Drag to a terminal to send it."
             onPointerDown={dragContext(() => putGlb(state))}
-            onClick={() => void send(".glb", () => putGlb(state))}
+            onClick={() => void send(".glb", ".glb", () => putGlb(state))}
           />
         )}
-        {state.model && (
-          <FooterAction
-            label={copied ? "Copied" : "Copy .glb path"}
-            icon={<Copy size={13} strokeWidth={1.5} aria-hidden="true" />}
-            compact={compact}
-            onClick={copyGlb}
-          />
-        )}
-        <button
-          type="button"
-          className="bv__footer-btn"
-          disabled={!blend || !state.blender.found}
-          onClick={() => {
-            if (!blend) return;
-            setError(null);
-            openInBlender(blend).catch((err: unknown) => setError(message(err)));
-          }}
-          title={
-            state.blender.found
-              ? `Open ${state.rel ?? "the file"} in Blender ${state.blender.version ?? ""}`
-              : "Blender was not found — set it up first"
-          }
-        >
-          <ExternalLink size={13} strokeWidth={1.5} aria-hidden="true" />
-          Open in Blender
-        </button>
-      </footer>
+      </SendFooter>
     </div>
   );
 }

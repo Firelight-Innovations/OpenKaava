@@ -1,15 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { reportPainted } from "@openkaava/bridge";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import {
-  AlertTriangle,
-  ChevronRight,
-  ExternalLink,
-  FilePlus2,
-  Link2Off,
-  Lock,
-  Send,
-} from "lucide-react";
+import { AlertTriangle, ChevronRight, ExternalLink, FilePlus2, Link2Off, Lock } from "lucide-react";
+import { SendButton, SendFooter } from "../../../shared/SendFooter";
 import {
   dragContext,
   exportSelectionPng,
@@ -20,6 +13,17 @@ import {
 } from "./sendToAgent";
 import AssetList from "./AssetList";
 import SpecPanel from "./SpecPanel";
+import Sidebar, { type SideTab } from "./Sidebar";
+import CommentsPanel, { type CommentTarget } from "./CommentsPanel";
+import { setEditorHooks } from "./agentBridge";
+import {
+  framesIn,
+  frameForKey,
+  regionTarget,
+  selectionTarget,
+  type Box,
+  type FrameRow,
+} from "./review";
 import { selectedElement, specOf, withSpec, type SpecCard } from "./spec";
 import {
   createCanvas,
@@ -27,6 +31,7 @@ import {
   isCorrupt,
   isExists,
   listCanvases,
+  listRefs,
   messageOf,
   readCanvas,
   staleWrite,
@@ -34,9 +39,11 @@ import {
   writeCanvas,
   type CanvasDoc,
   type CanvasState,
+  type CanvasComment,
   type CanvasSummary,
+  type RefRow,
 } from "./rpc";
-import { ancestry, childId, childOf, selectedFrame, withChild } from "./nesting";
+import { ancestry, childId, childOf, selectedFrame, viewportToScene, withChild } from "./nesting";
 import { Autosaver, type SaveState } from "./saver";
 import { signature, slugify, toSaved, uniqueId, type SceneElement, type SceneFile } from "./scene";
 import "./App.css";
@@ -49,6 +56,30 @@ type View = "canvas" | "assets";
 const SAVE_DELAY_MS = 700;
 const POLL_MS = 2000;
 const LAST_KEY = "canvas.last";
+const SIDE_KEY = "canvas.side";
+
+function readSide(): { tab: SideTab; collapsed: boolean } {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SIDE_KEY) ?? "null") as {
+      tab?: unknown;
+      collapsed?: unknown;
+    } | null;
+    const tab = raw?.tab;
+    return {
+      tab: tab === "diagrams" || tab === "comments" ? tab : "inspector",
+      collapsed: raw?.collapsed === true,
+    };
+  } catch {
+    return { tab: "inspector", collapsed: false };
+  }
+}
+function writeSide(side: { tab: SideTab; collapsed: boolean }): void {
+  try {
+    localStorage.setItem(SIDE_KEY, JSON.stringify(side));
+  } catch {
+    // The panel layout is a convenience.
+  }
+}
 
 /** Best-effort: private windows and blocked storage throw. */
 function readLast(): string | null {
@@ -106,6 +137,7 @@ export default function App() {
   const [createError, setCreateError] = useState<string | null>(null);
 
   const [notice, setNotice] = useState<string | null>(null);
+  const [sendSlot, setSendSlot] = useState<HTMLElement | null>(null);
   const [frame, setFrame] = useState<{ id: string; name: string; child: string | null } | null>(
     null,
   );
@@ -119,6 +151,23 @@ export default function App() {
   const [pick, setPick] = useState<{ id: string; spec: Record<string, unknown> | null } | null>(
     null,
   );
+  const [side, setSide] = useState(readSide);
+  const [frames, setFrames] = useState<FrameRow[]>([]);
+  const [refs, setRefs] = useState<RefRow[]>([]);
+  const [openComments, setOpenComments] = useState(0);
+  const [commentsKey, setCommentsKey] = useState(0);
+  const [commentTarget, setCommentTarget] = useState<CommentTarget | null>(null);
+  const [targetError, setTargetError] = useState<string | null>(null);
+  /** The area picker: null when off, else the drag so far in stage pixels. */
+  const [picking, setPicking] = useState<
+    { from: [number, number]; to: [number, number] } | "idle" | null
+  >(null);
+  /** The editor's last report, for the agent hooks and the comment targets. */
+  const liveRef = useRef<{
+    elements: readonly SceneElement[];
+    selected: Record<string, unknown> | undefined;
+  }>({ elements: [], selected: undefined });
+  const stageRef = useRef<HTMLDivElement | null>(null);
   const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
   const saverRef = useRef<Autosaver | null>(null);
   const docRef = useRef<CanvasDoc | null>(null);
@@ -179,6 +228,10 @@ export default function App() {
       saver.setBase(next.mtime, signature(toSaved(s.elements, s.appState, s.files, s.kaava)));
       saverRef.current = saver;
       setDoc(next);
+      setFrames(framesIn(s.elements));
+      setCommentTarget(null);
+      setTargetError(null);
+      setPicking(null);
       setFrame(null);
       setPick(null);
       setSelectedN(0);
@@ -240,6 +293,12 @@ export default function App() {
       appState: Record<string, unknown>,
       files: Record<string, unknown>,
     ) => {
+      liveRef.current = {
+        elements: elements as readonly SceneElement[],
+        selected: appState.selectedElementIds as Record<string, unknown> | undefined,
+      };
+      const rows = framesIn(elements as readonly SceneElement[]);
+      setFrames((prev) => (JSON.stringify(prev) === JSON.stringify(rows) ? prev : rows));
       const picked = selectedFrame(
         elements as readonly SceneElement[],
         appState.selectedElementIds as Record<string, unknown> | undefined,
@@ -443,6 +502,154 @@ export default function App() {
     }
   }, [current]);
 
+  const setSideTab = useCallback((tab: SideTab) => {
+    setSide((s) => {
+      const next = { ...s, tab };
+      writeSide(next);
+      return next;
+    });
+  }, []);
+  const setSideCollapsed = useCallback((collapsed: boolean) => {
+    setSide((s) => {
+      const next = { ...s, collapsed };
+      writeSide(next);
+      return next;
+    });
+  }, []);
+
+  // What the panels list besides the drawing: stored reference images, and
+  // how many comments are open (for the tab's badge).
+  useEffect(() => {
+    if (!doc) return;
+    let stale = false;
+    listRefs(doc.id).then(
+      (r) => !stale && setRefs(r.refs),
+      () => !stale && setRefs([]),
+    );
+    setCommentsKey((k) => k + 1);
+    return () => {
+      stale = true;
+    };
+  }, [doc]);
+
+  /** Scroll the editor to some elements and select them. */
+  const reveal = useCallback((ids: string[], fit: string[] = ids) => {
+    const api = apiRef.current;
+    if (!api) return;
+    const all = api.getSceneElements() as unknown as SceneElement[];
+    const targets = all.filter((e) => fit.includes(e.id));
+    if (ids.length) {
+      api.updateScene({
+        appState: { selectedElementIds: Object.fromEntries(ids.map((id) => [id, true])) } as never,
+      });
+    }
+    if (targets.length)
+      api.scrollToContent(targets as never, { fitToContent: true, animate: true });
+  }, []);
+
+  const goToFrame = useCallback((elementId: string) => reveal([elementId]), [reveal]);
+
+  const openDiagram = useCallback(
+    (id: string) => {
+      const api = apiRef.current;
+      const el = api ? frameForKey(api.getSceneElements() as unknown as SceneElement[], id) : null;
+      if (el) reveal([el.id]);
+      else setNotice(`There is no diagram "${id}" on this canvas.`);
+    },
+    [reveal],
+  );
+
+  const frameTitle = useCallback(
+    (key: string) => {
+      const row = frames.find((f) => f.diagramId === key || f.elementId === key);
+      return row?.title ?? key;
+    },
+    [frames],
+  );
+
+  const commentOnSelection = useCallback(() => {
+    const got = selectionTarget(liveRef.current.elements, liveRef.current.selected);
+    if ("error" in got) {
+      setTargetError(got.error);
+      setCommentTarget(null);
+    } else {
+      setTargetError(null);
+      setCommentTarget(got);
+    }
+  }, []);
+
+  const showComment = useCallback(
+    (c: CanvasComment) => {
+      const api = apiRef.current;
+      if (!api) return;
+      const all = api.getSceneElements() as unknown as SceneElement[];
+      const frameEl = frameForKey(all, c.frameId);
+      const present = c.elementIds.filter((id) => all.some((e) => e.id === id));
+      if (present.length) reveal(present);
+      else if (frameEl) reveal([], [frameEl.id]);
+      else setNotice(`The frame this comment is on ("${c.frameId}") is no longer on the canvas.`);
+    },
+    [reveal],
+  );
+
+  const flushNow = useCallback(async () => {
+    await saverRef.current?.flush();
+  }, []);
+
+  /** The dragged box, from stage pixels to a frame and a frame-relative region. */
+  const finishPick = useCallback((from: [number, number], to: [number, number]) => {
+    const api = apiRef.current;
+    const stage = stageRef.current;
+    setPicking(null);
+    if (!api || !stage) return;
+    const view = api.getAppState() as unknown as Parameters<typeof viewportToScene>[2];
+    const rect = stage.getBoundingClientRect();
+    const a = viewportToScene(rect.left + from[0], rect.top + from[1], view);
+    const b = viewportToScene(rect.left + to[0], rect.top + to[1], view);
+    const drag: Box = { x: a.x, y: a.y, width: b.x - a.x, height: b.y - a.y };
+    const got = regionTarget(liveRef.current.elements, drag);
+    if ("error" in got) {
+      setTargetError(got.error);
+      setCommentTarget(null);
+    } else {
+      setTargetError(null);
+      setCommentTarget(got);
+    }
+  }, []);
+
+  // Escape leaves the area picker.
+  useEffect(() => {
+    if (!picking) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPicking(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [picking]);
+
+  // What Rust's canvas methods and the agent server's `context` tool ask the
+  // open editor: which canvas, flush now, and what is selected.
+  useEffect(() => {
+    setEditorHooks({
+      currentId: () => docRef.current?.id ?? null,
+      flush: async () => {
+        const saver = saverRef.current;
+        if (!saver) return { saved: false, mtime: null };
+        await saver.flush();
+        return { saved: !saver.hasUnsaved, mtime: saver.mtime ?? null };
+      },
+      selection: () => {
+        const { elements, selected } = liveRef.current;
+        const ids = Object.keys(selected ?? {}).filter((k) => selected?.[k]);
+        const got = selectionTarget(elements, selected);
+        const frameEl = "error" in got ? null : elements.find((e) => e.id === got.frameId);
+        const diagram = frameEl ? (framesIn([frameEl])[0]?.diagramId ?? frameEl.id) : null;
+        return { elementIds: ids, diagram };
+      },
+    });
+    return () => setEditorHooks(null);
+  }, []);
+
   const empty = list !== null && list.length === 0;
   const createForm = (
     <form
@@ -554,18 +761,6 @@ export default function App() {
         </button>
         {doc && <code className="cv__path">{doc.path}</code>}
         <span className="cv__spacer" />
-        {doc && view === "canvas" && (
-          <button
-            type="button"
-            className="k-btn k-btn--secondary k-btn--sm"
-            disabled={selectedN === 0}
-            title="Add the selection, as an image, to the agent's context. Drag to a terminal to send it."
-            onPointerDown={selectedN > 0 ? dragContext(() => putSelection()) : undefined}
-            onClick={sendSelection}
-          >
-            <Send size={14} aria-hidden /> {sentSelection ? "Sent" : "Send selection"}
-          </button>
-        )}
         {readOnly ? (
           <span className="k-badge k-badge--idle">
             <Lock size={12} aria-hidden /> Read-only
@@ -640,101 +835,263 @@ export default function App() {
       )}
 
       <main className="cv__body" hidden={view !== "canvas"}>
-        {doc && frame && (frame.child || !readOnly) && (
-          <aside className="cv__frame" aria-label="Frame link">
-            {frame.child ? (
-              <>
-                <span className="cv__frame-label">
-                  Child canvas <code>{frame.child}</code>
-                </span>
-                <button
-                  type="button"
-                  className="k-btn k-btn--primary k-btn--sm"
-                  onClick={() => void openChild(frame.child!)}
-                >
-                  <ExternalLink size={14} aria-hidden /> Open
-                </button>
-                {!readOnly && (
-                  <button
-                    type="button"
-                    className="k-btn k-btn--ghost k-btn--sm"
-                    onClick={() => void unlinkChild()}
-                  >
-                    <Link2Off size={14} aria-hidden /> Unlink
-                  </button>
-                )}
-              </>
-            ) : (
-              <form
-                className="cv__frame-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void createChild();
-                }}
-              >
-                <input
-                  className="cv__input"
-                  aria-label="Child canvas name"
-                  placeholder={frame.name || "Child canvas name"}
-                  value={childName}
-                  onChange={(e) => setChildName(e.target.value)}
-                />
-                <button type="submit" className="k-btn k-btn--secondary k-btn--sm">
-                  Create child canvas
-                </button>
-              </form>
-            )}
-          </aside>
-        )}
-        {doc && pick && (pick.spec || !readOnly) && (
-          <SpecPanel
-            key={`${doc.id}:${loadKey}:${pick.id}`}
-            stored={pick.spec}
-            readOnly={readOnly}
-            onSave={(card) => void saveCard(card)}
-            onRemove={() => void removeCard()}
-            putCard={putCard}
-            onSendError={setNotice}
-          />
-        )}
-        {loadError ? (
-          <div className="cv__empty" role="alert">
-            <AlertTriangle size={20} aria-hidden />
-            <p>{loadError.message}</p>
-            {loadError.corrupt && (
-              <p className="cv__hint">
-                The file was not touched. Fix or restore it in git, or pick another canvas.
+        <div className="cv__stage" ref={stageRef}>
+          {loadError ? (
+            <div className="cv__empty" role="alert">
+              <AlertTriangle size={20} aria-hidden />
+              <p>{loadError.message}</p>
+              {loadError.corrupt && (
+                <p className="cv__hint">
+                  The file was not touched. Fix or restore it in git, or pick another canvas.
+                </p>
+              )}
+            </div>
+          ) : empty ? (
+            <div className="cv__empty">
+              <p>
+                {readOnly
+                  ? "There are no canvases in this checkout, and main is read-only."
+                  : "No canvases in this environment yet."}
               </p>
-            )}
-          </div>
-        ) : empty ? (
-          <div className="cv__empty">
-            <p>
-              {readOnly
-                ? "There are no canvases in this checkout, and main is read-only."
-                : "No canvases in this environment yet."}
-            </p>
-            {!readOnly && state?.hasEnvironment && createForm}
-            {!state?.hasEnvironment && state && <p className="cv__hint">Open a project first.</p>}
-          </div>
-        ) : doc ? (
-          <Suspense fallback={<div className="cv__empty">Loading the editor...</div>}>
-            <Editor
-              key={`${doc.id}:${loadKey}`}
-              initial={doc.scene as SceneFile}
-              theme={theme}
-              readOnly={readOnly}
-              onChange={onEditorChange}
-              onApi={(api) => {
-                apiRef.current = api;
+              {!readOnly && state?.hasEnvironment && createForm}
+              {!state?.hasEnvironment && state && <p className="cv__hint">Open a project first.</p>}
+            </div>
+          ) : doc ? (
+            <Suspense fallback={<div className="cv__empty">Loading the editor...</div>}>
+              <Editor
+                key={`${doc.id}:${loadKey}`}
+                initial={doc.scene as SceneFile}
+                theme={theme}
+                readOnly={readOnly}
+                onChange={onEditorChange}
+                onApi={(api) => {
+                  apiRef.current = api;
+                }}
+                onOpenChild={(id) => void openChild(id)}
+                onOpenDiagram={openDiagram}
+              />
+            </Suspense>
+          ) : (
+            <div className="cv__empty">Loading...</div>
+          )}
+          {picking && (
+            <div
+              className="cv__pick"
+              onPointerDown={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                const p: [number, number] = [e.clientX - r.left, e.clientY - r.top];
+                e.currentTarget.setPointerCapture(e.pointerId);
+                setPicking({ from: p, to: p });
               }}
-              onOpenChild={(id) => void openChild(id)}
-            />
-          </Suspense>
-        ) : (
-          <div className="cv__empty">Loading...</div>
+              onPointerMove={(e) => {
+                if (picking === "idle") return;
+                const r = e.currentTarget.getBoundingClientRect();
+                setPicking({ from: picking.from, to: [e.clientX - r.left, e.clientY - r.top] });
+              }}
+              onPointerUp={() => {
+                if (picking !== "idle") finishPick(picking.from, picking.to);
+              }}
+            >
+              <span className="cv__pick-hint">
+                Drag a box around what the comment is about. Esc cancels.
+              </span>
+              {picking !== "idle" && (
+                <span
+                  className="cv__pick-box"
+                  style={{
+                    left: Math.min(picking.from[0], picking.to[0]),
+                    top: Math.min(picking.from[1], picking.to[1]),
+                    width: Math.abs(picking.to[0] - picking.from[0]),
+                    height: Math.abs(picking.to[1] - picking.from[1]),
+                  }}
+                />
+              )}
+            </div>
+          )}
+        </div>
+        {doc && !loadError && (
+          <Sidebar
+            tab={side.tab}
+            onTab={setSideTab}
+            collapsed={side.collapsed}
+            onCollapsed={setSideCollapsed}
+            openComments={openComments}
+          >
+            {side.tab === "diagrams" && (
+              <section className="cv__side-section" aria-label="Diagrams">
+                {frames.length === 0 ? (
+                  <p className="cv__hint">
+                    No frames yet. Draw a frame (F) around a diagram, or ask an agent to lay one out
+                    with add_shapes.
+                  </p>
+                ) : (
+                  <ul className="cv__list">
+                    {frames.map((f) => (
+                      <li key={f.elementId}>
+                        <button
+                          type="button"
+                          className="cv__list-item"
+                          onClick={() => goToFrame(f.elementId)}
+                        >
+                          <span>{f.title}</span>
+                          <span className="cv__meta">
+                            {[f.level, f.diagramId ?? "unnamed frame"].filter(Boolean).join(" · ")}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
+            {side.tab === "comments" && (
+              <CommentsPanel
+                canvasId={doc.id}
+                readOnly={readOnly}
+                refreshKey={commentsKey}
+                target={commentTarget}
+                targetError={targetError}
+                canUseSelection={selectedN > 0}
+                onUseSelection={commentOnSelection}
+                onPickArea={() => {
+                  setTargetError(null);
+                  setPicking("idle");
+                }}
+                onClearTarget={() => {
+                  setCommentTarget(null);
+                  setTargetError(null);
+                }}
+                frameTitle={frameTitle}
+                flush={flushNow}
+                onShow={showComment}
+                onCounts={setOpenComments}
+              />
+            )}
+            {side.tab === "inspector" && (
+              <>
+                {frame && (frame.child || !readOnly) && (
+                  <section className="cv__frame cv__side-section" aria-label="Frame link">
+                    <h3>Frame</h3>
+                    {frame.child ? (
+                      <>
+                        <span className="cv__frame-label">
+                          Child canvas <code>{frame.child}</code>
+                        </span>
+                        <button
+                          type="button"
+                          className="k-btn k-btn--primary k-btn--sm"
+                          onClick={() => void openChild(frame.child!)}
+                        >
+                          <ExternalLink size={14} aria-hidden /> Open
+                        </button>
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            className="k-btn k-btn--ghost k-btn--sm"
+                            onClick={() => void unlinkChild()}
+                          >
+                            <Link2Off size={14} aria-hidden /> Unlink
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <form
+                        className="cv__frame-form"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          void createChild();
+                        }}
+                      >
+                        <input
+                          className="cv__input"
+                          aria-label="Child canvas name"
+                          placeholder={frame.name || "Child canvas name"}
+                          value={childName}
+                          onChange={(e) => setChildName(e.target.value)}
+                        />
+                        <button type="submit" className="k-btn k-btn--secondary k-btn--sm">
+                          Create child canvas
+                        </button>
+                      </form>
+                    )}
+                  </section>
+                )}
+                {pick && (pick.spec || !readOnly) && (
+                  <SpecPanel
+                    key={`${doc.id}:${loadKey}:${pick.id}`}
+                    stored={pick.spec}
+                    readOnly={readOnly}
+                    onSave={(card) => void saveCard(card)}
+                    onRemove={() => void removeCard()}
+                    putCard={putCard}
+                    onSendError={setNotice}
+                    sendSlot={sendSlot}
+                    refs={refs.map((r) => ({ name: r.name, path: r.path }))}
+                  />
+                )}
+                {!frame && !pick && (
+                  <p className="cv__hint">
+                    Select a frame to link a child canvas, or any element to give it a spec card.
+                  </p>
+                )}
+                <section className="cv__side-section" aria-label="Reference images">
+                  <h3>Reference images</h3>
+                  {refs.length === 0 ? (
+                    <p className="cv__hint">
+                      None stored. Drop or insert an image on the canvas and it is saved beside the
+                      file, not inside it.
+                    </p>
+                  ) : (
+                    <ul className="cv__list">
+                      {refs.map((r) => (
+                        <li key={r.ref}>
+                          <button
+                            type="button"
+                            className="cv__list-item"
+                            title={r.path}
+                            onClick={() => {
+                              const api = apiRef.current;
+                              const placed = api
+                                ? (api.getSceneElements() as unknown as SceneElement[]).filter(
+                                    (e) => e.type === "image" && e.fileId === r.fileId,
+                                  )
+                                : [];
+                              if (placed.length) reveal(placed.map((e) => e.id));
+                            }}
+                          >
+                            <span>{r.name}</span>
+                            <span className="cv__meta">
+                              {r.fileId ? "placed · show" : "not placed"}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              </>
+            )}
+          </Sidebar>
         )}
       </main>
+
+      {/* Send to agent sits below the whole body, drawing and side panel alike,
+          so it takes its own height instead of covering the canvas. The spec
+          card's Send card button portals into the empty slot after Send
+          selection: the card's draft lives in the side panel. */}
+      {doc && view === "canvas" && (
+        <SendFooter>
+          <SendButton
+            label="Send selection"
+            sent={sentSelection}
+            disabled={selectedN === 0}
+            title="Add the selection, as an image, to the agent's context. Drag to a terminal to send it."
+            onPointerDown={selectedN > 0 ? dragContext(() => putSelection()) : undefined}
+            onClick={sendSelection}
+          />
+          <span className="cv__send-slot" ref={setSendSlot} />
+        </SendFooter>
+      )}
     </div>
   );
 }

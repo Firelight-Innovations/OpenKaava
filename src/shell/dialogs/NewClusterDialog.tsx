@@ -32,12 +32,16 @@ export interface NewClusterDialogProps {
    *  worktree list, "new local worktree"'s repo, "browse main") is relative
    *  to it. `WindowRoot` only opens this dialog when one is set. */
   project: { name: string; path: string };
+  /** Which environment choice is selected on open. The title bar's "New worktree
+   *  cluster" asks for `newLocalWorktree` by name rather than relying on it being
+   *  the default, so the entry keeps meaning that if the default ever moves. */
+  initialKind?: EnvironmentKind;
   onCancel: () => void;
   /** `create_cluster_with_environment` succeeded; the new cluster's id. */
   onCreated: (clusterId: string) => void;
 }
 
-type EnvironmentKind = "newLocalWorktree" | "existing" | "cloud" | "main";
+export type EnvironmentKind = "newLocalWorktree" | "existing" | "cloud" | "main";
 
 interface LayoutOption {
   value: StartingLayout;
@@ -59,11 +63,12 @@ const LAYOUTS: LayoutOption[] = [
 export default function NewClusterDialog({
   label,
   project,
+  initialKind = "newLocalWorktree",
   onCancel,
   onCreated,
 }: NewClusterDialogProps) {
   const [step, setStep] = useState<1 | 2>(1);
-  const [kind, setKind] = useState<EnvironmentKind>("newLocalWorktree");
+  const [kind, setKind] = useState<EnvironmentKind>(initialKind);
   const [worktreeName, setWorktreeName] = useState("");
   const [existing, setExisting] = useState<Environment[] | null>(null);
   const [selectedExisting, setSelectedExisting] = useState<Environment | null>(null);

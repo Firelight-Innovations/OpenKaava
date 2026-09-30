@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import type { ToolHealth, ToolPresentation } from "../contract";
 import { HEALTH_LABEL, HEALTH_TOKEN } from "../contract";
 import { popover } from "../motion";
+import "./toolHealth.css";
 
 /** A presentation whose health has already been narrowed away from "ok". */
 export type UnhealthyTool = ToolPresentation & { health: Exclude<ToolHealth, "ok"> };
@@ -19,27 +20,27 @@ export default function HealthPopover({
 }) {
   return (
     <motion.div
-      className="switcher__popover"
+      className="toolhealth__popover"
       variants={popover}
       initial="initial"
       animate="animate"
       exit="exit"
     >
-      <div className="switcher__popover-header">TOOL HEALTH</div>
+      <div className="toolhealth__popover-header">TOOL HEALTH</div>
       {tools.map((tool) => (
-        <div key={tool.id} className="switcher__popover-row">
+        <div key={tool.id} className="toolhealth__popover-row">
           <span
-            className="switcher__popover-dot"
+            className="toolhealth__popover-dot"
             style={{ background: HEALTH_TOKEN[tool.health] }}
           />
-          <span className="switcher__popover-name">{tool.name}</span>
-          <span className="switcher__popover-spacer" />
+          <span className="toolhealth__popover-name">{tool.name}</span>
+          <span className="toolhealth__popover-spacer" />
           {/* Always the user-facing word from HEALTH_LABEL — never the
               backend's "mismatch" / "unversioned" / "missing". */}
-          <span className="switcher__popover-state">{HEALTH_LABEL[tool.health]}</span>
+          <span className="toolhealth__popover-state">{HEALTH_LABEL[tool.health]}</span>
         </div>
       ))}
-      <button type="button" className="switcher__popover-rescan" onClick={onRescan}>
+      <button type="button" className="toolhealth__popover-rescan" onClick={onRescan}>
         Re-scan tools
       </button>
     </motion.div>

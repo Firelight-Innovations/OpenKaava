@@ -62,10 +62,12 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: "Tools",
     items: [
       {
-        label: "Select tool by position",
+        label: "Select cluster by position",
         keys: ["Ctrl", "1"],
-        note: "Ctrl+1 through Ctrl+9, counting along this window's bar.",
+        note: "Ctrl+1 through Ctrl+9, in the order the cluster switcher lists them.",
       },
+      { label: "Next cluster", keys: ["Ctrl", "Tab"], chords: [ctrl("tab")] },
+      { label: "Previous cluster", keys: ["Ctrl", "Shift", "Tab"], chords: [ctrl("tab", true)] },
       { label: "Re-scan tools", keys: ["Ctrl", "R"] },
       {
         label: "Cancel the booting tool",

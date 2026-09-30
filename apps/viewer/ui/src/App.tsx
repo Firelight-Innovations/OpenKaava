@@ -19,6 +19,7 @@ import NoticeBar from "./NoticeBar";
 import { useMenuCommands } from "./commands";
 import { useDelete } from "./useDelete";
 import SendToAgent from "./SendToAgent";
+import { SendFooter } from "../../../shared/SendFooter";
 import { useOpenFiles } from "./tabs/useOpenFiles";
 import Viewer from "./viewer/Viewer";
 import ModeSwitch from "./ModeSwitch";
@@ -281,7 +282,7 @@ export default function App() {
           footer on the region's own surface, like the terminal's Context strip.
           It used to be a toolbar row of its own above the tabs. */}
       {active && (
-        <div className="viewerapp__footer">
+        <SendFooter>
           <SendToAgent
             path={active.path}
             rootPath={root?.path ?? null}
@@ -289,7 +290,7 @@ export default function App() {
             missing={active.missing === true}
             onError={setError}
           />
-        </div>
+        </SendFooter>
       )}
 
       {!active && <p className="app__note viewerapp__empty">Select a file to open it.</p>}

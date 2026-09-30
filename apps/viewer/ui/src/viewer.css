@@ -56,31 +56,6 @@
   display: none;
 }
 
-/* Send to agent, at the bottom of the pane: a slim bar on the region's own
-   surface, hairline above, contents centred on one line. */
-.viewerapp__footer {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  min-height: var(--control-xl);
-  padding: 0 var(--space-2);
-  background: var(--bg-surface-1);
-  border-top: 1px solid var(--border-subtle);
-}
-
-.viewerapp__send {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.viewerapp__send .k-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  line-height: 1;
-}
-
 .viewerapp__steps {
   margin: auto;
   padding: 18px;
