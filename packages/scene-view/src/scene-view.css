@@ -1,0 +1,128 @@
+/*
+ * Styles for <SceneView>. Every colour, radius and size is a token from
+ * src/tokens.css (docs/design/kaava-ds/README.md); the host app is expected to
+ * have loaded it. Controls follow the 28px ladder, overlays use shadow-overlay.
+ */
+.sv-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 160px;
+  overflow: hidden;
+  background: var(--bg-surface-2);
+  border-radius: var(--radius-region);
+  outline: none;
+  color: var(--txt-secondary);
+}
+
+.sv-root:focus-visible {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.sv-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+/* The markup slot: same box as the canvas, transparent to the pointer until a child opts in. */
+.sv-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sv-toolbar {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background: var(--bg-layer-2);
+  border: 1px solid var(--border-subtle-1);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+}
+
+.sv-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-md);
+  height: var(--control-md);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--txt-tertiary);
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.sv-icon-btn:hover {
+  background: var(--bg-layer-2-hover);
+  color: var(--txt-primary);
+}
+
+.sv-icon-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 2px;
+}
+
+.sv-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  text-align: center;
+  font-size: 13px;
+  color: var(--txt-tertiary);
+  background: var(--bg-surface-2);
+}
+
+.sv-status-warn {
+  color: var(--txt-warning);
+}
+
+.sv-status-error {
+  color: var(--txt-danger);
+}
+
+.sv-foot {
+  position: absolute;
+  left: var(--space-2);
+  bottom: var(--space-2);
+  display: flex;
+  gap: var(--space-1-5);
+  pointer-events: none;
+  max-width: 60%;
+}
+
+.sv-chip {
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--bg-layer-2);
+  color: var(--txt-placeholder);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sv-path {
+  color: var(--txt-primary);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-icon-btn {
+    transition: none;
+  }
+}
