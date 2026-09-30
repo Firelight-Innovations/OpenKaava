@@ -1613,6 +1613,7 @@ export default function WindowRoot({
     closeWindow: onCloseWindow,
 
     commandPalette: openPalette,
+    switchProject: onOpenProjectSwitcher,
     togglePanel: () => setPanelCollapsed((c) => !c),
     toggleTerminal: onToggleTerminal,
     toggleFullscreen: onToggleFullscreen,

@@ -14,9 +14,9 @@
  * answers — see `RecentProjectRow`'s own doc for why the board's fuller
  * line and status chips are left out rather than invented.
  *
- * Opened by the title bar's `ProjectPill` (`onOpenProjectSwitcher`). The
- * `Ctrl Alt P` hint names the board's own shortcut, not one this build
- * binds — `useKeyboard.ts` has no Alt-modifier concept today.
+ * Opened by the title bar's `ProjectPill` (`onOpenProjectSwitcher`), and by
+ * the `Ctrl Alt P` its hint names — `ALT_CHORDS` in `useKeyboard.ts` binds
+ * that, and Shift+Alt+P beside it.
  */
 import { useEffect, useMemo, useState } from "react";
 import Dialog from "./Dialog";
