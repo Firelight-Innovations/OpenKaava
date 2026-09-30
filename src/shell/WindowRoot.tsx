@@ -28,6 +28,8 @@ import ContextMenuHost from "./ContextMenuHost";
 import CommandPalette, { type PalettePage } from "./palette/CommandPalette";
 import NewClusterDialog from "./dialogs/NewClusterDialog";
 import SwitchProjectDialog from "./dialogs/SwitchProjectDialog";
+import CloseUnsavedDialog from "./dialogs/CloseUnsavedDialog";
+import { getSubject } from "./viewerSubjects";
 import { nextAddClusterStep } from "./addClusterFlow";
 import { commandsFromMenus, withOpenAppCommands } from "./palette/registry";
 import TitleBar from "./titlebar/TitleBar";
@@ -1074,6 +1076,7 @@ export default function WindowRoot({
           // silently would look like a rendering bug rather than a state one.
           title: instance?.title ?? id,
           kind: instance?.kind ?? "app",
+          appId: instance?.appId,
           paneId: leaf.id,
           showing: leaf.activeTab === id,
           agentFinished: terminalsById.get(id)?.agentFinished ?? false,
@@ -1142,6 +1145,8 @@ export default function WindowRoot({
    * would interrupt. A terminal goes through the same "still running, close
    * anyway?" path the Terminal menu's Kill item uses, because it might.
    */
+  const [unsavedClose, setUnsavedClose] = useState<ClusterMember | null>(null);
+
   const onCloseMember = useCallback(
     (member: ClusterMember) => {
       // A terminal is a terminal wherever it is drawn. One in a pane tree must
@@ -1155,6 +1160,12 @@ export default function WindowRoot({
         return;
       }
       if (member.paneId !== null) {
+        // A File Viewer with unsaved edits is asked about first: closing the
+        // instance destroys the only copy of them.
+        if (member.appId === "viewer" && getSubject(member.id)?.dirty) {
+          setUnsavedClose(member);
+          return;
+        }
         void closeInstance(member.id);
         return;
       }
@@ -1892,6 +1903,16 @@ export default function WindowRoot({
           project={project}
           onCancel={closeNewCluster}
           onCreated={closeNewCluster}
+        />
+      )}
+      {unsavedClose && (
+        <CloseUnsavedDialog
+          name={unsavedClose.title}
+          onKeep={() => setUnsavedClose(null)}
+          onDiscard={() => {
+            void closeInstance(unsavedClose.id);
+            setUnsavedClose(null);
+          }}
         />
       )}
       {switchProjectOpen && (
