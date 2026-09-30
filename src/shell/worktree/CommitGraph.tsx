@@ -5,15 +5,16 @@
  * commit and a small SVG per row for the lane lines that connect it to its
  * parents.
  *
- * Not wired into `SecondaryPanel` by this file — see `SourceControlView.tsx`
- * for how that view plugs into the panel's `worktreeView` slot; this
- * component is meant to be composed alongside it the same way, by whichever
- * view owns the worktree tab's layout.
- *
  * The layout math (which column a commit sits in) lives in `layoutCommits`
  * below, kept separate from rendering and exported so it can be tested
  * without a DOM. Everything after that is mechanical: turn lane numbers into
  * x-coordinates and draw lines.
+ *
+ * Rows are a fixed `ROW_H` pixels tall and each row's `<svg>` is drawn in real
+ * pixels, so a node is a true circle and a fork or merge is a short curve that
+ * lands on a node or on the lane it joins. The lane column is capped at
+ * `MAX_COLS` columns; lanes beyond the cap share the last column rather than
+ * widening the graph, so commit messages always keep most of the row.
  */
 import { useMemo, useRef } from "react";
 import type { GitCommit, GitWorktree } from "../contract";
@@ -43,6 +44,9 @@ export interface PlacedCommit {
   lane: number;
   lanesBefore: (string | null)[];
   lanesAfter: (string | null)[];
+  /** Columns of lanes that already wait for one of this merge's extra parents.
+   *  The merge draws a curve onto that lane instead of opening a duplicate. */
+  forksInto: number[];
 }
 
 /**
@@ -95,7 +99,15 @@ export function layoutCommits(commits: GitCommit[]): PlacedCommit[] {
     // many merges does not grow one column per merge forever. A commit with no
     // parents (a root) hands its lane nothing, which closes it.
     lanes[lane] = commit.parents[0] ?? null;
+    const forksInto: number[] = [];
     for (let p = 1; p < commit.parents.length; p++) {
+      const existing = lanes.indexOf(commit.parents[p]);
+      if (existing !== -1) {
+        // Another branch already leads to this parent: join it, do not open a
+        // second lane for the same sha.
+        forksInto.push(existing);
+        continue;
+      }
       let mergeLane = lanes.indexOf(null);
       if (mergeLane === -1) {
         mergeLane = lanes.length;
@@ -104,7 +116,7 @@ export function layoutCommits(commits: GitCommit[]): PlacedCommit[] {
       lanes[mergeLane] = commit.parents[p];
     }
 
-    placed.push({ commit, lane, lanesBefore, lanesAfter: lanes.slice() });
+    placed.push({ commit, lane, lanesBefore, lanesAfter: lanes.slice(), forksInto });
   }
 
   return placed;
@@ -114,31 +126,21 @@ export function layoutCommits(commits: GitCommit[]): PlacedCommit[] {
 // Rendering
 // ---------------------------------------------------------------------------
 
-const LANE_W = 22;
-const NODE_R = 5;
+/** Width of one lane column, in px. Tight on purpose: the message column is
+ *  what tells one commit from the next. */
+const LANE_W = 12;
+const NODE_R = 4;
+/** Row height in px: a message line over a hash/author/time line. */
+const ROW_H = 40;
+const ROW_MID = ROW_H / 2;
+/** Most lane columns drawn. Lanes past this share the last column. */
+export const MAX_COLS = 4;
 
-/** How wide the lane column is allowed to get before it clips, mirroring
- *  `.commitgraph__graph`'s `max-width` in `commitGraph.css`. Duplicated here
- *  because CSS cannot tell JavaScript whether a clip is happening and the fade
- *  must only appear when one is; the two are commented at both ends so a change
- *  to either is visibly a change to a pair. */
-const GRAPH_MAX_W = 123;
-
-/** Radius of the halo ring drawn around a prominent node (see the `prominent`
- *  prop on `CommitRow`) — a plain circle at `NODE_R` for every other commit,
- *  this one extra ring for HEAD and live-branch tips, rather than also
- *  swelling the node itself or hollowing it out. One consistent treatment
- *  for "this one matters" beats stacking several. */
+/** Radius of the halo ring drawn around HEAD and live-branch tips. */
 const NODE_RING_R = NODE_R + 3;
 
-/** Lane colours, cycled by lane index. Widened from the four semantic status
- *  colours (`--accent`/`--ok`/`--warn`/`--err`) to eight: those four mean
- *  something specific everywhere else in the shell (focus, healthy, warning,
- *  error), but here the colour carries no meaning beyond "which lane" — a
- *  history with five or more concurrent branches was reusing colour 0 for
- *  lane 4 and making two unrelated branches look like the same line. The four
- *  `--graph-*` tokens in `tokens.css` exist only to give this rotation more
- *  room; nothing else in the shell should reach for them. */
+/** Lane colours, cycled by lane index: a small palette of tokens that hold up
+ *  in both themes. The colour carries no meaning beyond "which lane". */
 const LANE_COLORS = [
   "var(--accent)",
   "var(--ok)",
@@ -146,66 +148,48 @@ const LANE_COLORS = [
   "var(--err)",
   "var(--graph-blue)",
   "var(--graph-violet)",
-  "var(--graph-teal)",
-  "var(--graph-pink)",
 ];
 
 export function laneColor(lane: number): string {
   return LANE_COLORS[lane % LANE_COLORS.length];
 }
 
-function laneX(lane: number): number {
-  return lane * LANE_W + LANE_W / 2;
+/** The drawn column for a lane: lanes past the cap collapse into the last. */
+function col(lane: number): number {
+  return Math.min(lane, MAX_COLS - 1);
 }
 
-/** A straight segment, in viewBox units — x in pixels, y in percent of the
- *  row's actual (CSS-driven) height, see `CommitRow`'s `<svg>` for why percent. */
+function laneX(lane: number): number {
+  return col(lane) * LANE_W + LANE_W / 2;
+}
+
+/** A straight segment, in row pixels. */
 function straight(x1: number, y1: number, x2: number, y2: number): string {
   return `M ${x1} ${y1} L ${x2} ${y2}`;
 }
 
-/** An S-curve between two lanes: flat where it leaves each end, so a curve
- *  reads as "this line changes lanes here" rather than a diagonal slash. This
- *  is the one piece of the GitKraken-style redraw that isn't new — every
- *  lane change already went through here — but it is doing more visual work
- *  now that rails are thicker and lanes are wider (`LANE_W`), so the two
- *  control points stay pinned to the flat sections at each end rather than
- *  bowing outward, which is what keeps a fork or merge reading as one
- *  continuous line instead of a hook. */
+/** An S-curve between two lanes, flat where it leaves each end so a lane
+ *  change reads as a short bend rather than a diagonal slash. */
 function curve(x1: number, y1: number, x2: number, y2: number): string {
   const midY = (y1 + y2) / 2;
   return `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
 }
 
-/** One drawn line, already coloured. `stroke` rather than a lane the caller
- *  resolves, and that is the point: the bug this shape prevents was a component
- *  painting every path in one colour it picked itself. */
+/** One drawn line, already coloured by the lane it belongs to. */
 export interface Segment {
   d: string;
   /** A `var(--...)` token from `LANE_COLORS`, chosen by the lane this line runs
-   *  in — for a curve, the end that is *not* the node. */
+   *  in: for a curve, the end that is *not* the node. */
   stroke: string;
 }
 
 /**
- * Every line segment this row's `<svg>` needs to draw, derived purely from
- * `placed`'s own before/after snapshots — no neighbouring row is consulted,
- * which is what keeps a row renderable in isolation (and keeps this
- * function easy to reason about: it only ever looks at one commit's own
- * lane state).
+ * Every line segment this row's `<svg>` needs, derived purely from `placed`'s
+ * own before/after snapshots, so a row renders in isolation.
  *
- * **Each segment is coloured by its own lane, not the row's.** A row's `<svg>`
- * is mostly lines with nothing to do with the commit beside them: every branch
- * open anywhere in the visible history passes through every row. Painting them
- * all in the node's colour made one continuous branch change colour on every
- * row, according to which column its neighbours happened to occupy — a
- * five-branch history drew as horizontal stripes rather than as five rails. A
- * curve takes the lane of the end that is *not* the node, so a line keeps its
- * own colour right up to where it joins or leaves.
- *
- * y is 0/50/100 throughout — top edge, node centre, bottom edge — read as
- * percent of the row by the `viewBox`/`preserveAspectRatio="none"` pairing
- * in `CommitRow`, so this never has to know the row's actual pixel height.
+ * Each segment is coloured by its own lane, not the row's, so one continuous
+ * branch keeps one colour. A curve takes the lane of the end that is not the
+ * node. y is 0 / `ROW_MID` / `ROW_H`: top edge, node centre, bottom edge.
  */
 export function rowSegments(placed: PlacedCommit): Segment[] {
   const segments: Segment[] = [];
@@ -218,43 +202,62 @@ export function rowSegments(placed: PlacedCommit): Segment[] {
     const x = laneX(idx);
 
     if (idx === placed.lane) {
-      // The node's own column: a line in from above if something was
-      // waiting for this commit, a line out below to its first parent (or
-      // nothing, for a root commit — `after` is null and this is skipped).
-      if (before !== null) segments.push({ d: straight(x, 0, x, 50), stroke: laneColor(idx) });
-      if (after !== null) segments.push({ d: straight(x, 50, x, 100), stroke: laneColor(idx) });
+      // The node's own column: a line in from above if something was waiting
+      // for this commit, a line out below to its first parent.
+      if (before !== null) segments.push({ d: straight(x, 0, x, ROW_MID), stroke: laneColor(idx) });
+      if (after !== null) {
+        segments.push({ d: straight(x, ROW_MID, x, ROW_H), stroke: laneColor(idx) });
+      }
       continue;
     }
 
     if (before !== null && before === placed.commit.sha) {
-      // Another lane was also waiting for this sha — a fork converging into
-      // this node. Drawn as a curve into the node rather than the column's
-      // own straight line, and the column is not revisited below because
-      // `layoutCommits` already closed it (it will not appear in `after`).
-      segments.push({ d: curve(x, 0, ownX, 50), stroke: laneColor(idx) });
+      // Another lane was also waiting for this sha: a fork converging here.
+      segments.push({ d: curve(x, 0, ownX, ROW_MID), stroke: laneColor(idx) });
+      // The freed column can be reused at once by this merge's extra parent.
+      if (after !== null)
+        segments.push({ d: curve(ownX, ROW_MID, x, ROW_H), stroke: laneColor(idx) });
       continue;
     }
 
     if (before !== null && after !== null && before === after) {
-      // Untouched by this commit: a lane elsewhere in the graph just passing
-      // through this row.
-      segments.push({ d: straight(x, 0, x, 100), stroke: laneColor(idx) });
+      // Untouched by this commit: a lane just passing through this row.
+      segments.push({ d: straight(x, 0, x, ROW_H), stroke: laneColor(idx) });
+      if (placed.forksInto.includes(idx)) {
+        segments.push({ d: curve(ownX, ROW_MID, x, ROW_H), stroke: laneColor(idx) });
+      }
       continue;
     }
 
     if (before === null && after !== null) {
-      // A column that did not exist above this row but does below it can
-      // only be a merge parent this commit just opened — draw the branch
-      // out of the node rather than a line with nothing above it.
-      segments.push({ d: curve(ownX, 50, x, 100), stroke: laneColor(idx) });
+      // A column that did not exist above but does below is a merge parent
+      // this commit just opened: draw the branch out of the node.
+      segments.push({ d: curve(ownX, ROW_MID, x, ROW_H), stroke: laneColor(idx) });
     }
-
-    // The remaining case (open above, closed below, unrelated to this sha)
-    // cannot occur: a lane only closes when the commit it was waiting for is
-    // placed, and that commit is always `placed.lane` itself.
   }
 
   return segments;
+}
+
+/** A commit's refs split into the pills shown in full and the ones folded into
+ *  a "+N" chip. */
+export interface RefSplit {
+  shown: string[];
+  hidden: string[];
+}
+
+/**
+ * Up to two refs stay readable: the current branch and HEAD when present,
+ * else the first. Two or fewer refs are all shown. Everything else is hidden
+ * behind the chip, whose tooltip lists it.
+ */
+export function splitRefs(refs: string[], activeBranch: string | null): RefSplit {
+  if (refs.length <= 2) return { shown: refs, hidden: [] };
+  const rank = (r: string) => (r === activeBranch ? 0 : r === "HEAD" ? 1 : 2);
+  const ordered = [...refs].sort((a, b) => rank(a) - rank(b));
+  const prominent = ordered.filter((r) => rank(r) < 2);
+  const shown = prominent.length > 0 ? prominent : ordered.slice(0, 1);
+  return { shown, hidden: ordered.filter((r) => !shown.includes(r)) };
 }
 
 export interface CommitGraphProps {
@@ -294,9 +297,9 @@ export default function CommitGraph({
   // pointing a working tree at it at all.
   const prominentShas = useMemo(() => new Set(worktrees.map((w) => w.head)), [worktrees]);
 
-  const laneCount = placed.reduce(
-    (max, p) => Math.max(max, p.lanesBefore.length, p.lanesAfter.length),
-    0,
+  const laneCount = Math.min(
+    MAX_COLS,
+    placed.reduce((max, p) => Math.max(max, p.lanesBefore.length, p.lanesAfter.length), 0),
   );
 
   if (placed.length === 0) {
@@ -394,6 +397,10 @@ function CommitRow({
 }) {
   const { commit } = placed;
   const segments = useMemo(() => rowSegments(placed), [placed]);
+  const { shown, hidden } = useMemo(
+    () => splitRefs(commit.refs, activeBranch),
+    [commit.refs, activeBranch],
+  );
 
   const classes = ["commitgraph__row"];
   if (selected) classes.push("commitgraph__row--selected");
@@ -412,110 +419,74 @@ function CommitRow({
       onMouseDown={focusWithoutScrolling}
       onClick={() => onSelect?.(commit.sha)}
     >
-      {/* Fixed width in lane units, clipped rather than shrunk once a history
-          gets wide: shrinking `LANE_W` to fit more lanes makes the nodes
-          overlap and the graph unreadable well before it makes the column
-          narrow enough to matter, and a history with more than a handful of
-          concurrent lanes is rare in the repositories this panel opens.
-
-          The `--clipped` modifier fades that edge when the clip is actually
-          happening. Without it the widest lane is simply chopped mid-stroke,
-          which reads as a rendering fault rather than as "there is more of
-          this graph than fits" — the one thing a person needs to know before
-          they conclude a branch ends here. Decided in JS rather than CSS
-          because the width is known here and nowhere else. */}
-      <div
-        className={
-          laneCount * LANE_W > GRAPH_MAX_W
-            ? "commitgraph__graph commitgraph__graph--clipped"
-            : "commitgraph__graph"
-        }
-        style={{ width: laneCount * LANE_W }}
+      <svg
+        className="commitgraph__lines"
+        width={laneCount * LANE_W}
+        height={ROW_H}
+        viewBox={`0 0 ${laneCount * LANE_W} ${ROW_H}`}
+        aria-hidden="true"
       >
-        <svg
-          className="commitgraph__lines"
-          width={laneCount * LANE_W}
-          height="100%"
-          viewBox={`0 0 ${laneCount * LANE_W} 100`}
-          preserveAspectRatio="none"
-        >
-          {segments.map((segment, i) => (
-            <path
-              key={i}
-              d={segment.d}
-              className="commitgraph__line"
-              style={{ stroke: segment.stroke }}
-            />
-          ))}
-        </svg>
-        {/* The node and its ring are plain positioned elements, not more SVG
-            geometry, and that's deliberate: the `<svg>` above stretches its
-            *y* axis alone to fit the row's actual CSS height (viewBox height
-            100 = row height in percent — see the block comment on
-            `rowSegments`), which is exactly what a vertical rail needs but
-            is fatal to a circle — a `<circle r>` drawn in that same
-            non-uniformly-scaled space renders as a flattened ellipse, not a
-            dot. Positioning these in real pixels sidesteps that: x comes
-            straight from `laneX` (the svg's x axis is never stretched,
-            so the two stay aligned), and y is simply "the row's vertical
-            centre" via `top: 50%`, which is true regardless of row height
-            and needs no coordinate translation at all. The ring is the
-            earlier sibling so it paints first and the fill sits above it. */}
+        {segments.map((segment, i) => (
+          <path
+            key={i}
+            d={segment.d}
+            className="commitgraph__line"
+            style={{ stroke: segment.stroke }}
+          />
+        ))}
         {prominent && (
-          <span
+          <circle
             className="commitgraph__node-ring"
-            style={{
-              left: laneX(placed.lane),
-              width: NODE_RING_R * 2,
-              height: NODE_RING_R * 2,
-              borderColor: laneColor(placed.lane),
-            }}
+            cx={laneX(placed.lane)}
+            cy={ROW_MID}
+            r={NODE_RING_R}
+            style={{ stroke: laneColor(placed.lane) }}
           />
         )}
-        <span
+        <circle
           className="commitgraph__node"
-          style={{
-            left: laneX(placed.lane),
-            width: NODE_R * 2,
-            height: NODE_R * 2,
-            background: laneColor(placed.lane),
-          }}
+          cx={laneX(placed.lane)}
+          cy={ROW_MID}
+          r={NODE_R}
+          style={{ fill: laneColor(placed.lane) }}
         />
+      </svg>
+
+      <div className="commitgraph__body">
+        <span className="commitgraph__summary" title={commit.summary}>
+          {commit.summary}
+        </span>
+        <div className="commitgraph__sub">
+          {commit.refs.length > 0 && (
+            <span className="commitgraph__refs">
+              {shown.map((ref) => (
+                <RefBadge
+                  key={ref}
+                  name={ref}
+                  active={ref === activeBranch}
+                  live={liveBranches.has(ref)}
+                />
+              ))}
+              {hidden.length > 0 && (
+                <span className="commitgraph__ref commitgraph__ref--more" title={hidden.join(", ")}>
+                  +{hidden.length}
+                </span>
+              )}
+            </span>
+          )}
+          <span className="commitgraph__meta">
+            <span className="commitgraph__sha" title={commit.sha}>
+              {commit.short}
+            </span>
+            <span className="commitgraph__author" title={commit.author}>
+              {commit.author}
+            </span>
+            <span className="commitgraph__when" title={exactTime(commit.when)}>
+              {relativeTime(commit.when)}
+            </span>
+          </span>
+        </div>
       </div>
-
-      <span className="commitgraph__summary" title={commit.summary}>
-        {commit.summary}
-      </span>
-
-      {commit.refs.length > 0 && (
-        <span className="commitgraph__refs">
-          {commit.refs.map((ref) => (
-            <RefBadge
-              key={ref}
-              name={ref}
-              active={ref === activeBranch}
-              live={liveBranches.has(ref)}
-            />
-          ))}
-        </span>
-      )}
-
-      <span className="commitgraph__meta">
-        <span className="commitgraph__sha" title={commit.sha}>
-          {commit.short}
-        </span>
-        <span className="commitgraph__author" title={commit.author}>
-          {commit.author}
-        </span>
-        {/* The compact stamp is the only thing on this row that cannot be read
-            precisely — "5d" covers a span of a day. The exact time is one
-            hover away rather than a second column, which the row has no width
-            for. `title` rather than `<time dateTime>`: nothing consumes the
-            machine-readable form, and only one of the two is visible. */}
-        <span className="commitgraph__when" title={exactTime(commit.when)}>
-          {relativeTime(commit.when)}
-        </span>
-      </span>
     </div>
   );
 }

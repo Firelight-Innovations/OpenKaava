@@ -1,9 +1,12 @@
 /*
- * The settings screen: backdrop, header, sidebar, content, and the four
- * controls.
+ * The settings screen: backdrop, header, sidebar, content, and the row anatomy
+ * every control sits in.
  *
  * Every colour below is a token from src/tokens.css. The single exception is the
  * backdrop's wash, which is a scrim rather than a colour — see the note on it.
+ * Buttons, badges, the switch, field inputs, the segmented track and the menu
+ * are the design system's own `.k-*` classes from src/kaava-ui.css; this file
+ * only lays them out.
  *
  * No transition and no animation anywhere in this file, on anything. The
  * surface's arrival and departure come entirely from src/shell/motion.ts, on the
@@ -60,72 +63,73 @@
   inset: 0;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+}
+
+/* The shared switch eases its knob; on this screen it does not, per the file
+   header. */
+.settings .k-toggle__knob {
+  transition: none;
 }
 
 /* --- header --------------------------------------------------------------
-   Drawn on `--surface` like every other bar in the shell, so the screen reads
-   as having a bar of its own rather than as a page with a heading. */
+   The title on the left; the search and the close button grouped together on
+   the right, so the two controls a person reaches for are not at opposite
+   edges of a wide window. */
 
 .settings__header {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 16px;
-  height: 44px;
-  padding: 0 12px 0 16px;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
+  gap: var(--space-2);
+  height: 48px;
+  padding: 0 var(--space-3) 0 var(--space-6);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .settings__heading {
-  flex: none;
+  flex: 1;
   margin: 0;
-  font: 500 13px/1 var(--sans);
-  color: var(--text);
+  font: var(--type-h2);
+  color: var(--txt-primary);
 }
 
-/* `margin: 0 auto` centres the field in whatever the heading and the close
-   button leave, without a pair of spacer elements to do it. */
-.settings__filter {
-  flex: 0 1 340px;
-  margin: 0 auto;
-  height: 26px;
-  padding: 0 10px;
-  border: 1px solid var(--line-2);
-  border-radius: 4px;
-  background: var(--bg);
-  color: var(--text);
-  font: 400 12px/1 var(--sans);
+/* A `k-field` input drawn on its wrapper, so the focus highlight is the
+   field's own edge and halo (`:focus-within`) with the icon inside it. */
+.settings__search {
+  flex: 0 1 320px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--control-lg);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-subtle-1);
+  border-radius: var(--radius-md);
+  background: var(--bg-layer-1);
+  color: var(--txt-placeholder);
+}
+
+.settings__search:focus-within {
+  border-color: var(--accent);
+  outline: 3px solid var(--accent-subtle);
+  outline-offset: 0;
+}
+
+.settings__search-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--txt-primary);
+  font: var(--type-body);
   outline: none;
 }
 
-.settings__filter::placeholder {
-  color: var(--text-faint);
-}
-
-.settings__filter:focus {
-  border-color: var(--accent-line);
-}
-
-.settings__close {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-}
-
-.settings__close:hover {
-  background: var(--surface-2);
-  color: var(--text);
+.settings__search-input::placeholder {
+  color: var(--txt-placeholder);
 }
 
 /* Rust refused a write and rolled the value back. Drawn as a strip under the
@@ -134,11 +138,11 @@
 .settings__error {
   flex: none;
   margin: 0;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--err);
-  font: 400 11.5px/1.4 var(--sans);
+  padding: var(--space-2) var(--space-6);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--danger-subtle);
+  color: var(--txt-danger);
+  font: var(--type-caption);
 }
 
 /* --- sidebar and content -------------------------------------------------- */
@@ -150,14 +154,14 @@
 }
 
 .settings__nav {
-  flex: 0 0 200px;
+  flex: 0 0 240px;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  padding: 8px 0;
+  gap: 2px;
+  padding: var(--space-3);
   overflow-y: auto;
-  border-right: 1px solid var(--line);
-  background: var(--surface);
+  border-right: 1px solid var(--border-subtle);
 }
 
 /* Dimmed while a filter is up, because the content pane is no longer showing
@@ -171,29 +175,38 @@
 .settings__nav-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex: none;
-  height: 26px;
-  padding: 0 14px;
-  border: none;
+  height: var(--control-md);
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-md);
   background: transparent;
-  color: var(--text-dim);
-  font: 400 12.5px/1 var(--sans);
+  color: var(--txt-secondary);
+  font: var(--type-body);
   text-align: left;
   cursor: pointer;
 }
 
 .settings__nav-item:hover {
-  background: var(--surface-2);
-  color: var(--text);
+  background: var(--bg-layer-1-hover);
+  color: var(--txt-primary);
 }
 
-/* The same left-edge accent bar the explorer and the search overlay use for
-   their current row, rather than a second idiom for the same idea. */
+.settings__nav-item:focus-visible,
+.settings-segment:focus-visible,
+.settings-swatch:focus-visible,
+.settings-menu__trigger:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Selection is a fill and a heavier weight, nothing else: the design system
+   forbids a coloured side bar on a selected row. */
 .settings__nav-item[data-current] {
-  background: var(--surface-2);
-  color: var(--text);
-  box-shadow: inset 2px 0 0 var(--accent);
+  background: var(--bg-layer-1-selected);
+  color: var(--txt-primary);
+  font: var(--type-body-strong);
 }
 
 .settings__nav-title {
@@ -204,34 +217,19 @@
   white-space: nowrap;
 }
 
-/* How many settings in this section have been moved off their default. Mono so
-   a two-digit count is the same width as any other. */
-.settings__nav-badge {
-  flex: none;
-  min-width: 16px;
-  height: 15px;
-  padding: 0 4px;
-  border-radius: 8px;
-  background: var(--accent-wash);
-  color: var(--accent);
-  font: 500 9.5px/15px var(--mono);
-  text-align: center;
-}
-
 .settings__content {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
 }
 
-/* Capped and centred. A maximised window is well over 2000px wide, and without
-   this a toggle sits a foot away from the label it belongs to — the row stops
-   reading as one thing. 720px is about as wide as a label plus a sentence plus
-   a control wants to be. */
+/* Left-aligned against the sidebar and capped, rather than centred in the
+   leftover width: a centred column leaves a wide empty gutter beside the nav
+   and makes the page look as though it lost its left half. 760px is a label, a
+   sentence and a control at the settings row rhythm. */
 .settings__column {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 20px 24px 48px;
+  max-width: 760px;
+  padding: var(--space-6) var(--space-6) 48px;
 }
 
 /* --- section head --------------------------------------------------------- */
@@ -239,9 +237,9 @@
 .settings__section-head {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--line);
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .settings__section-text {
@@ -251,36 +249,14 @@
 
 .settings__section-title {
   margin: 0;
-  font: 500 15px/1.2 var(--sans);
-  color: var(--text);
+  font: var(--type-h1);
+  color: var(--txt-primary);
 }
 
 .settings__section-description {
-  margin: 6px 0 0;
-  font: 400 11.5px/1.5 var(--sans);
-  color: var(--text-dim-3);
-}
-
-.settings__section-reset {
-  flex: none;
-  height: 24px;
-  padding: 0 10px;
-  border: 1px solid var(--line-2);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-dim);
-  font: 400 11px/1 var(--sans);
-  cursor: pointer;
-}
-
-.settings__section-reset:hover:not(:disabled) {
-  border-color: var(--accent-line);
-  color: var(--text);
-}
-
-.settings__section-reset:disabled {
-  opacity: 0.4;
-  cursor: default;
+  margin: var(--space-1) 0 0;
+  font: var(--type-caption);
+  color: var(--txt-tertiary);
 }
 
 /* --- filtered results ------------------------------------------------------
@@ -295,427 +271,266 @@
   z-index: 1;
   /* Pulled out into the column's own padding and given it back as its own, so
      the opaque band spans the full width of the column. Left at `margin: 0` the
-     heading is 24px narrower than the rows, and settings scroll up through the
-     gap on either side of it. */
-  margin: 0 -24px;
-  padding: 12px 24px 6px;
-  border-bottom: 1px solid var(--line);
-  background: var(--bg);
-  color: var(--text-dim-2);
-  font: 600 10px/1 var(--mono);
-  letter-spacing: 0.1em;
+     heading is narrower than the rows, and settings scroll up through the gap
+     on either side of it. */
+  margin: 0 calc(var(--space-6) * -1);
+  padding: var(--space-3) var(--space-6) var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--txt-placeholder);
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
   text-transform: uppercase;
 }
 
 .settings__empty {
-  margin: 32px 0 0;
-  color: var(--text-dim);
-  font: 400 12.5px/1.5 var(--sans);
+  margin: var(--space-6) 0 0;
+  color: var(--txt-tertiary);
+  font: var(--type-body);
   text-align: center;
 }
 
 /* --- one setting -----------------------------------------------------------
-   Label left, control right, at the shell's ordinary 12.5px/11px rhythm. */
+   Three columns on a grid: label, control, and a fixed reset slot. The control
+   column is as wide as its control wants, and the reset slot is always there so
+   a row never shifts when it becomes modified. 16px padding is the design
+   system's settings-row padding. */
 
 .setting {
-  display: flex;
-  align-items: flex-start;
-  gap: 24px;
-  padding: 12px 10px 12px 14px;
-  border-bottom: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto var(--control-sm);
+  align-items: center;
+  column-gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .setting:last-child {
-  border-bottom: none;
-}
-
-/* Changed off its default. Same accent bar as the sidebar's current row and the
-   explorer's — this is "the one that stands out", which is the same idea. */
-.setting[data-changed] {
-  box-shadow: inset 2px 0 0 var(--accent);
-}
-
-/* A select is a stack of rows with descriptions in it, which does not fit in
-   the narrow right-hand column the other three controls share. It gets the full
-   width under its label instead. Keyed off the control kind rather than off a
-   class the row has to remember to add. */
-.setting[data-kind="select"] {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 10px;
-}
-
-.setting[data-kind="select"] .setting__side {
-  align-items: stretch;
-  max-width: none;
+  border-bottom: 0;
 }
 
 .setting__label {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.setting__title {
-  color: var(--text);
-  font: 400 12.5px/1.3 var(--sans);
-}
-
-.setting__description {
-  color: var(--text-dim-3);
-  font: 400 11px/1.5 var(--sans);
-}
-
-.setting__side {
-  flex: none;
-  max-width: 300px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 5px;
-}
-
-.setting__control-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* When the change takes effect, for anything that is not "now". Drawn at the
-   faintest text token in the palette: it is a footnote to the control, and
-   anything louder competes with the label on the other side of the row. */
-.setting__applies {
-  color: var(--text-faint);
-  font: 400 10.5px/1.3 var(--sans);
-  text-align: right;
-}
-
-.setting__reset {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: none;
-  border-radius: 3px;
-  background: transparent;
-  color: var(--text-dim-2);
-  cursor: pointer;
-}
-
-.setting__reset:hover {
-  background: var(--surface-2);
-  color: var(--accent);
-}
-
-/* --- toggle ----------------------------------------------------------------
-   30×16 with a 12px knob. The knob is `--surface` rather than white so it reads
-   as a piece of the interface sitting in the track, which is what the shell's
-   other filled controls do. */
-
-.settings-toggle {
-  flex: none;
-  position: relative;
-  width: 30px;
-  height: 16px;
-  padding: 0;
-  border: none;
-  border-radius: 8px;
-  background: var(--line-2);
-  cursor: pointer;
-}
-
-.settings-toggle[aria-checked="true"] {
-  background: var(--accent);
-}
-
-.settings-toggle__knob {
-  display: block;
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--surface);
-}
-
-/* The knob moves without easing, per the file header. A switch is the one
-   control where a sliding knob is worse than an instant one: the slide is long
-   enough to be seen and short enough to be missed, so it mostly reads as the
-   click having been slightly late. */
-.settings-toggle[aria-checked="true"] .settings-toggle__knob {
-  left: 16px;
-}
-
-/* --- number ---------------------------------------------------------------- */
-
-.settings-stepper {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.settings-stepper__button {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid var(--line-2);
-  border-radius: 3px;
-  background: var(--surface);
-  color: var(--text-dim);
-  cursor: pointer;
-}
-
-.settings-stepper__button:hover:not(:disabled) {
-  border-color: var(--accent-line);
-  color: var(--text);
-}
-
-/* At the end of the declared range. Disabled rather than hidden, so the pair
-   stays a pair and the field does not shift sideways at the extremes. */
-.settings-stepper__button:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-/* Mono and right-aligned: the digits are a quantity, and a quantity that
-   reflows as it grows is a quantity that is hard to compare with the last one
-   you typed. */
-.settings-stepper__field {
-  width: 64px;
-  height: 22px;
-  padding: 0 6px;
-  border: 1px solid var(--line-2);
-  border-radius: 3px;
-  background: var(--bg);
-  color: var(--text);
-  font: 400 11.5px/1 var(--mono);
-  text-align: right;
-  outline: none;
-}
-
-.settings-stepper__field:focus {
-  border-color: var(--accent-line);
-}
-
-.settings-stepper__unit {
-  color: var(--text-dim-3);
-  font: 400 10.5px/1 var(--sans);
-}
-
-/* --- text ------------------------------------------------------------------
-   Mono, because everything typed into one of these is a name something else
-   has to match exactly — a font family, a path. A proportional face hides a
-   trailing space. */
-
-.settings-field {
-  width: 220px;
-  max-width: 100%;
-  height: 24px;
-  padding: 0 8px;
-  border: 1px solid var(--line-2);
-  border-radius: 3px;
-  background: var(--bg);
-  color: var(--text);
-  font: 400 11.5px/1 var(--mono);
-  outline: none;
-}
-
-.settings-field::placeholder {
-  color: var(--text-faint);
-}
-
-.settings-field:focus {
-  border-color: var(--accent-line);
-}
-
-/* --- select ---------------------------------------------------------------- */
-
-.settings-choices {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  overflow: hidden;
-  background: var(--surface);
-}
-
-.settings-choices__row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border: none;
-  background: transparent;
-  color: var(--text-dim);
-  text-align: left;
-  cursor: pointer;
-}
-
-.settings-choices__row:not(:first-child) {
-  border-top: 1px solid var(--line);
-}
-
-.settings-choices__row:hover {
-  background: var(--surface-2);
-  color: var(--text);
-}
-
-/* The current one, washed in the accent rather than filled with it: these rows
-   carry a sentence of description each, and an opaque accent behind body text
-   is unreadable at any weight. */
-.settings-choices__row[data-current] {
-  background: var(--accent-wash);
-  color: var(--text);
-}
-
-/* The option's own value, painted as itself. Bordered so a swatch close to the
-   surface behind it still has an edge. */
-.settings-choices__swatch {
-  flex: none;
-  width: 14px;
-  height: 14px;
-  border: 1px solid var(--line-2);
-  border-radius: 3px;
-}
-
-.settings-choices__text {
-  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.settings-choices__label {
-  color: inherit;
-  font: 400 12px/1.3 var(--sans);
+.setting__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--txt-primary);
+  font: var(--type-body-strong);
 }
 
-.settings-choices__description {
-  color: var(--text-dim-3);
-  font: 400 10.5px/1.4 var(--sans);
-}
-
-.settings-choices__check {
+/* Moved off its default: a 6px accent dot after the title, the same size as the
+   status dots. The reset button at the row's right edge is the other half. */
+.setting__modified {
   flex: none;
-  color: var(--accent);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.setting__description {
+  color: var(--txt-tertiary);
+  font: var(--type-caption);
+}
+
+/* When the change takes effect, for anything that is not "now". A footnote to
+   the description, so the quietest text token. */
+.setting__applies {
+  color: var(--txt-placeholder);
+  font: var(--type-caption);
+}
+
+.setting__control {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.setting__reset-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-sm);
+  height: var(--control-sm);
+}
+
+/* --- select shapes ---------------------------------------------------------- */
+
+/* The segmented track is the design system's `k-tabs--segmented`; a segment is
+   a button, so it needs the font and cursor a tab in a strip inherits. */
+.settings-segment {
+  padding: 0 var(--space-3);
+  color: var(--txt-tertiary);
+  font: var(--type-body);
+  cursor: pointer;
+}
+
+.settings-segment:hover {
+  color: var(--txt-primary);
+}
+
+.settings-segment[aria-selected="true"] {
+  font: var(--type-body-strong);
+}
+
+.settings-swatches {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* A 24px colour dot, edged so an unselected swatch close to the background
+   still has an outline. The current one wears the check in the accent's own
+   "on" text colour and a ring in the primary text colour. */
+.settings-swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-sm);
+  height: var(--control-sm);
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  color: var(--txt-on-accent);
+  cursor: pointer;
+}
+
+.settings-swatch:hover {
+  border-color: var(--txt-secondary);
+}
+
+.settings-swatch[aria-checked="true"] {
+  border-color: var(--txt-primary);
+  box-shadow: 0 0 0 2px var(--bg-surface-1);
+}
+
+.settings-menu {
+  position: relative;
+}
+
+.settings-menu__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 240px;
+  height: var(--control-lg);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-subtle-1);
+  border-radius: var(--radius-md);
+  background: var(--bg-layer-1);
+  color: var(--txt-primary);
+  font: var(--type-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-menu__trigger[aria-expanded="true"] {
+  border-color: var(--accent);
+}
+
+.settings-menu__value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Opens under the trigger, right-aligned to it so a menu wider than the
+   trigger grows leftward into the row's own space rather than off the screen. */
+.settings-menu__popup {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  z-index: 2;
+  width: max-content;
+  max-width: 360px;
+}
+
+.settings-menu__popup .k-menu__item {
+  justify-content: space-between;
+  height: auto;
+  min-height: var(--control-md);
+  padding: var(--space-1) var(--space-2);
+}
+
+.settings-menu__item-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-menu__item-description {
+  color: var(--txt-tertiary);
+  font: var(--type-caption);
+}
+
+/* --- number and text --------------------------------------------------------
+   Both are `k-field__input`, which is the 32px settings height. Mono, because
+   everything typed into one of these is a value something else has to match
+   exactly, and a proportional face hides a trailing space. */
+
+.settings-stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+.settings-stepper__field {
+  width: 72px;
+  text-align: right;
+}
+
+.settings-stepper__unit {
+  color: var(--txt-tertiary);
+  font: var(--type-caption);
+}
+
+.settings-field {
+  width: 240px;
+  max-width: 100%;
 }
 
 /* --- the MCP panel ---------------------------------------------------------
-   Boxed on `--surface`, which is what separates it from the schema-drawn rows
-   below it — those are the section's settings, this is a list the registry
-   owns. See McpPanel.tsx for why it is the only panel of its kind. */
+   The rows are ordinary `.setting` rows; what the panel adds is the endpoint
+   line above them. See McpPanel.tsx for why it is the only panel of its kind. */
 
 .settings-mcp {
   display: flex;
   flex-direction: column;
-  margin: 14px 0 6px;
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  background: var(--surface);
 }
 
 .settings-mcp__endpoint {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   margin: 0;
-  padding: 9px 12px;
-  border-bottom: 1px solid var(--line);
-  color: var(--text-dim);
-  font: 400 11.5px/1.3 var(--sans);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--txt-tertiary);
+  font: var(--type-caption);
 }
 
-/* Ordinary dim text with a status dot beside it, the shape the status bar
-   already uses for GitHub health. The sentence is the same weight
-   either way — a red wall for "the listener did not start" would overstate it,
-   since every switch below is still meaningful and still persists. */
-.settings-mcp__dot {
-  flex: none;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-
-.settings-mcp__endpoint[data-state="ok"] .settings-mcp__dot {
-  background: var(--ok);
-}
-
-.settings-mcp__endpoint[data-state="err"] .settings-mcp__dot {
-  background: var(--err);
-}
-
-.settings-mcp__row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 10px 12px;
-}
-
-.settings-mcp__row:not(:last-child) {
-  border-bottom: 1px solid var(--line);
-}
-
-.settings-mcp__text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.settings-mcp__name {
-  color: var(--text);
-  font: 400 12.5px/1.3 var(--sans);
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-/* On a server developer mode revealed. Outlined rather than filled: it is a
-   label on the row, not a state of it, and a solid chip beside a live switch
-   reads as the thing the switch does. */
-.settings-mcp__badge {
-  color: var(--text-dim-3);
-  font: 400 9.5px/1.4 var(--mono);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 1px 5px;
-  border: 1px solid var(--line);
-  border-radius: 3px;
-}
-
-.settings-mcp__description {
-  color: var(--text-dim-3);
-  font: 400 11px/1.4 var(--sans);
-}
-
-/* Config key, route and tool count. Mono because the first two are strings that
-   get retyped somewhere else — a project's `.mcp.json`, a browser. */
 .settings-mcp__meta {
-  color: var(--text-faint);
-  font: 400 10.5px/1.4 var(--mono);
+  color: var(--txt-placeholder);
+  font: var(--type-mono-meta);
   overflow-wrap: anywhere;
 }
 
 .settings-mcp__path {
-  color: var(--text-dim-2);
+  color: var(--txt-secondary);
   font-family: var(--mono);
 }
 
 .settings-mcp__empty {
   margin: 0;
-  padding: 12px;
-  color: var(--text-dim-3);
-  font: 400 11.5px/1.5 var(--sans);
+  padding: var(--space-4) 0;
+  color: var(--txt-tertiary);
+  font: var(--type-caption);
 }

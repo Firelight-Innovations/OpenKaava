@@ -10,8 +10,10 @@
  * the user looked at a terminal.
  *
  * There is no watcher behind `GitControl`, so nothing here can push. `refresh`
- * is what the panel calls after every mutation, and a change of `clusterId` is
- * the only other thing that re-asks.
+ * is what the panel calls after every mutation. A change of `clusterId` re-asks,
+ * and so does a change of `root`: a cluster repointed at another project keeps
+ * its id, and keying on the id alone left Source Control describing the old
+ * repository until a reload.
  */
 import { useCallback, useEffect, useState } from "react";
 import type { GitControl, GitStatus } from "../contract";
@@ -35,7 +37,13 @@ export interface GitStatusHandle {
  * — "which branch am I on" is a property of what you are working on, not of
  * which pane happens to have focus.
  */
-export function useGitStatus(control: GitControl, clusterId: string | null): GitStatusHandle {
+export function useGitStatus(
+  control: GitControl,
+  clusterId: string | null,
+  /** Where the cluster is pointed: its worktree, else its project. Only
+   *  compared, never read, so any string that changes with it will do. */
+  root: string | null = null,
+): GitStatusHandle {
   const [status, setStatus] = useState<GitStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(clusterId !== null);
@@ -73,7 +81,7 @@ export function useGitStatus(control: GitControl, clusterId: string | null): Git
     return () => {
       live = false;
     };
-  }, [control, clusterId, nonce]);
+  }, [control, clusterId, root, nonce]);
 
   const refresh = useCallback(() => setNonce((n) => n + 1), []);
 

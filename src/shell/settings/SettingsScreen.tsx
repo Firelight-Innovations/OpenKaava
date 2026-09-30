@@ -4,7 +4,7 @@ import SettingRow from "./SettingRow";
 import McpPanel from "./McpPanel";
 import { settingsBackdrop, settingsScreen } from "../motion";
 import { closeSettings } from "../settingsSurface";
-import { Close } from "../../ui/Icon";
+import { Search, X } from "lucide-react";
 import type { Setting, SettingsGroup } from "../../bindings";
 import type { SettingsSession } from "./useSettings";
 import "./settings.css";
@@ -116,22 +116,28 @@ export default function SettingsScreen({
       >
         <header className="settings__header">
           <h1 className="settings__heading">Settings</h1>
-          <input
-            className="settings__filter"
-            type="text"
-            spellCheck={false}
-            placeholder="Search settings"
-            aria-label="Search settings"
-            value={filter}
-            onChange={(event) => setFilter(event.target.value)}
-          />
+          {/* The search and the close button sit together at the right edge. The
+              field's box is the label's, so `:focus-within` on it lights the
+              whole field rather than the bare input inside it. */}
+          <label className="settings__search">
+            <Search size={16} strokeWidth={1.5} aria-hidden="true" />
+            <input
+              className="settings__search-input"
+              type="text"
+              spellCheck={false}
+              placeholder="Search settings"
+              aria-label="Search settings"
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+            />
+          </label>
           <button
             type="button"
-            className="settings__close"
+            className="k-btn k-btn--ghost k-btn--icon k-btn--lg"
             aria-label="Close settings"
             onClick={() => closeSettings()}
           >
-            <Close size={11} />
+            <X size={16} strokeWidth={1.5} aria-hidden="true" />
           </button>
         </header>
 
@@ -171,7 +177,14 @@ export default function SettingsScreen({
                   }}
                 >
                   <span className="settings__nav-title">{group.title}</span>
-                  {changed > 0 && <span className="settings__nav-badge">{changed}</span>}
+                  {changed > 0 && (
+                    <span
+                      className="k-badge k-badge--count"
+                      title={`${changed} changed from the default`}
+                    >
+                      {changed}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -218,7 +231,7 @@ function Section({ group, session }: { group: SettingsGroup; session: SettingsSe
             state is itself the answer to "have I changed anything in here". */}
         <button
           type="button"
-          className="settings__section-reset"
+          className="k-btn k-btn--secondary k-btn--sm"
           disabled={changed === 0}
           onClick={() => session.resetGroup(group)}
         >

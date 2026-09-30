@@ -470,6 +470,36 @@ export function onProjectChanged(cb: (payload: unknown) => void): Promise<Unlist
   return listen<unknown>(PROJECT_CHANGED_EVENT, (e) => cb(e.payload));
 }
 
+/** A project's `.kaava/icon.*` as a `data:` URL, or `null` for "draw the
+ *  letter tile". Mirrors `commands::project_icon`. */
+export function projectIcon(path: string): Promise<string | null> {
+  return invoke<string | null>("project_icon", { path });
+}
+
+/**
+ * Raise the native image picker and copy the choice into the project as its
+ * icon. `null` for a cancelled picker. Mirrors `commands::choose_project_icon`,
+ * which also broadcasts `PROJECT_ICON_EVENT` so every other drawing of the
+ * project updates. Never called from a test: the picker blocks the webview.
+ */
+export function chooseProjectIcon(path: string): Promise<string | null> {
+  return invoke<string | null>("choose_project_icon", { path });
+}
+
+export const PROJECT_ICON_EVENT = "project:icon";
+
+/** What `PROJECT_ICON_EVENT` carries: which project, and its new icon. */
+export interface ProjectIconChanged {
+  path: string;
+  icon: string | null;
+}
+
+export function onProjectIconChanged(
+  cb: (payload: ProjectIconChanged) => void,
+): Promise<UnlistenFn> {
+  return listen<ProjectIconChanged>(PROJECT_ICON_EVENT, (e) => cb(e.payload));
+}
+
 /**
  * Where a cluster's work is happening on disk. Mirrors `shell_state::
  * WorktreeRef`.
