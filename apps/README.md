@@ -329,3 +329,55 @@ comment has the ID scheme and the merge reasoning in full.
 is drawn now so the layout is right, but nothing reads `.kaava/comments/` into
 an agent yet, and the button says so in its tooltip rather than pretending to
 work.
+
+## Context: pushing things to an agent
+
+Any app can put an image, a file or a snippet where the agent working in this
+environment can read it, with the same four calls Files, Play and the viewers
+already make for everything else. They are answered by the host before any
+app is looked up (`apps::call`, like `settings/all`), so they exist for every
+app and plugin surface without registering anything.
+
+```ts
+import { invoke } from "@openkaava/bridge";
+
+// An image (a panel capture, a frame, a render): bytes cross once.
+const item = await invoke("context/put", {
+  kind: "panel", // "image" | "panel" | "file" | "text"; optional, inferred otherwise
+  title: "Play frame 00:12",
+  label: "Play - hospital_wing.tscn", // one line for the strip
+  bytesBase64: png, // standard base64, no data: prefix
+});
+
+await invoke("context/put", { kind: "text", title: "Build log", text: tail });
+await invoke("context/put", { path: "C:/game/renders/out.png" }); // a file you already wrote
+
+await invoke("context/list"); // ContextItem[], newest first
+await invoke("context/get", { id: item.id });
+await invoke("context/remove", { id: item.id });
+```
+
+Send exactly one of `bytesBase64`, `text` or `path`. The item is a file under
+`<environment>/.kaava/context/` plus a `<id>.json` record (id, kind, sniffed
+mime, title, `source.appId`, size, `path`, `relPath`); that directory carries
+its own `.gitignore`, so context never enters a commit. `source.appId` is
+stamped by the shell from the calling frame and cannot be claimed in params.
+
+Limits and refusals, all enforced in Rust (`src-tauri/src/context.rs`): images
+must be PNG, JPEG, GIF or WebP by their bytes (a declared mime is not trusted)
+and at most 8 MB, with no downscaling; text is cut at a line boundary at
+256 KB and marked truncated; a copied file is at most 25 MB; executable-looking
+content is refused; the store keeps at most 500 items or 500 MB, oldest first.
+A `path` already inside the environment is referenced where it is and never
+deleted by `context/remove`. An unsupported put fails with an `INVALID_PARAMS`
+error whose message says why.
+
+**These calls are allowed in a read-only main cluster.** `.kaava/context/` is
+Kaava's own state, not the checkout, and is gitignored, so it is not in
+`WRITE_METHODS`.
+
+A store change emits the Tauri event `context:changed` (`{ root }`); the shell
+strip beside each terminal listens to it. To let a user drag an item onto a
+terminal, register it with `context/put` first and then send
+`kaava/drag { phase: "begin", items: [item.id] }` (`paths` and `items` may be
+mixed); the drop inserts the reference the running harness understands.

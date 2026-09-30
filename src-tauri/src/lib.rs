@@ -12,6 +12,8 @@ mod branding;
 mod cloud;
 mod commands;
 mod comments;
+mod context;
+mod context_commands;
 mod copilot_key;
 #[cfg(feature = "design-mode")]
 mod design_comments;
@@ -23,6 +25,7 @@ mod error;
 mod git;
 mod github;
 mod godot;
+mod harness;
 mod launch;
 mod layout;
 mod manifest;
@@ -502,6 +505,15 @@ pub fn run() {
             commands::terminal_attach,
             commands::terminal_write,
             commands::terminal_insert_paths,
+            context_commands::terminal_drop_paths,
+            context_commands::terminal_paste_image,
+            context_commands::terminal_insert_items,
+            context_commands::terminal_harness,
+            context_commands::terminal_set_harness,
+            context_commands::context_item_paths,
+            context_commands::context_list,
+            context_commands::context_remove,
+            context_commands::context_thumb,
             commands::terminal_resize,
             commands::terminal_busy,
             commands::move_terminal,

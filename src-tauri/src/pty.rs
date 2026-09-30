@@ -169,6 +169,22 @@ struct Session {
     /// overwrite at any moment (see `ShellState::set_terminal_title`). Read by
     /// [`PtySessions::insert_paths`], which has to know how this shell quotes.
     shell: String,
+    /// The user's "this terminal is running..." choice, which beats detection.
+    /// See [`crate::harness`].
+    harness_override: Option<crate::harness::Harness>,
+}
+
+/// Where a reference inserted into a session should be aimed.
+#[derive(Debug, Clone)]
+pub struct Target {
+    /// The override if there is one, else what was detected, else a plain shell.
+    pub harness: crate::harness::Harness,
+    pub detected: Option<crate::harness::Harness>,
+    pub overridden: Option<crate::harness::Harness>,
+    /// The harness process's own working directory. `None` when nothing was
+    /// detected or the OS would not say, in which case paths stay absolute.
+    pub cwd: Option<std::path::PathBuf>,
+    pub family: crate::quoting::ShellFamily,
 }
 
 /// Every live pty, keyed by the session id `ShellState` handed out.
@@ -257,6 +273,7 @@ impl PtySessions {
                 child,
                 backlog,
                 shell: name.clone(),
+                harness_override: None,
             },
         );
 
@@ -337,6 +354,48 @@ impl PtySessions {
         // in there.
         self.write(id, &text);
         Some(text)
+    }
+
+    /// What is running in this session and how to write a reference for it.
+    /// Walks the shell's descendants once; call it on a drop or a paste, not on
+    /// a timer. `None` for a session that no longer exists.
+    pub fn target(&self, id: &str) -> Option<Target> {
+        let (family, overridden) = {
+            let map = self.inner.lock_or_panic();
+            let s = map.get(id)?;
+            (
+                crate::quoting::ShellFamily::of(&s.shell),
+                s.harness_override,
+            )
+        };
+        let found = self
+            .pid(id)
+            .and_then(|pid| crate::harness::detect(&crate::harness::descendants(pid)));
+        let detected = found.as_ref().map(|d| d.harness);
+        let harness = overridden
+            .or(detected)
+            .unwrap_or(crate::harness::Harness::Shell);
+        // A working directory only means something for the process it belongs to.
+        let cwd = found.filter(|d| d.harness == harness).and_then(|d| d.cwd);
+        Some(Target {
+            harness,
+            detected,
+            overridden,
+            cwd,
+            family,
+        })
+    }
+
+    /// `None` puts the session back on auto-detection. `false` when the session
+    /// is gone.
+    pub fn set_harness_override(&self, id: &str, choice: Option<crate::harness::Harness>) -> bool {
+        match self.inner.lock_or_panic().get_mut(id) {
+            Some(s) => {
+                s.harness_override = choice;
+                true
+            }
+            None => false,
+        }
     }
 
     /// Tell the pty its viewport changed. Load-bearing for TUIs: a program
