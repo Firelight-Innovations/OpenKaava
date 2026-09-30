@@ -48,8 +48,18 @@ export default function SearchOverlay({
   onSubmit,
   onClose,
 }: SearchOverlayProps) {
-  const { rows, searching, parsed, activeIndex, setActiveIndex, focus, kinds, toggleKind } =
-    session;
+  const {
+    rows,
+    searching,
+    error,
+    truncated,
+    parsed,
+    activeIndex,
+    setActiveIndex,
+    focus,
+    kinds,
+    toggleKind,
+  } = session;
   const inputRef = useRef<HTMLInputElement>(null);
   const wide = useMinWidth(PREVIEW_MIN_WIDTH);
 
@@ -139,6 +149,8 @@ export default function SearchOverlay({
             <ResultsRegion
               rows={rows}
               searching={searching}
+              error={error}
+              truncated={truncated}
               // The needle, not the raw field text: a field holding only
               // filters has nothing to search *for* yet, and "no results"
               // would blame the filter for a term that was never given.
@@ -207,6 +219,8 @@ function KindChip({
 function ResultsRegion({
   rows,
   searching,
+  error,
+  truncated,
   needle,
   root,
   activeIndex,
@@ -215,6 +229,8 @@ function ResultsRegion({
 }: {
   rows: ResultRow[];
   searching: boolean;
+  error: string | null;
+  truncated: boolean;
   needle: string;
   root: string | null;
   activeIndex: number;
@@ -241,6 +257,7 @@ function ResultsRegion({
 
   if (root === null) return <Empty title="No project open in this cluster" />;
   if (needle.trim() === "") return <Empty title="Search this project" />;
+  if (error !== null) return <Empty title="Search failed" detail={error} />;
   if (rows.length === 0) return <Empty title={searching ? "Searching…" : "No results"} />;
 
   return (
@@ -273,6 +290,11 @@ function ResultsRegion({
           </Fragment>
         );
       })}
+      {truncated && (
+        <div className="search-dialog__note">
+          Partial results: the search stopped early. Narrow the query to see the rest.
+        </div>
+      )}
     </div>
   );
 }
@@ -340,10 +362,11 @@ function MatchRow({
   );
 }
 
-function Empty({ title }: { title: string }) {
+function Empty({ title, detail }: { title: string; detail?: string }) {
   return (
     <div className="search-dialog__empty">
       <p className="search-dialog__empty-title">{title}</p>
+      {detail && <p className="search-dialog__empty-detail">{detail}</p>}
     </div>
   );
 }

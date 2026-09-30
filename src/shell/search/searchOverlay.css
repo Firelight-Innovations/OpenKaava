@@ -229,6 +229,18 @@
   font: var(--type-body);
 }
 
+.search-dialog__empty-detail {
+  margin: var(--space-1) 0 0;
+  color: var(--txt-placeholder);
+  font: var(--type-caption);
+}
+
+.search-dialog__note {
+  padding: var(--space-2);
+  color: var(--txt-placeholder);
+  font: var(--type-caption);
+}
+
 .search-dialog__preview {
   flex: 1;
   min-width: 0;
