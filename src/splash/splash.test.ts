@@ -2,17 +2,13 @@
 //
 // `splash.html` is standalone and cannot import `tokens.css`, so its copies of
 // the tokens and its head script are checked from here. jsdom is for the script.
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   SPLASH_APPEARANCE_KEY,
   serializeSplashAppearance,
 } from "../shell/settings/splashAppearance";
-
-const root = resolve(__dirname, "../..");
-const splash = readFileSync(resolve(root, "splash.html"), "utf8");
-const tokens = readFileSync(resolve(root, "src/tokens.css"), "utf8");
+import splash from "../../splash.html?raw";
+import tokens from "../tokens.css?raw";
 
 /** The `--name: value` declarations of the first block whose selector is `selector`. */
 function declarations(css: string, selector: string): Map<string, string> {
