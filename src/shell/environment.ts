@@ -129,3 +129,14 @@ export const ENVIRONMENT_BAR_LABEL: Record<EnvironmentKind, string> = {
   main: "Main",
   design: "Design canvas",
 };
+
+/** The sentence every disabled write affordance carries as its tooltip. The
+ *  backend's refusal (`AppError::ReadOnlyMain`) says the same thing. */
+export const READ_ONLY_HINT = "main is read-only — open a worktree to edit";
+
+/** Whether writes are refused in this environment. Cosmetic: Rust is the
+ *  authority (`environments::refuse_write_on_main`), this only stops the UI
+ *  offering what will be refused. */
+export function isReadOnly(env: Environment | null): boolean {
+  return env?.kind === "main";
+}

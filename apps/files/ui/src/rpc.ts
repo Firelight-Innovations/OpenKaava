@@ -37,6 +37,9 @@ export interface Root {
   path: string;
   /** The folder's last component, for the explorer header. */
   name: string;
+  /** The cluster is browsing main; every write method is refused. The menu
+   *  greys out its write items on this, and the backend refuses regardless. */
+  readOnly?: boolean;
 }
 
 export interface Stat {

@@ -48,6 +48,15 @@
   outline: none;
 }
 
+/* A write item in a read-only (main) cluster. Dimmed and inert on hover; the
+   tooltip carries the reason. */
+.menu__item:disabled,
+.menu__item:disabled:hover {
+  opacity: 0.45;
+  background: none;
+  color: var(--text);
+}
+
 /* The item that destroys something. `--err` is the palette's "this is a loss"
    colour, and that is what a delete is from the file's point of view. It is a
    mark, not a guard — the guard is the confirmation bar the item opens. */
