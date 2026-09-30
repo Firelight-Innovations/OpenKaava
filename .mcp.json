@@ -1,18 +1,3 @@
 {
-  "mcpServers": {
-    "kaava-debug": {
-      "headers": {
-        "Authorization": "Bearer ${KAAVA_MCP_TOKEN}"
-      },
-      "type": "http",
-      "url": "http://127.0.0.1:${KAAVA_MCP_PORT}/mcp/debug"
-    },
-    "kaava-echo": {
-      "headers": {
-        "Authorization": "Bearer ${KAAVA_MCP_TOKEN}"
-      },
-      "type": "http",
-      "url": "http://127.0.0.1:${KAAVA_MCP_PORT}/mcp/echo"
-    }
-  }
+  "mcpServers": {}
 }

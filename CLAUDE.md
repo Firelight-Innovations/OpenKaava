@@ -29,7 +29,11 @@ another agent's; ask instead.
 
 **`pnpm probe` reads the live app.** It talks to the `kaava-debug` MCP server the orchestrator
 hosts, and works from any terminal — you do not have to be inside OpenKaava, and nothing has to be
-launched or restarted:
+launched or restarted. `kaava-debug` (like `kaava-echo`, `kaava-ui` and `kaava-agent`) is a
+**developer** server: it is served only while `developer.mode` is on **and** its own switch under
+Settings → MCP servers is on. If `pnpm probe` says the server is not served, ask Braden to turn on
+developer mode and the Debug server — or use your own instance (`pnpm ui launch`, below), which has
+both on:
 
 ```sh
 pnpm probe                    # list the tools
@@ -109,9 +113,10 @@ Every `schematify/*` method except `schematify/state` needs an open project, so
 `set_project` comes first. All of them except `state` also require an `actor` of
 `"human"` or `"agent"` — send `"agent"`; `"system"` is never accepted.
 
-`kaava-ui` and `kaava-debug` are still registered and still work. Prefer
-`kaava-debug` for a **release** build — it is the one that is there without
-developer mode.
+`kaava-ui` and `kaava-debug` are still registered and still work, and both are
+developer-only like `agent` — `pnpm ui launch` switches `debug` and `echo` on
+along with `ui` and `agent`, so `pnpm probe --agent` keeps working. No server here
+is served in an ordinary build without developer mode.
 
 `--agent` is what points the probe at the instance `pnpm ui launch` started
 rather than at an OpenKaava Braden is using. **Do not drop it**, and do not drive his

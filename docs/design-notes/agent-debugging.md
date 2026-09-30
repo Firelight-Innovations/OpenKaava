@@ -100,7 +100,9 @@ user sitting in front of it. This is for finding out what happened.
 
 ### Why it ships in release
 
-`debug` is registered unconditionally, and for a reason that will outlast echo's:
+`debug` is registered in every build but is `dev_only`: it is served only with
+`developer.mode` on and its own switch on, like `ui` and `agent`. A `cfg` would
+have removed it from release entirely, which is the wrong trade:
 the builds worth debugging include the release one. A shipped OpenKaava that
 misbehaves on a machine none of us have is exactly the case where reading its
 layout and its failures is worth the most, and a server compiled out of that
