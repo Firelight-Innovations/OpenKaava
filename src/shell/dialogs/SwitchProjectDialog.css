@@ -49,7 +49,18 @@
   border: none;
 }
 
-.switch-project__search-field:focus-visible {
+/* The ring belongs to the whole rounded box, not the bare input inset inside
+   it. `.k-dialog` is in the second selector because `dialogs.css` rings every
+   input in a dialog at that specificity, and a plain class here loses to it —
+   which is how the ring ended up on the inner field in the first place. */
+.switch-project__search:focus-within {
+  border-color: var(--accent);
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.k-dialog .switch-project__search-field:focus,
+.k-dialog .switch-project__search-field:focus-visible {
   outline: none;
 }
 
