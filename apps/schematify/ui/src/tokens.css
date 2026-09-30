@@ -46,12 +46,12 @@
   /* --- 13.3 accent and semantic -------------------------------------------
      --kv-ok carries the meaning of readiness (PRD §13.3) — never use it for
      plain decoration. */
-  --kv-accent: #d98a3f;
+  --kv-accent: var(--accent); /* follows the accent setting, not the wireframe's fixed amber */
   --kv-ok: #5fb37a;
   --kv-warn: #d9a93f;
   --kv-error: #d9635f;
   --kv-agent: #956fd9;
-  --kv-accent-hover: #e2a35f; /* [P], derived — see header */
+  --kv-accent-hover: var(--accent-hover);
   --kv-info: #5f95d9; /* [P] in PRD §13.3 itself — an informational-mark proposal, not read from a wireframe */
 
   /* --- 13.4 typography ----------------------------------------------------
@@ -86,7 +86,7 @@
   /* --- Wave 4 node anatomy (PRD §12.6-§12.8) -------------------------------
      3 translucent washes, derived from existing `[W]` tokens rather than
      repeating WIREFRAME-EXTRACT.md §1.3's own literal `rgba(...)` values
-     (`rgba(217,138,63,…)` accent family, `rgba(95,179,122,.14)` ok family) —
+     (the accent family, `rgba(95,179,122,.14)` ok family) —
      a `color-mix` against `transparent` reaches the same translucency without
      a 2nd literal colour to keep in step with the 3 solid tokens above.
      `--kv-warn-wash` has no wireframe-drawn counterpart (`stale`'s diagonal

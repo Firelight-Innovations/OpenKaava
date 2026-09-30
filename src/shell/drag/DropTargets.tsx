@@ -21,7 +21,7 @@ const fade = {
  * undecided ("NOT DECIDED — DO NOT INVENT"). This outline is decoration for
  * the drag, not a claim about that size: a fixed, modest rectangle near the
  * ghost, in the same dashed-accent treatment the crop draws
- * (`1.5px dashed rgba(217,138,63,.6)`, 5px radius, `--accent-wash-faint`
+ * (`1.5px dashed` at .6 of the accent, 5px radius, `--accent-wash-faint`
  * fill — the .6 border alpha has no matching named token, so it's kept
  * literal here rather than forced onto a nearby one).
  */
