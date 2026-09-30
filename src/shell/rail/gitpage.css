@@ -1,0 +1,78 @@
+/* The Git page's tab row and its two bodies (`GitPage.tsx`). The header, the
+   box and its width belong to `DockedPage`/`ExpandedPage` and `Frame`; this
+   file only styles what `GitPage` draws inside them. */
+
+/* `height: 100%` fills the docked body, a block box. `flex: 1` fills the
+   expanded body, which is a flex row. Both are needed: this one component
+   renders into either. */
+.k-git-page {
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The same height as the pane tab strip, so the page's content starts on the
+   same line as the panes beside it. */
+.k-git-page__tabs {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  height: var(--h-paneltabs);
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.k-git-page__tab {
+  position: relative;
+  flex: none;
+  padding: 0 8px;
+  border: none;
+  background: transparent;
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--txt-tertiary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.k-git-page__tab:hover {
+  color: var(--txt-secondary);
+}
+
+.k-git-page__tab[data-active] {
+  color: var(--txt-primary);
+}
+
+/* On the row's own bottom border rather than above it, so the rule and the
+   border read as one line. */
+.k-git-page__tab[data-active]::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -1px;
+  height: 1px;
+  background: var(--accent);
+}
+
+.k-git-page__tab:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.k-git-page__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* `hidden` loses to `display` set by a class, so it is restated here. */
+.k-git-page__body[hidden] {
+  display: none;
+}

@@ -1,6 +1,6 @@
 /**
- * The source-control tab's body — plugs into `SecondaryPanel`'s `worktreeView`
- * slot (src/shell/panel/SecondaryPanel.tsx, `worktreeView?: ReactNode`).
+ * The source-control tab's body, composed into `WorktreePanel`, which is what
+ * the rail's Git page (src/shell/rail/GitPage.tsx) shows in its `worktreeView`.
  *
  * Replaces `WorktreeView`, which rendered one flat change list from a
  * subscription and had nowhere to put the index. This is the whole MVP loop:
@@ -31,8 +31,8 @@ import "./worktree.css";
 
 /**
  * Lazy because this reaches `DiffView`, which pulls in Monaco and its worker
- * chunk the moment the module is evaluated, and `SecondaryPanel` keeps this
- * view mounted for the life of the window — a static import would make every
+ * chunk the moment the module is evaluated, and the Git page keeps this view
+ * mounted for as long as it is open — a static import would make every
  * window pay for Monaco at startup to render a pane most sessions never open.
  * The import starts on the first click of a file, which is also when the diff
  * request goes out.

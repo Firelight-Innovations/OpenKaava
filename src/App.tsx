@@ -4,6 +4,7 @@ import { cachedStack, loadStack, onLibraryOpen, type StackSnapshot } from "./bin
 import WindowRoot from "./shell/WindowRoot";
 import SettingsScreen from "./shell/settings/SettingsScreen";
 import { useSettings } from "./shell/settings/useSettings";
+import { readCopilotAction } from "./shell/settings/copilotSetting";
 import { useAppearance } from "./shell/settings/appearance";
 import { useSettingsSurface } from "./shell/settingsSurface";
 import LibraryScreen from "./shell/library/LibraryScreen";
@@ -68,6 +69,7 @@ export default function App() {
 
   const settings = useSettings();
   useAppearance(settings);
+  const copilotAction = readCopilotAction(settings);
   const settingsSurface = useSettingsSurface();
   const librarySurface = useLibrarySurface();
   const shortcutsSurface = useShortcutsSurface();
@@ -88,6 +90,7 @@ export default function App() {
         error={error}
         rescanning={busy}
         onRescan={() => void rescan()}
+        copilotAction={copilotAction}
       />
       {/* Mounted only while open, so a window nobody has opened settings in
           never pays for the screen's tree — and `AnimatePresence` is what keeps

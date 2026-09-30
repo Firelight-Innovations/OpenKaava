@@ -1,200 +1,14 @@
 /*
- * The secondary panel: its header, its body, its collapsed strip, and the
- * close confirmation. This renders into `.frame__panel`, which already owns
- * the panel's width, background, and the collapse animation
- * (src/shell/frame/frame.css) — nothing here repeats those, and nothing here
- * sets a width.
+ * The terminal close confirmation. `BottomPanel` renders `CloseConfirm`, and
+ * the dialog still styles itself from here rather than from bottompanel.css,
+ * because it is one dialog and duplicating its surface is how two copies of it
+ * start to disagree.
  *
- * The tab row this file used to describe at length is gone along with the
- * terminals it listed; see SecondaryPanel.tsx for where they went and why the
- * row did not stay behind. The scrolling strip, its two pinned groups, the
- * sliding accent rule and the dual-slot body all went with it — a panel with
- * one view in it has nothing to switch between and nothing to keep mounted
- * while something else is on screen.
- *
- * The close-confirmation rules at the bottom are the exception: `BottomPanel`
- * renders `CloseConfirm` now, and it still styles itself from here rather than
- * from bottompanel.css, because the dialog is one dialog and duplicating its
- * surface is how two copies of it start to disagree.
+ * This file used to style the secondary panel as well: its header, its view
+ * list, its body and its collapsed strip. That panel is gone. Source control
+ * and GitHub are tabs on the rail's Git page now (`rail/GitPage.tsx`), so the
+ * window has one right-hand sidebar instead of two.
  */
-
-.panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  /* Positioning context for the close-confirmation scrim, which covers only
-     this box, not the window. */
-  position: relative;
-}
-
-/* --- the header ------------------------------------------------------------
-   The same height as the row it replaced (`--h-paneltabs`), so the panel's
-   contents still start on the same line as the tool window's and the band's
-   do. A title and one button, where there used to be an unbounded number of
-   tabs — nothing here scrolls, and nothing here can overflow. */
-
-.panel__head {
-  flex: none;
-  display: flex;
-  align-items: center;
-  height: var(--h-paneltabs);
-  padding: 0 2px 0 12px;
-  border-bottom: 1px solid var(--line);
-}
-
-.panel__headtitle {
-  flex: 1;
-  min-width: 0;
-  font-family: var(--sans);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-dim-2);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* --- the view list --------------------------------------------------------
-   What the header draws in place of a title once there is more than one view.
-   The names keep `panel__headtitle`'s size and letter-spacing, so the header's
-   line does not shift when the second view appears; the selected one takes
-   `--text` and an accent rule, which is how every other selected tab in the
-   shell is marked. Nothing here scrolls — there are two and there will be few,
-   which is the whole reason this is a list rather than the segmented row that
-   used to live here. */
-
-.panel__views {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: stretch;
-  height: 100%;
-  gap: 2px;
-}
-
-.panel__view {
-  position: relative;
-  flex: none;
-  padding: 0 8px;
-  border: none;
-  background: transparent;
-  font-family: var(--sans);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-dim-2);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.panel__view:hover {
-  color: var(--text-dim);
-}
-
-.panel__view--on {
-  color: var(--text);
-}
-
-/* On the header's own bottom border rather than above it, so the rule and the
-   border read as one line instead of two a pixel apart. */
-.panel__view--on::after {
-  content: "";
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: -1px;
-  height: 1px;
-  background: var(--accent);
-}
-
-.panel__collapsebtn {
-  flex: none;
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: none;
-  border-radius: 3px;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-}
-
-.panel__collapsebtn:hover {
-  background: var(--surface-2);
-  color: var(--text);
-}
-
-/* --- the body ------------------------------------------------------------
-   One slot now. The second one existed to keep a terminal emulator mounted
-   while the worktree was on screen — unmounting an emulator loses its
-   scrollback and whatever its running program had drawn — and there is no
-   longer anything in this panel to switch away to. */
-
-.panel__body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-/* --- the collapsed strip -------------------------------------------------
-   34px wide (--w-panel-collapsed, owned by Frame). A column of fixed items
-   pinned to the top, not stretched to fill the window's height. */
-
-.panel__collapsed {
-  align-items: center;
-  justify-content: flex-start;
-  padding: 8px 0;
-  gap: 12px;
-}
-
-.panel__restorebtn {
-  flex: none;
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-}
-
-/* The branch name, read bottom-to-top. Clipped rather than left to run past
-   the window's own height — a long branch name is common and a strip that
-   overflowed the frame would push the status bar off screen. */
-.panel__collapsed-label {
-  flex: 0 1 auto;
-  min-height: 0;
-  writing-mode: vertical-rl;
-  font-family: var(--sans);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1;
-  color: var(--text);
-  letter-spacing: 0.05em;
-  padding: 8px 0;
-  border-left: 2px solid var(--accent);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.panel__collapsed-branch {
-  flex: none;
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-dim-2);
-}
 
 /* --- the close confirmation ------------------------------------------------
    A modal centred over the terminal band, with a scrim covering only the
@@ -203,11 +17,10 @@
    other floating panel in the shell (switcher.css's health popover); only
    the scrim and the centring are specific to this one.
 
-   Still in this file rather than in bottompanel.css, and the `panel__`
-   prefix is honest about where it started. `CloseConfirm` is one component
-   with one appearance, and the region that renders it changed — moving these
-   rules would mean either a second copy or a rename touching a file that has
-   nothing else to do with the move. */
+   The `panel__` prefix is honest about where it started. `CloseConfirm` is
+   one component with one appearance, and the region that renders it changed
+   — moving these rules would mean either a second copy or a rename touching
+   a file that has nothing else to do with the move. */
 
 .panel__confirm-scrim {
   position: absolute;
