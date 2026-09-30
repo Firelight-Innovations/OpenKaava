@@ -529,7 +529,9 @@ export function addShapes(
         if (ref === undefined) return null;
         if (Array.isArray(ref)) return [ox + ref[0], oy + ref[1]];
         const hit = placed.get(ref);
-        return hit ? [hit.box.x + hit.box.width / 2, hit.box.y + hit.box.height / 2] : null;
+        if (!hit)
+          throw new Error(`\`${s.id}\` points at \`${ref}\`, which is not a shape in this spec`);
+        return [hit.box.x + hit.box.width / 2, hit.box.y + hit.box.height / 2];
       };
       const a = centre(s.from);
       const b = centre(s.to);

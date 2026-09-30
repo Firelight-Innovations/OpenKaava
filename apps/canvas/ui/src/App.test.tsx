@@ -551,4 +551,109 @@ describe("Canvas app", () => {
       expect(screen.queryByText("Sent")).toBeNull();
     });
   });
+
+  describe("comments", () => {
+    /** The fake backend plus an in-memory comment sidecar, like `comments.rs`. */
+    const withComments = () => {
+      fake({
+        readOnly: false,
+        rows: [{ id: "world", title: "World", parent: null, error: null }],
+        reads: { world: scene(1) },
+      });
+      const base = bridge.invoke.getMockImplementation()!;
+      const store: Record<string, unknown>[] = [];
+      bridge.invoke.mockImplementation(async (m: string, p?: Record<string, unknown>) => {
+        switch (m) {
+          case "canvas/refs":
+            return { refs: [], dir: "canvas/world/refs" };
+          case "canvas/list-comments":
+            return {
+              comments: store,
+              open: store.filter((c) => c.status === "open").length,
+              total: store.length,
+              unreadable: [],
+            };
+          case "canvas/create-comment": {
+            const c = {
+              id: `c${store.length + 1}`,
+              frameId: p!.diagram,
+              elementIds: p!.elementIds ?? [],
+              region: p!.region ?? null,
+              text: p!.text,
+              author: p!.actor,
+              createdAt: "2026-09-30T10:00:00Z",
+              status: "open",
+              resolution: null,
+            };
+            store.push(c);
+            return c;
+          }
+          case "canvas/resolve-comment": {
+            const c = store.find((x) => x.id === p!.commentId)!;
+            c.status = "resolved";
+            c.resolution = { note: p!.note, by: p!.actor, at: "2026-09-30T11:00:00Z" };
+            return c;
+          }
+          default:
+            return base(m, p);
+        }
+      });
+      return store;
+    };
+
+    it("posts a comment on the selection as the human, then resolves it with a note", async () => {
+      const store = withComments();
+      render(<App />);
+      await screen.findByText("1 elements");
+      fireEvent.click(screen.getByText("select frame"));
+      fireEvent.click(screen.getByRole("tab", { name: /Comments/ }));
+      fireEvent.click(await screen.findByText("On selection"));
+      fireEvent.change(screen.getByLabelText("Comment"), {
+        target: { value: "The ward is too narrow" },
+      });
+      fireEvent.click(screen.getByText("Post"));
+      await waitFor(() => expect(store).toHaveLength(1));
+      expect(
+        bridge.invoke.mock.calls.find((c) => c[0] === "canvas/create-comment")![1],
+      ).toEqual({
+        id: "world",
+        diagram: "f1",
+        elementIds: ["f1"],
+        text: "The ward is too narrow",
+        actor: "human",
+      });
+      expect(await screen.findByText("The ward is too narrow")).toBeTruthy();
+      expect(screen.getByLabelText("1 open")).toBeTruthy();
+
+      fireEvent.click(screen.getByText("Resolve"));
+      fireEvent.change(screen.getByLabelText("Resolution note"), {
+        target: { value: "Widened to 6 m" },
+      });
+      fireEvent.click(screen.getAllByText("Resolve")[0]!);
+      await waitFor(() => expect(store[0]!.status).toBe("resolved"));
+      await waitFor(() => expect(screen.queryByLabelText("1 open")).toBeNull());
+      expect(screen.getByText("No open comments.")).toBeTruthy();
+    });
+
+    it("says why when nothing is selected", async () => {
+      withComments();
+      render(<App />);
+      await screen.findByText("1 elements");
+      fireEvent.click(screen.getByRole("tab", { name: /Comments/ }));
+      const on = (await screen.findByText("On selection")).closest("button") as HTMLButtonElement;
+      expect(on.disabled).toBe(true);
+      expect(screen.queryByLabelText("Comment")).toBeNull();
+    });
+
+    it("collapses the panels to a strip and remembers it", async () => {
+      withComments();
+      render(<App />);
+      await screen.findByText("1 elements");
+      fireEvent.click(screen.getByLabelText("Hide panels"));
+      expect(screen.queryByRole("tabpanel")).toBeNull();
+      expect(JSON.parse(localStorage.getItem("canvas.side")!)).toMatchObject({ collapsed: true });
+      fireEvent.click(screen.getByRole("tab", { name: /Diagrams/ }));
+      expect(screen.getByRole("tabpanel")).toBeTruthy();
+    });
+  });
 });

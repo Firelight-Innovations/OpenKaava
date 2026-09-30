@@ -22,6 +22,8 @@ interface Props {
   /** Put the card's JSON where the agent reads it. */
   putCard: (name: string, json: string) => Promise<ContextRef>;
   onSendError: (message: string) => void;
+  /** This canvas's stored reference images, offered as one-click links. */
+  refs?: { name: string; path: string }[];
 }
 
 /**
@@ -36,6 +38,7 @@ export default function SpecPanel({
   onRemove,
   putCard,
   onSendError,
+  refs = [],
 }: Props) {
   const [draft, setDraft] = useState<SpecDraft>(() => cardToDraft(stored));
   const [touched, setTouched] = useState(false);
@@ -109,7 +112,7 @@ export default function SpecPanel({
   );
 
   return (
-    <aside className="cv__spec" aria-label="Spec card">
+    <section className="cv__spec" aria-label="Spec card">
       <div className="cv__spec-head">
         <strong>{stored ? "Spec card" : "Make a spec card"}</strong>
         <span className={`cv__state cv__state--${draft.status}`}>{draft.status}</span>
@@ -137,6 +140,28 @@ export default function SpecPanel({
           onChange={(e) => set("reference_images", e.target.value)}
         />
       </label>
+      {!readOnly && refs.length > 0 && (
+        <div className="cv__row" role="group" aria-label="Link a stored reference image">
+          {refs
+            .filter((r) => !draft.reference_images.split("\n").some((l) => l.trim() === r.path))
+            .map((r) => (
+              <button
+                key={r.path}
+                type="button"
+                className="cv__chip"
+                title={r.path}
+                onClick={() =>
+                  set(
+                    "reference_images",
+                    [draft.reference_images.trim(), r.path].filter(Boolean).join("\n"),
+                  )
+                }
+              >
+                + {r.name}
+              </button>
+            ))}
+        </div>
+      )}
       <label className="cv__field">
         <span>Review state</span>
         <select
@@ -189,6 +214,6 @@ export default function SpecPanel({
           {exported.json}
         </pre>
       )}
-    </aside>
+    </section>
   );
 }
