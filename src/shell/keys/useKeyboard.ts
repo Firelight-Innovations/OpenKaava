@@ -52,8 +52,8 @@ export interface KeyboardActions {
   // --- View -----------------------------------------------------------------
   /** Ctrl+Shift+P */
   commandPalette(): void;
-  /** Ctrl+B */
-  togglePanel(): void;
+  /** Ctrl+B — opens or closes the rail's Git page, which holds source control. */
+  toggleSourceControl(): void;
   /** Ctrl+` */
   toggleTerminal(): void;
   /** F11 */
@@ -125,7 +125,7 @@ export const CHORDS: Record<string, Chord> = {
     shift: (a) => a.commandPalette,
   },
   b: {
-    plain: (a) => a.togglePanel,
+    plain: (a) => a.toggleSourceControl,
     shift: null,
   },
   "\\": {
