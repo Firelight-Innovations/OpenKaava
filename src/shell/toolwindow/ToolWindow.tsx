@@ -20,7 +20,8 @@ import type {
 } from "../contract";
 import { paneLeaves, paneOfTab, paneTabs } from "../contract";
 import { activateInstance, openInstance, setInstanceTitle } from "../state/shellState";
-import { declaredSubject, getSubject, planViewerOpen, setSubject } from "../viewerSubjects";
+import { clearsSubject, declaredSubject, getSubject, setSubject } from "../viewerSubjects";
+import { resolveViewerTarget as planViewerTarget } from "../viewerTarget";
 import { baseNameOf } from "../viewerTitle";
 // The wire types come from `@openkaava/bridge`'s `protocol`/`errors` subpaths
 // rather than its root entry. The root package does depend on `@openkaava/bridge`
@@ -304,6 +305,8 @@ const ToolWindow = forwardRef<
   const hosts = useRef<Map<string, HTMLDivElement>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
   const [rects, setRects] = useState<Map<string, PaneRect>>(() => new Map());
+  const rectsRef = useRef(rects);
+  rectsRef.current = rects;
 
   // Re-measure every pane host against the container. Called on mount, on any
   // host arriving or leaving, and from a `ResizeObserver` — a divider drag and
@@ -676,25 +679,45 @@ const ToolWindow = forwardRef<
 
   /**
    * Which File Viewer shows `path`. One viewer is one file, so this is not
-   * `resolveOpenTarget`'s "first instance of the app": `planViewerOpen` picks
-   * the instance already showing the file, the cluster's peek, or an empty one,
-   * and only otherwise is a new viewer opened — as a tab in the pane the
-   * cluster's viewers already share, so files collect in one place.
+   * `resolveOpenTarget`'s "first instance of the app": `viewerTarget.ts` picks
+   * the instance already showing the file, an empty one, or the cluster's peek,
+   * and only otherwise opens a new viewer, in the pane that last had a viewer
+   * focused and never beside the requester if another pane exists.
    *
    * The subject is recorded here, before the viewer has said anything, or two
    * quick opens of one file would both find no instance and open two.
    */
+  const focusedPaneRef = useRef(focusedPaneId);
+  focusedPaneRef.current = focusedPaneId;
+  const lastViewerPane = useRef<string | null>(null);
+
   const resolveViewerTarget = useCallback(
-    async (path: string, preview: boolean): Promise<string> => {
-      const viewerIds = paneTabs(layout.current).filter((id) => {
+    async (path: string, preview: boolean, sourceInstance?: string): Promise<string> => {
+      const isViewer = (id: string) => {
         const instance = roster.current.get(id);
-        return instance && instance.kind !== "terminal" && instance.appId === VIEWER_APP;
+        return !!instance && instance.kind !== "terminal" && instance.appId === VIEWER_APP;
+      };
+      const viewerIds = paneTabs(layout.current).filter(isViewer);
+      const panes = paneLeaves(layout.current).map((leaf) => {
+        const rect = rectsRef.current.get(leaf.id);
+        return { id: leaf.id, tabs: leaf.tabs, area: rect ? rect.width * rect.height : 0 };
       });
-      const plan = planViewerOpen(viewerIds, getSubject, path, preview);
+      const focused = panes.find((pane) => pane.id === focusedPaneRef.current);
+      if (focused?.tabs.some(isViewer)) lastViewerPane.current = focused.id;
+      const plan = planViewerTarget(
+        {
+          panes,
+          viewerIds,
+          subjectOf: getSubject,
+          lastViewerPaneId: lastViewerPane.current,
+          sourcePaneId: sourceInstance ? paneOfTab(layout.current, sourceInstance) : null,
+        },
+        path,
+        preview,
+      );
       let id: string;
       if (plan.kind === "new") {
-        const anchor = viewerIds.length > 0 ? paneOfTab(layout.current, viewerIds[0]) : null;
-        id = await openInstance(windowLabel(), VIEWER_APP, anchor ?? undefined);
+        id = await openInstance(windowLabel(), VIEWER_APP, plan.paneId);
       } else {
         id = plan.id;
         void activateInstance(id);
@@ -862,6 +885,7 @@ const ToolWindow = forwardRef<
      * shell from accumulating a table of every app's vocabulary.
      */
     function answerOpen(
+      frameId: string,
       params: unknown,
       respond: (body: Omit<ResponseMessage, "kaava" | "kind">) => void,
       id: ResponseMessage["id"],
@@ -882,7 +906,7 @@ const ToolWindow = forwardRef<
       // two fields that decide *which* viewer — the rest goes through as is.
       const file = viewerFileRequest(target.appId, target.payload);
       const resolved = file
-        ? resolveViewerTarget(file.path, file.preview)
+        ? resolveViewerTarget(file.path, file.preview, frameId)
         : resolveOpenTarget(target.appId);
       void resolved
         .then((instanceId) => {
@@ -1014,6 +1038,7 @@ const ToolWindow = forwardRef<
         // A File Viewer also says which file that title is, and whether it is
         // a peek or holds unsaved edits. See `viewerSubjects.ts`.
         const subject = frame.appId === VIEWER_APP ? declaredSubject(params) : null;
+        if (frame.appId === VIEWER_APP && clearsSubject(params)) setSubject(frame.id, null);
         if (subject) {
           setSubject(frame.id, {
             path: subject.path,
@@ -1065,7 +1090,7 @@ const ToolWindow = forwardRef<
       // ignore. Per-tool permissions are a later pass; see the `[permissions]`
       // table in `docs/tool-protocol.md` §1, reserved and unenforced today.
       if (method === "kaava/open") {
-        answerOpen(params, respond, id);
+        answerOpen(frame.id, params, respond, id);
         return;
       }
 

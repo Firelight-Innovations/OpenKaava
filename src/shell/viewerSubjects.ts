@@ -15,8 +15,7 @@
  * missing — every viewer saved by a build from before this one — mounts empty
  * and takes the next file it is sent, which is the same as opening a fresh one.
  *
- * Pure functions plus one small store; `planViewerOpen` is where the routing
- * rules are, and it is what the tests exercise.
+ * Where a new file goes is `viewerTarget.ts`; this file only remembers.
  */
 
 export interface Subject {
@@ -46,6 +45,15 @@ export function normalizePath(path: string): string {
   return /^[A-Za-z]:/.test(slashed) ? slashed.toLowerCase() : slashed;
 }
 
+/** True when a `kaava/title` request says the viewer no longer has a file. */
+export function clearsSubject(params: unknown): boolean {
+  return (
+    typeof params === "object" &&
+    params !== null &&
+    (params as { subject?: unknown }).subject === null
+  );
+}
+
 /** The subject fields off a `kaava/title` request, or `null` when it names none. */
 export function declaredSubject(params: unknown): DeclaredSubject | null {
   if (typeof params !== "object" || params === null) return null;
@@ -53,42 +61,6 @@ export function declaredSubject(params: unknown): DeclaredSubject | null {
   if (typeof title !== "string" || title.trim() === "") return null;
   if (typeof subject !== "string" || subject === "") return null;
   return { title, path: subject, preview: preview === true, dirty: dirty === true };
-}
-
-export type OpenPlan =
-  { kind: "focus"; id: string } | { kind: "reuse"; id: string } | { kind: "new" };
-
-/**
- * Where a request to show `path` goes, among the viewer instances of one cluster.
- *
- *  1. An instance already showing that file is brought forward.
- *  2. A peek request takes over the cluster's clean peek instance.
- *  3. An instance showing nothing takes it.
- *  4. Otherwise a new instance is opened.
- *
- * `viewerIds` is in layout order, so ties resolve to the first.
- */
-export function planViewerOpen(
-  viewerIds: readonly string[],
-  subjectOf: (id: string) => Subject | undefined,
-  path: string,
-  preview: boolean,
-): OpenPlan {
-  const want = normalizePath(path);
-  for (const id of viewerIds) {
-    const subject = subjectOf(id);
-    if (subject && normalizePath(subject.path) === want) return { kind: "focus", id };
-  }
-  if (preview) {
-    for (const id of viewerIds) {
-      const subject = subjectOf(id);
-      if (subject && subject.preview && !subject.dirty) return { kind: "reuse", id };
-    }
-  }
-  for (const id of viewerIds) {
-    if (!subjectOf(id)) return { kind: "reuse", id };
-  }
-  return { kind: "new" };
 }
 
 // --- the store ---------------------------------------------------------------

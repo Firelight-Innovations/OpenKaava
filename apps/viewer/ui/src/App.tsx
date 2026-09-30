@@ -13,7 +13,7 @@
  * What used to be props between a tree and a tab strip is messages now:
  * `OPENED_EVENT` in, `ACTIVE_PATH` and `DIRTY_PATHS` out, `TREE_CHANGE` both ways.
  */
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { invoke, on, publish, reportPainted, subscribe, OPENED_EVENT } from "@openkaava/bridge";
 import NoticeBar from "./NoticeBar";
 import { useMenuCommands } from "./commands";
@@ -202,8 +202,18 @@ export default function App() {
   const activeName = active?.name ?? null;
   const activePath = active?.path ?? null;
   const activePreview = active?.preview ?? false;
+  const hadFile = useRef(false);
   useEffect(() => {
-    if (activeName === null || activePath === null) return;
+    if (activeName === null || activePath === null) {
+      // Back to empty: the shell must forget the old file, or this viewer is
+      // never offered the next one. Not sent on mount, which would race a restore.
+      if (hadFile.current) {
+        hadFile.current = false;
+        void invoke("kaava/title", { title: "File Viewer", subject: null }).catch(() => {});
+      }
+      return;
+    }
+    hadFile.current = true;
     void invoke("kaava/title", {
       title: activeName,
       subject: activePath,
