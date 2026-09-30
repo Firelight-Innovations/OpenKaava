@@ -7,7 +7,7 @@
  * first send, not with the editor.
  */
 import { invoke } from "@openkaava/bridge";
-import type { ContextRef } from "../../../shared/context";
+import { contextKey, type ContextRef } from "../../../shared/context";
 import type { SceneElement } from "./scene";
 
 export { dragContext } from "../../../shared/context";
@@ -114,6 +114,7 @@ export async function putSelectionImage(
 ): Promise<ContextRef> {
   const noun = count === 1 ? "1 element" : `${count} elements`;
   return invoke<ContextRef>("context/put", {
+    key: contextKey("canvas", canvasTitle, "selection"),
     kind: "image",
     title: `Canvas - ${canvasTitle}, ${noun}`,
     label: `Canvas - ${canvasTitle}`,
@@ -128,6 +129,7 @@ export function specText(canvasPath: string, json: string): string {
 
 export function putSpecCard(name: string, canvasPath: string, json: string) {
   return invoke<ContextRef>("context/put", {
+    key: contextKey("canvas", canvasPath, "spec", name),
     kind: "text",
     title: `Spec - ${name}`,
     label: `Spec - ${name}`,

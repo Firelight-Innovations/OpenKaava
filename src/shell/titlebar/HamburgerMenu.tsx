@@ -1,5 +1,5 @@
 /**
- * The six menus collapsed into one button, <1100px.
+ * The six menus collapsed into one button, <1180px.
  *
  * "Opens the same menu tree" — so this renders the same six `Menu` objects
  * `MenuBar` does, through the same `MenuItemList`, just reached through one
@@ -63,6 +63,8 @@ export default function HamburgerMenu({ menus }: { menus: Menu[] }) {
         type="button"
         className="hamburger__button"
         aria-label="Menu"
+        aria-haspopup="menu"
+        aria-expanded={open}
         data-open={open || undefined}
         onClick={() => (open ? closeAll() : setOpen(true))}
       >

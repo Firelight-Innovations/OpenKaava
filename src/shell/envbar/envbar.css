@@ -1,72 +1,49 @@
 /*
- * The environment bar. `docs/design/KAAVA-UX-SPEC.md` §1.4 — measurements and
- * the worktree/cloud colour pairs are lifted from that table; the `main`
- * variant is this file's own, undrawn by any board (see `EnvironmentBar.tsx`'s
- * header). Token fallbacks throughout, for `frame.css`'s reason: the tokens
- * workstream lands these names on a parallel branch. Where the spec itself
- * flags a colour with no token (the cloud background/border, `#a3b4d6`'s
- * muted-info text), the hex from the table is the fallback rather than a
- * guessed token name.
+ * The environment summary, drawn inside the title bar's left cell.
+ *
+ * It was a 36px card of its own; it is now a run of chips on the bar itself, so
+ * it takes no ground, border or radius of its own beyond the kind chip. Type
+ * and colour are the shell tokens the rest of the bar uses. The collapse order
+ * (path, then ahead/behind, then the chip's label) is the title bar's, in
+ * `titlebar.css`, because it depends on the bar's width and not on this row's.
  */
 
-/* A region card, per §1.4 — the same `bg-surface-1`, hairline and
-   `radius-region` as a pane, so it reads as the first row of the pane grid
-   rather than a floating badge. Its gutter is `.frame__envbar`'s, shared with
-   the grid. `line-height: 1` so every child's box is its glyph height and
-   `align-items: center` centres the glyphs themselves in the 34px inside the
-   border, not a taller line box with the text riding high in it. */
 .envbar {
-  flex: none;
-  height: var(--h-envbar, 36px);
-  padding: 0 6px 0 12px;
-  border-radius: var(--radius-region, 10px);
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 12.5px;
+  gap: var(--space-2);
+  padding-left: var(--space-1);
+  font: var(--type-caption);
   line-height: 1;
-}
-
-.envbar--worktree {
-  background: var(--bg-surface-1, #141415);
-  border: 1px solid var(--border-subtle, #222425);
-}
-
-.envbar--cloud {
-  background: var(--info-canvas, #121a2b);
-  border: 1px solid var(--info-border, #23365c);
-}
-
-.envbar--main {
-  background: var(--bg-surface-1, var(--surface));
-  border: 1px solid var(--border-subtle, var(--line));
-  color: var(--txt-tertiary, var(--text-dim-2));
+  overflow: hidden;
 }
 
 /* The kind chip — "Local worktree" / "Cloud session" / "Main". */
 .envbar__kind {
   flex: none;
   height: 22px;
-  padding: 0 8px;
-  border-radius: 6px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   font-size: 11.5px;
   font-weight: 600;
   white-space: nowrap;
-  background: var(--bg-layer-3, #222425);
-  color: var(--txt-primary, #e4e6e6);
+  background: var(--bg-layer-3);
+  color: var(--txt-primary);
 }
 
 .envbar--cloud .envbar__kind {
   background: var(--info-subtle, #16244a);
-  color: var(--txt-info, #a3c1ff);
+  color: var(--txt-info);
 }
 
 .envbar--main .envbar__kind {
-  background: var(--bg-layer-3, #222425);
-  color: var(--txt-secondary, #cacdce);
+  color: var(--txt-secondary);
 }
 
 .envbar__kind-icon {
@@ -74,10 +51,13 @@
 }
 
 .envbar__branch {
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-family: var(--mono);
   font-weight: 500;
-  color: var(--txt-primary, var(--text));
+  color: var(--txt-primary);
   white-space: nowrap;
 }
 
@@ -88,64 +68,57 @@
 }
 
 .envbar__ahead {
-  color: var(--txt-success, #8fdca1);
+  color: var(--txt-success);
 }
 
 .envbar__behind {
-  color: var(--txt-tertiary, #959a9d);
+  color: var(--txt-tertiary);
 }
 
 /* The on-disk path, worktree only — muted to the point of nearly not being
    there, which is deliberate: it's a reference for when you need it, not
    something the bar is asking you to read. */
 .envbar__path {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: var(--mono);
-  font-size: 11.5px;
-  color: var(--txt-disabled, #7a8185);
+  font: var(--type-mono-meta);
+  color: var(--txt-disabled);
 }
 
-/* The main variant's one line. Truncates rather than wrapping or pushing the
-   chip, and stands off the chip by the bar's own 12px inset rather than the
-   10px `gap` — at 10px the lock chip and "Browse only" read as one crowded
-   run. */
 .envbar__readonly {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
-  margin-left: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--txt-tertiary, #959a9d);
+  color: var(--txt-tertiary);
 }
 
-.envbar__spacer {
-  flex: 1;
-}
-
-/* "Review & merge" — the one worktree action. Secondary weight: a hairline
-   border on the bar's own ground, no fill. */
+/* Cloud's two actions. Neither is wired (see the header of
+   `EnvironmentBar.tsx`), so both draw disabled. */
 .envbar__action {
   flex: none;
-  height: 24px;
-  padding: 0 10px;
-  border: 1px solid var(--border-subtle, var(--line));
-  border-radius: 6px;
+  height: var(--control-sm);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-subtle-1);
+  border-radius: var(--radius-md);
   background: transparent;
-  color: var(--txt-secondary, var(--text-dim));
-  font: inherit;
-  font-size: 11.5px;
-  font-weight: 500;
+  color: var(--txt-secondary);
+  font: var(--type-caption);
   cursor: pointer;
 }
 
 .envbar__action:hover:not(:disabled) {
-  background: var(--bg-layer-1-hover, var(--surface-2));
-  color: var(--txt-primary, var(--text));
+  background: var(--bg-layer-1-hover);
+  color: var(--txt-primary);
+}
+
+.envbar__action:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
 }
 
 .envbar__action:disabled {
@@ -153,24 +126,14 @@
   opacity: 0.5;
 }
 
-/* Cloud's two actions take the spec's own colours rather than the shared
-   secondary treatment above — neither is an exact token (see the header). */
 .envbar__action--pull {
   border-color: var(--info-border-strong, #2c4478);
   background: var(--info-subtle, #16244a);
   color: var(--info-text, #dce6ff);
 }
 
-.envbar__action--pull:hover:not(:disabled) {
-  filter: brightness(1.1);
-}
-
 .envbar__action--stop {
   border: none;
-  background: var(--danger-subtle, #3a1512);
-  color: var(--txt-danger, #f4a49c);
-}
-
-.envbar__action--stop:hover:not(:disabled) {
-  filter: brightness(1.1);
+  background: var(--danger-subtle);
+  color: var(--txt-danger);
 }

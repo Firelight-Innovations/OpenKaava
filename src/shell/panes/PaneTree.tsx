@@ -22,6 +22,7 @@ import { useDropZone } from "../dropZones";
 import { paneLeaves } from "../contract";
 import type { ClusterMember, PaneNode, PaneTreeProps, SplitDir } from "../contract";
 import { dropLabel } from "../dropLabel";
+import { beginResize } from "../resizeGate";
 import { clampDividerShare, MIN_PANE_HEIGHT_PX, MIN_PANE_WIDTH_PX } from "./paneMinSize";
 import PaneTabStrip from "./PaneTabStrip";
 import "./panes.css";
@@ -57,6 +58,9 @@ export default function PaneTree(props: PaneTreeProps) {
 function Node({ node, ...props }: PaneTreeProps & { node: PaneNode }) {
   return node.kind === "leaf" ? <Pane leaf={node} {...props} /> : <Split split={node} {...props} />;
 }
+
+/** `.pane-split`'s `gap`, which `--space-1-5` sets to 6px. */
+const SEAM_PX = 6;
 
 // --- splits -----------------------------------------------------------------
 
@@ -105,7 +109,11 @@ function Split({
       }
 
       const rect = container.getBoundingClientRect();
-      const total = row ? rect.width : rect.height;
+      // The space the shares divide is the box less the seams between panes:
+      // shares are flex-grow weights over that free space, so 1:1 tracking
+      // needs the same denominator.
+      const gaps = (split.children.length - 1) * SEAM_PX;
+      const total = (row ? rect.width : rect.height) - gaps;
       if (total <= 0) return;
       // The pixel floor is on the axis the divider actually moves along: a
       // row split's panes sit side by side, so it is their *width* that must
@@ -120,6 +128,7 @@ function Split({
       const pair = before + after;
 
       let nextBefore = before;
+      const endResize = beginResize();
 
       const onMove = (ev: PointerEvent) => {
         const moved = (row ? ev.clientX : ev.clientY) - start;
@@ -128,8 +137,8 @@ function Split({
 
         const first = childRefs.current[index - 1];
         const second = childRefs.current[index];
-        if (first) first.style.flexBasis = `${nextBefore * 100}%`;
-        if (second) second.style.flexBasis = `${(pair - nextBefore) * 100}%`;
+        if (first) first.style.flexGrow = `${nextBefore}`;
+        if (second) second.style.flexGrow = `${pair - nextBefore}`;
       };
 
       const onUp = () => {
@@ -141,13 +150,15 @@ function Split({
         sizes[index - 1] = nextBefore;
         sizes[index] = pair - nextBefore;
         props.onResize(split.id, sizes);
+        // After the sizes are committed, so the one fit sees the final layout.
+        endResize();
       };
 
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
       window.addEventListener("pointercancel", onUp);
     },
-    [row, split.id, split.sizes, props],
+    [row, split.id, split.sizes, split.children.length, props],
   );
 
   return (
@@ -173,7 +184,7 @@ function Split({
             }}
             style={
               maximizedPaneId
-                ? { flexBasis: holds ? "100%" : undefined, display: holds ? undefined : "none" }
+                ? { flexGrow: holds ? 1 : undefined, display: holds ? undefined : "none" }
                 : // The authored share: a fraction of the parent, one per child,
                   // summing to 1 — the same numbers `layout::PaneNode` stores,
                   // because the window is resizable and a layout in pixels
@@ -182,7 +193,7 @@ function Split({
                   // overwrites this inline for the duration of the gesture; the
                   // next render from `shell:state` puts the committed value
                   // back, which is the same number.
-                  { flexBasis: `${(split.sizes[i] ?? 1 / split.children.length) * 100}%` }
+                  { flexGrow: split.sizes[i] ?? 1 / split.children.length }
             }
           >
             <Node node={child} {...props} />

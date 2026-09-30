@@ -82,3 +82,47 @@ for main and under `<env>/.kaava/godot-viewer/` for a worktree; run channels are
 
 What Kaava cannot prevent: Godot writes `<project>/.godot/` (import cache) whenever it loads a
 project. It is engine-generated and gitignored by every Godot template.
+
+## The 3D preview and markup
+
+The Godot Viewer's "3D" tab shows the scene as an orbitable glTF instead of one still frame. It
+needs Godot, like the tree does; "Render" is the still frame, and it is what the viewer falls back
+to, with the reason, when the export fails.
+
+**Export.** `godot/preview-glb` (params: `scene`, `actor`, optional `force`) runs
+`export_glb.gd` headless (`GLTFDocument.append_from_scene`) and answers `ready`, `running` or
+`failed`. The file is `<project>/.kaava/preview/godot/<scene-slug>.glb`, one per scene, replaced in
+place through a temp file and rename. A `.json` beside it holds the cache key and the node map. The
+key hashes the Godot version, the scene, every text scene or resource it references (by content)
+and binary assets (by size and modified time), so an unchanged scene answers `ready` without
+running Godot. Failures are remembered until `force`. On read-only main the file goes under the
+app cache instead of `.kaava`. `actor` must be `human` or `agent`; `system` is refused.
+`godot/preview-glb-bytes` hands the file to the viewer (48 MB cap).
+
+**Node paths.** three.js renames nodes it loads (spaces become `_`, and `[ ] . : /` are dropped)
+and Godot renames duplicates on export (`Crate2`). The reply's `nodeMap` maps each three.js-side
+path to the Godot scene path (`Main/Crate/Crate`), so a pin's `nodePath` in the JSON below is a
+Godot path.
+
+**Mark up.** "Mark up" opens the markup layer over the 3D view (Excalidraw loads on first use, so
+neither it nor three.js is in the viewer's first chunk). Arrows and boxes snap to nodes, and pins
+carry the picked node. Done shows the result with "Send to agent". Sending stores two items, both
+overwritten on the next send for that scene: the PNG under `godot/<scene>/markup` and the JSON
+under `godot/<scene>/markup-json` (kind text, because the store caps images at 8 MB and text at
+256 KB). If the JSON would exceed the cap the raw `excalidraw.elements` are dropped and
+`excalidrawOmitted: true` is set; pins and annotations are always kept. Moving the camera during
+markup discards it, since the drawing belongs to one view.
+
+The JSON an agent receives is the format in `docs/markup-format.md`, with the source recorded as:
+
+```json
+{
+  "version": 1,
+  "source": { "kind": "scene", "glb": ".kaava/preview/godot/main_tscn.glb",
+              "engine": "godot", "scene": "res://main.tscn", "godot": "4.7.2" },
+  "camera": { "position": [4, 3, 5], "target": [0, 1, 0], "up": [0, 1, 0], "fov": 50 },
+  "size": { "width": 640, "height": 360 },
+  "pins": [{ "n": 1, "note": "too tall", "nodePath": "Main/Crate", "worldPoint": [1, 0.5, 0] }],
+  "annotations": []
+}
+```

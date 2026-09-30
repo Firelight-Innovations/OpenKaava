@@ -106,6 +106,7 @@ pub fn ingest_drop(
         match context::put(
             root,
             PutRequest {
+                key: None,
                 kind: None,
                 title,
                 payload: Payload::Path(path.clone()),
@@ -197,6 +198,7 @@ pub fn terminal_paste_image(
     match context::put(
         &root,
         PutRequest {
+            key: None,
             kind: Some(Kind::Image),
             title: Some(name.unwrap_or_else(|| "pasted image".into())),
             payload: Payload::Bytes(bytes),
@@ -422,6 +424,7 @@ mod tests {
                 let item = context::put(
                     env.path(),
                     PutRequest {
+                        key: None,
                         kind: None,
                         title: None,
                         payload: Payload::Bytes(png()),

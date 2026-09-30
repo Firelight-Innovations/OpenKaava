@@ -5,7 +5,7 @@
  * is copied in and one inside is referenced where it is, all decided in Rust.
  */
 import { invoke } from "@openkaava/bridge";
-import type { ContextRef } from "./context";
+import { contextKey, type ContextRef } from "./context";
 
 /** The formats the store accepts as an image, by their bytes. */
 const RASTER = new Set(["png", "jpg", "jpeg", "gif", "webp"]);
@@ -65,6 +65,7 @@ export function selectionText(
 export function putSelection(rel: string, startLine: number, endLine: number, snippet: string) {
   const ref = lineRef(rel, startLine, endLine);
   return invoke<ContextRef>("context/put", {
+    key: contextKey("file", ref),
     kind: "text",
     title: ref,
     label: `File - ${lineRef(fileName(rel), startLine, endLine)}`,

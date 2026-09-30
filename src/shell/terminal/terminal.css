@@ -78,6 +78,22 @@
   flex: 1 1 0;
   min-width: 0;
   height: 100%;
+  /* While a splitter is dragged the emulator is not refitted (see
+     `fitController.ts`), so its canvas keeps the size it had and this box
+     clips or letterboxes it. No scaling: one refit on release. */
+  overflow: hidden;
+}
+
+/* The Context strip as a band under the terminal: the slot becomes a column and
+   the emulator takes the height the band leaves. `FitAddon` measures the shorter
+   box, so the pty is told the truth about its rows. */
+.terminal__slot[data-strip="bottom"] {
+  flex-direction: column;
+}
+
+.terminal__slot[data-strip="bottom"] > .terminal__view {
+  height: auto;
+  min-height: 0;
 }
 
 /* Files are being dragged over this emulator, and releasing here is what puts

@@ -236,6 +236,112 @@
   flex-direction: column;
 }
 
+/*
+ * The band: the same strip laid along the bottom of a tall, narrow terminal
+ * (`contextLayout.ts` decides when). Header row, one horizontally scrolling row
+ * of cards, and the tracking link in the header, about 100px expanded and one
+ * control-height row collapsed. Same buttons, same order, same behaviour.
+ */
+
+.ctxstrip--bottom {
+  flex: 0 0 auto;
+  order: 2;
+  width: auto;
+  height: auto;
+  max-height: 200px;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2) var(--space-2);
+  border-left: 0;
+  border-top: 1px solid var(--border-subtle);
+  overflow-y: auto;
+}
+
+.ctxstrip--bottom.ctxstrip--collapsed {
+  padding: 0 var(--space-2);
+}
+
+.ctxstrip--bottom .ctxstrip__head {
+  gap: var(--space-2);
+}
+
+.ctxstrip--bottom .ctxstrip__title {
+  flex: 0 0 auto;
+}
+
+.ctxstrip--bottom .ctxstrip__target {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: var(--space-2);
+}
+
+.ctxstrip--bottom .ctxstrip__head > .ctxstrip__foot,
+.ctxstrip--bottom .ctxstrip__head > .ctxstrip__icon {
+  margin-left: auto;
+}
+
+.ctxstrip--bottom .ctxstrip__head > .ctxstrip__foot ~ .ctxstrip__icon {
+  margin-left: 0;
+}
+
+.ctxstrip--bottom .ctxstrip__scroll {
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.ctxstrip--bottom .ctxstrip__list {
+  flex-direction: row;
+}
+
+.ctxstrip--bottom section[aria-label="Agent saw"] {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ctxstrip--bottom .ctxstrip__section {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.ctxstrip--bottom .ctxchip {
+  flex: 0 0 200px;
+  width: 200px;
+}
+
+.ctxstrip--bottom .ctxchip__thumb {
+  flex-basis: 32px;
+  width: 32px;
+  height: 32px;
+}
+
+.ctxstrip--bottom .ctxchip__actions {
+  flex-direction: row;
+}
+
+.ctxstrip--bottom .ctxstrip__expand {
+  flex-direction: row;
+  gap: var(--space-2);
+  height: var(--control-md);
+  padding: 0;
+}
+
+.ctxstrip--bottom .ctxstrip__expand .ctxstrip__title {
+  flex: 1;
+  text-align: left;
+}
+
+/* Zero-height row between the emulator and the band; the notice hangs off it. */
+.ctxnotice-anchor {
+  order: 1;
+  position: relative;
+  flex: 0 0 0;
+  height: 0;
+}
+
 .ctxnotice {
   position: absolute;
   left: var(--space-3);

@@ -18,6 +18,7 @@
 
 use super::addon;
 use super::detect::{self, Found, GodotProject, Probe, Resolution};
+use super::preview;
 use super::runner::{RunSpec, Runner};
 use super::scene::{self, Refresh};
 use super::{scratch_root, Godot};
@@ -58,6 +59,10 @@ struct Params {
     refresh: bool,
     render: bool,
     paused: bool,
+    /// Who is asking, `"human"` or `"agent"`. Required by the preview.
+    actor: Option<String>,
+    /// Export again even if the cached glb is current, or a failure is remembered.
+    force: bool,
 }
 
 fn params(raw: Option<&Value>) -> Result<Params, RpcError> {
@@ -123,6 +128,8 @@ pub fn viewer(ctx: &Ctx, method: &str, raw: Option<&Value>) -> Option<Result<Val
         "godot-viewer/state" => viewer_state(ctx, &p),
         "godot-viewer/refresh" => viewer_refresh(ctx, &p),
         "godot-viewer/image" => viewer_image(ctx, &p),
+        "godot/preview-glb" => preview_glb(ctx, &p),
+        "godot/preview-glb-bytes" => preview_glb_bytes(ctx, &p),
         _ => Err(RpcError::new(
             METHOD_NOT_FOUND,
             format!("no such method: {method}"),
@@ -528,6 +535,136 @@ fn viewer_image(ctx: &Ctx, p: &Params) -> Result<Value, RpcError> {
     Ok(json!({ "png": bytes.map(|b| BASE64.encode(b)) }))
 }
 
+// --- the 3D preview ---------------------------------------------------------
+
+/// `human` or `agent`; `system` is never accepted and a missing actor is an
+/// error, the same rule Schematify's operations follow.
+fn actor(p: &Params) -> Result<&'static str, RpcError> {
+    match p.actor.as_deref() {
+        Some("human") => Ok("human"),
+        Some("agent") => Ok("agent"),
+        Some(other) => Err(RpcError::new(
+            INVALID_PARAMS,
+            format!("actor must be \"human\" or \"agent\", got {other:?}"),
+        )),
+        None => Err(RpcError::new(INVALID_PARAMS, "actor is required")),
+    }
+}
+
+/// Where a project's previews live: `<root>/.kaava/preview/godot/`, or under
+/// the app data folder for the read-only main checkout, which is never written.
+fn preview_dir(ctx: &Ctx) -> Result<PathBuf, RpcError> {
+    let root = root(ctx)?;
+    Ok(if ctx.read_only {
+        use sha2::{Digest, Sha256};
+        let digest = Sha256::digest(root.to_string_lossy().as_bytes());
+        let hex: String = digest.iter().take(6).map(|b| format!("{b:02x}")).collect();
+        ctx.cache_root.join("preview").join("godot").join(hex)
+    } else {
+        root.join(".kaava").join("preview").join("godot")
+    })
+}
+
+/// The scene a preview call is about, checked to be one this project has.
+fn preview_scene(project: &GodotProject, p: &Params) -> Result<String, RpcError> {
+    let scenes = detect::scenes(&project.dir);
+    let scene = chosen_scene(project, &scenes, p.scene.as_deref())
+        .ok_or_else(|| fail("this project has no .tscn scenes to preview"))?;
+    if !valid_scene(&scene)
+        || !project
+            .dir
+            .join(scene.trim_start_matches("res://"))
+            .is_file()
+    {
+        return Err(RpcError::new(
+            INVALID_PARAMS,
+            format!("`{scene}` is not a scene in this project"),
+        ));
+    }
+    Ok(scene)
+}
+
+fn preview_reply(
+    status: &str,
+    scene: &str,
+    dir: &Path,
+    slug: &str,
+    preview: Option<&preview::Preview>,
+    job: Option<&scene::Job>,
+    cached: bool,
+) -> Result<Value, RpcError> {
+    Ok(json!({
+        "status": status,
+        "scene": scene,
+        "cached": cached,
+        "path": preview.map(|_| preview::glb_path(dir, slug).display().to_string()),
+        "exportedAt": preview.map(|p| p.exported_at),
+        "godot": preview.map(|p| p.godot.clone()),
+        "bytes": preview.map(|p| p.glb_bytes),
+        "nodeMap": preview.map(|p| to_value(&p.node_map)).transpose()?,
+        "phase": job.filter(|j| j.running).map(|j| j.phase.clone()),
+        "error": job.filter(|j| !j.running).and_then(|j| j.error.clone()),
+        "output": job.map(|j| j.output.clone()).unwrap_or_default(),
+    }))
+}
+
+/// `godot/preview-glb`: the scene as a glTF the viewer can orbit.
+///
+/// Answers at once, and is meant to be polled. `ready` carries the glb's path
+/// and the node map; `running` means an export is under way; `failed` carries
+/// why. The glb is exported only when nothing current is cached - the key
+/// covers the scene, what it instances and the engine - and `force` exports
+/// again regardless, which is how a failure is retried.
+fn preview_glb(ctx: &Ctx, p: &Params) -> Result<Value, RpcError> {
+    actor(p)?;
+    let project = pick_project(ctx, p)?;
+    let scene = preview_scene(&project, p)?;
+    let godot = require_engine(ctx)?;
+    let dir = preview_dir(ctx)?;
+    let stem = preview::slug(&project.rel, &scene);
+    let key = preview::cache_key(&project.dir, &scene, &godot.version).map_err(fail)?;
+    let job_key = format!("{}#preview", ctx.key);
+
+    if !p.force {
+        if let Some(hit) = preview::read_fresh(&dir, &stem, &key) {
+            return preview_reply("ready", &scene, &dir, &stem, Some(&hit), None, true);
+        }
+    }
+    if let Some(job) = ctx.godot.jobs.get(&job_key) {
+        if job.running {
+            return preview_reply("running", &job.scene, &dir, &stem, None, Some(&job), false);
+        }
+        if !p.force && preview::failure(&job, &scene).is_some() {
+            return preview_reply("failed", &scene, &dir, &stem, None, Some(&job), false);
+        }
+    }
+
+    let job = ctx.godot.jobs.begin(&job_key, &scene).map_err(fail)?;
+    let opts = preview::Export {
+        project: project.dir,
+        scene: scene.clone(),
+        dir: dir.clone(),
+        slug: stem.clone(),
+        key,
+        godot,
+        scratch: ctx.scratch.join("preview").join(slug(&ctx.key)),
+        limits: scene::Limits::default(),
+    };
+    let started = preview::snapshot(&job);
+    std::thread::spawn(move || preview::run(&job, &opts));
+    preview_reply("running", &scene, &dir, &stem, None, Some(&started), false)
+}
+
+/// `godot/preview-glb-bytes`: the exported glb, base64, for the viewer to hand
+/// to three.js. Reads only the file this scene's export wrote.
+fn preview_glb_bytes(ctx: &Ctx, p: &Params) -> Result<Value, RpcError> {
+    let project = pick_project(ctx, p)?;
+    let scene = preview_scene(&project, p)?;
+    let dir = preview_dir(ctx)?;
+    let bytes = preview::read_glb(&dir, &preview::slug(&project.rel, &scene)).map_err(fail)?;
+    Ok(json!({ "base64": BASE64.encode(&bytes), "size": bytes.len() }))
+}
+
 /// Run `f` with a [`Ctx`] built from the live application: the cluster's
 /// environment, the `godot.executablePath` setting, and the real machine probe.
 pub fn with_live<R>(
@@ -623,7 +760,7 @@ mod tests {
     }
 
     fn call(c: &Ctx, method: &str, params: Value) -> Result<Value, RpcError> {
-        let answer = if method.starts_with("godot-viewer/") {
+        let answer = if method.starts_with("godot-viewer/") || method.starts_with("godot/preview") {
             viewer(c, method, Some(&params))
         } else {
             play(c, method, Some(&params))
@@ -937,6 +1074,171 @@ mod tests {
                 .code,
             INVALID_PARAMS
         );
+    }
+
+    fn preview_params(extra: Value) -> Value {
+        let mut base = json!({ "actor": "agent" });
+        base.as_object_mut()
+            .unwrap()
+            .extend(extra.as_object().unwrap().clone());
+        base
+    }
+
+    fn engine_version(c: &Ctx) -> String {
+        call(c, "godot/status", json!({})).unwrap()["executable"]["found"]["version"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    }
+
+    /// Writes what a finished export leaves, so the cache-hit path can be
+    /// tested without an engine that can convert a scene.
+    fn seed_preview(c: &Ctx, w: &World, dir: &Path) {
+        let key = preview::cache_key(&w.root.join("game"), "res://main.tscn", &engine_version(c))
+            .unwrap();
+        std::fs::create_dir_all(dir).unwrap();
+        std::fs::write(dir.join("game__main_tscn.glb"), b"glb-bytes").unwrap();
+        let sidecar = preview::Preview {
+            key,
+            scene: "res://main.tscn".into(),
+            exported_at: 42,
+            godot: engine_version(c),
+            glb_bytes: 9,
+            node_map: std::collections::BTreeMap::from([("World".into(), "World".into())]),
+        };
+        std::fs::write(
+            dir.join("game__main_tscn.json"),
+            serde_json::to_string(&sidecar).unwrap(),
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn the_preview_needs_an_actor_and_never_accepts_system() {
+        let w = world(false);
+        let c = ctx(&w, false, &real_check);
+        let missing = call(&c, "godot/preview-glb", json!({})).unwrap_err();
+        assert_eq!(missing.code, INVALID_PARAMS);
+        assert!(missing.message.contains("actor is required"));
+        let system = call(&c, "godot/preview-glb", json!({ "actor": "system" })).unwrap_err();
+        assert_eq!(system.code, INVALID_PARAMS);
+    }
+
+    #[test]
+    fn a_current_glb_is_served_from_the_cache_and_no_engine_runs() {
+        let w = world(false);
+        let c = ctx(&w, false, &real_check);
+        let dir = w.root.join(".kaava/preview/godot");
+        seed_preview(&c, &w, &dir);
+
+        let answer = call(&c, "godot/preview-glb", preview_params(json!({}))).unwrap();
+        assert_eq!(answer["status"], "ready");
+        assert_eq!(answer["cached"], true);
+        assert_eq!(answer["nodeMap"]["World"], "World");
+        assert_eq!(answer["exportedAt"], 42);
+        assert!(answer["path"]
+            .as_str()
+            .unwrap()
+            .ends_with("game__main_tscn.glb"));
+        assert!(
+            w.godot.jobs.get("c1#preview").is_none(),
+            "a cache hit starts no job"
+        );
+
+        let bytes = call(&c, "godot/preview-glb-bytes", json!({})).unwrap();
+        assert_eq!(bytes["size"], 9);
+        assert_eq!(
+            BASE64.decode(bytes["base64"].as_str().unwrap()).unwrap(),
+            b"glb-bytes"
+        );
+    }
+
+    #[test]
+    fn editing_the_scene_makes_the_cached_glb_stale() {
+        let w = world(false);
+        let c = ctx(&w, false, &real_check);
+        seed_preview(&c, &w, &w.root.join(".kaava/preview/godot"));
+        std::fs::write(
+            w.root.join("game/main.tscn"),
+            "[gd_scene format=3]\n\n[node name=\"World\" type=\"Node3D\"]\n\n[node name=\"New\" type=\"Node3D\" parent=\".\"]\n",
+        )
+        .unwrap();
+        let answer = call(&c, "godot/preview-glb", preview_params(json!({}))).unwrap();
+        assert_eq!(answer["status"], "running", "{answer}");
+        assert_eq!(answer["cached"], false);
+        wait_until("the export", || {
+            w.godot.jobs.get("c1#preview").is_some_and(|j| !j.running)
+        });
+    }
+
+    #[test]
+    fn a_failed_export_is_remembered_until_it_is_forced_again() {
+        let w = world(false);
+        std::fs::create_dir_all(w.root.join("game/.godot/imported")).unwrap();
+        let c = ctx(&w, false, &real_check);
+
+        let first = call(&c, "godot/preview-glb", preview_params(json!({}))).unwrap();
+        assert_eq!(first["status"], "running");
+        wait_until("the export", || {
+            w.godot.jobs.get("c1#preview").is_some_and(|j| !j.running)
+        });
+
+        // The fake engine exits without writing anything, and says so.
+        let failed = call(&c, "godot/preview-glb", preview_params(json!({}))).unwrap();
+        assert_eq!(failed["status"], "failed");
+        assert!(failed["error"]
+            .as_str()
+            .unwrap()
+            .contains("without exporting"));
+        assert!(!failed["output"].as_array().unwrap().is_empty());
+        assert_eq!(failed["path"], Value::Null);
+
+        let again = call(
+            &c,
+            "godot/preview-glb",
+            preview_params(json!({ "force": true })),
+        )
+        .unwrap();
+        assert_eq!(again["status"], "running", "force retries");
+        wait_until("the retry", || {
+            w.godot.jobs.get("c1#preview").is_some_and(|j| !j.running)
+        });
+        let dir = w.root.join(".kaava/preview/godot");
+        assert!(
+            std::fs::read_dir(&dir).map_or(true, |mut d| d.next().is_none()),
+            "a failed export leaves no file behind"
+        );
+    }
+
+    #[test]
+    fn a_read_only_environment_previews_outside_the_checkout() {
+        let w = world(false);
+        std::fs::create_dir_all(w.root.join("game/.godot/imported")).unwrap();
+        let c = ctx(&w, true, &real_check);
+        call(&c, "godot/preview-glb", preview_params(json!({}))).unwrap();
+        wait_until("the export", || {
+            w.godot.jobs.get("c1#preview").is_some_and(|j| !j.running)
+        });
+        assert!(
+            !w.root.join(".kaava").exists(),
+            "main's checkout is untouched"
+        );
+        assert!(w.scratch.join("appdata/preview/godot").is_dir());
+    }
+
+    #[test]
+    fn previewing_a_scene_that_is_not_there_is_refused() {
+        let w = world(false);
+        let c = ctx(&w, false, &real_check);
+        let err = call(
+            &c,
+            "godot/preview-glb",
+            preview_params(json!({ "scene": "res://../secret.tscn" })),
+        )
+        .unwrap_err();
+        assert_eq!(err.code, INVALID_PARAMS);
+        let err = call(&c, "godot/preview-glb-bytes", json!({})).unwrap_err();
+        assert!(err.message.contains("not been exported"), "{}", err.message);
     }
 
     #[test]

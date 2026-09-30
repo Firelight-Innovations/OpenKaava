@@ -75,21 +75,9 @@
   min-height: 0;
 }
 
-/* The environment bar's row. Its height and card are `envbar.css`'s; the
-   gutter is this file's, the same one `.frame__toolwindow` takes below, so the
-   bar and the pane grid share a left edge and a right edge (§1.4: "full
-   pane-grid width"). No right gutter on either — the resize handle beside
-   this column is already the 6px seam. */
-.frame__envbar {
-  flex: none;
-  min-width: 0;
-  margin: var(--space-1-5, 6px) 0 0 var(--space-1-5, 6px);
-}
-
 /* The pane grid, inset by the region gutter on the left, top and bottom
-   (§1.1: regions sit 6px apart on `bg-canvas`). Before this the panes ran
-   flush to the window's left edge and straight into the terminal band's
-   hairline, 6px left of the environment bar above them. */
+   (§1.1: regions sit 6px apart on `bg-canvas`). It has no right gutter of its
+   own: the docked page's handle or the right-hand box's own margin is the seam. */
 .frame__toolwindow {
   flex: 1;
   min-height: 0;
@@ -115,7 +103,6 @@
   flex: none;
   height: var(--w-resize-handle);
   background: var(--bg);
-  border-top: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -124,15 +111,20 @@
   user-select: none;
 }
 
+/* The grip is invisible at rest — the seam is already canvas between two
+   cards — and lights up in the accent while hovered or dragged, like the
+   pane dividers (`panes.css`). `:active` holds because the pointer is
+   captured on the handle for the whole drag. */
 .frame__bottomgrip {
   width: 24px;
   height: 2px;
   border-radius: 1px;
-  background: var(--line);
+  background: transparent;
 }
 
-.frame__bottomhandle:hover .frame__bottomgrip {
-  background: var(--line-2);
+.frame__bottomhandle:hover .frame__bottomgrip,
+.frame__bottomhandle:active .frame__bottomgrip {
+  background: var(--accent);
 }
 
 .frame__bottom {
@@ -195,34 +187,77 @@
   width: 2px;
   height: 24px;
   border-radius: 1px;
-  background: var(--line);
+  background: transparent;
+}
+
+.frame__pagehandle:hover .frame__grip,
+.frame__pagehandle:active .frame__grip {
+  background: var(--accent);
+}
+
+/* --- the right-hand box ----------------------------------------------------
+   The rail and the docked page are ONE rounded card: the same surface, hairline
+   and radius as a pane, and the same 6px gutter to the title bar above, the
+   status bar below and the window edge on the right. A page pulling out of the
+   rail widens this card leftward; there is no second card and no seam.
+
+   `overflow: hidden` clips the docked page while it slides out from behind the
+   rail. It does not clip an expanded page, on purpose: that one is positioned
+   against `.frame__split` (this box is not positioned), so it can span the
+   panes while this box stays the width of the rail. */
+.frame__side {
+  flex: none;
+  display: flex;
+  min-height: 0;
+  margin: var(--space-1-5, 6px);
+  background: var(--bg-surface-1, var(--surface));
+  border: 1px solid var(--border-subtle, var(--line));
+  border-radius: var(--radius-region, 10px);
+  overflow: hidden;
+}
+
+/* The docked page's handle already provides the 6px seam to the panes. */
+.frame__side[data-docked] {
+  margin-left: 0;
+}
+
+/* The expanded page draws the whole card itself, rail included. */
+.frame__side[data-expanded] {
+  background: transparent;
+  border-color: transparent;
 }
 
 .frame__page {
   flex: none;
-  background: var(--bg-surface-1, var(--surface));
-  border: 1px solid var(--border-subtle, var(--line));
-  border-radius: var(--radius-region, 10px);
   display: flex;
   flex-direction: column;
   min-height: 0;
-  margin: 6px 0;
   /* The width is driven by a motion value from Frame.tsx. It is deliberately
      not set here: two owners of one property is how a resize drag ends up
      fighting a stylesheet. */
   overflow: hidden;
 }
 
-/* The expanded page covers this wrapper's own box — the tool window and the
-   docked page above — and nothing past
-   it, because the wrapper stops exactly at the rail. `visibility: visible`
-   overrides the hidden ancestor `.frame__workspace-body[data-hidden]` sets;
-   see `Frame.tsx` for why that is the mechanism rather than a portal. */
+/* The expanded page covers the tool window and everything the docked page
+   would, and stops at the window's right gutter. It is the card: the rail's
+   column is padding inside it (`--w-project-rail`, plus the 1px border the
+   rail's box would otherwise have had), so the icons sit on this surface with
+   no seam. `z-index` 1 puts it over the panes and under the rail's 2. */
 .frame__page-expanded {
   position: absolute;
-  inset: 0;
-  visibility: visible;
-  background: var(--bg-canvas, var(--bg));
+  top: var(--space-1-5, 6px);
+  bottom: var(--space-1-5, 6px);
+  left: var(--space-1-5, 6px);
+  right: var(--space-1-5, 6px);
+  padding-right: var(--w-project-rail);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-surface-1, var(--surface));
+  border: 1px solid var(--border-subtle, var(--line));
+  border-radius: var(--radius-region, 10px);
+  overflow: hidden;
   z-index: 1;
 }
 
@@ -230,8 +265,14 @@
 
 .frame__rail {
   flex: none;
+  position: relative;
+  z-index: 2;
   width: var(--w-project-rail);
-  margin-left: var(--space-1-5, 6px);
   display: flex;
   flex-direction: column;
+  background: var(--bg-surface-1, var(--surface));
+}
+
+.frame__side[data-expanded] .frame__rail {
+  background: transparent;
 }
