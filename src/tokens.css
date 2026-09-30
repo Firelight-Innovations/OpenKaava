@@ -85,7 +85,7 @@
   --accent-amber: #d98a3f;
   --accent-amber-hover: #e39a55;
   --accent-amber-subtle: #3b2612;
-  --accent-blue: #4d9be6;
+  --accent-blue: #3f76ff;
   --accent-blue-hover: color-mix(in srgb, var(--accent-blue) 85%, white);
   --accent-blue-subtle: color-mix(in srgb, var(--bg-canvas) 80%, var(--accent-blue));
   --accent-green: #4cb863;
@@ -101,11 +101,12 @@
   /* The active choice. `appearance.ts` overwrites these three with
      `var(--accent-<name>)` etc. once the accent setting is read; until then
      — and for any surface it never reaches, such as the splash window —
-     amber is what the app draws, which is also tokens.json's own default. */
-  --accent: var(--accent-amber);
-  --accent-hover: var(--accent-amber-hover);
-  --accent-subtle: var(--accent-amber-subtle);
-  --txt-accent: #e8a868; /* links and text on accent-subtle */
+     blue (Plane's brand blue) is what the app draws, matching the setting's
+     own default in `schema.rs`. */
+  --accent: var(--accent-blue);
+  --accent-hover: var(--accent-blue-hover);
+  --accent-subtle: var(--accent-blue-subtle);
+  --txt-accent: color-mix(in srgb, var(--accent) 70%, white); /* links and text on accent-subtle */
   --txt-on-accent: #0f0f10; /* text and icons on an accent fill: dark in dark theme */
 
   /* --- colour: status ---------------------------------------------------- */
@@ -313,7 +314,7 @@
   --accent-amber: #a85a14;
   --accent-amber-hover: #8f4b10;
   --accent-amber-subtle: #fbf1e6;
-  --accent-blue: #1f63b5;
+  --accent-blue: #2f62e0;
   --accent-blue-hover: color-mix(in srgb, var(--accent-blue) 85%, black);
   --accent-blue-subtle: color-mix(in srgb, white 88%, var(--accent-blue));
   --accent-green: #23803b;
@@ -325,7 +326,7 @@
   --accent-coral: #b8392f;
   --accent-coral-hover: color-mix(in srgb, var(--accent-coral) 85%, black);
   --accent-coral-subtle: color-mix(in srgb, white 88%, var(--accent-coral));
-  --txt-accent: #8f4b10;
+  --txt-accent: var(--accent-hover);
   --txt-on-accent: #ffffff;
 
   --success: #2f934b;

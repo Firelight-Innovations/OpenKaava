@@ -24,7 +24,7 @@ function select(key: string, def: string): Setting {
  *  hook reads, whose values are exactly what `values` says — no defaults are
  *  filled in, so a test can leave a key out to exercise the unset case. */
 function fakeSession(values: Record<string, SettingValue>): SettingsSession {
-  const settings = [select("appearance.theme", "dark"), select("appearance.accentColor", "amber")];
+  const settings = [select("appearance.theme", "dark"), select("appearance.accentColor", "blue")];
   const group: SettingsGroup = {
     id: "appearance",
     title: "Appearance",
@@ -95,9 +95,15 @@ describe("useAppearance", () => {
     expect(root.style.getPropertyValue("--accent-subtle")).toBe("var(--accent-violet-subtle)");
   });
 
-  it("falls back to amber for an accent value tokens.css has no trio for", () => {
+  it("falls back to blue for an accent value tokens.css has no trio for", () => {
     fakeMatchMedia(false);
     renderHook(() => useAppearance(fakeSession({ "appearance.accentColor": "#d98a3f" })));
+    expect(document.documentElement.style.getPropertyValue("--accent")).toBe("var(--accent-blue)");
+  });
+
+  it("keeps an accent the person chose explicitly, amber included", () => {
+    fakeMatchMedia(false);
+    renderHook(() => useAppearance(fakeSession({ "appearance.accentColor": "amber" })));
     expect(document.documentElement.style.getPropertyValue("--accent")).toBe("var(--accent-amber)");
   });
 

@@ -9,16 +9,22 @@
  * guessed token name.
  */
 
+/* A region card, per §1.4 — the same `bg-surface-1`, hairline and
+   `radius-region` as a pane, so it reads as the first row of the pane grid
+   rather than a floating badge. Its gutter is `.frame__envbar`'s, shared with
+   the grid. `line-height: 1` so every child's box is its glyph height and
+   `align-items: center` centres the glyphs themselves in the 34px inside the
+   border, not a taller line box with the text riding high in it. */
 .envbar {
   flex: none;
-  height: 36px;
-  margin: 6px 6px 0;
+  height: var(--h-envbar, 36px);
   padding: 0 6px 0 12px;
   border-radius: var(--radius-region, 10px);
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: 12.5px;
+  line-height: 1;
 }
 
 .envbar--worktree {
@@ -48,7 +54,8 @@
   gap: 6px;
   font-size: 11.5px;
   font-weight: 600;
-  background: var(--bg-layer-2, #222425);
+  white-space: nowrap;
+  background: var(--bg-layer-3, #222425);
   color: var(--txt-primary, #e4e6e6);
 }
 
@@ -58,7 +65,7 @@
 }
 
 .envbar--main .envbar__kind {
-  background: var(--bg-layer-2, #222425);
+  background: var(--bg-layer-3, #222425);
   color: var(--txt-secondary, #cacdce);
 }
 
@@ -102,7 +109,17 @@
   color: var(--txt-disabled, #7a8185);
 }
 
+/* The main variant's one line. Truncates rather than wrapping or pushing the
+   chip, and stands off the chip by the bar's own 12px inset rather than the
+   10px `gap` — at 10px the lock chip and "Browse only" read as one crowded
+   run. */
 .envbar__readonly {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--txt-tertiary, #959a9d);
 }
 

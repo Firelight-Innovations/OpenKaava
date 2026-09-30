@@ -63,14 +63,14 @@ static GROUPS: &[&Group] = &[
 /// where a stored hex would have been the wrong theme's colour half the time.
 static ACCENTS: &[SelectOption] = &[
     SelectOption {
-        value: "amber",
-        label: "Amber",
-        description: "The colour the interface was designed in.",
-    },
-    SelectOption {
         value: "blue",
         label: "Blue",
-        description: "",
+        description: "The default. Plane's blue, so Kaava and the projects app read as one.",
+    },
+    SelectOption {
+        value: "amber",
+        label: "Amber",
+        description: "The colour the interface was first designed in.",
     },
     SelectOption {
         value: "green",
@@ -124,7 +124,7 @@ static APPEARANCE_SETTINGS: &[Setting] = &[
         title: "Accent colour",
         description: "The active tab's rule, focus rings, drop targets and primary buttons.",
         control: Control::Select {
-            default: "amber",
+            default: "blue",
             options: ACCENTS,
         },
         applies: Applies::Now,
@@ -135,8 +135,8 @@ static APPEARANCE_SETTINGS: &[Setting] = &[
         description: "Tabs, menus, labels. The bundled fallbacks stay behind whatever you name, \
                       so a font this machine does not have degrades rather than breaks.",
         control: Control::Text {
-            default: "IBM Plex Sans",
-            placeholder: "IBM Plex Sans",
+            default: "Inter",
+            placeholder: "Inter",
         },
         applies: Applies::Now,
     },
@@ -164,7 +164,7 @@ static APPEARANCE: Group = Group {
 /// A `settings.json` written before this build stored `appearance.accentColor`
 /// as the dark-theme hex the old five-option `Select` offered. Those hexes are
 /// not among `ACCENTS`' values any more — `coerce_against` in `mod.rs` would
-/// reject one on `hydrate` and the accent would silently reset to Amber — so
+/// reject one on `hydrate` and the accent would silently reset to the default — so
 /// `seed` runs every stored value through this first and rewrites a hex it
 /// recognises to the name that replaced it. Anything else, including a value
 /// this build already understands, passes through unchanged.
@@ -201,6 +201,19 @@ mod accent_migration_tests {
             migrate_legacy_accent("not-a-real-value"),
             "not-a-real-value"
         );
+    }
+
+    #[test]
+    fn the_default_accent_is_blue_and_amber_is_still_offered_to_choose() {
+        let accent = APPEARANCE_SETTINGS
+            .iter()
+            .find(|s| s.key == keys::APPEARANCE_ACCENT_COLOR)
+            .expect("the accent setting exists");
+        match &accent.control {
+            Control::Select { default, .. } => assert_eq!(*default, "blue"),
+            _ => panic!("the accent is a Select"),
+        }
+        assert!(ACCENTS.iter().any(|o| o.value == "amber"));
     }
 }
 

@@ -163,6 +163,11 @@ pub enum AppError {
     #[error("{0}")]
     Review(String),
 
+    /// A project icon that cannot be set: the wrong kind of file, too large, or a
+    /// copy that failed. The whole sentence, for `Review`'s reason.
+    #[error("{0}")]
+    ProjectIcon(String),
+
     /// A settings write the schema refused: an unknown key, a value of the
     /// wrong type, or a choice that is not one of the options. Wrapped rather
     /// than flattened, because unlike everything else here the message is

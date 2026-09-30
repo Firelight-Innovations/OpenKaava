@@ -394,7 +394,7 @@ pub fn seed(app: &AppHandle) {
     let mut stored = store::load(app).values;
     // A pre-rework file's accent is a hex the current `Select` no longer
     // offers (see `schema::migrate_legacy_accent`); `hydrate` would otherwise
-    // drop it and reset the accent to Amber for every existing install.
+    // drop it and reset the accent to the default for every existing install.
     if let Some(Value::String(hex)) = stored.get(schema::keys::APPEARANCE_ACCENT_COLOR) {
         let migrated = schema::migrate_legacy_accent(hex).to_string();
         stored.insert(
