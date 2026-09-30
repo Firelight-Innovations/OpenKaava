@@ -246,7 +246,13 @@ pub fn checkpoint(root: &Path, canvas: &str, reason: &str) -> Result<Option<Stri
         .unwrap_or(0);
     let slug: String = reason
         .chars()
-        .map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_lowercase() } else { '-' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() {
+                c.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
         .take(40)
         .collect();
     let mut name = format!("{millis:013}-{slug}");
@@ -296,7 +302,10 @@ pub fn checkpoint_scene(
     .ok_or_else(|| {
         RpcError::with_data(
             INVALID_PARAMS,
-            format!("canvas `{canvas}` has no checkpoint {}", name.unwrap_or("yet")),
+            format!(
+                "canvas `{canvas}` has no checkpoint {}",
+                name.unwrap_or("yet")
+            ),
             json!({ "kind": "missing", "checkpoints": names }),
         )
     })?;
@@ -310,10 +319,21 @@ pub fn checkpoint_scene(
 // --- views ------------------------------------------------------------------
 
 /// The file a view of `diagram` renders to. Overwritten on every render.
-pub fn view_path(root: &Path, canvas: &str, diagram: &str, region: bool) -> Result<PathBuf, RpcError> {
+pub fn view_path(
+    root: &Path,
+    canvas: &str,
+    diagram: &str,
+    region: bool,
+) -> Result<PathBuf, RpcError> {
     let safe: String = diagram
         .chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .take(80)
         .collect();
     let suffix = if region { ".region.png" } else { ".png" };

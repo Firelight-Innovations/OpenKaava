@@ -33,10 +33,12 @@ const states: AddShapesSpec = {
 
 describe("text helpers", () => {
   it("fills known {{names}} and leaves unknown ones as written", () => {
-    expect(fillTemplate("g = {{gravity}}, v = {{ speed }}, {{nope}}", {
-      gravity: { value: 24, unit: "u/s²" },
-      speed: 3.5,
-    })).toBe("g = 24, v = 3.5, {{nope}}");
+    expect(
+      fillTemplate("g = {{gravity}}, v = {{ speed }}, {{nope}}", {
+        gravity: { value: 24, unit: "u/s²" },
+        speed: 3.5,
+      }),
+    ).toBe("g = 24, v = 3.5, {{nope}}");
   });
 
   it("wraps on words and keeps a word longer than the line whole", () => {
@@ -50,11 +52,17 @@ describe("addShapes", () => {
   const result = addShapes([], states, mono, { gravity: { value: 24 } });
 
   it("names every element <diagram>:<shape> and returns the ids", () => {
-    expect(result.ids).toEqual({ ready: "states:ready", playing: "states:playing", go: "states:go" });
+    expect(result.ids).toEqual({
+      ready: "states:ready",
+      playing: "states:playing",
+      go: "states:go",
+    });
     expect(result.frame).toMatchObject({ id: "states", elementId: "frame:states", x: 0, y: 0 });
     const frame = result.elements[result.elements.length - 1]!;
     expect(frame.type).toBe("frame");
-    expect(frame.customData).toMatchObject({ kaava: { diagram: { id: "states", title: "States" } } });
+    expect(frame.customData).toMatchObject({
+      kaava: { diagram: { id: "states", title: "States" } },
+    });
   });
 
   it("sizes shapes to their measured labels, on the grid", () => {
@@ -80,8 +88,12 @@ describe("addShapes", () => {
     const { x, y, width, height } = result.frame;
     for (const el of result.elements.slice(0, -1)) {
       expect(el.x as number).toBeGreaterThanOrEqual(x);
-      expect((el.x as number) + (el.width as number)).toBeLessThanOrEqual(x + width - FRAME_PAD + 1);
-      expect((el.y as number) + (el.height as number)).toBeLessThanOrEqual(y + height - FRAME_PAD + 1);
+      expect((el.x as number) + (el.width as number)).toBeLessThanOrEqual(
+        x + width - FRAME_PAD + 1,
+      );
+      expect((el.y as number) + (el.height as number)).toBeLessThanOrEqual(
+        y + height - FRAME_PAD + 1,
+      );
     }
   });
 
@@ -127,26 +139,54 @@ describe("addShapes", () => {
   });
 
   it("places a new frame to the right of the others", () => {
-    const next = addShapes(result.elements, { frame: { id: "next", title: "Next" }, shapes: [] }, mono);
+    const next = addShapes(
+      result.elements,
+      { frame: { id: "next", title: "Next" }, shapes: [] },
+      mono,
+    );
     expect(next.frame.x).toBeGreaterThan(result.frame.x + result.frame.width);
   });
 
   it("rejects bad ids, duplicates and dangling arrows", () => {
     const f = { id: "bad", title: "Bad" };
-    expect(() => addShapes([], { frame: { id: "Bad Id", title: "x" }, shapes: [] }, mono)).toThrow();
     expect(() =>
-      addShapes([], { frame: f, shapes: [{ id: "a", type: "text", text: "a" }, { id: "a", type: "text", text: "b" }] }, mono),
+      addShapes([], { frame: { id: "Bad Id", title: "x" }, shapes: [] }, mono),
+    ).toThrow();
+    expect(() =>
+      addShapes(
+        [],
+        {
+          frame: f,
+          shapes: [
+            { id: "a", type: "text", text: "a" },
+            { id: "a", type: "text", text: "b" },
+          ],
+        },
+        mono,
+      ),
     ).toThrow(/twice/);
     expect(() =>
-      addShapes([], { frame: f, shapes: [{ id: "x", type: "arrow", from: "nowhere", to: [0, 0] }] }, mono),
+      addShapes(
+        [],
+        { frame: f, shapes: [{ id: "x", type: "arrow", from: "nowhere", to: [0, 0] }] },
+        mono,
+      ),
     ).toThrow(/not a shape/);
   });
 });
 
 describe("the index", () => {
   it("links every named diagram, top level first", () => {
-    const a = addShapes([], { frame: { id: "detail-one", title: "Detail", level: "detail" }, shapes: [] }, mono);
-    const b = addShapes(a.elements, { frame: { id: "overview", title: "Overview", level: "overview" }, shapes: [] }, mono);
+    const a = addShapes(
+      [],
+      { frame: { id: "detail-one", title: "Detail", level: "detail" }, shapes: [] },
+      mono,
+    );
+    const b = addShapes(
+      a.elements,
+      { frame: { id: "overview", title: "Overview", level: "overview" }, shapes: [] },
+      mono,
+    );
     expect(diagramsIn(b.elements).map((d) => d.id)).toEqual(["overview", "detail-one"]);
     const spec = indexSpec(b.elements, mono);
     const links = spec.shapes.filter((s) => s.link).map((s) => s.link);

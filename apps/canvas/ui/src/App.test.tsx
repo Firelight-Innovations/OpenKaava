@@ -613,9 +613,7 @@ describe("Canvas app", () => {
       });
       fireEvent.click(screen.getByText("Post"));
       await waitFor(() => expect(store).toHaveLength(1));
-      expect(
-        bridge.invoke.mock.calls.find((c) => c[0] === "canvas/create-comment")![1],
-      ).toEqual({
+      expect(bridge.invoke.mock.calls.find((c) => c[0] === "canvas/create-comment")![1]).toEqual({
         id: "world",
         diagram: "f1",
         elementIds: ["f1"],

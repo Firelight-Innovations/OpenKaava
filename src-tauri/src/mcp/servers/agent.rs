@@ -214,9 +214,7 @@ fn call(app: &AppHandle, tool: &str, params: Option<Value>) -> Result<ToolAnswer
     match tool {
         // Handed back to the modules that own them. See the module doc.
         "screenshot" | "snapshot" | "click" | "type_text" | "fill_field" | "context"
-        | "press_key" | "eval" => {
-            super::ui::call(app, tool, params)
-        }
+        | "press_key" | "eval" => super::ui::call(app, tool, params),
         "shell_snapshot" | "recent_errors" | "boot_status" => super::debug::call(app, tool, params),
         "app_call" => app_call(app, params.as_ref()).map(Into::into),
         "open_app" => open_app(app, params.as_ref()).map(Into::into),

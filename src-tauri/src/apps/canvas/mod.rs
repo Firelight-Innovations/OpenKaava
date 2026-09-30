@@ -18,16 +18,15 @@
 //! against the `mtime` the caller last read, the same contract as `files/write`.
 //! The methods that write are in `apps::WRITE_METHODS`, so a read-only main
 //! checkout is refused centrally before any handler here runs.
-//!
-//! What an agent works through (named diagrams, views, comments, drawing,
-//! linked values) is in [`methods`]; reference images, checkpoints and views on
-//! disk in [`store`]; and the frontend work only a webview can do in
-//! [`webview`]. `docs/canvas-drawing-guide.md` is the agent-facing manual.
 
 mod comments;
 mod diagrams;
+/// What an agent works through: named diagrams, views, comments, drawing and
+/// linked values. `docs/canvas-drawing-guide.md` is the agent-facing manual.
 mod methods;
+/// Reference images, checkpoints and views on disk.
 mod store;
+/// The frontend work only a webview can do.
 mod webview;
 
 use crate::apps::CallContext;
@@ -60,17 +59,12 @@ pub fn call_live(
             .cluster_environment(cluster)
             .is_some_and(|env| env.is_main())
     });
-    call_with(
-        context,
-        read_only,
-        &webview::Live { app },
-        method,
-        params,
-    )
+    call_with(context, read_only, &webview::Live { app }, method, params)
 }
 
 /// [`call_with`] with no webview: every method that needs one reports that no
-/// canvas is open. What the tests and any caller without an app handle use.
+/// canvas is open. Only the tests have no app handle, so only they build it.
+#[cfg(test)]
 pub fn call(
     context: &CallContext,
     read_only: bool,

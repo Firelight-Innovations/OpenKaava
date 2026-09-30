@@ -741,7 +741,10 @@ mod tests {
         assert_eq!(rows[0]["id"], "playfield");
         assert_eq!(rows[0]["title"], "Playfield");
         assert_eq!(rows[0]["path"], "index/playfield");
-        assert_eq!(rows[0]["elements"], 5, "ball, its label, pillar, arrow, note");
+        assert_eq!(
+            rows[0]["elements"], 5,
+            "ball, its label, pillar, arrow, note"
+        );
         assert_eq!(rows[0]["bounds"]["width"], 400.0);
         assert_eq!(out["index"], "index");
     }
@@ -765,7 +768,10 @@ mod tests {
     #[test]
     fn loose_elements_and_bad_parents_are_problems() {
         let s = scene(vec![
-            frame("f", json!({ "id": "a", "parent": "ghost", "level": "index" })),
+            frame(
+                "f",
+                json!({ "id": "a", "parent": "ghost", "level": "index" }),
+            ),
             json!({ "id": "stray", "type": "rectangle", "x": 0, "y": 0 }),
         ]);
         let problems = list_json(&s)["problems"].clone();
@@ -799,7 +805,10 @@ mod tests {
         let arrow = &out["arrows"][0];
         assert_eq!(arrow["from"]["label"], "ball");
         assert_eq!(arrow["to"]["id"], "pillar");
-        assert_eq!(arrow["bounds"]["y"], 30.0, "the arrow's box starts at its highest point");
+        assert_eq!(
+            arrow["bounds"]["y"], 30.0,
+            "the arrow's box starts at its highest point"
+        );
         assert_eq!(out["texts"][0]["template"], "gravity {{gravity}}");
     }
 

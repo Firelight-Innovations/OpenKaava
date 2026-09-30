@@ -40,8 +40,10 @@ pub fn not_open() -> RpcError {
 }
 
 /// A webview that is never there: what the pure [`super::call`] uses.
+#[cfg(test)]
 pub struct Absent;
 
+#[cfg(test)]
 impl Webview for Absent {
     fn run(&self, _: &str, _: &Value, _: Option<&str>) -> Result<Value, RpcError> {
         Err(not_open())
@@ -170,7 +172,8 @@ mod tests {
     fn a_found_host_answers_or_fails_with_its_reason() {
         let ok = interpret(json!({ "found": true, "ok": true, "value": { "a": 1 } })).unwrap();
         assert_eq!(ok, Some(json!({ "a": 1 })));
-        let err = interpret(json!({ "found": true, "ok": false, "error": "no frame" })).unwrap_err();
+        let err =
+            interpret(json!({ "found": true, "ok": false, "error": "no frame" })).unwrap_err();
         assert!(err.message.contains("no frame"));
     }
 
@@ -183,7 +186,11 @@ mod tests {
 
     #[test]
     fn the_script_carries_arguments_as_json_not_code() {
-        let js = script("render", &json!({ "title": "a\"); alert(1); //" }), Some("x"));
+        let js = script(
+            "render",
+            &json!({ "title": "a\"); alert(1); //" }),
+            Some("x"),
+        );
         assert!(js.contains(r#"\"); alert(1); //"#));
         assert!(js.contains(r#""canvas":"x""#));
     }

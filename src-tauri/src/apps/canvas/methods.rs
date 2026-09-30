@@ -79,7 +79,11 @@ fn diagram<'a>(all: &'a [Diagram], wanted: &str) -> Result<&'a Diagram, RpcError
             INVALID_PARAMS,
             format!(
                 "no diagram `{wanted}` on this canvas; there are: {}",
-                if known.is_empty() { "none".to_string() } else { known.join(", ") }
+                if known.is_empty() {
+                    "none".to_string()
+                } else {
+                    known.join(", ")
+                }
             ),
             json!({ "kind": "missing", "diagrams": known }),
         )
@@ -236,7 +240,11 @@ fn render(
     }))
 }
 
-pub fn view_diagram(root: &Path, web: &dyn Webview, params: Option<&Value>) -> Result<Value, RpcError> {
+pub fn view_diagram(
+    root: &Path,
+    web: &dyn Webview,
+    params: Option<&Value>,
+) -> Result<Value, RpcError> {
     let p = params_of(params);
     actor(p)?;
     let (id, scene, _) = open(root, p)?;
@@ -260,7 +268,11 @@ pub fn save(root: &Path, web: &dyn Webview, params: Option<&Value>) -> Result<Va
     validate_id(&id)?;
     let flushed = match web.run("flush", &json!({ "canvas": id }), Some(&id)) {
         Ok(v) => json!({ "editorOpen": true, "result": v }),
-        Err(e) if e.data.as_ref().is_some_and(|d| d["kind"] == "canvas-not-open") => {
+        Err(e)
+            if e.data
+                .as_ref()
+                .is_some_and(|d| d["kind"] == "canvas-not-open") =>
+        {
             json!({ "editorOpen": false })
         }
         Err(e) => return Err(e),
@@ -371,10 +383,9 @@ pub fn set_values(root: &Path, params: Option<&Value>) -> Result<Value, RpcError
     let p = params_of(params);
     let who = actor(p)?;
     let (id, mut scene, base) = open(root, p)?;
-    let incoming = p
-        .get("values")
-        .and_then(Value::as_object)
-        .ok_or_else(|| bad("values is required: { name: number | string | { value, unit?, spec? } }"))?;
+    let incoming = p.get("values").and_then(Value::as_object).ok_or_else(|| {
+        bad("values is required: { name: number | string | { value, unit?, spec? } }")
+    })?;
     for name in incoming.keys() {
         let ok = !name.is_empty()
             && name
@@ -457,7 +468,11 @@ pub fn create_comment(root: &Path, params: Option<&Value>) -> Result<Value, RpcE
     Ok(comments::to_json(root, &c))
 }
 
-pub fn resolve_comment(root: &Path, params: Option<&Value>, resolved: bool) -> Result<Value, RpcError> {
+pub fn resolve_comment(
+    root: &Path,
+    params: Option<&Value>,
+    resolved: bool,
+) -> Result<Value, RpcError> {
     let p = params_of(params);
     let who = actor(p)?;
     let id = string(p, "id")?;
@@ -493,7 +508,11 @@ pub fn comment_region(scene: &Value, d: &Diagram, c: &comments::Comment) -> Opti
     })
 }
 
-pub fn view_comment(root: &Path, web: &dyn Webview, params: Option<&Value>) -> Result<Value, RpcError> {
+pub fn view_comment(
+    root: &Path,
+    web: &dyn Webview,
+    params: Option<&Value>,
+) -> Result<Value, RpcError> {
     let p = params_of(params);
     actor(p)?;
     let (id, scene, _) = open(root, p)?;
@@ -531,15 +550,19 @@ mod tests {
 
     impl Webview for Fake {
         fn run(&self, op: &str, payload: &Value, canvas: Option<&str>) -> Result<Value, RpcError> {
-            self.calls.borrow_mut().push((op.to_string(), payload.clone()));
+            self.calls
+                .borrow_mut()
+                .push((op.to_string(), payload.clone()));
             match op {
                 "render" => Ok(json!({ "png": PNG_1X1, "width": 1, "height": 1, "scale": 1 })),
                 "flush" if canvas == Some("open") => Ok(json!({ "saved": true })),
                 "flush" => Err(super::super::webview::not_open()),
                 "addShapes" => {
                     let mut elements = payload["scene"]["elements"].as_array().cloned().unwrap();
-                    elements.push(json!({ "id": "new:box", "type": "rectangle", "frameId": "f1",
-                                          "x": 120, "y": 70, "width": 10, "height": 10 }));
+                    elements.push(
+                        json!({ "id": "new:box", "type": "rectangle", "frameId": "f1",
+                                          "x": 120, "y": 70, "width": 10, "height": 10 }),
+                    );
                     Ok(json!({ "elements": elements, "ids": { "box": "new:box" },
                                "values": { "gravity": 30 } }))
                 }
@@ -597,8 +620,13 @@ mod tests {
         ] {
             let err = run(&dir, &web, method, json!({ "id": "game" })).unwrap_err();
             assert!(err.message.contains("actor"), "{method}: {}", err.message);
-            let sys = run(&dir, &web, method, json!({ "id": "game", "actor": "system" }))
-                .unwrap_err();
+            let sys = run(
+                &dir,
+                &web,
+                method,
+                json!({ "id": "game", "actor": "system" }),
+            )
+            .unwrap_err();
             assert!(sys.message.contains("actor"), "{method}: {}", sys.message);
         }
     }
@@ -759,7 +787,10 @@ mod tests {
             json!({ "id": "game", "actor": "agent", "commentId": cid }),
         )
         .unwrap();
-        assert!(view["relative"].as_str().unwrap().ends_with("playfield-comment.region.png"));
+        assert!(view["relative"]
+            .as_str()
+            .unwrap()
+            .ends_with("playfield-comment.region.png"));
         let (_, payload) = web.calls.borrow()[0].clone();
         assert_eq!(payload["region"]["x"], 100.0 - COMMENT_MARGIN);
         assert_eq!(payload["region"]["width"], 20.0 + 2.0 * COMMENT_MARGIN);

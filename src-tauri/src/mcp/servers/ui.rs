@@ -18,13 +18,6 @@
 //! shell reads and a line into any app's Rust half. This module stays
 //! registered because the capability is its, its tests are what hold this code
 //! to account, and a client wanting only input needs no fourteen tools.
-//!
-//! Every input tool checks where it is about to land before it acts: `click`
-//! refuses a stale ref, a zero-size box or an element something else covers,
-//! and `type_text` refuses when focus is nowhere, on something that takes no
-//! text, or in a terminal (most likely the agent's own). An agent that typed a
-//! prompt into its own shell is the failure these checks were written after.
-//! Rejected: trusting the caller to click first. The caller cannot see focus.
 
 use crate::devtools;
 use crate::mcp::{McpServer, McpTool, ToolAnswer};
@@ -347,6 +340,13 @@ fn snapshot(
 
 /// Why the page's answer to `LOCATE_BODY` is not something to click, or `None`
 /// when it is. Split out so every refusal is tested without a window.
+///
+/// Every input tool checks where it is about to land before it acts: `click`
+/// refuses a stale ref, a zero-size box or an element something else covers,
+/// and `type_text` refuses when focus is nowhere, on something that takes no
+/// text, or in a terminal (most likely the agent's own). An agent that typed a
+/// prompt into its own shell is the failure these checks were written after.
+/// Rejected: trusting the caller to click first. The caller cannot see focus.
 fn click_refusal(target: &str, found: &Value) -> Option<String> {
     let label = found.get("label").and_then(Value::as_str).unwrap_or("");
     match found.get("problem").and_then(Value::as_str) {
@@ -359,7 +359,10 @@ fn click_refusal(target: &str, found: &Value) -> Option<String> {
              hidden or collapsed; take a screenshot to see what is showing."
         )),
         Some("covered") => {
-            let by = found.get("coveredBy").and_then(Value::as_str).unwrap_or("?");
+            let by = found
+                .get("coveredBy")
+                .and_then(Value::as_str)
+                .unwrap_or("?");
             Some(format!(
                 "`{target}` ({label}) is covered by {by} at its centre, so a click would land \
                  there instead. Close or move what is on top, then snapshot again."
@@ -520,9 +523,7 @@ fn fill_refusal(field: &str, answer: &Value) -> Option<String> {
             "more than one field matches `{field}`: {}. Pass a snapshot ref instead.",
             list("matches")
         )),
-        Some("not-a-field") => Some(format!(
-            "`{field}` is not a text field, select or checkbox"
-        )),
+        Some("not-a-field") => Some(format!("`{field}` is not a text field, select or checkbox")),
         Some("read-only") => Some(format!("`{field}` is disabled or read-only")),
         Some("terminal") => Some(format!(
             "`{field}` is inside a terminal; fill_field does not type into terminals"
@@ -968,7 +969,10 @@ mod tests {
         assert!(nothing.contains("fill_field"), "{nothing}");
 
         let term = type_refusal(&json!({ "problem": "terminal" })).expect("refused");
-        assert!(term.contains("terminal") && term.contains("command"), "{term}");
+        assert!(
+            term.contains("terminal") && term.contains("command"),
+            "{term}"
+        );
 
         let button = type_refusal(&json!({
             "problem": "not-editable",
@@ -985,16 +989,25 @@ mod tests {
 
     #[test]
     fn fill_field_names_what_it_could_have_meant() {
-        let none = fill_refusal("Title", &json!({ "problem": "none", "fields": ["name", "size"] }))
-            .expect("refused");
+        let none = fill_refusal(
+            "Title",
+            &json!({ "problem": "none", "fields": ["name", "size"] }),
+        )
+        .expect("refused");
         assert!(none.contains("name, size"), "{none}");
 
-        let two = fill_refusal("n", &json!({ "problem": "ambiguous", "matches": ["Name", "Note"] }))
-            .expect("refused");
+        let two = fill_refusal(
+            "n",
+            &json!({ "problem": "ambiguous", "matches": ["Name", "Note"] }),
+        )
+        .expect("refused");
         assert!(two.contains("Name, Note") && two.contains("ref"), "{two}");
 
-        let opt = fill_refusal("Level", &json!({ "problem": "no-option", "options": ["a", "b"] }))
-            .expect("refused");
+        let opt = fill_refusal(
+            "Level",
+            &json!({ "problem": "no-option", "options": ["a", "b"] }),
+        )
+        .expect("refused");
         assert!(opt.contains("a, b"), "{opt}");
 
         assert_eq!(fill_refusal("Name", &json!({ "filled": {} })), None);
@@ -1014,7 +1027,10 @@ mod tests {
     fn every_body_uses_only_helpers_that_exist() {
         for (body, uses) in [
             (FOCUS_BODY, &["deepActive", "describe", "instanceOf"][..]),
-            (TYPE_TARGET_BODY, &["deepActive", "terminal", "editable"][..]),
+            (
+                TYPE_TARGET_BODY,
+                &["deepActive", "terminal", "editable"][..],
+            ),
             (FILL_BODY, &["docs", "shown", "terminal", "describe"][..]),
             (CONTEXT_BODY, &["deepActive", "instanceOf", "shown"][..]),
             (LOCATE_BODY, &["docs", "middle", "name"][..]),

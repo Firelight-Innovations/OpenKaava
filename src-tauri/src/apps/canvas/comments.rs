@@ -284,8 +284,17 @@ mod tests {
     #[test]
     fn a_comment_is_one_file_in_the_sidecar_and_lists_back() {
         let dir = setup();
-        let c = create(dir.path(), "game", "playfield", params("ball too big"), "human").unwrap();
-        let file = dir.path().join(format!("canvas/game.comments/{}.json", c.id));
+        let c = create(
+            dir.path(),
+            "game",
+            "playfield",
+            params("ball too big"),
+            "human",
+        )
+        .unwrap();
+        let file = dir
+            .path()
+            .join(format!("canvas/game.comments/{}.json", c.id));
         assert!(file.is_file());
         let (all, unreadable) = load_all(dir.path(), "game");
         assert!(unreadable.is_empty());

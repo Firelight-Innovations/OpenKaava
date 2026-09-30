@@ -8,9 +8,6 @@
  *   node scripts/kaava-probe.mjs --agent --server agent click '{"target":"e12"}'
  *   node scripts/kaava-probe.mjs --agent --server agent app_call \
  *     '{"app":"schematify","method":"schematify/lint","params":{"actor":"agent"}}'
- *   node scripts/kaava-probe.mjs --agent --server agent app_call @spec.json
- *   echo '{"field":"Name","value":"Gurney"}' | node scripts/kaava-probe.mjs \
- *     --agent --server agent fill_field -
  *
  * `--server agent` is the one to reach for while working on OpenKaava; `ui` and
  * `debug` host subsets of it. Prints the tool's JSON on stdout and nothing else,
