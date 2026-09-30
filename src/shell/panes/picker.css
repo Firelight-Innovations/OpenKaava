@@ -1,0 +1,107 @@
+/*
+ * The app picker: a filter field over a short list, in the same surface the
+ * Apps menu and the command palette use. Every colour is a token.
+ */
+.app-picker__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+
+.app-picker {
+  position: fixed;
+  width: 280px;
+  max-height: min(360px, 60vh);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 55%);
+  overflow: hidden;
+}
+
+/* No anchor: near the top and centred, like the palette. */
+.app-picker[data-centered] {
+  top: 12vh;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.app-picker__field {
+  flex: none;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.app-picker__field::placeholder {
+  color: var(--text-dim-3);
+}
+
+.app-picker__list {
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.app-picker__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.app-picker__row[data-active] {
+  background: var(--surface-2);
+}
+
+.app-picker__row[aria-disabled] {
+  color: var(--text-dim-3);
+  cursor: default;
+}
+
+.app-picker__icon {
+  flex: none;
+  color: var(--text-dim);
+}
+
+.app-picker__note,
+.app-picker__empty {
+  margin: 0;
+  padding: 10px 12px;
+  color: var(--text-dim-3);
+  font-size: 12px;
+}
+
+/* --- the strip's own button ------------------------------------------------ */
+.pane-tabstrip__add {
+  flex: none;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin: 0 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--txt-tertiary, var(--text-dim));
+  cursor: pointer;
+}
+
+.pane-tabstrip__add:hover,
+.pane-tabstrip__add[data-open] {
+  color: var(--text);
+  background: var(--surface-2);
+}
