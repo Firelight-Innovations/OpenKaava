@@ -29,7 +29,7 @@ export function DetachOutline({ x, y }: { x: MotionValue<number>; y: MotionValue
   return <motion.div className="drag-detach-outline" style={{ left: x, top: y }} {...fade} />;
 }
 
-/* The panel's own drop highlight is drawn by `SecondaryPanel` from its
+/* The terminal band's own drop highlight is drawn by `BottomPanel` from its
    `dropActive` prop, and each pane's by `panes/PaneTree.tsx` from the live drop
    target. Both are inside the element being highlighted, which the overlay is
    not — an outline drawn out here would have to re-measure a rectangle its owner

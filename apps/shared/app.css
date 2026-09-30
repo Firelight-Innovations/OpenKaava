@@ -6,15 +6,31 @@
  * a page. No window furniture, no second header bar, nothing that would read as
  * a duplicate of what the frame outside is already showing.
  *
- * Colours come from `src/tokens.css`, imported ahead of this file by each app's
+ * Colours come from `src/tokens.css` (the Kaava design system, v2 — see
+ * `docs/design/kaava-ds/README.md`), imported ahead of this file by each app's
  * entry point. Nothing here may introduce a hex value: the palette is the
- * handoff's, and an app inventing its own would be visibly not part of the same
- * product the moment the two sat side by side.
+ * design system's, and an app inventing its own would be visibly not part of
+ * the same product the moment the two sat side by side. An app follows the
+ * shell's live theme and accent too — see `packages/bridge/src/theme.ts`,
+ * wired into every first-party app's entry point (`main.tsx`) — so nothing
+ * here needs to be theme-specific on its own.
+ *
+ * `bg-surface-1` throughout, not `bg-canvas`: a pane *is* a region in the
+ * design system's canvas → surface → layer model (`README.md` rule 1), and an
+ * app fills its region's whole content area. `bg-canvas` is the window root's
+ * own colour — title bar, switcher, status bar, the gutters between regions —
+ * and belongs to the shell chrome outside this iframe, never to what draws
+ * inside it.
  *
  * Shared by both apps rather than copied into each, because the thing being
- * described is "how an OpenKaava app looks", which is one answer. An app that needs
+ * described is "how a Kaava app looks", which is one answer. An app that needs
  * something of its own adds a second stylesheet next to its entry point.
  */
+
+/* The shared `.k-*` component vocabulary (buttons, badges, chips, dialogs —
+   see `src/kaava-ui.css`'s own header) is available to every app the same
+   way the shell gets it, from one file. */
+@import "/src/kaava-ui.css";
 
 html,
 body,
@@ -40,14 +56,14 @@ body,
    in each app's `index.html`, which says the same thing again for the window
    before this stylesheet has loaded at all. */
 html {
-  background: var(--bg);
+  background: var(--bg-surface-1);
 }
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font: 400 13px/1.55 var(--sans);
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+  font: var(--type-body);
   /* The frame outside scrolls nothing; a pane scrolls itself. */
   overflow: hidden;
 }
@@ -78,7 +94,7 @@ body {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--line-2) 65%, transparent);
+  background: color-mix(in srgb, var(--border-strong) 65%, transparent);
   border-radius: 0;
 }
 
@@ -96,7 +112,7 @@ body {
   align-items: baseline;
   gap: 12px;
   padding: 14px 18px 10px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--border-subtle);
   flex: 0 0 auto;
 }
 
@@ -108,7 +124,7 @@ body {
 }
 
 .app__sub {
-  color: var(--text-dim);
+  color: var(--txt-secondary);
   font-size: 12px;
 }
 
@@ -116,7 +132,7 @@ body {
   margin-left: auto;
   font-family: var(--mono);
   font-size: 11px;
-  color: var(--text-dim-2);
+  color: var(--txt-tertiary);
 }
 
 .app__body {
@@ -137,19 +153,18 @@ body {
 
 .app__label {
   margin: 0 0 8px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
   text-transform: uppercase;
-  color: var(--text-dim-2);
+  color: var(--txt-tertiary);
 }
 
 .app__rows {
   list-style: none;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -159,9 +174,9 @@ body {
   gap: 10px;
   width: 100%;
   padding: 7px 11px;
-  background: var(--surface);
+  background: var(--bg-layer-1);
   border: 0;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--border-subtle);
   color: inherit;
   font: inherit;
   text-align: left;
@@ -179,17 +194,18 @@ button.app__row {
 }
 
 button.app__row:hover {
-  background: var(--surface-2);
+  background: var(--bg-layer-1-hover);
 }
 
 button.app__row:focus-visible {
-  outline: 1px solid var(--accent);
-  outline-offset: -1px;
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
 }
 
+/* Selection is a fill only — no coloured side bars (see TreeRow's README). */
 .app__row[aria-current="true"] {
-  background: var(--surface-2);
-  box-shadow: inset 2px 0 0 var(--accent);
+  background: var(--bg-layer-1-selected);
+  font-weight: 500;
 }
 
 .app__name {
@@ -204,7 +220,7 @@ button.app__row:focus-visible {
   flex: 0 0 auto;
   font-family: var(--mono);
   font-size: 11px;
-  color: var(--text-dim);
+  color: var(--txt-secondary);
 }
 
 /* The dot carries health; the text beside it says the same thing in words.
@@ -214,30 +230,30 @@ button.app__row:focus-visible {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--dot-off);
+  background: var(--state-idle);
 }
 
 .app__path {
   font-family: var(--mono);
   font-size: 11px;
-  color: var(--text-dim);
+  color: var(--txt-secondary);
   word-break: break-all;
 }
 
 .app__note {
   margin: 0;
-  color: var(--text-dim);
+  color: var(--txt-secondary);
   font-size: 12px;
 }
 
 .app__error {
   margin: 0;
   padding: 9px 11px;
-  border: 1px solid var(--line);
-  border-left: 2px solid var(--err);
-  border-radius: 3px;
-  background: var(--surface);
-  color: var(--text-dim);
+  border: 1px solid var(--border-subtle);
+  border-left: 2px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: var(--bg-layer-1);
+  color: var(--txt-secondary);
   font-family: var(--mono);
   font-size: 11px;
   white-space: pre-wrap;
@@ -269,13 +285,13 @@ button.app__row:focus-visible {
 .app__code {
   margin: 0;
   padding: 11px 13px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 4px;
+  background: var(--bg-layer-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   font-family: var(--mono);
   font-size: 11.5px;
   line-height: 1.6;
-  color: var(--text);
+  color: var(--txt-primary);
   /* A viewer wraps nothing: a source file's own line breaks are information,
      and re-flowing them would misreport what the file says. */
   white-space: pre;
@@ -293,18 +309,18 @@ button.app__row:focus-visible {
 .app__up {
   flex: 0 0 auto;
   padding: 3px 8px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  color: var(--text-dim);
+  background: var(--bg-layer-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--txt-secondary);
   font: inherit;
   font-size: 11px;
   cursor: pointer;
 }
 
 .app__up:hover:not(:disabled) {
-  background: var(--surface-2);
-  color: var(--text);
+  background: var(--bg-layer-1-hover);
+  color: var(--txt-primary);
 }
 
 .app__up:disabled {

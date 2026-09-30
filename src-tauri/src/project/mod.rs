@@ -17,6 +17,8 @@
 //! why every mutator broadcasts [`PROJECT_CHANGED_EVENT`] with a whole snapshot
 //! stamped with its cluster, is in `docs/design-notes/backend-project.md`.
 
+pub mod create;
+pub mod icon;
 mod marker;
 mod store;
 
@@ -271,11 +273,40 @@ pub fn open(app: &AppHandle, path: &Path, cluster_id: &str) -> Result<ProjectSna
 
     retitle(app);
     commands::apply_project_open_preset(app, cluster_id);
+    open_design_cluster_if_present(app, &shell, path, cluster_id);
 
-    // The emit lives here rather than in each mutator: `create` and `initialize`
-    // both finish by calling this, so emitting in all four would fire twice for
-    // a create, and a subscriber cannot tell that from two real switches.
-    Ok(changed(app, cluster_id))
+    // No emit here: `set_cluster_project` above went through `ShellState::
+    // mutate`, which announces a repointed cluster itself. Emitting here too
+    // would fire twice per switch, and a subscriber cannot tell that from two
+    // real switches.
+    Ok(snapshot(app, Some(cluster_id)))
+}
+
+/// The auto-create half of the pinned Design canvas — see
+/// `KAAVA-UX-REWORK.md` §5. Only the *auto*-create half: a project with no
+/// `wt/design` worktree yet is left alone here, and is offered the canvas
+/// through a dialog instead (not part of this module — see the New Cluster
+/// / Design canvas UI). Silent on every kind of "cannot", the same way the
+/// rest of `open` already is about the preset it applies: a project that
+/// happens not to be a git repository, or whose worktree list a `git` call
+/// fails to read, opens exactly as it would have before this feature
+/// existed, rather than failing the whole open over a cosmetic extra.
+fn open_design_cluster_if_present(
+    app: &AppHandle,
+    shell: &ShellState,
+    path: &Path,
+    cluster_id: &str,
+) {
+    let Some(main_repo) = crate::git::main_repo_root(path) else {
+        return;
+    };
+    let Some(environment) = crate::environments::detect_design_environment(&main_repo) else {
+        return;
+    };
+    let Some(label) = shell.window_label_of_cluster(cluster_id) else {
+        return;
+    };
+    shell.add_design_cluster(app, &label, &path.display().to_string(), environment);
 }
 
 /// Make `dir` an OpenKaava project and open it in `cluster_id`.
@@ -308,6 +339,56 @@ pub fn initialize(app: &AppHandle, dir: &Path, cluster_id: &str) -> Result<Proje
     open(app, dir, cluster_id)
 }
 
+/// Whether `dir` already has a `<name>.kaava` manifest.
+///
+/// For `project::create`'s land-the-code step: it needs to know, before it
+/// writes anything, whether a folder is already a project — "Open existing"
+/// only links one that is, and a fresh Game or Tool writes one only when
+/// there isn't one already. Exposed rather than folded into [`create`] or
+/// [`initialize`] because both of those are AppHandle-scoped mutators (they
+/// point a *cluster* at the result), and a plain filesystem check has no
+/// business needing one.
+pub fn has_manifest(dir: &Path) -> bool {
+    marker::find(dir).is_some()
+}
+
+/// Write a manifest into `dir` if it does not already have one. Returns
+/// whether this call is the one that wrote it — `false` means a manifest was
+/// already there and nothing changed.
+///
+/// The same distinction [`initialize`] draws, without the `AppHandle` and the
+/// `open` that follows it: `project::create`'s land-the-code step needs to
+/// write a manifest as part of preparing a folder, not as part of pointing a
+/// cluster at it.
+pub fn ensure_manifest(dir: &Path) -> Result<bool> {
+    if marker::find(dir).is_some() {
+        return Ok(false);
+    }
+    marker::create(dir, &folder_name(dir))?;
+    Ok(true)
+}
+
+/// Undo [`ensure_manifest`]: delete the manifest it wrote, and the `.kaava/`
+/// trace directory beside it if `ensure_manifest`'s `marker::create` left it
+/// empty. Only called by `project::create`'s rollback, and only on a folder
+/// [`ensure_manifest`] itself just wrote into — never on one this run merely
+/// linked, whose manifest (if any) was already there before Kaava touched it.
+pub fn remove_manifest(dir: &Path) -> Result<()> {
+    let Some(path) = marker::find(dir) else {
+        return Ok(());
+    };
+    std::fs::remove_file(&path).map_err(|source| AppError::Io {
+        path: path.display().to_string(),
+        source,
+    })?;
+
+    // Best-effort: `remove_dir` refuses a non-empty directory on its own, so
+    // this is a no-op rather than a data-loss risk if anything (an agent
+    // trace, a design canvas) has already been written into `.kaava/`.
+    let _ = std::fs::remove_dir(dir.join(TRACE_DIR));
+    Ok(())
+}
+
 /// Point `cluster_id` at nothing, without touching the history.
 ///
 /// Scoped to the one cluster, like every other mutator here: closing the project
@@ -323,7 +404,8 @@ pub fn close(app: &AppHandle, cluster_id: &str) -> ProjectSnapshot {
     shell.set_cluster_project(app, cluster_id, None);
 
     retitle(app);
-    changed(app, cluster_id)
+    // Announced by `mutate` already, as in `open`.
+    snapshot(app, Some(cluster_id))
 }
 
 /// Drop one entry from the Recent list. Deletes nothing on disk — this is the
@@ -351,30 +433,34 @@ pub fn forget(app: &AppHandle, path: &Path, cluster_id: Option<&str>) -> Project
 
 // --- helpers -----------------------------------------------------------------
 
-/// Take the new snapshot, broadcast it stamped with its cluster, and hand it
-/// back to the caller who is also going to return it.
+/// Broadcast `cluster_id`'s new snapshot, stamped with its cluster.
 ///
-/// Same posture as `ShellState::mutate`, deliberately: `app.emit` with the
-/// result dropped. A failed emit means there is no webview left to hear it,
-/// which no mutator can act on and no caller can fix — and turning it into an
-/// error would fail an `open` that had already succeeded.
+/// Called by `ShellState::mutate` for every cluster whose project pointer a
+/// mutation changed, and from nowhere else. That is what makes "every path
+/// that repoints a cluster tells the frontend" a property of the state rather
+/// than something each caller has to remember. The agent server's
+/// `set_project` was the caller that forgot, and the shell stayed stale until
+/// a reload.
 ///
-/// Every caller has dropped the store's write lock before reaching here, for the
-/// reason `mutate` documents: `emit` goes into Tauri's event machinery, and a
-/// lock held across a call that may want to read the same state is how a
-/// deadlock gets written. The `cluster_id` on the wire is what lets the relay in
+/// Same posture as `mutate`, deliberately: `app.emit` with the result
+/// dropped. A failed emit means there is no webview left to hear it, which no
+/// mutator can act on and no caller can fix.
+///
+/// `mutate` has dropped the shell's write lock before calling this, for the
+/// reason it documents: `emit` goes into Tauri's event machinery, and a lock
+/// held across a call that may want to read the same state is how a deadlock
+/// gets written. The `cluster_id` on the wire is what lets the relay in
 /// `ToolWindow` be selective; see [`ProjectChanged`].
-fn changed(app: &AppHandle, cluster_id: &str) -> ProjectSnapshot {
+pub fn announce(app: &AppHandle, cluster_id: &str) {
     let snapshot = snapshot(app, Some(cluster_id));
     let _ = app.emit(
         PROJECT_CHANGED_EVENT,
         &ProjectChanged {
             cluster_id: cluster_id.to_string(),
-            open: snapshot.open.clone(),
-            recents: snapshot.recents.clone(),
+            open: snapshot.open,
+            recents: snapshot.recents,
         },
     );
-    snapshot
 }
 
 /// Build a [`ProjectInfo`] by asking the filesystem what is true right now.

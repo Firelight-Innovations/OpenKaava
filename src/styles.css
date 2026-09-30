@@ -8,6 +8,11 @@
    by accident. */
 @import "./tokens.css";
 
+/* The shared `.k-*` component vocabulary — buttons, badges, chips, dialogs
+   and the rest — kept in its own file for the same reason tokens are: one
+   place, imported by the shell and by every app's `apps/shared/app.css`. */
+@import "./kaava-ui.css";
+
 /* --- the default scrollbar -------------------------------------------------
  * Every plain scroll container in the shell (the worktree panel, the commit
  * graph, anything with a bare `overflow: auto`) gets this look unless it

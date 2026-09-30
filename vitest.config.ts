@@ -100,7 +100,18 @@ export default defineConfig({
     include: [
       "src/**/*.test.{ts,tsx}",
       "apps/*/ui/src/**/*.test.{ts,tsx}",
+      // `apps/shared/` holds logic more than one app imports (see
+      // `apps/shared/comments.ts`), not a `ui/` tree of its own — a separate
+      // pattern rather than widening the one above, so a stray test dropped
+      // beside some *other* app's `index.html` still fails to be found rather
+      // than silently running from the wrong place.
+      "apps/shared/**/*.test.{ts,tsx}",
       "scripts/**/*.test.mjs",
     ],
+    // Vitest blanks every CSS import by default, `?raw` included. A `?raw`
+    // import is text, not a stylesheet — nothing is injected — so letting
+    // just those through costs nothing and lets a test read a declaration
+    // (`src/shell/chromeAlignment.test.ts`).
+    css: { include: [/\.css\?raw$/] },
   },
 });

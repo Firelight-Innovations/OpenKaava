@@ -1,5 +1,6 @@
 import { reportPainted } from "@openkaava/bridge";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { CostCharts } from "./CostCharts";
 import {
   budgetTone,
   byResource,
@@ -12,7 +13,7 @@ import {
   verdict,
 } from "./model";
 import * as rpc from "./rpc";
-import type { Billed, Category, Estimate, Trouble } from "./rpc";
+import type { Billed, Category, Estimate, Trends, Trouble } from "./rpc";
 import { useVisiblePoll } from "./useVisiblePoll";
 
 /**
@@ -22,11 +23,15 @@ import { useVisiblePoll } from "./useVisiblePoll";
  */
 const POLL_MS = 60_000;
 
+/** The billing export lags by hours, so trends poll far less often than the estimate (§3.1). */
+const TRENDS_POLL_MS = 600_000;
+
 export default function App() {
   const [estimate, setEstimate] = useState<Estimate | null>(null);
   const [failure, setFailure] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   const [updated, setUpdated] = useState<Date | null>(null);
+  const [trends, setTrends] = useState<Trends | null>(null);
 
   const refresh = useCallback(async () => {
     setBusy(true);
@@ -41,6 +46,16 @@ export default function App() {
     }
   }, []);
   useVisiblePoll(refresh, POLL_MS);
+
+  const refreshTrends = useCallback(async () => {
+    try {
+      setTrends(await rpc.trends());
+    } catch {
+      // The charts that need this stay in their "reading" state; the page's
+      // own failure handling is `refresh`'s, not this one's.
+    }
+  }, []);
+  useVisiblePoll(refreshTrends, TRENDS_POLL_MS);
 
   useEffect(() => {
     if (estimate || failure) reportPainted();
@@ -87,7 +102,11 @@ export default function App() {
                 Last refresh failed: {rpc.messageOf(failure)}. Showing the previous estimate.
               </p>
             )}
-            <Summary estimate={estimate} />
+            <CostCharts
+              estimate={estimate}
+              trends={trends}
+              summary={<Summary estimate={estimate} />}
+            />
             {estimate.problems.length > 0 && (
               <section className="costs__problems" aria-label="Parts that could not be read">
                 {estimate.problems.map((p) => (

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { KaavaRpcError, invoke, openIn, reportPainted } from "@openkaava/bridge";
+import { KaavaRpcError, invoke, on, openIn, reportPainted } from "@openkaava/bridge";
 import { PRODUCT_NAME, TAGLINE, WORDMARK } from "./branding.generated";
 import { Book, Close, FolderOpen, FolderPlus, GitBranch, Mark, PackagePlus } from "./icons";
+import NewProject from "./NewProjectPage";
 import WorktreeDialog from "./WorktreeDialog";
 import "./home.css";
 
@@ -120,6 +121,14 @@ export default function App() {
   const [state, setState] = useState<State | null>(null);
   const [error, setError] = useState<string | null>(null);
   /**
+   * Home has no router — there is exactly one other screen, so a boolean is
+   * the whole of the state it takes to choose between them. `home/new-
+   * project` used to open a native folder picker directly from the Start
+   * list; board 14 replaces that with this full page, reached the same way
+   * any other Start action is, but drawn instead of run.
+   */
+  const [showNewProject, setShowNewProject] = useState(false);
+  /**
    * Which method is in flight, or `null`. A boolean would do for disabling, but
    * not for the label — New and Open both open a *native folder picker*, which
    * blocks until the user answers it. On the second monitor, or behind the
@@ -184,23 +193,49 @@ export default function App() {
     [pending, checkWorktree],
   );
 
+  // Read on mount, and again whenever this cluster is repointed by something
+  // other than Home: the title bar's switcher, an agent's `set_project`. The
+  // shell relays `project:changed` only into frames in the cluster it names,
+  // so every one that arrives here is about this Home's own cluster.
   useEffect(() => {
     let live = true;
 
-    void invoke<State>("home/state")
-      .then((next) => {
-        if (live) {
-          setState(next);
-          setError(null);
-        }
-      })
-      .catch((e: unknown) => {
-        if (live) setError(describe(e));
-      });
+    const read = () => {
+      void invoke<State>("home/state")
+        .then((next) => {
+          if (live) {
+            setState(next);
+            setError(null);
+          }
+        })
+        .catch((e: unknown) => {
+          if (live) setError(describe(e));
+        });
+    };
+
+    read();
+    const stop = on("project:changed", read);
 
     return () => {
+      stop();
       live = false;
     };
+  }, []);
+
+  /**
+   * Reread `home/state` when the New Project page hands control back —
+   * cancelled or finished, the read is the same one call, and a project
+   * Create just opened needs to show up in `open`/`recents` the same way any
+   * other newly opened project does.
+   */
+  const closeNewProject = useCallback(() => {
+    setShowNewProject(false);
+    void invoke<State>("home/state")
+      .then((next) => {
+        setState(next);
+        setError(null);
+      })
+      .catch((e: unknown) => setError(describe(e)));
   }, []);
 
   /**
@@ -249,6 +284,8 @@ export default function App() {
   const open = state?.open ?? null;
   const recents = state?.recents ?? [];
 
+  if (showNewProject) return <NewProject onDone={closeNewProject} />;
+
   return (
     <div className="home">
       <div className="home__inner">
@@ -273,6 +310,7 @@ export default function App() {
         {open && (
           <div className="home__open">
             <span className="home__open-label">Open</span>
+            <ProjectTile project={open} className="home__tile home__tile--open" />
             <span className="home__open-name">{open.name}</span>
             <span className="home__open-path" title={open.path}>
               {open.path}
@@ -313,7 +351,12 @@ export default function App() {
                     // be a worse answer than one that never suggested it could.
                     disabled={unavailable !== undefined || pending !== null}
                     title={unavailable}
-                    onClick={() => run(method)}
+                    // New Project no longer opens a native picker directly —
+                    // see `showNewProject` above — every other Start action
+                    // still goes straight through `run`.
+                    onClick={() =>
+                      method === "home/new-project" ? setShowNewProject(true) : run(method)
+                    }
                   >
                     <Icon size={18} className="home__action-icon" />
                     <span>{label}</span>
@@ -410,6 +453,55 @@ export default function App() {
   );
 }
 
+/**
+ * A project's own icon (`.kaava/icon.*`), or its initial when it has none.
+ *
+ * Asked per project rather than folded into `home/state`: the icon is a data
+ * URL, and carrying one for every Recent row on every state read would make the
+ * common read the expensive one. Asked again when this pane regains focus, the
+ * same way the tutorial column is, since the icon is set from the shell's
+ * Switch project dialog and nothing tells this pane it changed.
+ */
+function ProjectTile({ project, className }: { project: Project; className: string }) {
+  const [icon, setIcon] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    setIcon(null);
+    if (!project.exists) return;
+
+    const read = () => {
+      void invoke<{ icon: string | null }>("home/project-icon", { path: project.path })
+        .then((next) => {
+          if (live) setIcon(next.icon);
+        })
+        .catch(() => {
+          // The initial, which is what `null` already draws.
+        });
+    };
+
+    read();
+    window.addEventListener("focus", read);
+    return () => {
+      live = false;
+      window.removeEventListener("focus", read);
+    };
+  }, [project.path, project.exists]);
+
+  if (icon !== null) {
+    return (
+      <span className={`${className} home__tile--image`} aria-hidden="true">
+        <img src={icon} alt="" draggable={false} />
+      </span>
+    );
+  }
+  return (
+    <span className={className} aria-hidden="true">
+      {project.name.charAt(0).toUpperCase() || "?"}
+    </span>
+  );
+}
+
 function Recent({
   project,
   busy,
@@ -435,6 +527,7 @@ function Recent({
         onClick={onOpen}
         title={project.path}
       >
+        <ProjectTile project={project} className="home__tile" />
         <span className="home__recent-name">{project.name}</span>
         <span className="home__recent-path">{project.path}</span>
         <span className="home__recent-meta">

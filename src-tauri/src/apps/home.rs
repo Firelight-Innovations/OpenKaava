@@ -113,6 +113,14 @@ pub fn call(
         )),
         "home/close-project" => shape(project::close(app, context.require_cluster()?)),
 
+        // A project's `.kaava/icon.*` as a `data:` URL, or null for the letter
+        // tile — the same answer the shell's `project_icon` command gives, for a
+        // pane that can only reach Rust through this dispatcher. Read-only:
+        // setting one needs a picker, and Home's pickers are for folders.
+        "home/project-icon" => Ok(json!({
+            "icon": project::icon::data_url(&path_param(params.as_ref())?),
+        })),
+
         // Opens the shell's app library rather than a folder picker.
         //
         // A `home/*` method rather than a Tauri command, because Home is an
@@ -141,6 +149,23 @@ pub fn call(
             git::git_worktree_create(app.clone(), cluster.to_string(), name).map_err(rpc)?;
             worktree_state(app, context)
         }
+
+        // The New Project page (board 14) — a view inside Home, not a
+        // separate app, so its two methods dispatch through this same `call`
+        // rather than getting a `REGISTRY` row of their own. The step-runner
+        // itself lives in `apps::home_create`; see its module doc for why.
+        "home/create-project" => super::home_create::start(app, context, params),
+        "home/create-project-status" => super::home_create::status(app),
+
+        // The New Project page's optional Browse button, for the folder and
+        // clone-to fields. Reuses `pick` exactly as `home/new-project` and
+        // `home/open-project` do — same modal-to-the-window folder dialog,
+        // just answering with the chosen path instead of acting on it, since
+        // this page decides what to do with a folder itself. `None` on a
+        // cancel, same as everywhere else `pick` is used.
+        "home/browse-folder" => Ok(json!({
+            "path": pick(app, "Choose a folder").map(|dir| dir.display().to_string()),
+        })),
 
         _ => Err(RpcError::new(
             METHOD_NOT_FOUND,

@@ -1,0 +1,91 @@
+/*
+ * The project pill. Geometry and colour from `docs/design/KAAVA-UX-SPEC.md`
+ * §1.2 — new token names throughout, per the common brief; the tokens
+ * workstream is landing their definitions in parallel.
+ */
+
+.projectpill {
+  appearance: none;
+  border: 1px solid var(--border-subtle-1);
+  margin: 0;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  height: 26px;
+  padding: 0 10px 0 6px;
+  border-radius: 13px;
+  background: var(--bg-surface-1);
+  color: var(--txt-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 500 12px/1 var(--sans);
+  white-space: nowrap;
+  cursor: default;
+}
+
+.projectpill:hover {
+  background: var(--bg-layer-1-hover);
+}
+
+/* The dialog this opens does not exist yet (see `ProjectPill.tsx`'s header),
+   so there is no controlled "open" state to draw the accent border and halo
+   for — `docs/design/KAAVA-UX-SPEC.md` §1.2's board 08 crop is left for the
+   **clusters** workstream to wire once the dialog itself lands. */
+
+.projectpill__tile {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: var(--border-strong);
+  color: var(--txt-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 9px/1 var(--sans);
+}
+
+/* The project's own icon (`ProjectTile`): same box, no letter-tile fill. */
+.projectpill__tile--image {
+  background: transparent;
+  overflow: hidden;
+}
+
+.projectpill__tile--image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.projectpill__name {
+  color: var(--txt-primary);
+}
+
+.projectpill__count {
+  color: var(--txt-placeholder);
+  font-weight: 450;
+}
+
+.projectpill__chip {
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--bg-layer-3);
+  color: var(--txt-secondary);
+  font-family: var(--mono);
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.projectpill__chip-icon {
+  flex: none;
+}
+
+.projectpill__chevron {
+  flex: none;
+  color: var(--txt-tertiary);
+}

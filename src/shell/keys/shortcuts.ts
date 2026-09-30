@@ -7,9 +7,10 @@
  * what makes that impossible: it walks `CHORDS` and this list and fails when
  * either holds a binding the other does not.
  *
- * That check covers the primary-modifier chords, which is most of them. The
- * four rows it cannot reach are the ones the listener handles before it
- * consults `CHORDS` at all — F11, Ctrl+1…9, Ctrl+R, Ctrl+. — plus Ctrl+K and
+ * That check covers the primary-modifier chords, which is most of them, and
+ * the Alt chords in `ALT_CHORDS`, through `altChords`. The five rows it cannot
+ * reach are the ones the listener handles before it consults `CHORDS` at all
+ * — F11, the Copilot key, Ctrl+1…9, Ctrl+R, Ctrl+. — plus Ctrl+K and
  * Escape, which `SearchSlot` owns. Those carry no `chords` and are marked
  * below; they are checked by reading, not by the test.
  */
@@ -17,6 +18,13 @@
 /** One half of a `CHORDS` row: the key, and whether Shift was held. */
 export interface Chord {
   key: string;
+  shift: boolean;
+}
+
+/** One `ALT_CHORDS` row, minus what it runs. */
+export interface AltChordId {
+  code: string;
+  ctrl: boolean;
   shift: boolean;
 }
 
@@ -30,6 +38,8 @@ export interface Shortcut {
    * listener resolves ahead of that table — see the header.
    */
   chords?: Chord[];
+  /** Which `ALT_CHORDS` entries this row accounts for, the same way. */
+  altChords?: AltChordId[];
   /** A sentence, when the row needs one. Shown under the label. */
   note?: string;
 }
@@ -68,7 +78,17 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: "File",
     items: [
       { label: "New File", keys: ["Ctrl", "N"], chords: [ctrl("n")] },
+      { label: "New Cluster", keys: ["Ctrl", "Shift", "N"], chords: [ctrl("n", true)] },
       { label: "Open Project", keys: ["Ctrl", "O"], chords: [ctrl("o")] },
+      {
+        label: "Switch Project",
+        keys: ["Ctrl", "Alt", "P"],
+        altChords: [
+          { code: "KeyP", ctrl: true, shift: false },
+          { code: "KeyP", ctrl: false, shift: true },
+        ],
+        note: "Shift+Alt+P too.",
+      },
       { label: "Save", keys: ["Ctrl", "S"], chords: [ctrl("s")] },
       { label: "Save As", keys: ["Ctrl", "Shift", "S"], chords: [ctrl("s", true)] },
       { label: "Duplicate", keys: ["Ctrl", "D"], chords: [ctrl("d")] },
@@ -84,9 +104,15 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: "View",
     items: [
       { label: "Command Palette", keys: ["Ctrl", "Shift", "P"], chords: [ctrl("p", true)] },
-      { label: "Show/Hide Panel", keys: ["Ctrl", "B"], chords: [ctrl("b")] },
+      { label: "Open App…", keys: ["Ctrl", "Shift", "A"], chords: [ctrl("a", true)] },
+      { label: "Show/Hide Source Control", keys: ["Ctrl", "B"], chords: [ctrl("b")] },
       { label: "Show/Hide Terminal", keys: ["Ctrl", "`"] },
       { label: "Full Screen", keys: ["F11"] },
+      {
+        label: "Copilot key",
+        keys: ["Copilot"],
+        note: "Sent by Windows as Win+Shift+F23. Opens the Command Palette unless you pick another action under Settings, Keyboard.",
+      },
       {
         label: "Zoom In",
         keys: ["Ctrl", "="],

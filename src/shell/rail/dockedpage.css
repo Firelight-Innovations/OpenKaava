@@ -1,0 +1,63 @@
+/* KAAVA-UX-SPEC.md §1.8 — the docked page's own content. Width, the resize
+   handle and the aside's chrome (background/border/radius) are `Frame`'s
+   `.frame__page` / `.frame__pagehandle` in `frame.css`; this file only
+   styles what `DockedPage.tsx` actually draws. */
+
+.k-docked-page {
+  flex-grow: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.k-docked-page__header {
+  height: 40px;
+  flex-shrink: 0;
+  padding: 0 6px 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.k-docked-page__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--txt-primary);
+}
+
+.k-docked-page__subtitle {
+  font-size: 12px;
+  color: var(--txt-tertiary);
+}
+
+.k-docked-page__close {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--txt-tertiary);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.k-docked-page__close:hover {
+  color: var(--txt-primary);
+  background: var(--bg-layer-1-hover);
+}
+
+.k-docked-page__close:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.k-docked-page__body {
+  flex-grow: 1;
+  min-height: 0;
+  overflow-y: auto;
+}

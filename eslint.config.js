@@ -45,14 +45,17 @@ import globals from "globals";
  * `contract.ts`, `motion.ts` and `dropZones.ts`.
  */
 const REGIONS = [
+  "dialogs",
   "diff",
   "drag",
+  "envbar",
   "frame",
   "github",
   "keys",
   "palette",
   "panel",
   "panes",
+  "rail",
   "search",
   "settings",
   "statusbar",
@@ -107,10 +110,13 @@ function baseRestrictions() {
  */
 const APPS = [
   "agents",
+  "blender-viewer",
   "costs",
   "design",
   "files",
+  "godot-viewer",
   "home",
+  "play",
   "projects",
   "schematify",
   "tutorial",

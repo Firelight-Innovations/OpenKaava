@@ -331,9 +331,12 @@ mod tests {
                     active_terminal: None,
                     band_height: None,
                     page: None,
+                    environment: None,
+                    pinned: false,
                 }],
                 active_cluster_id: Some("cluster-1".to_string()),
                 geometry: None,
+                right_page: None,
             }],
             instances,
             terminals: Vec::new(),
@@ -513,6 +516,8 @@ mod tests {
                     active_terminal: Some("term-1".to_string()),
                     band_height: Some(320.0),
                     page: None,
+                    environment: None,
+                    pinned: false,
                 }],
                 active_cluster_id: Some("cluster-1".to_string()),
                 geometry: Some(WindowGeometry {
@@ -521,6 +526,7 @@ mod tests {
                     width: 1440,
                     height: 900,
                 }),
+                right_page: None,
             }],
             instances: vec![
                 SurfaceInstance {

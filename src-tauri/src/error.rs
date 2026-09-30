@@ -63,6 +63,10 @@ pub enum AppError {
     #[error("git {op} failed: {reason}")]
     Git { op: String, reason: String },
 
+    /// A write refused on a main cluster; see `environments::refuse_write_on_main`.
+    #[error("main is read-only — open a worktree to edit ({op} refused)")]
+    ReadOnlyMain { op: String },
+
     // A flattened string for the same reason `Git` above uses one: the cause is
     // a `plugins::InstallError` whose whole value is its `Display` text, written
     // to be shown in the dialog the person just used rather than matched on.
@@ -129,9 +133,14 @@ pub enum AppError {
     #[error("no page with id `{0}` in this build")]
     UnknownPage(String),
 
+    /// A page listed on the rail but not openable yet — the Artifact registry,
+    /// today. See `pages::Page::disabled`.
+    #[error("`{0}` is not open for this build yet")]
+    PageDisabled(String),
+
     /// An app that draws a page, asked for as an ordinary surface. A page has
-    /// one cluster per window and one instance in it; see `pages`.
-    #[error("`{0}` is a page, not an app — open it from its chip in the cluster bar")]
+    /// its own instance, reused across opens; see `pages`.
+    #[error("`{0}` is a page, not an app — open it from its button on the rail")]
     PageApp(String),
 
     /// A search that could not run at all — an unusable regex pattern, or the
@@ -153,6 +162,11 @@ pub enum AppError {
     /// are shown in, so a caller assembling the sentence would be a second author of it.
     #[error("{0}")]
     Review(String),
+
+    /// A project icon that cannot be set: the wrong kind of file, too large, or a
+    /// copy that failed. The whole sentence, for `Review`'s reason.
+    #[error("{0}")]
+    ProjectIcon(String),
 
     /// A settings write the schema refused: an unknown key, a value of the
     /// wrong type, or a choice that is not one of the options. Wrapped rather

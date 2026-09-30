@@ -167,3 +167,34 @@ export function Close(props: IconProps) {
     </Outline>
   );
 }
+
+/** New Project's own header — "back to Home". */
+export function ArrowLeft(props: IconProps) {
+  return (
+    <Outline {...props}>
+      <path d="M5 12l14 0" />
+      <path d="M5 12l6 6" />
+      <path d="M5 12l6 -6" />
+    </Outline>
+  );
+}
+
+/** A finished step in the Create rail. */
+export function Check(props: IconProps) {
+  return (
+    <Outline {...props}>
+      <path d="M5 12l5 5l10 -10" />
+    </Outline>
+  );
+}
+
+/** A failed step in the Create rail, and a field's inline error. */
+export function AlertCircle(props: IconProps) {
+  return (
+    <Outline {...props}>
+      <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+      <path d="M12 8l0 5" />
+      <path d="M12 16l.01 0" />
+    </Outline>
+  );
+}

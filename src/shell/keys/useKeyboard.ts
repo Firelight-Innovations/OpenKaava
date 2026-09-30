@@ -14,6 +14,7 @@
  */
 import { useEffect, useRef } from "react";
 import { hasPrimaryModifier } from "../accelerators";
+import { isCopilotKey } from "../copilotKey";
 
 /**
  * Everything the shell can be asked for by keystroke.
@@ -36,6 +37,8 @@ export interface KeyboardActions {
   // --- File -----------------------------------------------------------------
   /** Ctrl+N */
   newFile(): void;
+  /** Ctrl+Shift+N — open the New Cluster dialog (board 04). */
+  newCluster(): void;
   /** Ctrl+O */
   openProject(): void;
   /** Ctrl+S */
@@ -50,8 +53,12 @@ export interface KeyboardActions {
   // --- View -----------------------------------------------------------------
   /** Ctrl+Shift+P */
   commandPalette(): void;
-  /** Ctrl+B */
-  togglePanel(): void;
+  /** Ctrl+Shift+A — the app picker. */
+  openApp(): void;
+  /** Ctrl+Alt+P and Shift+Alt+P — open the Switch project dialog (board 08). */
+  switchProject(): void;
+  /** Ctrl+B — opens or closes the rail's Git page, which holds source control. */
+  toggleSourceControl(): void;
   /** Ctrl+` */
   toggleTerminal(): void;
   /** F11 */
@@ -60,6 +67,12 @@ export interface KeyboardActions {
   zoomIn(): void;
   /** Ctrl+- */
   zoomOut(): void;
+
+  /**
+   * The Windows Copilot key. Returns true when it did something, so the
+   * listener suppresses the default; false when the key is set to "none".
+   */
+  copilotKey(): boolean;
 
   // --- Terminal -------------------------------------------------------------
   /** Ctrl+Shift+` */
@@ -95,13 +108,9 @@ interface Chord {
  */
 // Exported for `shortcuts.test.ts`, which holds the shortcuts screen to it.
 export const CHORDS: Record<string, Chord> = {
-  // Shift+Ctrl+N is New Window, which this build cannot do — see the item's
-  // own note in `TitleBar.tsx`. Unbound rather than bound to nothing, so the
-  // browser's "new incognito window" is at least honest about being the
-  // browser's.
   n: {
     plain: (a) => a.newFile,
-    shift: null,
+    shift: (a) => a.newCluster,
   },
   o: {
     plain: (a) => a.openProject,
@@ -126,8 +135,13 @@ export const CHORDS: Record<string, Chord> = {
     plain: null,
     shift: (a) => a.commandPalette,
   },
+  // Only with Shift: plain Ctrl+A is select-all in every field and editor.
+  a: {
+    plain: null,
+    shift: (a) => a.openApp,
+  },
   b: {
-    plain: (a) => a.togglePanel,
+    plain: (a) => a.toggleSourceControl,
     shift: null,
   },
   "\\": {
@@ -154,6 +168,40 @@ export const CHORDS: Record<string, Chord> = {
     shift: (a) => a.zoomOut,
   },
 };
+
+/** One Alt-modified binding. `code` is the physical key, not the character. */
+export interface AltChord {
+  code: string;
+  ctrl: boolean;
+  shift: boolean;
+  run: ChordRun;
+}
+
+/**
+ * The bindings that hold Alt, kept apart from `CHORDS` because not all of them
+ * hold Ctrl — Shift+Alt+P is here because it is what Braden reached for first.
+ *
+ * Matched on `e.code` rather than `e.key`: with Alt held, `key` is whatever the
+ * layout's Alt layer produces, which on several layouts is not the letter at
+ * all. The modifiers are matched exactly, so Ctrl+Shift+Alt+P is neither.
+ */
+// Exported for `shortcuts.test.ts`, the same as `CHORDS`.
+export const ALT_CHORDS: AltChord[] = [
+  { code: "KeyP", ctrl: true, shift: false, run: (a) => a.switchProject },
+  { code: "KeyP", ctrl: false, shift: true, run: (a) => a.switchProject },
+];
+
+/** The `ALT_CHORDS` row this event is, if any. Pure, for the test. */
+export function altChordFor(
+  e: Pick<KeyboardEvent, "code" | "altKey" | "ctrlKey" | "shiftKey" | "metaKey">,
+): AltChord | null {
+  if (!e.altKey || e.metaKey) return null;
+  return (
+    ALT_CHORDS.find(
+      (row) => row.code === e.code && row.ctrl === e.ctrlKey && row.shift === e.shiftKey,
+    ) ?? null
+  );
+}
 
 /**
  * The menu-bar accelerators, in one table. `true` when the key was ours.
@@ -226,6 +274,23 @@ export function useKeyboard(actions: KeyboardActions): void {
       if (e.key === "F11" && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
         e.preventDefault();
         a.toggleFullscreen();
+        return;
+      }
+
+      // The Copilot key carries Win+Shift and never Ctrl, so it has to be
+      // claimed before the primary-modifier gate below turns it away.
+      if (isCopilotKey(e)) {
+        if (a.copilotKey()) e.preventDefault();
+        return;
+      }
+
+      // Alt chords ahead of the primary-modifier gate, since Shift+Alt+P
+      // holds no Ctrl. Ahead of the text-entry guard too: no Alt chord is
+      // typing, and the dialog these open is itself mostly a text field.
+      const alt = altChordFor(e);
+      if (alt) {
+        e.preventDefault();
+        alt.run(a)();
         return;
       }
 

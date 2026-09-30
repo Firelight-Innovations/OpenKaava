@@ -10,11 +10,14 @@ mod boot;
 mod branding;
 mod cloud;
 mod commands;
+mod comments;
+mod copilot_key;
 #[cfg(feature = "design-mode")]
 mod design_comments;
 mod devtools;
 mod diagnostics;
 mod discovery;
+mod environments;
 mod error;
 mod git;
 mod github;
@@ -175,6 +178,10 @@ pub fn run() {
         // `apps::projects::WakeManager`.
         .manage(plane_webview::PlaneWebview::default())
         .manage(apps::projects::WakeManager::default())
+        // The New Project page's step-runner snapshot, for `home/create-
+        // project-status` to poll — the same shape as `WakeManager` above.
+        // See `apps::home_create`.
+        .manage(apps::home_create::CreateManager::default())
         // Which MCP servers this build hosts for whatever agent the user is
         // running in a terminal, and which of them are switched on. Empty until
         // something registers into it — see `mcp`'s module doc for why an app
@@ -299,6 +306,7 @@ pub fn run() {
             // registration puts static descriptors on a list, and the only file
             // it touches is its own.
             settings::seed(app.handle());
+            copilot_key::sync(app.handle());
 
             // Before the layout, because `restore_session` reads the old global
             // open project out of this store to migrate it onto a cluster. The
@@ -450,17 +458,28 @@ pub fn run() {
             commands::close_instance,
             commands::list_pages,
             commands::open_page,
+            commands::close_page,
+            commands::set_page_mode,
+            commands::set_page_width,
             commands::activate_instance,
             commands::set_instance_title,
             commands::move_instance,
             commands::split_pane,
             commands::set_pane_sizes,
             commands::add_cluster,
+            commands::create_cluster_with_environment,
+            commands::list_cluster_environments,
+            commands::create_design_cluster,
+            commands::new_cluster_for_drop,
             commands::set_active_cluster,
             commands::rename_cluster,
             commands::close_cluster,
             commands::set_cluster_project,
             commands::cluster_project,
+            commands::list_recent_projects,
+            commands::open_project_in_cluster,
+            commands::project_icon,
+            commands::choose_project_icon,
             commands::list_presets,
             commands::save_preset,
             commands::apply_preset,
@@ -700,7 +719,10 @@ fn respawn_terminals(app: &tauri::AppHandle, shell: &ShellState) {
         let cwd = project::cluster_path(app, &terminal.cluster_id)
             .unwrap_or_else(|| std::path::PathBuf::from("."));
 
-        if let Err(e) = ptys.open(app, &terminal.id, &cwd, 80, 24) {
+        let marker = crate::environments::read_only_env(
+            shell.cluster_environment(&terminal.cluster_id).as_ref(),
+        );
+        if let Err(e) = ptys.open(app, &terminal.id, &cwd, 80, 24, &marker) {
             crate::kaava_log!("could not restore the shell behind {}: {e}", terminal.id);
             shell.close_terminal(app, &terminal.id);
         }

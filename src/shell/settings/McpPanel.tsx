@@ -122,14 +122,15 @@ export default function McpPanel() {
 function Endpoint({ port }: { port: number | null }) {
   const reachable = port !== null;
   return (
-    <p className="settings-mcp__endpoint" data-state={reachable ? "ok" : "err"}>
-      <span className="settings-mcp__dot" />
+    <p className="settings-mcp__endpoint">
+      <span className={`k-badge ${reachable ? "k-badge--success" : "k-badge--danger"}`}>
+        <span className="k-badge__dot" />
+        {reachable ? "Listening" : "Not listening"}
+      </span>
       {reachable ? (
-        <span>
-          Listening on <span className="settings-mcp__path">127.0.0.1:{port}</span>
-        </span>
+        <span className="settings-mcp__path">127.0.0.1:{port}</span>
       ) : (
-        <span>The listener did not start — no server is reachable</span>
+        <span>The listener did not start, so no server is reachable</span>
       )}
     </p>
   );
@@ -144,17 +145,22 @@ function ServerRow({
   onToggle: (server: McpServerInfo, next: boolean) => void;
 }) {
   return (
-    <div className="settings-mcp__row">
-      <div className="settings-mcp__text">
-        <span className="settings-mcp__name">
+    <div className="setting">
+      <div className="setting__label">
+        <span className="setting__title">
           {server.name}
           {/* Marked rather than merely present. Reaching this row took a
               deliberate switch in another section, and by the time somebody has
               scrolled to it that is easy to have forgotten — so the row says
               what it is at the moment the switch beside it is being considered. */}
-          {server.devOnly && <span className="settings-mcp__badge">developer</span>}
+          {server.devOnly && (
+            <span className="k-badge k-badge--idle">
+              <span className="k-badge__dot" />
+              developer
+            </span>
+          )}
         </span>
-        <span className="settings-mcp__description">{server.description}</span>
+        <span className="setting__description">{server.description}</span>
         {/* The config key and the route, in mono because both are things you
             retype into somewhere else — a project's `.mcp.json` and a browser
             respectively. The tool count rides along on the same line: it is the
@@ -163,11 +169,14 @@ function ServerRow({
           {server.configKey} · {server.path} · {toolCount(server.toolCount)}
         </span>
       </div>
-      <ToggleControl
-        on={server.enabled}
-        label={server.name}
-        onChange={(next) => onToggle(server, next)}
-      />
+      <div className="setting__control">
+        <ToggleControl
+          on={server.enabled}
+          label={server.name}
+          onChange={(next) => onToggle(server, next)}
+        />
+      </div>
+      <div className="setting__reset-slot" />
     </div>
   );
 }

@@ -138,6 +138,52 @@
   will-change: left, top;
 }
 
+/* --- the hint bar: "Split right · Esc cancel" -------------------------- */
+
+.drag-hint {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+  pointer-events: none;
+  /* Under the ghost chip rather than beside it — `.drag-ghost` trails
+     (14px, 12px) off the cursor, and this trails further down the same
+     line so the two never overlap. */
+  transform: translate(14px, 40px);
+  will-change: left, top;
+}
+
+.drag-hint-label {
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.drag-hint-sep {
+  color: var(--text-dim-3);
+}
+
+.drag-hint-key {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim-2);
+  border: 1px solid var(--line-2);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+.drag-hint-action {
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--text-dim-3);
+}
+
 /* --- panel drop outline: "drop target lit" ----------------------------- */
 
 .drag-panel-outline {

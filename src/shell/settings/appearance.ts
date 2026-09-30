@@ -1,53 +1,54 @@
 /**
- * The three appearance settings, applied to the live document.
+ * The appearance settings, applied to the live document.
  *
- * A layer *over* `src/tokens.css`, never an edit to it. That file is the decoded
- * handoff and says nothing in it is a choice; a user's accent is a choice. These
- * write the same custom properties onto `document.documentElement`, where an
- * inline style beats the `:root` rule underneath by ordinary cascade — so the
- * spec's values stay in the file as what the interface falls back to.
+ * A layer *over* `src/tokens.css`, never an edit to it. That file carries the
+ * design system's own values; theme and accent are choices, so they belong in
+ * a layer above rather than as an edit to the tokens' own definitions.
  */
 import { useEffect } from "react";
 import type { SettingsSession } from "./useSettings";
+import { mirrorSplashAppearance } from "./splashAppearance";
+import { setTheme, type AccentName, type ThemeChangedPayload } from "../themeBroadcast";
 
+const THEME_KEY = "appearance.theme";
 const ACCENT_KEY = "appearance.accentColor";
 const SANS_KEY = "appearance.interfaceFontFamily";
 const MONO_KEY = "appearance.monoFontFamily";
 
-/**
- * What stays behind whatever the user names. Mirrors `tokens.css`.
- *
- * Behind, not instead of: a font this machine lacks has to degrade rather than
- * break, and the field says "interface font", not "interface font stack".
- */
+/** What stays behind whatever the user names. Mirrors `tokens.css`. */
 const SANS_FALLBACK = `system-ui, -apple-system, "Segoe UI", sans-serif`;
 const MONO_FALLBACK = `ui-monospace, "Cascadia Mono", Consolas, monospace`;
 
+const ACCENT_NAMES: readonly AccentName[] = ["amber", "blue", "green", "violet", "coral"];
+const DEFAULT_ACCENT: AccentName = "blue";
+
 /**
- * The alphas `tokens.css` draws each accent relative at.
+ * A value read off the accent setting, narrowed to a name `tokens.css`
+ * actually defines a trio for.
  *
- * Derived rather than picked, because `--accent` has five relatives and five
- * colours would mean thirty hand-chosen values that all have to stay in the same
- * relationship — or drop targets stop matching focus rings. One decision, one
- * stored hex. `color-mix()` would do this in CSS and is not used: it would put
- * the same five relationships in a second language.
+ * Anything else — the setting unset, a pre-rework hex the backend migration
+ * in `schema::migrate_legacy_accent` did not recognise, a hand-edited
+ * `settings.json` — falls back to Blue rather than being written into
+ * `--accent` unchecked, which would point the whole interface at a custom
+ * property that resolves to nothing.
  */
-const WASHES: Array<[property: string, alpha: number]> = [
-  ["--accent-line", 0.45],
-  ["--accent-line-strong", 0.7],
-  ["--accent-wash", 0.08],
-  ["--accent-wash-faint", 0.05],
-];
-/** A ratio, not an alpha: `--accent-dim` is opaque in the spec, because it is a
- *  hint drawn inside a filled accent button. 0.64 reproduces `#8a6431`. */
-const DIM_RATIO = 0.64;
+function narrowAccent(value: string | null): AccentName {
+  return (ACCENT_NAMES as readonly string[]).includes(value ?? "")
+    ? (value as AccentName)
+    : DEFAULT_ACCENT;
+}
 
 /**
  * Keep the document in step with the appearance settings.
  *
  * Called once, from `App.tsx`, above the window — not from the settings screen.
  * The screen is where these are *changed*, but a window whose settings screen
- * has never been opened still has to be drawn in the accent the person chose.
+ * has never been opened still has to be drawn in the theme and accent the
+ * person chose.
+ *
+ * Also the source of the shell's own resolved theme and accent for
+ * `src/shell/themeBroadcast.ts`, which is how every app iframe learns to
+ * follow along — see `ToolWindow.tsx`'s relay of `kaava:theme-changed`.
  */
 export function useAppearance(session: SettingsSession): void {
   useEffect(() => {
@@ -61,45 +62,54 @@ export function useAppearance(session: SettingsSession): void {
       return typeof value === "string" ? value : null;
     };
 
-    const accent = read(ACCENT_KEY);
-    if (accent !== null) {
-      root.style.setProperty("--accent", accent);
-      for (const [property, alpha] of WASHES) {
-        root.style.setProperty(property, rgba(accent, alpha));
-      }
-      root.style.setProperty("--accent-dim", darken(accent, DIM_RATIO));
-    }
+    const accent = narrowAccent(read(ACCENT_KEY));
+    // Every one of `tokens.css`'s five accent trios is defined in both
+    // themes; pointing these three live properties at `var(--accent-<name>)`
+    // is a one-time indirection, not a value to keep in step by hand — a
+    // theme switch re-resolves it for free because `--accent-<name>` itself
+    // moves under `:root[data-theme="light"]`.
+    root.style.setProperty("--accent", `var(--accent-${accent})`);
+    root.style.setProperty("--accent-hover", `var(--accent-${accent}-hover)`);
+    root.style.setProperty("--accent-subtle", `var(--accent-${accent}-subtle)`);
 
     const sans = read(SANS_KEY);
     if (sans !== null) root.style.setProperty("--sans", `"${sans}", ${SANS_FALLBACK}`);
 
     const mono = read(MONO_KEY);
     if (mono !== null) root.style.setProperty("--mono", `"${mono}", ${MONO_FALLBACK}`);
+
+    const theme = resolveTheme(read(THEME_KEY));
+    root.dataset.theme = theme;
+
+    const payload: ThemeChangedPayload = { theme, accent };
+    setTheme(payload);
+    mirrorSplashAppearance(read(THEME_KEY), accent);
+
+    // "System" tracks `prefers-color-scheme` for as long as it is selected,
+    // and stops the instant something else runs this effect again — the
+    // listener is torn down on every dependency change, same as any other
+    // effect subscription, so a later theme choice can never be fought by a
+    // stale one still watching the OS.
+    if (read(THEME_KEY) !== "system") return;
+    const media = window.matchMedia("(prefers-color-scheme: light)");
+    const onChange = () => {
+      const resolved: "dark" | "light" = media.matches ? "light" : "dark";
+      root.dataset.theme = resolved;
+      setTheme({ theme: resolved, accent });
+    };
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
   }, [session]);
 }
 
-/** `#d98a3f` and 0.45 to `rgba(217, 138, 63, 0.45)`. */
-function rgba(hex: string, alpha: number): string {
-  const [r, g, b] = channels(hex);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-/** The same hue at `ratio` of its brightness, still opaque. */
-function darken(hex: string, ratio: number): string {
-  const [r, g, b] = channels(hex).map((c) => Math.round(c * ratio));
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-/**
- * The three channels of a `#rrggbb`.
- *
- * Falls back to the spec's own accent for anything that is not one. The value
- * can only come from a `select` whose options Rust validates against, so this
- * is unreachable — but a colour parser that returned `NaN` would paint the
- * whole interface transparent, and that is a bad way to find out.
- */
-function channels(hex: string): [number, number, number] {
-  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex.trim());
-  if (match === null) return [217, 138, 63];
-  return [parseInt(match[1], 16), parseInt(match[2], 16), parseInt(match[3], 16)];
+/** "System" resolved against the OS's current preference; "dark"/"light" (or
+ *  anything else unrecognised, including the setting being unset) pass
+ *  through as literally "dark". Dark is the default theme, both here and in
+ *  `schema.rs`'s own default. */
+function resolveTheme(value: string | null): "dark" | "light" {
+  if (value === "light") return "light";
+  if (value === "system") {
+    return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  }
+  return "dark";
 }

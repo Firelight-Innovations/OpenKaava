@@ -390,7 +390,19 @@ pub fn seed(app: &AppHandle) {
     for group in crate::apps::settings_groups() {
         registry.register(group);
     }
-    registry.hydrate(store::load(app).values);
+
+    let mut stored = store::load(app).values;
+    // A pre-rework file's accent is a hex the current `Select` no longer
+    // offers (see `schema::migrate_legacy_accent`); `hydrate` would otherwise
+    // drop it and reset the accent to the default for every existing install.
+    if let Some(Value::String(hex)) = stored.get(schema::keys::APPEARANCE_ACCENT_COLOR) {
+        let migrated = schema::migrate_legacy_accent(hex).to_string();
+        stored.insert(
+            schema::keys::APPEARANCE_ACCENT_COLOR.to_string(),
+            json!(migrated),
+        );
+    }
+    registry.hydrate(stored);
 }
 
 /// Persist and broadcast. Every write goes through here.
@@ -426,6 +438,9 @@ fn react(app: &AppHandle, key: &str) {
     if matches!(key, keys::MCP_WRITE_PROJECT_CONFIG | keys::DEVELOPER_MODE) {
         crate::mcp::sync_all(app);
     }
+    if key == keys::KEYS_COPILOT_GLOBAL {
+        crate::copilot_key::sync(app);
+    }
 }
 
 /// The same, for a whole section going back to its defaults.
@@ -436,6 +451,9 @@ fn react(app: &AppHandle, key: &str) {
 fn react_group(app: &AppHandle, id: &str) {
     if matches!(id, "mcp" | "developer") {
         crate::mcp::sync_all(app);
+    }
+    if id == "keys" {
+        crate::copilot_key::sync(app);
     }
 }
 

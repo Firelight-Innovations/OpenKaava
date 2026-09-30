@@ -14,7 +14,13 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import type { Menu } from "../contract";
-import { commandsFromMenus, initialIndex, rankCommands } from "./registry";
+import {
+  commandsFromMenus,
+  initialIndex,
+  rankCommands,
+  withOpenAppCommands,
+  type OpenAppSource,
+} from "./registry";
 
 const noop = () => {};
 
@@ -151,5 +157,52 @@ describe("where the highlight starts", () => {
     const rows = rankCommands(commandsFromMenus(menus()), "file save");
     expect(rows.every((row) => row.command.disabled)).toBe(true);
     expect(initialIndex(rows)).toBe(0);
+  });
+});
+
+describe("open-app commands", () => {
+  const apps = [
+    { id: "files", name: "Files", description: "Browse", kind: "app" as const },
+    { id: "godot-viewer", name: "Godot Viewer", description: "Watch", kind: "app" as const },
+  ];
+  const source = (over: Partial<OpenAppSource> = {}): OpenAppSource => ({
+    apps,
+    openPicker: vi.fn(),
+    open: vi.fn(),
+    ...over,
+  });
+  // The menu's own per-app rows, as `defaultMenus` flattens them.
+  const menuCommands = () =>
+    commandsFromMenus([
+      { label: "Apps", items: [{ label: "Files", onSelect: noop }] },
+      { label: "File", items: [{ label: "Save", onSelect: noop }] },
+    ]);
+
+  it("leads with 'Open app…' and hides the per-app rows until something is typed", () => {
+    const all = withOpenAppCommands(menuCommands(), source());
+    const empty = rankCommands(all, "");
+    expect(empty[0]?.command.label).toBe("Open app…");
+    expect(empty.map((r) => r.command.label)).not.toContain("Open Files");
+  });
+
+  it("surfaces 'Open <App>' first when its name is typed, ahead of the menu's row", () => {
+    const all = withOpenAppCommands(menuCommands(), source());
+    expect(rankCommands(all, "files")[0]?.command.label).toBe("Open Files");
+    expect(rankCommands(all, "godot")[0]?.command.label).toBe("Open Godot Viewer");
+    expect(all.some((c) => c.label === "Apps: Files")).toBe(false);
+  });
+
+  it("runs the open handler with the app, and the picker for 'Open app…'", () => {
+    const s = source();
+    const all = withOpenAppCommands([], s);
+    rankCommands(all, "files")[0]?.command.onSelect?.();
+    expect(s.open).toHaveBeenCalledWith(apps[0]);
+    all[0]?.onSelect?.();
+    expect(s.openPicker).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables every row with the reason when opening is blocked", () => {
+    const all = withOpenAppCommands([], source({ blocked: "No cluster." }));
+    expect(all.every((c) => c.disabled && c.hint === "No cluster.")).toBe(true);
   });
 });

@@ -53,6 +53,7 @@
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/ibm-plex-sans": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
     "@openkaava/bridge": "workspace:*",
     "@openkaava/file-icons": "workspace:*",
     "@openkaava/monaco-languages": "workspace:*",
@@ -61,7 +62,9 @@
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-webgl": "^0.19.0",
     "@xterm/xterm": "^6.0.0",
+    "echarts": "^6.1.0",
     "framer-motion": "^13.1.0",
+    "lucide-react": "^1.48.0",
     "material-icon-theme": "^5.37.0",
     "mermaid": "^11.16.1",
     "monaco-editor": "^0.56.0",

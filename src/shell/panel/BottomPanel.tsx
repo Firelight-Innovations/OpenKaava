@@ -3,13 +3,13 @@
  * down the left and the emulator deck filling the rest.
  *
  * The list runs vertically because this band is wide and short, where
- * `SecondaryPanel`'s strip was tall and narrow. A horizontal strip here would
+ * the old secondary panel's strip was tall and narrow. A horizontal strip here would
  * spend the band's scarce height on tabs rather than on output, and a column
  * holds a dozen sessions without scrolling where the strip started scrolling at
  * about four.
  *
  * The deck is a slot rather than something this file renders, matching the
- * arrangement `SecondaryPanel` already used: an unmounted emulator loses its
+ * arrangement the old secondary panel used: an unmounted emulator loses its
  * scrollback and whatever its running program had drawn, so the caller mounts
  * it once and never tears it down to switch sessions.
  *
@@ -60,9 +60,7 @@ export interface BottomPanelProps {
    *
    * Handed in rather than taken from `useDropZone` here: the drag layer is
    * another region, and STANDARDS.md §1.2 has this one built against
-   * `contract.ts` and props alone. `SecondaryPanel` reaches for the hook
-   * directly and is grandfathered in `eslint-suppressions.json`; that is a
-   * violation being tolerated, not a pattern to copy.
+   * `contract.ts` and props alone.
    */
   zoneRef?: (el: HTMLDivElement | null) => void;
   /**

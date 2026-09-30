@@ -399,6 +399,13 @@ export function clusterProject(clusterId: string | null): Promise<ProjectInfo | 
   return invoke<ProjectInfo | null>("cluster_project", { clusterId });
 }
 
+/** One cluster's project and the global Recent list together. Mirrors
+ *  `project::ProjectSnapshot` — what `openProjectInCluster` resolves to. */
+export interface ProjectSnapshot {
+  open: ProjectInfo | null;
+  recents: ProjectInfo[];
+}
+
 /**
  * Point a cluster at a project, or at nothing, without going through Home.
  *
@@ -413,6 +420,43 @@ export function setClusterProject(clusterId: string, path: string | null): Promi
   return invoke("set_cluster_project", { clusterId, path });
 }
 
+/**
+ * One row of the Switch Project dialog (board 08). Mirrors
+ * `commands::RecentProjectRow` — see that type for why `format`/`modified`
+ * are left out. `open`/`clusterCount`/`environmentCount` answer for *this
+ * session* only: a project nobody has opened since launch reads as closed,
+ * even if it looked busy last time — there is no persisted per-project
+ * workspace yet (KAAVA-UX-REWORK.md §6) for a closed one to draw from.
+ */
+export interface RecentProjectRow {
+  name: string;
+  path: string;
+  id: string | null;
+  initialized: boolean;
+  exists: boolean;
+  /** Milliseconds since the Unix epoch. */
+  lastOpened: number | null;
+  open: boolean;
+  clusterCount: number;
+  environmentCount: number;
+}
+
+/** Every project OpenKaava remembers opening, each with how much of it is
+ *  live right now. See `commands::list_recent_projects`. */
+export function listRecentProjects(): Promise<RecentProjectRow[]> {
+  return invoke<RecentProjectRow[]>("list_recent_projects", {});
+}
+
+/**
+ * Open a Recent-list project into a cluster — the Switch Project dialog's one
+ * action. Mirrors `commands::open_project_in_cluster`: the real open path
+ * (Recent list, retitle, preset, pinned Design cluster), not
+ * `setClusterProject`'s quieter pointer move.
+ */
+export function openProjectInCluster(clusterId: string, path: string): Promise<ProjectSnapshot> {
+  return invoke<ProjectSnapshot>("open_project_in_cluster", { clusterId, path });
+}
+
 export const PROJECT_CHANGED_EVENT = "project:changed";
 
 /**
@@ -424,6 +468,36 @@ export const PROJECT_CHANGED_EVENT = "project:changed";
  */
 export function onProjectChanged(cb: (payload: unknown) => void): Promise<UnlistenFn> {
   return listen<unknown>(PROJECT_CHANGED_EVENT, (e) => cb(e.payload));
+}
+
+/** A project's `.kaava/icon.*` as a `data:` URL, or `null` for "draw the
+ *  letter tile". Mirrors `commands::project_icon`. */
+export function projectIcon(path: string): Promise<string | null> {
+  return invoke<string | null>("project_icon", { path });
+}
+
+/**
+ * Raise the native image picker and copy the choice into the project as its
+ * icon. `null` for a cancelled picker. Mirrors `commands::choose_project_icon`,
+ * which also broadcasts `PROJECT_ICON_EVENT` so every other drawing of the
+ * project updates. Never called from a test: the picker blocks the webview.
+ */
+export function chooseProjectIcon(path: string): Promise<string | null> {
+  return invoke<string | null>("choose_project_icon", { path });
+}
+
+export const PROJECT_ICON_EVENT = "project:icon";
+
+/** What `PROJECT_ICON_EVENT` carries: which project, and its new icon. */
+export interface ProjectIconChanged {
+  path: string;
+  icon: string | null;
+}
+
+export function onProjectIconChanged(
+  cb: (payload: ProjectIconChanged) => void,
+): Promise<UnlistenFn> {
+  return listen<ProjectIconChanged>(PROJECT_ICON_EVENT, (e) => cb(e.payload));
 }
 
 /**
@@ -443,7 +517,24 @@ export interface WorktreeRef {
   path: string;
   /** `null` for a detached HEAD — a state OpenKaava never creates but can find. */
   branch: string | null;
+  /** The branch this one was forked from, recorded at creation. `null` for a
+   *  worktree old enough to predate the field, or one this build never made. */
+  base: string | null;
 }
+
+/**
+ * Where a cluster's work runs: a local worktree, a cloud session, the
+ * read-only main checkout, or the standing Design worktree. Mirrors
+ * `environments::Environment` — see that enum for what each variant means
+ * and why `Cloud` alone has no local path.
+ *
+ * `worktree`'s successor rather than its replacement; see `Cluster.environment`.
+ */
+export type Environment =
+  | { kind: "localWorktree"; name: string; path: string; branch: string; base: string }
+  | { kind: "cloud"; sessionId: string; vm: string; branch: string | null }
+  | { kind: "main" }
+  | { kind: "design"; path: string; branch: string };
 
 /**
  * One entry from `git worktree list`. Mirrors `git::GitWorktree`.
@@ -1041,8 +1132,23 @@ export interface Cluster {
   /** How tall this cluster's band was left, in CSS pixels, or `null` for one
    *  nobody has dragged it in — which opens at `BOTTOM_DEFAULT`. */
   bandHeight: number | null;
-  /** The page this cluster *is* (`agents`), absent for a real one. See `pages.rs`. */
+  /**
+   * Legacy, migration-only: the page this cluster *was* under the pre-rework
+   * page-cluster model, absent for a real one. A running build never
+   * produces this anymore — `right_page` on `WindowPlacement` is where a
+   * page lives now — but a `layout.json` an old build wrote can still carry
+   * one on the way in, which `migrate_legacy_page_clusters` converts.
+   */
   page?: string | null;
+  /** Where this cluster's work actually happens. `worktree`'s successor —
+   *  see that field's doc and `Environment` for the precedence between them.
+   *  Absent (not `null`) for the same backward-compatibility reason `page` is. */
+  environment?: Environment | null;
+  /** The pinned Design canvas cluster, and only it — not closable. Always
+   *  present on the wire (unlike `environment`/`page`, `false` still writes),
+   *  and defaults to `false` when reading a `layout.json` old enough to
+   *  predate it. */
+  pinned: boolean;
 }
 
 /** Mirrors `shell_state::WindowGeometry`. Physical pixels. */
@@ -1053,12 +1159,31 @@ export interface WindowGeometry {
   height: number;
 }
 
+/** Mirrors `pages::PageMode`. */
+export type PageMode = "docked" | "expanded";
+
+/**
+ * Mirrors `shell_state::RightPage` — the page a window is showing on its
+ * rail, docked beside the panes or expanded over them. `instanceId` is
+ * `null` for a page the shell draws itself (Git, Hindsight, the registry);
+ * present for one hosted in an iframe (Plane, Cloud agents, Cost), naming
+ * its entry in `ShellSnapshot.instances`.
+ */
+export interface RightPage {
+  id: string;
+  mode: PageMode;
+  width: number;
+  instanceId?: string | null;
+}
+
 /** Mirrors `shell_state::WindowPlacement`. */
 export interface WindowPlacement {
   label: string;
   clusters: Cluster[];
   activeClusterId: string | null;
   geometry: WindowGeometry | null;
+  /** The page this window is showing on its rail, absent for none. See `pages.rs`. */
+  rightPage?: RightPage | null;
 }
 
 /**
@@ -1120,20 +1245,39 @@ export function openInstance(
   });
 }
 
-/** Mirrors `pages::PageInfo`. `icon` keys `PAGE_ICONS` in `PageChips.tsx`. */
+/** Mirrors `pages::PageInfo`. `icon` keys `PAGE_ICONS` in `rail/Rail.tsx`. */
 export interface PageInfo {
   id: string;
   name: string;
   icon: string;
+  mode: PageMode;
+  key: number;
+  disabled: boolean;
 }
 
+/** The pages this build offers, in rail order — including the disabled one. */
 export function listPages(): Promise<PageInfo[]> {
   return invoke<PageInfo[]>("list_pages");
 }
 
-/** Show a page, making its cluster the first time. Resolves to its cluster id. */
-export function openPage(label: string, pageId: string): Promise<string> {
-  return invoke<string>("open_page", { label, pageId });
+/** Show a page in `label`'s window, or close it if it is already the one showing. */
+export function openPage(label: string, pageId: string): Promise<void> {
+  return invoke("open_page", { label, pageId });
+}
+
+/** Close whatever page `label`'s window is showing, returning it to its panes. */
+export function closePage(label: string): Promise<void> {
+  return invoke("close_page", { label });
+}
+
+/** Dock or expand `label`'s open page in place. */
+export function setPageMode(label: string, mode: PageMode): Promise<void> {
+  return invoke("set_page_mode", { label, mode });
+}
+
+/** Resize `label`'s docked page, clamped to the written 320-640 range. */
+export function setPageWidth(label: string, width: number): Promise<void> {
+  return invoke("set_page_width", { label, width });
 }
 
 export function closeInstance(instanceId: string): Promise<void> {
@@ -1173,6 +1317,88 @@ export function setPaneSizes(splitId: string, sizes: number[]): Promise<void> {
 
 export function addCluster(label: string, name: string): Promise<string | null> {
   return invoke<string | null>("add_cluster", { label, name });
+}
+
+/**
+ * What the New Cluster dialog's first step chose. Mirrors
+ * `commands::EnvironmentChoice`. `newLocalWorktree` names a worktree that
+ * does not exist yet — the backend creates it as part of resolving this —
+ * where `existing` already carries a fully-formed `Environment` the dialog
+ * read from `listClusterEnvironments` or built for "browse main" itself.
+ */
+export type EnvironmentChoice =
+  | { kind: "newLocalWorktree"; name: string; base: string }
+  | { kind: "existing"; environment: Environment };
+
+/** The New Cluster dialog's second step. Mirrors `commands::StartingLayout`. */
+export type StartingLayout = "code" | "watchAgent" | "godot" | "blender";
+
+/**
+ * The New Cluster dialog's finishing step: create the cluster, resolve (and,
+ * for a new worktree, actually create) the chosen environment, and arrange
+ * the one starting pane. See `commands::create_cluster_with_environment`.
+ *
+ * `label`/`name`/`project` travel together as `target`, matching
+ * `commands::NewClusterTarget` — grouped there to keep the Rust command
+ * under clippy's argument-count lint, and carried through here as one object
+ * rather than reopened into three loose parameters that would just have to
+ * be regrouped on the way across.
+ */
+export function createClusterWithEnvironment(
+  label: string,
+  name: string,
+  project: string,
+  choice: EnvironmentChoice,
+  layout: StartingLayout,
+): Promise<string> {
+  return invoke<string>("create_cluster_with_environment", {
+    target: { label, name, project },
+    choice,
+    layout,
+  });
+}
+
+/** The New Cluster dialog's "existing environment" list. See
+ *  `commands::list_cluster_environments` for what it excludes and why. */
+export function listClusterEnvironments(project: string): Promise<Environment[]> {
+  return invoke<Environment[]>("list_cluster_environments", { project });
+}
+
+/**
+ * Create `wt/design` for a project that doesn't have one yet, and pin the
+ * Design canvas cluster onto it in the calling window — the "offered but not
+ * auto-created" half of the canvas (KAAVA-UX-REWORK.md §5). Mirrors
+ * `commands::create_design_cluster`. Resolves to the new cluster's id, or
+ * `null` if this window already has a pinned cluster (idempotent per window,
+ * same as the auto-created path).
+ */
+export function createDesignCluster(
+  label: string,
+  project: string,
+  base: string,
+): Promise<string | null> {
+  return invoke<string | null>("create_design_cluster", { label, project, base });
+}
+
+/**
+ * Drop a tab on the switcher's empty space: a new cluster in the same
+ * environment the tab came from, holding that one tab. `sourceCluster` is
+ * the drag payload's `fromClusterId` — see `SurfaceDrag` in `contract.ts`.
+ * Resolves to the new cluster's id, or `null` if the drop was refused (the
+ * window closed underneath it).
+ */
+export function newClusterForDrop(
+  label: string,
+  name: string,
+  sourceCluster: string,
+  instanceId: string,
+): Promise<string | null> {
+  return invoke<string | null>("new_cluster_for_drop", {
+    label,
+    name,
+    sourceCluster,
+    instanceId,
+  });
 }
 
 export function setActiveCluster(label: string, clusterId: string | null): Promise<void> {
@@ -1562,6 +1788,17 @@ export function onSettingsChanged(
   cb: (values: Record<string, SettingValue>) => void,
 ): Promise<UnlistenFn> {
   return listen<Record<string, SettingValue>>(SETTINGS_CHANGED_EVENT, (e) => cb(e.payload));
+}
+
+/**
+ * The Windows Copilot key, caught below the webview by the global hook
+ * (`copilot_key.rs`). Sent only to the window that should act on it, and only
+ * while `keys.copilotGlobal` is on; otherwise the page's own `keydown` sees it.
+ */
+export const COPILOT_KEY_EVENT = "copilot-key:pressed";
+
+export function onCopilotKey(cb: () => void): Promise<UnlistenFn> {
+  return listen(COPILOT_KEY_EVENT, () => cb());
 }
 
 /* --- updates ---------------------------------------------------------------

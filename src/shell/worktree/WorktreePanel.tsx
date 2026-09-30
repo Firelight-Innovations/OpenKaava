@@ -35,6 +35,7 @@ import { GIT_KIND_LETTER, GIT_KIND_TOKEN } from "../contract";
 // Aliased: `GitBranch` is already the contract's word for a branch here, and
 // the glyph and the record would otherwise be the same identifier.
 import { GitBranch as BranchGlyph } from "../../ui/Icon";
+import { READ_ONLY_HINT } from "../environment";
 import CommitGraph from "./CommitGraph";
 import { focusWithoutScrolling } from "./rowFocus";
 import { clampTopRatio, clipFloorPx, type PanelSection } from "./sectionFloor";
@@ -109,6 +110,9 @@ export interface WorktreePanelProps {
    * when two clusters share a repo.
    */
   activeBranch: string | null;
+  /** The cluster is browsing main: checkout, staging and committing are
+   *  disabled with `READ_ONLY_HINT`. Rust refuses them regardless. */
+  readOnly?: boolean;
 }
 
 interface RepoData {
@@ -132,6 +136,7 @@ export default function WorktreePanel({
   reviewSend,
   git,
   activeBranch,
+  readOnly = false,
 }: WorktreePanelProps) {
   const [data, setData] = useState<RepoData | null>(null);
   const [loading, setLoading] = useState(clusterId !== null);
@@ -311,6 +316,7 @@ export default function WorktreePanel({
           branches={data.branches}
           activeBranch={activeBranch}
           selected={data.commits.find((c) => c.sha === selectedSha) ?? null}
+          readOnly={readOnly}
           onCheckedOut={reload}
         />
 
@@ -348,6 +354,7 @@ export default function WorktreePanel({
             git={git}
             review={reviewControl}
             reviewSend={reviewSend}
+            readOnly={readOnly}
           />
         ) : (
           <DivergenceView
@@ -390,8 +397,10 @@ function CheckoutBar({
   branches,
   activeBranch,
   selected,
+  readOnly,
   onCheckedOut,
 }: {
+  readOnly: boolean;
   clusterId: string;
   worktreeControl: WorktreeControl;
   branches: GitBranch[];
@@ -447,7 +456,8 @@ function CheckoutBar({
       <button
         type="button"
         className="worktreepanel__branchbtn"
-        disabled={busy || branches.length === 0}
+        disabled={busy || readOnly || branches.length === 0}
+        title={readOnly ? READ_ONLY_HINT : undefined}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
@@ -463,8 +473,8 @@ function CheckoutBar({
         <button
           type="button"
           className="worktreepanel__detachbtn"
-          disabled={busy}
-          title={`Check out ${selected.short} — ${selected.summary}`}
+          disabled={busy || readOnly}
+          title={readOnly ? READ_ONLY_HINT : `Check out ${selected.short} — ${selected.summary}`}
           onClick={() => void checkout(selected.sha, true)}
         >
           Check out {selected.short}

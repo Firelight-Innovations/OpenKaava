@@ -22,6 +22,7 @@ use crate::presets;
 use crate::sync::RwLockExt;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::{RwLock, RwLockReadGuard};
 use tauri::{AppHandle, Emitter};
 
@@ -195,20 +196,61 @@ pub struct Cluster {
     /// and a layout that failed to load is a session lost.
     #[serde(default)]
     pub band_height: Option<f32>,
-    /// The page this cluster is, or `None` for an ordinary cluster. See `crate::pages`.
+    /// **Legacy, migration-only.** Before pages moved to the rail (see
+    /// [`RightPage`]), a page was a cluster kind and this named which one — a
+    /// page cluster had no project, and a tree of exactly one pane holding one
+    /// instance of the page's app, which every mutator below refused to close,
+    /// rename, move, split, drop into or drag a tab out of.
     ///
-    /// A page cluster has no project, and a tree of exactly one pane holding one
-    /// instance of the page's app. Every mutator below that could change that
-    /// refuses to for a page — close, rename, move to another window, split,
-    /// drop a tab in, drag its tab out — so the invariant is the state's rather
-    /// than the cluster bar's. There is at most one per page id per window,
-    /// created by `open_page` the first time its chip is chosen.
+    /// Nothing sets this to `Some` any more. It stays on the struct only so
+    /// `restore`'s `migrate_legacy_page_clusters` can recognise a page cluster
+    /// in a `layout.json` an older build wrote, convert it to a `RightPage` on
+    /// the window that held it, and drop the cluster — after which no cluster
+    /// in the running process ever carries one again, which is what lets every
+    /// `is_page()` guard below stay in place as dead-but-harmless defence
+    /// rather than something each of those call sites has to unlearn.
     ///
     /// Omitted from the JSON when `None`, and `default` when absent, so a
     /// `layout.json` from before pages loads unchanged and one written now reads
     /// the same to an older build for every ordinary cluster.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub page: Option<String>,
+    /// Where this cluster's work actually happens: a local worktree, a cloud
+    /// session, the read-only main checkout, or the standing design worktree.
+    /// See [`crate::environments::Environment`].
+    ///
+    /// **The new field, and [`WorktreeRef::path`]'s successor rather than its
+    /// replacement.** `worktree` stays on the struct for every reader that
+    /// resolved a working root through it (`cluster_root`, `git.rs`'s
+    /// `cluster_checkout`); `cluster_root` below prefers `environment` when
+    /// it is `Some`, so a cluster carrying both is unambiguous rather than
+    /// resolved by which of two fields happens to agree.
+    ///
+    /// `None` covers two different pasts, deliberately conflated: a
+    /// `layout.json` old enough to have never heard of this field, and a
+    /// cluster this build's own migration declined to guess at (see
+    /// `migrate_environment`'s doc for why that is not read as `Main`). Both
+    /// want the same treatment — defer to the legacy fields — so one `None`
+    /// serves both rather than a third variant explaining the difference.
+    ///
+    /// `default`/`skip_serializing_if`, as on every optional field here, so a
+    /// `layout.json` from before this key existed still loads.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub environment: Option<crate::environments::Environment>,
+    /// The pinned Design canvas cluster, and only it. Not closable — see
+    /// `close_cluster_pure`, the one mutator this actually changes the
+    /// behaviour of; renaming and moving are left alone, since nothing in
+    /// `KAAVA-UX-REWORK.md` asks for either to be refused.
+    ///
+    /// `default` rather than derived from `environment`'s `Design` variant,
+    /// even though in practice the two are only ever set together (see
+    /// `ShellState::add_design_cluster`): a cluster's pin is a fact about its
+    /// *position and closability* in the switcher, which is a UI concern this
+    /// field owns outright, where deriving it from the environment kind would
+    /// make every future caller of `is_page`-style guards re-read the
+    /// environment enum just to answer "can this be closed".
+    #[serde(default)]
+    pub pinned: bool,
 }
 
 impl Cluster {
@@ -250,6 +292,47 @@ pub struct WindowPlacement {
     /// `None` until the window has reported where it is. Only ever written from
     /// the window's own move and resize events.
     pub geometry: Option<WindowGeometry>,
+    /// The project page this window is showing, or `None` for a window
+    /// showing its panes only. See [`RightPage`] and `crate::pages`.
+    ///
+    /// A fact about the *window*, not a cluster: a page is project-wide, and
+    /// switching clusters must not close it. `open_page`/`close_page` are the
+    /// only doors; every other mutator here leaves this alone.
+    ///
+    /// `default` and omitted when absent so a `layout.json` written before
+    /// this field existed loads unchanged, and one written now reads the same
+    /// to an older build for every window with no page open.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub right_page: Option<RightPage>,
+}
+
+/// A page shown on a window's rail, docked or expanded. See `crate::pages`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RightPage {
+    /// `crate::pages::Page::id`. Kept even if a future build drops the page —
+    /// `migrate_legacy_page_clusters`'s restore-time cleanup is the only place
+    /// that drops a stale one; nothing else has to check `pages::find` before
+    /// reading this.
+    pub id: String,
+    pub mode: crate::pages::PageMode,
+    /// The docked width, in CSS pixels, clamped to `pages::MIN_WIDTH..=MAX_WIDTH`
+    /// by every mutator that sets it. Kept even while `mode` is `Expanded`, so
+    /// toggling back to docked restores the width instead of resetting it.
+    pub width: f32,
+    /// The app instance backing this page, for the three pages that host one
+    /// (Plane, Cloud agents, Cost). `None` for Git, Hindsight and the Artifact
+    /// registry, which the shell draws itself.
+    ///
+    /// Minted once per window the first time that page opens with something in
+    /// this slot, and kept for as long as this `RightPage` names that page —
+    /// toggling `mode` never changes it, which is what lets the frontend's
+    /// `ToolWindow` keep the same iframe mounted across a dock/expand toggle
+    /// instead of reloading it. Switching to a *different* page and back mints
+    /// a fresh one; nothing here remembers an instance for a page that is not
+    /// the one currently open.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub instance_id: Option<String>,
 }
 
 impl WindowPlacement {
@@ -301,6 +384,16 @@ pub struct TerminalSession {
     /// Sessions sharing a group id render as one tab, laid out side by side in
     /// the deck. `None` for an ordinary, unsplit session.
     pub group_id: Option<String>,
+}
+
+/// What [`ShellState::project_live_counts`] answers. See that method's doc
+/// for what "live" means here and what it deliberately does not cover yet.
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectLiveCounts {
+    pub open: bool,
+    pub cluster_count: usize,
+    pub environment_count: usize,
 }
 
 /// The whole shared state, as one serializable object.
@@ -408,6 +501,8 @@ fn seed_window(counters: &mut Counters, label: &str) -> WindowPlacement {
         active_terminal: None,
         band_height: None,
         page: None,
+        environment: None,
+        pinned: false,
     };
 
     WindowPlacement {
@@ -415,6 +510,7 @@ fn seed_window(counters: &mut Counters, label: &str) -> WindowPlacement {
         clusters: vec![cluster],
         active_cluster_id: Some(cluster_id),
         geometry: None,
+        right_page: None,
     }
 }
 
@@ -442,9 +538,15 @@ impl ShellState {
             *counters = counters_for(&snapshot);
         }
         let mut snapshot = snapshot;
-        // First, so a terminal in a dropped page's band is re-homed below
+        // First, so a terminal in a converted page's band is re-homed below
         // rather than left naming a cluster that has gone.
+        migrate_legacy_page_clusters(&mut snapshot);
         drop_unavailable_pages(&mut snapshot, &|id| crate::pages::find(id).is_some());
+        // Before anything reads `environment` below: a cluster whose only
+        // record of where it works is the legacy `worktree` field needs that
+        // filled in before `cluster_root`/`cluster_environment` are asked
+        // about it.
+        migrate_environments(&mut snapshot);
         // Order matters: a terminal has to be given a cluster before anything
         // asks which cluster's band it is in.
         adopt_orphan_terminals(&mut snapshot);
@@ -473,13 +575,23 @@ impl ShellState {
     /// into, moving one between windows and dragging one into a pane all
     /// invalidate it, and only one of them is obviously about the panel.
     fn mutate<F: FnOnce(&mut ShellSnapshot)>(&self, app: &AppHandle, f: F) {
-        let updated = {
+        let (updated, repointed) = {
             let mut guard = self.inner.write_or_panic();
+            let before = project_pointers(&guard);
             f(&mut guard);
             reseat_active_terminals(&mut guard);
-            guard.clone()
+            let repointed = repointed_clusters(&before, &guard);
+            (guard.clone(), repointed)
         };
         let _ = app.emit(SHELL_STATE_EVENT, &updated);
+        // `project:changed` comes from here too, for the broadcast reason
+        // above. Home, the `set_cluster_project` command, the agent server's
+        // `set_project` and launch seeding all repoint clusters, and while the
+        // announcement lived in `project::open` only Home's made the title bar
+        // redraw. After the lock is dropped, as `announce` reads this state.
+        for cluster_id in &repointed {
+            crate::project::announce(app, cluster_id);
+        }
         // Every page switch, cluster switch and window close is a mutation
         // through here, so this is the one place that can tell whether the
         // projects page just stopped (or started) being what `main` shows —
@@ -614,9 +726,101 @@ impl ShellState {
                 active_terminal: None,
                 band_height: None,
                 page: None,
+                environment: None,
+                pinned: false,
             });
             w.active_cluster_id = Some(cluster_id.clone());
             created = Some(cluster_id.clone());
+        });
+        created
+    }
+
+    /// Create the pinned Design canvas cluster and put it first in the
+    /// switcher.
+    ///
+    /// Called from `project::open`, and only when the project already has a
+    /// `wt/design` worktree — see `environments::detect_design_environment`,
+    /// the caller's own check for whether to call this at all. A project
+    /// that lacks one is *offered* the canvas rather than having it created
+    /// silently; see `KAAVA-UX-REWORK.md` §5 for that half.
+    ///
+    /// Idempotent per window: a window that already holds a pinned cluster is
+    /// left alone, since `project::open` runs on every open and nothing
+    /// upstream of this remembers whether a previous open already made one.
+    ///
+    /// Inserted at index `0` rather than appended, so it reads first in the
+    /// switcher regardless of how many ordinary clusters came before it —
+    /// and deliberately does not touch `active_cluster_id`: the canvas
+    /// becomes available the moment it exists, not thrust in front of
+    /// whatever the user was already looking at.
+    pub fn add_design_cluster(
+        &self,
+        app: &AppHandle,
+        label: &str,
+        project: &str,
+        environment: crate::environments::Environment,
+    ) -> Option<String> {
+        let (cluster_id, pane_id) = {
+            let mut counters = self.counters.write_or_panic();
+            counters.clusters += 1;
+            counters.panes += 1;
+            (
+                format!("cluster-{}", counters.clusters),
+                format!("pane-{}", counters.panes),
+            )
+        };
+
+        let mut created = None;
+        // `environment` moves into the closure whole — `mutate`'s `f` is
+        // `FnOnce`, called exactly once from inside `mutate` itself, so there
+        // is no second call for an `Option::take` guard to protect against.
+        self.mutate(app, |s| {
+            created =
+                add_design_cluster_pure(s, label, &cluster_id, &pane_id, project, environment);
+        });
+        created
+    }
+
+    /// `add_cluster`'s counterpart for the one gesture that *should* inherit
+    /// the project: dropping a tab on the switcher's empty space
+    /// (KAAVA-UX-REWORK.md §5), which is "give this tab a cluster of its own,
+    /// here" rather than "start something new" — the dragged tab is already
+    /// mid-flight over the project it belongs to, so a picker would ask a
+    /// question the drop already answered.
+    ///
+    /// `source_cluster` is searched for across every window, not just
+    /// `label`'s, since a multi-monitor drag can cross windows. Home is not
+    /// opened here, unlike `add_cluster` — the caller
+    /// (`commands::new_cluster_for_drop`) fills the one pane with the dragged
+    /// tab in the same breath. Returns the pane id too, unlike `add_cluster`,
+    /// since the caller has no other surface to find it by.
+    pub fn add_cluster_for_environment(
+        &self,
+        app: &AppHandle,
+        label: &str,
+        name: &str,
+        source_cluster: &str,
+    ) -> Option<(String, String)> {
+        let (cluster_id, pane_id) = {
+            let mut counters = self.counters.write_or_panic();
+            counters.clusters += 1;
+            counters.panes += 1;
+            (
+                format!("cluster-{}", counters.clusters),
+                format!("pane-{}", counters.panes),
+            )
+        };
+
+        let mut created = None;
+        self.mutate(app, |s| {
+            created = add_cluster_for_environment_pure(
+                s,
+                label,
+                name,
+                source_cluster,
+                &cluster_id,
+                &pane_id,
+            );
         });
         created
     }
@@ -702,6 +906,26 @@ impl ShellState {
         });
     }
 
+    /// Point a cluster at an environment, or at nothing. Mirrors
+    /// [`Self::set_cluster_worktree`] exactly — see that method's doc, which
+    /// applies here unchanged. The New Cluster dialog's finishing step is
+    /// this method's one caller today (`commands::create_cluster_with_environment`).
+    pub fn set_cluster_environment(
+        &self,
+        app: &AppHandle,
+        cluster_id: &str,
+        environment: Option<crate::environments::Environment>,
+    ) {
+        self.mutate(app, |s| {
+            for w in s.windows.iter_mut() {
+                if let Some(c) = w.cluster_mut(cluster_id) {
+                    c.environment = environment;
+                    return;
+                }
+            }
+        });
+    }
+
     /// The worktree a cluster is pointed at, exactly as stored. `None` both
     /// for a cluster with no worktree and for an id that names no cluster —
     /// see [`Self::cluster_project`], which this matches case for case.
@@ -715,19 +939,64 @@ impl ShellState {
             .and_then(|c| c.worktree.clone())
     }
 
+    /// Which window holds a cluster — what `add_design_cluster`'s caller
+    /// needs and does not otherwise have: `project::open` is handed a
+    /// `cluster_id`, and every window-scoped mutator on this type (this one
+    /// included) needs a `label`, not an id, to find its target.
+    pub fn window_label_of_cluster(&self, cluster_id: &str) -> Option<String> {
+        let guard = self.read();
+        guard
+            .windows
+            .iter()
+            .find(|w| w.clusters.iter().any(|c| c.id == cluster_id))
+            .map(|w| w.label.clone())
+    }
+
+    /// How much of a project is live right now, across every window in this
+    /// process. Used for the Switch Project dialog's per-row summary
+    /// ("3 environments · 4 panes"-style, board 08) — computed from this
+    /// state rather than read back from disk, so it is exactly right for a
+    /// project open somewhere this session and exactly zero for one that
+    /// isn't, rather than a stale or invented number. A project nobody has
+    /// opened *this session* reads as closed even if it was open last
+    /// launch; only per-project workspace persistence (KAAVA-UX-REWORK.md §6,
+    /// not built yet) could answer that honestly, and until it exists the
+    /// dialog says so rather than guessing.
+    pub fn project_live_counts(&self, path: &str) -> ProjectLiveCounts {
+        project_live_counts_pure(&self.read(), path)
+    }
+
+    /// The environment a cluster is pointed at, exactly as stored. `None`
+    /// both for a cluster with no environment set and for an id that names no
+    /// cluster — see [`Self::cluster_project`], which this matches case for
+    /// case.
+    pub fn cluster_environment(
+        &self,
+        cluster_id: &str,
+    ) -> Option<crate::environments::Environment> {
+        let guard = self.read();
+        guard
+            .windows
+            .iter()
+            .flat_map(|w| w.clusters.iter())
+            .find(|c| c.id == cluster_id)
+            .and_then(|c| c.environment.clone())
+    }
+
     /// Where a cluster's work actually happens, as opposed to what it is
     /// *about*.
     ///
-    /// A cluster with a worktree is doing its work in that worktree, not in
-    /// the project it was branched from — a terminal, a file tree, or a
-    /// search that started from the project path would be reading the wrong
-    /// checkout the moment a worktree exists. So the worktree wins whenever
-    /// one is set, and the project is the fallback for a cluster that has
-    /// none. This is the one place that precedence is decided; every other
-    /// "where does this cluster work" question should route through this
-    /// rather than re-deriving it, or the two are guaranteed to drift apart.
+    /// `environment` wins whenever it is `Some` — see `Cluster::environment`'s
+    /// doc for why it takes precedence over the legacy `worktree` it is
+    /// replacing. A cluster on `Cloud` then honestly answers `None`: there is
+    /// no local checkout to name, and falling back to the project's path
+    /// would have a terminal or a file tree open against a folder the cloud
+    /// session never touches. Only a cluster with **no** `environment` falls
+    /// through to the pre-migration rule: the worktree wins whenever one is
+    /// set (the project path would otherwise be the wrong checkout), and the
+    /// project is the fallback for a cluster that has neither.
     ///
-    /// Deliberately does not check whether the worktree path still exists on
+    /// Deliberately does not check whether the resolved path still exists on
     /// disk — this module does no disk I/O, by design; see [`crate::project`]
     /// for the layer that filters on `is_dir()`.
     pub fn cluster_root(&self, cluster_id: &str) -> Option<String> {
@@ -737,6 +1006,13 @@ impl ShellState {
             .iter()
             .flat_map(|w| w.clusters.iter())
             .find(|c| c.id == cluster_id)?;
+
+        if let Some(env) = &cluster.environment {
+            return env
+                .root(cluster.project.as_deref().map(Path::new))
+                .map(|p| p.to_string_lossy().to_string());
+        }
+
         cluster
             .worktree
             .as_ref()
@@ -1313,43 +1589,38 @@ impl ShellState {
         work_cluster(w).map(|c| c.id.clone())
     }
 
-    /// Show a page in `label`'s window, creating its cluster the first time.
+    /// Show a page in `label`'s window, or close it if it is already the one
+    /// showing. Opens docked or expanded per [`crate::pages::Page::mode`], at
+    /// [`crate::pages::DEFAULT_WIDTH`] when docked. Does nothing for an
+    /// unknown window.
     ///
-    /// Returns the page cluster's id, or `None` when the window does not exist.
-    /// Ids are minted only when there is no page cluster to reuse — peeked
-    /// under the read lock first, so a click on a chip that already has one
-    /// burns nothing. The peek can race another window's open; the loser's ids
-    /// go unused, which is the gap `open_instance` already accepts.
-    pub fn open_page(
-        &self,
-        app: &AppHandle,
-        label: &str,
-        page: &crate::pages::Page,
-    ) -> Option<String> {
-        let needs_seed = {
-            let guard = self.read();
-            !page_cluster_is_whole(&guard, label, page.id)
-        };
-        let seed = needs_seed.then(|| {
-            let mut counters = self.counters.write_or_panic();
-            counters.clusters += 1;
-            counters.panes += 1;
-            let ordinal = counters
-                .instances
-                .entry(page.app_id.to_string())
-                .or_insert(0);
-            *ordinal += 1;
-            let ordinal = *ordinal;
-            PageSeed {
-                cluster_id: format!("cluster-{}", counters.clusters),
-                pane_id: format!("pane-{}", counters.panes),
-                instance_id: format!("{}-{ordinal}", page.app_id),
-            }
-        });
+    /// An app-backed page's instance is minted once per window and reused on
+    /// every later open, keyed by window label and app id rather than by a
+    /// counter — see [`page_instance_id`] — so opening, closing and reopening
+    /// the same page never leaves a second copy of its instance behind.
+    pub fn open_page(&self, app: &AppHandle, label: &str, page: &crate::pages::Page) {
+        self.mutate(app, |s| open_page_pure(s, label, page));
+    }
 
-        let mut opened = None;
-        self.mutate(app, |s| opened = open_page_pure(s, label, page, seed));
-        opened
+    /// Close whatever page `label`'s window is showing, if any, returning it
+    /// to its panes. Does nothing if no page is open.
+    pub fn close_page(&self, app: &AppHandle, label: &str) {
+        self.mutate(app, |s| close_page_pure(s, label));
+    }
+
+    /// Dock or expand `label`'s open page in place. Does nothing if no page
+    /// is open.
+    pub fn set_page_mode(&self, app: &AppHandle, label: &str, mode: crate::pages::PageMode) {
+        self.mutate(app, |s| set_page_mode_pure(s, label, mode));
+    }
+
+    /// Resize `label`'s docked page, clamped to
+    /// [`crate::pages::MIN_WIDTH`]..=[`crate::pages::MAX_WIDTH`]. Does
+    /// nothing if no page is open — a docked page dragged before its handle
+    /// exists cannot happen from the UI, but a stray call should not conjure
+    /// one.
+    pub fn set_page_width(&self, app: &AppHandle, label: &str, width: f32) {
+        self.mutate(app, |s| set_page_width_pure(s, label, width));
     }
 
     /// Publish a session whose shell is already running, into a cluster's band.
@@ -1621,6 +1892,37 @@ fn cluster_of_instance_pure(s: &ShellSnapshot, instance_id: &str) -> Option<Stri
         .flat_map(|w| w.clusters.iter())
         .find(|c| c.tree.tabs().contains(&instance_id))
         .map(|c| c.id.clone())
+}
+
+/// Every cluster's project pointer, by cluster id. What `mutate` keeps from
+/// before a change so it can tell afterwards which clusters were repointed.
+fn project_pointers(s: &ShellSnapshot) -> Vec<(String, Option<String>)> {
+    s.windows
+        .iter()
+        .flat_map(|w| w.clusters.iter())
+        .map(|c| (c.id.clone(), c.project.clone()))
+        .collect()
+}
+
+/// The clusters whose project pointer differs between `before` and `after`.
+///
+/// Only clusters present on both sides. A cluster that was just created has no
+/// subscriber holding a stale answer (the frontend reads a cluster's project
+/// when it first sees the id), and a cluster that was just closed has nobody
+/// left to tell. A cluster dragged to another window keeps its id and its
+/// pointer, so it is correctly not here either.
+fn repointed_clusters(before: &[(String, Option<String>)], after: &ShellSnapshot) -> Vec<String> {
+    after
+        .windows
+        .iter()
+        .flat_map(|w| w.clusters.iter())
+        .filter(|c| {
+            before
+                .iter()
+                .any(|(id, project)| *id == c.id && *project != c.project)
+        })
+        .map(|c| c.id.clone())
+        .collect()
 }
 
 /// What a tab id is, expressed as the slot a preset would use for it.
@@ -1965,6 +2267,7 @@ fn move_cluster_pure(s: &mut ShellSnapshot, cluster_id: &str, to_label: &str) ->
             active_cluster_id: Some(cluster.id.clone()),
             clusters: vec![cluster],
             geometry: None,
+            right_page: None,
         }),
     }
     true
@@ -1983,6 +2286,49 @@ fn is_page_cluster(s: &ShellSnapshot, cluster_id: &str) -> bool {
         .iter()
         .flat_map(|w| w.clusters.iter())
         .any(|c| c.id == cluster_id && c.is_page())
+}
+
+/// The pinned Design canvas cluster, and only it — see `Cluster::pinned`.
+/// Checked by `close_cluster_pure` the same way `is_page_cluster` is: refused
+/// there, rather than left off the switcher's × in the first place, so the
+/// invariant holds even for a close reached some other way (a keyboard
+/// shortcut, a future "close all") that never consulted the chip.
+fn is_pinned_cluster(s: &ShellSnapshot, cluster_id: &str) -> bool {
+    s.windows
+        .iter()
+        .flat_map(|w| w.clusters.iter())
+        .any(|c| c.id == cluster_id && c.pinned)
+}
+
+/// The pure core of [`ShellState::project_live_counts`] — see that method's
+/// doc for what it answers and why. Pulled out to the usual pattern: this
+/// type's getters take `&self` and lock internally, which a unit test cannot
+/// reach without a real `AppHandle`, so the arithmetic lives here instead,
+/// tested directly against a bare snapshot.
+fn project_live_counts_pure(s: &ShellSnapshot, path: &str) -> ProjectLiveCounts {
+    let clusters: Vec<&Cluster> = s
+        .windows
+        .iter()
+        .flat_map(|w| w.clusters.iter())
+        .filter(|c| c.project.as_deref() == Some(path))
+        .collect();
+
+    let mut environments: Vec<String> = clusters
+        .iter()
+        .filter_map(|c| {
+            c.environment
+                .as_ref()
+                .map(crate::environments::Environment::identity)
+        })
+        .collect();
+    environments.sort();
+    environments.dedup();
+
+    ProjectLiveCounts {
+        open: !clusters.is_empty(),
+        cluster_count: clusters.len(),
+        environment_count: environments.len(),
+    }
 }
 
 /// Whether a page's tree holds this tab — the one tab that is not draggable.
@@ -2022,6 +2368,40 @@ fn open_target<'w>(w: &'w mut WindowPlacement, pane_id: Option<&str>) -> Option<
     (!cluster.is_page()).then_some(cluster)
 }
 
+/// The whole of `ShellState::add_design_cluster`, minus the lock and the id
+/// minting — see that method's doc for what each rule here means in
+/// practice. `None` when `label` names no window, or when that window
+/// already holds a pinned cluster.
+fn add_design_cluster_pure(
+    s: &mut ShellSnapshot,
+    label: &str,
+    cluster_id: &str,
+    pane_id: &str,
+    project: &str,
+    environment: crate::environments::Environment,
+) -> Option<String> {
+    let w = s.windows.iter_mut().find(|w| w.label == label)?;
+    if w.clusters.iter().any(|c| c.pinned) {
+        return None;
+    }
+    w.clusters.insert(
+        0,
+        Cluster {
+            id: cluster_id.to_string(),
+            name: "Design".to_string(),
+            tree: PaneNode::leaf(pane_id.to_string()),
+            project: Some(project.to_string()),
+            worktree: None,
+            active_terminal: None,
+            band_height: None,
+            page: None,
+            environment: Some(environment),
+            pinned: true,
+        },
+    );
+    Some(cluster_id.to_string())
+}
+
 /// Rename a cluster; `false`, unchanged, for a page or an id naming nothing.
 /// A page's name is its chip's label, which is the page table's to decide.
 fn rename_cluster_pure(s: &mut ShellSnapshot, cluster_id: &str, name: &str) -> bool {
@@ -2040,9 +2420,12 @@ fn rename_cluster_pure(s: &mut ShellSnapshot, cluster_id: &str, name: &str) -> b
 /// The whole of `ShellState::close_cluster`, minus the lock: returns the
 /// `(instances, terminals)` that went with it. A page is never closed — it has
 /// no ×, and there is no gesture that would bring it back other than its chip,
-/// which would only make another — so both lists come back empty for one.
+/// which would only make another — so both lists come back empty for one. The
+/// pinned Design canvas cluster is refused the same way, for the reason
+/// `is_pinned_cluster` gives — it has no × either, but nothing stops a close
+/// reached some other way.
 fn close_cluster_pure(s: &mut ShellSnapshot, cluster_id: &str) -> (Vec<String>, Vec<String>) {
-    if is_page_cluster(s, cluster_id) {
+    if is_page_cluster(s, cluster_id) || is_pinned_cluster(s, cluster_id) {
         return (Vec::new(), Vec::new());
     }
     let Some(w) = s
@@ -2279,6 +2662,8 @@ fn detach_instance_pure(
         active_terminal: None,
         band_height: None,
         page: None,
+        environment: None,
+        pinned: false,
     };
 
     // A terminal dragged out has to bring its band home with it. It is
@@ -2300,90 +2685,170 @@ fn detach_instance_pure(
             clusters: vec![cluster],
             active_cluster_id: Some(cluster_id.to_string()),
             geometry: None,
+            right_page: None,
         }),
     }
     true
 }
 
-/// The ids a new page cluster needs, minted by `ShellState::open_page` before
-/// it takes the state lock.
-struct PageSeed {
-    cluster_id: String,
-    pane_id: String,
-    instance_id: String,
+/// The instance id an app-backed page uses in `label`'s window: stable and
+/// deterministic, not minted from a counter, so a page's iframe can be found
+/// again — and reused rather than duplicated — on every later open without
+/// `ShellState` having to remember anything beyond the snapshot itself.
+fn page_instance_id(label: &str, app_id: &str) -> String {
+    format!("{app_id}-page-{label}")
 }
 
-/// Whether `label`'s window already has this page's cluster with something in it
-/// — the peek that decides whether `open_page` mints any ids at all.
-fn page_cluster_is_whole(s: &ShellSnapshot, label: &str, page_id: &str) -> bool {
-    s.windows
-        .iter()
-        .find(|w| w.label == label)
-        .and_then(|w| {
-            w.clusters
-                .iter()
-                .find(|c| c.page.as_deref() == Some(page_id))
-        })
-        .is_some_and(|c| !c.tree.tabs().is_empty())
-}
-
-/// Find `label`'s page cluster for `page`, or make it from `seed`, and show it.
+/// Show `page` in `label`'s window, or close it if it is already showing —
+/// the whole of `ShellState::open_page` once the lock is held.
 ///
-/// Returns its id, or `None` when the window does not exist or there is nothing
-/// to reuse and no seed to build from. A page cluster found empty — its instance
-/// lost to a state no path here produces, but a hand-edited `layout.json` could —
-/// is refilled from the seed rather than shown blank.
-fn open_page_pure(
-    s: &mut ShellSnapshot,
-    label: &str,
-    page: &crate::pages::Page,
-    seed: Option<PageSeed>,
-) -> Option<String> {
+/// An app-backed page reuses its window's existing instance if one is
+/// already registered (left over from an earlier open of the same page in
+/// this window) and mints one at [`page_instance_id`] otherwise. A page with
+/// no app — Git, Hindsight, the registry — opens with no instance at all;
+/// the shell draws those itself.
+fn open_page_pure(s: &mut ShellSnapshot, label: &str, page: &crate::pages::Page) {
     let ShellSnapshot {
         windows, instances, ..
     } = s;
-    let w = windows.iter_mut().find(|w| w.label == label)?;
-    let instance = |seed: &PageSeed| SurfaceInstance {
-        id: seed.instance_id.clone(),
-        app_id: page.app_id.to_string(),
-        kind: SurfaceKind::App,
-        title: page.name.to_string(),
+    let Some(w) = windows.iter_mut().find(|w| w.label == label) else {
+        return;
     };
 
-    let id = match w
-        .clusters
-        .iter_mut()
-        .find(|c| c.page.as_deref() == Some(page.id))
-    {
-        Some(c) => {
-            if c.tree.tabs().is_empty() {
-                let seed = seed?;
-                let pane = c.tree.first_pane_id().to_string();
-                c.tree.insert_tab(&pane, &seed.instance_id, None);
-                instances.push(instance(&seed));
-            }
-            c.id.clone()
-        }
-        None => {
-            let seed = seed?;
-            let mut tree = PaneNode::leaf(seed.pane_id.clone());
-            tree.insert_tab(&seed.pane_id, &seed.instance_id, None);
-            instances.push(instance(&seed));
-            w.clusters.push(Cluster {
-                id: seed.cluster_id.clone(),
-                name: page.name.to_string(),
-                tree,
-                project: None,
-                worktree: None,
-                active_terminal: None,
-                band_height: None,
-                page: Some(page.id.to_string()),
+    if w.right_page.as_ref().is_some_and(|rp| rp.id == page.id) {
+        w.right_page = None;
+        return;
+    }
+
+    let instance_id = page.app_id.map(|app_id| {
+        let id = page_instance_id(label, app_id);
+        if !instances.iter().any(|i| i.id == id) {
+            instances.push(SurfaceInstance {
+                id: id.clone(),
+                app_id: app_id.to_string(),
+                kind: SurfaceKind::App,
+                title: page.name.to_string(),
             });
-            seed.cluster_id
         }
-    };
-    w.active_cluster_id = Some(id.clone());
-    Some(id)
+        id
+    });
+
+    w.right_page = Some(RightPage {
+        id: page.id.to_string(),
+        mode: page.mode,
+        width: crate::pages::DEFAULT_WIDTH,
+        instance_id,
+    });
+}
+
+/// Close whatever page `label`'s window is showing — the whole of
+/// `ShellState::close_page` once the lock is held.
+fn close_page_pure(s: &mut ShellSnapshot, label: &str) {
+    if let Some(w) = s.windows.iter_mut().find(|w| w.label == label) {
+        w.right_page = None;
+    }
+}
+
+/// Dock or expand `label`'s open page — the whole of
+/// `ShellState::set_page_mode` once the lock is held.
+fn set_page_mode_pure(s: &mut ShellSnapshot, label: &str, mode: crate::pages::PageMode) {
+    if let Some(rp) = s
+        .windows
+        .iter_mut()
+        .find(|w| w.label == label)
+        .and_then(|w| w.right_page.as_mut())
+    {
+        rp.mode = mode;
+    }
+}
+
+/// Resize `label`'s docked page — the whole of `ShellState::set_page_width`
+/// once the lock is held.
+fn set_page_width_pure(s: &mut ShellSnapshot, label: &str, width: f32) {
+    if let Some(rp) = s
+        .windows
+        .iter_mut()
+        .find(|w| w.label == label)
+        .and_then(|w| w.right_page.as_mut())
+    {
+        rp.width = crate::pages::clamp_width(width);
+    }
+}
+
+/// `"projects"` became `"plane"` in the rework — the page kept the app, not
+/// the id. Every other page id is unchanged.
+fn migrated_page_id(old: &str) -> &str {
+    if old == "projects" {
+        "plane"
+    } else {
+        old
+    }
+}
+
+/// Convert a `layout.json` written by the old page-cluster build into the
+/// current `right_page` model, on the way in.
+///
+/// A page used to be its own cluster, one per page per window, tagged by
+/// [`Cluster::page`]. This drops every such cluster and its instance — a
+/// page cluster is never something the switcher should draw again, in this
+/// or any later build — and, when the cluster that named the window's
+/// `active_cluster_id` was one of them, reopens that same page as the
+/// window's new `right_page` instead, so a window that had a page in front
+/// still has one in front after loading. A page this build no longer knows
+/// (there is none today, but a future removal would produce one) is simply
+/// not reopened.
+///
+/// Reached from `restore` only.
+fn migrate_legacy_page_clusters(s: &mut ShellSnapshot) {
+    let mut dropped_instances = Vec::new();
+
+    for w in s.windows.iter_mut() {
+        let page_ids: Vec<String> = w
+            .clusters
+            .iter()
+            .filter(|c| c.is_page())
+            .map(|c| c.id.clone())
+            .collect();
+        if page_ids.is_empty() {
+            continue;
+        }
+
+        // The page cluster's own instance, if it has one, travels with it
+        // into the `right_page` rather than being dropped along with the
+        // cluster below — an app-backed page reopened after a restore should
+        // not have to remint the surface it already had.
+        let reopen = w
+            .active_cluster_id
+            .as_deref()
+            .and_then(|active| w.clusters.iter().find(|c| c.id == active))
+            .filter(|c| c.is_page())
+            .and_then(|c| {
+                let page = c.page.as_deref().map(migrated_page_id)?;
+                let page = crate::pages::find(page)?;
+                let instance_id = c.tree.tabs().first().map(|id| id.to_string());
+                Some((page, instance_id))
+            });
+
+        for id in &page_ids {
+            if let Some(c) = take_cluster(w, id) {
+                dropped_instances.extend(c.tree.tabs().into_iter().map(str::to_string));
+            }
+        }
+
+        if let Some((page, instance_id)) = reopen {
+            if let Some(id) = &instance_id {
+                dropped_instances.retain(|d| d != id);
+            }
+            w.right_page = Some(RightPage {
+                id: page.id.to_string(),
+                mode: page.mode,
+                width: crate::pages::DEFAULT_WIDTH,
+                instance_id: page.app_id.and(instance_id),
+            });
+        }
+    }
+
+    s.instances.retain(|i| !dropped_instances.contains(&i.id));
 }
 
 /// The whole of `ShellState::reclaim_window` once the close is confirmed: fold a
@@ -2442,6 +2907,24 @@ fn drop_unavailable_pages(s: &mut ShellSnapshot, available: &dyn Fn(&str) -> boo
     s.instances.retain(|i| !dropped.contains(&i.id));
 }
 
+/// Populate `Cluster::environment` from the legacy `Cluster::worktree`, for a
+/// state restored from a `layout.json` written before the field existed.
+///
+/// Only fills the gap — a cluster that already has an `environment` (any
+/// build new enough to have written one) is left exactly as stored, and a
+/// cluster with neither field stays `None` rather than being guessed at; see
+/// `crate::environments::migrate_environment`'s own doc for why "no worktree"
+/// is not read as `Main`.
+fn migrate_environments(snapshot: &mut ShellSnapshot) {
+    for w in snapshot.windows.iter_mut() {
+        for c in w.clusters.iter_mut() {
+            if c.environment.is_none() {
+                c.environment = crate::environments::migrate_environment(c.worktree.as_ref());
+            }
+        }
+    }
+}
+
 /// Give every terminal a cluster, for a state restored from a file that did not
 /// record one.
 ///
@@ -2479,6 +2962,51 @@ fn adopt_orphan_terminals(snapshot: &mut ShellSnapshot) {
             t.cluster_id = fallback.clone();
         }
     }
+}
+
+/// The whole of `ShellState::add_cluster_for_environment`, minus the lock, the
+/// id minting and the broadcast — written as a free function for the same
+/// reason `set_cluster_band_height` below is: there is no `AppHandle` to hand
+/// a `#[cfg(test)]` module, and the property worth pinning (the new cluster's
+/// `project`/`worktree` match `source_cluster`'s) is a property of this walk,
+/// not of the broadcast around it.
+fn add_cluster_for_environment_pure(
+    s: &mut ShellSnapshot,
+    label: &str,
+    name: &str,
+    source_cluster: &str,
+    cluster_id: &str,
+    pane_id: &str,
+) -> Option<(String, String)> {
+    let source = s
+        .windows
+        .iter()
+        .flat_map(|w| w.clusters.iter())
+        .find(|c| c.id == source_cluster);
+    let (project, worktree, environment) = match source {
+        Some(c) => (c.project.clone(), c.worktree.clone(), c.environment.clone()),
+        // The source cluster closed between the release and this call — a
+        // narrow race, not a reason to fail the drop. The tab still gets a
+        // home; it opens to Home's picker exactly as a plain `add_cluster`
+        // would.
+        None => (None, None, None),
+    };
+
+    let w = s.windows.iter_mut().find(|w| w.label == label)?;
+    w.clusters.push(Cluster {
+        id: cluster_id.to_string(),
+        name: name.to_string(),
+        tree: PaneNode::leaf(pane_id.to_string()),
+        project,
+        worktree,
+        active_terminal: None,
+        band_height: None,
+        page: None,
+        environment,
+        pinned: false,
+    });
+    w.active_cluster_id = Some(cluster_id.to_string());
+    Some((cluster_id.to_string(), pane_id.to_string()))
 }
 
 /// Record how tall one cluster's terminal band was left, wherever that cluster is.
@@ -2856,9 +3384,12 @@ mod tests {
                     active_terminal: None,
                     band_height: None,
                     page: None,
+                    environment: None,
+                    pinned: false,
                 }],
                 active_cluster_id: Some("cluster-3".to_string()),
                 geometry: None,
+                right_page: None,
             }],
             instances: instances
                 .iter()
@@ -2965,9 +3496,12 @@ mod tests {
                 active_terminal: None,
                 band_height: None,
                 page: None,
+                environment: None,
+                pinned: false,
             }],
             active_cluster_id: Some(cluster.to_string()),
             geometry: None,
+            right_page: None,
         }
     }
 
@@ -2986,6 +3520,66 @@ mod tests {
             instances: Vec::new(),
             terminals,
         }
+    }
+
+    // --- repointing a cluster announces it -----------------------------------
+
+    /// The regression: the agent server's `set_project` repointed a cluster,
+    /// `mutate` broadcast `shell:state`, and nothing broadcast
+    /// `project:changed`, so the title bar and Home kept the old project until
+    /// a reload. `mutate` now announces whatever this finds, so this finding
+    /// the cluster is what makes that call reach the screen.
+    #[test]
+    fn a_repointed_cluster_is_found() {
+        let mut s = state(vec![window("win-1", "cluster-1", &[])], vec![]);
+        let before = project_pointers(&s);
+        cluster_mut(&mut s, "cluster-1").project = Some("C:/game".into());
+        assert_eq!(repointed_clusters(&before, &s), vec!["cluster-1"]);
+
+        // Clearing it is a change too: Home has to fall back to its picker.
+        let before = project_pointers(&s);
+        cluster_mut(&mut s, "cluster-1").project = None;
+        assert_eq!(repointed_clusters(&before, &s), vec!["cluster-1"]);
+    }
+
+    /// Only the cluster that moved. Announcing its neighbour would wake every
+    /// frame in that cluster to say nothing changed.
+    #[test]
+    fn only_the_repointed_cluster_is_found() {
+        let mut s = state(
+            vec![
+                window("win-1", "cluster-1", &[]),
+                window("win-2", "cluster-2", &[]),
+            ],
+            vec![],
+        );
+        cluster_mut(&mut s, "cluster-2").project = Some("C:/other".into());
+        let before = project_pointers(&s);
+        cluster_mut(&mut s, "cluster-1").project = Some("C:/game".into());
+        assert_eq!(repointed_clusters(&before, &s), vec!["cluster-1"]);
+    }
+
+    /// Setting the pointer it already had, renaming, and closing a cluster are
+    /// all mutations that repoint nothing.
+    #[test]
+    fn nothing_is_found_when_no_pointer_changed() {
+        let mut s = state(
+            vec![
+                window("win-1", "cluster-1", &[]),
+                window("win-2", "cluster-2", &[]),
+            ],
+            vec![],
+        );
+        cluster_mut(&mut s, "cluster-1").project = Some("C:/game".into());
+
+        let before = project_pointers(&s);
+        cluster_mut(&mut s, "cluster-1").project = Some("C:/game".into());
+        cluster_mut(&mut s, "cluster-1").name = "Renamed".into();
+        assert!(repointed_clusters(&before, &s).is_empty());
+
+        let before = project_pointers(&s);
+        s.windows.remove(0);
+        assert!(repointed_clusters(&before, &s).is_empty());
     }
 
     /// The whole point of the change: a band terminal is its **cluster's**, so
@@ -3009,6 +3603,8 @@ mod tests {
             active_terminal: None,
             band_height: None,
             page: None,
+            environment: None,
+            pinned: false,
         });
 
         reseat_active_terminals(&mut s);
@@ -3020,6 +3616,78 @@ mod tests {
         assert_eq!(
             s.windows[0].clusters[1].active_terminal, None,
             "and the one beside it has an empty band, not a borrowed terminal"
+        );
+    }
+
+    // --- new-cluster-from-drop inherits its source's environment -----------
+
+    #[test]
+    fn a_new_cluster_inherits_its_sources_project_and_worktree() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        cluster_mut(&mut s, "cluster-1").project = Some("/repo".to_string());
+        cluster_mut(&mut s, "cluster-1").worktree = Some(WorktreeRef {
+            path: "/repo/../.worktrees/repo/flashlight".to_string(),
+            branch: Some("wt/flashlight".to_string()),
+            base: None,
+        });
+
+        let created = add_cluster_for_environment_pure(
+            &mut s,
+            "main",
+            "New",
+            "cluster-1",
+            "cluster-2",
+            "pane-2",
+        )
+        .expect("main exists");
+        assert_eq!(created, ("cluster-2".to_string(), "pane-2".to_string()));
+
+        let made = cluster_mut(&mut s, "cluster-2");
+        assert_eq!(made.project.as_deref(), Some("/repo"));
+        assert_eq!(
+            made.worktree.as_ref().map(|w| w.path.as_str()),
+            Some("/repo/../.worktrees/repo/flashlight")
+        );
+        assert_eq!(
+            s.windows[0].active_cluster_id.as_deref(),
+            Some("cluster-2"),
+            "the new cluster becomes the one on screen, same as add_cluster"
+        );
+    }
+
+    #[test]
+    fn a_new_cluster_from_an_unknown_source_gets_no_environment() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+
+        let created = add_cluster_for_environment_pure(
+            &mut s,
+            "main",
+            "New",
+            "cluster-missing",
+            "cluster-2",
+            "pane-2",
+        )
+        .expect("main exists");
+
+        let made = cluster_mut(&mut s, &created.0);
+        assert!(made.project.is_none());
+        assert!(made.worktree.is_none());
+    }
+
+    #[test]
+    fn add_cluster_for_environment_is_refused_for_an_unknown_window() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+
+        assert_eq!(
+            add_cluster_for_environment_pure(
+                &mut s,
+                "win-missing",
+                "New",
+                "cluster-1",
+                "cluster-2",
+                "pane-2"
+            ),
+            None
         );
     }
 
@@ -3042,6 +3710,8 @@ mod tests {
             active_terminal: None,
             band_height: None,
             page: None,
+            environment: None,
+            pinned: false,
         });
 
         // Cluster 1, dragged nearly to the top of the window.
@@ -3272,6 +3942,8 @@ mod tests {
             active_terminal: None,
             band_height: None,
             page: None,
+            environment: None,
+            pinned: false,
         });
         state(vec![placement], Vec::new())
     }
@@ -4089,99 +4761,226 @@ mod tests {
         crate::pages::find("agents").expect("Agents is a page in this build")
     }
 
-    fn seed(n: u32) -> Option<PageSeed> {
-        Some(PageSeed {
-            cluster_id: format!("cluster-{n}"),
-            pane_id: format!("pane-{n}"),
-            instance_id: format!("agents-{n}"),
-        })
+    /// A page cluster, as the pre-rework build would have written it —
+    /// exactly what `migrate_legacy_page_clusters` needs to find, and never
+    /// what `open_page` produces anymore. Built by hand rather than through
+    /// deleted machinery, so the many guards below (a page is not renamed, not
+    /// closed, not moved, not split into...) still exercise real state.
+    fn page_cluster(id: &str, pane_id: &str, instance_id: &str, page_id: &str) -> Cluster {
+        let mut tree = PaneNode::leaf(pane_id);
+        tree.insert_tab(pane_id, instance_id, None);
+        Cluster {
+            id: id.to_string(),
+            name: page_id.to_string(),
+            tree,
+            project: None,
+            worktree: None,
+            active_terminal: None,
+            band_height: None,
+            page: Some(page_id.to_string()),
+            environment: None,
+            pinned: false,
+        }
     }
 
-    /// `main` with a real cluster holding `files-1`, then the Agents page
-    /// opened into it as `cluster-9`, which leaves the page in front.
+    /// `main` with a real cluster holding `files-1`, plus a legacy Agents page
+    /// cluster (`cluster-9`) left in front — the shape a `layout.json` written
+    /// before the rework would restore with, not something `open_page` can
+    /// produce today.
     fn with_agents_page() -> ShellSnapshot {
         let mut s = state(vec![window("main", "cluster-1", &["files-1"])], Vec::new());
         s.instances.push(app_instance("files-1", "files"));
-        open_page_pure(&mut s, "main", agents(), seed(9)).expect("the page opens");
+        s.instances.push(app_instance("agents-9", "agents"));
+        s.windows[0]
+            .clusters
+            .push(page_cluster("cluster-9", "pane-9", "agents-9", "agents"));
+        s.windows[0].active_cluster_id = Some("cluster-9".to_string());
         s
     }
 
     #[test]
-    fn a_page_cluster_is_made_the_first_time_it_is_opened() {
-        let s = with_agents_page();
-        let w = &s.windows[0];
+    fn opening_a_page_sets_the_windows_right_page() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
 
-        assert_eq!(w.clusters.len(), 2);
-        let page = &w.clusters[1];
-        assert_eq!(page.id, "cluster-9");
-        assert_eq!(page.page.as_deref(), Some("agents"));
-        assert_eq!(page.name, "Agents");
-        assert_eq!(page.project, None);
-        assert_eq!(page.tree.leaf_ids(), vec!["pane-9"], "one pane");
-        assert_eq!(page.tree.tabs(), vec!["agents-9"], "one instance");
+        open_page_pure(&mut s, "main", agents());
+
+        let rp = s.windows[0].right_page.as_ref().expect("the page opened");
+        assert_eq!(rp.id, "agents");
+        assert_eq!(rp.mode, crate::pages::PageMode::Expanded);
+        assert_eq!(rp.width, crate::pages::DEFAULT_WIDTH);
+        let instance_id = rp.instance_id.clone().expect("agents draws an app");
         assert!(s
             .instances
             .iter()
-            .any(|i| i.id == "agents-9" && i.app_id == "agents"));
-        assert_eq!(w.active_cluster_id.as_deref(), Some("cluster-9"));
+            .any(|i| i.id == instance_id && i.app_id == "agents"));
     }
 
     #[test]
-    fn a_page_cluster_is_reused_rather_than_made_twice() {
-        let mut s = with_agents_page();
-        s.windows[0].active_cluster_id = Some("cluster-1".to_string());
+    fn a_page_with_no_app_opens_with_no_instance() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        let git = crate::pages::find("git").expect("Git is a page in this build");
 
-        assert!(
-            page_cluster_is_whole(&s, "main", "agents"),
-            "so no seed is minted"
-        );
-        let again = open_page_pure(&mut s, "main", agents(), None);
+        open_page_pure(&mut s, "main", git);
 
-        assert_eq!(again.as_deref(), Some("cluster-9"));
+        assert_eq!(s.windows[0].right_page.as_ref().unwrap().instance_id, None);
+        assert!(s.instances.is_empty());
+    }
+
+    #[test]
+    fn opening_the_open_page_again_closes_it() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        open_page_pure(&mut s, "main", agents());
+
+        open_page_pure(&mut s, "main", agents());
+
+        assert!(s.windows[0].right_page.is_none());
+    }
+
+    #[test]
+    fn opening_a_different_page_replaces_the_open_one() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        open_page_pure(&mut s, "main", agents());
+        let git = crate::pages::find("git").unwrap();
+
+        open_page_pure(&mut s, "main", git);
+
+        assert_eq!(s.windows[0].right_page.as_ref().unwrap().id, "git");
+    }
+
+    #[test]
+    fn reopening_a_page_reuses_its_instance_rather_than_making_a_second_one() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        open_page_pure(&mut s, "main", agents()); // opens
+        open_page_pure(&mut s, "main", agents()); // closes
+
+        open_page_pure(&mut s, "main", agents()); // reopens
+
         assert_eq!(
-            s.windows[0].clusters.len(),
-            2,
-            "not a second Agents cluster"
-        );
-        assert_eq!(s.instances.len(), 2, "not a second Agents instance");
-        assert_eq!(s.windows[0].active_cluster_id.as_deref(), Some("cluster-9"));
-    }
-
-    #[test]
-    fn a_page_is_one_per_window() {
-        let mut s = with_agents_page();
-        s.windows.push(window("tear-1", "cluster-2", &[]));
-
-        assert!(!page_cluster_is_whole(&s, "tear-1", "agents"));
-        let opened = open_page_pure(&mut s, "tear-1", agents(), seed(10));
-
-        assert_eq!(opened.as_deref(), Some("cluster-10"));
-        assert_eq!(s.windows[1].clusters.len(), 2);
-        assert_eq!(s.windows[0].clusters.len(), 2, "main's page is its own");
-    }
-
-    #[test]
-    fn a_page_cluster_found_empty_is_refilled_not_shown_blank() {
-        let mut s = with_agents_page();
-        cluster_mut(&mut s, "cluster-9")
-            .tree
-            .remove_tab_unpruned("agents-9");
-        s.instances.retain(|i| i.id != "agents-9");
-
-        assert!(!page_cluster_is_whole(&s, "main", "agents"));
-        let opened = open_page_pure(&mut s, "main", agents(), seed(11));
-
-        assert_eq!(opened.as_deref(), Some("cluster-9"));
-        assert_eq!(
-            cluster_mut(&mut s, "cluster-9").tree.tabs(),
-            vec!["agents-11"]
+            s.instances.iter().filter(|i| i.app_id == "agents").count(),
+            1
         );
     }
 
     #[test]
     fn a_page_opens_nowhere_in_a_window_that_does_not_exist() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+
+        open_page_pure(&mut s, "nonesuch", agents());
+
+        assert!(s.windows[0].right_page.is_none());
+        assert!(s.instances.is_empty());
+    }
+
+    #[test]
+    fn close_page_clears_the_right_page() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        open_page_pure(&mut s, "main", agents());
+
+        close_page_pure(&mut s, "main");
+
+        assert!(s.windows[0].right_page.is_none());
+    }
+
+    #[test]
+    fn set_page_mode_docks_and_expands_the_open_page() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        open_page_pure(&mut s, "main", agents());
+
+        set_page_mode_pure(&mut s, "main", crate::pages::PageMode::Docked);
+
+        assert_eq!(
+            s.windows[0].right_page.as_ref().unwrap().mode,
+            crate::pages::PageMode::Docked
+        );
+    }
+
+    #[test]
+    fn set_page_mode_does_nothing_with_no_page_open() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+
+        set_page_mode_pure(&mut s, "main", crate::pages::PageMode::Docked);
+
+        assert!(s.windows[0].right_page.is_none());
+    }
+
+    #[test]
+    fn set_page_width_clamps_to_the_written_range() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        let git = crate::pages::find("git").unwrap();
+        open_page_pure(&mut s, "main", git);
+
+        set_page_width_pure(&mut s, "main", 10.0);
+        assert_eq!(
+            s.windows[0].right_page.as_ref().unwrap().width,
+            crate::pages::MIN_WIDTH
+        );
+
+        set_page_width_pure(&mut s, "main", 9000.0);
+        assert_eq!(
+            s.windows[0].right_page.as_ref().unwrap().width,
+            crate::pages::MAX_WIDTH
+        );
+    }
+
+    #[test]
+    fn migrate_drops_the_page_cluster_and_reopens_it_as_a_right_page() {
         let mut s = with_agents_page();
-        assert_eq!(open_page_pure(&mut s, "nonesuch", agents(), seed(12)), None);
+
+        migrate_legacy_page_clusters(&mut s);
+
+        assert_eq!(s.windows[0].clusters.len(), 1, "the page cluster is gone");
+        assert_eq!(
+            s.windows[0].active_cluster_id.as_deref(),
+            Some("cluster-1"),
+            "the window falls back to a real cluster"
+        );
+        let rp = s.windows[0]
+            .right_page
+            .as_ref()
+            .expect("it was the active cluster, so it reopens as a right_page");
+        assert_eq!(rp.id, "agents");
+        assert_eq!(rp.mode, crate::pages::PageMode::Expanded);
+        assert_eq!(
+            rp.instance_id.as_deref(),
+            Some("agents-9"),
+            "the page cluster's own instance travels with it"
+        );
+        assert!(
+            s.instances.iter().any(|i| i.id == "agents-9"),
+            "so it is not among the dropped instances either"
+        );
+    }
+
+    #[test]
+    fn migrate_renames_the_old_projects_page_id_to_plane() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        s.instances.push(app_instance("projects-1", "projects"));
+        s.windows[0].clusters.push(page_cluster(
+            "cluster-2",
+            "pane-2",
+            "projects-1",
+            "projects",
+        ));
+        s.windows[0].active_cluster_id = Some("cluster-2".to_string());
+
+        migrate_legacy_page_clusters(&mut s);
+
+        assert_eq!(
+            s.windows[0].right_page.as_ref().map(|rp| rp.id.as_str()),
+            Some("plane")
+        );
+    }
+
+    #[test]
+    fn migrating_a_page_cluster_that_was_not_active_just_drops_it() {
+        let mut s = with_agents_page();
+        s.windows[0].active_cluster_id = Some("cluster-1".to_string());
+
+        migrate_legacy_page_clusters(&mut s);
+
+        assert_eq!(s.windows[0].clusters.len(), 1);
+        assert!(s.windows[0].right_page.is_none());
+        assert!(!s.instances.iter().any(|i| i.id == "agents-9"));
     }
 
     #[test]
@@ -4189,7 +4988,7 @@ mod tests {
         let mut s = with_agents_page();
 
         assert!(!rename_cluster_pure(&mut s, "cluster-9", "mine"));
-        assert_eq!(cluster_mut(&mut s, "cluster-9").name, "Agents");
+        assert_eq!(cluster_mut(&mut s, "cluster-9").name, "agents");
         assert!(
             rename_cluster_pure(&mut s, "cluster-1", "mine"),
             "a real one is"
@@ -4326,12 +5125,22 @@ mod tests {
     }
 
     #[test]
-    fn a_page_in_front_is_nowhere_to_work() {
+    fn a_restored_page_in_front_does_not_stop_the_window_working_in_its_cluster() {
+        // Unlike the old page-cluster model this fixture predates, a page is
+        // no longer a cluster the window's `active_cluster_id` can point at —
+        // restoring converts it away into `right_page` and leaves the window
+        // on the real cluster underneath, per `migrate_legacy_page_clusters`.
         let shell = ShellState::default();
         shell.restore(with_agents_page());
 
-        assert_eq!(shell.active_cluster_of("main"), None);
-        assert_eq!(shell.active_pane("main", None), None);
+        assert_eq!(
+            shell.active_cluster_of("main"),
+            Some("cluster-1".to_string())
+        );
+        assert_eq!(
+            shell.active_pane("main", None),
+            Some(("cluster-1".to_string(), "pane-1".to_string()))
+        );
     }
 
     #[test]
@@ -4366,7 +5175,10 @@ mod tests {
     fn a_closing_windows_pages_are_dropped_not_folded_into_main() {
         let mut s = with_agents_page();
         s.windows.push(window("tear-1", "cluster-2", &[]));
-        open_page_pure(&mut s, "tear-1", agents(), seed(10));
+        s.instances.push(app_instance("agents-10", "agents"));
+        s.windows[1]
+            .clusters
+            .push(page_cluster("cluster-10", "pane-10", "agents-10", "agents"));
 
         reclaim_window_pure(&mut s, "tear-1");
 
@@ -4385,21 +5197,6 @@ mod tests {
     }
 
     #[test]
-    fn a_page_this_build_cannot_draw_is_dropped_on_restore() {
-        let mut s = with_agents_page();
-
-        drop_unavailable_pages(&mut s, &|_| false);
-
-        assert_eq!(s.windows[0].clusters.len(), 1);
-        assert!(!s.instances.iter().any(|i| i.id == "agents-9"));
-        assert_eq!(
-            s.windows[0].active_cluster_id.as_deref(),
-            Some("cluster-1"),
-            "the window falls back to a real cluster"
-        );
-    }
-
-    #[test]
     fn a_page_survives_a_json_round_trip_and_a_real_cluster_omits_the_key() {
         let s = with_agents_page();
         let json = serde_json::to_string(&s).expect("serializes");
@@ -4411,6 +5208,265 @@ mod tests {
             json.matches("\"page\"").count(),
             1,
             "only the page writes one"
+        );
+    }
+
+    // --- environments and the pinned Design cluster ---------------------------
+
+    fn design_environment() -> crate::environments::Environment {
+        crate::environments::Environment::Design {
+            path: "C:/proj/.kaava/worktrees/design".to_string(),
+            branch: "wt/design".to_string(),
+        }
+    }
+
+    #[test]
+    fn add_design_cluster_is_inserted_first_and_does_not_steal_focus() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+
+        let created = add_design_cluster_pure(
+            &mut s,
+            "main",
+            "cluster-9",
+            "pane-9",
+            "C:/proj",
+            design_environment(),
+        );
+
+        assert_eq!(created.as_deref(), Some("cluster-9"));
+        let w = &s.windows[0];
+        assert_eq!(w.clusters[0].id, "cluster-9", "first in the switcher");
+        assert!(w.clusters[0].pinned);
+        assert_eq!(w.clusters[0].environment, Some(design_environment()));
+        assert_eq!(w.clusters[0].project.as_deref(), Some("C:/proj"));
+        assert_eq!(
+            w.active_cluster_id.as_deref(),
+            Some("cluster-1"),
+            "the cluster that was already active stays active"
+        );
+    }
+
+    #[test]
+    fn add_design_cluster_is_idempotent_per_window() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        add_design_cluster_pure(
+            &mut s,
+            "main",
+            "cluster-9",
+            "pane-9",
+            "C:/proj",
+            design_environment(),
+        );
+
+        let second = add_design_cluster_pure(
+            &mut s,
+            "main",
+            "cluster-10",
+            "pane-10",
+            "C:/proj",
+            design_environment(),
+        );
+
+        assert_eq!(second, None, "a window keeps at most one pinned cluster");
+        assert_eq!(s.windows[0].clusters.len(), 2, "no second one was added");
+    }
+
+    #[test]
+    fn add_design_cluster_finds_nothing_in_an_unknown_window() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        assert_eq!(
+            add_design_cluster_pure(
+                &mut s,
+                "nonesuch",
+                "cluster-9",
+                "pane-9",
+                "C:/proj",
+                design_environment(),
+            ),
+            None
+        );
+    }
+
+    /// The one write-side guarantee this workstream adds outside `git.rs`:
+    /// the pinned cluster has no × and no other route to `close_cluster_pure`
+    /// closes it either.
+    #[test]
+    fn a_pinned_cluster_is_not_closed() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        add_design_cluster_pure(
+            &mut s,
+            "main",
+            "cluster-9",
+            "pane-9",
+            "C:/proj",
+            design_environment(),
+        );
+
+        let (instances, terminals) = close_cluster_pure(&mut s, "cluster-9");
+
+        assert!(instances.is_empty() && terminals.is_empty());
+        assert_eq!(
+            s.windows[0].clusters.len(),
+            2,
+            "the pin survives the attempt"
+        );
+        assert!(
+            s.windows[0].clusters.iter().any(|c| c.id == "cluster-9"),
+            "still there afterward"
+        );
+
+        close_cluster_pure(&mut s, "cluster-1");
+        assert_eq!(
+            s.windows[0].clusters.len(),
+            1,
+            "an ordinary cluster beside the pin is still closable"
+        );
+    }
+
+    /// The bridge from the legacy `worktree` field, exercised at the
+    /// `ShellState::restore` boundary rather than by calling
+    /// `crate::environments::migrate_environment` directly (which has its
+    /// own unit tests in `environments.rs`) — this is the guarantee that
+    /// actually matters: an old `layout.json` comes back with `environment`
+    /// filled in, not just a function that could fill it in if called.
+    #[test]
+    fn restoring_a_legacy_layout_migrates_worktree_into_environment() {
+        let mut w = window("main", "cluster-1", &[]);
+        w.clusters[0].worktree = Some(WorktreeRef {
+            path: "C:/proj/../.worktrees/proj/feat-x".to_string(),
+            branch: Some("feat-x".to_string()),
+            base: Some("main".to_string()),
+        });
+        let mut snapshot = state(vec![w], Vec::new());
+
+        migrate_environments(&mut snapshot);
+
+        assert_eq!(
+            snapshot.windows[0].clusters[0].environment,
+            Some(crate::environments::Environment::LocalWorktree {
+                name: "feat-x".to_string(),
+                path: "C:/proj/../.worktrees/proj/feat-x".to_string(),
+                branch: "feat-x".to_string(),
+                base: "main".to_string(),
+            })
+        );
+    }
+
+    /// A cluster with no worktree at all is left `None` rather than guessed
+    /// at as `Main` — see `crate::environments::migrate_environment`'s doc
+    /// for why locking every project-only cluster to read-only on the first
+    /// load of a new build would be the wrong call.
+    #[test]
+    fn restoring_a_legacy_layout_does_not_invent_main_for_a_projectonly_cluster() {
+        let mut snapshot = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        snapshot.windows[0].clusters[0].project = Some("C:/proj".to_string());
+
+        migrate_environments(&mut snapshot);
+
+        assert_eq!(snapshot.windows[0].clusters[0].environment, None);
+    }
+
+    /// `cluster_root` prefers `environment` over the legacy `worktree` the
+    /// moment both are set — see `Cluster::environment`'s doc on precedence.
+    #[test]
+    fn cluster_root_prefers_environment_over_legacy_worktree() {
+        let mut w = window("main", "cluster-1", &[]);
+        w.clusters[0].project = Some("C:/proj".to_string());
+        w.clusters[0].worktree = Some(WorktreeRef {
+            path: "C:/old-worktree".to_string(),
+            branch: None,
+            base: None,
+        });
+        w.clusters[0].environment = Some(crate::environments::Environment::LocalWorktree {
+            name: "feat-x".to_string(),
+            path: "C:/new-worktree".to_string(),
+            branch: "wt/feat-x".to_string(),
+            base: "main".to_string(),
+        });
+        let snapshot = state(vec![w], Vec::new());
+        let shell = ShellState::default();
+        *shell.inner.write_or_panic() = snapshot;
+
+        assert_eq!(
+            shell.cluster_root("cluster-1"),
+            Some("C:/new-worktree".to_string())
+        );
+    }
+
+    /// A cluster on `Cloud` has no local path — `cluster_root` answers `None`
+    /// honestly rather than falling back to the project it is nominally
+    /// about, which would have a terminal open against a folder the cloud
+    /// session never touches.
+    #[test]
+    fn cluster_root_is_none_for_a_cloud_cluster_even_with_a_project_set() {
+        let mut w = window("main", "cluster-1", &[]);
+        w.clusters[0].project = Some("C:/proj".to_string());
+        w.clusters[0].environment = Some(crate::environments::Environment::Cloud {
+            session_id: "s1".to_string(),
+            vm: "vm1".to_string(),
+            branch: None,
+        });
+        let snapshot = state(vec![w], Vec::new());
+        let shell = ShellState::default();
+        *shell.inner.write_or_panic() = snapshot;
+
+        assert_eq!(shell.cluster_root("cluster-1"), None);
+    }
+
+    // --- the Switch Project dialog's per-row summary ---------------------------
+
+    #[test]
+    fn project_live_counts_is_zero_for_a_project_nobody_has_open() {
+        let s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        let counts = project_live_counts_pure(&s, "C:/proj");
+        assert!(!counts.open);
+        assert_eq!(counts.cluster_count, 0);
+        assert_eq!(counts.environment_count, 0);
+    }
+
+    #[test]
+    fn project_live_counts_counts_clusters_across_every_window() {
+        let mut w1 = window("main", "cluster-1", &[]);
+        w1.clusters[0].project = Some("C:/proj".to_string());
+        let mut w2 = window("second", "cluster-2", &[]);
+        w2.clusters[0].project = Some("C:/proj".to_string());
+        // A cluster on a different project must not be counted in.
+        let mut w3 = window("third", "cluster-3", &[]);
+        w3.clusters[0].project = Some("C:/other".to_string());
+        let s = state(vec![w1, w2, w3], Vec::new());
+
+        let counts = project_live_counts_pure(&s, "C:/proj");
+
+        assert!(counts.open);
+        assert_eq!(counts.cluster_count, 2);
+    }
+
+    #[test]
+    fn project_live_counts_dedups_two_clusters_on_the_same_environment() {
+        let mut w = window("main", "cluster-1", &[]);
+        w.clusters[0].project = Some("C:/proj".to_string());
+        w.clusters[0].environment = Some(design_environment());
+        w.clusters.push(Cluster {
+            id: "cluster-2".to_string(),
+            name: "cluster-2".to_string(),
+            tree: PaneNode::leaf("pane-2"),
+            project: Some("C:/proj".to_string()),
+            worktree: None,
+            active_terminal: None,
+            band_height: None,
+            page: None,
+            // Same environment as cluster-1 — one worktree, opened twice.
+            environment: Some(design_environment()),
+            pinned: false,
+        });
+        let s = state(vec![w], Vec::new());
+
+        let counts = project_live_counts_pure(&s, "C:/proj");
+
+        assert_eq!(counts.cluster_count, 2, "both clusters count");
+        assert_eq!(
+            counts.environment_count, 1,
+            "one environment, shared by both"
         );
     }
 }

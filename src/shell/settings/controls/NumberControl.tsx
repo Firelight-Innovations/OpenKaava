@@ -11,7 +11,7 @@
  * for why the answer Rust sends back is what ends up on screen.
  */
 import { useDraft } from "./useDraft";
-import { Plus } from "../../../ui/Icon";
+import { Minus, Plus } from "lucide-react";
 
 export default function NumberControl({
   value,
@@ -65,15 +65,15 @@ export default function NumberControl({
     <div className="settings-stepper">
       <button
         type="button"
-        className="settings-stepper__button"
+        className="k-btn k-btn--secondary k-btn--icon k-btn--lg"
         aria-label={`Decrease ${label}`}
         disabled={value <= min}
         onClick={() => nudge(-1)}
       >
-        <Minus />
+        <Minus size={16} strokeWidth={1.5} aria-hidden="true" />
       </button>
       <input
-        className="settings-stepper__field"
+        className="k-field__input k-field__input--mono settings-stepper__field"
         type="text"
         inputMode="numeric"
         aria-label={label}
@@ -86,41 +86,15 @@ export default function NumberControl({
       />
       <button
         type="button"
-        className="settings-stepper__button"
+        className="k-btn k-btn--secondary k-btn--icon k-btn--lg"
         aria-label={`Increase ${label}`}
         disabled={value >= max}
         onClick={() => nudge(1)}
       >
-        <Plus size={13} />
+        <Plus size={16} strokeWidth={1.5} aria-hidden="true" />
       </button>
       {unit !== "" && <span className="settings-stepper__unit">{unit}</span>}
     </div>
-  );
-}
-
-/**
- * The other half of `Plus`, drawn here rather than added to `src/ui/Icon.tsx`
- * because a bare minus has exactly one caller in the shell — this stepper — and
- * `Icon.tsx` is the handoff's glyph set rather than a general icon package.
- *
- * Same 24×24 box, same 2px stroke on `currentColor`, so it sits at the identical
- * weight as the `Plus` on the button beside it.
- */
-function Minus({ size = 13 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path d="M5 12h14" />
-    </svg>
   );
 }
 

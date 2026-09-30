@@ -29,11 +29,14 @@
   position: relative;
 }
 
+/* The hairline is an inset shadow, not a border: a border-box border would
+   take a pixel out of `--h-switcher`, and the 30px cluster tabs would centre
+   in 39px instead of 40 — half a pixel high, which is what read as "off". */
 .frame__switcher {
   flex: none;
   height: var(--h-switcher);
   background: var(--surface);
-  border-bottom: 1px solid var(--line);
+  box-shadow: inset 0 -1px 0 var(--line);
 }
 
 .frame__statusbar {
@@ -59,9 +62,9 @@
 
 /* The tool window stacked over the terminal band. Only this column grows.
 
-   The band stops at the secondary panel's edge rather than spanning the window,
+   The band stops at the docked page's edge rather than spanning the window,
    which is VS Code's arrangement and the right one here for a concrete reason:
-   that panel holds the repository's history and this cluster's changes, and
+   the Git page holds the repository's history and this cluster's changes, and
    those are things you read *while* a terminal is running. A full-width band
    would shorten them every time it opened. */
 .frame__main {
@@ -72,10 +75,26 @@
   min-height: 0;
 }
 
+/* The environment bar's row. Its height and card are `envbar.css`'s; the
+   gutter is this file's, the same one `.frame__toolwindow` takes below, so the
+   bar and the pane grid share a left edge and a right edge (§1.4: "full
+   pane-grid width"). No right gutter on either — the resize handle beside
+   this column is already the 6px seam. */
+.frame__envbar {
+  flex: none;
+  min-width: 0;
+  margin: var(--space-1-5, 6px) 0 0 var(--space-1-5, 6px);
+}
+
+/* The pane grid, inset by the region gutter on the left, top and bottom
+   (§1.1: regions sit 6px apart on `bg-canvas`). Before this the panes ran
+   flush to the window's left edge and straight into the terminal band's
+   hairline, 6px left of the environment bar above them. */
 .frame__toolwindow {
   flex: 1;
   min-height: 0;
   min-width: 0;
+  margin: var(--space-1-5, 6px) 0 var(--space-1-5, 6px) var(--space-1-5, 6px);
   background: var(--bg);
   position: relative;
   /* Load-bearing once the band can take the whole column. The surfaces inside
@@ -122,15 +141,41 @@
   display: flex;
   min-height: 0;
   /* The height is driven by a motion value in Frame.tsx and deliberately not
-     set here, for the reason `.frame__panel` gives about its width. */
+     set here, for the reason `.frame__page` gives about its width. */
   overflow: hidden;
 }
 
-.frame__handle {
+/* --- everything left of the rail, as one hideable box ---------------------
+   `visibility`, never `display: none` — see `Frame.tsx`'s doc comment on
+   `.frame__workspace-body` for why an expanded project page must not unmount
+   what this wraps. Flex, matching `.frame__split`'s own row, so wrapping it
+   changes no existing layout: the children inside lay out exactly as they did
+   as direct children of the row. */
+.frame__workspace-body {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+
+.frame__workspace-body[data-hidden] {
+  visibility: hidden;
+}
+
+/* --- the project page and its handle --------------------------------------
+   `--w-project-rail` and the rest of this block are geometry the spec names
+   (`docs/design/KAAVA-UX-SPEC.md` §1.7-1.8) but `tokens.json` does not define
+   — kept local per the common brief rather than added to `src/tokens.css`. */
+
+:root {
+  --w-project-rail: 44px;
+}
+
+.frame__pagehandle {
   flex: none;
   width: var(--w-resize-handle);
   background: var(--bg);
-  border-left: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -142,10 +187,6 @@
   user-select: none;
 }
 
-.frame__handle[data-collapsed] {
-  cursor: default;
-}
-
 .frame__grip {
   width: 2px;
   height: 24px;
@@ -153,14 +194,40 @@
   background: var(--line);
 }
 
-.frame__panel {
+.frame__page {
   flex: none;
-  background: var(--surface);
+  background: var(--bg-surface-1, var(--surface));
+  border: 1px solid var(--border-subtle, var(--line));
+  border-radius: var(--radius-region, 10px);
   display: flex;
   flex-direction: column;
   min-height: 0;
+  margin: 6px 0;
   /* The width is driven by a motion value from Frame.tsx. It is deliberately
      not set here: two owners of one property is how a resize drag ends up
      fighting a stylesheet. */
   overflow: hidden;
+}
+
+/* The expanded page covers this wrapper's own box — the tool window and the
+   docked page above — and nothing past
+   it, because the wrapper stops exactly at the rail. `visibility: visible`
+   overrides the hidden ancestor `.frame__workspace-body[data-hidden]` sets;
+   see `Frame.tsx` for why that is the mechanism rather than a portal. */
+.frame__page-expanded {
+  position: absolute;
+  inset: 0;
+  visibility: visible;
+  background: var(--bg-canvas, var(--bg));
+  z-index: 1;
+}
+
+/* --- the project-page rail --------------------------------------------- */
+
+.frame__rail {
+  flex: none;
+  width: var(--w-project-rail);
+  margin-left: var(--space-1-5, 6px);
+  display: flex;
+  flex-direction: column;
 }

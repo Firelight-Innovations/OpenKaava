@@ -1,6 +1,6 @@
 /**
- * The source-control tab's body — plugs into `SecondaryPanel`'s `worktreeView`
- * slot (src/shell/panel/SecondaryPanel.tsx, `worktreeView?: ReactNode`).
+ * The source-control tab's body, composed into `WorktreePanel`, which is what
+ * the rail's Git page (src/shell/rail/GitPage.tsx) shows in its `worktreeView`.
  *
  * Replaces `WorktreeView`, which rendered one flat change list from a
  * subscription and had nowhere to put the index. This is the whole MVP loop:
@@ -21,6 +21,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { isTomlPath, TOML_LANGUAGE_ID } from "@openkaava/monaco-languages";
 import type { GitControl, GitDiff, GitFileChange, ReviewControl, ReviewSend } from "../contract";
 import { GIT_KIND_LETTER, GIT_KIND_TOKEN } from "../contract";
+import { READ_ONLY_HINT } from "../environment";
 import { GitBranch } from "../../ui/Icon";
 import { describeLineCounts, formatLineCounts, sumLineCounts } from "./lineCounts";
 import { focusWithoutScrolling } from "./rowFocus";
@@ -30,8 +31,8 @@ import "./worktree.css";
 
 /**
  * Lazy because this reaches `DiffView`, which pulls in Monaco and its worker
- * chunk the moment the module is evaluated, and `SecondaryPanel` keeps this
- * view mounted for the life of the window — a static import would make every
+ * chunk the moment the module is evaluated, and the Git page keeps this view
+ * mounted for as long as it is open — a static import would make every
  * window pay for Monaco at startup to render a pane most sessions never open.
  * The import starts on the first click of a file, which is also when the diff
  * request goes out.
@@ -69,6 +70,9 @@ export interface SourceControlViewProps {
    *  this: half of it is which terminal the cluster is showing, which is shell
    *  state rather than anything this view knows. */
   reviewSend: ReviewSend;
+  /** The cluster is browsing main: staging and committing are disabled with
+   *  `READ_ONLY_HINT`. Cosmetic — `git.rs` refuses either way. */
+  readOnly?: boolean;
 }
 
 // `Selection` and the three rules over it live in `./selection.ts`. They were an
@@ -85,6 +89,7 @@ export default function SourceControlView({
   git,
   review,
   reviewSend,
+  readOnly = false,
 }: SourceControlViewProps) {
   const [selected, setSelected] = useState<Selection | null>(null);
   const [diff, setDiff] = useState<GitDiff | null>(null);
@@ -200,7 +205,7 @@ export default function SourceControlView({
     );
   }
 
-  const canCommit = !busy && status.staged.length > 0 && message.trim() !== "";
+  const canCommit = !readOnly && !busy && status.staged.length > 0 && message.trim() !== "";
 
   return (
     <div className="worktree">
@@ -223,6 +228,7 @@ export default function SourceControlView({
             staged
             selected={selected}
             busy={busy}
+            readOnly={readOnly}
             onToggle={toggle}
             onToggleAll={toggleSection}
             onSelect={setSelected}
@@ -233,6 +239,7 @@ export default function SourceControlView({
             staged={false}
             selected={selected}
             busy={busy}
+            readOnly={readOnly}
             onToggle={toggle}
             onToggleAll={toggleSection}
             onSelect={setSelected}
@@ -304,13 +311,15 @@ export default function SourceControlView({
           placeholder="Commit message"
           value={message}
           rows={2}
-          disabled={busy}
+          disabled={busy || readOnly}
+          title={readOnly ? READ_ONLY_HINT : undefined}
           onChange={(e) => setMessage(e.target.value)}
         />
         <button
           type="button"
           className="worktree__commit-btn"
           disabled={!canCommit}
+          title={readOnly ? READ_ONLY_HINT : undefined}
           onClick={() => void commit()}
         >
           Commit
@@ -376,6 +385,7 @@ function Section({
   staged,
   selected,
   busy,
+  readOnly,
   onToggle,
   onToggleAll,
   onSelect,
@@ -385,6 +395,7 @@ function Section({
   staged: boolean;
   selected: Selection | null;
   busy: boolean;
+  readOnly: boolean;
   onToggle: (change: GitFileChange) => void;
   onToggleAll: (changes: GitFileChange[], staged: boolean) => void;
   onSelect: (selection: Selection) => void;
@@ -401,7 +412,8 @@ function Section({
           type="checkbox"
           className="worktree__check worktree__check--all"
           checked={staged}
-          disabled={busy}
+          disabled={busy || readOnly}
+          title={readOnly ? READ_ONLY_HINT : undefined}
           aria-label={`${staged ? "Unstage" : "Stage"} all ${changes.length} ${
             changes.length === 1 ? "change" : "changes"
           }`}
@@ -425,6 +437,7 @@ function Section({
           change={change}
           selected={isRowSelected(selected, change)}
           busy={busy}
+          readOnly={readOnly}
           onToggle={onToggle}
           onSelect={onSelect}
         />
@@ -453,12 +466,14 @@ function ChangeRow({
   change,
   selected,
   busy,
+  readOnly,
   onToggle,
   onSelect,
 }: {
   change: GitFileChange;
   selected: boolean;
   busy: boolean;
+  readOnly: boolean;
   onToggle: (change: GitFileChange) => void;
   onSelect: (selection: Selection) => void;
 }) {
@@ -475,7 +490,8 @@ function ChangeRow({
         type="checkbox"
         className="worktree__check"
         checked={change.staged}
-        disabled={busy}
+        disabled={busy || readOnly}
+        title={readOnly ? READ_ONLY_HINT : undefined}
         aria-label={change.staged ? `Unstage ${change.path}` : `Stage ${change.path}`}
         onChange={() => onToggle(change)}
       />
