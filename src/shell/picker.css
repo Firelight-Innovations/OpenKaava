@@ -70,6 +70,28 @@
   cursor: default;
 }
 
+.app-picker__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A shortcut at the row's right edge, and the chevron of a row that opens
+   another page. */
+.app-picker__accel {
+  flex: none;
+  color: var(--text-faint);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+}
+
+.app-picker__chevron {
+  flex: none;
+  color: var(--text-dim);
+}
+
 .app-picker__icon {
   flex: none;
   color: var(--text-dim);

@@ -1,35 +1,49 @@
 /**
- * The command palette: one field over a dimmed window, and every menu row in it.
+ * The command palette: one panel over a dimmed window, with a page for the
+ * commands and a page for the apps.
  *
  * A sheet portalled to `document.body` rather than a band in the frame, and
  * that is the same call `SettingsScreen` made for the same reason — the palette
  * is not a place in the layout. It is opened, used and gone in a few seconds,
  * nothing may be dragged into it, and the window underneath must be exactly as
- * it was when it closes. Putting it in `Frame`'s slots would have meant every
- * region learning about a sixth band that is absent 99% of the time.
+ * it was when it closes.
  *
- * Portalling also means the pane tree, the terminals and the app iframes below
- * are untouched — no remount, no reload, no re-layout of a Monaco editor
- * mid-keystroke.
+ * The scrim is always there while the palette is, on every page: choosing
+ * "Open app…" moves to the apps page inside the same `role="dialog"` element
+ * rather than swapping to another popup, so nothing flashes and the window
+ * behind stays dimmed. The field, rows, icons and sizing are the app picker's
+ * own (`PickerParts.tsx`).
  *
- * The surface is mounted fresh on every open, which is why nothing here resets
- * state: an unmount is the reset. Closing and reopening starts on an empty
- * field, at the top of the list, out of the prompt stage.
+ * The surface is mounted fresh on every open and every change of starting page
+ * (`key`), which is why nothing here resets state: an unmount is the reset.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { ChevronLeft, Command as CommandIcon } from "lucide-react";
+import type { Openable } from "../../bindings";
 import { settingsBackdrop, settingsScreen } from "../motion";
+import { PickerField, PickerRow, iconFor } from "../PickerParts";
+import { filterApps, stepIndex } from "../pickerFilter";
 import { matchRuns } from "./fuzzy";
 import { initialIndex, rankCommands, type Command, type RankedCommand } from "./registry";
 import "./palette.css";
 
+export type PalettePage = "commands" | "apps";
+
 export interface CommandPaletteProps {
   open: boolean;
+  /** Which page it opens on: Ctrl+Shift+P on the commands, Ctrl+Shift+A on the apps. */
+  page?: PalettePage;
   /** Every command the shell has, flattened from the live menu tree. Rebuilt on
    *  every render of the window, so a row that has just become possible is
    *  possible here in the same frame. */
   commands: Command[];
+  /** The apps page's list: the Apps menu's own. */
+  apps: Openable[];
+  /** Why nothing can be opened right now, or `undefined`. */
+  blocked?: string;
+  onPickApp: (entry: Openable) => void;
   onClose: () => void;
 }
 
@@ -37,35 +51,50 @@ export interface CommandPaletteProps {
  * The portal is outside `AnimatePresence` and the surface inside it, which is
  * `ContextMenuHost`'s shape rather than a choice made again here — the wrapper
  * is always rendered so presence can watch the sheet leave, and an empty one
- * draws no DOM. The two motion elements nest exactly as `SettingsScreen`'s do,
- * so the sheet inherits the variant state its parent is in.
+ * draws no DOM.
  */
-export default function CommandPalette({ open, commands, onClose }: CommandPaletteProps) {
+export default function CommandPalette({
+  open,
+  page = "commands",
+  commands,
+  apps,
+  blocked,
+  onPickApp,
+  onClose,
+}: CommandPaletteProps) {
   return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
           className="palette"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Command palette"
+          data-testid="palette-backdrop"
           variants={settingsBackdrop}
           initial="initial"
           animate="animate"
           exit="exit"
-          // Only a press that landed on the backdrop itself, compared the way
-          // `SettingsScreen` compares it — a blanket `stopPropagation` on the
-          // sheet would be a rule every control inside it has to work around.
-          //
-          // `onMouseDown` rather than `onClick`, because a click that began in
-          // the field and ended out here is a selection dragged past the edge,
-          // not a dismissal.
+          // `onMouseDown` on the backdrop itself, so a press inside the sheet is
+          // never mistaken for one outside it, and a selection dragged past the
+          // edge is not a dismissal.
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) onClose();
           }}
         >
-          <motion.div className="palette__sheet" variants={settingsScreen}>
-            <Palette commands={commands} onClose={onClose} />
+          <motion.div
+            className="app-picker palette__sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Command palette"
+            variants={settingsScreen}
+          >
+            <Palette
+              key={page}
+              initialPage={page}
+              commands={commands}
+              apps={apps}
+              blocked={blocked}
+              onPickApp={onPickApp}
+              onClose={onClose}
+            />
           </motion.div>
         </motion.div>
       )}
@@ -74,207 +103,292 @@ export default function CommandPalette({ open, commands, onClose }: CommandPalet
   );
 }
 
-/** The sheet's contents: the field and the list, or the one field a command
- *  that needs an argument asked for. Mounted with the sheet, so its state is
- *  reset by the unmount rather than by an effect. */
-function Palette({ commands, onClose }: Omit<CommandPaletteProps, "open">) {
-  const [query, setQuery] = useState("");
+/** The sheet's contents: a page of commands, a page of apps, or the one field a
+ *  command that needs an argument asked for. */
+function Palette({
+  initialPage,
+  commands,
+  apps,
+  blocked,
+  onPickApp,
+  onClose,
+}: Omit<CommandPaletteProps, "open" | "page"> & { initialPage: PalettePage }) {
+  const [page, setPage] = useState<PalettePage>(initialPage);
 
   // The command whose one line of text is being asked for, or `null` for the
   // list. Two stages in one surface rather than handing the person back to the
-  // menu to find the row with the field on it — which is the opposite of what
-  // opening a palette was for.
+  // menu to find the row with the field on it.
   const [asking, setAsking] = useState<Command | null>(null);
 
+  if (asking !== null) {
+    return <PromptStage command={asking} onDone={onClose} onBack={() => setAsking(null)} />;
+  }
+
+  // Keyed by page so the field, the query and the highlight are fresh on each,
+  // and so the short fade replays on the swap.
+  return page === "apps" ? (
+    <AppsPage
+      key="apps"
+      apps={apps}
+      blocked={blocked}
+      onPick={(entry) => {
+        onPickApp(entry);
+        onClose();
+      }}
+      onBack={() => setPage("commands")}
+      onClose={onClose}
+    />
+  ) : (
+    <CommandsPage
+      key="commands"
+      commands={commands}
+      onDrill={setPage}
+      onAsk={setAsking}
+      onClose={onClose}
+    />
+  );
+}
+
+/** Escape closes, and is stopped here rather than left to bubble: `SearchSlot`
+ *  listens for Escape on the window, and dismissing this should not also close
+ *  a search the palette was opened over. */
+function closeOnEscape(e: React.KeyboardEvent, onClose: () => void) {
+  if (e.key !== "Escape") return;
+  e.preventDefault();
+  e.stopPropagation();
+  onClose();
+}
+
+/** True when the caret sits at the very end of the field, where ArrowRight has
+ *  nothing left to move past and can mean "go in". */
+function caretAtEnd(input: HTMLInputElement): boolean {
+  return input.selectionStart === input.value.length && input.selectionEnd === input.value.length;
+}
+
+function CommandsPage({
+  commands,
+  onDrill,
+  onAsk,
+  onClose,
+}: {
+  commands: Command[];
+  onDrill: (page: PalettePage) => void;
+  onAsk: (command: Command) => void;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState("");
   const rows = useMemo(() => rankCommands(commands, query), [commands, query]);
   const [index, setIndex] = useState(() => initialIndex(rows));
+  const listRef = useRef<HTMLUListElement>(null);
+  const fieldRef = useRef<HTMLInputElement>(null);
 
   // Clamped rather than corrected in an effect. The list shrinks under a stored
   // index on every keystroke, and an effect that fixed it afterwards would let
   // one frame paint with the highlight off the end of the list.
   const active = rows.length === 0 ? 0 : Math.min(index, rows.length - 1);
 
+  useEffect(() => {
+    fieldRef.current?.focus();
+  }, []);
+
+  // `block: "nearest"` so a highlight already on screen does not scroll the
+  // list under it.
+  useEffect(() => {
+    listRef.current?.children[active]?.scrollIntoView({ block: "nearest" });
+  }, [active]);
+
   const onQuery = (value: string) => {
     setQuery(value);
     // Back to the first row that can run, in the same update as the text that
-    // changed the list — a highlight left where it was would sit on whatever
-    // command happens to have moved under it.
+    // changed the list.
     setIndex(initialIndex(rankCommands(commands, value)));
   };
 
   const run = (row: RankedCommand | undefined) => {
     if (row === undefined || row.command.disabled) return;
+    if (row.command.drill) {
+      onDrill(row.command.drill);
+      return;
+    }
     if (row.command.prompt) {
-      setAsking(row.command);
+      onAsk(row.command);
       return;
     }
     row.command.onSelect?.();
     onClose();
   };
 
-  if (asking !== null) {
-    return <PromptStage command={asking} onDone={onClose} onBack={() => setAsking(null)} />;
-  }
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      setIndex(stepIndex(active, e.key === "ArrowDown" ? 1 : -1, rows.length));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      run(rows[active]);
+    } else if (e.key === "ArrowRight") {
+      const row = rows[active];
+      if (row?.command.drill && caretAtEnd(e.currentTarget)) {
+        e.preventDefault();
+        run(row);
+      }
+    } else {
+      closeOnEscape(e, onClose);
+    }
+  };
 
   return (
-    <CommandList
-      query={query}
-      rows={rows}
-      active={active}
-      onQuery={onQuery}
-      onMove={setIndex}
-      onRun={run}
-      onClose={onClose}
-    />
+    <div className="palette__page">
+      <PickerField
+        ref={fieldRef}
+        listId="palette-list"
+        label="Run a command"
+        placeholder="Type a command"
+        value={query}
+        onChange={onQuery}
+        onKeyDown={onKeyDown}
+      />
+
+      {rows.length === 0 ? (
+        <p className="app-picker__empty">No command matches that.</p>
+      ) : (
+        <ul id="palette-list" ref={listRef} className="app-picker__list" role="listbox">
+          {rows.map((row, i) => (
+            <PickerRow
+              // Indexed as well as labelled: two presets saved under one name
+              // would otherwise be one key for two rows.
+              key={`${row.command.label}-${i}`}
+              icon={row.command.icon ?? CommandIcon}
+              active={i === active}
+              disabled={row.command.disabled}
+              // The reason rides on the row: a `disabled` button receives no
+              // pointer events, so a `title` there would be readable on exactly
+              // the rows that never need explaining.
+              title={row.command.hint}
+              accelerator={row.command.accelerator}
+              chevron={row.command.drill !== undefined}
+              // Focus follows the pointer, so the row under the cursor is the
+              // row Enter would run.
+              onHover={() => setIndex(i)}
+              onRun={() => run(row)}
+            >
+              {matchRuns(row.command.label, row.positions).map((part, j) =>
+                part.hit ? (
+                  <mark key={j} className="palette__hit">
+                    {part.text}
+                  </mark>
+                ) : (
+                  <span key={j}>{part.text}</span>
+                ),
+              )}
+            </PickerRow>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
-function CommandList({
-  query,
-  rows,
-  active,
-  onQuery,
-  onMove,
-  onRun,
+function AppsPage({
+  apps,
+  blocked,
+  onPick,
+  onBack,
   onClose,
 }: {
-  query: string;
-  rows: RankedCommand[];
-  active: number;
-  onQuery: (value: string) => void;
-  onMove: (index: number) => void;
-  onRun: (row: RankedCommand | undefined) => void;
+  apps: Openable[];
+  blocked?: string;
+  onPick: (entry: Openable) => void;
+  onBack: () => void;
   onClose: () => void;
 }) {
-  const listRef = useRef<HTMLUListElement>(null);
+  const [query, setQuery] = useState("");
+  const [index, setIndex] = useState(0);
   const fieldRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  const rows = useMemo(() => filterApps(apps, query), [apps, query]);
+  const active = rows.length === 0 ? 0 : Math.min(index, rows.length - 1);
 
   useEffect(() => {
     fieldRef.current?.focus();
   }, []);
 
-  // `block: "nearest"` so a highlight already on screen does not scroll the
-  // list under it — the arrow keys should move the highlight, and the list only
-  // when the highlight has run out of room.
   useEffect(() => {
     listRef.current?.children[active]?.scrollIntoView({ block: "nearest" });
   }, [active]);
 
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowDown") {
+  const pick = (entry: Openable | undefined) => {
+    if (entry === undefined || blocked !== undefined) return;
+    onPick(entry);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
-      onMove(rows.length === 0 ? 0 : (active + 1) % rows.length);
-      return;
-    }
-    if (e.key === "ArrowUp") {
+      setIndex(stepIndex(active, e.key === "ArrowDown" ? 1 : -1, rows.length));
+    } else if (e.key === "Enter") {
       e.preventDefault();
-      onMove(rows.length === 0 ? 0 : (active - 1 + rows.length) % rows.length);
-      return;
-    }
-    if (e.key === "Enter") {
+      pick(rows[active]);
+    } else if (e.key === "Backspace" && query === "") {
       e.preventDefault();
-      onRun(rows[active]);
-      return;
-    }
-    if (e.key === "Escape") {
-      // Stopped here rather than left to bubble: `SearchSlot` listens for
-      // Escape on the window to close search, and dismissing this should not
-      // also close a search the palette was opened over.
+      onBack();
+    } else if (e.key === "ArrowLeft" && e.currentTarget.selectionEnd === 0) {
+      // Only with the caret at the start, so ← still edits the text otherwise.
       e.preventDefault();
-      e.stopPropagation();
-      onClose();
+      onBack();
+    } else {
+      closeOnEscape(e, onClose);
     }
   };
 
   return (
-    <>
-      <input
+    <div className="palette__page">
+      <button type="button" className="palette__crumb" onClick={onBack}>
+        <ChevronLeft size={14} strokeWidth={1.5} aria-hidden />
+        <span>Commands</span>
+        <span className="palette__crumb-sep" aria-hidden>
+          ›
+        </span>
+        <span className="palette__crumb-here">Open app</span>
+      </button>
+      <PickerField
         ref={fieldRef}
-        className="palette__field"
-        type="text"
-        role="combobox"
-        aria-expanded="true"
-        aria-controls="palette-list"
-        aria-label="Run a command"
-        placeholder="Type a command"
+        listId="palette-apps-list"
+        label="Filter apps"
+        placeholder="Open an app…"
         value={query}
-        onChange={(e) => onQuery(e.target.value)}
+        onChange={(value) => {
+          setQuery(value);
+          setIndex(0);
+        }}
         onKeyDown={onKeyDown}
       />
-
+      {blocked !== undefined && <p className="app-picker__note">{blocked}</p>}
       {rows.length === 0 ? (
-        <p className="palette__empty">No command matches that.</p>
+        <p className="app-picker__empty">No app matches that.</p>
       ) : (
-        <ul id="palette-list" ref={listRef} className="palette__list" role="listbox">
-          {rows.map((row, i) => (
-            <Row
-              // Indexed as well as labelled: two presets saved under one name
-              // would otherwise be one key for two rows.
-              key={`${row.command.label}-${i}`}
-              row={row}
+        <ul id="palette-apps-list" ref={listRef} className="app-picker__list" role="listbox">
+          {rows.map((entry, i) => (
+            <PickerRow
+              key={entry.id}
+              icon={iconFor(entry)}
               active={i === active}
-              // Focus follows the pointer, as it does in the search results and
-              // the file explorer, so the row under the cursor is the row Enter
-              // would run.
-              onHover={() => onMove(i)}
-              onRun={() => onRun(row)}
-            />
+              disabled={blocked !== undefined}
+              title={entry.description}
+              onHover={() => setIndex(i)}
+              onRun={() => pick(entry)}
+            >
+              {entry.name}
+            </PickerRow>
           ))}
         </ul>
       )}
-    </>
-  );
-}
-
-function Row({
-  row,
-  active,
-  onHover,
-  onRun,
-}: {
-  row: RankedCommand;
-  active: boolean;
-  onHover: () => void;
-  onRun: () => void;
-}) {
-  const { command } = row;
-
-  return (
-    /* The reason rides on the `<li>` for the reason `MenuItemList` gives: a
-       `disabled` button receives no pointer events, so a `title` on the button
-       would be readable on exactly the rows that never need explaining. */
-    <li
-      role="option"
-      aria-selected={active}
-      aria-disabled={command.disabled}
-      title={command.hint}
-      className="palette__row"
-      data-active={active || undefined}
-      data-disabled={command.disabled || undefined}
-      onMouseEnter={onHover}
-    >
-      <button type="button" className="palette__button" disabled={command.disabled} onClick={onRun}>
-        <span className="palette__label">
-          {matchRuns(command.label, row.positions).map((part, i) =>
-            part.hit ? (
-              <mark key={i} className="palette__hit">
-                {part.text}
-              </mark>
-            ) : (
-              <span key={i}>{part.text}</span>
-            ),
-          )}
-        </span>
-        {command.accelerator !== undefined && (
-          <span className="palette__accel">{command.accelerator}</span>
-        )}
-      </button>
-    </li>
+    </div>
   );
 }
 
 /**
- * The second stage: one line of text for a command that needs one.
+ * The prompt stage: one line of text for a command that needs one.
  *
  * The same shape `MenuItemList`'s `PromptField` uses, and for the same reasons —
  * the refusal is shown under the field because it is an answer to what was just
@@ -335,7 +449,7 @@ function PromptStage({
       <input
         id="palette-prompt-field"
         ref={fieldRef}
-        className="palette__field"
+        className="app-picker__field"
         value={value}
         placeholder={prompt.placeholder}
         disabled={busy}
