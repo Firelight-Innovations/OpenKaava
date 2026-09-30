@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { animate, motion, useMotionValue } from "framer-motion";
 import type { FrameSlots, WindowKind } from "../contract";
 import { settle } from "../motion";
-import { pageGeometry } from "./pageGeometry";
+import { pageGeometry, pageWidthFromPointer } from "./pageGeometry";
 import "./frame.css";
 
 /**
@@ -285,10 +285,10 @@ export default function Frame({
       }
       pageDragging.current = true;
 
-      const rowRight = row.getBoundingClientRect().right - PROJECT_RAIL_WIDTH;
+      const rowRight = row.getBoundingClientRect().right;
 
       const onMove = (ev: PointerEvent) => {
-        const raw = rowRight - ev.clientX;
+        const raw = pageWidthFromPointer(rowRight, PROJECT_RAIL_WIDTH, ev.clientX);
         pageWidth.set(Math.min(Math.max(raw, PROJECT_PAGE_MIN), PROJECT_PAGE_MAX));
       };
 
