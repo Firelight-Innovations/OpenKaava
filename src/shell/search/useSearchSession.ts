@@ -79,6 +79,12 @@ export interface SearchSession {
   matchCount: number;
   /** A walk is in flight. The results region says so rather than looking empty. */
   searching: boolean;
+  /** Why the last search failed, or `null`. Shown in place of the results, and
+   *  also written to the console so it lands in `recent_errors`. */
+  error: string | null;
+  /** The last search was cut short (a cap or the backend's time budget), so
+   *  `hits` is real but not everything. */
+  truncated: boolean;
 
   activeIndex: number;
   setActiveIndex: (index: number) => void;
@@ -96,6 +102,8 @@ export function useSearchSession(root: string | null, clusterId: string | null):
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [searching, setSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [truncated, setTruncated] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const parsed = useMemo(() => parseQuery(query), [query]);
@@ -133,12 +141,15 @@ export function useSearchSession(root: string | null, clusterId: string | null):
     if (root === null || parsed.needle.trim() === "") {
       setHits([]);
       setSearching(false);
+      setError(null);
+      setTruncated(false);
       return;
     }
 
     const controller = new AbortController();
     inFlight.current = controller;
     setSearching(true);
+    setError(null);
 
     const timer = window.setTimeout(() => {
       void runSearch({
@@ -154,15 +165,21 @@ export function useSearchSession(root: string | null, clusterId: string | null):
           // search that finishes after a newer one started has already been
           // aborted, and must not overwrite the newer results.
           if (controller.signal.aborted) return;
-          setHits(found);
+          setHits(found.hits);
+          setTruncated(found.truncated);
           setSearching(false);
         })
-        .catch(() => {
+        .catch((e: unknown) => {
           if (controller.signal.aborted) return;
-          // A walk only rejects on abort, which is handled above. Anything
-          // reaching here is unexpected, and an empty list is the honest way
-          // to show it rather than leaving stale hits on screen.
+          // Abort is handled above. Anything else is a real failure — the
+          // backend refused the query, or never answered — and it is shown as
+          // one rather than as an empty result, and reported so it reaches
+          // `recent_errors` instead of vanishing.
+          const message = e instanceof Error ? e.message : String(e);
+          console.error(`project search failed: ${message}`);
           setHits([]);
+          setTruncated(false);
+          setError(message);
           setSearching(false);
         });
     }, DEBOUNCE_MS);
@@ -254,6 +271,8 @@ export function useSearchSession(root: string | null, clusterId: string | null):
     rows,
     matchCount,
     searching,
+    error,
+    truncated,
     activeIndex,
     setActiveIndex,
     moveActive,

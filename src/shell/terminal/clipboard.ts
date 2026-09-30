@@ -29,9 +29,19 @@ export interface KeyGesture {
   readonly metaKey: boolean;
 }
 
+/** A file on the clipboard, as much of `File` as this module reads. */
+export interface PastedFile {
+  readonly type: string;
+  readonly name?: string;
+}
+
 /** The parts of a `ClipboardEvent` `handlePaste` reads and answers. */
 export interface PasteGesture {
-  readonly clipboardData: { getData(format: string): string } | null;
+  readonly clipboardData: {
+    getData(format: string): string;
+    /** Absent on a bare fake, which is a clipboard with no files. */
+    readonly files?: ArrayLike<PastedFile>;
+  } | null;
   preventDefault(): void;
   stopPropagation(): void;
 }
@@ -53,14 +63,40 @@ export function handleKey(ev: KeyGesture): boolean {
   return !isPasteKey(ev);
 }
 
+/** The first image among a clipboard's files, or `undefined`. */
+export function firstImage<T extends PastedFile>(files: ArrayLike<T> | undefined): T | undefined {
+  if (!files) return undefined;
+  for (let i = 0; i < files.length; i++) {
+    if (files[i].type.startsWith("image/")) return files[i];
+  }
+  return undefined;
+}
+
 /** A paste arriving at the terminal, from `Ctrl+V` or from the native menu.
  *  `stopPropagation` keeps xterm's own handler from sending the text a second time;
  *  `preventDefault` stops the browser depositing it in the hidden textarea, which is
  *  the residue that made a later right-click paste it again. An empty or absent
- *  clipboard is left alone rather than swallowed. */
-export function handlePaste(term: ClipboardTerminal, ev: PasteGesture): void {
+ *  clipboard is left alone rather than swallowed.
+ *
+ *  **Text always wins.** A copied spreadsheet range carries a bitmap as well as its
+ *  text, and the text is what was meant. Only a clipboard with *no* text and an image
+ *  file goes to `onImage` — which is what makes `Ctrl+V` work for a screenshot, where
+ *  it used to send nothing at all. */
+export function handlePaste(
+  term: ClipboardTerminal,
+  ev: PasteGesture,
+  onImage?: (image: PastedFile) => void,
+): void {
   const text = ev.clipboardData?.getData("text/plain") ?? "";
-  if (!text) return;
+  if (!text) {
+    const image = onImage ? firstImage(ev.clipboardData?.files) : undefined;
+    if (image && onImage) {
+      ev.stopPropagation();
+      ev.preventDefault();
+      onImage(image);
+    }
+    return;
+  }
 
   ev.stopPropagation();
   ev.preventDefault();
@@ -97,8 +133,12 @@ export function handleContextMenu(term: ClipboardTerminal): void {
  * The key handler has no removal because xterm exposes none, and needs none:
  * `XTermView` disposes the `Terminal` on unmount and the handler goes with it.
  */
-export function attachClipboard(term: Terminal, container: HTMLElement): () => void {
-  const onPaste = (ev: ClipboardEvent) => handlePaste(term, ev);
+export function attachClipboard(
+  term: Terminal,
+  container: HTMLElement,
+  onImage?: (image: File) => void,
+): () => void {
+  const onPaste = (ev: ClipboardEvent) => handlePaste(term, ev, onImage as (f: PastedFile) => void);
   const onContextMenu = () => handleContextMenu(term);
 
   term.attachCustomKeyEventHandler(handleKey);

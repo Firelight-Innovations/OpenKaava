@@ -12,8 +12,8 @@
 //! Three of the six rows still draw an app — Plane, Cloud agents and Cost keep
 //! the iframe they always had, hosted the same way any other app surface is.
 //! The other three have no app at all: Git is the shell's own source-control
-//! and GitHub content, as two tabs (`rail/GitPage.tsx`), Hindsight has nothing to
-//! connect to yet and draws an honest placeholder, and the Artifact registry
+//! and GitHub content, as two tabs (`rail/GitPage.tsx`), Hindsight shows whether
+//! the memory service answers (`cloud::hindsight`), and the Artifact registry
 //! is `disabled` — listed so the rail reads as the finished set of six, opened
 //! by nothing.
 
@@ -49,8 +49,8 @@ pub struct Page {
     /// The rail button's `aria-label`/tooltip, and the expanded header's title.
     pub name: &'static str,
     /// Which app draws it, or `None` for a page the shell draws itself — Git
-    /// (the source-control and GitHub tabs), Hindsight (a placeholder; there
-    /// is nothing to connect to yet) and the Artifact registry (disabled).
+    /// (the source-control and GitHub tabs), Hindsight (its connection
+    /// status; see `cloud::hindsight`) and the Artifact registry (disabled).
     /// Excluded from every list of things you can open as an ordinary
     /// surface — see [`is_page_app`].
     pub app_id: Option<&'static str>,
@@ -133,6 +133,10 @@ pub const PAGES: &[Page] = &[
 pub struct PageInfo {
     pub id: &'static str,
     pub name: &'static str,
+    /// The app that draws this page, or `None` when the shell draws it. The
+    /// frontend mounts a docked or expanded page's iframe from this rather than
+    /// from a list of ids of its own.
+    pub app_id: Option<&'static str>,
     pub icon: &'static str,
     pub mode: PageMode,
     pub key: u8,
@@ -150,6 +154,7 @@ pub fn rail() -> Vec<PageInfo> {
         .map(|p| PageInfo {
             id: p.id,
             name: p.name,
+            app_id: p.app_id,
             icon: p.icon,
             mode: p.mode,
             key: p.key,
@@ -210,6 +215,17 @@ mod tests {
         assert!(PAGES
             .iter()
             .any(|p| p.id == "registry" && p.app_id.is_none()));
+    }
+
+    #[test]
+    fn rail_carries_each_pages_app_id_for_the_frontend() {
+        let rail = rail();
+        let app = |id: &str| rail.iter().find(|p| p.id == id).and_then(|p| p.app_id);
+        assert_eq!(app("plane"), Some("projects"));
+        assert_eq!(app("agents"), Some("agents"));
+        assert_eq!(app("costs"), Some("costs"));
+        assert_eq!(app("git"), None);
+        assert_eq!(app("hindsight"), None);
     }
 
     #[test]

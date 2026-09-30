@@ -26,7 +26,7 @@ const ENTRY = /^([a-z][a-z0-9-]*)\s*=\s*"([^"\\]*)"$/;
 /** The keys every reader depends on, so a missing one fails here rather than downstream. */
 const REQUIRED = {
   product: ["name", "wordmark", "tagline"],
-  assets: ["mark", "mark-colour", "splash-field", "icon-source", "bundle-icons"],
+  assets: ["mark", "mark-colour", "icon-source", "bundle-icons"],
 };
 
 function fail(line, message) {

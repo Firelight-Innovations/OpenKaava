@@ -245,6 +245,9 @@ export const reveal = (path: string) => invoke<null>("files/reveal", { path });
 /** Hand the file to whatever the OS opens it with. */
 export const openExternal = (path: string) => invoke<null>("files/open-external", { path });
 
+/** Start Blender on a `.blend`, detached. Refused with a message when Blender is not installed. */
+export const openInBlender = (path: string) => invoke<unknown>("files/open-in-blender", { path });
+
 // --- reading the errors -------------------------------------------------------
 
 /** A `files/write` that lost a race, and the mtime it lost to. The backend

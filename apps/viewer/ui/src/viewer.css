@@ -41,7 +41,21 @@
   flex: 0 0 auto;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
   padding: 6px 10px 0;
+}
+
+.viewerapp__send {
+  display: flex;
+  gap: 6px;
+  margin-right: auto;
+}
+
+.viewerapp__send .k-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 /* The "LATER" micro-label the spec calls for on the Build steps tab — plain

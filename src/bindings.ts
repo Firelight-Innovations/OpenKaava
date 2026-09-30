@@ -933,6 +933,23 @@ export function githubFeed(clusterId: string, scope: GithubScope): Promise<Githu
   return invoke<GithubFeed>("github_feed", { clusterId, scope });
 }
 
+/** Mirrors `cloud::hindsight::Status` (the `trouble` is `cloud::Trouble`, tagged
+ *  by `kind`). Never rejects for an unreachable service: that is `trouble`. */
+export type HindsightStatus =
+  | { state: "connected"; url: string; latencyMs: number }
+  | {
+      state: "trouble";
+      url: string;
+      trouble: { kind: string; detail?: string; what?: string; status?: number };
+    };
+
+/** One `GET /health` against the Hindsight service. Cloud Run bills an instance
+ *  for ~15 minutes per request, so call this when the page opens or on a press,
+ *  never on a timer. */
+export function hindsightStatus(): Promise<HindsightStatus> {
+  return invoke<HindsightStatus>("hindsight_status");
+}
+
 /** Hand a github.com address to the browser. Rust re-checks it and rejects
  *  anything else, which is why this is a command of our own rather than the
  *  opener plugin's binding: the capability file can only say "may open URLs",
@@ -1149,6 +1166,11 @@ export interface Cluster {
    *  and defaults to `false` when reading a `layout.json` old enough to
    *  predate it. */
   pinned: boolean;
+  /** The environment's worktree folder was not on disk when the layout was
+   *  restored at launch. Recomputed by the backend at every restore, so a
+   *  stale value never survives a restart. Optional so fixtures that predate
+   *  it stay valid; absent means present. */
+  environmentMissing?: boolean;
 }
 
 /** Mirrors `shell_state::WindowGeometry`. Physical pixels. */
@@ -1249,6 +1271,8 @@ export function openInstance(
 export interface PageInfo {
   id: string;
   name: string;
+  /** The app that draws this page, or absent when the shell draws it itself. */
+  appId?: string | null;
   icon: string;
   mode: PageMode;
   key: number;
@@ -1571,6 +1595,104 @@ export function terminalResize(id: string, cols: number, rows: number): Promise<
  */
 export function terminalInsertPaths(id: string, paths: string[]): Promise<string> {
   return invoke<string>("terminal_insert_paths", { id, paths });
+}
+
+/* --- agent context --------------------------------------------------------------
+ *
+ * Mirrors `src-tauri/src/context.rs` and `context_commands.rs`. Bytes cross
+ * once, into Rust; everything after passes ids.
+ */
+
+export type ContextKind = "image" | "file" | "text" | "panel";
+export type Harness = "claude" | "codex" | "gemini" | "shell";
+
+export interface ContextItem {
+  id: string;
+  v: number;
+  kind: ContextKind;
+  mime: string;
+  title: string;
+  source: { appId: string; label?: string };
+  method: "put" | "drop" | "clipboard";
+  createdAt: number;
+  size: number;
+  path: string;
+  relPath: string;
+  owned: boolean;
+  image?: { width: number; height: number };
+  text?: { chars: number; lines: number; truncated: boolean };
+  preview?: string;
+  /** The file has gone since. Computed on every read. */
+  missing: boolean;
+}
+
+/** What an insertion did. `text` is exactly what was written at the prompt. */
+export interface ContextInserted {
+  text: string;
+  /** How many references `text` holds. */
+  count: number;
+  harness: Harness;
+  items: ContextItem[];
+  refused: string[];
+}
+
+export interface HarnessInfo {
+  effective: Harness;
+  detected: Harness | null;
+  overridden: Harness | null;
+}
+
+/** Files dropped on a terminal: copied into the context store when a coding
+ *  harness is running there, inserted as themselves when it is a plain shell. */
+export function terminalDropPaths(id: string, paths: string[]): Promise<ContextInserted> {
+  return invoke<ContextInserted>("terminal_drop_paths", { id, paths });
+}
+
+/** An image from the clipboard: stored, then referenced at the prompt. */
+export function terminalPasteImage(
+  id: string,
+  bytesBase64: string,
+  name?: string,
+): Promise<ContextInserted> {
+  return invoke<ContextInserted>("terminal_paste_image", { id, bytesBase64, name });
+}
+
+/** Send items already in the store to a terminal again. */
+export function terminalInsertItems(id: string, itemIds: string[]): Promise<ContextInserted> {
+  return invoke<ContextInserted>("terminal_insert_items", { id, itemIds });
+}
+
+/** The absolute paths of context items a frame is dragging. */
+export function contextItemPaths(instance: string, itemIds: string[]): Promise<string[]> {
+  return invoke<string[]>("context_item_paths", { instance, itemIds });
+}
+
+export function terminalHarness(id: string): Promise<HarnessInfo | null> {
+  return invoke<HarnessInfo | null>("terminal_harness", { id });
+}
+
+/** `"auto"` returns the terminal to detection. */
+export function terminalSetHarness(id: string, choice: Harness | "auto"): Promise<void> {
+  return invoke("terminal_set_harness", { id, choice });
+}
+
+/** The items in a terminal's environment, newest first. */
+export function contextList(terminalId: string): Promise<ContextItem[]> {
+  return invoke<ContextItem[]>("context_list", { terminalId });
+}
+
+export function contextRemove(terminalId: string, itemId: string): Promise<void> {
+  return invoke("context_remove", { terminalId, itemId });
+}
+
+/** `[mime, base64]` of an image item. */
+export function contextThumb(terminalId: string, itemId: string): Promise<[string, string]> {
+  return invoke<[string, string]>("context_thumb", { terminalId, itemId });
+}
+
+/** A store changed. `root` is the environment root; refetch if it is yours. */
+export function onContextChanged(cb: () => void): Promise<UnlistenFn> {
+  return listen("context:changed", () => cb());
 }
 
 /* --- files dragged in from outside OpenKaava ------------------------------------
@@ -1962,4 +2084,43 @@ export function searchContent(
     wholeWord,
     regex,
   });
+}
+
+/** Whether Kaava's "Agent saw" hook is in this environment's Claude settings. */
+export interface AgentSawStatus {
+  installed: boolean;
+  /** The settings file that is, or would be, edited. */
+  settingsPath: string;
+}
+
+/** An image file the agent read. */
+export interface AgentSeen {
+  path: string;
+  name: string;
+  mime: string;
+  missing: boolean;
+  /** Milliseconds since the epoch; changes when the file is rewritten. */
+  modified: number;
+}
+
+export function agentSawStatus(terminalId: string): Promise<AgentSawStatus> {
+  return invoke<AgentSawStatus>("agent_saw_status", { terminalId });
+}
+
+/** Adds the hook to `.claude/settings.local.json`. Ask the person first. */
+export function agentSawEnable(terminalId: string): Promise<AgentSawStatus> {
+  return invoke<AgentSawStatus>("agent_saw_enable", { terminalId });
+}
+
+export function agentSawDisable(terminalId: string): Promise<AgentSawStatus> {
+  return invoke<AgentSawStatus>("agent_saw_disable", { terminalId });
+}
+
+export function agentSawList(terminalId: string): Promise<AgentSeen[]> {
+  return invoke<AgentSeen[]>("agent_saw_list", { terminalId });
+}
+
+/** `[mime, base64]` of an image the agent read. */
+export function agentSawThumb(terminalId: string, path: string): Promise<[string, string]> {
+  return invoke<[string, string]>("agent_saw_thumb", { terminalId, path });
 }

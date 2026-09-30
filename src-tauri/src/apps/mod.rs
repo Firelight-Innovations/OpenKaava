@@ -222,8 +222,8 @@ const REGISTRY: &[Registered] = &[
     Registered {
         id: "blender-viewer",
         name: "Blender Viewer",
-        description: "The .glb an agent's headless Blender export last produced — read-only, orbit \
-                      and select a part, plus its renders.",
+        description: "Runs Blender headless on a .blend and shows what came out — preview renders, \
+                      parts list and the .glb — with Open in Blender for the real editor.",
         call: blender_viewer::call,
     },
     Registered {
@@ -533,6 +533,20 @@ pub fn call(
             .map_err(|e| RpcError::new(INTERNAL_ERROR, format!("could not read settings: {e}")));
     }
 
+    // The context store, likewise answered by the host so every app (and every
+    // plugin surface) reaches one implementation. Deliberately *before* the
+    // write refusal: `.kaava/context/` is Kaava's own gitignored state, not the
+    // checkout, so a read-only main may still collect context. See `context.rs`.
+    if crate::context::is_method(method) {
+        let result = crate::context::call(context.project.as_deref(), id, method, params);
+        if let (Ok(_), Some(root)) = (&result, context.project.as_deref()) {
+            if matches!(method, "context/put" | "context/remove") {
+                crate::context::notify(app, root);
+            }
+        }
+        return result;
+    }
+
     if let Some(registered) = REGISTRY.iter().find(|a| a.id == id) {
         // One choke point for every first-party write, whoever is calling: the
         // app's own frontend, the shell's menu, or an agent over MCP `app_call`
@@ -604,6 +618,9 @@ pub const WRITE_METHODS: &[&str] = &[
     "schematify/supersede-decision",
     "schematify/transition",
     "schematify/ingest-run",
+    "godot/open-editor",
+    "play/addon-install",
+    "play/addon-remove",
 ];
 
 /// Whether `method` is a write to the cluster's checkout.
@@ -637,7 +654,11 @@ pub fn settings_groups() -> &'static [&'static crate::settings::Group] {
     APP_SETTINGS
 }
 
-static APP_SETTINGS: &[&crate::settings::Group] = &[&files::SETTINGS];
+static APP_SETTINGS: &[&crate::settings::Group] = &[
+    &files::SETTINGS,
+    &crate::blender::SETTINGS,
+    &crate::godot::SETTINGS,
+];
 
 #[cfg(test)]
 mod tests {
@@ -663,6 +684,25 @@ mod tests {
             assert_eq!(err.code, READ_ONLY, "{method}");
             assert!(write_refusal(Some(&worktree()), method).is_ok(), "{method}");
             assert!(write_refusal(None, method).is_ok(), "{method}");
+        }
+    }
+
+    /// Context is allowed on main by design (it is gitignored, and nothing
+    /// tracked changes), so no context method may sit in the refusal list.
+    #[test]
+    fn context_methods_are_never_write_refused() {
+        for method in [
+            "context/put",
+            "context/list",
+            "context/get",
+            "context/remove",
+        ] {
+            assert!(crate::context::is_method(method), "{method}");
+            assert!(!WRITE_METHODS.contains(&method), "{method}");
+            assert!(
+                write_refusal(Some(&Environment::Main), method).is_ok(),
+                "{method}"
+            );
         }
     }
 

@@ -17,7 +17,8 @@
  * `docs/design-notes/files-app.md`.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { describe, openExternal, reveal, type EntryKind } from "./rpc";
+import { canSendToAgent, putFile, relativePath } from "../../../shared/fileContext";
+import { describe, openExternal, openInBlender, reveal, type EntryKind } from "./rpc";
 import type { DeleteTarget } from "./useDelete";
 import "./contextMenu.css";
 
@@ -265,6 +266,21 @@ export default function ContextMenu({
           offered them greyed out would be four rows of nothing. */}
       {path !== null && (
         <>
+          {canSendToAgent(target) && (
+            <>
+              <div className="menu__rule" role="separator" />
+              <button
+                type="button"
+                className="menu__item"
+                role="menuitem"
+                onClick={() =>
+                  run("context/put", () => putFile(path, relativePath(rootPath, path)))
+                }
+              >
+                Send to agent
+              </button>
+            </>
+          )}
           <div className="menu__rule" role="separator" />
           <button
             type="button"
@@ -301,6 +317,18 @@ export default function ContextMenu({
           >
             Open with the default app
           </button>
+          {/* Only for a .blend: the OS may not associate it with Blender at
+              all, and this one says so when Blender is not installed. */}
+          {kind !== "dir" && /\.blend$/i.test(path) && (
+            <button
+              type="button"
+              className="menu__item"
+              role="menuitem"
+              onClick={() => run("files/open-in-blender", () => openInBlender(path))}
+            >
+              Open in Blender
+            </button>
+          )}
         </>
       )}
 

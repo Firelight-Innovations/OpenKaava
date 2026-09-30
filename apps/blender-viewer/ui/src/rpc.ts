@@ -1,29 +1,116 @@
 /**
- * The wire shape `blender-viewer/state` answers with — restated here for the
- * same reason `apps/godot-viewer/ui/src/rpc.ts` restates Godot's. `parts` and
- * `renders` are always `[]` today; see that file's note on why the shapes
- * below exist ahead of anything real producing them.
+ * The wire shapes `blender-viewer/*` answers with, restated for the same reason
+ * `apps/godot-viewer/ui/src/rpc.ts` restates Godot's: an app's frontend calls
+ * the bridge, not the Rust module. The Rust side is
+ * `src-tauri/src/apps/blender_viewer.rs`.
  */
 import { invoke } from "@openkaava/bridge";
 
 export interface BlenderPart {
   name: string;
-  material: string;
+  /** `mesh`, `empty`, `armature`, `light`, `camera`, ... */
+  kind: string;
+  parent: string | null;
+  visible: boolean;
+  mesh: string | null;
+  materials: string[];
+  verts: number;
+  polys: number;
+  tris: number;
+  dimensions: number[];
 }
 
 export interface BlenderRender {
   id: string;
   /** A short label for the render, e.g. the camera or pass name. */
   label: string;
-  /** Milliseconds since the Unix epoch. */
+  /** Milliseconds since the Unix epoch — when the export that made it ran. */
   createdAt: number;
 }
 
-export interface BlenderViewerState {
-  /** The `.glb` path this pane is showing, or `null` before any export. */
-  model: string | null;
-  parts: BlenderPart[];
-  renders: BlenderRender[];
+export interface BlenderInstall {
+  found: boolean;
+  path: string | null;
+  source: "setting" | "env" | "path" | "programFiles" | "steam" | "standard" | null;
+  version: string | null;
+  major: number | null;
+  /** Blender 4.x is what the export script is written and tested against. */
+  supported: boolean;
+  /** The Settings path is set but nothing is there. */
+  configuredMissing: boolean;
 }
 
-export const getState = () => invoke<BlenderViewerState>("blender-viewer/state");
+export interface BlendFile {
+  path: string;
+  rel: string;
+  mtime: number;
+  size: number;
+}
+
+export interface ExportJob {
+  running: boolean;
+  blend: string | null;
+  startedAt: number | null;
+  finishedAt: number | null;
+  step: number;
+  total: number;
+  label: string;
+  log: string[];
+  outcome: "ok" | "failed" | "cancelled" | null;
+  error: string | null;
+  warnings: string[];
+}
+
+export interface BlenderStats {
+  objects?: number;
+  meshes?: number;
+  materials?: number;
+  polys?: number;
+  tris?: number;
+}
+
+export interface BlenderViewerState {
+  blender: BlenderInstall;
+  /** The cluster has an environment to look for `.blend` files in. */
+  project: boolean;
+  /** main: an export folder inside the checkout would be refused. */
+  readOnly: boolean;
+  blends: BlendFile[];
+  /** The `.blend` this state is about (absolute), or `null` when there is none. */
+  blend: string | null;
+  rel: string | null;
+  blendMtime?: number | null;
+  /** The exported `.glb` (absolute), or `null` before any export. */
+  model: string | null;
+  glbBytes?: number | null;
+  exportedAt?: number;
+  /** The `.blend` has changed on disk since the export was made. */
+  stale?: boolean;
+  engine?: string;
+  resolution?: number;
+  blenderVersion?: string;
+  stats?: BlenderStats;
+  warnings?: string[];
+  parts: BlenderPart[];
+  renders: BlenderRender[];
+  job: ExportJob;
+}
+
+export const getState = (blend?: string | null) =>
+  invoke<BlenderViewerState>("blender-viewer/state", blend ? { blend } : undefined);
+
+export const getImage = (blend: string, id: string) =>
+  invoke<{ mime: string; base64: string }>("blender-viewer/image", { blend, id });
+
+export const startExport = (blend: string) =>
+  invoke<{ started: boolean }>("blender-viewer/export-start", { blend });
+
+export const cancelExport = () => invoke<{ cancelled: boolean }>("blender-viewer/export-cancel");
+
+export const openInBlender = (blend: string) =>
+  invoke<{ launched: boolean; executable: string }>("blender-viewer/open", { blend });
+
+export const detectBlender = () => invoke<BlenderInstall>("blender-viewer/detect");
+
+export const setExecutable = (path: string) =>
+  invoke<BlenderInstall>("blender-viewer/set-executable", { path });

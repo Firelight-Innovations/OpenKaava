@@ -6,7 +6,9 @@ import {
   Clock,
   ExternalLink,
   FolderTree,
+  Image as ImageIcon,
   MessageSquarePlus,
+  RefreshCw,
 } from "lucide-react";
 import { CommentPanel } from "../../../shared/CommentPanel";
 import {
@@ -16,18 +18,24 @@ import {
   type Comment,
 } from "../../../shared/comments";
 import { formatRenderAge } from "../../../shared/age";
+import { errorText, getStatus, openInGodot, type GodotStatus } from "../../../shared/godot";
 import { SegmentedControl } from "../../../shared/SegmentedControl";
-import { getState, type GodotNode, type GodotViewerState } from "./rpc";
+import { getImage, getState, refresh, type GodotNode, type GodotViewerState } from "./rpc";
 import { sampleState } from "./fixtures";
+import { dragContext, putFrame, putTree } from "./context";
 import "./App.css";
 
 type Mode = "scene" | "play";
 
-const EMPTY_STATE: GodotViewerState = { renderedAt: null, scenePath: null, nodes: [] };
+const POLL_MS = 600;
 
 export default function App() {
   const [mode, setMode] = useState<Mode>("scene");
-  const [state, setState] = useState<GodotViewerState>(EMPTY_STATE);
+  const [state, setState] = useState<GodotViewerState | null>(null);
+  const [scene, setScene] = useState<string | undefined>(undefined);
+  const [status, setStatus] = useState<GodotStatus | null>(null);
+  const [image, setImage] = useState<string | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
   const [preview, setPreview] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -36,6 +44,7 @@ export default function App() {
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
+  const [sent, setSent] = useState<string | null>(null);
 
   const refreshComments = useCallback(async () => {
     setCommentsLoading(true);
@@ -49,25 +58,66 @@ export default function App() {
     }
   }, []);
 
+  const load = useCallback(async () => {
+    try {
+      const s = await getState(scene);
+      setState(s);
+      setProblem(null);
+      setImage(s.imageAt === null ? null : (await getImage(s.scene ?? undefined)).png);
+    } catch (e) {
+      setProblem(errorText(e));
+    }
+  }, [scene]);
+
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const s = await getState();
-        if (!cancelled) setState(s);
-      } catch {
-        // The pane still renders an honest empty state; nothing else to do.
-      }
-    })();
+    void load();
+  }, [load]);
+
+  useEffect(() => {
+    getStatus(false)
+      .then(setStatus)
+      .catch(() => setStatus(null));
     void refreshComments();
     reportPainted();
-    return () => {
-      cancelled = true;
-    };
   }, [refreshComments]);
 
+  // While a refresh runs, poll for its phase; when it stops, load the result.
+  const jobRunning = state?.job?.running === true;
+  useEffect(() => {
+    if (!jobRunning) return;
+    const timer = setInterval(() => void load(), POLL_MS);
+    return () => clearInterval(timer);
+  }, [jobRunning, load]);
+
+  const startRefresh = async (render: boolean) => {
+    setProblem(null);
+    try {
+      await refresh(state?.scene ?? scene, render);
+      await load();
+    } catch (e) {
+      setProblem(errorText(e));
+    }
+  };
+
   const shown = preview ? sampleState : state;
+  const nodes = shown?.nodes ?? [];
+  const found = status?.executable.found ?? null;
+  const readOnly = status?.environment.readOnly ?? false;
   const openCount = useMemo(() => comments.filter((c) => c.status === "open").length, [comments]);
+  const job = preview ? null : (state?.job ?? null);
+  const busy = job?.running === true;
+  const noScenes = !preview && state !== null && state.scenes.length === 0;
+
+  const send = async (what: string, put: () => Promise<unknown>) => {
+    setProblem(null);
+    try {
+      await put();
+      setSent(what);
+      setTimeout(() => setSent((s) => (s === what ? null : s)), 1800);
+    } catch (e) {
+      setProblem(`Couldn't send ${what} to the agent: ${errorText(e)}`);
+    }
+  };
 
   const postComment = async () => {
     if (!selected || !draft.trim()) return;
@@ -82,6 +132,13 @@ export default function App() {
     }
   };
 
+  const sourceLabel =
+    shown?.source === "headless"
+      ? `Read by ${shown.godot ? `Godot ${shown.godot.split(".").slice(0, 2).join(".")}` : "Godot"} (headless)`
+      : shown?.source === "parsed"
+        ? "Read from the scene file - Godot did not run"
+        : null;
+
   return (
     <div className="gv">
       <header className="gv__header">
@@ -95,15 +152,51 @@ export default function App() {
             { value: "play", label: "Play" },
           ]}
         />
+        {!preview && state && state.scenes.length > 0 && (
+          <select
+            className="gv__select"
+            aria-label="Scene"
+            value={state.scene ?? ""}
+            disabled={busy}
+            onChange={(e) => {
+              setScene(e.target.value);
+              setSelected(null);
+            }}
+          >
+            {state.scenes.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        )}
         <span className="gv__age">
           <Clock size={12} strokeWidth={1.5} aria-hidden="true" />
-          {formatRenderAge(shown.renderedAt)}
+          {formatRenderAge(shown?.renderedAt ?? null)}
         </span>
         <label className="gv__preview-toggle">
           <input type="checkbox" checked={preview} onChange={(e) => setPreview(e.target.checked)} />
           Preview with sample data
         </label>
       </header>
+
+      {(problem || job?.error || (!preview && state && !state.engineFound)) && (
+        <div className="gv__notices">
+          {problem && <p className="gv__notice gv__notice--error">{problem}</p>}
+          {job?.error && (
+            <p className="gv__notice gv__notice--error">
+              {job.error}
+              {job.output.length > 0 && <code className="gv__output">{job.output.join("\n")}</code>}
+            </p>
+          )}
+          {!preview && state && !state.engineFound && (
+            <p className="gv__notice">
+              Godot 4 was not found, so the tree is read from the scene file and no frame can be
+              rendered. Set its path under Settings, Godot.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="gv__body">
         {mode === "scene" ? (
@@ -113,14 +206,15 @@ export default function App() {
                 <FolderTree size={13} strokeWidth={1.5} aria-hidden="true" />
                 Scene tree
               </div>
-              {shown.nodes.length === 0 ? (
+              {nodes.length === 0 ? (
                 <p className="gv__hint">
-                  No headless render yet — the agent's <code>godot --headless</code> run will appear
-                  here.
+                  {noScenes
+                    ? "No .tscn scenes in this project."
+                    : "Nothing read yet. Refresh the tree to load it."}
                 </p>
               ) : (
                 <div className="gv__tree-list">
-                  {shown.nodes.map((n) => (
+                  {nodes.map((n) => (
                     <TreeRow
                       key={n.path}
                       node={n}
@@ -134,18 +228,81 @@ export default function App() {
             </aside>
 
             <main className="gv__viewport">
-              {shown.scenePath === null ? (
+              <div className="gv__actions">
+                <button
+                  type="button"
+                  className="gv__action"
+                  disabled={preview || busy || noScenes || !state}
+                  onClick={() => void startRefresh(false)}
+                >
+                  <RefreshCw size={13} strokeWidth={1.5} aria-hidden="true" />
+                  Refresh tree
+                </button>
+                <button
+                  type="button"
+                  className="gv__action"
+                  disabled={preview || busy || noScenes || !state?.engineFound}
+                  title={
+                    state?.engineFound === false
+                      ? "Rendering needs Godot 4."
+                      : "Opens a Godot window for a moment and saves one frame."
+                  }
+                  onClick={() => void startRefresh(true)}
+                >
+                  <ImageIcon size={13} strokeWidth={1.5} aria-hidden="true" />
+                  Render view
+                </button>
+                <button
+                  type="button"
+                  className="gv__action"
+                  disabled={preview || busy || nodes.length === 0 || !state}
+                  title="Send the scene tree to the agent, or drag this onto a terminal"
+                  onClick={() => state && void send("tree", () => putTree(state))}
+                  onPointerDown={state ? dragContext(() => putTree(state)) : undefined}
+                >
+                  {sent === "tree" ? "Sent" : "Send tree"}
+                </button>
+                {busy && <span className="gv__phase">{job?.phase}...</span>}
+                {sourceLabel && !busy && <span className="gv__phase">{sourceLabel}</span>}
+              </div>
+              {shown?.note && !busy && <p className="gv__note">{shown.note}</p>}
+              {shown?.scenePath == null ? (
                 <p className="gv__hint">
-                  No render to show. Once an agent runs Godot headless against this project, its
-                  output appears here.
+                  {noScenes
+                    ? "This project has no scenes yet."
+                    : "No render yet. Refresh the tree to read this scene, or Render view for a frame."}
                 </p>
               ) : (
                 <div className="gv__render">
                   <span className="gv__render-path">{shown.scenePath}</span>
-                  <p className="gv__hint">
-                    Placeholder — the actual rendered frame from the headless run isn't wired up in
-                    this build.
-                  </p>
+                  {image && !preview ? (
+                    <>
+                      <img
+                        className="gv__frame"
+                        alt="Rendered frame of the scene"
+                        src={`data:image/png;base64,${image}`}
+                        draggable={false}
+                        title="Drag onto a terminal to send to the agent"
+                        onPointerDown={dragContext(() => putFrame(image, shown.scenePath))}
+                      />
+                      <button
+                        type="button"
+                        className="gv__action"
+                        onClick={() => void send("frame", () => putFrame(image, shown.scenePath))}
+                      >
+                        {sent === "frame" ? "Sent" : "Send frame"}
+                      </button>
+                      <span className="gv__frame-age">
+                        {formatRenderAge(shown.imageAt).replace("rendered", "frame rendered")}
+                      </span>
+                    </>
+                  ) : (
+                    <p className="gv__hint">
+                      {preview
+                        ? "Sample data - no frame."
+                        : "No frame rendered. Use Render view to save one."}
+                    </p>
+                  )}
                 </div>
               )}
             </main>
@@ -173,7 +330,7 @@ export default function App() {
                     onClick={postComment}
                     disabled={posting || !draft.trim()}
                   >
-                    {posting ? "Posting…" : "Comment"}
+                    {posting ? "Posting..." : "Comment"}
                   </button>
                 </div>
               </div>
@@ -183,7 +340,7 @@ export default function App() {
           <div className="gv__play-redirect">
             <p className="gv__hint">
               Play runs in its own pane, with transport controls and Capture &amp; comment. This
-              viewer only shows the scene Godot last rendered headless.
+              viewer only shows the scene as Godot last read it.
             </p>
             <button
               type="button"
@@ -219,8 +376,18 @@ export default function App() {
         <button
           type="button"
           className="gv__footer-btn"
-          disabled
-          title="Not wired yet — there's no Godot install handoff from this build. Ctrl+Shift+O will open it once that exists."
+          disabled={!found || readOnly}
+          title={
+            readOnly
+              ? "The main checkout is read-only; open a worktree to edit."
+              : found
+                ? "Open this project in the Godot editor"
+                : "Godot 4 was not found."
+          }
+          onClick={() => {
+            setProblem(null);
+            openInGodot().catch((e) => setProblem(errorText(e)));
+          }}
         >
           <ExternalLink size={13} strokeWidth={1.5} aria-hidden="true" />
           Open in Godot
@@ -249,6 +416,7 @@ function TreeRow({
       <div
         className={`gv__tree-row${selected === node.path ? " gv__tree-row--selected" : ""}`}
         style={{ paddingLeft: depth * 14 + 8 }}
+        title={[node.script, node.instance].filter(Boolean).join("\n") || undefined}
         onClick={() => onSelect(node.path)}
       >
         {hasChildren ? (

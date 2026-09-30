@@ -1,5 +1,6 @@
 import { on, reportPainted } from "@openkaava/bridge";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { TroubleNote, describeFailure } from "../../../shared/trouble";
 import { absoluteBounds, isFrameRect, type FrameRect } from "./frameRect";
 import { projectUrl } from "./planeRoutes";
 import * as rpc from "./rpc";
@@ -16,6 +17,7 @@ export default function App() {
   const [selected, setSelected] = useState<string | null>(null);
   const [wake, setWake] = useState<WakeSnapshot>({ phase: "idle" });
   const [hosts, setHosts] = useState<HostsCheck | null>(null);
+  const [wakeError, setWakeError] = useState<unknown>(null);
   const [webviewError, setWebviewError] = useState<string | null>(null);
   const [frameRect, setFrameRect] = useState<FrameRect | null>(null);
   const paneRef = useRef<HTMLDivElement | null>(null);
@@ -40,9 +42,13 @@ export default function App() {
     [],
   );
 
-  useEffect(() => {
+  const reload = useCallback(() => {
+    setListError(null);
     rpc.list().then(setList).catch(setListError);
   }, []);
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   useEffect(() => {
     if (list || listError) reportPainted();
@@ -130,6 +136,7 @@ export default function App() {
     setWebviewError(null);
     openedFor.current = null;
     setWake({ phase: "idle" });
+    setWakeError(null);
     try {
       setHosts(await rpc.hostsCheck());
     } catch {
@@ -139,6 +146,7 @@ export default function App() {
       await rpc.wakeStart();
       setWake(await rpc.wakeStatus());
     } catch (e) {
+      setWakeError(e);
       setWake({ phase: "failed", detail: rpc.messageOf(e) });
     }
   }, []);
@@ -148,6 +156,7 @@ export default function App() {
   }, []);
 
   const blocking = !list && listError !== null;
+  const wakeFailure = wake.phase === "failed" ? describeFailure(wakeError, "Plane") : null;
 
   return (
     <div className="app">
@@ -162,13 +171,11 @@ export default function App() {
       </header>
       <div className="app__body projects__body">
         {blocking ? (
-          <section className="app__section">
-            <p className="app__error">Could not list projects: {rpc.messageOf(listError)}</p>
-          </section>
+          <TroubleNote failure={listError} subject="Projects" onRetry={reload} />
         ) : !list ? (
           <p className="app__note">Reading the project list…</p>
         ) : (
-          <div className="app__split projects__split">
+          <div className="app__split app__split--stack projects__split">
             <nav className="app__pane" aria-label="Projects">
               <div className="app__scroll">
                 {list.problems.map((message) => (
@@ -212,6 +219,7 @@ export default function App() {
                   {hosts && !hosts.ok && <p className="app__error projects__fix">{hosts.fix}</p>}
                   {webviewError && <p className="app__error">{webviewError}</p>}
                   <WakeStatus wake={wake} onCancel={cancel} />
+                  {wakeFailure?.steps}
                   {/* The child webview draws over this element — see
                       `plane_webview`'s module doc for why Rust, not this
                       div's own content, is what makes Plane visible here. */}

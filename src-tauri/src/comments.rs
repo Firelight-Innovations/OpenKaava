@@ -22,6 +22,7 @@ use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Where a comment points. Exactly the three anchors
@@ -147,7 +148,7 @@ pub fn list(context: &CallContext) -> Result<Vec<Comment>, RpcError> {
             Err(e) => crate::kaava_log!("skipping unreadable comment {}: {e}", path.display()),
         }
     }
-    comments.sort_by_key(|c| c.created);
+    comments.sort_by(|a, b| a.created.cmp(&b.created).then_with(|| a.id.cmp(&b.id)));
     Ok(comments)
 }
 
@@ -161,7 +162,8 @@ pub fn create(context: &CallContext, draft: Draft) -> Result<Comment, RpcError> 
         )
     })?;
 
-    let id = new_id();
+    let at = monotonic_ms();
+    let id = new_id(at);
     let anchor = match draft.anchor {
         Anchor::Scene { scene, time, .. } => {
             let screenshot = draft
@@ -177,7 +179,6 @@ pub fn create(context: &CallContext, draft: Draft) -> Result<Comment, RpcError> 
         other => other,
     };
 
-    let at = now();
     let comment = Comment {
         id: id.clone(),
         anchor,
@@ -205,7 +206,7 @@ pub fn resolve(context: &CallContext, id: &str, note: String) -> Result<Comment,
         )
     })?;
 
-    let at = now();
+    let at = monotonic_ms();
     comment.status = Status::Resolved;
     comment.resolution = Some(Resolution {
         note,
@@ -366,18 +367,38 @@ fn save_shot(dir: &Path, id: &str, png: &[u8]) -> bool {
 
 /// A sortable, collision-resistant id with nothing to reserve first: hex
 /// milliseconds since the epoch, so ids sort the way comments were written,
-/// plus two random bytes so two comments landing in the same millisecond —
-/// two clones of one worktree, or two calls in one process — never fight over
-/// a filename. Twelve hex digits of millis is good past the year 10889,
-/// which is the only property this format needs from the width.
-fn new_id() -> String {
-    let millis = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis())
-        .unwrap_or(0);
+/// plus two random bytes so two comments from two clones of one worktree in
+/// the same millisecond never fight over a filename. `millis` comes from
+/// [`monotonic_ms`], so within one process the prefix never repeats either.
+/// Twelve hex digits of millis is good past the year 10889, which is the only
+/// property this format needs from the width.
+fn new_id(millis: u64) -> String {
     let mut suffix = [0u8; 2];
     rand::rng().fill_bytes(&mut suffix);
     format!("{millis:012x}-{:02x}{:02x}", suffix[0], suffix[1])
+}
+
+/// The last stamp [`monotonic_ms`] handed out.
+static LAST_STAMP: AtomicU64 = AtomicU64::new(0);
+
+/// Milliseconds since the epoch, but strictly increasing within this process:
+/// two calls in the same millisecond get consecutive values rather than a
+/// tie. Ties are what made `list` fall back to `read_dir` order, which is
+/// arbitrary. The stamp can run a few milliseconds ahead of the wall clock
+/// under a burst; that is the price of a total order.
+pub(crate) fn monotonic_ms() -> u64 {
+    stamp_after(&LAST_STAMP, now())
+}
+
+fn stamp_after(last: &AtomicU64, wall_ms: u64) -> u64 {
+    let mut prev = last.load(Ordering::Relaxed);
+    loop {
+        let next = wall_ms.max(prev.saturating_add(1));
+        match last.compare_exchange_weak(prev, next, Ordering::SeqCst, Ordering::Relaxed) {
+            Ok(_) => return next,
+            Err(seen) => prev = seen,
+        }
+    }
 }
 
 fn now() -> u64 {
@@ -668,5 +689,43 @@ mod tests {
             .expect_err("bad base64 is refused");
         assert_eq!(err.code, INVALID_PARAMS);
         assert!(list(&context(env.path())).expect("list").is_empty());
+    }
+
+    #[test]
+    fn stamps_never_repeat_even_when_the_clock_stands_still_or_steps_back() {
+        let last = AtomicU64::new(0);
+        assert_eq!(stamp_after(&last, 100), 100);
+        assert_eq!(stamp_after(&last, 100), 101);
+        assert_eq!(stamp_after(&last, 90), 102);
+        assert_eq!(stamp_after(&last, 500), 500);
+    }
+
+    #[test]
+    fn monotonic_ms_strictly_increases() {
+        let stamps: Vec<u64> = (0..1000).map(|_| monotonic_ms()).collect();
+        assert!(stamps.windows(2).all(|w| w[0] < w[1]));
+    }
+
+    #[test]
+    fn fifty_back_to_back_comments_list_in_creation_order() {
+        let env = TempDir::new().expect("tempdir");
+        let ctx = context(env.path());
+        let made: Vec<String> = (0..50)
+            .map(|i| {
+                create(&ctx, node_draft(&format!("c{i}")))
+                    .expect("create")
+                    .id
+            })
+            .collect();
+        let listed: Vec<String> = list(&ctx)
+            .expect("list")
+            .into_iter()
+            .map(|c| c.id)
+            .collect();
+        assert_eq!(listed, made);
+        assert!(
+            made.windows(2).all(|w| w[0] < w[1]),
+            "ids sort like creation"
+        );
     }
 }

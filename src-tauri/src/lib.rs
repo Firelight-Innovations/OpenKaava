@@ -5,12 +5,16 @@
 //! against the pinned versions. The web frontend is a pure view over the
 //! `StackSnapshot` this produces.
 
+mod agent_saw;
 mod apps;
+mod blender;
 mod boot;
 mod branding;
 mod cloud;
 mod commands;
 mod comments;
+mod context;
+mod context_commands;
 mod copilot_key;
 #[cfg(feature = "design-mode")]
 mod design_comments;
@@ -21,6 +25,8 @@ mod environments;
 mod error;
 mod git;
 mod github;
+mod godot;
+mod harness;
 mod launch;
 mod layout;
 mod manifest;
@@ -173,11 +179,15 @@ pub fn run() {
         // person has asked Plane for something. `RunEvent::Exit` below is what
         // stops it. See `cloud::tunnel`.
         .manage(cloud::tunnel::Tunnel::default())
+        // Games Play started and the Godot Viewer's jobs; `RunEvent::Exit` stops the games.
+        .manage(godot::Godot::default())
         // Whether the Plane child webview is open, and the wake flow's snapshot
         // for `projects/wake-status` to poll. See `plane_webview` and
         // `apps::projects::WakeManager`.
         .manage(plane_webview::PlaneWebview::default())
         .manage(apps::projects::WakeManager::default())
+        .manage(blender::job::Jobs::default())
+        .manage(blender::detect::VersionCache::default())
         // The New Project page's step-runner snapshot, for `home/create-
         // project-status` to poll — the same shape as `WakeManager` above.
         // See `apps::home_create`.
@@ -496,6 +506,20 @@ pub fn run() {
             commands::terminal_attach,
             commands::terminal_write,
             commands::terminal_insert_paths,
+            context_commands::terminal_drop_paths,
+            context_commands::terminal_paste_image,
+            context_commands::terminal_insert_items,
+            context_commands::terminal_harness,
+            context_commands::terminal_set_harness,
+            context_commands::context_item_paths,
+            context_commands::context_list,
+            context_commands::context_remove,
+            context_commands::context_thumb,
+            context_commands::agent_saw_status,
+            context_commands::agent_saw_enable,
+            context_commands::agent_saw_disable,
+            context_commands::agent_saw_list,
+            context_commands::agent_saw_thumb,
             commands::terminal_resize,
             commands::terminal_busy,
             commands::move_terminal,
@@ -548,6 +572,7 @@ pub fn run() {
             commands::review_comments_mark_sent,
             github::github_feed,
             github::github_open_in_browser,
+            cloud::hindsight::hindsight_status,
             search::search_content,
             updater::update_state,
             updater::check_for_update,
@@ -564,6 +589,9 @@ pub fn run() {
         .map(|app| {
             app.run(|handle, event| {
                 if matches!(event, tauri::RunEvent::Exit) {
+                    // Layout writes are debounced; commit one still waiting.
+                    shell_store::flush_pending();
+                    handle.state::<blender::job::Jobs>().stop_all();
                     handle.state::<plugins::Watchers>().stop_all();
                     handle.state::<plugins::Broker>().stop_all();
                     // Kills the `gcloud` process tree it supervises, if one is
@@ -571,6 +599,7 @@ pub fn run() {
                     // than the OS cleaning up an orphan, is what makes "no
                     // gcloud process remains after exit" true.
                     handle.state::<cloud::tunnel::Tunnel>().stop();
+                    handle.state::<godot::Godot>().shutdown();
                 }
             });
         });
@@ -716,6 +745,18 @@ fn respawn_terminals(app: &tauri::AppHandle, shell: &ShellState) {
     let ptys = app.state::<PtySessions>();
 
     for terminal in shell.snapshot().terminals {
+        // A shell in a worktree that is gone would start in the process's own
+        // directory and run commands somewhere the tab does not say. The
+        // cluster stays and is drawn as missing; only its shells are dropped.
+        if shell.cluster_environment_missing(&terminal.cluster_id) {
+            crate::kaava_log!(
+                "not restoring {}: the worktree of cluster {} is missing",
+                terminal.id,
+                terminal.cluster_id
+            );
+            shell.close_terminal(app, &terminal.id);
+            continue;
+        }
         let cwd = project::cluster_path(app, &terminal.cluster_id)
             .unwrap_or_else(|| std::path::PathBuf::from("."));
 

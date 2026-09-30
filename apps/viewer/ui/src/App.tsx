@@ -23,6 +23,7 @@ import { on, publish, reportPainted, subscribe, OPENED_EVENT } from "@openkaava/
 import NoticeBar from "./NoticeBar";
 import { useMenuCommands } from "./commands";
 import { useDelete } from "./useDelete";
+import SendToAgent from "./SendToAgent";
 import TabStrip from "./tabs/TabStrip";
 import { useOpenFiles } from "./tabs/useOpenFiles";
 import Viewer from "./viewer/Viewer";
@@ -197,6 +198,13 @@ export default function App() {
 
       {active && (
         <div className="viewerapp__modebar">
+          <SendToAgent
+            path={active.path}
+            rootPath={root?.path ?? null}
+            dirty={files.dirty.has(active.path)}
+            missing={active.missing === true}
+            onError={setError}
+          />
           <div className="k-tabs k-tabs--segmented" role="tablist" aria-label="Code or build steps">
             <button
               type="button"

@@ -5,6 +5,7 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import type { TerminalTransport } from "../contract";
 import { useDropZone } from "../dropZones";
 import { attachClipboard } from "./clipboard";
+import { pasteImage } from "../contextInput";
 // Imported here, not from a global entry, so nothing pays for xterm's CSS
 // until a terminal actually mounts — the tool window and every other region
 // stay ignorant of this parcel's existence.
@@ -169,7 +170,11 @@ function XTermView(
     // Ctrl+V, and what a right-click may and may not do. Wired after `open()`
     // because both halves need the textarea that call creates, and kept in
     // `clipboard.ts` because the policy is testable and this file is not.
-    const detachClipboard = attachClipboard(term, container);
+    // An image on the clipboard is stored and referenced rather than dropped on
+    // the floor, which is what `Ctrl+V` did with one before.
+    const detachClipboard = attachClipboard(term, container, (image) => {
+      void pasteImage(id, image);
+    });
 
     // Fits are driven by a `ResizeObserver` on the container, not `window`'s
     // resize event — the panel is resized by a drag handle and by collapse,

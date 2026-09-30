@@ -1,8 +1,8 @@
 /*
- * Blender Viewer — board 03 (U-CloudCluster): Model/Renders/Wire, an honest
- * placeholder viewport (no three.js — see the workstream brief), a parts
- * list, a renders strip. See apps/godot-viewer/ui/src/App.css's header note
- * on token names.
+ * Blender Viewer, board 03 (U-CloudCluster). Model/Renders/Wire show the
+ * headless export's renders (no three.js, deliberately) beside the parts list,
+ * with the export job and setup panels above the body. See
+ * apps/godot-viewer/ui/src/App.css's header note on token names.
  */
 
 .bv {
@@ -39,16 +39,6 @@
   color: var(--txt-secondary);
 }
 
-.bv__preview-toggle {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  color: var(--txt-secondary);
-  cursor: pointer;
-}
-
 .bv__body {
   flex: 1;
   min-height: 0;
@@ -63,44 +53,6 @@
   justify-content: center;
   padding: 16px;
   overflow: auto;
-}
-
-.bv__stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  height: 100%;
-  justify-content: center;
-  border: 1px dashed var(--border-subtle);
-  border-radius: var(--radius-md, 6px);
-  background: var(--bg-surface-1);
-}
-
-.bv__viewport--wire .bv__stage {
-  background:
-    repeating-linear-gradient(
-      0deg,
-      var(--bg-surface-1),
-      var(--bg-surface-1) 15px,
-      var(--border-subtle) 16px
-    ),
-    repeating-linear-gradient(90deg, transparent, transparent 15px, var(--border-subtle) 16px);
-}
-
-.bv__model-path {
-  font-family: var(--type-font-mono, monospace);
-  font-size: 12px;
-  color: var(--txt-primary);
-}
-
-.bv__orbit-hint {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  color: var(--txt-tertiary, var(--txt-secondary));
 }
 
 .bv__hint {
@@ -179,30 +131,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-}
-
-.bv__render-tile {
-  width: 160px;
-  height: 100px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  border: 1px dashed var(--border-subtle);
-  border-radius: var(--radius-md, 6px);
-  background: var(--bg-surface-1);
-}
-
-.bv__render-tile-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--txt-primary);
-}
-
-.bv__render-tile-hint {
-  font-size: 10px;
-  color: var(--txt-tertiary, var(--txt-secondary));
 }
 
 .bv__composer {
@@ -299,4 +227,237 @@
 .bv__footer-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.bv__file {
+  font-family: var(--type-font-mono, monospace);
+  font-size: 11px;
+  color: var(--txt-secondary);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bv__select {
+  font: inherit;
+  font-size: 11px;
+  max-width: 240px;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+}
+
+.bv__setup,
+.bv__job {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-layer-1);
+}
+
+.bv__setup p {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--txt-secondary);
+}
+
+.bv__setup code {
+  font-family: var(--type-font-mono, monospace);
+}
+
+.bv__setup-row {
+  display: flex;
+  gap: 6px;
+}
+
+.bv__setup-row .k-field__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.bv__notice,
+.bv__error {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 11px;
+}
+
+.bv__notice {
+  color: var(--txt-warning);
+  background: var(--warning-subtle);
+}
+
+.bv__error {
+  color: var(--txt-danger);
+  background: var(--danger-subtle);
+}
+
+.bv__job-head {
+  color: var(--txt-primary);
+}
+
+.bv__progress {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border-subtle);
+  overflow: hidden;
+}
+
+.bv__progress-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 200ms ease;
+}
+
+.bv__job details {
+  font-size: 11px;
+  color: var(--txt-secondary);
+}
+
+.bv__log,
+.bv__error-text {
+  margin: 4px 0 0;
+  max-height: 140px;
+  overflow: auto;
+  font-family: var(--type-font-mono, monospace);
+  font-size: 10px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  color: var(--txt-secondary);
+}
+
+.bv__error-text {
+  color: var(--txt-danger);
+}
+
+.bv__empty {
+  grid-column: 1 / -1;
+  align-self: center;
+}
+
+.bv__model {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.bv__hero,
+.bv__render-tile {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.bv__hero img {
+  max-width: 100%;
+  max-height: 46vh;
+  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--border-subtle);
+}
+
+.bv__render-tile {
+  width: 200px;
+}
+
+.bv__render-tile img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+}
+
+.bv__hero figcaption,
+.bv__render-tile figcaption,
+.bv__render-tile-hint {
+  font-size: 11px;
+  color: var(--txt-secondary);
+}
+
+.bv__facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  width: 100%;
+  max-width: 44em;
+  font-size: 11px;
+}
+
+.bv__facts dt {
+  color: var(--txt-secondary);
+}
+
+.bv__facts dd {
+  margin: 0;
+  color: var(--txt-primary);
+  overflow-wrap: anywhere;
+}
+
+.bv__facts code {
+  font-family: var(--type-font-mono, monospace);
+}
+
+.bv__note {
+  margin: 0;
+  font-size: 11px;
+  color: var(--txt-tertiary, var(--txt-secondary));
+}
+
+.bv__warnings {
+  margin: 0;
+  padding-left: 16px;
+  width: 100%;
+  max-width: 44em;
+  font-size: 11px;
+  color: var(--txt-warning);
+}
+
+.bv__part-row--other .bv__part-name {
+  color: var(--txt-secondary);
+}
+
+.bv__auto {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--txt-secondary);
+  cursor: pointer;
+}
+
+.bv__footer-spacer {
+  flex: 1;
+}
+
+.bv__send {
+  margin-left: 8px;
+  padding: 0 6px;
+  font-size: 11px;
+  color: var(--txt-secondary);
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.bv__send:hover {
+  color: var(--txt-primary);
+}
+
+.bv__render-tile img {
+  cursor: grab;
 }

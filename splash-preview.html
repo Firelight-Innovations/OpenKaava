@@ -131,9 +131,11 @@
 
         // Each entry is one `boot::BootStatus` value as Rust would emit it.
         var STATES = [
-          { name: "1 · locating", payload: { phase: "working", step: 1, total: 3, label: "Locating manifest" } },
-          { name: "2 · reading", payload: { phase: "working", step: 2, total: 3, label: "Reading manifest" } },
-          { name: "3 · scanning", payload: { phase: "working", step: 3, total: 3, label: "Scanning checkouts" } },
+          { name: "1 · locating", payload: { phase: "working", step: 1, total: 5, label: "Locating manifest" } },
+          { name: "2 · reading", payload: { phase: "working", step: 2, total: 5, label: "Reading manifest" } },
+          { name: "3 · scanning", payload: { phase: "working", step: 3, total: 5, label: "Scanning checkouts" } },
+          { name: "4 · apps", payload: { phase: "working", step: 4, total: 5, label: "Starting Home, Files" } },
+          { name: "5 · last app", payload: { phase: "working", step: 5, total: 5, label: "Starting Files" } },
           { name: "ready", payload: { phase: "ready" } },
           {
             name: "failed",

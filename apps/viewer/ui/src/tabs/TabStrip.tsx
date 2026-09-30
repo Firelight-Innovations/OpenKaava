@@ -19,6 +19,8 @@
  * of tabs you cannot read or hit.
  */
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { dragContext } from "../../../../shared/context";
+import { putFile, relativePath } from "../../../../shared/fileContext";
 import ContextMenu, { type MenuTarget } from "../ContextMenu";
 import NoticeBar from "../NoticeBar";
 import { describe, rename } from "../rpc";
@@ -137,6 +139,7 @@ export default function TabStrip({
             tabs={tabs}
             active={tab.path === activePath}
             dirty={dirty.has(tab.path)}
+            rootPath={rootPath}
             renaming={renaming === tab.path}
             renameBusy={renameBusy}
             onActivate={onActivate}
@@ -200,6 +203,7 @@ interface TabProps {
   tabs: OpenTab[];
   active: boolean;
   dirty: boolean;
+  rootPath: string | null;
   renaming: boolean;
   renameBusy: boolean;
   onActivate(path: string, promote?: boolean): void;
@@ -220,6 +224,7 @@ function Tab({
   tabs,
   active,
   dirty,
+  rootPath,
   renaming,
   renameBusy,
   onActivate,
@@ -273,6 +278,14 @@ function Tab({
       onDoubleClick={renaming ? undefined : () => onActivate(tab.path, true)}
       onKeyDown={renaming ? undefined : onKeyDown}
       onContextMenu={onContextMenu}
+      // Press and drag onto a terminal to hand the agent this file. The file on
+      // disk is what is sent, so a tab with unsaved edits or none on disk is
+      // not draggable: it would send something other than what the tab shows.
+      onPointerDown={
+        renaming || dirty || tab.missing
+          ? undefined
+          : dragContext(() => putFile(tab.path, relativePath(rootPath, tab.path)))
+      }
       // Middle-click closes. `onMouseDown` too, because button 1 starts
       // autoscroll on Windows and leaves the page under a scroll cursor.
       onMouseDown={(event) => {
