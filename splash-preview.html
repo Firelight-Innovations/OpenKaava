@@ -10,9 +10,9 @@
       reaches dist/. Delete it whenever; nothing imports it.
 
       It exists because splash.html is hard to judge in a browser tab. It is
-      designed for a 560x360 window, and stretched across a maximised viewport
+      designed for a 560x360 card in a 632x432 transparent window, and stretched across a maximised viewport
       its proportions lie — the art floats in dead space and the bottom bar
-      becomes a stripe. So this renders it in an iframe at exactly 560x360.
+      becomes a stripe. So this renders it in an iframe at exactly 632x432.
 
       It also stands in for the Rust backend. splash.html talks to Tauri
       through `window.__TAURI__`, which does not exist in a plain browser, so
@@ -50,16 +50,16 @@
       /* A ring around the frame so the splash's own 1px border stays legible
          against the page, and the real window bounds are obvious. */
       .stage {
-        width: 560px;
-        height: 360px;
-        box-shadow: 0 0 0 1px #23262c, 0 18px 50px rgba(0, 0, 0, 0.55);
+        width: 632px;
+        height: 432px;
       }
 
       iframe {
         display: block;
-        width: 560px;
-        height: 360px;
+        width: 632px;
+        height: 432px;
         border: 0;
+        background: transparent;
       }
 
       .controls {
@@ -115,6 +115,7 @@
     <div class="stage"><iframe id="frame" src="about:blank"></iframe></div>
 
     <div class="controls" id="controls"></div>
+    <div class="controls" id="appearance"></div>
 
     <div class="meta">
       <span><span class="dot"></span><span id="reloads">0</span> reloads</span>
@@ -149,6 +150,44 @@
         var reloadCount = document.getElementById("reloads");
         var stamp = document.getElementById("stamp");
 
+        // The splash reads this key from localStorage before first paint. The
+        // iframe is about:blank, so it shares this page's storage; setting it
+        // here before each mount is what the shell does in the real app.
+        var APPEARANCE_KEY = "kaava.splash-appearance";
+        var APPEARANCES = [
+          { name: "first launch", value: null },
+          { name: "dark blue", value: { theme: "dark", accent: "blue" } },
+          { name: "dark amber", value: { theme: "dark", accent: "amber" } },
+          { name: "dark green", value: { theme: "dark", accent: "green" } },
+          { name: "dark violet", value: { theme: "dark", accent: "violet" } },
+          { name: "dark coral", value: { theme: "dark", accent: "coral" } },
+          { name: "light blue", value: { theme: "light", accent: "blue" } },
+          { name: "light amber", value: { theme: "light", accent: "amber" } },
+        ];
+        var appearance = document.getElementById("appearance");
+        var appearanceIndex = 1;
+
+        function applyAppearance() {
+          var v = APPEARANCES[appearanceIndex].value;
+          if (v === null) localStorage.removeItem(APPEARANCE_KEY);
+          else localStorage.setItem(APPEARANCE_KEY, JSON.stringify(v));
+        }
+
+        APPEARANCES.forEach(function (a, i) {
+          var b = document.createElement("button");
+          b.textContent = a.name;
+          b.setAttribute("aria-pressed", String(i === appearanceIndex));
+          b.addEventListener("click", function () {
+            appearanceIndex = i;
+            [].forEach.call(appearance.children, function (c, j) {
+              c.setAttribute("aria-pressed", String(j === i));
+            });
+            lastHtml = null;
+            poll();
+          });
+          appearance.appendChild(b);
+        });
+
         var lastHtml = null;
         var reloads = 0;
         var selected = 0;
@@ -181,6 +220,7 @@
         function mount(html) {
           listeners = [];
           var w = frame.contentWindow;
+          applyAppearance();
 
           // Installed before the document is written, so splash.html's inline
           // script sees it during parse — the same moment the real Tauri

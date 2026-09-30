@@ -26,9 +26,11 @@
       {
         "label": "splash",
         "url": "splash.html",
-        "width": 560,
-        "height": 360,
+        "width": 632,
+        "height": 432,
         "decorations": false,
+        "transparent": true,
+        "shadow": false,
         "resizable": false,
         "center": true,
         "alwaysOnTop": true,
