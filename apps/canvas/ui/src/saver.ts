@@ -28,6 +28,7 @@ export class Autosaver {
   private pending: { scene: SceneFile; sig: string } | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private inFlight: Promise<void> | null = null;
+  private inFlightSig: string | null = null;
   private base: number | null = null;
   private savedSig: string | null = null;
   private stopped = false;
@@ -62,9 +63,25 @@ export class Autosaver {
       this.opts.onState("saved");
       return;
     }
+    // The state already on its way to disk (queued, or being written) is not a
+    // change. Excalidraw reports it again after every re-render, and the write
+    // itself re-renders through `onState`; treating each report as a change
+    // either starves the debounce or writes the same drawing in a loop.
+    const latest = this.pending ? this.pending.sig : this.inFlight ? this.inFlightSig : null;
+    if (latest !== null && sig === latest) {
+      if (this.pending) {
+        this.pending = { scene, sig };
+        if (this.timer === null) this.arm();
+      }
+      return;
+    }
     this.pending = { scene, sig };
     this.opts.onState("dirty");
     this.clearTimer();
+    this.arm();
+  }
+
+  private arm(): void {
     this.timer = setTimeout(() => void this.flush(), this.opts.delay);
   }
 
@@ -79,6 +96,7 @@ export class Autosaver {
     const { scene, sig } = this.pending;
     this.pending = null;
     this.opts.onState("saving");
+    this.inFlightSig = sig;
     const run = (async () => {
       try {
         this.base = await this.opts.write(scene, this.base);

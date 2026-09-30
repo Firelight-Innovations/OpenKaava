@@ -82,6 +82,19 @@ vi.mock("./Editor", () => ({
         <button
           type="button"
           onClick={() => {
+            // Excalidraw reports the untouched scene again after every update.
+            let n = 0;
+            const timer = setInterval(() => {
+              onChange([...initial.elements], {}, {});
+              if (++n >= 12) clearInterval(timer);
+            }, 100);
+          }}
+        >
+          echo unchanged
+        </button>
+        <button
+          type="button"
+          onClick={() => {
             live.elements = [...initial.elements, frame];
             live.selected = { f1: true };
             onChange([...initial.elements, frame], { selectedElementIds: { f1: true } }, {});
@@ -198,6 +211,19 @@ describe("Canvas app", () => {
       { timeout: 3000 },
     );
     await screen.findByText("Saved");
+  });
+
+  it("leaves an untouched canvas Saved and writes nothing while the editor keeps reporting it", async () => {
+    fake({
+      readOnly: false,
+      rows: [{ id: "world", title: "World", parent: null, error: null }],
+      reads: { world: scene(1) },
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByText("echo unchanged"));
+    await new Promise((r) => setTimeout(r, 1600));
+    expect(bridge.invoke.mock.calls.some((c) => c[0] === "canvas/write")).toBe(false);
+    expect(screen.getByText("Saved")).toBeTruthy();
   });
 
   it("says main is read-only, disables New canvas, and never writes", async () => {
