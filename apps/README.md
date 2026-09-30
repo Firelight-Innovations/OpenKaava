@@ -246,7 +246,7 @@ through WebView2's `AddScriptToExecuteOnDocumentCreated`, which reaches child
 frames the DevTools Protocol's equivalent cannot. The probe answers over
 `postMessage` and is inert in every frame but the one this app armed.
 
-**Canvas** (`canvas/list`, `canvas/read`, `canvas/write`, `canvas/create`) — the design
+**Canvas** (`canvas/list`, `canvas/read`, `canvas/assets`, `canvas/write`, `canvas/create`) — the design
 canvas of `docs/KAAVA-UX-REWORK.md` §5: draw on [Excalidraw](https://excalidraw.com), and each
 canvas is one file, `<environment>/canvas/<id>.json` (`<id>` may nest folders: `levels/ward-b`),
 so it is committed with the game and survives a clone. The file is an Excalidraw scene plus a
@@ -272,6 +272,15 @@ it (the app takes that double-click before Excalidraw's own text edit does), and
 in the header follows `parent` back up. A frame whose child file is missing says so and stays
 put. Unlinking only removes the frame's link; the child file is left alone. Linking a frame to an
 already existing canvas is not built: it would have to rewrite that canvas's `parent`.
+
+Spec cards (`customData.kaava.spec`, fields from `docs/cloud-services.md` section 4) are made
+by selecting any shape and filling in the inspector: name, size in metres, triangle budget,
+style notes, reference images, plus the card's own review state (draft, review, accepted,
+rejected). "Copy JSON" exports exactly the five documented fields, and refuses an incomplete
+card. The "Asset list" tab calls `canvas/assets`, which reads every canvas in the checkout and
+returns each card with its state; a canvas that cannot be read is named, not hidden. The state
+shown is the card's own: joining the cloud artifact's build status needs the cloud store, so that
+column is not there yet.
 
 Excalidraw is loaded lazily (`React.lazy`), and its fonts are served from
 `/vendor/excalidraw/fonts/` by the `excalidrawFonts` plugin in `vite.config.ts` rather than from

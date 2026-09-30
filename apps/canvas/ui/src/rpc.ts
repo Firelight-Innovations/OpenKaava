@@ -5,6 +5,7 @@
  */
 import { invoke, KaavaRpcError } from "@openkaava/bridge";
 import type { SceneFile } from "./scene";
+import type { AssetsResult } from "./spec";
 
 export interface CanvasState {
   hasEnvironment: boolean;
@@ -35,6 +36,7 @@ export const getState = () => invoke<CanvasState>("canvas/state");
 export const listCanvases = () => invoke<CanvasSummary[]>("canvas/list");
 export const readCanvas = (id: string) => invoke<CanvasDoc>("canvas/read", { id });
 export const statCanvas = (id: string) => invoke<{ mtime: number | null }>("canvas/stat", { id });
+export const listAssets = () => invoke<AssetsResult>("canvas/assets");
 export const createCanvas = (id: string, title: string, parent?: string) =>
   invoke<CanvasDoc>("canvas/create", { id, title, parent });
 export const writeCanvas = (id: string, scene: SceneFile, baseMtime: number | null) =>
