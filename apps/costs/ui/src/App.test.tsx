@@ -321,4 +321,37 @@ describe("Cost Tracker", () => {
     // for the measured state instead.
     await waitFor(() => expect(hero?.className).toContain("costs__hero--expanded"));
   });
+
+  it("waits with a note while the first read is pending, with no error yet", async () => {
+    bridge.invoke.mockImplementation(() => new Promise(() => {}));
+    render(<App />);
+    expect(await screen.findByText(/Reading the project and the price lists/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+  });
+
+  it("ends the wait in a timed-out state with Retry when the bridge gives up", async () => {
+    bridge.invoke.mockImplementation(() =>
+      Promise.reject(new bridge.KaavaRpcError(-32001, "request timed out")),
+    );
+    render(<App />);
+    expect(await screen.findByText("Reading Cost timed out")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+  });
+
+  it("says which account to check when Google Cloud denies the read", async () => {
+    bridge.invoke.mockImplementation(() =>
+      Promise.reject(new bridge.KaavaRpcError(-32603, "refused", { kind: "denied", detail: "no" })),
+    );
+    render(<App />);
+    expect(await screen.findByText("This Google account may not read that")).toBeTruthy();
+    expect(screen.getByText("gcloud auth list")).toBeTruthy();
+  });
+
+  it("tells you to install the CLI when gcloud is missing", async () => {
+    bridge.invoke.mockImplementation(() =>
+      Promise.reject(new bridge.KaavaRpcError(-32603, "no gcloud", { kind: "gcloudMissing" })),
+    );
+    render(<App />);
+    expect(await screen.findByText("The Google Cloud CLI is not installed")).toBeTruthy();
+  });
 });

@@ -1,5 +1,6 @@
 import { reportPainted } from "@openkaava/bridge";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { TroubleNote } from "../../../shared/trouble";
 import { CostCharts } from "./CostCharts";
 import {
   budgetTone,
@@ -13,7 +14,7 @@ import {
   verdict,
 } from "./model";
 import * as rpc from "./rpc";
-import type { Billed, Category, Estimate, Trends, Trouble } from "./rpc";
+import type { Billed, Category, Estimate, Trends } from "./rpc";
 import { useVisiblePoll } from "./useVisiblePoll";
 
 /**
@@ -76,7 +77,9 @@ export default function App() {
         <span className="app__host">
           {updated
             ? `updated ${updated.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
-            : "reading…"}
+            : blocking
+              ? "not connected"
+              : "reading…"}
         </span>
         <button
           type="button"
@@ -362,32 +365,5 @@ function Caveats({ estimate }: { estimate: Estimate }) {
 
 /** The whole-pane state for a failure nothing else can get past. */
 function Blocked({ failure, onRetry }: { failure: unknown; onRetry: () => void }) {
-  const trouble: Trouble | null = rpc.troubleOf(failure);
-  let heading = "Could not read Google Cloud";
-  let fix: ReactNode = null;
-  if (trouble?.kind === "gcloudMissing") {
-    heading = "The Google Cloud CLI is not installed";
-    fix = (
-      <p className="app__note">
-        Install it from cloud.google.com/sdk, then run <code>gcloud auth login</code>.
-      </p>
-    );
-  } else if (trouble?.kind === "signedOut") {
-    heading = "Signed out of Google Cloud";
-    fix = (
-      <p className="app__note">
-        Run <code>gcloud auth login</code> in a terminal, then retry.
-      </p>
-    );
-  }
-  return (
-    <section className="app__section costs__blocked">
-      <h2 className="costs__heading">{heading}</h2>
-      {fix}
-      <p className="app__error">{rpc.messageOf(failure)}</p>
-      <button type="button" className="app__up" onClick={onRetry}>
-        Retry
-      </button>
-    </section>
-  );
+  return <TroubleNote failure={failure} subject="Cost" onRetry={onRetry} />;
 }

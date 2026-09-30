@@ -572,6 +572,7 @@ pub fn run() {
             commands::review_comments_mark_sent,
             github::github_feed,
             github::github_open_in_browser,
+            cloud::hindsight::hindsight_status,
             search::search_content,
             updater::update_state,
             updater::check_for_update,

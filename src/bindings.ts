@@ -933,6 +933,23 @@ export function githubFeed(clusterId: string, scope: GithubScope): Promise<Githu
   return invoke<GithubFeed>("github_feed", { clusterId, scope });
 }
 
+/** Mirrors `cloud::hindsight::Status` (the `trouble` is `cloud::Trouble`, tagged
+ *  by `kind`). Never rejects for an unreachable service: that is `trouble`. */
+export type HindsightStatus =
+  | { state: "connected"; url: string; latencyMs: number }
+  | {
+      state: "trouble";
+      url: string;
+      trouble: { kind: string; detail?: string; what?: string; status?: number };
+    };
+
+/** One `GET /health` against the Hindsight service. Cloud Run bills an instance
+ *  for ~15 minutes per request, so call this when the page opens or on a press,
+ *  never on a timer. */
+export function hindsightStatus(): Promise<HindsightStatus> {
+  return invoke<HindsightStatus>("hindsight_status");
+}
+
 /** Hand a github.com address to the browser. Rust re-checks it and rejects
  *  anything else, which is why this is a command of our own rather than the
  *  opener plugin's binding: the capability file can only say "may open URLs",
