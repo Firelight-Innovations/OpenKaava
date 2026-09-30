@@ -224,6 +224,15 @@
   cursor: pointer;
 }
 
+.bv__footer-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.bv__footer-btn--icon {
+  padding: 4px 6px;
+}
+
 .bv__footer-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -431,6 +440,8 @@
 }
 
 .bv__auto {
+  white-space: nowrap;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 4px;

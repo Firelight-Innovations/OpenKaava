@@ -8,7 +8,7 @@ import { invoke } from "@openkaava/bridge";
 
 export interface BlenderPart {
   name: string;
-  /** `mesh`, `empty`, `armature`, `light`, `camera`, ... */
+  /** `mesh`, `instance`, `empty`, `armature`, `light`, `camera`, ... */
   kind: string;
   parent: string | null;
   visible: boolean;
@@ -18,6 +18,10 @@ export interface BlenderPart {
   polys: number;
   tris: number;
   dimensions: number[];
+  /** For `kind: "instance"`: the collection this empty instances. */
+  instanceOf?: string | null;
+  /** For `kind: "instance"`: how many meshes the collection brings in. */
+  instanceMeshes?: number;
 }
 
 export interface BlenderRender {
@@ -34,7 +38,7 @@ export interface BlenderInstall {
   source: "setting" | "env" | "path" | "programFiles" | "steam" | "standard" | null;
   version: string | null;
   major: number | null;
-  /** Blender 4.x is what the export script is written and tested against. */
+  /** Blender 4.x and 5.x are what the export script is written and tested against. */
   supported: boolean;
   /** The Settings path is set but nothing is there. */
   configuredMissing: boolean;
@@ -64,6 +68,7 @@ export interface ExportJob {
 export interface BlenderStats {
   objects?: number;
   meshes?: number;
+  instances?: number;
   materials?: number;
   polys?: number;
   tris?: number;

@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { reportPainted } from "@openkaava/bridge";
 import {
+  Box,
   Clock,
   Copy,
+  List,
   ExternalLink,
   MessageSquarePlus,
   Package,
@@ -30,7 +32,9 @@ import {
   type BlenderPart,
   type BlenderViewerState,
 } from "./rpc";
-import { dragContext, putGlb, putParts, putRender } from "./context";
+import { footerIsCompact } from "./layout";
+import { reconcileBlend, selectionWasDropped } from "./selection";
+import { dragContext, partSummary, putGlb, putParts, putRender } from "./context";
 import "./App.css";
 
 type Mode = "model" | "renders" | "wire";
@@ -52,6 +56,36 @@ function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * A footer button whose label never wraps. In a narrow pane it keeps only its
+ * icon; the label moves to the tooltip and the accessible name.
+ */
+function FooterAction(props: {
+  label: string;
+  icon: ReactNode;
+  compact: boolean;
+  title?: string;
+  disabled?: boolean;
+  onClick?: () => void;
+  onPointerDown?: (e: React.PointerEvent<HTMLButtonElement>) => void;
+}) {
+  const hint = props.title ? `${props.label}. ${props.title}` : props.label;
+  return (
+    <button
+      type="button"
+      className={`bv__footer-btn${props.compact ? " bv__footer-btn--icon" : ""}`}
+      aria-label={props.compact ? props.label : undefined}
+      title={props.compact ? hint : props.title}
+      disabled={props.disabled}
+      onClick={props.onClick}
+      onPointerDown={props.onPointerDown}
+    >
+      {props.icon}
+      {!props.compact && props.label}
+    </button>
+  );
 }
 
 function message(err: unknown): string {
@@ -77,6 +111,20 @@ export default function App() {
   const [sent, setSent] = useState<string | null>(null);
   const autoStartedFor = useRef<number | null>(null);
   const lastSeenMtime = useRef<number | null>(null);
+  const [root, setRoot] = useState<HTMLDivElement | null>(null);
+  const [paneWidth, setPaneWidth] = useState(0);
+
+  useEffect(() => {
+    if (!root) return;
+    setPaneWidth(root.getBoundingClientRect().width);
+    const observer = new ResizeObserver((entries) => {
+      const box = entries[0]?.contentRect;
+      if (box) setPaneWidth(box.width);
+    });
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, [root]);
+  const compact = footerIsCompact(paneWidth);
 
   const refreshComments = useCallback(async () => {
     setCommentsLoading(true);
@@ -94,7 +142,13 @@ export default function App() {
     try {
       const next = await getState(blend);
       setState(next);
-      setBlend((current) => current ?? next.blend);
+      // The host answers with the file it resolved. After a project switch the
+      // old path no longer resolves, so drop it and everything hung off it.
+      if (selectionWasDropped(blend, next)) {
+        setSelected(null);
+        setError(null);
+      }
+      setBlend((current) => reconcileBlend(current, next));
     } catch (err) {
       setError(message(err));
     }
@@ -242,7 +296,7 @@ export default function App() {
 
   if (!state) {
     return (
-      <div className="bv">
+      <div className="bv" ref={setRoot}>
         <p className="bv__hint">{error ?? "Loading…"}</p>
       </div>
     );
@@ -260,7 +314,7 @@ export default function App() {
   const showJob = job.running || (jobIsForThis && job.outcome !== null && job.outcome !== "ok");
 
   return (
-    <div className="bv">
+    <div className="bv" ref={setRoot}>
       <header className="bv__header">
         <span className="bv__badge">BLENDER VIEWER</span>
         {state.blends.length > 1 ? (
@@ -311,7 +365,7 @@ export default function App() {
               ? "The path in Settings points at nothing. "
               : "Looked in the BLENDER variable, PATH, Program Files and Steam. "}
             Point this at <code>blender.exe</code> (or its folder) to export and open files. Blender
-            4.x is expected.
+            4.x or 5.x is expected.
           </p>
           <div className="bv__setup-row">
             <input
@@ -342,7 +396,7 @@ export default function App() {
       {state.blender.found && !state.blender.supported && (
         <p className="bv__notice">
           Blender {state.blender.version ?? "of unknown version"} found; the export is written for
-          4.x and may not work on this one.
+          4.x and 5.x and may not work on this one.
         </p>
       )}
       {error && (
@@ -465,6 +519,7 @@ export default function App() {
                     <dt>Scene</dt>
                     <dd>
                       {state.stats.objects ?? 0} objects · {state.stats.meshes ?? 0} meshes ·{" "}
+                      {state.stats.instances ? `${state.stats.instances} instances · ` : ""}
                       {state.stats.materials ?? 0} materials ·{" "}
                       {(state.stats.tris ?? 0).toLocaleString()} triangles
                     </dd>
@@ -504,15 +559,11 @@ export default function App() {
                   <button
                     key={p.name}
                     type="button"
-                    className={`bv__part-row${selected?.name === p.name ? " bv__part-row--selected" : ""}${p.kind !== "mesh" ? " bv__part-row--other" : ""}`}
+                    className={`bv__part-row${selected?.name === p.name ? " bv__part-row--selected" : ""}${p.kind !== "mesh" && p.kind !== "instance" ? " bv__part-row--other" : ""}`}
                     onClick={() => setSelected(p)}
                   >
                     <span className="bv__part-name">{p.name}</span>
-                    <span className="bv__part-material">
-                      {p.kind === "mesh"
-                        ? `${p.materials.join(", ") || "no material"} · ${p.tris.toLocaleString()} tris`
-                        : p.kind}
-                    </span>
+                    <span className="bv__part-material">{partSummary(p)}</span>
                   </button>
                 ))}
               </div>
@@ -593,40 +644,52 @@ export default function App() {
           <input type="checkbox" checked={auto} onChange={(e) => toggleAuto(e.target.checked)} />
           Auto
         </label>
-        <button type="button" className="bv__footer-btn" onClick={() => setCommentsOpen((v) => !v)}>
-          <MessageSquarePlus size={13} strokeWidth={1.5} aria-hidden="true" />
-          Comments {openCount > 0 ? `· ${openCount} open` : ""}
-        </button>
+        <FooterAction
+          label={`Comments${openCount > 0 ? ` · ${openCount} open` : ""}`}
+          icon={<MessageSquarePlus size={13} strokeWidth={1.5} aria-hidden="true" />}
+          compact={compact}
+          onClick={() => setCommentsOpen((v) => !v)}
+        />
         <span className="bv__footer-spacer" />
         {state.parts.length > 0 && (
-          <button
-            type="button"
-            className="bv__footer-btn"
+          <FooterAction
+            label={sent === "parts" ? "Sent" : "Send parts"}
+            icon={
+              compact ? (
+                <List size={13} strokeWidth={1.5} aria-hidden="true" />
+              ) : (
+                <Send size={13} strokeWidth={1.5} aria-hidden="true" />
+              )
+            }
+            compact={compact}
             title="Add the parts list to the agent's context. Drag to a terminal to send it."
             onPointerDown={dragContext(() => putParts(state))}
             onClick={() => void send("parts", () => putParts(state))}
-          >
-            <Send size={13} strokeWidth={1.5} aria-hidden="true" />
-            {sent === "parts" ? "Sent" : "Send parts"}
-          </button>
+          />
         )}
         {state.model && (
-          <button
-            type="button"
-            className="bv__footer-btn"
+          <FooterAction
+            label={sent === ".glb" ? "Sent" : "Send .glb"}
+            icon={
+              compact ? (
+                <Box size={13} strokeWidth={1.5} aria-hidden="true" />
+              ) : (
+                <Send size={13} strokeWidth={1.5} aria-hidden="true" />
+              )
+            }
+            compact={compact}
             title="Add the .glb to the agent's context. Drag to a terminal to send it."
             onPointerDown={dragContext(() => putGlb(state))}
             onClick={() => void send(".glb", () => putGlb(state))}
-          >
-            <Send size={13} strokeWidth={1.5} aria-hidden="true" />
-            {sent === ".glb" ? "Sent" : "Send .glb"}
-          </button>
+          />
         )}
         {state.model && (
-          <button type="button" className="bv__footer-btn" onClick={copyGlb}>
-            <Copy size={13} strokeWidth={1.5} aria-hidden="true" />
-            {copied ? "Copied" : "Copy .glb path"}
-          </button>
+          <FooterAction
+            label={copied ? "Copied" : "Copy .glb path"}
+            icon={<Copy size={13} strokeWidth={1.5} aria-hidden="true" />}
+            compact={compact}
+            onClick={copyGlb}
+          />
         )}
         <button
           type="button"

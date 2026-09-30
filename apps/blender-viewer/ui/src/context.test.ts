@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const invoke = vi.hoisted(() => vi.fn());
 vi.mock("@openkaava/bridge", () => ({ invoke }));
 
-import { partsText, putGlb, putParts, putRender } from "./context";
-import type { BlenderViewerState } from "./rpc";
+import { partSummary, partsText, putGlb, putParts, putRender } from "./context";
+import type { BlenderPart, BlenderViewerState } from "./rpc";
 
 const state = {
   rel: "art/crate.blend",
@@ -29,6 +29,33 @@ const state = {
 beforeEach(() => {
   invoke.mockReset();
   invoke.mockResolvedValue({ id: "ctx-1" });
+});
+
+describe("instances", () => {
+  const crate = {
+    name: "CrateLinked",
+    kind: "instance",
+    parent: null,
+    visible: true,
+    mesh: null,
+    materials: [],
+    verts: 54,
+    polys: 54,
+    tris: 108,
+    dimensions: [1, 1, 1],
+    instanceOf: "CrateProp",
+    instanceMeshes: 1,
+  } as unknown as BlenderPart;
+
+  it("summarises an instance with its collection and triangles", () => {
+    expect(partSummary(crate)).toBe("instance of CrateProp · 108 tris");
+    expect(partSummary(state.parts[1] as BlenderPart)).toBe("armature");
+  });
+
+  it("lists an instance with its collection in the parts text", () => {
+    const text = partsText({ ...state, parts: [crate] }).split("\n");
+    expect(text[1]).toBe("CrateLinked | instance | of CrateProp | 108 tris | 54 verts");
+  });
 });
 
 describe("partsText", () => {

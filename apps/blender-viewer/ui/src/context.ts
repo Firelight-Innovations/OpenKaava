@@ -10,10 +10,33 @@ import type { BlenderPart, BlenderViewerState } from "./rpc";
 
 export { dragContext } from "../../../shared/context";
 
+/** The one-line summary a parts-list row shows: geometry for meshes and instances, the kind otherwise. */
+export function partSummary(p: BlenderPart): string {
+  if (p.kind === "mesh") {
+    return `${p.materials.join(", ") || "no material"} · ${p.tris.toLocaleString()} tris`;
+  }
+  if (p.kind === "instance") {
+    return `instance of ${p.instanceOf ?? "a collection"} · ${p.tris.toLocaleString()} tris`;
+  }
+  return p.kind;
+}
+
 /** The parts list as the plain text an agent reads: one line per object. */
 export function partsText(state: BlenderViewerState): string {
   const head = `Blender scene ${state.rel ?? ""} (${state.parts.length} objects)`;
   const rows = state.parts.map((p: BlenderPart) => {
+    if (p.kind === "instance") {
+      return [
+        p.name,
+        "instance",
+        `of ${p.instanceOf ?? "a collection"}`,
+        `${p.tris} tris`,
+        `${p.verts} verts`,
+        p.parent ? `parent ${p.parent}` : "",
+      ]
+        .filter(Boolean)
+        .join(" | ");
+    }
     if (p.kind !== "mesh") return `${p.name} | ${p.kind}${p.parent ? ` | parent ${p.parent}` : ""}`;
     const dims = p.dimensions.map((d) => d.toFixed(2)).join(" x ");
     return [
