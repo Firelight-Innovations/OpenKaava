@@ -34,6 +34,8 @@ export interface TitleBarProps {
    * `useClusterProject`, asked about whichever cluster this window is showing.
    */
   project: string | null;
+  /** That project's own icon as a `data:` URL, or `null` for its initial. */
+  projectIcon?: string | null;
   /**
    * The active cluster's environment, or `null` while no cluster is open. Drives
    * the pill's trailing chip — see `ProjectPill.tsx`.
@@ -70,6 +72,7 @@ export interface TitleBarProps {
 export default function TitleBar({
   kind,
   project,
+  projectIcon = null,
   environment,
   environmentLabel,
   environmentCount,
@@ -99,6 +102,7 @@ export default function TitleBar({
       {project !== null && (
         <ProjectPill
           project={project}
+          icon={projectIcon}
           environment={environment}
           environmentLabel={environmentLabel}
           environmentCount={environmentCount}

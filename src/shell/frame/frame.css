@@ -29,11 +29,14 @@
   position: relative;
 }
 
+/* The hairline is an inset shadow, not a border: a border-box border would
+   take a pixel out of `--h-switcher`, and the 30px cluster tabs would centre
+   in 39px instead of 40 — half a pixel high, which is what read as "off". */
 .frame__switcher {
   flex: none;
   height: var(--h-switcher);
   background: var(--surface);
-  border-bottom: 1px solid var(--line);
+  box-shadow: inset 0 -1px 0 var(--line);
 }
 
 .frame__statusbar {
@@ -72,19 +75,26 @@
   min-height: 0;
 }
 
-/* The environment bar's own box. `flex: none` and nothing else — its height,
-   margin and background are `envbar.css`'s (`EnvironmentBar.tsx`), the same
-   division of labour `.frame__page` gives the docked project page: this file
-   reserves the row, the region draws what fills it. */
+/* The environment bar's row. Its height and card are `envbar.css`'s; the
+   gutter is this file's, the same one `.frame__toolwindow` takes below, so the
+   bar and the pane grid share a left edge and a right edge (§1.4: "full
+   pane-grid width"). No right gutter on either — the resize handle beside
+   this column is already the 6px seam. */
 .frame__envbar {
   flex: none;
   min-width: 0;
+  margin: var(--space-1-5, 6px) 0 0 var(--space-1-5, 6px);
 }
 
+/* The pane grid, inset by the region gutter on the left, top and bottom
+   (§1.1: regions sit 6px apart on `bg-canvas`). Before this the panes ran
+   flush to the window's left edge and straight into the terminal band's
+   hairline, 6px left of the environment bar above them. */
 .frame__toolwindow {
   flex: 1;
   min-height: 0;
   min-width: 0;
+  margin: var(--space-1-5, 6px) 0 var(--space-1-5, 6px) var(--space-1-5, 6px);
   background: var(--bg);
   position: relative;
   /* Load-bearing once the band can take the whole column. The surfaces inside

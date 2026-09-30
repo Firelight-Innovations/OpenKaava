@@ -1,7 +1,8 @@
 /**
  * The title bar's centred pill: which project, and which environment.
  *
- * `docs/design/KAAVA-UX-SPEC.md` §1.2. A 16×16 initial tile, the project's
+ * `docs/design/KAAVA-UX-SPEC.md` §1.2. A 16×16 tile (the project's own icon,
+ * or its initial), the project's
  * name, then either `· N environments` (no cluster active — U-Anatomy and
  * U-Workspace's idle state) or a mono chip naming the active cluster's
  * environment, then a chevron. Clicking it opens the Switch-project dialog;
@@ -10,6 +11,7 @@
  */
 import { ChevronDown, Cloud, GitBranch, Lock } from "lucide-react";
 import type { Environment, EnvironmentKind } from "../environment";
+import ProjectTile from "../ProjectTile";
 import "./projectPill.css";
 
 const KIND_ICON: Record<EnvironmentKind, typeof GitBranch> = {
@@ -24,9 +26,12 @@ export default function ProjectPill({
   environment,
   environmentLabel,
   environmentCount,
+  icon = null,
   onOpenSwitcher,
 }: {
   project: string;
+  /** The project's own icon as a `data:` URL; `null` draws the initial. */
+  icon?: string | null;
   environment: Environment | null;
   environmentLabel: string | null;
   environmentCount: number;
@@ -36,9 +41,7 @@ export default function ProjectPill({
 
   return (
     <button type="button" className="projectpill" onClick={onOpenSwitcher} title={project}>
-      <span className="projectpill__tile" aria-hidden="true">
-        {project.charAt(0).toUpperCase()}
-      </span>
+      <ProjectTile name={project} icon={icon} className="projectpill__tile" />
       <span className="projectpill__name">{project}</span>
 
       {environment === null ? (

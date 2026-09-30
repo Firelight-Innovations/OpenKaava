@@ -25,10 +25,11 @@
      not for anything of this bar's own. It is not the thumb's own box —
      `.switcher__tabs` below is, since it's the element that scrolls and the
      thumb has to *not* be its child to avoid scrolling away with it — but
-     `.switcher__tabs` is always this row's first child with no padding of
-     its own on either side, so the two boxes share a left edge, a top and a
-     bottom regardless of how much of the row's width the tabs are currently
-     claiming. Anchoring here instead of adding a wrapper purpose-built for
+     `.switcher__tabs` is always this row's first child, with no margin, so
+     the two boxes share a left edge, a top and a bottom regardless of how
+     much of the row's width the tabs are currently claiming. (Its left
+     padding is inside that box and inside `clientWidth`, so the thumb maths
+     is unaffected.) Anchoring here instead of adding a wrapper purpose-built for
      it leaves the tab strip's own flex/shrink rules — the ones the comment
      below is about — untouched. */
   position: relative;
@@ -44,7 +45,15 @@
  * case. */
 .switcher__tabs {
   display: flex;
-  align-items: stretch;
+  /* `center`, not `stretch`. Every tab but the pinned one is wrapped in a
+     framer `motion.div`; stretched, that wrapper took the row's full height
+     and the 30px tab inside it sat at its top — 0px above, 10px below. */
+  align-items: center;
+  /* §1.3's 4px between tabs, and its 6px left inset — the region gutter, so
+     the first tab's edge lines up with the environment bar and the pane grid
+     below it instead of hugging the window edge. */
+  gap: var(--space-1, 4px);
+  padding-left: var(--space-1-5, 6px);
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
@@ -102,6 +111,7 @@
  * row is untouched, which is the state the zone is measured in. */
 .switcher__tabs--collapsed {
   flex: 0 0 0;
+  padding-left: 0;
   overflow: hidden;
   visibility: hidden;
 }
@@ -111,15 +121,19 @@
    spec's own `shadow-raised`; inactive is fully transparent — no border, no
    fill — so a row of clusters reads as tabs rather than as boxes. Token
    fallbacks throughout, for the reason `frame.css` gives: the tokens
-   workstream lands these names on a parallel branch. */
+   workstream lands these names on a parallel branch.
+
+   Left padding is 12px where §1.3 says 10: with the 1px border and the row's
+   6px inset that puts the env chip at x=19, the same column as the
+   environment bar's kind chip and a pane tab's icon (6 + 1 + 12 each). No
+   margin — spacing between tabs is `.switcher__tabs`'s `gap`. */
 .switcher__tab {
   flex: none;
   display: flex;
   align-items: center;
   gap: 7px;
   height: 30px;
-  padding: 0 8px 0 10px;
-  margin: 0 2px;
+  padding: 0 8px 0 var(--space-3, 12px);
   border: 1px solid transparent;
   border-radius: var(--radius-lg, 8px);
   background: transparent;
@@ -154,7 +168,9 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 5px;
-  background: var(--bg-layer-2, var(--surface-gap));
+  /* `bg-layer-3` (#222425, §1.3's own hex): `bg-layer-2` is the active tab's
+     fill, and a chip that colour vanished into the tab around it. */
+  background: var(--bg-layer-3, var(--surface-gap));
   color: var(--txt-secondary, var(--text-dim));
   font-size: 11px;
   font-weight: 500;
@@ -264,7 +280,6 @@
   justify-content: center;
   width: 30px;
   height: 30px;
-  margin: 0 2px;
   border: none;
   border-radius: var(--radius-lg, 8px);
   background: transparent;

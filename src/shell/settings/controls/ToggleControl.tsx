@@ -28,13 +28,13 @@ export default function ToggleControl({
   return (
     <button
       type="button"
-      className="settings-toggle"
+      className="k-toggle"
       role="switch"
       aria-checked={on}
       aria-label={label}
       onClick={() => onChange(!on)}
     >
-      <span className="settings-toggle__knob" />
+      <span className="k-toggle__knob" />
     </button>
   );
 }

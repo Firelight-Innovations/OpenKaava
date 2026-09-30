@@ -33,7 +33,7 @@ export default function TextControl({
 
   return (
     <input
-      className="settings-field"
+      className="k-field__input k-field__input--mono settings-field"
       type="text"
       spellCheck={false}
       aria-label={label}

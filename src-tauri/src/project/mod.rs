@@ -18,6 +18,7 @@
 //! stamped with its cluster, is in `docs/design-notes/backend-project.md`.
 
 pub mod create;
+pub mod icon;
 mod marker;
 mod store;
 
@@ -274,10 +275,11 @@ pub fn open(app: &AppHandle, path: &Path, cluster_id: &str) -> Result<ProjectSna
     commands::apply_project_open_preset(app, cluster_id);
     open_design_cluster_if_present(app, &shell, path, cluster_id);
 
-    // The emit lives here rather than in each mutator: `create` and `initialize`
-    // both finish by calling this, so emitting in all four would fire twice for
-    // a create, and a subscriber cannot tell that from two real switches.
-    Ok(changed(app, cluster_id))
+    // No emit here: `set_cluster_project` above went through `ShellState::
+    // mutate`, which announces a repointed cluster itself. Emitting here too
+    // would fire twice per switch, and a subscriber cannot tell that from two
+    // real switches.
+    Ok(snapshot(app, Some(cluster_id)))
 }
 
 /// The auto-create half of the pinned Design canvas — see
@@ -402,7 +404,8 @@ pub fn close(app: &AppHandle, cluster_id: &str) -> ProjectSnapshot {
     shell.set_cluster_project(app, cluster_id, None);
 
     retitle(app);
-    changed(app, cluster_id)
+    // Announced by `mutate` already, as in `open`.
+    snapshot(app, Some(cluster_id))
 }
 
 /// Drop one entry from the Recent list. Deletes nothing on disk — this is the
@@ -430,30 +433,34 @@ pub fn forget(app: &AppHandle, path: &Path, cluster_id: Option<&str>) -> Project
 
 // --- helpers -----------------------------------------------------------------
 
-/// Take the new snapshot, broadcast it stamped with its cluster, and hand it
-/// back to the caller who is also going to return it.
+/// Broadcast `cluster_id`'s new snapshot, stamped with its cluster.
 ///
-/// Same posture as `ShellState::mutate`, deliberately: `app.emit` with the
-/// result dropped. A failed emit means there is no webview left to hear it,
-/// which no mutator can act on and no caller can fix — and turning it into an
-/// error would fail an `open` that had already succeeded.
+/// Called by `ShellState::mutate` for every cluster whose project pointer a
+/// mutation changed, and from nowhere else. That is what makes "every path
+/// that repoints a cluster tells the frontend" a property of the state rather
+/// than something each caller has to remember. The agent server's
+/// `set_project` was the caller that forgot, and the shell stayed stale until
+/// a reload.
 ///
-/// Every caller has dropped the store's write lock before reaching here, for the
-/// reason `mutate` documents: `emit` goes into Tauri's event machinery, and a
-/// lock held across a call that may want to read the same state is how a
-/// deadlock gets written. The `cluster_id` on the wire is what lets the relay in
+/// Same posture as `mutate`, deliberately: `app.emit` with the result
+/// dropped. A failed emit means there is no webview left to hear it, which no
+/// mutator can act on and no caller can fix.
+///
+/// `mutate` has dropped the shell's write lock before calling this, for the
+/// reason it documents: `emit` goes into Tauri's event machinery, and a lock
+/// held across a call that may want to read the same state is how a deadlock
+/// gets written. The `cluster_id` on the wire is what lets the relay in
 /// `ToolWindow` be selective; see [`ProjectChanged`].
-fn changed(app: &AppHandle, cluster_id: &str) -> ProjectSnapshot {
+pub fn announce(app: &AppHandle, cluster_id: &str) {
     let snapshot = snapshot(app, Some(cluster_id));
     let _ = app.emit(
         PROJECT_CHANGED_EVENT,
         &ProjectChanged {
             cluster_id: cluster_id.to_string(),
-            open: snapshot.open.clone(),
-            recents: snapshot.recents.clone(),
+            open: snapshot.open,
+            recents: snapshot.recents,
         },
     );
-    snapshot
 }
 
 /// Build a [`ProjectInfo`] by asking the filesystem what is true right now.
