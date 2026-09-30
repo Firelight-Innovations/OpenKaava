@@ -7,6 +7,7 @@ import {
   MessageSquarePlus,
   Package,
   RefreshCw,
+  Send,
   Square,
 } from "lucide-react";
 import { CommentPanel } from "../../../shared/CommentPanel";
@@ -29,6 +30,7 @@ import {
   type BlenderPart,
   type BlenderViewerState,
 } from "./rpc";
+import { dragContext, putGlb, putParts, putRender } from "./context";
 import "./App.css";
 
 type Mode = "model" | "renders" | "wire";
@@ -72,6 +74,7 @@ export default function App() {
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [sent, setSent] = useState<string | null>(null);
   const autoStartedFor = useRef<number | null>(null);
   const lastSeenMtime = useRef<number | null>(null);
 
@@ -206,6 +209,24 @@ export default function App() {
     } catch {
       setError("Couldn't copy to the clipboard.");
     }
+  };
+
+  const send = async (what: string, put: () => Promise<unknown>) => {
+    setError(null);
+    try {
+      await put();
+      setSent(what);
+      setTimeout(() => setSent((s) => (s === what ? null : s)), 1800);
+    } catch (err) {
+      setError(`Couldn't send ${what} to the agent: ${message(err)}`);
+    }
+  };
+
+  // A render is already in memory as a data URL; the bytes cross the bridge once.
+  const renderPut = (id: string, label: string) => () => {
+    const url = images[id];
+    if (!url) return Promise.reject(new Error("the render has not loaded"));
+    return putRender(url.slice(url.indexOf(",") + 1), label, state?.rel ?? null);
   };
 
   const saveExecutable = async () => {
@@ -379,11 +400,28 @@ export default function App() {
               {state.renders.map((r) => (
                 <figure key={r.id} className="bv__render-tile">
                   {images[r.id] ? (
-                    <img src={images[r.id]} alt={r.label} />
+                    <img
+                      src={images[r.id]}
+                      alt={r.label}
+                      draggable={false}
+                      title="Drag onto a terminal to send to the agent"
+                      onPointerDown={dragContext(renderPut(r.id, r.label))}
+                    />
                   ) : (
                     <span className="bv__render-tile-hint">loading…</span>
                   )}
-                  <figcaption>{r.label}</figcaption>
+                  <figcaption>
+                    {r.label}
+                    {images[r.id] && (
+                      <button
+                        type="button"
+                        className="bv__send"
+                        onClick={() => void send(r.label, renderPut(r.id, r.label))}
+                      >
+                        {sent === r.label ? "Sent" : "Send to agent"}
+                      </button>
+                    )}
+                  </figcaption>
                 </figure>
               ))}
             </div>
@@ -560,6 +598,30 @@ export default function App() {
           Comments {openCount > 0 ? `· ${openCount} open` : ""}
         </button>
         <span className="bv__footer-spacer" />
+        {state.parts.length > 0 && (
+          <button
+            type="button"
+            className="bv__footer-btn"
+            title="Add the parts list to the agent's context. Drag to a terminal to send it."
+            onPointerDown={dragContext(() => putParts(state))}
+            onClick={() => void send("parts", () => putParts(state))}
+          >
+            <Send size={13} strokeWidth={1.5} aria-hidden="true" />
+            {sent === "parts" ? "Sent" : "Send parts"}
+          </button>
+        )}
+        {state.model && (
+          <button
+            type="button"
+            className="bv__footer-btn"
+            title="Add the .glb to the agent's context. Drag to a terminal to send it."
+            onPointerDown={dragContext(() => putGlb(state))}
+            onClick={() => void send(".glb", () => putGlb(state))}
+          >
+            <Send size={13} strokeWidth={1.5} aria-hidden="true" />
+            {sent === ".glb" ? "Sent" : "Send .glb"}
+          </button>
+        )}
         {state.model && (
           <button type="button" className="bv__footer-btn" onClick={copyGlb}>
             <Copy size={13} strokeWidth={1.5} aria-hidden="true" />
