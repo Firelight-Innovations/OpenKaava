@@ -113,6 +113,10 @@ export interface WorktreePanelProps {
   /** The cluster is browsing main: checkout, staging and committing are
    *  disabled with `READ_ONLY_HINT`. Rust refuses them regardless. */
   readOnly?: boolean;
+  /** Where the cluster is pointed (worktree, else project). Only compared: a
+   *  repointed cluster keeps its id, so without this the graph kept drawing
+   *  the previous project's history until the panel was reopened. */
+  root?: string | null;
 }
 
 interface RepoData {
@@ -141,6 +145,7 @@ export default function WorktreePanel({
   git,
   activeBranch,
   readOnly = false,
+  root = null,
 }: WorktreePanelProps) {
   const [data, setData] = useState<RepoData | null>(null);
   const [loading, setLoading] = useState(clusterId !== null);
@@ -191,7 +196,10 @@ export default function WorktreePanel({
     return () => {
       live = false;
     };
-  }, [clusterId, worktreeControl, nonce]);
+    // `git.status` is a fresh object after every status fetch, which happens on
+    // a repoint and after every commit, stage or checkout — so keying on it
+    // re-reads the history whenever the branch picker's own data moved.
+  }, [clusterId, worktreeControl, nonce, root, git.status]);
 
   // A commit selected in one repository means nothing in another's graph.
   useEffect(() => setSelectedSha(null), [clusterId]);

@@ -1800,6 +1800,7 @@ export default function WindowRoot({
             git={git}
             activeBranch={activeBranch}
             readOnly={isReadOnly(environment)}
+            root={activeCluster?.worktree?.path ?? activeCluster?.project ?? null}
           />
         }
         githubView={
