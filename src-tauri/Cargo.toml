@@ -286,7 +286,17 @@ windows-core = "0.61"
 # the difference is what a binding *is*: `windows-sys` is raw `extern`
 # declarations, which is the whole of what a bitmask setter needs, where
 # `windows` wraps every call in generated types this would not use.
-windows-sys = { version = "0.61", features = ["Win32_System_Diagnostics_Debug"] }
+#
+# The Copilot key hook (`copilot_key.rs`) adds the window-message, keyboard and
+# thread-id modules, all inside the same crate.
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Threading",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging",
+] }
 
 [dev-dependencies]
 # A throwaway git repository for `mcp::config`'s drift tests. Those read the

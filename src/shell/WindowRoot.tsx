@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig } from "framer-motion";
-import type { Openable, StackSnapshot } from "../bindings";
+import { onCopilotKey, type Openable, type StackSnapshot } from "../bindings";
 import Frame, { BOTTOM_DEFAULT, PROJECT_PAGE_DEFAULT } from "./frame/Frame";
 import { bandGeometry, withBandGeometry, type BandGeometryByCluster } from "./frame/bandGeometry";
 import {
@@ -52,6 +52,7 @@ import { useDrag } from "./drag/useDrag";
 import { useFileDrag } from "./drag/useFileDrag";
 import { useDropZone } from "./dropZones";
 import { useKeyboard } from "./keys/useKeyboard";
+import { dispatchCopilotKey, type CopilotAction, type CopilotHandlers } from "./copilotKey";
 import GithubPanel from "./github/GithubPanel";
 import WorktreePanel from "./worktree/WorktreePanel";
 import { useGitStatus } from "./worktree/useGitStatus";
@@ -134,6 +135,7 @@ export default function WindowRoot({
   error,
   rescanning,
   onRescan,
+  copilotAction,
 }: {
   snapshot: StackSnapshot | null;
   /** Set when the last scan failed. Surfaces in the health list, not a banner. */
@@ -141,6 +143,8 @@ export default function WindowRoot({
   rescanning: boolean;
   /** "Re-scan tools", from the health popover, the empty state, and Ctrl+R. */
   onRescan: () => void;
+  /** What the Windows Copilot key does: the `keys.copilotAction` setting. */
+  copilotAction: CopilotAction;
 }) {
   const label = useMemo(() => windowLabel(), []);
   const kind: WindowKind = label === "main" ? "main" : "detached";
@@ -1605,7 +1609,34 @@ export default function WindowRoot({
   // The hook commits the drop itself; what comes back is only what to draw.
   const fileDrag = useFileDrag();
 
+  // The Copilot key maps onto callbacks this file already owns; nothing new is
+  // dispatched. "Search" expands the same field Ctrl+K does, and "Git" is the
+  // rail's own toggle, which closes the page when it is already open.
+  const copilotHandlers: CopilotHandlers = {
+    palette: openPalette,
+    search: () => setSearchExpanded(true),
+    switchProject: onOpenProjectSwitcher,
+    newCluster: onAddCluster,
+    toggleGit: () => onSelectPage("git"),
+    togglePanel: () => setPanelCollapsed((c) => !c),
+    toggleTerminal: onToggleTerminal,
+  };
+  const copilotKey = () => dispatchCopilotKey(copilotAction, copilotHandlers);
+
+  // The other route to the same action: the global hook in Rust swallows the
+  // key before Windows or the webview sees it, and tells this window instead.
+  // A ref so the listener installs once and still runs the latest closure.
+  const copilotKeyRef = useRef(copilotKey);
+  copilotKeyRef.current = copilotKey;
+  useEffect(() => {
+    const off = onCopilotKey(() => void copilotKeyRef.current());
+    return () => {
+      void off.then((stop) => stop());
+    };
+  }, []);
+
   useKeyboard({
+    copilotKey,
     // Ctrl+1…Ctrl+9 now select a *cluster* rather than a tool. There is no
     // longer one list of surfaces to index into — a window holds several panes,
     // each with its own tabs — and the thing a number key can still name

@@ -8,9 +8,9 @@
  * either holds a binding the other does not.
  *
  * That check covers the primary-modifier chords, which is most of them, and
- * the Alt chords in `ALT_CHORDS`, through `altChords`. The
- * four rows it cannot reach are the ones the listener handles before it
- * consults `CHORDS` at all — F11, Ctrl+1…9, Ctrl+R, Ctrl+. — plus Ctrl+K and
+ * the Alt chords in `ALT_CHORDS`, through `altChords`. The five rows it cannot
+ * reach are the ones the listener handles before it consults `CHORDS` at all
+ * — F11, the Copilot key, Ctrl+1…9, Ctrl+R, Ctrl+. — plus Ctrl+K and
  * Escape, which `SearchSlot` owns. Those carry no `chords` and are marked
  * below; they are checked by reading, not by the test.
  */
@@ -108,6 +108,11 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { label: "Show/Hide Source Control", keys: ["Ctrl", "B"], chords: [ctrl("b")] },
       { label: "Show/Hide Terminal", keys: ["Ctrl", "`"] },
       { label: "Full Screen", keys: ["F11"] },
+      {
+        label: "Copilot key",
+        keys: ["Copilot"],
+        note: "Sent by Windows as Win+Shift+F23. Opens the Command Palette unless you pick another action under Settings, Keyboard.",
+      },
       {
         label: "Zoom In",
         keys: ["Ctrl", "="],
