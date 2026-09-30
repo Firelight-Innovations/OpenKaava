@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from "vitest";
 import type { GitCommit } from "../contract";
-import { laneColor, layoutCommits, rowSegments } from "./CommitGraph";
+import { laneColor, layoutCommits, rowSegments, splitRefs } from "./CommitGraph";
 
 /** A commit with only the fields the layout reads. `when`, `author` and the
  *  rest are filled in so the type is honest rather than cast away. */
@@ -120,5 +120,93 @@ describe("rowSegments", () => {
     const placed = layoutCommits([commit("merge", ["first", "second"])]);
     const opened = rowSegments(placed[0]).filter((s) => s.stroke === laneColor(1));
     expect(opened).toHaveLength(1);
+  });
+});
+
+describe("edge integrity", () => {
+  /** A deterministic pseudo-random history: each commit has a first parent one
+   *  to three steps down, and every fifth is a merge with a second parent. */
+  function history(n: number): GitCommit[] {
+    let seed = 7;
+    const next = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+    const out: GitCommit[] = [];
+    for (let i = 0; i < n; i++) {
+      const parents: string[] = [];
+      const first = i + 1 + Math.floor(next() * 3);
+      if (first < n) parents.push(`c${first}`);
+      if (i % 5 === 0 && i + 4 < n) parents.push(`c${i + 4 + Math.floor(next() * 3)}`);
+      out.push(
+        commit(
+          `c${i}`,
+          parents.filter((p) => Number(p.slice(1)) < n),
+        ),
+      );
+    }
+    return out;
+  }
+
+  it("leaves no edge dangling: every lane line starts and ends on a node or a lane", () => {
+    const commits = history(200);
+    const placed = layoutCommits(commits);
+
+    placed.forEach((p, i) => {
+      const width = Math.max(p.lanesBefore.length, p.lanesAfter.length);
+      for (let idx = 0; idx < width; idx++) {
+        const before = p.lanesBefore[idx] ?? null;
+        const after = p.lanesAfter[idx] ?? null;
+        if (idx === p.lane) continue;
+        // A line entering from above ends here: it passes through or joins the node.
+        if (before !== null) expect(before === after || before === p.commit.sha).toBe(true);
+        // A line leaving below started here: it passes through or forks from the node.
+        if (after !== null)
+          expect(before === after || before === null || before === p.commit.sha).toBe(true);
+      }
+      // The node's own column is fed from above and leads to its first parent.
+      if (p.lanesBefore[p.lane] != null) expect(p.lanesBefore[p.lane]).toBe(p.commit.sha);
+      expect(p.lanesAfter[p.lane] ?? null).toBe(p.commit.parents[0] ?? null);
+      // What leaves one row is exactly what enters the next.
+      if (i > 0) {
+        const prev = placed[i - 1].lanesAfter;
+        const trim = (l: (string | null)[]) => {
+          const t = l.slice();
+          while (t.length > 0 && t[t.length - 1] === null) t.pop();
+          return t;
+        };
+        expect(trim(p.lanesBefore)).toEqual(trim(prev));
+      }
+    });
+
+    // With a complete history, every lane is closed by the last commit.
+    expect(placed[placed.length - 1].lanesAfter.every((l) => l === null)).toBe(true);
+  });
+
+  it("draws a merge into a lane that already leads to its second parent", () => {
+    const placed = layoutCommits([
+      commit("tip", ["base"]),
+      commit("side", ["x"]),
+      commit("merge", ["a", "x"]),
+    ]);
+    // `x` is already waited on by `side`'s lane, so no new lane is opened.
+    const m = placed[2];
+    expect(m.forksInto.length).toBe(1);
+    expect(rowSegments(m).length).toBeGreaterThan(0);
+  });
+});
+
+describe("splitRefs", () => {
+  it("shows two or fewer refs in full", () => {
+    expect(splitRefs(["a", "b"], null)).toEqual({ shown: ["a", "b"], hidden: [] });
+  });
+
+  it("keeps the current branch and HEAD, folding the rest", () => {
+    const split = splitRefs(["x", "y", "main", "HEAD"], "main");
+    expect(split.shown).toEqual(["main", "HEAD"]);
+    expect(split.hidden).toEqual(["x", "y"]);
+  });
+
+  it("falls back to the first ref when none is prominent", () => {
+    const split = splitRefs(["x", "y", "z"], "main");
+    expect(split.shown).toEqual(["x"]);
+    expect(split.hidden).toHaveLength(2);
   });
 });
