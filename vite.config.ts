@@ -1,5 +1,6 @@
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 
 // @ts-expect-error process is a nodejs global
@@ -29,9 +30,54 @@ const SCHEMATIFY = process.env.KAAVA_SCHEMATIFY === "1";
 // @ts-expect-error process is a nodejs global
 const DESIGN_MODE = process.env.KAAVA_DESIGN_MODE === "1";
 
+/**
+ * Serves and emits Excalidraw's fonts at `/vendor/excalidraw/fonts/`, which is
+ * where the Canvas app points `window.EXCALIDRAW_ASSET_PATH`.
+ *
+ * Excalidraw loads its fonts at runtime from that path and, unset, from a public
+ * CDN — which a desktop app must not depend on, and which would not work
+ * offline. `Xiaolai` (the CJK fallback, 13 MB) is left out; CJK text falls back to
+ * a system font, and every other family (about 0.5 MB together) ships.
+ */
+function excalidrawFonts(): Plugin {
+  const dir = resolve(__dirname, "node_modules/@excalidraw/excalidraw/dist/prod/fonts");
+  const URL_BASE = "/vendor/excalidraw/fonts/";
+  const skip = new Set(["Xiaolai"]);
+  const walk = (base: string, rel = ""): string[] =>
+    readdirSync(resolve(base, rel)).flatMap((name) => {
+      const next = rel ? `${rel}/${name}` : name;
+      if (!rel && skip.has(name)) return [];
+      return statSync(resolve(base, next)).isDirectory() ? walk(base, next) : [next];
+    });
+  return {
+    name: "kaava-excalidraw-fonts",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = (req.url ?? "").split("?")[0];
+        if (!url.startsWith(URL_BASE)) return next();
+        const rel = decodeURIComponent(url.slice(URL_BASE.length));
+        const file = resolve(dir, rel);
+        if (rel.includes("..") || !file.startsWith(dir) || !existsSync(file)) return next();
+        res.setHeader("Content-Type", "font/woff2");
+        res.end(readFileSync(file));
+      });
+    },
+    generateBundle() {
+      if (!existsSync(dir)) return;
+      for (const rel of walk(dir)) {
+        this.emitFile({
+          type: "asset",
+          fileName: `vendor/excalidraw/fonts/${rel}`,
+          source: readFileSync(resolve(dir, rel)),
+        });
+      }
+    },
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig(async ({ mode }) => ({
-  plugins: [react()],
+  plugins: [react(), excalidrawFonts()],
 
   build: {
     rollupOptions: {
@@ -74,6 +120,7 @@ export default defineConfig(async ({ mode }) => ({
         "godot-viewer": resolve(__dirname, "apps/godot-viewer/ui/index.html"),
         "blender-viewer": resolve(__dirname, "apps/blender-viewer/ui/index.html"),
         play: resolve(__dirname, "apps/play/ui/index.html"),
+        canvas: resolve(__dirname, "apps/canvas/ui/index.html"),
         tutorial: resolve(__dirname, "apps/tutorial/ui/index.html"),
         agents: resolve(__dirname, "apps/agents/ui/index.html"),
         costs: resolve(__dirname, "apps/costs/ui/index.html"),

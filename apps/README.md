@@ -45,6 +45,7 @@ apps/
   godot-viewer/ui/        Godot Viewer's frontend: the scene an agent's headless Godot run last produced
   blender-viewer/ui/      Blender Viewer's frontend: the .glb an agent's headless Blender export last produced
   play/ui/                Play's frontend: run the environment's debug build and capture a comment on it
+  canvas/ui/              Canvas's frontend: Excalidraw design canvases, one JSON file each in the checkout
 ```
 
 `apps/shared/` is deliberately outside the app-isolation rule ESLint enforces between the apps above
@@ -244,6 +245,52 @@ in the shell can put a listener inside it, so `design/arm` installs a probe
 through WebView2's `AddScriptToExecuteOnDocumentCreated`, which reaches child
 frames the DevTools Protocol's equivalent cannot. The probe answers over
 `postMessage` and is inert in every frame but the one this app armed.
+
+**Canvas** (`canvas/list`, `canvas/read`, `canvas/assets`, `canvas/write`, `canvas/create`) — the design
+canvas of `docs/KAAVA-UX-REWORK.md` §5: draw on [Excalidraw](https://excalidraw.com), and each
+canvas is one file, `<environment>/canvas/<id>.json` (`<id>` may nest folders: `levels/ward-b`),
+so it is committed with the game and survives a clone. The file is an Excalidraw scene plus a
+`kaava` object (`schema`, `id`, `title`, `parent`, `updated`, `updated_by`) — the shape of
+`docs/cloud-services.md` §4, minus its bucket. **That section proposes the artifact store instead
+and is marked "decision needed"; this follows `KAAVA-UX-REWORK.md` §6 and the PRD's P7-2, which
+are decided.** The app id is `canvas`, not `design`: `design` is the feature-gated Design Mode
+app that points at a running page.
+
+Saving is debounced (700 ms after the last change) and atomic (a sibling temp file, then
+rename), and refuses if the file moved since it was read (`baseMtime`, the `files/write`
+contract). The pane polls the file's mtime every two seconds while visible, and reloads when a
+`git pull` or an agent changed it; with unsaved work it offers "Load the disk version" or "Keep
+mine" instead. `canvas/write` and `canvas/create` are in `WRITE_METHODS`, so read-only main is
+refused centrally and the pane opens in Excalidraw's view mode. A file that is not a valid scene
+is reported and never overwritten. Only the background colour and grid are kept from Excalidraw's
+view state, and deleted elements and unreferenced images are dropped, so a save is a small diff.
+
+Canvases nest. Select a frame and "Create child canvas" makes a new canvas in a folder named
+after its parent (`levels` becomes `levels/ward-b`), sets `customData.kaava.child` on the frame and
+`kaava.parent` in the child's file, and opens it. Double-clicking a frame that has a child opens
+it (the app takes that double-click before Excalidraw's own text edit does), and the breadcrumb
+in the header follows `parent` back up. A frame whose child file is missing says so and stays
+put. Unlinking only removes the frame's link; the child file is left alone. Linking a frame to an
+already existing canvas is not built: it would have to rewrite that canvas's `parent`.
+
+Spec cards (`customData.kaava.spec`, fields from `docs/cloud-services.md` section 4) are made
+by selecting any shape and filling in the inspector: name, size in metres, triangle budget,
+style notes, reference images, plus the card's own review state (draft, review, accepted,
+rejected). "Copy JSON" exports exactly the five documented fields, and refuses an incomplete
+card. The "Asset list" tab calls `canvas/assets`, which reads every canvas in the checkout and
+returns each card with its state; a canvas that cannot be read is named, not hidden. The state
+shown is the card's own: joining the cloud artifact's build status needs the cloud store, so that
+column is not there yet.
+
+"Send selection" (header) renders the selected elements, with the members of a selected frame
+and the text inside a selected shape, to a PNG with Excalidraw's exporter and puts it in the
+agent's context; "Send card" puts a valid spec card as JSON text. Both can be dragged onto a
+terminal as well as clicked, and both work on read-only main because `.kaava/context/` is not the
+checkout. The PNG is tried at 2x, 1x, 0.5x and 0.25x until it fits the store's 8 MB limit.
+
+Excalidraw is loaded lazily (`React.lazy`), and its fonts are served from
+`/vendor/excalidraw/fonts/` by the `excalidrawFonts` plugin in `vite.config.ts` rather than from
+a CDN. The 13 MB CJK fallback font is not shipped.
 
 **Tutorials** (`tutorial/catalog`, `tutorial/complete`, `tutorial/reset`) — short
 walkthroughs of what OpenKaava does today, with a tick against the ones you have

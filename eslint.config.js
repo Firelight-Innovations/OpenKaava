@@ -111,6 +111,7 @@ function baseRestrictions() {
 const APPS = [
   "agents",
   "blender-viewer",
+  "canvas",
   "costs",
   "design",
   "files",

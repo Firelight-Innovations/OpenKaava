@@ -1,0 +1,116 @@
+/**
+ * The one file that imports Excalidraw. `App.tsx` loads this with `React.lazy`,
+ * so the editor's roughly 3 MB of script and its stylesheet are fetched only
+ * when a canvas is opened, not when the pane mounts and reports painted.
+ */
+import "./assetPath";
+import "@excalidraw/excalidraw/index.css";
+import { useCallback, useMemo, useRef } from "react";
+import { Excalidraw } from "@excalidraw/excalidraw";
+import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import { childOf, hitLinkedFrame, viewportToScene } from "./nesting";
+import type { SceneElement, SceneFile } from "./scene";
+
+export interface EditorProps {
+  /** What to open. Changing it does nothing: remount with a new `key`. */
+  initial: SceneFile;
+  theme: "dark" | "light";
+  readOnly: boolean;
+  onChange: (
+    elements: readonly SceneElement[],
+    appState: Record<string, unknown>,
+    files: Record<string, unknown>,
+  ) => void;
+  onApi: (api: ExcalidrawImperativeAPI) => void;
+  /** A frame with a child link was double-clicked. */
+  onOpenChild: (id: string) => void;
+}
+
+/**
+ * Module-level on purpose. Excalidraw re-renders, and fires `onChange`, whenever
+ * a prop is not referentially equal to last time; an inline object here made
+ * every re-render of the app (a save-state change, say) reach Excalidraw as a
+ * change, which the saver then treated as a fresh edit.
+ */
+const UI_OPTIONS = {
+  canvasActions: {
+    // The canvas is a file in the repository; opening or saving another
+    // one from the menu would bypass the app's own save path.
+    loadScene: false,
+    saveToActiveFile: false,
+    saveAsImage: true,
+    export: false,
+  },
+} as const;
+
+export default function Editor({
+  initial,
+  theme,
+  readOnly,
+  onChange,
+  onApi,
+  onOpenChild,
+}: EditorProps) {
+  const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
+  // Held in refs so the props handed to Excalidraw below stay the same objects
+  // across renders, whatever the parent passes.
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const onApiRef = useRef(onApi);
+  onApiRef.current = onApi;
+
+  // The scene is restored once, on mount; later changes to it are ignored.
+  const initialData = useMemo(
+    () =>
+      ({
+        elements: initial.elements,
+        appState: { ...initial.appState, theme },
+        files: initial.files,
+        scrollToContent: true,
+      }) as never,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [initial],
+  );
+  const handleApi = useCallback((api: ExcalidrawImperativeAPI) => {
+    apiRef.current = api;
+    onApiRef.current(api);
+  }, []);
+  const handleChange = useCallback(
+    (elements: readonly unknown[], appState: AppState, files: BinaryFiles) =>
+      onChangeRef.current(
+        elements as readonly SceneElement[],
+        appState as unknown as Record<string, unknown>,
+        files,
+      ),
+    [],
+  );
+
+  // Captured before Excalidraw sees it: on a frame, its own double-click would
+  // start a text edit. Only a frame that has a child link is taken over.
+  const openLinkedFrame = (event: React.MouseEvent) => {
+    const api = apiRef.current;
+    if (!api) return;
+    const point = viewportToScene(event.clientX, event.clientY, api.getAppState());
+    const hit = hitLinkedFrame(api.getSceneElements() as unknown as SceneElement[], point);
+    const child = hit ? childOf(hit) : null;
+    if (!child) return;
+    event.stopPropagation();
+    event.preventDefault();
+    onOpenChild(child);
+  };
+
+  return (
+    <div className="cv__editor" onDoubleClickCapture={openLinkedFrame}>
+      <Excalidraw
+        // The scene is plain JSON that Excalidraw restores on load; its element
+        // type is stricter than the file's, and the file is what is validated.
+        initialData={initialData}
+        excalidrawAPI={handleApi}
+        theme={theme}
+        viewModeEnabled={readOnly}
+        UIOptions={UI_OPTIONS}
+        onChange={handleChange}
+      />
+    </div>
+  );
+}

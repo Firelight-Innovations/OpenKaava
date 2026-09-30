@@ -6,6 +6,7 @@
  * factory: a frontend has one host for its lifetime, decided once at load.
  */
 import { createClient, type WindowLike } from "./client.js";
+import { installEscapeForwarder } from "./escape.js";
 
 export type { Client, ClientOptions, Host, TauriCore, WindowLike } from "./client.js";
 export type {
@@ -84,6 +85,15 @@ export const host: typeof client.host = client.host;
 const PAINT_FALLBACK_MS = 200;
 
 /** Set once `reportPainted` has sent; every call after the first is a no-op. */
+// Escape typed in a frame never reaches the shell's document; say so, so an
+// expanded rail page can still be left with the key. A standalone app has no
+// shell (`parent === self`) and nothing to tell.
+if (typeof window !== "undefined" && window.parent !== window) {
+  installEscapeForwarder(document, () => {
+    void client.invoke("kaava/escape").catch(() => {});
+  });
+}
+
 let painted = false;
 
 /**

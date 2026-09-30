@@ -15,6 +15,7 @@
 
 mod agents;
 mod blender_viewer;
+pub mod canvas;
 mod costs;
 #[cfg(feature = "design-mode")]
 mod design;
@@ -232,6 +233,15 @@ const REGISTRY: &[Registered] = &[
         description: "Run the environment's debug build in a pane, and capture a comment on what \
                       you see.",
         call: play::call,
+    },
+    Registered {
+        id: "canvas",
+        name: "Canvas",
+        description: "Draw the game's design on an Excalidraw canvas, stored in the environment's                       checkout as canvas/<name>.json.",
+        // Not `design`: that id is the feature-gated Design Mode app, which
+        // points at a running page. This is the design canvas of
+        // `docs/KAAVA-UX-REWORK.md` §5, and it is always compiled in.
+        call: canvas::call_live,
     },
     Registered {
         id: "agents",
@@ -621,6 +631,8 @@ pub const WRITE_METHODS: &[&str] = &[
     "godot/open-editor",
     "play/addon-install",
     "play/addon-remove",
+    "canvas/create",
+    "canvas/write",
 ];
 
 /// Whether `method` is a write to the cluster's checkout.
@@ -732,6 +744,7 @@ mod tests {
             include_str!("trash.rs"),
             include_str!("schematify.rs"),
             include_str!("home.rs"),
+            include_str!("canvas.rs"),
             include_str!("../comments.rs"),
         ];
         let verbs = [
