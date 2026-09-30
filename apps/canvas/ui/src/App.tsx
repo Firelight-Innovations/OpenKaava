@@ -1,15 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { reportPainted } from "@openkaava/bridge";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import {
-  AlertTriangle,
-  ChevronRight,
-  ExternalLink,
-  FilePlus2,
-  Link2Off,
-  Lock,
-  Send,
-} from "lucide-react";
+import { AlertTriangle, ChevronRight, ExternalLink, FilePlus2, Link2Off, Lock } from "lucide-react";
+import { SendButton, SendFooter } from "../../../shared/SendFooter";
 import {
   dragContext,
   exportSelectionPng,
@@ -144,6 +137,7 @@ export default function App() {
   const [createError, setCreateError] = useState<string | null>(null);
 
   const [notice, setNotice] = useState<string | null>(null);
+  const [sendSlot, setSendSlot] = useState<HTMLElement | null>(null);
   const [frame, setFrame] = useState<{ id: string; name: string; child: string | null } | null>(
     null,
   );
@@ -767,18 +761,6 @@ export default function App() {
         </button>
         {doc && <code className="cv__path">{doc.path}</code>}
         <span className="cv__spacer" />
-        {doc && view === "canvas" && (
-          <button
-            type="button"
-            className="k-btn k-btn--secondary k-btn--sm"
-            disabled={selectedN === 0}
-            title="Add the selection, as an image, to the agent's context. Drag to a terminal to send it."
-            onPointerDown={selectedN > 0 ? dragContext(() => putSelection()) : undefined}
-            onClick={sendSelection}
-          >
-            <Send size={14} aria-hidden /> {sentSelection ? "Sent" : "Send selection"}
-          </button>
-        )}
         {readOnly ? (
           <span className="k-badge k-badge--idle">
             <Lock size={12} aria-hidden /> Read-only
@@ -1043,6 +1025,7 @@ export default function App() {
                     onRemove={() => void removeCard()}
                     putCard={putCard}
                     onSendError={setNotice}
+                    sendSlot={sendSlot}
                     refs={refs.map((r) => ({ name: r.name, path: r.path }))}
                   />
                 )}
@@ -1091,6 +1074,24 @@ export default function App() {
           </Sidebar>
         )}
       </main>
+
+      {/* Send to agent sits below the whole body, drawing and side panel alike,
+          so it takes its own height instead of covering the canvas. The spec
+          card's Send card button portals into the empty slot after Send
+          selection: the card's draft lives in the side panel. */}
+      {doc && view === "canvas" && (
+        <SendFooter>
+          <SendButton
+            label="Send selection"
+            sent={sentSelection}
+            disabled={selectedN === 0}
+            title="Add the selection, as an image, to the agent's context. Drag to a terminal to send it."
+            onPointerDown={selectedN > 0 ? dragContext(() => putSelection()) : undefined}
+            onClick={sendSelection}
+          />
+          <span className="cv__send-slot" ref={setSendSlot} />
+        </SendFooter>
+      )}
     </div>
   );
 }

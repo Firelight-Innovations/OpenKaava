@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
-import { ClipboardCopy, Send, Trash2 } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ClipboardCopy, Trash2 } from "lucide-react";
 import type { ContextRef } from "../../../shared/context";
+import { SendButton } from "../../../shared/SendFooter";
 import { dragContext } from "./sendToAgent";
 import {
   STATUSES,
@@ -22,6 +24,8 @@ interface Props {
   /** Put the card's JSON where the agent reads it. */
   putCard: (name: string, json: string) => Promise<ContextRef>;
   onSendError: (message: string) => void;
+  /** The shared footer's slot: Send card renders there, not in the panel. */
+  sendSlot: HTMLElement | null;
   /** This canvas's stored reference images, offered as one-click links. */
   refs?: { name: string; path: string }[];
 }
@@ -38,6 +42,7 @@ export default function SpecPanel({
   onRemove,
   putCard,
   onSendError,
+  sendSlot,
   refs = [],
 }: Props) {
   const [draft, setDraft] = useState<SpecDraft>(() => cardToDraft(stored));
@@ -190,18 +195,22 @@ export default function SpecPanel({
         >
           <ClipboardCopy size={14} aria-hidden /> Copy JSON
         </button>
-        <button
-          type="button"
-          className="k-btn k-btn--secondary k-btn--sm"
-          disabled={!exported.ok}
-          title="Add this card, as JSON, to the agent's context. Drag to a terminal to send it."
-          onPointerDown={
-            exported.ok ? dragContext(() => putCard(draft.name.trim(), exported.json)) : undefined
-          }
-          onClick={sendCard}
-        >
-          <Send size={14} aria-hidden /> {sent ? "Sent" : "Send card"}
-        </button>
+        {sendSlot &&
+          createPortal(
+            <SendButton
+              label="Send card"
+              sent={sent}
+              disabled={!exported.ok}
+              title="Add this card, as JSON, to the agent's context. Drag to a terminal to send it."
+              onPointerDown={
+                exported.ok
+                  ? dragContext(() => putCard(draft.name.trim(), exported.json))
+                  : undefined
+              }
+              onClick={sendCard}
+            />,
+            sendSlot,
+          )}
         {!readOnly && stored && (
           <button type="button" className="k-btn k-btn--ghost k-btn--sm" onClick={onRemove}>
             <Trash2 size={14} aria-hidden /> Remove
