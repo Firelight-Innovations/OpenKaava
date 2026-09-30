@@ -84,7 +84,7 @@ an empty Home.
 | Chord            | What                                                          |
 | ----------------- | --------------------------------------------------------------- |
 | `Ctrl+1`          | …through `Ctrl+9`, select the nth tab in this window's bar.     |
-| `Ctrl+B`          | Collapse the secondary panel to a strip, and bring it back.     |
+| `Ctrl+B`          | Open or close the Git page, which holds source control.         |
 | `Ctrl+Shift+W`    | Close the window.                                                |
 
 ## A second window

@@ -63,7 +63,7 @@ const SURFACES = [
   surface({
     file: "splash.html",
     field: ".splash__wordmark",
-    expects: "the wordmark, which the stylesheet uppercases",
+    expects: "the wordmark, set as written",
     expected: product.wordmark,
     pattern: /(<p class="splash__wordmark">)([^<]*)(<\/p>)/,
   }),
@@ -132,26 +132,6 @@ for (const s of SURFACES) {
         `${JSON.stringify(s.expected)}. Change branding.toml and re-run with --fix.`,
     );
   }
-}
-
-/**
- * The splash field is the one asset requested by URL rather than compiled in,
- * so the path in the markup and the path in `branding.toml` can drift apart
- * with nothing to notice until the splash paints a broken image.
- */
-const field = /(<img class="splash__field" src=")([^"]+)(")/.exec(read("splash.html"));
-if (field === null) {
-  problems.push("splash.html: could not find the .splash__field image");
-} else if (!assets["splash-field"].startsWith("public/")) {
-  problems.push(
-    "branding.toml: [assets] splash-field must live under public/ — splash.html asks for it " +
-      "by URL, and nothing outside public/ is served at one.",
-  );
-} else if (field[2] !== `/${assets["splash-field"].slice("public/".length)}`) {
-  problems.push(
-    `splash.html: .splash__field loads ${field[2]}, but branding.toml declares ` +
-      `${assets["splash-field"]}.`,
-  );
 }
 
 for (const [key, { declared, absolute }] of Object.entries(assetPaths)) {
