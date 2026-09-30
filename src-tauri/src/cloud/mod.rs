@@ -18,6 +18,7 @@ pub mod auth;
 pub mod bigquery;
 pub mod billing;
 pub mod compute;
+pub mod hindsight;
 pub(crate) mod http;
 pub mod inventory;
 pub mod monitoring;

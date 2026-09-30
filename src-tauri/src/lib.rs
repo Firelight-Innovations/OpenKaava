@@ -572,6 +572,7 @@ pub fn run() {
             commands::review_comments_mark_sent,
             github::github_feed,
             github::github_open_in_browser,
+            cloud::hindsight::hindsight_status,
             search::search_content,
             updater::update_state,
             updater::check_for_update,
@@ -588,6 +589,8 @@ pub fn run() {
         .map(|app| {
             app.run(|handle, event| {
                 if matches!(event, tauri::RunEvent::Exit) {
+                    // Layout writes are debounced; commit one still waiting.
+                    shell_store::flush_pending();
                     handle.state::<blender::job::Jobs>().stop_all();
                     handle.state::<plugins::Watchers>().stop_all();
                     handle.state::<plugins::Broker>().stop_all();
@@ -742,6 +745,18 @@ fn respawn_terminals(app: &tauri::AppHandle, shell: &ShellState) {
     let ptys = app.state::<PtySessions>();
 
     for terminal in shell.snapshot().terminals {
+        // A shell in a worktree that is gone would start in the process's own
+        // directory and run commands somewhere the tab does not say. The
+        // cluster stays and is drawn as missing; only its shells are dropped.
+        if shell.cluster_environment_missing(&terminal.cluster_id) {
+            crate::kaava_log!(
+                "not restoring {}: the worktree of cluster {} is missing",
+                terminal.id,
+                terminal.cluster_id
+            );
+            shell.close_terminal(app, &terminal.id);
+            continue;
+        }
         let cwd = project::cluster_path(app, &terminal.cluster_id)
             .unwrap_or_else(|| std::path::PathBuf::from("."));
 

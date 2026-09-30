@@ -1,4 +1,4 @@
-/* An honest placeholder -- Hindsight has no app to host yet. */
+/* Hindsight page: connection status and honest empty states. */
 
 .k-hindsight {
   display: flex;
@@ -43,4 +43,66 @@
   border: 1px dashed var(--border-subtle-1);
   color: var(--txt-tertiary);
   font-size: 12.5px;
+}
+
+.k-hindsight__status {
+  margin: 10px 12px 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.k-hindsight__pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle-1);
+  font-size: 11.5px;
+  color: var(--txt-secondary);
+}
+
+.k-hindsight__pill--ok {
+  color: var(--txt-primary);
+  border-color: var(--success, var(--border-subtle-1));
+}
+
+.k-hindsight__pill--down {
+  border-color: var(--danger, var(--border-subtle-1));
+}
+
+.k-hindsight__url {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: var(--txt-tertiary);
+}
+
+.k-hindsight__again {
+  margin-left: auto;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle-1);
+  background: var(--bg-layer-1);
+  color: var(--txt-secondary);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.k-hindsight__again:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.k-hindsight__note {
+  margin: 0 12px;
+  color: var(--txt-tertiary);
+  font-size: 12px;
+}
+
+.k-hindsight__empty {
+  overflow-wrap: anywhere;
 }

@@ -335,6 +335,7 @@ mod tests {
             page: None,
             environment: None,
             pinned: false,
+            environment_missing: false,
         }
     }
 

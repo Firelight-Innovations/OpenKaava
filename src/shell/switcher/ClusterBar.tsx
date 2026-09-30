@@ -304,8 +304,10 @@ function ClusterTab({
   const env = environmentOf(cluster);
   const Glyph = KIND_ICON[env.kind];
 
+  const missing = cluster.environmentMissing === true;
   const classes = ["switcher__tab"];
   if (active) classes.push("switcher__tab--active");
+  if (missing) classes.push("switcher__tab--missing");
 
   return (
     <div
@@ -321,7 +323,15 @@ function ClusterTab({
       aria-selected={active}
       tabIndex={0}
       className={classes.join(" ")}
-      title={cluster.name}
+      title={
+        missing
+          ? `${cluster.name} — its worktree folder is missing on disk${
+              cluster.environment && "path" in cluster.environment
+                ? `: ${cluster.environment.path}`
+                : ""
+            }`
+          : cluster.name
+      }
       data-cluster-id={cluster.id}
       onClick={() => onSelect(cluster.id)}
       onDoubleClick={() => {
@@ -350,6 +360,14 @@ function ClusterTab({
         <Glyph size={10} strokeWidth={1.5} className="switcher__tab-env-icon" />
         {ENVIRONMENT_LABEL[env.kind]}
       </span>
+
+      {missing && (
+        <WarningTriangle
+          size={12}
+          className="switcher__tab-missing-icon"
+          aria-label="Worktree folder missing"
+        />
+      )}
 
       {pinned && (
         <Pin size={12} strokeWidth={1.5} className="switcher__tab-pin" aria-hidden="true" />
