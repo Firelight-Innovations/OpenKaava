@@ -119,7 +119,10 @@
   min-height: 0;
   background: var(--bg-surface-1, var(--bg));
   border: 1px solid var(--border-subtle, var(--line));
-  border-radius: var(--radius-region, 0);
+  border-radius: var(--radius-region, 10px);
+  /* Clips the tab strip to the top corners. The content below it is not a
+     child and is not clipped here — see `.toolwindow__surface`, which
+     rounds its own bottom corners to match. */
   overflow: hidden;
 }
 
@@ -138,6 +141,10 @@
    `PaneTabStrip.tsx` for why the strips are back after this file's own
    header once said they were gone for good. */
 
+/* The bottom hairline is an inset shadow for `.frame__switcher`'s reason: a
+   border-box border would leave 33px of `--h-paneltabs` for the tabs and put
+   every label half a pixel high. The active tab's own 2px underline paints
+   over it, being a child. */
 .pane-tabstrip {
   flex: none;
   height: var(--h-paneltabs, 34px);
@@ -145,7 +152,7 @@
   align-items: stretch;
   overflow-x: auto;
   overflow-y: hidden;
-  border-bottom: 1px solid var(--border-subtle, var(--line));
+  box-shadow: inset 0 -1px 0 var(--border-subtle, var(--line));
   scrollbar-width: none;
 }
 
@@ -159,6 +166,9 @@
   align-items: center;
   gap: 6px;
   padding: 0 12px;
+  /* The label's box is its glyph height, so `align-items: center` centres the
+     text itself in the 34px — the cluster tab's label does the same. */
+  line-height: 1;
   cursor: default;
   user-select: none;
   color: var(--txt-tertiary, var(--text-dim));

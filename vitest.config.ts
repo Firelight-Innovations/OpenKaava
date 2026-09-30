@@ -108,5 +108,10 @@ export default defineConfig({
       "apps/shared/**/*.test.{ts,tsx}",
       "scripts/**/*.test.mjs",
     ],
+    // Vitest blanks every CSS import by default, `?raw` included. A `?raw`
+    // import is text, not a stylesheet — nothing is injected — so letting
+    // just those through costs nothing and lets a test read a declaration
+    // (`src/shell/chromeAlignment.test.ts`).
+    css: { include: [/\.css\?raw$/] },
   },
 });

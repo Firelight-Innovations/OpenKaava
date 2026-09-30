@@ -51,6 +51,13 @@
   position: absolute;
   z-index: 1;
   background: var(--bg);
+  /* A surface sits over its pane's content box but is not the pane's child,
+     so the pane's `overflow: hidden` never reaches it, and a square surface
+     painted over the pane's rounded bottom corners. It rounds them itself:
+     the region radius less the pane's 1px border, which is the radius of the
+     border's inner edge. Its top edge meets the tab strip and stays square. */
+  border-radius: 0 0 calc(var(--radius-region, 10px) - 1px) calc(var(--radius-region, 10px) - 1px);
+  overflow: hidden;
 }
 
 /* The surface a tab switch is leaving, held on screen over the one replacing
@@ -86,6 +93,9 @@
    to show, where one that was merely obscured is already drawn. */
 .toolwindow__surface[data-solo] {
   z-index: 6;
+  /* It covers the whole grid box rather than a pane's content box, so it is
+     a region of its own and takes all four corners. */
+  border-radius: var(--radius-region, 10px);
 }
 
 /* Fills whatever box its surface was given. Kept as its own element rather
