@@ -560,12 +560,12 @@ interpolates the project name).
 **Accent**
 | Token | Dark | Light | Usage |
 |---|---|---|---|
-| `accent` | `#d98a3f` | `#a85a14` | Default (Amber); tab underline, focus, drop targets, primary fill |
-| `accent-hover` | `#e39a55` | `#8f4b10` | Primary button hover |
-| `accent-subtle` | `#3b2612` | `#fbf1e6` | Accent chips: branch chip, count badges, step numbers |
-| `txt-accent` | `#e8a868` | `#8f4b10` | Links, text on accent-subtle |
+| `accent` | `#3f76ff` | `#2f62e0` | Default (Blue, Plane's brand blue; Amber is the original); tab underline, focus, drop targets, primary fill |
+| `accent-hover` | `#5c8bff` | `#2853be` | Primary button hover |
+| `accent-subtle` | `#192440` | `#e6ecfb` | Accent chips: branch chip, count badges, step numbers |
+| `txt-accent` | `#799fff` | `#2853be` | Links, text on accent-subtle |
 | `txt-on-accent` | `#0f0f10` | `#ffffff` | Text/icons on accent fill |
-| `accent-blue` | `#4d9be6` | `#1f63b5` | Accent option |
+| `accent-blue` | `#3f76ff` | `#2f62e0` | Accent option (default) |
 | `accent-green` | `#4cb863` | `#23803b` | Accent option |
 | `accent-violet` | `#a585f0` | `#6c47c9` | Accent option |
 | `accent-coral` | `#e5736b` | `#b8392f` | Accent option |
