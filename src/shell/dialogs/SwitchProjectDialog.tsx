@@ -14,14 +14,27 @@
  * answers — see `RecentProjectRow`'s own doc for why the board's fuller
  * line and status chips are left out rather than invented.
  *
- * Opened by the title bar's `ProjectPill` (`onOpenProjectSwitcher`). The
- * `Ctrl Alt P` hint names the board's own shortcut, not one this build
- * binds — `useKeyboard.ts` has no Alt-modifier concept today.
+ * Opened by the title bar's `ProjectPill` (`onOpenProjectSwitcher`), and by
+ * the `Ctrl Alt P` its hint names — `ALT_CHORDS` in `useKeyboard.ts` binds
+ * that, and Shift+Alt+P beside it.
  */
 import { useEffect, useMemo, useState } from "react";
+import { ImagePlus } from "lucide-react";
 import Dialog from "./Dialog";
+import ProjectTile from "../ProjectTile";
+import { useProjectIcon } from "../state/projectIcon";
 import "./SwitchProjectDialog.css";
-import { listRecentProjects, openProjectInCluster, type RecentProjectRow } from "../../bindings";
+import {
+  chooseProjectIcon,
+  listRecentProjects,
+  openProjectInCluster,
+  type RecentProjectRow,
+} from "../../bindings";
+
+/** What a rejected command is carrying, as a sentence to show. */
+function messageOf(e: unknown): string {
+  return typeof e === "string" ? e : e instanceof Error ? e.message : String(e);
+}
 
 export interface SwitchProjectDialogProps {
   /** Where a chosen project opens into. Every row still renders with this
@@ -49,6 +62,7 @@ export default function SwitchProjectDialog({
   const [query, setQuery] = useState("");
   const [pending, setPending] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
+  const [choosingIcon, setChoosingIcon] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -81,8 +95,20 @@ export default function SwitchProjectDialog({
       .then(onOpened)
       .catch((e: unknown) => {
         setPending(null);
-        setFailure(typeof e === "string" ? e : e instanceof Error ? e.message : String(e));
+        setFailure(messageOf(e));
       });
+  };
+
+  // The new icon arrives through `project:icon`, which every `useProjectIcon`
+  // hears, so nothing here has to hand it to the row. A cancelled picker
+  // answers `null` and changes nothing.
+  const changeIcon = (row: RecentProjectRow) => {
+    if (choosingIcon || !row.exists) return;
+    setChoosingIcon(true);
+    setFailure(null);
+    chooseProjectIcon(row.path)
+      .catch((e: unknown) => setFailure(messageOf(e)))
+      .finally(() => setChoosingIcon(false));
   };
 
   return (
@@ -117,7 +143,9 @@ export default function SwitchProjectDialog({
               row={row}
               busy={pending === row.path}
               disabled={clusterId === null || (pending !== null && pending !== row.path)}
+              iconDisabled={choosingIcon}
               onOpen={() => open(row)}
+              onChangeIcon={() => changeIcon(row)}
             />
           ))
         )}
@@ -144,31 +172,48 @@ interface ProjectRowProps {
   row: RecentProjectRow;
   busy: boolean;
   disabled: boolean;
+  /** An image picker is already up, for this row or another. */
+  iconDisabled: boolean;
   onOpen: () => void;
+  onChangeIcon: () => void;
 }
 
-function ProjectRow({ row, busy, disabled, onOpen }: ProjectRowProps) {
+function ProjectRow({ row, busy, disabled, iconDisabled, onOpen, onChangeIcon }: ProjectRowProps) {
+  const icon = useProjectIcon(row.path);
   return (
-    <button
-      type="button"
-      role="option"
-      aria-selected={row.open}
-      className="switch-project__row"
-      disabled={disabled}
-      onClick={onOpen}
-    >
-      <span className="switch-project__tile" aria-hidden="true">
-        {row.name.charAt(0).toUpperCase() || "?"}
-      </span>
-      <span className="switch-project__row-main">
-        <span className="switch-project__row-head">
-          <span className="switch-project__row-name">{row.name}</span>
-          {row.open && <span className="switch-project__badge">OPEN</span>}
+    <div className="switch-project__item" role="presentation">
+      <button
+        type="button"
+        role="option"
+        aria-selected={row.open}
+        className="switch-project__row"
+        disabled={disabled}
+        onClick={onOpen}
+      >
+        <ProjectTile name={row.name} icon={icon} className="switch-project__tile" />
+        <span className="switch-project__row-main">
+          <span className="switch-project__row-head">
+            <span className="switch-project__row-name">{row.name}</span>
+            {row.open && <span className="switch-project__badge">OPEN</span>}
+          </span>
+          <span className="switch-project__row-summary">{summaryOf(row, busy)}</span>
         </span>
-        <span className="switch-project__row-summary">{summaryOf(row, busy)}</span>
-      </span>
-      <span className="switch-project__row-time">{relativeTime(row.lastOpened)}</span>
-    </button>
+        <span className="switch-project__row-time">{relativeTime(row.lastOpened)}</span>
+      </button>
+      {/* A sibling of the row rather than inside it, since a button cannot
+          hold a button. Hidden until the row is hovered or focused, so the
+          list still reads as a list of projects. */}
+      <button
+        type="button"
+        className="switch-project__icon-button"
+        aria-label={`Change icon for ${row.name}`}
+        title="Change icon…"
+        disabled={iconDisabled || !row.exists}
+        onClick={onChangeIcon}
+      >
+        <ImagePlus size={16} strokeWidth={1.5} />
+      </button>
+    </div>
   );
 }
 

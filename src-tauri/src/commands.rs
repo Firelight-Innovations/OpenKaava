@@ -1631,6 +1631,65 @@ pub fn open_project_in_cluster(
     project::open(&app, Path::new(&path), &cluster_id)
 }
 
+/// The event [`choose_project_icon`] broadcasts, carrying [`ProjectIconChanged`].
+pub const PROJECT_ICON_EVENT: &str = "project:icon";
+
+/// Which project's icon changed, and what it is now.
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectIconChanged {
+    pub path: String,
+    pub icon: Option<String>,
+}
+
+/// A project's `.kaava/icon.*` as a `data:` URL, or `None` for the letter tile.
+/// See `project::icon` for why a data URL and why the size is capped.
+#[tauri::command]
+pub fn project_icon(path: String) -> Option<String> {
+    project::icon::data_url(Path::new(&path))
+}
+
+/// Pick an image and copy it into `path` as the project's icon.
+///
+/// `Ok(None)` is a cancelled picker. The picker opens from Rust, the same
+/// reason `choose_and_install_plugin` gives: `tauri-plugin-dialog` cannot be
+/// added to this crate (its `Cargo.toml` note on `rfd` explains why), and
+/// `rfd` is what that plugin wraps anyway. `spawn_blocking` for that
+/// command's reason too: the dialog needs the main thread free.
+///
+/// Broadcasts [`PROJECT_ICON_EVENT`] so the title bar, the Switch project
+/// dialog and any other window redraw without being asked.
+#[tauri::command]
+pub async fn choose_project_icon(app: tauri::AppHandle, path: String) -> Result<Option<String>> {
+    let parent = app.get_webview_window("main");
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        let mut dialog = rfd::FileDialog::new()
+            .set_title("Choose a project icon")
+            .add_filter("Image", &["png", "svg", "jpg", "jpeg", "webp"]);
+        if let Some(window) = parent.as_ref() {
+            dialog = dialog.set_parent(window);
+        }
+        dialog.pick_file()
+    })
+    .await
+    .map_err(|e| AppError::ProjectIcon(format!("the image picker failed: {e}")))?;
+
+    let Some(source) = picked else {
+        return Ok(None);
+    };
+
+    let icon = project::icon::set(Path::new(&path), &source)?;
+    let _ = tauri::Emitter::emit(
+        &app,
+        PROJECT_ICON_EVENT,
+        &ProjectIconChanged {
+            path,
+            icon: Some(icon.clone()),
+        },
+    );
+    Ok(Some(icon))
+}
+
 // --- layout presets ---------------------------------------------------------
 //
 // A preset is a named arrangement: the split shape, and which app belongs in

@@ -575,13 +575,23 @@ impl ShellState {
     /// into, moving one between windows and dragging one into a pane all
     /// invalidate it, and only one of them is obviously about the panel.
     fn mutate<F: FnOnce(&mut ShellSnapshot)>(&self, app: &AppHandle, f: F) {
-        let updated = {
+        let (updated, repointed) = {
             let mut guard = self.inner.write_or_panic();
+            let before = project_pointers(&guard);
             f(&mut guard);
             reseat_active_terminals(&mut guard);
-            guard.clone()
+            let repointed = repointed_clusters(&before, &guard);
+            (guard.clone(), repointed)
         };
         let _ = app.emit(SHELL_STATE_EVENT, &updated);
+        // `project:changed` comes from here too, for the broadcast reason
+        // above. Home, the `set_cluster_project` command, the agent server's
+        // `set_project` and launch seeding all repoint clusters, and while the
+        // announcement lived in `project::open` only Home's made the title bar
+        // redraw. After the lock is dropped, as `announce` reads this state.
+        for cluster_id in &repointed {
+            crate::project::announce(app, cluster_id);
+        }
         // Every page switch, cluster switch and window close is a mutation
         // through here, so this is the one place that can tell whether the
         // projects page just stopped (or started) being what `main` shows —
@@ -1882,6 +1892,37 @@ fn cluster_of_instance_pure(s: &ShellSnapshot, instance_id: &str) -> Option<Stri
         .flat_map(|w| w.clusters.iter())
         .find(|c| c.tree.tabs().contains(&instance_id))
         .map(|c| c.id.clone())
+}
+
+/// Every cluster's project pointer, by cluster id. What `mutate` keeps from
+/// before a change so it can tell afterwards which clusters were repointed.
+fn project_pointers(s: &ShellSnapshot) -> Vec<(String, Option<String>)> {
+    s.windows
+        .iter()
+        .flat_map(|w| w.clusters.iter())
+        .map(|c| (c.id.clone(), c.project.clone()))
+        .collect()
+}
+
+/// The clusters whose project pointer differs between `before` and `after`.
+///
+/// Only clusters present on both sides. A cluster that was just created has no
+/// subscriber holding a stale answer (the frontend reads a cluster's project
+/// when it first sees the id), and a cluster that was just closed has nobody
+/// left to tell. A cluster dragged to another window keeps its id and its
+/// pointer, so it is correctly not here either.
+fn repointed_clusters(before: &[(String, Option<String>)], after: &ShellSnapshot) -> Vec<String> {
+    after
+        .windows
+        .iter()
+        .flat_map(|w| w.clusters.iter())
+        .filter(|c| {
+            before
+                .iter()
+                .any(|(id, project)| *id == c.id && *project != c.project)
+        })
+        .map(|c| c.id.clone())
+        .collect()
 }
 
 /// What a tab id is, expressed as the slot a preset would use for it.
@@ -3479,6 +3520,66 @@ mod tests {
             instances: Vec::new(),
             terminals,
         }
+    }
+
+    // --- repointing a cluster announces it -----------------------------------
+
+    /// The regression: the agent server's `set_project` repointed a cluster,
+    /// `mutate` broadcast `shell:state`, and nothing broadcast
+    /// `project:changed`, so the title bar and Home kept the old project until
+    /// a reload. `mutate` now announces whatever this finds, so this finding
+    /// the cluster is what makes that call reach the screen.
+    #[test]
+    fn a_repointed_cluster_is_found() {
+        let mut s = state(vec![window("win-1", "cluster-1", &[])], vec![]);
+        let before = project_pointers(&s);
+        cluster_mut(&mut s, "cluster-1").project = Some("C:/game".into());
+        assert_eq!(repointed_clusters(&before, &s), vec!["cluster-1"]);
+
+        // Clearing it is a change too: Home has to fall back to its picker.
+        let before = project_pointers(&s);
+        cluster_mut(&mut s, "cluster-1").project = None;
+        assert_eq!(repointed_clusters(&before, &s), vec!["cluster-1"]);
+    }
+
+    /// Only the cluster that moved. Announcing its neighbour would wake every
+    /// frame in that cluster to say nothing changed.
+    #[test]
+    fn only_the_repointed_cluster_is_found() {
+        let mut s = state(
+            vec![
+                window("win-1", "cluster-1", &[]),
+                window("win-2", "cluster-2", &[]),
+            ],
+            vec![],
+        );
+        cluster_mut(&mut s, "cluster-2").project = Some("C:/other".into());
+        let before = project_pointers(&s);
+        cluster_mut(&mut s, "cluster-1").project = Some("C:/game".into());
+        assert_eq!(repointed_clusters(&before, &s), vec!["cluster-1"]);
+    }
+
+    /// Setting the pointer it already had, renaming, and closing a cluster are
+    /// all mutations that repoint nothing.
+    #[test]
+    fn nothing_is_found_when_no_pointer_changed() {
+        let mut s = state(
+            vec![
+                window("win-1", "cluster-1", &[]),
+                window("win-2", "cluster-2", &[]),
+            ],
+            vec![],
+        );
+        cluster_mut(&mut s, "cluster-1").project = Some("C:/game".into());
+
+        let before = project_pointers(&s);
+        cluster_mut(&mut s, "cluster-1").project = Some("C:/game".into());
+        cluster_mut(&mut s, "cluster-1").name = "Renamed".into();
+        assert!(repointed_clusters(&before, &s).is_empty());
+
+        let before = project_pointers(&s);
+        s.windows.remove(0);
+        assert!(repointed_clusters(&before, &s).is_empty());
     }
 
     /// The whole point of the change: a band terminal is its **cluster's**, so

@@ -476,6 +476,8 @@ pub fn run() {
             commands::cluster_project,
             commands::list_recent_projects,
             commands::open_project_in_cluster,
+            commands::project_icon,
+            commands::choose_project_icon,
             commands::list_presets,
             commands::save_preset,
             commands::apply_preset,

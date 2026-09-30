@@ -49,7 +49,18 @@
   border: none;
 }
 
-.switch-project__search-field:focus-visible {
+/* The ring belongs to the whole rounded box, not the bare input inset inside
+   it. `.k-dialog` is in the second selector because `dialogs.css` rings every
+   input in a dialog at that specificity, and a plain class here loses to it —
+   which is how the ring ended up on the inner field in the first place. */
+.switch-project__search:focus-within {
+  border-color: var(--accent);
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.k-dialog .switch-project__search-field:focus,
+.k-dialog .switch-project__search-field:focus-visible {
   outline: none;
 }
 
@@ -74,11 +85,49 @@
   color: var(--text-dim-2);
 }
 
+/* The row and its "Change icon…" button, side by side. */
+.switch-project__item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.switch-project__icon-button {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim-2);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.switch-project__item:hover .switch-project__icon-button,
+.switch-project__item:focus-within .switch-project__icon-button {
+  opacity: 1;
+}
+
+.switch-project__icon-button:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--line-2);
+}
+
+.switch-project__icon-button:disabled {
+  cursor: default;
+  opacity: 0;
+}
+
 .switch-project__row {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid transparent;
@@ -110,6 +159,18 @@
   font-weight: 600;
   color: var(--bg);
   background: var(--accent);
+}
+
+/* The project's own icon (`ProjectTile`): same box, no letter-tile fill. */
+.switch-project__tile--image {
+  background: transparent;
+  overflow: hidden;
+}
+
+.switch-project__tile--image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .switch-project__row-main {

@@ -59,6 +59,7 @@ import TerminalDeck, { type TerminalDeckHandle } from "./terminal/TerminalDeck";
 import { callApp, useApps, useOpenables, usePages } from "./state/apps";
 import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
+import { useProjectIcon } from "./state/projectIcon";
 import { useUpdates } from "./state/updates";
 import {
   activateInstance,
@@ -274,6 +275,7 @@ export default function WindowRoot({
   // needs it to decide whether the New Cluster dialog has anywhere to point
   // its choices at — see that callback's own note.
   const project = useClusterProject(activeClusterId);
+  const projectIcon = useProjectIcon(project?.path ?? null);
 
   // The band, as the cluster in front left it. Three values and two homes: the
   // height is the cluster's own — restored from the saved layout, and defaulted
@@ -1390,8 +1392,13 @@ export default function WindowRoot({
   //
   // `Cluster.worktree` is populated now, and `gitControl` resolves a cluster
   // through `project::cluster_path`, which follows the worktree when there is
-  // one and the project when there is not.
-  const git = useGitStatus(gitControl, activeClusterId);
+  // one and the project when there is not. The same pair is the third argument,
+  // so a repointed cluster re-asks.
+  const git = useGitStatus(
+    gitControl,
+    activeClusterId,
+    activeCluster?.worktree?.path ?? activeCluster?.project ?? null,
+  );
 
   // Whether a newer OpenKaava exists. Per-window, but not a per-window *answer*:
   // the state is one value in Rust and arrives on `updater:changed`, so two
@@ -1607,6 +1614,7 @@ export default function WindowRoot({
     closeWindow: onCloseWindow,
 
     commandPalette: openPalette,
+    switchProject: onOpenProjectSwitcher,
     togglePanel: () => setPanelCollapsed((c) => !c),
     toggleTerminal: onToggleTerminal,
     toggleFullscreen: onToggleFullscreen,
@@ -1780,6 +1788,7 @@ export default function WindowRoot({
             <TitleBar
               kind={kind}
               project={project?.name ?? null}
+              projectIcon={projectIcon}
               environment={environment}
               environmentLabel={activeCluster?.name ?? null}
               environmentCount={environmentCount}
