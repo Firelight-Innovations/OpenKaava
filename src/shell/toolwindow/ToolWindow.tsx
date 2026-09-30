@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import {
   forwardRef,
   useCallback,
@@ -183,6 +184,16 @@ const ToolWindow = forwardRef<
      * below. One drawn *over* the top costs nothing to lift.
      */
     soloInstanceId?: string | null;
+    /**
+     * The docked or expanded page's app, when it has one.
+     *
+     * Not in any pane's tree, so the surfaces list below never draws it.
+     * `host` is the element `AppPage` drew for it, and the frame is portaled
+     * there — through this component so it goes through the same handshake,
+     * routing and theme relay as every other frame. `null` host means the
+     * page body has not mounted yet.
+     */
+    pageSurface?: { instanceId: string; host: HTMLElement | null } | null;
     /** The pane a new surface lands in, drawn with the active-pane treatment. */
     focusedPaneId: string | null;
     onFocusPane: (paneId: string) => void;
@@ -239,6 +250,7 @@ const ToolWindow = forwardRef<
     instances,
     presentationOf,
     soloInstanceId = null,
+    pageSurface = null,
     focusedPaneId,
     onFocusPane,
     onResize,
@@ -541,6 +553,36 @@ const ToolWindow = forwardRef<
       sendEventWhenReady(instanceId, "kaava/window-rect", next);
     }
   }, [rects, tree, instances, sendEventWhenReady]);
+
+  // The page's own window rect, for a page app that needs one. Its box is not
+  // a pane, so it is read off the host element and followed with a
+  // ResizeObserver plus the window's resize (a docked page also moves when the
+  // panes beside it do).
+  const pageInstance = pageSurface ? instances.get(pageSurface.instanceId) : undefined;
+  const pageHostEl = pageSurface?.host ?? null;
+  const pageInstanceId = pageInstance?.id ?? null;
+  const pageNeedsRect = pageInstance ? NEEDS_WINDOW_RECT.has(pageInstance.appId) : false;
+  useEffect(() => {
+    if (!pageHostEl || !pageInstanceId || !pageNeedsRect) return;
+    const send = () => {
+      const r = pageHostEl.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return;
+      const next = { x: r.left, y: r.top, width: r.width, height: r.height };
+      const prev = lastWindowRect.current.get(pageInstanceId);
+      if (prev && sameWindowRect(prev, next)) return;
+      lastWindowRect.current.set(pageInstanceId, next);
+      sendEventWhenReady(pageInstanceId, "kaava/window-rect", next);
+    };
+    send();
+    const observer = new ResizeObserver(send);
+    observer.observe(pageHostEl);
+    window.addEventListener("resize", send);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", send);
+      lastWindowRect.current.delete(pageInstanceId);
+    };
+  }, [pageHostEl, pageInstanceId, pageNeedsRect, sendEventWhenReady, readyIds]);
 
   /**
    * The last value published under each topic, and which instance published it.
@@ -1342,6 +1384,24 @@ const ToolWindow = forwardRef<
           </div>
         );
       })}
+
+      {/* The page's app, drawn into the page body rather than over a pane. */}
+      {pageSurface?.host &&
+        pageInstance &&
+        pageInstance.kind !== "terminal" &&
+        presentationOf(pageInstance.appId) &&
+        createPortal(
+          <ToolMount
+            instanceId={pageInstance.id}
+            tool={presentationOf(pageInstance.appId)!}
+            title={pageInstance.title}
+            ready={readyIds.has(pageInstance.id)}
+            registerFrame={registerFrame}
+            unregisterFrame={unregisterFrame}
+          />,
+          pageSurface.host,
+          pageInstance.id,
+        )}
 
       {/* Two empty states, not one, because the way out of each is different:
           an empty cluster wants an app opened into it, an empty window has no

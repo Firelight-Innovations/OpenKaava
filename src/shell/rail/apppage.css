@@ -1,0 +1,9 @@
+/* The box a page app's iframe fills. `ToolMount`'s slot is absolutely
+   positioned, so this only has to be a sized, positioned parent. */
+.k-app-page {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
