@@ -442,3 +442,22 @@
 .bv__footer-spacer {
   flex: 1;
 }
+
+.bv__send {
+  margin-left: 8px;
+  padding: 0 6px;
+  font-size: 11px;
+  color: var(--txt-secondary);
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.bv__send:hover {
+  color: var(--txt-primary);
+}
+
+.bv__render-tile img {
+  cursor: grab;
+}
