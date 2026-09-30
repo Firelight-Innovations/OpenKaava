@@ -20,8 +20,7 @@ export function sceneHost(handle: SceneViewHandle, info: SceneHostInfo = {}): Ma
     project: (p) => handle.project(p),
     capture: () =>
       handle.capture({
-        pixelRatio:
-          info.pixelRatio ?? (typeof window === "undefined" ? 1 : window.devicePixelRatio),
+        scale: info.pixelRatio ?? (typeof window === "undefined" ? 1 : window.devicePixelRatio),
       }),
     size: () => handle.viewportSize(),
     describe: () => {
