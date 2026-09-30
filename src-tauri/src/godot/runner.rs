@@ -344,6 +344,15 @@ impl Runner {
             run.stop_requested.store(true, Ordering::SeqCst);
             kill_tree(run.pid);
         }
+        // Wait for the exits to be observed, so the caller knows they are gone.
+        for run in &runs {
+            for _ in 0..150 {
+                if !run.is_running() {
+                    break;
+                }
+                std::thread::sleep(Duration::from_millis(20));
+            }
+        }
     }
 }
 
@@ -562,6 +571,10 @@ mod tests {
         assert!(
             !runner.get("c2").unwrap().is_running(),
             "stop_all reaches every cluster's game"
+        );
+        assert!(
+            !runner.get("c1").unwrap().is_running(),
+            "and the one started after a restart"
         );
     }
 
