@@ -97,6 +97,9 @@ export const stat = (path: string) => invoke<Stat>("files/stat", { path });
 /** One text file, up to the backend's cap. Rejects non-UTF-8; see `isNotText`. */
 export const readText = (path: string) => invoke<FileText>("files/read", { path });
 
+/** A web link to the system browser. Rust accepts only http, https and mailto. */
+export const openUrl = (url: string) => invoke<null>("files/open-url", { url });
+
 /** One file's raw bytes, base64'd. Rejects rather than truncating. */
 export const readBytes = (path: string) => invoke<FileBytes>("files/read-bytes", { path });
 

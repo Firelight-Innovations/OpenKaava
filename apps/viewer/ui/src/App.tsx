@@ -27,6 +27,7 @@ import SendToAgent from "./SendToAgent";
 import TabStrip from "./tabs/TabStrip";
 import { useOpenFiles } from "./tabs/useOpenFiles";
 import Viewer from "./viewer/Viewer";
+import PreviewToggle from "./preview/PreviewToggle";
 import { ACTIVE_PATH, DIRTY_PATHS, TREE_CHANGE, asTreeChange } from "./topics";
 import { describe, getRoot, type Root } from "./rpc";
 
@@ -215,32 +216,35 @@ export default function App() {
         onDelete={del.ask}
         trailing={
           active && (
-            <div
-              className="k-tabs k-tabs--segmented viewerapp__mode"
-              role="tablist"
-              aria-label="Code or build steps"
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={viewMode === "code"}
-                className="k-tab"
-                onClick={() => setViewMode("code")}
+            <>
+              <PreviewToggle />
+              <div
+                className="k-tabs k-tabs--segmented viewerapp__mode"
+                role="tablist"
+                aria-label="Code or build steps"
               >
-                Code
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={viewMode === "build-steps"}
-                className="k-tab"
-                onClick={() => setViewMode("build-steps")}
-                title="Not wired up yet. Planned: a step diagram for scripts like build_bed.py — frame, legs, materials, export, render — each step commentable like a Blender mesh part. See docs/KAAVA-UX-REWORK.md §8."
-              >
-                Build steps
-                <span className="viewerapp__later">LATER</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={viewMode === "code"}
+                  className="k-tab"
+                  onClick={() => setViewMode("code")}
+                >
+                  Code
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={viewMode === "build-steps"}
+                  className="k-tab"
+                  onClick={() => setViewMode("build-steps")}
+                  title="Not wired up yet. Planned: a step diagram for scripts like build_bed.py — frame, legs, materials, export, render — each step commentable like a Blender mesh part. See docs/KAAVA-UX-REWORK.md §8."
+                >
+                  Build steps
+                  <span className="viewerapp__later">LATER</span>
+                </button>
+              </div>
+            </>
           )
         }
       />
@@ -258,6 +262,7 @@ export default function App() {
           file={active}
           onDirty={(dirty) => files.setDirty(active.path, dirty)}
           registerSave={(save) => files.registerSave(active.path, save)}
+          openPath={(path) => files.open(path, false)}
         />
       )}
 
