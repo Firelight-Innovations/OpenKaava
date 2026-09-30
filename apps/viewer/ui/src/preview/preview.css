@@ -1,0 +1,399 @@
+/*
+ * The rendered pane: Markdown, diagrams, SVG and sandboxed HTML.
+ *
+ * Every colour is a token from `src/tokens.css`, so the same rules serve both
+ * themes with nothing restated for light. The Markdown body is a reading
+ * surface, which is why it has a measure: text is capped near 75 characters and
+ * centred, and only tables, code and images are allowed to run wider.
+ *
+ * Loaded with `PreviewPane`, so it arrives with the markdown-it chunk and never
+ * on the path of a file that is opened as source. The split's own layout is in
+ * `split.css`, in the main chunk.
+ */
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-surface-1);
+}
+
+.preview__note {
+  margin: auto;
+  padding: 18px;
+  max-width: 64ch;
+}
+
+.preview__notice {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-layer-1);
+}
+
+.preview__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  /* Keeps a scroll anchored to a block, not a pixel, while live edits reflow. */
+  overflow-anchor: auto;
+}
+
+/* --- the reading column ------------------------------------------------- */
+
+.md {
+  box-sizing: border-box;
+  max-width: 78ch;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-6) 64px;
+  font: var(--type-body);
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--txt-secondary);
+  overflow-wrap: anywhere;
+}
+
+.md > :first-child {
+  margin-top: 0;
+}
+
+.md h1,
+.md h2,
+.md h3,
+.md h4,
+.md h5,
+.md h6 {
+  position: relative;
+  margin: 1.6em 0 0.6em;
+  font-family: var(--sans);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--txt-primary);
+}
+
+/* A real scale, not one size and a colour: h1 and h2 carry a rule, as in every
+   Markdown surface a reader has met, which is what makes the outline scannable. */
+.md h1 {
+  font-size: 2em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border-subtle-1);
+}
+
+.md h2 {
+  font-size: 1.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.md h3 {
+  font-size: 1.25em;
+}
+
+.md h4 {
+  font-size: 1em;
+}
+
+.md h5 {
+  font-size: 0.875em;
+}
+
+.md h6 {
+  font-size: 0.85em;
+  color: var(--txt-tertiary);
+}
+
+/* The heading's own link, drawn only on hover so a document is not littered
+   with hashes. Reachable by keyboard, where it is shown on focus. */
+.md__anchor {
+  position: absolute;
+  left: -1.1em;
+  padding-right: 0.3em;
+  color: var(--txt-disabled);
+  font-weight: 400;
+  text-decoration: none;
+  opacity: 0;
+}
+
+.md h1:hover .md__anchor,
+.md h2:hover .md__anchor,
+.md h3:hover .md__anchor,
+.md h4:hover .md__anchor,
+.md h5:hover .md__anchor,
+.md h6:hover .md__anchor,
+.md__anchor:focus-visible {
+  opacity: 1;
+}
+
+.md p,
+.md ul,
+.md ol,
+.md blockquote,
+.md pre,
+.md table,
+.md details {
+  margin: 0 0 1em;
+}
+
+.md a {
+  color: var(--txt-accent);
+  text-decoration: none;
+}
+
+.md a:hover {
+  text-decoration: underline;
+}
+
+.md strong {
+  color: var(--txt-primary);
+  font-weight: 600;
+}
+
+.md hr {
+  height: 1px;
+  margin: 1.8em 0;
+  border: 0;
+  background: var(--border-subtle-1);
+}
+
+.md ul,
+.md ol {
+  padding-left: 1.8em;
+}
+
+.md li + li {
+  margin-top: 0.25em;
+}
+
+.md li > ul,
+.md li > ol {
+  margin: 0.25em 0 0;
+}
+
+.md__task {
+  list-style: none;
+  margin-left: -1.4em;
+}
+
+.md__check {
+  margin: 0 0.5em 0 0;
+  vertical-align: middle;
+  accent-color: var(--accent);
+}
+
+.md blockquote {
+  padding: 0 1em;
+  border-left: 3px solid var(--border-strong);
+  color: var(--txt-tertiary);
+}
+
+.md blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.md img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.md__img--missing {
+  padding: 2px 6px;
+  border: 1px dashed var(--border-strong);
+  color: var(--txt-disabled);
+  font-size: 12px;
+}
+
+/* --- code --------------------------------------------------------------- */
+
+.md code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+}
+
+.md :not(pre) > code {
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-sm);
+  background: var(--bg-layer-3);
+  color: var(--txt-primary);
+}
+
+.md pre {
+  padding: var(--space-3) var(--space-4);
+  overflow: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-layer-1);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--txt-primary);
+  /* Code keeps its lines; it scrolls sideways instead of wrapping. */
+  overflow-wrap: normal;
+}
+
+.md pre code {
+  font-size: inherit;
+  white-space: pre;
+  background: none;
+  padding: 0;
+}
+
+/* YAML front matter: shown, but quieter than the document. */
+.md__front {
+  color: var(--txt-placeholder);
+}
+
+/* Monaco's token types, in this app's palette. */
+.tok-comment {
+  color: var(--txt-disabled);
+  font-style: italic;
+}
+
+.tok-string,
+.tok-regexp {
+  color: var(--accent-green);
+}
+
+.tok-number,
+.tok-attribute {
+  color: var(--accent-amber);
+}
+
+.tok-keyword,
+.tok-metatag {
+  color: var(--accent-violet);
+}
+
+.tok-type,
+.tok-predefined,
+.tok-constant,
+.tok-annotation {
+  color: var(--accent-blue);
+}
+
+.tok-tag {
+  color: var(--accent-coral);
+}
+
+.tok-operator,
+.tok-delimiter {
+  color: var(--txt-tertiary);
+}
+
+/* --- tables ------------------------------------------------------------- */
+
+.md table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow: auto;
+  border-collapse: collapse;
+}
+
+.md th,
+.md td {
+  padding: 6px 12px;
+  border: 1px solid var(--border-subtle-1);
+}
+
+.md th {
+  background: var(--bg-layer-1);
+  color: var(--txt-primary);
+  font-weight: 600;
+  text-align: left;
+}
+
+.md tr:nth-child(even) td {
+  background: var(--bg-layer-1);
+}
+
+.md details > summary {
+  cursor: pointer;
+  color: var(--txt-primary);
+}
+
+.md kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-layer-1);
+  font: var(--type-mono-meta);
+  font-size: 0.85em;
+}
+
+/* --- diagrams ------------------------------------------------------------ */
+
+.md__mermaid {
+  margin: 0 0 1em;
+}
+
+.md__mermaid--ready {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-4);
+  overflow: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-layer-1);
+}
+
+.md__mermaid--ready svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.md__mermaid-error {
+  margin: 0.5em 0 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--danger);
+  background: var(--danger-subtle);
+  color: var(--txt-danger);
+  font: var(--type-mono-meta);
+  white-space: pre-wrap;
+}
+
+.preview__diagram {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-6);
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.preview__canvas {
+  max-width: 100%;
+  overflow: auto;
+}
+
+.preview__canvas svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.preview__broken {
+  align-self: stretch;
+  margin-bottom: var(--space-4);
+}
+
+.preview__svg {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* The sandboxed frame is a page of its own, so it gets a white one: an HTML
+   file's author designed it for a light canvas and did not ask for ours. */
+.preview__html {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: white;
+}
+
+.preview:has(.preview__html) .preview__scroll {
+  overflow: hidden;
+}

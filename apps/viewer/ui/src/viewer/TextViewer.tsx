@@ -21,6 +21,7 @@ import { useEffect, useRef, useState } from "react";
 import { pick, type ViewerProps } from "./registry";
 import { clearActiveEditor, setActiveEditor } from "./activeEditor";
 import {
+  bindPreview,
   bindSave,
   createGitGutter,
   createModel,
@@ -29,6 +30,9 @@ import {
   retargetModel,
   type EditorSettings,
 } from "./monaco";
+import { previewKindFor } from "../preview/previewKind";
+import { previewControl } from "../preview/previewControl";
+import { takeTopLine } from "../preview/previewSync";
 import { gitHunks } from "./gitHunks";
 import { gitHead } from "./gitHead";
 import { documents, requestReload, saveDocument, type TabDocument } from "../tabs/useOpenFiles";
@@ -164,6 +168,9 @@ export default function TextViewer({ file, onDirty, registerSave, reopenWith }: 
     const readOnly = doc.truncatedAt !== null;
     const editor = mountEditor(host, doc.model, readOnly, editorSettings);
     if (doc.viewState) editor.restoreViewState(doc.viewState);
+    // Coming back from a preview: land on the block the reader was looking at.
+    const previewLine = takeTopLine(file.path);
+    if (previewLine !== undefined) editor.setScrollTop(editor.getTopForLineNumber(previewLine));
     editor.focus();
 
     // The Edit menu in the shell's title bar acts on this editor, and nothing
@@ -249,6 +256,13 @@ export default function TextViewer({ file, onDirty, registerSave, reopenWith }: 
 
     latest.current.registerSave(save);
     bindSave(editor, () => void save());
+    // Only for a file with a rendered form. A `.rs` keeps Ctrl+Shift+V as paste.
+    if (previewKindFor(file.ext) !== null) {
+      bindPreview(editor, {
+        toggle: () => previewControl()?.toggle(),
+        toggleSide: () => previewControl()?.toggleSide(),
+      });
+    }
 
     return () => {
       cancelled = true;

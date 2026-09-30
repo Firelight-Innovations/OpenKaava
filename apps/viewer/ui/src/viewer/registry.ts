@@ -51,6 +51,12 @@ export interface ViewerProps {
    * image and its source — an SVG being genuinely both.
    */
   reopenWith(viewerId: string): void;
+
+  /**
+   * Open another file in this app's tabs. Used by the Markdown preview for a
+   * relative link to a sibling document; absent where the host did not wire it.
+   */
+  openPath?(path: string): void;
 }
 
 export interface ViewerDescriptor {
@@ -71,6 +77,12 @@ export interface ViewerDescriptor {
    * when the backend says no. See `isNotText` in `../rpc`.
    */
   match(file: OpenFile): boolean;
+  /**
+   * Reachable only through `reopenWith`, never chosen by `pick`. For a rendered
+   * form of a file whose *source* is what opening it should show — Markdown and
+   * HTML, like VS Code, where Ctrl+Shift+V is the way in.
+   */
+  optIn?: boolean;
   /**
    * **`load` must stay a dynamic `import()`.** It is not a style choice. `apps/`
    * is not a pnpm workspace member, so Monaco, pdf.js and mermaid all sit in the
@@ -120,6 +132,23 @@ export const VIEWERS: ViewerDescriptor[] = [
     load: () => import("./MermaidViewer"),
   },
   {
+    // Opt-in: `.md` opens as source. See `optIn` and `preview/`.
+    id: "markdown",
+    label: "Markdown preview",
+    editable: false,
+    optIn: true,
+    match: (file) => file.ext === "md" || file.ext === "markdown",
+    load: () => import("./MarkdownViewer"),
+  },
+  {
+    id: "html",
+    label: "HTML preview",
+    editable: false,
+    optIn: true,
+    match: (file) => file.ext === "html" || file.ext === "htm",
+    load: () => import("./HtmlViewer"),
+  },
+  {
     // The fallback, not an extension list. Anything that is not one of the
     // above is *tried* as text, because a name cannot say whether bytes decode.
     id: "text",
@@ -144,7 +173,9 @@ export const VIEWERS: ViewerDescriptor[] = [
 
 /** The first viewer that claims this file. Never `undefined` — `text` matches all. */
 export function pick(file: OpenFile): ViewerDescriptor {
-  return VIEWERS.find((viewer) => viewer.match(file)) ?? VIEWERS[VIEWERS.length - 1];
+  return (
+    VIEWERS.find((viewer) => !viewer.optIn && viewer.match(file)) ?? VIEWERS[VIEWERS.length - 1]
+  );
 }
 
 /** A viewer by id, for `reopenWith`. `undefined` if the id is not registered. */

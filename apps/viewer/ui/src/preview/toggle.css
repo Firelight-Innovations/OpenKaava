@@ -1,0 +1,22 @@
+/*
+ * The Preview button pair in the mode bar. Small on purpose: the bar belongs to
+ * `viewer.css`, and this adds only what `k-btn` does not have — a pressed state.
+ * Colours are `src/tokens.css`.
+ */
+
+.previewbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.previewbtn__btn {
+  display: inline-flex;
+  align-items: center;
+}
+
+.previewbtn__btn[aria-pressed="true"] {
+  background: var(--accent-subtle);
+  border-color: var(--accent-line);
+  color: var(--txt-accent);
+}

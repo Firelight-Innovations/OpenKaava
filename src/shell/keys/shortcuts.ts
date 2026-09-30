@@ -134,6 +134,22 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     ],
   },
   {
+    // Bound by the File Viewer inside its own frame, not by `useKeyboard.ts`:
+    // a keystroke in an app's iframe never reaches the shell, and a shell binding
+    // would take Ctrl+Shift+V from the terminal, where it is paste. So no
+    // `chords` — the test cannot check these, and they are held to
+    // `apps/viewer/ui/src/preview/previewKeys.ts` by reading.
+    title: "File Viewer",
+    items: [
+      {
+        label: "Open Preview",
+        keys: ["Ctrl", "Shift", "V"],
+        note: "Toggles between the source and the rendered view of a Markdown, Mermaid, SVG or HTML file. Only while a viewer has focus.",
+      },
+      { label: "Open Preview to the Side", keys: ["Ctrl", "K", "V"] },
+    ],
+  },
+  {
     title: "Search",
     items: [
       { label: "Open search", keys: ["Ctrl", "K"] },

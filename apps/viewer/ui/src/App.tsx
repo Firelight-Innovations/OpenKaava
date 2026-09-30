@@ -27,6 +27,7 @@ import SendToAgent from "./SendToAgent";
 import TabStrip from "./tabs/TabStrip";
 import { useOpenFiles } from "./tabs/useOpenFiles";
 import Viewer from "./viewer/Viewer";
+import PreviewToggle from "./preview/PreviewToggle";
 import { ACTIVE_PATH, DIRTY_PATHS, TREE_CHANGE, asTreeChange } from "./topics";
 import { describe, getRoot, type Root } from "./rpc";
 
@@ -205,6 +206,7 @@ export default function App() {
             missing={active.missing === true}
             onError={setError}
           />
+          <PreviewToggle />
           <div className="k-tabs k-tabs--segmented" role="tablist" aria-label="Code or build steps">
             <button
               type="button"
@@ -262,6 +264,7 @@ export default function App() {
           file={active}
           onDirty={(dirty) => files.setDirty(active.path, dirty)}
           registerSave={(save) => files.registerSave(active.path, save)}
+          openPath={(path) => files.open(path, false)}
         />
       )}
 
