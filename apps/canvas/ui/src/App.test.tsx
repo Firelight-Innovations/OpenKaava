@@ -111,6 +111,7 @@ interface Backend {
   readOnly: boolean;
   rows: { id: string; title: string; parent: string | null; error: string | null }[];
   reads: Record<string, SceneFile | Error>;
+  assets?: unknown;
 }
 
 function fake(b: Backend) {
@@ -125,6 +126,8 @@ function fake(b: Backend) {
         if (got instanceof Error) throw got;
         return { id: params!.id, path: `canvas/${params!.id}.json`, scene: got, mtime: 100 };
       }
+      case "canvas/assets":
+        return b.assets ?? { cards: [], canvases: b.rows.length, unreadable: [] };
       case "canvas/stat":
         return { mtime: 100 };
       case "canvas/write":
@@ -306,6 +309,144 @@ describe("Canvas app", () => {
       await screen.findByText("2 elements");
       fireEvent.click(screen.getByText("select frame"));
       expect(screen.queryByText("Create child canvas")).toBeNull();
+    });
+  });
+
+  describe("spec cards", () => {
+    const one = (): Backend => ({
+      readOnly: false,
+      rows: [{ id: "world", title: "World", parent: null, error: null }],
+      reads: { world: scene(1) },
+    });
+
+    it("saves a filled card on the selected element, and refuses an empty one", async () => {
+      fake(one());
+      render(<App />);
+      await screen.findByText("1 elements");
+      fireEvent.click(screen.getByText("select frame"));
+      await screen.findByText("Make a spec card");
+
+      fireEvent.click(screen.getByText("Save card"));
+      expect(bridge.invoke.mock.calls.some((c) => c[0] === "canvas/write")).toBe(false);
+      expect(await screen.findByText("A name is required.")).toBeTruthy();
+
+      fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Gurney" } });
+      fireEvent.change(screen.getByLabelText("Size (m, largest side)"), {
+        target: { value: "2" },
+      });
+      fireEvent.change(screen.getByLabelText("Triangle budget"), { target: { value: "8000" } });
+      fireEvent.change(screen.getByLabelText("Review state"), { target: { value: "review" } });
+      fireEvent.click(screen.getByText("Save card"));
+
+      await waitFor(() => {
+        const write = bridge.invoke.mock.calls.find((c) => c[0] === "canvas/write");
+        expect(write).toBeTruthy();
+        const el = (write![1].scene.elements as { id: string; customData?: unknown }[]).find(
+          (e) => e.id === "f1",
+        );
+        expect(el?.customData).toEqual({
+          kaava: {
+            spec: {
+              name: "Gurney",
+              reference_images: [],
+              size_m: 2,
+              triangle_budget: 8000,
+              style_notes: "",
+              status: "review",
+            },
+          },
+        });
+      });
+    });
+
+    it("shows the exported JSON for a valid card", async () => {
+      fake(one());
+      render(<App />);
+      await screen.findByText("1 elements");
+      fireEvent.click(screen.getByText("select frame"));
+      fireEvent.change(await screen.findByLabelText("Name"), { target: { value: "Gurney" } });
+      fireEvent.change(screen.getByLabelText("Size (m, largest side)"), {
+        target: { value: "2" },
+      });
+      fireEvent.change(screen.getByLabelText("Triangle budget"), { target: { value: "8000" } });
+      const json = screen.getByLabelText("Exported JSON").textContent ?? "";
+      expect(JSON.parse(json)).toMatchObject({ name: "Gurney", size_m: 2, triangle_budget: 8000 });
+    });
+
+    it("offers no editing on read-only main", async () => {
+      fake({ ...one(), readOnly: true });
+      render(<App />);
+      await screen.findByText("1 elements");
+      fireEvent.click(screen.getByText("select frame"));
+      expect(screen.queryByText("Make a spec card")).toBeNull();
+    });
+  });
+
+  describe("asset list", () => {
+    const withCards = (): Backend => ({
+      readOnly: false,
+      rows: [
+        { id: "world", title: "World", parent: null, error: null },
+        { id: "world/ward-b", title: "Ward B", parent: "world", error: null },
+      ],
+      reads: { world: scene(2), "world/ward-b": scene(1, "Ward B") },
+      assets: {
+        canvases: 2,
+        unreadable: [],
+        cards: [
+          {
+            canvas: "world",
+            canvasTitle: "World",
+            elementId: "a",
+            status: "accepted",
+            spec: { name: "Chair", size_m: 1, triangle_budget: 500 },
+          },
+          {
+            canvas: "world/ward-b",
+            canvasTitle: "Ward B",
+            elementId: "b",
+            status: "review",
+            spec: { name: "Gurney", size_m: 2, triangle_budget: 8000 },
+          },
+        ],
+      },
+    });
+
+    it("lists every card across canvases with its state, and filters", async () => {
+      fake(withCards());
+      render(<App />);
+      await screen.findByText("2 elements");
+      fireEvent.click(screen.getByRole("tab", { name: "Asset list" }));
+      expect(await screen.findByText("Gurney")).toBeTruthy();
+      expect(screen.getByText("Chair")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "All 2" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "review 1" })).toBeTruthy();
+
+      fireEvent.click(screen.getByRole("button", { name: "review 1" }));
+      expect(screen.queryByText("Chair")).toBeNull();
+      expect(screen.getByText("Gurney")).toBeTruthy();
+    });
+
+    it("opens the canvas a card is on", async () => {
+      fake(withCards());
+      render(<App />);
+      await screen.findByText("2 elements");
+      fireEvent.click(screen.getByRole("tab", { name: "Asset list" }));
+      await screen.findByText("Gurney");
+      fireEvent.click(screen.getByText("Ward B", { selector: "td button" }));
+      expect(await screen.findByText("1 elements")).toBeTruthy();
+      expect(screen.queryByLabelText("Asset list")).toBeNull();
+    });
+
+    it("says so when there are no cards, and names a canvas it could not read", async () => {
+      const b = withCards();
+      b.assets = { canvases: 1, unreadable: ["broken"], cards: [] };
+      fake(b);
+      render(<App />);
+      await screen.findByText("2 elements");
+      fireEvent.click(screen.getByRole("tab", { name: "Asset list" }));
+      expect(await screen.findByText(/No spec cards yet/)).toBeTruthy();
+      expect(screen.getByText(/Could not read broken/)).toBeTruthy();
     });
   });
 });

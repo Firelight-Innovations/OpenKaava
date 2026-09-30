@@ -67,6 +67,7 @@ pub fn call(
         "canvas/list" => list(&root(context)?),
         "canvas/read" => read(&root(context)?, &id_param(params.as_ref())?),
         "canvas/stat" => stat(&root(context)?, &id_param(params.as_ref())?),
+        "canvas/assets" => assets(&root(context)?),
         "canvas/create" => create(&root(context)?, params.as_ref()),
         "canvas/write" => write(&root(context)?, params.as_ref()),
         _ => Err(RpcError::new(
@@ -304,6 +305,68 @@ fn list(root: &Path) -> Result<Value, RpcError> {
     Ok(Value::Array(rows))
 }
 
+/// Every spec card in every canvas of the checkout: the asset list (P7-5).
+///
+/// A spec card is a live element with `customData.kaava.spec`. The card is
+/// returned as the file holds it; judging whether it is complete is the
+/// frontend's job, so a half-filled card still shows up in the list. Its review
+/// state is the card's own `status` (`draft` when unset). Joining the latest
+/// artifact status from the cloud store needs the cloud client, which is not in
+/// this checkout, so that half is not here.
+///
+/// Canvases that cannot be read are counted in `unreadable`, not skipped in
+/// silence: an empty list must not read as "no cards" when a file is broken.
+fn assets(root: &Path) -> Result<Value, RpcError> {
+    let mut cards = Vec::new();
+    let mut unreadable = Vec::new();
+    let mut canvases = 0usize;
+    for (id, path) in files(root) {
+        let Ok(scene) = load(&path) else {
+            unreadable.push(id);
+            continue;
+        };
+        canvases += 1;
+        let title = scene
+            .get("kaava")
+            .and_then(|k| k.get("title"))
+            .and_then(Value::as_str)
+            .filter(|t| !t.is_empty())
+            .unwrap_or_else(|| id.rsplit('/').next().unwrap_or(&id))
+            .to_string();
+        let elements = scene
+            .get("elements")
+            .and_then(Value::as_array)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        for el in elements {
+            if el.get("isDeleted").and_then(Value::as_bool) == Some(true) {
+                continue;
+            }
+            let Some(spec) = el
+                .get("customData")
+                .and_then(|c| c.get("kaava"))
+                .and_then(|k| k.get("spec"))
+                .filter(|s| s.is_object())
+            else {
+                continue;
+            };
+            let status = spec
+                .get("status")
+                .and_then(Value::as_str)
+                .filter(|s| !s.is_empty())
+                .unwrap_or("draft");
+            cards.push(json!({
+                "canvas": id,
+                "canvasTitle": title,
+                "elementId": el.get("id").and_then(Value::as_str).unwrap_or(""),
+                "spec": spec,
+                "status": status,
+            }));
+        }
+    }
+    Ok(json!({ "cards": cards, "canvases": canvases, "unreadable": unreadable }))
+}
+
 fn read(root: &Path, id: &str) -> Result<Value, RpcError> {
     let path = file_for(root, id);
     if !path.is_file() {
@@ -498,6 +561,82 @@ mod tests {
             "appState": { "viewBackgroundColor": "#ffffff" },
             "files": {},
         })
+    }
+
+    fn card(id: &str, spec: Value, deleted: bool) -> Value {
+        json!({
+            "id": id, "type": "rectangle", "isDeleted": deleted,
+            "customData": { "kaava": { "spec": spec } },
+        })
+    }
+
+    fn put(root: &Path, id: &str, elements: Vec<Value>) {
+        run(root, "canvas/create", json!({ "id": id })).unwrap();
+        let mut scene = rect_scene();
+        scene["elements"] = Value::Array(elements);
+        run(
+            root,
+            "canvas/write",
+            json!({ "id": id, "scene": scene, "baseMtime": mtime_at(&file_for(root, id)) }),
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn assets_lists_every_spec_card_across_canvases_with_review_state() {
+        let dir = TempDir::new().unwrap();
+        put(
+            dir.path(),
+            "world",
+            vec![
+                json!({ "id": "plain", "type": "rectangle" }),
+                card("c1", json!({ "name": "Gurney" }), false),
+            ],
+        );
+        put(
+            dir.path(),
+            "world/ward-b",
+            vec![
+                card(
+                    "c2",
+                    json!({ "name": "IV stand", "status": "review" }),
+                    false,
+                ),
+                card("gone", json!({ "name": "Deleted" }), true),
+            ],
+        );
+        let out = run(dir.path(), "canvas/assets", json!({})).unwrap();
+        assert_eq!(out["canvases"], 2);
+        assert_eq!(out["unreadable"], json!([]));
+        let cards = out["cards"].as_array().unwrap();
+        assert_eq!(cards.len(), 2, "deleted and non-card elements are left out");
+        assert_eq!(cards[0]["canvas"], "world");
+        assert_eq!(cards[0]["status"], "draft");
+        assert_eq!(cards[1]["canvas"], "world/ward-b");
+        assert_eq!(cards[1]["elementId"], "c2");
+        assert_eq!(cards[1]["status"], "review");
+    }
+
+    #[test]
+    fn assets_reports_a_corrupt_canvas_instead_of_hiding_it() {
+        let dir = TempDir::new().unwrap();
+        put(
+            dir.path(),
+            "good",
+            vec![card("c", json!({ "name": "A" }), false)],
+        );
+        std::fs::write(dir.path().join("canvas/broken.json"), "{ nope").unwrap();
+        let out = run(dir.path(), "canvas/assets", json!({})).unwrap();
+        assert_eq!(out["cards"].as_array().unwrap().len(), 1);
+        assert_eq!(out["unreadable"], json!(["broken"]));
+    }
+
+    #[test]
+    fn assets_is_empty_when_there_is_no_canvas_folder() {
+        let dir = TempDir::new().unwrap();
+        let out = run(dir.path(), "canvas/assets", json!({})).unwrap();
+        assert_eq!(out["cards"], json!([]));
+        assert_eq!(out["canvases"], 0);
     }
 
     #[test]

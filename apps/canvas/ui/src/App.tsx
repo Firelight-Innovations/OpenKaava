@@ -2,6 +2,9 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { reportPainted } from "@openkaava/bridge";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { AlertTriangle, ChevronRight, ExternalLink, FilePlus2, Link2Off, Lock } from "lucide-react";
+import AssetList from "./AssetList";
+import SpecPanel from "./SpecPanel";
+import { selectedElement, specOf, withSpec, type SpecCard } from "./spec";
 import {
   createCanvas,
   getState,
@@ -24,6 +27,8 @@ import "./App.css";
 
 // The editor is the bulk of this app's weight; load it only once a canvas is open.
 const Editor = lazy(() => import("./Editor"));
+
+type View = "canvas" | "assets";
 
 const SAVE_DELAY_MS = 700;
 const POLL_MS = 2000;
@@ -89,6 +94,12 @@ export default function App() {
     null,
   );
   const [childName, setChildName] = useState("");
+  const [view, setView] = useState<View>("canvas");
+  /** Bumped when a card is saved, so the asset list reads disk again. */
+  const [assetsKey, setAssetsKey] = useState(0);
+  const [pick, setPick] = useState<{ id: string; spec: Record<string, unknown> | null } | null>(
+    null,
+  );
   const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
   const saverRef = useRef<Autosaver | null>(null);
   const docRef = useRef<CanvasDoc | null>(null);
@@ -150,6 +161,7 @@ export default function App() {
       saverRef.current = saver;
       setDoc(next);
       setFrame(null);
+      setPick(null);
       setNotice(null);
       setLoadKey((k) => k + 1);
       writeLast(id);
@@ -219,6 +231,18 @@ export default function App() {
         prev?.id === next?.id && prev?.child === next?.child && prev?.name === next?.name
           ? prev
           : next,
+      );
+      const one = selectedElement(
+        elements as readonly SceneElement[],
+        appState.selectedElementIds as Record<string, unknown> | undefined,
+      );
+      const spec = one ? specOf(one) : null;
+      setPick((prev) =>
+        prev?.id === one?.id && JSON.stringify(prev?.spec) === JSON.stringify(spec)
+          ? prev
+          : one
+            ? { id: one.id, spec }
+            : null,
       );
       const saver = saverRef.current;
       const open = docRef.current;
@@ -293,6 +317,37 @@ export default function App() {
     if (!frame) return;
     await patchElement(frame.id, (el) => withChild(el, null));
   }, [frame, patchElement]);
+
+  const saveCard = useCallback(
+    async (card: SpecCard) => {
+      if (!pick) return;
+      await patchElement(pick.id, (el) => withSpec(el, card));
+      setPick({ id: pick.id, spec: { ...card } });
+      setAssetsKey((k) => k + 1);
+    },
+    [patchElement, pick],
+  );
+
+  const removeCard = useCallback(async () => {
+    if (!pick) return;
+    await patchElement(pick.id, (el) => withSpec(el, null));
+    setPick({ id: pick.id, spec: null });
+    setAssetsKey((k) => k + 1);
+  }, [patchElement, pick]);
+
+  const showAssets = useCallback(async () => {
+    await saverRef.current?.flush();
+    setAssetsKey((k) => k + 1);
+    setView("assets");
+  }, []);
+
+  const openFromList = useCallback(
+    async (id: string) => {
+      setView("canvas");
+      if (id !== current) await switchTo(id);
+    },
+    [current, switchTo],
+  );
 
   const chain = useMemo(() => (current ? ancestry(list ?? [], current) : []), [current, list]);
 
@@ -389,6 +444,26 @@ export default function App() {
           ))}
           {empty && <option value="">No canvases yet</option>}
         </select>
+        <div className="cv__tabs" role="tablist" aria-label="View">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "canvas"}
+            className={`cv__tab${view === "canvas" ? " is-on" : ""}`}
+            onClick={() => setView("canvas")}
+          >
+            Canvas
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "assets"}
+            className={`cv__tab${view === "assets" ? " is-on" : ""}`}
+            onClick={() => void showAssets()}
+          >
+            Asset list
+          </button>
+        </div>
         {chain.length > 1 && (
           <nav className="cv__crumbs" aria-label="Canvas path">
             {chain.map((row, i) => (
@@ -489,7 +564,11 @@ export default function App() {
         </div>
       )}
 
-      <main className="cv__body">
+      {view === "assets" && (
+        <AssetList refreshKey={assetsKey} onOpen={(id) => void openFromList(id)} />
+      )}
+
+      <main className="cv__body" hidden={view !== "canvas"}>
         {doc && frame && (frame.child || !readOnly) && (
           <aside className="cv__frame" aria-label="Frame link">
             {frame.child ? (
@@ -535,6 +614,15 @@ export default function App() {
               </form>
             )}
           </aside>
+        )}
+        {doc && pick && (pick.spec || !readOnly) && (
+          <SpecPanel
+            key={`${doc.id}:${loadKey}:${pick.id}`}
+            stored={pick.spec}
+            readOnly={readOnly}
+            onSave={(card) => void saveCard(card)}
+            onRemove={() => void removeCard()}
+          />
         )}
         {loadError ? (
           <div className="cv__empty" role="alert">
