@@ -7,7 +7,7 @@
  * "appears in `writes`" and "reaches the pty" are the same statement here.
  */
 import { describe, expect, it } from "vitest";
-import { handleContextMenu, handleKey, handlePaste, isPasteKey } from "./clipboard";
+import { firstImage, handleContextMenu, handleKey, handlePaste, isPasteKey } from "./clipboard";
 
 function fakeTerminal(selection = "", textareaValue = "") {
   const writes: string[] = [];
@@ -111,5 +111,79 @@ describe("right-click", () => {
 
     expect(term.textarea.value).toBe("src/shell/terminal");
     expect(term.writes).toEqual([]);
+  });
+});
+
+/** A clipboard carrying text, files, or both. */
+function mixedPaste(text: string, files: { type: string; name?: string }[]) {
+  const seen = { prevented: false, stopped: false };
+  return {
+    seen,
+    clipboardData: { getData: () => text, files },
+    preventDefault: () => void (seen.prevented = true),
+    stopPropagation: () => void (seen.stopped = true),
+  };
+}
+
+describe("Ctrl+V with an image", () => {
+  it("hands a screenshot to the image path and cancels the event", () => {
+    const term = fakeTerminal();
+    const got: unknown[] = [];
+    const png = { type: "image/png", name: "image.png" };
+    const ev = mixedPaste("", [png]);
+
+    handlePaste(term, ev, (f) => got.push(f));
+
+    expect(got).toEqual([png]);
+    expect(term.writes).toEqual([]); // no text was invented for it.
+    expect(ev.seen.stopped).toBe(true); // xterm must not also try to paste.
+    expect(ev.seen.prevented).toBe(true);
+  });
+
+  it("lets text win when the clipboard carries both", () => {
+    // A copied spreadsheet range: a bitmap and the text that was meant.
+    const term = fakeTerminal();
+    const got: unknown[] = [];
+    handlePaste(term, mixedPaste("a	b", [{ type: "image/png" }]), (f) => got.push(f));
+
+    expect(term.writes).toEqual(["a	b"]);
+    expect(got).toEqual([]);
+  });
+
+  it("ignores a non-image file and leaves the event to xterm", () => {
+    const term = fakeTerminal();
+    const got: unknown[] = [];
+    const ev = mixedPaste("", [{ type: "application/pdf" }]);
+
+    handlePaste(term, ev, (f) => got.push(f));
+
+    expect(got).toEqual([]);
+    expect(ev.seen.stopped).toBe(false);
+    expect(ev.seen.prevented).toBe(false);
+  });
+
+  it("does nothing with an image when nobody is listening for one", () => {
+    const term = fakeTerminal();
+    const ev = mixedPaste("", [{ type: "image/png" }]);
+
+    handlePaste(term, ev);
+
+    expect(ev.seen.stopped).toBe(false);
+    expect(term.writes).toEqual([]);
+  });
+
+  it("still leaves the paste key to the webview, so the paste event exists at all", () => {
+    expect(handleKey(key("v", { ctrl: true }))).toBe(false);
+  });
+
+  it("finds the first image among several files", () => {
+    const files = [
+      { type: "text/plain" },
+      { type: "image/jpeg", name: "b" },
+      { type: "image/png" },
+    ];
+    expect(firstImage(files)?.name).toBe("b");
+    expect(firstImage([])).toBeUndefined();
+    expect(firstImage(undefined)).toBeUndefined();
   });
 });

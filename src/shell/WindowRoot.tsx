@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig } from "framer-motion";
-import { onCopilotKey, type Openable, type StackSnapshot } from "../bindings";
+import { contextItemPaths, onCopilotKey, type Openable, type StackSnapshot } from "../bindings";
 import Frame, { BOTTOM_DEFAULT, PROJECT_PAGE_DEFAULT } from "./frame/Frame";
 import { bandGeometry, withBandGeometry, type BandGeometryByCluster } from "./frame/bandGeometry";
 import {
@@ -91,6 +91,7 @@ import { isFullscreen, isTauri, nextZoom, setFullscreen, setZoom } from "./hostW
 import Rail from "./rail/Rail";
 import DockedPage from "./rail/DockedPage";
 import ExpandedPage from "./rail/ExpandedPage";
+import AppPage from "./rail/AppPage";
 import HindsightPage from "./rail/HindsightPage";
 import GitPage, { type GitPageView } from "./rail/GitPage";
 
@@ -238,6 +239,9 @@ export default function WindowRoot({
   const pages = usePages();
   const rightPage = placement?.rightPage ?? null;
   const activePage = rightPage ? pages.find((p) => p.id === rightPage.id) : undefined;
+  // The element an app-backed page's iframe is portaled into; `AppPage` reports
+  // it. State, not a ref, so `ToolWindow` re-renders once it exists.
+  const [pageHost, setPageHost] = useState<HTMLElement | null>(null);
 
   // There is no seeding effect any more, and its absence is the point.
   //
@@ -1627,6 +1631,9 @@ export default function WindowRoot({
   // no destination to resolve: a path means the same thing in every window.
   // The hook commits the drop itself; what comes back is only what to draw.
   const fileDrag = useFileDrag();
+  // Which frame drag is current, so an item lookup that finishes after the
+  // frame has already let go does not start a ghost nobody is holding.
+  const frameDragSeq = useRef(0);
 
   // The Copilot key maps onto callbacks this file already owns; nothing new is
   // dispatched. "Search" expands the same field Ctrl+K does, and "Git" is the
@@ -1817,9 +1824,7 @@ export default function WindowRoot({
     ) : rightPage.id === "hindsight" ? (
       <HindsightPage />
     ) : (
-      <div style={{ padding: 16, color: "var(--txt-tertiary)", fontSize: 13 }}>
-        {activePage?.name ?? "This page"} is not wired to its app yet.
-      </div>
+      <AppPage page={activePage} instanceId={rightPage.instanceId} onHost={setPageHost} />
     )
   ) : null;
 
@@ -1969,6 +1974,12 @@ export default function WindowRoot({
               clustersKnown={shell !== null}
               instances={instances}
               presentationOf={presentationOf}
+              // The docked or expanded page's app, mounted into `AppPage`'s box.
+              pageSurface={
+                rightPage?.instanceId && activePage?.appId
+                  ? { instanceId: rightPage.instanceId, host: pageHost }
+                  : null
+              }
               // Home over the top of everything, from the cluster chip. `null`
               // whenever it is not showing, which is most of the time.
               soloInstanceId={tutorialInstanceId ?? (homeShowing ? homeInstanceId : null)}
@@ -1981,9 +1992,18 @@ export default function WindowRoot({
               // A frame dragging paths out of itself. The tool window only
               // relays it — see its own prop for why an iframe's gesture has
               // to be announced rather than observed.
-              onFramePathDrag={(drag) =>
-                drag.phase === "begin" ? fileDrag.begin([...drag.paths]) : fileDrag.end()
-              }
+              onFramePathDrag={(drag) => {
+                const seq = ++frameDragSeq.current;
+                if (drag.phase !== "begin") return fileDrag.end();
+                if (drag.items.length === 0) return fileDrag.begin([...drag.paths]);
+                // Context items travel as ids and are resolved to files here, in
+                // the frame's own environment, so a frame cannot name another
+                // environment's items. A failure drags whatever paths it had.
+                const start = (extra: string[]) => {
+                  if (seq === frameDragSeq.current) fileDrag.begin([...drag.paths, ...extra]);
+                };
+                contextItemPaths(drag.instanceId, [...drag.items]).then(start, () => start([]));
+              }}
               // The two regions the tool window draws but may not import. It
               // computes every argument; this is only the wiring, and it lives
               // here because `WindowRoot` is not a region and may see both.

@@ -27,8 +27,11 @@
   display: none;
 }
 
+/* A row: the emulator, then the Context strip when it has something to show.
+   The emulator takes whatever the strip leaves, so `FitAddon` measures the
+   narrower box and the pty is told the truth about its width. */
 .terminal__slot[data-active] {
-  display: block;
+  display: flex;
 }
 
 /* Split layout: a pane still fills the deck's full height, but claims one
@@ -72,7 +75,8 @@
    appends its own `.xterm` element as a *child* of this one, and that child is
    what the padding below is on. */
 .terminal__view {
-  width: 100%;
+  flex: 1 1 0;
+  min-width: 0;
   height: 100%;
 }
 

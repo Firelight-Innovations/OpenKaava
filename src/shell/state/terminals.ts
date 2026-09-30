@@ -22,12 +22,12 @@ import {
   splitTerminal,
   terminalAttach,
   terminalBusy,
-  terminalInsertPaths,
   terminalResize,
   terminalWrite,
   type PtyChunk,
 } from "../../bindings";
 import type { TerminalControl, TerminalTransport } from "../contract";
+import { dropPaths } from "../contextInput";
 
 export const terminalControl: TerminalControl = {
   create(windowLabel, cols, rows) {
@@ -197,16 +197,12 @@ export const terminalTransport: TerminalTransport = {
   },
 
   insertPaths(id, paths) {
-    // Unlike `write`, this one can be refused — the session may have closed
-    // between the drag starting and the release — and unlike a keystroke it is
-    // worth hearing about. A drop has no other confirmation: the text appears
-    // or it does not, and "nothing appeared" would otherwise be
-    // indistinguishable from the backend never having been asked. The same
-    // reasoning, and the same console-only answer, as `drag/useDrag.tsx`'s
-    // `attempt`.
-    void terminalInsertPaths(id, paths).catch((e: unknown) => {
-      console.error(`kaava: inserting ${paths.length} path(s) into ${id} failed`, e);
-    });
+    // Not `terminalWrite`, and not the bare quoting command either: Rust stores
+    // the files when a coding harness is running, writes the reference that
+    // harness understands, and answers with what it did. That answer is the only
+    // confirmation a drop has, so it is reported rather than dropped. See
+    // `contextInput.ts`.
+    void dropPaths(id, paths);
   },
 
   resize(id, cols, rows) {

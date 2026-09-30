@@ -31,6 +31,8 @@ function session(overrides: Partial<SearchSession> = {}): SearchSession {
     rows,
     matchCount: 0,
     searching: false,
+    error: null,
+    truncated: false,
     activeIndex: 0,
     setActiveIndex: vi.fn(),
     moveActive: vi.fn(),
@@ -58,6 +60,18 @@ function renderOverlay(s: SearchSession, handlers: Partial<Record<string, () => 
 }
 
 describe("SearchOverlay", () => {
+  it("shows an explicit failure, not Searching, when the search errored", () => {
+    renderOverlay(session({ rows: [], hits: [], error: "no such cluster" }));
+    expect(screen.getByText("Search failed")).toBeTruthy();
+    expect(screen.getByText("no such cluster")).toBeTruthy();
+    expect(screen.queryByText("Searching…")).toBeNull();
+  });
+
+  it("says when the results are partial", () => {
+    renderOverlay(session({ truncated: true }));
+    expect(screen.getByText(/Partial results/)).toBeTruthy();
+  });
+
   it("renders a labelled modal dialog with the field focused", () => {
     renderOverlay(session());
     expect(screen.getByRole("dialog", { name: "Search" }).getAttribute("aria-modal")).toBe("true");

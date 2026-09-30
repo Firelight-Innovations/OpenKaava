@@ -44,24 +44,40 @@ export interface SearchRequest {
   signal: AbortSignal;
 }
 
+/** How long the frontend waits for the backend before giving up with an
+ *  explicit error. The backend stops on its own well inside this (its walk has
+ *  a time budget), so reaching it means the call itself never came back — a
+ *  backend that is wedged, not one that is slow. */
+export const SEARCH_TIMEOUT_MS = 20_000;
+
+/** What a search found, and whether the backend stopped before finishing. */
+export interface SearchResult {
+  hits: SearchHit[];
+  /** True when a cap or the backend's time budget cut the walk short: the hits
+   *  are real, the list is not the whole answer. */
+  truncated: boolean;
+}
+
 /** Run a search. Resolves with whatever the backend found — possibly capped,
- *  see `SearchResponse.truncated`. Rejects only on abort, which
- *  `useSearchSession.ts`'s `.catch()` already expects rather than treating as
- *  an unexpected failure; a slow search's `.then()` is guarded against
- *  overwriting a newer one's results whichever promise settles first. */
-export async function runSearch(request: SearchRequest): Promise<SearchHit[]> {
+ *  see `SearchResult.truncated`. Rejects on abort (which
+ *  `useSearchSession.ts` expects and ignores), with the backend's own error
+ *  when it fails, and with a timeout error when it never answers; the session
+ *  shows the last two rather than waiting forever. A slow search's `.then()`
+ *  is guarded against overwriting a newer one's results whichever promise
+ *  settles first. */
+export async function runSearch(request: SearchRequest): Promise<SearchResult> {
   const { clusterId, query, kinds, accept, signal } = request;
   const caseSensitive = request.caseSensitive ?? false;
   const wholeWord = request.wholeWord ?? false;
   const regex = request.regex ?? false;
 
-  if (query.trim() === "" || kinds.length === 0) return [];
+  if (query.trim() === "" || kinds.length === 0) return { hits: [], truncated: false };
   if (signal.aborted) throw abortError();
 
   // No cluster, nothing to search — the same empty answer `search_content`
   // itself gives a cluster with no project. Handled here so a caller with
   // nothing open never pays for an `invoke` round trip whose answer is empty.
-  if (clusterId === null) return [];
+  if (clusterId === null) return { hits: [], truncated: false };
 
   const wanted = new Set(kinds);
 
@@ -73,7 +89,13 @@ export async function runSearch(request: SearchRequest): Promise<SearchHit[]> {
   // — see `SearchState` in `search.rs` — and stops early.
   const call = searchContent(clusterId, query, caseSensitive, wholeWord, regex);
 
-  const response = await Promise.race([call, rejectOnAbort(signal)]);
+  const timeout = rejectAfter(SEARCH_TIMEOUT_MS);
+  let response;
+  try {
+    response = await Promise.race([call, rejectOnAbort(signal), timeout.promise]);
+  } finally {
+    timeout.cancel();
+  }
 
   const hits: SearchHit[] = [];
   for (const hit of response.hits) {
@@ -85,7 +107,7 @@ export async function runSearch(request: SearchRequest): Promise<SearchHit[]> {
     hits.push({ path: hit.path, name, kind, matches: hit.matches });
   }
 
-  return hits;
+  return { hits, truncated: response.truncated };
 }
 
 /** The basename of an absolute path, forward- or back-slashed alike — the path
@@ -107,6 +129,22 @@ function rejectOnAbort(signal: AbortSignal): Promise<never> {
     }
     signal.addEventListener("abort", () => reject(abortError()), { once: true });
   });
+}
+
+/** A promise that rejects with a plain error after `ms`, and a way to disarm it
+ *  once the race it was in has been decided. */
+function rejectAfter(ms: number): { promise: Promise<never>; cancel: () => void } {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const promise = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`the search did not answer within ${Math.round(ms / 1000)}s`)),
+      ms,
+    );
+  });
+  // The rejection is only ever observed through the race; a disarmed timer
+  // never fires, so this cannot leave an unhandled one behind.
+  promise.catch(() => undefined);
+  return { promise, cancel: () => clearTimeout(timer) };
 }
 
 function abortError(): DOMException {
