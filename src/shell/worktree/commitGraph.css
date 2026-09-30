@@ -1,14 +1,12 @@
 /*
- * The commit graph: one row per commit, a lane diagram on the left drawn
- * with a small inline `<svg>` per row (see `rowSegments` in `CommitGraph.tsx`
- * for why per-row rather than one tall `<svg>` for the whole list — each row
- * has to stay renderable on its own as the list scrolls).
+ * The commit graph: one fixed-height row per commit. On the left a small
+ * `<svg>` of lane lines drawn in real pixels (see `rowSegments` in
+ * `CommitGraph.tsx`); beside it the message on one line and refs, hash,
+ * author and time on a quieter second line.
  *
- * Follows `worktree.css`'s numbers rather than inventing a second scale:
- * same row padding, same type sizes for a mono/sans split, same
- * `--accent-wash` selection treatment as `.worktree__row--selected`. No
- * handoff crop covers this panel yet, so there is nothing to measure against
- * beyond staying consistent with the tab it will sit next to.
+ * `ROW_H` in `CommitGraph.tsx` is 40px and must match `.commitgraph__row`'s
+ * height. Rows below the fold skip layout and paint via `content-visibility`,
+ * which keeps a long history cheap without a windowing library.
  */
 
 .commitgraph {
@@ -21,18 +19,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  /* 28px — the GitKraken-style direction's row height, and tall enough to
-     give the bigger `NODE_R`/`NODE_RING_R` nodes below room to breathe
-     against their neighbours above and below. */
-  height: 28px;
-  padding: 0 10px 0 14px;
+  height: 40px;
+  padding: 0 10px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 40px;
 }
 
-/* Only a row that can actually be selected offers to be clicked. `CommitGraph`
-   takes `onSelect` as optional and derives `tabIndex` from it, so a graph
-   mounted without one is a picture — and a pointer cursor over a picture
-   promises something that will not happen. Keyed off `tabindex`, the attribute
-   that already tracks exactly that distinction. */
+/* Only a row that can actually be selected offers to be clicked. */
 .commitgraph__row[tabindex] {
   cursor: pointer;
 }
@@ -45,9 +38,6 @@
   background: var(--accent-wash);
 }
 
-/* Native focus ring, not a custom outline: this row is reached by Tab and by
-   the graph's own arrow-key roving (see `CommitGraph`'s `onKeyDown`), and a
-   div with `role="option"` gets no focus affordance of its own otherwise. */
 .commitgraph__row:focus-visible {
   outline: 1px solid var(--accent-line);
   outline-offset: -1px;
@@ -55,105 +45,57 @@
 
 /* --- the lane diagram -------------------------------------------------- */
 
-.commitgraph__graph {
-  position: relative;
-  flex: none;
-  /* Clipped, not shrunk, once a history has more concurrent lanes than fit —
-     see the comment where this width is set in `CommitRow`. Scaled up from
-     the original 78px by the same factor `LANE_W` grew (14 -> 22), so this
-     clips at the same *number* of lanes as before rather than showing fewer
-     of the now-wider ones. Mirrored as `GRAPH_MAX_W` in `CommitGraph.tsx`,
-     which needs the number to decide whether the fade below applies —
-     changing this means changing that. */
-  max-width: 123px;
-  overflow: hidden;
-  height: 100%;
-}
-
-/* Applied only on the rows where the clip is actually happening — see the
-   comment at `--clipped` in `CommitRow`. A mask rather than a gradient overlay
-   because the rails behind it are eight different colours and a solid scrim in
-   any one of them would be wrong against the other seven; a mask fades whatever
-   is there to the panel's own background, whichever theme that is.
-
-   Both spellings: the unprefixed `mask-image` only reached Chromium in 120,
-   and WebView2 is Evergreen but is not guaranteed to be current on a machine
-   that has been offline. `-webkit-` has carried this since long before. The
-   two are identical, so an engine that honours both applies the same mask
-   twice, which is the same mask. */
-.commitgraph__graph--clipped {
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 14px), transparent 100%);
-  mask-image: linear-gradient(to right, #000 calc(100% - 14px), transparent 100%);
-}
-
 .commitgraph__lines {
   display: block;
+  flex: none;
 }
 
 .commitgraph__line {
   fill: none;
-  /* Thickened from 1.5 — the single biggest lever in reading as
-     "GitKraken" rather than "spreadsheet gridline". */
-  stroke-width: 2.5;
+  stroke-width: 1.5;
 }
 
-/* The node and its ring are plain circles, not SVG geometry — see the block
-   comment in `CommitRow` for why a `<circle>` inside the row's non-uniformly
-   scaled `<svg>` would render as an ellipse instead. `left`/`width`/`height`/
-   `background`/`border-color` all come from `CommitRow`'s inline style
-   (lane position, `NODE_R`/`NODE_RING_R`, and lane colour), so a size stays
-   defined in exactly one place instead of two copies drifting apart. */
-.commitgraph__node {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  /* Same role the old SVG stroke played: separates the dot from a rail that
-     happens to cross close behind it. */
-  border: 1.5px solid var(--bg);
-  pointer-events: none;
-}
-
+/* Every commit is the same filled dot; HEAD and live-branch tips add one ring. */
 .commitgraph__node-ring {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  border-width: 1.5px;
-  border-style: solid;
-  background: transparent;
-  pointer-events: none;
+  fill: none;
+  stroke-width: 1.5;
 }
 
-/* --- the text columns ---------------------------------------------------
-   Summary takes priority over the meta cluster when the panel is narrow —
-   `flex: 2` against the meta cluster's `flex: 0 1 auto` — because the
-   summary is what makes one commit distinguishable from the next; the sha,
-   author and timestamp are context you can still get by selecting the row. */
+/* --- the text ----------------------------------------------------------- */
+
+.commitgraph__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
 
 .commitgraph__summary {
-  flex: 2 1 auto;
   min-width: 0;
   font-family: var(--sans);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 400;
-  line-height: 1;
+  line-height: 1.2;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Capped at a third of the row rather than `flex: none`. A branch named for a
-   ticket and its whole summary is an ordinary thing to find in a repository,
-   and at `none` one of them pushed the sha, author and date off the row
-   entirely — the columns that say *which* commit this is. The chips give way
-   rather than those because a truncated branch name is still recognisable and
-   keeps its full text in a `title`, where a missing sha is simply gone. */
-.commitgraph__refs {
-  flex: 0 1 auto;
+.commitgraph__sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
-  max-width: 33%;
+  overflow: hidden;
+}
+
+/* At most two full-name pills plus a "+N" chip, so the group is capped rather
+   than shrunk; the meta beside it gives way instead. */
+.commitgraph__refs {
+  flex: none;
+  max-width: 60%;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -165,18 +107,17 @@
   align-items: center;
   gap: 3px;
   min-width: 0;
-  padding: 1px 5px;
-  border-radius: 3px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: var(--surface-2);
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 500;
   line-height: 1.4;
-  color: var(--text-dim-3);
+  color: var(--text-dim);
   white-space: nowrap;
 }
 
-/* The glyph beside it must not shrink, so the name is what ellipsises — hence
-   the extra span rather than truncating the chip itself. */
 .commitgraph__ref-name {
   min-width: 0;
   overflow: hidden;
@@ -184,8 +125,7 @@
 }
 
 .commitgraph__ref--live {
-  background: var(--surface-2);
-  color: var(--text-dim);
+  color: var(--text);
 }
 
 .commitgraph__ref--active {
@@ -193,12 +133,17 @@
   color: var(--accent);
 }
 
+.commitgraph__ref--more {
+  flex: none;
+  color: var(--text-dim-3);
+}
+
 .commitgraph__meta {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 6px;
   overflow: hidden;
   white-space: nowrap;
 }
@@ -221,6 +166,7 @@
 
 .commitgraph__when {
   flex: none;
+  margin-left: auto;
   font-family: var(--mono);
   font-size: 10.5px;
   color: var(--text-dim-3);

@@ -1,280 +1,64 @@
 /*
- * The search slot: collapsed placeholder, expanded field, its result list,
- * and the type-filter popover.
- *
- * Measured against the handoff's "Search" region-detail crop
- * (docs/handoffs/shell-spec.html, around FILTER BY TYPE / "3 of 5 types").
- * Renders as `ToolSwitcherBar`'s `searchSlot` prop — inside `.frame__switcher`
- * (src/shell/frame/frame.css), which already owns the bar's fixed 36px
- * height. Nothing here ever sets that height; `.search-slot` only stretches
- * to fill it (`.switcher`'s `align-items: stretch`), exactly like the
- * collapsed placeholder it replaces.
+ * The cluster row's search field. A `control-lg` (32px) box with a
+ * `border-subtle-1` edge and radius 8, per the spec's component table; the
+ * row itself is `--h-switcher` tall, so the field sits centred with a gutter
+ * either side rather than stretching to the bar's edges.
  */
 
 .search-slot {
+  flex: none;
   display: flex;
   align-items: center;
-  /* Positioning context for the result list and the filter popover, both of
-     which escape this 36px box via `position: absolute` rather than
-     growing it — the same trick the health popover and settings popover
-     use off their own trigger. */
-  position: relative;
+  gap: var(--space-2);
+  width: 280px;
+  height: var(--control-lg);
+  margin: 0 var(--space-2);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-subtle-1);
+  border-radius: var(--radius-lg);
+  background: var(--bg-layer-1);
+  color: var(--txt-placeholder);
+  font: var(--type-body);
+  text-align: left;
+  cursor: text;
 }
 
-/* --- collapsed: reproduces ToolSwitcherBar's own placeholder ------------- */
+.search-slot:hover {
+  background: var(--bg-layer-1-hover);
+  border-color: var(--border-strong);
+}
 
-.search-slot--collapsed {
-  flex: none;
-  gap: 8px;
-  padding: 0 12px;
-  border-left: 1px solid var(--line);
-  cursor: pointer;
+.search-slot:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
 }
 
 .search-slot__glyph {
   flex: none;
-}
-
-.search-slot__glyph--dim {
-  color: var(--text-dim);
+  color: var(--txt-tertiary);
 }
 
 .search-slot__label {
-  font-family: var(--sans);
-  font-size: 11.5px;
-  line-height: 1;
-  color: var(--text-dim-3);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .search-slot__hint {
-  font-family: var(--mono);
-  font-size: 10px;
-  line-height: 1;
-  color: var(--text-faint);
-}
-
-/* --- expanded: the full field --------------------------------------------
-   Plain `flex: 1`, per the spec crop. This used to need a dominant
-   flex-grow to outweigh `.switcher__spacer`'s own `flex: 1`
-   (src/shell/switcher/switcher.css), but the bar now collapses that spacer,
-   drops the health badge and clips its whole tab row whenever search is open
-   — the width comes from the bar yielding it, not from this slot outgrowing
-   a competitor. Nothing else is left in the row, so `flex: 1` here is the
-   full bar, edge to edge: a field you can type a path into. */
-.search-slot--expanded {
-  flex: 1;
-  gap: 10px;
-  padding: 0 11px;
-  background: var(--bg);
-  box-shadow: inset 0 -2px 0 var(--accent);
-}
-
-.search-slot__glyph--accent {
-  color: var(--accent);
-}
-
-/* Takes the width the bar just gave up, which is the whole reason the bar gives
-   it up: an 18ch box in a bar-wide field is a field that only looks roomy, and a
-   query long enough to need the room would still be scrolling inside it with its
-   first characters out of sight.
- *
- * `min-width: 0` because an input's automatic minimum size is its `size`
- * attribute's width, and that floor would keep it from ever shrinking below ~20ch
- * in a narrow window — the same overflow the tab row above was taught to avoid.
- *
- * The caret is the browser's own again. It was drawn as a sibling element to
- * reproduce the handoff crop's caret, which is fine while the input's width is
- * fixed and the caret can be pinned to its right edge, and wrong the moment the
- * input grows: the block would sit at the far end of the bar with the text it is
- * supposed to be sitting in ten inches to its left. Colouring the native one
- * accent gets the same 1px blinking accent line the crop draws, at the insertion
- * point rather than at a fixed offset from it. */
-.search-slot__input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  outline: none;
-  background: transparent;
-  padding: 0;
-  font-family: var(--sans);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1;
-  color: var(--text);
-  white-space: nowrap;
-  caret-color: var(--accent);
-}
-
-.search-slot__count {
   flex: none;
-  font-family: var(--mono);
-  font-size: 10.5px;
-  font-weight: 400;
-  line-height: 1;
-  color: var(--text-dim-3);
-  white-space: nowrap;
 }
 
-.search-slot__filter-wrap {
-  flex: none;
-  position: relative;
-  display: flex;
-  align-items: center;
-}
+@media (max-width: 900px) {
+  .search-slot {
+    width: 32px;
+    padding: 0;
+    justify-content: center;
+  }
 
-.search-slot__filter-btn {
-  flex: none;
-  width: 26px;
-  height: 26px;
-  border: none;
-  border-radius: 4px;
-  background: var(--surface-2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.search-slot__filter-icon {
-  color: var(--accent);
-}
-
-.search-slot__close {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-}
-
-/* --- the result list -------------------------------------------------------
-   No motion.* here and no AnimatePresence over these rows — the handoff's
-   native-scroll-speed rule for terminal output and the worktree list
-   applies here too, so the list is plain markup. */
-
-.search-slot__results {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  border-top: 1px solid var(--line);
-  background: var(--bg);
-  padding: 7px 0 18px;
-  min-height: 196px;
-  z-index: 20;
-}
-
-.search-slot__result {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
-}
-
-/* The handoff's first result row carries the surface background and the
-   brighter label colour — read as the list's default-active row, the way a
-   keyboard-navigable result list highlights its first match. */
-.search-slot__result--active {
-  background: var(--surface);
-}
-
-.search-slot__result-type {
-  flex: none;
-  width: 58px;
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 400;
-  line-height: 1;
-  color: var(--text-dim-2);
-}
-
-.search-slot__result-label {
-  font-family: var(--sans);
-  font-size: 11.5px;
-  font-weight: 400;
-  line-height: 1;
-  color: var(--text-dim);
-}
-
-.search-slot__result--active .search-slot__result-label {
-  color: var(--text);
-}
-
-/* --- the type-filter popover ----------------------------------------------
-   Same surface, border, radius and shadow as the tool health popover and
-   the status bar's settings popover (src/shell/switcher/switcher.css,
-   src/shell/statusbar/statusbar.css) — the handoff's one floating-panel
-   shadow figure, reused rather than reinvented a third time. */
-
-.search-filter {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 6px;
-  width: 196px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
-  z-index: 30;
-}
-
-.search-filter__header {
-  padding: 9px 12px;
-  border-bottom: 1px solid var(--line);
-  font-family: var(--mono);
-  font-size: 9.5px;
-  font-weight: 600;
-  line-height: 1;
-  color: var(--text-dim-2);
-  letter-spacing: 0.1em;
-}
-
-.search-filter__row {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  gap: 10px;
-  padding: 8px 12px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  text-align: left;
-}
-
-.search-filter__box {
-  flex: none;
-  width: 13px;
-  height: 13px;
-  border-radius: 3px;
-  border: 1px solid var(--line-2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.search-filter__box--checked {
-  border-color: transparent;
-  background: var(--accent);
-}
-
-.search-filter__check {
-  color: var(--bg);
-}
-
-.search-filter__label {
-  font-family: var(--sans);
-  font-size: 11.5px;
-  font-weight: 400;
-  line-height: 1;
-  color: var(--text);
-}
-
-.search-filter__label--dim {
-  color: var(--text-dim);
+  .search-slot__label,
+  .search-slot__hint {
+    display: none;
+  }
 }

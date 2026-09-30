@@ -195,6 +195,8 @@ const ToolWindow = forwardRef<
      * with a dirty editor can Save and one without cannot.
      */
     onCommandsChange?: (instanceId: string, commands: readonly string[]) => void;
+    /** The empty state's "Open an app" button: raise the app picker. */
+    onOpenAppPicker?: () => void;
     /**
      * A frame has begun, or ended, dragging file paths out of itself.
      *
@@ -242,6 +244,7 @@ const ToolWindow = forwardRef<
     onResize,
     dropTarget,
     onCommandsChange,
+    onOpenAppPicker,
     onFramePathDrag,
     renderPanes,
     renderTerminal,
@@ -1350,7 +1353,9 @@ const ToolWindow = forwardRef<
           nothing to base one on: every window looks empty at that point, so a
           window opened by a drag would flash "no clusters" on its way to
           showing the surface that was dropped into it. */}
-      {empty && clustersKnown && (clusterId === null ? <NoClustersState /> : <EmptyState />)}
+      {empty &&
+        clustersKnown &&
+        (clusterId === null ? <NoClustersState /> : <EmptyState onOpenApp={onOpenAppPicker} />)}
     </div>
   );
 });

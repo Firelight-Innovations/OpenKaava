@@ -174,3 +174,13 @@ export const KIND_LABEL: Record<SearchKind, string> = {
 
 /** The order kinds are drawn in, everywhere they are listed. */
 export const ALL_KINDS: SearchKind[] = ["script", "data", "content", "kaava"];
+
+/**
+ * Hits regrouped so each kind is contiguous, in `ALL_KINDS` order, keeping the
+ * walk's own order inside a group. The results list draws a heading per group,
+ * and the cursor indexes the flat list, so the grouping has to be settled
+ * before the list is flattened rather than faked at draw time.
+ */
+export function orderByKind<T extends { kind: SearchKind }>(hits: T[]): T[] {
+  return ALL_KINDS.flatMap((kind) => hits.filter((hit) => hit.kind === kind));
+}

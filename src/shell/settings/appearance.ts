@@ -20,7 +20,7 @@ const SANS_FALLBACK = `system-ui, -apple-system, "Segoe UI", sans-serif`;
 const MONO_FALLBACK = `ui-monospace, "Cascadia Mono", Consolas, monospace`;
 
 const ACCENT_NAMES: readonly AccentName[] = ["amber", "blue", "green", "violet", "coral"];
-const DEFAULT_ACCENT: AccentName = "amber";
+const DEFAULT_ACCENT: AccentName = "blue";
 
 /**
  * A value read off the accent setting, narrowed to a name `tokens.css`
@@ -28,7 +28,7 @@ const DEFAULT_ACCENT: AccentName = "amber";
  *
  * Anything else — the setting unset, a pre-rework hex the backend migration
  * in `schema::migrate_legacy_accent` did not recognise, a hand-edited
- * `settings.json` — falls back to Amber rather than being written into
+ * `settings.json` — falls back to Blue rather than being written into
  * `--accent` unchecked, which would point the whole interface at a custom
  * property that resolves to nothing.
  */

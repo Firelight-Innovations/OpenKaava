@@ -22,13 +22,14 @@ import {
   type WindowKind,
 } from "./contract";
 import { environmentOf, environmentKey } from "./environment";
-import { searchBarHoldMs, snap } from "./motion";
+import { snap } from "./motion";
 import { INTERRUPT, commandLine, terminalInput } from "./run";
 import ContextMenuHost from "./ContextMenuHost";
 import CommandPalette from "./palette/CommandPalette";
 import NewClusterDialog from "./dialogs/NewClusterDialog";
 import SwitchProjectDialog from "./dialogs/SwitchProjectDialog";
-import { commandsFromMenus } from "./palette/registry";
+import { commandsFromMenus, withOpenAppCommands } from "./palette/registry";
+import AppPicker from "./panes/AppPicker";
 import TitleBar from "./titlebar/TitleBar";
 import { APP_COMMAND, defaultMenus, type CommandHandlers } from "./titlebar/menus";
 import { editHandlers, useEditTarget } from "./titlebar/useEditTarget";
@@ -47,7 +48,6 @@ import EnvironmentBar from "./envbar/EnvironmentBar";
 import SearchSlot from "./search/SearchSlot";
 import SearchOverlay from "./search/SearchOverlay";
 import { useSearchSession } from "./search/useSearchSession";
-import { useSearchBarHold } from "./search/useSearchBarHold";
 import { openHitInFiles } from "./search/openHit";
 import { useDrag } from "./drag/useDrag";
 import { useFileDrag } from "./drag/useFileDrag";
@@ -60,6 +60,7 @@ import TerminalDeck, { type TerminalDeckHandle } from "./terminal/TerminalDeck";
 import { callApp, useApps, useOpenables, usePages } from "./state/apps";
 import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
+import { useProjectIcon } from "./state/projectIcon";
 import { useUpdates } from "./state/updates";
 import {
   activateInstance,
@@ -179,16 +180,11 @@ export default function WindowRoot({
   // not a region, so the zone is made here and handed down as a ref.
   const bottomZone = useDropZone({ kind: "panel" });
 
-  // Lifted out of the search slot because two regions need it: the field
-  // expands, and the bar around it has to yield the width for that to be
-  // possible. Neither owns the other, so the flag sits above both.
+  // Whether the search dialog is open. Lifted here because the cluster row's
+  // trigger, Ctrl+K and the dialog mount all read it, and none owns the others.
   const [searchExpanded, setSearchExpanded] = useState(false);
-
-  // The same flag, held open across the overlay's exit, and the only thing the
-  // switcher bar is given. Search opens and closes in two beats — field first
-  // then overlay, overlay first then field — and the bar is the half that
-  // cannot express "wait" as an animation. See `useSearchBarHold`.
-  const searchBarExpanded = useSearchBarHold(searchExpanded, searchBarHoldMs);
+  const openSearch = useCallback(() => setSearchExpanded(true), []);
+  const closeSearch = useCallback(() => setSearchExpanded(false), []);
 
   // Two lists, and they are not the same question. `apps` is *things with a
   // frontend* — what `presentationOf` below resolves a mountable surface from —
@@ -280,6 +276,7 @@ export default function WindowRoot({
   // needs it to decide whether the New Cluster dialog has anywhere to point
   // its choices at — see that callback's own note.
   const project = useClusterProject(activeClusterId);
+  const projectIcon = useProjectIcon(project?.path ?? null);
 
   // The band, as the cluster in front left it. Three values and two homes: the
   // height is the cluster's own — restored from the saved layout, and defaulted
@@ -1232,6 +1229,33 @@ export default function WindowRoot({
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
 
+  // The app picker raised over the window: by the empty state's button, by
+  // Ctrl+Shift+A, and by the palette's "Open app…". The `+` on a pane's strip
+  // draws its own copy of the same component, anchored to itself.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const openPicker = useCallback(() => setPickerOpen(true), []);
+  const closePicker = useCallback(() => setPickerOpen(false), []);
+
+  /**
+   * Opens `entry` as a **tab in `paneId`** — the picker, the strip's `+` and the
+   * palette's "Open <App>" all come here. Unlike `onOpenSurface`, which splits
+   * the focused pane for the Apps menu, these three are asked in the place the
+   * app should land, and passing no split direction is what asks Rust to stack.
+   */
+  const onOpenInPane = useCallback(
+    (entry: Openable, paneId: string | null) => {
+      hideTakeover();
+      const opened =
+        entry.kind === "terminal"
+          ? terminalControl.createInPane(label, paneId ?? undefined)
+          : openInstance(label, entry.id, paneId ?? undefined);
+      void opened
+        .then(setOpenedInstance)
+        .catch((err: unknown) => console.error("kaava: could not open that app:", err));
+    },
+    [label, hideTakeover],
+  );
+
   // The New Cluster dialog (board 04). `onAddCluster` is the only opener —
   // see its own note on why a clusterless window skips this and falls back
   // to the old instant creation instead.
@@ -1396,8 +1420,13 @@ export default function WindowRoot({
   //
   // `Cluster.worktree` is populated now, and `gitControl` resolves a cluster
   // through `project::cluster_path`, which follows the worktree when there is
-  // one and the project when there is not.
-  const git = useGitStatus(gitControl, activeClusterId);
+  // one and the project when there is not. The same pair is the third argument,
+  // so a repointed cluster re-asks.
+  const git = useGitStatus(
+    gitControl,
+    activeClusterId,
+    activeCluster?.worktree?.path ?? activeCluster?.project ?? null,
+  );
 
   // Whether a newer OpenKaava exists. Per-window, but not a per-window *answer*:
   // the state is one value in Rust and arrives on `updater:changed`, so two
@@ -1613,6 +1642,8 @@ export default function WindowRoot({
     closeWindow: onCloseWindow,
 
     commandPalette: openPalette,
+    openApp: openPicker,
+    switchProject: onOpenProjectSwitcher,
     togglePanel: () => setPanelCollapsed((c) => !c),
     toggleTerminal: onToggleTerminal,
     toggleFullscreen: onToggleFullscreen,
@@ -1678,6 +1709,21 @@ export default function WindowRoot({
     help: { checkForUpdates: updates.check },
   });
 
+  // What the strips' `+` and the palette's open-app rows offer: the Apps menu's
+  // own list and blocked reason, so neither can disagree with the menu.
+  const paneAppPicker = {
+    apps: appsHandlers.available,
+    blocked: appsHandlers.blocked,
+    onOpen: (entry: Openable, paneId: string) => onOpenInPane(entry, paneId),
+  };
+  const paletteCommands = withOpenAppCommands(commandsFromMenus(menus), {
+    apps: appsHandlers.available,
+    openPicker,
+    open: (entry) => onOpenInPane(entry, activePaneId),
+    blocked: appsHandlers.blocked,
+    accelerator: "Ctrl+Shift+A",
+  });
+
   // The open page's body, by id. Git and Hindsight are drawn by the shell
   // itself (`pages.rs`'s `app_id: None`); `WorktreePanel` here is the exact
   // component `secondaryPanel` below already mounts for its own `worktreeView`
@@ -1719,11 +1765,15 @@ export default function WindowRoot({
           than occupying a band, and `Frame` has no slot it belongs in. The
           commands are the menu tree above, flattened — one source of truth for
           the bar and the palette both. */}
-      <CommandPalette
-        open={paletteOpen}
-        commands={commandsFromMenus(menus)}
-        onClose={closePalette}
-      />
+      <CommandPalette open={paletteOpen} commands={paletteCommands} onClose={closePalette} />
+      {pickerOpen && (
+        <AppPicker
+          apps={appsHandlers.available}
+          blocked={appsHandlers.blocked}
+          onPick={(entry) => onOpenInPane(entry, activePaneId)}
+          onClose={closePicker}
+        />
+      )}
       {/* Beside the frame for the same reason as the two above. `project` is
           never null while this is open — `onAddCluster` only sets
           `newClusterOpen` when it already has one, and there is no other
@@ -1745,6 +1795,22 @@ export default function WindowRoot({
           onNewProject={onSwitchProjectNewProject}
         />
       )}
+      {/* Mounted only while open, so a window nobody has searched in never pays
+          for the dialog, and closing it genuinely discards its results —
+          reopening is a fresh search rather than a stale one. `AnimatePresence`
+          holds the subtree for the exit animation and then unmounts it. */}
+      <AnimatePresence>
+        {searchExpanded && (
+          <SearchOverlay
+            session={search}
+            root={searchRoot}
+            clusterId={activeClusterId}
+            onOpen={openSearchHit}
+            onSubmit={onSubmitSearch}
+            onClose={closeSearch}
+          />
+        )}
+      </AnimatePresence>
       <Frame
         kind={kind}
         panelCollapsed={panelCollapsed}
@@ -1770,6 +1836,7 @@ export default function WindowRoot({
             <TitleBar
               kind={kind}
               project={project?.name ?? null}
+              projectIcon={projectIcon}
               environment={environment}
               environmentLabel={activeCluster?.name ?? null}
               environmentCount={environmentCount}
@@ -1803,18 +1870,7 @@ export default function WindowRoot({
               }
               healthOf={stackTools}
               onRescan={onRescan}
-              // The held flag, not the live one: the bar is the second beat on
-              // the way out and must not give the chips their room back until
-              // the overlay above has finished leaving.
-              searchExpanded={searchBarExpanded}
-              searchSlot={
-                <SearchSlot
-                  expanded={searchBarExpanded}
-                  onExpandedChange={setSearchExpanded}
-                  session={search}
-                  onSubmit={onSubmitSearch}
-                />
-              }
+              searchSlot={<SearchSlot open={searchExpanded} onOpen={openSearch} />}
             />
           ),
           // Omitted while no cluster is open — see the slot's own doc comment
@@ -1856,6 +1912,7 @@ export default function WindowRoot({
               onResize={onResizePane}
               dropTarget={drag.target}
               onCommandsChange={onCommandsChange}
+              onOpenAppPicker={openPicker}
               // A frame dragging paths out of itself. The tool window only
               // relays it — see its own prop for why an iframe's gesture has
               // to be announced rather than observed.
@@ -1874,6 +1931,7 @@ export default function WindowRoot({
                   dragHandleFor={surfaceDragHandle}
                   maximizedPaneId={maximizedPaneId}
                   onToggleMaximizePane={onToggleMaximizePane}
+                  appPicker={paneAppPicker}
                 />
               )}
               renderTerminal={(instanceId) => (
@@ -2028,27 +2086,6 @@ export default function WindowRoot({
               {drag.overlay}
               {fileDrag.overlay}
             </>
-          ),
-          // Mounted only while open, so a window nobody has searched in never
-          // pays for the overlay's tree — and so closing search genuinely
-          // discards its results rather than hiding them, which is what makes
-          // reopening it a fresh search rather than a stale one.
-          //
-          // `AnimatePresence` keeps that true: it holds the subtree for exactly
-          // as long as the exit animation runs and then unmounts it for real.
-          // The wrapper is always rendered so it can observe the child leaving;
-          // an empty one costs nothing and renders no DOM.
-          splitOverlay: (
-            <AnimatePresence>
-              {searchExpanded && (
-                <SearchOverlay
-                  session={search}
-                  root={searchRoot}
-                  clusterId={activeClusterId}
-                  onOpen={openSearchHit}
-                />
-              )}
-            </AnimatePresence>
           ),
           statusBar: (
             // The whole status, one object, rather than a branch picked out and

@@ -1,6 +1,6 @@
 # Kaava
 
-Kaava is Veistra's agentic development environment: a desktop IDE shell (Tauri + React) that hosts clusters of panes, terminals running coding agents, and project-wide pages such as Plane, Git, cost and cloud agents. This system keeps Kaava's own layout and uses **Plane CE's visual language**: Plane's neutrals, its canvas → surface → layer model and its 28px control ladder. Kaava's own additions are the amber accent and the kaava-fruit mark. Kaava embeds Plane in a webview, so the neutrals match Plane exactly, and the seam between the two disappears.
+Kaava is Veistra's agentic development environment: a desktop IDE shell (Tauri + React) that hosts clusters of panes, terminals running coding agents, and project-wide pages such as Plane, Git, cost and cloud agents. This system keeps Kaava's own layout and uses **Plane CE's visual language**: Plane's neutrals, its canvas → surface → layer model and its 28px control ladder. Kaava's own addition is the kaava-fruit mark. Its default accent is Plane's blue. Kaava embeds Plane in a webview, so the neutrals match Plane exactly, and the seam between the two disappears.
 
 Dark is the primary theme. Light is a full second theme with the same token names.
 
@@ -18,7 +18,7 @@ Dark is the primary theme. Light is a full second theme with the same token name
 
 **Depth by layers, not shadows.** Inside a region, rows and inputs use `bg-layer-1`, hover uses `bg-layer-1-hover` and selection uses `bg-layer-1-selected`. Selection is a fill only: no coloured side bars or edge stripes on rows, cards or list items. Menus and the active switcher tab use `bg-layer-2`. Shadows appear only on raised things (`shadow-raised`: the active switcher tab, a dragged tab) and overlays (`shadow-overlay`: menus, palette, toasts, dialogs).
 
-**Accent is a user setting.** Amber (`accent`) is the default, with Blue, Green, Violet and Coral as options. The accent draws the active editor tab's 2px underline, focus rings (2px at 45% alpha, offset 2), drop targets and the primary button. It never fills large areas. Text on an accent fill is `txt-on-accent`: dark in the dark theme, white in the light theme.
+**Accent is a user setting.** Blue (`accent`, Plane's brand blue) is the default, with Amber (the colour the interface was first designed in), Green, Violet and Coral as options. The accent draws the active editor tab's 2px underline, focus rings (2px at 45% alpha, offset 2), drop targets and the primary button. It never fills large areas. Text on an accent fill is `txt-on-accent`: dark in the dark theme, white in the light theme.
 
 **Status colours** (`success`, `warning`, `danger`, `info`, `state-idle`) appear as a 6px dot plus a tinted `*-subtle` fill with `txt-*` text. Git status uses the same four as 18px letter chips (M warning, A success, D danger, U info). File names are never coloured by status.
 

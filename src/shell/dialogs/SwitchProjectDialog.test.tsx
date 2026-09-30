@@ -10,19 +10,41 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import SwitchProjectDialog from "./SwitchProjectDialog";
 import type { RecentProjectRow } from "../../bindings";
 
-const { listRecentProjects, openProjectInCluster } = vi.hoisted(() => ({
-  listRecentProjects: vi.fn(),
-  openProjectInCluster: vi.fn(),
-}));
+const {
+  listRecentProjects,
+  openProjectInCluster,
+  projectIcon,
+  chooseProjectIcon,
+  onProjectIconChanged,
+  iconListeners,
+} = vi.hoisted(() => {
+  const iconListeners: ((p: { path: string; icon: string | null }) => void)[] = [];
+  return {
+    listRecentProjects: vi.fn(),
+    openProjectInCluster: vi.fn(),
+    projectIcon: vi.fn((_path: string) => Promise.resolve(null as string | null)),
+    chooseProjectIcon: vi.fn(),
+    // Records each subscriber so a test can play the backend's broadcast.
+    onProjectIconChanged: vi.fn((cb: (p: { path: string; icon: string | null }) => void) => {
+      iconListeners.push(cb);
+      return Promise.resolve(() => {});
+    }),
+    iconListeners,
+  };
+});
 
 vi.mock("../../bindings", () => ({
   listRecentProjects,
   openProjectInCluster,
+  projectIcon,
+  chooseProjectIcon,
+  onProjectIconChanged,
 }));
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  iconListeners.length = 0;
 });
 
 function row(over: Partial<RecentProjectRow> = {}): RecentProjectRow {
@@ -150,5 +172,65 @@ describe("SwitchProjectDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "New project" }));
     expect(onOpenFolder).toHaveBeenCalledTimes(1);
     expect(onNewProject).toHaveBeenCalledTimes(1);
+  });
+
+  describe("project icons", () => {
+    const DATA = "data:image/png;base64,AAAA";
+    const tileOf = (name: RegExp) =>
+      screen.getByRole("option", { name }).querySelector(".switch-project__tile");
+
+    it("draws the letter tile for a project with no icon", async () => {
+      listRecentProjects.mockResolvedValue([row({ name: "flashlight", path: "C:/flashlight" })]);
+      renderDialog();
+      await screen.findByText("flashlight");
+
+      await waitFor(() => expect(projectIcon).toHaveBeenCalledWith("C:/flashlight"));
+      expect(tileOf(/flashlight/)?.textContent).toBe("F");
+      expect(tileOf(/flashlight/)?.querySelector("img")).toBeNull();
+    });
+
+    it("draws the project's own icon when it has one", async () => {
+      listRecentProjects.mockResolvedValue([row({ name: "Flashlight", path: "C:/flashlight" })]);
+      projectIcon.mockResolvedValueOnce(DATA);
+      renderDialog();
+      await screen.findByText("Flashlight");
+
+      await waitFor(() => expect(tileOf(/Flashlight/)?.querySelector("img")?.src).toBe(DATA));
+    });
+
+    it("asks for a new icon for that row's project, and redraws on the broadcast", async () => {
+      listRecentProjects.mockResolvedValue([row({ name: "Flashlight", path: "C:/flashlight" })]);
+      chooseProjectIcon.mockResolvedValue(DATA);
+      renderDialog();
+      await screen.findByText("Flashlight");
+
+      fireEvent.click(screen.getByRole("button", { name: "Change icon for Flashlight" }));
+      expect(chooseProjectIcon).toHaveBeenCalledWith("C:/flashlight");
+
+      // What `choose_project_icon` emits once the copy is done, in another
+      // spelling of the same path, the way Windows hands them out.
+      await waitFor(() => expect(iconListeners.length).toBeGreaterThan(0));
+      iconListeners.forEach((listener) => listener({ path: "c:\\Flashlight", icon: DATA }));
+      await waitFor(() => expect(tileOf(/Flashlight/)?.querySelector("img")?.src).toBe(DATA));
+    });
+
+    it("shows why an icon could not be set", async () => {
+      listRecentProjects.mockResolvedValue([row({ name: "Flashlight" })]);
+      chooseProjectIcon.mockRejectedValue("That image is 900 KiB.");
+      renderDialog();
+      await screen.findByText("Flashlight");
+
+      fireEvent.click(screen.getByRole("button", { name: "Change icon for Flashlight" }));
+      expect(await screen.findByText("That image is 900 KiB.")).toBeTruthy();
+    });
+
+    it("offers no icon change for a folder that is gone", async () => {
+      listRecentProjects.mockResolvedValue([row({ name: "Gone", exists: false })]);
+      renderDialog();
+      await screen.findByText("Gone");
+
+      const button = screen.getByRole("button", { name: "Change icon for Gone" });
+      expect((button as HTMLButtonElement).disabled).toBe(true);
+    });
   });
 });

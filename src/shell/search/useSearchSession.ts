@@ -1,12 +1,11 @@
 /**
  * The one piece of state the whole search feature shares.
  *
- * The field lives in the switcher bar and the results live in an overlay
- * below it — two components, three regions, one query. Rather than have the
- * field own the query and push it downward through the frame, everything the
- * feature needs is owned here and handed to both. `WindowRoot` instantiates
- * it, because `WindowRoot` is already where `searchExpanded` lives and where
- * the active cluster is resolved.
+ * The trigger lives in the cluster row and the dialog holds the field, the
+ * filters and the results — two components, one query. Everything the feature
+ * needs is owned here and handed to both. `WindowRoot` instantiates it,
+ * because it is already where the open flag lives and where the active
+ * cluster is resolved.
  *
  * Deriving the focused hit rather than storing it is deliberate. Results
  * arrive asynchronously and replace each other; an index into the current list
@@ -15,7 +14,7 @@
  * any result.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ALL_KINDS } from "./kinds";
+import { ALL_KINDS, orderByKind } from "./kinds";
 import { compilePathFilter, parseQuery, toQueryString } from "./query";
 import { runSearch } from "./searchSource";
 import type { ParsedQuery } from "./query";
@@ -200,12 +199,12 @@ export function useSearchSession(root: string | null, clusterId: string | null):
     [kinds, parsed],
   );
 
-  // Flattened once per result set rather than per render: the list is walked by
+  // Grouped by kind, then flattened once per result set rather than per render: the list is walked by
   // the arrow keys, by the scroll-into-view effect and by the renderer, and all
   // three have to agree on what row N is.
   const rows = useMemo<ResultRow[]>(() => {
     const flat: ResultRow[] = [];
-    for (const hit of hits) {
+    for (const hit of orderByKind(hits)) {
       flat.push({ row: "file", hit });
       hit.matches.forEach((match, index) => {
         flat.push({ row: "match", hit, match, ordinal: index + 1 });
