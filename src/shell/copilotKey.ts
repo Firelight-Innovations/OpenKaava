@@ -11,7 +11,6 @@ export const COPILOT_ACTIONS = [
   "switchProject",
   "newCluster",
   "toggleGit",
-  "togglePanel",
   "toggleTerminal",
   "none",
 ] as const;
@@ -21,8 +20,12 @@ export type CopilotAction = (typeof COPILOT_ACTIONS)[number];
 /** Out of the box the key opens the Command Palette. */
 export const DEFAULT_COPILOT_ACTION: CopilotAction = "palette";
 
-/** An unknown stored value falls back to the default, never to "none". */
+/**
+ * An unknown stored value falls back to the default, never to "none". The
+ * removed side-panel action maps to the Git page, which replaced it.
+ */
 export function narrowCopilotAction(value: unknown): CopilotAction {
+  if (value === "togglePanel") return "toggleGit";
   return (COPILOT_ACTIONS as readonly unknown[]).includes(value)
     ? (value as CopilotAction)
     : DEFAULT_COPILOT_ACTION;

@@ -463,11 +463,6 @@ static COPILOT_ACTIONS: &[SelectOption] = &[
         description: "",
     },
     SelectOption {
-        value: "togglePanel",
-        label: "Show or hide the side panel",
-        description: "",
-    },
-    SelectOption {
         value: "toggleTerminal",
         label: "Show or hide the terminal",
         description: "",

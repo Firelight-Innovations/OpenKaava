@@ -1637,7 +1637,6 @@ export default function WindowRoot({
     switchProject: onOpenProjectSwitcher,
     newCluster: onAddCluster,
     toggleGit: () => onSelectPage("git"),
-    togglePanel: () => setPanelCollapsed((c) => !c),
     toggleTerminal: onToggleTerminal,
   };
   const copilotKey = () => dispatchCopilotKey(copilotAction, copilotHandlers);
