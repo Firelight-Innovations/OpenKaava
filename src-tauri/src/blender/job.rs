@@ -97,6 +97,10 @@ pub struct PartEntry {
     pub polys: u64,
     pub tris: u64,
     pub dimensions: Vec<f64>,
+    /// For `kind == "instance"`: the collection the empty instances.
+    pub instance_of: Option<String>,
+    /// For `kind == "instance"`: how many meshes that collection brings in.
+    pub instance_meshes: u64,
 }
 
 /// What `export.py` wrote to `result.json`.
@@ -416,6 +420,16 @@ impl Jobs {
 pub(crate) mod tests {
     use super::*;
     use tempfile::TempDir;
+
+    #[test]
+    fn instance_fields_survive_result_parsing() {
+        let json = r#"{"parts":[{"name":"CrateLinked","kind":"instance","tris":108,
+            "instanceOf":"CrateProp","instanceMeshes":1},{"name":"Old","kind":"mesh"}]}"#;
+        let result: ScriptResult = serde_json::from_str(json).unwrap();
+        assert_eq!(result.parts[0].instance_of.as_deref(), Some("CrateProp"));
+        assert_eq!(result.parts[0].instance_meshes, 1);
+        assert_eq!(result.parts[1].instance_of, None);
+    }
 
     /// A stand-in `blender`. On Windows a `.cmd`, elsewhere `sh`; both read the
     /// same environment variables the real script does and write the same
