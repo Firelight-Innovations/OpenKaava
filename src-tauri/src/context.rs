@@ -1,0 +1,1174 @@
+//! The context store: images, files and snippets that a person (or an app)
+//! wants an agent to have, kept as plain files inside the environment.
+//!
+//! Design: `docs/design/KAAVA-AGENT-CONTEXT.md`. Every harness can read a file
+//! by path, so a file under `.kaava/context/` is the transport; `@` mentions and
+//! thumbnails are conveniences on top.
+//!
+//! Layout, per environment:
+//! ```text
+//! .kaava/context/.gitignore          `*` — context never enters a commit
+//! .kaava/context/<stamp>-<slug>.png  the bytes (an "owned" item)
+//! .kaava/context/<id>.json           the sidecar: one [`ContextItem`]
+//! ```
+//!
+//! A sidecar per item, as in `comments.rs`: a lost one leaves the file usable.
+//!
+//! **Writes are allowed in a main cluster.** `.kaava/context/` is Kaava's own
+//! state, not the checkout, and the nested `.gitignore` keeps it out of `git
+//! status`. `apps::write_refusal` therefore does not list any `context/*`
+//! method, and the shell commands here never call `guard_cluster_write`.
+
+use base64::engine::general_purpose::STANDARD as BASE64;
+use base64::Engine as _;
+use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
+use rand::RngCore;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::path::{Component, Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+/// Stored-image ceiling. Not downscaled here: there is no image codec in the
+/// tree, and the honest answer to "too big" is a refusal the user can act on.
+pub const MAX_IMAGE_BYTES: usize = 8 * 1024 * 1024;
+/// Text beyond this is cut at a line boundary and marked truncated.
+pub const MAX_TEXT_BYTES: usize = 256 * 1024;
+/// The copy limit for a file dropped in from outside the environment.
+pub const MAX_FILE_BYTES: u64 = 25 * 1024 * 1024;
+/// Per-environment retention. Oldest owned items go first.
+pub const MAX_ITEMS: usize = 500;
+pub const MAX_TOTAL_BYTES: u64 = 500 * 1024 * 1024;
+
+/// The event Rust emits after any change to a store. The payload is
+/// `{ "root": "<environment root>" }`; a listener refetches if that root is
+/// the one it is showing.
+pub const CHANGED_EVENT: &str = "context:changed";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Kind {
+    Image,
+    File,
+    /// A snippet of text: a log tail, a selection, a note.
+    Text,
+    /// A capture of a whole panel. Stored exactly like an image; the kind is
+    /// there so a strip can say where it came from.
+    Panel,
+}
+
+impl Kind {
+    fn is_image_like(self) -> bool {
+        matches!(self, Kind::Image | Kind::Panel)
+    }
+}
+
+/// How the item arrived.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Method {
+    /// An app pushed it through `context/put`.
+    Put,
+    Drop,
+    Clipboard,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Source {
+    /// Stamped by the shell from the calling frame, never taken from params.
+    pub app_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageInfo {
+    pub width: u32,
+    pub height: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TextInfo {
+    pub chars: usize,
+    pub lines: usize,
+    pub truncated: bool,
+}
+
+/// One sidecar file. The subset of the spec's `ContextItem` this build can
+/// keep honest: no video, no derivatives, no expiry.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContextItem {
+    /// `ctx_` + 12 hex digits of milliseconds + 6 of randomness, so ids sort
+    /// by age and never need a shared counter.
+    pub id: String,
+    pub v: u8,
+    pub kind: Kind,
+    /// Sniffed from the bytes for images, from the extension otherwise.
+    pub mime: String,
+    pub title: String,
+    pub source: Source,
+    pub method: Method,
+    /// Epoch milliseconds.
+    pub created_at: u64,
+    pub size: u64,
+    /// Absolute, native separators.
+    pub path: String,
+    /// Relative to the environment root, forward slashes. Empty when the file
+    /// is outside the root.
+    pub rel_path: String,
+    /// True when Kaava wrote the file into the store, so removing the item
+    /// deletes it. False for a file referenced where it already lives.
+    pub owned: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub image: Option<ImageInfo>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text: Option<TextInfo>,
+    /// First characters of a text item, for a chip that has no thumbnail.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preview: Option<String>,
+    /// Computed on every read, never stored: the file has been deleted or moved
+    /// since. The strip greys the chip rather than hiding it.
+    #[serde(default, skip_deserializing)]
+    pub missing: bool,
+}
+
+/// Where the content of a put comes from.
+#[derive(Debug, Clone)]
+pub enum Payload {
+    Bytes(Vec<u8>),
+    Text(String),
+    /// A file that already exists on disk.
+    Path(PathBuf),
+}
+
+#[derive(Debug, Clone)]
+pub struct PutRequest {
+    /// `None` infers: an image by its bytes, a file otherwise, text for
+    /// [`Payload::Text`].
+    pub kind: Option<Kind>,
+    pub title: Option<String>,
+    pub payload: Payload,
+    pub app_id: String,
+    pub label: Option<String>,
+    pub method: Method,
+    /// For [`Payload::Path`]: when the file is already inside the environment,
+    /// reference it there instead of copying. Off for callers that want a
+    /// stable snapshot.
+    pub reference_in_place: bool,
+}
+
+// --- storage ----------------------------------------------------------------
+
+/// `<root>/.kaava/context`.
+pub fn store_dir(root: &Path) -> PathBuf {
+    root.join(".kaava").join("context")
+}
+
+fn sidecar(dir: &Path, id: &str) -> PathBuf {
+    dir.join(format!("{id}.json"))
+}
+
+/// Ids are minted here, so anything else is either a bug or a traversal
+/// attempt from a caller, and is refused before it reaches a path join.
+fn valid_id(id: &str) -> bool {
+    id.strip_prefix("ctx_").is_some_and(|rest| {
+        !rest.is_empty() && rest.len() <= 32 && rest.bytes().all(|b| b.is_ascii_hexdigit())
+    })
+}
+
+fn ensure_dir(root: &Path) -> Result<PathBuf, RpcError> {
+    let dir = store_dir(root);
+    std::fs::create_dir_all(&dir)
+        .map_err(|e| internal(format!("could not create {}: {e}", dir.display())))?;
+    // Written once and never rewritten: a user who edits it keeps their edit.
+    let ignore = dir.join(".gitignore");
+    if !ignore.exists() {
+        let _ = std::fs::write(&ignore, "*\n");
+    }
+    Ok(dir)
+}
+
+fn internal(message: String) -> RpcError {
+    RpcError::new(INTERNAL_ERROR, message)
+}
+
+fn invalid(message: impl Into<String>) -> RpcError {
+    RpcError::new(INVALID_PARAMS, message.into())
+}
+
+// --- the operations ----------------------------------------------------------
+
+/// Every item, newest first. A directory that does not exist is an empty list.
+pub fn list(root: &Path) -> Vec<ContextItem> {
+    let dir = store_dir(root);
+    let Ok(reader) = std::fs::read_dir(&dir) else {
+        return Vec::new();
+    };
+    let mut items: Vec<ContextItem> = reader
+        .flatten()
+        .filter(|e| e.path().extension().and_then(|x| x.to_str()) == Some("json"))
+        .filter_map(|e| {
+            let raw = std::fs::read_to_string(e.path()).ok()?;
+            match serde_json::from_str::<ContextItem>(&raw) {
+                Ok(mut item) => {
+                    item.missing = !Path::new(&item.path).exists();
+                    Some(item)
+                }
+                Err(err) => {
+                    crate::kaava_log!(
+                        "skipping unreadable context item {}: {err}",
+                        e.path().display()
+                    );
+                    None
+                }
+            }
+        })
+        .collect();
+    items.sort_by(|a, b| {
+        b.created_at
+            .cmp(&a.created_at)
+            .then_with(|| b.id.cmp(&a.id))
+    });
+    items
+}
+
+pub fn get(root: &Path, id: &str) -> Result<ContextItem, RpcError> {
+    if !valid_id(id) {
+        return Err(invalid(format!("`{id}` is not a context item id")));
+    }
+    let raw = std::fs::read_to_string(sidecar(&store_dir(root), id))
+        .map_err(|_| invalid(format!("no context item `{id}` in this environment")))?;
+    let mut item: ContextItem = serde_json::from_str(&raw)
+        .map_err(|e| internal(format!("context item `{id}` is unreadable: {e}")))?;
+    item.missing = !Path::new(&item.path).exists();
+    Ok(item)
+}
+
+/// Forget an item. Deletes the file only when Kaava wrote it; a file that was
+/// referenced in place is the user's and is never touched.
+pub fn remove(root: &Path, id: &str) -> Result<(), RpcError> {
+    let item = get(root, id)?;
+    let dir = store_dir(root);
+    if item.owned {
+        // Only ever a file inside the store: refuse to follow a hand-edited
+        // sidecar out of it.
+        let path = PathBuf::from(&item.path);
+        if path.starts_with(&dir) {
+            let _ = std::fs::remove_file(&path);
+        }
+    }
+    let _ = std::fs::remove_file(sidecar(&dir, id));
+    Ok(())
+}
+
+/// The bytes of an owned or referenced image, base64, for the strip's
+/// thumbnail. Images only, and only the 8 MB the store allows, so this cannot
+/// be turned into a general file reader.
+pub fn read_image(root: &Path, id: &str) -> Result<(String, String), RpcError> {
+    let item = get(root, id)?;
+    if !item.kind.is_image_like() {
+        return Err(invalid("only image items have a thumbnail"));
+    }
+    let bytes = std::fs::read(&item.path)
+        .map_err(|e| internal(format!("could not read {}: {e}", item.path)))?;
+    if bytes.len() > MAX_IMAGE_BYTES {
+        return Err(invalid("that image is larger than the store allows"));
+    }
+    Ok((item.mime, BASE64.encode(bytes)))
+}
+
+/// Materialise something into the store and return its record.
+pub fn put(root: &Path, request: PutRequest) -> Result<ContextItem, RpcError> {
+    let PutRequest {
+        kind,
+        title,
+        payload,
+        app_id,
+        label,
+        method,
+        reference_in_place,
+    } = request;
+    let dir = ensure_dir(root)?;
+    // A file's own name is its title until the caller says otherwise.
+    let title = title.or_else(|| match &payload {
+        Payload::Path(p) => p.file_name().map(|n| n.to_string_lossy().into_owned()),
+        _ => None,
+    });
+    let created_at = now_ms();
+    let id = new_id(created_at);
+
+    // What the content is, and the bytes to write (or the file to reference).
+    enum Body {
+        Write(Vec<u8>),
+        InPlace(PathBuf),
+    }
+    let (kind, body, sniffed, ext_hint, text_meta, preview) = match payload {
+        Payload::Bytes(bytes) => {
+            let sniffed = sniff(&bytes);
+            let kind = kind.unwrap_or(if sniffed.is_some() {
+                Kind::Image
+            } else {
+                Kind::File
+            });
+            (kind, Body::Write(bytes), sniffed, None, None, None)
+        }
+        Payload::Text(text) => {
+            let (text, meta) = clamp_text(text);
+            let preview: String = text.chars().take(240).collect();
+            let bytes = text.into_bytes();
+            (
+                kind.unwrap_or(Kind::Text),
+                Body::Write(bytes),
+                None,
+                Some("txt".to_string()),
+                Some(meta),
+                Some(preview),
+            )
+        }
+        Payload::Path(path) => {
+            let meta = std::fs::metadata(&path)
+                .map_err(|e| invalid(format!("cannot read {}: {e}", path.display())))?;
+            if !meta.is_file() {
+                return Err(invalid(format!("{} is not a file", path.display())));
+            }
+            let head = read_head(&path);
+            let sniffed = sniff(&head);
+            let kind = kind.unwrap_or(if sniffed.is_some() {
+                Kind::Image
+            } else {
+                Kind::File
+            });
+            let ext = path
+                .extension()
+                .and_then(|e| e.to_str())
+                .map(str::to_ascii_lowercase);
+            if reference_in_place && inside(root, &path) {
+                (kind, Body::InPlace(path), sniffed, ext, None, None)
+            } else {
+                if meta.len() > MAX_FILE_BYTES {
+                    return Err(invalid(format!(
+                        "{} is over the {} MB copy limit",
+                        path.display(),
+                        MAX_FILE_BYTES / 1024 / 1024
+                    )));
+                }
+                let bytes = std::fs::read(&path)
+                    .map_err(|e| internal(format!("could not read {}: {e}", path.display())))?;
+                (kind, Body::Write(bytes), sniffed, ext, None, None)
+            }
+        }
+    };
+
+    if kind.is_image_like() && sniffed.is_none() {
+        return Err(invalid("the bytes are not a PNG, JPEG, GIF or WebP image"));
+    }
+    if let Body::Write(bytes) = &body {
+        if kind.is_image_like() && bytes.len() > MAX_IMAGE_BYTES {
+            return Err(invalid(format!(
+                "that image is {:.1} MB; the limit is {} MB",
+                bytes.len() as f64 / 1_048_576.0,
+                MAX_IMAGE_BYTES / 1024 / 1024
+            )));
+        }
+        // Executable-looking content is never copied into a place an agent is
+        // told to open. Referencing one in place is the user's own doing.
+        if looks_executable(bytes) {
+            return Err(invalid(
+                "that looks like an executable, which the context store refuses",
+            ));
+        }
+    }
+
+    let (path, size, mime, owned) = match body {
+        Body::Write(bytes) => {
+            let ext = match &sniffed {
+                Some(s) => s.ext.to_string(),
+                None => sanitize_ext(ext_hint.as_deref().unwrap_or("bin")),
+            };
+            let name = file_name(created_at, title.as_deref(), kind, &ext, &id);
+            let path = dir.join(&name);
+            write_new(&path, &bytes)?;
+            let mime = sniffed
+                .as_ref()
+                .map(|s| s.mime.to_string())
+                .unwrap_or_else(|| mime_for_ext(&ext).to_string());
+            (path, bytes.len() as u64, mime, true)
+        }
+        Body::InPlace(path) => {
+            let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+            let ext = ext_hint.clone().unwrap_or_default();
+            let mime = sniffed
+                .as_ref()
+                .map(|s| s.mime.to_string())
+                .unwrap_or_else(|| mime_for_ext(&ext).to_string());
+            (path, size, mime, false)
+        }
+    };
+
+    let title = title
+        .filter(|t| !t.trim().is_empty())
+        .map(|t| t.trim().chars().take(120).collect::<String>())
+        .unwrap_or_else(|| {
+            path.file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "context".into())
+        });
+
+    let item = ContextItem {
+        id: id.clone(),
+        v: 1,
+        kind,
+        mime,
+        title,
+        source: Source { app_id, label },
+        method,
+        created_at,
+        size,
+        rel_path: relative_to(root, &path).unwrap_or_default(),
+        path: path.to_string_lossy().into_owned(),
+        owned,
+        image: sniffed
+            .and_then(|s| s.dims)
+            .map(|(width, height)| ImageInfo { width, height }),
+        text: text_meta,
+        preview,
+        missing: false,
+    };
+
+    let json = serde_json::to_string_pretty(&item).map_err(|e| internal(e.to_string()))?;
+    std::fs::write(sidecar(&dir, &id), json)
+        .map_err(|e| internal(format!("could not write the context record: {e}")))?;
+
+    prune(root);
+    Ok(item)
+}
+
+/// Keep the store inside its retention limits, oldest owned item first.
+/// Referenced-in-place records cost nothing and are only dropped by count.
+pub fn prune(root: &Path) {
+    prune_to(root, MAX_ITEMS, MAX_TOTAL_BYTES);
+}
+
+fn prune_to(root: &Path, max_items: usize, max_bytes: u64) {
+    let mut items = list(root);
+    items.reverse(); // oldest first
+    let mut count = items.len();
+    let mut total: u64 = items.iter().filter(|i| i.owned).map(|i| i.size).sum();
+    for item in items {
+        if count <= max_items && total <= max_bytes {
+            break;
+        }
+        if remove(root, &item.id).is_ok() {
+            count -= 1;
+            if item.owned {
+                total = total.saturating_sub(item.size);
+            }
+        }
+    }
+}
+
+// --- content sniffing --------------------------------------------------------
+
+#[derive(Debug, Clone)]
+struct Sniffed {
+    mime: &'static str,
+    ext: &'static str,
+    dims: Option<(u32, u32)>,
+}
+
+/// What image, if any, these bytes are. Trusts the bytes and nothing else: a
+/// declared mime or a file extension never decides this.
+fn sniff(bytes: &[u8]) -> Option<Sniffed> {
+    if bytes.starts_with(&[0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A]) {
+        let dims = (bytes.len() >= 24).then(|| (be32(&bytes[16..20]), be32(&bytes[20..24])));
+        return Some(Sniffed {
+            mime: "image/png",
+            ext: "png",
+            dims,
+        });
+    }
+    if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) {
+        return Some(Sniffed {
+            mime: "image/jpeg",
+            ext: "jpg",
+            dims: jpeg_dims(bytes),
+        });
+    }
+    if bytes.starts_with(b"GIF87a") || bytes.starts_with(b"GIF89a") {
+        let dims = (bytes.len() >= 10).then(|| {
+            (
+                u32::from(u16::from_le_bytes([bytes[6], bytes[7]])),
+                u32::from(u16::from_le_bytes([bytes[8], bytes[9]])),
+            )
+        });
+        return Some(Sniffed {
+            mime: "image/gif",
+            ext: "gif",
+            dims,
+        });
+    }
+    if bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && &bytes[8..12] == b"WEBP" {
+        let dims = (bytes.len() >= 30 && &bytes[12..16] == b"VP8X").then(|| {
+            let w = 1 + u32::from_le_bytes([bytes[24], bytes[25], bytes[26], 0]);
+            let h = 1 + u32::from_le_bytes([bytes[27], bytes[28], bytes[29], 0]);
+            (w, h)
+        });
+        return Some(Sniffed {
+            mime: "image/webp",
+            ext: "webp",
+            dims,
+        });
+    }
+    None
+}
+
+fn be32(b: &[u8]) -> u32 {
+    u32::from_be_bytes([b[0], b[1], b[2], b[3]])
+}
+
+/// Walk JPEG segments to the first start-of-frame marker.
+fn jpeg_dims(bytes: &[u8]) -> Option<(u32, u32)> {
+    let mut i = 2;
+    while i + 9 < bytes.len() {
+        if bytes[i] != 0xFF {
+            i += 1;
+            continue;
+        }
+        let marker = bytes[i + 1];
+        if marker == 0xFF {
+            i += 1;
+            continue;
+        }
+        let len = usize::from(u16::from_be_bytes([bytes[i + 2], bytes[i + 3]]));
+        if (0xC0..=0xCF).contains(&marker) && !matches!(marker, 0xC4 | 0xC8 | 0xCC) {
+            let h = u32::from(u16::from_be_bytes([bytes[i + 5], bytes[i + 6]]));
+            let w = u32::from(u16::from_be_bytes([bytes[i + 7], bytes[i + 8]]));
+            return Some((w, h));
+        }
+        i += 2 + len;
+    }
+    None
+}
+
+fn looks_executable(bytes: &[u8]) -> bool {
+    bytes.starts_with(b"MZ")
+        || bytes.starts_with(&[0x7F, b'E', b'L', b'F'])
+        || bytes.starts_with(&[0xCF, 0xFA, 0xED, 0xFE])
+        || bytes.starts_with(&[0xFE, 0xED, 0xFA, 0xCF])
+        || bytes.starts_with(&[0xCA, 0xFE, 0xBA, 0xBE])
+}
+
+fn read_head(path: &Path) -> Vec<u8> {
+    use std::io::Read;
+    let mut buf = vec![0u8; 64 * 1024];
+    let Ok(mut file) = std::fs::File::open(path) else {
+        return Vec::new();
+    };
+    let n = file.read(&mut buf).unwrap_or(0);
+    buf.truncate(n);
+    buf
+}
+
+fn mime_for_ext(ext: &str) -> &'static str {
+    match ext {
+        "txt" | "log" => "text/plain",
+        "md" => "text/markdown",
+        "json" => "application/json",
+        "csv" => "text/csv",
+        "gd" | "rs" | "ts" | "tsx" | "js" | "py" | "cs" | "toml" | "yaml" | "yml" | "gdshader" => {
+            "text/plain"
+        }
+        "pdf" => "application/pdf",
+        _ => "application/octet-stream",
+    }
+}
+
+fn clamp_text(text: String) -> (String, TextInfo) {
+    let truncated = text.len() > MAX_TEXT_BYTES;
+    let mut out = if truncated {
+        // Cut at a char boundary, then back to the last line break.
+        let mut end = MAX_TEXT_BYTES;
+        while !text.is_char_boundary(end) {
+            end -= 1;
+        }
+        let cut = &text[..end];
+        let cut = cut.rfind('\n').map_or(cut, |n| &cut[..n]);
+        format!("{cut}\n[truncated by Kaava at 256 KB]\n")
+    } else {
+        text
+    };
+    let chars = out.chars().count();
+    let lines = out.lines().count();
+    if out.is_empty() {
+        out.push('\n');
+    }
+    (
+        out,
+        TextInfo {
+            chars,
+            lines,
+            truncated,
+        },
+    )
+}
+
+// --- names and paths ---------------------------------------------------------
+
+/// `<yyyymmdd-hhmmss>-<slug>-<id tail>.<ext>`. The slug is `[a-z0-9-]` only, so
+/// no harness adapter ever has to quote a name Kaava chose.
+fn file_name(created_at: u64, title: Option<&str>, kind: Kind, ext: &str, id: &str) -> String {
+    let fallback = match kind {
+        Kind::Image => "image",
+        Kind::File => "file",
+        Kind::Text => "text",
+        Kind::Panel => "panel",
+    };
+    let stem = title
+        .and_then(|t| {
+            Path::new(t)
+                .file_stem()
+                .map(|s| s.to_string_lossy().into_owned())
+        })
+        .unwrap_or_default();
+    let slug = slugify(&stem);
+    let slug = if slug.is_empty() {
+        fallback.to_string()
+    } else {
+        slug
+    };
+    let tail = &id[id.len().saturating_sub(4)..];
+    format!("{}-{slug}-{tail}.{ext}", stamp(created_at))
+}
+
+pub fn slugify(s: &str) -> String {
+    let mut out = String::new();
+    for c in s.chars().flat_map(char::to_lowercase) {
+        if c.is_ascii_alphanumeric() {
+            out.push(c);
+        } else if !out.ends_with('-') {
+            out.push('-');
+        }
+    }
+    let trimmed = out.trim_matches('-');
+    trimmed
+        .chars()
+        .take(32)
+        .collect::<String>()
+        .trim_matches('-')
+        .to_string()
+}
+
+fn sanitize_ext(ext: &str) -> String {
+    let e: String = ext
+        .chars()
+        .filter(char::is_ascii_alphanumeric)
+        .take(8)
+        .collect::<String>()
+        .to_ascii_lowercase();
+    if e.is_empty() {
+        "bin".into()
+    } else {
+        e
+    }
+}
+
+/// `yyyymmdd-hhmmss` in UTC from epoch milliseconds (Howard Hinnant's
+/// civil-from-days, which needs no date crate).
+fn stamp(ms: u64) -> String {
+    let secs = ms / 1000;
+    let days = (secs / 86_400) as i64;
+    let rem = secs % 86_400;
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z.rem_euclid(146_097);
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let mut y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    if m <= 2 {
+        y += 1;
+    }
+    format!(
+        "{y:04}{m:02}{d:02}-{:02}{:02}{:02}",
+        rem / 3600,
+        rem % 3600 / 60,
+        rem % 60
+    )
+}
+
+fn write_new(path: &Path, bytes: &[u8]) -> Result<(), RpcError> {
+    use std::io::Write;
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
+        .map_err(|e| internal(format!("could not create {}: {e}", path.display())))?;
+    file.write_all(bytes)
+        .map_err(|e| internal(format!("could not write {}: {e}", path.display())))
+}
+
+/// Lexical containment, with `.` and `..` folded. Not `canonicalize`: the path
+/// may be on a drive that has since gone, and Windows verbatim prefixes make a
+/// canonical path compare unequal to the one the user typed.
+fn normalize(path: &Path) -> PathBuf {
+    let mut out = PathBuf::new();
+    for c in path.components() {
+        match c {
+            Component::ParentDir => {
+                out.pop();
+            }
+            Component::CurDir => {}
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out
+}
+
+pub fn inside(root: &Path, path: &Path) -> bool {
+    let (root, path) = (normalize(root), normalize(path));
+    if cfg!(windows) {
+        let lower = |p: &Path| p.to_string_lossy().to_ascii_lowercase().replace('\\', "/");
+        let mut r = lower(&root);
+        if !r.ends_with('/') {
+            r.push('/');
+        }
+        lower(&path).starts_with(&r)
+    } else {
+        path.starts_with(&root)
+    }
+}
+
+/// `path` relative to `root`, forward slashes, or `None` when it is outside.
+pub fn relative_to(root: &Path, path: &Path) -> Option<String> {
+    if !inside(root, path) {
+        return None;
+    }
+    let (root, path) = (normalize(root), normalize(path));
+    let rel = if cfg!(windows) {
+        let r = root.to_string_lossy().replace('\\', "/");
+        let p = path.to_string_lossy().replace('\\', "/");
+        p.get(r.trim_end_matches('/').len()..)?
+            .trim_start_matches('/')
+            .to_string()
+    } else {
+        path.strip_prefix(&root)
+            .ok()?
+            .to_string_lossy()
+            .into_owned()
+    };
+    Some(rel)
+}
+
+fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+fn new_id(ms: u64) -> String {
+    let mut suffix = [0u8; 3];
+    rand::rng().fill_bytes(&mut suffix);
+    format!(
+        "ctx_{ms:012x}{:02x}{:02x}{:02x}",
+        suffix[0], suffix[1], suffix[2]
+    )
+}
+
+// --- the RPC surface for apps ---------------------------------------------------
+
+/// Answered by the host before any app is looked up, so every app (and a
+/// plugin surface) reaches one store the same way. See `apps::call`.
+pub fn is_method(method: &str) -> bool {
+    method.starts_with("context/")
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PutParams {
+    #[serde(default)]
+    kind: Option<Kind>,
+    #[serde(default)]
+    title: Option<String>,
+    /// Standard base64, no data-URI prefix — the convention `comments/create`
+    /// and `files::readBytes` already use.
+    #[serde(default)]
+    bytes_base64: Option<String>,
+    #[serde(default)]
+    text: Option<String>,
+    /// An absolute path to a file the app already wrote.
+    #[serde(default)]
+    path: Option<String>,
+    /// A line for the strip ("Play - scene hospital_wing.tscn").
+    #[serde(default)]
+    label: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct IdParams {
+    id: String,
+}
+
+/// `context/put`, `context/list`, `context/get`, `context/remove`. `app_id` is
+/// the calling surface's id as the shell resolved it, and is what a put is
+/// stamped with.
+pub fn call(
+    root: Option<&Path>,
+    app_id: &str,
+    method: &str,
+    params: Option<Value>,
+) -> Result<Value, RpcError> {
+    let root = root.ok_or_else(|| {
+        internal("this cluster has no environment to keep context in — open a project first".into())
+    })?;
+    let params = params.unwrap_or(Value::Null);
+    match method {
+        "context/list" => to_value(list(root)),
+        "context/get" => {
+            let p: IdParams = parse(params)?;
+            to_value(get(root, &p.id)?)
+        }
+        "context/remove" => {
+            let p: IdParams = parse(params)?;
+            remove(root, &p.id)?;
+            Ok(Value::Null)
+        }
+        "context/put" => {
+            let p: PutParams = parse(params)?;
+            let payload = match (p.bytes_base64, p.text, p.path) {
+                (Some(b64), None, None) => Payload::Bytes(
+                    BASE64
+                        .decode(b64)
+                        .map_err(|e| invalid(format!("bytesBase64 is not valid base64: {e}")))?,
+                ),
+                (None, Some(text), None) => Payload::Text(text),
+                (None, None, Some(path)) => Payload::Path(PathBuf::from(path)),
+                _ => {
+                    return Err(invalid(
+                        "put needs exactly one of bytesBase64, text or path",
+                    ))
+                }
+            };
+            to_value(put(
+                root,
+                PutRequest {
+                    kind: p.kind,
+                    title: p.title,
+                    payload,
+                    app_id: app_id.to_string(),
+                    label: p.label,
+                    method: Method::Put,
+                    reference_in_place: true,
+                },
+            )?)
+        }
+        other => Err(RpcError::new(
+            kaava_rpc::METHOD_NOT_FOUND,
+            format!("no method `{other}`"),
+        )),
+    }
+}
+
+fn parse<T: serde::de::DeserializeOwned>(params: Value) -> Result<T, RpcError> {
+    serde_json::from_value(params).map_err(|e| invalid(format!("bad params: {e}")))
+}
+
+fn to_value<T: Serialize>(v: T) -> Result<Value, RpcError> {
+    serde_json::to_value(v).map_err(|e| internal(format!("could not serialize response: {e}")))
+}
+
+/// Tell every listener a store changed.
+pub fn notify(app: &tauri::AppHandle, root: &Path) {
+    use tauri::Emitter;
+    let _ = app.emit(
+        CHANGED_EVENT,
+        serde_json::json!({ "root": root.to_string_lossy() }),
+    );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    fn png(w: u32, h: u32) -> Vec<u8> {
+        let mut b = vec![
+            0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, b'I', b'H', b'D', b'R',
+        ];
+        b.extend_from_slice(&w.to_be_bytes());
+        b.extend_from_slice(&h.to_be_bytes());
+        b.extend_from_slice(&[8, 6, 0, 0, 0]);
+        b
+    }
+
+    fn req(payload: Payload) -> PutRequest {
+        PutRequest {
+            kind: None,
+            title: None,
+            payload,
+            app_id: "play".into(),
+            label: Some("Play - scene".into()),
+            method: Method::Put,
+            reference_in_place: true,
+        }
+    }
+
+    #[test]
+    fn a_put_image_is_written_with_a_sidecar_and_a_gitignore() {
+        let dir = TempDir::new().unwrap();
+        let item = put(dir.path(), req(Payload::Bytes(png(640, 480)))).unwrap();
+        assert_eq!(item.kind, Kind::Image);
+        assert_eq!(item.mime, "image/png");
+        assert_eq!(
+            item.image,
+            Some(ImageInfo {
+                width: 640,
+                height: 480
+            })
+        );
+        assert!(item.owned);
+        assert!(Path::new(&item.path).is_file());
+        assert!(item.rel_path.starts_with(".kaava/context/"));
+        assert!(item.rel_path.ends_with(".png"));
+        assert!(
+            !item.rel_path.contains(' '),
+            "names Kaava chooses never need quoting"
+        );
+        let ignore = std::fs::read_to_string(store_dir(dir.path()).join(".gitignore")).unwrap();
+        assert_eq!(ignore, "*\n");
+        assert_eq!(get(dir.path(), &item.id).unwrap().id, item.id);
+    }
+
+    #[test]
+    fn list_is_newest_first_and_empty_without_a_directory() {
+        let dir = TempDir::new().unwrap();
+        assert!(list(dir.path()).is_empty());
+        let a = put(dir.path(), req(Payload::Text("one".into()))).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        let b = put(dir.path(), req(Payload::Text("two".into()))).unwrap();
+        let ids: Vec<_> = list(dir.path()).into_iter().map(|i| i.id).collect();
+        assert_eq!(ids, vec![b.id, a.id]);
+    }
+
+    #[test]
+    fn bytes_that_are_not_an_image_are_refused_as_an_image() {
+        let dir = TempDir::new().unwrap();
+        let mut r = req(Payload::Bytes(b"not a picture".to_vec()));
+        r.kind = Some(Kind::Image);
+        let err = put(dir.path(), r).unwrap_err();
+        assert!(err.message.contains("not a PNG"));
+        assert!(
+            list(dir.path()).is_empty(),
+            "a refusal leaves nothing behind"
+        );
+    }
+
+    #[test]
+    fn an_executable_is_never_copied_in() {
+        let dir = TempDir::new().unwrap();
+        let mut bytes = b"MZ".to_vec();
+        bytes.extend_from_slice(&[0; 64]);
+        let err = put(dir.path(), req(Payload::Bytes(bytes))).unwrap_err();
+        assert!(err.message.contains("executable"));
+    }
+
+    #[test]
+    fn an_oversized_image_is_refused_with_its_size() {
+        let dir = TempDir::new().unwrap();
+        let mut bytes = png(10, 10);
+        bytes.resize(MAX_IMAGE_BYTES + 1, 0);
+        let err = put(dir.path(), req(Payload::Bytes(bytes))).unwrap_err();
+        assert!(err.message.contains("limit is 8 MB"), "{}", err.message);
+    }
+
+    #[test]
+    fn text_is_truncated_at_a_line_and_marked() {
+        let dir = TempDir::new().unwrap();
+        let line = "x".repeat(99) + "\n";
+        let big = line.repeat(MAX_TEXT_BYTES / 100 + 50);
+        let item = put(dir.path(), req(Payload::Text(big))).unwrap();
+        assert!(item.text.unwrap().truncated);
+        let stored = std::fs::read_to_string(&item.path).unwrap();
+        assert!(stored.len() <= MAX_TEXT_BYTES + 64);
+        assert!(stored
+            .trim_end()
+            .ends_with("[truncated by Kaava at 256 KB]"));
+        assert!(item.preview.unwrap().len() <= 240);
+    }
+
+    #[test]
+    fn a_file_inside_the_environment_is_referenced_in_place_and_not_deleted_on_remove() {
+        let dir = TempDir::new().unwrap();
+        let file = dir.path().join("notes.md");
+        std::fs::write(&file, "# hi").unwrap();
+        let item = put(dir.path(), req(Payload::Path(file.clone()))).unwrap();
+        assert!(!item.owned);
+        assert_eq!(item.rel_path, "notes.md");
+        assert_eq!(item.kind, Kind::File);
+        remove(dir.path(), &item.id).unwrap();
+        assert!(file.exists(), "the user's file is never deleted");
+        assert!(list(dir.path()).is_empty());
+    }
+
+    #[test]
+    fn a_file_outside_the_environment_is_copied_in_and_removal_deletes_the_copy() {
+        let env = TempDir::new().unwrap();
+        let elsewhere = TempDir::new().unwrap();
+        let shot = elsewhere.path().join("My Shot.png");
+        std::fs::write(&shot, png(4, 4)).unwrap();
+        let item = put(env.path(), req(Payload::Path(shot.clone()))).unwrap();
+        assert!(item.owned);
+        assert_eq!(item.kind, Kind::Image);
+        assert!(inside(env.path(), Path::new(&item.path)));
+        assert!(item.rel_path.contains("my-shot"));
+        assert!(shot.exists(), "the original is never moved");
+        remove(env.path(), &item.id).unwrap();
+        assert!(!Path::new(&item.path).exists());
+    }
+
+    #[test]
+    fn a_missing_file_marks_the_item_rather_than_hiding_it() {
+        let dir = TempDir::new().unwrap();
+        let item = put(dir.path(), req(Payload::Text("x".into()))).unwrap();
+        std::fs::remove_file(&item.path).unwrap();
+        let listed = list(dir.path());
+        assert_eq!(listed.len(), 1);
+        assert!(listed[0].missing);
+    }
+
+    #[test]
+    fn ids_that_are_not_ours_never_reach_a_path() {
+        let dir = TempDir::new().unwrap();
+        for bad in ["../x", "ctx_../x", "ctx_", "x", "ctx_zz"] {
+            assert!(get(dir.path(), bad).is_err(), "{bad}");
+            assert!(remove(dir.path(), bad).is_err(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn read_image_serves_images_only() {
+        let dir = TempDir::new().unwrap();
+        let img = put(dir.path(), req(Payload::Bytes(png(2, 2)))).unwrap();
+        let (mime, b64) = read_image(dir.path(), &img.id).unwrap();
+        assert_eq!(mime, "image/png");
+        assert_eq!(BASE64.decode(b64).unwrap(), png(2, 2));
+        let text = put(dir.path(), req(Payload::Text("t".into()))).unwrap();
+        assert!(read_image(dir.path(), &text.id).is_err());
+    }
+
+    #[test]
+    fn slugs_are_lowercase_alnum_and_dash() {
+        assert_eq!(slugify("Play frame 00:12!"), "play-frame-00-12");
+        assert_eq!(slugify("  ../..\\évil  "), "vil");
+        assert_eq!(slugify("***"), "");
+    }
+
+    #[test]
+    fn the_stamp_is_utc_civil_time() {
+        assert_eq!(stamp(0), "19700101-000000");
+        assert_eq!(stamp(1_782_820_800_000), "20260630-120000");
+        assert_eq!(stamp(951_782_400_000 + 86_399_000), "20000229-235959");
+    }
+
+    #[test]
+    fn inside_and_relative_agree_and_fold_dot_dot() {
+        let root = Path::new(if cfg!(windows) { "C:/proj" } else { "/proj" });
+        let under = root.join("a/b.png");
+        assert_eq!(relative_to(root, &under).as_deref(), Some("a/b.png"));
+        assert!(!inside(root, &root.join("../other/x.png")));
+        assert!(!inside(root, &root.join("a/../../x")));
+        let sibling = Path::new(if cfg!(windows) {
+            "C:/proj-two/x"
+        } else {
+            "/proj-two/x"
+        });
+        assert!(!inside(root, sibling), "a shared prefix is not containment");
+    }
+
+    #[test]
+    fn dimensions_come_from_jpeg_gif_and_webp_headers() {
+        let mut jpg = vec![0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x04, 0, 0];
+        jpg.extend_from_slice(&[
+            0xFF, 0xC0, 0x00, 0x0B, 8, 0x01, 0xE0, 0x02, 0x80, 1, 0, 0, 0, 0,
+        ]);
+        assert_eq!(sniff(&jpg).unwrap().dims, Some((640, 480)));
+        let mut gif = b"GIF89a".to_vec();
+        gif.extend_from_slice(&[0x20, 0x00, 0x10, 0x00]);
+        assert_eq!(sniff(&gif).unwrap().dims, Some((32, 16)));
+        let mut webp = b"RIFF\0\0\0\0WEBPVP8X\x0a\0\0\0\0\0\0\0".to_vec();
+        webp.extend_from_slice(&[0x1F, 0x00, 0x00, 0x0F, 0x00, 0x00]);
+        assert_eq!(sniff(&webp).unwrap().dims, Some((32, 16)));
+    }
+
+    #[test]
+    fn the_host_methods_round_trip_and_stamp_the_caller() {
+        let dir = TempDir::new().unwrap();
+        let b64 = BASE64.encode(png(3, 3));
+        let put_result = call(
+            Some(dir.path()),
+            "godot-viewer",
+            "context/put",
+            Some(serde_json::json!({ "kind": "panel", "title": "Viewport", "bytesBase64": b64, "label": "Godot" })),
+        )
+        .unwrap();
+        assert_eq!(put_result["source"]["appId"], "godot-viewer");
+        assert_eq!(put_result["kind"], "panel");
+        let id = put_result["id"].as_str().unwrap().to_string();
+        let listed = call(Some(dir.path()), "x", "context/list", None).unwrap();
+        assert_eq!(listed.as_array().unwrap().len(), 1);
+        call(
+            Some(dir.path()),
+            "x",
+            "context/remove",
+            Some(serde_json::json!({ "id": id })),
+        )
+        .unwrap();
+        let listed = call(Some(dir.path()), "x", "context/list", None).unwrap();
+        assert!(listed.as_array().unwrap().is_empty());
+    }
+
+    #[test]
+    fn put_needs_exactly_one_payload_and_a_root() {
+        let dir = TempDir::new().unwrap();
+        let both = serde_json::json!({ "text": "a", "path": "b" });
+        assert!(call(Some(dir.path()), "x", "context/put", Some(both)).is_err());
+        assert!(call(
+            Some(dir.path()),
+            "x",
+            "context/put",
+            Some(serde_json::json!({}))
+        )
+        .is_err());
+        assert!(call(None, "x", "context/list", None).is_err());
+    }
+
+    #[test]
+    fn retention_drops_the_oldest_owned_items_first() {
+        let dir = TempDir::new().unwrap();
+        let mut ids = Vec::new();
+        for n in 0..4 {
+            ids.push(
+                put(dir.path(), req(Payload::Text(format!("item {n}"))))
+                    .unwrap()
+                    .id,
+            );
+            std::thread::sleep(std::time::Duration::from_millis(3));
+        }
+        prune_to(dir.path(), 2, u64::MAX);
+        let kept: Vec<_> = list(dir.path()).into_iter().map(|i| i.id).collect();
+        assert_eq!(kept, vec![ids[3].clone(), ids[2].clone()]);
+        assert_eq!(
+            std::fs::read_dir(store_dir(dir.path()))
+                .unwrap()
+                .flatten()
+                .count(),
+            5,
+            "2 files + 2 sidecars + .gitignore"
+        );
+    }
+}

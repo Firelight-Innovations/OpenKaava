@@ -211,7 +211,14 @@ const ToolWindow = forwardRef<
      * is another region and §1.2 lets this one import nothing but `contract.ts`
      * — the same rule `renderPanes` answers below.
      */
-    onFramePathDrag?: (drag: { phase: "begin" | "end"; paths: readonly string[] }) => void;
+    onFramePathDrag?: (drag: {
+      phase: "begin" | "end";
+      paths: readonly string[];
+      /** Context item ids the frame is carrying, already put in the store. */
+      items: readonly string[];
+      /** The frame that is dragging, which decides whose store the ids are in. */
+      instanceId: string;
+    }) => void;
     /**
      * Draw the pane layout this window measured.
      *
@@ -970,7 +977,7 @@ const ToolWindow = forwardRef<
           return;
         }
         respond({ id, result: null });
-        relayDrag.current?.(drag);
+        relayDrag.current?.({ ...drag, instanceId: frame.id });
         return;
       }
 
@@ -1479,12 +1486,15 @@ function openRequest(params: unknown): { appId: string; payload: unknown } | nul
  * cannot apply when the receiver is a running program. Rust's quoting is the
  * real guard; this is the cheap one before it.
  */
-function pathDragRequest(params: unknown): { phase: "begin" | "end"; paths: string[] } | null {
+function pathDragRequest(
+  params: unknown,
+): { phase: "begin" | "end"; paths: string[]; items: string[] } | null {
   if (typeof params !== "object" || params === null) return null;
-  const { phase, paths } = params as { phase?: unknown; paths?: unknown };
+  const { phase, paths, items } = params as { phase?: unknown; paths?: unknown; items?: unknown };
   if (phase !== "begin" && phase !== "end") return null;
-  const list = Array.isArray(paths) ? paths : [];
-  return { phase, paths: list.filter((p): p is string => typeof p === "string") };
+  const strings = (v: unknown) =>
+    (Array.isArray(v) ? v : []).filter((p): p is string => typeof p === "string");
+  return { phase, paths: strings(paths), items: strings(items) };
 }
 
 function publishRequest(params: unknown): { topic: string; value: unknown } | null {

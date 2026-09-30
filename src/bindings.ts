@@ -1573,6 +1573,104 @@ export function terminalInsertPaths(id: string, paths: string[]): Promise<string
   return invoke<string>("terminal_insert_paths", { id, paths });
 }
 
+/* --- agent context --------------------------------------------------------------
+ *
+ * Mirrors `src-tauri/src/context.rs` and `context_commands.rs`. Bytes cross
+ * once, into Rust; everything after passes ids.
+ */
+
+export type ContextKind = "image" | "file" | "text" | "panel";
+export type Harness = "claude" | "codex" | "gemini" | "shell";
+
+export interface ContextItem {
+  id: string;
+  v: number;
+  kind: ContextKind;
+  mime: string;
+  title: string;
+  source: { appId: string; label?: string };
+  method: "put" | "drop" | "clipboard";
+  createdAt: number;
+  size: number;
+  path: string;
+  relPath: string;
+  owned: boolean;
+  image?: { width: number; height: number };
+  text?: { chars: number; lines: number; truncated: boolean };
+  preview?: string;
+  /** The file has gone since. Computed on every read. */
+  missing: boolean;
+}
+
+/** What an insertion did. `text` is exactly what was written at the prompt. */
+export interface ContextInserted {
+  text: string;
+  /** How many references `text` holds. */
+  count: number;
+  harness: Harness;
+  items: ContextItem[];
+  refused: string[];
+}
+
+export interface HarnessInfo {
+  effective: Harness;
+  detected: Harness | null;
+  overridden: Harness | null;
+}
+
+/** Files dropped on a terminal: copied into the context store when a coding
+ *  harness is running there, inserted as themselves when it is a plain shell. */
+export function terminalDropPaths(id: string, paths: string[]): Promise<ContextInserted> {
+  return invoke<ContextInserted>("terminal_drop_paths", { id, paths });
+}
+
+/** An image from the clipboard: stored, then referenced at the prompt. */
+export function terminalPasteImage(
+  id: string,
+  bytesBase64: string,
+  name?: string,
+): Promise<ContextInserted> {
+  return invoke<ContextInserted>("terminal_paste_image", { id, bytesBase64, name });
+}
+
+/** Send items already in the store to a terminal again. */
+export function terminalInsertItems(id: string, itemIds: string[]): Promise<ContextInserted> {
+  return invoke<ContextInserted>("terminal_insert_items", { id, itemIds });
+}
+
+/** The absolute paths of context items a frame is dragging. */
+export function contextItemPaths(instance: string, itemIds: string[]): Promise<string[]> {
+  return invoke<string[]>("context_item_paths", { instance, itemIds });
+}
+
+export function terminalHarness(id: string): Promise<HarnessInfo | null> {
+  return invoke<HarnessInfo | null>("terminal_harness", { id });
+}
+
+/** `"auto"` returns the terminal to detection. */
+export function terminalSetHarness(id: string, choice: Harness | "auto"): Promise<void> {
+  return invoke("terminal_set_harness", { id, choice });
+}
+
+/** The items in a terminal's environment, newest first. */
+export function contextList(terminalId: string): Promise<ContextItem[]> {
+  return invoke<ContextItem[]>("context_list", { terminalId });
+}
+
+export function contextRemove(terminalId: string, itemId: string): Promise<void> {
+  return invoke("context_remove", { terminalId, itemId });
+}
+
+/** `[mime, base64]` of an image item. */
+export function contextThumb(terminalId: string, itemId: string): Promise<[string, string]> {
+  return invoke<[string, string]>("context_thumb", { terminalId, itemId });
+}
+
+/** A store changed. `root` is the environment root; refetch if it is yours. */
+export function onContextChanged(cb: () => void): Promise<UnlistenFn> {
+  return listen("context:changed", () => cb());
+}
+
 /* --- files dragged in from outside OpenKaava ------------------------------------
  *
  * Not a command and not one of our own events: the operating system's own drag,
