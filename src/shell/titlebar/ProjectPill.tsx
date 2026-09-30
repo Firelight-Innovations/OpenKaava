@@ -40,7 +40,13 @@ export default function ProjectPill({
   const Glyph = environment ? KIND_ICON[environment.kind] : null;
 
   return (
-    <button type="button" className="projectpill" onClick={onOpenSwitcher} title={project}>
+    <button
+      type="button"
+      className="projectpill"
+      aria-haspopup="dialog"
+      onClick={onOpenSwitcher}
+      title={project}
+    >
       <ProjectTile name={project} icon={icon} className="projectpill__tile" />
       <span className="projectpill__name">{project}</span>
 

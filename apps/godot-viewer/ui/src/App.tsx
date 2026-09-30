@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { openIn, reportPainted } from "@openkaava/bridge";
 import {
   ChevronDown,
@@ -10,6 +10,7 @@ import {
   MessageSquarePlus,
   RefreshCw,
 } from "lucide-react";
+import type { MarkupExport } from "@kaava/markup/layer";
 import { CommentPanel } from "../../../shared/CommentPanel";
 import {
   createComment,
@@ -22,12 +23,28 @@ import { errorText, getStatus, openInGodot, type GodotStatus } from "../../../sh
 import { SegmentedControl } from "../../../shared/SegmentedControl";
 import { getImage, getState, refresh, type GodotNode, type GodotViewerState } from "./rpc";
 import { sampleState } from "./fixtures";
-import { dragContext, putFrame, putTree } from "./context";
+import { dragContext, putFrame, putMarkup, putTree } from "./context";
+import { nodeLookup } from "./preview";
+import { usePreview, type PreviewState } from "./usePreview";
 import "./App.css";
 
+/**
+ * three.js and Excalidraw live behind this import and nowhere else, so the
+ * viewer's first paint does not pay for them (the Godot Viewer is the app
+ * people open to read a tree; 3D is one tab of it).
+ */
+const Scene3D = lazy(() => import("./Scene3D"));
+
 type Mode = "scene" | "play";
+type View = "3d" | "render";
 
 const POLL_MS = 600;
+
+/** What the person drew and has not yet sent. The URL is for the thumbnail. */
+interface PendingMarkup {
+  export: MarkupExport;
+  url: string;
+}
 
 export default function App() {
   const [mode, setMode] = useState<Mode>("scene");
@@ -45,6 +62,8 @@ export default function App() {
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
   const [sent, setSent] = useState<string | null>(null);
+  const [view, setView] = useState<View>("3d");
+  const [markup, setMarkup] = useState<PendingMarkup | null>(null);
 
   const refreshComments = useCallback(async () => {
     setCommentsLoading(true);
@@ -88,6 +107,40 @@ export default function App() {
     const timer = setInterval(() => void load(), POLL_MS);
     return () => clearInterval(timer);
   }, [jobRunning, load]);
+
+  const wants3d =
+    mode === "scene" &&
+    view === "3d" &&
+    !preview &&
+    state !== null &&
+    state.engineFound &&
+    state.scenes.length > 0;
+  const p3d = usePreview(state?.scene ?? undefined, wants3d);
+  const recheck3d = p3d.load;
+  const lookup = useMemo(
+    () => (p3d.state.kind === "ready" ? nodeLookup(p3d.state.data.nodeMap) : null),
+    [p3d.state],
+  );
+
+  // A refresh that just finished may have been prompted by an edit to the
+  // scene; ask again. An unchanged scene answers from cache and keeps the view.
+  const wasRunning = useRef(false);
+  useEffect(() => {
+    if (wasRunning.current && !jobRunning && wants3d) recheck3d(false, true);
+    wasRunning.current = jobRunning;
+  }, [jobRunning, wants3d, recheck3d]);
+
+  // The thumbnail's URL is released when it is replaced or the pane goes.
+  useEffect(() => {
+    const url = markup?.url;
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [markup?.url]);
+
+  const keepMarkup = useCallback((result: MarkupExport) => {
+    setMarkup({ export: result, url: URL.createObjectURL(result.png) });
+  }, []);
 
   const startRefresh = async (render: boolean) => {
     setProblem(null);
@@ -229,6 +282,15 @@ export default function App() {
 
             <main className="gv__viewport">
               <div className="gv__actions">
+                <SegmentedControl
+                  aria-label="Scene view"
+                  value={view}
+                  onChange={setView}
+                  options={[
+                    { value: "3d", label: "3D" },
+                    { value: "render", label: "Render" },
+                  ]}
+                />
                 <button
                   type="button"
                   className="gv__action"
@@ -266,7 +328,60 @@ export default function App() {
                 {sourceLabel && !busy && <span className="gv__phase">{sourceLabel}</span>}
               </div>
               {shown?.note && !busy && <p className="gv__note">{shown.note}</p>}
-              {shown?.scenePath == null ? (
+              {view === "3d" && !preview && (
+                <Preview3DStatus
+                  state={p3d.state}
+                  engineFound={state?.engineFound ?? true}
+                  onRetry={() => p3d.load(true, false)}
+                />
+              )}
+              {p3d.state.kind === "ready" && lookup && view === "3d" ? (
+                <>
+                  <Suspense fallback={<p className="gv__hint">Loading the 3D view...</p>}>
+                    <Scene3D
+                      glb={p3d.state.data.glb}
+                      lookup={lookup}
+                      glbPath={p3d.state.data.path}
+                      scenePath={state?.scene ?? ""}
+                      godot={p3d.state.data.godot}
+                      selected={selected}
+                      onSelect={setSelected}
+                      onMarkup={keepMarkup}
+                      onNotice={setProblem}
+                    />
+                  </Suspense>
+                  {markup && (
+                    <div className="gv__markup-bar" role="status">
+                      <img
+                        className="gv__markup-thumb"
+                        alt="The markup you drew"
+                        src={markup.url}
+                        draggable={false}
+                        title="Drag onto a terminal to send to the agent"
+                        onPointerDown={dragContext(() =>
+                          putMarkup(markup.export.png, markup.export.json, state?.scene ?? null),
+                        )}
+                      />
+                      <span className="gv__markup-summary">{markupSummary(markup.export)}</span>
+                      <button
+                        type="button"
+                        className="gv__action"
+                        onClick={() =>
+                          void send("markup", () =>
+                            putMarkup(markup.export.png, markup.export.json, state?.scene ?? null),
+                          )
+                        }
+                      >
+                        {sent === "markup" ? "Sent" : "Send to agent"}
+                      </button>
+                      <button type="button" className="gv__action" onClick={() => setMarkup(null)}>
+                        Discard
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : view === "3d" && p3d.state.kind === "loading" ? null : shown?.scenePath ==
+                null ? (
                 <p className="gv__hint">
                   {noScenes
                     ? "This project has no scenes yet."
@@ -456,4 +571,49 @@ function TreeRow({
       )}
     </div>
   );
+}
+
+function markupSummary(result: MarkupExport): string {
+  const { pins, annotations } = result.json;
+  const parts = [
+    pins.length > 0 && `${pins.length} ${pins.length === 1 ? "pin" : "pins"}`,
+    annotations.length > 0 &&
+      `${annotations.length} ${annotations.length === 1 ? "mark" : "marks"}`,
+  ].filter(Boolean);
+  return `Markup ready: ${parts.join(", ")}`;
+}
+
+/** Why the 3D view is not showing, when it is not, and what the person can do about it. */
+function Preview3DStatus({
+  state,
+  engineFound,
+  onRetry,
+}: {
+  state: PreviewState;
+  engineFound: boolean;
+  onRetry: () => void;
+}) {
+  if (state.kind === "loading") {
+    return <p className="gv__hint">Exporting the scene for 3D ({state.phase})...</p>;
+  }
+  if (state.kind === "failed") {
+    return (
+      <div className="gv__notice gv__notice--error">
+        <p>3D preview unavailable: {state.message} The last rendered frame is shown instead.</p>
+        {state.output.length > 0 && <code className="gv__output">{state.output.join("\n")}</code>}
+        <button type="button" className="gv__action" onClick={onRetry}>
+          <RefreshCw size={13} strokeWidth={1.5} aria-hidden="true" />
+          Try again
+        </button>
+      </div>
+    );
+  }
+  if (state.kind === "off" && !engineFound) {
+    return (
+      <p className="gv__notice">
+        The 3D preview needs Godot 4 to export the scene. Set its path under Settings, Godot.
+      </p>
+    );
+  }
+  return null;
 }

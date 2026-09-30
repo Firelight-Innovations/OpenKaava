@@ -1,20 +1,19 @@
 /**
- * The title bar — logo, six menus (or their hamburger collapse), the centred
- * project pill, and the three window controls.
+ * The title bar — logo, six menus (or their hamburger collapse), the
+ * environment summary, the centred project pill, search and Review & merge,
+ * and the three window controls.
  *
  * Menu geometry is lifted from `docs/handoffs/shell-spec.html` (search
- * `>File<` and the `REFERENCE` table's Title bar row) rather than chosen —
- * see `titlebar.css`'s header comment for the one place that isn't. The pill
- * replaces this file's old plain-text title, per
- * `docs/design/KAAVA-UX-SPEC.md` §1.2 and board 08: `PRODUCT_NAME` no longer
- * appears here at all, because the mark to its left already says it, and the
- * centre of the bar is worth spending on the one fact the mark cannot say —
- * which project, and which environment.
+ * `>File<`); the pill is `docs/design/KAAVA-UX-SPEC.md` §1.2 / board 08. The
+ * environment summary and the two actions used to be a bar of their own below
+ * the cluster switcher (§1.4) and a box on the switcher's right; they live here
+ * now so the panes get that height. `titlebar.css` owns the collapse order.
  *
  * This component does not set the bar's height or background: `Frame` already
  * renders it into `.frame__titlebar`. Setting either here would be two owners
  * of one property.
  */
+import type { ReactNode } from "react";
 import type { Menu, WindowKind } from "../contract";
 import type { Environment } from "../environment";
 import { BrandGlyph } from "../../ui/Icon";
@@ -67,6 +66,13 @@ export interface TitleBarProps {
    * Save disables when nothing is dirty, the toggles say which way they will go.
    */
   menus: Menu[];
+  /**
+   * The environment summary (`EnvironmentBar`), drawn after the menus. Optional:
+   * omitted while no cluster is open.
+   */
+  environmentSlot?: ReactNode;
+  /** Search and Review & merge, right-aligned beside the window controls. */
+  actionsSlot?: ReactNode;
 }
 
 export default function TitleBar({
@@ -78,27 +84,36 @@ export default function TitleBar({
   environmentCount,
   onOpenProjectSwitcher,
   menus,
+  environmentSlot,
+  actionsSlot,
 }: TitleBarProps) {
   const narrow = useNarrowTitlebar();
 
   return (
-    // The drag region lives on this element only. The logo, the menus, the
-    // pill, and the window controls are all separate elements without the
-    // attribute, so pointer-downs on them never start a window drag —
-    // clicking through to this element's own background is what does.
-    <div className="titlebar" data-window-kind={kind} data-tauri-drag-region>
-      <div className="titlebar__logo">
-        <BrandGlyph size={15} className="titlebar__logo-icon" />
+    // Three cells on a grid whose outer tracks are equal (`titlebar.css`), so
+    // the pill is centred on the window whatever the two sides hold. The drag
+    // attribute is on the bar, the two cells, and every non-interactive
+    // element inside them: Tauri applies it to the element that was pressed,
+    // not its descendants, so a button never starts a drag and the gaps between
+    // controls always do.
+    <div
+      className="titlebar"
+      data-window-kind={kind}
+      data-has-pill={project !== null || undefined}
+      data-tauri-drag-region
+    >
+      <div className="titlebar__start" data-tauri-drag-region>
+        <div className="titlebar__logo" data-tauri-drag-region>
+          <BrandGlyph size={15} className="titlebar__logo-icon" />
+        </div>
+
+        {narrow ? <HamburgerMenu menus={menus} /> : <MenuBar menus={menus} />}
+
+        {environmentSlot}
       </div>
 
-      {narrow ? <HamburgerMenu menus={menus} /> : <MenuBar menus={menus} />}
-
-      {/* Absolutely centred across the whole bar, and deliberately allowed to
-          sit under the menu block or the window controls at narrow widths —
-          the spec calls that out by name for the title this pill replaces,
-          and the placement rule carries over unchanged. Drawn only with a
-          project open: a segment with no answer is dropped rather than shown
-          as a placeholder pill with nothing in it. */}
+      {/* Drawn only with a project open: a segment with no answer is dropped
+          rather than shown as a placeholder pill with nothing in it. */}
       {project !== null && (
         <ProjectPill
           project={project}
@@ -110,9 +125,10 @@ export default function TitleBar({
         />
       )}
 
-      <div className="titlebar__spacer" />
-
-      <WindowControls />
+      <div className="titlebar__end" data-tauri-drag-region>
+        {actionsSlot}
+        <WindowControls />
+      </div>
     </div>
   );
 }

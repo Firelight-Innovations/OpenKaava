@@ -38,7 +38,7 @@ describe("sceneHost", () => {
   it("captures at the requested pixel ratio", async () => {
     const h = handle();
     await sceneHost(h, { pixelRatio: 2 }).capture();
-    expect(h.capture).toHaveBeenCalledWith({ pixelRatio: 2 });
+    expect(h.capture).toHaveBeenCalledWith({ scale: 2 });
   });
 
   it("describes the scene, the model and the camera for an agent", () => {

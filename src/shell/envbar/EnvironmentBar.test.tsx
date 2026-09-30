@@ -25,7 +25,6 @@ describe("EnvironmentBar", () => {
     expect(screen.getByText("↑3")).not.toBeNull();
     expect(screen.getByText("↓0")).not.toBeNull();
     expect(screen.getByText("/repo/wt/fl")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Review & merge" })).not.toBeNull();
   });
 
   it("omits ahead/behind rather than claiming a worktree is caught up", () => {
@@ -70,14 +69,5 @@ describe("EnvironmentBar", () => {
     expect(screen.getByRole("button", { name: "Stop session" }).hasAttribute("disabled")).toBe(
       false,
     );
-  });
-
-  it("calls onReviewAndMerge when the worktree action is pressed", () => {
-    const env: Environment = { kind: "worktree", branch: "wt/x", path: "/x" };
-    const onReview = vi.fn();
-    render(<EnvironmentBar environment={env} onReviewAndMerge={onReview} />);
-
-    screen.getByRole("button", { name: "Review & merge" }).click();
-    expect(onReview).toHaveBeenCalledTimes(1);
   });
 });

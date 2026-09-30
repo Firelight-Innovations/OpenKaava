@@ -34,28 +34,40 @@
 }
 
 /* The Code / Build steps switch, spec'd as a trailing segmented control on
-   the viewer header (KAAVA-UX-SPEC.md §board 03). This app draws no header of
-   its own — see this file's top note — so the strip sits alone, above the tab
-   strip, and only while a file is open: nothing to switch modes on otherwise. */
-.viewerapp__modebar {
+   the viewer header (KAAVA-UX-SPEC.md §board 03). It now sits at the right of
+   the tab strip's own row (`TabStrip`'s `trailing`), so there is no bar of its
+   own. Its labels are centred on one line with the tab labels beside it. */
+.viewerapp__mode .k-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Send to agent, at the bottom of the pane: a slim bar on the region's own
+   surface, hairline above, contents centred on one line. */
+.viewerapp__footer {
   flex: 0 0 auto;
   display: flex;
-  justify-content: flex-end;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px 0;
+  min-height: var(--control-xl);
+  padding: 0 var(--space-2);
+  background: var(--bg-surface-1);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .viewerapp__send {
   display: flex;
+  align-items: center;
   gap: 6px;
-  margin-right: auto;
 }
 
 .viewerapp__send .k-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  line-height: 1;
 }
 
 /* The "LATER" micro-label the spec calls for on the Build steps tab — plain

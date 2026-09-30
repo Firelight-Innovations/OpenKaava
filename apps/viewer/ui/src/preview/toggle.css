@@ -1,6 +1,6 @@
 /*
- * The Preview button pair in the mode bar. Small on purpose: the bar belongs to
- * `viewer.css`, and this adds only what `k-btn` does not have — a pressed state.
+ * The Preview button pair, in the tab strip's trailing slot. Small on purpose: the slot belongs to
+ * `TabStrip`, and this adds only what `k-btn` does not have — a pressed state.
  * Colours are `src/tokens.css`.
  */
 
@@ -8,6 +8,8 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
+  /* The trailing slot has no gap of its own between its children. */
+  margin-right: var(--space-2);
 }
 
 .previewbtn__btn {

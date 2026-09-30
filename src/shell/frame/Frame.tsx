@@ -66,10 +66,6 @@ export const BOTTOM_MAXIMIZE_OVERSHOOT = 60;
  * third geometry — covering everything left of the rail while the panes
  * stay mounted behind it. See `FrameSlots.projectRail` / `projectPage` /
  * `projectPageExpanded`.
- *
- * `envBar` is the plainest of the lot: a fixed-height row at the top of
- * `.frame__main`, ahead of the tool window, with no drag of its own — see
- * `FrameSlots.envBar`.
  */
 export default function Frame({
   kind,
@@ -356,12 +352,6 @@ export default function Frame({
               stops at the docked page's edge instead of spanning the window.
               See `FrameSlots.bottomPanel` for why that is the arrangement. */}
           <div className="frame__main" ref={mainRef}>
-            {slots.envBar !== undefined && (
-              <div className="frame__envbar" data-region="envbar">
-                {slots.envBar}
-              </div>
-            )}
-
             <div className="frame__toolwindow" data-region="toolwindow">
               {slots.toolWindow}
             </div>
@@ -404,28 +394,6 @@ export default function Frame({
             </div>
           )}
 
-          {/* The page itself, docked or expanded, as ONE surface. It pulls out
-              of the rail on open and tucks back in on close (`PageSurface`),
-              and `AnimatePresence` holds it mounted through the close. The
-              mode is a prop, never a key: a dock/expand toggle re-shapes this
-              element instead of replacing it, which is what keeps an app
-              page's iframe host from being remounted. The expanded shape
-              relies on `visibility: visible` fighting its hidden ancestor
-              above by design — CSS lets a descendant do that. */}
-          <AnimatePresence>
-            {(docked || expanded) && (
-              <PageSurface
-                key="page"
-                mode={expanded ? "expanded" : "docked"}
-                reduced={reducedMotion}
-                width={pageWidth}
-                onSettled={onPageSettled}
-              >
-                {expanded ? slots.projectPageExpanded : slots.projectPage}
-              </PageSurface>
-            )}
-          </AnimatePresence>
-
           {/* Last child of the hidden wrapper rather than of the row, so it
               covers the tool window and the docked page without reaching
               the rail beside it or the bars above and below. The wrapper keeps
@@ -434,13 +402,40 @@ export default function Frame({
           {slots.splitOverlay}
         </div>
 
-        {/* The project-page rail. Outside the hidden wrapper on purpose — an
-            expanded page still shows it (`docs/design/KAAVA-UX-SPEC.md` §1.8:
-            "the rail persist[s]") — and it is a fixed width, never a split, so
-            it takes no motion value of its own. */}
-        {slots.projectRail !== undefined && (
-          <div className="frame__rail" data-region="rail">
-            {slots.projectRail}
+        {/* The right-hand box: the project-page rail and, beside it, the docked
+            page — ONE rounded card, so a page pulling out of the rail widens
+            the card leftward rather than floating beside a second one. It sits
+            outside the hidden wrapper on purpose: an expanded page still shows
+            the rail (`docs/design/KAAVA-UX-SPEC.md` §1.8: "the rail
+            persist[s]"), and the rail is a fixed width, never a split. An
+            expanded page is positioned against the split row rather than this
+            box (see `frame.css`), so it can span the panes while the rail
+            stays put. */}
+        {(slots.projectRail !== undefined || docked || expanded) && (
+          <div
+            className="frame__side"
+            data-region="side"
+            data-docked={docked || undefined}
+            data-expanded={expanded || undefined}
+          >
+            <AnimatePresence>
+              {(docked || expanded) && (
+                <PageSurface
+                  key="page"
+                  mode={expanded ? "expanded" : "docked"}
+                  reduced={reducedMotion}
+                  width={pageWidth}
+                  onSettled={onPageSettled}
+                >
+                  {expanded ? slots.projectPageExpanded : slots.projectPage}
+                </PageSurface>
+              )}
+            </AnimatePresence>
+            {slots.projectRail !== undefined && (
+              <div className="frame__rail" data-region="rail">
+                {slots.projectRail}
+              </div>
+            )}
           </div>
         )}
       </div>

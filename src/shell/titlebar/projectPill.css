@@ -8,10 +8,13 @@
   appearance: none;
   border: 1px solid var(--border-subtle-1);
   margin: 0;
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  /* The middle cell of the title bar's grid, whose outer tracks are equal, so
+     this is centred on the window without being positioned. It gives way
+     (ellipsis) before it ever reaches the cells beside it. */
+  justify-self: center;
+  min-width: 0;
+  max-width: 34cqw;
+  overflow: hidden;
   height: 26px;
   padding: 0 10px 0 6px;
   border-radius: 13px;
@@ -33,6 +36,11 @@
    so there is no controlled "open" state to draw the accent border and halo
    for — `docs/design/KAAVA-UX-SPEC.md` §1.2's board 08 crop is left for the
    **clusters** workstream to wire once the dialog itself lands. */
+
+.projectpill:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
 
 .projectpill__tile {
   flex: none;
@@ -60,6 +68,9 @@
 }
 
 .projectpill__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--txt-primary);
 }
 
@@ -69,6 +80,7 @@
 }
 
 .projectpill__chip {
+  flex: none;
   height: 18px;
   padding: 0 6px;
   border-radius: 9px;

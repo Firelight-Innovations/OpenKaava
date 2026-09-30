@@ -12,7 +12,6 @@
 import { describe, expect, it } from "vitest";
 import frameCss from "./frame/frame.css?raw";
 import switcherCss from "./switcher/switcher.css?raw";
-import envbarCss from "./envbar/envbar.css?raw";
 import panesCss from "./panes/panes.css?raw";
 import toolwindowCss from "./toolwindow/toolwindow.css?raw";
 
@@ -63,26 +62,20 @@ describe("band heights leave the whole token for the content", () => {
   it("centres cluster tabs in the switcher rather than stretching their wrappers", () => {
     expect(rule(switcherCss, ".switcher__tabs").get("align-items")).toBe("center");
   });
-
-  it("sizes the environment bar from its token", () => {
-    expect(rule(envbarCss, ".envbar").get("height")).toMatch(/^var\(--h-envbar/);
-  });
 });
 
 describe("one gutter on the left", () => {
   const gutter = 6;
 
-  it("insets the first cluster tab, the environment bar and the pane grid by the same gutter", () => {
+  it("insets the first cluster tab and the pane grid by the same gutter", () => {
     expect(leftOf(rule(switcherCss, ".switcher__tabs").get("padding-left"))).toBe(gutter);
-    expect(leftOf(rule(frameCss, ".frame__envbar").get("margin"))).toBe(gutter);
     expect(leftOf(rule(frameCss, ".frame__toolwindow").get("margin"))).toBe(gutter);
   });
 
-  it("starts each band's content on the same column inside its 1px border", () => {
+  it("starts each remaining band's content on the same column inside its 1px border", () => {
     const clusterTab = leftOf(rule(switcherCss, ".switcher__tab").get("padding"));
-    const envbar = leftOf(rule(envbarCss, ".envbar").get("padding"));
     const paneTab = leftOf(rule(panesCss, ".pane-tab").get("padding"));
-    expect(new Set([clusterTab, envbar, paneTab]).size).toBe(1);
+    expect(new Set([clusterTab, paneTab]).size).toBe(1);
   });
 
   it("leaves no stray margin on a cluster tab to push the first one off the gutter", () => {
@@ -103,5 +96,42 @@ describe("panes are one rounded card", () => {
     expect(surface.get("border-radius")).toMatch(
       /^0 0 calc\(var\(--radius-region, 10px\) - 1px\) calc\(var\(--radius-region, 10px\) - 1px\)$/,
     );
+  });
+});
+
+describe("splitters are invisible until touched", () => {
+  it("draws the pane dividers transparent at rest and accent on hover or drag", () => {
+    expect(rule(panesCss, ".pane-split__divider::after").get("background")).toBe("transparent");
+    const lit = rule(
+      panesCss,
+      ".pane-split__divider:hover::after,\n.pane-split__divider:active::after",
+    );
+    expect(lit.get("background")).toBe("var(--accent)");
+  });
+
+  it("draws the band and page grips the same way", () => {
+    expect(rule(frameCss, ".frame__bottomgrip").get("background")).toBe("transparent");
+    expect(rule(frameCss, ".frame__grip").get("background")).toBe("transparent");
+  });
+
+  it("divides a split's shares over the space left after its gaps", () => {
+    // A percentage basis summed to the whole box and the gaps then pushed the last pane
+    // past the edge, where the tool window clipped its border and rounded corners.
+    expect(rule(panesCss, ".pane-split__child").get("flex-basis")).toBe("0");
+  });
+});
+
+describe("the rail and an open page are one rounded card", () => {
+  it("gives the right-hand box the pane's radius and the same 6px gutters", () => {
+    const side = rule(frameCss, ".frame__side");
+    expect(side.get("border-radius")).toMatch(/^var\(--radius-region/);
+    expect(side.get("margin")).toMatch(/^var\(--space-1-5, 6px\)$/);
+    expect(side.get("overflow")).toBe("hidden");
+  });
+
+  it("puts no border or radius on the docked page, so there is no second card", () => {
+    const page = rule(frameCss, ".frame__page");
+    expect(page.has("border")).toBe(false);
+    expect(page.has("border-radius")).toBe(false);
   });
 });

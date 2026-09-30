@@ -197,41 +197,6 @@ export default function App() {
     <div className="viewerapp">
       {error && <p className="app__error viewerapp__error">{error}</p>}
 
-      {active && (
-        <div className="viewerapp__modebar">
-          <SendToAgent
-            path={active.path}
-            rootPath={root?.path ?? null}
-            dirty={files.dirty.has(active.path)}
-            missing={active.missing === true}
-            onError={setError}
-          />
-          <PreviewToggle />
-          <div className="k-tabs k-tabs--segmented" role="tablist" aria-label="Code or build steps">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={viewMode === "code"}
-              className="k-tab"
-              onClick={() => setViewMode("code")}
-            >
-              Code
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={viewMode === "build-steps"}
-              className="k-tab"
-              onClick={() => setViewMode("build-steps")}
-              title="Not wired up yet. Planned: a step diagram for scripts like build_bed.py — frame, legs, materials, export, render — each step commentable like a Blender mesh part. See docs/KAAVA-UX-REWORK.md §8."
-            >
-              Build steps
-              <span className="viewerapp__later">LATER</span>
-            </button>
-          </div>
-        </div>
-      )}
-
       <TabStrip
         tabs={files.tabs}
         activePath={files.activePath}
@@ -249,6 +214,39 @@ export default function App() {
           publish(TREE_CHANGE, { kind: "renamed", from, to });
         }}
         onDelete={del.ask}
+        trailing={
+          active && (
+            <>
+              <PreviewToggle />
+              <div
+                className="k-tabs k-tabs--segmented viewerapp__mode"
+                role="tablist"
+                aria-label="Code or build steps"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={viewMode === "code"}
+                  className="k-tab"
+                  onClick={() => setViewMode("code")}
+                >
+                  Code
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={viewMode === "build-steps"}
+                  className="k-tab"
+                  onClick={() => setViewMode("build-steps")}
+                  title="Not wired up yet. Planned: a step diagram for scripts like build_bed.py — frame, legs, materials, export, render — each step commentable like a Blender mesh part. See docs/KAAVA-UX-REWORK.md §8."
+                >
+                  Build steps
+                  <span className="viewerapp__later">LATER</span>
+                </button>
+              </div>
+            </>
+          )
+        }
       />
 
       {/* The delete confirmation, under the strip where every other question in
@@ -274,6 +272,21 @@ export default function App() {
           <code>build_bed.py</code> — frame, legs, materials, export, render — each step commentable
           the way a Blender mesh part is. See <code>docs/KAAVA-UX-REWORK.md</code> §8.
         </p>
+      )}
+
+      {/* Send to agent lives at the bottom, out of the way of the file: a slim
+          footer on the region's own surface, like the terminal's Context strip.
+          It used to be a toolbar row of its own above the tabs. */}
+      {active && (
+        <div className="viewerapp__footer">
+          <SendToAgent
+            path={active.path}
+            rootPath={root?.path ?? null}
+            dirty={files.dirty.has(active.path)}
+            missing={active.missing === true}
+            onError={setError}
+          />
+        </div>
       )}
 
       {!active && <p className="app__note viewerapp__empty">Select a file to open it.</p>}

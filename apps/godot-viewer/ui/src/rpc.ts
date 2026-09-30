@@ -64,3 +64,33 @@ export const refresh = (scene: string | undefined, render: boolean, project?: st
 /** Standard base64 PNG, or `null` when no frame is cached. */
 export const getImage = (scene: string | undefined, project?: string) =>
   invoke<{ png: string | null }>("godot-viewer/image", { scene, project });
+
+/**
+ * One answer from `godot/preview-glb`. The call is polled: `running` means an
+ * export is under way, `ready` carries the glTF's location and the node map,
+ * `failed` says why. `nodeMap` keys are the paths the 3D view reports for a
+ * node, values are scene paths like `World/Player/Camera3D`.
+ */
+export interface PreviewAnswer {
+  status: "ready" | "running" | "failed";
+  scene: string;
+  /** True when the glb on disk was still current and nothing was exported. */
+  cached: boolean;
+  /** Absolute path of the glb. */
+  path: string | null;
+  exportedAt: number | null;
+  godot: string | null;
+  bytes: number | null;
+  nodeMap: Record<string, string> | null;
+  phase: string | null;
+  error: string | null;
+  output: string[];
+}
+
+/** `force` exports again even when the cached glb is current, and retries a failure. */
+export const previewGlb = (scene: string | undefined, force: boolean, project?: string) =>
+  invoke<PreviewAnswer>("godot/preview-glb", { scene, force, project, actor: "human" });
+
+/** The exported glb as standard base64. */
+export const previewBytes = (scene: string | undefined, project?: string) =>
+  invoke<{ base64: string; size: number }>("godot/preview-glb-bytes", { scene, project });

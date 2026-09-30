@@ -96,7 +96,7 @@ fn write_cached(cache: &Path, scene: &str, cached: &Cached) -> Result<(), String
 // --- parsing a .tscn --------------------------------------------------------
 
 /// The value of `key="..."` in a header line.
-fn attr(line: &str, key: &str) -> Option<String> {
+pub(super) fn attr(line: &str, key: &str) -> Option<String> {
     let needle = format!("{key}=\"");
     let start = line.find(&needle)? + needle.len();
     let end = line[start..].find('"')?;
@@ -129,7 +129,7 @@ pub fn parse_tscn(project: &Path, scene: &str) -> Result<Vec<Node>, String> {
     parse_tscn_depth(project, scene, 0)
 }
 
-fn res_to_path(project: &Path, res: &str) -> PathBuf {
+pub(super) fn res_to_path(project: &Path, res: &str) -> PathBuf {
     project.join(res.trim_start_matches("res://"))
 }
 
@@ -281,11 +281,11 @@ impl Jobs {
     }
 }
 
-fn set_phase(job: &Arc<Mutex<Job>>, phase: &str) {
+pub(super) fn set_phase(job: &Arc<Mutex<Job>>, phase: &str) {
     job.lock_or_panic().phase = phase.to_string();
 }
 
-fn finish(job: &Arc<Mutex<Job>>, error: Option<String>) {
+pub(super) fn finish(job: &Arc<Mutex<Job>>, error: Option<String>) {
     let mut j = job.lock_or_panic();
     j.running = false;
     j.phase = if error.is_some() { "failed" } else { "done" }.to_string();
@@ -310,6 +310,7 @@ pub struct Refresh {
 pub struct Limits {
     pub import: Duration,
     pub dump: Duration,
+    pub export: Duration,
     pub render: Duration,
 }
 
@@ -318,6 +319,7 @@ impl Default for Limits {
         Self {
             import: Duration::from_secs(300),
             dump: Duration::from_secs(60),
+            export: Duration::from_secs(120),
             render: Duration::from_secs(90),
         }
     }
@@ -381,26 +383,33 @@ fn parsed(opts: &Refresh, godot: Option<&Found>) -> Result<Cached, String> {
     })
 }
 
-fn dump_headless(job: &Arc<Mutex<Job>>, opts: &Refresh, godot: &Found) -> Result<Cached, String> {
-    if !opts.project.join(".godot").join("imported").is_dir() {
-        set_phase(job, "importing resources (first run only)");
-        let import_flag: &[&str] = if godot.major == 4 && godot.minor >= 2 {
-            &["--import"]
-        } else {
-            &["--editor", "--quit"]
-        };
-        let mut args = vec!["--headless", "--path", opts.project.to_str().unwrap_or(".")];
-        args.extend_from_slice(import_flag);
-        let out = run_capture(
-            godot.for_logging(),
-            &args,
-            &opts.project,
-            opts.limits.import,
-        )?;
-        push_output(job, &out.text);
-        // A project with nothing to import still exits 0; a non-zero exit here is
-        // reported by the dump below if it actually matters.
+/// Run Godot's resource import once, when the project has never been imported.
+/// A project with nothing to import still exits 0; a non-zero exit here is
+/// reported by whatever runs next if it actually matters.
+pub(super) fn ensure_imported(
+    job: &Arc<Mutex<Job>>,
+    project: &Path,
+    godot: &Found,
+    limit: Duration,
+) -> Result<(), String> {
+    if project.join(".godot").join("imported").is_dir() {
+        return Ok(());
     }
+    set_phase(job, "importing resources (first run only)");
+    let import_flag: &[&str] = if godot.major == 4 && godot.minor >= 2 {
+        &["--import"]
+    } else {
+        &["--editor", "--quit"]
+    };
+    let mut args = vec!["--headless", "--path", project.to_str().unwrap_or(".")];
+    args.extend_from_slice(import_flag);
+    let out = run_capture(godot.for_logging(), &args, project, limit)?;
+    push_output(job, &out.text);
+    Ok(())
+}
+
+fn dump_headless(job: &Arc<Mutex<Job>>, opts: &Refresh, godot: &Found) -> Result<Cached, String> {
+    ensure_imported(job, &opts.project, godot, opts.limits.import)?;
 
     set_phase(job, "reading the scene tree");
     std::fs::create_dir_all(&opts.scratch).map_err(|e| e.to_string())?;
@@ -453,7 +462,7 @@ fn dump_headless(job: &Arc<Mutex<Job>>, opts: &Refresh, godot: &Found) -> Result
     })
 }
 
-fn tail(text: &str) -> String {
+pub(super) fn tail(text: &str) -> String {
     let last: Vec<&str> = text.lines().rev().take(3).collect();
     if last.is_empty() {
         String::new()
@@ -465,7 +474,7 @@ fn tail(text: &str) -> String {
     }
 }
 
-fn push_output(job: &Arc<Mutex<Job>>, text: &str) {
+pub(super) fn push_output(job: &Arc<Mutex<Job>>, text: &str) {
     let mut j = job.lock_or_panic();
     for line in text.lines().filter(|l| !l.trim().is_empty()) {
         j.output.push(line.to_string());
@@ -527,14 +536,14 @@ fn render_frame(job: &Arc<Mutex<Job>>, opts: &Refresh, godot: &Found) -> Result<
 
 // --- running a command to completion ---------------------------------------
 
-struct Captured {
-    text: String,
+pub(super) struct Captured {
+    pub(super) text: String,
     code: Option<i32>,
     timed_out: bool,
 }
 
 impl Captured {
-    fn code_label(&self) -> String {
+    pub(super) fn code_label(&self) -> String {
         if self.timed_out {
             "timed out".to_string()
         } else {
@@ -547,7 +556,7 @@ impl Captured {
 /// Run `program args` to completion with both streams merged, killing the whole
 /// tree if it outlasts `limit`. A timeout is a result rather than an error so
 /// the caller can still read whatever the process wrote before it stalled.
-fn run_capture(
+pub(super) fn run_capture(
     program: &Path,
     args: &[&str],
     cwd: &Path,
