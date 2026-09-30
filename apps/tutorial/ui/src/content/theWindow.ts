@@ -1,7 +1,7 @@
 import type { Body } from "./blocks";
 
 /**
- * The vocabulary tutorial. Everything after this one says "the switcher bar" or
+ * The vocabulary tutorial. Everything after this one says "the cluster switcher" or
  * "the band" without stopping to explain it, so this is where those get names.
  *
  * Deliberately short and deliberately first. It has no steps worth calling
@@ -14,46 +14,46 @@ export const theWindow: Body = {
   blocks: [
     {
       kind: "text",
-      body: "The OpenKaava window is five horizontal bands stacked in a column. Only the middle one grows. Naming them is worth four minutes, because every other tutorial says these words without stopping.",
+      body: "The OpenKaava window is four horizontal bands stacked in a column, with a narrow rail down the right. Only the middle band grows. Naming them is worth four minutes, because every other tutorial says these words without stopping.",
     },
     {
       kind: "mock",
       view: "window-bands",
-      caption: "The five bands, each named by the arrow pointing at it.",
+      caption: "The four bands, each named by the arrow pointing at it.",
     },
 
     { kind: "heading", body: "1. The title bar" },
     { kind: "mock", view: "title-bar", caption: "The menu bar and the window controls beside it." },
     {
       kind: "text",
-      body: "Top of the window. Holds the menu bar — **File**, **Edit**, **Apps**, **View**, **Run**, **Terminal**, **Help** — and the window controls. When the window is narrow the menus collapse behind a single hamburger button rather than wrapping.",
+      body: "Top of the window. Holds the menu bar — **File**, **Edit**, **Apps**, **View**, **Run**, **Terminal**, **Help** — the open cluster's environment, the **cluster switcher** pill in the middle, search and **Review & merge**, and the window controls. When the window is narrow the menus collapse behind a single hamburger button rather than wrapping.",
     },
     {
       kind: "text",
-      body: "**Apps** and the switcher bar's `+` menu are the same list, built once.",
+      body: "**Apps** lists every app this build ships, plus **Terminal**, plus your saved layout presets.",
     },
     {
       kind: "note",
       body: "Every accelerator drawn beside a menu item is one the keystroke actually performs. An item with no accelerator beside it has no shortcut, rather than an undocumented one.",
     },
 
-    { kind: "heading", body: "2. The switcher bar" },
+    { kind: "heading", body: "2. The cluster switcher" },
     {
       kind: "mock",
       view: "switcher-bar",
-      caption: "Clusters on the left, the `+` between them, search on the right.",
+      caption: "The pill in the middle of the title bar opens the list of clusters.",
     },
     {
       kind: "text",
-      body: "Under the title bar. On the left are your **clusters** — each one an independent workspace with its own project and its own arrangement of panes. On the right is the search field, and between them the `+` that opens something new.",
+      body: "There is no bar of its own any more. Your **clusters** — each one an independent workspace with its own project and its own arrangement of panes — are listed by the pill in the middle of the title bar, and drawn as one small badge each at the top of the rail on the right. `Ctrl+Tab` cycles them and `Ctrl+1` to `Ctrl+9` jump to one.",
     },
     {
       kind: "text",
-      body: "The `+` menu lists every app this build ships — **Home**, **File Explorer**, **File Viewer**, **Tutorials** — plus **Terminal**, plus your saved layout presets.",
+      body: "The pill's list also makes a **new cluster** and switches **project**. Right-click a badge to rename or close its cluster.",
     },
     {
       kind: "text",
-      body: "The bar also holds a warning-triangle badge, listing any tool whose health is not **ok** — **needs update**, **not tracked**, or **not installed**. It counts the stack's authoring tools. On a fresh machine they all read **not installed**, which is correct rather than broken; see **The stack, end to end** for why.",
+      body: "The title bar also holds a warning-triangle badge while any tool's health is not **ok** — **needs update**, **not tracked**, or **not installed**. It counts the stack's authoring tools. On a fresh machine they all read **not installed**, which is correct rather than broken; see **The stack, end to end** for why.",
     },
 
     { kind: "heading", body: "3. The tool window" },

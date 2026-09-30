@@ -481,6 +481,76 @@ export function bindSave(editor: CodeEditor, run: () => void): void {
 }
 
 /**
+ * Ctrl+Shift+V and Ctrl+K V, inside the editor, for a file that has a rendered
+ * form.
+ *
+ * Bound on the editor rather than left to the frame's document listener because
+ * Monaco takes the keystroke first: Ctrl+Shift+V would otherwise reach its
+ * hidden textarea as a plain-text paste, and Ctrl+K is the prefix of its own
+ * chords. Registered as *actions* rather than bare commands so they also appear
+ * in the editor's context menu and F1 palette under the names VS Code uses.
+ * Called only for previewable files; a `.rs` keeps Ctrl+Shift+V as paste.
+ */
+export function bindPreview(
+  editor: CodeEditor,
+  run: { toggle: () => void; toggleSide: () => void },
+): void {
+  editor.addAction({
+    id: "openkaava.preview.toggle",
+    label: "Open Preview",
+    keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyV],
+    contextMenuGroupId: "navigation",
+    contextMenuOrder: 1.5,
+    run: () => run.toggle(),
+  });
+  editor.addAction({
+    id: "openkaava.preview.side",
+    label: "Open Preview to the Side",
+    keybindings: [
+      monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, monaco.KeyCode.KeyV),
+    ],
+    contextMenuGroupId: "navigation",
+    contextMenuOrder: 1.6,
+    run: () => run.toggleSide(),
+  });
+}
+
+/**
+ * The Monaco language id for a Markdown fence's info word (`ts`, `python`,
+ * `sh`…), or `undefined` when none of the registered languages claims it.
+ */
+function languageForFence(word: string): string | undefined {
+  const wanted = word.toLowerCase();
+  return monaco.languages
+    .getLanguages()
+    .find(
+      (language) =>
+        language.id === wanted ||
+        (language.aliases ?? []).some((alias) => alias.toLowerCase() === wanted) ||
+        (language.extensions ?? []).includes(`.${wanted}`),
+    )?.id;
+}
+
+/**
+ * Tokenise a code block for the Markdown preview, or `null` for a language this
+ * build has no grammar for.
+ *
+ * `colorize` is called first and its result thrown away: grammars are lazy
+ * chunks, `colorize` awaits the one it needs, and `tokenize` — the call whose
+ * output we want, because it is theme-free — silently returns plain text if the
+ * grammar has not arrived. Priming is cheaper than reimplementing the wait.
+ */
+export async function tokenizeFence(
+  code: string,
+  fenceWord: string,
+): Promise<{ lines: string[]; tokens: { offset: number; type: string }[][] } | null> {
+  const id = languageForFence(fenceWord);
+  if (!id || id === "plaintext") return null;
+  await monaco.editor.colorize(code, id, {});
+  return { lines: code.split(/\r\n|\r|\n/), tokens: monaco.editor.tokenize(code, id) };
+}
+
+/**
  * The dirty-diff gutter: a coloured bar beside every changed line, each of which
  * opens an inline peek on click. The caller holds one per mounted editor and
  * disposes it exactly where it disposes the editor — see `TextViewer.tsx`. The

@@ -1,0 +1,141 @@
+/*
+ * The tool-health badge and its popover.
+ *
+ * Moved out of the cluster bar's stylesheet when the bar went: the badge is a
+ * title-bar control now, drawn only while a tool needs attention, so it takes no
+ * width the rest of the time.
+ */
+
+.toolhealth {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+
+.toolhealth__badge {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--control-md, 28px);
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md, 6px);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.toolhealth__badge:hover {
+  background: var(--bg-layer-1-hover);
+}
+
+.toolhealth__badge:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.toolhealth__icon {
+  flex: none;
+  /* The icon strokes currentColor; this is the CSS token that feeds it. */
+  color: var(--warn);
+}
+
+.toolhealth__count {
+  font-family: var(--sans);
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+/* --- the health popover --------------------------------------------------
+   420px, anchored under the badge. Right-edge aligned to the badge rather
+   than left, so it opens toward the middle of the bar instead of running
+   under (or past) the search slot to its right. */
+
+.toolhealth__popover {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  overflow: hidden;
+  /* Not in the isolated popover crop — no other floating panel in the spec
+     carries a shadow value either except the search type-filter dropdown and
+     the drag ghost, both of which use this same figure. Reused rather than
+     invented from nothing; flagged in the handoff notes. */
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  z-index: 40;
+}
+
+.toolhealth__popover-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-dim-2);
+  letter-spacing: 0.1em;
+}
+
+.toolhealth__popover-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+}
+
+/* The handoff draws the separator between rows in a lighter grey than the
+   line token used everywhere else (the header/footer hairlines) — kept as
+   drawn rather than collapsed into --line. */
+.toolhealth__popover-row:not(:first-child) {
+  border-top: 1px solid var(--surface-2);
+}
+
+.toolhealth__popover-dot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.toolhealth__popover-name {
+  font-family: var(--sans);
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text);
+}
+
+.toolhealth__popover-spacer {
+  flex: 1;
+}
+
+.toolhealth__popover-state {
+  font-family: var(--sans);
+  font-size: 10.5px;
+  line-height: 1;
+  color: var(--text-dim-2);
+  white-space: nowrap;
+}
+
+.toolhealth__popover-rescan {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  border-top: 1px solid var(--line);
+  background: transparent;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--accent);
+  text-align: left;
+  cursor: pointer;
+}

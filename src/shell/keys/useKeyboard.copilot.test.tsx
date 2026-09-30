@@ -8,6 +8,7 @@ function actions(copilotKey: () => boolean): KeyboardActions {
   const noop = () => {};
   return {
     selectToolByIndex: noop,
+    cycleCluster: noop,
     rescan: noop,
     cancelBoot: noop,
     newFile: noop,

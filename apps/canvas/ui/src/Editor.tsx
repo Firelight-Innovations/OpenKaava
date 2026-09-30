@@ -5,8 +5,10 @@
  */
 import "./assetPath";
 import "@excalidraw/excalidraw/index.css";
-import { useCallback, useMemo, useRef } from "react";
-import { Excalidraw } from "@excalidraw/excalidraw";
+import "./native.css";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { Excalidraw, MainMenu } from "@excalidraw/excalidraw";
+import About from "./About";
 import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { childOf, hitLinkedFrame, viewportToScene } from "./nesting";
 import type { SceneElement, SceneFile } from "./scene";
@@ -24,7 +26,11 @@ export interface EditorProps {
   onApi: (api: ExcalidrawImperativeAPI) => void;
   /** A frame with a child link was double-clicked. */
   onOpenChild: (id: string) => void;
+  /** A `kaava://diagram/<id>` link (an index row) was followed. */
+  onOpenDiagram?: (id: string) => void;
 }
+
+const DIAGRAM_LINK = "kaava://diagram/";
 
 /**
  * Module-level on purpose. Excalidraw re-renders, and fires `onChange`, whenever
@@ -50,8 +56,23 @@ export default function Editor({
   onChange,
   onApi,
   onOpenChild,
+  onOpenDiagram,
 }: EditorProps) {
   const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
+  const [about, setAbout] = useState(false);
+  const onOpenDiagramRef = useRef(onOpenDiagram);
+  onOpenDiagramRef.current = onOpenDiagram;
+  // An index row's link names a diagram in this canvas; following it moves the
+  // view instead of asking the browser to open a `kaava:` URL.
+  const handleLink = useCallback(
+    (element: { link?: string | null }, event: CustomEvent<{ nativeEvent: unknown }>) => {
+      const link = element.link ?? "";
+      if (!link.startsWith(DIAGRAM_LINK)) return;
+      event.preventDefault();
+      onOpenDiagramRef.current?.(decodeURIComponent(link.slice(DIAGRAM_LINK.length)));
+    },
+    [],
+  );
   // Held in refs so the props handed to Excalidraw below stay the same objects
   // across renders, whatever the parent passes.
   const onChangeRef = useRef(onChange);
@@ -110,7 +131,21 @@ export default function Editor({
         viewModeEnabled={readOnly}
         UIOptions={UI_OPTIONS}
         onChange={handleChange}
-      />
+        onLinkOpen={handleLink as never}
+        aiEnabled={false}
+      >
+        {/* Passing a menu replaces Excalidraw's, which links to its site and
+            socials; with any child given, its welcome screen is not drawn. */}
+        <MainMenu>
+          <MainMenu.DefaultItems.SearchMenu />
+          <MainMenu.DefaultItems.SaveAsImage />
+          <MainMenu.DefaultItems.ChangeCanvasBackground />
+          <MainMenu.DefaultItems.Help />
+          <MainMenu.Separator />
+          <MainMenu.Item onSelect={() => setAbout(true)}>About this editor</MainMenu.Item>
+        </MainMenu>
+      </Excalidraw>
+      {about && <About onClose={() => setAbout(false)} />}
     </div>
   );
 }

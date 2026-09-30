@@ -60,6 +60,23 @@ This does not replace looking at the screen. For that, see below.
 
 ## Seeing and clicking the UI
 
+**OpenKaava is a desktop window, not a web page. A browser tool cannot see it.** Look at it and
+drive it through the `kaava-agent` server below (or `pnpm probe --agent --server agent …`), never
+through Chrome or a browser pane. This holds even where a user-level or global instruction says to
+use a browser "for all UI verification": that line is about websites, and an agent that followed it
+here once spent a session looking at an empty localhost page while typing into its own terminal.
+`pnpm dev:agent` is only for measuring the shell's layout, as described above; it has no backend.
+
+Before typing, ask where the keystrokes will land: `context` reports the focused element, the pane
+instance holding it, and the open app's own report (the canvas gives its file and selection).
+Prefer `fill_field '{"field":"<label>","value":"…"}'` to click-then-`type_text`; it sets the field
+by label, in the shell or inside an app, without depending on focus. `type_text` refuses a
+terminal outright.
+
+The canvas has its own methods for agents, reached with `app_call` (see `apps/README.md`, Canvas):
+`canvas/list-diagrams`, `canvas/view-diagram` (a PNG of one frame and nothing else),
+`canvas/add-shapes`, and the comment loop. Read `docs/canvas-drawing-guide.md` before drawing.
+
 **OpenKaava hosts an MCP server that drives its own window** — screenshots, the DOM,
 and real mouse and keyboard input. It is `kaava-ui`, it reaches the WebView2
 through the COM interface Tauri already holds, and it needs no debug port, no
@@ -78,9 +95,10 @@ pnpm ui launch                # starts it, with developer mode and the server on
 pnpm ui close                 # stops it, by pid, leaving anyone else's alone
 ```
 
-Then drive it. **`--server agent` is the one to use** — it hosts the six input
-tools, the three `kaava-debug` reads, and three more that reach the backend
-directly:
+Then drive it. **`--server agent` is the one to use** — it hosts the eight input
+tools (`fill_field` and `context` among them), the three `kaava-debug` reads, and
+three more that reach the backend directly. Long or quote-heavy parameters go in a
+file: `pnpm probe --agent --server agent app_call @params.json`.
 
 ```sh
 pnpm probe --agent --server agent screenshot     # a PNG in the OS temp dir; the path is printed — then Read it

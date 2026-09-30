@@ -328,17 +328,11 @@ export default function Frame({
 
   return (
     <div className="frame" data-window-kind={kind}>
-      {/* Plain divs, fixed heights, no `layout` prop. The four bars never
+      {/* Plain divs, fixed heights, no `layout` prop. The bars never
           animate — only what sits inside them does. */}
       <div className="frame__titlebar" data-region="titlebar">
         {slots.titleBar}
       </div>
-
-      {slots.switcherBar !== undefined && (
-        <div className="frame__switcher" data-region="switcher">
-          {slots.switcherBar}
-        </div>
-      )}
 
       <div className="frame__split" ref={rowRef}>
         {/* Everything left of the rail: the tool window, the terminal band

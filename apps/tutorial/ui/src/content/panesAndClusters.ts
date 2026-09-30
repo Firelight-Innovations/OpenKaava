@@ -32,11 +32,11 @@ export const panesAndClusters: Body = {
     },
     {
       kind: "step",
-      body: "Click the `+` in the switcher bar and pick **File Explorer**.",
+      body: "Open the **Apps** menu and pick **File Explorer**.",
     },
     {
       kind: "step",
-      body: "Click `+` again and pick **File Viewer**. The window now holds two panes.",
+      body: "Open **Apps** again and pick **File Viewer**. The window now holds two panes.",
     },
     {
       kind: "step",
@@ -67,16 +67,16 @@ export const panesAndClusters: Body = {
     },
     {
       kind: "text",
-      body: "The tabs on the left of the switcher bar are clusters. Switching between them swaps the entire layout underneath — the panes, and the terminal band with them.",
+      body: "The badges at the top of the rail, and the list under the title bar's pill, are clusters. Switching between them swaps the entire layout underneath — the panes, and the terminal band with them.",
     },
     {
       kind: "mock",
       view: "switcher-bar",
-      caption: "Cluster tabs on the left; this cluster's own app tabs beside them.",
+      caption: "The pill lists the clusters; each has a badge in the rail.",
     },
     {
       kind: "step",
-      body: "Make a second cluster from the switcher bar. It opens on Home, with no project.",
+      body: "Make a second cluster with the `+` above the rail's page icons. It opens on Home, with no project.",
     },
     {
       kind: "step",

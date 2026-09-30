@@ -15,9 +15,9 @@
 //! what earns its place, and what decides its gate where it writes.
 //!
 //! [`agent`] is the fifth and the exception, earning its place on the client's
-//! axis rather than a capability's: nine of its twelve tools are [`ui`]'s and
-//! [`debug`]'s, composed so one job needs one connection instead of four. It
-//! indexes their arrays and delegates, so nothing here is a second copy.
+//! axis rather than a capability's: eleven of its fourteen tools are [`ui`]'s
+//! and [`debug`]'s, composed so one job needs one connection instead of four.
+//! It indexes their arrays and delegates, so nothing here is a second copy.
 
 pub mod agent;
 pub mod debug;
@@ -50,9 +50,43 @@ pub fn seed(registry: &Registry) {
     registry.register(&agent::SERVER);
 }
 
+/// What an MCP client is told at `initialize`, before it reads a single tool.
+///
+/// Said here because an agent once went looking for OpenKaava in a browser —
+/// its global instructions named a Chrome extension for "all UI verification" —
+/// and found nothing, since the app is a desktop window. The servers that can
+/// see the window say so up front. Rejected: a field on `McpServer`, which
+/// would put a `None` in every server that has nothing to add.
+pub fn instructions(id: &str) -> Option<&'static str> {
+    match id {
+        "ui" | "agent" => Some(
+            "This server is how you see and drive OpenKaava, a desktop app. It is not a web \
+             page: browser and Chrome tools cannot reach it, and a dev server on localhost \
+             serves the shell with no backend behind it. Use `screenshot` to look, `snapshot` \
+             for clickable refs, `click`, `fill_field` and `type_text` to act, and `context` \
+             to ask what is focused and what the open app has selected. `type_text` refuses \
+             to type into a terminal; that terminal is probably yours.",
+        ),
+        "debug" => Some(
+            "Read-only views of a running OpenKaava: its shell layout, recent errors and boot \
+             progress. To see or click the window, use the `agent` server, not a browser.",
+        ),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_servers_that_see_the_window_say_a_browser_cannot() {
+        for id in ["ui", "agent", "debug"] {
+            let text = instructions(id).unwrap_or_default();
+            assert!(text.contains("browser"), "{id}: {text}");
+        }
+        assert!(instructions("echo").is_none());
+    }
 
     #[test]
     fn seeding_registers_every_server_this_build_hosts() {

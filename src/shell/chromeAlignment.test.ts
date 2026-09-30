@@ -3,15 +3,14 @@
  *
  * No DOM here can lay these out — jsdom has no layout engine — so this pins
  * the declarations the alignment depends on instead. Each case below is a
- * regression from review round 1: tabs riding at the top of the switcher,
- * half-pixel-high labels, left edges on three different columns, and square
- * surfaces over rounded panes. It lives beside `WindowRoot.tsx` rather than
+ * regression from review round 1: half-pixel-high labels, mismatched gutters,
+ * and square surfaces over rounded panes. It lives beside `WindowRoot.tsx` rather than
  * in a region because it reads five regions' stylesheets, which only the
  * wiring layer may do.
  */
 import { describe, expect, it } from "vitest";
 import frameCss from "./frame/frame.css?raw";
-import switcherCss from "./switcher/switcher.css?raw";
+import stripCss from "./rail/clusterStrip.css?raw";
 import panesCss from "./panes/panes.css?raw";
 import toolwindowCss from "./toolwindow/toolwindow.css?raw";
 
@@ -47,39 +46,42 @@ function leftOf(shorthand: string | undefined): number {
 }
 
 describe("band heights leave the whole token for the content", () => {
-  it("draws the switcher's and the pane strip's hairlines without a border", () => {
+  it("draws the pane strip's hairline without a border", () => {
     // A border-box border takes a pixel out of the height the content centres in.
-    for (const [css, selector] of [
-      [frameCss, ".frame__switcher"],
-      [panesCss, ".pane-tabstrip"],
-    ] as const) {
-      const decls = rule(css, selector);
-      expect([...decls.keys()].some((k) => k.startsWith("border"))).toBe(false);
-      expect(decls.get("box-shadow")).toMatch(/^inset 0 -1px 0/);
-    }
-  });
-
-  it("centres cluster tabs in the switcher rather than stretching their wrappers", () => {
-    expect(rule(switcherCss, ".switcher__tabs").get("align-items")).toBe("center");
+    const decls = rule(panesCss, ".pane-tabstrip");
+    expect([...decls.keys()].some((k) => k.startsWith("border"))).toBe(false);
+    expect(decls.get("box-shadow")).toMatch(/^inset 0 -1px 0/);
   });
 });
 
-describe("one gutter on the left", () => {
+describe("one gutter around the panes and the rail card", () => {
   const gutter = 6;
 
-  it("insets the first cluster tab and the pane grid by the same gutter", () => {
-    expect(leftOf(rule(switcherCss, ".switcher__tabs").get("padding-left"))).toBe(gutter);
+  it("insets the pane grid and the right-hand card by the same gutter", () => {
     expect(leftOf(rule(frameCss, ".frame__toolwindow").get("margin"))).toBe(gutter);
+    expect(px(rule(frameCss, ".frame__side").get("margin"))).toBe(gutter);
   });
 
-  it("starts each remaining band's content on the same column inside its 1px border", () => {
-    const clusterTab = leftOf(rule(switcherCss, ".switcher__tab").get("padding"));
-    const paneTab = leftOf(rule(panesCss, ".pane-tab").get("padding"));
-    expect(new Set([clusterTab, paneTab]).size).toBe(1);
+  it("puts nothing between the title bar and the panes", () => {
+    // The cluster bar used to be a 40px row here; the strip and the pill replaced it.
+    expect(() => rule(frameCss, ".frame__switcher")).toThrow();
+  });
+});
+
+describe("the cluster strip", () => {
+  it("draws 28px badges, the shell's control size, with the active one marked on the edge", () => {
+    const badge = rule(stripCss, ".clusterstrip__badge");
+    expect(badge.get("width")).toMatch(/^var\(--control-md, 28px\)$/);
+    expect(badge.get("height")).toMatch(/^var\(--control-md, 28px\)$/);
+    expect(rule(stripCss, ".clusterstrip__badge[data-active]::before").get("background")).toBe(
+      "var(--accent)",
+    );
   });
 
-  it("leaves no stray margin on a cluster tab to push the first one off the gutter", () => {
-    expect(rule(switcherCss, ".switcher__tab").has("margin")).toBe(false);
+  it("scrolls its own list rather than pushing the page icons off the rail", () => {
+    const list = rule(stripCss, ".clusterstrip__list");
+    expect(list.get("overflow-y")).toBe("auto");
+    expect(list.get("max-height")).toBeDefined();
   });
 });
 

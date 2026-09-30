@@ -1,6 +1,7 @@
 /**
  * The title bar — logo, six menus (or their hamburger collapse), the
- * environment summary, the centred project pill, search and Review & merge,
+ * environment summary, the centred project pill (which is the cluster
+ * switcher), search and Review & merge,
  * and the three window controls.
  *
  * Menu geometry is lifted from `docs/handoffs/shell-spec.html` (search
@@ -21,7 +22,7 @@ import MenuBar from "./MenuBar";
 import HamburgerMenu from "./HamburgerMenu";
 import WindowControls from "./WindowControls";
 import { useNarrowTitlebar } from "./useNarrowTitlebar";
-import ProjectPill from "./ProjectPill";
+import ClusterSwitcher, { type ClusterSwitcherProps } from "./ClusterSwitcher";
 import "./titlebar.css";
 
 export interface TitleBarProps {
@@ -54,12 +55,15 @@ export interface TitleBarProps {
    */
   environmentCount: number;
   /**
-   * Opens the Switch-project dialog. The **clusters** workstream builds that
-   * dialog; until it exists this is the no-op `WindowRoot` supplies, and the
-   * pill is still a real, clickable button rather than a dead one — pressing
-   * it just has nothing to open yet.
+   * Everything the pill's dropdown needs beyond what the pill itself draws: the
+   * clusters and the verbs on them. The pill *is* the cluster switcher now, so
+   * it is drawn whenever this is given, project or not — a window with clusters
+   * but no project still has to be able to switch between them.
    */
-  onOpenProjectSwitcher?: () => void;
+  switcher?: Omit<
+    ClusterSwitcherProps,
+    "project" | "projectIcon" | "environment" | "environmentLabel" | "environmentCount"
+  >;
   /**
    * Built by `defaultMenus()`, wired against `WindowRoot`'s state and the active
    * app frame. Rebuilt on every render, because half the items read live state —
@@ -82,12 +86,13 @@ export default function TitleBar({
   environment,
   environmentLabel,
   environmentCount,
-  onOpenProjectSwitcher,
+  switcher,
   menus,
   environmentSlot,
   actionsSlot,
 }: TitleBarProps) {
   const narrow = useNarrowTitlebar();
+  const showPill = switcher !== undefined && (project !== null || switcher.clusters.length > 0);
 
   return (
     // Three cells on a grid whose outer tracks are equal (`titlebar.css`), so
@@ -99,7 +104,7 @@ export default function TitleBar({
     <div
       className="titlebar"
       data-window-kind={kind}
-      data-has-pill={project !== null || undefined}
+      data-has-pill={showPill || undefined}
       data-tauri-drag-region
     >
       <div className="titlebar__start" data-tauri-drag-region>
@@ -112,16 +117,17 @@ export default function TitleBar({
         {environmentSlot}
       </div>
 
-      {/* Drawn only with a project open: a segment with no answer is dropped
-          rather than shown as a placeholder pill with nothing in it. */}
-      {project !== null && (
-        <ProjectPill
+      {/* Drawn while there is something to name or switch between: a project, or
+          at least one cluster. A window with neither has no answer to show and
+          gets no placeholder pill. */}
+      {showPill && switcher && (
+        <ClusterSwitcher
+          {...switcher}
           project={project}
-          icon={projectIcon}
+          projectIcon={projectIcon}
           environment={environment}
           environmentLabel={environmentLabel}
           environmentCount={environmentCount}
-          onOpenSwitcher={onOpenProjectSwitcher}
         />
       )}
 
