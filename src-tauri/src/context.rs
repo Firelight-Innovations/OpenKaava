@@ -179,7 +179,7 @@ fn valid_id(id: &str) -> bool {
     })
 }
 
-fn ensure_dir(root: &Path) -> Result<PathBuf, RpcError> {
+pub fn ensure_dir(root: &Path) -> Result<PathBuf, RpcError> {
     let dir = store_dir(root);
     std::fs::create_dir_all(&dir)
         .map_err(|e| internal(format!("could not create {}: {e}", dir.display())))?;

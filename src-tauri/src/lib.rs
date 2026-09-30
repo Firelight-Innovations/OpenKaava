@@ -5,6 +5,7 @@
 //! against the pinned versions. The web frontend is a pure view over the
 //! `StackSnapshot` this produces.
 
+mod agent_saw;
 mod apps;
 mod blender;
 mod boot;
@@ -514,6 +515,11 @@ pub fn run() {
             context_commands::context_list,
             context_commands::context_remove,
             context_commands::context_thumb,
+            context_commands::agent_saw_status,
+            context_commands::agent_saw_enable,
+            context_commands::agent_saw_disable,
+            context_commands::agent_saw_list,
+            context_commands::agent_saw_thumb,
             commands::terminal_resize,
             commands::terminal_busy,
             commands::move_terminal,
