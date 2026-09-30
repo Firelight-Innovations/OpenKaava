@@ -70,7 +70,7 @@ export interface GithubPanelProps {
    *  other region's rule for an unset cluster. */
   clusterId: string | null;
   /** Whether this view is the one on screen. The panel stays mounted when it is
-   *  not — see `SecondaryPanel` — and must not spend GitHub requests while
+   *  not — see `rail/GitPage.tsx` — and must not spend GitHub requests while
    *  hidden, which at sixty an hour signed out is a real budget. */
   active: boolean;
   githubControl: GithubControl;

@@ -295,8 +295,8 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  background: rgb(217 138 63 / 12%);
-  box-shadow: inset 0 0 0 1.5px rgb(217 138 63 / 60%);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
 .pane__drop-label {

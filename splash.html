@@ -28,19 +28,13 @@
         - the styles, with the token values copied literally out of
           src/tokens.css under the same names (this file cannot @import it —
           that would be a request, and a dependency)
-        - the status-bar spinner, copied from `BootArc` in src/ui/Icon.tsx
-          and recoloured — see `.splash-art` below
+        - the art, drawn on a canvas by the `splash-art` script below (Assembly;
+          it needs no image, so there is no request for one)
         - the typefaces, as base64 woff2 subsets (see @font-face)
         - the boot logic, as a plain non-module <script> at the bottom
 
-      One deliberate exception: `.splash__field` loads `/kaava-splash-field.svg`
-      from `public/` as a plain image request. That is a request, unlike
-      everything above — but it is a static, standalone asset with no module
-      graph behind it, not a dependency on this application's *code*, which
-      is the coupling the rest of this file exists to avoid. At 230kB inlining
-      it as markup would have more than 10x'd this file for a background image
-      that is never read as text, so it stays external. Regenerate the wordmark
-      subset or touch the field art and nothing else in the app has to know.
+      Nothing is fetched: the art is drawn, and the wordmark face is inlined.
+      Regenerate the wordmark subset and nothing else in the app has to know.
 
       The payoff is that the markup below IS the finished screen rather than
       a stand-in for it. The old file carried a hand-maintained skeleton that
@@ -90,7 +84,7 @@
        * after first paint, and the text would reflow into it). Regenerate with
        * `pyftsubset <fontsource woff2> --unicodes=<range> --flavor=woff2`:
        *
-       *   Inter 600          U+0041-005A          the wordmark, 2kB
+       *   Inter 600          U+0041-005A, U+0061-007A  the wordmark, 4kB
        *   Inter 500          U+0020-007E, U+2026  the status line and button, 8kB
        *   IBM Plex Mono 500  U+0020-007E, U+2014  the step count and error text, 7kB
        *
@@ -103,7 +97,7 @@
         font-family: "Inter";
         font-style: normal;
         font-weight: 600;
-        src: url(data:font/woff2;base64,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) format("woff2");
+        src: url(data:font/woff2;base64,d09GMgABAAAAABFEABAAAAAAIyAAABDoAAQAQgAAAAAAAAAAAAAAAAAAAAAAAAAAGhwbkVocUAZgP1NUQVRaAEQRCAqnDJ9DATYCJAOBaAt2AAQgBYQyByAMBxvJHbMREWwcAIKyWYL/6oA3pD66iKNkiDJVqBNe1TLReOz6E+sSz4Ob2HSic/76o4pVljz5fXWsYYTNidgISWZ5eP6+36997m4eMIqyomeN1mzDNGOgcZxAIgFO/xP0tnSi9Hk7b+llh0pIw2Y7VCByfnFWd+11A6Bh6nXHwAFsswPBioGY7xv5jtSGNiJQFBOwkV4Z/W9ELMNFBdNF++3WrgqC597d34NWbesFAoVSYDF1BfBv5WWWI5wJUoBf4J0btr29b+X/5kq7eSlRCh5RyHunS6hrzN/ZuZv993eWSklKuHDITUrZXIldWZOqIiIJ5E71VanaOlknq0xti2F6Pa14QvFv5twAtg1n2MThGNeykKWGPW/+RxVAOwCFguZBWMQbAgKttkuFmpmLTATLfaW4GJyPxflF4HzBl5SCMxSgHoSuyqCcH4pLwfDUKxYIoBYGSAQMlIYC+CXVJIYCemevpk9crbQWB0Nm0MZDaD4WvgfdZwvlLN73pVvOXzgIcAfnwI9g+PIuOWAtu7YZ/uEp/FO3O6dte9xuNwnaxZ2PPWkBemeHVwHeKf1mziiZz05KAeSnlsN3hSD2+ab+S0oAHl99Pnet/xbvYf/iKdpf7h0sfnrTHJf57l908BxM1eSWjp3qQHehpd7rE6UuX/kgy1IJM6ocHL1633HbnBlBtyMdBlheV38qx8/+x+OjEosKcb2BFk6fuTqtbVq1qcE06HsPIQR3P+Q//DOoS1vuf2LU/cMmeb/tlh0c+tfR+IPbed8677XKOu4iEq2zg/nznFmdbupwq1/Oj842oR1gs90eydZeceQc+stHK9XCIx3PyhxNgYym3ziVZvu0tInUpBa+kxefHOkWVp3bOgHKa40V3F0tO3tHMz41o3tbtNsCOc8XnX+njYKbyLNfaCGCrt+iIuZgX9v1d/DBj8thO8AG/FQ33XiuUsGW7+9agGhpRfsXK2vONN+ImKGD/pIVrB19Qwne4d2HZmTj3oDSzs1XmK1U4Yt+jGowyjdqCPh1oVXgoJTNYQHQrM4MIM2GUmNEGLPYMKVvKiSEQJjGHFIA0KJBdudoMl0hXwmbwZqeKnv25CbSLiFnTYZwc5ORM2zDjLFoVVqkDJpCRaGgPiiWIJWJjEsZZCJTumosWb7B6TIfBZIM39SkNTwxiKvHEjFoAyGltmOGQvJgm/hCUOb5DSq/lxY0aBjPK8Ab7xXKp61lPMarAHapUYV2WyurUQlwHDZV0/G/EWj+Kj2+J8ytBjUwQh/SMyzqt25kDPL6plKF8AXPxwIJAgH4f98bRLAg+WpsIIASfgwBSq8QEyUVoMp3YgNvzTIJCG0TZbVgm0cA1gip6gGT+ET1/jzoYZQAGm+NIqnWLv0AzIOGd9DSCmDYVFChQyWNUZZsUi4bH97NNtwkRcqpBZx3W/GF85o7UdjXQbRwora02OoalbW/cnqlMtn4vHqdmRgunH0tXlybVFl4lVmsqwsrk7RUwfiXrmHldXpjub5fWjh/+jSr7QTLTjLbG20pD5b4bherwC66ZwY5GcNwdUw6LvccfYksDrYCmZ0V3wZj/7k1Z5jYkQlTMcOQUz8DoDVlICNgZpALvyvky9PLrGNXhVBFpnC5afT0vsXxgMUICZplREeeZNY7/C6E3aV+HCiQe1dAICZ/KhzM4jNyc6Gio6tWchrnm9nnpolg8uGHZow59LwaneXCYZ9EkYeeZ/pZOv9IRkt5GAUN8nyNJJRFsDyD53s5Ydh8gjKdsxi7WFQnLcjPgswNTpK2TdMYJ090Xs5dKlZGKsPHGd3hNPUQgQHniclchw8kyoOVcVgHa2zwjaxvStKPru/a+flEPcmGa0LjvenkruzY9NlypjqX427l6OygrrS1NfT9BrtyFzPb+anRWv5C7m5FXk9OIcDuOTNHMzpCybz0OtyN4TjlSRY4VswBKnBO/o1LER6mTz6tvEPQhPRh+BZKx/s9mTT/14ktR+WVBORE82cQi2gaiv4s4gEvsPHiR5pi83hWMjAW7+QK9iQjX/agJQB6VGOvjMBRX6WKOAgxC1IzJ8Wv2t0M5lr+mjffEu4jaRE4+Wxkk7/SO1z0grZONPVOgLZe/zybAzE5u9EkwsDnO1PiM3KWzjrJ5HTzXItANcLtL7AVFduKBKQxmRe0hdj2FdNelhjv1HYMOSBKzYb0hf4zMuvNmqEK7naXN+WAqQVNggcDpEux48qlX/BN429MRUuy5YvfsSsmHzt2OfnBqIATR090ztHJKQx1eEDpyaEipSOVL9ttMLXLEvKJtvPA9w9MtbjFF+LzkkCLNuUsnrNpr3rGcbu54IyP5zWD02Di1xDxDoZYhZsQwZEy+73iT5gCjbFWVB6K53k3K3fSiIhzRc9/P8W2Xp1gF6R2Mu7WdJYnECjHfcknY0kOlcYamrrlt01uQx+g1f6T8/nCrWXcoCpJTKixUbRGZ0rGeIWkbN8T4eaoR449NRVpAWyRgp6AP2EQUubByuKkKMsUGCAbY097zO5Mev1mV7Ln7EnVXOC6uqJjJkoDfQ4jPzNY6higOqwSPd24uWjxsFwRIHXkBTML9NiGhqK8g9Otd2KgTflf8ch1sfDvLZuEf12uGFzx3++P6Ds3Rf23uCmas+sXtBos6g3faE9wfuFIV/Oj5okTC9c/koML248VPypOBHIH9qrXga1Jz97sSvbYe2rFXMi6OtGscbGJFSMzNaDcPlBxWFm0uGlD0dMjqlXidSnpk6UXetXc3cemcNa9IeN6glmBnl2qebYZLE3JnysR8xD18mGSXopUosjhVyqk1joWD5GvILn0OzEqo0lQzwpvOBIpP+/t8NYYepGDqAJUDaH97uH1551vNtxj0puuYX88XSa7EU8dG5yH7Xv2e++z73IecWy8b1KL6Aa0Wvc1CdGoMawxForBRBNm8EOu1YvLXv2Fe7XoupowSFiHi8UBR2MEOYpsobzeXRvB1sNrKaQqaswp20YzQXcHaszH0Gg8EPH6n+7BUc1pW5kqZ3SxzknNQeLfQGZhT3vN7koXRP30KU/WJvnN66N57jn5UnlQIXy6cbMHPYpSdUgperppo2hx893tdwt+8+Ia+aO2dsXDZ2u2VDyIzq8Koq2IiaEpqwMKPi/Bsdevu45miT8xYf1cIH/ogrpmufxWW5vixrOKLW0Pi/LX+NJLomPp5VXU7dulCqcdy6dhArf1R1H7FXSXlmZUQmEzJTG1wSsim+XPiVB4xmI2uB8kXj8xVtd65n3xyPirkoYTyBUaOll9AmWigsJK8WNExkiIR1sc4jHD7JV5Ye382vqzX0sB7flmYWrh0hu9N/DGdK9RU+/S+BW9fZnxnX3xhYUAPFjmPr0r431Lhk0QZOeldjKu1XSsTCKQj/qST8S7N9JTd7Rdq4bTFk7qX/UdLDBJ9kdsjxly3Y25dsecjmCT9KctrPS7LUyTHI/YHzPhEoy4z3SHI5j8WjEWthZeaopBt88v4uUGFn0sq04XbduV/L8U8HI6lXnBAcPw2mOED6IWkfPusZ+Sc2nFhKB9RgT73eSTTg65/gtRbZ4p7nFnCLvd47zSjv4TBals+9xOX515tzD27/Z5wXb5rFaXYNS8t71GJxsU61wwdR5hql5GqGlStvYpZM7SQuQG51yJd1TVMCvSNClP+xwyb3EBTuBEGyP5vaVZwSsUYf1OcVrZukqjWme0j3tksiuLzXM5NveaZJvTXHWUWR4z4VifEtdd/uzzkG5bcmwVCXs8TsJkCRh1F06EG4Tq1PRnOniyPEkkVqId3MZkrWFFcH1Mdv4AtBqF1/MJ467m5NZcq1XBwf1yxPWGi/MpUh51RiDwn5JmpCZL02gTJSW0aVk6lOKmX3XUILdsq0G9ap/OHCeuSk+sNolbomxyDd4ZZUnkyrOpM8JC6lp5NpcUbXXKLWxkiWKSkFi7OmOCDE6YuusNcsT+gyq4XluVt5oTznXRw6MArf757X0iuatYFvNJ0nT6dEkJbUKWlpQqzaBOCQTUGRkP5LiNS601iO1bqzSed00U7Ge3NcfOdcd37TRRevD82sQxycnyWEZDgkoU0lkdluyXYRvAMnxJskyrbjgZDvg83uWTl/XneBfKM7rHwrOChKZNnhdQunZhjBDOLBQdaDgbsFpiFXY/2obBFvwWp+wsV9zEuYQlrvTjV11XqN7s3b/i+/Xa6tw17IgMH8MDP/m9jSef8Xr6k6Sx9MEiEW1MmpqcKsugjhUU0gZlidDa1o4CtBqarAgdsx3NlVv4vEON59Dj5ZVrCoKKqHQxtPBQPNDu4aHHlenDWyNUXvPOkazQYJBnUd26TpJfOHvv9Qa0GgVo9YGSb9v3vd8D5v+oN96ffLh3OvoYs9y8VQ20cGVPv033r7jc0roBTkr+eErmhlVLqIuCiqxYBteLxGMe/XErSViQ4Mfz8MmP2DrGJO+DBsZUqZvToOyy7Z/xEMPbtnDIyk6ruQq+/9qCQgB0LlfG2swICkCOHJonQRN+HDCpqUB90e2RXoJGbnEVCombQiXo1UEd/EI5TMYHftq+R8rjh2/hfTuk/0t2ryAbl2D/6l2IlkOomM4qDukCEq76TNjq1mV5S3hcvCQ2K7s80o8Uxog0Puo6ajc8vEJQ0X8xoWHN3pDyKtPk//C/5cZyE0pD/chhzESTIy5jdoO9MpFy4k46uL7jXV5xeUwHhaf7UpdtwLie35Km6za5ebwHtA0SHD3cEEVV8hZolbHtaN5HJAZL6NzXDucsUTzcpSwHkcdty1K2VSnltr3oYhbW0pEHSuwcb1nJrHm3DMJy1M5ykI58ppfPfkp6siymIa2G9SFfhMJ9Viz2b55WzTlMoNOow4xJBMnmcZxxHMdw3j1FoOyaggvDdTYVR8iJUZMuEcVu4eFTlETpEfPJpjO7Bq2bH5MTo8ddQoslHDq+gvX5YXUb7eJ/27j6dM41o2DLvJwxvr0i/LxVWaBlmdctB5E6C2ODemmXmr+6m53vk2EEqnWseR3i3dI9Tud0/O5C0n/mZ801PcTLWQx3d5+13AZ5mnQw6Tnz8Iz54RqdNnF4ori1q07nzH8QHBrFZMbFg0neN0Zqgj8tNZ7B9GEqlR0XkM7gCKAR/D6wBk7X+R4AvQA8AsSMpsVP/XnykQABIIHzYTbiUpYR7b22hjYA/ssaO9iZR3+U/7DFbtK+A6D6ZicAn2OEBySlpt9c3UC71hqahQhFq4GCDoY+9D9QiD4Hfag7Hvdw5YfnY1OkT2waotETsWMD9GnxI5oYRecauqlCRN/ewJ6QhQ6FBPRfDPuY2m5AQZ8EL/RsMSg4tiQHROYPRW6UBvCeQ/kqa9gGBMv7r5ZiTipMRuvi0bhNgjRp8mya/9BjOBYCgvhYMF9quQmL8QxzF5fGfZZnK0rOcslGqtgvspqQCLxAADXpdLETGtpS5TY7PHNEUufo8Aq6oek6uimhD91K1jro1L7dPBs97+qbHvbFEAiwweDdPBlHeDdf5pHezY92iLux6Ifq3tl0o0GAMuWUxIQKCUjYoiAh8wYmJkp+LEwpiaAYGBsKlxHJlwsy2KQRBZkhVsk1VwIAls/K/oiICgk9Y1I5CO1EmRJEiSUeEBKSpLoRYkIEPJgQR5lieeLlKyRVjE/MEwFpxEgtGAmivJMq3PE4SjIjRyHHUliQ+FihS94GFDQfuZgjy4zsSRHxs/UxYpRrYaFcfMWzAkVVdRqZ57FdGAk7UnxsCvGV0qBN6G+WrQp+xM/6j24FAA==) format("woff2");
       }
 
       @font-face {
@@ -159,14 +153,10 @@
         --focus-ring: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
         --focus-ring-offset: 2px;
 
-        /* Not tokens: what the accent means for the splash's own parts.
+        /* Not a token: what the accent means for the splash's own parts.
            Neutral until the head script has found a stored accent, so a first
            launch is never drawn in a colour the user did not pick. */
         --accent: var(--txt-primary);
-        --art-base: brightness(1);
-        --art-rot: 0deg;
-        --art-tail: grayscale(1);
-        --ground: var(--bg-surface-1);
       }
 
       :root[data-theme="light"] {
@@ -191,57 +181,24 @@
         --accent-green: #23803b;
         --accent-violet: #6c47c9;
         --accent-coral: #b8392f;
-
-        /* The field art is drawn on a dark ground, so a light theme inverts
-           it; the 1.06 brightness lifts the inverted ground from #ebebea to
-           about --bg-layer-1, where it then sits under the seam gradient. */
-        --art-base: invert(1) brightness(1.06);
-        --ground: var(--bg-layer-1);
       }
 
-      /*
-       * The accent, and the art's hue turn to match it. The art has amber
-       * baked in (hue 29); each rotation moves that to the accent's own hue.
-       * In the light theme the invert has already turned the hue 180, so the
-       * rotation is measured from the complement (209) instead.
-       */
-      :root[data-accent] {
-        --art-tail: brightness(1);
-      }
+      /* The accent. Neutral (the text colour) until the head script finds a
+         stored one. The art and the progress segments both read it. */
       :root[data-accent="amber"] {
         --accent: var(--accent-amber);
-        --art-rot: 0deg;
       }
       :root[data-accent="blue"] {
         --accent: var(--accent-blue);
-        --art-rot: 194deg;
       }
       :root[data-accent="green"] {
         --accent: var(--accent-green);
-        --art-rot: 104deg;
       }
       :root[data-accent="violet"] {
         --accent: var(--accent-violet);
-        --art-rot: 229deg;
       }
       :root[data-accent="coral"] {
         --accent: var(--accent-coral);
-        --art-rot: 335deg;
-      }
-      :root[data-theme="light"][data-accent="amber"] {
-        --art-rot: 180deg;
-      }
-      :root[data-theme="light"][data-accent="blue"] {
-        --art-rot: 14deg;
-      }
-      :root[data-theme="light"][data-accent="green"] {
-        --art-rot: 284deg;
-      }
-      :root[data-theme="light"][data-accent="violet"] {
-        --art-rot: 49deg;
-      }
-      :root[data-theme="light"][data-accent="coral"] {
-        --art-rot: 155deg;
       }
 
       *,
@@ -274,17 +231,12 @@
         padding: 36px;
       }
 
-      /* Not `display: flex` on body. `.splash` already fills the window on
-         its own, so there is nothing to centre, and as a flex row its lone
-         child would shrink to fit its content and collapse every percentage
-         width inside it. The window is transparent and undecorated (see
-         tauri.conf.json), so this card IS the visible window: the app
-         window's radius, the hairline border and the overlay shadow are
-         drawn here, anti-aliased by the compositor. The clip on `overflow`
-         is what rounds the art and the status strip's corners. */
+      /* The window is transparent and undecorated (see tauri.conf.json), so
+         this card IS the visible window: the app window's radius, the
+         hairline border and the overlay shadow are drawn here, anti-aliased
+         by the compositor. The clip on `overflow` rounds the canvas. */
       .splash {
-        display: flex;
-        flex-direction: column;
+        position: relative;
         width: 100%;
         height: 100%;
         overflow: hidden;
@@ -296,107 +248,108 @@
         font-family: var(--sans);
       }
 
-      /* The art fills this, the wordmark sits over its bottom-left corner and
-         the error panel over its centre. `min-height: 0` lets the flex item
-         shrink rather than push the status strip off the bottom. */
+      /* The art fills the whole card; the footer and the error panel sit over
+         it. The canvas leaves room for the footer itself, see `layout` in the
+         art script. */
       .splash__content {
-        position: relative;
-        flex: 1;
-        min-height: 0;
-        overflow: hidden;
-        background: var(--ground);
+        position: absolute;
+        inset: 0;
       }
 
-      /* `object-fit: cover`: the source is 1920x805 and this box is about
-         1.7:1 at the default window size, so cover trims the sides rather than
-         baking a crop in. The filter is what makes the baked-in amber follow
-         the theme and accent; see the rotations above. */
-      .splash__field {
+      .splash__art {
         position: absolute;
-        top: 0;
-        left: 0;
+        inset: 0;
         width: 100%;
         height: 100%;
-        object-fit: cover;
         display: block;
-        filter: var(--art-base) hue-rotate(var(--art-rot)) var(--art-tail);
       }
 
-      /* Carries the art's last stretch into the strip's colour so the two
-         meet without a seam. Backloaded on purpose: a short linear fade puts
-         its whole change into a thin band, and the eye catches the sudden
-         change in rate at its top edge even when the colours match at both
-         ends. */
-      .splash__field-seam {
+      /* Wordmark left, step name right, the segments stretched between them.
+         The 20px side inset is the composition's own padding, so the art and
+         the footer share one edge. */
+      .splash__footer {
         position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: 110px;
-        background: linear-gradient(
-          to bottom,
-          transparent 0%,
-          transparent 35%,
-          color-mix(in srgb, var(--bg-surface-1) 25%, transparent) 65%,
-          color-mix(in srgb, var(--bg-surface-1) 65%, transparent) 85%,
-          var(--bg-surface-1) 100%
-        );
-        pointer-events: none;
+        left: 20px;
+        right: 20px;
+        bottom: 16px;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
       }
 
-      .splash-art {
+      .splash__brand {
         display: flex;
-        width: 14px;
-        height: 14px;
+        align-items: center;
+        gap: 10px;
         flex: none;
       }
 
-      .splash-art__ring {
-        width: 100%;
-        height: 100%;
-        animation: splash-spin 0.9s linear infinite;
-      }
-
-      .splash-art__track {
-        stroke: var(--border-strong);
-      }
-
-      .splash-art__arc {
-        stroke: var(--accent);
-      }
-
-      /* Paused rather than stopped, so the ring freezes where it was instead
-         of snapping back to its starting angle. */
-      .splash-art--settled .splash-art__ring {
-        animation-play-state: paused;
-      }
-
-      @keyframes splash-spin {
-        to {
-          transform: rotate(360deg);
-        }
+      /* TODO(logo): a placeholder slot for the mark that is still to be
+         drawn. Replace what is inside #logo (an inline SVG or a
+         background image); it is a 22px square, about 1.6x the wordmark's cap
+         height. */
+      .splash__logo {
+        display: block;
+        flex: none;
+        width: 22px;
+        height: 22px;
+        border: 1px solid var(--border-strong);
+        border-radius: 6px;
       }
 
       .splash__wordmark {
-        position: absolute;
-        left: 20px;
-        bottom: 18px;
         margin: 0;
         font-family: var(--sans);
-        font-size: 20px;
+        font-size: 19px;
         font-weight: 600;
-        letter-spacing: 0.16em;
-        /* The markup holds "OpenKaava" and this uppercases it, so a screen
-           reader is handed a word. The face is subset to uppercase Latin and
-           `text-transform` runs before shaping. */
-        text-transform: uppercase;
+        line-height: 1;
+        letter-spacing: 0.02em;
         color: var(--txt-primary);
-        /* The art varies in brightness by pixel, so a fixed text colour
-           cannot promise contrast everywhere; the shadow is the ground colour
-           and works in both themes. */
-        text-shadow:
-          0 1px 4px color-mix(in srgb, var(--ground) 80%, transparent),
-          0 0 20px color-mix(in srgb, var(--ground) 60%, transparent);
+      }
+
+      .splash__ticks {
+        display: flex;
+        flex: 1;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .splash__ticks i {
+        display: block;
+        flex: 1;
+        height: 2px;
+        border-radius: 1px;
+        background: var(--border-strong);
+        transition: background 400ms;
+      }
+
+      .splash__ticks i.on {
+        background: var(--accent);
+      }
+
+      .splash__ticks i.cur {
+        background: var(--txt-tertiary);
+      }
+
+      .splash[data-phase="failed"] .splash__ticks i.cur {
+        background: var(--danger);
+      }
+
+      .splash__step {
+        flex: none;
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1;
+        text-align: right;
+        text-transform: lowercase;
+        white-space: nowrap;
+        color: var(--txt-tertiary);
+      }
+
+      .splash[data-phase="failed"] .splash__step {
+        color: var(--danger);
       }
 
       .splash__error {
@@ -405,11 +358,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 24px;
+        padding: 24px 24px 64px;
       }
 
       /* A panel rather than bare text: the message has to stay legible over
-         the busiest part of the art. */
+         the art. */
       .splash__error-panel {
         display: flex;
         flex-direction: column;
@@ -454,82 +407,8 @@
         outline-offset: var(--focus-ring-offset);
       }
 
-      /* The status strip: a fixed 40px rather than a share of the window, so
-         the bar reads as a hairline whatever the window size. The 2px
-         determinate bar is its top edge; the status line sits beneath it. */
-      .splash__bar {
-        position: relative;
-        flex: none;
-        height: 40px;
-        background: var(--bg-surface-1);
-        border-top: 1px solid var(--border-subtle);
-      }
-
-      .splash__bar-track {
-        position: absolute;
-        top: -1px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: var(--border-subtle);
-      }
-
-      .splash__bar-fill {
-        height: 100%;
-        width: 0%;
-        background: var(--accent);
-        transition: width 160ms ease-out;
-      }
-
-      .splash[data-phase="failed"] .splash__bar-fill {
-        background: var(--danger);
-      }
-
-      .splash[data-phase="failed"] .splash-art__arc {
-        stroke: var(--danger);
-      }
-
-      .splash__bar-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        height: 100%;
-        padding: 0 16px;
-      }
-
-      /* Groups the spinner and the label so the step count is the only thing
-         pushed to the far right by `space-between`. */
-      .splash__bar-status {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        min-width: 0;
-      }
-
-      .splash__bar-label {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--txt-secondary);
-      }
-
-      .splash__bar-step {
-        flex: none;
-        font-family: var(--mono);
-        font-size: 11px;
-        font-weight: 500;
-        font-variant-numeric: tabular-nums;
-        color: var(--txt-tertiary);
-      }
-
       @media (prefers-reduced-motion: reduce) {
-        .splash-art__ring {
-          animation: none;
-        }
-        .splash__bar-fill {
+        .splash__ticks i {
           transition: none;
         }
       }
@@ -538,12 +417,7 @@
   <body>
     <div class="splash" data-phase="working">
       <div class="splash__content">
-        <!-- kaava-splash-field.svg, from public/ — see the file-level
-             comment above for why this one asset is external. -->
-        <img class="splash__field" src="/kaava-splash-field.svg" alt="" />
-        <div class="splash__field-seam"></div>
-
-        <p class="splash__wordmark">OpenKaava</p>
+        <canvas class="splash__art" aria-hidden="true"></canvas>
 
         <div class="splash__error" hidden>
           <div class="splash__error-panel">
@@ -553,26 +427,520 @@
         </div>
       </div>
 
-      <div class="splash__bar" role="progressbar" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0">
-        <div class="splash__bar-track"><div class="splash__bar-fill"></div></div>
-        <div class="splash__bar-row">
-          <div class="splash__bar-status">
-            <!-- `BootArc`, copied from src/ui/Icon.tsx: the track and the moving
-                 arc take their colours from CSS (border-strong and accent).
-                 `aria-hidden`: the label right next to it says the same thing
-                 as text. -->
-            <span class="splash-art" aria-hidden="true">
-              <svg class="splash-art__ring" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round">
-                <circle class="splash-art__track" cx="12" cy="12" r="9" />
-                <path class="splash-art__arc" d="M12 3a9 9 0 0 1 9 9" />
-              </svg>
-            </span>
-            <span class="splash__bar-label">Starting…</span>
-          </div>
-          <span class="splash__bar-step"></span>
-        </div>
+      <div
+        class="splash__footer"
+        role="progressbar"
+        aria-label="Startup"
+        aria-valuemin="0"
+        aria-valuemax="1"
+        aria-valuenow="0"
+      >
+        <span class="splash__brand">
+          <i class="splash__logo" id="logo" aria-hidden="true"></i>
+          <p class="splash__wordmark">OpenKaava</p>
+        </span>
+        <!-- One segment per boot step. The script rebuilds these if boot
+             reports a different total; five is what a launch with Home and
+             Files reports, so the common case never changes. -->
+        <span class="splash__ticks"><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="splash__step">starting</span>
       </div>
     </div>
+
+    <script id="splash-art">
+      /*
+       * Assembly. Fourteen Bauhaus primitives drift in from outside the card
+       * and lock into one asymmetrical composition, in five groups. Boot
+       * progress decides how many groups have been let in; until ready every
+       * piece sits a hair off true, and ready settles them onto the grid and
+       * draws the construction lines. Failure freezes the clock: pieces still
+       * in flight tip and hang, and the ghost outlines of what never arrived
+       * turn danger-coloured.
+       *
+       * Nothing here talks to Tauri. The boot script calls the five methods on
+       * `splashArt` and this file owns the time, so a status that arrives late
+       * or all at once still plays out as a sequence.
+       */
+      var splashArt = (function () {
+        "use strict";
+
+        var canvas = document.querySelector(".splash__art");
+        var ctx = canvas.getContext("2d");
+        var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        // The composition is drawn on a 20 x 11 grid; `grp` is the boot group that lets a piece in.
+        var GX = 20;
+        var GY = 11;
+        var DEF = [
+          { t: "disc", x: 13.2, y: 5.2, r: 4.0, c: "A", grp: 1, z: 2 },
+          { t: "bar", x: 8.4, y: 5.5, w: 0.16, h: 11, c: "I", grp: 1, z: 6 },
+          { t: "quarter", x: 20, y: 11, r: 7.2, c: "D", grp: 2, z: 0 },
+          { t: "bar", x: 4.2, y: 7.6, w: 8.4, h: 0.16, c: "I", grp: 2, z: 6 },
+          { t: "half", x: 3.9, y: 7.6, r: 2.4, c: "P", grp: 3, z: 3 },
+          { t: "sq", x: 18.0, y: 1.9, r: 0.7, c: "P", grp: 3, z: 3 },
+          { t: "dots", x: 3.9, y: 2.6, r: 0.26, n: 3, gap: 0.95, c: "I", grp: 3, z: 6 },
+          { t: "hair", x: 13.2, y: 5.2, r: 5.3, c: "I", grp: 4, z: 8 },
+          { t: "tri", x: 10.9, y: 9.5, r: 2.2, c: "I", grp: 4, z: 4 },
+          { t: "bar", x: 17.0, y: 8.4, w: 4.2, h: 0.55, rot: -45, c: "A", grp: 4, z: 6 },
+          { t: "disc", x: 13.2, y: 5.2, r: 0.5, c: "B", grp: 5, z: 7 },
+          { t: "ring", x: 18.0, y: 1.9, r: 1.3, w: 0.08, c: "I", grp: 5, z: 8 },
+          { t: "sq", x: 1.3, y: 9.7, r: 0.4, c: "A", grp: 5, z: 7 },
+          { t: "hair", x: 3.9, y: 7.6, r: 3.3, c: "I", grp: 5, z: 8 },
+        ];
+
+        // Groups start at least this far apart, so a boot that reports four steps in one
+        // millisecond still reads as four beats.
+        var GROUP_GAP = 0.22;
+        // A piece is seated this long after its group starts, at the latest.
+        var SEATED = 1.9;
+        var READY_SECONDS = 1.6;
+        var FAIL_SECONDS = 1.0;
+
+        var TAU = Math.PI * 2;
+        function c01(x) {
+          return x < 0 ? 0 : x > 1 ? 1 : x;
+        }
+        function smooth(x) {
+          x = c01(x);
+          return x * x * (3 - 2 * x);
+        }
+        function out3(x) {
+          return 1 - Math.pow(1 - c01(x), 3);
+        }
+        function out5(x) {
+          return 1 - Math.pow(1 - c01(x), 5);
+        }
+
+        function mulberry(a) {
+          return function () {
+            a |= 0;
+            a = (a + 0x6d2b79f5) | 0;
+            var t = Math.imul(a ^ (a >>> 15), 1 | a);
+            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+          };
+        }
+
+        /* ---- state ---- */
+        var te = 0; // art clock, seconds; stops at failure
+        var phase = "working";
+        var ready = 0;
+        var fk = 0; // failure ramp
+        var groupStart = [null, null, null, null, null, null];
+        var groups = 0;
+        var pieces = [];
+        var order = [];
+
+        /* ---- colour: everything derives from --accent ---- */
+        var P = null;
+        function hexRgb(h) {
+          h = h.replace("#", "");
+          if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+          return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
+        }
+        function rgbHsl(r, g, b) {
+          r /= 255;
+          g /= 255;
+          b /= 255;
+          var mx = Math.max(r, g, b);
+          var mn = Math.min(r, g, b);
+          var l = (mx + mn) / 2;
+          var h = 0;
+          var s = 0;
+          var d = mx - mn;
+          if (d) {
+            s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+            h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+            h *= 60;
+          }
+          return [h, s, l];
+        }
+        function palette() {
+          var cs = getComputedStyle(document.documentElement);
+          function get(n) {
+            return cs.getPropertyValue(n).trim();
+          }
+          var accent = get("--accent");
+          var hs = rgbHsl.apply(null, hexRgb(accent));
+          var neutral = !document.documentElement.dataset.accent;
+          var p = {
+            light: document.documentElement.dataset.theme === "light",
+            bg: get("--bg-surface-1"),
+            accent: accent,
+            h: hs[0],
+            s: neutral ? 0.02 : hs[1],
+            inkRgb: hexRgb(get("--txt-primary")),
+            dangerRgb: hexRgb(get("--danger")),
+          };
+          // dh: hue offset, sm: saturation multiplier, l: lightness 0..1, a: alpha
+          p.hsl = function (dh, sm, l, a) {
+            var hue = (((p.h + dh) % 360) + 360) % 360;
+            return "hsla(" + hue.toFixed(1) + "," + (Math.min(1, p.s * sm) * 100).toFixed(1) + "%," + (l * 100).toFixed(1) + "%," + a + ")";
+          };
+          p.rgba = function (c, a) {
+            return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + a + ")";
+          };
+          return p;
+        }
+        function colour(k, a) {
+          var L = P.light;
+          switch (k) {
+            case "A":
+              return P.hsl(0, 1, L ? 0.5 : 0.62, a);
+            case "D":
+              return P.hsl(-6, 0.9, 0.3, a);
+            case "P":
+              return P.hsl(8, L ? 0.9 : 0.55, L ? 0.84 : 0.82, a);
+            case "B":
+              return P.bg;
+            default:
+              return P.rgba(P.inkRgb, a);
+          }
+        }
+
+        /* ---- layout ---- */
+        var g = 0; // px per grid unit
+        var fx = 0;
+        var fy = 0;
+        var fw = 0;
+        var fh = 0;
+        var pad = null;
+        var W = 0;
+        var H = 0;
+        function layout() {
+          var d = Math.min(window.devicePixelRatio || 1, 2);
+          W = canvas.clientWidth;
+          H = canvas.clientHeight;
+          canvas.width = Math.round(W * d);
+          canvas.height = Math.round(H * d);
+          if (ctx) ctx.setTransform(d, 0, 0, d, 0, 0);
+          // 20px of padding at the sides and top, and clear of the footer below (16 + 26 + 14).
+          var p = 20;
+          var aw = W - p * 2;
+          var ah = H - 16 - 26 - 14 - p;
+          g = Math.max(1, Math.min(aw / GX, ah / GY));
+          fw = g * GX;
+          fh = g * GY;
+          fx = p + (aw - fw) / 2;
+          fy = p + (ah - fh) / 2;
+          pad = { y: p, h: ah };
+        }
+
+        /* ---- the seeded launch ---- */
+        function seed() {
+          var r = mulberry(1 + Math.floor(Math.random() * 99999));
+          pieces = DEF.map(function (d, i) {
+            var q = {};
+            for (var k in d) q[k] = d[k];
+            q.rot = q.rot || 0;
+            // the "almost" before ready
+            q.jx = (r() - 0.5) * 0.7;
+            q.jy = (r() - 0.5) * 0.7;
+            q.jr = (r() - 0.5) * 5;
+            var ang = r() * TAU;
+            var far = 9 + r() * 3;
+            q.sx = Math.cos(ang) * far;
+            q.sy = Math.sin(ang) * far * 0.8;
+            q.sr = (r() < 0.5 ? -1 : 1) * (40 + r() * 140);
+            q.delay = (i % 3) * 0.16 + r() * 0.08;
+            q.dur = 1.15 + r() * 0.3;
+            return q;
+          });
+          order = pieces.slice().sort(function (a, b) {
+            return a.z - b.z;
+          });
+        }
+
+        function ageOf(grp) {
+          var s = groupStart[grp];
+          return s !== null && te >= s ? te - s : -1;
+        }
+
+        /* Let groups in up to `n`, spaced so they never land as one lump. */
+        function admit(n) {
+          if (phase === "failed") return;
+          var last = groups ? groupStart[groups] : te - GROUP_GAP;
+          while (groups < n && groups < 5) {
+            groups++;
+            groupStart[groups] = reduce ? -1000 : Math.max(te, last + GROUP_GAP);
+            last = groupStart[groups];
+          }
+        }
+
+        /* ---- drawing ---- */
+        function shape(c, p, hair) {
+          var t = p.t;
+          var i;
+          if (t === "disc") {
+            c.beginPath();
+            c.arc(0, 0, p.r * g, 0, TAU);
+            if (hair) c.stroke();
+            else c.fill();
+          } else if (t === "ring" || t === "hair") {
+            c.beginPath();
+            c.arc(0, 0, p.r * g, 0, TAU);
+            c.lineWidth = (t === "hair" ? 0.035 : p.w) * g;
+            c.stroke();
+          } else if (t === "bar") {
+            var w = p.w * g;
+            var h = p.h * g;
+            if (hair) c.strokeRect(-w / 2, -h / 2, w, h);
+            else c.fillRect(-w / 2, -h / 2, w, h);
+          } else if (t === "sq") {
+            var q = p.r * g;
+            if (hair) c.strokeRect(-q, -q, q * 2, q * 2);
+            else c.fillRect(-q, -q, q * 2, q * 2);
+          } else if (t === "half") {
+            c.beginPath();
+            c.arc(0, 0, p.r * g, Math.PI, 0);
+            c.closePath();
+            if (hair) c.stroke();
+            else c.fill();
+          } else if (t === "quarter") {
+            c.beginPath();
+            c.moveTo(0, 0);
+            c.arc(0, 0, p.r * g, Math.PI, Math.PI * 1.5);
+            c.closePath();
+            if (hair) c.stroke();
+            else c.fill();
+          } else if (t === "tri") {
+            var a = p.r * g;
+            c.beginPath();
+            c.moveTo(-a / 2, a / 2);
+            c.lineTo(a / 2, a / 2);
+            c.lineTo(-a / 2, -a / 2);
+            c.closePath();
+            if (hair) c.stroke();
+            else c.fill();
+          } else if (t === "dots") {
+            for (i = 0; i < p.n; i++) {
+              c.beginPath();
+              c.arc((i - (p.n - 1) / 2) * p.gap * g, 0, p.r * g, 0, TAU);
+              if (hair) c.stroke();
+              else c.fill();
+            }
+          }
+        }
+
+        function draw() {
+          if (!ctx) return;
+          var c = ctx;
+          var failed = phase === "failed";
+          var settle = out5(c01(ready * 1.5));
+          var dim = 1 - 0.22 * fk;
+          var i;
+          c.clearRect(0, 0, W, H);
+
+          // the blueprint, a whisper behind everything: each unfinished piece's ghost outline
+          c.save();
+          c.translate(fx, fy);
+          c.lineWidth = 1;
+          c.setLineDash([2, 4]);
+          for (i = 0; i < pieces.length; i++) {
+            var p = pieces[i];
+            var a = ageOf(p.grp) - p.delay;
+            var done = a >= p.dur;
+            if (done && !failed) continue;
+            var missing = a < p.dur;
+            c.strokeStyle = failed && missing ? P.rgba(P.dangerRgb, 0.6 * fk + 0.05) : P.rgba(P.inkRgb, 0.07);
+            c.save();
+            c.translate(p.x * g, p.y * g);
+            c.rotate((p.rot * Math.PI) / 180);
+            if (p.t !== "hair" && p.t !== "ring") shape(c, p, true);
+            c.restore();
+          }
+          c.setLineDash([]);
+          c.restore();
+
+          // registration marks at the padded corners, one per group; they turn to the accent at ready
+          c.save();
+          c.translate(fx, fy);
+          var marks = [
+            [0, 0, 1, 1],
+            [fw, 0, -1, 1],
+            [fw, fh, -1, -1],
+            [0, fh, 1, -1],
+          ];
+          for (var m = 0; m < 5; m++) {
+            var am = ageOf(m + 1);
+            if (am < 0) continue;
+            var u = out3(am / 0.7);
+            var len = 16 * u;
+            var lit = ready > 0.3 && !failed;
+            c.strokeStyle = lit ? P.accent : P.rgba(P.inkRgb, 0.55 * dim);
+            c.lineWidth = lit ? 1.5 : 1;
+            c.beginPath();
+            if (m < 4) {
+              var mk = marks[m];
+              c.moveTo(mk[0], mk[1] + mk[3] * len);
+              c.lineTo(mk[0], mk[1]);
+              c.lineTo(mk[0] + mk[2] * len, mk[1]);
+            } else {
+              var cx = 13.2 * g;
+              var cy = 5.2 * g;
+              var l2 = 7 * u;
+              c.moveTo(cx - l2, cy);
+              c.lineTo(cx + l2, cy);
+              c.moveTo(cx, cy - l2);
+              c.lineTo(cx, cy + l2);
+            }
+            c.stroke();
+          }
+          c.restore();
+
+          // pieces, clipped so nothing ever crosses the footer
+          c.save();
+          c.beginPath();
+          c.rect(0, 0, W, pad.y + pad.h + 8);
+          c.clip();
+          c.translate(fx, fy);
+          for (var k = 0; k < order.length; k++) {
+            var q = order[k];
+            var age = ageOf(q.grp) - q.delay;
+            if (age < 0) continue;
+            var u2 = c01(age / q.dur);
+            var inv = 1 - out5(u2);
+            var off = 1 - settle;
+            var px = q.x + q.jx * off + q.sx * inv;
+            var py = q.y + q.jy * off + q.sy * inv;
+            var rr = q.rot + q.jr * off + q.sr * inv;
+            var al = smooth(age / 0.4) * dim;
+            // failed and still in flight: the piece tips and hangs
+            if (failed && u2 < 1) {
+              rr += fk * 6;
+              al *= 0.9;
+              c.save();
+              c.translate(px * g, py * g);
+              c.rotate((rr * Math.PI) / 180);
+              c.strokeStyle = P.rgba(P.dangerRgb, 0.7 * fk);
+              c.lineWidth = 1;
+              c.setLineDash([3, 3]);
+              shape(c, q, true);
+              c.restore();
+            }
+            c.save();
+            c.translate(px * g, py * g);
+            c.rotate((rr * Math.PI) / 180);
+            var colr = colour(q.c, al);
+            c.fillStyle = colr;
+            c.strokeStyle = colr;
+            shape(c, q, false);
+            c.restore();
+            // the click: a hairline pulse as it seats
+            var lk = age - q.dur;
+            if (lk > 0 && lk < 0.5 && !failed) {
+              c.save();
+              c.translate(q.x * g, q.y * g);
+              c.strokeStyle = P.rgba(P.inkRgb, 0.35 * (1 - lk / 0.5));
+              c.lineWidth = 1;
+              c.beginPath();
+              c.arc(0, 0, (Math.max(q.r || 0.6, 0.6) + lk * 1.2) * g, 0, TAU);
+              c.stroke();
+              c.restore();
+            }
+          }
+          c.restore();
+
+          // ready: construction lines draw through the composition
+          if (ready > 0) {
+            var u3 = out3(c01(ready * 1.3));
+            var c2 = 13.2 * g;
+            var d2 = 5.2 * g;
+            c.save();
+            c.translate(fx, fy);
+            c.strokeStyle = P.rgba(P.inkRgb, 0.28 * (1 - 0.5 * smooth((ready - 0.6) / 0.4)));
+            c.lineWidth = 1;
+            c.beginPath();
+            c.moveTo(c2 - c2 * u3, d2);
+            c.lineTo(c2 + (fw - c2) * u3, d2);
+            c.moveTo(c2, d2 - d2 * u3);
+            c.lineTo(c2, d2 + (fh - d2) * u3);
+            c.moveTo(0, 7.6 * g);
+            c.lineTo(fw * u3, 7.6 * g);
+            c.stroke();
+            c.strokeStyle = P.rgba(P.inkRgb, 0.22);
+            c.strokeRect(0, 0, fw * u3, fh * u3);
+            c.restore();
+          }
+        }
+
+        /* ---- the clock ---- */
+        var running = false;
+        var last = 0;
+
+        function settled() {
+          if (reduce) return true;
+          if (phase === "failed") return fk >= 1;
+          if (phase === "ready") return ready >= 1 && te > groupStart[5] + SEATED + 0.6;
+          return false;
+        }
+
+        function frame(now) {
+          // Clamped: a hidden window stops delivering frames, and the first one back must not
+          // teleport the animation to its end.
+          var dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016;
+          last = now;
+          if (phase !== "failed") te += dt;
+          else fk = Math.min(1, fk + dt / FAIL_SECONDS);
+          if (phase === "ready" && groupStart[5] !== null && te >= groupStart[5] + SEATED) {
+            ready = Math.min(1, ready + dt / READY_SECONDS);
+          }
+          draw();
+          if (settled()) {
+            running = false;
+            last = 0;
+          } else {
+            requestAnimationFrame(frame);
+          }
+        }
+
+        function kick() {
+          if (reduce) {
+            // still-but-progressive: every state is drawn once, already seated
+            ready = phase === "ready" ? 1 : 0;
+            fk = phase === "failed" ? 1 : 0;
+            draw();
+            return;
+          }
+          if (running) return;
+          running = true;
+          requestAnimationFrame(frame);
+        }
+
+        P = palette();
+        seed();
+        layout();
+        window.addEventListener("resize", function () {
+          layout();
+          draw();
+        });
+        admit(1);
+        te = reduce ? 0 : 0.3;
+        kick();
+
+        return {
+          /** Boot is at `step` of `total`. */
+          working: function (step, total) {
+            admit(1 + Math.floor((step / Math.max(1, total)) * 3.999));
+            kick();
+          },
+          /** Boot is done and the splash is holding a beat before ready. */
+          finalizing: function () {
+            admit(5);
+            kick();
+          },
+          ready: function () {
+            admit(5);
+            phase = "ready";
+            kick();
+          },
+          fail: function () {
+            phase = "failed";
+            kick();
+          },
+        };
+      })();
+    </script>
 
     <script>
       /*
@@ -640,16 +1008,17 @@
 
         var startedAt = performance.now();
 
-        var art = document.querySelector(".splash-art");
-        var wordmark = document.querySelector(".splash__wordmark");
         var errorBox = document.querySelector(".splash__error");
         var errorMessage = document.querySelector(".splash__error-message");
         var continueButton = document.querySelector(".splash__continue");
-        var bar = document.querySelector(".splash__bar");
+        var bar = document.querySelector(".splash__footer");
         var root = document.querySelector(".splash");
-        var fill = document.querySelector(".splash__bar-fill");
-        var label = document.querySelector(".splash__bar-label");
-        var step = document.querySelector(".splash__bar-step");
+        var ticksBox = document.querySelector(".splash__ticks");
+        var step = document.querySelector(".splash__step");
+        var ticks = [].slice.call(ticksBox.children);
+        // The step in flight, kept so a failure can say where it stopped.
+        var lastLabel = "starting";
+        var failedAt = 0;
 
         var tauri = window.__TAURI__;
 
@@ -670,30 +1039,44 @@
           var failed = status.phase === "failed";
           var progress = working ? status.step / status.total : status.phase === "ready" ? 1 : 0;
 
-          // Settled — spinner stopped — only on `failed`. `ready` keeps it
-          // turning: boot is genuinely done at that point, but the window
-          // is not, since it is still waiting out whatever is left of
-          // `MIN_VISIBLE_MS`. A spinner that stops right as that wait
-          // begins reads as the app having hung, not as it deliberately
-          // taking its time — `failed` is the one phase that is actually at
-          // rest, waiting on the person reading it rather than a timer.
-          art.classList.toggle("splash-art--settled", failed);
-
           root.dataset.phase = status.phase;
-          fill.style.width = progress * 100 + "%";
           bar.setAttribute("aria-valuenow", String(progress));
 
-          label.textContent = working ? status.label : failed ? "Startup failed" : "Ready";
+          // One segment per step boot reports. Five is the markup's default; a build
+          // with a different number of apps rebuilds them here, once.
+          if (working && status.total !== ticks.length) {
+            ticksBox.textContent = "";
+            ticks = [];
+            for (var n = 0; n < status.total; n++) {
+              ticks.push(ticksBox.appendChild(document.createElement("i")));
+            }
+          }
+          // `step 0` is a state boot can report before it starts; it is not a step, so
+          // nothing is current yet. Ready fills every segment, failed keeps the one that
+          // was current, and the CSS turns it to the danger colour.
+          var current = working ? status.step - 1 : failed ? failedAt : -1;
+          var done = working ? Math.max(0, status.step - 1) : failed ? failedAt : ticks.length;
+          for (var i = 0; i < ticks.length; i++) {
+            ticks[i].className = i < done ? "on" : i === current ? "cur" : "";
+          }
+          if (working) failedAt = Math.max(0, status.step - 1);
 
-          // `step 0 of 3` is a state boot can genuinely report before it
-          // starts, but it is not a step — so it is blanked here alongside
-          // `ready` and `failed` rather than only those two.
-          step.textContent =
-            working && status.step > 0 ? status.step + " / " + status.total : "";
+          // Lowercase and short is the point: the label is a quiet mono line, not a headline.
+          if (working) lastLabel = status.step > 0 ? status.label : "starting";
+          step.textContent = working
+            ? lastLabel
+            : failed
+              ? lastLabel === "starting"
+                ? "failed"
+                : lastLabel + " · failed"
+              : "ready";
 
-          wordmark.hidden = failed;
           errorBox.hidden = !failed;
           if (failed) errorMessage.textContent = status.message;
+
+          if (working) splashArt.working(status.step, status.total);
+          else if (failed) splashArt.fail();
+          else splashArt.ready();
         }
 
         function finish() {
@@ -731,11 +1114,10 @@
           if (finalizeStarted) return;
           finalizeStarted = true;
 
-          art.classList.remove("splash-art--settled"); // still visibly working
-          fill.style.width = FINALIZE_PROGRESS * 100 + "%";
           bar.setAttribute("aria-valuenow", String(FINALIZE_PROGRESS));
-          label.textContent = "Finalizing";
-          step.textContent = "";
+          for (var i = 0; i < ticks.length; i++) ticks[i].className = "on";
+          step.textContent = "finalizing";
+          splashArt.finalizing();
 
           window.setTimeout(function () {
             render({ phase: "ready" });

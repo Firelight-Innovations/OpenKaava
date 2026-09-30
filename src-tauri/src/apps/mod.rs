@@ -222,8 +222,8 @@ const REGISTRY: &[Registered] = &[
     Registered {
         id: "blender-viewer",
         name: "Blender Viewer",
-        description: "The .glb an agent's headless Blender export last produced — read-only, orbit \
-                      and select a part, plus its renders.",
+        description: "Runs Blender headless on a .blend and shows what came out — preview renders, \
+                      parts list and the .glb — with Open in Blender for the real editor.",
         call: blender_viewer::call,
     },
     Registered {
@@ -651,7 +651,7 @@ pub fn settings_groups() -> &'static [&'static crate::settings::Group] {
     APP_SETTINGS
 }
 
-static APP_SETTINGS: &[&crate::settings::Group] = &[&files::SETTINGS];
+static APP_SETTINGS: &[&crate::settings::Group] = &[&files::SETTINGS, &crate::blender::SETTINGS];
 
 #[cfg(test)]
 mod tests {

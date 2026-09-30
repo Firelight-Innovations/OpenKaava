@@ -67,6 +67,7 @@ import "monaco-editor/languages/definitions/ini/register";
 import { jsonDefaults } from "monaco-editor/languages/features/json/register";
 
 import { registerToml } from "@openkaava/monaco-languages";
+import { accentThemeColors, onThemeChanged } from "@openkaava/bridge/theme";
 
 import EditorWorker from "monaco-editor/editor/editor.worker?worker";
 import JsonWorker from "monaco-editor/languages/features/json/json.worker?worker";
@@ -132,82 +133,83 @@ registerToml(monaco);
  */
 export const THEME = "kaava-dark";
 
-monaco.editor.defineTheme(THEME, {
-  base: "vs-dark",
-  inherit: true, // syntax token colours stay vs-dark's; see the design note
-  rules: [],
-  colors: {
-    // --- the page ---------------------------------------------------------
-    "editor.background": "#14161a", // --bg
-    "editor.foreground": "#e4e7ec", // --text
-    "editorGutter.background": "#14161a", // --bg — the gutter is page, not bar
-    "editorLineNumber.foreground": "#4a505b", // --text-faint
-    "editorLineNumber.activeForeground": "#949cab", // --text-dim
+const BASE_COLORS: Record<string, string> = {
+  // --- the page ---------------------------------------------------------
+  "editor.background": "#14161a", // --bg
+  "editor.foreground": "#e4e7ec", // --text
+  "editorGutter.background": "#14161a", // --bg — the gutter is page, not bar
+  "editorLineNumber.foreground": "#4a505b", // --text-faint
+  "editorLineNumber.activeForeground": "#949cab", // --text-dim
 
-    // --- the current line -------------------------------------------------
-    "editor.lineHighlightBackground": "#1b1e24", // --surface
-    "editor.lineHighlightBorder": "#1b1e24", // --surface
+  // --- the current line -------------------------------------------------
+  "editor.lineHighlightBackground": "#1b1e24", // --surface
+  "editor.lineHighlightBorder": "#1b1e24", // --surface
 
-    // --- selection and cursor ---------------------------------------------
-    "editor.selectionBackground": "#d98a3f40", // --accent @ 0.25
-    "editor.inactiveSelectionBackground": "#d98a3f1f", // --accent @ 0.12
-    "editor.selectionHighlightBackground": "#d98a3f14", // --accent-wash
-    "editorCursor.foreground": "#d98a3f", // --accent
+  // --- find (`--warn`, not `--accent`: a match is not focus) -------------
+  "editor.findMatchBackground": "#d9a93f59", // --warn @ 0.35
+  "editor.findMatchHighlightBackground": "#d9a93f2e", // --warn @ 0.18
+  "editor.findRangeHighlightBackground": "#d9a93f14", // --warn @ 0.08
 
-    // --- find (`--warn`, not `--accent`: a match is not focus) -------------
-    "editor.findMatchBackground": "#d9a93f59", // --warn @ 0.35
-    "editor.findMatchHighlightBackground": "#d9a93f2e", // --warn @ 0.18
-    "editor.findRangeHighlightBackground": "#d9a93f14", // --warn @ 0.08
+  // --- structure --------------------------------------------------------
+  "editorBracketMatch.background": "#22262e", // --surface-2
+  // The numbered keys are 0.56's; the unsuffixed aliases are deprecated.
+  "editorIndentGuide.background1": "#2c313b", // --line
+  "editorIndentGuide.activeBackground1": "#3a404b", // --line-2
+  "editorWhitespace.foreground": "#3a404b", // --line-2
+  "editorRuler.foreground": "#2c313b", // --line
+  "editorOverviewRuler.border": "#2c313b", // --line
 
-    // --- structure --------------------------------------------------------
-    "editorBracketMatch.background": "#22262e", // --surface-2
-    "editorBracketMatch.border": "#d98a3f73", // --accent-line
-    // The numbered keys are 0.56's; the unsuffixed aliases are deprecated.
-    "editorIndentGuide.background1": "#2c313b", // --line
-    "editorIndentGuide.activeBackground1": "#3a404b", // --line-2
-    "editorWhitespace.foreground": "#3a404b", // --line-2
-    "editorRuler.foreground": "#2c313b", // --line
-    "editorOverviewRuler.border": "#2c313b", // --line
+  // --- scrollbar --------------------------------------------------------
+  "scrollbarSlider.background": "#2c313b80", // --line @ 0.50
+  "scrollbarSlider.hoverBackground": "#3a404bb3", // --line-2 @ 0.70
+  "scrollbarSlider.activeBackground": "#3a404b", // --line-2
 
-    // --- scrollbar --------------------------------------------------------
-    "scrollbarSlider.background": "#2c313b80", // --line @ 0.50
-    "scrollbarSlider.hoverBackground": "#3a404bb3", // --line-2 @ 0.70
-    "scrollbarSlider.activeBackground": "#3a404b", // --line-2
+  // --- minimap (page, not chrome; its slider is the scrollbar's) ---------
+  "minimap.background": "#14161a", // --bg
+  "minimapSlider.background": "#2c313b4d", // --line @ 0.30
+  "minimapSlider.hoverBackground": "#2c313b80", // --line @ 0.50
+  "minimapSlider.activeBackground": "#3a404bb3", // --line-2 @ 0.70
 
-    // --- minimap (page, not chrome; its slider is the scrollbar's) ---------
-    "minimap.background": "#14161a", // --bg
-    "minimapSlider.background": "#2c313b4d", // --line @ 0.30
-    "minimapSlider.hoverBackground": "#2c313b80", // --line @ 0.50
-    "minimapSlider.activeBackground": "#3a404bb3", // --line-2 @ 0.70
+  // --- the widgets the feature barrel brings with it (floating panels) ---
+  "editorWidget.background": "#1b1e24", // --surface
+  "editorWidget.foreground": "#e4e7ec", // --text
+  "editorWidget.border": "#2c313b", // --line
+  "editorHoverWidget.background": "#1b1e24", // --surface
+  "editorHoverWidget.border": "#2c313b", // --line
+  "editorSuggestWidget.background": "#1b1e24", // --surface
+  "editorSuggestWidget.border": "#2c313b", // --line
+  "editorSuggestWidget.foreground": "#e4e7ec", // --text
+  "editorSuggestWidget.selectedBackground": "#22262e", // --surface-2
+  "menu.background": "#1b1e24", // --surface
+  "menu.foreground": "#949cab", // --text-dim
+  "menu.border": "#2c313b", // --line
+  "menu.selectionBackground": "#22262e", // --surface-2
+  "menu.selectionForeground": "#e4e7ec", // --text
+  "list.hoverBackground": "#22262e", // --surface-2
+  "input.background": "#14161a", // --bg
+  "input.foreground": "#e4e7ec", // --text
+  "input.border": "#3a404b", // --line-2
 
-    // --- the widgets the feature barrel brings with it (floating panels) ---
-    "editorWidget.background": "#1b1e24", // --surface
-    "editorWidget.foreground": "#e4e7ec", // --text
-    "editorWidget.border": "#2c313b", // --line
-    "editorHoverWidget.background": "#1b1e24", // --surface
-    "editorHoverWidget.border": "#2c313b", // --line
-    "editorSuggestWidget.background": "#1b1e24", // --surface
-    "editorSuggestWidget.border": "#2c313b", // --line
-    "editorSuggestWidget.foreground": "#e4e7ec", // --text
-    "editorSuggestWidget.selectedBackground": "#22262e", // --surface-2
-    "editorSuggestWidget.highlightForeground": "#d98a3f", // --accent
-    "menu.background": "#1b1e24", // --surface
-    "menu.foreground": "#949cab", // --text-dim
-    "menu.border": "#2c313b", // --line
-    "menu.selectionBackground": "#22262e", // --surface-2
-    "menu.selectionForeground": "#e4e7ec", // --text
-    "list.hoverBackground": "#22262e", // --surface-2
-    "input.background": "#14161a", // --bg
-    "input.foreground": "#e4e7ec", // --text
-    "input.border": "#3a404b", // --line-2
-    focusBorder: "#d98a3f", // --accent
+  // --- diagnostics (only JSON produces these today) ----------------------
+  "editorError.foreground": "#d9635f", // --err
+  "editorWarning.foreground": "#d9a93f", // --warn
+  "editorInfo.foreground": "#949cab", // --text-dim
+};
 
-    // --- diagnostics (only JSON produces these today) ----------------------
-    "editorError.foreground": "#d9635f", // --err
-    "editorWarning.foreground": "#d9a93f", // --warn
-    "editorInfo.foreground": "#949cab", // --text-dim
-  },
-});
+/** The fixed palette plus the accent as it is now; Monaco cannot take `var()`. */
+function defineAccentTheme(): void {
+  monaco.editor.defineTheme(THEME, {
+    base: "vs-dark",
+    inherit: true, // syntax token colours stay vs-dark's; see the design note
+    rules: [],
+    colors: { ...BASE_COLORS, ...accentThemeColors() },
+  });
+  monaco.editor.setTheme(THEME);
+}
+
+defineAccentTheme();
+// Redefine when the accent changes.
+onThemeChanged(() => defineAccentTheme());
 
 /** What a caller may hold without importing Monaco itself. See the header. */
 export type TextModel = monaco.editor.ITextModel;
