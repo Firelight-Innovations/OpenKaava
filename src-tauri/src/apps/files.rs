@@ -193,6 +193,7 @@ fn shell_methods(
     let answer = match method {
         "files/reveal" => reveal(app, params),
         "files/open-external" => open_external(app, params),
+        "files/open-in-blender" => open_in_blender(app, params),
         _ => return None,
     };
     Some(answer)
@@ -1558,6 +1559,14 @@ fn reveal(app: &AppHandle, params: Option<&Value>) -> Result<Value, RpcError> {
         )
     })?;
     Ok(Value::Null)
+}
+
+/// Start Blender on a `.blend`, detached. Its own method rather than a case of
+/// `open-external` because that hands the file to whatever the OS associates
+/// with it, and this one names the program and says so when it is not installed.
+fn open_in_blender(app: &AppHandle, params: Option<&Value>) -> Result<Value, RpcError> {
+    let path = required_path(params)?;
+    super::blender_viewer::open_in_blender(app, &path)
 }
 
 /// Hand the file to whatever the OS opens it with.

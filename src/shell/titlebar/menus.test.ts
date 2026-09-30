@@ -30,7 +30,7 @@ import {
 /** A `ViewMenuHandlers` whose six actions are spies, over a stated window state. */
 type ViewSpies = ViewMenuHandlers & {
   commandPalette: Mock;
-  togglePanel: Mock;
+  toggleSourceControl: Mock;
   toggleTerminal: Mock;
   toggleFullscreen: Mock;
   zoomIn: Mock;
@@ -45,14 +45,14 @@ type ViewSpies = ViewMenuHandlers & {
  */
 type ViewState = Pick<
   ViewMenuHandlers,
-  "panelCollapsed" | "terminalShowing" | "fullscreen" | "zoomInBlocked" | "zoomOutBlocked"
+  "sourceControlShowing" | "terminalShowing" | "fullscreen" | "zoomInBlocked" | "zoomOutBlocked"
 >;
 
 function viewHandlers(state: Partial<ViewState> = {}): ViewSpies {
   return {
     commandPalette: vi.fn(),
-    panelCollapsed: false,
-    togglePanel: vi.fn(),
+    sourceControlShowing: false,
+    toggleSourceControl: vi.fn(),
     terminalShowing: false,
     toggleTerminal: vi.fn(),
     fullscreen: false,
@@ -138,7 +138,7 @@ describe("the View menu", () => {
   it("has the six rows the menu declares", () => {
     expect(labels(viewMenu(viewHandlers()))).toEqual([
       "Command Palette…",
-      "Hide Secondary Panel",
+      "Show Source Control",
       "Show Terminal",
       "Enter Full Screen",
       "Zoom In",
@@ -153,28 +153,33 @@ describe("the View menu", () => {
 
 /**
  * The three toggles name the state they will move *to*, so the menu answers
- * "is the panel open?" without the user having to close it to find out. That
+ * "is it open?" without the user having to close it to find out. That
  * makes the label the whole of the state readout, and a label that stopped
  * following the flag would be the menu quietly lying about the window.
+ *
+ * Source control is the rail's Git page now, not a secondary panel, so the
+ * first toggle reads whether that page is open.
  */
 describe("the View menu's toggles", () => {
-  it("offer to hide the secondary panel while it is showing", () => {
-    const items = viewMenu(viewHandlers({ panelCollapsed: false }));
-    expect(labels(items)).toContain("Hide Secondary Panel");
-    expect(labels(items)).not.toContain("Show Secondary Panel");
+  it("offer to hide source control while the Git page is open", () => {
+    const items = viewMenu(viewHandlers({ sourceControlShowing: true }));
+    expect(labels(items)).toContain("Hide Source Control");
+    expect(labels(items)).not.toContain("Show Source Control");
   });
 
-  it("offer to show the secondary panel while it is collapsed", () => {
-    expect(labels(viewMenu(viewHandlers({ panelCollapsed: true })))).toContain(
-      "Show Secondary Panel",
+  it("offer to show source control while the Git page is closed", () => {
+    expect(labels(viewMenu(viewHandlers({ sourceControlShowing: false })))).toContain(
+      "Show Source Control",
     );
   });
 
-  it("flip the panel from either state", () => {
+  it("flip source control from either state", () => {
     expect(
-      select({ panelCollapsed: false }, "Hide Secondary Panel").togglePanel,
+      select({ sourceControlShowing: true }, "Hide Source Control").toggleSourceControl,
     ).toHaveBeenCalled();
-    expect(select({ panelCollapsed: true }, "Show Secondary Panel").togglePanel).toHaveBeenCalled();
+    expect(
+      select({ sourceControlShowing: false }, "Show Source Control").toggleSourceControl,
+    ).toHaveBeenCalled();
   });
 
   it("offer to hide the terminal only while it is showing", () => {

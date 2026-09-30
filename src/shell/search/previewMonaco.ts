@@ -63,6 +63,8 @@ import "monaco-editor/languages/definitions/ini/register";
 import { jsonDefaults } from "monaco-editor/languages/features/json/register";
 
 import { registerToml } from "@openkaava/monaco-languages";
+import { accentThemeColors } from "@openkaava/bridge/theme";
+import { onThemeChange } from "../themeBroadcast";
 
 import EditorWorker from "monaco-editor/editor/editor.worker?worker";
 import JsonWorker from "monaco-editor/languages/features/json/json.worker?worker";
@@ -199,81 +201,86 @@ export const THEME = "kaava-preview-dark";
  * already: DiffView's header records that `Color.fromHex` silently falls back
  * to opaque red for a CSS `rgba()` string. The suffix is `round(alpha * 255)`.
  */
-monaco.editor.defineTheme(THEME, {
-  base: "vs-dark",
-  inherit: true,
-  rules: [],
-  colors: {
-    // --- the page ---------------------------------------------------------
-    "editor.background": "#14161a", // --bg
-    "editor.foreground": "#e4e7ec", // --text
-    "editorGutter.background": "#14161a", // --bg
-    "editorLineNumber.foreground": "#4a505b", // --text-faint
-    "editorLineNumber.activeForeground": "#949cab", // --text-dim
-    "editor.lineHighlightBackground": "#1b1e24", // --surface
-    "editor.lineHighlightBorder": "#1b1e24", // --surface
+const BASE_COLORS: Record<string, string> = {
+  // --- the page ---------------------------------------------------------
+  "editor.background": "#14161a", // --bg
+  "editor.foreground": "#e4e7ec", // --text
+  "editorGutter.background": "#14161a", // --bg
+  "editorLineNumber.foreground": "#4a505b", // --text-faint
+  "editorLineNumber.activeForeground": "#949cab", // --text-dim
+  "editor.lineHighlightBackground": "#1b1e24", // --surface
+  "editor.lineHighlightBorder": "#1b1e24", // --surface
 
-    // --- selection and cursor ---------------------------------------------
-    "editor.selectionBackground": "#d98a3f40", // --accent @ 0.25
-    "editor.inactiveSelectionBackground": "#d98a3f1f", // --accent @ 0.12
-    "editor.selectionHighlightBackground": "#d98a3f14", // --accent-wash
-    "editorCursor.foreground": "#d98a3f", // --accent
+  // --- find ---------------------------------------------------------------
+  "editor.findMatchBackground": "#d9a93f59", // --warn @ 0.35
+  "editor.findMatchHighlightBackground": "#d9a93f2e", // --warn @ 0.18
+  "editor.findRangeHighlightBackground": "#d9a93f14", // --warn @ 0.08
 
-    // --- find ---------------------------------------------------------------
-    "editor.findMatchBackground": "#d9a93f59", // --warn @ 0.35
-    "editor.findMatchHighlightBackground": "#d9a93f2e", // --warn @ 0.18
-    "editor.findRangeHighlightBackground": "#d9a93f14", // --warn @ 0.08
+  // --- structure ----------------------------------------------------------
+  "editorBracketMatch.background": "#22262e", // --surface-2
+  "editorIndentGuide.background1": "#2c313b", // --line
+  "editorIndentGuide.activeBackground1": "#3a404b", // --line-2
+  "editorWhitespace.foreground": "#3a404b", // --line-2
+  "editorRuler.foreground": "#2c313b", // --line
+  "editorOverviewRuler.border": "#2c313b", // --line
 
-    // --- structure ----------------------------------------------------------
-    "editorBracketMatch.background": "#22262e", // --surface-2
-    "editorBracketMatch.border": "#d98a3f73", // --accent-line
-    "editorIndentGuide.background1": "#2c313b", // --line
-    "editorIndentGuide.activeBackground1": "#3a404b", // --line-2
-    "editorWhitespace.foreground": "#3a404b", // --line-2
-    "editorRuler.foreground": "#2c313b", // --line
-    "editorOverviewRuler.border": "#2c313b", // --line
+  // --- scrollbar ------------------------------------------------------------
+  "scrollbarSlider.background": "#2c313b80", // --line @ 0.50
+  "scrollbarSlider.hoverBackground": "#3a404bb3", // --line-2 @ 0.70
+  "scrollbarSlider.activeBackground": "#3a404b", // --line-2
 
-    // --- scrollbar ------------------------------------------------------------
-    "scrollbarSlider.background": "#2c313b80", // --line @ 0.50
-    "scrollbarSlider.hoverBackground": "#3a404bb3", // --line-2 @ 0.70
-    "scrollbarSlider.activeBackground": "#3a404b", // --line-2
+  // --- minimap (unused here — minimap is off, see mountPreviewEditor — but
+  // defined for parity with Files' theme, since Monaco still resolves these
+  // keys against whatever base colours are missing) ------------------------
+  "minimap.background": "#14161a", // --bg
+  "minimapSlider.background": "#2c313b4d", // --line @ 0.30
+  "minimapSlider.hoverBackground": "#2c313b80", // --line @ 0.50
+  "minimapSlider.activeBackground": "#3a404bb3", // --line-2 @ 0.70
 
-    // --- minimap (unused here — minimap is off, see mountPreviewEditor — but
-    // defined for parity with Files' theme, since Monaco still resolves these
-    // keys against whatever base colours are missing) ------------------------
-    "minimap.background": "#14161a", // --bg
-    "minimapSlider.background": "#2c313b4d", // --line @ 0.30
-    "minimapSlider.hoverBackground": "#2c313b80", // --line @ 0.50
-    "minimapSlider.activeBackground": "#3a404bb3", // --line-2 @ 0.70
+  // --- floating widgets -----------------------------------------------------
+  "editorWidget.background": "#1b1e24", // --surface
+  "editorWidget.foreground": "#e4e7ec", // --text
+  "editorWidget.border": "#2c313b", // --line
+  "editorHoverWidget.background": "#1b1e24", // --surface
+  "editorHoverWidget.border": "#2c313b", // --line
+  "editorSuggestWidget.background": "#1b1e24", // --surface
+  "editorSuggestWidget.border": "#2c313b", // --line
+  "editorSuggestWidget.foreground": "#e4e7ec", // --text
+  "editorSuggestWidget.selectedBackground": "#22262e", // --surface-2
+  "menu.background": "#1b1e24", // --surface
+  "menu.foreground": "#949cab", // --text-dim
+  "menu.border": "#2c313b", // --line
+  "menu.selectionBackground": "#22262e", // --surface-2
+  "menu.selectionForeground": "#e4e7ec", // --text
+  "list.hoverBackground": "#22262e", // --surface-2
+  "input.background": "#14161a", // --bg
+  "input.foreground": "#e4e7ec", // --text
+  "input.border": "#3a404b", // --line-2
 
-    // --- floating widgets -----------------------------------------------------
-    "editorWidget.background": "#1b1e24", // --surface
-    "editorWidget.foreground": "#e4e7ec", // --text
-    "editorWidget.border": "#2c313b", // --line
-    "editorHoverWidget.background": "#1b1e24", // --surface
-    "editorHoverWidget.border": "#2c313b", // --line
-    "editorSuggestWidget.background": "#1b1e24", // --surface
-    "editorSuggestWidget.border": "#2c313b", // --line
-    "editorSuggestWidget.foreground": "#e4e7ec", // --text
-    "editorSuggestWidget.selectedBackground": "#22262e", // --surface-2
-    "editorSuggestWidget.highlightForeground": "#d98a3f", // --accent
-    "menu.background": "#1b1e24", // --surface
-    "menu.foreground": "#949cab", // --text-dim
-    "menu.border": "#2c313b", // --line
-    "menu.selectionBackground": "#22262e", // --surface-2
-    "menu.selectionForeground": "#e4e7ec", // --text
-    "list.hoverBackground": "#22262e", // --surface-2
-    "input.background": "#14161a", // --bg
-    "input.foreground": "#e4e7ec", // --text
-    "input.border": "#3a404b", // --line-2
-    focusBorder: "#d98a3f", // --accent
+  // --- diagnostics (only JSON produces these) --------------------------------
+  "editorError.foreground": "#d9635f", // --err
+  "editorWarning.foreground": "#d9a93f", // --warn
+  "editorInfo.foreground": "#949cab", // --text-dim
+};
 
-    // --- diagnostics (only JSON produces these) --------------------------------
-    "editorError.foreground": "#d9635f", // --err
-    "editorWarning.foreground": "#d9a93f", // --warn
-    "editorInfo.foreground": "#949cab", // --text-dim
-  },
-});
+/**
+ * Define the theme from the fixed palette plus the accent as it is *now*.
+ * Monaco takes colour strings, not `var()`, so the accent has to be read and the
+ * theme redefined whenever it changes; see `accentThemeColors`.
+ */
+function defineAccentTheme(): void {
+  monaco.editor.defineTheme(THEME, {
+    base: "vs-dark",
+    inherit: true,
+    rules: [],
+    colors: { ...BASE_COLORS, ...accentThemeColors() },
+  });
+  monaco.editor.setTheme(THEME);
+}
+
+defineAccentTheme();
+// The accent is a setting; the theme above baked in whatever it was at load.
+onThemeChange(() => defineAccentTheme());
 
 /** What `PreviewPane.tsx` holds without importing Monaco itself. */
 export type PreviewModel = monaco.editor.ITextModel;

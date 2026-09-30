@@ -7,6 +7,7 @@
 
 mod agent_saw;
 mod apps;
+mod blender;
 mod boot;
 mod branding;
 mod cloud;
@@ -14,6 +15,7 @@ mod commands;
 mod comments;
 mod context;
 mod context_commands;
+mod copilot_key;
 #[cfg(feature = "design-mode")]
 mod design_comments;
 mod devtools;
@@ -181,6 +183,8 @@ pub fn run() {
         // `apps::projects::WakeManager`.
         .manage(plane_webview::PlaneWebview::default())
         .manage(apps::projects::WakeManager::default())
+        .manage(blender::job::Jobs::default())
+        .manage(blender::detect::VersionCache::default())
         // The New Project page's step-runner snapshot, for `home/create-
         // project-status` to poll — the same shape as `WakeManager` above.
         // See `apps::home_create`.
@@ -309,6 +313,7 @@ pub fn run() {
             // registration puts static descriptors on a list, and the only file
             // it touches is its own.
             settings::seed(app.handle());
+            copilot_key::sync(app.handle());
 
             // Before the layout, because `restore_session` reads the old global
             // open project out of this store to migrate it onto a cluster. The
@@ -580,6 +585,7 @@ pub fn run() {
         .map(|app| {
             app.run(|handle, event| {
                 if matches!(event, tauri::RunEvent::Exit) {
+                    handle.state::<blender::job::Jobs>().stop_all();
                     handle.state::<plugins::Watchers>().stop_all();
                     handle.state::<plugins::Broker>().stop_all();
                     // Kills the `gcloud` process tree it supervises, if one is

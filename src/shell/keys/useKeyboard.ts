@@ -14,6 +14,7 @@
  */
 import { useEffect, useRef } from "react";
 import { hasPrimaryModifier } from "../accelerators";
+import { isCopilotKey } from "../copilotKey";
 
 /**
  * Everything the shell can be asked for by keystroke.
@@ -56,8 +57,8 @@ export interface KeyboardActions {
   openApp(): void;
   /** Ctrl+Alt+P and Shift+Alt+P — open the Switch project dialog (board 08). */
   switchProject(): void;
-  /** Ctrl+B */
-  togglePanel(): void;
+  /** Ctrl+B — opens or closes the rail's Git page, which holds source control. */
+  toggleSourceControl(): void;
   /** Ctrl+` */
   toggleTerminal(): void;
   /** F11 */
@@ -66,6 +67,12 @@ export interface KeyboardActions {
   zoomIn(): void;
   /** Ctrl+- */
   zoomOut(): void;
+
+  /**
+   * The Windows Copilot key. Returns true when it did something, so the
+   * listener suppresses the default; false when the key is set to "none".
+   */
+  copilotKey(): boolean;
 
   // --- Terminal -------------------------------------------------------------
   /** Ctrl+Shift+` */
@@ -134,7 +141,7 @@ export const CHORDS: Record<string, Chord> = {
     shift: (a) => a.openApp,
   },
   b: {
-    plain: (a) => a.togglePanel,
+    plain: (a) => a.toggleSourceControl,
     shift: null,
   },
   "\\": {
@@ -267,6 +274,13 @@ export function useKeyboard(actions: KeyboardActions): void {
       if (e.key === "F11" && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
         e.preventDefault();
         a.toggleFullscreen();
+        return;
+      }
+
+      // The Copilot key carries Win+Shift and never Ctrl, so it has to be
+      // claimed before the primary-modifier gate below turns it away.
+      if (isCopilotKey(e)) {
+        if (a.copilotKey()) e.preventDefault();
         return;
       }
 

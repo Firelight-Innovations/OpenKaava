@@ -4,7 +4,7 @@
  * Every dimension is read from the handoff's interaction crops
  * (docs/handoffs/shell-spec.html) and recorded on the branch that draws it.
  * All kinds share background `--surface-2` ("ghost chip" in the token table),
- * border `--accent-line-strong` (the crop's `rgba(217,138,63,.7)`), 4px radius
+ * border `--accent-line-strong` (the crop's .7 of the accent), 4px radius
  * and `opacity: .92`; the box-shadow alphas (.5 tool, .55 terminal) are kept as
  * drawn rather than collapsed into one.
  */

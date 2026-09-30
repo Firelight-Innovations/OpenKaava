@@ -21,7 +21,7 @@ const fade = {
  * undecided ("NOT DECIDED — DO NOT INVENT"). This outline is decoration for
  * the drag, not a claim about that size: a fixed, modest rectangle near the
  * ghost, in the same dashed-accent treatment the crop draws
- * (`1.5px dashed rgba(217,138,63,.6)`, 5px radius, `--accent-wash-faint`
+ * (`1.5px dashed` at .6 of the accent, 5px radius, `--accent-wash-faint`
  * fill — the .6 border alpha has no matching named token, so it's kept
  * literal here rather than forced onto a nearby one).
  */
@@ -29,7 +29,7 @@ export function DetachOutline({ x, y }: { x: MotionValue<number>; y: MotionValue
   return <motion.div className="drag-detach-outline" style={{ left: x, top: y }} {...fade} />;
 }
 
-/* The panel's own drop highlight is drawn by `SecondaryPanel` from its
+/* The terminal band's own drop highlight is drawn by `BottomPanel` from its
    `dropActive` prop, and each pane's by `panes/PaneTree.tsx` from the live drop
    target. Both are inside the element being highlighted, which the overlay is
    not — an outline drawn out here would have to re-measure a rectangle its owner

@@ -17,7 +17,7 @@
  * `docs/design-notes/files-app.md`.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { describe, openExternal, reveal, type EntryKind } from "./rpc";
+import { describe, openExternal, openInBlender, reveal, type EntryKind } from "./rpc";
 import type { DeleteTarget } from "./useDelete";
 import "./contextMenu.css";
 
@@ -301,6 +301,18 @@ export default function ContextMenu({
           >
             Open with the default app
           </button>
+          {/* Only for a .blend: the OS may not associate it with Blender at
+              all, and this one says so when Blender is not installed. */}
+          {kind !== "dir" && /\.blend$/i.test(path) && (
+            <button
+              type="button"
+              className="menu__item"
+              role="menuitem"
+              onClick={() => run("files/open-in-blender", () => openInBlender(path))}
+            >
+              Open in Blender
+            </button>
+          )}
         </>
       )}
 

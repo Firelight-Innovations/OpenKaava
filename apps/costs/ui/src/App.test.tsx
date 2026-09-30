@@ -6,7 +6,7 @@
  * between the call and the page is checked.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import type { Estimate, Trends } from "./rpc";
 
 // jsdom implements no `ResizeObserver` — see `apps/schematify/ui/src/App.landing.test.tsx`
@@ -297,12 +297,28 @@ describe("Cost Tracker", () => {
     const { unmount } = render(<App />);
     await screen.findByText("Estimated so far in September");
 
-    const chartsInit = echarts.init.mock.results.length;
-    expect(chartsInit).toBeGreaterThan(0);
+    // The headline text can paint a tick before the panes mount their charts,
+    // so wait for them rather than sampling once (this was flaky in CI).
+    await waitFor(() => expect(echarts.init.mock.results.length).toBeGreaterThan(0));
     const charts = echarts.init.mock.results.map((r) => r.value as { dispose: () => void });
 
     unmount();
 
     for (const chart of charts) expect(chart.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("puts the headline figures in the same hero as C1, so the layout can place them beside it", async () => {
+    mockRpc(estimate);
+    const { container } = render(<App />);
+    await screen.findByText("Estimated so far in September");
+
+    const hero = container.querySelector(".costs__hero");
+    expect(hero).not.toBeNull();
+    expect(hero?.querySelector(".costs__summary")).not.toBeNull();
+    expect(hero?.querySelector(".costs__hero-chart")).not.toBeNull();
+    // The mount effect measures the stubbed 900px pane and re-renders expanded.
+    // Asserting "not expanded" here raced that re-render (flaky in CI), so wait
+    // for the measured state instead.
+    await waitFor(() => expect(hero?.className).toContain("costs__hero--expanded"));
   });
 });

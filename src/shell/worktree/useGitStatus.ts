@@ -5,9 +5,9 @@
  * reason the old `stubWorktreeSource` wiring gave: the status bar and the
  * source-control tab both name the checked-out branch, and two independent
  * fetches would be two chances to disagree about it. It also outlives the tab
- * — `SecondaryPanel` only mounts `worktreeView` while that tab is selected, so
- * a hook owned by the view would take the status bar's branch away every time
- * the user looked at a terminal.
+ * — the rail's Git page only mounts its views while the page is open, so a
+ * hook owned by the view would take the status bar's branch away every time
+ * the page closed.
  *
  * There is no watcher behind `GitControl`, so nothing here can push. `refresh`
  * is what the panel calls after every mutation. A change of `clusterId` re-asks,
