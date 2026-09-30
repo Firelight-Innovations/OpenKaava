@@ -315,11 +315,6 @@ impl Jobs {
             .clone()
     }
 
-    pub fn running_blend(&self) -> Option<String> {
-        let snap = self.snapshot();
-        snap.running.then_some(snap.blend).flatten()
-    }
-
     /// Start `spec` on a background thread. `finish` runs on that thread after
     /// a successful run, to move the scratch output into place; its error makes
     /// the run a failure.
@@ -663,7 +658,7 @@ echo '{\"blenderVersion\":\"4.2.1\",\"glb\":\"model.glb\",\"renders\":[{\"id\":\
             |_| Ok(()),
         );
         assert!(second.unwrap_err().contains("already running"));
-        assert_eq!(jobs.running_blend().as_deref(), Some("bed.blend"));
+        assert_eq!(jobs.snapshot().blend.as_deref(), Some("bed.blend"));
 
         assert!(jobs.cancel());
         let until = Instant::now() + Duration::from_secs(20);
