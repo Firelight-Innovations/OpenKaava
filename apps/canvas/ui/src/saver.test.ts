@@ -47,7 +47,7 @@ describe("Autosaver", () => {
     saver.schedule(scene(1), "same");
     await vi.advanceTimersByTimeAsync(2000);
     expect(write).not.toHaveBeenCalled();
-    expect(states.at(-1)).toBe("saved");
+    expect(states[states.length - 1]).toBe("saved");
   });
 
   it("writes a change made mid-save afterwards, from the mtime the first write returned", async () => {
@@ -75,7 +75,7 @@ describe("Autosaver", () => {
     saver.setBase(10, "s0");
     saver.schedule(scene(1), "s1");
     await vi.advanceTimersByTimeAsync(500);
-    expect(states.at(-1)).toBe("conflict");
+    expect(states[states.length - 1]).toBe("conflict");
     saver.schedule(scene(2), "s2");
     await vi.advanceTimersByTimeAsync(5000);
     expect(write).toHaveBeenCalledTimes(1);
@@ -84,7 +84,7 @@ describe("Autosaver", () => {
     expect(write).toHaveBeenCalledTimes(2);
     expect(write.mock.calls[1]![1]).toBe(50);
     expect(saver.mtime).toBe(99);
-    expect(states.at(-1)).toBe("saved");
+    expect(states[states.length - 1]).toBe("saved");
   });
 
   it("reports another failure as an error and keeps the change for the next attempt", async () => {
@@ -93,11 +93,11 @@ describe("Autosaver", () => {
     saver.setBase(10, "s0");
     saver.schedule(scene(1), "s1");
     await vi.advanceTimersByTimeAsync(500);
-    expect(states.at(-1)).toBe("error");
+    expect(states[states.length - 1]).toBe("error");
     expect(saver.hasUnsaved).toBe(true);
     await saver.flush();
     expect(write).toHaveBeenCalledTimes(2);
-    expect(states.at(-1)).toBe("saved");
+    expect(states[states.length - 1]).toBe("saved");
   });
 
   it("flush writes at once, without waiting for the debounce", async () => {
