@@ -1249,6 +1249,8 @@ export function openInstance(
 export interface PageInfo {
   id: string;
   name: string;
+  /** The app that draws this page, or absent when the shell draws it itself. */
+  appId?: string | null;
   icon: string;
   mode: PageMode;
   key: number;

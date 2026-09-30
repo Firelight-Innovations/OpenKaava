@@ -91,6 +91,7 @@ import { isFullscreen, isTauri, nextZoom, setFullscreen, setZoom } from "./hostW
 import Rail from "./rail/Rail";
 import DockedPage from "./rail/DockedPage";
 import ExpandedPage from "./rail/ExpandedPage";
+import AppPage from "./rail/AppPage";
 import HindsightPage from "./rail/HindsightPage";
 import GitPage, { type GitPageView } from "./rail/GitPage";
 
@@ -238,6 +239,9 @@ export default function WindowRoot({
   const pages = usePages();
   const rightPage = placement?.rightPage ?? null;
   const activePage = rightPage ? pages.find((p) => p.id === rightPage.id) : undefined;
+  // The element an app-backed page's iframe is portaled into; `AppPage` reports
+  // it. State, not a ref, so `ToolWindow` re-renders once it exists.
+  const [pageHost, setPageHost] = useState<HTMLElement | null>(null);
 
   // There is no seeding effect any more, and its absence is the point.
   //
@@ -1817,9 +1821,7 @@ export default function WindowRoot({
     ) : rightPage.id === "hindsight" ? (
       <HindsightPage />
     ) : (
-      <div style={{ padding: 16, color: "var(--txt-tertiary)", fontSize: 13 }}>
-        {activePage?.name ?? "This page"} is not wired to its app yet.
-      </div>
+      <AppPage page={activePage} instanceId={rightPage.instanceId} onHost={setPageHost} />
     )
   ) : null;
 
@@ -1969,6 +1971,12 @@ export default function WindowRoot({
               clustersKnown={shell !== null}
               instances={instances}
               presentationOf={presentationOf}
+              // The docked or expanded page's app, mounted into `AppPage`'s box.
+              pageSurface={
+                rightPage?.instanceId && activePage?.appId
+                  ? { instanceId: rightPage.instanceId, host: pageHost }
+                  : null
+              }
               // Home over the top of everything, from the cluster chip. `null`
               // whenever it is not showing, which is most of the time.
               soloInstanceId={tutorialInstanceId ?? (homeShowing ? homeInstanceId : null)}
