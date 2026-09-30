@@ -431,9 +431,17 @@ fn git_head(
 /// reading a directory in order to read a string.
 fn root(app: &AppHandle, context: &CallContext) -> Result<Value, RpcError> {
     let path = default_root(app, context)?;
+    // Told to the frontend so it can grey out the write items; the write
+    // methods refuse on main whether or not it listens (`apps::call`).
+    let read_only = context.cluster_id.as_deref().is_some_and(|cluster| {
+        app.state::<crate::shell_state::ShellState>()
+            .cluster_environment(cluster)
+            .is_some_and(|env| env.is_main())
+    });
     Ok(json!({
         "path": path.display().to_string(),
         "name": base_name(&path),
+        "readOnly": read_only,
     }))
 }
 

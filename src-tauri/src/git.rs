@@ -18,7 +18,7 @@
 //! only ever fail. See the note on `git_cluster_status` for what that cost.
 
 use crate::error::{AppError, Result};
-use crate::shell_state::{ShellState, WorktreeRef};
+use crate::shell_state::WorktreeRef;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -581,14 +581,12 @@ fn parse_rename_pairs(out: &str) -> Vec<(String, String)> {
 }
 
 /// Staging changes writes to a cluster's index, and a `Main` cluster's index
-/// is the project's real one — see `environments::refuse_write_on_main`. This
-/// is one of the two write paths this build guards; `git_cluster_unstage` is
-/// deliberately not, since removing something from the index creates no new
-/// change for Main's read-only rule to be protecting against.
+/// is the project's real one — see `environments::refuse_write_on_main`.
+/// Every mutating command in this module opens with `guard_cluster_write`;
+/// `every_git_command_is_classified` fails if one is added without a decision.
 #[tauri::command]
 pub fn git_cluster_stage(app: AppHandle, cluster_id: String, paths: Vec<String>) -> Result<()> {
-    let env = app.state::<ShellState>().cluster_environment(&cluster_id);
-    crate::environments::refuse_write_on_main(env.as_ref(), "add")?;
+    crate::environments::guard_cluster_write(&app, &cluster_id, "add")?;
     let cwd = cluster_checkout(&app, &cluster_id, "add")?;
     let mut args = vec!["add", "--"];
     args.extend(paths.iter().map(String::as_str));
@@ -598,6 +596,7 @@ pub fn git_cluster_stage(app: AppHandle, cluster_id: String, paths: Vec<String>)
 
 #[tauri::command]
 pub fn git_cluster_unstage(app: AppHandle, cluster_id: String, paths: Vec<String>) -> Result<()> {
+    crate::environments::guard_cluster_write(&app, &cluster_id, "restore")?;
     let cwd = cluster_checkout(&app, &cluster_id, "restore")?;
     let mut args = vec!["restore", "--staged", "--"];
     args.extend(paths.iter().map(String::as_str));
@@ -616,8 +615,7 @@ pub fn git_cluster_unstage(app: AppHandle, cluster_id: String, paths: Vec<String
 /// in. See `environments::refuse_write_on_main`.
 #[tauri::command]
 pub fn git_cluster_commit(app: AppHandle, cluster_id: String, message: String) -> Result<()> {
-    let env = app.state::<ShellState>().cluster_environment(&cluster_id);
-    crate::environments::refuse_write_on_main(env.as_ref(), "commit")?;
+    crate::environments::guard_cluster_write(&app, &cluster_id, "commit")?;
     let cwd = cluster_checkout(&app, &cluster_id, "commit")?;
     run_git(&cwd, "commit", &["commit", "-m", &message])?;
     Ok(())
@@ -1169,6 +1167,7 @@ pub fn git_worktree_create(
 /// them. The caller is expected to have asked the user first.
 #[tauri::command]
 pub fn git_worktree_remove(app: AppHandle, cluster_id: String, force: bool) -> Result<()> {
+    crate::environments::guard_cluster_write(&app, &cluster_id, "worktree remove")?;
     let shell = app.state::<crate::shell_state::ShellState>();
 
     let Some(reference) = shell.cluster_worktree(&cluster_id) else {
@@ -1850,6 +1849,7 @@ pub fn git_checkout(
     target: String,
     detach: bool,
 ) -> Result<()> {
+    crate::environments::guard_cluster_write(&app, &cluster_id, "checkout")?;
     let cwd = cluster_checkout(&app, &cluster_id, "checkout")?;
 
     let mut args = vec!["checkout"];
@@ -1989,6 +1989,93 @@ fn change(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Commands that change the repository, the index or `HEAD`, and so must
+    /// open with `guard_cluster_write`. Deliberately excluded from this list
+    /// and named in the next: `git_worktree_create`, the sanctioned way out of
+    /// a read-only main.
+    const GUARDED: &[&str] = &[
+        "git_cluster_stage",
+        "git_cluster_unstage",
+        "git_cluster_commit",
+        "git_checkout",
+        "git_worktree_remove",
+    ];
+
+    /// Commands that only read, or whose write is the escape hatch.
+    const UNGUARDED: &[&str] = &[
+        "git_cluster_status",
+        "git_cluster_diff",
+        "git_worktrees",
+        "git_worktree_create",
+        "git_worktree_reconcile",
+        "git_hunks",
+        "git_head_text",
+        "git_divergence",
+        "git_divergence_diff",
+        "git_graph",
+        "git_branches",
+    ];
+
+    /// The body of a `#[tauri::command] pub fn <name>` in this file's own
+    /// source, up to the next command. `app` is not constructible in a unit
+    /// test (there is no mock runtime for `Wry`), so the guard is checked in
+    /// the source instead of by calling the command.
+    fn command_body(name: &str) -> &'static str {
+        let source = include_str!("git.rs");
+        let head = format!("pub fn {name}(");
+        let start = source.find(&head).unwrap_or_else(|| panic!("no {name}"));
+        let rest = &source[start..];
+        let end = rest.find("#[tauri::command]").unwrap_or(rest.len());
+        &rest[..end]
+    }
+
+    #[test]
+    fn every_guarded_git_command_refuses_main_first() {
+        for name in GUARDED {
+            let body = command_body(name);
+            let guard = body
+                .find("guard_cluster_write(")
+                .unwrap_or_else(|| panic!("{name} does not call guard_cluster_write"));
+            let first_git = body.find("cluster_checkout(").unwrap_or(body.len());
+            assert!(guard < first_git, "{name} touches git before its guard");
+        }
+    }
+
+    /// A new `git_*` command has to be put in one of the two lists above, which
+    /// is the moment someone decides whether it writes.
+    #[test]
+    fn every_git_command_is_classified() {
+        let source = include_str!("git.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap();
+        for line in production.lines() {
+            if let Some(rest) = line.strip_prefix("pub fn git_") {
+                let name = format!("git_{}", rest.split('(').next().unwrap());
+                assert!(
+                    GUARDED.contains(&name.as_str()) || UNGUARDED.contains(&name.as_str()),
+                    "{name} is not classified as guarded or read-only in git.rs tests"
+                );
+            }
+        }
+    }
+
+    /// The decision the guard makes, for the family: main refuses every op
+    /// name these commands use, a worktree and an unset environment allow it.
+    #[test]
+    fn git_write_ops_refuse_main_and_allow_a_worktree() {
+        use crate::environments::{refuse_write_on_main, Environment};
+        let worktree = Environment::LocalWorktree {
+            name: "x".to_string(),
+            path: "C:/wt/x".to_string(),
+            branch: "wt/x".to_string(),
+            base: "main".to_string(),
+        };
+        for op in ["add", "restore", "commit", "checkout", "worktree remove"] {
+            assert!(refuse_write_on_main(Some(&Environment::Main), op).is_err());
+            assert!(refuse_write_on_main(Some(&worktree), op).is_ok());
+            assert!(refuse_write_on_main(None, op).is_ok());
+        }
+    }
 
     /// The shapes below are copied from real `git` output rather than written
     /// by hand: every one was produced by running the command in the doc

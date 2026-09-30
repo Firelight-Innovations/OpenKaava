@@ -188,6 +188,11 @@ impl PtySessions {
     /// Returns the shell's short name — `pwsh`, `bash` — which is what the tab
     /// gets called. Naming the tab after whatever actually spawned means the
     /// label can never claim to be a shell you are not talking to.
+    ///
+    /// `marker_env` is extra environment for the shell — today only the
+    /// read-only marker for a cluster on main, see
+    /// `environments::read_only_env`. A terminal is opened there rather than
+    /// refused: reading is fine, and a shell cannot be sandboxed from here.
     pub fn open(
         &self,
         app: &AppHandle,
@@ -195,6 +200,7 @@ impl PtySessions {
         cwd: &Path,
         cols: u16,
         rows: u16,
+        marker_env: &[(String, String)],
     ) -> Result<String> {
         let pty = native_pty_system()
             .openpty(PtySize {
@@ -214,7 +220,8 @@ impl PtySessions {
         // down is what lets the project's `.mcp.json` be committable and keeps a
         // shell the user opened outside OpenKaava unable to connect. Empty if the
         // listener never bound, which spawns an ordinary shell.
-        let mcp_env = app.state::<crate::mcp::Endpoint>().env();
+        let mut mcp_env = app.state::<crate::mcp::Endpoint>().env();
+        mcp_env.extend_from_slice(marker_env);
 
         // Read here rather than inside `spawn_shell`: this function has the
         // `AppHandle` and `spawn_shell` deliberately does not, so it can be

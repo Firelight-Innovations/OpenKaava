@@ -7,6 +7,7 @@
  */
 import { useEffect } from "react";
 import type { SettingsSession } from "./useSettings";
+import { mirrorSplashAppearance } from "./splashAppearance";
 import { setTheme, type AccentName, type ThemeChangedPayload } from "../themeBroadcast";
 
 const THEME_KEY = "appearance.theme";
@@ -82,6 +83,7 @@ export function useAppearance(session: SettingsSession): void {
 
     const payload: ThemeChangedPayload = { theme, accent };
     setTheme(payload);
+    mirrorSplashAppearance(read(THEME_KEY), accent);
 
     // "System" tracks `prefers-color-scheme` for as long as it is selected,
     // and stops the instant something else runs this effect again — the
