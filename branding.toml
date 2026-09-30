@@ -56,10 +56,9 @@ name = "OpenKaava"
 
 # The same name as the wordmark's text node, in mixed case.
 #
-# Both stylesheets that draw the wordmark uppercase it, so this is what a screen
-# reader is handed: "OpenKaava" is a word, where "OPENKAAVA" is nine letters it
-# may spell out. The brand packet's lockup already made this trade in
-# `apps/home/ui/src/home.css`; the splash now makes it too.
+# Home's stylesheet uppercases it, so this is what a screen reader is handed:
+# "OpenKaava" is a word, where "OPENKAAVA" is nine letters it may spell out. The
+# splash sets it as written, in mixed case.
 wordmark = "OpenKaava"
 
 # The line under the lockup on Home's hero. Read by nothing else — a tagline
@@ -95,12 +94,6 @@ mark = "assets/kaava-mark.svg"
 # 15px title-bar glyph, the shared tool placeholder, the 34px mark inside the
 # splash ring — stays on `mark` above and inherits its `currentColor`.
 mark-colour = "assets/kaava-mark-colour.svg"
-
-# The art behind the splash wordmark, requested by `splash.html` as a plain
-# image from `public/`. It stays a file rather than being inlined: at 230 kB it
-# would more than 10× the one document whose whole job is to be on screen
-# instantly.
-splash-field = "public/kaava-splash-field.svg"
 
 # What the installer and taskbar icons are drawn from. Its reader is a person
 # running `pnpm tauri icon assets/app-icon-source.svg`, which rewrites the PNG
