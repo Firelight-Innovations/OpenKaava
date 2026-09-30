@@ -282,6 +282,12 @@ returns each card with its state; a canvas that cannot be read is named, not hid
 shown is the card's own: joining the cloud artifact's build status needs the cloud store, so that
 column is not there yet.
 
+"Send selection" (header) renders the selected elements, with the members of a selected frame
+and the text inside a selected shape, to a PNG with Excalidraw's exporter and puts it in the
+agent's context; "Send card" puts a valid spec card as JSON text. Both can be dragged onto a
+terminal as well as clicked, and both work on read-only main because `.kaava/context/` is not the
+checkout. The PNG is tried at 2x, 1x, 0.5x and 0.25x until it fits the store's 8 MB limit.
+
 Excalidraw is loaded lazily (`React.lazy`), and its fonts are served from
 `/vendor/excalidraw/fonts/` by the `excalidrawFonts` plugin in `vite.config.ts` rather than from
 a CDN. The 13 MB CJK fallback font is not shipped.

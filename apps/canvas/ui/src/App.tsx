@@ -1,7 +1,23 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { reportPainted } from "@openkaava/bridge";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { AlertTriangle, ChevronRight, ExternalLink, FilePlus2, Link2Off, Lock } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronRight,
+  ExternalLink,
+  FilePlus2,
+  Link2Off,
+  Lock,
+  Send,
+} from "lucide-react";
+import {
+  dragContext,
+  exportSelectionPng,
+  putSelectionImage,
+  putSpecCard,
+  selectedCount,
+  selectionElements,
+} from "./sendToAgent";
 import AssetList from "./AssetList";
 import SpecPanel from "./SpecPanel";
 import { selectedElement, specOf, withSpec, type SpecCard } from "./spec";
@@ -95,6 +111,9 @@ export default function App() {
   );
   const [childName, setChildName] = useState("");
   const [view, setView] = useState<View>("canvas");
+  /** How many elements are selected: what "Send selection" would send. */
+  const [selectedN, setSelectedN] = useState(0);
+  const [sentSelection, setSentSelection] = useState(false);
   /** Bumped when a card is saved, so the asset list reads disk again. */
   const [assetsKey, setAssetsKey] = useState(0);
   const [pick, setPick] = useState<{ id: string; spec: Record<string, unknown> | null } | null>(
@@ -162,6 +181,7 @@ export default function App() {
       setDoc(next);
       setFrame(null);
       setPick(null);
+      setSelectedN(0);
       setNotice(null);
       setLoadKey((k) => k + 1);
       writeLast(id);
@@ -231,6 +251,9 @@ export default function App() {
         prev?.id === next?.id && prev?.child === next?.child && prev?.name === next?.name
           ? prev
           : next,
+      );
+      setSelectedN(
+        selectedCount(appState.selectedElementIds as Record<string, unknown> | undefined),
       );
       const one = selectedElement(
         elements as readonly SceneElement[],
@@ -334,6 +357,42 @@ export default function App() {
     setPick({ id: pick.id, spec: null });
     setAssetsKey((k) => k + 1);
   }, [patchElement, pick]);
+
+  /** The selection rendered as a PNG and put in the agent's context. */
+  const putSelection = useCallback(async () => {
+    const api = apiRef.current;
+    const open = docRef.current;
+    if (!api || !open) throw new Error("no canvas is open");
+    const state = api.getAppState() as unknown as Record<string, unknown>;
+    const elements = selectionElements(
+      api.getSceneElementsIncludingDeleted() as unknown as SceneElement[],
+      state.selectedElementIds as Record<string, unknown> | undefined,
+    );
+    if (elements.length === 0) throw new Error("nothing is selected");
+    const png = await exportSelectionPng({
+      elements,
+      appState: state,
+      files: api.getFiles() as unknown as Record<string, unknown>,
+      dark: theme === "dark",
+    });
+    return putSelectionImage(png, open.scene.kaava?.title || open.id, elements.length);
+  }, [theme]);
+
+  const sendSelection = useCallback(() => {
+    setNotice(null);
+    putSelection().then(
+      () => {
+        setSentSelection(true);
+        setTimeout(() => setSentSelection(false), 1800);
+      },
+      (err: unknown) => setNotice(`Couldn't send the selection to the agent: ${messageOf(err)}`),
+    );
+  }, [putSelection]);
+
+  const putCard = useCallback(
+    (name: string, json: string) => putSpecCard(name, docRef.current?.path ?? "", json),
+    [],
+  );
 
   const showAssets = useCallback(async () => {
     await saverRef.current?.flush();
@@ -495,6 +554,18 @@ export default function App() {
         </button>
         {doc && <code className="cv__path">{doc.path}</code>}
         <span className="cv__spacer" />
+        {doc && view === "canvas" && (
+          <button
+            type="button"
+            className="k-btn k-btn--secondary k-btn--sm"
+            disabled={selectedN === 0}
+            title="Add the selection, as an image, to the agent's context. Drag to a terminal to send it."
+            onPointerDown={selectedN > 0 ? dragContext(() => putSelection()) : undefined}
+            onClick={sendSelection}
+          >
+            <Send size={14} aria-hidden /> {sentSelection ? "Sent" : "Send selection"}
+          </button>
+        )}
         {readOnly ? (
           <span className="k-badge k-badge--idle">
             <Lock size={12} aria-hidden /> Read-only
@@ -622,6 +693,8 @@ export default function App() {
             readOnly={readOnly}
             onSave={(card) => void saveCard(card)}
             onRemove={() => void removeCard()}
+            putCard={putCard}
+            onSendError={setNotice}
           />
         )}
         {loadError ? (

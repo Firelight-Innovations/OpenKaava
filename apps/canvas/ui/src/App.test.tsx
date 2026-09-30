@@ -29,7 +29,15 @@ vi.mock("@openkaava/bridge", () => ({
 
 // Excalidraw needs a real canvas and layout; the wiring around it is what is under test.
 // The fake keeps the scene it was given, so the app's `updateScene` calls land somewhere.
-const live = vi.hoisted(() => ({ elements: [] as unknown[], seed: null as unknown }));
+const live = vi.hoisted(() => ({
+  elements: [] as unknown[],
+  seed: null as unknown,
+  selected: {} as Record<string, boolean>,
+}));
+
+vi.mock("@excalidraw/excalidraw", () => ({
+  exportToBlob: vi.fn(async () => new Blob(["png"])),
+}));
 
 vi.mock("./Editor", () => ({
   default: ({
@@ -52,7 +60,7 @@ vi.mock("./Editor", () => ({
       updateScene: ({ elements }: { elements: unknown[] }) => {
         live.elements = elements;
       },
-      getAppState: () => ({ viewBackgroundColor: "#ffffff" }),
+      getAppState: () => ({ viewBackgroundColor: "#ffffff", selectedElementIds: live.selected }),
       getFiles: () => ({}),
     });
     const frame = { id: "f1", type: "frame", name: "Ward B", version: 1, versionNonce: 1 };
@@ -75,6 +83,7 @@ vi.mock("./Editor", () => ({
           type="button"
           onClick={() => {
             live.elements = [...initial.elements, frame];
+            live.selected = { f1: true };
             onChange([...initial.elements, frame], { selectedElementIds: { f1: true } }, {});
           }}
         >
@@ -141,6 +150,8 @@ function fake(b: Backend) {
         });
         b.reads[params!.id as string] = scene(0, params!.title as string);
         return { id: params!.id, path: "x", scene: scene(0), mtime: 100 };
+      case "context/put":
+        return { id: "ctx1" };
       default:
         throw new Error(`unexpected ${method}`);
     }
@@ -148,6 +159,7 @@ function fake(b: Backend) {
 }
 
 beforeEach(() => {
+  live.selected = {};
   bridge.invoke.mockReset();
   localStorage.clear();
 });
@@ -447,6 +459,70 @@ describe("Canvas app", () => {
       fireEvent.click(screen.getByRole("tab", { name: "Asset list" }));
       expect(await screen.findByText(/No spec cards yet/)).toBeTruthy();
       expect(screen.getByText(/Could not read broken/)).toBeTruthy();
+    });
+  });
+
+  describe("send to agent", () => {
+    const one = (readOnly = false): Backend => ({
+      readOnly,
+      rows: [{ id: "world", title: "World", parent: null, error: null }],
+      reads: { world: scene(1) },
+    });
+    const puts = () => bridge.invoke.mock.calls.filter((c) => c[0] === "context/put");
+
+    it("sends the selection as an image, even on read-only main", async () => {
+      fake(one(true));
+      render(<App />);
+      await screen.findByText("1 elements");
+      const button = screen.getByText("Send selection").closest("button") as HTMLButtonElement;
+      expect(button.disabled).toBe(true);
+      fireEvent.click(screen.getByText("select frame"));
+      fireEvent.click(screen.getByText("Send selection"));
+      await screen.findByText("Sent");
+      expect(puts()).toHaveLength(1);
+      expect(puts()[0]![1]).toMatchObject({
+        kind: "image",
+        title: "Canvas - World, 1 element",
+        bytesBase64: "cG5n",
+      });
+    });
+
+    it("sends a valid spec card as JSON text, and not an invalid one", async () => {
+      fake(one());
+      render(<App />);
+      await screen.findByText("1 elements");
+      fireEvent.click(screen.getByText("select frame"));
+      await screen.findByText("Make a spec card");
+      const button = screen.getByText("Send card").closest("button") as HTMLButtonElement;
+      expect(button.disabled).toBe(true);
+      fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Gurney" } });
+      fireEvent.change(screen.getByLabelText("Size (m, largest side)"), {
+        target: { value: "2" },
+      });
+      fireEvent.change(screen.getByLabelText("Triangle budget"), { target: { value: "8000" } });
+      fireEvent.click(screen.getByText("Send card"));
+      await waitFor(() => expect(puts()).toHaveLength(1));
+      const params = puts()[0]![1] as { kind: string; title: string; text: string };
+      expect(params.kind).toBe("text");
+      expect(params.title).toBe("Spec - Gurney");
+      expect(params.text).toContain("canvas/world.json");
+      const body = params.text.split("```json\n")[1]!.split("\n```")[0]!;
+      expect(JSON.parse(body)).toMatchObject({ name: "Gurney", triangle_budget: 8000 });
+    });
+
+    it("reports a refused put instead of saying Sent", async () => {
+      fake(one());
+      const base = bridge.invoke.getMockImplementation()!;
+      bridge.invoke.mockImplementation(async (m: string, p?: Record<string, unknown>) => {
+        if (m === "context/put") throw new Error("no room in the store");
+        return base(m, p);
+      });
+      render(<App />);
+      await screen.findByText("1 elements");
+      fireEvent.click(screen.getByText("select frame"));
+      fireEvent.click(screen.getByText("Send selection"));
+      expect(await screen.findByText(/no room in the store/)).toBeTruthy();
+      expect(screen.queryByText("Sent")).toBeNull();
     });
   });
 });
