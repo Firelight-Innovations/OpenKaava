@@ -498,7 +498,9 @@ echo '{\"blenderVersion\":\"4.2.1\",\"glb\":\"model.glb\",\"renders\":[{\"id\":\
         }
     }
 
-    fn sink() -> (Arc<dyn Fn(Event) + Send + Sync>, Arc<Mutex<Vec<Event>>>) {
+    type Sink = Arc<dyn Fn(Event) + Send + Sync>;
+
+    fn sink() -> (Sink, Arc<Mutex<Vec<Event>>>) {
         let events = Arc::new(Mutex::new(Vec::new()));
         let inner = events.clone();
         (Arc::new(move |e| inner.lock().unwrap().push(e)), events)
