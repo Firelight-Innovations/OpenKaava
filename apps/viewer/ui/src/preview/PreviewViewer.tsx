@@ -1,7 +1,7 @@
 /**
  * A registry viewer that is nothing but the preview pane.
  *
- * There is no chrome of its own: the Preview button in the app's mode bar, and
+ * There is no chrome of its own: the Preview button in the tab strip, and
  * Ctrl+Shift+V, are the way back to the source, so a bar here would say the same
  * thing twice.
  */

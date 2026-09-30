@@ -3,7 +3,7 @@
  * the shortcut, and the place the shortcut is written down.
  *
  * Renders nothing unless the active file has a rendered form, so it costs the
- * mode bar nothing for a `.rs`. It reads the control `Viewer` publishes — see
+ * tab row nothing for a `.rs`. It reads the control `Viewer` publishes — see
  * `previewControl.ts` — and is the only thing here `App.tsx` mounts.
  */
 import { useSyncExternalStore } from "react";
