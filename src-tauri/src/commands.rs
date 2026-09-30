@@ -1073,14 +1073,28 @@ pub fn open_terminal_in_pane(
 /// question the snapshot answers — where this cluster's work is, rather than
 /// where its window happened to be pointed — and `cluster_path` follows the
 /// worktree, so a cluster working in one starts its shells there.
+///
+/// Existing shells are not followed silently: a shell nobody has typed in is
+/// moved by `set_cluster_project`, and one that has been used stays put.
 fn terminal_cwd(app: &tauri::AppHandle, cluster_id: &str) -> PathBuf {
-    project::cluster_path(app, cluster_id)
-        .or_else(|| {
-            manifest::locate(app)
-                .ok()
-                .and_then(|p| p.parent().map(Path::to_path_buf))
-        })
-        .or_else(|| std::env::current_dir().ok())
+    pick_terminal_cwd(
+        project::cluster_path(app, cluster_id),
+        manifest::locate(app)
+            .ok()
+            .and_then(|p| p.parent().map(Path::to_path_buf)),
+        std::env::current_dir().ok(),
+    )
+}
+
+/// The precedence `terminal_cwd` applies, on plain values so it can be tested.
+fn pick_terminal_cwd(
+    cluster_root: Option<PathBuf>,
+    stack_root: Option<PathBuf>,
+    process_dir: Option<PathBuf>,
+) -> PathBuf {
+    cluster_root
+        .or(stack_root)
+        .or(process_dir)
         .unwrap_or_else(|| PathBuf::from("."))
 }
 
@@ -1566,10 +1580,41 @@ pub fn set_cluster_project(
     cluster_id: String,
     path: Option<String>,
 ) {
+    let moved = shell.cluster_project(&cluster_id) != path;
+
+    // A worktree or environment belongs to the repository it was cut from, and
+    // both outrank the project in `cluster_root`. Leaving one set would keep
+    // this cluster's terminals in the old project while the title named the new
+    // one, the same reason `project::open` clears the worktree.
+    if moved {
+        shell.set_cluster_worktree(&app, &cluster_id, None);
+        if shell
+            .cluster_environment(&cluster_id)
+            .is_some_and(|e| !e.is_main())
+        {
+            shell.set_cluster_environment(&app, &cluster_id, None);
+        }
+    }
+
     shell.set_cluster_project(&app, &cluster_id, path);
     project::retitle(&app);
     // A new project needs its `.mcp.json` before an agent starts in it.
     crate::mcp::sync_all(&app);
+
+    // Shells nobody has typed in follow the project; the rest stay where their
+    // owner left them. See `PtySessions::retarget_untyped`.
+    if moved {
+        if let Some(dir) = project::cluster_path(&app, &cluster_id) {
+            let ids: Vec<String> = shell
+                .snapshot()
+                .terminals
+                .into_iter()
+                .filter(|t| t.cluster_id == cluster_id)
+                .map(|t| t.id)
+                .collect();
+            app.state::<PtySessions>().retarget_untyped(&ids, &dir);
+        }
+    }
 }
 
 /// One row of the Switch Project dialog (board 08): a Recent-list entry plus
@@ -1977,6 +2022,24 @@ pub(crate) fn apply_project_open_preset(app: &tauri::AppHandle, cluster_id: &str
 mod tests {
     use super::*;
     use crate::environments::Environment;
+
+    #[test]
+    fn a_terminal_starts_in_the_cluster_root_before_any_fallback() {
+        let p = |s: &str| Some(PathBuf::from(s));
+        assert_eq!(
+            pick_terminal_cwd(p("/wt"), p("/stack"), p("/proc")),
+            PathBuf::from("/wt")
+        );
+        assert_eq!(
+            pick_terminal_cwd(None, p("/stack"), p("/proc")),
+            PathBuf::from("/stack")
+        );
+        assert_eq!(
+            pick_terminal_cwd(None, None, p("/proc")),
+            PathBuf::from("/proc")
+        );
+        assert_eq!(pick_terminal_cwd(None, None, None), PathBuf::from("."));
+    }
 
     fn local_worktree() -> Environment {
         Environment::LocalWorktree {
