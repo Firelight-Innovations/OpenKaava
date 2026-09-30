@@ -185,7 +185,6 @@ changed it and watched nothing happen.
 | `product.tagline` | Home's hero, and nothing else |
 | `assets.mark` | the generator, which lifts its path data into the modules |
 | `assets.mark-colour` | `Mark` in `apps/home/ui/src/icons.tsx`, by hand |
-| `assets.splash-field` | `splash.html`'s check |
 | `assets.icon-source` | `pnpm tauri icon <path>`, run by a person |
 | `assets.bundle-icons` | the check on `tauri.conf.json`'s `bundle.icon` |
 
@@ -274,7 +273,6 @@ prose because the list is also the trademark surface.
   is gone, because the tile's ground is now a two-stop radial falloff and that
   falloff is the only thing drawing the icon's edge. Grain laid over it fights
   the edge it is there to make.
-- `public/kaava-splash-field.svg` — the splash art.
 - `src-tauri/icons/` — the generated icon set. Every path in `bundle.icon` is
   checked to sit inside this directory and to exist.
 - the wordmark face, inlined as a base64 woff2 subset in `splash.html`. It is
