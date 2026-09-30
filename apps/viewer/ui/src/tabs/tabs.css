@@ -23,7 +23,24 @@
   border-bottom: 1px solid var(--line);
 }
 
+.tabs__row {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+/* Right-aligned controls on the strip's row, centred on the same line as the
+   tab labels: the row is `--h-paneltabs` tall and this centres inside it. */
+.tabs__trailing {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: var(--h-paneltabs);
+  padding: 0 var(--space-2);
+}
+
 .tabs__strip {
+  flex: 1 1 auto;
   display: flex;
   align-items: stretch;
   height: var(--h-paneltabs);
@@ -62,14 +79,16 @@
   background: var(--bg);
 }
 
-/* The active rule. A pseudo-element rather than a box-shadow so it sits inside
-   the tab's own box and lines up with the hairlines either side of it. */
+/* The active rule, along the tab's bottom edge like the pane tab bar's
+   underline above this strip. A pseudo-element rather than a box-shadow so it
+   sits inside the tab's own box and lines up with the hairlines either side
+   of it. */
 .tabs__tab--active::after {
   content: "";
   position: absolute;
   left: 0;
   right: 0;
-  top: 0;
+  bottom: 0;
   height: 2px;
   background: var(--accent);
 }

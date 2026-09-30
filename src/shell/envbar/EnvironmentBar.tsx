@@ -1,10 +1,11 @@
 /**
- * The environment bar: a 36px strip above the pane grid saying which
- * environment the open cluster is working in, and what you can do about it.
- * `docs/design/KAAVA-UX-SPEC.md` §1.4 — boards 02 (worktree) and 03 (cloud)
- * draw two of its three variants; `main` is this file's own extrapolation
- * (no board crops a read-only cluster), styled off the bar's own neutral
- * tokens rather than guessed from the worktree variant.
+ * The environment summary: which environment the open cluster is working in
+ * (kind chip, branch, ahead/behind, path). It used to be its own 36px bar
+ * above the pane grid (`docs/design/KAAVA-UX-SPEC.md` §1.4); it now sits in the
+ * title bar after the menus so the panes get that height back. The title bar
+ * owns the row and the collapse order (`titlebar.css`): path goes first, then
+ * ahead/behind, then the chip's label. `Review & merge` is a separate control on
+ * the bar's right — see `ReviewMergeButton`.
  */
 // Left out for "never fake data" (`docs/KAAVA-UX-REWORK.md`): the spec's
 // `from base@<hash>` segment (no merge-base source in `contract.ts`/
@@ -36,9 +37,6 @@ export interface EnvironmentBarProps {
    *  claiming the worktree is caught up. */
   ahead?: number;
   behind?: number;
-  /** Worktree/design only. Opens the rail's Git page (`WindowRoot`'s
-   *  `onSelectPage("git")`). */
-  onReviewAndMerge?: () => void;
   /**
    * Cloud only, and both still no-ops: nothing in `Cluster` names a cloud
    * session today (see `environment.ts`'s header on why `environmentOf`
@@ -68,7 +66,6 @@ export default function EnvironmentBar({
   environment,
   ahead,
   behind,
-  onReviewAndMerge,
   onPullIntoWorktree,
   onStopSession,
 }: EnvironmentBarProps) {
@@ -77,12 +74,14 @@ export default function EnvironmentBar({
 
   if (environment.kind === "main") {
     return (
-      <div className="envbar envbar--main">
-        <span className="envbar__kind">
+      <div className="envbar envbar--main" data-tauri-drag-region>
+        <span className="envbar__kind" data-tauri-drag-region>
           <Lock size={12} strokeWidth={1.5} className="envbar__kind-icon" />
-          {label}
+          <span className="envbar__kind-label">{label}</span>
         </span>
-        <span className="envbar__readonly">Browse only · main is read-only</span>
+        <span className="envbar__readonly" data-tauri-drag-region>
+          Browse only · main is read-only
+        </span>
       </div>
     );
   }
@@ -90,35 +89,36 @@ export default function EnvironmentBar({
   const cloud = environment.kind === "cloud";
 
   return (
-    <div className={cloud ? "envbar envbar--cloud" : "envbar envbar--worktree"}>
-      <span className="envbar__kind">
+    <div
+      className={cloud ? "envbar envbar--cloud" : "envbar envbar--worktree"}
+      data-tauri-drag-region
+    >
+      <span className="envbar__kind" data-tauri-drag-region>
         <Glyph size={12} strokeWidth={1.5} className="envbar__kind-icon" />
-        {label}
+        <span className="envbar__kind-label">{label}</span>
       </span>
 
       {environment.branch !== undefined && (
-        <span className="envbar__branch">{environment.branch}</span>
+        <span className="envbar__branch" data-tauri-drag-region>
+          {environment.branch}
+        </span>
       )}
 
       {!cloud && ahead !== undefined && behind !== undefined && (
-        <span className="envbar__ahead-behind">
+        <span
+          className="envbar__ahead-behind"
+          data-tauri-drag-region
+          title={`${ahead} ahead, ${behind} behind`}
+        >
           <span className="envbar__ahead">↑{ahead}</span>{" "}
           <span className="envbar__behind">↓{behind}</span>
         </span>
       )}
 
       {!cloud && environment.path !== undefined && (
-        <span className="envbar__path" title={environment.path}>
+        <span className="envbar__path" data-tauri-drag-region title={environment.path}>
           {environment.path}
         </span>
-      )}
-
-      <span className="envbar__spacer" />
-
-      {!cloud && (
-        <button type="button" className="envbar__action" onClick={onReviewAndMerge}>
-          Review &amp; merge
-        </button>
       )}
 
       {cloud && (

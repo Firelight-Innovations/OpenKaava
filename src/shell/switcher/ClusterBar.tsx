@@ -5,7 +5,7 @@ import { environmentOf, ENVIRONMENT_LABEL, type EnvironmentKind } from "../envir
 import { instant, instantOut, snap } from "../motion";
 import { useDropZone } from "../dropZones";
 import { Cloud, GitBranch, Lock, Pin } from "lucide-react";
-import { Close, Plus, Search, WarningTriangle } from "../../ui/Icon";
+import { Close, Plus, WarningTriangle } from "../../ui/Icon";
 import OverlayScrollbar from "../OverlayScrollbar";
 import HealthPopover, { type UnhealthyTool } from "./HealthPopover";
 import "./switcher.css";
@@ -237,13 +237,7 @@ export default function ClusterBar({
         </div>
       )}
 
-      {searchSlot ?? (
-        <div className="switcher__search-default">
-          <Search size={14} className="switcher__search-icon" />
-          <span className="switcher__search-label">Search</span>
-          <span className="switcher__search-hint">Ctrl+K</span>
-        </div>
-      )}
+      {searchSlot}
     </div>
   );
 }

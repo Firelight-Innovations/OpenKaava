@@ -1,5 +1,5 @@
 /**
- * The eight inline menu labels, ≥1100px.
+ * The eight inline menu labels, ≥1180px.
  *
  * Standard menu-bar behaviour: a menu opens on click; while one is open,
  * hovering a sibling switches to it without a second click; Escape, a click
@@ -65,6 +65,8 @@ export default function MenuBar({ menus }: { menus: Menu[] }) {
           <button
             type="button"
             className="menubar__item"
+            aria-haspopup="menu"
+            aria-expanded={openLabel === menu.label}
             data-open={openLabel === menu.label || undefined}
             onClick={() => setOpenLabel((cur) => (cur === menu.label ? null : menu.label))}
             onPointerEnter={() => {

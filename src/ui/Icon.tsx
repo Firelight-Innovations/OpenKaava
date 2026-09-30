@@ -323,6 +323,16 @@ export function WindowMaximise(props: IconProps) {
   );
 }
 
+/** Two overlapping squares: what Maximise becomes once the window is maximised. */
+export function WindowRestore(props: IconProps) {
+  return (
+    <Control {...props}>
+      <rect x="1.6" y="3.2" width="5.2" height="5.2" />
+      <path d="M3.2 3.2V1.6h5.2v5.2H6.8" />
+    </Control>
+  );
+}
+
 export function WindowClose(props: IconProps) {
   return (
     <Control {...props}>

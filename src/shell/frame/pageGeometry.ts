@@ -30,11 +30,12 @@ export function pageGeometry(
   };
 }
 
-/** `.frame__rail`'s `margin-left`: the docked page ends here, not at the rail. */
-export const PROJECT_RAIL_GAP = 6;
+/** What sits between the docked page's right edge and the window's: the right-hand
+ *  box's 6px margin and its 1px border. */
+export const PROJECT_RAIL_GAP = 7;
 
-/** The docked page's width with its handle dragged to `clientX`. The rail's
- *  margin counts, or the page lands `PROJECT_RAIL_GAP` px off the pointer. */
+/** The docked page's width with its handle dragged to `clientX`. The box's
+ *  margin and border count, or the page lands `PROJECT_RAIL_GAP` px off the pointer. */
 export function pageWidthFromPointer(rowRight: number, railWidth: number, clientX: number): number {
   return rowRight - railWidth - PROJECT_RAIL_GAP - clientX;
 }

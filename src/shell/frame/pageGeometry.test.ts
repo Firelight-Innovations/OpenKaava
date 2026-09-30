@@ -40,14 +40,14 @@ describe("pageGeometry", () => {
 });
 
 describe("pageWidthFromPointer", () => {
-  // The bug: the page's right edge is the rail's left margin further in than the
-  // rail itself, and the old maths forgot the margin, so the page landed 6px off.
-  it("measures from the page's own right edge, past the rail and its margin", () => {
-    expect(PROJECT_RAIL_GAP).toBe(6);
-    expect(pageWidthFromPointer(1000, 44, 500)).toBe(450);
+  // The page's right edge is the right-hand box's margin (6px) and border (1px)
+  // further in than the window's, and forgetting them lands the page 7px off.
+  it("measures from the page's own right edge, past the rail, margin and border", () => {
+    expect(PROJECT_RAIL_GAP).toBe(7);
+    expect(pageWidthFromPointer(1000, 44, 500)).toBe(449);
   });
 
   it("is wider the further left the pointer goes", () => {
-    expect(pageWidthFromPointer(1000, 44, 400)).toBe(550);
+    expect(pageWidthFromPointer(1000, 44, 400)).toBe(549);
   });
 });

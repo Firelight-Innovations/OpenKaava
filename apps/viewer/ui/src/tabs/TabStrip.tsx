@@ -18,7 +18,7 @@
  * strip scrolls, because a row of tabs squeezed to eight pixels each is a row
  * of tabs you cannot read or hit.
  */
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { dragContext } from "../../../../shared/context";
 import { putFile, relativePath } from "../../../../shared/fileContext";
 import ContextMenu, { type MenuTarget } from "../ContextMenu";
@@ -47,6 +47,11 @@ export interface TabStripProps {
   onRenamed(from: string, to: string): void;
   /** Ask whether to delete this tab's file. One confirmation owns the app. */
   onDelete(target: DeleteTarget): void;
+  /**
+   * Controls that share the strip's row, right-aligned — the Code / Build steps
+   * switch. A row of their own would cost the editor a bar of height.
+   */
+  trailing?: ReactNode;
 }
 
 export default function TabStrip({
@@ -58,6 +63,7 @@ export default function TabStrip({
   onClose,
   onRenamed,
   onDelete,
+  trailing,
 }: TabStripProps) {
   const stripRef = useRef<HTMLDivElement | null>(null);
   /**
@@ -130,43 +136,46 @@ export default function TabStrip({
 
   return (
     <div className="tabs">
-      <div className="tabs__strip" role="tablist" aria-label="Open files" ref={stripRef}>
-        {tabs.map((tab, index) => (
-          <Tab
-            key={tab.path}
-            tab={tab}
-            index={index}
-            tabs={tabs}
-            active={tab.path === activePath}
-            dirty={dirty.has(tab.path)}
-            rootPath={rootPath}
-            renaming={renaming === tab.path}
-            renameBusy={renameBusy}
-            onActivate={onActivate}
-            onClose={onClose}
-            onCommitRename={(name) => commitRename(tab.path, name)}
-            onCancelRename={() => {
-              setRenaming(null);
-              setRenameError(null);
-            }}
-            onContextMenu={(event) => {
-              event.preventDefault();
-              setMenu({
-                path: tab.path,
-                // A tab is a file that is open, not a place — see `createIn`.
-                createIn: null,
-                // A file already gone from disk has nothing there to rename or
-                // to delete, so both items drop out together.
-                name: tab.missing ? null : tab.name,
-                // A tab is always a file; a folder is not something this app
-                // can open into one.
-                kind: "file",
-                x: event.clientX,
-                y: event.clientY,
-              });
-            }}
-          />
-        ))}
+      <div className="tabs__row">
+        <div className="tabs__strip" role="tablist" aria-label="Open files" ref={stripRef}>
+          {tabs.map((tab, index) => (
+            <Tab
+              key={tab.path}
+              tab={tab}
+              index={index}
+              tabs={tabs}
+              active={tab.path === activePath}
+              dirty={dirty.has(tab.path)}
+              rootPath={rootPath}
+              renaming={renaming === tab.path}
+              renameBusy={renameBusy}
+              onActivate={onActivate}
+              onClose={onClose}
+              onCommitRename={(name) => commitRename(tab.path, name)}
+              onCancelRename={() => {
+                setRenaming(null);
+                setRenameError(null);
+              }}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                setMenu({
+                  path: tab.path,
+                  // A tab is a file that is open, not a place — see `createIn`.
+                  createIn: null,
+                  // A file already gone from disk has nothing there to rename or
+                  // to delete, so both items drop out together.
+                  name: tab.missing ? null : tab.name,
+                  // A tab is always a file; a folder is not something this app
+                  // can open into one.
+                  kind: "file",
+                  x: event.clientX,
+                  y: event.clientY,
+                });
+              }}
+            />
+          ))}
+        </div>
+        {trailing && <div className="tabs__trailing">{trailing}</div>}
       </div>
 
       {renameError && (

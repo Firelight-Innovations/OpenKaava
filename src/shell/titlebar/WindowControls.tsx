@@ -9,7 +9,9 @@
  */
 import { closeHostWindow, minimizeHostWindow, toggleHostMaximize } from "../../bindings";
 import { isTauri } from "../hostWindow";
-import { WindowClose, WindowMaximise, WindowMinimise } from "../../ui/Icon";
+import { WindowClose, WindowMaximise, WindowMinimise, WindowRestore } from "../../ui/Icon";
+import { maximizeControl } from "./maximizeControl";
+import { useWindowMaximized } from "./useWindowMaximized";
 
 function run(fn: () => Promise<unknown>) {
   return () => {
@@ -19,12 +21,14 @@ function run(fn: () => Promise<unknown>) {
 }
 
 export default function WindowControls() {
+  const maximize = maximizeControl(useWindowMaximized());
   return (
     <div className="titlebar__controls">
       <button
         type="button"
         className="titlebar__control"
         aria-label="Minimise"
+        title="Minimise"
         onClick={run(minimizeHostWindow)}
       >
         <WindowMinimise />
@@ -32,15 +36,17 @@ export default function WindowControls() {
       <button
         type="button"
         className="titlebar__control"
-        aria-label="Maximise"
+        aria-label={maximize.label}
+        title={maximize.label}
         onClick={run(toggleHostMaximize)}
       >
-        <WindowMaximise />
+        {maximize.icon === "restore" ? <WindowRestore /> : <WindowMaximise />}
       </button>
       <button
         type="button"
         className="titlebar__control titlebar__control--close"
         aria-label="Close"
+        title="Close"
         onClick={run(closeHostWindow)}
       >
         <WindowClose />

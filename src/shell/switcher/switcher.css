@@ -435,37 +435,6 @@
   color: var(--text-dim);
 }
 
-/* --- the collapsed search default --------------------------------------- */
-
-.switcher__search-default {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  border-left: 1px solid var(--line);
-}
-
-.switcher__search-icon {
-  flex: none;
-  color: var(--text-dim);
-}
-
-.switcher__search-label {
-  font-family: var(--sans);
-  font-size: 11.5px;
-  line-height: 1;
-  color: var(--text-dim-3);
-  white-space: nowrap;
-}
-
-.switcher__search-hint {
-  font-family: var(--mono);
-  font-size: 10px;
-  line-height: 1;
-  color: var(--text-faint);
-}
-
 /* --- the health popover --------------------------------------------------
    420px, anchored under the badge. Right-edge aligned to the badge rather
    than left, so it opens toward the middle of the bar instead of running

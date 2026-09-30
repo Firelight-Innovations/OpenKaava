@@ -11,7 +11,7 @@ export interface SearchSlotProps {
 }
 
 /**
- * The cluster row's search field: a trigger, not an input.
+ * The title bar's search field: a trigger, not an input.
  *
  * The query is typed into the dialog it opens (`SearchOverlay`), which is the
  * one place the field, the type filters and the results share a box. This
@@ -40,9 +40,12 @@ export default function SearchSlot({ open = false, onOpen }: SearchSlotProps = {
       className="search-slot"
       aria-haspopup="dialog"
       aria-expanded={open}
+      aria-label="Search project files"
+      aria-keyshortcuts="Control+K"
+      title={`Search project files (${accelerator({ key: "K" })})`}
       onClick={onOpen}
     >
-      <Search size={16} className="search-slot__glyph" />
+      <Search size={14} className="search-slot__glyph" />
       <span className="search-slot__label">Search project files</span>
       <kbd className="k-kbd search-slot__hint">{accelerator({ key: "K" })}</kbd>
     </button>
