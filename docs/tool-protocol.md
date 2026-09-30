@@ -246,6 +246,7 @@ the shell answers these itself and never forwards them to a core.
 | `kaava/open` | `{"appId":string,"payload"?:any}` | `{"instanceId":string}` | Put something on screen in another app, in my cluster. |
 | `kaava/publish` | `{"topic":string,"value":any}` | `null` | State a fact about myself for my cluster-mates to read. |
 | `kaava/drag` | `{"phase":"begin"\|"end","paths"?:string[],"items"?:string[]}` | `null` | I have picked up these file paths and context items (ids from `context/put`), or put them down. |
+| `kaava/escape` | none | `null` | I saw a bare Escape that nothing in me handled. |
 
 `kaava/painted` is a report, not a request. The orchestrator holds its splash
 window up until every first-party app has sent one, so that the window it hands
@@ -428,6 +429,27 @@ for that terminal's shell and followed by no newline; see
 up in a running program's input rather than in another app's hands, so "the
 receiver knows what it means" does not apply: every entry that is not a string
 is dropped, and quoting happens in Rust.
+
+#### `kaava/escape` — Escape typed inside a frame
+
+```jsonc
+{"kaava":1,"kind":"request","id":10,"method":"kaava/escape"}
+```
+
+Keys typed in an iframe never reach the shell's `document`, so the shell's "Esc
+leaves the expanded page" binding goes deaf as soon as the page has focus. The
+bridge closes that gap: it listens for `keydown` on the frame's document and
+sends `kaava/escape`, with no params, for each bare Escape that the app did not
+claim. An Escape is forwarded only if the app left it un-`preventDefault`ed and
+it was not typed into an `input`, a `textarea` or a contenteditable element,
+since those want Escape for themselves (clearing, cancelling, closing a widget).
+The bridge sends it fire-and-forget and ignores any failure.
+
+The shell honours it only from the rail page's own frame. A request from a pane's
+frame is acknowledged and otherwise ignored, because a pane's Escape belongs to
+that pane. When honoured, the shell replays a synthetic `Escape` `keydown` on its
+own document, so the same binding handles it as if the key had been typed
+outside the frame. Nothing comes back but the acknowledgement.
 
 #### Under the Tauri host
 
