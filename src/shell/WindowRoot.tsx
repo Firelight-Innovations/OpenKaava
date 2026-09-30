@@ -22,7 +22,7 @@ import {
   type WindowKind,
 } from "./contract";
 import { environmentOf, environmentKey } from "./environment";
-import { searchBarHoldMs, snap } from "./motion";
+import { snap } from "./motion";
 import { INTERRUPT, commandLine, terminalInput } from "./run";
 import ContextMenuHost from "./ContextMenuHost";
 import CommandPalette from "./palette/CommandPalette";
@@ -47,7 +47,6 @@ import EnvironmentBar from "./envbar/EnvironmentBar";
 import SearchSlot from "./search/SearchSlot";
 import SearchOverlay from "./search/SearchOverlay";
 import { useSearchSession } from "./search/useSearchSession";
-import { useSearchBarHold } from "./search/useSearchBarHold";
 import { openHitInFiles } from "./search/openHit";
 import { useDrag } from "./drag/useDrag";
 import { useFileDrag } from "./drag/useFileDrag";
@@ -179,16 +178,11 @@ export default function WindowRoot({
   // not a region, so the zone is made here and handed down as a ref.
   const bottomZone = useDropZone({ kind: "panel" });
 
-  // Lifted out of the search slot because two regions need it: the field
-  // expands, and the bar around it has to yield the width for that to be
-  // possible. Neither owns the other, so the flag sits above both.
+  // Whether the search dialog is open. Lifted here because the cluster row's
+  // trigger, Ctrl+K and the dialog mount all read it, and none owns the others.
   const [searchExpanded, setSearchExpanded] = useState(false);
-
-  // The same flag, held open across the overlay's exit, and the only thing the
-  // switcher bar is given. Search opens and closes in two beats — field first
-  // then overlay, overlay first then field — and the bar is the half that
-  // cannot express "wait" as an animation. See `useSearchBarHold`.
-  const searchBarExpanded = useSearchBarHold(searchExpanded, searchBarHoldMs);
+  const openSearch = useCallback(() => setSearchExpanded(true), []);
+  const closeSearch = useCallback(() => setSearchExpanded(false), []);
 
   // Two lists, and they are not the same question. `apps` is *things with a
   // frontend* — what `presentationOf` below resolves a mountable surface from —
@@ -1745,6 +1739,22 @@ export default function WindowRoot({
           onNewProject={onSwitchProjectNewProject}
         />
       )}
+      {/* Mounted only while open, so a window nobody has searched in never pays
+          for the dialog, and closing it genuinely discards its results —
+          reopening is a fresh search rather than a stale one. `AnimatePresence`
+          holds the subtree for the exit animation and then unmounts it. */}
+      <AnimatePresence>
+        {searchExpanded && (
+          <SearchOverlay
+            session={search}
+            root={searchRoot}
+            clusterId={activeClusterId}
+            onOpen={openSearchHit}
+            onSubmit={onSubmitSearch}
+            onClose={closeSearch}
+          />
+        )}
+      </AnimatePresence>
       <Frame
         kind={kind}
         panelCollapsed={panelCollapsed}
@@ -1803,18 +1813,7 @@ export default function WindowRoot({
               }
               healthOf={stackTools}
               onRescan={onRescan}
-              // The held flag, not the live one: the bar is the second beat on
-              // the way out and must not give the chips their room back until
-              // the overlay above has finished leaving.
-              searchExpanded={searchBarExpanded}
-              searchSlot={
-                <SearchSlot
-                  expanded={searchBarExpanded}
-                  onExpandedChange={setSearchExpanded}
-                  session={search}
-                  onSubmit={onSubmitSearch}
-                />
-              }
+              searchSlot={<SearchSlot open={searchExpanded} onOpen={openSearch} />}
             />
           ),
           // Omitted while no cluster is open — see the slot's own doc comment
@@ -2028,27 +2027,6 @@ export default function WindowRoot({
               {drag.overlay}
               {fileDrag.overlay}
             </>
-          ),
-          // Mounted only while open, so a window nobody has searched in never
-          // pays for the overlay's tree — and so closing search genuinely
-          // discards its results rather than hiding them, which is what makes
-          // reopening it a fresh search rather than a stale one.
-          //
-          // `AnimatePresence` keeps that true: it holds the subtree for exactly
-          // as long as the exit animation runs and then unmounts it for real.
-          // The wrapper is always rendered so it can observe the child leaving;
-          // an empty one costs nothing and renders no DOM.
-          splitOverlay: (
-            <AnimatePresence>
-              {searchExpanded && (
-                <SearchOverlay
-                  session={search}
-                  root={searchRoot}
-                  clusterId={activeClusterId}
-                  onOpen={openSearchHit}
-                />
-              )}
-            </AnimatePresence>
           ),
           statusBar: (
             // The whole status, one object, rather than a branch picked out and

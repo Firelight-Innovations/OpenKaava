@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_KIND, extensionOf, kindOf } from "./kinds";
+import { DEFAULT_KIND, extensionOf, kindOf, orderByKind } from "./kinds";
 
 describe("extensionOf", () => {
   it("takes the last segment only", () => {
@@ -45,5 +45,17 @@ describe("kindOf", () => {
 
   it("falls back rather than failing on an unknown extension", () => {
     expect(kindOf("/repo/notes.xyz")).toBe(DEFAULT_KIND);
+  });
+});
+
+describe("orderByKind", () => {
+  it("groups by kind in the filter order and keeps walk order inside a group", () => {
+    const hits = [
+      { kind: "content", id: 1 },
+      { kind: "script", id: 2 },
+      { kind: "content", id: 3 },
+      { kind: "script", id: 4 },
+    ] as const;
+    expect(orderByKind([...hits]).map((h) => h.id)).toEqual([2, 4, 1, 3]);
   });
 });
