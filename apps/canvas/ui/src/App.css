@@ -658,3 +658,56 @@
   color: var(--txt-warning);
   font-size: 11px;
 }
+
+.cv__object,
+.cv__types {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cv__typechip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.35));
+  font-size: 12px;
+}
+
+.cv__type-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.cv__type-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cv__fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.35));
+  border-radius: 6px;
+}
+
+.cv__field--check {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.cv__manage {
+  align-self: flex-start;
+}

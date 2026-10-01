@@ -642,6 +642,11 @@ pub const WRITE_METHODS: &[&str] = &[
     "canvas/create-comment",
     "canvas/resolve-comment",
     "canvas/reopen-comment",
+    "canvas/save-type",
+    "canvas/delete-type",
+    "canvas/set-parent",
+    "canvas/set-frame",
+    "canvas/create-frame",
 ];
 
 /// Whether `method` is a write to the cluster's checkout.

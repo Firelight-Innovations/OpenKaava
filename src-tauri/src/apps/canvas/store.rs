@@ -340,6 +340,23 @@ pub fn view_path(
     Ok(nest(kaava_dir(root, "canvas-views")?, canvas).join(format!("{safe}{suffix}")))
 }
 
+/// The file a frame's picture renders to: `.kaava/preview/canvas/<canvas>/<frame>.png`.
+/// Overwritten on every render, so an agent that looks a hundred times leaves one file.
+pub fn frame_image_path(root: &Path, canvas: &str, frame_id: &str) -> Result<PathBuf, RpcError> {
+    let safe: String = frame_id
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .take(80)
+        .collect();
+    Ok(nest(kaava_dir(root, "preview/canvas")?, canvas).join(format!("{safe}.png")))
+}
+
 /// Decode the frontend's base64 PNG and write it to `path`.
 pub fn write_png(path: &Path, base64_png: &str) -> Result<usize, RpcError> {
     let data = base64_png

@@ -57,8 +57,15 @@ vi.mock("./Editor", () => ({
     }
     onApi({
       getSceneElementsIncludingDeleted: () => live.elements,
-      updateScene: ({ elements }: { elements: unknown[] }) => {
+      updateScene: ({
+        elements,
+        appState,
+      }: {
+        elements: unknown[];
+        appState?: { selectedElementIds?: Record<string, boolean> };
+      }) => {
         live.elements = elements;
+        if (appState?.selectedElementIds) live.selected = appState.selectedElementIds;
       },
       getAppState: () => ({ viewBackgroundColor: "#ffffff", selectedElementIds: live.selected }),
       getFiles: () => ({}),
@@ -102,6 +109,44 @@ vi.mock("./Editor", () => ({
         >
           select frame
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            const model = {
+              id: "m1",
+              type: "frame",
+              name: "Gurney",
+              version: 1,
+              versionNonce: 1,
+              customData: {
+                kaava: { object: { type: "model", props: { size_m: 2, triangle_budget: 8000 } } },
+              },
+            };
+            live.elements = [...initial.elements, model];
+            live.selected = { m1: true };
+            onChange([...initial.elements, model], { selectedElementIds: { m1: true } }, {});
+          }}
+        >
+          select model frame
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            live.selected = { e0: true };
+            onChange([...initial.elements], { selectedElementIds: { e0: true } }, {});
+          }}
+        >
+          select shape
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            live.selected = { e0: true, e1: true };
+            onChange([...initial.elements], { selectedElementIds: live.selected }, {});
+          }}
+        >
+          select two shapes
+        </button>
         <button type="button" onClick={() => onOpenChild("world/ward-b")}>
           double-click linked frame
         </button>
@@ -129,6 +174,37 @@ const scene = (n: number, title = "World"): SceneFile => ({
   kaava: { title },
 });
 
+const TYPES = [
+  {
+    id: "feature",
+    name: "Feature",
+    color: "#2563eb",
+    icon: "star",
+    builtin: true,
+    fields: [{ key: "summary", label: "Summary", kind: "multiline" }],
+  },
+  {
+    id: "model",
+    name: "Model",
+    color: "#d97706",
+    icon: "box",
+    builtin: true,
+    fields: [
+      { key: "size_m", label: "Size (m, largest side)", kind: "number" },
+      { key: "triangle_budget", label: "Triangle budget", kind: "number" },
+      { key: "style_notes", label: "Style notes", kind: "multiline" },
+      { key: "reference_images", label: "Reference images", kind: "path-list" },
+      {
+        key: "review_state",
+        label: "Review state",
+        kind: "enum",
+        options: ["draft", "review", "accepted", "rejected"],
+        default: "draft",
+      },
+    ],
+  },
+];
+
 interface Backend {
   readOnly: boolean;
   rows: { id: string; title: string; parent: string | null; error: string | null }[];
@@ -148,6 +224,10 @@ function fake(b: Backend) {
         if (got instanceof Error) throw got;
         return { id: params!.id, path: `canvas/${params!.id}.json`, scene: got, mtime: 100 };
       }
+      case "canvas/types":
+        return { builtin: TYPES, custom: [], path: ".kaava/canvas/types.json", problem: null };
+      case "canvas/set-parent":
+        return { id: params!.id, parent: params!.parent };
       case "canvas/assets":
         return b.assets ?? { cards: [], canvases: b.rows.length, unreadable: [] };
       case "canvas/stat":
@@ -350,73 +430,113 @@ describe("Canvas app", () => {
     });
   });
 
-  describe("spec cards", () => {
+  describe("frame inspector", () => {
     const one = (): Backend => ({
       readOnly: false,
       rows: [{ id: "world", title: "World", parent: null, error: null }],
-      reads: { world: scene(1) },
+      reads: { world: scene(2) },
     });
+    const written = (id: string) => {
+      const write = bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write").at(-1);
+      return (write?.[1].scene.elements as Record<string, unknown>[] | undefined)?.find(
+        (e) => e.id === id,
+      );
+    };
 
-    it("saves a filled card on the selected element, and refuses an empty one", async () => {
+    it("asks an untyped frame for a type, then saves the type with its default values", async () => {
       fake(one());
       render(<App />);
-      await screen.findByText("1 elements");
+      await screen.findByText("2 elements");
       fireEvent.click(screen.getByText("select frame"));
-      await screen.findByText("Make a spec card");
+      await screen.findByText("Pick a type to describe this frame for the agent.");
 
-      fireEvent.click(screen.getByText("Save card"));
-      expect(bridge.invoke.mock.calls.some((c) => c[0] === "canvas/write")).toBe(false);
-      expect(await screen.findByText("A name is required.")).toBeTruthy();
-
-      fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Gurney" } });
-      fireEvent.change(screen.getByLabelText("Size (m, largest side)"), {
-        target: { value: "2" },
-      });
-      fireEvent.change(screen.getByLabelText("Triangle budget"), { target: { value: "8000" } });
-      fireEvent.change(screen.getByLabelText("Review state"), { target: { value: "review" } });
-      fireEvent.click(screen.getByText("Save card"));
-
-      await waitFor(() => {
-        const write = bridge.invoke.mock.calls.find((c) => c[0] === "canvas/write");
-        expect(write).toBeTruthy();
-        const el = (write![1].scene.elements as { id: string; customData?: unknown }[]).find(
-          (e) => e.id === "f1",
-        );
-        expect(el?.customData).toEqual({
-          kaava: {
-            spec: {
-              name: "Gurney",
-              reference_images: [],
-              size_m: 2,
-              triangle_budget: 8000,
-              style_notes: "",
-              status: "review",
-            },
-          },
-        });
-      });
+      fireEvent.change(screen.getByLabelText("Type"), { target: { value: "model" } });
+      await waitFor(() =>
+        expect(written("f1")?.customData).toMatchObject({
+          kaava: { object: { type: "model", props: { review_state: "draft" } } },
+        }),
+      );
+      expect(await screen.findByLabelText("Triangle budget")).toBeTruthy();
     });
 
-    it("shows the exported JSON for a valid card", async () => {
+    it("keeps a value across a type change when the new type has that field", async () => {
       fake(one());
       render(<App />);
-      await screen.findByText("1 elements");
-      fireEvent.click(screen.getByText("select frame"));
-      fireEvent.change(await screen.findByLabelText("Name"), { target: { value: "Gurney" } });
-      fireEvent.change(screen.getByLabelText("Size (m, largest side)"), {
-        target: { value: "2" },
-      });
-      fireEvent.change(screen.getByLabelText("Triangle budget"), { target: { value: "8000" } });
+      await screen.findByText("2 elements");
+      fireEvent.click(screen.getByText("select model frame"));
+      fireEvent.change(await screen.findByLabelText("Type"), { target: { value: "feature" } });
+      await waitFor(() => expect(screen.queryByLabelText("Triangle budget")).toBeNull());
+      const object = (written("m1")?.customData as { kaava: { object: { props: unknown } } }).kaava
+        .object;
+      expect(object.props).toMatchObject({ size_m: 2, triangle_budget: 8000 });
+    });
+
+    it("shows the exported JSON for a model frame", async () => {
+      fake(one());
+      render(<App />);
+      await screen.findByText("2 elements");
+      fireEvent.click(screen.getByText("select model frame"));
+      await screen.findByLabelText("Triangle budget");
       const json = screen.getByLabelText("Exported JSON").textContent ?? "";
       expect(JSON.parse(json)).toMatchObject({ name: "Gurney", size_m: 2, triangle_budget: 8000 });
+    });
+
+    it("refuses a non-number in a number field and writes nothing", async () => {
+      fake(one());
+      render(<App />);
+      await screen.findByText("2 elements");
+      fireEvent.click(screen.getByText("select model frame"));
+      const input = await screen.findByLabelText("Triangle budget");
+      fireEvent.change(input, { target: { value: "lots" } });
+      fireEvent.blur(input);
+      expect(await screen.findByRole("alert")).toBeTruthy();
+      expect(bridge.invoke.mock.calls.some((c) => c[0] === "canvas/write")).toBe(false);
+    });
+
+    it("sends a shape to its frame's summary instead of a form", async () => {
+      fake(one());
+      render(<App />);
+      await screen.findByText("2 elements");
+      fireEvent.click(screen.getByText("select frame"));
+      fireEvent.click(screen.getByText("select shape"));
+      expect(
+        await screen.findByText("Wrap in a frame to describe this for the agent."),
+      ).toBeTruthy();
+      expect(screen.queryByLabelText("Type")).toBeNull();
+    });
+
+    it("wraps the selection in a new labelled frame and focuses its name", async () => {
+      fake(one());
+      render(<App />);
+      await screen.findByText("2 elements");
+      fireEvent.click(screen.getByText("select two shapes"));
+      fireEvent.click(await screen.findByText("Frame selection"));
+
+      await waitFor(() => {
+        const frames = (
+          bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write").at(-1)![1].scene
+            .elements as Record<string, unknown>[]
+        ).filter((e) => e.type === "frame");
+        expect(frames).toHaveLength(1);
+        expect(frames[0]!.name).toBe("New frame");
+      });
+      const name = (await screen.findByLabelText("Name")) as HTMLInputElement;
+      expect(name.value).toBe("New frame");
+      expect(document.activeElement).toBe(name);
+      const kids = (
+        bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write").at(-1)![1].scene
+          .elements as { id: string; frameId?: string }[]
+      ).filter((e) => e.id === "e0" || e.id === "e1");
+      expect(kids.every((e) => typeof e.frameId === "string")).toBe(true);
     });
 
     it("offers no editing on read-only main", async () => {
       fake({ ...one(), readOnly: true });
       render(<App />);
-      await screen.findByText("1 elements");
+      await screen.findByText("2 elements");
       fireEvent.click(screen.getByText("select frame"));
-      expect(screen.queryByText("Make a spec card")).toBeNull();
+      expect(screen.queryByText("Manage types")).toBeNull();
+      expect(screen.queryByText("Frame selection")).toBeNull();
     });
   });
 
@@ -505,8 +625,8 @@ describe("Canvas app", () => {
       expect(
         container.querySelector(".cv__header")?.contains(screen.getByText("Send selection")),
       ).toBe(false);
-      fireEvent.click(screen.getByText("select frame"));
-      await screen.findByText("Make a spec card");
+      fireEvent.click(screen.getByText("select model frame"));
+      await screen.findByLabelText("Triangle budget");
       expect(footer.contains(screen.getByText("Send card"))).toBe(true);
       expect(container.querySelector(".cv__side")?.contains(screen.getByText("Send card"))).toBe(
         false,
@@ -530,19 +650,14 @@ describe("Canvas app", () => {
       });
     });
 
-    it("sends a valid spec card as JSON text, and not an invalid one", async () => {
+    it("sends a model frame's card as JSON text", async () => {
       fake(one());
       render(<App />);
       await screen.findByText("1 elements");
-      fireEvent.click(screen.getByText("select frame"));
-      await screen.findByText("Make a spec card");
+      fireEvent.click(screen.getByText("select model frame"));
+      await screen.findByLabelText("Triangle budget");
       const button = screen.getByText("Send card").closest("button") as HTMLButtonElement;
-      expect(button.disabled).toBe(true);
-      fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Gurney" } });
-      fireEvent.change(screen.getByLabelText("Size (m, largest side)"), {
-        target: { value: "2" },
-      });
-      fireEvent.change(screen.getByLabelText("Triangle budget"), { target: { value: "8000" } });
+      expect(button.disabled).toBe(false);
       fireEvent.click(screen.getByText("Send card"));
       await waitFor(() => expect(puts()).toHaveLength(1));
       const params = puts()[0]![1] as { kind: string; title: string; text: string };

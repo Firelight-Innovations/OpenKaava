@@ -21,11 +21,17 @@
 
 mod comments;
 mod diagrams;
+/// Frames as labelled objects: type, properties, migration, search.
+mod frames;
 /// What an agent works through: named diagrams, views, comments, drawing and
 /// linked values. `docs/canvas-drawing-guide.md` is the agent-facing manual.
 mod methods;
+/// The frame, type and nesting methods an agent reads a canvas through.
+mod objects;
 /// Reference images, checkpoints and views on disk.
 mod store;
+/// Object types: the built-ins and the project's own.
+mod types;
 /// The frontend work only a webview can do.
 mod webview;
 
@@ -100,6 +106,17 @@ pub fn call_with(
         "canvas/resolve-comment" => methods::resolve_comment(&root(context)?, p, true),
         "canvas/reopen-comment" => methods::resolve_comment(&root(context)?, p, false),
         "canvas/view-comment" => methods::view_comment(&root(context)?, web, p),
+        "canvas/types" => objects::types(&root(context)?, p),
+        "canvas/save-type" => objects::save_type(&root(context)?, p),
+        "canvas/delete-type" => objects::delete_type(&root(context)?, p),
+        "canvas/frames" => objects::frames_list(&root(context)?, p),
+        "canvas/search-frames" => objects::search_frames(&root(context)?, p),
+        "canvas/frame" => objects::frame_detail(&root(context)?, p),
+        "canvas/frame-image" => objects::frame_image(&root(context)?, web, p),
+        "canvas/tree" => objects::tree(&root(context)?, p),
+        "canvas/set-parent" => objects::set_parent(&root(context)?, p),
+        "canvas/set-frame" => objects::set_frame(&root(context)?, p),
+        "canvas/create-frame" => objects::create_frame(&root(context)?, p),
         _ => call_file(context, read_only, method, params),
     }
 }
@@ -431,10 +448,11 @@ fn assets(root: &Path) -> Result<Value, RpcError> {
     let mut unreadable = Vec::new();
     let mut canvases = 0usize;
     for (id, path) in files(root) {
-        let Ok(scene) = load(&path) else {
+        let Ok(mut scene) = load(&path) else {
             unreadable.push(id);
             continue;
         };
+        frames::migrate(&mut scene);
         canvases += 1;
         let title = scene
             .get("kaava")
@@ -452,11 +470,13 @@ fn assets(root: &Path) -> Result<Value, RpcError> {
             if el.get("isDeleted").and_then(Value::as_bool) == Some(true) {
                 continue;
             }
+            let model = frames::model_card(el);
             let Some(spec) = el
                 .get("customData")
                 .and_then(|c| c.get("kaava"))
                 .and_then(|k| k.get("spec"))
                 .filter(|s| s.is_object())
+                .or(model.as_ref())
             else {
                 continue;
             };
@@ -487,6 +507,7 @@ fn read(root: &Path, id: &str) -> Result<Value, RpcError> {
         ));
     }
     let mut scene = load(&path)?;
+    let migration = frames::migrate(&mut scene);
     let missing = store::inflate(root, id, &mut scene);
     Ok(json!({
         "id": id,
@@ -494,6 +515,7 @@ fn read(root: &Path, id: &str) -> Result<Value, RpcError> {
         "scene": scene,
         "mtime": mtime_at(&path),
         "missingRefs": missing,
+        "migrated": migration.converted,
     }))
 }
 
@@ -567,6 +589,7 @@ fn write(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
     };
     let mut scene = p.scene;
     validate_scene(&scene).map_err(|why| bad(format!("refusing to write: {why}")))?;
+    objects::check_links(root, &p.id, &scene)?;
 
     let path = file_for(root, &p.id);
     let current = mtime_at(&path);

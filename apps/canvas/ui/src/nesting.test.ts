@@ -4,7 +4,9 @@ import {
   childId,
   childOf,
   hitLinkedFrame,
+  linkable,
   selectedFrame,
+  treeOrder,
   viewportToScene,
   withChild,
 } from "./nesting";
@@ -139,5 +141,39 @@ describe("childId", () => {
   });
   it("goes beside the parent at the depth limit", () => {
     expect(childId("a/b/c/d", "e")).toBe("a/b/c/e");
+  });
+});
+
+describe("treeOrder", () => {
+  it("lists children under their parent with a depth", () => {
+    const rows = [row("b", "a"), row("a", null), row("c", "b"), row("z", null)];
+    expect(treeOrder(rows).map((t) => [t.row.id, t.depth])).toEqual([
+      ["a", 0],
+      ["b", 1],
+      ["c", 2],
+      ["z", 0],
+    ]);
+  });
+
+  it("keeps a canvas in a parent loop rather than hiding it", () => {
+    const rows = [row("a", "b"), row("b", "a")];
+    expect(
+      treeOrder(rows)
+        .map((t) => t.row.id)
+        .sort(),
+    ).toEqual(["a", "b"]);
+  });
+});
+
+describe("linkable", () => {
+  it("leaves out the current canvas, its ancestors and canvases already nested elsewhere", () => {
+    const rows = [
+      row("root", null),
+      row("mid", "root"),
+      row("cur", "mid"),
+      row("free", null),
+      row("taken", "root"),
+    ];
+    expect(linkable(rows, "cur").map((r) => r.id)).toEqual(["free"]);
   });
 });
