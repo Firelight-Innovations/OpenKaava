@@ -251,6 +251,14 @@ pub struct Cluster {
     /// environment enum just to answer "can this be closed".
     #[serde(default)]
     pub pinned: bool,
+    /// An emoji (or just a tint behind the initials) the user chose for this cluster.
+    ///
+    /// `None` is the default and draws the initials chip, so nothing changes until someone picks
+    /// one. `default`/`skip_serializing_if`, as on every optional field here, so a `layout.json`
+    /// from before this key existed still loads and a cluster without an icon writes the same
+    /// bytes it always did.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<ClusterIcon>,
     /// The environment's folder was not on disk when the layout was restored.
     ///
     /// A **runtime fact, recomputed at every restore** by
@@ -266,6 +274,21 @@ pub struct Cluster {
     #[serde(default)]
     pub environment_missing: bool,
 }
+
+/// The emoji a cluster wears in place of its initials, and the tint behind it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClusterIcon {
+    pub emoji: String,
+    /// A palette key the frontend defines, or `None` for the neutral chip. An unknown key from
+    /// a newer build is kept as written; the frontend falls back to neutral for one it can't draw.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+}
+
+/// Longest emoji string accepted. A ZWJ family sequence is 11 scalars; this leaves headroom
+/// without letting a paste of prose become an "icon".
+const MAX_ICON_SCALARS: usize = 16;
 
 impl Cluster {
     pub fn is_page(&self) -> bool {
@@ -517,6 +540,7 @@ fn seed_window(counters: &mut Counters, label: &str) -> WindowPlacement {
         page: None,
         environment: None,
         pinned: false,
+        icon: None,
         environment_missing: false,
     };
 
@@ -747,6 +771,7 @@ impl ShellState {
                 page: None,
                 environment: None,
                 pinned: false,
+                icon: None,
                 environment_missing: false,
             });
             w.active_cluster_id = Some(cluster_id.clone());
@@ -1146,6 +1171,13 @@ impl ShellState {
     pub fn rename_cluster(&self, app: &AppHandle, cluster_id: &str, name: &str) {
         self.mutate(app, |s| {
             rename_cluster_pure(s, cluster_id, name);
+        });
+    }
+
+    /// Set or clear (`None`) a cluster's icon. See `set_cluster_icon_pure`.
+    pub fn set_cluster_icon(&self, app: &AppHandle, cluster_id: &str, icon: Option<ClusterIcon>) {
+        self.mutate(app, |s| {
+            set_cluster_icon_pure(s, cluster_id, icon);
         });
     }
 
@@ -2485,6 +2517,7 @@ fn add_design_cluster_pure(
             page: None,
             environment: Some(environment),
             pinned: true,
+            icon: None,
             environment_missing: false,
         },
     );
@@ -2500,6 +2533,40 @@ fn rename_cluster_pure(s: &mut ShellSnapshot, cluster_id: &str, name: &str) -> b
     for w in s.windows.iter_mut() {
         if let Some(c) = w.cluster_mut(cluster_id) {
             c.name = name.to_string();
+            return true;
+        }
+    }
+    false
+}
+
+/// Set or clear a cluster's icon; `false`, unchanged, for a page, an id naming nothing, or an
+/// emoji too long to be one. A blank emoji with no colour clears the icon; a blank emoji with a
+/// colour is the initials on that tint, which is a real choice.
+fn set_cluster_icon_pure(
+    s: &mut ShellSnapshot,
+    cluster_id: &str,
+    icon: Option<ClusterIcon>,
+) -> bool {
+    if is_page_cluster(s, cluster_id) {
+        return false;
+    }
+    let icon = match icon {
+        Some(i) => {
+            let emoji = i.emoji.trim().to_string();
+            if emoji.chars().count() > MAX_ICON_SCALARS {
+                return false;
+            }
+            if emoji.is_empty() && i.color.is_none() {
+                None
+            } else {
+                Some(ClusterIcon { emoji, ..i })
+            }
+        }
+        None => None,
+    };
+    for w in s.windows.iter_mut() {
+        if let Some(c) = w.cluster_mut(cluster_id) {
+            c.icon = icon;
             return true;
         }
     }
@@ -2762,6 +2829,7 @@ fn detach_instance_pure(
         page: None,
         environment,
         pinned: false,
+        icon: None,
         environment_missing,
     };
 
@@ -3179,6 +3247,7 @@ fn add_cluster_for_environment_pure(
         page: None,
         environment,
         pinned: false,
+        icon: None,
         environment_missing: false,
     });
     w.active_cluster_id = Some(cluster_id.to_string());
@@ -3562,6 +3631,7 @@ mod tests {
                     page: None,
                     environment: None,
                     pinned: false,
+                    icon: None,
                     environment_missing: false,
                 }],
                 active_cluster_id: Some("cluster-3".to_string()),
@@ -3675,6 +3745,7 @@ mod tests {
                 page: None,
                 environment: None,
                 pinned: false,
+                icon: None,
                 environment_missing: false,
             }],
             active_cluster_id: Some(cluster.to_string()),
@@ -3783,6 +3854,7 @@ mod tests {
             page: None,
             environment: None,
             pinned: false,
+            icon: None,
             environment_missing: false,
         });
 
@@ -3891,6 +3963,7 @@ mod tests {
             page: None,
             environment: None,
             pinned: false,
+            icon: None,
             environment_missing: false,
         });
 
@@ -4124,6 +4197,7 @@ mod tests {
             page: None,
             environment: None,
             pinned: false,
+            icon: None,
             environment_missing: false,
         });
         state(vec![placement], Vec::new())
@@ -4961,6 +5035,7 @@ mod tests {
             page: Some(page_id.to_string()),
             environment: None,
             pinned: false,
+            icon: None,
             environment_missing: false,
         }
     }
@@ -5163,6 +5238,67 @@ mod tests {
         assert_eq!(s.windows[0].clusters.len(), 1);
         assert!(s.windows[0].right_page.is_none());
         assert!(!s.instances.iter().any(|i| i.id == "agents-9"));
+    }
+
+    #[test]
+    fn a_cluster_has_no_icon_by_default() {
+        let json = r#"{
+            "id": "cluster-1",
+            "name": "orchestrator",
+            "tree": { "kind": "leaf", "id": "pane-1", "tabs": [], "activeTab": null },
+            "worktree": null
+        }"#;
+        let c: Cluster = serde_json::from_str(json).expect("a cluster from before icons loads");
+        assert_eq!(c.icon, None);
+        let back = serde_json::to_value(&c).unwrap();
+        assert!(back.get("icon").is_none(), "no icon writes no key");
+    }
+
+    #[test]
+    fn a_cluster_icon_survives_a_round_trip() {
+        let mut s = with_agents_page();
+        let icon = ClusterIcon {
+            emoji: "🚀".to_string(),
+            color: Some("blue".to_string()),
+        };
+        assert!(set_cluster_icon_pure(
+            &mut s,
+            "cluster-1",
+            Some(icon.clone())
+        ));
+        let json = serde_json::to_string(&*cluster_mut(&mut s, "cluster-1")).unwrap();
+        let back: Cluster = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.icon, Some(icon));
+
+        assert!(set_cluster_icon_pure(&mut s, "cluster-1", None));
+        assert_eq!(cluster_mut(&mut s, "cluster-1").icon, None);
+    }
+
+    #[test]
+    fn a_bad_icon_is_refused() {
+        let mut s = with_agents_page();
+        let long = ClusterIcon {
+            emoji: "x".repeat(40),
+            color: None,
+        };
+        assert!(!set_cluster_icon_pure(&mut s, "cluster-1", Some(long)));
+        let tinted_initials = ClusterIcon {
+            emoji: String::new(),
+            color: Some("green".to_string()),
+        };
+        assert!(set_cluster_icon_pure(
+            &mut s,
+            "cluster-1",
+            Some(tinted_initials.clone())
+        ));
+        assert_eq!(cluster_mut(&mut s, "cluster-1").icon, Some(tinted_initials));
+        let blank = ClusterIcon {
+            emoji: "  ".to_string(),
+            color: None,
+        };
+        assert!(set_cluster_icon_pure(&mut s, "cluster-1", Some(blank)));
+        assert_eq!(cluster_mut(&mut s, "cluster-1").icon, None);
+        assert!(!set_cluster_icon_pure(&mut s, "cluster-404", None));
     }
 
     #[test]
@@ -5687,6 +5823,7 @@ mod tests {
             // Same environment as cluster-1 — one worktree, opened twice.
             environment: Some(design_environment()),
             pinned: false,
+            icon: None,
             environment_missing: false,
         });
         let s = state(vec![w], Vec::new());

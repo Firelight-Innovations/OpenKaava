@@ -27,10 +27,10 @@ import { placeMenu, type Point } from "../contextMenu";
 import MenuItemList, { inMenuSurface } from "../MenuItemList";
 import { popover } from "../motion";
 import { Plus } from "../../ui/Icon";
+import ClusterChip from "../ClusterChip";
 import {
   clusterMenuItems,
   clusterTooltip,
-  monogram,
   needsAttention,
   type ClusterMenuActions,
   type ClusterTerminal,
@@ -144,9 +144,7 @@ function Badge({
       onPointerDown={dragHandle?.onPointerDown}
       style={dragHandle?.style}
     >
-      <span className="clusterstrip__mono" aria-hidden="true">
-        {monogram(cluster.name)}
-      </span>
+      <ClusterChip cluster={cluster} className="clusterstrip__mono" />
       {attention && (
         <span
           className="clusterstrip__dot"

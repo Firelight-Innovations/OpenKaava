@@ -1,0 +1,127 @@
+/*
+ * The cluster icon picker. Surface, radius and shadow come from the shared
+ * `.k-dialog`; this sizes it and lays out the sheet. Every colour is a token;
+ * the tints themselves come from `clusterIcon.css`'s palette.
+ */
+
+.icon-dialog {
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+
+.icon-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.icon-dialog__preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.icon-dialog__preview-chip {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  border: 1px solid var(--border-subtle-1);
+  background: var(--bg-layer-1);
+  color: var(--txt-secondary);
+  font-size: 22px;
+  font-weight: 600;
+  overflow: hidden;
+}
+
+.icon-dialog__preview-chip .cluster-chip[data-kind="emoji"] {
+  font-size: 34px;
+}
+
+.icon-dialog__name {
+  color: var(--txt-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.icon-dialog__search {
+  width: 100%;
+  box-sizing: border-box;
+  height: 30px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-subtle-1);
+  border-radius: 8px;
+  background: var(--bg-layer-1);
+  color: var(--txt-primary);
+  font: inherit;
+  font-size: 13px;
+}
+
+.icon-dialog__search::placeholder {
+  color: var(--txt-placeholder);
+}
+
+.icon-dialog__use {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--bg-layer-2);
+  color: var(--txt-primary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.icon-dialog__heading {
+  margin: 0 0 var(--space-2);
+  color: var(--txt-placeholder);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.icon-dialog__row,
+.icon-dialog__grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: var(--space-2);
+}
+
+.icon-dialog__row {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+/* A tile is a round button around a chip; the chip supplies the tint. */
+.icon-dialog__tile {
+  appearance: none;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: var(--bg-layer-1);
+  color: var(--txt-secondary);
+  font: 600 12px/1 var(--sans);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.icon-dialog__tile:hover {
+  border-color: var(--border-strong);
+}
+
+.icon-dialog__empty {
+  margin: 0;
+  color: var(--txt-tertiary);
+  font-size: 12px;
+}
+
+.icon-dialog__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}

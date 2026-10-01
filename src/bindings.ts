@@ -1179,11 +1179,21 @@ export interface Cluster {
    *  and defaults to `false` when reading a `layout.json` old enough to
    *  predate it. */
   pinned: boolean;
+  /** What the user chose to draw instead of the initials chip. Absent is the
+   *  default: initials, untinted. */
+  icon?: ClusterIcon | null;
   /** The environment's worktree folder was not on disk when the layout was
    *  restored at launch. Recomputed by the backend at every restore, so a
    *  stale value never survives a restart. Optional so fixtures that predate
    *  it stay valid; absent means present. */
   environmentMissing?: boolean;
+}
+
+/** Mirrors `shell_state::ClusterIcon`. An empty `emoji` means "initials, on this tint". */
+export interface ClusterIcon {
+  emoji: string;
+  /** A palette key from `clusterIcon.ts`; absent is the neutral chip. */
+  color?: string | null;
 }
 
 /** Mirrors `shell_state::WindowGeometry`. Physical pixels. */
@@ -1455,6 +1465,11 @@ export function reportFocus(report: {
 
 export function setActiveCluster(label: string, clusterId: string | null): Promise<void> {
   return invoke("set_active_cluster", { label, clusterId });
+}
+
+/** Choose a cluster's icon, or `null` to go back to its initials. */
+export function setClusterIcon(clusterId: string, icon: ClusterIcon | null): Promise<void> {
+  return invoke("set_cluster_icon", { clusterId, icon });
 }
 
 export function renameCluster(clusterId: string, name: string): Promise<void> {

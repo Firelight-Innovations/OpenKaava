@@ -493,6 +493,7 @@ pub fn run() {
             commands::new_cluster_for_drop,
             commands::set_active_cluster,
             commands::rename_cluster,
+            commands::set_cluster_icon,
             commands::close_cluster,
             commands::set_cluster_project,
             commands::cluster_project,

@@ -482,6 +482,7 @@ mod tests {
                     page: None,
                     environment: None,
                     pinned: false,
+                    icon: None,
                     environment_missing: false,
                 }],
                 active_cluster_id: Some("cluster-1".to_string()),
@@ -668,6 +669,7 @@ mod tests {
                     page: None,
                     environment: None,
                     pinned: false,
+                    icon: None,
                     environment_missing: false,
                 }],
                 active_cluster_id: Some("cluster-1".to_string()),
@@ -912,6 +914,7 @@ mod tests {
             page: None,
             environment: None,
             pinned: false,
+            icon: None,
             environment_missing: false,
         }
     }

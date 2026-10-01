@@ -118,6 +118,23 @@ describe("clusterMenuItems", () => {
     expect(calls).toEqual(["select:a", "close:a", "rename:a:billing"]);
   });
 
+  it("offers Change icon… only where a picker is wired", () => {
+    const base = { onSelect: () => {}, onRename: async () => {}, onClose: () => {} };
+    const opened: string[] = [];
+    const items = clusterMenuItems(cluster("a", { name: "auth" }), {
+      ...base,
+      onChangeIcon: (id) => opened.push(id),
+    });
+    expect(items.map((i) => i.label)).toEqual([
+      "Switch to cluster",
+      "Rename…",
+      "Change icon…",
+      "Close cluster",
+    ]);
+    items[2].onSelect?.();
+    expect(opened).toEqual(["a"]);
+  });
+
   it("refuses an empty name and skips an unchanged one", async () => {
     const renamed: string[] = [];
     const items = clusterMenuItems(cluster("a", { name: "auth" }), {

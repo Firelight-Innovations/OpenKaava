@@ -107,6 +107,8 @@ export interface ClusterMenuActions {
   /** Rename, taking the new name. Rejects with a message to show, like `MenuPrompt.onSubmit`. */
   onRename: (clusterId: string, name: string) => Promise<void>;
   onClose: (clusterId: string) => void;
+  /** Open the icon picker for it. Optional so a surface with no picker simply omits the row. */
+  onChangeIcon?: (clusterId: string) => void;
 }
 
 /**
@@ -129,6 +131,14 @@ export function clusterMenuItems(cluster: Cluster, actions: ClusterMenuActions):
         },
       },
     },
+    ...(actions.onChangeIcon
+      ? [
+          {
+            label: "Change icon…",
+            onSelect: () => actions.onChangeIcon?.(cluster.id),
+          },
+        ]
+      : []),
     {
       label: "Close cluster",
       separatorBefore: true,

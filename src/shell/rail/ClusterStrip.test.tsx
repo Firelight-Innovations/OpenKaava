@@ -101,6 +101,31 @@ describe("ClusterStrip", () => {
     expect(h.onClose).toHaveBeenCalledWith("b");
   });
 
+  it("draws the chosen emoji in place of the initials, and only for that cluster", () => {
+    setup({
+      clusters: [
+        cluster("a", "auth", { icon: { emoji: "🚀", color: "blue" } }),
+        cluster("b", "billing"),
+      ],
+    });
+    const withIcon = screen.getByRole("button", { name: /^auth/ });
+    expect(withIcon.textContent).toBe("🚀");
+    expect(withIcon.querySelector(".cluster-chip")?.getAttribute("data-kind")).toBe("emoji");
+    expect(withIcon.querySelector(".cluster-chip")?.getAttribute("data-icon-color")).toBe("blue");
+    expect(screen.getByRole("button", { name: /^billing/ }).textContent).toBe("BI");
+  });
+
+  it("puts Change icon… in the right-click menu when a picker is wired", () => {
+    const onChangeIcon = vi.fn();
+    setup({ onChangeIcon });
+    fireEvent.contextMenu(screen.getByRole("button", { name: /^billing/ }), {
+      clientX: 10,
+      clientY: 10,
+    });
+    fireEvent.click(screen.getByRole("menuitem", { name: "Change icon…" }));
+    expect(onChangeIcon).toHaveBeenCalledWith("b");
+  });
+
   it("hands the drag handle's pointer-down to the badge", () => {
     const onPointerDown = vi.fn();
     setup({ dragHandleForCluster: () => ({ onPointerDown, style: { cursor: "grab" } }) });

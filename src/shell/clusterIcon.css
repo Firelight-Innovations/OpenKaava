@@ -1,0 +1,55 @@
+/*
+ * A cluster's mark, and the palette behind it.
+ *
+ * The palette is the five accent tokens, so both themes are covered by
+ * tokens.css rather than by anything here. `--chip-tint` is the one value a
+ * `data-icon-color` sets; everything else reads it.
+ */
+
+.cluster-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  line-height: 1;
+  user-select: none;
+}
+
+.cluster-chip[data-icon-color="blue"] {
+  --chip-tint: var(--accent-blue);
+}
+.cluster-chip[data-icon-color="green"] {
+  --chip-tint: var(--accent-green);
+}
+.cluster-chip[data-icon-color="violet"] {
+  --chip-tint: var(--accent-violet);
+}
+.cluster-chip[data-icon-color="coral"] {
+  --chip-tint: var(--accent-coral);
+}
+.cluster-chip[data-icon-color="amber"] {
+  --chip-tint: var(--accent-amber);
+}
+
+.cluster-chip[data-icon-color] {
+  background: color-mix(in srgb, var(--chip-tint) 26%, transparent);
+}
+
+/* Initials on a tint take the tint as their ink; emoji keep their own colours. */
+.cluster-chip[data-icon-color][data-kind="initials"] {
+  color: var(--chip-tint);
+}
+
+/*
+ * Emoji are drawn at a fixed size in a flex-centred box with a line-height of 1.
+ * Segoe UI Emoji sits a little differently from the text font's baseline, so the
+ * box is centred rather than baseline-aligned, and the family is named so a
+ * missing glyph does not fall back to a text face with different metrics.
+ */
+.cluster-chip[data-kind="emoji"] {
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+  font-size: 15px;
+  letter-spacing: 0;
+}
