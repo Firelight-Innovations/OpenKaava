@@ -91,8 +91,11 @@ export interface Bounds {
   height: number;
 }
 
-export const webviewOpen = (bounds: Bounds, url: string): Promise<{ opened: boolean }> =>
-  invoke("projects/webview-open", { bounds, url });
+export const webviewOpen = (
+  bounds: Bounds,
+  url: string,
+  window?: string,
+): Promise<{ opened: boolean }> => invoke("projects/webview-open", { bounds, url, window });
 
 export const webviewNavigate = (url: string): Promise<{ navigated: boolean }> =>
   invoke("projects/webview-navigate", { url });

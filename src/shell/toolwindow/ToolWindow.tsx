@@ -598,7 +598,7 @@ const ToolWindow = forwardRef<
       const prev = lastWindowRect.current.get(instanceId);
       if (prev && sameWindowRect(prev, next)) continue;
       lastWindowRect.current.set(instanceId, next);
-      sendEventWhenReady(instanceId, "kaava/window-rect", next);
+      sendEventWhenReady(instanceId, "kaava/window-rect", { ...next, window: windowLabel() });
     }
   }, [rects, tree, instances, sendEventWhenReady]);
 
@@ -621,7 +621,7 @@ const ToolWindow = forwardRef<
       const prev = lastWindowRect.current.get(pageInstanceId);
       if (prev && sameWindowRect(prev, next)) return;
       lastWindowRect.current.set(pageInstanceId, next);
-      sendEventWhenReady(pageInstanceId, "kaava/window-rect", next);
+      sendEventWhenReady(pageInstanceId, "kaava/window-rect", { ...next, window: windowLabel() });
     };
     send();
     const observer = new ResizeObserver(send);

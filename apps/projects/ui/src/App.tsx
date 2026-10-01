@@ -98,7 +98,7 @@ export default function App() {
     if (!local) return;
     openedFor.current = project.slug;
     const url = projectUrl(project.plane.project_id);
-    rpc.webviewOpen(absoluteBounds(frameRect, local), url).catch((e) => {
+    rpc.webviewOpen(absoluteBounds(frameRect, local), url, frameRect.window).catch((e) => {
       setWebviewError(rpc.messageOf(e));
     });
   }, [wake, project, frameRect]);

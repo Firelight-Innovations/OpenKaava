@@ -42,7 +42,9 @@ vi.mock("@openkaava/bridge", () => ({
   // exercises the wake flow also drive a fake `kaava/window-rect` message —
   // `frameRect.test.ts` is where the combining logic itself is covered.
   on: vi.fn((event: string, cb: (payload: unknown) => void) => {
-    if (event === "kaava/window-rect") cb({ x: 10, y: 20, width: 300, height: 300 });
+    if (event === "kaava/window-rect") {
+      cb({ x: 10, y: 20, width: 300, height: 300, window: "win-2" });
+    }
     return () => {};
   }),
 }));
@@ -152,7 +154,12 @@ describe("Projects", () => {
       () =>
         expect(bridge.invoke).toHaveBeenCalledWith(
           "projects/webview-open",
-          expect.objectContaining({ url: expect.stringContaining("abc-123") }),
+          // `window` is the popped-out window the shell reported the frame in: Rust attaches
+          // the webview to it rather than to `main`.
+          expect.objectContaining({
+            url: expect.stringContaining("abc-123"),
+            window: "win-2",
+          }),
         ),
       // The second `wake-status` (the one answering "healthy") arrives on
       // this app's own 1 s poll tick, not synchronously like the first —

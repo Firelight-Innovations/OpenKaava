@@ -267,7 +267,7 @@ pub fn run() {
                     // taskbar. `set_geometry` above never runs `mutate`, so
                     // this is the only other trigger `sync_visibility` needs
                     // beside the one inside it.
-                    if window.label() == "main" {
+                    if window.label() == app.state::<plane_webview::PlaneWebview>().owner() {
                         plane_webview::sync_visibility(app, &app.state::<ShellState>().snapshot());
                     }
                 }

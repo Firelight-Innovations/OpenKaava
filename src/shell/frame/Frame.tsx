@@ -4,7 +4,7 @@ import type { FrameSlots, WindowKind } from "../contract";
 import { settle } from "../motion";
 import { beginResize } from "../resizeGate";
 import PageSurface, { type PageMode } from "./PageSurface";
-import { pageGeometry, pageWidthFromPointer } from "./pageGeometry";
+import { clampPageWidth, pageGeometry, pageWidthFromPointer } from "./pageGeometry";
 import "./frame.css";
 
 /**
@@ -139,9 +139,28 @@ export default function Frame({
   // equals `projectPageWidth` whenever nobody is dragging it.
   const pageWidth = useMotionValue(projectPageWidth);
   const pageDragging = useRef(false);
+  // The row's own width, so the page can be held to what the window affords. Unbounded until
+  // measured, so the first paint uses the stored width and the first observation corrects it.
+  const [rowWidth, setRowWidth] = useState(Number.POSITIVE_INFINITY);
   useEffect(() => {
-    if (!pageDragging.current) pageWidth.set(projectPageWidth);
-  }, [projectPageWidth, pageWidth]);
+    const row = rowRef.current;
+    if (!row) return;
+    const observer = new ResizeObserver(() => setRowWidth(row.getBoundingClientRect().width));
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (pageDragging.current) return;
+    pageWidth.set(
+      clampPageWidth(
+        projectPageWidth,
+        rowWidth,
+        PROJECT_RAIL_WIDTH,
+        PROJECT_PAGE_MIN,
+        PROJECT_PAGE_MAX,
+      ),
+    );
+  }, [projectPageWidth, rowWidth, pageWidth]);
 
   // The band with the tool window at zero: the column, minus the handle. A
   // fraction of the OS window rather than a number — see the resize observer
@@ -286,11 +305,14 @@ export default function Frame({
       pageDragging.current = true;
       const endResize = beginResize();
 
-      const rowRight = row.getBoundingClientRect().right;
+      const rowBox = row.getBoundingClientRect();
+      const rowRight = rowBox.right;
 
       const onMove = (ev: PointerEvent) => {
         const raw = pageWidthFromPointer(rowRight, PROJECT_RAIL_WIDTH, ev.clientX);
-        pageWidth.set(Math.min(Math.max(raw, PROJECT_PAGE_MIN), PROJECT_PAGE_MAX));
+        pageWidth.set(
+          clampPageWidth(raw, rowBox.width, PROJECT_RAIL_WIDTH, PROJECT_PAGE_MIN, PROJECT_PAGE_MAX),
+        );
       };
 
       const onUp = () => {

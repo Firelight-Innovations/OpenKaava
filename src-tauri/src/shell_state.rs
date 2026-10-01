@@ -2663,12 +2663,21 @@ fn detach_instance_pure(
     // already rooted somewhere. A Files dragged onto a second monitor
     // that came back rooted at nothing would read as the drag having
     // broken it.
-    let project = s
+    //
+    // The worktree and environment travel with it, for the same reason the project does. A
+    // surface popped out of a cluster working in a worktree used to land in a cluster with
+    // neither, so the new window's Files and terminals rooted at the project folder instead of
+    // the worktree they were torn out of — `cluster_root` prefers `environment`, then
+    // `worktree`, then `project`. `pinned` does not travel: the Design cluster stays one.
+    let source = s
         .windows
         .iter()
         .flat_map(|w| w.clusters.iter())
-        .find(|c| c.tree.tabs().contains(&instance_id))
-        .and_then(|c| c.project.clone());
+        .find(|c| c.tree.tabs().contains(&instance_id));
+    let project = source.and_then(|c| c.project.clone());
+    let worktree = source.and_then(|c| c.worktree.clone());
+    let environment = source.and_then(|c| c.environment.clone());
+    let environment_missing = source.is_some_and(|c| c.environment_missing);
 
     for w in s.windows.iter_mut() {
         for c in w.clusters.iter_mut() {
@@ -2684,13 +2693,13 @@ fn detach_instance_pure(
         name,
         tree,
         project,
-        worktree: None,
+        worktree,
         active_terminal: None,
         band_height: None,
         page: None,
-        environment: None,
+        environment,
         pinned: false,
-        environment_missing: false,
+        environment_missing,
     };
 
     // A terminal dragged out has to bring its band home with it. It is
@@ -5091,6 +5100,43 @@ mod tests {
         assert!(!move_cluster_pure(&mut s, "cluster-9", "tear-new"));
         assert_eq!(s.windows[0].clusters.len(), 2);
         assert_eq!(s.windows.len(), 2, "no window was made for it");
+    }
+
+    /// The regression: an app popped out of a cluster working in a worktree arrived in a cluster
+    /// with no environment and no worktree, so the new window worked in the project folder.
+    #[test]
+    fn a_detached_instance_keeps_the_environment_of_the_cluster_it_left() {
+        let mut s = state(vec![window("main", "cluster-1", &["files-1"])], vec![]);
+        s.instances.push(SurfaceInstance {
+            id: "files-1".into(),
+            app_id: "files".into(),
+            kind: SurfaceKind::App,
+            title: "Files".into(),
+        });
+        {
+            let c = cluster_mut(&mut s, "cluster-1");
+            c.project = Some("C:/game".into());
+            c.environment = Some(crate::environments::Environment::Main);
+            c.environment_missing = true;
+            c.pinned = true;
+        }
+
+        assert!(detach_instance_pure(
+            &mut s,
+            "files-1",
+            "win-2",
+            "cluster-2",
+            "pane-2"
+        ));
+
+        let moved = cluster_mut(&mut s, "cluster-2");
+        assert_eq!(moved.project.as_deref(), Some("C:/game"));
+        assert!(matches!(
+            moved.environment,
+            Some(crate::environments::Environment::Main)
+        ));
+        assert!(moved.environment_missing);
+        assert!(!moved.pinned, "the pin stays with the Design cluster");
     }
 
     #[test]
