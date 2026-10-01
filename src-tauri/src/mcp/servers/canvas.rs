@@ -137,8 +137,11 @@ canvas_tools! {
     "describe_diagram" => "canvas/describe-diagram", Scope::Canvas, true,
     "One diagram in words: its elements, labels, connections and bounds.",
     || canvas_schema(
-        json!({ "diagram": { "type": "string", "description": "The diagram id, from list_diagrams." } }),
-        &["diagram"],
+        json!({
+            "diagram": { "type": "string", "description": "The diagram id, from list_diagrams. Give this or `frame`." },
+            "frame": { "type": "string", "description": "Alias for `diagram`: the same id, or the frame's element id or title." },
+        }),
+        &[],
     );
 
     "view_diagram" => "canvas/view-diagram", Scope::Canvas, true,
@@ -146,13 +149,14 @@ canvas_tools! {
      Needs a Canvas pane open somewhere, because the drawing happens in the app.",
     || canvas_schema(
         json!({
-            "diagram": { "type": "string", "description": "The diagram id." },
+            "diagram": { "type": "string", "description": "The diagram id. Give this or `frame`." },
+            "frame": { "type": "string", "description": "Alias for `diagram`: the same id, or the frame's element id or title." },
             "region": region_schema("Zoom to this frame-relative box."),
             "scale": { "type": "number", "exclusiveMinimum": 0, "description": "Pixel scale; default fits the max dimension." },
             "maxDimension": { "type": "integer", "minimum": 1, "description": "Widest or tallest side in pixels; default 2400." },
             "theme": { "type": "string", "enum": ["light", "dark"], "description": "Render in this theme." },
         }),
-        &["diagram"],
+        &[],
     );
 
     "add_shapes" => "canvas/add-shapes", Scope::Canvas, false,
@@ -368,6 +372,17 @@ canvas_tools! {
         &["canvas", "parent"],
     );
 
+    "link_frame" => "canvas/link-frame", Scope::Canvas, false,
+    "Make a frame open an EXISTING canvas as its child (double-click, or the ↳ badge on      the frame), or unlink it with `child: null`. Sets the child's parent too, so      canvas_tree and the breadcrumb agree. Refused for the canvas itself, an ancestor (a      loop), or a canvas already nested elsewhere unless `reparent` is true. `canvas` is the      canvas holding the frame and is required.",
+    || canvas_schema(
+        json!({
+            "frame": { "type": "string", "description": "A frame's element id, or its exact name." },
+            "child": { "type": ["string", "null"], "description": "The canvas id to open from the frame, or null to unlink." },
+            "reparent": { "type": "boolean", "description": "Move the child here if it is nested under another canvas (default false)." },
+        }),
+        &["canvas", "frame", "child"],
+    );
+
     "set_frame" => "canvas/set-frame", Scope::Canvas, false,
     "Rename a frame, change its type, or set its field values. `canvas` defaults to the \
      focused canvas.",
@@ -560,7 +575,8 @@ fn ambiguous(what: &str, open: &[&Surface]) -> RpcError {
         INVALID_PARAMS,
         format!(
             "{what}, and more than one canvas is open: {}. Pass `canvas` (and `cluster` if the id \
-             repeats) or `instance`.",
+             repeats) or `instance`. A pane listed as `no file` is in a cluster that is not on \
+             screen and does not report its canvas.",
             listing(open)
         ),
         json!({ "kind": "ambiguous-canvas", "open": open_json(open) }),
@@ -677,20 +693,34 @@ pub(super) fn resolve_canvas(
         .copied()
         .filter(|s| s.file().is_some())
         .collect();
+    // A Canvas pane only says which canvas it shows while its page is mounted, so one in
+    // a cluster that is not on screen has no file here. It still counts: it may be the
+    // canvas the caller means, and "the only one open" would be a guess.
+    let unknown = open.len() - with_file.len();
     match with_file.as_slice() {
-        [only] => Ok(Resolved {
+        [only] if unknown == 0 => Ok(Resolved {
             canvas: only.file(),
             instance: Some(only.instance.clone()),
             cluster: only.cluster.clone(),
             how: "only-open",
         }),
-        [] => Err(RpcError::with_data(
+        [] if unknown == 0 => Err(RpcError::with_data(
             INVALID_PARAMS,
             "no canvas was named and none is open. Pass `canvas` (see list_files), or open one \
              with the agent server's open_app or ask the person to.",
             json!({ "kind": "no-canvas" }),
         )),
-        many => Err(ambiguous("no canvas was named and none has focus", many)),
+        [] => Err(RpcError::with_data(
+            INVALID_PARAMS,
+            format!(
+                "no canvas was named, and the open Canvas pane(s) do not say which canvas they \
+                 show ({}): a pane only reports it while its cluster is on screen. Pass `canvas` \
+                 (see list_files), or switch to that cluster.",
+                listing(&open)
+            ),
+            json!({ "kind": "canvas-unknown", "open": open_json(&open) }),
+        )),
+        _ => Err(ambiguous("no canvas was named and none has focus", &open)),
     }
 }
 
@@ -747,6 +777,7 @@ pub(super) fn list_open(all: &[Surface], active: Option<&str>) -> Value {
             json!({
                 "instance": s.instance,
                 "canvas": s.file(),
+                "canvasKnown": s.file().is_some(),
                 "title": s.title,
                 "cluster": s.cluster,
                 "window": s.window,
@@ -767,19 +798,25 @@ pub(super) fn list_open(all: &[Surface], active: Option<&str>) -> Value {
         }
         Err(e) => json!({ "error": e.message }),
     };
+    let unknown = open.iter().filter(|s| s.file().is_none()).count();
     json!({
         "count": rows.len(),
         "canvases": rows,
         "ifNoCanvasIsNamed": default,
+        "note": (unknown > 0).then(|| format!(
+            "{unknown} pane(s) show `canvas: null`: a Canvas pane reports its canvas only while              its cluster is on screen, so one in another cluster cannot be identified here.              Name `canvas` explicitly, or switch to that cluster."
+        )),
     })
 }
 
 /// The frame methods read the canvas as `canvas`; every older method as `id`.
 fn canvas_key(method: &str) -> &'static str {
     match method {
-        "canvas/frame" | "canvas/frame-image" | "canvas/set-frame" | "canvas/create-frame" => {
-            "canvas"
-        }
+        "canvas/frame"
+        | "canvas/frame-image"
+        | "canvas/set-frame"
+        | "canvas/create-frame"
+        | "canvas/link-frame" => "canvas",
         _ => "id",
     }
 }
@@ -814,6 +851,26 @@ fn annotate(result: Value, resolved: &Resolved) -> Value {
     }
 }
 
+/// Tools that restructure the project and so must be told which canvas: the schema marks
+/// `canvas` required, but a schema is advice a client may ignore, so the server checks.
+/// Without this an omitted `canvas` resolved to the focused one and moved *that*.
+const NAMED_CANVAS_ONLY: &[&str] = &["set_parent", "link_frame"];
+
+/// Refuse a [`NAMED_CANVAS_ONLY`] tool that was not given `canvas` itself. An `instance`
+/// does not stand in for it, and neither does focus.
+pub(super) fn require_named_canvas(tool: &str, target: &Target) -> Result<(), RpcError> {
+    if NAMED_CANVAS_ONLY.contains(&tool) && target.canvas.is_none() {
+        return Err(RpcError::with_data(
+            INVALID_PARAMS,
+            format!(
+                "`{tool}` requires `canvas`: it changes how that canvas is nested and never                  defaults to the focused one or to an `instance`'s. Pass the canvas id (see                  list_files)."
+            ),
+            json!({ "kind": "canvas-required", "tool": tool }),
+        ));
+    }
+    Ok(())
+}
+
 fn needs_page(route: &Route, target: &Target) -> bool {
     match route.scope {
         Scope::Open => true,
@@ -839,6 +896,7 @@ fn call(app: &AppHandle, tool: &str, params: Option<Value>) -> Result<ToolAnswer
         Some(_) => return Err(bad("arguments must be an object")),
     };
     let target = Target::from_args(&args)?;
+    require_named_canvas(tool, &target)?;
 
     let snapshot = app.state::<ShellState>().snapshot();
     let pages = if needs_page(route, &target) {
@@ -955,7 +1013,7 @@ mod tests {
     fn canvas_tools_take_an_explicit_canvas_instance_and_cluster() {
         for route in ROUTES
             .iter()
-            .filter(|r| r.scope == Scope::Canvas && r.tool != "set_parent")
+            .filter(|r| r.scope == Scope::Canvas && !["set_parent", "link_frame"].contains(&r.tool))
         {
             let tool = TOOLS.iter().find(|t| t.name == route.tool).unwrap();
             let schema = (tool.schema)();
@@ -1009,6 +1067,7 @@ mod tests {
             ("save_type", false),
             ("delete_type", false),
             ("set_parent", false),
+            ("link_frame", false),
             ("set_frame", false),
             ("create_frame", false),
         ];
@@ -1077,6 +1136,59 @@ mod tests {
         assert_eq!(r.how, "explicit");
     }
 
+    /// The drawing tools resolve like every other per-canvas tool: the canvas the agent
+    /// named wins over the focused one, and the app method gets that canvas as `id`.
+    #[test]
+    fn view_diagram_and_add_shapes_target_the_named_canvas_not_the_focused_one() {
+        let all = surfaces_with_focus(Some("canvas-2"));
+        for tool in [
+            "view_diagram",
+            "add_shapes",
+            "import_mermaid",
+            "view_comment",
+        ] {
+            let route = ROUTES.iter().find(|r| r.tool == tool).unwrap();
+            assert_eq!(route.scope, Scope::Canvas, "{tool}");
+            let named = resolve_canvas(
+                &target(Some("levels/one"), None, None),
+                &all,
+                Some("cluster-1"),
+            )
+            .unwrap();
+            assert_eq!(named.canvas.as_deref(), Some("levels/one"), "{tool}");
+            assert_eq!(named.how, "explicit", "{tool}");
+            let args: Map<String, Value> =
+                serde_json::from_value(json!({ "canvas": "levels/one", "diagram": "d" })).unwrap();
+            let params = method_params(&args, named.canvas.as_deref(), route.method);
+            assert_eq!(params["id"], "levels/one", "{tool}");
+            assert!(params.get("canvas").is_none(), "{tool}");
+        }
+        let by_pane = resolve_canvas(&target(None, Some("canvas-1"), None), &all, None).unwrap();
+        assert_eq!(by_pane.canvas.as_deref(), Some("levels/one"));
+    }
+
+    /// `link_frame` sends the canvas as `canvas`, requires it, and never defaults it.
+    #[test]
+    fn link_frame_requires_its_canvas_frame_and_child() {
+        let tool = TOOLS.iter().find(|t| t.name == "link_frame").unwrap();
+        let schema = (tool.schema)();
+        let required: Vec<&str> = schema["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(Value::as_str)
+            .collect();
+        assert_eq!(required, ["canvas", "frame", "child"]);
+        let args: Map<String, Value> = serde_json::from_value(
+            json!({ "canvas": "levels/one", "frame": "Lobby", "child": null }),
+        )
+        .unwrap();
+        let params = method_params(&args, Some("levels/one"), "canvas/link-frame");
+        assert_eq!(params["canvas"], "levels/one");
+        assert!(params.get("id").is_none());
+        assert_eq!(params["child"], Value::Null);
+    }
+
     #[test]
     fn an_instance_selects_its_canvas_and_cluster() {
         let all = surfaces_with_focus(None);
@@ -1123,6 +1235,82 @@ mod tests {
         let r = resolve_canvas(&Target::default(), &all, Some("cluster-1")).unwrap();
         assert_eq!(r.how, "only-open");
         assert_eq!(r.canvas.as_deref(), Some("levels/one"));
+    }
+
+    /// A pane in an inactive cluster has no page mounted, so it reports no canvas
+    /// (`canvas-3` in the fixture). It must still count: with it present, "the only canvas
+    /// open" is a guess, and the ambiguity path has to be the one taken.
+    #[test]
+    fn an_unidentified_pane_in_an_inactive_cluster_makes_the_default_ambiguous() {
+        let mut all = surfaces_with_focus(None);
+        all.retain(|s| s.instance != "canvas-2");
+        let hidden = all.iter().find(|s| s.instance == "canvas-3").unwrap();
+        assert_eq!(
+            hidden.file(),
+            None,
+            "the fixture's inactive pane reports nothing"
+        );
+        let err = resolve_canvas(&Target::default(), &all, Some("cluster-1")).unwrap_err();
+        assert_eq!(err.data.as_ref().unwrap()["kind"], "ambiguous-canvas");
+        assert!(err.message.contains("canvas-3"), "{}", err.message);
+        assert!(err.message.contains("no file"), "{}", err.message);
+        // Naming the canvas still works and does not need the hidden pane to answer.
+        let named = resolve_canvas(
+            &target(Some("levels/one"), None, None),
+            &all,
+            Some("cluster-1"),
+        );
+        assert_eq!(named.unwrap().how, "explicit");
+    }
+
+    #[test]
+    fn only_unidentified_panes_say_so_instead_of_claiming_nothing_is_open() {
+        let mut all = surfaces_with_focus(None);
+        all.retain(|s| s.instance == "canvas-3");
+        let err = resolve_canvas(&Target::default(), &all, Some("cluster-1")).unwrap_err();
+        assert_eq!(err.data.as_ref().unwrap()["kind"], "canvas-unknown");
+        assert!(!err.message.contains("none is open"), "{}", err.message);
+        assert!(err.message.contains("inactive") || err.message.contains("on screen"));
+    }
+
+    #[test]
+    fn list_canvases_flags_panes_whose_canvas_is_unknown() {
+        let all = surfaces_with_focus(None);
+        let out = list_open(&all, Some("cluster-1"));
+        let rows = out["canvases"].as_array().unwrap();
+        let hidden = rows.iter().find(|r| r["instance"] == "canvas-3").unwrap();
+        assert_eq!(hidden["canvas"], Value::Null);
+        assert_eq!(hidden["canvasKnown"], false);
+        let known = rows.iter().find(|r| r["instance"] == "canvas-1").unwrap();
+        assert_eq!(known["canvasKnown"], true);
+        assert!(out["note"].as_str().unwrap().contains("cluster"));
+    }
+
+    /// Regression: `set_parent` with no `canvas` resolved to the focused canvas and
+    /// silently reparented it, though the schema said `canvas` was required.
+    #[test]
+    fn set_parent_and_link_frame_refuse_to_default_the_canvas() {
+        for tool in NAMED_CANVAS_ONLY {
+            let route = ROUTES.iter().find(|r| r.tool == *tool).unwrap();
+            assert_eq!(route.scope, Scope::Canvas, "{tool}");
+            let nothing = require_named_canvas(tool, &Target::default()).unwrap_err();
+            assert_eq!(nothing.data.as_ref().unwrap()["kind"], "canvas-required");
+            assert!(
+                nothing.message.contains("requires `canvas`"),
+                "{}",
+                nothing.message
+            );
+            // A pane's instance names a canvas, but not the one the caller meant to move.
+            let by_pane = require_named_canvas(tool, &target(None, Some("canvas-2"), None));
+            assert!(
+                by_pane.is_err(),
+                "{tool} must not take an instance in its place"
+            );
+            assert!(require_named_canvas(tool, &target(Some("levels/one"), None, None)).is_ok());
+        }
+        // Tools that are meant to default are untouched.
+        assert!(require_named_canvas("view_diagram", &Target::default()).is_ok());
+        assert!(require_named_canvas("set_frame", &Target::default()).is_ok());
     }
 
     #[test]

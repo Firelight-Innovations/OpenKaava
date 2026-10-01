@@ -186,11 +186,25 @@ export function frame(b: {
   height: number;
   name: string;
   diagram: Record<string, unknown>;
+  /**
+   * The frame this one replaces, when a diagram is rebuilt in place. Its
+   * `customData` (a typed object, a child canvas, anything else under `kaava`)
+   * and its `link` carry over: only `kaava.diagram` is this writer's to set.
+   */
+  previous?: Element;
 }): Element {
   const el = base("frame", { ...b, frameId: null, strokeWidth: 2 });
   el.strokeColor = PALETTE.ink.stroke;
   el.boundElements = null;
-  return { ...el, name: b.name, customData: { kaava: { diagram: b.diagram } } };
+  const custom = (b.previous?.customData as Record<string, unknown> | undefined) ?? {};
+  const kaava = (custom.kaava as Record<string, unknown> | undefined) ?? {};
+  const out: Element = {
+    ...el,
+    name: b.name,
+    customData: { ...custom, kaava: { ...kaava, diagram: b.diagram } },
+  };
+  if (b.previous?.link) out.link = b.previous.link;
+  return out;
 }
 
 export function image(b: Base & { fileId: string }): Element {

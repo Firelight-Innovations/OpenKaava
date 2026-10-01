@@ -10,7 +10,15 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { Excalidraw, MainMenu } from "@excalidraw/excalidraw";
 import About from "./About";
 import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { CANVAS_LINK, childOf, hitLinkedFrame, viewportToScene } from "./nesting";
+import LinkBadges, { type BadgeSink } from "./LinkBadges";
+import {
+  CANVAS_LINK,
+  childOf,
+  hitLinkedFrame,
+  linkBadges,
+  viewportToScene,
+  type BadgeView,
+} from "./nesting";
 import type { SceneElement, SceneFile } from "./scene";
 
 export interface EditorProps {
@@ -26,6 +34,8 @@ export interface EditorProps {
   onApi: (api: ExcalidrawImperativeAPI) => void;
   /** A frame with a child link was double-clicked. */
   onOpenChild: (id: string) => void;
+  /** The title to show for a child canvas id on a frame's link badge. */
+  titleOf: (canvasId: string) => string;
   /** A `kaava://diagram/<id>` link (an index row) was followed. */
   onOpenDiagram?: (id: string) => void;
 }
@@ -56,6 +66,7 @@ export default function Editor({
   onChange,
   onApi,
   onOpenChild,
+  titleOf,
   onOpenDiagram,
 }: EditorProps) {
   const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
@@ -82,6 +93,9 @@ export default function Editor({
   );
   // Held in refs so the props handed to Excalidraw below stay the same objects
   // across renders, whatever the parent passes.
+  const badgeSink = useRef<BadgeSink | null>(null);
+  const titleOfRef = useRef(titleOf);
+  titleOfRef.current = titleOf;
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const onApiRef = useRef(onApi);
@@ -104,12 +118,21 @@ export default function Editor({
     onApiRef.current(api);
   }, []);
   const handleChange = useCallback(
-    (elements: readonly unknown[], appState: AppState, files: BinaryFiles) =>
+    (elements: readonly unknown[], appState: AppState, files: BinaryFiles) => {
+      // Scroll and zoom arrive here too, which is what keeps the badges on their frames.
+      badgeSink.current?.(
+        linkBadges(
+          elements as readonly SceneElement[],
+          appState as unknown as BadgeView,
+          titleOfRef.current,
+        ),
+      );
       onChangeRef.current(
         elements as readonly SceneElement[],
         appState as unknown as Record<string, unknown>,
         files,
-      ),
+      );
+    },
     [],
   );
 
@@ -152,6 +175,7 @@ export default function Editor({
           <MainMenu.Item onSelect={() => setAbout(true)}>About this editor</MainMenu.Item>
         </MainMenu>
       </Excalidraw>
+      <LinkBadges sinkRef={badgeSink} onOpen={(id) => onOpenChildRef.current(id)} />
       {about && <About onClose={() => setAbout(false)} />}
     </div>
   );

@@ -4,8 +4,10 @@ import {
   childId,
   childOf,
   hitLinkedFrame,
+  linkBadges,
   linkable,
   selectedFrame,
+  stillLinked,
   treeOrder,
   viewportToScene,
   withChild,
@@ -175,5 +177,43 @@ describe("linkable", () => {
       row("taken", "root"),
     ];
     expect(linkable(rows, "cur").map((r) => r.id)).toEqual(["free"]);
+  });
+});
+
+describe("stillLinked", () => {
+  it("is true while a live frame links to the canvas", () => {
+    const f = withChild(frame("a", 0, 0, 10, 100), "kid");
+    expect(stillLinked([f], "kid")).toBe(true);
+    expect(stillLinked([f], "other")).toBe(false);
+    expect(stillLinked([{ ...f, isDeleted: true }], "kid")).toBe(false);
+  });
+});
+
+describe("linkBadges", () => {
+  const view = { scrollX: 0, scrollY: 0, zoom: { value: 1 } };
+  const title = (id: string) => `T:${id}`;
+
+  it("puts a chip at the frame's top-right corner, named for the child", () => {
+    const f = withChild(frame("a", 100, 50, 300, 100), "world/kid");
+    expect(linkBadges([f], view, title)).toEqual([
+      { id: "a", child: "world/kid", label: "T:world/kid", right: 400, bottom: 46, compact: false },
+    ]);
+  });
+
+  it("follows scroll and zoom", () => {
+    const f = withChild(frame("a", 100, 50, 300, 100), "kid");
+    const [b] = linkBadges([f], { scrollX: -20, scrollY: 10, zoom: { value: 2 } }, title);
+    // (100 + 300 - 20) * 2 = 760; (50 + 10) * 2 - 4 = 116
+    expect(b).toMatchObject({ right: 760, bottom: 116 });
+  });
+
+  it("skips frames with no child and deleted ones, and shrinks tiny ones", () => {
+    const plain = frame("p", 0, 0, 300, 100);
+    const gone = { ...withChild(frame("g", 0, 0, 300, 100), "kid"), isDeleted: true };
+    const small = withChild(frame("s", 0, 0, 100, 100), "kid");
+    const tiny = withChild(frame("t", 0, 0, 100, 100), "kid");
+    expect(linkBadges([plain, gone], view, title)).toEqual([]);
+    expect(linkBadges([small], view, title)[0]?.compact).toBe(true);
+    expect(linkBadges([tiny], { ...view, zoom: { value: 0.1 } }, title)).toEqual([]);
   });
 });

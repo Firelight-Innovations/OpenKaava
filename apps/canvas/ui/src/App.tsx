@@ -60,7 +60,7 @@ import {
   type CanvasSummary,
   type RefRow,
 } from "./rpc";
-import { ancestry, childId, treeOrder, viewportToScene, withChild } from "./nesting";
+import { ancestry, childId, stillLinked, treeOrder, viewportToScene, withChild } from "./nesting";
 import { Autosaver, type SaveState } from "./saver";
 import { signature, slugify, toSaved, uniqueId, type SceneElement, type SceneFile } from "./scene";
 import "./App.css";
@@ -421,25 +421,55 @@ export default function App() {
     [frameId, frameName, list, patchElement, refreshList, switchTo],
   );
 
+  /** A canvas that no frame here links to any more is a root again. The frame is
+   *  saved first, so the backend finds nothing of ours left to clear in this file. */
+  const releaseChild = useCallback(
+    async (child: string) => {
+      const api = apiRef.current;
+      const open = docRef.current;
+      if (!api || !open) return;
+      const elements = api.getSceneElements() as unknown as SceneElement[];
+      if (stillLinked(elements, child)) return;
+      const row = (list ?? []).find((r) => r.id === child);
+      if (row && row.parent === open.id) await setParent(child, null);
+    },
+    [list],
+  );
+
+  /** What a frame's link badge calls the child canvas: its title, else its id. */
+  const titleOf = useCallback(
+    (id: string) => (list ?? []).find((r) => r.id === id)?.title || id.split("/").pop() || id,
+    [list],
+  );
+
   const linkExisting = useCallback(
     async (child: string) => {
       const open = docRef.current;
       if (!frameId || !open) return;
+      const previous = target.kind === "frame" ? target.child : null;
       try {
         await setParent(child, open.id);
         await patchElement(frameId, (el) => withChild(el, child));
+        if (previous && previous !== child) await releaseChild(previous);
         await refreshList();
       } catch (err) {
         setNotice(messageOf(err));
       }
     },
-    [frameId, patchElement, refreshList],
+    [frameId, patchElement, refreshList, releaseChild, target],
   );
 
   const unlinkChild = useCallback(async () => {
     if (!frameId) return;
-    await patchElement(frameId, (el) => withChild(el, null));
-  }, [frameId, patchElement]);
+    const previous = target.kind === "frame" ? target.child : null;
+    try {
+      await patchElement(frameId, (el) => withChild(el, null));
+      if (previous) await releaseChild(previous);
+      await refreshList();
+    } catch (err) {
+      setNotice(messageOf(err));
+    }
+  }, [frameId, patchElement, refreshList, releaseChild, target]);
 
   const renameFrame = useCallback(
     async (name: string) => {
@@ -987,6 +1017,7 @@ export default function App() {
                   apiRef.current = api;
                 }}
                 onOpenChild={(id) => void openChild(id)}
+                titleOf={titleOf}
                 onOpenDiagram={openDiagram}
               />
             </Suspense>

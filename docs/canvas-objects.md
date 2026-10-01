@@ -46,15 +46,29 @@ All take `actor: "agent"`. Canvas ids are the id or a `canvas/x.json` path.
 | `canvas/types` | | `{builtin, custom, path, problem}` |
 | `canvas/frames` | `canvas?`, `recursive?` | `{scope, canvases, frames, legacyCards, unreadable, problems}`; no `canvas` means the whole project |
 | `canvas/search-frames` | `query?`, `type?`, `canvas?`, `limit?` | `{query, type, total, matches}`, each a frame plus `score`, `matchedIn` |
-| `canvas/frame` | `canvas`, `frame` (id or exact name) | the frame, its `typeDef`, `contents`, `canvasPath`, `image` |
+| `canvas/frame` | `canvas`, `frame` (element id, diagram id, or exact title; the element id is the primary key) | the frame, its `typeDef`, `contents`, `canvasPath`, `image` |
 | `canvas/frame-image` | `canvas`, `frame`, `scale?`, `maxDimension?`, `theme?` | `{path, relative, width, height, scale, bytes, frame, hint}` |
 | `canvas/tree` | | `{roots, cycles, problems}`; a node is `{id, title, path, parent, frames, error, children}` |
 | `canvas/save-type` | `type: {id?, name, color, icon, description?, fields}` | the saved type |
 | `canvas/delete-type` | `id` | |
 | `canvas/set-frame` | `canvas`, `frame` (id or name), `name?`, `type?`, `values?` (field key to value, `null` unsets) | `{frame, mtime}` |
 | `canvas/create-frame` | `canvas`, `name`, `type?`, `values?`, and one of `elementIds` (wrap those shapes) or `bbox {x,y,width,height}` (empty frame) | `{frame, adopted, mtime}` |
-| `canvas/set-parent` | `id`, `parent` or `null` | |
+| `canvas/set-parent` | `id`, `parent` (a canvas id or `null`; required, omitting it is an error) | `{id, parent, unlinkedFrames}`; frames in the old parent that linked to this canvas are unlinked |
+| `canvas/link-frame` | `canvas`, `frame`, `child` (an existing canvas or `null` to unlink), `reparent?` | Sets the frame's `child` and `link` and the child's `parent`, and releases any previous child. Refused for a missing child, a loop (itself or an ancestor), or a child already nested elsewhere unless `reparent` is true |
 
-A frame in results is `{canvas, id, name, type, typeName, typeKnown, props,
+A frame in results is `{canvas, id, diagramId, name, type, typeName, typeKnown, props,
 extraProps, bbox, childCanvas, elements}`. `canvas/frame-image` renders to
 `.kaava/preview/canvas/<canvas>/<frame id>.png`, overwritten in place.
+
+## A frame can be a diagram, a typed object and a link at once
+
+`customData.kaava` on one frame may hold `diagram` (from `add_shapes`), `object` (its
+type and values) and `child` (a nested canvas) together. Rebuilding a diagram with
+`add_shapes` replaces only `kaava.diagram`; the object, child and `link` are kept.
+`get_frame` and the other frame methods accept the element id (`frame:board-title`),
+the diagram id (`board-title`) or the title; the element id is the primary key and
+`diagramId` is reported next to it. A typed frame with no diagram metadata whose element
+id is not `frame:<id>` cannot be adopted by `add_shapes`.
+
+A frame with a child shows a small badge at its top-right in the editor; clicking it
+opens the child, like a double-click on the frame.

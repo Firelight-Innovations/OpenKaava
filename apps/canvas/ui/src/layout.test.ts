@@ -138,6 +138,50 @@ describe("addShapes", () => {
     expect(again.elements.some((e) => e.id === "states:ready")).toBe(false);
   });
 
+  it("rebuilding a diagram keeps the typed object, child link and link on its frame", () => {
+    const first = addShapes([], states, mono);
+    const typed = first.elements.map((e) =>
+      e.id === first.frame.elementId
+        ? {
+            ...e,
+            link: "kaava://canvas/world/kid",
+            customData: {
+              ...(e.customData as object),
+              kaava: {
+                ...(e.customData as { kaava: object }).kaava,
+                object: { type: "feature", props: { summary: "x" } },
+                child: "world/kid",
+              },
+            },
+          }
+        : e,
+    );
+    const renamed = { ...states, frame: { ...states.frame, title: "Renamed" } };
+    const again = addShapes(typed, renamed, mono);
+    const frame = byId(again.elements, first.frame.elementId);
+    const kaava = (frame.customData as { kaava: Record<string, unknown> }).kaava;
+    expect(kaava.object).toEqual({ type: "feature", props: { summary: "x" } });
+    expect(kaava.child).toBe("world/kid");
+    expect((kaava.diagram as { title: string }).title).toBe("Renamed");
+    expect(frame.link).toBe("kaava://canvas/world/kid");
+    expect(diagramsIn(again.elements).map((d) => d.id)).toEqual(["states"]);
+  });
+
+  it("leaves other typed frames on the canvas untouched when it builds a diagram", () => {
+    const other = {
+      id: "typed",
+      type: "frame",
+      x: 0,
+      y: 0,
+      width: 50,
+      height: 50,
+      customData: { kaava: { object: { type: "model", props: {} } } },
+    } as Element;
+    const out = addShapes([other], states, mono);
+    expect(byId(out.elements, "typed")).toBe(other);
+    expect(diagramsIn(out.elements).map((d) => d.id)).toEqual(["states"]);
+  });
+
   it("places a new frame to the right of the others", () => {
     const next = addShapes(
       result.elements,

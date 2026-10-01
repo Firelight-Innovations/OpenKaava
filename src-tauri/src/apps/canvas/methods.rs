@@ -40,6 +40,15 @@ pub(super) fn string(params: &Value, key: &str) -> Result<String, RpcError> {
         .ok_or_else(|| bad(format!("{key} is required and must be a string")))
 }
 
+/// The diagram a call names: `diagram`, or `frame` as an alias for it.
+fn diagram_param(p: &Value) -> Result<String, RpcError> {
+    ["diagram", "frame"]
+        .iter()
+        .find_map(|k| p.get(*k).and_then(Value::as_str).filter(|s| !s.is_empty()))
+        .map(str::to_owned)
+        .ok_or_else(|| bad("`diagram` is required (or `frame`, an alias): the diagram id"))
+}
+
 /// The `actor` every method here requires.
 pub fn actor(params: &Value) -> Result<&'static str, RpcError> {
     match params.get("actor").and_then(Value::as_str) {
@@ -144,7 +153,7 @@ pub fn describe_diagram(root: &Path, params: Option<&Value>) -> Result<Value, Rp
     actor(p)?;
     let (_, scene, _) = open(root, p)?;
     let all = diagrams::list(&scene);
-    let d = diagram(&all, &string(p, "diagram")?)?;
+    let d = diagram(&all, &diagram_param(p)?)?;
     let mut out = diagrams::describe(&scene, d);
     out["diagram"]["path"] = json!(diagrams::path_of(&all, d));
     Ok(out)
@@ -220,7 +229,7 @@ pub(super) fn render(
         "maxDimension": view.max_dimension.unwrap_or(MAX_VIEW_PX),
         "theme": theme,
     });
-    let out = web.run("render", &payload, None)?;
+    let out = web.run_for("render", &payload, id)?;
     let png = out
         .get("png")
         .and_then(Value::as_str)
@@ -251,7 +260,7 @@ pub fn view_diagram(
     let view: ViewParams =
         serde_json::from_value(p.clone()).map_err(|e| bad(format!("bad params: {e}")))?;
     let all = diagrams::list(&scene);
-    let d = diagram(&all, &string(p, "diagram")?)?.clone();
+    let d = diagram(&all, &diagram_param(p)?)?.clone();
     let file = store::view_path(root, &id, &key_of(&d), view.region.is_some())?;
     let mut out = render(root, web, &id, scene, &d.element_id, &view, &file)?;
     out["diagram"] = json!({ "id": d.id, "title": d.title, "summary": d.summary,
@@ -321,7 +330,7 @@ pub fn author(
             }
         }
     }
-    let out = web.run(op, &json!({ "scene": light, "spec": spec }), None)?;
+    let out = web.run_for(op, &json!({ "scene": light, "spec": spec }), &id)?;
     let elements = out
         .get("elements")
         .filter(|e| e.is_array())
@@ -662,6 +671,205 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(err.data.unwrap()["kind"], "canvas-not-open");
+    }
+
+    /// Canvas panes that are open, answering as the live webview does: a pane
+    /// showing the asked-for canvas first, any pane otherwise, none at all is an error.
+    struct Panes {
+        open: Vec<&'static str>,
+        /// `(canvas asked for, pane that served it)`.
+        served: RefCell<Vec<(String, String)>>,
+        inner: Fake,
+    }
+
+    impl Panes {
+        fn new(open: &[&'static str]) -> Self {
+            Self {
+                open: open.to_vec(),
+                served: RefCell::default(),
+                inner: Fake::default(),
+            }
+        }
+    }
+
+    impl Webview for Panes {
+        fn run(&self, op: &str, payload: &Value, canvas: Option<&str>) -> Result<Value, RpcError> {
+            self.inner.run(op, payload, canvas)
+        }
+
+        fn run_for(&self, op: &str, payload: &Value, canvas: &str) -> Result<Value, RpcError> {
+            let Some(first) = self.open.first() else {
+                return Err(super::super::webview::name_canvas(
+                    super::super::webview::not_open(),
+                    canvas,
+                ));
+            };
+            let pane = if self.open.contains(&canvas) {
+                canvas
+            } else {
+                first
+            };
+            self.served
+                .borrow_mut()
+                .push((canvas.to_string(), pane.to_string()));
+            self.inner.run(op, payload, None)
+        }
+    }
+
+    fn setup_two() -> TempDir {
+        let dir = setup();
+        let other = json!({
+            "type": "excalidraw",
+            "elements": [
+                { "id": "g1", "type": "frame", "name": "Side", "x": 0, "y": 0, "width": 200,
+                  "height": 100,
+                  "customData": { "kaava": { "diagram": { "id": "side", "title": "Side" } } } },
+            ],
+            "files": {},
+        });
+        std::fs::write(dir.path().join("canvas/other.json"), other.to_string()).unwrap();
+        dir
+    }
+
+    fn run_on(
+        dir: &TempDir,
+        web: &dyn Webview,
+        method: &str,
+        params: Value,
+    ) -> Result<Value, RpcError> {
+        let ctx = CallContext {
+            cluster_id: Some("c1".into()),
+            project: Some(dir.path().to_path_buf()),
+        };
+        call_with(&ctx, false, web, method, Some(params))
+    }
+
+    #[test]
+    fn with_two_canvases_open_each_call_draws_the_one_it_named() {
+        let dir = setup_two();
+        let web = Panes::new(&["other", "game"]);
+        let game = run_on(
+            &dir,
+            &web,
+            "canvas/view-diagram",
+            json!({ "id": "game", "diagram": "playfield", "actor": "agent" }),
+        )
+        .unwrap();
+        let side = run_on(
+            &dir,
+            &web,
+            "canvas/view-diagram",
+            json!({ "id": "other", "diagram": "side", "actor": "agent" }),
+        )
+        .unwrap();
+        assert_eq!(game["relative"], ".kaava/canvas-views/game/playfield.png");
+        assert_eq!(side["relative"], ".kaava/canvas-views/other/side.png");
+        let calls = web.inner.calls.borrow();
+        assert_eq!(calls[0].1["frameId"], "f1", "game's scene, not other's");
+        assert_eq!(calls[1].1["frameId"], "g1", "other's scene, not game's");
+        assert_eq!(
+            *web.served.borrow(),
+            vec![
+                ("game".to_string(), "game".to_string()),
+                ("other".to_string(), "other".to_string())
+            ],
+            "each was served by the pane showing it"
+        );
+    }
+
+    #[test]
+    fn add_shapes_writes_the_named_canvas_and_leaves_the_other_alone() {
+        let dir = setup_two();
+        let before = std::fs::read_to_string(dir.path().join("canvas/game.json")).unwrap();
+        let web = Panes::new(&["game", "other"]);
+        let out = run_on(
+            &dir,
+            &web,
+            "canvas/add-shapes",
+            json!({ "id": "other", "actor": "agent", "frame": { "id": "side" },
+                    "shapes": [{ "id": "box", "type": "rectangle" }] }),
+        )
+        .unwrap();
+        assert_eq!(out["ids"]["box"], "new:box");
+        let read = |name: &str| -> Value {
+            serde_json::from_str(
+                &std::fs::read_to_string(dir.path().join(format!("canvas/{name}.json"))).unwrap(),
+            )
+            .unwrap()
+        };
+        assert_eq!(read("other")["elements"].as_array().unwrap().len(), 2);
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("canvas/game.json")).unwrap(),
+            before,
+            "the canvas that was not named is untouched"
+        );
+        assert_eq!(
+            web.inner.calls.borrow()[0].1["scene"]["elements"][0]["id"],
+            "g1"
+        );
+    }
+
+    #[test]
+    fn a_canvas_with_no_pane_is_still_served_from_its_own_file_by_another_pane() {
+        let dir = setup_two();
+        let web = Panes::new(&["other"]);
+        let out = run_on(
+            &dir,
+            &web,
+            "canvas/view-diagram",
+            json!({ "id": "game", "diagram": "playfield", "actor": "agent" }),
+        )
+        .unwrap();
+        assert_eq!(out["relative"], ".kaava/canvas-views/game/playfield.png");
+        assert_eq!(web.inner.calls.borrow()[0].1["frameId"], "f1");
+        assert_eq!(
+            *web.served.borrow(),
+            vec![("game".to_string(), "other".to_string())]
+        );
+    }
+
+    #[test]
+    fn with_no_canvas_pane_anywhere_the_error_names_the_canvas_to_open() {
+        let dir = setup_two();
+        for (method, params) in [
+            (
+                "canvas/view-diagram",
+                json!({ "id": "game", "diagram": "playfield", "actor": "agent" }),
+            ),
+            (
+                "canvas/add-shapes",
+                json!({ "id": "game", "actor": "agent", "frame": { "id": "playfield" },
+                        "shapes": [] }),
+            ),
+        ] {
+            let err = run_on(&dir, &Panes::new(&[]), method, params).unwrap_err();
+            assert!(err.message.contains("`game`"), "{}", err.message);
+            let data = err.data.unwrap();
+            assert_eq!(data["kind"], "canvas-not-open");
+            assert_eq!(data["canvas"], "game");
+        }
+    }
+
+    #[test]
+    fn frame_is_an_alias_for_diagram_and_one_of_them_is_required() {
+        let dir = setup();
+        let web = Fake::default();
+        let out = run(
+            &dir,
+            &web,
+            "canvas/describe-diagram",
+            json!({ "id": "game", "frame": "playfield", "actor": "agent" }),
+        )
+        .unwrap();
+        assert_eq!(out["diagram"]["id"], "playfield");
+        let err = run(
+            &dir,
+            &web,
+            "canvas/describe-diagram",
+            json!({ "id": "game", "actor": "agent" }),
+        )
+        .unwrap_err();
+        assert!(err.message.contains("`diagram`"), "{}", err.message);
     }
 
     #[test]

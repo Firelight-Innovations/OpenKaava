@@ -148,6 +148,53 @@
 
 .cv__editor {
   height: 100%;
+  position: relative;
+}
+
+/* Chips over frames that open a child canvas. Positioned from scene coordinates by
+   the editor; the layer ignores the pointer so drawing underneath is unaffected. */
+.cv__badges {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.cv__badge {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 220px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--bg-layer-1, var(--bg-layer-2));
+  color: var(--txt-primary);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.cv__badge span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cv__badge:hover {
+  background: var(--bg-layer-2);
+}
+
+.cv__badge:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
+.cv__badge.is-compact {
+  padding: 2px 4px;
 }
 
 .cv__crumbs {

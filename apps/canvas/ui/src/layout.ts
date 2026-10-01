@@ -692,6 +692,7 @@ export function addShapes(
     height: fh,
     name: f.title,
     diagram: frameMeta(f),
+    previous: existing,
   });
 
   // Children before their frame, the order Excalidraw draws frames in.

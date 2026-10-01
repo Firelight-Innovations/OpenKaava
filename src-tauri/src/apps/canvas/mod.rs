@@ -115,6 +115,7 @@ pub fn call_with(
         "canvas/frame-image" => objects::frame_image(&root(context)?, web, p),
         "canvas/tree" => objects::tree(&root(context)?, p),
         "canvas/set-parent" => objects::set_parent(&root(context)?, p),
+        "canvas/link-frame" => objects::link_frame(&root(context)?, p),
         "canvas/set-frame" => objects::set_frame(&root(context)?, p),
         "canvas/create-frame" => objects::create_frame(&root(context)?, p),
         _ => call_file(context, read_only, method, params),

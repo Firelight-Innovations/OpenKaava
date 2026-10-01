@@ -37,6 +37,47 @@ const def = (id: string, fields: FieldDef[]): TypeDef => ({
   builtin: false,
 });
 
+describe("a frame that is both a named diagram and a typed object", () => {
+  const diagram = { id: "hub", title: "Hub", level: "overview" };
+  const both = () =>
+    frame("f", { customData: { kaava: { diagram, child: "kid" }, other: { keep: 1 } } });
+
+  it("withObject adds the object and keeps the diagram, child and foreign data", () => {
+    const out = withObject(both(), { type: "feature", props: { a: 1 } });
+    expect(out.customData).toEqual({
+      kaava: { diagram, child: "kid", object: { type: "feature", props: { a: 1 } } },
+      other: { keep: 1 },
+    });
+    expect(objectOf(out)?.type).toBe("feature");
+  });
+
+  it("removing the object leaves the diagram, and removing the last key drops customData", () => {
+    const typed = withObject(both(), { type: "feature", props: {} });
+    expect(withObject(typed, null).customData).toEqual({
+      kaava: { diagram, child: "kid" },
+      other: { keep: 1 },
+    });
+    const only = withObject(frame("g"), { type: "feature", props: {} });
+    expect(withObject(only, null).customData).toBeUndefined();
+  });
+
+  it("changing the type, setting a prop and renaming keep the diagram", () => {
+    const typed = withObject(both(), { type: "feature", props: { a: 1 } });
+    const next = withObject(typed, setProp(changeType(objectOf(typed), def("system", [])), "b", 2));
+    expect((next.customData as { kaava: { diagram: unknown } }).kaava.diagram).toEqual(diagram);
+    expect(objectOf(next)).toEqual({ type: "system", props: { a: 1, b: 2 } });
+  });
+
+  it("targetOf reports the type and the child of the same frame", () => {
+    const typed = withObject(both(), { type: "feature", props: {} });
+    expect(targetOf([typed], { f: true })).toMatchObject({
+      kind: "frame",
+      object: { type: "feature" },
+      child: "kid",
+    });
+  });
+});
+
 describe("parseInput", () => {
   const f = (kind: FieldDef["kind"], extra: Partial<FieldDef> = {}): FieldDef => ({
     key: "k",

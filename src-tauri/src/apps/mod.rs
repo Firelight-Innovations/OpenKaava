@@ -650,6 +650,7 @@ pub const WRITE_METHODS: &[&str] = &[
     "canvas/save-type",
     "canvas/delete-type",
     "canvas/set-parent",
+    "canvas/link-frame",
     "canvas/set-frame",
     "canvas/create-frame",
 ];

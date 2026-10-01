@@ -44,6 +44,8 @@ fn is_default_name(name: &str) -> bool {
 #[derive(Debug, Clone)]
 pub struct Frame {
     pub id: String,
+    /// The id of the named diagram this frame is (`kaava.diagram.id`), when it is one.
+    pub diagram_id: Option<String>,
     pub name: String,
     pub type_id: Option<String>,
     pub props: Map<String, Value>,
@@ -161,6 +163,10 @@ pub fn list(scene: &Value) -> Vec<Frame> {
             let id = str_of(frame, "id").unwrap_or("").to_string();
             let object = kaava_of(frame, "object");
             Frame {
+                diagram_id: kaava_of(frame, "diagram")
+                    .and_then(|d| str_of(d, "id"))
+                    .filter(|d| !d.is_empty())
+                    .map(str::to_owned),
                 name: str_of(frame, "name").unwrap_or("").to_string(),
                 type_id: object
                     .and_then(|o| str_of(o, "type"))
@@ -195,6 +201,7 @@ pub fn frame_json(canvas: &str, frame: &Frame, table: &[TypeDef]) -> Value {
     json!({
         "canvas": canvas,
         "id": frame.id,
+        "diagramId": frame.diagram_id,
         "name": frame.name,
         "type": frame.type_id,
         "typeName": def.map(|t| t.name.clone()),
@@ -263,6 +270,12 @@ pub fn score(frame: &Frame, table: &[TypeDef], query: &str) -> Option<(u32, Vec<
 /// choices, or the clashing ids when a name is shared.
 pub fn find<'a>(frames: &'a [Frame], wanted: &str) -> Result<&'a Frame, String> {
     if let Some(f) = frames.iter().find(|f| f.id == wanted) {
+        return Ok(f);
+    }
+    if let Some(f) = frames
+        .iter()
+        .find(|f| f.diagram_id.as_deref() == Some(wanted))
+    {
         return Ok(f);
     }
     let same: Vec<&Frame> = frames
@@ -521,6 +534,23 @@ mod tests {
         assert_eq!(pillar["childCanvas"], "world/pillar");
         let loose = frame_json("balls", &frames[2], &table());
         assert!(loose["type"].is_null() && loose["typeKnown"] == true);
+    }
+
+    #[test]
+    fn find_takes_the_element_id_the_diagram_id_or_the_name() {
+        let s = scene(vec![frame(
+            "frame:board-title",
+            "Board title",
+            json!({ "kaava": { "diagram": { "id": "board-title", "title": "Board title" } } }),
+        )]);
+        let frames = list(&s);
+        for key in ["frame:board-title", "board-title", "Board title"] {
+            assert_eq!(find(&frames, key).unwrap().id, "frame:board-title", "{key}");
+        }
+        assert_eq!(
+            frame_json("c", &frames[0], &table())["diagramId"],
+            "board-title"
+        );
     }
 
     #[test]
