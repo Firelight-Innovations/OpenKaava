@@ -1,6 +1,6 @@
 import { forwardRef, type ReactNode } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, X } from "lucide-react";
+import { ChevronLeft, Maximize2, X } from "lucide-react";
 import { instant } from "../motion";
 import "./dockedpage.css";
 import "./expandedpage.css";
@@ -15,6 +15,8 @@ export interface PageShellProps {
   backLabel: string;
   /** Closes the page. The docked X, the expanded back button and Esc all mean this. */
   onClose: () => void;
+  /** Docked only: expand the page over the workspace, the same toggle as Ctrl+Shift+E. */
+  onExpand?: () => void;
   children: ReactNode;
 }
 
@@ -32,7 +34,7 @@ export interface PageShellProps {
  * page after it opens, which an app's iframe cannot be handed from outside.
  */
 const PageShell = forwardRef<HTMLDivElement, PageShellProps>(function PageShell(
-  { mode, pageId, title, backLabel, onClose, children },
+  { mode, pageId, title, backLabel, onClose, onExpand, children },
   ref,
 ) {
   const base = mode === "docked" ? "k-docked-page" : "k-expanded-page";
@@ -41,6 +43,17 @@ const PageShell = forwardRef<HTMLDivElement, PageShellProps>(function PageShell(
       {mode === "docked" ? (
         <header className="k-docked-page__header">
           <span className="k-docked-page__title">{title}</span>
+          {onExpand && (
+            <button
+              type="button"
+              className="k-docked-page__expand"
+              aria-label={`Expand ${title}`}
+              title="Expand (Ctrl+Shift+E)"
+              onClick={onExpand}
+            >
+              <Maximize2 size={14} strokeWidth={1.6} aria-hidden />
+            </button>
+          )}
           <button
             type="button"
             className="k-docked-page__close"

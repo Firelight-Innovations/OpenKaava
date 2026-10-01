@@ -226,6 +226,8 @@ export interface LinkBadge {
   bottom: number;
   /** The frame is too small on screen for words; draw the arrow alone. */
   compact: boolean;
+  /** Drawn under the frame's bottom edge because the top edge's label would be covered. */
+  below: boolean;
 }
 
 /** What the badges need of Excalidraw's `appState`. */
@@ -237,6 +239,15 @@ export interface BadgeView {
 
 /** Frames narrower than this on screen (px) get no badge at all. */
 const BADGE_MIN_PX = 28;
+/** Rough on-screen size of Excalidraw's frame-name label: it does not scale with zoom. */
+const LABEL_CHAR_PX = 8;
+const LABEL_PAD_PX = 12;
+/** Rough size of the chip: arrow, padding and the child's name at 12px. */
+const CHIP_CHAR_PX = 7;
+const CHIP_FIXED_PX = 30;
+const CHIP_COMPACT_PX = 24;
+const CHIP_MAX_PX = 220;
+const CHIP_HEIGHT_PX = 22;
 /** Frames narrower than this on screen get the arrow without the name. */
 const BADGE_COMPACT_PX = 140;
 
@@ -260,16 +271,29 @@ export function linkBadges(
     const x = Number(el.x);
     const y = Number(el.y);
     const width = Number(el.width);
-    if (![x, y, width, zoom, view.scrollX, view.scrollY].every(Number.isFinite)) continue;
+    const height = Number(el.height);
+    if (![x, y, width, height, zoom, view.scrollX, view.scrollY].every(Number.isFinite)) continue;
     const px = width * zoom;
     if (px < BADGE_MIN_PX) continue;
+    const label = titleOf(child);
+    const compact = px < BADGE_COMPACT_PX;
+    // The name label owns the top edge's left end. If the chip would run into it,
+    // the chip goes under the frame's bottom edge instead, where nothing is drawn.
+    const nameChars = typeof el.name === "string" && el.name ? el.name.length : 5;
+    const labelPx = nameChars * LABEL_CHAR_PX + LABEL_PAD_PX;
+    const chipPx = compact
+      ? CHIP_COMPACT_PX
+      : Math.min(CHIP_MAX_PX, CHIP_FIXED_PX + label.length * CHIP_CHAR_PX);
+    const below = labelPx + chipPx > px;
+    const edge = below ? y + height : y;
     out.push({
       id: el.id,
       child,
-      label: titleOf(child),
+      label,
       right: Math.round((x + width + view.scrollX) * zoom),
-      bottom: Math.round((y + view.scrollY) * zoom) - 4,
-      compact: px < BADGE_COMPACT_PX,
+      bottom: Math.round((edge + view.scrollY) * zoom) + (below ? CHIP_HEIGHT_PX + 4 : -4),
+      compact,
+      below,
     });
   }
   return out;

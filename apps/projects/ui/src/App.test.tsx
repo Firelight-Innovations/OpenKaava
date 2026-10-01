@@ -136,7 +136,10 @@ describe("Projects", () => {
   it("shows the empty state when the bucket has no projects yet", async () => {
     backend({ list: { source: "live", profile: "prod", projects: [], problems: [] } });
     render(<App />);
-    expect(await screen.findByText(/No projects yet/)).toBeTruthy();
+    const note = await screen.findByText(/No projects yet/);
+    expect(note.textContent).not.toContain("`");
+    expect(note.querySelector("code")?.textContent).toBe("kaava-project");
+    expect(screen.getByRole("heading", { level: 1 }).className).toContain("app__title--hidden");
   });
 
   it("selecting a project starts the wake flow and reports progress", async () => {

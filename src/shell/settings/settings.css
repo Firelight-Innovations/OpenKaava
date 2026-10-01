@@ -529,6 +529,14 @@
 .settings-mcp__expand {
   padding: 0 var(--space-1);
   border-radius: var(--radius-md);
+  /* The chevron svg has no baseline, so the button's own baseline fell to its
+     bottom edge and the label rode above the rest of the meta line. Let the
+     text set the baseline and centre only the chevron. */
+  align-items: baseline;
+}
+
+.settings-mcp__expand .mcp-tools__chevron {
+  align-self: center;
 }
 
 .settings-mcp__expand:hover,

@@ -2225,6 +2225,7 @@ export default function WindowRoot({
               title={activePage?.name ?? rightPage.id}
               backLabel={activeCluster ? activeCluster.name : "Back"}
               onClose={onClosePage}
+              onExpand={onTogglePageMode}
             >
               {pageBody}
             </PageShell>

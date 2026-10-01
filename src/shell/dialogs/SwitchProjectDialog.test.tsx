@@ -104,6 +104,17 @@ describe("SwitchProjectDialog", () => {
     expect(screen.getByText("3 environments · 2 clusters")).toBeTruthy();
   });
 
+  it("only says 'Never opened' for a project with no last-opened time", async () => {
+    listRecentProjects.mockResolvedValue([
+      row({ name: "Seen", initialized: false }),
+      row({ name: "Fresh", path: "C:/fresh", initialized: false, lastOpened: null }),
+    ]);
+    renderDialog();
+    await screen.findByText("Seen");
+    expect(screen.getAllByText("Never opened in Kaava.")).toHaveLength(1);
+    expect(screen.getByText("Not open.")).toBeTruthy();
+  });
+
   it("filters the list by the search field, case-insensitively", async () => {
     listRecentProjects.mockResolvedValue([
       row({ name: "Flashlight" }),
