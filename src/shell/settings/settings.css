@@ -95,43 +95,6 @@
   color: var(--txt-primary);
 }
 
-/* A `k-field` input drawn on its wrapper, so the focus highlight is the
-   field's own edge and halo (`:focus-within`) with the icon inside it. */
-.settings__search {
-  flex: 0 1 320px;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  height: var(--control-lg);
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border-subtle-1);
-  border-radius: var(--radius-md);
-  background: var(--bg-layer-1);
-  color: var(--txt-placeholder);
-}
-
-.settings__search:focus-within {
-  border-color: var(--accent);
-  outline: 3px solid var(--accent-subtle);
-  outline-offset: 0;
-}
-
-.settings__search-input {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--txt-primary);
-  font: var(--type-body);
-  outline: none;
-}
-
-.settings__search-input::placeholder {
-  color: var(--txt-placeholder);
-}
-
 /* Rust refused a write and rolled the value back. Drawn as a strip under the
    header rather than beside the control that caused it: the rollback has
    already happened, so there is no longer a wrong value on screen to point at. */
@@ -578,7 +541,6 @@
 .settings-mcp__expand:focus-visible,
 .mcp-tool__button:focus-visible,
 .mcp-tool__head:focus-visible,
-.mcp-tools__filter:focus-visible,
 .mcp-tool__schema:focus-visible,
 .mcp-group__summary:focus-visible {
   outline: var(--focus-ring);
@@ -602,16 +564,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-}
-
-.mcp-tools__filter {
-  height: var(--control-md);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface-1);
-  color: var(--txt-primary);
-  font: var(--type-body);
 }
 
 .mcp-tools__list,

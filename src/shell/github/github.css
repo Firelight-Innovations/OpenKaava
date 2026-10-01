@@ -117,35 +117,6 @@
 
 /* --- filter -------------------------------------------------------------- */
 
-.github__filter {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border-bottom: 1px solid var(--line);
-  color: var(--text-dim-2);
-  flex: 0 0 auto;
-}
-
-.github__filterinput {
-  flex: 1 1 auto;
-  min-width: 0;
-  background: none;
-  border: none;
-  outline: none;
-  font: inherit;
-  font-size: 12px;
-  color: var(--text);
-}
-
-.github__filterinput::placeholder {
-  /* Faint rather than dim: the placeholder is a syntax reminder, and at
-     `--text-dim` it read as a value already in the box. */
-  color: var(--text-faint);
-  font-family: var(--mono);
-  font-size: 11px;
-}
-
 /* --- list ---------------------------------------------------------------- */
 
 .github__list {
