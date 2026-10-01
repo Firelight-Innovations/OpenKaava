@@ -453,6 +453,17 @@ that pane. When honoured, the shell replays a synthetic `Escape` `keydown` on it
 own document, so the same binding handles it as if the key had been typed
 outside the frame. Nothing comes back but the acknowledgement.
 
+```jsonc
+{"kaava":1,"kind":"request","id":11,"method":"kaava/key","params":{"key":"P","code":"KeyP","ctrlKey":true,"shiftKey":true,"altKey":false,"metaKey":false}}
+```
+
+The same gap exists for the shell's chords. The bridge forwards `Ctrl/Meta` with
+`Shift` or `Alt`, and `Alt+1` to `Alt+9`, that the app did not
+`preventDefault`. Ordinary editing chords (Ctrl+C, Ctrl+Z, Ctrl+B) are never
+forwarded. The shell replays the chord as a `keydown` on its own document, from
+any frame, and refuses a payload with no Ctrl, Meta or Alt so a frame cannot type
+into the shell.
+
 #### `kaava/search-claim` — the title bar's search field
 
 The shell has one search field, in the title bar. A frame with a filter of its own claims it

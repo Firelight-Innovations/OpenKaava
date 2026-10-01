@@ -111,4 +111,14 @@ describe("Frame's rail page", () => {
     expect(container.querySelector('[data-testid="host"]')).toBe(host);
     expect(mounts.count).toBe(1);
   });
+
+  it("clears the docked inline width once the page is expanded", async () => {
+    setReducedMotion(true);
+    const { container, rerender } = render(<Frame kind="main" slots={slots(<Probe />)} />);
+    const docked = container.querySelector<HTMLElement>('[data-region="page"]');
+    expect(docked?.style.width).not.toBe("auto");
+    rerender(<Frame kind="main" projectPageExpanded slots={slots(<Probe />)} />);
+    const expanded = container.querySelector<HTMLElement>('[data-region="page-expanded"]');
+    await waitFor(() => expect(expanded?.style.width).toBe("auto"));
+  });
 });
