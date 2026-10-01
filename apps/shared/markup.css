@@ -1,0 +1,159 @@
+/* The markup surfaces the Godot and Blender viewers share: the 3D stage, the kept-markup bar, the send tip and the larger look. Tokens only. */
+
+/* The 3D view: a bar above a stage that takes the rest of the pane. */
+.k-markup__scene {
+  flex: 1;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.k-markup__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.k-markup__hint {
+  font-size: 11px;
+  color: var(--txt-secondary);
+}
+
+.k-markup__stage {
+  position: relative;
+  flex: 1;
+  min-height: 280px;
+}
+
+/* A markup that has been drawn and not yet sent. */
+.k-markup__bar-kept {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-layer-1);
+}
+
+.k-markup__thumb {
+  height: 40px;
+  max-width: 96px;
+  object-fit: cover;
+  border-radius: var(--radius-sm, 4px);
+  cursor: grab;
+}
+
+.k-markup__summary {
+  font-size: 11px;
+  color: var(--txt-secondary);
+  margin-right: auto;
+}
+
+/* The one-time offer to make markup sending automatic. */
+.k-markup__tip {
+  position: absolute;
+  right: 12px;
+  bottom: 52px;
+  z-index: 5;
+  max-width: 320px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-layer-2, var(--bg-layer-1));
+  box-shadow: var(--shadow-popover, 0 4px 14px rgba(0, 0, 0, 0.3));
+}
+
+.k-markup__tip-text {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--txt-secondary);
+}
+
+.k-markup__tip-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.k-markup__tip-close {
+  margin-left: auto;
+  display: inline-flex;
+  padding: 4px;
+  border: 0;
+  border-radius: var(--radius-sm, 4px);
+  background: transparent;
+  color: var(--txt-tertiary);
+  cursor: pointer;
+}
+
+/* The last markup, over the 3D view. */
+.k-markup__previous {
+  position: absolute;
+  inset: 8px 8px 48px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  overflow: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-layer-1);
+}
+
+.k-markup__previous-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.k-markup__previous-image {
+  max-width: 100%;
+  max-height: 60%;
+  object-fit: contain;
+  align-self: flex-start;
+  border-radius: var(--radius-sm, 4px);
+}
+
+.k-markup__previous-notes {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 12px;
+  color: var(--txt-secondary);
+}
+
+.k-markup__action {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+  cursor: pointer;
+}
+
+.k-markup__action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* No export to look at: the empty state that offers Export. */
+.k-markup__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  font-size: 12px;
+  color: var(--txt-secondary);
+}

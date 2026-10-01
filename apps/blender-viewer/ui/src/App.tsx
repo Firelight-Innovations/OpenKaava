@@ -8,6 +8,7 @@ import {
   ExternalLink,
   MessageSquarePlus,
   Package,
+  PenLine,
   RefreshCw,
   Square,
 } from "lucide-react";
@@ -26,15 +27,28 @@ import {
   detectBlender,
   getImage,
   getState,
+  loadMarkup,
   openInBlender,
   setExecutable,
   startExport,
   type BlenderPart,
   type BlenderViewerState,
 } from "./rpc";
+import ModelPreview from "./ModelPreview";
 import { footerIsCompact } from "./layout";
 import { reconcileBlend, selectionWasDropped } from "./selection";
-import { dragContext, partSummary, putGlb, putParts, putRender } from "./context";
+import {
+  dragContext,
+  keepMarkup,
+  partSummary,
+  putGlb,
+  putMarkup,
+  putParts,
+  putRender,
+} from "./context";
+import { useMarkup } from "../../../shared/useMarkup";
+import { AUTO_SEND_KEY, BLENDER_TARGET, TIP_KEY } from "../../../shared/markupFlow";
+import { MarkupBar, MarkupTip, PreviousMarkup } from "../../../shared/MarkupPanels";
 import "./App.css";
 
 type Mode = "model" | "renders" | "wire";
@@ -266,6 +280,30 @@ export default function App() {
 
   const { sent, send } = useSendAction(setError, message);
 
+  // The kept markup is per `.blend`: it is saved with the export cache and
+  // brought back when the file is shown again. `rel` names it in the strip.
+  const {
+    markup,
+    barOpen,
+    setBarOpen,
+    previousOpen,
+    setPreviousOpen,
+    tip,
+    closeTip,
+    onMarkup,
+    sendKept: sendMarkup,
+    flip,
+  } = useMarkup({
+    target: BLENDER_TARGET,
+    subject: state?.rel ?? null,
+    enabled: !!state?.model,
+    load: () => (blend ? loadMarkup(blend) : Promise.resolve(null)),
+    save: (_rel, png, json) => (blend ? keepMarkup(png, json, blend) : Promise.resolve()),
+    send,
+    onProblem: setError,
+    describeError: message,
+  });
+
   // A render is already in memory as a data URL; the bytes cross the bridge once.
   const renderPut = (id: string, label: string) => () => {
     const url = images[id];
@@ -432,12 +470,23 @@ export default function App() {
             No <code>.blend</code> files in this environment. Save one here and it will appear.
           </p>
         ) : !hasExport ? (
-          <p className="bv__hint bv__empty">
-            <code>{state.rel}</code> has not been exported yet.
-            {state.blender.found
-              ? " Export runs Blender headless and shows the previews, the parts list and the .glb here."
-              : " Set up Blender above, then export."}
-          </p>
+          <div className="bv__empty bv__empty--export">
+            <p className="bv__hint">
+              <code>{state.rel}</code> has not been exported yet.
+              {state.blender.found
+                ? " Export runs Blender headless and shows the 3D model, the renders and the parts list here."
+                : " Set up Blender above, then export."}
+            </p>
+            <button
+              type="button"
+              className="k-btn k-btn--primary k-btn--sm"
+              disabled={!blend || !state.blender.found || job.running}
+              onClick={runExport}
+            >
+              <RefreshCw size={13} strokeWidth={1.5} aria-hidden="true" />
+              Export
+            </button>
+          </div>
         ) : mode === "renders" ? (
           <main className="bv__renders">
             <div className="bv__renders-strip">
@@ -482,16 +531,43 @@ export default function App() {
             )}
           </main>
         ) : (
-          <main className="bv__viewport">
+          <main className="bv__viewport bv__viewport--model">
             <div className="bv__model">
-              {hero && images[hero.id] ? (
-                <figure className="bv__hero">
-                  <img src={images[hero.id]} alt={hero.label} />
-                  <figcaption>{hero.label}</figcaption>
-                </figure>
-              ) : (
-                <p className="bv__hint">No renders in this export.</p>
-              )}
+              <ModelPreview
+                blend={state.blend ?? blend ?? ""}
+                rel={state.rel}
+                model={state.model}
+                exportedAt={state.exportedAt}
+                blenderVersion={state.blenderVersion}
+                stale={state.stale === true}
+                parts={state.parts}
+                selected={selected?.name ?? null}
+                onSelect={(name) => setSelected(state.parts.find((p) => p.name === name) ?? null)}
+                onMarkup={onMarkup}
+                onNotice={setError}
+                canExport={state.blender.found && !job.running}
+                onExport={runExport}
+                fallback={
+                  hero && images[hero.id] ? (
+                    <figure className="bv__hero">
+                      <img src={images[hero.id]} alt={hero.label} />
+                      <figcaption>{hero.label}</figcaption>
+                    </figure>
+                  ) : null
+                }
+              >
+                {markup && (
+                  <MarkupBar
+                    url={markup.url}
+                    json={markup.json}
+                    fresh={markup.fresh}
+                    open={barOpen}
+                    onOpenChange={setBarOpen}
+                    onView={() => setPreviousOpen(true)}
+                    onPointerDown={dragContext(() => putMarkup(markup.png, markup.json, state.rel))}
+                  />
+                )}
+              </ModelPreview>
               <dl className="bv__facts">
                 <dt>.glb</dt>
                 <dd>
@@ -520,10 +596,6 @@ export default function App() {
                   Blender {state.blenderVersion}, {state.engine} at {state.resolution}px
                 </dd>
               </dl>
-              <p className="bv__note">
-                The viewer shows renders of the export, not a live 3D view: orbiting is not part of
-                this build.
-              </p>
               {state.warnings && state.warnings.length > 0 && (
                 <ul className="bv__warnings">
                   {state.warnings.map((w, i) => (
@@ -559,6 +631,22 @@ export default function App() {
               </div>
             )}
           </aside>
+        )}
+
+        {previousOpen && markup && (
+          <PreviousMarkup
+            url={markup.url}
+            json={markup.json}
+            savedAt={markup.savedAt}
+            onClose={() => setPreviousOpen(false)}
+          />
+        )}
+        {tip && (
+          <MarkupTip
+            onEnable={() => flip(AUTO_SEND_KEY, true)}
+            onNever={() => flip(TIP_KEY, false)}
+            onClose={closeTip}
+          />
         )}
 
         {selected && (
@@ -684,6 +772,17 @@ export default function App() {
             title="Add the parts list to the agent's context. Drag to a terminal to send it."
             onPointerDown={dragContext(() => putParts(state))}
             onClick={() => void send("parts", "parts", () => putParts(state))}
+          />
+        )}
+        {mode === "model" && markup && (
+          <SendButton
+            label="Send markup"
+            sent={sent === "markup"}
+            icon={<PenLine size={13} strokeWidth={1.5} aria-hidden="true" />}
+            compact={compact}
+            title="Send the markup you drew to the agent, or drag this onto a terminal"
+            onPointerDown={dragContext(() => putMarkup(markup.png, markup.json, state.rel))}
+            onClick={() => void sendMarkup()}
           />
         )}
         {state.model && (

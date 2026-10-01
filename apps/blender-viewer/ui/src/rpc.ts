@@ -119,3 +119,17 @@ export const detectBlender = () => invoke<BlenderInstall>("blender-viewer/detect
 
 export const setExecutable = (path: string) =>
   invoke<BlenderInstall>("blender-viewer/set-executable", { path });
+
+/** The exported `.glb` as standard base64, for the 3D preview. */
+export const getGlb = (blend: string) =>
+  invoke<{ base64: string; size: number }>("blender-viewer/glb", { blend });
+
+/** Replaces this `.blend`'s kept markup; one pair per file, so it never accumulates. */
+export const saveMarkup = (blend: string, pngBase64: string, json: string) =>
+  invoke<{ savedAt: number }>("blender-viewer/markup-save", { blend, pngBase64, json });
+
+/** `null` when nothing has been marked up on this `.blend` yet. */
+export const loadMarkup = (blend: string) =>
+  invoke<{ png: string; json: string; savedAt: number } | null>("blender-viewer/markup", {
+    blend,
+  });

@@ -6,6 +6,12 @@
 import { invoke } from "@openkaava/bridge";
 import { contextKey, type ContextRef } from "../../../shared/context";
 import type { MarkupJson } from "@kaava/markup";
+import {
+  GODOT_TARGET,
+  blobBase64,
+  putMarkup as putMarkupShared,
+  sendMarkup as sendMarkupShared,
+} from "../../../shared/markupFlow";
 import { saveMarkup, type GodotNode, type GodotViewerState } from "./rpc";
 
 export { dragContext } from "../../../shared/context";
@@ -48,106 +54,18 @@ export function putFrame(base64: string, scenePath: string | null) {
   });
 }
 
-/** Text the store keeps whole; over this it cuts at a line, which would break the JSON. */
-const MAX_JSON_BYTES = 240 * 1024;
-
-/**
- * The markup JSON as text an agent reads. The raw Excalidraw elements are for
- * reopening the drawing in Canvas and can be large (a freehand stroke is
- * hundreds of points), so when the whole document would not fit they are left
- * out and `excalidrawOmitted` says so; pins, annotations and the camera, which
- * are what an agent acts on, are always kept.
- */
-export function markupJsonText(json: MarkupJson): string {
-  const whole = JSON.stringify(json, null, 2);
-  if (new TextEncoder().encode(whole).length <= MAX_JSON_BYTES) return whole;
-  return JSON.stringify(
-    {
-      ...json,
-      excalidraw: { elements: [], appState: json.excalidraw.appState },
-      excalidrawOmitted: true,
-    },
-    null,
-    2,
-  );
-}
-
-async function blobBase64(blob: Blob): Promise<string> {
-  const bytes = new Uint8Array(await blob.arrayBuffer());
-  let binary = "";
-  // In slices: spreading a whole PNG into one call overflows the argument limit.
-  for (let i = 0; i < bytes.length; i += 0x8000) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  }
-  return btoa(binary);
-}
-
-/**
- * Sends a markup export: the picture under `godot/<scene>/markup` and the JSON
- * beside it, as a JSON item, under `godot/<scene>/markup-json`. Both keys are stable, so marking
- * up the same scene again replaces these two items rather than adding more.
- * Resolves with both items; the picture is what a drag onto a terminal carries.
- */
-export async function putMarkupItems(
-  png: Blob,
-  json: MarkupJson,
-  scenePath: string | null,
-): Promise<{ image: ContextRef; notes: ContextRef }> {
-  const scene = scenePath ?? "scene";
-  const image = await invoke<ContextRef>("context/put", {
-    key: contextKey("godot", scene, "markup"),
-    kind: "image",
-    title: `${scene} - markup`,
-    label: "Godot - markup",
-    bytesBase64: await blobBase64(png),
-  });
-  const notes = await invoke<ContextRef>("context/put", {
-    key: contextKey("godot", scene, "markup-json"),
-    kind: "json",
-    title: `${scene} - markup notes (JSON)`,
-    label: "Godot - markup JSON",
-    text: markupJsonText(json),
-  });
-  return { image, notes };
-}
+export { base64Blob, markupJsonText } from "../../../shared/markupFlow";
 
 /** The picture's item, for a drag onto a terminal. */
-export async function putMarkup(
-  png: Blob,
-  json: MarkupJson,
-  scenePath: string | null,
-): Promise<ContextRef> {
-  return (await putMarkupItems(png, json, scenePath)).image;
-}
+export const putMarkup = (png: Blob, json: MarkupJson, scenePath: string | null) =>
+  putMarkupShared(GODOT_TARGET, png, json, scenePath);
 
 /**
  * Attaches a markup as context and types `@path` references to it at the
- * agent's prompt. Never presses Enter: the person reads the line and sends it.
- * Both auto-send and the Send markup button come through here, so they behave
- * the same. Having no agent terminal to type into is not a failure, since the
- * items are attached in the Context strip either way.
+ * agent's prompt; the shared flow, as Godot.
  */
-export async function sendMarkup(
-  png: Blob,
-  json: MarkupJson,
-  scenePath: string | null,
-): Promise<ContextRef> {
-  const { image, notes } = await putMarkupItems(png, json, scenePath);
-  try {
-    await invoke("context/insert", { itemIds: [image.id, notes.id] });
-  } catch (e) {
-    console.error("kaava: could not type the markup reference at the prompt", e);
-  }
-  return image;
-}
-
-/** A base64 PNG as a Blob, for sending a markup that was kept on disk. */
-export function base64Blob(base64: string, type = "image/png"): Blob {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return new Blob([bytes], { type });
-}
+export const sendMarkup = (png: Blob, json: MarkupJson, scenePath: string | null) =>
+  sendMarkupShared(GODOT_TARGET, png, json, scenePath);
 
 /** Keeps the picture and JSON a markup was drawn on, so it can be looked at again. */
 export async function keepMarkup(png: Blob, json: MarkupJson, scene: string): Promise<void> {
