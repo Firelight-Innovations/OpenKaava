@@ -98,6 +98,6 @@
    alpha rather than the 8-digit hex the theme colours use. */
 
 .preview-pane__match {
-  background: rgba(217, 169, 63, 0.35); /* --warn @ 0.35 */
+  background: color-mix(in srgb, var(--warn) 35%, transparent);
   border-radius: 2px;
 }

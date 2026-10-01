@@ -7,10 +7,8 @@
  * mirroring the split `apps/files/ui/src/viewer/monaco.ts` draws for the same
  * reason (see that file's header).
  *
- * Two existing integrations were mined for this one and neither could simply
- * be imported. `docs/design-notes/shell-search.md` records what came from
- * `src/shell/diff/DiffView.tsx`, what from `apps/files/ui/src/viewer/monaco.ts`,
- * and why. Comments below mark what came from where.
+ * `docs/design-notes/shell-search.md` records what was taken from `DiffView.tsx`
+ * and from Files' `monaco.ts`.
  *
  * Imported from `monaco-editor/editor/editor.api`, not `.../editor.main`, for
  * the reason DiffView's header gives: `editor.main` registers every bundled
@@ -23,17 +21,11 @@ import * as monaco from "monaco-editor/editor/editor.api";
  * A curated set of languages, one `register.js` each — ported from the list in
  * `apps/files/ui/src/viewer/monaco.ts`, minus two of its entries.
  *
- * Each registers an id and a *lazy* loader, so the grammar itself is a chunk
- * fetched the first time a file of that language is previewed; listing one here
- * costs a few hundred bytes, not a grammar. That is what "real syntax
- * highlighting" (the brief) costs beyond DiffView's zero.
+ * Each registers an id and a *lazy* loader, so a grammar is only fetched the
+ * first time a file of that language is previewed.
  *
- * One thing Files' list has that this one does not: `features/register.all`.
- * That barrel gives an *editable* buffer its find widget, context menu,
- * folding and multi-cursor — Files measured it at nearly a third of that app's
- * editor chunk. A read-only glance pane needs none of it; `revealLineInCenter`
- * and decorations are core `editor.api`, not contributions. If this pane ever
- * grows in-place find, that cost gets re-measured then, the way Files did.
+ * Unlike Files' list there is no `features/register.all`: a read-only glance
+ * pane needs no find widget, context menu, folding or multi-cursor.
  *
  * TOML is absent because it is not one of Monaco's — see `registerToml` below.
  */
@@ -63,7 +55,7 @@ import "monaco-editor/languages/definitions/ini/register";
 import { jsonDefaults } from "monaco-editor/languages/features/json/register";
 
 import { registerToml } from "@openkaava/monaco-languages";
-import { accentThemeColors } from "@openkaava/bridge/theme";
+import { monacoThemeData } from "@openkaava/bridge/theme";
 import { onThemeChange } from "../themeBroadcast";
 
 import EditorWorker from "monaco-editor/editor/editor.worker?worker";
@@ -171,109 +163,18 @@ function languageFor(extension: string): string | undefined {
 }
 
 /**
- * The preview's theme, defined once at module scope — not per-mount, for the
- * reason DiffView's and Files' copies both give: `defineTheme` writes into
- * Monaco's global theme registry, so redefining it on every mount would be
- * repeated work for no visual change.
- *
- * Named `kaava-preview-dark`, deliberately **not** `kaava-dark`. DiffView also
- * registers a theme called `kaava-dark`, and that module shares this one's JS
- * context — both are shell-side, so both chunks can be live in the same page at
- * once, unlike Files' copy, which sits behind an iframe boundary and never
- * collides with either. Two `defineTheme("kaava-dark", ...)` calls from two
- * different chunks would make whichever evaluates second win, silently, for
- * both. A distinct name sidesteps the question of evaluation order entirely
- * rather than relying on it.
+ * The preview's theme name, deliberately not `kaava-dark`: DiffView registers
+ * that one in the same JS context, and two definitions of one name would let
+ * whichever evaluates second win for both.
  */
 export const THEME = "kaava-preview-dark";
 
-/**
- * The colours themselves are the same ~45 mappings from Files' `kaava-dark`,
- * copied rather than DiffView's four — DiffView only themes a diff's two
- * inserted/removed backgrounds, and this pane is a full read-only editor with
- * find/selection/suggest/menu surfaces of its own (inert here, but still
- * painted if Monaco ever draws them). Every value below is `src/tokens.css`,
- * named in the comment beside it, exactly as Files' original documents.
- * Monaco's theme API takes colour *strings*, so this is the one place in this
- * directory a literal hex is unavoidable.
- *
- * Alphas are 8-digit `#RRGGBBAA`, not `rgba()` — seen the hard way once
- * already: DiffView's header records that `Color.fromHex` silently falls back
- * to opaque red for a CSS `rgba()` string. The suffix is `round(alpha * 255)`.
- */
-const BASE_COLORS: Record<string, string> = {
-  // --- the page ---------------------------------------------------------
-  "editor.background": "#14161a", // --bg
-  "editor.foreground": "#e4e7ec", // --text
-  "editorGutter.background": "#14161a", // --bg
-  "editorLineNumber.foreground": "#4a505b", // --text-faint
-  "editorLineNumber.activeForeground": "#949cab", // --text-dim
-  "editor.lineHighlightBackground": "#1b1e24", // --surface
-  "editor.lineHighlightBorder": "#1b1e24", // --surface
-
-  // --- find ---------------------------------------------------------------
-  "editor.findMatchBackground": "#d9a93f59", // --warn @ 0.35
-  "editor.findMatchHighlightBackground": "#d9a93f2e", // --warn @ 0.18
-  "editor.findRangeHighlightBackground": "#d9a93f14", // --warn @ 0.08
-
-  // --- structure ----------------------------------------------------------
-  "editorBracketMatch.background": "#22262e", // --surface-2
-  "editorIndentGuide.background1": "#2c313b", // --line
-  "editorIndentGuide.activeBackground1": "#3a404b", // --line-2
-  "editorWhitespace.foreground": "#3a404b", // --line-2
-  "editorRuler.foreground": "#2c313b", // --line
-  "editorOverviewRuler.border": "#2c313b", // --line
-
-  // --- scrollbar ------------------------------------------------------------
-  "scrollbarSlider.background": "#2c313b80", // --line @ 0.50
-  "scrollbarSlider.hoverBackground": "#3a404bb3", // --line-2 @ 0.70
-  "scrollbarSlider.activeBackground": "#3a404b", // --line-2
-
-  // --- minimap (unused here — minimap is off, see mountPreviewEditor — but
-  // defined for parity with Files' theme, since Monaco still resolves these
-  // keys against whatever base colours are missing) ------------------------
-  "minimap.background": "#14161a", // --bg
-  "minimapSlider.background": "#2c313b4d", // --line @ 0.30
-  "minimapSlider.hoverBackground": "#2c313b80", // --line @ 0.50
-  "minimapSlider.activeBackground": "#3a404bb3", // --line-2 @ 0.70
-
-  // --- floating widgets -----------------------------------------------------
-  "editorWidget.background": "#1b1e24", // --surface
-  "editorWidget.foreground": "#e4e7ec", // --text
-  "editorWidget.border": "#2c313b", // --line
-  "editorHoverWidget.background": "#1b1e24", // --surface
-  "editorHoverWidget.border": "#2c313b", // --line
-  "editorSuggestWidget.background": "#1b1e24", // --surface
-  "editorSuggestWidget.border": "#2c313b", // --line
-  "editorSuggestWidget.foreground": "#e4e7ec", // --text
-  "editorSuggestWidget.selectedBackground": "#22262e", // --surface-2
-  "menu.background": "#1b1e24", // --surface
-  "menu.foreground": "#949cab", // --text-dim
-  "menu.border": "#2c313b", // --line
-  "menu.selectionBackground": "#22262e", // --surface-2
-  "menu.selectionForeground": "#e4e7ec", // --text
-  "list.hoverBackground": "#22262e", // --surface-2
-  "input.background": "#14161a", // --bg
-  "input.foreground": "#e4e7ec", // --text
-  "input.border": "#3a404b", // --line-2
-
-  // --- diagnostics (only JSON produces these) --------------------------------
-  "editorError.foreground": "#d9635f", // --err
-  "editorWarning.foreground": "#d9a93f", // --warn
-  "editorInfo.foreground": "#949cab", // --text-dim
-};
-
-/**
- * Define the theme from the fixed palette plus the accent as it is *now*.
- * Monaco takes colour strings, not `var()`, so the accent has to be read and the
- * theme redefined whenever it changes; see `accentThemeColors`.
- */
+/** Redefined on every theme or accent change; Monaco cannot take `var()`. */
 function defineAccentTheme(): void {
   monaco.editor.defineTheme(THEME, {
-    base: "vs-dark",
+    ...monacoThemeData(),
     inherit: true,
     rules: [],
-    colors: { ...BASE_COLORS, ...accentThemeColors() },
   });
   monaco.editor.setTheme(THEME);
 }

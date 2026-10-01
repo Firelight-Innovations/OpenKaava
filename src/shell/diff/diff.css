@@ -25,26 +25,25 @@
    CSS, which is the layer that actually wins. They are the same values —
    --ok and --err at a wash alpha for the line, stronger for the changed span
    within it — and they have to stay in step with that theme block by hand.
-   Written as rgb()/alpha rather than var(--ok) because a token is an opaque
-   hex and these have to be translucent to let the line's own background
-   through. */
+   Written with color-mix() so the translucent wash follows the live token in
+   both themes. */
 
 .diff .line-insert,
 .diff .inline-added {
-  background-color: rgba(95, 179, 122, 0.08); /* --ok, wash alpha */
+  background-color: color-mix(in srgb, var(--ok) 8%, transparent); /* --ok, wash alpha */
 }
 
 .diff .char-insert {
-  background-color: rgba(95, 179, 122, 0.25); /* --ok */
+  background-color: color-mix(in srgb, var(--ok) 25%, transparent); /* --ok */
 }
 
 .diff .line-delete,
 .diff .inline-deleted {
-  background-color: rgba(217, 99, 95, 0.08); /* --err, wash alpha */
+  background-color: color-mix(in srgb, var(--err) 8%, transparent); /* --err, wash alpha */
 }
 
 .diff .char-delete {
-  background-color: rgba(217, 99, 95, 0.25); /* --err */
+  background-color: color-mix(in srgb, var(--err) 25%, transparent); /* --err */
 }
 
 /* --- review notes ---------------------------------------------------------
@@ -69,7 +68,9 @@
 /* A plus, drawn as two bars. `currentColor` is not available to a background,
    so the colour is inlined here and is --text-dim-3. */
 .diff__add-glyph {
-  background-image: linear-gradient(#5b616c, #5b616c), linear-gradient(#5b616c, #5b616c);
+  background-image:
+    linear-gradient(var(--text-dim-3), var(--text-dim-3)),
+    linear-gradient(var(--text-dim-3), var(--text-dim-3));
   background-size:
     7px 1px,
     1px 7px;
