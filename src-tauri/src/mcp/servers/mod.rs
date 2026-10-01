@@ -50,6 +50,30 @@ pub fn seed(registry: &Registry) {
     registry.register(&agent::SERVER);
 }
 
+/// Whether a tool is known to leave OpenKaava's state alone, for MCP's
+/// `readOnlyHint`.
+///
+/// `None` means "not claimed", and is what an unlisted tool gets: the hint is
+/// advertised only where somebody has read the handler and can say. A
+/// `screenshot` writes a temp PNG but changes nothing the user can see, which
+/// is the sense MCP means. `app_call` is `false` rather than `None` because it
+/// can reach a write method (see `apps::WRITE_METHODS`).
+/// `every_declared_tool_has_a_hint_entry` makes adding a tool force the question.
+pub fn read_only_hint(server: &str, tool: &str) -> Option<bool> {
+    let read = match (server, tool) {
+        ("echo", "ping" | "echo") => true,
+        ("debug", "shell_snapshot" | "recent_errors" | "boot_status") => true,
+        ("design", "list_comments" | "read_comment" | "comment_screenshot") => true,
+        ("design", "resolve_comment" | "ask_comment") => false,
+        // `agent` composes `ui` and `debug`; one answer for each shared name.
+        ("ui" | "agent", "screenshot" | "snapshot" | "context") => true,
+        ("ui" | "agent", "click" | "type_text" | "fill_field" | "press_key" | "eval") => false,
+        ("agent", "shell_snapshot" | "recent_errors" | "boot_status") => true,
+        ("agent", "app_call" | "open_app" | "set_project") => false,
+        _ => return None,
+    };
+    Some(read)
+}
 /// What an MCP client is told at `initialize`, before it reads a single tool.
 ///
 /// Said here because an agent once went looking for OpenKaava in a browser —
@@ -86,6 +110,77 @@ mod tests {
             assert!(text.contains("browser"), "{id}: {text}");
         }
         assert!(instructions("echo").is_none());
+    }
+
+    /// Every declared tool has an entry in the hint table, so a new tool cannot
+    /// ship without somebody deciding what to claim for it.
+    #[test]
+    fn every_declared_tool_has_a_hint_entry() {
+        let registry = Registry::default();
+        seed(&registry);
+        for server in registry.catalog(true) {
+            let hinted = server
+                .tools
+                .iter()
+                .filter(|t| t.annotations.is_some())
+                .count();
+            assert_eq!(
+                hinted,
+                server.tools.len(),
+                "{} has an unclaimed tool",
+                server.id
+            );
+        }
+        assert_eq!(read_only_hint("ui", "nonesuch"), None);
+    }
+
+    /// The panel's data is the data `tools/list` serves, not a copy that can
+    /// drift: for every server, with everything switched on, each panel tool
+    /// equals the wire shape `listener::into_rmcp_tool` produces.
+    #[test]
+    fn the_panel_catalog_equals_what_tools_list_serves() {
+        let registry = Registry::default();
+        seed(&registry);
+        for server in registry.list(true) {
+            registry.set_enabled(&server.id, true);
+        }
+
+        let catalog = registry.catalog(true);
+        assert_eq!(catalog.len(), registry.list(true).len());
+        for server in catalog {
+            let served: Vec<serde_json::Value> = registry
+                .tools(&server.id, true)
+                .into_iter()
+                .map(|d| serde_json::to_value(crate::mcp::listener::into_rmcp_tool(d)).unwrap())
+                .collect();
+            assert_eq!(server.tools.len(), served.len(), "{}", server.id);
+            for (panel, wire) in server.tools.iter().zip(&served) {
+                let panel = serde_json::to_value(panel).unwrap();
+                assert_eq!(panel["name"], wire["name"]);
+                assert_eq!(panel["description"], wire["description"]);
+                assert_eq!(panel["inputSchema"], wire["inputSchema"]);
+                assert_eq!(
+                    panel["annotations"]["readOnlyHint"], wire["annotations"]["readOnlyHint"],
+                    "{}/{}",
+                    server.id, panel["name"]
+                );
+            }
+        }
+    }
+
+    /// A switched-off server answers `tools/list` with nothing, but the panel
+    /// still shows what it would offer.
+    #[test]
+    fn a_disabled_server_still_lists_its_tools_in_the_panel() {
+        let registry = Registry::default();
+        seed(&registry);
+        assert!(registry.tools("echo", true).is_empty());
+        let echo = registry
+            .catalog(true)
+            .into_iter()
+            .find(|s| s.id == "echo")
+            .unwrap();
+        assert_eq!(echo.tools.len(), 2);
     }
 
     #[test]

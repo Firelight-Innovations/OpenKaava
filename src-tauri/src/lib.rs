@@ -542,6 +542,7 @@ pub fn run() {
             commands::app_call,
             diagnostics::report_frontend_error,
             mcp::commands::mcp_status,
+            mcp::commands::mcp_catalog,
             mcp::commands::mcp_set_server_enabled,
             mcp::commands::mcp_sync_config,
             settings::commands::settings_snapshot,

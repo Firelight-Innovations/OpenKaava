@@ -40,6 +40,37 @@ pub fn mcp_status(
     }
 }
 
+/// Everything the tools panel draws: each server's tools with their input
+/// schemas, and the app methods `kaava-agent`'s `app_call` can reach.
+///
+/// Built from the registry the listener serves `tools/list` from, so the panel
+/// cannot disagree with a client. Filtered by developer mode the same way
+/// [`mcp_status`] is.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpCatalog {
+    pub servers: Vec<super::registry::ServerCatalog>,
+    pub app_methods: Vec<crate::apps::method_catalog::AppMethodGroup>,
+}
+
+pub fn build_catalog(registry: &Registry, dev_mode: bool) -> McpCatalog {
+    let mut app_methods = crate::apps::method_catalog::catalog();
+    for group in &mut app_methods {
+        for method in &mut group.methods {
+            method.blocked = super::servers::agent::blocked_reason(&method.method);
+        }
+    }
+    McpCatalog {
+        servers: registry.catalog(dev_mode),
+        app_methods,
+    }
+}
+
+#[tauri::command]
+pub fn mcp_catalog(app: AppHandle, registry: State<'_, Registry>) -> McpCatalog {
+    build_catalog(&registry, super::dev_mode(&app))
+}
+
 /// Switch a server on or off.
 ///
 /// Two things happen on the way out, and both are the same idea: a toggle that

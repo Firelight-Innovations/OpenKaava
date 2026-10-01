@@ -111,6 +111,61 @@ pub struct ToolDescriptor {
     pub name: String,
     pub description: String,
     pub schema: Value,
+    /// MCP's `readOnlyHint`, only where [`servers::read_only_hint`] knows.
+    pub read_only: Option<bool>,
+}
+
+/// What one server declares, in the shape `tools/list` is served from.
+fn describe(server: &McpServer) -> Vec<ToolDescriptor> {
+    server
+        .tools
+        .iter()
+        .map(|t| ToolDescriptor {
+            name: t.name.to_string(),
+            description: t.description.to_string(),
+            schema: (t.schema)(),
+            read_only: super::servers::read_only_hint(server.id, t.name),
+        })
+        .collect()
+}
+
+/// One tool as the panel draws it, spelled the way MCP spells it on the wire
+/// (`inputSchema`, `annotations.readOnlyHint`) so the two are comparable.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PanelTool {
+    pub name: String,
+    pub description: String,
+    pub input_schema: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annotations: Option<PanelAnnotations>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PanelAnnotations {
+    pub read_only_hint: bool,
+}
+
+impl From<ToolDescriptor> for PanelTool {
+    fn from(d: ToolDescriptor) -> Self {
+        Self {
+            name: d.name,
+            description: d.description,
+            input_schema: d.schema,
+            annotations: d
+                .read_only
+                .map(|read_only_hint| PanelAnnotations { read_only_hint }),
+        }
+    }
+}
+
+/// A server's id and its tools, for the panel.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServerCatalog {
+    pub id: String,
+    pub tools: Vec<PanelTool>,
 }
 
 /// The `.mcp.json` key and URL path for a server id.
@@ -304,18 +359,33 @@ impl Registry {
         entries
             .iter()
             .find(|e| e.server.id == id && e.reachable(dev_mode))
-            .map(|e| {
-                e.server
-                    .tools
-                    .iter()
-                    .map(|t| ToolDescriptor {
-                        name: t.name.to_string(),
-                        description: t.description.to_string(),
-                        schema: (t.schema)(),
-                    })
-                    .collect()
-            })
+            .map(|e| describe(e.server))
             .unwrap_or_default()
+    }
+
+    /// Every server the user should see, with every tool it declares.
+    ///
+    /// For the settings panel. Built from [`describe`], the same function
+    /// [`Registry::tools`] builds `tools/list` from, so the panel cannot say
+    /// something the wire does not. Unlike `tools`, a switched-off server still
+    /// lists its tools: the panel is where somebody decides whether to switch
+    /// it on.
+    pub fn catalog(&self, dev_mode: bool) -> Vec<ServerCatalog> {
+        let Ok(entries) = self.entries.lock() else {
+            return Vec::new();
+        };
+
+        entries
+            .iter()
+            .filter(|e| dev_mode || !e.server.dev_only)
+            .map(|e| ServerCatalog {
+                id: e.server.id.to_string(),
+                tools: describe(e.server)
+                    .into_iter()
+                    .map(PanelTool::from)
+                    .collect(),
+            })
+            .collect()
     }
 
     /// Route one `tools/call` to the server that owns it.

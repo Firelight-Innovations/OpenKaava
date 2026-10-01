@@ -80,6 +80,14 @@ const TOOL_LIST: [McpTool; 14] = [
     },
 ];
 
+/// Why `app_call` refuses `method`, for the panel.
+pub fn blocked_reason(method: &str) -> Option<String> {
+    NEEDS_A_PERSON
+        .iter()
+        .find(|(name, _)| *name == method)
+        .map(|(_, instead)| format!("Raises a native dialog, so app_call refuses it: {instead}"))
+}
+
 /// The methods that raise a native dialog, and what to reach for instead.
 ///
 /// Refused here rather than left to fail slowly. An `rfd` dialog is modal: it
