@@ -277,10 +277,8 @@ export default function App() {
 
           {viewMode === "steps" && (
             <p className="app__note viewerapp__steps">
-              Steps isn&rsquo;t built yet. The plan is a step diagram for scripts like{" "}
-              <code>build_bed.py</code> — frame, legs, materials, export, render — each step
-              commentable the way a Blender mesh part is. See <code>docs/KAAVA-UX-REWORK.md</code>{" "}
-              §8.
+              Steps is coming. It will lay a script like <code>build_bed.py</code> out as a step
+              diagram you can comment on, one step at a time.
             </p>
           )}
 
