@@ -95,9 +95,9 @@ pnpm ui launch                # starts it, with developer mode and the server on
 pnpm ui close                 # stops it, by pid, leaving anyone else's alone
 ```
 
-Then drive it. **`--server agent` is the one to use** — it hosts the eight input
-tools (`fill_field` and `context` among them), the three `kaava-debug` reads, and
-three more that reach the backend directly. Long or quote-heavy parameters go in a
+Then drive it. **`--server agent` is the one to use** — it hosts the ten input
+tools (`fill_field`, `context`, `drag` and `scroll` among them), the three `kaava-debug`
+reads, and three more that reach the backend directly. Long or quote-heavy parameters go in a
 file: `pnpm probe --agent --server agent app_call @params.json`.
 
 ```sh
@@ -106,6 +106,17 @@ pnpm probe --agent --server agent snapshot       # every clickable element, with
 pnpm probe --agent --server agent click '{"target":"e12"}'
 pnpm probe --agent --server agent type_text '{"text":"hello"}'
 pnpm probe --agent --server agent press_key '{"key":"Enter"}'
+
+# Modifiers (ctrl, shift, alt, meta) work on click, press_key, drag and scroll
+pnpm probe --agent --server agent press_key '{"key":"a","modifiers":["ctrl"]}'
+pnpm probe --agent --server agent click '{"target":"e12","modifiers":["shift"]}'
+
+# Real mouse input from a point or a ref to another, into iframes the way click does.
+# Each end is "e12" / a CSS selector, or {"x":..,"y":..} in window coordinates; steps defaults to 10.
+pnpm probe --agent --server agent drag '{"from":{"x":400,"y":300},"to":{"x":520,"y":380},"steps":12}'
+
+# Mouse wheel at a point (or a ref in "target"); positive deltaY scrolls down.
+pnpm probe --agent --server agent scroll '{"x":400,"y":300,"deltaY":240,"modifiers":["ctrl"]}'
 pnpm probe --agent --server agent eval '{"expression":"document.title"}'
 
 pnpm probe --agent --server agent shell_snapshot  # windows, clusters, panes, instances
@@ -140,6 +151,10 @@ is served in an ordinary build without developer mode.
 rather than at an OpenKaava Braden is using. **Do not drop it**, and do not drive his
 window without asking — this server clicks things, and `eval` reaches every
 `#[tauri::command]` through `window.__TAURI__`.
+
+These input tools exist only in the dev-only `agent` and `ui` servers (`dev_only`, off until
+developer mode and the server's own switch are on); a release build without developer mode
+has none of them. Reach for `eval` only for what they do not cover.
 
 `snapshot` walks into app iframes, so `e19 app button New Project` is Home's own
 content and not the shell's. Refs are renumbered by every `snapshot` — take a

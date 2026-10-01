@@ -71,7 +71,10 @@ pub fn read_only_hint(server: &str, tool: &str) -> Option<bool> {
         ("design", "resolve_comment" | "ask_comment") => false,
         // `agent` composes `ui` and `debug`; one answer for each shared name.
         ("ui" | "agent", "screenshot" | "snapshot" | "context") => true,
-        ("ui" | "agent", "click" | "type_text" | "fill_field" | "press_key" | "eval") => false,
+        (
+            "ui" | "agent",
+            "click" | "type_text" | "fill_field" | "press_key" | "drag" | "scroll" | "eval",
+        ) => false,
         ("agent", "shell_snapshot" | "recent_errors" | "boot_status") => true,
         ("agent", "app_call" | "open_app" | "set_project") => false,
         ("workspace", "focus" | "layout" | "project") => true,
@@ -126,7 +129,7 @@ pub fn instructions(id: &str) -> Option<&'static str> {
             "This server is how you see and drive OpenKaava, a desktop app. It is not a web \
              page: browser and Chrome tools cannot reach it, and a dev server on localhost \
              serves the shell with no backend behind it. Use `screenshot` to look, `snapshot` \
-             for clickable refs, `click`, `fill_field` and `type_text` to act, and `context` \
+             for clickable refs, `click`, `drag`, `scroll`, `press_key`, `fill_field` and `type_text` to act, and `context` \
              to ask what is focused and what the open app has selected. `type_text` refuses \
              to type into a terminal; that terminal is probably yours.",
         ),

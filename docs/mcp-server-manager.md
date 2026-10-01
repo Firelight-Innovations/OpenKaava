@@ -317,6 +317,16 @@ panel, no key in `.mcp.json`, nothing from `tools/list`, and a `tools/call` that
 answers "no MCP server with id `<id>`" — the same thing a client is told about a
 server this build was never compiled with.
 
+**What the two input servers can do.** `ui` and `agent` both host `screenshot`,
+`snapshot`, `click`, `type_text`, `fill_field`, `context`, `press_key`, `drag`,
+`scroll` and `eval`. `click`, `press_key`, `drag` and `scroll` take `modifiers`
+(`ctrl`, `shift`, `alt`, `meta`), which are pressed as real keys around the action;
+`press_key` accepts a single character as well as the named keys, so
+`{"key":"a","modifiers":["ctrl"]}` is Ctrl+A; `drag` goes from `{x,y}` or a ref to
+another, in `steps` moves; `scroll` turns the wheel with `deltaX`/`deltaY`. All of it
+is real input through WebView2, and none of it exists in a build without developer
+mode, because the servers that carry it are `dev_only`.
+
 One predicate on `Entry` in `registry.rs` decides all four, so a fifth surface
 cannot be added and quietly forget one of them.
 
