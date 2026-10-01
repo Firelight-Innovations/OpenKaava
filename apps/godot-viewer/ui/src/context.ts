@@ -6,7 +6,7 @@
 import { invoke } from "@openkaava/bridge";
 import { contextKey, type ContextRef } from "../../../shared/context";
 import type { MarkupJson } from "@kaava/markup";
-import type { GodotNode, GodotViewerState } from "./rpc";
+import { saveMarkup, type GodotNode, type GodotViewerState } from "./rpc";
 
 export { dragContext } from "../../../shared/context";
 
@@ -84,7 +84,7 @@ async function blobBase64(blob: Blob): Promise<string> {
 
 /**
  * Sends a markup export: the picture under `godot/<scene>/markup` and the JSON
- * beside it under `godot/<scene>/markup-json`. Both keys are stable, so marking
+ * beside it, as a JSON item, under `godot/<scene>/markup-json`. Both keys are stable, so marking
  * up the same scene again replaces these two items rather than adding more.
  * Resolves with the picture's item, which is what a drag onto a terminal carries.
  */
@@ -103,10 +103,23 @@ export async function putMarkup(
   });
   await invoke<ContextRef>("context/put", {
     key: contextKey("godot", scene, "markup-json"),
-    kind: "text",
+    kind: "json",
     title: `${scene} - markup notes (JSON)`,
     label: "Godot - markup JSON",
     text: markupJsonText(json),
   });
   return image;
+}
+
+/** A base64 PNG as a Blob, for sending a markup that was kept on disk. */
+export function base64Blob(base64: string, type = "image/png"): Blob {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type });
+}
+
+/** Keeps the picture and JSON a markup was drawn on, so it can be looked at again. */
+export async function keepMarkup(png: Blob, json: MarkupJson, scene: string): Promise<void> {
+  await saveMarkup(scene, await blobBase64(png), JSON.stringify(json));
 }

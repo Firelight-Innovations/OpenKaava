@@ -63,6 +63,10 @@ struct Params {
     actor: Option<String>,
     /// Export again even if the cached glb is current, or a failure is remembered.
     force: bool,
+    /// `godot-viewer/markup-save`: the picture the markup was drawn on, base64.
+    png_base64: Option<String>,
+    /// `godot-viewer/markup-save`: the markup JSON as text.
+    json: Option<String>,
 }
 
 fn params(raw: Option<&Value>) -> Result<Params, RpcError> {
@@ -128,6 +132,8 @@ pub fn viewer(ctx: &Ctx, method: &str, raw: Option<&Value>) -> Option<Result<Val
         "godot-viewer/state" => viewer_state(ctx, &p),
         "godot-viewer/refresh" => viewer_refresh(ctx, &p),
         "godot-viewer/image" => viewer_image(ctx, &p),
+        "godot-viewer/markup-save" => markup_save(ctx, &p),
+        "godot-viewer/markup" => markup_load(ctx, &p),
         "godot/preview-glb" => preview_glb(ctx, &p),
         "godot/preview-glb-bytes" => preview_glb_bytes(ctx, &p),
         _ => Err(RpcError::new(
@@ -533,6 +539,46 @@ fn viewer_image(ctx: &Ctx, p: &Params) -> Result<Value, RpcError> {
     };
     let bytes = scene::read_image(&cache_dir(ctx, &project)?, &scene);
     Ok(json!({ "png": bytes.map(|b| BASE64.encode(b)) }))
+}
+
+/// Keeps the markup picture and JSON for a scene so the person can look at them
+/// again, whether or not they were ever sent. One pair per scene, replaced each
+/// time. Kept beside the scene's other cache, not in the context store, so it
+/// does not show up in a strip as something already sent.
+fn markup_save(ctx: &Ctx, p: &Params) -> Result<Value, RpcError> {
+    let project = pick_project(ctx, p)?;
+    let scene = p
+        .scene
+        .as_deref()
+        .ok_or_else(|| RpcError::new(INVALID_PARAMS, "markup-save needs a scene"))?;
+    let png = BASE64
+        .decode(p.png_base64.as_deref().unwrap_or(""))
+        .map_err(|e| RpcError::new(INVALID_PARAMS, format!("pngBase64 is not base64: {e}")))?;
+    let json = p
+        .json
+        .as_deref()
+        .ok_or_else(|| RpcError::new(INVALID_PARAMS, "markup-save needs the json"))?;
+    let saved_at =
+        scene::write_markup(&cache_dir(ctx, &project)?, scene, &png, json).map_err(fail)?;
+    Ok(json!({ "savedAt": saved_at }))
+}
+
+fn markup_load(ctx: &Ctx, p: &Params) -> Result<Value, RpcError> {
+    let project = pick_project(ctx, p)?;
+    let Some(scene) = chosen_scene(&project, &detect::scenes(&project.dir), p.scene.as_deref())
+    else {
+        return Ok(Value::Null);
+    };
+    Ok(
+        match scene::read_markup(&cache_dir(ctx, &project)?, &scene) {
+            Some(m) => json!({
+                "png": BASE64.encode(m.png),
+                "json": m.json,
+                "savedAt": m.saved_at,
+            }),
+            None => Value::Null,
+        },
+    )
 }
 
 // --- the 3D preview ---------------------------------------------------------

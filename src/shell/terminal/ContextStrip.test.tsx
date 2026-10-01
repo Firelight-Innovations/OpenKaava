@@ -115,6 +115,27 @@ afterEach(() => {
 });
 
 describe("ContextStrip", () => {
+  it("draws a JSON item with a collapsed, pretty-printed preview and says it is JSON", async () => {
+    contextList.mockResolvedValue([
+      item({
+        id: "ctx_j",
+        kind: "json",
+        mime: "application/json",
+        title: "main.tscn - markup notes (JSON)",
+        image: undefined,
+        text: { chars: 22, lines: 3, truncated: false },
+        preview: JSON.stringify({ pins: [] }, null, 2),
+        path: "C:/p/.kaava/context/j.json",
+      }),
+    ]);
+    const { container } = render(<ContextStrip sessionId="t1" />);
+    await screen.findByText("main.tscn - markup notes (JSON)");
+    expect(screen.getByText(/^JSON · 3 lines/, { selector: ".ctxchip__meta" })).toBeTruthy();
+    const details = container.querySelector("details.ctxchip__json") as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    expect(details.querySelector("pre")?.textContent).toContain('"pins"');
+  });
+
   it("re-runs harness detection on a focus/title request and after an insert", async () => {
     contextList.mockResolvedValue([item()]);
     render(<ContextStrip sessionId="t1" />);

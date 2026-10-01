@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore } from "react";
 import {
   ChevronDown,
   ChevronRight,
+  Braces,
   ChevronUp,
   FileText,
   File as FileIcon,
@@ -54,6 +55,7 @@ export function itemMeta(item: ContextItem): string {
   if (item.missing) return "File missing";
   const parts: string[] = [];
   if (item.image) parts.push(`${item.image.width} × ${item.image.height}`);
+  if (item.kind === "json") parts.push("JSON");
   if (item.text) parts.push(`${item.text.lines} ${item.text.lines === 1 ? "line" : "lines"}`);
   parts.push(formatSize(item.size));
   if (wasUpdated(item)) parts.push("updated");
@@ -236,6 +238,8 @@ function Chip({ sessionId, item }: { sessionId: string; item: ContextItem }) {
           <img src={thumb} alt="" draggable={false} />
         ) : item.kind === "text" ? (
           <FileText size={16} strokeWidth={1.5} />
+        ) : item.kind === "json" ? (
+          <Braces size={16} strokeWidth={1.5} />
         ) : item.kind === "file" ? (
           <FileIcon size={16} strokeWidth={1.5} />
         ) : (
@@ -247,6 +251,12 @@ function Chip({ sessionId, item }: { sessionId: string; item: ContextItem }) {
           {item.title}
         </span>
         <span className="ctxchip__meta">{itemMeta(item)}</span>
+        {item.kind === "json" && item.preview && (
+          <details className="ctxchip__json">
+            <summary>Show JSON</summary>
+            <pre>{item.preview}</pre>
+          </details>
+        )}
       </div>
       <div className="ctxchip__actions">
         <button

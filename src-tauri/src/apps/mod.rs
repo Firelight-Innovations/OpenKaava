@@ -544,6 +544,11 @@ pub fn call(
             .map_err(|e| RpcError::new(INTERNAL_ERROR, format!("could not read settings: {e}")));
     }
 
+    // An app changing one of its own listed settings; see `settings::APP_WRITABLE`.
+    if method == crate::settings::APP_SET_METHOD {
+        return crate::settings::app_set(app, params.as_ref());
+    }
+
     // The context store, likewise answered by the host so every app (and every
     // plugin surface) reaches one implementation. Deliberately *before* the
     // write refusal: `.kaava/context/` is Kaava's own gitignored state, not the
