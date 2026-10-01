@@ -625,7 +625,7 @@ fn spawn_shell(
                 // buffers straight into this message, so an unfiltered one
                 // reads as a trailing NUL after `pwsh.exe` in `recent_errors` and sends a reader
                 // after a NUL that was never in the program or the cwd.
-                let reason = strip_nul(&e.to_string());
+                let reason = strip_error_nul(&e.to_string());
                 crate::kaava_log!("shell candidate {program} did not start: {reason}");
                 last_err = format!("{name}: {reason}");
             }
@@ -739,6 +739,39 @@ fn candidate(program: &str) -> Candidate {
 /// in, and this is the one place both directions are made safe.
 fn strip_nul(text: &str) -> String {
     text.replace('\u{0}', "")
+}
+
+/// An error message without any NUL, real or Debug-escaped.
+///
+/// Only for error text. A raw path such as `C:\code\01-game` holds a backslash
+/// then a zero that is not a NUL, so the program and cwd go through
+/// `strip_nul` instead.
+fn strip_error_nul(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '\u{0}' => {}
+            // portable-pty prints its program through `{:?}` of an `OsString`,
+            // and Debug spells a NUL as the two characters `\0` rather than
+            // emitting one. That is the NUL a reader kept seeing after
+            // `pwsh.exe`: it was never U+0000, so filtering U+0000 alone left
+            // it in place. Debug escapes a real backslash as `\\`, so a lone
+            // `\0` is always a NUL and `\\0` is a path separator and a zero.
+            '\\' => match chars.peek() {
+                Some('0') => {
+                    chars.next();
+                }
+                Some('\\') => {
+                    chars.next();
+                    out.push_str("\\\\");
+                }
+                _ => out.push('\\'),
+            },
+            other => out.push(other),
+        }
+    }
+    out
 }
 
 /// The directory a shell is started in, made fit for `CreateProcessW`.
@@ -971,6 +1004,39 @@ mod tests {
         );
     }
     use std::time::Duration;
+
+    #[test]
+    fn strip_error_nul_removes_a_real_nul_and_a_debug_escaped_one() {
+        // What portable-pty's CreateProcessW failure prints for a program whose
+        // wide buffer carries its terminator.
+        let wide: std::ffi::OsString = "pwsh.exe\0".into();
+        let message = format!("CreateProcessW `{wide:?}` failed");
+        assert!(message.contains("\\0"));
+        assert_eq!(
+            strip_error_nul(&message),
+            "CreateProcessW `\"pwsh.exe\"` failed"
+        );
+        assert_eq!(strip_error_nul("pwsh.exe\u{0}"), "pwsh.exe");
+    }
+
+    #[test]
+    fn strip_error_nul_keeps_an_escaped_backslash_before_a_zero() {
+        // Debug of `C:\0dir` is `C:\\0dir`; the zero there is a directory name.
+        let path: std::ffi::OsString = "C:\\0dir".into();
+        let debug = format!("{path:?}");
+        assert_eq!(strip_error_nul(&debug), debug);
+    }
+
+    #[test]
+    fn a_raw_path_with_a_backslash_before_a_zero_survives() {
+        // A cwd or program is a raw path, not Debug text: `\0` there is a
+        // separator and a directory name starting with a zero.
+        assert_eq!(strip_nul(r"C:\code\01-game"), r"C:\code\01-game");
+        assert_eq!(
+            candidate(r"C:\tools\0bin\pwsh.exe").program,
+            r"C:\tools\0bin\pwsh.exe"
+        );
+    }
 
     /// The test that would have caught issue #36. A file on `PATH` that begins
     /// `MZ` and is not a program image is what Windows answers with a modal

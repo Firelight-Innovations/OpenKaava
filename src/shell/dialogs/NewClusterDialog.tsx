@@ -60,6 +60,35 @@ const LAYOUTS: LayoutOption[] = [
   { value: "watchAgent", title: "Watch an agent", panes: "Streamed terminal · explorer · viewer" },
 ];
 
+/** One pane of a layout thumbnail: left, top, width, height as percentages. */
+type ThumbPane = readonly [number, number, number, number];
+
+// Sketches of the trees `starting_layout_preset` builds, one rectangle per
+// pane. The thumbnail is drawn from these; an empty icon box read as broken.
+export const LAYOUT_THUMBS: Record<StartingLayout, readonly ThumbPane[]> = {
+  code: [
+    [0, 0, 28, 100],
+    [28, 0, 72, 62],
+    [28, 62, 72, 38],
+  ],
+  godot: [
+    [0, 0, 24, 100],
+    [24, 0, 46, 62],
+    [70, 0, 30, 62],
+    [24, 62, 76, 38],
+  ],
+  blender: [
+    [0, 0, 28, 100],
+    [28, 0, 72, 62],
+    [28, 62, 72, 38],
+  ],
+  watchAgent: [
+    [0, 0, 55, 100],
+    [55, 0, 45, 50],
+    [55, 50, 45, 50],
+  ],
+};
+
 export default function NewClusterDialog({
   label,
   project,
@@ -367,7 +396,15 @@ function LayoutStep({ layout, onLayout }: LayoutStepProps) {
             checked={layout === option.value}
             onChange={() => onLayout(option.value)}
           />
-          <span className="new-cluster__layout-icon" aria-hidden="true" />
+          <span className="new-cluster__layout-icon" aria-hidden="true">
+            {LAYOUT_THUMBS[option.value].map(([x, y, w, h], i) => (
+              <span
+                key={i}
+                className="new-cluster__layout-pane"
+                style={{ left: `${x}%`, top: `${y}%`, width: `${w}%`, height: `${h}%` }}
+              />
+            ))}
+          </span>
           <span className="new-cluster__layout-text">
             <span className="new-cluster__layout-title">{option.title}</span>
             <span className="new-cluster__layout-panes">{option.panes}</span>

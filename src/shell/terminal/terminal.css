@@ -34,6 +34,15 @@
   display: flex;
 }
 
+/* A terminal living in a tool-window pane: the same slot, but it fills the pane
+   rather than stacking inside a deck, so it is not absolutely positioned. */
+.terminal__slot--pane {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+}
+
 /* Split layout: a pane still fills the deck's full height, but claims one
    horizontal slice of it instead of the whole width. Positioned with the
    custom properties `TerminalDeck` sets per pane rather than by moving panes
