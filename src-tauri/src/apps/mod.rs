@@ -549,6 +549,16 @@ pub fn call(
         return crate::settings::app_set(app, params.as_ref());
     }
 
+    // Typing context references at the agent's prompt needs the terminals, which
+    // the store (`context.rs`) deliberately knows nothing about.
+    if method == crate::context_commands::INSERT_METHOD {
+        return crate::context_commands::insert_for_cluster(
+            app,
+            context.cluster_id.as_deref(),
+            params,
+        );
+    }
+
     // The context store, likewise answered by the host so every app (and every
     // plugin surface) reaches one implementation. Deliberately *before* the
     // write refusal: `.kaava/context/` is Kaava's own gitignored state, not the

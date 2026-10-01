@@ -73,8 +73,8 @@ function backend(opts: { values?: Record<string, unknown>; saved?: unknown } = {
   const groups = [
     {
       settings: [
-        { key: "godot.markupAutoSend", control: { default: false } },
-        { key: "godot.markupTip", control: { default: true } },
+        { key: "markup.autoSend", control: { default: false } },
+        { key: "markup.tip", control: { default: true } },
       ],
     },
   ];
@@ -96,6 +96,8 @@ function backend(opts: { values?: Record<string, unknown>; saved?: unknown } = {
         return Promise.resolve([]);
       case "context/put":
         return Promise.resolve({ id: "ctx" });
+      case "context/insert":
+        return Promise.resolve({ inserted: true, count: 2 });
       default:
         return Promise.resolve(null);
     }
@@ -133,12 +135,45 @@ describe("after Done", () => {
   });
 
   it("sends at once, as a JSON item, when sending is automatic", async () => {
-    backend({ values: { "godot.markupAutoSend": true } });
+    backend({ values: { "markup.autoSend": true } });
     render(<App />);
     await finishDrawing();
     await waitFor(() => expect(calls("context/put")).toHaveLength(2));
     expect(calls("context/put")[1]![1]).toMatchObject({ kind: "json" });
     expect(screen.queryByText(/make this automatic/)).toBeNull();
+  });
+
+  it("types the reference at the prompt when sending is automatic, and nothing else", async () => {
+    backend({ values: { "markup.autoSend": true } });
+    render(<App />);
+    await finishDrawing();
+    await waitFor(() => expect(calls("context/insert")).toHaveLength(1));
+    expect(calls("context/insert")[0]![1]).toEqual({ itemIds: ["ctx", "ctx"] });
+    // Typing is the whole of it: no method that submits the line exists to call.
+    expect(bridge.invoke.mock.calls.map((c) => c[0])).not.toContain("terminal/write");
+  });
+
+  it("types the same reference when Send markup is pressed by hand", async () => {
+    backend();
+    render(<App />);
+    await finishDrawing();
+    fireEvent.click(await screen.findByRole("button", { name: "Send markup" }));
+    await waitFor(() => expect(calls("context/insert")).toHaveLength(1));
+  });
+
+  it("still counts as sent when there is no agent terminal to type into", async () => {
+    backend();
+    const base = bridge.invoke.getMockImplementation()!;
+    bridge.invoke.mockImplementation((m: string, p: unknown) =>
+      m === "context/insert" ? Promise.reject(new Error("no terminal")) : base(m, p),
+    );
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    render(<App />);
+    await finishDrawing();
+    fireEvent.click(await screen.findByRole("button", { name: "Send markup" }));
+    await screen.findByText(/make this automatic/);
+    expect(screen.queryByText(/Couldn't send markup/)).toBeNull();
+    quiet.mockRestore();
   });
 });
 
@@ -151,7 +186,7 @@ describe("the offer to make it automatic", () => {
     await screen.findByText(/make this automatic/);
     fireEvent.click(screen.getByRole("button", { name: "Send automatically" }));
     await waitFor(() =>
-      expect(calls("settings/set")[0]![1]).toEqual({ key: "godot.markupAutoSend", value: true }),
+      expect(calls("settings/set")[0]![1]).toEqual({ key: "markup.autoSend", value: true }),
     );
     await waitFor(() => expect(screen.queryByText(/make this automatic/)).toBeNull());
   });
@@ -163,11 +198,11 @@ describe("the offer to make it automatic", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Send markup" }));
     fireEvent.click(await screen.findByRole("button", { name: "Don't show again" }));
     await waitFor(() =>
-      expect(calls("settings/set")[0]![1]).toEqual({ key: "godot.markupTip", value: false }),
+      expect(calls("settings/set")[0]![1]).toEqual({ key: "markup.tip", value: false }),
     );
     cleanup();
 
-    backend({ values: { "godot.markupTip": false } });
+    backend({ values: { "markup.tip": false } });
     render(<App />);
     await finishDrawing();
     fireEvent.click(await screen.findByRole("button", { name: "Send markup" }));

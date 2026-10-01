@@ -46,6 +46,7 @@ static GROUPS: &[&Group] = &[
     &TERMINAL,
     &KEYS,
     &SEARCH,
+    &super::markup::GROUP,
     &GITHUB,
     &UPDATES,
     &MCP,

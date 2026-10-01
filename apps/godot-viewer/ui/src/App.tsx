@@ -32,7 +32,15 @@ import {
   type GodotViewerState,
 } from "./rpc";
 import { sampleState } from "./fixtures";
-import { base64Blob, dragContext, keepMarkup, putFrame, putMarkup, putTree } from "./context";
+import {
+  base64Blob,
+  dragContext,
+  keepMarkup,
+  putFrame,
+  putMarkup,
+  putTree,
+  sendMarkup as sendMarkupToAgent,
+} from "./context";
 import {
   AUTO_SEND_KEY,
   TIP_KEY,
@@ -239,7 +247,7 @@ export default function App() {
       }
       void readPrefs().then((prefs) => {
         if (afterDone(prefs) === "send") {
-          void send("markup", "markup", () => putMarkup(result.png, result.json, scene));
+          void send("markup", "markup", () => sendMarkupToAgent(result.png, result.json, scene));
         }
       });
     },
@@ -251,7 +259,7 @@ export default function App() {
     if (!markup) return;
     let ok = false;
     await send("markup", "markup", async () => {
-      const item = await putMarkup(markup.png, markup.json, state?.scene ?? null);
+      const item = await sendMarkupToAgent(markup.png, markup.json, state?.scene ?? null);
       ok = true;
       return item;
     });

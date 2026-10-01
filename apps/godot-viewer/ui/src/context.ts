@@ -86,13 +86,13 @@ async function blobBase64(blob: Blob): Promise<string> {
  * Sends a markup export: the picture under `godot/<scene>/markup` and the JSON
  * beside it, as a JSON item, under `godot/<scene>/markup-json`. Both keys are stable, so marking
  * up the same scene again replaces these two items rather than adding more.
- * Resolves with the picture's item, which is what a drag onto a terminal carries.
+ * Resolves with both items; the picture is what a drag onto a terminal carries.
  */
-export async function putMarkup(
+export async function putMarkupItems(
   png: Blob,
   json: MarkupJson,
   scenePath: string | null,
-): Promise<ContextRef> {
+): Promise<{ image: ContextRef; notes: ContextRef }> {
   const scene = scenePath ?? "scene";
   const image = await invoke<ContextRef>("context/put", {
     key: contextKey("godot", scene, "markup"),
@@ -101,13 +101,43 @@ export async function putMarkup(
     label: "Godot - markup",
     bytesBase64: await blobBase64(png),
   });
-  await invoke<ContextRef>("context/put", {
+  const notes = await invoke<ContextRef>("context/put", {
     key: contextKey("godot", scene, "markup-json"),
     kind: "json",
     title: `${scene} - markup notes (JSON)`,
     label: "Godot - markup JSON",
     text: markupJsonText(json),
   });
+  return { image, notes };
+}
+
+/** The picture's item, for a drag onto a terminal. */
+export async function putMarkup(
+  png: Blob,
+  json: MarkupJson,
+  scenePath: string | null,
+): Promise<ContextRef> {
+  return (await putMarkupItems(png, json, scenePath)).image;
+}
+
+/**
+ * Attaches a markup as context and types `@path` references to it at the
+ * agent's prompt. Never presses Enter: the person reads the line and sends it.
+ * Both auto-send and the Send markup button come through here, so they behave
+ * the same. Having no agent terminal to type into is not a failure, since the
+ * items are attached in the Context strip either way.
+ */
+export async function sendMarkup(
+  png: Blob,
+  json: MarkupJson,
+  scenePath: string | null,
+): Promise<ContextRef> {
+  const { image, notes } = await putMarkupItems(png, json, scenePath);
+  try {
+    await invoke("context/insert", { itemIds: [image.id, notes.id] });
+  } catch (e) {
+    console.error("kaava: could not type the markup reference at the prompt", e);
+  }
   return image;
 }
 

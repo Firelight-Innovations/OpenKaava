@@ -6,6 +6,7 @@
 
 pub mod commands;
 
+pub mod markup;
 mod schema;
 mod store;
 
@@ -402,6 +403,7 @@ pub fn seed(app: &AppHandle) {
             json!(migrated),
         );
     }
+    markup::migrate_legacy(&mut stored);
     registry.hydrate(stored);
 }
 
@@ -462,9 +464,9 @@ pub const APP_SET_METHOD: &str = "settings/set";
 
 /// The only keys an app frame may write. Every other setting is the person's to
 /// change on the settings screen: an app that could write any key could turn on
-/// developer mode or move the MCP servers. These two are the Godot Viewer's
-/// markup hand-off, flipped from the viewer's own "make this automatic" prompt.
-pub const APP_WRITABLE: &[&str] = &["godot.markupAutoSend", "godot.markupTip"];
+/// developer mode or move the MCP servers. These two are the shared Markup
+/// section, flipped from a viewer's own "make this automatic" prompt.
+pub const APP_WRITABLE: &[&str] = &[markup::AUTO_SEND, markup::TIP];
 
 /// Validates a `settings/set` call without touching the registry, so the refusal
 /// is testable without an app handle.
@@ -730,28 +732,29 @@ mod tests {
     #[test]
     fn an_app_may_write_only_its_own_listed_settings() {
         use serde_json::json;
-        let ok = parse_app_set(Some(
-            &json!({ "key": "godot.markupAutoSend", "value": true }),
-        ));
-        assert_eq!(
-            ok.unwrap(),
-            ("godot.markupAutoSend".to_string(), json!(true))
-        );
+        let ok = parse_app_set(Some(&json!({ "key": "markup.autoSend", "value": true })));
+        assert_eq!(ok.unwrap(), ("markup.autoSend".to_string(), json!(true)));
         for key in [
             "developer.mode",
             "mcp.writeProjectConfig",
             "godot.executablePath",
+            // The keys the Markup section replaced are no longer settings.
+            "godot.markupAutoSend",
+            "godot.markupTip",
         ] {
             let refused = parse_app_set(Some(&json!({ "key": key, "value": true })));
             assert!(refused.is_err(), "{key} must not be app-writable");
         }
-        assert!(parse_app_set(Some(&json!({ "key": "godot.markupTip" }))).is_err());
+        assert!(parse_app_set(Some(&json!({ "key": "markup.tip" }))).is_err());
         assert!(parse_app_set(None).is_err());
     }
 
     #[test]
-    fn every_app_writable_key_is_declared_by_an_app_group() {
+    fn every_app_writable_key_is_declared_by_a_group() {
         let registry = Registry::default();
+        for group in schema::groups() {
+            registry.register(group);
+        }
         for group in crate::apps::settings_groups() {
             registry.register(group);
         }
