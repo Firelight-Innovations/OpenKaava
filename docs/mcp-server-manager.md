@@ -370,3 +370,73 @@ So the escape hatch is used once, knowingly. A second section reaching for it is
 a signal that something is being modelled wrong — either it is really a list, and
 belongs somewhere other than a settings screen, or it is really settings, and
 should be written as some.
+
+## 13. The two servers every build ships: `canvas` and `workspace`
+
+Everything above `dev_only` is for whoever works on OpenKaava. These two are for the
+agent working *in* it, so neither is gated: both start on, both appear with
+developer mode off, and both are written into `.mcp.json` as `kaava-canvas` and
+`kaava-workspace` (the committed `.mcp.json` carries them, and a test holds it to
+what a fresh sync writes). Harness terminals reach them through the same
+`KAAVA_MCP_PORT` and `KAAVA_MCP_TOKEN` as every other route; `mcp-endpoint.json`
+serves the same endpoint to an agent outside OpenKaava, at `/mcp/canvas` and
+`/mcp/workspace`.
+
+### `workspace` (read-only)
+
+Tells an agent where the person is working. Nothing here writes, and it leaves out
+what `shell_snapshot` carries for the shell's own sake (geometry, band heights,
+restore bookkeeping).
+
+| Tool | Answers |
+|---|---|
+| `focus` | The focused pane: window, cluster, pane, app, instance id, title, and the file and selection the app reports. Also `visible`, every app showing in the active cluster, because focus is usually in the agent's own terminal. Falls back to each pane's active tab when no page answers. |
+| `layout` | Windows, clusters, nested panes and their tabs (app, instance, title, file where known), the active tab per pane, and each cluster's terminals. |
+| `project` | Per cluster: the project folder, the folder files are read from (a worktree's, when set), the environment kind and branch, and which cluster is active. |
+
+The layout comes from the same `ShellState` snapshot `shell_snapshot` reads. Focus
+is the one fact the backend does not hold, so `focus` asks each window's page, the
+way the `context` tool does, and an app can say what it shows by defining
+`window.__kaavaContext`; Canvas reports its open canvas and selection.
+
+**Follow-up, not built:** push notification. The idea is a
+`kaava://workspace/focus` resource with `notifications/resources/updated` when focus
+moves. The listener advertises tools only (no resources, no subscriptions), and focus
+changes originate in the webview, which has no channel to the backend. It needs a
+frontend focus reporter, a `resources` capability on `Bridge`, and a per-session
+subscription list. Until then an agent polls `focus`, which is cheap.
+
+### `canvas`
+
+One tool per Canvas method, so an agent in a release build can read and draw
+without `app_call`. Every call goes out with `actor: "agent"`; the schemas do not
+offer `actor`.
+
+- **Reads:** `list_canvases`, `list_files`, `assets`, `read_canvas`, `stat_canvas`,
+  `list_diagrams`, `describe_diagram`, `view_diagram`, `coverage`, `values`, `refs`,
+  `checkpoints`, `list_comments`, `view_comment`.
+- **Writes:** `create_canvas`, `write_canvas`, `save`, `add_shapes`, `import_mermaid`,
+  `set_values`, `restore_checkpoint`, `create_comment`, `resolve_comment`,
+  `reopen_comment`.
+
+`canvas/state` has no tool: `list_canvases` and `workspace/project` cover it.
+
+**Several canvases at once.** Each canvas tool takes `canvas` (the id, a path under
+`canvas/`), `instance` (a pane's instance id) and `cluster`. They resolve as follows:
+
+1. `instance` wins: its canvas and cluster are used.
+2. Else `canvas` as named, in the cluster it is open in, or `cluster`, or the active
+   one. An id open in two clusters is an error that lists both.
+3. Else the focused canvas, or the only one open. Two or more open with none focused
+   is an error listing them; nothing open is an error too.
+
+Every answer carries a `resolved` block (`canvas`, `instance`, `cluster`, `how`, and a
+note when a default was used), so a default is never silent. `list_canvases` also
+reports what a call that names nothing would use.
+
+**Adding a tool** is one row in the `canvas_tools!` table in
+`src-tauri/src/mcp/servers/canvas.rs`: tool name, app method, `Scope`, read-only
+flag, description, schema. The tool list, dispatch and `readOnlyHint` come from it.
+
+Rendering (`view_diagram`, `view_comment`, `add_shapes`, `import_mermaid`) runs in a
+Canvas pane's webview, so one must be open somewhere; the error says how to open one.
