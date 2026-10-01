@@ -455,9 +455,20 @@ mod tests {
         }
     }
 
+    /// Block until the job has finished and recorded its outcome. Both are
+    /// written under one lock. Giving up is a failure here: returning quietly
+    /// after the deadline let the caller read a job that was still running.
     fn wait(jobs: &Jobs) {
         let until = std::time::Instant::now() + Duration::from_secs(30);
-        while jobs.snapshot().running && std::time::Instant::now() < until {
+        loop {
+            let snap = jobs.snapshot();
+            if !snap.running && snap.outcome.is_some() {
+                return;
+            }
+            assert!(
+                std::time::Instant::now() < until,
+                "the export did not finish within 30s: {snap:?}"
+            );
             std::thread::sleep(Duration::from_millis(50));
         }
     }
