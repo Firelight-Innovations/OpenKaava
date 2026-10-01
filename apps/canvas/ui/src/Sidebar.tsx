@@ -7,6 +7,11 @@
  * Rejected: the floating boxes this replaces (`.cv__frame`, `.cv__spec`). They
  * covered the part of the drawing a person had just selected, and hid
  * Excalidraw's own menus at narrow widths.
+ *
+ * The hide button is pinned to the end of the tab row and never shrinks; the
+ * tabs give way instead, first truncating their labels and then, below a
+ * container width, showing icons only (App.css). Rejected: letting the row
+ * wrap, which moves the button somewhere different at every width.
  */
 import type { ReactNode } from "react";
 import { Info, MessageSquare, PanelRightClose, PanelRightOpen, Shapes } from "lucide-react";
@@ -59,7 +64,7 @@ export default function Sidebar({
             }}
           >
             <Icon size={14} aria-hidden />
-            {!collapsed && <span>{label}</span>}
+            {!collapsed && <span className="cv__side-label">{label}</span>}
             {id === "comments" && openComments > 0 && (
               <span className="cv__count" aria-label={`${openComments} open`}>
                 {openComments}
@@ -67,10 +72,9 @@ export default function Sidebar({
             )}
           </button>
         ))}
-        <span className="cv__spacer" />
         <button
           type="button"
-          className="cv__side-tab"
+          className="cv__side-tab cv__side-toggle"
           title={collapsed ? "Show panels" : "Hide panels"}
           aria-label={collapsed ? "Show panels" : "Hide panels"}
           onClick={() => onCollapsed(!collapsed)}

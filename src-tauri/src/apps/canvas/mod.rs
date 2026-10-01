@@ -187,13 +187,54 @@ pub fn validate_id(id: &str) -> Result<(), RpcError> {
     Ok(())
 }
 
-fn file_for(root: &Path, id: &str) -> PathBuf {
+/// The name a canvas file may carry instead of plain `.json`, so a folder that
+/// also holds spec cards and other JSON can say which file is the drawing.
+const CANVAS_SUFFIX: &str = ".canvas.json";
+
+/// `canvas/<id>.json`: where a new canvas is created, and what sidecars such as
+/// comments are named after whichever form the file takes.
+fn plain_file_for(root: &Path, id: &str) -> PathBuf {
     let mut path = root.join(DIR);
     for segment in id.split('/') {
         path.push(segment);
     }
     path.set_extension("json");
     path
+}
+
+/// Where canvas `id` lives: `<id>.canvas.json` when that exists, since the
+/// suffix is an explicit claim, and `<id>.json` otherwise.
+fn file_for(root: &Path, id: &str) -> PathBuf {
+    let plain = plain_file_for(root, id);
+    let mut name = plain.file_stem().unwrap_or_default().to_os_string();
+    name.push(CANVAS_SUFFIX);
+    let tagged = plain.with_file_name(name);
+    if tagged.is_file() {
+        tagged
+    } else {
+        plain
+    }
+}
+
+/// Whether a plain `.json` under `canvas/` is meant as a canvas. Spec cards and
+/// other project JSON live beside canvases and are not drawings, so listing
+/// them as broken canvases is noise. A file that does not parse, or that has any
+/// of a scene's top-level keys, still counts: a damaged canvas must be reported,
+/// not hidden. Rejected: listing every `.json` and labelling the strangers,
+/// which leaves every caller to filter them out again.
+fn looks_like_canvas(path: &Path) -> bool {
+    let Ok(raw) = std::fs::read_to_string(path) else {
+        return true;
+    };
+    match serde_json::from_str::<Value>(&raw) {
+        Err(_) => true,
+        Ok(Value::Object(obj)) => {
+            obj.get("type").and_then(Value::as_str) == Some("excalidraw")
+                || obj.contains_key("elements")
+                || obj.contains_key("kaava")
+        }
+        Ok(_) => false,
+    }
 }
 
 fn mtime_at(path: &Path) -> Option<u64> {
@@ -325,9 +366,11 @@ fn relative(root: &Path, path: &Path) -> String {
         .replace('\\', "/")
 }
 
-/// Every `*.json` under `canvas/`, as `(id, path)` pairs sorted by id. Files
+/// Every canvas under `canvas/`, as `(id, path)` pairs sorted by id: each
+/// `*.canvas.json`, and each plain `*.json` that [`looks_like_canvas`]. Files
 /// whose names are not valid slugs are skipped, not reported: they were not made
-/// by this app and are not canvases it can address.
+/// by this app and are not canvases it can address. When both forms exist for
+/// one id, the `.canvas.json` is the one listed, as [`file_for`] reads it.
 pub fn files(root: &Path) -> Vec<(String, PathBuf)> {
     fn walk(dir: &Path, prefix: &str, depth: usize, out: &mut Vec<(String, PathBuf)>) {
         let Ok(reader) = std::fs::read_dir(dir) else {
@@ -343,9 +386,14 @@ pub fn files(root: &Path) -> Vec<(String, PathBuf)> {
                 if depth + 1 < MAX_DEPTH && !(depth > 0 && name == "refs") {
                     walk(&path, &format!("{prefix}{name}/"), depth + 1, out);
                 }
-            } else if let Some(stem) = name.strip_suffix(".json") {
+            } else if let Some(stem) = name.strip_suffix(CANVAS_SUFFIX) {
                 let id = format!("{prefix}{stem}");
                 if validate_id(&id).is_ok() {
+                    out.push((id, path));
+                }
+            } else if let Some(stem) = name.strip_suffix(".json") {
+                let id = format!("{prefix}{stem}");
+                if validate_id(&id).is_ok() && looks_like_canvas(&path) {
                     out.push((id, path));
                 }
             }
@@ -353,7 +401,9 @@ pub fn files(root: &Path) -> Vec<(String, PathBuf)> {
     }
     let mut out = Vec::new();
     walk(&root.join(DIR), "", 0, &mut out);
-    out.sort_by(|a, b| a.0.cmp(&b.0));
+    let plain = |p: &Path| !p.to_string_lossy().ends_with(CANVAS_SUFFIX);
+    out.sort_by(|a, b| a.0.cmp(&b.0).then(plain(&a.1).cmp(&plain(&b.1))));
+    out.dedup_by(|later, first| later.0 == first.0);
     out
 }
 
@@ -929,5 +979,102 @@ mod tests {
         assert_eq!(ids, ["levels/ward-b", "world"]);
         assert_eq!(listed[0]["parent"], "world");
         assert_eq!(listed[0]["title"], "Ward B");
+    }
+
+    fn ids_of(listed: &Value) -> Vec<String> {
+        listed
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r["id"].as_str().unwrap().to_string())
+            .collect()
+    }
+
+    // Found live on demo-game: `flappy-ball.canvas.json` was not listed, and the
+    // spec card beside it was listed as a broken canvas.
+    #[test]
+    fn list_finds_dot_canvas_files_and_skips_json_that_is_not_a_canvas() {
+        let dir = TempDir::new().unwrap();
+        let folder = dir.path().join("canvas/reference/flappy-ball");
+        std::fs::create_dir_all(&folder).unwrap();
+        std::fs::write(
+            folder.join("flappy-ball.canvas.json"),
+            r#"{"type":"excalidraw","elements":[],"kaava":{"title":"Flappy Ball"}}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            folder.join("spec-card.json"),
+            r#"{"kind":"spec-card","name":"Ball","type":"sprite"}"#,
+        )
+        .unwrap();
+        std::fs::write(dir.path().join("canvas/broken.json"), "{ nope").unwrap();
+        let sidecar = dir.path().join("canvas/broken.comments");
+        std::fs::create_dir_all(&sidecar).unwrap();
+        std::fs::write(sidecar.join("c-1.json"), r#"{"schema":1}"#).unwrap();
+
+        let listed = run(dir.path(), "canvas/list", json!({})).unwrap();
+        assert_eq!(
+            ids_of(&listed),
+            ["broken", "reference/flappy-ball/flappy-ball"]
+        );
+        assert!(
+            listed[0]["error"].is_string(),
+            "a damaged canvas is still reported"
+        );
+        assert_eq!(listed[1]["error"], Value::Null);
+        assert_eq!(listed[1]["title"], "Flappy Ball");
+        assert_eq!(
+            listed[1]["path"],
+            "canvas/reference/flappy-ball/flappy-ball.canvas.json"
+        );
+
+        let read = run(
+            dir.path(),
+            "canvas/read",
+            json!({ "id": "reference/flappy-ball/flappy-ball" }),
+        )
+        .unwrap();
+        assert_eq!(
+            read["path"],
+            "canvas/reference/flappy-ball/flappy-ball.canvas.json"
+        );
+    }
+
+    #[test]
+    fn a_dot_canvas_file_wins_over_a_plain_one_and_comments_stay_keyed_by_id() {
+        let dir = TempDir::new().unwrap();
+        run(dir.path(), "canvas/create", json!({ "id": "world" })).unwrap();
+        std::fs::write(
+            dir.path().join("canvas/world.canvas.json"),
+            r#"{"type":"excalidraw","elements":[],"kaava":{"title":"Tagged"}}"#,
+        )
+        .unwrap();
+        let listed = run(dir.path(), "canvas/list", json!({})).unwrap();
+        assert_eq!(ids_of(&listed), ["world"]);
+        assert_eq!(listed[0]["title"], "Tagged");
+        assert_eq!(listed[0]["path"], "canvas/world.canvas.json");
+        assert_eq!(
+            comments::dir_for(dir.path(), "world"),
+            dir.path().join("canvas").join("world.comments")
+        );
+    }
+
+    #[test]
+    fn plain_json_counts_as_a_canvas_only_when_it_looks_like_one() {
+        let dir = TempDir::new().unwrap();
+        let at = |name: &str, body: &str| {
+            let path = dir.path().join(name);
+            std::fs::write(&path, body).unwrap();
+            looks_like_canvas(&path)
+        };
+        assert!(at("a.json", r#"{"type":"excalidraw","elements":[]}"#));
+        assert!(at("b.json", r#"{"elements":[]}"#), "damaged but a scene");
+        assert!(at("c.json", r#"{"kaava":{}}"#), "damaged but a scene");
+        assert!(
+            at("d.json", "{ nope"),
+            "unparseable is reported, not hidden"
+        );
+        assert!(!at("e.json", r#"{"kind":"spec-card","type":"sprite"}"#));
+        assert!(!at("f.json", "[1, 2]"));
     }
 }

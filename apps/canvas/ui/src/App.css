@@ -256,8 +256,13 @@
 
 /* --- the docked panels ------------------------------------------------------ */
 
+/* A narrow pane gives the drawing at least half; the panel stops at 200px. The
+   container lets the tab row below respond to the panel's width, not the
+   window's. */
 .cv__side {
   width: 300px;
+  max-width: 50%;
+  min-width: 200px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -265,18 +270,86 @@
   border-left: 1px solid var(--border-subtle);
   background: var(--bg-layer-1);
   font-size: 12px;
+  container: cv-side / inline-size;
 }
 
 .cv__side.is-collapsed {
   width: 34px;
+  min-width: 0;
 }
 
 .cv__side-bar {
   display: flex;
   align-items: center;
   gap: 2px;
+  min-width: 0;
   padding: 4px;
   border-bottom: 1px solid var(--border-subtle);
+}
+
+/* The tabs shrink; the hide button never does, and sits at the end. */
+.cv__side-bar > [role="tab"] {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.cv__side-tab > svg,
+.cv__side-tab > .cv__count {
+  flex-shrink: 0;
+}
+
+.cv__side-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cv__side-toggle {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.cv__side.is-collapsed .cv__side-toggle {
+  margin-left: 0;
+}
+
+/* Three labels, a count and the button do not fit in 300px, so only the open
+   tab is named; the others are icons with a tooltip. Too narrow even for that,
+   the open one goes icon-only as well. Clipped rather than removed, so each tab
+   keeps its label as its accessible name. */
+.cv__side-tab:not(.is-on) > .cv__side-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+@container cv-side (max-width: 219px) {
+  .cv__side-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
+/* In the collapsed strip the count rides on the icon's corner instead of
+   widening the button past the strip. */
+.cv__side.is-collapsed .cv__side-tab {
+  position: relative;
+}
+
+.cv__side.is-collapsed .cv__count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 12px;
+  padding: 0 2px;
+  font-size: 9px;
+  line-height: 12px;
 }
 
 .cv__side.is-collapsed .cv__side-bar {
