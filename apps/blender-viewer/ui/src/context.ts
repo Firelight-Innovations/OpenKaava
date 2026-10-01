@@ -6,7 +6,13 @@
  */
 import { invoke } from "@openkaava/bridge";
 import { contextKey, type ContextRef } from "../../../shared/context";
-import type { BlenderPart, BlenderViewerState } from "./rpc";
+import type { MarkupJson } from "@kaava/markup";
+import {
+  BLENDER_TARGET,
+  blobBase64,
+  putMarkup as putMarkupShared,
+} from "../../../shared/markupFlow";
+import { saveMarkup, type BlenderPart, type BlenderViewerState } from "./rpc";
 
 export { dragContext } from "../../../shared/context";
 
@@ -89,4 +95,13 @@ export function putGlb(state: BlenderViewerState) {
     label: "Blender - .glb",
     path: state.model,
   });
+}
+
+/** The picture's item, for a drag onto a terminal. */
+export const putMarkup = (png: Blob, json: MarkupJson, rel: string | null) =>
+  putMarkupShared(BLENDER_TARGET, png, json, rel);
+
+/** Keeps the picture and JSON a markup was drawn on, beside this `.blend`'s export. */
+export async function keepMarkup(png: Blob, json: MarkupJson, blend: string): Promise<void> {
+  await saveMarkup(blend, await blobBase64(png), JSON.stringify(json));
 }

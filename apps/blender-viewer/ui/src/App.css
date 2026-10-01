@@ -457,3 +457,36 @@
 .bv__render-tile img {
   cursor: grab;
 }
+
+/* The Model tab holds a 3D stage that takes the room, not a centred picture. */
+.bv__viewport--model {
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.bv__viewport--model .bv__model {
+  align-items: stretch;
+  min-height: 0;
+}
+
+.bv__stage {
+  display: flex;
+  flex-direction: column;
+  min-height: 340px;
+  flex: 1;
+}
+
+.bv__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bv__empty--export {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  grid-column: 1 / -1;
+  align-self: center;
+}

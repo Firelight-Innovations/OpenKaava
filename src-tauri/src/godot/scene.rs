@@ -109,7 +109,7 @@ pub const MAX_MARKUP_PNG: usize = 8 * 1024 * 1024;
 
 /// Temp file in the same folder, then rename over the target, so a reader (or a
 /// crash) sees the old file or the new one and never half of either.
-fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
+pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
     let mut tmp = path.as_os_str().to_owned();
     tmp.push(".tmp");
     let tmp = PathBuf::from(tmp);

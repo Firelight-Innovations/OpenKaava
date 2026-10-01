@@ -236,6 +236,43 @@ pub fn read_manifest(cache: &Path) -> Option<Manifest> {
     serde_json::from_str(&raw).ok()
 }
 
+/// The last markup drawn over a `.blend`'s 3D preview: the picture it was drawn
+/// on and the JSON beside it. One pair per `.blend`, replaced each time.
+pub use crate::godot::scene::Markup;
+
+/// Keeps a markup in `cache` (`markup.png` + `markup.json`). The JSON goes
+/// first so a failure between the two leaves an old picture with a newer note
+/// rather than the reverse. Returns the epoch milliseconds it was written.
+pub fn write_markup(cache: &Path, png: &[u8], json: &str) -> Result<u64, String> {
+    use crate::godot::scene::{write_atomic, MAX_MARKUP_PNG};
+    if !png.starts_with(b"\x89PNG\r\n\x1a\n") {
+        return Err("the markup picture is not a PNG".to_string());
+    }
+    if png.len() > MAX_MARKUP_PNG {
+        return Err(format!(
+            "the markup picture is {:.1} MB; the limit is {} MB",
+            png.len() as f64 / 1_048_576.0,
+            MAX_MARKUP_PNG / 1024 / 1024
+        ));
+    }
+    std::fs::create_dir_all(cache)
+        .map_err(|e| format!("could not create {}: {e}", cache.display()))?;
+    write_atomic(&cache.join("markup.json"), json.as_bytes())?;
+    write_atomic(&cache.join("markup.png"), png)?;
+    Ok(job::now_ms())
+}
+
+pub fn read_markup(cache: &Path) -> Option<Markup> {
+    let png = std::fs::read(cache.join("markup.png")).ok()?;
+    let json = std::fs::read_to_string(cache.join("markup.json")).ok()?;
+    let saved_at = mtime_ms(&cache.join("markup.png")).unwrap_or(0);
+    Some(Markup {
+        png,
+        json,
+        saved_at,
+    })
+}
+
 /// Where the `.glb` goes: `exportDir/<stem>.glb` when configured, otherwise the
 /// cache. `exportDir` must stay inside the project.
 pub fn glb_target(
