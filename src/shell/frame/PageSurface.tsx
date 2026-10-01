@@ -59,6 +59,18 @@ export default function PageSurface({
   const x = useMotionValue(first.x);
   const clipPath = useMotionValue(first.clipPath);
   const opacity = useMotionValue(first.opacity);
+  // Its own motion value, never swapped for a plain style: framer keeps the
+  // last inline width when a bound value is replaced or removed, so an
+  // expanded page stayed at the docked 380px.
+  const boxWidth = useMotionValue<number | string>(mode === "docked" ? width.get() : "auto");
+  useEffect(() => {
+    if (mode !== "docked") {
+      boxWidth.set("auto");
+      return;
+    }
+    boxWidth.set(width.get());
+    return width.on("change", (w) => boxWidth.set(w));
+  }, [mode, width, boxWidth]);
 
   useEffect(() => {
     const apply = (v: number) => {
@@ -99,7 +111,7 @@ export default function PageSurface({
       className={mode === "docked" ? "frame__page" : "frame__page-expanded"}
       data-region={mode === "docked" ? "page" : "page-expanded"}
       data-leaving={isPresent ? undefined : ""}
-      style={{ width: mode === "docked" ? width : undefined, x, clipPath, opacity }}
+      style={{ width: boxWidth, x, clipPath, opacity }}
     >
       {children}
     </motion.div>

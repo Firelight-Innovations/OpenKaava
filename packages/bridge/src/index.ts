@@ -6,6 +6,7 @@
  * factory: a frontend has one host for its lifetime, decided once at load.
  */
 import { createClient, type WindowLike } from "./client.js";
+import { installChordForwarder } from "./chord.js";
 import { installEscapeForwarder } from "./escape.js";
 
 export type {
@@ -110,6 +111,11 @@ const PAINT_FALLBACK_MS = 200;
 if (typeof window !== "undefined" && window.parent !== window) {
   installEscapeForwarder(document, () => {
     void client.invoke("kaava/escape").catch(() => {});
+  });
+  // The same gap, for the shell's chords: Ctrl+Shift+P and Alt+1 went dead as
+  // soon as an app had focus.
+  installChordForwarder(document, (chord) => {
+    void client.invoke("kaava/key", chord).catch(() => {});
   });
 }
 

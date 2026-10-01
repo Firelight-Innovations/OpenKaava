@@ -41,6 +41,7 @@ import type {
   ResponseMessage,
 } from "@openkaava/bridge/protocol";
 import { relayPageEscape } from "./pageEscape";
+import { relayChord } from "./relayChord";
 import { createFrameSearch } from "./frameSearch";
 import {
   OPENED_EVENT,
@@ -1119,6 +1120,14 @@ const ToolWindow = forwardRef<
       if (method === "kaava/escape") {
         respond({ id, result: null });
         relayPageEscape(frame.id, pageIdRef.current, document);
+        return;
+      }
+
+      // A shell chord typed inside a frame (Ctrl+Shift+P, Alt+1, ...), replayed
+      // on the shell's document so the same handlers hear it as outside a frame.
+      if (method === "kaava/key") {
+        respond({ id, result: null });
+        relayChord(params, document);
         return;
       }
 
