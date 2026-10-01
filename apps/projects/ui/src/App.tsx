@@ -161,7 +161,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="app__head">
-        <h1 className="app__title">Projects</h1>
+        <h1 className="app__title app__title--hidden">Projects</h1>
         {list && (
           <span className="app__sub">
             {list.profile}
@@ -186,7 +186,7 @@ export default function App() {
                 ))}
                 {list.projects.length === 0 ? (
                   <p className="app__note">
-                    No projects yet. `kaava-project` writes one to{" "}
+                    No projects yet. <code>kaava-project</code> writes one to{" "}
                     <code>gs://veistra-projects/{list.profile}/projects/</code> per project.
                   </p>
                 ) : (

@@ -199,6 +199,13 @@ describe("Cost Tracker", () => {
     expect(within(machines).getByText("960 vCPU·h")).toBeTruthy();
   });
 
+  it("does not draw a second title under the shell's own page header", async () => {
+    mockRpc(estimate);
+    render(<App />);
+    await screen.findByText("Estimated so far in September");
+    expect(screen.getByRole("heading", { level: 1 }).className).toContain("app__title--hidden");
+  });
+
   it("shows an unpriced line and a failed part rather than hiding them", async () => {
     mockRpc(estimate);
     render(<App />);

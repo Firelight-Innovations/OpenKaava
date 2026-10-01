@@ -157,8 +157,11 @@ const NAV_KEYS: Record<string, NavHandler> = {
     }
   },
 
-  Enter: ({ row, activate }) => {
+  // From nowhere Enter lands on the first row, as ArrowRight does, instead of
+  // silently doing nothing on a freshly focused tree.
+  Enter: ({ row, activate, moveTo }) => {
     if (row) activate(row);
+    else moveTo(0);
   },
 };
 

@@ -31,8 +31,8 @@
   color: var(--txt-tertiary);
 }
 
+.k-docked-page__expand,
 .k-docked-page__close {
-  margin-left: auto;
   width: 26px;
   height: 26px;
   flex-shrink: 0;
@@ -46,11 +46,25 @@
   cursor: pointer;
 }
 
+.k-docked-page__expand {
+  margin-left: auto;
+}
+
+.k-docked-page__close {
+  margin-left: auto;
+}
+
+.k-docked-page__expand + .k-docked-page__close {
+  margin-left: 0;
+}
+
+.k-docked-page__expand:hover,
 .k-docked-page__close:hover {
   color: var(--txt-primary);
   background: var(--bg-layer-1-hover);
 }
 
+.k-docked-page__expand:focus-visible,
 .k-docked-page__close:focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--focus-ring-offset);

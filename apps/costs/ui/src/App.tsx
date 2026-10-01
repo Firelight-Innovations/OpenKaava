@@ -67,7 +67,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="app__head">
-        <h1 className="app__title">Cost Tracker</h1>
+        <h1 className="app__title app__title--hidden">Cost Tracker</h1>
         {estimate && (
           <span className="app__sub">
             Google Cloud · {estimate.project}

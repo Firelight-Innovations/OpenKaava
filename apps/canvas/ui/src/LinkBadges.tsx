@@ -16,6 +16,7 @@ const same = (a: LinkBadge[], b: LinkBadge[]) =>
   a.every(
     (x, i) =>
       x.id === b[i]!.id &&
+      x.below === b[i]!.below &&
       x.child === b[i]!.child &&
       x.label === b[i]!.label &&
       x.right === b[i]!.right &&

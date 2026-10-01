@@ -123,6 +123,17 @@ body {
   letter-spacing: 0.01em;
 }
 
+/* A rail page already carries its name in the shell's own header; the h1 stays
+   for the accessibility tree and the apps' own windows, but is not drawn. */
+.app__title--hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .app__sub {
   color: var(--txt-secondary);
   font-size: 12px;

@@ -298,7 +298,7 @@ pub fn validate_scene(scene: &Value) -> Result<(), String> {
     Ok(())
 }
 
-fn empty_scene(id: &str, title: &str, parent: Option<&str>) -> Value {
+fn empty_scene(id: &str, title: &str, parent: Option<&str>, actor: &str) -> Value {
     let mut kaava = Map::new();
     kaava.insert("schema".into(), json!(SCHEMA));
     kaava.insert("id".into(), json!(id));
@@ -307,7 +307,7 @@ fn empty_scene(id: &str, title: &str, parent: Option<&str>) -> Value {
         kaava.insert("parent".into(), json!(parent));
     }
     kaava.insert("updated".into(), json!(now_rfc3339()));
-    kaava.insert("updated_by".into(), json!("human"));
+    kaava.insert("updated_by".into(), json!(actor));
     json!({
         "type": "excalidraw",
         "version": 2,
@@ -533,12 +533,25 @@ struct CreateParams {
     title: Option<String>,
     #[serde(default)]
     parent: Option<String>,
+    /// `"human"` (the default) or `"agent"`; the MCP bridge always sends `"agent"`.
+    #[serde(default)]
+    actor: Option<String>,
+}
+
+/// The optional `actor` of `canvas/create` and `canvas/write`: absent means a human.
+fn optional_actor(actor: Option<&str>) -> Result<&'static str, RpcError> {
+    match actor {
+        None | Some("human") => Ok("human"),
+        Some("agent") => Ok("agent"),
+        Some(other) => Err(bad(format!("actor must be human or agent, got `{other}`"))),
+    }
 }
 
 fn create(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
     let p: CreateParams = serde_json::from_value(params.cloned().unwrap_or(Value::Null))
         .map_err(|e| bad(format!("bad params: {e}")))?;
     validate_id(&p.id)?;
+    let actor = optional_actor(p.actor.as_deref())?;
     if let Some(parent) = &p.parent {
         validate_id(parent)?;
         if !file_for(root, parent).is_file() {
@@ -557,7 +570,7 @@ fn create(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
         .title
         .filter(|t| !t.trim().is_empty())
         .unwrap_or_else(|| p.id.rsplit('/').next().unwrap_or(&p.id).to_string());
-    let scene = empty_scene(&p.id, title.trim(), p.parent.as_deref());
+    let scene = empty_scene(&p.id, title.trim(), p.parent.as_deref(), actor);
     write_file(&path, &scene)?;
     Ok(json!({
         "id": p.id,
@@ -583,11 +596,7 @@ fn write(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
     let p: WriteParams = serde_json::from_value(params.cloned().unwrap_or(Value::Null))
         .map_err(|e| bad(format!("bad params: {e}")))?;
     validate_id(&p.id)?;
-    let actor = match p.actor.as_deref() {
-        None | Some("human") => "human",
-        Some("agent") => "agent",
-        Some(other) => return Err(bad(format!("actor must be human or agent, got `{other}`"))),
-    };
+    let actor = optional_actor(p.actor.as_deref())?;
     let mut scene = p.scene;
     validate_scene(&scene).map_err(|why| bad(format!("refusing to write: {why}")))?;
     objects::check_links(root, &p.id, &scene)?;
@@ -751,6 +760,28 @@ mod tests {
         let out = run(dir.path(), "canvas/assets", json!({})).unwrap();
         assert_eq!(out["cards"], json!([]));
         assert_eq!(out["canvases"], 0);
+    }
+
+    #[test]
+    fn create_records_the_actor_it_was_given() {
+        let dir = TempDir::new().unwrap();
+        let by_agent = run(
+            dir.path(),
+            "canvas/create",
+            json!({ "id": "from-mcp", "actor": "agent" }),
+        )
+        .unwrap();
+        assert_eq!(by_agent["scene"]["kaava"]["updated_by"], "agent");
+        let read = run(dir.path(), "canvas/read", json!({ "id": "from-mcp" })).unwrap();
+        assert_eq!(read["scene"]["kaava"]["updated_by"], "agent");
+        let by_default = run(dir.path(), "canvas/create", json!({ "id": "from-ui" })).unwrap();
+        assert_eq!(by_default["scene"]["kaava"]["updated_by"], "human");
+        assert!(run(
+            dir.path(),
+            "canvas/create",
+            json!({ "id": "bad", "actor": "system" })
+        )
+        .is_err());
     }
 
     #[test]

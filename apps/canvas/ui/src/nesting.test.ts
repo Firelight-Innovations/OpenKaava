@@ -196,8 +196,24 @@ describe("linkBadges", () => {
   it("puts a chip at the frame's top-right corner, named for the child", () => {
     const f = withChild(frame("a", 100, 50, 300, 100), "world/kid");
     expect(linkBadges([f], view, title)).toEqual([
-      { id: "a", child: "world/kid", label: "T:world/kid", right: 400, bottom: 46, compact: false },
+      {
+        id: "a",
+        child: "world/kid",
+        label: "T:world/kid",
+        right: 400,
+        bottom: 46,
+        compact: false,
+        below: false,
+      },
     ]);
+  });
+
+  it("moves under the frame when the top edge has no room beside the name label", () => {
+    const narrow = { ...withChild(frame("n", 100, 50, 150, 100), "world/kid"), name: "Zone" };
+    const [b] = linkBadges([narrow], view, title);
+    expect(b).toMatchObject({ below: true, bottom: 50 + 100 + 26 });
+    const wide = { ...withChild(frame("w", 100, 50, 400, 100), "kid"), name: "Zone" };
+    expect(linkBadges([wide], view, title)[0]?.below).toBe(false);
   });
 
   it("follows scroll and zoom", () => {

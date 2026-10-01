@@ -2379,17 +2379,26 @@ fn is_pinned_cluster(s: &ShellSnapshot, cluster_id: &str) -> bool {
         .any(|c| c.id == cluster_id && c.pinned)
 }
 
+/// A project path with the spellings that name the same folder folded
+/// together: backslash and slash, a trailing separator, and case (Windows paths are
+/// case-insensitive, and the Recent list and a cluster's `project` are written
+/// by different code, so an exact compare reported the open project as closed).
+fn comparable_path(path: &str) -> String {
+    path.replace('\\', "/").trim_end_matches('/').to_lowercase()
+}
+
 /// The pure core of [`ShellState::project_live_counts`] — see that method's
 /// doc for what it answers and why. Pulled out to the usual pattern: this
 /// type's getters take `&self` and lock internally, which a unit test cannot
 /// reach without a real `AppHandle`, so the arithmetic lives here instead,
 /// tested directly against a bare snapshot.
 fn project_live_counts_pure(s: &ShellSnapshot, path: &str) -> ProjectLiveCounts {
+    let wanted = comparable_path(path);
     let clusters: Vec<&Cluster> = s
         .windows
         .iter()
         .flat_map(|w| w.clusters.iter())
-        .filter(|c| c.project.as_deref() == Some(path))
+        .filter(|c| c.project.as_deref().map(comparable_path).as_deref() == Some(wanted.as_str()))
         .collect();
 
     let mut environments: Vec<String> = clusters
@@ -5632,6 +5641,16 @@ mod tests {
         assert!(!counts.open);
         assert_eq!(counts.cluster_count, 0);
         assert_eq!(counts.environment_count, 0);
+    }
+
+    #[test]
+    fn project_live_counts_ignores_slash_style_trailing_separator_and_case() {
+        let mut w = window("main", "cluster-1", &[]);
+        w.clusters[0].project = Some("C:\\Users\\Me\\Proj\\".to_string());
+        let s = state(vec![w], Vec::new());
+        let counts = project_live_counts_pure(&s, "c:/users/me/proj");
+        assert!(counts.open);
+        assert_eq!(counts.cluster_count, 1);
     }
 
     #[test]

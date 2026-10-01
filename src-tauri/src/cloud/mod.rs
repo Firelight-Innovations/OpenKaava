@@ -116,7 +116,7 @@ impl Trouble {
             Trouble::GcloudMissing => {
                 "the Google Cloud CLI (gcloud) is not installed or not on PATH".into()
             }
-            Trouble::SignedOut { .. } => "gcloud is not signed in — run `gcloud auth login`".into(),
+            Trouble::SignedOut { .. } => "gcloud is not signed in — run gcloud auth login".into(),
             Trouble::Denied { detail } => format!("Google Cloud refused the request: {detail}"),
             Trouble::Missing { what } => format!("{what} does not exist"),
             Trouble::Unreachable { detail } => format!("Google Cloud did not answer: {detail}"),
@@ -317,6 +317,10 @@ mod tests {
         let data = err.data.expect("data");
         assert_eq!(data["kind"], "signedOut");
         assert!(err.message.contains("gcloud auth login"));
+        assert!(
+            !err.message.contains('`'),
+            "literal backticks render as noise"
+        );
     }
 
     #[test]
