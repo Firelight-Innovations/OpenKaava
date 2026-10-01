@@ -74,6 +74,13 @@ export default function Scene3D(props: Scene3DProps) {
     [handle, glbPath, scenePath, godot],
   );
 
+  // The camera is locked for as long as the person is drawing: a pin or a stroke
+  // is only right for the view it was made from. The layer does this too when it
+  // loads; stating it here makes the lock a fact of this view, not of a lazy import.
+  useEffect(() => {
+    handle?.setInteractive(!marking);
+  }, [handle, marking]);
+
   const begin = () => {
     startedAt.current = handle?.getCamera() ?? null;
     setLayerLoaded(true);
@@ -126,7 +133,7 @@ export default function Scene3D(props: Scene3DProps) {
         </button>
         <span className="gv__hint-inline">
           {marking
-            ? "Drawing. Press Done when you are finished."
+            ? "Drawing. The camera is locked until you press Done."
             : "Drag to orbit, right-drag to pan, scroll to zoom. Double-click a node to focus it."}
         </span>
       </div>

@@ -231,6 +231,25 @@
   color: var(--txt-placeholder);
 }
 
+.ctxchip__json {
+  font: var(--type-caption);
+  color: var(--txt-tertiary);
+}
+
+.ctxchip__json summary {
+  cursor: pointer;
+}
+
+.ctxchip__json pre {
+  margin: var(--space-1) 0 0;
+  max-height: 160px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font: var(--type-mono-meta);
+  color: var(--txt-secondary);
+}
+
 .ctxchip__actions {
   display: flex;
   flex-direction: column;

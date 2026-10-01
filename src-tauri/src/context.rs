@@ -61,6 +61,9 @@ pub enum Kind {
     File,
     /// A snippet of text: a log tail, a selection, a note.
     Text,
+    /// Structured data an agent reads as JSON (a markup export). Stored as a
+    /// `.json` file, never truncated: a cut document would not parse.
+    Json,
     /// A capture of a whole panel. Stored exactly like an image; the kind is
     /// there so a strip can say where it came from.
     Panel,
@@ -370,14 +373,23 @@ fn put_with(
             (kind, Body::Write(bytes), sniffed, None, None, None)
         }
         Payload::Text(text) => {
+            let kind = kind.unwrap_or(Kind::Text);
+            let json = kind == Kind::Json;
+            if json && text.len() > MAX_TEXT_BYTES {
+                return Err(invalid(format!(
+                    "that JSON is {} KB; the limit is {} KB and a cut document would not parse",
+                    text.len() / 1024,
+                    MAX_TEXT_BYTES / 1024
+                )));
+            }
             let (text, meta) = clamp_text(text);
             let preview: String = text.chars().take(240).collect();
             let bytes = text.into_bytes();
             (
-                kind.unwrap_or(Kind::Text),
+                kind,
                 Body::Write(bytes),
                 None,
-                Some("txt".to_string()),
+                Some(if json { "json" } else { "txt" }.to_string()),
                 Some(meta),
                 Some(preview),
             )
@@ -1524,6 +1536,40 @@ mod tests {
         assert_eq!(last.sha256.as_deref(), Some(sha_hex(&png(16, 10)).as_str()));
         assert!(last.mtime.is_some());
         assert!(last.updated_at >= last.created_at);
+    }
+
+    #[test]
+    fn json_is_stored_as_a_json_file_whole_and_overwritten_in_place() {
+        let dir = TempDir::new().unwrap();
+        let key = "godot/main/markup-json";
+        let one = r#"{"v":1,"pins":[]}"#;
+        let mut first = req(Payload::Text(one.into()));
+        first.key = Some(key.into());
+        first.kind = Some(Kind::Json);
+        let a = put(dir.path(), first).unwrap();
+        assert_eq!(a.kind, Kind::Json);
+        assert_eq!(a.mime, "application/json");
+        assert!(a.path.ends_with(".json"), "{}", a.path);
+
+        let two = r#"{"v":1,"pins":[1,2,3]}"#;
+        let mut second = req(Payload::Text(two.into()));
+        second.key = Some(key.into());
+        second.kind = Some(Kind::Json);
+        let b = put(dir.path(), second).unwrap();
+        assert_eq!(b.id, a.id);
+        assert_eq!(std::fs::read_to_string(&b.path).unwrap(), two);
+        assert_eq!(files_in(dir.path()).len(), 2, "one body and one sidecar");
+        assert_eq!(list(dir.path()).len(), 1);
+    }
+
+    #[test]
+    fn json_over_the_text_limit_is_refused_rather_than_cut() {
+        let dir = TempDir::new().unwrap();
+        let big = format!("{{\"a\":\"{}\"}}", "x".repeat(MAX_TEXT_BYTES));
+        let mut r = req(Payload::Text(big));
+        r.kind = Some(Kind::Json);
+        let err = put(dir.path(), r).unwrap_err();
+        assert!(err.message.contains("would not parse"), "{}", err.message);
     }
 
     #[test]

@@ -65,6 +65,24 @@ export const refresh = (scene: string | undefined, render: boolean, project?: st
 export const getImage = (scene: string | undefined, project?: string) =>
   invoke<{ png: string | null }>("godot-viewer/image", { scene, project });
 
+/** The last markup drawn over a scene, kept whether or not it was ever sent. */
+export interface SavedMarkup {
+  /** The picture the markup was drawn on, standard base64 PNG. */
+  png: string;
+  /** The markup JSON as text. */
+  json: string;
+  /** Epoch milliseconds the picture was written. */
+  savedAt: number;
+}
+
+/** Replaces this scene's kept markup; one pair per scene, so it never accumulates. */
+export const saveMarkup = (scene: string, pngBase64: string, json: string, project?: string) =>
+  invoke<{ savedAt: number }>("godot-viewer/markup-save", { scene, pngBase64, json, project });
+
+/** `null` when nothing has been marked up on this scene yet. */
+export const loadMarkup = (scene: string | undefined, project?: string) =>
+  invoke<SavedMarkup | null>("godot-viewer/markup", { scene, project });
+
 /**
  * One answer from `godot/preview-glb`. The call is polled: `running` means an
  * export is under way, `ready` carries the glTF's location and the node map,

@@ -1616,7 +1616,7 @@ export function terminalInsertPaths(id: string, paths: string[]): Promise<string
  * once, into Rust; everything after passes ids.
  */
 
-export type ContextKind = "image" | "file" | "text" | "panel";
+export type ContextKind = "image" | "file" | "text" | "json" | "panel";
 export type Harness = "claude" | "codex" | "gemini" | "shell";
 
 export interface ContextItem {

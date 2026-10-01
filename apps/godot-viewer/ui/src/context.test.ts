@@ -4,7 +4,7 @@ const invoke = vi.hoisted(() => vi.fn());
 vi.mock("@openkaava/bridge", () => ({ invoke }));
 
 import type { MarkupJson } from "@kaava/markup";
-import { markupJsonText, putFrame, putMarkup, treeText } from "./context";
+import { base64Blob, keepMarkup, markupJsonText, putFrame, putMarkup, treeText } from "./context";
 import type { GodotNode } from "./rpc";
 
 const nodes: GodotNode[] = [
@@ -119,7 +119,27 @@ describe("putMarkup", () => {
     });
     const second = invoke.mock.calls[1]![1] as { key: string; kind: string; text: string };
     expect(second.key).toBe("godot/main.tscn/markup-json");
-    expect(second.kind).toBe("text");
+    expect(second.kind).toBe("json");
     expect(JSON.parse(second.text)).toEqual(markup);
+  });
+});
+
+describe("keepMarkup", () => {
+  it("saves the picture as base64 and the JSON as text under the scene", async () => {
+    invoke.mockResolvedValue({ savedAt: 1 });
+    await keepMarkup(new Blob([new Uint8Array([65, 66, 67])]), markup, "res://main.tscn");
+    expect(invoke).toHaveBeenCalledWith("godot-viewer/markup-save", {
+      scene: "res://main.tscn",
+      pngBase64: "QUJD",
+      json: JSON.stringify(markup),
+    });
+  });
+});
+
+describe("base64Blob", () => {
+  it("round-trips the bytes", async () => {
+    const blob = base64Blob("QUJD");
+    expect(blob.type).toBe("image/png");
+    expect(blob.size).toBe(3);
   });
 });

@@ -10,6 +10,7 @@ import {
   MessageSquarePlus,
   RefreshCw,
 } from "lucide-react";
+import { isMarkupJson, type MarkupJson } from "@kaava/markup";
 import type { MarkupExport } from "@kaava/markup/layer";
 import { CommentPanel } from "../../../shared/CommentPanel";
 import {
@@ -22,9 +23,26 @@ import { formatRenderAge } from "../../../shared/age";
 import { errorText, getStatus, openInGodot, type GodotStatus } from "../../../shared/godot";
 import { SegmentedControl } from "../../../shared/SegmentedControl";
 import { SendButton, SendFooter, useSendAction } from "../../../shared/SendFooter";
-import { getImage, getState, refresh, type GodotNode, type GodotViewerState } from "./rpc";
+import {
+  getImage,
+  getState,
+  loadMarkup,
+  refresh,
+  type GodotNode,
+  type GodotViewerState,
+} from "./rpc";
 import { sampleState } from "./fixtures";
-import { dragContext, putFrame, putMarkup, putTree } from "./context";
+import { base64Blob, dragContext, keepMarkup, putFrame, putMarkup, putTree } from "./context";
+import {
+  AUTO_SEND_KEY,
+  TIP_KEY,
+  afterDone,
+  markupSummary,
+  offerAutomatic,
+  readPrefs,
+  setPref,
+} from "./markupFlow";
+import { MarkupTip, PreviousMarkup } from "./MarkupPanels";
 import { nodeLookup } from "./preview";
 import { usePreview, type PreviewState } from "./usePreview";
 import "./App.css";
@@ -41,10 +59,16 @@ type View = "3d" | "render";
 
 const POLL_MS = 600;
 
-/** What the person drew and has not yet sent. The URL is for the thumbnail. */
-interface PendingMarkup {
-  export: MarkupExport;
+/**
+ * The latest markup on this scene: just drawn, or read back from where it was
+ * kept (`fresh` false). The URL is for the thumbnail and the larger view.
+ */
+interface KeptMarkup {
+  png: Blob;
+  json: MarkupJson;
   url: string;
+  savedAt: number | null;
+  fresh: boolean;
 }
 
 export default function App() {
@@ -63,7 +87,12 @@ export default function App() {
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
   const [view, setView] = useState<View>("3d");
-  const [markup, setMarkup] = useState<PendingMarkup | null>(null);
+  const [markup, setMarkup] = useState<KeptMarkup | null>(null);
+  const [barOpen, setBarOpen] = useState(true);
+  const [previousOpen, setPreviousOpen] = useState(false);
+  const [tip, setTip] = useState(false);
+  // The offer to make sending automatic shows once per session however it is closed.
+  const tipShown = useRef(false);
 
   const refreshComments = useCallback(async () => {
     setCommentsLoading(true);
@@ -138,9 +167,36 @@ export default function App() {
     };
   }, [markup?.url]);
 
-  const keepMarkup = useCallback((result: MarkupExport) => {
-    setMarkup({ export: result, url: URL.createObjectURL(result.png) });
-  }, []);
+  // Each scene has its own last markup, kept on disk; bring it back when the scene
+  // is shown so it can be looked at or sent without drawing it again.
+  const markupScene = state?.scene ?? null;
+  useEffect(() => {
+    setMarkup(null);
+    setPreviousOpen(false);
+    if (!markupScene || preview) return;
+    let live = true;
+    loadMarkup(markupScene)
+      .then((saved) => {
+        if (!live || !saved) return;
+        const json: unknown = JSON.parse(saved.json);
+        if (!isMarkupJson(json)) return;
+        const png = base64Blob(saved.png);
+        setMarkup(
+          (now) =>
+            now ?? {
+              png,
+              json,
+              url: URL.createObjectURL(png),
+              savedAt: saved.savedAt,
+              fresh: false,
+            },
+        );
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [markupScene, preview]);
 
   const startRefresh = async (render: boolean) => {
     setProblem(null);
@@ -162,6 +218,56 @@ export default function App() {
   const noScenes = !preview && state !== null && state.scenes.length === 0;
 
   const { sent, send } = useSendAction(setProblem, errorText);
+
+  // Done. The drawing is kept first, so it is never lost to a failed send, then
+  // sent at once only if the person turned that on.
+  const onMarkup = useCallback(
+    (result: MarkupExport) => {
+      const scene = state?.scene ?? null;
+      setMarkup({
+        png: result.png,
+        json: result.json,
+        url: URL.createObjectURL(result.png),
+        savedAt: Date.now(),
+        fresh: true,
+      });
+      setBarOpen(true);
+      if (scene) {
+        keepMarkup(result.png, result.json, scene).catch((e: unknown) =>
+          setProblem(`Couldn't keep the markup: ${errorText(e)}`),
+        );
+      }
+      void readPrefs().then((prefs) => {
+        if (afterDone(prefs) === "send") {
+          void send("markup", "markup", () => putMarkup(result.png, result.json, scene));
+        }
+      });
+    },
+    [state?.scene, send],
+  );
+
+  // The Send markup button. The first time it is pressed by hand, offer to make it automatic.
+  const sendMarkup = async () => {
+    if (!markup) return;
+    let ok = false;
+    await send("markup", "markup", async () => {
+      const item = await putMarkup(markup.png, markup.json, state?.scene ?? null);
+      ok = true;
+      return item;
+    });
+    if (!ok) return;
+    const prefs = await readPrefs();
+    if (offerAutomatic(prefs, tipShown.current)) {
+      tipShown.current = true;
+      setTip(true);
+    }
+  };
+  const flip = (key: typeof AUTO_SEND_KEY | typeof TIP_KEY, value: boolean) => {
+    setTip(false);
+    setPref(key, value).catch((e: unknown) =>
+      setProblem(`Couldn't change that setting: ${errorText(e)}`),
+    );
+  };
   // What the pane is showing decides which send buttons the footer offers: the
   // markup only exists over the 3D view, the frame only over the rendered one.
   const inThreeD = p3d.state.kind === "ready" && lookup !== null && view === "3d";
@@ -336,28 +442,54 @@ export default function App() {
                       godot={p3d.state.data.godot}
                       selected={selected}
                       onSelect={setSelected}
-                      onMarkup={keepMarkup}
+                      onMarkup={onMarkup}
                       onNotice={setProblem}
                     />
                   </Suspense>
-                  {markup && (
-                    <div className="gv__markup-bar" role="status">
-                      <img
-                        className="gv__markup-thumb"
-                        alt="The markup you drew"
-                        src={markup.url}
-                        draggable={false}
-                        title="Drag onto a terminal to send to the agent"
-                        onPointerDown={dragContext(() =>
-                          putMarkup(markup.export.png, markup.export.json, state?.scene ?? null),
-                        )}
-                      />
-                      <span className="gv__markup-summary">{markupSummary(markup.export)}</span>
-                      <button type="button" className="gv__action" onClick={() => setMarkup(null)}>
-                        Discard
-                      </button>
-                    </div>
-                  )}
+                  {markup &&
+                    (barOpen ? (
+                      <div className="gv__markup-bar" role="status">
+                        <img
+                          className="gv__markup-thumb"
+                          alt="The markup you drew"
+                          src={markup.url}
+                          draggable={false}
+                          title="Drag onto a terminal to send to the agent, or click to look closer"
+                          onClick={() => setPreviousOpen(true)}
+                          onPointerDown={dragContext(() =>
+                            putMarkup(markup.png, markup.json, state?.scene ?? null),
+                          )}
+                        />
+                        <span className="gv__markup-summary">
+                          {markup.fresh ? "Markup ready" : "Previous markup"}:{" "}
+                          {markupSummary(markup.json)}
+                        </span>
+                        <button
+                          type="button"
+                          className="gv__action"
+                          onClick={() => setPreviousOpen(true)}
+                        >
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          className="gv__action"
+                          onClick={() => setBarOpen(false)}
+                        >
+                          Hide
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="gv__markup-bar gv__markup-bar--collapsed">
+                        <button
+                          type="button"
+                          className="gv__action"
+                          onClick={() => setBarOpen(true)}
+                        >
+                          Previous markup
+                        </button>
+                      </div>
+                    ))}
                 </>
               ) : view === "3d" && p3d.state.kind === "loading" ? null : shown?.scenePath ==
                 null ? (
@@ -455,6 +587,21 @@ export default function App() {
         )}
       </div>
 
+      {previousOpen && markup && (
+        <PreviousMarkup
+          url={markup.url}
+          json={markup.json}
+          savedAt={markup.savedAt}
+          onClose={() => setPreviousOpen(false)}
+        />
+      )}
+      {tip && (
+        <MarkupTip
+          onEnable={() => flip(AUTO_SEND_KEY, true)}
+          onNever={() => flip(TIP_KEY, false)}
+          onClose={() => setTip(false)}
+        />
+      )}
       <SendFooter
         trailing={
           <>
@@ -512,13 +659,9 @@ export default function App() {
             label="Send markup"
             sent={sent === "markup"}
             title="Send the markup you drew to the agent, or drag this onto a terminal"
-            onClick={() =>
-              void send("markup", "markup", () =>
-                putMarkup(markup.export.png, markup.export.json, state?.scene ?? null),
-              )
-            }
+            onClick={() => void sendMarkup()}
             onPointerDown={dragContext(() =>
-              putMarkup(markup.export.png, markup.export.json, state?.scene ?? null),
+              putMarkup(markup.png, markup.json, state?.scene ?? null),
             )}
           />
         )}
@@ -586,16 +729,6 @@ function TreeRow({
       )}
     </div>
   );
-}
-
-function markupSummary(result: MarkupExport): string {
-  const { pins, annotations } = result.json;
-  const parts = [
-    pins.length > 0 && `${pins.length} ${pins.length === 1 ? "pin" : "pins"}`,
-    annotations.length > 0 &&
-      `${annotations.length} ${annotations.length === 1 ? "mark" : "marks"}`,
-  ].filter(Boolean);
-  return `Markup ready: ${parts.join(", ")}`;
 }
 
 /** Why the 3D view is not showing, when it is not, and what the person can do about it. */
