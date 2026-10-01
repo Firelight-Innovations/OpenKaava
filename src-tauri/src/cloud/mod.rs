@@ -317,7 +317,10 @@ mod tests {
         let data = err.data.expect("data");
         assert_eq!(data["kind"], "signedOut");
         assert!(err.message.contains("gcloud auth login"));
-        assert!(!err.message.contains('`'), "literal backticks render as noise");
+        assert!(
+            !err.message.contains('`'),
+            "literal backticks render as noise"
+        );
     }
 
     #[test]

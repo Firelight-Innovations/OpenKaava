@@ -2384,9 +2384,7 @@ fn is_pinned_cluster(s: &ShellSnapshot, cluster_id: &str) -> bool {
 /// case-insensitive, and the Recent list and a cluster's `project` are written
 /// by different code, so an exact compare reported the open project as closed).
 fn comparable_path(path: &str) -> String {
-    path.replace('\\', "/")
-        .trim_end_matches('/')
-        .to_lowercase()
+    path.replace('\\', "/").trim_end_matches('/').to_lowercase()
 }
 
 /// The pure core of [`ShellState::project_live_counts`] — see that method's

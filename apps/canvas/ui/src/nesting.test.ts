@@ -196,7 +196,15 @@ describe("linkBadges", () => {
   it("puts a chip at the frame's top-right corner, named for the child", () => {
     const f = withChild(frame("a", 100, 50, 300, 100), "world/kid");
     expect(linkBadges([f], view, title)).toEqual([
-      { id: "a", child: "world/kid", label: "T:world/kid", right: 400, bottom: 46, compact: false, below: false },
+      {
+        id: "a",
+        child: "world/kid",
+        label: "T:world/kid",
+        right: 400,
+        bottom: 46,
+        compact: false,
+        below: false,
+      },
     ]);
   });
 
