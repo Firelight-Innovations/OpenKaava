@@ -38,7 +38,7 @@ afterEach(cleanup);
 
 describe("McpTools", () => {
   it("shows the first sentence collapsed and the signature once expanded", () => {
-    render(<McpTools serverName="Echo" tools={TOOLS} appMethods={[]} />);
+    render(<McpTools tools={TOOLS} appMethods={[]} />);
     expect(screen.getByText("Returns the message.")).toBeTruthy();
     expect(screen.queryByText("echo(message: string)")).toBeNull();
 
@@ -49,13 +49,13 @@ describe("McpTools", () => {
   });
 
   it("badges read-only and acting tools", () => {
-    render(<McpTools serverName="Echo" tools={TOOLS} appMethods={[]} />);
+    render(<McpTools tools={TOOLS} appMethods={[]} />);
     expect(screen.getByText("read-only")).toBeTruthy();
     expect(screen.getByText("acts")).toBeTruthy();
   });
 
   it("toggles the raw schema", () => {
-    render(<McpTools serverName="Echo" tools={TOOLS} appMethods={[]} />);
+    render(<McpTools tools={TOOLS} appMethods={[]} />);
     fireEvent.click(screen.getByRole("button", { name: /echo/ }));
     fireEvent.click(screen.getByRole("button", { name: "Schema" }));
     expect(screen.getByLabelText("echo input schema").textContent).toContain('"message"');
@@ -63,18 +63,21 @@ describe("McpTools", () => {
   });
 
   it("filters tools by name and description", () => {
-    render(<McpTools serverName="Echo" tools={TOOLS} appMethods={[]} />);
-    fireEvent.change(screen.getByLabelText("Filter Echo tools"), {
-      target: { value: "unchanged" },
-    });
+    const { rerender } = render(<McpTools tools={TOOLS} appMethods={[]} query="unchanged" />);
     expect(screen.queryByText("app_call")).toBeNull();
     expect(screen.getByText("echo")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Filter Echo tools"), { target: { value: "zzz" } });
+    rerender(<McpTools tools={TOOLS} appMethods={[]} query="zzz" />);
     expect(screen.getByRole("status").textContent).toContain("No tool matches");
   });
 
+  it("draws no input of its own; the filter comes from the title bar", () => {
+    render(<McpTools tools={TOOLS} appMethods={[]} />);
+    expect(screen.queryByRole("searchbox")).toBeNull();
+    expect(screen.queryByRole("textbox")).toBeNull();
+  });
+
   it("lists app methods under app_call and says there are no signatures", () => {
-    render(<McpTools serverName="Agent" tools={TOOLS} appMethods={METHODS} />);
+    render(<McpTools tools={TOOLS} appMethods={METHODS} />);
     fireEvent.click(screen.getByRole("button", { name: /app_call/ }));
     expect(screen.getByText(/no parameter\s+schemas/)).toBeTruthy();
     fireEvent.click(screen.getByText("Files"));
@@ -85,8 +88,7 @@ describe("McpTools", () => {
   });
 
   it("finds an app method through the filter", () => {
-    render(<McpTools serverName="Agent" tools={TOOLS} appMethods={METHODS} />);
-    fireEvent.change(screen.getByLabelText("Filter Agent tools"), { target: { value: "save-as" } });
+    render(<McpTools tools={TOOLS} appMethods={METHODS} query="save-as" />);
     expect(screen.getByText("files/save-as")).toBeTruthy();
     expect(screen.queryByText("files/read")).toBeNull();
   });
