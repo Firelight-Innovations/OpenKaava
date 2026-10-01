@@ -18,8 +18,9 @@
  * The rule that follows: a second section wanting a panel is a signal the schema
  * is missing a control, not that panels are how sections are built.
  */
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import McpTools from "./McpTools";
+import { useTitlebarSearch } from "../titlebarSearch";
 import ToggleControl from "./controls/ToggleControl";
 import {
   mcpCatalog,
@@ -37,6 +38,17 @@ export default function McpPanel() {
   // sources for method names, and most visits never open a row.
   const [catalog, setCatalog] = useState<McpCatalog | null>(null);
   const [wantCatalog, setWantCatalog] = useState(false);
+  // How many servers have their tool list open, and the one filter they share.
+  // The filter is typed in the title bar's search field: it is claimed here only
+  // while a list is open, so it sits above the Settings search and gives it back
+  // when the last list closes.
+  const [openCount, setOpenCount] = useState(0);
+  const [toolQuery, setToolQuery] = useState("");
+  useTitlebarSearch(
+    openCount > 0
+      ? { placeholder: "Filter tools", value: toolQuery, onChange: setToolQuery }
+      : null,
+  );
 
   useEffect(() => {
     if (!wantCatalog) return;
@@ -137,6 +149,8 @@ export default function McpPanel() {
             onToggle={toggle}
             catalog={catalog}
             onOpen={() => setWantCatalog(true)}
+            onOpenChange={(now) => setOpenCount((n) => n + (now ? 1 : -1))}
+            query={toolQuery}
           />
         ))
       )}
@@ -175,11 +189,15 @@ function ServerRow({
   onToggle,
   catalog,
   onOpen,
+  onOpenChange,
+  query,
 }: {
   server: McpServerInfo;
   onToggle: (server: McpServerInfo, next: boolean) => void;
   catalog: McpCatalog | null;
   onOpen: () => void;
+  onOpenChange: (open: boolean) => void;
+  query: string;
 }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
@@ -187,7 +205,20 @@ function ServerRow({
   const flip = () => {
     if (!open) onOpen();
     setOpen(!open);
+    onOpenChange(!open);
   };
+
+  // A row that unmounts while open (the section changed, or Settings closed)
+  // must give its count back, or the claim would outlive the lists.
+  const openRef = useRef(false);
+  openRef.current = open;
+  useEffect(
+    () => () => {
+      if (openRef.current) onOpenChange(false);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- unmount only
+    [],
+  );
 
   return (
     <div className="settings-mcp__server">
@@ -252,8 +283,8 @@ function ServerRow({
             </p>
           ) : (
             <McpTools
-              serverName={server.name}
               tools={tools}
+              query={query}
               appMethods={server.id === "agent" ? (catalog?.appMethods ?? []) : []}
             />
           )}

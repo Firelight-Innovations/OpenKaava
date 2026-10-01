@@ -14,8 +14,9 @@
  * that GitHub is broken, and four of the six states below exist only so that
  * never happens. Reaching both kinds and every state without typing is [`Axes`].
  */
-import { useCallback, useMemo, useState } from "react";
-import { IssueDot, PullRequest, Search } from "../../ui/Icon";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { IssueDot, PullRequest } from "../../ui/Icon";
+import { useTitlebarSearch } from "../titlebarSearch";
 import type {
   GithubAuthControl,
   GithubControl,
@@ -98,6 +99,12 @@ export default function GithubPanel({
   onWorktreeCreated,
 }: GithubPanelProps) {
   const [filter, setFilter] = useState("");
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // The filter is typed in the title bar's search field, claimed while the user
+  // is working in this panel and given back when they click elsewhere. See
+  // `docs/design-notes/titlebar-search.md`.
+  const holding = usePanelHoldsFocus(panelRef);
 
   // Parsed once per keystroke and used twice — for the fetch scope and for the
   // predicate — so that the request and the list can never disagree about what
@@ -147,12 +154,18 @@ export default function GithubPanel({
     [feed, query],
   );
 
+  useTitlebarSearch(
+    holding && feed?.state === "ready"
+      ? { placeholder: FILTER_PLACEHOLDER, value: filter, onChange: setFilter }
+      : null,
+  );
+
   if (clusterId === null) {
     return <Empty title="No cluster is open." />;
   }
 
   return (
-    <div className="github">
+    <div className="github" ref={panelRef}>
       <Head
         repo={feed?.state === "ready" ? feed.repo : null}
         loading={loading}
@@ -162,17 +175,6 @@ export default function GithubPanel({
       {feed?.state === "ready" && (
         <>
           <Axes query={query} filter={filter} onFilter={setFilter} />
-          <div className="github__filter">
-            <Search size={12} />
-            <input
-              className="github__filterinput"
-              value={filter}
-              spellCheck={false}
-              placeholder="is:draft  label:bug  author:me"
-              aria-label="Filter issues and pull requests"
-              onChange={(event) => setFilter(event.target.value)}
-            />
-          </div>
         </>
       )}
 
@@ -195,6 +197,39 @@ export default function GithubPanel({
       />
     </div>
   );
+}
+
+const FILTER_PLACEHOLDER = "is:draft  label:bug  author:me";
+
+/**
+ * Whether the user's last interaction was inside the panel.
+ *
+ * Set by focus or a press in the panel and cleared by a press anywhere else in
+ * the document, or by focus leaving the window for an app frame. A press on the
+ * title bar's search field does not clear it: that field is where the filter is
+ * being typed, and clearing it would take the field away mid-word.
+ */
+function usePanelHoldsFocus(panel: React.RefObject<HTMLElement | null>): boolean {
+  const [holding, setHolding] = useState(false);
+  useEffect(() => {
+    // On the document rather than the panel: the panel's element does not exist
+    // while it shows its "no cluster" state, and these must follow it in.
+    const press = (event: Event) => {
+      const target = event.target as Element | null;
+      if (target && panel.current?.contains(target)) setHolding(true);
+      else if (target && !target.closest?.(".search-slot")) setHolding(false);
+    };
+    const left = () => setHolding(false);
+    document.addEventListener("focusin", press);
+    document.addEventListener("pointerdown", press, true);
+    window.addEventListener("blur", left);
+    return () => {
+      document.removeEventListener("focusin", press);
+      document.removeEventListener("pointerdown", press, true);
+      window.removeEventListener("blur", left);
+    };
+  }, [panel]);
+  return holding;
 }
 
 function Head({

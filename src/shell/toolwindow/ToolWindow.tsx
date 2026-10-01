@@ -41,7 +41,13 @@ import type {
   ResponseMessage,
 } from "@openkaava/bridge/protocol";
 import { relayPageEscape } from "./pageEscape";
-import { OPENED_EVENT, THEME_CHANGED_EVENT, TOPIC_EVENT_PREFIX } from "@openkaava/bridge/protocol";
+import { createFrameSearch } from "./frameSearch";
+import {
+  OPENED_EVENT,
+  SEARCH_EVENT,
+  THEME_CHANGED_EVENT,
+  TOPIC_EVENT_PREFIX,
+} from "@openkaava/bridge/protocol";
 import { KaavaErrorCode } from "@openkaava/bridge/errors";
 import { appPainted, onLaunchTarget, onProjectChanged, takeLaunchTarget } from "../../bindings";
 import { instantOutCss, instantOutMs } from "../motion";
@@ -438,6 +444,17 @@ const ToolWindow = forwardRef<
     [],
   );
 
+  // Frames claiming the title bar's search field. Declared before
+  // `deliverEvent` exists, so it posts through a ref that is filled in below.
+  const deliverRef = useRef<(instanceId: string, event: string, payload: unknown) => void>(
+    () => {},
+  );
+  const frameSearch = useRef(
+    createFrameSearch((instanceId, payload) =>
+      deliverRef.current(instanceId, SEARCH_EVENT, payload),
+    ),
+  );
+
   const unregisterFrame = useCallback((win: Window) => {
     const frame = frames.current.get(win);
     frames.current.delete(win);
@@ -446,6 +463,7 @@ const ToolWindow = forwardRef<
     // still offering Save for a surface that has unmounted would be offering to
     // post into a window that no longer exists.
     if (frame) report.current?.(frame.id, []);
+    if (frame) frameSearch.current.release(frame.id);
 
     // And it publishes nothing. Retained topics are what a late-mounting frame
     // is told on handshake (see `topics` below), so a value left behind by a
@@ -494,6 +512,8 @@ const ToolWindow = forwardRef<
       return;
     }
   }, []);
+
+  deliverRef.current = deliverEvent;
 
   /**
    * Events waiting on a frame that has not said hello yet, keyed by instance —
@@ -1107,6 +1127,27 @@ const ToolWindow = forwardRef<
         return;
       }
 
+      // The title bar's search field. Recorded for any frame and shown only while
+      // that frame is an active surface; see `frameSearch.ts`.
+      if (method === "kaava/search-claim") {
+        if (frameSearch.current.claim(frame.id, params)) respond({ id, result: null });
+        else
+          respond({
+            id,
+            error: {
+              code: KaavaErrorCode.InvalidParams,
+              message: "kaava/search-claim needs a non-empty `placeholder` string",
+            },
+          });
+        return;
+      }
+
+      if (method === "kaava/search-release") {
+        frameSearch.current.release(frame.id);
+        respond({ id, result: null });
+        return;
+      }
+
       // A frame dragging file paths out of itself. Host business in the
       // strongest sense of the three above: the gesture *leaves* the frame, and
       // where it lands is a fact about this window's layout the frame cannot
@@ -1250,6 +1291,25 @@ const ToolWindow = forwardRef<
   // object every render and the effect below must run when what it *says*
   // changes, not when it is rebuilt.
   const activeKey = [...activeByPane].map(([pane, tab]) => `${pane}:${tab ?? ""}`).join("|");
+
+  // The surfaces whose search claims may show: the focused pane's visible tab,
+  // a takeover, and the rail page. Said as a string for the same reason
+  // `activeKey` is, and applied in an effect so a claim made earlier appears the
+  // moment its pane is focused and goes the moment it is not.
+  const searchActive = [
+    soloInstanceId,
+    pageInstanceId,
+    focusedPaneId ? activeByPane.get(focusedPaneId) : null,
+  ]
+    .filter((id): id is string => typeof id === "string")
+    .join("|");
+  useEffect(() => {
+    frameSearch.current.setActive(searchActive === "" ? [] : searchActive.split("|"));
+  }, [searchActive]);
+  useEffect(() => {
+    const search = frameSearch.current;
+    return () => search.setActive([]);
+  }, []);
 
   /**
    * The surface each pane was showing a moment ago, kept over its replacement.

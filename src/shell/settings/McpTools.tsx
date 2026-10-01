@@ -35,15 +35,16 @@ function Chevron({ open }: { open: boolean }) {
 }
 
 export default function McpTools({
-  serverName,
   tools,
   appMethods,
+  query = "",
 }: {
-  serverName: string;
   tools: McpToolInfo[];
   appMethods: McpAppMethodGroup[];
+  /** The filter text. Typed in the title bar's search field, which `McpPanel`
+   *  claims while a tool list is open, so this component draws no input. */
+  query?: string;
 }) {
-  const [query, setQuery] = useState("");
   const needle = query.trim().toLowerCase();
 
   const shown = useMemo(
@@ -64,14 +65,6 @@ export default function McpTools({
 
   return (
     <div className="mcp-tools">
-      <input
-        className="mcp-tools__filter"
-        type="search"
-        value={query}
-        placeholder="Filter tools"
-        aria-label={`Filter ${serverName} tools`}
-        onChange={(e) => setQuery(e.target.value)}
-      />
       {shown.length === 0 ? (
         <p className="settings-mcp__empty" role="status">
           No tool matches &ldquo;{query}&rdquo;.

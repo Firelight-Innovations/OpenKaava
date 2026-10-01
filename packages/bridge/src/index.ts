@@ -8,7 +8,15 @@
 import { createClient, type WindowLike } from "./client.js";
 import { installEscapeForwarder } from "./escape.js";
 
-export type { Client, ClientOptions, Host, TauriCore, WindowLike } from "./client.js";
+export type {
+  Client,
+  ClientOptions,
+  Host,
+  SearchClaim,
+  SearchHandle,
+  TauriCore,
+  WindowLike,
+} from "./client.js";
 export type {
   CommandMessage,
   EventMessage,
@@ -19,10 +27,12 @@ export type {
   PublishedTopic,
   ReadyMessage,
   RequestMessage,
+  SearchClaimParams,
+  SearchEventPayload,
   Session,
   ThemeChangedPayload,
 } from "./protocol.js";
-export { OPENED_EVENT, THEME_CHANGED_EVENT, TOPIC_EVENT_PREFIX } from "./protocol.js";
+export { OPENED_EVENT, SEARCH_EVENT, THEME_CHANGED_EVENT, TOPIC_EVENT_PREFIX } from "./protocol.js";
 export { KaavaErrorCode, KaavaRpcError } from "./errors.js";
 
 // The cast narrows `addEventListener`: `Window`'s takes any event type, an
@@ -69,6 +79,15 @@ export const publish: (topic: string, value: unknown) => void = client.publish;
 /** Listen for what other frames in this cluster publish under `topic`. */
 export const subscribe: (topic: string, cb: (value: unknown, from: string) => void) => () => void =
   client.subscribe;
+
+/**
+ * Claim the shell's title bar search field for this frame, so the filter is
+ * typed there rather than in a bar of this app's own. Only honoured while this
+ * frame is the active surface; release it when the filter goes away. Under a
+ * standalone host there is no shell to claim from, so check
+ * `host() === "kaava"` and draw a local input otherwise.
+ */
+export const claimSearch: typeof client.claimSearch = client.claimSearch;
 
 export const session: typeof client.session = client.session;
 
