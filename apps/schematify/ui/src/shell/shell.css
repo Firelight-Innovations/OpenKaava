@@ -110,17 +110,6 @@
   gap: 8px;
 }
 
-.kv-toolbar__search {
-  background: var(--kv-bg-panel);
-  border: 1px solid var(--kv-line);
-  border-radius: var(--kv-radius);
-  color: var(--kv-text-secondary);
-  font-family: var(--kv-font-mono);
-  font-size: 11px;
-  padding: 4px 8px;
-  width: 220px;
-}
-
 .kv-toolbar__button {
   background: var(--kv-bg-panel);
   border: 1px solid var(--kv-line);

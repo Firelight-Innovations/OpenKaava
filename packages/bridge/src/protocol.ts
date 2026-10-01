@@ -130,6 +130,19 @@ export interface ThemeChangedPayload {
   accent: "amber" | "blue" | "green" | "violet" | "coral";
 }
 
+/** The event carrying a titlebar-search interaction; see `kaava/search-claim`. */
+export const SEARCH_EVENT = "kaava:search";
+
+export interface SearchClaimParams {
+  placeholder: string;
+  value: string;
+}
+
+export interface SearchEventPayload {
+  kind: "query" | "submit" | "escape";
+  value: string;
+}
+
 /** What arrives with a `kaava:topic/*` event. */
 export interface PublishedTopic {
   value: unknown;
