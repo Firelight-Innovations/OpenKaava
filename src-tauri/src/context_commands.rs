@@ -232,20 +232,88 @@ pub fn terminal_insert_items(
     id: String,
     item_ids: Vec<String>,
 ) -> Result<Inserted> {
+    insert_stored(&app, &ptys, &id, &item_ids)
+}
+
+/// The shared body of the strip's re-insert and [`insert_for_cluster`]: write
+/// the reference to each stored item at the terminal's prompt. Never Enter.
+fn insert_stored(
+    app: &AppHandle,
+    ptys: &PtySessions,
+    id: &str,
+    item_ids: &[String],
+) -> Result<Inserted> {
     let target = ptys
-        .target(&id)
-        .ok_or_else(|| pty_err(&id, "no such terminal session to insert into"))?;
-    let root = root_of(&app, &id)?;
+        .target(id)
+        .ok_or_else(|| pty_err(id, "no such terminal session to insert into"))?;
+    let root = root_of(app, id)?;
     let mut paths = Vec::new();
     let mut refused = Vec::new();
-    for item_id in &item_ids {
+    for item_id in item_ids {
         match context::get(&root, item_id) {
             Ok(item) if !item.missing => paths.push(item.path),
             Ok(item) => refused.push(format!("{}: the file is gone", item.title)),
             Err(e) => refused.push(e.message),
         }
     }
-    Ok(insert(&ptys, &id, &target, &paths, Vec::new(), refused))
+    Ok(insert(ptys, id, &target, &paths, Vec::new(), refused))
+}
+
+/// The method an app frame calls to type references to stored context items at
+/// the agent's prompt, so the person can read them and press Enter themselves.
+pub const INSERT_METHOD: &str = "context/insert";
+
+/// The first of `candidates` (the cluster's shown terminal leads) that is
+/// running a coding agent. A plain shell is skipped on purpose: a markup
+/// reference typed into `bash` would be a stray path, not a message.
+pub fn pick_agent_terminal(
+    candidates: &[String],
+    runs_agent: impl Fn(&str) -> bool,
+) -> Option<String> {
+    candidates.iter().find(|id| runs_agent(id)).cloned()
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct InsertParams {
+    item_ids: Vec<String>,
+}
+
+/// `context/insert`: types `@path` references for items in this cluster's
+/// context store at the prompt of the cluster's agent terminal, without
+/// pressing Enter. Answers `{ inserted: false, reason }` rather than an error
+/// when there is no agent terminal to type into, because the items are already
+/// attached in the strip and that is a normal state, not a failure.
+pub fn insert_for_cluster(
+    app: &AppHandle,
+    cluster_id: Option<&str>,
+    params: Option<serde_json::Value>,
+) -> std::result::Result<serde_json::Value, kaava_rpc::RpcError> {
+    use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
+    let p: InsertParams = serde_json::from_value(params.unwrap_or(serde_json::Value::Null))
+        .map_err(|e| RpcError::new(INVALID_PARAMS, format!("bad params: {e}")))?;
+    let declined = |reason: &str| serde_json::json!({ "inserted": false, "reason": reason });
+    let Some(cluster) = cluster_id else {
+        return Ok(declined("this frame is not in a cluster"));
+    };
+    let ptys = app.state::<PtySessions>();
+    let candidates = app.state::<ShellState>().terminals_in_cluster(cluster);
+    let Some(terminal) = pick_agent_terminal(&candidates, |id| {
+        ptys.target(id).is_some_and(|t| t.harness.is_agent())
+    }) else {
+        return Ok(declined(
+            "no agent is running in this environment's terminals",
+        ));
+    };
+    let done = insert_stored(app, &ptys, &terminal, &p.item_ids)
+        .map_err(|e| RpcError::new(INTERNAL_ERROR, e.to_string()))?;
+    Ok(serde_json::json!({
+        "inserted": done.count > 0,
+        "terminal": terminal,
+        "text": done.text,
+        "count": done.count,
+        "refused": done.refused,
+    }))
 }
 
 /// The absolute paths of items, for a drag that carries item ids. `instance` is
@@ -373,6 +441,48 @@ mod tests {
 
     fn strings(p: &Path) -> Vec<String> {
         vec![p.to_string_lossy().into_owned()]
+    }
+
+    #[test]
+    fn the_shown_agent_terminal_is_chosen_and_a_plain_shell_never_is() {
+        let ids = [
+            "shell".to_string(),
+            "claude-1".to_string(),
+            "claude-2".to_string(),
+        ];
+        let picked = pick_agent_terminal(&ids, |id| id.starts_with("claude"));
+        assert_eq!(picked.as_deref(), Some("claude-1"));
+        assert_eq!(pick_agent_terminal(&ids, |_| false), None);
+        assert_eq!(pick_agent_terminal(&[], |_| true), None);
+    }
+
+    #[test]
+    fn a_typed_reference_never_presses_enter() {
+        let paths = vec!["C:/p/.kaava/context/markup.png".to_string()];
+        for harness in [
+            Harness::Claude,
+            Harness::Gemini,
+            Harness::Codex,
+            Harness::Shell,
+        ] {
+            let text = harness::reference(
+                harness,
+                crate::quoting::ShellFamily::Posix,
+                Some(Path::new("C:/p")),
+                &paths,
+            );
+            assert!(
+                !text.chars().any(char::is_control),
+                "{harness:?} wrote a line break: {text:?}"
+            );
+        }
+        let claude = harness::reference(
+            Harness::Claude,
+            crate::quoting::ShellFamily::Posix,
+            Some(Path::new("C:/p")),
+            &paths,
+        );
+        assert!(claude.starts_with('@'), "{claude:?}");
     }
 
     #[test]

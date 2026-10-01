@@ -40,41 +40,20 @@ pub static SETTINGS: crate::settings::Group = crate::settings::Group {
 
 pub const KEY_EXECUTABLE_PATH: &str = "godot.executablePath";
 
-pub const KEY_MARKUP_AUTO_SEND: &str = "godot.markupAutoSend";
-pub const KEY_MARKUP_TIP: &str = "godot.markupTip";
-
-static SETTINGS_ROWS: &[crate::settings::Setting] = &[
-    crate::settings::Setting {
-        key: KEY_EXECUTABLE_PATH,
-        title: "Godot 4 executable",
-        description: "Leave empty to look for it: GODOT4 and GODOT environment variables, PATH, \
+static SETTINGS_ROWS: &[crate::settings::Setting] = &[crate::settings::Setting {
+    key: KEY_EXECUTABLE_PATH,
+    title: "Godot 4 executable",
+    description: "Leave empty to look for it: GODOT4 and GODOT environment variables, PATH, \
                       common install folders and Steam. A path set here is used as it is and is \
                       never replaced by another install. A folder works too.",
-        control: crate::settings::Control::Text {
-            default: "",
-            placeholder: "C:\\Tools\\Godot\\Godot_v4.3-stable_win64.exe",
-        },
-        applies: crate::settings::Applies::Next {
-            what: "the next time Play or the Godot Viewer looks for it",
-        },
+    control: crate::settings::Control::Text {
+        default: "",
+        placeholder: "C:\\Tools\\Godot\\Godot_v4.3-stable_win64.exe",
     },
-    crate::settings::Setting {
-        key: KEY_MARKUP_AUTO_SEND,
-        title: "Send markup to the agent automatically",
-        description: "Pressing Done in the Godot Viewer's markup mode puts the drawing and its \
-                      notes in front of the agent at once. Off, you press Send markup yourself.",
-        control: crate::settings::Control::Toggle { default: false },
-        applies: crate::settings::Applies::Now,
+    applies: crate::settings::Applies::Next {
+        what: "the next time Play or the Godot Viewer looks for it",
     },
-    crate::settings::Setting {
-        key: KEY_MARKUP_TIP,
-        title: "Suggest sending markup automatically",
-        description: "The note the Godot Viewer shows the first time you send markup by hand, \
-                      offering to make it automatic. Switch this back on to see it again.",
-        control: crate::settings::Control::Toggle { default: true },
-        applies: crate::settings::Applies::Now,
-    },
-];
+}];
 
 /// Everything Godot-related this process holds: the runs, the viewer's jobs,
 /// and the last executable that was found.

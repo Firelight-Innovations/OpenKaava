@@ -446,6 +446,9 @@ await invoke("context/put", { path: "C:/game/renders/out.png" }); // a file you 
 await invoke("context/list"); // ContextItem[], newest first
 await invoke("context/get", { id: item.id });
 await invoke("context/remove", { id: item.id });
+// Type @path references at the agent terminal's prompt, without pressing Enter. Answers
+// { inserted: false, reason } when no agent is running; the items stay attached either way.
+await invoke("context/insert", { itemIds: [item.id] });
 ```
 
 Pass a stable `key` that names the source, never the moment

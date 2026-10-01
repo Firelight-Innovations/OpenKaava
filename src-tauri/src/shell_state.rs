@@ -1767,6 +1767,28 @@ impl ShellState {
         });
     }
 
+    /// The ids of every terminal in a cluster's band, the one it is showing
+    /// first. For a caller that wants "the agent's terminal" and has only a
+    /// cluster to go on; it still has to check which of them runs an agent.
+    pub fn terminals_in_cluster(&self, cluster_id: &str) -> Vec<String> {
+        let guard = self.read();
+        let active = guard
+            .windows
+            .iter()
+            .flat_map(|w| w.clusters.iter())
+            .find(|c| c.id == cluster_id)
+            .and_then(|c| c.active_terminal.clone());
+        order_active_first(
+            active.as_deref(),
+            guard
+                .terminals
+                .iter()
+                .filter(|t| t.cluster_id == cluster_id)
+                .map(|t| t.id.clone())
+                .collect(),
+        )
+    }
+
     /// Which cluster a session sits in, for the split command — it opens the
     /// new pty beside the one it is splitting from, and the caller has no other
     /// way to know where that is.
@@ -5532,6 +5554,41 @@ mod tests {
         assert_eq!(
             counts.environment_count, 1,
             "one environment, shared by both"
+        );
+    }
+}
+
+/// `ids` with `active` moved to the front, when it is one of them.
+fn order_active_first(active: Option<&str>, mut ids: Vec<String>) -> Vec<String> {
+    if let Some(pos) = active.and_then(|a| ids.iter().position(|id| id == a)) {
+        let first = ids.remove(pos);
+        ids.insert(0, first);
+    }
+    ids
+}
+
+#[cfg(test)]
+mod active_first_tests {
+    use super::order_active_first;
+
+    fn ids(v: &[&str]) -> Vec<String> {
+        v.iter().map(|s| (*s).to_string()).collect()
+    }
+
+    #[test]
+    fn the_shown_terminal_comes_first_and_the_rest_keep_their_order() {
+        assert_eq!(
+            order_active_first(Some("c"), ids(&["a", "b", "c", "d"])),
+            ids(&["c", "a", "b", "d"])
+        );
+    }
+
+    #[test]
+    fn no_active_terminal_or_a_stale_one_changes_nothing() {
+        assert_eq!(order_active_first(None, ids(&["a", "b"])), ids(&["a", "b"]));
+        assert_eq!(
+            order_active_first(Some("gone"), ids(&["a", "b"])),
+            ids(&["a", "b"])
         );
     }
 }

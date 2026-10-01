@@ -1,15 +1,16 @@
 /**
  * What happens to a markup once the person presses Done: whether it goes to the
  * agent at once or waits for a click, and the one-time offer to make it
- * automatic. The two settings are the host's (`godot.markupAutoSend`,
- * `godot.markupTip`); this reads them over `settings/all` and flips them over
- * `settings/set`, which the host allows for exactly these two keys.
+ * automatic. The two settings are the host's shared Markup section
+ * (`markup.autoSend`, `markup.tip`), one choice for every viewer with markup;
+ * this reads them over `settings/all` and flips them over `settings/set`, which
+ * the host allows for exactly these two keys.
  */
 import { invoke } from "@openkaava/bridge";
 import type { MarkupJson } from "@kaava/markup";
 
-export const AUTO_SEND_KEY = "godot.markupAutoSend";
-export const TIP_KEY = "godot.markupTip";
+export const AUTO_SEND_KEY = "markup.autoSend";
+export const TIP_KEY = "markup.tip";
 
 export interface MarkupPrefs {
   /** Done sends the markup to the agent straight away. */

@@ -20,8 +20,8 @@ export function MarkupTip({
   return (
     <div className="gv__tip" role="status">
       <p className="gv__tip-text">
-        Markup sent. You can make this automatic, so pressing Done sends it to the agent without
-        another click. It is a setting under Godot.
+        Markup sent. You can make this automatic, so pressing Done attaches it and types the
+        reference at the agent's prompt without another click. It is a setting under Markup.
       </p>
       <div className="gv__tip-actions">
         <button type="button" className="gv__action" onClick={onEnable}>
