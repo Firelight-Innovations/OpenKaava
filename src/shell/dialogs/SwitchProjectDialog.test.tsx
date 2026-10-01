@@ -245,3 +245,14 @@ describe("SwitchProjectDialog", () => {
     });
   });
 });
+
+describe("switcher search ring", () => {
+  it("overrides the dialog-wide input ring with a more specific selector", async () => {
+    const { default: css } = await import("./SwitchProjectDialog.css?raw");
+    // dialogs.css rings `.k-dialog :is(..., a[href]):focus-visible` at (0,3,1).
+    // Three classes, an element type and the pseudo-class make (0,4,1).
+    expect(css).toContain(
+      ".k-dialog.switch-project input.switch-project__search-field:focus-visible",
+    );
+  });
+});
