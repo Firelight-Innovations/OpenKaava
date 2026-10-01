@@ -247,6 +247,8 @@ the shell answers these itself and never forwards them to a core.
 | `kaava/publish` | `{"topic":string,"value":any}` | `null` | State a fact about myself for my cluster-mates to read. |
 | `kaava/drag` | `{"phase":"begin"\|"end","paths"?:string[],"items"?:string[]}` | `null` | I have picked up these file paths and context items (ids from `context/put`), or put them down. |
 | `kaava/escape` | none | `null` | I saw a bare Escape that nothing in me handled. |
+| `kaava/search-claim` | `{"placeholder":string,"value":string}` | `null` | Show my filter in the title bar's search field while I am the active surface. Sending it again updates the claim. |
+| `kaava/search-release` | none | `null` | I no longer have a filter to show. |
 
 `kaava/painted` is a report, not a request. The orchestrator holds its splash
 window up until every first-party app has sent one, so that the window it hands
@@ -451,9 +453,24 @@ that pane. When honoured, the shell replays a synthetic `Escape` `keydown` on it
 own document, so the same binding handles it as if the key had been typed
 outside the frame. Nothing comes back but the acknowledgement.
 
+#### `kaava/search-claim` — the title bar's search field
+
+The shell has one search field, in the title bar. A frame with a filter of its own claims it
+rather than drawing a second bar. The shell records the claim and shows it only while the frame
+is an active surface (the focused pane's visible tab, a takeover, or the rail page). What the
+user does in the field comes back as an event:
+
+```jsonc
+{"kaava":1,"kind":"event","event":"kaava:search","payload":{"kind":"query","value":"src"}}
+```
+
+`kind` is `query` (the text changed), `submit` (Enter) or `escape`. The bridge's `claimSearch`
+wraps all of it. Under the Tauri host both methods are refused, and the frame draws its own
+input. See `docs/design-notes/titlebar-search.md`.
+
 #### Under the Tauri host
 
-All three are **refused** with `-32601`, not accepted and dropped the way
+The sideways channel, the drag and the search claim are **refused** with `-32601`, not accepted and dropped the way
 `kaava/commands` is. A tool's own standalone app is one window with one frontend
 in it: there is no cluster, no second app, no shell chrome to drag into, and
 nobody to deliver to. Answering "done" to an open while nothing happened would
