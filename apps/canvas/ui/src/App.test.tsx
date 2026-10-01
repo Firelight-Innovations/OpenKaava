@@ -670,5 +670,33 @@ describe("Canvas app", () => {
       fireEvent.click(screen.getByRole("tab", { name: /Diagrams/ }));
       expect(screen.getByRole("tabpanel")).toBeTruthy();
     });
+
+    // Braden saw the hide button clipped by the panel's edge: the tabs pushed it
+    // out. jsdom has no layout, so this holds the structure the CSS relies on.
+    it("pins the hide button at the end of the tab row, where the tabs cannot push it", async () => {
+      withComments();
+      render(<App />);
+      await screen.findByText("1 elements");
+      const hide = screen.getByLabelText("Hide panels");
+      const row = hide.parentElement as HTMLElement;
+      expect(row.getAttribute("role")).toBe("tablist");
+      expect(row.lastElementChild).toBe(hide);
+      expect(hide.classList.contains("cv__side-toggle")).toBe(true);
+      expect(row.querySelector(".cv__spacer")).toBeNull();
+      const tabs = row.querySelectorAll('[role="tab"]');
+      expect(tabs.length).toBe(3);
+      for (const tab of Array.from(tabs)) {
+        expect(tab.querySelector(".cv__side-label")).toBeTruthy();
+      }
+      expect(screen.getByRole("tab", { name: /Comments/ })).toBeTruthy();
+    });
+
+    it("tells a person how to make a diagram when there are none", async () => {
+      withComments();
+      render(<App />);
+      await screen.findByText("1 elements");
+      fireEvent.click(screen.getByRole("tab", { name: /Diagrams/ }));
+      expect(await screen.findByText(/No diagrams yet\. Press F/)).toBeTruthy();
+    });
   });
 });

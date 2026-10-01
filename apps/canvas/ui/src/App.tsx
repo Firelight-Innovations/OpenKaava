@@ -921,8 +921,8 @@ export default function App() {
               <section className="cv__side-section" aria-label="Diagrams">
                 {frames.length === 0 ? (
                   <p className="cv__hint">
-                    No frames yet. Draw a frame (F) around a diagram, or ask an agent to lay one out
-                    with add_shapes.
+                    No diagrams yet. Press F and drag around a drawing to make it one, or ask an
+                    agent to draw one.
                   </p>
                 ) : (
                   <ul className="cv__list">
