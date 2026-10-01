@@ -26,6 +26,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import { claimSearch, host, type SearchHandle } from "@openkaava/bridge";
 import ContextMenu, { type DraftKind, type MenuTarget } from "../ContextMenu";
 import DraftRow from "./DraftRow";
 import TreeRow, { GUTTER, INDENT } from "./TreeRow";
@@ -207,6 +208,10 @@ const Explorer = forwardRef<
   ref,
 ) {
   const [filter, setFilter] = useState("");
+  // Under the shell the filter is typed in the title bar's search field, which
+  // this tree claims while it is showing. Standalone there is no shell to claim
+  // from, so the tree draws its own input as it always did.
+  const inShell = host() === "kaava";
   /**
    * Where the keyboard is. Separate from `selectedPath` because the two are
    * different facts: the cursor can sit on a directory, or on a file nobody
@@ -231,6 +236,25 @@ const Explorer = forwardRef<
   /** A create is in flight. Freezes the field rather than closing it. */
   const [creating, setCreating] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  const searchClaim = useRef<SearchHandle | null>(null);
+  useEffect(() => {
+    if (!inShell || view !== "files") return;
+    const handle = claimSearch({
+      placeholder: "Filter files",
+      value: "",
+      onChange: setFilter,
+      onEscape: () => setFilter(""),
+    });
+    searchClaim.current = handle;
+    return () => {
+      handle.release();
+      searchClaim.current = null;
+    };
+  }, [inShell, view]);
+  useEffect(() => {
+    searchClaim.current?.update({ value: filter });
+  }, [filter, inShell, view]);
 
   const tree = useTree(root, reloadNonce, filter);
   const { rows, expand, collapse, relist } = tree;
@@ -652,16 +676,18 @@ const Explorer = forwardRef<
           not occupy. */}
       {view === "files" && (
         <>
-          <input
-            className="explorer__filter"
-            type="search"
-            value={filter}
-            onChange={(event) => setFilter(event.target.value)}
-            placeholder="Filter"
-            aria-label="Filter the loaded folders"
-            spellCheck={false}
-            autoComplete="off"
-          />
+          {!inShell && (
+            <input
+              className="explorer__filter"
+              type="search"
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+              placeholder="Filter"
+              aria-label="Filter the loaded folders"
+              spellCheck={false}
+              autoComplete="off"
+            />
+          )}
 
           {/* Outside the tree, not inside it: a `role="tree"` may only contain
           tree items, and an empty tree with a paragraph in it is neither. */}

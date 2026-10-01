@@ -3124,7 +3124,7 @@ fn reseat_active_terminals(snapshot: &mut ShellSnapshot) {
                     && !in_a_tree.iter().any(|held| held == id)
             };
 
-            if c.active_terminal.as_deref().is_some_and(&is_band_terminal) {
+            if c.active_terminal.as_deref().is_some_and(is_band_terminal) {
                 continue;
             }
             c.active_terminal = terminals
