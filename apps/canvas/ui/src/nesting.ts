@@ -12,6 +12,12 @@
 import type { CanvasSummary } from "./rpc";
 import type { SceneElement } from "./scene";
 
+/**
+ * A frame with a child canvas also carries this as its Excalidraw `link`, so the
+ * editor draws its link badge on the frame and a click on it opens the child.
+ */
+export const CANVAS_LINK = "kaava://canvas/";
+
 /** The deepest folder nesting the backend accepts; see `canvas.rs`. */
 const MAX_DEPTH = 4;
 
@@ -48,9 +54,16 @@ export function withChild(el: SceneElement, child: string | null): SceneElement 
   else kaava.child = child;
   if (Object.keys(kaava).length > 0) custom.kaava = kaava;
   else delete custom.kaava;
+  const link =
+    child !== null
+      ? `${CANVAS_LINK}${child}`
+      : typeof el.link === "string" && el.link.startsWith(CANVAS_LINK)
+        ? null
+        : el.link;
   return {
     ...el,
     customData: Object.keys(custom).length > 0 ? custom : undefined,
+    link,
     version: (el.version ?? 0) + 1,
     versionNonce: Math.floor(Math.random() * 2 ** 31),
     updated: Date.now(),
@@ -151,4 +164,48 @@ export function childId(parentId: string, slug: string): string {
   if (depth < MAX_DEPTH) return `${parentId}/${slug}`;
   const dir = parentId.slice(0, parentId.lastIndexOf("/") + 1);
   return `${dir}${slug}`;
+}
+
+export interface TreeRow {
+  row: CanvasSummary;
+  depth: number;
+}
+
+/**
+ * The canvases as a tree, parents before their children, siblings by title: what
+ * the picker lists, indented by `depth`. A canvas whose parent is missing is a
+ * root, and one that sits in a parent loop is listed last at depth 0 rather than
+ * dropped, so a hand-edited file cannot hide a canvas.
+ */
+export function treeOrder(rows: readonly CanvasSummary[]): TreeRow[] {
+  const ids = new Set(rows.map((r) => r.id));
+  const kids = new Map<string, CanvasSummary[]>();
+  const roots: CanvasSummary[] = [];
+  for (const r of rows) {
+    if (r.parent && ids.has(r.parent) && r.parent !== r.id) {
+      kids.set(r.parent, [...(kids.get(r.parent) ?? []), r]);
+    } else roots.push(r);
+  }
+  const byTitle = (a: CanvasSummary, b: CanvasSummary) =>
+    a.title.localeCompare(b.title) || a.id.localeCompare(b.id);
+  const out: TreeRow[] = [];
+  const seen = new Set<string>();
+  const walk = (r: CanvasSummary, depth: number) => {
+    if (seen.has(r.id)) return;
+    seen.add(r.id);
+    out.push({ row: r, depth });
+    for (const k of (kids.get(r.id) ?? []).slice().sort(byTitle)) walk(k, depth + 1);
+  };
+  for (const r of roots.slice().sort(byTitle)) walk(r, 0);
+  for (const r of rows) if (!seen.has(r.id)) walk(r, 0);
+  return out;
+}
+
+/** The canvases a frame may link to as an existing child: not this one, not an
+ *  ancestor of it, and not already nested under some other canvas. */
+export function linkable(rows: readonly CanvasSummary[], current: string): CanvasSummary[] {
+  const blocked = selfAndAncestors(rows, current);
+  return rows.filter(
+    (r) => !r.error && !blocked.has(r.id) && (r.parent === null || r.parent === current),
+  );
 }

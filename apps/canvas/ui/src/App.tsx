@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { reportPainted } from "@openkaava/bridge";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { AlertTriangle, ChevronRight, ExternalLink, FilePlus2, Link2Off, Lock } from "lucide-react";
+import { AlertTriangle, ChevronRight, FilePlus2, Lock, SquareDashed } from "lucide-react";
 import { SendButton, SendFooter } from "../../../shared/SendFooter";
 import {
   dragContext,
@@ -12,7 +12,9 @@ import {
   selectionElements,
 } from "./sendToAgent";
 import AssetList from "./AssetList";
-import SpecPanel from "./SpecPanel";
+import ObjectPanel from "./ObjectPanel";
+import TypesPanel from "./TypesPanel";
+import TypeIcon from "./TypeIcon";
 import Sidebar, { type SideTab } from "./Sidebar";
 import CommentsPanel, { type CommentTarget } from "./CommentsPanel";
 import { setEditorHooks } from "./agentBridge";
@@ -24,16 +26,31 @@ import {
   type Box,
   type FrameRow,
 } from "./review";
-import { selectedElement, specOf, withSpec, type SpecCard } from "./spec";
+import {
+  changeType,
+  convertLegacy,
+  objectOf,
+  setProp,
+  targetOf,
+  withName,
+  withObject,
+  wrapSelection,
+  type Target,
+  type TypeDef,
+} from "./objects";
 import {
   createCanvas,
+  deleteType,
   getState,
   isCorrupt,
   isExists,
   listCanvases,
   listRefs,
+  listTypes,
   messageOf,
   readCanvas,
+  saveType,
+  setParent,
   staleWrite,
   statCanvas,
   writeCanvas,
@@ -43,7 +60,7 @@ import {
   type CanvasSummary,
   type RefRow,
 } from "./rpc";
-import { ancestry, childId, childOf, selectedFrame, viewportToScene, withChild } from "./nesting";
+import { ancestry, childId, treeOrder, viewportToScene, withChild } from "./nesting";
 import { Autosaver, type SaveState } from "./saver";
 import { signature, slugify, toSaved, uniqueId, type SceneElement, type SceneFile } from "./scene";
 import "./App.css";
@@ -138,19 +155,18 @@ export default function App() {
 
   const [notice, setNotice] = useState<string | null>(null);
   const [sendSlot, setSendSlot] = useState<HTMLElement | null>(null);
-  const [frame, setFrame] = useState<{ id: string; name: string; child: string | null } | null>(
-    null,
-  );
-  const [childName, setChildName] = useState("");
+  /** What the Inspector describes: the selected frame, shape or shapes. */
+  const [target, setTarget] = useState<Target>({ kind: "none" });
+  const [types, setTypes] = useState<TypeDef[]>([]);
+  const [managing, setManaging] = useState(false);
+  /** A frame just made from a selection: its name field takes focus once. */
+  const [focusFrame, setFocusFrame] = useState<string | null>(null);
   const [view, setView] = useState<View>("canvas");
   /** How many elements are selected: what "Send selection" would send. */
   const [selectedN, setSelectedN] = useState(0);
   const [sentSelection, setSentSelection] = useState(false);
   /** Bumped when a card is saved, so the asset list reads disk again. */
   const [assetsKey, setAssetsKey] = useState(0);
-  const [pick, setPick] = useState<{ id: string; spec: Record<string, unknown> | null } | null>(
-    null,
-  );
   const [side, setSide] = useState(readSide);
   const [frames, setFrames] = useState<FrameRow[]>([]);
   const [refs, setRefs] = useState<RefRow[]>([]);
@@ -186,6 +202,15 @@ export default function App() {
     }
   }, []);
 
+  const loadTypes = useCallback(async () => {
+    try {
+      const got = await listTypes();
+      setTypes([...got.builtin, ...got.custom]);
+    } catch {
+      // Without types a frame can still be named and linked; the picker is empty.
+    }
+  }, []);
+
   // First contact: the environment's state and the canvases in it.
   useEffect(() => {
     void (async () => {
@@ -194,6 +219,7 @@ export default function App() {
       } catch (err) {
         setLoadError({ message: messageOf(err), corrupt: false });
       }
+      void loadTypes();
       const rows = await refreshList();
       if (rows && rows.length > 0) {
         const remembered = readLast();
@@ -206,7 +232,7 @@ export default function App() {
       }
       reportPainted();
     })();
-  }, [refreshList]);
+  }, [refreshList, loadTypes]);
 
   // Load the chosen canvas and start a saver whose base is what was just read.
   const load = useCallback(async (id: string) => {
@@ -232,8 +258,8 @@ export default function App() {
       setCommentTarget(null);
       setTargetError(null);
       setPicking(null);
-      setFrame(null);
-      setPick(null);
+      setTarget({ kind: "none" });
+      setManaging(false);
       setSelectedN(0);
       setNotice(null);
       setLoadKey((k) => k + 1);
@@ -299,32 +325,13 @@ export default function App() {
       };
       const rows = framesIn(elements as readonly SceneElement[]);
       setFrames((prev) => (JSON.stringify(prev) === JSON.stringify(rows) ? prev : rows));
-      const picked = selectedFrame(
+      const next = targetOf(
         elements as readonly SceneElement[],
         appState.selectedElementIds as Record<string, unknown> | undefined,
       );
-      const next = picked
-        ? { id: picked.id, name: String(picked.name ?? ""), child: childOf(picked) }
-        : null;
-      setFrame((prev) =>
-        prev?.id === next?.id && prev?.child === next?.child && prev?.name === next?.name
-          ? prev
-          : next,
-      );
+      setTarget((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
       setSelectedN(
         selectedCount(appState.selectedElementIds as Record<string, unknown> | undefined),
-      );
-      const one = selectedElement(
-        elements as readonly SceneElement[],
-        appState.selectedElementIds as Record<string, unknown> | undefined,
-      );
-      const spec = one ? specOf(one) : null;
-      setPick((prev) =>
-        prev?.id === one?.id && JSON.stringify(prev?.spec) === JSON.stringify(spec)
-          ? prev
-          : one
-            ? { id: one.id, spec }
-            : null,
       );
       const saver = saverRef.current;
       const open = docRef.current;
@@ -357,65 +364,176 @@ export default function App() {
     [list, refreshList, switchTo],
   );
 
-  /** Replace one element in the live scene and write it now, so the link is on
-   *  disk before the view moves to the child. */
-  const patchElement = useCallback(async (id: string, edit: (el: SceneElement) => SceneElement) => {
-    const api = apiRef.current;
-    const saver = saverRef.current;
-    const open = docRef.current;
-    if (!api || !saver || !open) return;
-    const elements = (api.getSceneElementsIncludingDeleted() as unknown as SceneElement[]).map(
-      (el) => (el.id === id ? edit(el) : el),
-    );
-    api.updateScene({ elements: elements as never });
-    const scene = toSaved(
-      elements,
-      api.getAppState() as unknown as Record<string, unknown>,
-      api.getFiles() as unknown as Record<string, unknown>,
-      open.scene.kaava,
-    );
-    saver.schedule(scene, signature(scene));
-    await saver.flush();
-  }, []);
-
-  const createChild = useCallback(async () => {
-    const open = docRef.current;
-    if (!frame || !open) return;
-    const title = (childName.trim() || frame.name || "Child canvas").trim();
-    const taken = new Set((list ?? []).map((r) => r.id));
-    const id = uniqueId(childId(open.id, slugify(title) || "canvas"), taken);
-    try {
-      await createCanvas(id, title, open.id);
-      await patchElement(frame.id, (el) => withChild(el, id));
-      setChildName("");
-      await refreshList();
-      await switchTo(id);
-    } catch (err) {
-      setNotice(messageOf(err));
-    }
-  }, [childName, frame, list, patchElement, refreshList, switchTo]);
-
-  const unlinkChild = useCallback(async () => {
-    if (!frame) return;
-    await patchElement(frame.id, (el) => withChild(el, null));
-  }, [frame, patchElement]);
-
-  const saveCard = useCallback(
-    async (card: SpecCard) => {
-      if (!pick) return;
-      await patchElement(pick.id, (el) => withSpec(el, card));
-      setPick({ id: pick.id, spec: { ...card } });
-      setAssetsKey((k) => k + 1);
+  /** Put `elements` in the live scene and write it now, so an edit that the
+   *  agent or a child canvas depends on is on disk before the view moves. */
+  const commitElements = useCallback(
+    async (elements: SceneElement[], appState?: Record<string, unknown>) => {
+      const api = apiRef.current;
+      const saver = saverRef.current;
+      const open = docRef.current;
+      if (!api || !saver || !open) return;
+      api.updateScene({ elements: elements as never, ...(appState ? { appState } : {}) } as never);
+      const scene = toSaved(
+        elements,
+        api.getAppState() as unknown as Record<string, unknown>,
+        api.getFiles() as unknown as Record<string, unknown>,
+        open.scene.kaava,
+      );
+      saver.schedule(scene, signature(scene));
+      await saver.flush();
+      const state = api.getAppState() as unknown as Record<string, unknown>;
+      setTarget(targetOf(elements, state.selectedElementIds as Record<string, unknown>));
     },
-    [patchElement, pick],
+    [],
   );
 
-  const removeCard = useCallback(async () => {
-    if (!pick) return;
-    await patchElement(pick.id, (el) => withSpec(el, null));
-    setPick({ id: pick.id, spec: null });
-    setAssetsKey((k) => k + 1);
-  }, [patchElement, pick]);
+  const patchElement = useCallback(
+    async (id: string, edit: (el: SceneElement) => SceneElement) => {
+      const api = apiRef.current;
+      if (!api) return;
+      const elements = (api.getSceneElementsIncludingDeleted() as unknown as SceneElement[]).map(
+        (el) => (el.id === id ? edit(el) : el),
+      );
+      await commitElements(elements);
+    },
+    [commitElements],
+  );
+
+  const frameId = target.kind === "frame" ? target.id : null;
+  const frameName = target.kind === "frame" ? target.name : "";
+
+  const createChild = useCallback(
+    async (name: string) => {
+      const open = docRef.current;
+      if (!frameId || !open) return;
+      const title = (name.trim() || frameName || "Child canvas").trim();
+      const taken = new Set((list ?? []).map((r) => r.id));
+      const id = uniqueId(childId(open.id, slugify(title) || "canvas"), taken);
+      try {
+        await createCanvas(id, title, open.id);
+        await patchElement(frameId, (el) => withChild(el, id));
+        await refreshList();
+        await switchTo(id);
+      } catch (err) {
+        setNotice(messageOf(err));
+      }
+    },
+    [frameId, frameName, list, patchElement, refreshList, switchTo],
+  );
+
+  const linkExisting = useCallback(
+    async (child: string) => {
+      const open = docRef.current;
+      if (!frameId || !open) return;
+      try {
+        await setParent(child, open.id);
+        await patchElement(frameId, (el) => withChild(el, child));
+        await refreshList();
+      } catch (err) {
+        setNotice(messageOf(err));
+      }
+    },
+    [frameId, patchElement, refreshList],
+  );
+
+  const unlinkChild = useCallback(async () => {
+    if (!frameId) return;
+    await patchElement(frameId, (el) => withChild(el, null));
+  }, [frameId, patchElement]);
+
+  const renameFrame = useCallback(
+    async (name: string) => {
+      if (!frameId) return;
+      setFocusFrame(null);
+      await patchElement(frameId, (el) => withName(el, name));
+    },
+    [frameId, patchElement],
+  );
+
+  const retype = useCallback(
+    async (typeId: string) => {
+      const def = types.find((t) => t.id === typeId);
+      if (!frameId || !def) return;
+      await patchElement(frameId, (el) => withObject(el, changeType(objectOf(el), def)));
+      setAssetsKey((k) => k + 1);
+    },
+    [frameId, patchElement, types],
+  );
+
+  const setField = useCallback(
+    async (key: string, value: unknown) => {
+      if (!frameId) return;
+      await patchElement(frameId, (el) => {
+        const current = objectOf(el);
+        return current ? withObject(el, setProp(current, key, value)) : el;
+      });
+      setAssetsKey((k) => k + 1);
+    },
+    [frameId, patchElement],
+  );
+
+  /** Wrap the selected shapes in a new labelled frame: the way to cluster them
+   *  into one object the agent can name, search and look at. */
+  const frameSelection = useCallback(async () => {
+    const api = apiRef.current;
+    if (!api) return;
+    const state = api.getAppState() as unknown as Record<string, unknown>;
+    const got = wrapSelection(
+      api.getSceneElementsIncludingDeleted() as unknown as SceneElement[],
+      state.selectedElementIds as Record<string, unknown> | undefined,
+    );
+    if (!got.ok) {
+      setNotice(got.error);
+      return;
+    }
+    setNotice(null);
+    setFocusFrame(got.frameId);
+    await commitElements(got.elements, { selectedElementIds: { [got.frameId]: true } });
+  }, [commitElements]);
+
+  const convertCard = useCallback(
+    async (id: string) => {
+      const api = apiRef.current;
+      if (!api) return;
+      const got = convertLegacy(
+        api.getSceneElementsIncludingDeleted() as unknown as SceneElement[],
+        id,
+      );
+      if (!got.ok) {
+        setNotice(got.error);
+        return;
+      }
+      await commitElements(got.elements, { selectedElementIds: { [got.frameId]: true } });
+      setAssetsKey((k) => k + 1);
+    },
+    [commitElements],
+  );
+
+  const saveTypeDef = useCallback(
+    async (def: Omit<TypeDef, "builtin">) => {
+      try {
+        await saveType(def);
+        await loadTypes();
+        return null;
+      } catch (err) {
+        return messageOf(err);
+      }
+    },
+    [loadTypes],
+  );
+
+  const deleteTypeDef = useCallback(
+    async (id: string) => {
+      try {
+        await deleteType(id);
+        await loadTypes();
+        return null;
+      } catch (err) {
+        return messageOf(err);
+      }
+    },
+    [loadTypes],
+  );
 
   /** The selection rendered as a PNG and put in the agent's context. */
   const putSelection = useCallback(async () => {
@@ -703,8 +821,9 @@ export default function App() {
           disabled={!list || list.length === 0}
           onChange={(e) => void switchTo(e.target.value)}
         >
-          {(list ?? []).map((row) => (
+          {treeOrder(list ?? []).map(({ row, depth }) => (
             <option key={row.id} value={row.id}>
+              {"  ".repeat(depth)}
               {row.error ? `${row.title} (unreadable)` : row.title}
             </option>
           ))}
@@ -967,71 +1086,134 @@ export default function App() {
                 onCounts={setOpenComments}
               />
             )}
-            {side.tab === "inspector" && (
+            {side.tab === "inspector" && managing && (
+              <TypesPanel
+                types={types}
+                readOnly={readOnly}
+                onSave={saveTypeDef}
+                onDelete={deleteTypeDef}
+                onClose={() => setManaging(false)}
+              />
+            )}
+            {side.tab === "inspector" && !managing && (
               <>
-                {frame && (frame.child || !readOnly) && (
-                  <section className="cv__frame cv__side-section" aria-label="Frame link">
-                    <h3>Frame</h3>
-                    {frame.child ? (
+                {target.kind === "frame" && (
+                  <ObjectPanel
+                    key={`${doc.id}:${loadKey}:${target.id}`}
+                    frame={target}
+                    types={types}
+                    readOnly={readOnly}
+                    refs={refs.map((r) => ({ name: r.name, path: r.path }))}
+                    focusName={focusFrame === target.id}
+                    canvases={list ?? []}
+                    current={doc.id}
+                    onName={(name) => void renameFrame(name)}
+                    onType={(id) => void retype(id)}
+                    onProp={(key, value) => void setField(key, value)}
+                    onOpenChild={(id) => void openChild(id)}
+                    onUnlink={() => void unlinkChild()}
+                    onCreateChild={(name) => void createChild(name)}
+                    onLinkExisting={(id) => void linkExisting(id)}
+                    onManageTypes={() => setManaging(true)}
+                    putCard={putCard}
+                    onSendError={setNotice}
+                    sendSlot={sendSlot}
+                  />
+                )}
+                {target.kind === "shape" && (
+                  <section className="cv__object cv__side-section" aria-label="Shape">
+                    {target.frame ? (
                       <>
-                        <span className="cv__frame-label">
-                          Child canvas <code>{frame.child}</code>
+                        <h3>In a frame</h3>
+                        <p className="cv__hint">Detail lives on the frame, not on each shape.</p>
+                        <span className="cv__typechip">
+                          {(() => {
+                            const def = types.find((t) => t.id === target.frame!.type);
+                            return def ? (
+                              <>
+                                <TypeIcon icon={def.icon} color={def.color} size={12} /> {def.name}
+                              </>
+                            ) : (
+                              "No type"
+                            );
+                          })()}
+                          {" - "}
+                          {target.frame.name || "unnamed frame"}
                         </span>
                         <button
                           type="button"
-                          className="k-btn k-btn--primary k-btn--sm"
-                          onClick={() => void openChild(frame.child!)}
+                          className="k-btn k-btn--secondary k-btn--sm"
+                          onClick={() => reveal([target.frame!.id])}
                         >
-                          <ExternalLink size={14} aria-hidden /> Open
+                          Select frame
                         </button>
+                      </>
+                    ) : (
+                      <>
+                        <h3>Not in a frame</h3>
+                        <p className="cv__hint">Wrap in a frame to describe this for the agent.</p>
                         {!readOnly && (
                           <button
                             type="button"
-                            className="k-btn k-btn--ghost k-btn--sm"
-                            onClick={() => void unlinkChild()}
+                            className="k-btn k-btn--secondary k-btn--sm"
+                            onClick={() => void frameSelection()}
                           >
-                            <Link2Off size={14} aria-hidden /> Unlink
+                            <SquareDashed size={14} aria-hidden /> Frame selection
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {target.legacy && (
+                      <>
+                        <p className="cv__hint">
+                          This shape carries a spec card
+                          {target.legacy.name ? ` (${target.legacy.name})` : ""} from before frames
+                          held the detail.
+                        </p>
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            className="k-btn k-btn--secondary k-btn--sm"
+                            onClick={() => void convertCard(target.id)}
+                          >
+                            Convert to a Model frame
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </section>
+                )}
+                {target.kind === "many" && (
+                  <section className="cv__object cv__side-section" aria-label="Selection">
+                    <h3>{target.count} shapes selected</h3>
+                    {target.wrappable ? (
+                      <>
+                        <p className="cv__hint">
+                          Wrap them in one labelled frame to make a single object the agent can
+                          name, search and look at.
+                        </p>
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            className="k-btn k-btn--secondary k-btn--sm"
+                            onClick={() => void frameSelection()}
+                          >
+                            <SquareDashed size={14} aria-hidden /> Frame selection
                           </button>
                         )}
                       </>
                     ) : (
-                      <form
-                        className="cv__frame-form"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          void createChild();
-                        }}
-                      >
-                        <input
-                          className="cv__input"
-                          aria-label="Child canvas name"
-                          placeholder={frame.name || "Child canvas name"}
-                          value={childName}
-                          onChange={(e) => setChildName(e.target.value)}
-                        />
-                        <button type="submit" className="k-btn k-btn--secondary k-btn--sm">
-                          Create child canvas
-                        </button>
-                      </form>
+                      <p className="cv__hint">
+                        The selection includes a frame, and frames cannot nest. Select the shapes
+                        alone to frame them.
+                      </p>
                     )}
                   </section>
                 )}
-                {pick && (pick.spec || !readOnly) && (
-                  <SpecPanel
-                    key={`${doc.id}:${loadKey}:${pick.id}`}
-                    stored={pick.spec}
-                    readOnly={readOnly}
-                    onSave={(card) => void saveCard(card)}
-                    onRemove={() => void removeCard()}
-                    putCard={putCard}
-                    onSendError={setNotice}
-                    sendSlot={sendSlot}
-                    refs={refs.map((r) => ({ name: r.name, path: r.path }))}
-                  />
-                )}
-                {!frame && !pick && (
+                {target.kind === "none" && (
                   <p className="cv__hint">
-                    Select a frame to link a child canvas, or any element to give it a spec card.
+                    Select a frame to describe it. To describe loose shapes, select them and wrap
+                    them in a frame.
                   </p>
                 )}
                 <section className="cv__side-section" aria-label="Reference images">

@@ -27,12 +27,12 @@ const MAX_VIEW_PX: u64 = 2400;
 /// The margin kept around a comment's elements when rendering it.
 const COMMENT_MARGIN: f64 = 32.0;
 
-fn params_of(params: Option<&Value>) -> &Value {
+pub(super) fn params_of(params: Option<&Value>) -> &Value {
     static NULL: Value = Value::Null;
     params.unwrap_or(&NULL)
 }
 
-fn string(params: &Value, key: &str) -> Result<String, RpcError> {
+pub(super) fn string(params: &Value, key: &str) -> Result<String, RpcError> {
     params
         .get(key)
         .and_then(Value::as_str)
@@ -53,7 +53,7 @@ pub fn actor(params: &Value) -> Result<&'static str, RpcError> {
 }
 
 /// The canvas id param, validated, and the scene with its mtime.
-fn open(root: &Path, params: &Value) -> Result<(String, Value, Option<u64>), RpcError> {
+pub(super) fn open(root: &Path, params: &Value) -> Result<(String, Value, Option<u64>), RpcError> {
     let id = string(params, "id")?;
     validate_id(&id)?;
     let path = file_for(root, &id);
@@ -95,7 +95,7 @@ fn key_of(d: &Diagram) -> String {
 }
 
 /// Save `scene` over the canvas, refusing if the file moved since `base`.
-fn save_scene(
+pub(super) fn save_scene(
     root: &Path,
     id: &str,
     mut scene: Value,
@@ -185,24 +185,24 @@ pub fn checkpoints(root: &Path, params: Option<&Value>) -> Result<Value, RpcErro
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ViewParams {
+pub(super) struct ViewParams {
     #[serde(default)]
-    region: Option<Region>,
+    pub region: Option<Region>,
     #[serde(default)]
-    scale: Option<f64>,
+    pub scale: Option<f64>,
     #[serde(default)]
-    max_dimension: Option<u64>,
+    pub max_dimension: Option<u64>,
     #[serde(default)]
-    theme: Option<String>,
+    pub theme: Option<String>,
 }
 
 /// Draw `region` (frame-relative) of `d`, or all of it, into `file`.
-fn render(
+pub(super) fn render(
     root: &Path,
     web: &dyn Webview,
     id: &str,
     mut scene: Value,
-    d: &Diagram,
+    frame_id: &str,
     view: &ViewParams,
     file: &Path,
 ) -> Result<Value, RpcError> {
@@ -214,7 +214,7 @@ fn render(
     };
     let payload = json!({
         "scene": scene,
-        "frameId": d.element_id,
+        "frameId": frame_id,
         "region": view.region,
         "scale": view.scale,
         "maxDimension": view.max_dimension.unwrap_or(MAX_VIEW_PX),
@@ -253,7 +253,7 @@ pub fn view_diagram(
     let all = diagrams::list(&scene);
     let d = diagram(&all, &string(p, "diagram")?)?.clone();
     let file = store::view_path(root, &id, &key_of(&d), view.region.is_some())?;
-    let mut out = render(root, web, &id, scene, &d, &view, &file)?;
+    let mut out = render(root, web, &id, scene, &d.element_id, &view, &file)?;
     out["diagram"] = json!({ "id": d.id, "title": d.title, "summary": d.summary,
                              "frameElementId": d.element_id, "bounds": d.bounds.to_json() });
     Ok(out)
@@ -527,7 +527,7 @@ pub fn view_comment(
         theme: p.get("theme").and_then(Value::as_str).map(str::to_owned),
     };
     let file = store::view_path(root, &id, &format!("{}-comment", key_of(&d)), true)?;
-    let mut out = render(root, web, &id, scene, &d, &view, &file)?;
+    let mut out = render(root, web, &id, scene, &d.element_id, &view, &file)?;
     out["comment"] = comments::to_json(root, &c);
     Ok(out)
 }

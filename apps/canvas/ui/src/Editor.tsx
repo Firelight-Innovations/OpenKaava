@@ -10,7 +10,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { Excalidraw, MainMenu } from "@excalidraw/excalidraw";
 import About from "./About";
 import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { childOf, hitLinkedFrame, viewportToScene } from "./nesting";
+import { CANVAS_LINK, childOf, hitLinkedFrame, viewportToScene } from "./nesting";
 import type { SceneElement, SceneFile } from "./scene";
 
 export interface EditorProps {
@@ -62,11 +62,18 @@ export default function Editor({
   const [about, setAbout] = useState(false);
   const onOpenDiagramRef = useRef(onOpenDiagram);
   onOpenDiagramRef.current = onOpenDiagram;
+  const onOpenChildRef = useRef(onOpenChild);
+  onOpenChildRef.current = onOpenChild;
   // An index row's link names a diagram in this canvas; following it moves the
   // view instead of asking the browser to open a `kaava:` URL.
   const handleLink = useCallback(
     (element: { link?: string | null }, event: CustomEvent<{ nativeEvent: unknown }>) => {
       const link = element.link ?? "";
+      if (link.startsWith(CANVAS_LINK)) {
+        event.preventDefault();
+        onOpenChildRef.current(link.slice(CANVAS_LINK.length));
+        return;
+      }
       if (!link.startsWith(DIAGRAM_LINK)) return;
       event.preventDefault();
       onOpenDiagramRef.current?.(decodeURIComponent(link.slice(DIAGRAM_LINK.length)));

@@ -5,6 +5,7 @@
  */
 import { invoke, KaavaRpcError } from "@openkaava/bridge";
 import type { SceneFile } from "./scene";
+import type { TypeDef } from "./objects";
 import type { AssetsResult } from "./spec";
 
 export interface CanvasState {
@@ -99,6 +100,24 @@ export const reopenComment = (id: string, commentId: string) =>
   invoke<CanvasComment>("canvas/reopen-comment", { id, commentId, ...HUMAN });
 export const listRefs = (id: string) =>
   invoke<{ refs: RefRow[]; dir: string }>("canvas/refs", { id, ...HUMAN });
+
+// --- object types and nesting ---------------------------------------------------
+
+export interface TypesResult {
+  builtin: TypeDef[];
+  custom: TypeDef[];
+  path: string;
+  /** Set when `.kaava/canvas/types.json` could not be read. */
+  problem: string | null;
+}
+
+export const listTypes = () => invoke<TypesResult>("canvas/types", HUMAN);
+export const saveType = (type: Omit<TypeDef, "builtin">) =>
+  invoke<{ type: TypeDef }>("canvas/save-type", { type, ...HUMAN });
+export const deleteType = (id: string) =>
+  invoke<{ id: string; deleted: boolean }>("canvas/delete-type", { id, ...HUMAN });
+export const setParent = (id: string, parent: string | null) =>
+  invoke<{ id: string; parent: string | null }>("canvas/set-parent", { id, parent, ...HUMAN });
 
 // --- reading the errors -------------------------------------------------------
 
