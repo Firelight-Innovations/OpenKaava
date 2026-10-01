@@ -25,7 +25,7 @@ use portable_pty::{native_pty_system, Child, CommandBuilder, MasterPty, PtySize,
 use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};
 use std::io::{Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -579,6 +579,8 @@ fn spawn_shell(
     preferred: &str,
 ) -> Result<(String, Box<dyn Child + Send + Sync>)> {
     let mut last_err = String::from("no shell candidate was tried");
+    let cwd = clean_cwd(cwd);
+    let cwd = cwd.as_path();
 
     let candidates = preferred_candidate(preferred)
         .into_iter()
@@ -619,8 +621,13 @@ fn spawn_shell(
             // probe recent_errors` could not answer what happened during a
             // launch. That silence is why issue #36 was unanswerable.
             Err(e) => {
-                crate::kaava_log!("shell candidate {program} did not start: {e}");
-                last_err = format!("{name}: {e}");
+                // `strip_nul`: portable-pty formats its NUL-terminated wide
+                // buffers straight into this message, so an unfiltered one
+                // reads as a trailing NUL after `pwsh.exe` in `recent_errors` and sends a reader
+                // after a NUL that was never in the program or the cwd.
+                let reason = strip_nul(&e.to_string());
+                crate::kaava_log!("shell candidate {program} did not start: {reason}");
+                last_err = format!("{name}: {reason}");
             }
         }
     }
@@ -709,6 +716,8 @@ fn pump(
 /// directory it was found in. `C:\Program Files\Git\bin\bash.exe` becomes
 /// `bash`.
 fn candidate(program: &str) -> Candidate {
+    let program = strip_nul(program);
+    let program = program.as_str();
     let name = Path::new(program)
         .file_stem()
         .map(|s| s.to_string_lossy().to_string())
@@ -718,6 +727,47 @@ fn candidate(program: &str) -> Candidate {
         program: program.to_string(),
         cmd: CommandBuilder::new(program),
     }
+}
+
+/// `text` without any NUL characters.
+///
+/// A NUL inside a string handed to `CreateProcessW` ends it early, so the
+/// program or cwd can never legitimately contain one. Nothing here builds a
+/// NUL-terminated string itself — portable-pty appends the terminator to its
+/// own wide-character buffer and, on a failure, prints that buffer into its
+/// error text — but a value read from the environment or a file can carry one
+/// in, and this is the one place both directions are made safe.
+fn strip_nul(text: &str) -> String {
+    text.replace('\u{0}', "")
+}
+
+/// The directory a shell is started in, made fit for `CreateProcessW`.
+///
+/// NULs removed; on Windows a verbatim `\\?\` prefix dropped (a long-path form
+/// that `CreateProcessW` does not accept as a working directory) and forward
+/// slashes turned into backslashes. A directory that does not exist falls
+/// back to the process's own, because a bad cwd fails *every* shell candidate
+/// and leaves the tab with nothing, which is worse than starting somewhere
+/// slightly wrong.
+fn clean_cwd(cwd: &Path) -> PathBuf {
+    let raw = strip_nul(&cwd.to_string_lossy());
+    #[cfg(windows)]
+    let raw = {
+        let unprefixed = match raw.strip_prefix(r"\\?\") {
+            Some(rest) if !rest.starts_with("UNC\\") => rest.to_string(),
+            _ => raw,
+        };
+        unprefixed.replace('/', "\\")
+    };
+    let cleaned = PathBuf::from(raw);
+    if cleaned.is_dir() {
+        return cleaned;
+    }
+    crate::kaava_log!(
+        "shell cwd {} is not a folder, starting in the process's own instead",
+        cleaned.display()
+    );
+    std::env::current_dir().unwrap_or(cleaned)
 }
 
 /// One shell worth trying.
@@ -1186,5 +1236,64 @@ mod tests {
 
         let _ = child.kill();
         let _ = child.wait();
+    }
+
+    // --- no NUL reaches CreateProcessW ---------------------------------------
+
+    fn has_nul(text: &std::ffi::OsStr) -> bool {
+        text.to_string_lossy().contains('\u{0}')
+    }
+
+    /// `recent_errors` showed `pwsh.exe\0` and a cwd ending in `\0`. A NUL in
+    /// either would end the string early for CreateProcessW, so whatever the
+    /// source, none may survive into the command.
+    #[test]
+    fn a_program_with_a_trailing_nul_is_built_without_one() {
+        let c = candidate("pwsh.exe\u{0}");
+        assert_eq!(c.program, "pwsh.exe");
+        assert_eq!(c.name, "pwsh");
+        assert!(c.cmd.get_argv().iter().all(|a| !has_nul(a)));
+    }
+
+    #[test]
+    fn every_automatic_candidate_is_free_of_nul() {
+        for c in shell_candidates() {
+            assert!(!c.program.contains('\u{0}'), "{:?}", c.program);
+            assert!(c.cmd.get_argv().iter().all(|a| !has_nul(a)));
+        }
+    }
+
+    #[test]
+    fn a_cwd_with_a_trailing_nul_is_cleaned_to_the_real_folder() {
+        let dir = std::env::temp_dir();
+        let dirty = PathBuf::from(format!("{}\u{0}", dir.display()));
+        let cleaned = clean_cwd(&dirty);
+        assert!(!has_nul(cleaned.as_os_str()));
+        assert!(cleaned.is_dir());
+    }
+
+    #[test]
+    fn a_cwd_that_does_not_exist_falls_back_to_a_folder_that_does() {
+        let missing = std::env::temp_dir().join("kaava-no-such-folder-for-a-shell");
+        let cleaned = clean_cwd(&missing);
+        assert!(cleaned.is_dir());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_verbatim_prefix_and_forward_slashes_are_normalised_on_windows() {
+        let dir = std::env::temp_dir();
+        let odd = format!(r"\\?\{}", dir.display());
+        let cleaned = clean_cwd(Path::new(&odd));
+        assert!(!cleaned.to_string_lossy().starts_with(r"\\?\"));
+        assert!(cleaned.is_dir());
+    }
+
+    #[test]
+    fn nul_is_stripped_from_an_error_message() {
+        assert_eq!(
+            strip_nul("CreateProcessW `pwsh.exe\u{0}` failed"),
+            "CreateProcessW `pwsh.exe` failed"
+        );
     }
 }

@@ -972,7 +972,8 @@ fn spawn_terminal(
     }
 
     let (id, ordinal) = shell.claim_terminal_id();
-    let marker = crate::environments::read_only_env(shell.cluster_environment(cluster_id).as_ref());
+    let marker =
+        crate::environments::read_only_env(shell.cluster_write_environment(cluster_id).as_ref());
     let name = ptys.open(
         app,
         &id,

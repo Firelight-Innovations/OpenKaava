@@ -62,7 +62,7 @@ pub fn call_live(
     use tauri::Manager;
     let read_only = context.cluster_id.as_deref().is_some_and(|cluster| {
         app.state::<crate::shell_state::ShellState>()
-            .cluster_environment(cluster)
+            .cluster_write_environment(cluster)
             .is_some_and(|env| env.is_main())
     });
     call_with(context, read_only, &webview::Live { app }, method, params)

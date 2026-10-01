@@ -14,7 +14,7 @@
 //! Why the protocol reaches the webview through COM rather than a debug port,
 //! and what that buys: `docs/design-notes/agent-ui-driving.md`.
 //!
-//! **Prefer [`super::agent`]**, which hosts these eight by delegation next to the
+//! **Prefer [`super::agent`]**, which hosts these ten by delegation next to the
 //! shell reads and a line into any app's Rust half. This module stays
 //! registered because the capability is its, its tests are what hold this code
 //! to account, and a client wanting only input needs no fourteen tools.
@@ -65,18 +65,58 @@ const KEYS: &[(&str, u32, &str)] = &[
     ("ArrowDown", 40, ""),
     ("ArrowLeft", 37, ""),
     ("ArrowRight", 39, ""),
+    ("Home", 36, ""),
+    ("End", 35, ""),
+    ("PageUp", 33, ""),
+    ("PageDown", 34, ""),
 ];
+
+/// The modifier keys, as CDP's `modifiers` bitmask names them: Alt 1, Ctrl 2,
+/// Meta 4, Shift 8. Each is also a real key — `press_key`, `click`, `drag` and
+/// `scroll` press them down and release them around the action, so a page that
+/// watches `keydown` for `Control` sees one, not just `ctrlKey` on the next
+/// event.
+///
+/// (name, key, code, virtual key code, bit)
+const MODIFIERS: &[(&str, &str, &str, u32, u32)] = &[
+    ("ctrl", "Control", "ControlLeft", 17, 2),
+    ("shift", "Shift", "ShiftLeft", 16, 8),
+    ("alt", "Alt", "AltLeft", 18, 1),
+    ("meta", "Meta", "MetaLeft", 91, 4),
+];
+
+/// Punctuation a shortcut is likely to use, and its virtual key code. A
+/// printable character with no entry still types; it just has no key code.
+const PUNCTUATION: &[(char, u32)] = &[
+    ('-', 189),
+    ('=', 187),
+    ('[', 219),
+    (']', 221),
+    (',', 188),
+    ('.', 190),
+    ('/', 191),
+    (';', 186),
+    ('\'', 222),
+    ('\\', 220),
+    ('`', 192),
+];
+
+/// The most pointer moves a `drag` will make between its ends.
+const MAX_DRAG_STEPS: u64 = 200;
+
+/// The pointer moves a `drag` makes when not told.
+const DEFAULT_DRAG_STEPS: u64 = 10;
 
 static TOOLS: &[McpTool] = &TOOL_LIST;
 
-/// The same eight tools, as a const array the `agent` server can index.
+/// The same ten tools, as a const array the `agent` server can index.
 ///
 /// A `const` beside the `static` rather than instead of it: `McpServer.tools`
 /// needs a `&'static [McpTool]`, and a const array cannot be borrowed for one
 /// without a static to anchor it. Naming the array is what lets
 /// [`super::agent`] build its tool list out of these and `debug`'s three
 /// without a second copy of any description.
-pub(super) const TOOL_LIST: [McpTool; 8] = [
+pub(super) const TOOL_LIST: [McpTool; 10] = [
     McpTool {
         name: "screenshot",
         description: "A PNG of the OpenKaava window as it is drawn right now, app content \
@@ -94,9 +134,10 @@ pub(super) const TOOL_LIST: [McpTool; 8] = [
     McpTool {
         name: "click",
         description: "Click a ref from the last snapshot, or any CSS selector. Dispatches real \
-                      pointer events at the element's centre. Refuses a stale ref, an element \
-                      with no size, or one covered by something else, and reports what has \
-                      focus afterwards.",
+                      pointer events at the element's centre, into app iframes too. Refuses a \
+                      stale ref, an element with no size, or one covered by something else, and \
+                      reports what has focus afterwards. `modifiers` holds ctrl, shift, alt or \
+                      meta down for the click.",
         schema: target_schema,
     },
     McpTool {
@@ -123,8 +164,26 @@ pub(super) const TOOL_LIST: [McpTool; 8] = [
     },
     McpTool {
         name: "press_key",
-        description: "Press one named key: Enter, Tab, Escape, Backspace, Delete, or an arrow.",
+        description: "Press one key: a named one (Enter, Tab, Escape, Backspace, Delete, an \
+                      arrow, Home, End, PageUp, PageDown) or a single character. `modifiers` \
+                      holds ctrl, shift, alt or meta down, so key `a` with modifiers [`ctrl`] \
+                      is Ctrl+A.",
         schema: key_schema,
+    },
+    McpTool {
+        name: "drag",
+        description: "Press at `from`, move to `to` in `steps` pointer moves, release. Each end \
+                      is a ref or CSS selector, or `{x, y}` in window coordinates as `snapshot` \
+                      reports them. Real mouse input, so it reaches app iframes and canvases the \
+                      way `click` does. `modifiers` holds ctrl, shift, alt or meta throughout.",
+        schema: drag_schema,
+    },
+    McpTool {
+        name: "scroll",
+        description: "Turn the mouse wheel at a point: `x`/`y`, or a ref or CSS selector in \
+                      `target`, with `deltaX` and `deltaY` in pixels (positive deltaY scrolls \
+                      down). `modifiers` holds ctrl, shift, alt or meta, e.g. ctrl for a zoom.",
+        schema: scroll_schema,
     },
     McpTool {
         name: "eval",
@@ -176,8 +235,73 @@ fn target_schema() -> Value {
                 "type": "string",
                 "description": "A ref from the last snapshot, like `e12`, or a CSS selector.",
             },
+            "modifiers": modifiers_property(),
         },
         "required": ["target"],
+        "additionalProperties": false,
+    })
+}
+
+fn modifiers_property() -> Value {
+    json!({
+        "type": "array",
+        "items": { "type": "string", "enum": ["ctrl", "shift", "alt", "meta"] },
+        "description": "Modifier keys held down for the action.",
+    })
+}
+
+fn point_property(what: &str) -> Value {
+    json!({
+        "description": format!(
+            "{what}: a ref or CSS selector, or an object `{{x, y}}` in window coordinates."
+        ),
+        "oneOf": [
+            { "type": "string" },
+            {
+                "type": "object",
+                "properties": { "x": { "type": "number" }, "y": { "type": "number" } },
+                "required": ["x", "y"],
+                "additionalProperties": false,
+            },
+        ],
+    })
+}
+
+fn drag_schema() -> Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "window": window_property(),
+            "from": point_property("Where the press happens"),
+            "to": point_property("Where the button is released"),
+            "steps": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": MAX_DRAG_STEPS,
+                "description": "How many pointer moves between the ends. Default 10.",
+            },
+            "modifiers": modifiers_property(),
+        },
+        "required": ["from", "to"],
+        "additionalProperties": false,
+    })
+}
+
+fn scroll_schema() -> Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "window": window_property(),
+            "x": { "type": "number", "description": "Window x of the wheel, with `y`." },
+            "y": { "type": "number", "description": "Window y of the wheel, with `x`." },
+            "target": {
+                "type": "string",
+                "description": "A ref or CSS selector to scroll at the centre of, instead of x/y.",
+            },
+            "deltaX": { "type": "number", "description": "Horizontal pixels. Default 0." },
+            "deltaY": { "type": "number", "description": "Vertical pixels. Default 0." },
+            "modifiers": modifiers_property(),
+        },
         "additionalProperties": false,
     })
 }
@@ -223,8 +347,12 @@ fn key_schema() -> Value {
             "window": window_property(),
             "key": {
                 "type": "string",
-                "enum": KEYS.iter().map(|(name, _, _)| *name).collect::<Vec<&str>>(),
+                "description": format!(
+                    "A single character, or one of: {}.",
+                    KEYS.iter().map(|(name, _, _)| *name).collect::<Vec<&str>>().join(", ")
+                ),
             },
+            "modifiers": modifiers_property(),
         },
         "required": ["key"],
         "additionalProperties": false,
@@ -266,7 +394,13 @@ pub(super) fn call(
         "snapshot" => {
             snapshot(app, window, params.get("selector").and_then(Value::as_str)).map(Into::into)
         }
-        "click" => click(app, window, required(&params, "target")?).map(Into::into),
+        "click" => click(
+            app,
+            window,
+            required(&params, "target")?,
+            read_modifiers(&params)?,
+        )
+        .map(Into::into),
         "type_text" => type_text(app, window, required(&params, "text")?).map(Into::into),
         "fill_field" => fill_field(
             app,
@@ -276,7 +410,15 @@ pub(super) fn call(
         )
         .map(Into::into),
         "context" => in_page(app, window, CONTEXT_BODY, &Value::Null).map(Into::into),
-        "press_key" => press_key(app, window, required(&params, "key")?).map(Into::into),
+        "press_key" => press_key(
+            app,
+            window,
+            required(&params, "key")?,
+            read_modifiers(&params)?,
+        )
+        .map(Into::into),
+        "drag" => drag(app, window, &params).map(Into::into),
+        "scroll" => scroll(app, window, &params).map(Into::into),
         "eval" => evaluate(app, window, required(&params, "expression")?).map(Into::into),
         other => Err(RpcError::new(
             kaava_rpc::METHOD_NOT_FOUND,
@@ -377,7 +519,12 @@ fn click_refusal(target: &str, found: &Value) -> Option<String> {
     }
 }
 
-fn click(app: &AppHandle, window: Option<&str>, target: &str) -> Result<Value, RpcError> {
+fn click(
+    app: &AppHandle,
+    window: Option<&str>,
+    target: &str,
+    modifiers: u32,
+) -> Result<Value, RpcError> {
     let found = in_page(app, window, LOCATE_BODY, &Value::String(target.to_string()))?;
 
     if let Some(why) = click_refusal(target, &found) {
@@ -393,28 +540,12 @@ fn click(app: &AppHandle, window: Option<&str>, target: &str) -> Result<Value, R
     // Move, press, release. `el.click()` would be one call instead of three and
     // would skip both the pointer events OpenKaava's menus and drag handles listen
     // for and the focus change a real press causes.
-    protocol(
-        app,
-        window,
-        "Input.dispatchMouseEvent",
-        &json!({ "type": "mouseMoved", "x": x, "y": y }),
-    )?;
-
-    for phase in ["mousePressed", "mouseReleased"] {
-        protocol(
-            app,
-            window,
-            "Input.dispatchMouseEvent",
-            &json!({
-                "type": phase,
-                "x": x,
-                "y": y,
-                "button": "left",
-                "buttons": 1,
-                "clickCount": 1,
-            }),
-        )?;
-    }
+    with_modifiers(app, window, modifiers, || {
+        for event in click_events(x, y, modifiers) {
+            protocol(app, window, "Input.dispatchMouseEvent", &event)?;
+        }
+        Ok(())
+    })?;
 
     // A press on a focusable element should leave focus on it; one that did
     // not (a pointer-events trick, a handler calling blur) is focused here and
@@ -425,7 +556,304 @@ fn click(app: &AppHandle, window: Option<&str>, target: &str) -> Result<Value, R
         "clicked": target,
         "label": found.get("label").cloned().unwrap_or(Value::Null),
         "at": { "x": x, "y": y },
+        "modifiers": modifier_names(modifiers),
         "focus": focus,
+    }))
+}
+
+/// The mouse events of one click at `(x, y)`: move, press, release.
+fn click_events(x: i64, y: i64, modifiers: u32) -> Vec<Value> {
+    let mut events = vec![json!({ "type": "mouseMoved", "x": x, "y": y, "modifiers": modifiers })];
+    for phase in ["mousePressed", "mouseReleased"] {
+        events.push(json!({
+            "type": phase,
+            "x": x,
+            "y": y,
+            "button": "left",
+            "buttons": if phase == "mousePressed" { 1 } else { 0 },
+            "clickCount": 1,
+            "modifiers": modifiers,
+        }));
+    }
+    events
+}
+
+/// The `modifiers` array of a call as a CDP bitmask, refused by name when it
+/// holds something that is not a modifier. Absent means none.
+fn read_modifiers(params: &Value) -> Result<u32, RpcError> {
+    let Some(list) = params.get("modifiers").filter(|list| !list.is_null()) else {
+        return Ok(0);
+    };
+    let Some(list) = list.as_array() else {
+        return Err(RpcError::new(
+            INVALID_PARAMS,
+            "`modifiers` must be an array of ctrl, shift, alt or meta",
+        ));
+    };
+    let mut mask = 0;
+    for entry in list {
+        let name = entry.as_str().unwrap_or("").to_ascii_lowercase();
+        let name = if name == "control" {
+            "ctrl".to_string()
+        } else {
+            name
+        };
+        let Some((_, _, _, _, bit)) = MODIFIERS.iter().find(|(known, ..)| *known == name) else {
+            return Err(RpcError::new(
+                INVALID_PARAMS,
+                format!("`{entry}` is not a modifier. Use ctrl, shift, alt or meta."),
+            ));
+        };
+        mask |= bit;
+    }
+    Ok(mask)
+}
+
+/// The names in a modifier bitmask, in `MODIFIERS` order.
+fn modifier_names(mask: u32) -> Vec<&'static str> {
+    MODIFIERS
+        .iter()
+        .filter(|(_, _, _, _, bit)| mask & bit != 0)
+        .map(|(name, ..)| *name)
+        .collect()
+}
+
+/// The key events that put each modifier in `mask` down, one at a time, each
+/// carrying the modifiers held so far. Empty when `mask` is 0.
+fn modifier_down_events(mask: u32) -> Vec<Value> {
+    let mut held = 0;
+    let mut events = Vec::new();
+    for (_, key, code, vk, bit) in MODIFIERS.iter().filter(|m| mask & m.4 != 0) {
+        held |= bit;
+        events.push(json!({
+            "type": "rawKeyDown",
+            "key": key,
+            "code": code,
+            "windowsVirtualKeyCode": vk,
+            "nativeVirtualKeyCode": vk,
+            "modifiers": held,
+        }));
+    }
+    events
+}
+
+/// The release of [`modifier_down_events`], in reverse order, each carrying
+/// the modifiers still held after it.
+fn modifier_up_events(mask: u32) -> Vec<Value> {
+    let mut held = mask;
+    let mut events = Vec::new();
+    for (_, key, code, vk, bit) in MODIFIERS.iter().rev().filter(|m| mask & m.4 != 0) {
+        held &= !bit;
+        events.push(json!({
+            "type": "keyUp",
+            "key": key,
+            "code": code,
+            "windowsVirtualKeyCode": vk,
+            "nativeVirtualKeyCode": vk,
+            "modifiers": held,
+        }));
+    }
+    events
+}
+
+/// Run `body` with the modifiers in `mask` held down, and let them go again
+/// whether or not it succeeded. A modifier left held would turn every later
+/// click into a ctrl-click.
+fn with_modifiers<T>(
+    app: &AppHandle,
+    window: Option<&str>,
+    mask: u32,
+    body: impl FnOnce() -> Result<T, RpcError>,
+) -> Result<T, RpcError> {
+    for event in modifier_down_events(mask) {
+        protocol(app, window, "Input.dispatchKeyEvent", &event)?;
+    }
+    let result = body();
+    for event in modifier_up_events(mask) {
+        let released = protocol(app, window, "Input.dispatchKeyEvent", &event);
+        if result.is_ok() {
+            released?;
+        }
+    }
+    result
+}
+
+/// Where a `drag` end or a `scroll` lands: window coordinates, or something to
+/// look up first.
+#[derive(Debug, PartialEq)]
+enum Endpoint {
+    At(i64, i64),
+    Target(String),
+}
+
+/// Read a `{x, y}` object or a ref/selector string.
+fn parse_endpoint(name: &str, value: Option<&Value>) -> Result<Endpoint, RpcError> {
+    match value {
+        Some(Value::String(target)) if !target.is_empty() => Ok(Endpoint::Target(target.clone())),
+        Some(Value::Object(point)) => {
+            let coordinate = |axis: &str| {
+                point
+                    .get(axis)
+                    .and_then(Value::as_f64)
+                    .filter(|n| n.is_finite())
+                    .map(|n| n.round() as i64)
+            };
+            match (coordinate("x"), coordinate("y")) {
+                (Some(x), Some(y)) => Ok(Endpoint::At(x, y)),
+                _ => Err(RpcError::new(
+                    INVALID_PARAMS,
+                    format!("`{name}` needs numeric `x` and `y`, or be a ref or CSS selector"),
+                )),
+            }
+        }
+        _ => Err(RpcError::new(
+            INVALID_PARAMS,
+            format!("`{name}` is required: a ref or CSS selector, or an object `{{x, y}}`"),
+        )),
+    }
+}
+
+/// Turn an [`Endpoint`] into window coordinates, locating and checking an
+/// element exactly as `click` does.
+fn resolve(
+    app: &AppHandle,
+    window: Option<&str>,
+    endpoint: &Endpoint,
+) -> Result<(i64, i64), RpcError> {
+    match endpoint {
+        Endpoint::At(x, y) => Ok((*x, *y)),
+        Endpoint::Target(target) => {
+            let found = in_page(app, window, LOCATE_BODY, &Value::String(target.clone()))?;
+            if let Some(why) = click_refusal(target, &found) {
+                return Err(RpcError::new(INVALID_PARAMS, why));
+            }
+            match (
+                found.get("x").and_then(Value::as_i64),
+                found.get("y").and_then(Value::as_i64),
+            ) {
+                (Some(x), Some(y)) => Ok((x, y)),
+                _ => Err(RpcError::new(INTERNAL_ERROR, "the page gave no position")),
+            }
+        }
+    }
+}
+
+/// The pointer positions from `from` to `to`, `steps` of them, the last being
+/// `to` exactly. Integers, rounded from the straight line between the ends.
+fn drag_path(from: (i64, i64), to: (i64, i64), steps: u64) -> Vec<(i64, i64)> {
+    let steps = steps.max(1);
+    (1..=steps)
+        .map(|i| {
+            let t = i as f64 / steps as f64;
+            (
+                from.0 + ((to.0 - from.0) as f64 * t).round() as i64,
+                from.1 + ((to.1 - from.1) as f64 * t).round() as i64,
+            )
+        })
+        .collect()
+}
+
+/// The whole mouse sequence of a drag: move to the start, press, one move per
+/// step with the button held, release at the end.
+fn drag_events(from: (i64, i64), to: (i64, i64), steps: u64, modifiers: u32) -> Vec<Value> {
+    let mut events = vec![
+        json!({ "type": "mouseMoved", "x": from.0, "y": from.1, "modifiers": modifiers }),
+        json!({
+            "type": "mousePressed", "x": from.0, "y": from.1,
+            "button": "left", "buttons": 1, "clickCount": 1, "modifiers": modifiers,
+        }),
+    ];
+    for (x, y) in drag_path(from, to, steps) {
+        events.push(json!({
+            "type": "mouseMoved", "x": x, "y": y,
+            "button": "left", "buttons": 1, "modifiers": modifiers,
+        }));
+    }
+    events.push(json!({
+        "type": "mouseReleased", "x": to.0, "y": to.1,
+        "button": "left", "buttons": 0, "clickCount": 1, "modifiers": modifiers,
+    }));
+    events
+}
+
+/// A wheel event at `(x, y)`.
+fn wheel_event(x: i64, y: i64, delta_x: f64, delta_y: f64, modifiers: u32) -> Value {
+    json!({
+        "type": "mouseWheel", "x": x, "y": y,
+        "deltaX": delta_x, "deltaY": delta_y, "modifiers": modifiers,
+    })
+}
+
+fn drag(app: &AppHandle, window: Option<&str>, params: &Value) -> Result<Value, RpcError> {
+    let from = parse_endpoint("from", params.get("from"))?;
+    let to = parse_endpoint("to", params.get("to"))?;
+    let modifiers = read_modifiers(params)?;
+    let steps = params
+        .get("steps")
+        .and_then(Value::as_u64)
+        .unwrap_or(DEFAULT_DRAG_STEPS)
+        .clamp(1, MAX_DRAG_STEPS);
+
+    let from = resolve(app, window, &from)?;
+    let to = resolve(app, window, &to)?;
+
+    with_modifiers(app, window, modifiers, || {
+        for event in drag_events(from, to, steps, modifiers) {
+            protocol(app, window, "Input.dispatchMouseEvent", &event)?;
+        }
+        Ok(())
+    })?;
+
+    Ok(json!({
+        "dragged": true,
+        "from": { "x": from.0, "y": from.1 },
+        "to": { "x": to.0, "y": to.1 },
+        "steps": steps,
+        "modifiers": modifier_names(modifiers),
+    }))
+}
+
+/// Where a `scroll` is aimed, or why it cannot be.
+fn scroll_point(params: &Value) -> Result<Endpoint, RpcError> {
+    match (
+        params.get("target"),
+        params.get("x").and_then(Value::as_f64),
+        params.get("y").and_then(Value::as_f64),
+    ) {
+        (Some(target), _, _) => parse_endpoint("target", Some(target)),
+        (None, Some(x), Some(y)) => Ok(Endpoint::At(x.round() as i64, y.round() as i64)),
+        _ => Err(RpcError::new(
+            INVALID_PARAMS,
+            "scroll needs a point: `x` and `y`, or a `target` ref or CSS selector",
+        )),
+    }
+}
+
+fn scroll(app: &AppHandle, window: Option<&str>, params: &Value) -> Result<Value, RpcError> {
+    let modifiers = read_modifiers(params)?;
+    let delta = |name: &str| params.get(name).and_then(Value::as_f64).unwrap_or(0.0);
+    let (delta_x, delta_y) = (delta("deltaX"), delta("deltaY"));
+    let (x, y) = resolve(app, window, &scroll_point(params)?)?;
+
+    with_modifiers(app, window, modifiers, || {
+        protocol(
+            app,
+            window,
+            "Input.dispatchMouseEvent",
+            &json!({ "type": "mouseMoved", "x": x, "y": y, "modifiers": modifiers }),
+        )?;
+        protocol(
+            app,
+            window,
+            "Input.dispatchMouseEvent",
+            &wheel_event(x, y, delta_x, delta_y, modifiers),
+        )?;
+        Ok(())
+    })?;
+
+    Ok(json!({
+        "scrolled": { "x": x, "y": y, "deltaX": delta_x, "deltaY": delta_y },
+        "modifiers": modifier_names(modifiers),
     }))
 }
 
@@ -554,33 +982,118 @@ fn fill_field(
     Ok(answer)
 }
 
-fn press_key(app: &AppHandle, window: Option<&str>, name: &str) -> Result<Value, RpcError> {
-    let Some((key, code, text)) = KEYS.iter().find(|(known, _, _)| *known == name) else {
+/// A key as CDP wants it: what the page reads as `key`, the virtual key code
+/// it needs to register, and the text it types, if any.
+#[derive(Debug, PartialEq)]
+struct KeySpec {
+    key: String,
+    code: String,
+    vk: u32,
+    text: String,
+}
+
+/// Resolve `name` to a key, or `None` when it is neither a named key nor a
+/// single character. `modifiers` decides whether it types: a chord with ctrl,
+/// alt or meta is a shortcut, not text, and sending `text` with it would type
+/// the letter as well as running the shortcut.
+fn key_spec(name: &str, modifiers: u32) -> Option<KeySpec> {
+    if let Some((key, vk, text)) = KEYS.iter().find(|(known, _, _)| *known == name) {
+        return Some(KeySpec {
+            key: (*key).to_string(),
+            code: (*key).to_string(),
+            vk: *vk,
+            text: (*text).to_string(),
+        });
+    }
+
+    let mut chars = name.chars();
+    let (Some(c), None) = (chars.next(), chars.next()) else {
+        return None;
+    };
+    let shifted = modifiers & 8 != 0;
+    let chord = modifiers & (1 | 2 | 4) != 0;
+    let key = if shifted && c.is_ascii_alphabetic() {
+        c.to_ascii_uppercase()
+    } else {
+        c
+    };
+    let (code, vk) = match c {
+        'a'..='z' | 'A'..='Z' => (
+            format!("Key{}", c.to_ascii_uppercase()),
+            c.to_ascii_uppercase() as u32,
+        ),
+        '0'..='9' => (format!("Digit{c}"), c as u32),
+        ' ' => ("Space".to_string(), 32),
+        other => (
+            String::new(),
+            PUNCTUATION
+                .iter()
+                .find(|(p, _)| *p == other)
+                .map_or(0, |(_, vk)| *vk),
+        ),
+    };
+    Some(KeySpec {
+        key: key.to_string(),
+        code,
+        vk,
+        text: if chord {
+            String::new()
+        } else {
+            key.to_string()
+        },
+    })
+}
+
+/// The down and up events of one key press. Text rides on the way down only,
+/// and only for a key that types: Enter with `text` on the way up types a
+/// second newline.
+fn key_events(spec: &KeySpec, modifiers: u32) -> Vec<Value> {
+    ["keyDown", "keyUp"]
+        .into_iter()
+        .map(|phase| {
+            let mut event = json!({
+                "type": phase,
+                "key": spec.key,
+                "windowsVirtualKeyCode": spec.vk,
+                "nativeVirtualKeyCode": spec.vk,
+                "modifiers": modifiers,
+            });
+            if !spec.code.is_empty() {
+                event["code"] = Value::String(spec.code.clone());
+            }
+            if !spec.text.is_empty() && phase == "keyDown" {
+                event["text"] = Value::String(spec.text.clone());
+            }
+            event
+        })
+        .collect()
+}
+
+fn press_key(
+    app: &AppHandle,
+    window: Option<&str>,
+    name: &str,
+    modifiers: u32,
+) -> Result<Value, RpcError> {
+    let Some(spec) = key_spec(name, modifiers) else {
         let known: Vec<&str> = KEYS.iter().map(|(name, _, _)| *name).collect();
         return Err(RpcError::new(
             INVALID_PARAMS,
-            format!("no key named `{name}`. Known: {}", known.join(", ")),
+            format!(
+                "no key named `{name}`. Use a single character, or one of: {}",
+                known.join(", ")
+            ),
         ));
     };
 
-    for phase in ["keyDown", "keyUp"] {
-        let mut event = json!({
-            "type": phase,
-            "key": key,
-            "windowsVirtualKeyCode": code,
-            "nativeVirtualKeyCode": code,
-        });
-
-        // Only on the way down, and only for a key that produces a character.
-        // Enter with `text` on the way up types a second newline.
-        if !text.is_empty() && phase == "keyDown" {
-            event["text"] = Value::String((*text).to_string());
+    with_modifiers(app, window, modifiers, || {
+        for event in key_events(&spec, modifiers) {
+            protocol(app, window, "Input.dispatchKeyEvent", &event)?;
         }
+        Ok(())
+    })?;
 
-        protocol(app, window, "Input.dispatchKeyEvent", &event)?;
-    }
-
-    Ok(json!({ "pressed": key }))
+    Ok(json!({ "pressed": spec.key, "modifiers": modifier_names(modifiers) }))
 }
 
 /// Run an expression in the page and hand back what it produced.
@@ -919,7 +1432,7 @@ mod tests {
     }
 
     #[test]
-    fn the_server_declares_exactly_the_eight_tools() {
+    fn the_server_declares_exactly_the_ten_tools() {
         let names: Vec<&str> = SERVER.tools.iter().map(|t| t.name).collect();
         assert_eq!(
             names,
@@ -931,6 +1444,8 @@ mod tests {
                 "fill_field",
                 "context",
                 "press_key",
+                "drag",
+                "scroll",
                 "eval"
             ]
         );
@@ -1079,21 +1594,22 @@ mod tests {
         }
     }
 
-    /// The enum is what a client draws its choices from, so it has to be the
-    /// same list `press_key` will actually accept.
+    /// What a client reads to learn which keys exist has to be the list
+    /// `press_key` will actually accept: every named key is in the description,
+    /// and every one of them resolves.
     #[test]
-    fn the_key_schema_offers_exactly_the_keys_that_work() {
+    fn the_key_schema_names_exactly_the_keys_that_work() {
         let schema = key_schema();
-        let offered: Vec<&str> = schema
-            .pointer("/properties/key/enum")
-            .and_then(Value::as_array)
-            .expect("the key parameter offers an enum")
-            .iter()
-            .filter_map(Value::as_str)
-            .collect();
+        let described = schema
+            .pointer("/properties/key/description")
+            .and_then(Value::as_str)
+            .expect("the key parameter describes its choices");
 
-        let known: Vec<&str> = KEYS.iter().map(|(name, _, _)| *name).collect();
-        assert_eq!(offered, known);
+        for (name, _, _) in KEYS {
+            assert!(described.contains(name), "{name} is not described");
+            assert!(key_spec(name, 0).is_some(), "{name} does not resolve");
+        }
+        assert!(schema.pointer("/properties/modifiers").is_some());
     }
 
     /// Enter is the one key that carries text, and it must carry it only on the
@@ -1152,5 +1668,193 @@ mod tests {
     #[test]
     fn the_reported_default_selector_is_the_one_the_page_applies() {
         assert!(SNAPSHOT_BODY.contains(INTERACTIVE), "{INTERACTIVE}");
+    }
+
+    // --- modifiers, drag and scroll ---------------------------------------------
+
+    #[test]
+    fn modifiers_become_the_cdp_bitmask() {
+        assert_eq!(read_modifiers(&json!({})), Ok(0));
+        assert_eq!(read_modifiers(&json!({ "modifiers": null })), Ok(0));
+        assert_eq!(read_modifiers(&json!({ "modifiers": ["alt"] })), Ok(1));
+        assert_eq!(read_modifiers(&json!({ "modifiers": ["ctrl"] })), Ok(2));
+        assert_eq!(read_modifiers(&json!({ "modifiers": ["meta"] })), Ok(4));
+        assert_eq!(read_modifiers(&json!({ "modifiers": ["shift"] })), Ok(8));
+        assert_eq!(
+            read_modifiers(&json!({ "modifiers": ["Control", "shift"] })),
+            Ok(10)
+        );
+    }
+
+    #[test]
+    fn an_unknown_modifier_is_refused_by_name() {
+        let error = read_modifiers(&json!({ "modifiers": ["hyper"] })).expect_err("refused");
+        assert_eq!(error.code, INVALID_PARAMS);
+        assert!(error.message.contains("hyper"), "{}", error.message);
+
+        assert!(read_modifiers(&json!({ "modifiers": "ctrl" })).is_err());
+    }
+
+    /// `press_key '{"key":"a","modifiers":["ctrl"]}'`: a chord, so it carries
+    /// the modifier and the `a` key code and types nothing.
+    #[test]
+    fn ctrl_a_is_a_chord_that_types_no_text() {
+        let spec = key_spec("a", 2).expect("a resolves");
+        assert_eq!(spec.vk, 65);
+        assert_eq!(spec.code, "KeyA");
+        assert!(spec.text.is_empty());
+
+        let events = key_events(&spec, 2);
+        assert_eq!(events.len(), 2);
+        for event in &events {
+            assert_eq!(event["modifiers"], 2);
+            assert_eq!(event["key"], "a");
+            assert!(event.get("text").is_none());
+        }
+    }
+
+    #[test]
+    fn a_plain_character_types_and_shift_capitalises_it() {
+        let plain = key_spec("a", 0).expect("resolves");
+        assert_eq!(plain.text, "a");
+        let events = key_events(&plain, 0);
+        assert_eq!(events[0]["text"], "a");
+        assert!(events[1].get("text").is_none());
+
+        let shifted = key_spec("a", 8).expect("resolves");
+        assert_eq!((shifted.key.as_str(), shifted.text.as_str()), ("A", "A"));
+    }
+
+    #[test]
+    fn named_keys_punctuation_and_nonsense_resolve_as_expected() {
+        assert_eq!(key_spec("Enter", 0).expect("named").text, "\r");
+        assert_eq!(key_spec("Home", 0).expect("named").vk, 36);
+        assert_eq!(key_spec("=", 2).expect("punctuation").vk, 187);
+        assert_eq!(key_spec("7", 0).expect("digit").code, "Digit7");
+        assert!(key_spec("NotAKey", 0).is_none());
+        assert!(key_spec("", 0).is_none());
+    }
+
+    #[test]
+    fn modifiers_go_down_in_order_and_up_in_reverse() {
+        let down = modifier_down_events(2 | 8);
+        let keys: Vec<&str> = down.iter().filter_map(|e| e["key"].as_str()).collect();
+        assert_eq!(keys, ["Control", "Shift"]);
+        assert_eq!(down[0]["modifiers"], 2);
+        assert_eq!(down[1]["modifiers"], 10);
+
+        let up = modifier_up_events(2 | 8);
+        let keys: Vec<&str> = up.iter().filter_map(|e| e["key"].as_str()).collect();
+        assert_eq!(keys, ["Shift", "Control"]);
+        assert_eq!(up[0]["modifiers"], 2);
+        assert_eq!(up[1]["modifiers"], 0);
+
+        assert!(modifier_down_events(0).is_empty());
+        assert!(modifier_up_events(0).is_empty());
+    }
+
+    #[test]
+    fn a_click_carries_its_modifiers_on_every_mouse_event() {
+        let events = click_events(10, 20, 8);
+        let kinds: Vec<&str> = events.iter().filter_map(|e| e["type"].as_str()).collect();
+        assert_eq!(kinds, ["mouseMoved", "mousePressed", "mouseReleased"]);
+        assert!(events.iter().all(|e| e["modifiers"] == 8));
+        assert_eq!(events[1]["buttons"], 1);
+        assert_eq!(events[2]["buttons"], 0);
+    }
+
+    #[test]
+    fn the_drag_path_ends_exactly_on_the_target() {
+        let path = drag_path((0, 0), (100, 50), 4);
+        assert_eq!(path, vec![(25, 13), (50, 25), (75, 38), (100, 50)]);
+        assert_eq!(drag_path((5, 5), (5, 5), 3), vec![(5, 5); 3]);
+        assert_eq!(drag_path((0, 0), (10, 0), 0), vec![(10, 0)]);
+    }
+
+    /// Press, move with the button held, release — in that order, with the
+    /// modifier on all of it. A drag that moved before pressing, or let go
+    /// early, would draw nothing.
+    #[test]
+    fn a_drag_presses_moves_with_the_button_held_and_releases() {
+        let events = drag_events((10, 10), (30, 10), 2, 2);
+        let kinds: Vec<&str> = events.iter().filter_map(|e| e["type"].as_str()).collect();
+        assert_eq!(
+            kinds,
+            [
+                "mouseMoved",
+                "mousePressed",
+                "mouseMoved",
+                "mouseMoved",
+                "mouseReleased"
+            ]
+        );
+        assert_eq!(events[0]["x"], 10);
+        assert_eq!(events[1]["buttons"], 1);
+        assert_eq!(events[2]["buttons"], 1);
+        assert_eq!(events[3]["x"], 30);
+        assert_eq!(events[4]["x"], 30);
+        assert_eq!(events[4]["buttons"], 0);
+        assert!(events.iter().all(|e| e["modifiers"] == 2));
+    }
+
+    #[test]
+    fn a_drag_end_is_a_point_or_a_target_and_nothing_else() {
+        assert_eq!(
+            parse_endpoint("from", Some(&json!({ "x": 10.4, "y": 20.6 }))),
+            Ok(Endpoint::At(10, 21))
+        );
+        assert_eq!(
+            parse_endpoint("to", Some(&json!("e12"))),
+            Ok(Endpoint::Target("e12".to_string()))
+        );
+        for bad in [
+            None,
+            Some(json!(5)),
+            Some(json!("")),
+            Some(json!({ "x": 1 })),
+            Some(json!({ "x": "1", "y": 2 })),
+        ] {
+            let error = parse_endpoint("from", bad.as_ref()).expect_err("refused");
+            assert_eq!(error.code, INVALID_PARAMS);
+            assert!(error.message.contains("from"), "{}", error.message);
+        }
+    }
+
+    #[test]
+    fn a_wheel_event_carries_both_deltas_and_the_modifiers() {
+        let event = wheel_event(5, 6, -10.0, 120.0, 2);
+        assert_eq!(event["type"], "mouseWheel");
+        assert_eq!(event["deltaX"], -10.0);
+        assert_eq!(event["deltaY"], 120.0);
+        assert_eq!(event["modifiers"], 2);
+    }
+
+    #[test]
+    fn a_scroll_needs_a_point() {
+        assert_eq!(
+            scroll_point(&json!({ "x": 3, "y": 4 })),
+            Ok(Endpoint::At(3, 4))
+        );
+        assert_eq!(
+            scroll_point(&json!({ "target": "#board" })),
+            Ok(Endpoint::Target("#board".to_string()))
+        );
+        let error = scroll_point(&json!({ "x": 3 })).expect_err("refused");
+        assert_eq!(error.code, INVALID_PARAMS);
+    }
+
+    #[test]
+    fn click_and_press_key_schemas_take_modifiers() {
+        for schema in [
+            target_schema(),
+            key_schema(),
+            drag_schema(),
+            scroll_schema(),
+        ] {
+            assert_eq!(
+                schema.pointer("/properties/modifiers/type"),
+                Some(&json!("array"))
+            );
+        }
     }
 }

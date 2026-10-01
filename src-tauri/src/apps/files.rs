@@ -437,7 +437,7 @@ fn root(app: &AppHandle, context: &CallContext) -> Result<Value, RpcError> {
     // methods refuse on main whether or not it listens (`apps::call`).
     let read_only = context.cluster_id.as_deref().is_some_and(|cluster| {
         app.state::<crate::shell_state::ShellState>()
-            .cluster_environment(cluster)
+            .cluster_write_environment(cluster)
             .is_some_and(|env| env.is_main())
     });
     Ok(json!({

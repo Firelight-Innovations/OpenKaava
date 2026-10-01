@@ -562,6 +562,9 @@ impl ShellState {
         // filled in before `cluster_root`/`cluster_environment` are asked
         // about it.
         migrate_environments(&mut snapshot);
+        repair_null_environments(&mut snapshot, &|p| {
+            crate::environments::detect_environment(Path::new(p))
+        });
         mark_missing_environments(&mut snapshot, &|p| Path::new(p).is_dir());
         // Order matters: a terminal has to be given a cluster before anything
         // asks which cluster's band it is in.
@@ -876,12 +879,23 @@ impl ShellState {
     /// Silent when `cluster_id` names nothing: a cluster can be closed while a
     /// picker is up, and the honest answer to "set the project of a cluster
     /// that is gone" is that there is nothing to set.
+    ///
+    /// Every cluster that gets a project gets an environment with it: this is
+    /// the one funnel Home, the agent server's `set_project`, launch seeding
+    /// and the `set_cluster_project` command all pass through, so deriving
+    /// the environment here (see `environments::detect_environment`) is what
+    /// stops a cluster pointing at a main checkout with a null environment —
+    /// the state that let writes past the read-only guard. The derivation
+    /// shells out to git, so it happens before `mutate` takes the lock.
     pub fn set_cluster_project(&self, app: &AppHandle, cluster_id: &str, path: Option<String>) {
+        let derived = path
+            .as_deref()
+            .and_then(|p| crate::environments::detect_environment(Path::new(p)));
         self.mutate(app, |s| {
             for w in s.windows.iter_mut() {
                 // A page is about the cloud, never a folder: silent, as for a gone id.
                 if let Some(c) = w.cluster_mut(cluster_id).filter(|c| !c.is_page()) {
-                    c.project = path;
+                    apply_project(c, path, derived);
                     return;
                 }
             }
@@ -1006,6 +1020,24 @@ impl ShellState {
             .flat_map(|w| w.clusters.iter())
             .find(|c| c.id == cluster_id)
             .and_then(|c| c.environment.clone())
+    }
+
+    /// The environment a *write guard* should judge a cluster by: the stored
+    /// one, or the one its project folder implies when none is stored.
+    ///
+    /// Fails closed — a null environment on a cluster pointed at a repo's main
+    /// checkout reads as `Main`. See `environments::effective_environment`.
+    /// The git lookup runs after the lock is released.
+    pub fn cluster_write_environment(
+        &self,
+        cluster_id: &str,
+    ) -> Option<crate::environments::Environment> {
+        let stored = self.cluster_environment(cluster_id);
+        if stored.is_some() {
+            return stored;
+        }
+        let project = self.cluster_project(cluster_id);
+        crate::environments::effective_environment(None, project.as_deref().map(Path::new))
     }
 
     /// Where a cluster's work actually happens, as opposed to what it is
@@ -2978,6 +3010,52 @@ fn migrate_environments(snapshot: &mut ShellSnapshot) {
         for c in w.clusters.iter_mut() {
             if c.environment.is_none() {
                 c.environment = crate::environments::migrate_environment(c.worktree.as_ref());
+            }
+        }
+    }
+}
+
+/// Give a cluster its environment when its project implies one.
+///
+/// A cluster with a project in a git repository is never left at `None`:
+/// `set_cluster_project` assigns one, `restore` repairs a layout that lacks one
+/// ([`repair_null_environments`]), and the write guard reads a remaining
+/// `None` on a main checkout as `Main`.
+///
+/// A project that moved takes the derived environment with it (the old one
+/// belonged to the old repository). A project that stayed only fills a gap, so
+/// an explicit choice such as the Design worktree is never overwritten.
+fn apply_project(
+    c: &mut Cluster,
+    path: Option<String>,
+    derived: Option<crate::environments::Environment>,
+) {
+    let moved = c.project != path;
+    c.project = path;
+    if (moved && c.project.is_some()) || c.environment.is_none() {
+        c.environment = derived;
+    }
+}
+
+/// Repair a restored layout whose clusters have a project but no environment —
+/// written by a build (or a creation path) that never assigned one.
+///
+/// `detect` is the git lookup, injected so the rule is tested without a repo.
+/// A folder that is not in a repository stays `None`; everything else gets
+/// `Main` or `LocalWorktree`, which is what makes the read-only guard hold for
+/// layouts that predate it.
+fn repair_null_environments(
+    snapshot: &mut ShellSnapshot,
+    detect: &dyn Fn(&str) -> Option<crate::environments::Environment>,
+) {
+    for c in snapshot
+        .windows
+        .iter_mut()
+        .flat_map(|w| w.clusters.iter_mut())
+    {
+        if c.environment.is_none() && !c.is_page() {
+            if let Some(project) = c.project.as_deref() {
+                c.environment = detect(project);
             }
         }
     }
@@ -5601,6 +5679,92 @@ mod tests {
             counts.environment_count, 1,
             "one environment, shared by both"
         );
+    }
+
+    // --- every cluster with a project gets an environment ------------------------
+
+    fn project_only_cluster(project: Option<&str>) -> Cluster {
+        let mut c = page_cluster("cluster-9", "pane-9", "inst-9", "none");
+        c.page = None;
+        c.project = project.map(str::to_string);
+        c.environment = None;
+        c
+    }
+
+    /// The bug: `set_project` left a null environment on a cluster pointing at
+    /// the main checkout, so the read-only guard never fired.
+    #[test]
+    fn pointing_a_cluster_at_a_project_assigns_the_derived_environment() {
+        let mut c = project_only_cluster(None);
+        apply_project(
+            &mut c,
+            Some("C:/proj".to_string()),
+            Some(crate::environments::Environment::Main),
+        );
+        assert_eq!(c.project.as_deref(), Some("C:/proj"));
+        assert_eq!(c.environment, Some(crate::environments::Environment::Main));
+    }
+
+    #[test]
+    fn moving_a_cluster_to_another_project_replaces_its_environment() {
+        let mut c = project_only_cluster(Some("C:/a"));
+        c.environment = Some(crate::environments::Environment::Main);
+        let wt = crate::environments::Environment::LocalWorktree {
+            name: "x".to_string(),
+            path: "C:/b".to_string(),
+            branch: "wt/x".to_string(),
+            base: String::new(),
+        };
+        apply_project(&mut c, Some("C:/b".to_string()), Some(wt.clone()));
+        assert_eq!(c.environment, Some(wt));
+    }
+
+    #[test]
+    fn repointing_at_the_same_project_keeps_an_explicit_environment() {
+        let mut c = project_only_cluster(Some("C:/a"));
+        let design = crate::environments::Environment::Design {
+            path: "C:/a/.kaava/worktrees/design".to_string(),
+            branch: "wt/design".to_string(),
+        };
+        c.environment = Some(design.clone());
+        apply_project(
+            &mut c,
+            Some("C:/a".to_string()),
+            Some(crate::environments::Environment::Main),
+        );
+        assert_eq!(c.environment, Some(design));
+    }
+
+    #[test]
+    fn restoring_a_layout_repairs_a_null_environment_on_a_project_cluster() {
+        let mut snapshot = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        snapshot.windows[0].clusters[0].project = Some("C:/proj".to_string());
+
+        repair_null_environments(&mut snapshot, &|_| {
+            Some(crate::environments::Environment::Main)
+        });
+
+        assert_eq!(
+            snapshot.windows[0].clusters[0].environment,
+            Some(crate::environments::Environment::Main)
+        );
+    }
+
+    #[test]
+    fn repair_leaves_clusters_without_a_project_or_a_repository_alone() {
+        let mut snapshot = state(
+            vec![
+                window("main", "cluster-1", &[]),
+                window("w2", "cluster-2", &[]),
+            ],
+            Vec::new(),
+        );
+        snapshot.windows[1].clusters[0].project = Some("C:/plain".to_string());
+
+        repair_null_environments(&mut snapshot, &|_| None);
+
+        assert_eq!(snapshot.windows[0].clusters[0].environment, None);
+        assert_eq!(snapshot.windows[1].clusters[0].environment, None);
     }
 }
 

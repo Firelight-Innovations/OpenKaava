@@ -722,7 +722,7 @@ pub fn with_live<R>(
     let key = context.cluster_id.clone().unwrap_or_default();
     let read_only = context.cluster_id.as_deref().is_some_and(|cluster| {
         app.state::<crate::shell_state::ShellState>()
-            .cluster_environment(cluster)
+            .cluster_write_environment(cluster)
             .is_some_and(|env| env.is_main())
     });
     let setting = crate::settings::text(app, super::KEY_EXECUTABLE_PATH);

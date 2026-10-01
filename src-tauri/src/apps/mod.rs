@@ -578,7 +578,7 @@ pub fn call(
         // app's own frontend, the shell's menu, or an agent over MCP `app_call`
         // all arrive here with a resolved cluster.
         if let Some(cluster) = context.cluster_id.as_deref() {
-            let env = app.state::<ShellState>().cluster_environment(cluster);
+            let env = app.state::<ShellState>().cluster_write_environment(cluster);
             write_refusal(env.as_ref(), method)?;
         }
         return (registered.call)(app, context, method, params);
