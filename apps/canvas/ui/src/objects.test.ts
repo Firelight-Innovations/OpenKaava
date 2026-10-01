@@ -81,7 +81,7 @@ describe("wrapSelection", () => {
   it("puts the selected shapes in one new frame, listed after them", () => {
     const got = wrapSelection([el("a"), el("b", { x: 100 }), el("c")], { a: true, b: true });
     if (!got.ok) throw new Error(got.error);
-    const made = got.elements.at(-1)!;
+    const made = got.elements.slice(-1)[0]!;
     expect(made.type).toBe("frame");
     expect(made.id).toBe(got.frameId);
     expect(made.width).toBeGreaterThan(110);

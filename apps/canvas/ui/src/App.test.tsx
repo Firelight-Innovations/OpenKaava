@@ -437,7 +437,7 @@ describe("Canvas app", () => {
       reads: { world: scene(2) },
     });
     const written = (id: string) => {
-      const write = bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write").at(-1);
+      const write = bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write").slice(-1)[0];
       return (write?.[1].scene.elements as Record<string, unknown>[] | undefined)?.find(
         (e) => e.id === id,
       );
@@ -514,7 +514,7 @@ describe("Canvas app", () => {
 
       await waitFor(() => {
         const frames = (
-          bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write").at(-1)![1].scene
+          bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write").slice(-1)[0]![1].scene
             .elements as Record<string, unknown>[]
         ).filter((e) => e.type === "frame");
         expect(frames).toHaveLength(1);
@@ -524,7 +524,7 @@ describe("Canvas app", () => {
       expect(name.value).toBe("New frame");
       expect(document.activeElement).toBe(name);
       const kids = (
-        bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write").at(-1)![1].scene
+        bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write").slice(-1)[0]![1].scene
           .elements as { id: string; frameId?: string }[]
       ).filter((e) => e.id === "e0" || e.id === "e1");
       expect(kids.every((e) => typeof e.frameId === "string")).toBe(true);
