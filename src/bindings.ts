@@ -1438,6 +1438,21 @@ export function newClusterForDrop(
   });
 }
 
+/**
+ * Tell the backend where this window's focus is. Mirrors `mcp::focus::FocusReport`;
+ * the backend ignores a repeat and wakes subscribed agents on a real change.
+ */
+export function reportFocus(report: {
+  window: string;
+  windowHasFocus: boolean;
+  focusIn: string;
+  instance: string | null;
+  pane: string | null;
+  cluster: string | null;
+}): Promise<void> {
+  return invoke("report_focus", { report });
+}
+
 export function setActiveCluster(label: string, clusterId: string | null): Promise<void> {
   return invoke("set_active_cluster", { label, clusterId });
 }

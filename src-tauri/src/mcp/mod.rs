@@ -9,17 +9,22 @@
 pub mod commands;
 
 mod config;
+mod focus;
 mod handoff;
 mod listener;
 mod registry;
 mod servers;
 mod store;
+mod subscriptions;
 
 pub use config::sync_all;
+pub use focus::{FocusReport, FocusState};
 pub use listener::{start, Endpoint};
 pub use registry::{
     config_key, route, McpServer, McpTool, Registry, ServerInfo, ToolAnswer, ToolDescriptor,
 };
+use std::time::Duration;
+pub use subscriptions::Subscriptions;
 use tauri::{AppHandle, Manager};
 
 /// Register every server this build hosts, then put back the switches somebody
@@ -49,4 +54,28 @@ pub fn remember(app: &AppHandle) {
 /// disagree.
 pub fn dev_mode(app: &AppHandle) -> bool {
     crate::settings::flag(app, crate::settings::keys::DEVELOPER_MODE)
+}
+
+/// How long a change waits before subscribers are told, so that a burst (focus
+/// leaving one window as it arrives in another) is one notification, not two.
+const FOCUS_COALESCE: Duration = Duration::from_millis(50);
+
+/// Tell every session subscribed to the focus resource that it changed.
+///
+/// Called after [`FocusState::update`] says a report was news. The notification
+/// carries no payload by design: MCP's `resources/updated` only names the uri,
+/// and the client re-reads it, so what it sees is always the state at read time
+/// rather than a snapshot that could arrive out of order.
+pub fn notify_focus_changed(app: &AppHandle) {
+    if !app.state::<FocusState>().burst.arm() {
+        return;
+    }
+
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(FOCUS_COALESCE).await;
+        app.state::<FocusState>().burst.fire();
+        app.state::<Subscriptions>()
+            .notify(servers::workspace::ID, servers::workspace::FOCUS_URI);
+    });
 }

@@ -338,6 +338,20 @@ impl Registry {
         }
     }
 
+    /// Whether a server is switched on and visible at this developer-mode
+    /// setting: the same test `tools` and `call` apply, for the resource
+    /// handlers, which have to refuse a disabled server the same way.
+    pub fn is_reachable(&self, id: &str, dev_mode: bool) -> bool {
+        self.entries
+            .lock()
+            .map(|entries| {
+                entries
+                    .iter()
+                    .any(|e| e.server.id == id && e.reachable(dev_mode))
+            })
+            .unwrap_or(false)
+    }
+
     /// What one server exposes right now, for whoever is answering
     /// `tools/list`.
     ///

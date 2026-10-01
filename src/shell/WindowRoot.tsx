@@ -59,6 +59,7 @@ import { useDrag } from "./drag/useDrag";
 import { useFileDrag } from "./drag/useFileDrag";
 import { useDropZone } from "./dropZones";
 import { useKeyboard } from "./keys/useKeyboard";
+import { useFocusReporter } from "./useFocusReporter";
 import { dispatchCopilotKey, type CopilotAction, type CopilotHandlers } from "./copilotKey";
 import GithubPanel from "./github/GithubPanel";
 import WorktreePanel from "./worktree/WorktreePanel";
@@ -433,6 +434,10 @@ export default function WindowRoot({
       setActivePane(paneIds[0] ?? null);
     }
   }, [paneIds, activePaneId]);
+
+  // Tells the backend where focus is, so an agent subscribed to
+  // `kaava://workspace/focus` hears when it moves. See `focusReport.ts`.
+  useFocusReporter(label, activeClusterId, activePaneId);
 
   // Which pane, if any, is drawn full-size with the rest hidden but still
   // mounted — KAAVA-UX-REWORK.md §5's "double-click a tab to maximise its
