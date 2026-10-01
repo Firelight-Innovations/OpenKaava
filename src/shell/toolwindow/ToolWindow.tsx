@@ -56,6 +56,7 @@ import { callApp } from "../state/apps";
 import { windowLabel } from "../state/shellState";
 import { currentTheme, onThemeChange, type ThemeChangedPayload } from "../themeBroadcast";
 import ToolMount from "./ToolMount";
+import { sameOrder, stableOrder } from "./stableOrder";
 import EmptyState from "./EmptyState";
 import NoClustersState from "./NoClustersState";
 import { registerToolWindow, unregisterToolWindow } from "../toolWindowRegistry";
@@ -1436,7 +1437,13 @@ const ToolWindow = forwardRef<
     };
   }, [outgoing.ids]);
 
-  const tabs = paneTabs(tree);
+  // Layout order decides where a surface is drawn, never where it sits among its siblings:
+  // see `stableOrder` for why moving a keyed iframe's node reloads the app.
+  const renderOrder = useRef<string[]>([]);
+  const laidOut = paneTabs(tree);
+  const ordered = stableOrder(renderOrder.current, laidOut);
+  if (!sameOrder(ordered, renderOrder.current)) renderOrder.current = ordered;
+  const tabs = renderOrder.current;
   const empty = tabs.length === 0;
 
   return (
