@@ -1,0 +1,1025 @@
+//! The Canvas app as first-class MCP tools, for any agent, in every build.
+//!
+//! Until now an agent reached these methods only through the developer-only
+//! `agent` server's `app_call`, which a release build does not serve. This is the
+//! supported route: one named tool per canvas method, each with a schema and a
+//! description, and the `actor` rule the methods enforce kept on the server's side
+//! (every call goes out as `"agent"`; a client cannot claim to be a person).
+//!
+//! **Several canvases can be open at once.** Every tool that acts on a canvas takes
+//! `canvas` (its id), `instance` (the pane's instance id) and `cluster`, and
+//! `list_canvases` says which are open and which has focus. [`resolve_canvas`] is
+//! the one place that turns those into a target: an explicit id or instance wins,
+//! an omitted one means the focused canvas (or the only one open), and anything
+//! else is an error that lists the candidates. The result always carries a
+//! `resolved` block saying what was chosen and why, so a default is never silent.
+//!
+//! **Adding a method is one row** in the `canvas_tools!` table below: the tool name,
+//! the app method, which [`Scope`] it resolves, whether it only reads, a
+//! description and a schema. The tool list, the dispatch table and the
+//! `readOnlyHint` all come from that row.
+
+use super::workspace::{self, Pages, Surface};
+use crate::apps::{self, CallContext};
+use crate::mcp::{McpServer, McpTool, ToolAnswer};
+use crate::shell_state::ShellState;
+use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
+use serde_json::{json, Map, Value};
+use tauri::{AppHandle, Manager};
+
+pub static SERVER: McpServer = McpServer {
+    id: "canvas",
+    name: "Canvas",
+    description: "Read and draw on design canvases: diagrams, views, comments, linked values and \
+                  checkpoints. Works with several canvases open at once.",
+    tools: TOOLS,
+    call,
+    dev_only: false,
+};
+
+/// What a tool needs resolved before its method can run.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Scope {
+    /// Answered from the open panes alone; no app method.
+    Open,
+    /// Needs a cluster (its project holds the canvas files) but no canvas.
+    Cluster,
+    /// `canvas` names a canvas that does not exist yet; needs a cluster.
+    New,
+    /// Acts on one existing canvas: resolves canvas and cluster.
+    Canvas,
+}
+
+pub(super) struct Route {
+    pub tool: &'static str,
+    pub method: &'static str,
+    pub scope: Scope,
+    pub read_only: bool,
+}
+
+/// Whether a canvas tool only reads, for the `readOnlyHint` table.
+pub(super) fn read_only(tool: &str) -> Option<bool> {
+    ROUTES.iter().find(|r| r.tool == tool).map(|r| r.read_only)
+}
+
+macro_rules! canvas_tools {
+    ($( $name:literal => $method:literal, $scope:expr, $ro:expr, $desc:literal, $schema:expr; )*) => {
+        static TOOLS: &[McpTool] = &[
+            $( McpTool { name: $name, description: $desc, schema: $schema } ),*
+        ];
+        static ROUTES: &[Route] = &[
+            $( Route { tool: $name, method: $method, scope: $scope, read_only: $ro } ),*
+        ];
+    };
+}
+
+canvas_tools! {
+    "list_canvases" => "", Scope::Open, true,
+    "Every Canvas open in OpenKaava right now: pane instance id, the canvas it shows, its \
+     cluster, whether it is focused or visible. Also says which canvas a tool would act on if \
+     you name none. Call this first when more than one may be open.",
+    || obj(json!({}), &[]);
+
+    "list_files" => "canvas/list", Scope::Cluster, true,
+    "Every canvas file in a cluster's project, open or not: id, title, parent, mtime and any \
+     read error.",
+    || cluster_schema(json!({}), &[]);
+
+    "assets" => "canvas/assets", Scope::Cluster, true,
+    "Every spec card across all of a cluster's canvases, with its review status.",
+    || cluster_schema(json!({}), &[]);
+
+    "create_canvas" => "canvas/create", Scope::New, false,
+    "Create an empty canvas. `canvas` is the new id: lowercase slug segments joined by `/`, \
+     up to four deep. Fails if it already exists.",
+    || cluster_schema(
+        json!({
+            "canvas": { "type": "string", "description": "The new canvas id, e.g. `levels/hospital-wing`." },
+            "title": { "type": "string", "description": "Display title. Defaults to the last segment of the id." },
+            "parent": { "type": "string", "description": "The id of an existing canvas this one belongs under." },
+        }),
+        &["canvas"],
+    );
+
+    "read_canvas" => "canvas/read", Scope::Canvas, true,
+    "The whole Excalidraw scene as stored, with reference images inlined. Large; prefer \
+     list_diagrams and describe_diagram unless you need raw elements.",
+    || canvas_schema(json!({}), &[]);
+
+    "stat_canvas" => "canvas/stat", Scope::Canvas, true,
+    "Just the file's modification time, to notice that someone else changed it.",
+    || canvas_schema(json!({}), &[]);
+
+    "write_canvas" => "canvas/write", Scope::Canvas, false,
+    "Replace the whole scene. Conflict-checked against `baseMtime`. A blunt tool: prefer \
+     add_shapes, import_mermaid or set_values, which checkpoint and report.",
+    || canvas_schema(
+        json!({
+            "scene": { "type": "object", "description": "A complete Excalidraw scene with an `elements` array." },
+            "baseMtime": { "type": "integer", "minimum": 0, "description": "The mtime you last read; the write is refused if the file has moved." },
+        }),
+        &["scene"],
+    );
+
+    "save" => "canvas/save", Scope::Canvas, false,
+    "Flush the open editor's pending edits to disk, then report what is on disk: path, mtime, \
+     element count, diagrams and open comments. Call before reading a canvas a person may be \
+     editing.",
+    || canvas_schema(json!({}), &[]);
+
+    "list_diagrams" => "canvas/list-diagrams", Scope::Canvas, true,
+    "The named diagrams (frames) on a canvas, with titles, summaries, levels and parents.",
+    || canvas_schema(json!({}), &[]);
+
+    "describe_diagram" => "canvas/describe-diagram", Scope::Canvas, true,
+    "One diagram in words: its elements, labels, connections and bounds.",
+    || canvas_schema(
+        json!({ "diagram": { "type": "string", "description": "The diagram id, from list_diagrams." } }),
+        &["diagram"],
+    );
+
+    "view_diagram" => "canvas/view-diagram", Scope::Canvas, true,
+    "Render a diagram to a PNG in the project and return its path; read the file to see it. \
+     Needs a Canvas pane open somewhere, because the drawing happens in the app.",
+    || canvas_schema(
+        json!({
+            "diagram": { "type": "string", "description": "The diagram id." },
+            "region": region_schema("Zoom to this frame-relative box."),
+            "scale": { "type": "number", "exclusiveMinimum": 0, "description": "Pixel scale; default fits the max dimension." },
+            "maxDimension": { "type": "integer", "minimum": 1, "description": "Widest or tallest side in pixels; default 2400." },
+            "theme": { "type": "string", "enum": ["light", "dark"], "description": "Render in this theme." },
+        }),
+        &["diagram"],
+    );
+
+    "add_shapes" => "canvas/add-shapes", Scope::Canvas, false,
+    "Draw or rebuild a diagram from a spec. Shapes are laid out and measured in the app, then \
+     written with a checkpoint first; the answer maps your ids to element ids and lists \
+     warnings. Needs a Canvas pane open. Other options (`index`, `replace`, `nudge`) pass \
+     through; docs/canvas-drawing-guide.md is the manual.",
+    || canvas_schema_open(
+        json!({
+            "frame": { "type": "object", "description": "The diagram frame: `id`, `title`, `summary`, `level`, `parent`, `covers`." },
+            "shapes": {
+                "type": "array",
+                "description": "Shapes to draw, each with an `id` and a `type` of rectangle, ellipse, diamond, text, arrow, line or image.",
+                "items": { "type": "object" },
+            },
+            "index": { "type": "boolean", "description": "Build the index frame listing every diagram instead." },
+            "replace": { "type": "boolean", "description": "Rebuild the frame (default true)." },
+            "nudge": { "type": "boolean", "description": "Move overlapping text clear (default true)." },
+        }),
+        &[],
+    );
+
+    "import_mermaid" => "canvas/import-mermaid", Scope::Canvas, false,
+    "Turn Mermaid source into shapes in a diagram frame, checkpointed. Needs a Canvas pane open.",
+    || canvas_schema_open(
+        json!({
+            "frame": { "type": "object", "description": "The diagram frame: `id`, `title`, `summary`, `level`, `parent`, `covers`." },
+            "source": { "type": "string", "description": "Mermaid text, e.g. `stateDiagram-v2 ...`." },
+        }),
+        &["source"],
+    );
+
+    "coverage" => "canvas/coverage", Scope::Canvas, true,
+    "Which diagrams cover each concern on a checklist, which concerns no diagram covers, and \
+     which diagrams declare nothing.",
+    || canvas_schema(
+        json!({ "checklist": { "type": "array", "items": { "type": "string" }, "description": "Concerns to check. Defaults to the canvas's own, else the game checklist." } }),
+        &[],
+    );
+
+    "values" => "canvas/values", Scope::Canvas, true,
+    "The linked value table and whether every text and spec field using a value agrees with it.",
+    || canvas_schema(json!({}), &[]);
+
+    "set_values" => "canvas/set-values", Scope::Canvas, false,
+    "Change named values and every linked text and spec field in one checkpointed write.",
+    || canvas_schema(
+        json!({ "values": { "type": "object", "description": "name -> number | string | { value, unit?, spec? }. Names use letters, digits, - _ and .", "additionalProperties": true } }),
+        &["values"],
+    );
+
+    "refs" => "canvas/refs", Scope::Canvas, true,
+    "The reference images stored for a canvas, and which are used or missing.",
+    || canvas_schema(json!({}), &[]);
+
+    "checkpoints" => "canvas/checkpoints", Scope::Canvas, true,
+    "The saved checkpoints (the last few) that restore_checkpoint can return to.",
+    || canvas_schema(json!({}), &[]);
+
+    "restore_checkpoint" => "canvas/restore-checkpoint", Scope::Canvas, false,
+    "Return the canvas to a checkpoint (the newest by default), saving the current state first.",
+    || canvas_schema(
+        json!({ "checkpoint": { "type": "string", "description": "A name from checkpoints. Omit for the newest." } }),
+        &[],
+    );
+
+    "list_comments" => "canvas/list-comments", Scope::Canvas, true,
+    "Review comments on a canvas, with the diagram and elements or region each points at.",
+    || canvas_schema(
+        json!({
+            "status": { "type": "string", "enum": ["open", "resolved", "all"], "description": "Default open." },
+            "diagram": { "type": "string", "description": "Only comments on this diagram." },
+        }),
+        &[],
+    );
+
+    "create_comment" => "canvas/create-comment", Scope::Canvas, false,
+    "Leave a review comment, authored as the agent, on a diagram's elements or a region.",
+    || canvas_schema(
+        json!({
+            "diagram": { "type": "string", "description": "The diagram id." },
+            "text": { "type": "string", "description": "The comment, up to 4000 characters." },
+            "elementIds": { "type": "array", "items": { "type": "string" }, "description": "Elements on the canvas it points at." },
+            "region": region_schema("Or a frame-relative box it points at."),
+        }),
+        &["diagram", "text"],
+    );
+
+    "resolve_comment" => "canvas/resolve-comment", Scope::Canvas, false,
+    "Mark a comment resolved, with an optional note saying what was done.",
+    || canvas_schema(
+        json!({
+            "commentId": { "type": "string", "description": "From list_comments." },
+            "note": { "type": "string", "description": "What changed." },
+        }),
+        &["commentId"],
+    );
+
+    "reopen_comment" => "canvas/reopen-comment", Scope::Canvas, false,
+    "Reopen a resolved comment.",
+    || canvas_schema(
+        json!({
+            "commentId": { "type": "string", "description": "From list_comments." },
+            "note": { "type": "string", "description": "Why it is open again." },
+        }),
+        &["commentId"],
+    );
+
+    "view_comment" => "canvas/view-comment", Scope::Canvas, true,
+    "Render what a comment points at to a PNG and return its path, with the comment. Needs a \
+     Canvas pane open.",
+    || canvas_schema(
+        json!({
+            "commentId": { "type": "string", "description": "From list_comments." },
+            "scale": { "type": "number", "exclusiveMinimum": 0, "description": "Default 2." },
+            "theme": { "type": "string", "enum": ["light", "dark"] },
+        }),
+        &["commentId"],
+    );
+}
+
+fn region_schema(about: &str) -> Value {
+    json!({
+        "type": "object",
+        "description": about,
+        "properties": {
+            "x": { "type": "number" }, "y": { "type": "number" },
+            "width": { "type": "number" }, "height": { "type": "number" },
+        },
+        "required": ["x", "y", "width", "height"],
+    })
+}
+
+fn obj(properties: Value, required: &[&str]) -> Value {
+    json!({
+        "type": "object",
+        "properties": properties,
+        "required": required,
+        "additionalProperties": false,
+    })
+}
+
+fn extend(base: Value, extra: Value) -> Value {
+    let mut merged = base.as_object().cloned().unwrap_or_default();
+    if let Value::Object(more) = extra {
+        merged.extend(more);
+    }
+    Value::Object(merged)
+}
+
+const CLUSTER_HELP: &str = "A cluster id from the workspace server's `layout`. Defaults to the \
+    focused pane's cluster, else the active one.";
+
+fn cluster_schema(properties: Value, required: &[&str]) -> Value {
+    obj(
+        extend(
+            properties,
+            json!({
+                "cluster": { "type": "string", "description": CLUSTER_HELP },
+                "instance": { "type": "string", "description": "A pane instance id (from list_canvases); its cluster is used." },
+            }),
+        ),
+        required,
+    )
+}
+
+fn canvas_schema(properties: Value, required: &[&str]) -> Value {
+    obj(
+        extend(
+            properties,
+            json!({
+                "canvas": {
+                    "type": "string",
+                    "description": "Canvas id: the file under canvas/ without `.json`, e.g. `levels/hospital-wing`. Omit to act on the focused canvas (or the only one open); the result's `resolved` block says which.",
+                },
+                "instance": {
+                    "type": "string",
+                    "description": "A Canvas pane's instance id from list_canvases, e.g. `canvas-2`. Selects the canvas it shows and its cluster.",
+                },
+                "cluster": {
+                    "type": "string",
+                    "description": "Only needed when the same canvas id exists in two clusters. Defaults to where the canvas is open, else the active cluster.",
+                },
+            }),
+        ),
+        required,
+    )
+}
+
+/// [`canvas_schema`] for tools whose spec carries options the schema does not list.
+fn canvas_schema_open(properties: Value, required: &[&str]) -> Value {
+    let mut schema = canvas_schema(properties, required);
+    schema["additionalProperties"] = json!(true);
+    schema
+}
+
+/// How the caller named its target. Every field is optional.
+#[derive(Debug, Default, Clone, PartialEq)]
+pub(super) struct Target {
+    pub canvas: Option<String>,
+    pub instance: Option<String>,
+    pub cluster: Option<String>,
+}
+
+impl Target {
+    fn from_args(args: &Map<String, Value>) -> Result<Self, RpcError> {
+        let text = |key: &str| match args.get(key) {
+            None | Some(Value::Null) => Ok(None),
+            Some(Value::String(s)) if !s.is_empty() => Ok(Some(s.clone())),
+            Some(_) => Err(bad(format!("`{key}` must be a non-empty string"))),
+        };
+        Ok(Self {
+            canvas: text("canvas")?,
+            instance: text("instance")?,
+            cluster: text("cluster")?,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(super) struct Resolved {
+    pub canvas: Option<String>,
+    pub instance: Option<String>,
+    pub cluster: String,
+    /// `instance`, `explicit`, `focused`, `only-open`, `active-cluster`.
+    pub how: &'static str,
+}
+
+impl Resolved {
+    fn to_json(&self) -> Value {
+        let note = match self.how {
+            "focused" => "No canvas was named, so the focused canvas was used.",
+            "only-open" => "No canvas was named and none has focus; it is the only one open.",
+            "active-cluster" => "No cluster was named, so the active cluster was used.",
+            "focused-cluster" => "No cluster was named, so the focused pane's cluster was used.",
+            _ => "As named.",
+        };
+        json!({
+            "canvas": self.canvas,
+            "instance": self.instance,
+            "cluster": self.cluster,
+            "how": self.how,
+            "note": note,
+        })
+    }
+}
+
+fn bad(message: impl Into<String>) -> RpcError {
+    RpcError::new(INVALID_PARAMS, message)
+}
+
+fn open_json(open: &[&Surface]) -> Vec<Value> {
+    open.iter()
+        .map(|s| {
+            json!({
+                "instance": s.instance, "canvas": s.file(), "cluster": s.cluster,
+                "focused": s.focused, "visible": s.visible,
+            })
+        })
+        .collect()
+}
+
+fn listing(open: &[&Surface]) -> String {
+    if open.is_empty() {
+        return "none is open".to_string();
+    }
+    open.iter()
+        .map(|s| {
+            format!(
+                "`{}` ({} in {})",
+                s.instance,
+                s.file().unwrap_or_else(|| "no file".to_string()),
+                s.cluster
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn ambiguous(what: &str, open: &[&Surface]) -> RpcError {
+    RpcError::with_data(
+        INVALID_PARAMS,
+        format!(
+            "{what}, and more than one canvas is open: {}. Pass `canvas` (and `cluster` if the id \
+             repeats) or `instance`.",
+            listing(open)
+        ),
+        json!({ "kind": "ambiguous-canvas", "open": open_json(open) }),
+    )
+}
+
+fn canvases(all: &[Surface]) -> Vec<&Surface> {
+    all.iter().filter(|s| s.app == "canvas").collect()
+}
+
+/// Turn a [`Target`] into one canvas in one cluster, or say why not.
+///
+/// Pure, over the open surfaces and the active cluster id, so every branch is
+/// tested without an app.
+pub(super) fn resolve_canvas(
+    target: &Target,
+    all: &[Surface],
+    active: Option<&str>,
+) -> Result<Resolved, RpcError> {
+    let open = canvases(all);
+
+    if let Some(instance) = &target.instance {
+        let surface = open
+            .iter()
+            .find(|s| &s.instance == instance)
+            .ok_or_else(|| {
+                RpcError::with_data(
+                    INVALID_PARAMS,
+                    format!(
+                        "`{instance}` is not an open Canvas pane; open canvases: {}",
+                        listing(&open)
+                    ),
+                    json!({ "kind": "no-such-instance", "open": open_json(&open) }),
+                )
+            })?;
+        if target
+            .cluster
+            .as_deref()
+            .is_some_and(|c| c != surface.cluster)
+        {
+            return Err(bad(format!(
+                "`{instance}` is in cluster `{}`, not `{}`",
+                surface.cluster,
+                target.cluster.as_deref().unwrap_or_default()
+            )));
+        }
+        let canvas = target
+            .canvas
+            .clone()
+            .or_else(|| surface.file())
+            .ok_or_else(|| {
+                bad(format!(
+                    "`{instance}` has no canvas open yet; pass `canvas` to name one"
+                ))
+            })?;
+        return Ok(Resolved {
+            canvas: Some(canvas),
+            instance: Some(surface.instance.clone()),
+            cluster: surface.cluster.clone(),
+            how: "instance",
+        });
+    }
+
+    if let Some(canvas) = &target.canvas {
+        let showing: Vec<&&Surface> = open
+            .iter()
+            .filter(|s| s.file().as_deref() == Some(canvas.as_str()))
+            .filter(|s| target.cluster.as_deref().is_none_or(|c| c == s.cluster))
+            .collect();
+        let mut clusters: Vec<&str> = showing.iter().map(|s| s.cluster.as_str()).collect();
+        clusters.sort_unstable();
+        clusters.dedup();
+
+        let cluster = match (&target.cluster, clusters.as_slice()) {
+            (Some(c), _) => c.clone(),
+            (None, [one]) => (*one).to_string(),
+            (None, []) => active
+                .map(str::to_owned)
+                .ok_or_else(|| bad("no cluster is active to look for that canvas in"))?,
+            (None, _) => {
+                let both: Vec<&Surface> = showing.iter().map(|s| **s).collect();
+                return Err(ambiguous(
+                    &format!(
+                        "canvas `{canvas}` is open in clusters {}",
+                        clusters.join(", ")
+                    ),
+                    &both,
+                ));
+            }
+        };
+        let pick = showing
+            .iter()
+            .find(|s| s.focused && s.cluster == cluster)
+            .or_else(|| showing.iter().find(|s| s.cluster == cluster));
+        return Ok(Resolved {
+            canvas: Some(canvas.clone()),
+            instance: pick.map(|s| s.instance.clone()),
+            cluster,
+            how: "explicit",
+        });
+    }
+
+    if let Some(s) = open.iter().find(|s| s.focused && s.file().is_some()) {
+        return Ok(Resolved {
+            canvas: s.file(),
+            instance: Some(s.instance.clone()),
+            cluster: s.cluster.clone(),
+            how: "focused",
+        });
+    }
+
+    let with_file: Vec<&Surface> = open
+        .iter()
+        .copied()
+        .filter(|s| s.file().is_some())
+        .collect();
+    match with_file.as_slice() {
+        [only] => Ok(Resolved {
+            canvas: only.file(),
+            instance: Some(only.instance.clone()),
+            cluster: only.cluster.clone(),
+            how: "only-open",
+        }),
+        [] => Err(RpcError::with_data(
+            INVALID_PARAMS,
+            "no canvas was named and none is open. Pass `canvas` (see list_files), or open one \
+             with the agent server's open_app or ask the person to.",
+            json!({ "kind": "no-canvas" }),
+        )),
+        many => Err(ambiguous("no canvas was named and none has focus", many)),
+    }
+}
+
+/// Turn a [`Target`] into a cluster, for the tools that name no existing canvas.
+pub(super) fn resolve_cluster(
+    target: &Target,
+    all: &[Surface],
+    active: Option<&str>,
+) -> Result<Resolved, RpcError> {
+    let done = |cluster: String, instance: Option<String>, how| {
+        Ok(Resolved {
+            canvas: target.canvas.clone(),
+            instance,
+            cluster,
+            how,
+        })
+    };
+    if let Some(cluster) = &target.cluster {
+        return done(cluster.clone(), None, "explicit");
+    }
+    if let Some(instance) = &target.instance {
+        let surface = all
+            .iter()
+            .find(|s| &s.instance == instance)
+            .ok_or_else(|| {
+                bad(format!(
+                    "`{instance}` is not an open pane; see list_canvases"
+                ))
+            })?;
+        return done(
+            surface.cluster.clone(),
+            Some(surface.instance.clone()),
+            "instance",
+        );
+    }
+    if let Some(s) = all.iter().find(|s| s.focused) {
+        return done(s.cluster.clone(), None, "focused-cluster");
+    }
+    match active {
+        Some(cluster) => done(cluster.to_string(), None, "active-cluster"),
+        None => Err(RpcError::new(
+            INTERNAL_ERROR,
+            "there is no cluster to work in; name one with `cluster`",
+        )),
+    }
+}
+
+/// The `list_canvases` answer.
+pub(super) fn list_open(all: &[Surface], active: Option<&str>) -> Value {
+    let open = canvases(all);
+    let rows: Vec<Value> = open
+        .iter()
+        .map(|s| {
+            json!({
+                "instance": s.instance,
+                "canvas": s.file(),
+                "title": s.title,
+                "cluster": s.cluster,
+                "window": s.window,
+                "pane": s.pane,
+                "focused": s.focused,
+                "visible": s.visible,
+                "activeTab": s.active_tab,
+                "selection": s.report.as_ref().map(|r| json!({
+                    "elementIds": r.get("elementIds"),
+                    "diagram": r.get("diagram"),
+                })),
+            })
+        })
+        .collect();
+    let default = match resolve_canvas(&Target::default(), all, active) {
+        Ok(r) => {
+            json!({ "canvas": r.canvas, "instance": r.instance, "cluster": r.cluster, "how": r.how })
+        }
+        Err(e) => json!({ "error": e.message }),
+    };
+    json!({
+        "count": rows.len(),
+        "canvases": rows,
+        "ifNoCanvasIsNamed": default,
+    })
+}
+
+/// The params an app method gets: the caller's own, minus how it named the
+/// target, plus the canvas id and the agent actor.
+pub(super) fn method_params(args: &Map<String, Value>, id: Option<&str>) -> Value {
+    let mut params = args.clone();
+    for key in ["canvas", "instance", "cluster", "actor", "id"] {
+        params.remove(key);
+    }
+    if let Some(id) = id {
+        params.insert("id".into(), json!(id));
+    }
+    params.insert("actor".into(), json!("agent"));
+    Value::Object(params)
+}
+
+fn annotate(result: Value, resolved: &Resolved) -> Value {
+    match result {
+        Value::Object(mut map) => {
+            map.insert("resolved".into(), resolved.to_json());
+            Value::Object(map)
+        }
+        other => json!({ "result": other, "resolved": resolved.to_json() }),
+    }
+}
+
+fn needs_page(route: &Route, target: &Target) -> bool {
+    match route.scope {
+        Scope::Open => true,
+        Scope::Canvas => {
+            !(target.canvas.is_some() && (target.instance.is_some() || target.cluster.is_some()))
+        }
+        Scope::Cluster | Scope::New => target.cluster.is_none() && target.instance.is_none(),
+    }
+}
+
+fn call(app: &AppHandle, tool: &str, params: Option<Value>) -> Result<ToolAnswer, RpcError> {
+    let route = ROUTES.iter().find(|r| r.tool == tool).ok_or_else(|| {
+        RpcError::new(
+            METHOD_NOT_FOUND,
+            format!("the canvas server has no tool named `{tool}`"),
+        )
+    })?;
+    let args = match params {
+        Some(Value::Object(map)) => map,
+        None | Some(Value::Null) => Map::new(),
+        Some(_) => return Err(bad("arguments must be an object")),
+    };
+    let target = Target::from_args(&args)?;
+
+    let snapshot = app.state::<ShellState>().snapshot();
+    let pages = if needs_page(route, &target) {
+        workspace::page_contexts(app)
+    } else {
+        Pages::default()
+    };
+    let all = workspace::surfaces(&snapshot, &pages);
+    let active = workspace::active_cluster(&snapshot, &pages).map(|(_, cluster)| cluster);
+
+    let (resolved, id) = match route.scope {
+        Scope::Open => return Ok(list_open(&all, active.as_deref()).into()),
+        Scope::Canvas => {
+            let r = resolve_canvas(&target, &all, active.as_deref())?;
+            let id = r.canvas.clone();
+            (r, id)
+        }
+        Scope::New => {
+            let id = target
+                .canvas
+                .clone()
+                .ok_or_else(|| bad("`canvas` is required: the id of the new canvas"))?;
+            (resolve_cluster(&target, &all, active.as_deref())?, Some(id))
+        }
+        Scope::Cluster => (resolve_cluster(&target, &all, active.as_deref())?, None),
+    };
+
+    let context = CallContext::resolve(app, None, Some(&resolved.cluster));
+    let answer = apps::call(
+        app,
+        &context,
+        "canvas",
+        route.method,
+        Some(method_params(&args, id.as_deref())),
+    )?;
+    Ok(annotate(answer, &resolved).into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::mcp::servers::workspace::fixtures::*;
+
+    fn open(pages: Pages) -> Vec<Surface> {
+        workspace::surfaces(&snapshot(), &pages)
+    }
+
+    fn surfaces_with_focus(focus: Option<&str>) -> Vec<Surface> {
+        open(pages(page(focus.is_some(), focus, "app")))
+    }
+
+    fn target(canvas: Option<&str>, instance: Option<&str>, cluster: Option<&str>) -> Target {
+        Target {
+            canvas: canvas.map(str::to_owned),
+            instance: instance.map(str::to_owned),
+            cluster: cluster.map(str::to_owned),
+        }
+    }
+
+    #[test]
+    fn the_server_is_ordinary_and_lists_its_tools() {
+        assert!(!SERVER.dev_only, "canvas ships to everyone");
+        assert_eq!(TOOLS.len(), ROUTES.len());
+        for (tool, route) in TOOLS.iter().zip(ROUTES) {
+            assert_eq!(tool.name, route.tool);
+        }
+        let names: Vec<&str> = TOOLS.iter().map(|t| t.name).collect();
+        for expected in [
+            "list_canvases",
+            "list_files",
+            "read_canvas",
+            "view_diagram",
+            "add_shapes",
+            "import_mermaid",
+            "set_values",
+            "create_comment",
+            "restore_checkpoint",
+        ] {
+            assert!(names.contains(&expected), "missing {expected}");
+        }
+        let mut sorted = names.clone();
+        sorted.sort_unstable();
+        sorted.dedup();
+        assert_eq!(sorted.len(), names.len(), "a tool is listed twice");
+    }
+
+    #[test]
+    fn every_tool_is_hinted_and_every_schema_is_an_object_schema() {
+        for tool in TOOLS {
+            let schema = (tool.schema)();
+            assert_eq!(schema["type"], "object", "{}", tool.name);
+            assert!(schema["properties"].is_object(), "{}", tool.name);
+            assert!(!tool.description.trim().is_empty(), "{}", tool.name);
+            assert!(read_only(tool.name).is_some(), "{}", tool.name);
+            assert!(
+                schema["properties"].get("actor").is_none(),
+                "{} lets a client choose the actor",
+                tool.name
+            );
+            for required in schema["required"].as_array().unwrap() {
+                let name = required.as_str().unwrap();
+                assert!(
+                    schema["properties"].get(name).is_some(),
+                    "{}: {name}",
+                    tool.name
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn canvas_tools_take_an_explicit_canvas_instance_and_cluster() {
+        for route in ROUTES.iter().filter(|r| r.scope == Scope::Canvas) {
+            let tool = TOOLS.iter().find(|t| t.name == route.tool).unwrap();
+            let schema = (tool.schema)();
+            for key in ["canvas", "instance", "cluster"] {
+                assert!(
+                    schema["properties"].get(key).is_some(),
+                    "{}: {key}",
+                    route.tool
+                );
+            }
+            assert!(
+                !schema["required"]
+                    .as_array()
+                    .unwrap()
+                    .contains(&json!("canvas")),
+                "{}: canvas must stay optional so the focused one can default",
+                route.tool
+            );
+        }
+    }
+
+    /// Every row has to name a method the app really dispatches. The pure
+    /// canvas entry point answers `METHOD_NOT_FOUND` for one it does not know,
+    /// and anything else (no project, bad params) for one it does.
+    #[test]
+    fn every_route_names_a_method_the_canvas_app_dispatches() {
+        for route in ROUTES.iter().filter(|r| r.scope != Scope::Open) {
+            let context = CallContext {
+                cluster_id: None,
+                project: None,
+            };
+            let err = crate::apps::canvas::call(&context, false, route.method, None)
+                .expect_err("no project, so it must fail");
+            assert_ne!(
+                err.code, METHOD_NOT_FOUND,
+                "{} -> {}",
+                route.tool, route.method
+            );
+        }
+    }
+
+    #[test]
+    fn an_explicit_canvas_is_used_as_named() {
+        let all = surfaces_with_focus(Some("canvas-2"));
+        let r = resolve_canvas(
+            &target(Some("levels/one"), None, None),
+            &all,
+            Some("cluster-1"),
+        )
+        .unwrap();
+        assert_eq!(r.canvas.as_deref(), Some("levels/one"));
+        assert_eq!(r.instance.as_deref(), Some("canvas-1"));
+        assert_eq!(r.cluster, "cluster-1");
+        assert_eq!(r.how, "explicit");
+    }
+
+    #[test]
+    fn an_instance_selects_its_canvas_and_cluster() {
+        let all = surfaces_with_focus(None);
+        let r = resolve_canvas(
+            &target(None, Some("canvas-2"), None),
+            &all,
+            Some("cluster-1"),
+        )
+        .unwrap();
+        assert_eq!(r.canvas.as_deref(), Some("levels/two"));
+        assert_eq!(r.how, "instance");
+        let err = resolve_canvas(&target(None, Some("canvas-9"), None), &all, None).unwrap_err();
+        assert!(err.message.contains("canvas-1"), "{}", err.message);
+    }
+
+    #[test]
+    fn an_omitted_canvas_defaults_to_the_focused_one_and_says_so() {
+        let all = surfaces_with_focus(Some("canvas-2"));
+        let r = resolve_canvas(&Target::default(), &all, Some("cluster-1")).unwrap();
+        assert_eq!(r.canvas.as_deref(), Some("levels/two"));
+        assert_eq!(r.how, "focused");
+        let annotated = annotate(json!({ "ok": true }), &r);
+        assert_eq!(annotated["resolved"]["how"], "focused");
+        assert!(annotated["resolved"]["note"]
+            .as_str()
+            .unwrap()
+            .contains("focused"));
+    }
+
+    #[test]
+    fn two_open_canvases_and_no_focus_is_ambiguous_and_lists_both() {
+        let all = surfaces_with_focus(None);
+        let err = resolve_canvas(&Target::default(), &all, Some("cluster-1")).unwrap_err();
+        assert_eq!(err.code, INVALID_PARAMS);
+        assert!(err.message.contains("levels/one") && err.message.contains("levels/two"));
+        assert_eq!(err.data.unwrap()["kind"], "ambiguous-canvas");
+    }
+
+    /// With focus in a terminal and one canvas open, the one canvas is the answer.
+    #[test]
+    fn a_single_open_canvas_is_the_default_when_nothing_is_focused() {
+        let mut all = surfaces_with_focus(None);
+        all.retain(|s| s.instance != "canvas-2" && s.instance != "canvas-3");
+        let r = resolve_canvas(&Target::default(), &all, Some("cluster-1")).unwrap();
+        assert_eq!(r.how, "only-open");
+        assert_eq!(r.canvas.as_deref(), Some("levels/one"));
+    }
+
+    #[test]
+    fn nothing_open_and_nothing_named_asks_for_a_canvas() {
+        let err = resolve_canvas(&Target::default(), &[], Some("cluster-1")).unwrap_err();
+        assert!(err.message.contains("none is open"), "{}", err.message);
+    }
+
+    #[test]
+    fn a_canvas_id_open_in_two_clusters_needs_a_cluster() {
+        let mut all = surfaces_with_focus(None);
+        let mut twin = all
+            .iter()
+            .find(|s| s.instance == "canvas-1")
+            .unwrap()
+            .clone();
+        twin.instance = "canvas-7".into();
+        twin.cluster = "cluster-2".into();
+        all.push(twin);
+        let err = resolve_canvas(
+            &target(Some("levels/one"), None, None),
+            &all,
+            Some("cluster-1"),
+        )
+        .unwrap_err();
+        assert!(
+            err.message.contains("cluster-1, cluster-2"),
+            "{}",
+            err.message
+        );
+        let r = resolve_canvas(
+            &target(Some("levels/one"), None, Some("cluster-2")),
+            &all,
+            None,
+        )
+        .unwrap();
+        assert_eq!(r.instance.as_deref(), Some("canvas-7"));
+    }
+
+    #[test]
+    fn a_canvas_that_is_not_open_falls_back_to_the_active_cluster() {
+        let all = surfaces_with_focus(None);
+        let r = resolve_canvas(
+            &target(Some("levels/closed"), None, None),
+            &all,
+            Some("cluster-1"),
+        )
+        .unwrap();
+        assert_eq!(r.cluster, "cluster-1");
+        assert_eq!(r.instance, None);
+    }
+
+    #[test]
+    fn cluster_tools_prefer_a_named_cluster_then_the_focused_pane_then_the_active_one() {
+        let all = surfaces_with_focus(Some("canvas-1"));
+        let named = resolve_cluster(
+            &target(None, None, Some("cluster-2")),
+            &all,
+            Some("cluster-1"),
+        )
+        .unwrap();
+        assert_eq!(
+            (named.cluster.as_str(), named.how),
+            ("cluster-2", "explicit")
+        );
+        let focused = resolve_cluster(&Target::default(), &all, Some("cluster-2")).unwrap();
+        assert_eq!(
+            (focused.cluster.as_str(), focused.how),
+            ("cluster-1", "focused-cluster")
+        );
+        let fallback = resolve_cluster(
+            &Target::default(),
+            &surfaces_with_focus(None),
+            Some("cluster-2"),
+        )
+        .unwrap();
+        assert_eq!(
+            (fallback.cluster.as_str(), fallback.how),
+            ("cluster-2", "active-cluster")
+        );
+    }
+
+    #[test]
+    fn method_params_always_say_agent_and_carry_the_resolved_id() {
+        let args: Map<String, Value> = serde_json::from_value(json!({
+            "canvas": "x", "instance": "canvas-1", "cluster": "c", "actor": "human",
+            "diagram": "playfield",
+        }))
+        .unwrap();
+        let params = method_params(&args, Some("levels/one"));
+        assert_eq!(params["actor"], "agent");
+        assert_eq!(params["id"], "levels/one");
+        assert_eq!(params["diagram"], "playfield");
+        assert!(params.get("instance").is_none() && params.get("cluster").is_none());
+    }
+
+    #[test]
+    fn list_open_reports_every_canvas_and_what_would_be_the_default() {
+        let all = surfaces_with_focus(Some("canvas-1"));
+        let out = list_open(&all, Some("cluster-1"));
+        assert_eq!(out["count"], 3);
+        assert_eq!(out["canvases"][0]["focused"], true);
+        assert_eq!(out["ifNoCanvasIsNamed"]["canvas"], "levels/one");
+        let none_focused = list_open(&surfaces_with_focus(None), Some("cluster-1"));
+        assert!(none_focused["ifNoCanvasIsNamed"]["error"].is_string());
+    }
+
+    #[test]
+    fn a_non_string_target_is_refused_by_name() {
+        let args: Map<String, Value> = serde_json::from_value(json!({ "canvas": 7 })).unwrap();
+        let err = Target::from_args(&args).unwrap_err();
+        assert!(err.message.contains("`canvas`"));
+    }
+}

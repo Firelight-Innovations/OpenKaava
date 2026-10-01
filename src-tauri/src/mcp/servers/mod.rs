@@ -20,11 +20,13 @@
 //! It indexes their arrays and delegates, so nothing here is a second copy.
 
 pub mod agent;
+pub mod canvas;
 pub mod debug;
 #[cfg(feature = "design-mode")]
 pub mod design;
 pub mod echo;
 pub mod ui;
+pub mod workspace;
 
 use super::Registry;
 
@@ -46,6 +48,8 @@ pub fn seed(registry: &Registry) {
     registry.register(&debug::SERVER);
     #[cfg(feature = "design-mode")]
     registry.register(&design::SERVER);
+    registry.register(&canvas::SERVER);
+    registry.register(&workspace::SERVER);
     registry.register(&ui::SERVER);
     registry.register(&agent::SERVER);
 }
@@ -70,6 +74,8 @@ pub fn read_only_hint(server: &str, tool: &str) -> Option<bool> {
         ("ui" | "agent", "click" | "type_text" | "fill_field" | "press_key" | "eval") => false,
         ("agent", "shell_snapshot" | "recent_errors" | "boot_status") => true,
         ("agent", "app_call" | "open_app" | "set_project") => false,
+        ("workspace", "focus" | "layout" | "project") => true,
+        ("canvas", tool) => return canvas::read_only(tool),
         _ => return None,
     };
     Some(read)
@@ -90,6 +96,18 @@ pub fn instructions(id: &str) -> Option<&'static str> {
              for clickable refs, `click`, `fill_field` and `type_text` to act, and `context` \
              to ask what is focused and what the open app has selected. `type_text` refuses \
              to type into a terminal; that terminal is probably yours.",
+        ),
+        "workspace" => Some(
+            "Read-only: where the person is working. Call `focus` when they say \"this\" or \"here\"; \
+             it names the focused pane, the app and the file or selection it reports. `layout` and \
+             `project` give the panes and the folder each cluster is on. Pass the instance ids you \
+             find here to the canvas server.",
+        ),
+        "canvas" => Some(
+            "Design canvases. More than one can be open: call `list_canvases` to see them and which has \
+             focus. Every tool takes `canvas` (id), `instance` or `cluster`; omit them and the focused \
+             canvas is used, which the result's `resolved` block says. All writes are made as the agent. \
+             `view_diagram` renders to a PNG file: read the path it returns.",
         ),
         "debug" => Some(
             "Read-only views of a running OpenKaava: its shell layout, recent errors and boot \
@@ -190,9 +208,23 @@ mod tests {
 
         let ids: Vec<String> = registry.list(true).into_iter().map(|s| s.id).collect();
         #[cfg(feature = "design-mode")]
-        assert_eq!(ids, vec!["echo", "debug", "design", "ui", "agent"]);
+        assert_eq!(
+            ids,
+            vec![
+                "echo",
+                "debug",
+                "design",
+                "canvas",
+                "workspace",
+                "ui",
+                "agent"
+            ]
+        );
         #[cfg(not(feature = "design-mode"))]
-        assert_eq!(ids, vec!["echo", "debug", "ui", "agent"]);
+        assert_eq!(
+            ids,
+            vec!["echo", "debug", "canvas", "workspace", "ui", "agent"]
+        );
     }
 
     /// Every ordinary server is usable the moment OpenKaava starts. The one that
@@ -214,17 +246,18 @@ mod tests {
 
     /// With developer mode off, the ordinary user sees only what is for them.
     /// `design` is meant to be here: it is the one write surface an ordinary
-    /// user is supposed to have, for the reasons in its module doc. `echo`,
-    /// `debug`, `ui` and `agent` are all developer-only.
+    /// user is supposed to have, for the reasons in its module doc. `canvas` and
+    /// `workspace` are the ones agents use in a release build. `echo`, `debug`,
+    /// `ui` and `agent` are all developer-only.
     #[test]
     fn a_default_install_sees_only_the_servers_that_are_not_developer_only() {
         let registry = Registry::default();
         seed(&registry);
 
         #[cfg(feature = "design-mode")]
-        let expected: Vec<&str> = vec!["design"];
+        let expected: Vec<&str> = vec!["design", "canvas", "workspace"];
         #[cfg(not(feature = "design-mode"))]
-        let expected: Vec<&str> = vec![];
+        let expected: Vec<&str> = vec!["canvas", "workspace"];
 
         let ids: Vec<String> = registry.list(false).into_iter().map(|s| s.id).collect();
         assert_eq!(ids, expected);

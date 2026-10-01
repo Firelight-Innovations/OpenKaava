@@ -584,7 +584,11 @@ fn press_key(app: &AppHandle, window: Option<&str>, name: &str) -> Result<Value,
 }
 
 /// Run an expression in the page and hand back what it produced.
-fn evaluate(app: &AppHandle, window: Option<&str>, expression: &str) -> Result<Value, RpcError> {
+pub(super) fn evaluate(
+    app: &AppHandle,
+    window: Option<&str>,
+    expression: &str,
+) -> Result<Value, RpcError> {
     let answered = protocol(
         app,
         window,
@@ -655,7 +659,7 @@ fn protocol(
 ///
 /// The argument is JSON-encoded rather than pasted in, so a selector containing
 /// a quote is a selector rather than a syntax error.
-fn script(body: &str, argument: &Value) -> String {
+pub(super) fn script(body: &str, argument: &Value) -> String {
     let mut js = String::from("(() => {\n");
     js.push_str(HELPERS);
     js.push_str("const argument = ");
