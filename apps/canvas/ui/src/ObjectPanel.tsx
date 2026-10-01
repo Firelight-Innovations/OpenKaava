@@ -204,7 +204,29 @@ export default function ObjectPanel(p: Props) {
     }
   }, [p.focusName, frame.id]);
 
-  const options = useMemo(() => linkable(canvases, current), [canvases, current]);
+  const options = useMemo(
+    () => linkable(canvases, current).filter((c) => c.id !== frame.child),
+    [canvases, current, frame.child],
+  );
+  const picker = options.length > 0 && !readOnly && (
+    <div className="cv__frame-form">
+      <select
+        className="cv__select"
+        aria-label="Link to canvas"
+        value=""
+        onChange={(e) => {
+          if (e.target.value) p.onLinkExisting(e.target.value);
+        }}
+      >
+        <option value="">{frame.child ? "Link to another canvas..." : "Link to canvas..."}</option>
+        {options.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.title}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
   const model = frame.object?.type === "model";
   const draft = useMemo(() => modelDraft(frame.name, props), [frame.name, props]);
   const exported = useMemo(() => exportDraft(draft), [draft]);
@@ -384,6 +406,7 @@ export default function ObjectPanel(p: Props) {
                   </button>
                 )}
               </div>
+              {picker}
             </>
           ) : (
             <>
@@ -406,25 +429,7 @@ export default function ObjectPanel(p: Props) {
                   Create child canvas
                 </button>
               </form>
-              {options.length > 0 && (
-                <div className="cv__frame-form">
-                  <select
-                    className="cv__select"
-                    aria-label="Link an existing canvas"
-                    value=""
-                    onChange={(e) => {
-                      if (e.target.value) p.onLinkExisting(e.target.value);
-                    }}
-                  >
-                    <option value="">Link an existing canvas...</option>
-                    {options.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              {picker}
             </>
           )}
         </div>

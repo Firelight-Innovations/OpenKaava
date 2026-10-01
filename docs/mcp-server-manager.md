@@ -476,11 +476,11 @@ note when a default was used), so a default is never silent. `list_canvases` als
 reports what a call that names nothing would use.
 
 **Frames and types.** A frame is the unit of meaning on a canvas (a labelled, typed
-object); see `docs/canvas-objects.md`. Eleven tools expose it:
+object); see `docs/canvas-objects.md`. Twelve tools expose it:
 
 - **Reads:** `list_types`, `list_frames`, `search_frames`, `get_frame`, `frame_image`,
   `canvas_tree`.
-- **Writes:** `save_type`, `delete_type`, `set_parent`, `set_frame`, `create_frame`.
+- **Writes:** `save_type`, `delete_type`, `set_parent`, `link_frame`, `set_frame`, `create_frame`.
 
 The intended order is `list_frames` or `search_frames` first, then `get_frame` and
 `frame_image` for detail, and `create_frame` to group elements into a labelled typed
@@ -492,8 +492,10 @@ Scope differs per tool. The project-wide ones (`list_types`, `list_frames`,
 resolve only a cluster, and an optional `canvas` is a filter handed to the method
 untouched, so omitting it means the whole project and never the focused canvas. The
 per-canvas ones (`get_frame`, `frame_image`, `set_frame`, `create_frame`) use the
-resolution above. `set_parent` does too, but requires `canvas` so it can never move
-the focused canvas by accident. The frame methods read the canvas as `canvas` and the
+resolution above. `set_parent` and `link_frame` do too, but require `canvas`, and the
+server refuses the call with `canvas-required` when it is missing, so neither can
+touch the focused canvas by accident. `link_frame` links a frame to an existing child
+canvas (or unlinks it with `child: null`) and keeps the child's `parent` in step. The frame methods read the canvas as `canvas` and the
 older ones as `id`; the server sends the resolved canvas under whichever the method
 expects.
 
@@ -503,3 +505,21 @@ flag, description, schema. The tool list, dispatch and `readOnlyHint` come from 
 
 Rendering (`view_diagram`, `view_comment`, `add_shapes`, `import_mermaid`) runs in a
 Canvas pane's webview, so one must be open somewhere; the error says how to open one.
+
+**Which canvas a render or write lands on.** `view_diagram`, `add_shapes`,
+`import_mermaid` and `view_comment` always read and write the file of the canvas they
+resolve to. The Canvas pane is only an engine for fonts, Excalidraw and Mermaid: the
+pane showing that canvas is preferred, but with several canvases open any pane may
+do the drawing, and the file written is still the named one. If no Canvas pane is open
+anywhere the error names the canvas and says to open one. `describe_diagram` and
+`view_diagram` take `frame` as an alias for `diagram`.
+
+**Inactive clusters.** A pane learns its canvas from the page's `__kaavaContext`, which
+only exists for a mounted pane, so a pane in an inactive cluster reports `canvas: null`.
+`list_canvases` flags these with `canvasKnown: false` and a `note`. When a call names no
+canvas and some pane's canvas is unknown, it is refused (`canvas-unknown` when no
+canvas is known at all, otherwise an ambiguity listing every pane, including the ones
+with no file) rather than guessed. Name `canvas` or `instance` to be certain.
+
+**Transport.** The streamable-HTTP endpoint requires an `initialize` call and the
+returned `mcp-session-id` header on later requests; a bare `tools/call` returns 422.

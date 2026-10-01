@@ -209,3 +209,68 @@ export function linkable(rows: readonly CanvasSummary[], current: string): Canva
     (r) => !r.error && !blocked.has(r.id) && (r.parent === null || r.parent === current),
   );
 }
+
+/** Whether some live frame in `elements` still links to canvas `child`. */
+export function stillLinked(elements: readonly SceneElement[], child: string): boolean {
+  return elements.some((el) => childOf(el) === child);
+}
+
+/** A "↳ child" chip to draw over a frame that links to a child canvas. */
+export interface LinkBadge {
+  /** The frame's element id. */
+  id: string;
+  child: string;
+  label: string;
+  /** Pixels from the editor's top-left to the chip's right edge, and to its bottom edge. */
+  right: number;
+  bottom: number;
+  /** The frame is too small on screen for words; draw the arrow alone. */
+  compact: boolean;
+}
+
+/** What the badges need of Excalidraw's `appState`. */
+export interface BadgeView {
+  scrollX: number;
+  scrollY: number;
+  zoom: { value: number };
+}
+
+/** Frames narrower than this on screen (px) get no badge at all. */
+const BADGE_MIN_PX = 28;
+/** Frames narrower than this on screen get the arrow without the name. */
+const BADGE_COMPACT_PX = 140;
+
+/**
+ * The badges for every linked frame, in editor pixels. A scene point goes to the
+ * viewport as `(scene + scroll) * zoom`, the inverse of [`viewportToScene`], so the
+ * chip follows the frame as the person pans and zooms; it is drawn over the editor
+ * rather than put in the scene, so it is never saved and never selected. It sits on
+ * the frame's top edge, at the right-hand corner, clear of the name label on the left.
+ */
+export function linkBadges(
+  elements: readonly SceneElement[],
+  view: BadgeView,
+  titleOf: (canvasId: string) => string,
+): LinkBadge[] {
+  const zoom = view.zoom.value;
+  const out: LinkBadge[] = [];
+  for (const el of elements) {
+    const child = childOf(el);
+    if (!child) continue;
+    const x = Number(el.x);
+    const y = Number(el.y);
+    const width = Number(el.width);
+    if (![x, y, width, zoom, view.scrollX, view.scrollY].every(Number.isFinite)) continue;
+    const px = width * zoom;
+    if (px < BADGE_MIN_PX) continue;
+    out.push({
+      id: el.id,
+      child,
+      label: titleOf(child),
+      right: Math.round((x + width + view.scrollX) * zoom),
+      bottom: Math.round((y + view.scrollY) * zoom) - 4,
+      compact: px < BADGE_COMPACT_PX,
+    });
+  }
+  return out;
+}

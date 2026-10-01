@@ -71,6 +71,54 @@ describe("ObjectPanel", () => {
     expect(onProp).toHaveBeenCalledWith("class", "bike");
   });
 
+  const canvases = ["world", "world/inner", "free", "taken", "other"].map((id) => ({
+    id,
+    title: id,
+    parent: id === "world/inner" ? "world" : id === "taken" ? "other" : null,
+    mtime: 1,
+    path: `canvas/${id}.json`,
+    error: null,
+  }));
+
+  it("offers Link to canvas without the canvas itself, its ancestors or nested ones", () => {
+    const onLinkExisting = vi.fn();
+    panel({ canvases, current: "world/inner", onLinkExisting });
+    const picker = screen.getByLabelText("Link to canvas") as HTMLSelectElement;
+    const offered = Array.from(picker.options)
+      .map((o) => o.value)
+      .filter(Boolean);
+    expect(offered).toEqual(["free", "other"]);
+    fireEvent.change(picker, { target: { value: "free" } });
+    expect(onLinkExisting).toHaveBeenCalledWith("free");
+  });
+
+  it("lets a linked frame open, unlink or switch to another canvas", () => {
+    const onUnlink = vi.fn();
+    const onOpenChild = vi.fn();
+    panel({
+      canvases,
+      current: "world",
+      frame: { id: "f", name: "Buggy", object: null, child: "world/inner" },
+      onUnlink,
+      onOpenChild,
+    });
+    fireEvent.click(screen.getByText("Unlink"));
+    expect(onUnlink).toHaveBeenCalled();
+    fireEvent.click(screen.getByText("Open child canvas"));
+    expect(onOpenChild).toHaveBeenCalledWith("world/inner");
+    const picker = screen.getByLabelText("Link to canvas") as HTMLSelectElement;
+    const offered = Array.from(picker.options)
+      .map((o) => o.value)
+      .filter(Boolean);
+    expect(offered).toEqual(["free", "other"]);
+    expect(picker.options[0]!.text).toBe("Link to another canvas...");
+  });
+
+  it("offers no linking when read-only", () => {
+    panel({ canvases, current: "world", readOnly: true });
+    expect(screen.queryByLabelText("Link to canvas")).toBeNull();
+  });
+
   it("disables every field when read-only", () => {
     panel({ readOnly: true });
     expect((screen.getByLabelText("Wheels") as HTMLInputElement).disabled).toBe(true);

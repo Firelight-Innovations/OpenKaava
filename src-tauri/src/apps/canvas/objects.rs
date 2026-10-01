@@ -492,18 +492,209 @@ pub fn tree(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
     Ok(json!({ "roots": nodes, "cycles": cycles, "problems": problems }))
 }
 
+/// The prefix of the Excalidraw `link` a frame carries beside its child canvas, so
+/// the editor draws its link badge. Mirrors `CANVAS_LINK` in `ui/src/nesting.ts`.
+const CANVAS_LINK: &str = "kaava://canvas/";
+
+/// Point frame element `el` at canvas `child`, or clear the link with `None`.
+/// Only `customData.kaava.child` and a `kaava://canvas/` link are touched: the
+/// frame's object, diagram and any other metadata stay as they were, and a link
+/// to something else is left alone when unlinking.
+fn set_child_link(el: &mut Value, child: Option<&str>) {
+    if !el.get("customData").is_some_and(Value::is_object) {
+        el["customData"] = json!({});
+    }
+    if !el["customData"].get("kaava").is_some_and(Value::is_object) {
+        el["customData"]["kaava"] = json!({});
+    }
+    match child {
+        Some(c) => {
+            el["customData"]["kaava"]["child"] = json!(c);
+            el["link"] = json!(format!("{CANVAS_LINK}{c}"));
+        }
+        None => {
+            if let Some(k) = el["customData"]["kaava"].as_object_mut() {
+                k.remove("child");
+            }
+            if el
+                .get("link")
+                .and_then(Value::as_str)
+                .is_some_and(|l| l.starts_with(CANVAS_LINK))
+            {
+                el["link"] = Value::Null;
+            }
+            if el["customData"]["kaava"]
+                .as_object()
+                .is_some_and(Map::is_empty)
+            {
+                if let Some(c) = el["customData"].as_object_mut() {
+                    c.remove("kaava");
+                }
+            }
+            if el["customData"].as_object().is_some_and(Map::is_empty) {
+                if let Some(o) = el.as_object_mut() {
+                    o.remove("customData");
+                }
+            }
+        }
+    }
+    bump(el);
+}
+
+/// Unlink every live frame in `canvas` that points at `child`. Returns how many
+/// were changed; a canvas that is not on disk has none.
+fn clear_links(root: &Path, canvas: &str, child: &str, who: &str) -> Result<usize, RpcError> {
+    if !file_for(root, canvas).is_file() {
+        return Ok(0);
+    }
+    let (_, mut scene, base) = open(root, &json!({ "id": canvas }))?;
+    let mut n = 0;
+    if let Some(list) = scene["elements"].as_array_mut() {
+        for el in list.iter_mut() {
+            if is_frame_el(el)
+                && is_live_el(el)
+                && el
+                    .pointer("/customData/kaava/child")
+                    .and_then(Value::as_str)
+                    == Some(child)
+            {
+                set_child_link(el, None);
+                n += 1;
+            }
+        }
+    }
+    if n > 0 {
+        save_scene(root, canvas, scene, base, who)?;
+    }
+    Ok(n)
+}
+
+/// Write canvas `id`'s `kaava.parent` (`None` removes it), without any check.
+fn write_parent(
+    root: &Path,
+    id: &str,
+    parent: Option<&str>,
+    who: &str,
+) -> Result<Option<u64>, RpcError> {
+    let (_, mut scene, base) = open(root, &json!({ "id": id }))?;
+    if !scene.get("kaava").is_some_and(Value::is_object) {
+        scene["kaava"] = Value::Object(Map::new());
+    }
+    match parent {
+        Some(par) => scene["kaava"]["parent"] = json!(par),
+        None => {
+            if let Some(k) = scene["kaava"].as_object_mut() {
+                k.remove("parent");
+            }
+        }
+    }
+    save_scene(root, id, scene, base, who)
+}
+
+/// `canvas/link-frame` `{actor, canvas, frame, child: string | null, reparent?}`:
+/// make `frame` (an element id or exact name) on `canvas` open the existing canvas
+/// `child` on double-click, or clear its link with `null`.
+///
+/// Linking sets the frame's child link and the child's `kaava.parent`, so the tree
+/// and the breadcrumb agree with the frame. Refused when `child` does not exist, is
+/// `canvas` or one of its ancestors (a loop), or is already nested under a different
+/// canvas (pass `reparent: true` to move it; the old parent's frame that linked to it
+/// is unlinked). Re-linking a frame to another child releases the previous child to
+/// be a root, unless another frame on `canvas` still links to it. The frame's type,
+/// values and diagram are untouched.
+///
+/// Result: `{frame: Frame, child, previous, mtime}`.
+pub fn link_frame(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
+    let p = params_of(params);
+    let who = actor(p)?;
+    let id = canvas_id(&string(p, "canvas")?)?;
+    let child = match p.get("child") {
+        Some(Value::Null) => None,
+        Some(Value::String(s)) => Some(canvas_id(s)?),
+        _ => return Err(bad("child is required: a canvas id, or null to unlink")),
+    };
+    let (_, mut scene, base) = open(root, &json!({ "id": id }))?;
+    frames::migrate(&mut scene);
+    let all = frames::list(&scene);
+    let target = frames::find(&all, &string(p, "frame")?).map_err(bad)?;
+    let (frame_id, previous) = (target.id.clone(), target.child.clone());
+    let mut moved_from: Option<String> = None;
+    if let Some(c) = &child {
+        if !file_for(root, c).is_file() {
+            return Err(bad(format!("the canvas `{c}` does not exist")));
+        }
+        if frames::would_cycle(c, &id, |x| parent_of(root, x)) {
+            return Err(bad(format!(
+                "cannot link a frame in `{id}` to `{c}`: `{c}` is `{id}` or one of its ancestors"
+            )));
+        }
+        match parent_of(root, c) {
+            Some(other) if other != id => {
+                if !flag(p, "reparent") {
+                    return Err(bad(format!(
+                        "`{c}` is already nested under `{other}`; pass `reparent: true` to move \
+                         it under `{id}`"
+                    )));
+                }
+                moved_from = Some(other);
+            }
+            _ => {}
+        }
+    }
+    let el = scene["elements"]
+        .as_array_mut()
+        .and_then(|a| a.iter_mut().find(|e| e["id"] == json!(frame_id)))
+        .ok_or_else(|| bad("frame vanished"))?;
+    set_child_link(el, child.as_deref());
+    let release = previous.clone().filter(|old| {
+        child.as_deref() != Some(old.as_str()) && !frames::child_links(&scene).contains(old)
+    });
+    let mtime = save_scene(root, &id, scene, base, who)?;
+    if let (Some(other), Some(c)) = (&moved_from, &child) {
+        clear_links(root, other, c, who)?;
+    }
+    if let Some(c) = &child {
+        if parent_of(root, c).as_deref() != Some(id.as_str()) {
+            write_parent(root, c, Some(&id), who)?;
+        }
+    }
+    if let Some(old) = release {
+        if parent_of(root, &old).as_deref() == Some(id.as_str()) {
+            write_parent(root, &old, None, who)?;
+        }
+    }
+    let (table, _) = types::all(root);
+    let after = read_canvas(root, &id)?;
+    let f = frames::find(&after.frames, &frame_id).map_err(bad)?;
+    Ok(json!({
+        "frame": frames::frame_json(&id, f, &table),
+        "child": child,
+        "previous": previous,
+        "mtime": mtime,
+    }))
+}
+
 /// `canvas/set-parent` `{actor, id, parent: string | null}`: nest canvas `id`
 /// under `parent`, or make it a root with `null`. Refused when `parent` does not
 /// exist or the move would put a canvas inside itself.
 ///
-/// Result: `{id, parent, mtime}`.
+/// Frames stay consistent with the move: a frame in the canvas `id` used to sit
+/// under that links to `id` is unlinked, since `id` is no longer its child. It does
+/// not create a frame in the new parent; `canvas/link-frame` does that.
+///
+/// Result: `{id, parent, mtime, unlinkedFrames}`.
 pub fn set_parent(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
     let p = params_of(params);
     let who = actor(p)?;
-    let (id, mut scene, base) = open(root, p)?;
+    let (id, _, _) = open(root, p)?;
     let parent = match p.get("parent") {
-        Some(Value::Null) | None => None,
+        Some(Value::Null) => None,
         Some(Value::String(s)) => Some(canvas_id(s)?),
+        None => {
+            return Err(bad(
+                "parent is required: a canvas id, or null to make `id` a root. Leaving it out                  does not mean null",
+            ))
+        }
         Some(_) => return Err(bad("parent must be a canvas id or null")),
     };
     if let Some(par) = &parent {
@@ -516,19 +707,13 @@ pub fn set_parent(root: &Path, params: Option<&Value>) -> Result<Value, RpcError
             )));
         }
     }
-    if !scene.get("kaava").is_some_and(Value::is_object) {
-        scene["kaava"] = Value::Object(Map::new());
-    }
-    match &parent {
-        Some(par) => scene["kaava"]["parent"] = json!(par),
-        None => {
-            if let Some(k) = scene["kaava"].as_object_mut() {
-                k.remove("parent");
-            }
-        }
-    }
-    let mtime = save_scene(root, &id, scene, base, who)?;
-    Ok(json!({ "id": id, "parent": parent, "mtime": mtime }))
+    let old = parent_of(root, &id);
+    let mtime = write_parent(root, &id, parent.as_deref(), who)?;
+    let unlinked = match old.as_deref() {
+        Some(old) if parent.as_deref() != Some(old) => clear_links(root, old, &id, who)?,
+        _ => 0,
+    };
+    Ok(json!({ "id": id, "parent": parent, "mtime": mtime, "unlinkedFrames": unlinked }))
 }
 
 // --- writing frames ---------------------------------------------------------------
@@ -1399,5 +1584,249 @@ mod tests {
         use crate::apps::is_write_method;
         assert!(is_write_method("canvas/set-frame"));
         assert!(is_write_method("canvas/create-frame"));
+        assert!(is_write_method("canvas/link-frame"));
+    }
+
+    /// A frame that is a named diagram AND a typed object, as both features write it.
+    fn both(id: &str, name: &str) -> Value {
+        frame(
+            id,
+            name,
+            json!({
+                "diagram": { "id": "hub-diagram", "title": "Hub", "level": "overview" },
+                "object": { "type": "feature", "props": { "summary": "the hub" } },
+            }),
+        )
+    }
+
+    fn read_scene(root: &Path, id: &str) -> Value {
+        serde_json::from_str(&std::fs::read_to_string(file_for(root, id)).unwrap()).unwrap()
+    }
+
+    fn put_frame_in(root: &Path, canvas: &str, el: Value) {
+        let mut scene = read_scene(root, canvas);
+        scene["elements"].as_array_mut().unwrap().push(el);
+        std::fs::write(file_for(root, canvas), scene.to_string()).unwrap();
+    }
+
+    fn link(root: &Path, frame: &str, child: Value, more: Value) -> Result<Value, RpcError> {
+        let mut v = json!({ "canvas": "hub", "frame": frame, "child": child });
+        for (k, val) in more.as_object().unwrap() {
+            v[k] = val.clone();
+        }
+        run(root, "canvas/link-frame", agent(v))
+    }
+
+    fn links_project() -> TempDir {
+        let dir = TempDir::new().unwrap();
+        put(dir.path(), "hub", None, vec![both("h1", "Hub")]);
+        put(dir.path(), "side", None, vec![]);
+        put(dir.path(), "other", None, vec![]);
+        dir
+    }
+
+    #[test]
+    fn link_frame_links_an_existing_canvas_and_the_tree_agrees() {
+        let dir = links_project();
+        let out = link(dir.path(), "Hub", json!("side"), json!({})).unwrap();
+        assert_eq!(out["frame"]["childCanvas"], "side");
+        assert_eq!(out["previous"], Value::Null);
+        assert_eq!(parent_of(dir.path(), "side").as_deref(), Some("hub"));
+        let el = &read_scene(dir.path(), "hub")["elements"][0];
+        assert_eq!(el["link"], "kaava://canvas/side");
+        assert_eq!(el["customData"]["kaava"]["child"], "side");
+
+        let tree = run(dir.path(), "canvas/tree", agent(json!({}))).unwrap();
+        let hub = tree["roots"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["id"] == "hub")
+            .unwrap();
+        assert_eq!(hub["children"][0]["id"], "side");
+        assert!(tree["problems"].as_array().unwrap().is_empty());
+    }
+
+    #[test]
+    fn linking_and_retyping_keep_a_frames_diagram_and_both_listings_see_it() {
+        let dir = links_project();
+        link(dir.path(), "h1", json!("side"), json!({})).unwrap();
+        let kaava = read_scene(dir.path(), "hub")["elements"][0]["customData"]["kaava"].clone();
+        assert_eq!(kaava["diagram"]["id"], "hub-diagram");
+        assert_eq!(kaava["object"]["type"], "feature");
+        assert_eq!(kaava["child"], "side");
+
+        run(
+            dir.path(),
+            "canvas/set-frame",
+            agent(json!({ "canvas": "hub", "frame": "h1", "type": "system" })),
+        )
+        .unwrap();
+        let kaava = read_scene(dir.path(), "hub")["elements"][0]["customData"]["kaava"].clone();
+        assert_eq!(kaava["diagram"]["id"], "hub-diagram");
+        assert_eq!(kaava["object"]["type"], "system");
+        assert_eq!(kaava["child"], "side");
+
+        let listed = run(
+            dir.path(),
+            "canvas/frames",
+            agent(json!({ "canvas": "hub" })),
+        )
+        .unwrap();
+        assert_eq!(listed["frames"][0]["type"], "system");
+        assert_eq!(listed["frames"][0]["childCanvas"], "side");
+        let diagrams = run(
+            dir.path(),
+            "canvas/list-diagrams",
+            agent(json!({ "id": "hub" })),
+        )
+        .unwrap();
+        assert_eq!(diagrams["diagrams"][0]["id"], "hub-diagram");
+        assert_eq!(diagrams["diagrams"][0]["frameElementId"], "h1");
+    }
+
+    #[test]
+    fn link_frame_refuses_the_canvas_itself_loops_and_unknown_canvases() {
+        let dir = links_project();
+        let err = |child: &str| {
+            link(dir.path(), "Hub", json!(child), json!({}))
+                .unwrap_err()
+                .message
+        };
+        assert!(err("hub").contains("ancestors"), "itself");
+        assert!(err("ghost").contains("does not exist"));
+        link(dir.path(), "Hub", json!("side"), json!({})).unwrap();
+        put_frame_in(dir.path(), "side", frame("s1", "Back", json!({})));
+        let back = run(
+            dir.path(),
+            "canvas/link-frame",
+            agent(json!({ "canvas": "side", "frame": "Back", "child": "hub" })),
+        )
+        .unwrap_err();
+        assert!(back.message.contains("ancestors"), "{}", back.message);
+        assert_eq!(parent_of(dir.path(), "hub"), None, "nothing was written");
+        let missing = run(
+            dir.path(),
+            "canvas/link-frame",
+            agent(json!({ "canvas": "hub", "frame": "Hub" })),
+        )
+        .unwrap_err();
+        assert!(missing.message.contains("child is required"));
+    }
+
+    #[test]
+    fn a_canvas_nested_elsewhere_needs_reparent_and_the_old_frame_is_unlinked() {
+        let dir = links_project();
+        put_frame_in(dir.path(), "other", frame("o1", "Slot", json!({})));
+        link(dir.path(), "Hub", json!("side"), json!({})).unwrap();
+        let params = json!({ "canvas": "other", "frame": "Slot", "child": "side" });
+        let err = run(dir.path(), "canvas/link-frame", agent(params.clone())).unwrap_err();
+        assert!(err.message.contains("reparent"), "{}", err.message);
+        assert_eq!(parent_of(dir.path(), "side").as_deref(), Some("hub"));
+
+        let mut moved = params;
+        moved["reparent"] = json!(true);
+        run(dir.path(), "canvas/link-frame", agent(moved)).unwrap();
+        assert_eq!(parent_of(dir.path(), "side").as_deref(), Some("other"));
+        let hub = read_scene(dir.path(), "hub");
+        let kaava = &hub["elements"][0]["customData"]["kaava"];
+        assert!(kaava.get("child").is_none());
+        assert_eq!(hub["elements"][0]["link"], Value::Null);
+        assert_eq!(kaava["diagram"]["id"], "hub-diagram");
+    }
+
+    #[test]
+    fn unlinking_and_relinking_release_the_previous_child() {
+        let dir = links_project();
+        link(dir.path(), "Hub", json!("side"), json!({})).unwrap();
+        let out = link(dir.path(), "Hub", json!("other"), json!({})).unwrap();
+        assert_eq!(out["previous"], "side");
+        assert_eq!(parent_of(dir.path(), "side"), None, "released");
+        assert_eq!(parent_of(dir.path(), "other").as_deref(), Some("hub"));
+
+        let out = link(dir.path(), "Hub", Value::Null, json!({})).unwrap();
+        assert_eq!(out["frame"]["childCanvas"], Value::Null);
+        assert_eq!(parent_of(dir.path(), "other"), None);
+        let el = &read_scene(dir.path(), "hub")["elements"][0];
+        assert_eq!(el["link"], Value::Null);
+        assert_eq!(el["customData"]["kaava"]["object"]["type"], "feature");
+        assert_eq!(el["customData"]["kaava"]["diagram"]["id"], "hub-diagram");
+    }
+
+    #[test]
+    fn unlinking_removes_empty_metadata_and_keeps_a_foreign_link() {
+        let dir = links_project();
+        put_frame_in(
+            dir.path(),
+            "hub",
+            json!({ "id": "bare", "type": "frame", "name": "Bare", "x": 0, "y": 0,
+                    "width": 5, "height": 5 }),
+        );
+        link(dir.path(), "Bare", json!("side"), json!({})).unwrap();
+        link(dir.path(), "Bare", Value::Null, json!({})).unwrap();
+        let el = read_scene(dir.path(), "hub")["elements"][1].clone();
+        assert!(el.get("customData").is_none(), "{el}");
+        assert_eq!(el["link"], Value::Null);
+
+        let mut scene = read_scene(dir.path(), "hub");
+        scene["elements"][1]["link"] = json!("https://example.com");
+        std::fs::write(file_for(dir.path(), "hub"), scene.to_string()).unwrap();
+        link(dir.path(), "Bare", Value::Null, json!({})).unwrap();
+        assert_eq!(
+            read_scene(dir.path(), "hub")["elements"][1]["link"],
+            "https://example.com"
+        );
+    }
+
+    /// Regression: `canvas/set-parent` reached by `app_call` or the MCP server with a
+    /// parameter missing must fail, not default to the focused canvas or to a root.
+    #[test]
+    fn set_parent_needs_both_id_and_parent_and_changes_nothing_without_them() {
+        let dir = links_project();
+        link(dir.path(), "Hub", json!("side"), json!({})).unwrap();
+        let before = std::fs::read_to_string(file_for(dir.path(), "side")).unwrap();
+        let no_id = run(
+            dir.path(),
+            "canvas/set-parent",
+            agent(json!({ "parent": null })),
+        );
+        assert!(no_id.unwrap_err().message.contains("id is required"));
+        let no_parent = run(
+            dir.path(),
+            "canvas/set-parent",
+            agent(json!({ "id": "side" })),
+        );
+        let msg = no_parent.unwrap_err().message;
+        assert!(msg.contains("parent is required"), "{msg}");
+        assert_eq!(
+            std::fs::read_to_string(file_for(dir.path(), "side")).unwrap(),
+            before,
+            "side is still nested under hub"
+        );
+        assert_eq!(parent_of(dir.path(), "side").as_deref(), Some("hub"));
+    }
+
+    #[test]
+    fn set_parent_unlinks_the_frame_in_the_old_parent() {
+        let dir = links_project();
+        link(dir.path(), "Hub", json!("side"), json!({})).unwrap();
+        let out = run(
+            dir.path(),
+            "canvas/set-parent",
+            agent(json!({ "id": "side", "parent": null })),
+        )
+        .unwrap();
+        assert_eq!(out["unlinkedFrames"], 1);
+        let el = &read_scene(dir.path(), "hub")["elements"][0];
+        assert!(el["customData"]["kaava"].get("child").is_none());
+        assert_eq!(el["customData"]["kaava"]["object"]["type"], "feature");
+        assert_eq!(el["link"], Value::Null);
+        let again = run(
+            dir.path(),
+            "canvas/set-parent",
+            agent(json!({ "id": "side", "parent": "hub" })),
+        )
+        .unwrap();
+        assert_eq!(again["unlinkedFrames"], 0);
     }
 }
