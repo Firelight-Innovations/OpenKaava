@@ -93,6 +93,7 @@ export class SceneEngine {
   private width = 1;
   private height = 1;
   private pixelRatio = 1;
+  private themeObserver: MutationObserver | null = null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -105,6 +106,18 @@ export class SceneEngine {
     this.setPixelRatio(window.devicePixelRatio || 1);
 
     this.scene.background = resolveToken(canvas, "bg-surface-2");
+    // The backdrop is a design token, not a fixed colour, so a light/dark
+    // switch (`<html data-theme>`, set by the bridge) has to re-read it.
+    if (typeof MutationObserver !== "undefined") {
+      this.themeObserver = new MutationObserver(() => {
+        this.scene.background = resolveToken(canvas, "bg-surface-2");
+        this.requestRender();
+      });
+      this.themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-theme"],
+      });
+    }
     this.scene.add(this.hemi, this.key, this.key.target, this.camera);
 
     this.controls = new OrbitControls(this.camera, canvas);
@@ -417,6 +430,7 @@ export class SceneEngine {
     if (this.frameHandle !== null) cancelAnimationFrame(this.frameHandle);
     this.cancelAnimation();
     this.cameraListeners.clear();
+    this.themeObserver?.disconnect();
     this.controls.removeEventListener("change", this.requestRender);
     this.controls.removeEventListener("end", this.emitCamera);
     this.controls.removeEventListener("start", this.emitStart);

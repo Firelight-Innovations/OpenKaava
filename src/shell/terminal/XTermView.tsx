@@ -2,6 +2,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 
 import { Terminal, type ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
+import { onThemeChange } from "../themeBroadcast";
 import type { TerminalTransport } from "../contract";
 import { useDropZone } from "../dropZones";
 import { attachClipboard } from "./clipboard";
@@ -155,6 +156,11 @@ function XTermView(
 
     term.open(container);
     termRef.current = term;
+    // xterm paints to a canvas and cannot read CSS variables, so a light/dark
+    // switch has to hand it a fresh palette resolved from the new tokens.
+    const offTheme = onThemeChange(() => {
+      term.options.theme = buildTheme();
+    });
 
     const detach = transport.attach(id, (chunk) => term.write(chunk));
     const onData = term.onData((data) => transport.write(id, data));
@@ -219,6 +225,7 @@ function XTermView(
       detachClipboard();
       term.textarea?.removeEventListener("focus", onTextareaFocus);
       detach();
+      offTheme();
       termRef.current = null;
       term.dispose();
     };
@@ -254,7 +261,7 @@ function readToken(name: string): string {
  * so the bright variant reuses the base token — a narrower palette than a
  * full 16-colour scheme, but not a fabricated one.
  */
-function buildTheme(): ITheme {
+export function buildTheme(): ITheme {
   const bg = readToken("--surface"); // the panel's own background — the deck
   // renders inside the panel body, which sets no background of its own.
   const text = readToken("--text");

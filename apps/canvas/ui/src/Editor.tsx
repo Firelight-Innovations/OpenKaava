@@ -6,7 +6,7 @@
 import "./assetPath";
 import "@excalidraw/excalidraw/index.css";
 import "./native.css";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Excalidraw, MainMenu } from "@excalidraw/excalidraw";
 import About from "./About";
 import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
@@ -99,6 +99,11 @@ export default function Editor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [initial],
   );
+  // Excalidraw owns its `appState.theme` once mounted; pushing the shell's
+  // theme in explicitly keeps a switch live even if the prop alone is missed.
+  useEffect(() => {
+    apiRef.current?.updateScene({ appState: { theme } } as never);
+  }, [theme]);
   const handleApi = useCallback((api: ExcalidrawImperativeAPI) => {
     apiRef.current = api;
     onApiRef.current(api);

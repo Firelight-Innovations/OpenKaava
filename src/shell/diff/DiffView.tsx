@@ -17,6 +17,8 @@ import { useEffect, useRef, useState } from "react";
 import * as monaco from "monaco-editor/editor/editor.api";
 import EditorWorker from "monaco-editor/editor/editor.worker?worker";
 import { registerToml } from "@openkaava/monaco-languages";
+import { hexWithAlpha, monacoThemeData } from "@openkaava/bridge/theme";
+import { onThemeChange } from "../themeBroadcast";
 import { anchorFor, countLabel, markAtLine, type LineDecoration } from "./reviewComments";
 import "./diff.css";
 
@@ -47,19 +49,31 @@ registerToml(monaco);
 // `parseHex(hex) || Color.red`, so a perfectly valid CSS `rgba()` string
 // silently becomes opaque red. Which token each reuses, and how that bug went
 // unseen, are in the design note named in the file header.
-monaco.editor.defineTheme("kaava-dark", {
-  base: "vs-dark",
-  inherit: true,
-  rules: [],
-  colors: {
-    "editor.background": "#14161a", // --bg
-    "editor.foreground": "#e4e7ec", // --text
-    "diffEditor.insertedLineBackground": "#5fb37a14", // --ok, wash alpha
-    "diffEditor.insertedTextBackground": "#5fb37a40", // --ok
-    "diffEditor.removedLineBackground": "#d9635f14", // --err, wash alpha
-    "diffEditor.removedTextBackground": "#d9635f40", // --err
-  },
-});
+function defineDiffTheme(): void {
+  const { base, colors } = monacoThemeData();
+  monaco.editor.defineTheme("kaava-dark", {
+    base,
+    inherit: true,
+    rules: [],
+    colors: {
+      "editor.background": colors["editor.background"],
+      "editor.foreground": colors["editor.foreground"],
+      "diffEditor.insertedLineBackground": hexWithAlpha(tokenValue("--ok"), 0.08), // --ok, wash alpha
+      "diffEditor.insertedTextBackground": hexWithAlpha(tokenValue("--ok"), 0.25), // --ok
+      "diffEditor.removedLineBackground": hexWithAlpha(tokenValue("--err"), 0.08), // --err, wash alpha
+      "diffEditor.removedTextBackground": hexWithAlpha(tokenValue("--err"), 0.25), // --err
+    },
+  });
+  monaco.editor.setTheme("kaava-dark");
+}
+
+function tokenValue(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name);
+}
+
+defineDiffTheme();
+// The light/dark choice is a setting; redefine so a switch reaches open diffs.
+onThemeChange(() => defineDiffTheme());
 
 /**
  * What a caller has to supply for this diff to be annotatable, and what it gets
