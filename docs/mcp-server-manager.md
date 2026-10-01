@@ -434,6 +434,28 @@ Every answer carries a `resolved` block (`canvas`, `instance`, `cluster`, `how`,
 note when a default was used), so a default is never silent. `list_canvases` also
 reports what a call that names nothing would use.
 
+**Frames and types.** A frame is the unit of meaning on a canvas (a labelled, typed
+object); see `docs/canvas-objects.md`. Eleven tools expose it:
+
+- **Reads:** `list_types`, `list_frames`, `search_frames`, `get_frame`, `frame_image`,
+  `canvas_tree`.
+- **Writes:** `save_type`, `delete_type`, `set_parent`, `set_frame`, `create_frame`.
+
+The intended order is `list_frames` or `search_frames` first, then `get_frame` and
+`frame_image` for detail, and `create_frame` to group elements into a labelled typed
+object. `frame_image` returns the PNG's path and size and does not attach the image:
+`ToolAnswer` is either JSON or an image, and the path is what the caller needs.
+
+Scope differs per tool. The project-wide ones (`list_types`, `list_frames`,
+`search_frames`, `canvas_tree`, `save_type`, `delete_type`) use `Scope::Project`: they
+resolve only a cluster, and an optional `canvas` is a filter handed to the method
+untouched, so omitting it means the whole project and never the focused canvas. The
+per-canvas ones (`get_frame`, `frame_image`, `set_frame`, `create_frame`) use the
+resolution above. `set_parent` does too, but requires `canvas` so it can never move
+the focused canvas by accident. The frame methods read the canvas as `canvas` and the
+older ones as `id`; the server sends the resolved canvas under whichever the method
+expects.
+
 **Adding a tool** is one row in the `canvas_tools!` table in
 `src-tauri/src/mcp/servers/canvas.rs`: tool name, app method, `Scope`, read-only
 flag, description, schema. The tool list, dispatch and `readOnlyHint` come from it.

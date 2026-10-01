@@ -46,6 +46,9 @@ pub(super) enum Scope {
     Cluster,
     /// `canvas` names a canvas that does not exist yet; needs a cluster.
     New,
+    /// Works across a whole cluster's project; `canvas`, if given, is an optional
+    /// filter handed to the method untouched, never defaulted to the focused one.
+    Project,
     /// Acts on one existing canvas: resolves canvas and cluster.
     Canvas,
 }
@@ -268,6 +271,129 @@ canvas_tools! {
             "theme": { "type": "string", "enum": ["light", "dark"] },
         }),
         &["commentId"],
+    );
+
+    "list_types" => "canvas/types", Scope::Project, true,
+    "The frame types a project defines: the built-in ones plus its own, each with an id, color, \
+     icon and the typed fields a frame of that type carries. Look here before create_frame or \
+     set_frame so you use a type that exists.",
+    || cluster_schema(json!({}), &[]);
+
+    "list_frames" => "canvas/frames", Scope::Project, true,
+    "The labelled frames: the unit of meaning on a canvas (a named, typed object such as a room, \
+     a system or a character). With no `canvas` it covers the whole project, not just the \
+     focused canvas. Start here, then get_frame and frame_image for detail.",
+    || cluster_schema(
+        json!({
+            "canvas": { "type": "string", "description": "Limit to this canvas id. Omit for every canvas in the project." },
+            "recursive": { "type": "boolean", "description": "With `canvas`, also include the canvases nested under it." },
+        }),
+        &[],
+    );
+
+    "search_frames" => "canvas/search-frames", Scope::Project, true,
+    "Find frames by name or field text, optionally of one type. With no `canvas` it searches \
+     the whole project. Prefer this to reading whole canvases when you know what you want.",
+    || cluster_schema(
+        json!({
+            "query": { "type": "string", "description": "Text to match against frame names and field values." },
+            "type": { "type": "string", "description": "Only frames of this type id, from list_types." },
+            "canvas": { "type": "string", "description": "Limit to this canvas id. Omit to search the whole project." },
+            "limit": { "type": "integer", "minimum": 1, "description": "Most results to return." },
+        }),
+        &[],
+    );
+
+    "get_frame" => "canvas/frame", Scope::Canvas, true,
+    "One frame in full: its type and values, the type's schema, and every element inside it. \
+     Pair it with frame_image to see it. `canvas` defaults to the focused canvas.",
+    || canvas_schema(
+        json!({ "frame": { "type": "string", "description": "A frame's element id, or its exact name (case-insensitive)." } }),
+        &["frame"],
+    );
+
+    "frame_image" => "canvas/frame-image", Scope::Canvas, true,
+    "Render just one frame to a PNG, drawn by the open Canvas app so it matches what a person \
+     sees, and return the file's path and size; read the file to see it. Needs a Canvas pane \
+     open somewhere. The next render of the same frame overwrites the file.",
+    || canvas_schema(
+        json!({
+            "frame": { "type": "string", "description": "A frame's element id, or its exact name." },
+            "scale": { "type": "number", "exclusiveMinimum": 0, "description": "Pixel scale; default fits the max dimension." },
+            "maxDimension": { "type": "integer", "minimum": 1, "description": "Widest or tallest side in pixels." },
+            "theme": { "type": "string", "enum": ["light", "dark"], "description": "Render in this theme." },
+        }),
+        &["frame"],
+    );
+
+    "canvas_tree" => "canvas/tree", Scope::Project, true,
+    "The nested-canvas hierarchy of the project: roots, each canvas's children and frame \
+     count, and any cycles or problems.",
+    || cluster_schema(json!({}), &[]);
+
+    "save_type" => "canvas/save-type", Scope::Project, false,
+    "Create or update a custom frame type in the project. Omit `type.id` to create one (the id \
+     is derived from the name).",
+    || cluster_schema(
+        json!({
+            "type": {
+                "type": "object",
+                "description": "The type definition.",
+                "properties": {
+                    "id": { "type": "string", "description": "An existing type id to update; omit to create." },
+                    "name": { "type": "string" },
+                    "color": { "type": "string", "description": "A color, e.g. `#7c5cff`." },
+                    "icon": { "type": "string" },
+                    "description": { "type": "string" },
+                    "fields": { "type": "array", "items": { "type": "object" }, "description": "The typed fields a frame of this type carries." },
+                },
+                "required": ["name", "color", "icon", "fields"],
+            },
+        }),
+        &["type"],
+    );
+
+    "delete_type" => "canvas/delete-type", Scope::Project, false,
+    "Delete a custom frame type by id. Built-in types cannot be deleted.",
+    || cluster_schema(
+        json!({ "id": { "type": "string", "description": "The type id, from list_types." } }),
+        &["id"],
+    );
+
+    "set_parent" => "canvas/set-parent", Scope::Canvas, false,
+    "Nest a canvas under another, or make it a root. `canvas` is the canvas being moved and is \
+     required: it never defaults to the focused one.",
+    || canvas_schema(
+        json!({ "parent": { "type": ["string", "null"], "description": "The parent canvas id, or null to make this canvas a root." } }),
+        &["canvas", "parent"],
+    );
+
+    "set_frame" => "canvas/set-frame", Scope::Canvas, false,
+    "Rename a frame, change its type, or set its field values. `canvas` defaults to the \
+     focused canvas.",
+    || canvas_schema(
+        json!({
+            "frame": { "type": "string", "description": "A frame's element id, or its exact name." },
+            "name": { "type": "string", "description": "A new name." },
+            "type": { "type": "string", "description": "A type id from list_types." },
+            "values": { "type": "object", "description": "field id -> value, per the type's schema.", "additionalProperties": true },
+        }),
+        &["frame"],
+    );
+
+    "create_frame" => "canvas/create-frame", Scope::Canvas, false,
+    "Group existing elements into a labelled, typed frame (a named object). Give the elements \
+     by `elementIds`, or a `bbox` to take whatever lies inside it. `canvas` defaults to the \
+     focused canvas.",
+    || canvas_schema(
+        json!({
+            "name": { "type": "string", "description": "The frame's name." },
+            "type": { "type": "string", "description": "A type id from list_types." },
+            "values": { "type": "object", "description": "field id -> value, per the type's schema.", "additionalProperties": true },
+            "elementIds": { "type": "array", "items": { "type": "string" }, "description": "The elements to group." },
+            "bbox": region_schema("Or: group everything inside this scene-coordinate box."),
+        }),
+        &["name"],
     );
 }
 
@@ -648,15 +774,31 @@ pub(super) fn list_open(all: &[Surface], active: Option<&str>) -> Value {
     })
 }
 
-/// The params an app method gets: the caller's own, minus how it named the
-/// target, plus the canvas id and the agent actor.
-pub(super) fn method_params(args: &Map<String, Value>, id: Option<&str>) -> Value {
+/// The frame methods read the canvas as `canvas`; every older method as `id`.
+fn canvas_key(method: &str) -> &'static str {
+    match method {
+        "canvas/frame" | "canvas/frame-image" | "canvas/set-frame" | "canvas/create-frame" => {
+            "canvas"
+        }
+        _ => "id",
+    }
+}
+
+/// The params an app method gets: the caller's own, minus how it named the target, plus the
+/// agent actor and the resolved canvas, which goes in as `canvas` or `id` as the method wants.
+///
+/// With no canvas resolved (project-wide tools) the
+/// caller's own `canvas` and `id` are real parameters of the method and pass
+/// through.
+fn method_params(args: &Map<String, Value>, id: Option<&str>, method: &str) -> Value {
     let mut params = args.clone();
-    for key in ["canvas", "instance", "cluster", "actor", "id"] {
+    for key in ["instance", "cluster", "actor"] {
         params.remove(key);
     }
     if let Some(id) = id {
-        params.insert("id".into(), json!(id));
+        params.remove("canvas");
+        params.remove("id");
+        params.insert(canvas_key(method).into(), json!(id));
     }
     params.insert("actor".into(), json!("agent"));
     Value::Object(params)
@@ -678,7 +820,9 @@ fn needs_page(route: &Route, target: &Target) -> bool {
         Scope::Canvas => {
             !(target.canvas.is_some() && (target.instance.is_some() || target.cluster.is_some()))
         }
-        Scope::Cluster | Scope::New => target.cluster.is_none() && target.instance.is_none(),
+        Scope::Cluster | Scope::New | Scope::Project => {
+            target.cluster.is_none() && target.instance.is_none()
+        }
     }
 }
 
@@ -719,7 +863,9 @@ fn call(app: &AppHandle, tool: &str, params: Option<Value>) -> Result<ToolAnswer
                 .ok_or_else(|| bad("`canvas` is required: the id of the new canvas"))?;
             (resolve_cluster(&target, &all, active.as_deref())?, Some(id))
         }
-        Scope::Cluster => (resolve_cluster(&target, &all, active.as_deref())?, None),
+        Scope::Cluster | Scope::Project => {
+            (resolve_cluster(&target, &all, active.as_deref())?, None)
+        }
     };
 
     let context = CallContext::resolve(app, None, Some(&resolved.cluster));
@@ -728,7 +874,7 @@ fn call(app: &AppHandle, tool: &str, params: Option<Value>) -> Result<ToolAnswer
         &context,
         "canvas",
         route.method,
-        Some(method_params(&args, id.as_deref())),
+        Some(method_params(&args, id.as_deref(), route.method)),
     )?;
     Ok(annotate(answer, &resolved).into())
 }
@@ -807,7 +953,10 @@ mod tests {
 
     #[test]
     fn canvas_tools_take_an_explicit_canvas_instance_and_cluster() {
-        for route in ROUTES.iter().filter(|r| r.scope == Scope::Canvas) {
+        for route in ROUTES
+            .iter()
+            .filter(|r| r.scope == Scope::Canvas && r.tool != "set_parent")
+        {
             let tool = TOOLS.iter().find(|t| t.name == route.tool).unwrap();
             let schema = (tool.schema)();
             for key in ["canvas", "instance", "cluster"] {
@@ -846,6 +995,71 @@ mod tests {
                 route.tool, route.method
             );
         }
+    }
+
+    #[test]
+    fn the_frame_tools_are_listed_with_the_right_read_only_hints() {
+        let expected = [
+            ("list_types", true),
+            ("list_frames", true),
+            ("search_frames", true),
+            ("get_frame", true),
+            ("frame_image", true),
+            ("canvas_tree", true),
+            ("save_type", false),
+            ("delete_type", false),
+            ("set_parent", false),
+            ("set_frame", false),
+            ("create_frame", false),
+        ];
+        for (tool, ro) in expected {
+            assert!(TOOLS.iter().any(|t| t.name == tool), "missing {tool}");
+            assert_eq!(read_only(tool), Some(ro), "{tool}");
+        }
+    }
+
+    #[test]
+    fn project_wide_tools_never_default_to_the_focused_canvas() {
+        for tool in ["list_types", "list_frames", "search_frames", "canvas_tree"] {
+            let route = ROUTES.iter().find(|r| r.tool == tool).unwrap();
+            assert_eq!(route.scope, Scope::Project, "{tool}");
+        }
+        for tool in ["get_frame", "frame_image", "set_frame", "create_frame"] {
+            let route = ROUTES.iter().find(|r| r.tool == tool).unwrap();
+            assert_eq!(route.scope, Scope::Canvas, "{tool}");
+        }
+        let args: Map<String, Value> = serde_json::from_value(json!({
+            "query": "door", "canvas": "world", "cluster": "c", "actor": "human",
+        }))
+        .unwrap();
+        let params = method_params(&args, None, "canvas/search-frames");
+        assert_eq!(params["canvas"], "world", "the filter passes through");
+        assert_eq!(params["actor"], "agent");
+        assert!(params.get("cluster").is_none());
+        let none: Map<String, Value> = Map::new();
+        assert!(method_params(&none, None, "canvas/frames")
+            .get("canvas")
+            .is_none());
+        let del: Map<String, Value> = serde_json::from_value(json!({ "id": "room" })).unwrap();
+        assert_eq!(
+            method_params(&del, None, "canvas/delete-type")["id"],
+            "room"
+        );
+    }
+
+    #[test]
+    fn per_canvas_frame_tools_resolve_a_canvas_and_send_it_as_canvas() {
+        let all = surfaces_with_focus(Some("canvas-2"));
+        let r = resolve_canvas(&Target::default(), &all, Some("cluster-1")).unwrap();
+        assert_eq!(r.how, "focused");
+        let args: Map<String, Value> = serde_json::from_value(json!({ "frame": "Lobby" })).unwrap();
+        let params = method_params(&args, r.canvas.as_deref(), "canvas/frame");
+        assert_eq!(params["canvas"], "levels/two");
+        assert!(params.get("id").is_none());
+        let moved = method_params(&args, Some("levels/one"), "canvas/set-parent");
+        assert_eq!(moved["id"], "levels/one");
+        let ambiguous = resolve_canvas(&Target::default(), &surfaces_with_focus(None), None);
+        assert!(ambiguous.is_err());
     }
 
     #[test]
@@ -998,7 +1212,7 @@ mod tests {
             "diagram": "playfield",
         }))
         .unwrap();
-        let params = method_params(&args, Some("levels/one"));
+        let params = method_params(&args, Some("levels/one"), "canvas/set-values");
         assert_eq!(params["actor"], "agent");
         assert_eq!(params["id"], "levels/one");
         assert_eq!(params["diagram"], "playfield");
