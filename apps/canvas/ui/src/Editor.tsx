@@ -3,6 +3,7 @@
  * so the editor's roughly 3 MB of script and its stylesheet are fetched only
  * when a canvas is opened, not when the pane mounts and reports painted.
  */
+import { themeNeedsPush } from "./themeSync";
 import "./assetPath";
 import "@excalidraw/excalidraw/index.css";
 import "./native.css";
@@ -118,12 +119,20 @@ export default function Editor({
   useEffect(() => {
     apiRef.current?.updateScene({ appState: { theme } } as never);
   }, [theme]);
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
   const handleApi = useCallback((api: ExcalidrawImperativeAPI) => {
     apiRef.current = api;
     onApiRef.current(api);
   }, []);
   const handleChange = useCallback(
     (elements: readonly unknown[], appState: AppState, files: BinaryFiles) => {
+      // Excalidraw's own async init can land after the first theme push and
+      // leave it on dark inside a light shell. Every change reports the theme
+      // it is drawing with, so a mismatch is corrected here.
+      if (themeNeedsPush(appState.theme, themeRef.current)) {
+        apiRef.current?.updateScene({ appState: { theme: themeRef.current } } as never);
+      }
       // Scroll and zoom arrive here too, which is what keeps the badges on their frames.
       badgeSink.current?.(
         linkBadges(
