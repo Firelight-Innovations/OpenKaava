@@ -217,6 +217,20 @@
   color: var(--txt-primary);
 }
 
+/* The row's own icon button sits beside the close button, so it gives up its margin. */
+.clusterswitch__icon-btn {
+  margin-right: 0;
+}
+
+/* A cluster's chosen icon, at the row's text size; rows with none draw nothing here. */
+.clusterswitch__option .cluster-chip[data-kind].clusterswitch__chip {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  font-size: 13px;
+}
+
 .clusterswitch__actions {
   display: flex;
   flex-direction: column;

@@ -16,11 +16,22 @@
  */
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Cloud, GitBranch, Home, Lock, Pin, Plus, ArrowUpDown, FolderOpen } from "lucide-react";
+import {
+  Cloud,
+  GitBranch,
+  Home,
+  Lock,
+  Pin,
+  Plus,
+  ArrowUpDown,
+  FolderOpen,
+  Smile,
+} from "lucide-react";
 import type { Cluster } from "../contract";
 import { environmentOf, ENVIRONMENT_LABEL, type Environment } from "../environment";
 import { popover } from "../motion";
 import { Close } from "../../ui/Icon";
+import ClusterChip from "../ClusterChip";
 import ProjectPill from "./ProjectPill";
 import { branchLabel, needsAttention, type ClusterTerminal } from "../clusterList";
 import "./clusterSwitcher.css";
@@ -48,6 +59,8 @@ export interface ClusterSwitcherProps {
   terminals: ClusterTerminal[];
   onSelect: (clusterId: string) => void;
   onClose: (clusterId: string) => void;
+  /** Opens the icon picker for a cluster. */
+  onChangeIcon?: (clusterId: string) => void;
   /** File > New Cluster: the dialog with its usual first choice. */
   onNewCluster: () => void;
   /** The same dialog, opened on "new local worktree". */
@@ -76,6 +89,7 @@ export default function ClusterSwitcher(props: ClusterSwitcherProps) {
     terminals,
     onSelect,
     onClose,
+    onChangeIcon,
     onNewCluster,
     onNewWorktreeCluster,
     onSwitchProject,
@@ -189,6 +203,13 @@ export default function ClusterSwitcher(props: ClusterSwitcherProps) {
                       if (cluster.id !== activeClusterId) onSelect(cluster.id);
                     }}
                     onClose={() => onClose(cluster.id)}
+                    onChangeIcon={
+                      onChangeIcon &&
+                      (() => {
+                        close(false);
+                        onChangeIcon(cluster.id);
+                      })
+                    }
                   />
                 ))}
               </ul>
@@ -238,6 +259,7 @@ function ClusterRow({
   attention,
   onSelect,
   onClose,
+  onChangeIcon,
 }: {
   cluster: Cluster;
   index: number;
@@ -246,6 +268,7 @@ function ClusterRow({
   attention: boolean;
   onSelect: () => void;
   onClose: () => void;
+  onChangeIcon?: () => void;
 }) {
   const env = environmentOf(cluster);
   const Glyph = KIND_ICON[env.kind];
@@ -265,6 +288,7 @@ function ClusterRow({
         title={missing ? `${cluster.name} — its worktree folder is missing on disk` : cluster.name}
         onClick={onSelect}
       >
+        {cluster.icon && <ClusterChip cluster={cluster} className="clusterswitch__chip" />}
         <span className="clusterswitch__env" data-env-kind={env.kind}>
           <Glyph size={10} strokeWidth={1.5} aria-hidden />
           {ENVIRONMENT_LABEL[env.kind]}
@@ -295,6 +319,17 @@ function ClusterRow({
           </kbd>
         )}
       </button>
+      {onChangeIcon && (
+        <button
+          type="button"
+          className="clusterswitch__close clusterswitch__icon-btn"
+          aria-label={`Change icon for ${cluster.name}`}
+          title="Change icon…"
+          onClick={onChangeIcon}
+        >
+          <Smile size={13} aria-hidden />
+        </button>
+      )}
       <button
         type="button"
         className="clusterswitch__close"

@@ -712,6 +712,17 @@ pub fn rename_cluster(
     shell.rename_cluster(&app, &cluster_id, &name);
 }
 
+/// Choose the emoji a cluster wears instead of its initials; `None` resets to them.
+#[tauri::command]
+pub fn set_cluster_icon(
+    app: tauri::AppHandle,
+    shell: State<'_, ShellState>,
+    cluster_id: String,
+    icon: Option<crate::shell_state::ClusterIcon>,
+) {
+    shell.set_cluster_icon(&app, &cluster_id, icon);
+}
+
 /// Close a cluster and everything in it, including the last one in a window.
 ///
 /// The ptys are killed here rather than left to be tidied later. `close_cluster`

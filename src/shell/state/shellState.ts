@@ -45,6 +45,7 @@ export {
   setActiveCluster,
   setActiveTerminal,
   setBandHeight,
+  setClusterIcon,
   setInstanceTitle,
   setPageMode,
   setPageWidth,

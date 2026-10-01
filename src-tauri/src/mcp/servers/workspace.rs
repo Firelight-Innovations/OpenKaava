@@ -391,6 +391,7 @@ fn cluster_json(cluster: &Cluster, active: bool) -> Value {
     json!({
         "id": cluster.id,
         "name": cluster.name,
+        "icon": cluster.icon,
         "active": active,
         "project": cluster.project,
         "root": root_of(cluster),
@@ -560,6 +561,7 @@ pub(super) mod fixtures {
             page: None,
             environment: None,
             pinned: false,
+            icon: None,
             environment_missing: false,
         }
     }

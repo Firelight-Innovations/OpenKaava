@@ -26,6 +26,7 @@ import { snap } from "./motion";
 import { INTERRUPT, commandLine, terminalInput } from "./run";
 import ContextMenuHost from "./ContextMenuHost";
 import CommandPalette, { type PalettePage } from "./palette/CommandPalette";
+import ClusterIconDialog from "./dialogs/ClusterIconDialog";
 import NewClusterDialog, {
   type EnvironmentKind as ClusterEnvironmentKind,
 } from "./dialogs/NewClusterDialog";
@@ -81,6 +82,7 @@ import {
   openInstance,
   openPage,
   renameCluster,
+  setClusterIcon,
   setActiveCluster,
   setActiveTerminal,
   setBandHeight,
@@ -778,6 +780,13 @@ export default function WindowRoot({
   const onCloseCluster = useCallback((clusterId: string) => {
     void closeCluster(clusterId);
   }, []);
+
+  // The cluster whose icon picker is open. Held as an id, not a cluster, so the
+  // dialog reads the live one and closes itself if the cluster is closed under it.
+  const [iconClusterId, setIconClusterId] = useState<string | null>(null);
+  const iconCluster =
+    iconClusterId === null ? null : (clusters.find((c) => c.id === iconClusterId) ?? null);
+  const onChangeClusterIcon = useCallback((clusterId: string) => setIconClusterId(clusterId), []);
 
   const onRenameCluster = useCallback(
     (clusterId: string, name: string) => renameCluster(clusterId, name),
@@ -1943,6 +1952,16 @@ export default function WindowRoot({
           onCreated={closeNewCluster}
         />
       )}
+      {iconCluster && (
+        <ClusterIconDialog
+          cluster={iconCluster}
+          onCancel={() => setIconClusterId(null)}
+          onPick={(icon) => {
+            void setClusterIcon(iconCluster.id, icon);
+            setIconClusterId(null);
+          }}
+        />
+      )}
       {unsavedClose && (
         <CloseUnsavedDialog
           name={unsavedClose.title}
@@ -2010,6 +2029,7 @@ export default function WindowRoot({
                 terminals: shell?.terminals ?? [],
                 onSelect: onSelectCluster,
                 onClose: onCloseCluster,
+                onChangeIcon: onChangeClusterIcon,
                 onNewCluster: () => onAddCluster(),
                 onNewWorktreeCluster: () => onAddCluster("newLocalWorktree"),
                 onSwitchProject: onOpenProjectSwitcher,
@@ -2199,6 +2219,7 @@ export default function WindowRoot({
                 onAdd={() => onAddCluster()}
                 onClose={onCloseCluster}
                 onRename={onRenameCluster}
+                onChangeIcon={onChangeClusterIcon}
                 // A cluster drags too, and it is the one thing here that is
                 // not a tab: it can only be released on a *window*, so it
                 // moves into whichever one it was let go over, or takes a new
