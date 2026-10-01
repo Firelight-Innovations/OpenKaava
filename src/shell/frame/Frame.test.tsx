@@ -73,7 +73,7 @@ describe("Frame's docked page handle", () => {
       />,
     );
     const split = container.querySelector(".frame__split") as HTMLElement;
-    split.getBoundingClientRect = () => ({ right: 1000 }) as DOMRect;
+    split.getBoundingClientRect = () => ({ right: 1000, width: 1000 }) as DOMRect;
     const handle = container.querySelector('[data-region="pagehandle"]') as HTMLElement;
 
     fireEvent(handle, new MouseEvent("pointerdown", { bubbles: true, clientX: 566 }));
@@ -84,5 +84,30 @@ describe("Frame's docked page handle", () => {
 
     // 1000 (row right) - 44 (rail) - 7 (box margin + border) - 500 (pointer) = 449.
     expect(widths).toEqual([449]);
+  });
+
+  // A popped-out window is as narrow as 480px: dragging the page wide there must leave the panes
+  // their minimum rather than push the rail off the edge.
+  it("holds the page back in a narrow window so the panes keep their width", () => {
+    const widths: number[] = [];
+    const { container } = render(
+      <Frame
+        kind="detached"
+        slots={slots({ projectPage: <div>page</div> })}
+        onProjectPageWidthChange={(w) => widths.push(w)}
+      />,
+    );
+    const split = container.querySelector(".frame__split") as HTMLElement;
+    split.getBoundingClientRect = () => ({ right: 600, width: 600 }) as DOMRect;
+    const handle = container.querySelector('[data-region="pagehandle"]') as HTMLElement;
+
+    fireEvent(handle, new MouseEvent("pointerdown", { bubbles: true, clientX: 300 }));
+    act(() => {
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 50 }));
+      window.dispatchEvent(new MouseEvent("pointerup"));
+    });
+
+    // 600 - 44 (rail) - 7 (margin + border) - 240 (panes' minimum) = 309.
+    expect(widths).toEqual([309]);
   });
 });

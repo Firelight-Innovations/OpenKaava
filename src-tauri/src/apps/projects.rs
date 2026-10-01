@@ -437,7 +437,13 @@ fn parse_plane_url(raw: &str) -> Result<url::Url, RpcError> {
 fn webview_open(app: &AppHandle, params: Option<&Value>) -> Result<Value, RpcError> {
     let bounds = typed_param::<Bounds>(params, "bounds")?;
     let url = parse_plane_url(&string_param(params, "url")?)?;
-    plane_webview::open(app, bounds, url).map_err(|e| RpcError::new(INTERNAL_ERROR, e))?;
+    // The window the page is open in. Absent from a caller that predates popped-out windows,
+    // which meant `main`.
+    let window = params
+        .and_then(|p| p.get("window"))
+        .and_then(Value::as_str)
+        .unwrap_or(plane_webview::MAIN_WINDOW);
+    plane_webview::open(app, window, bounds, url).map_err(|e| RpcError::new(INTERNAL_ERROR, e))?;
     Ok(json!({ "opened": true }))
 }
 

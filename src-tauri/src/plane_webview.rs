@@ -64,12 +64,41 @@ pub struct PlaneWebview {
     /// what `add_child` actually does (a freshly created webview is on
     /// screen), rather than trusting this field's struct-default.
     showing: Mutex<bool>,
+    /// The label of the window the webview is a child of. A child webview
+    /// cannot be reparented, so this is whichever window the last [`open`]
+    /// attached it to: `main` for the page on the main window's rail, a
+    /// `win-<n>` label when the page is open in a popped-out window.
+    /// [`sync_visibility`] reads the page and the minimized state of *this*
+    /// window, not of `main`.
+    owner: Mutex<String>,
 }
 
 impl PlaneWebview {
     pub fn is_open(&self) -> bool {
         *self.open.lock().unwrap_or_else(|e| e.into_inner())
     }
+
+    /// The window the webview is attached to. `main` until an [`open`] says otherwise.
+    pub fn owner(&self) -> String {
+        let owner = self.owner.lock().unwrap_or_else(|e| e.into_inner());
+        if owner.is_empty() {
+            MAIN_WINDOW.to_string()
+        } else {
+            owner.clone()
+        }
+    }
+}
+
+/// The window a caller that names none is talking about: the one the webview always lived on
+/// before popped-out windows could host the page.
+pub const MAIN_WINDOW: &str = "main";
+
+/// Whether an existing webview has to be torn down and rebuilt to serve `requested`. A child
+/// webview belongs to one window for life, so a page opened in a different window than the one
+/// holding the webview has to move it by closing it and building a new one. Pure so the decision
+/// is tested without a real window.
+pub fn needs_reattach(open: bool, owner: &str, requested: &str) -> bool {
+    open && owner != requested
 }
 
 /// Same-origin check against [`PLANE_HOST`]. Every entry point below runs a
@@ -88,18 +117,23 @@ pub fn is_plane_url(url: &Url) -> bool {
 /// Design rule 1 (§0/§11): this and [`navigate`] only ever move the webview
 /// or point it at a new URL — neither calls `eval` or an init script against
 /// a Plane page.
-pub fn open(app: &AppHandle, bounds: Bounds, url: Url) -> Result<(), String> {
+pub fn open(app: &AppHandle, window_label: &str, bounds: Bounds, url: Url) -> Result<(), String> {
     if !is_plane_url(&url) {
         return Err(format!("refusing to open a non-Plane URL: {url}"));
     }
     let state = app.state::<PlaneWebview>();
+    if needs_reattach(state.is_open(), &state.owner(), window_label) {
+        // Opened from a different window than the one holding the webview. The signed-in session
+        // lives in the data directory, so closing and rebuilding loses nothing.
+        close(app)?;
+    }
     if state.is_open() {
         return navigate(app, url);
     }
 
     let window = app
-        .get_webview_window("main")
-        .ok_or_else(|| "no main window to attach the Plane webview to".to_string())?;
+        .get_webview_window(window_label)
+        .ok_or_else(|| format!("no window `{window_label}` to attach the Plane webview to"))?;
     let data_dir = app
         .path()
         .app_data_dir()
@@ -134,6 +168,7 @@ pub fn open(app: &AppHandle, bounds: Bounds, url: Url) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
 
     *state.open.lock().unwrap_or_else(|e| e.into_inner()) = true;
+    *state.owner.lock().unwrap_or_else(|e| e.into_inner()) = window_label.to_string();
     // `add_child` leaves the webview on screen, matching `showing`'s own
     // default meaning — see its doc comment.
     *state.showing.lock().unwrap_or_else(|e| e.into_inner()) = true;
@@ -241,8 +276,8 @@ fn active_page<'a>(snapshot: &'a ShellSnapshot, label: &str) -> Option<&'a str> 
 /// at a different rect), and the window is not minimized. Pure — no lookup,
 /// no I/O — so this is exercised without a real window, webview or
 /// `ShellState`. See [`sync_visibility`] for where its two inputs come from.
-pub fn should_show(main_active_page: Option<&str>, minimized: bool) -> bool {
-    !minimized && main_active_page == Some(PLANE_PAGE_ID)
+pub fn should_show(owner_active_page: Option<&str>, minimized: bool) -> bool {
+    !minimized && owner_active_page == Some(PLANE_PAGE_ID)
 }
 
 /// Recompute whether the webview should be visible, and `hide`/`show` it if
@@ -260,11 +295,12 @@ pub fn sync_visibility(app: &AppHandle, snapshot: &ShellSnapshot) {
     if !state.is_open() {
         return;
     }
+    let owner = state.owner();
     let minimized = app
-        .get_webview_window("main")
+        .get_webview_window(&owner)
         .and_then(|w| w.is_minimized().ok())
         .unwrap_or(false);
-    let visible = should_show(active_page(snapshot, "main"), minimized);
+    let visible = should_show(active_page(snapshot, &owner), minimized);
 
     let mut showing = state.showing.lock().unwrap_or_else(|e| e.into_inner());
     if *showing == visible {
@@ -367,6 +403,33 @@ mod tests {
             terminals: vec![],
         };
         assert_eq!(active_page(&snapshot, "main"), None);
+    }
+
+    #[test]
+    fn a_page_in_a_popped_out_window_is_read_from_that_window_not_main() {
+        let snapshot = ShellSnapshot {
+            windows: vec![
+                window("main", cluster("cluster-1"), None),
+                window("win-2", cluster("cluster-2"), Some("plane")),
+            ],
+            instances: vec![],
+            terminals: vec![],
+        };
+        assert_eq!(active_page(&snapshot, "main"), None);
+        assert_eq!(active_page(&snapshot, "win-2"), Some("plane"));
+        assert!(should_show(active_page(&snapshot, "win-2"), false));
+    }
+
+    #[test]
+    fn opening_from_another_window_reattaches_but_the_same_window_navigates() {
+        assert!(needs_reattach(true, "main", "win-2"));
+        assert!(!needs_reattach(true, "win-2", "win-2"));
+        assert!(!needs_reattach(false, "main", "win-2"));
+    }
+
+    #[test]
+    fn owner_defaults_to_main() {
+        assert_eq!(PlaneWebview::default().owner(), MAIN_WINDOW);
     }
 
     #[test]
