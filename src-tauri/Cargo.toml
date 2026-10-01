@@ -171,7 +171,7 @@ axum = "0.8"
 # Already in the tree under Tauri, named here because this crate spawns onto it
 # directly — `tauri::async_runtime` is this same runtime, which is why the
 # listener does not stand up a second one.
-tokio = { version = "1", features = ["net", "rt"] }
+tokio = { version = "1", features = ["net", "rt", "sync", "time"] }
 tokio-util = "0.7"
 
 # The listener's bearer token. Loopback and an unguessable port already put this

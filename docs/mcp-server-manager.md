@@ -394,17 +394,58 @@ restore bookkeeping).
 | `layout` | Windows, clusters, nested panes and their tabs (app, instance, title, file where known), the active tab per pane, and each cluster's terminals. |
 | `project` | Per cluster: the project folder, the folder files are read from (a worktree's, when set), the environment kind and branch, and which cluster is active. |
 
-The layout comes from the same `ShellState` snapshot `shell_snapshot` reads. Focus
-is the one fact the backend does not hold, so `focus` asks each window's page, the
-way the `context` tool does, and an app can say what it shows by defining
+The layout comes from the same `ShellState` snapshot `shell_snapshot` reads. Where
+focus is comes from `mcp::FocusState`, which each window's shell keeps current (see
+below); `focus` still asks each window's page for what only the DOM knows at that
+moment, the way the `context` tool does. An app can say what it shows by defining
 `window.__kaavaContext`; Canvas reports its open canvas and selection.
 
-**Follow-up, not built:** push notification. The idea is a
-`kaava://workspace/focus` resource with `notifications/resources/updated` when focus
-moves. The listener advertises tools only (no resources, no subscriptions), and focus
-changes originate in the webview, which has no channel to the backend. It needs a
-frontend focus reporter, a `resources` capability on `Bridge`, and a per-session
-subscription list. Until then an agent polls `focus`, which is cheap.
+#### Focus push: `kaava://workspace/focus`
+
+Polling `focus` works, but an agent that wants to know what "this" means when the
+person speaks is better told when focus moves. The server publishes one resource,
+`kaava://workspace/focus` (`application/json`), and declares the `resources`
+capability with `subscribe: true`. Reading it returns exactly what the `focus` tool
+returns, so there is one answer however it is asked for. It lists, reads and
+subscribes only while the server is switched on, like its tools.
+
+**How an agent subscribes.** The notification carries only the uri; the agent
+re-reads to see the new state.
+
+1. `resources/list` shows `kaava://workspace/focus`.
+2. `resources/subscribe` with `{"uri": "kaava://workspace/focus"}` (clients on
+   protocol versions before 2026-07-28), or `subscriptions/listen` with
+   `resourceSubscriptions: ["kaava://workspace/focus"]` (2026-07-28). Both are
+   supported; the second holds one request open and carries the notifications on it.
+3. On `notifications/resources/updated` for that uri, call `resources/read` (or the
+   `focus` tool).
+4. `resources/unsubscribe` to stop. A session that simply goes away is dropped the
+   next time a notification is queued for it.
+
+Whether the agent surfaces `resources/updated` to the model is up to the harness; a
+client that ignores it loses nothing, since `focus` still works.
+
+**What counts as a change.** Each window reports `{window, windowHasFocus, focusIn,
+instance, pane, cluster}`, and the backend compares it with that window's last
+report. Only a difference notifies: moving focus to another pane, instance or
+cluster, or the window gaining or losing OS focus. With several canvases open, the
+instance and pane say which one.
+
+**How it is built.**
+
+- *Reporter* (`src/shell/focusReport.ts`, `useFocusReporter.ts`): listens to
+  `focusin`/`focusout`, window `focus`/`blur`, and changes of active pane or
+  cluster; waits 150 ms for the events to stop; sends only if the reading differs
+  from the last one sent.
+- *State* (`src-tauri/src/mcp/focus.rs`): `FocusState` holds the latest report per
+  window; the `report_focus` command updates it and says whether it was news. A
+  closed window's report is dropped. A 50 ms coalescer folds the blur-then-focus
+  pair of switching windows into one notification.
+- *Subscriptions* (`src-tauri/src/mcp/subscriptions.rs`): a `(server, uri, session)`
+  table whose entries hold a queue; the session's task forwards each queued uri down
+  its event stream with `notify_resource_updated`. `Bridge` in `listener.rs`
+  implements `resources/list|read|subscribe|unsubscribe` and, for the newer
+  protocol, `subscriptions/listen`.
 
 ### `canvas`
 

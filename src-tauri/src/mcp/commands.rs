@@ -5,7 +5,7 @@
 //! separating the two means a change to what MCP exposes is one file rather than
 //! two that have to agree.
 
-use super::{config, listener::Endpoint, Registry, ServerInfo};
+use super::{config, listener::Endpoint, FocusReport, FocusState, Registry, ServerInfo};
 use serde::Serialize;
 use tauri::{AppHandle, State};
 
@@ -105,6 +105,19 @@ pub fn mcp_set_server_enabled(
 #[tauri::command]
 pub fn mcp_sync_config(app: AppHandle) {
     config::sync_all(&app);
+}
+
+/// A window's shell reporting where focus is.
+///
+/// The webview debounces and only sends on a real change, but this checks again:
+/// two windows can report the same state, and a repeat must not wake an agent.
+/// `FocusState::update` is that check; the notification goes out only when it
+/// says the report was news.
+#[tauri::command]
+pub fn report_focus(app: AppHandle, state: State<'_, FocusState>, report: FocusReport) {
+    if state.update(report) {
+        super::notify_focus_changed(&app);
+    }
 }
 
 #[cfg(test)]

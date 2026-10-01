@@ -80,6 +80,39 @@ pub fn read_only_hint(server: &str, tool: &str) -> Option<bool> {
     };
     Some(read)
 }
+/// One readable, subscribable thing a server publishes, beside its tools.
+///
+/// Resources are for state an agent wants to be *told* about rather than ask
+/// for. Declared per server by [`resources`] and read by [`read_resource`],
+/// matched on the server id the way [`instructions`] is, so a server with none
+/// has nothing to add.
+pub struct McpResource {
+    pub uri: &'static str,
+    pub name: &'static str,
+    pub description: &'static str,
+    pub mime_type: &'static str,
+}
+
+/// The resources a server publishes; empty for every server but `workspace`.
+pub fn resources(id: &str) -> &'static [McpResource] {
+    match id {
+        "workspace" => workspace::RESOURCES,
+        _ => &[],
+    }
+}
+
+/// Read one resource. `None` when the server has no resource at that uri.
+pub fn read_resource(
+    app: &tauri::AppHandle,
+    id: &str,
+    uri: &str,
+) -> Option<Result<serde_json::Value, kaava_rpc::RpcError>> {
+    match id {
+        "workspace" => workspace::read_resource(app, uri),
+        _ => None,
+    }
+}
+
 /// What an MCP client is told at `initialize`, before it reads a single tool.
 ///
 /// Said here because an agent once went looking for OpenKaava in a browser —

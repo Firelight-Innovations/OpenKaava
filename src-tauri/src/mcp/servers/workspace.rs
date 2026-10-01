@@ -10,13 +10,16 @@
 //! restore bookkeeping, agent-finished dots) is internal to the shell.
 //!
 //! The layout comes from the same [`ShellSnapshot`] `shell_snapshot` reads. Focus
-//! is the one fact the backend does not hold, since it lives in the DOM, so
-//! `focus` asks each window's page the way the `context` tool does and falls
-//! back to the layout's active tabs when no page answers.
+//! lives in the DOM, so each window's shell reports it to [`FocusState`]; `focus`
+//! takes who has focus from there, asks each window's page for what only the DOM
+//! knows (the way the `context` tool does), and falls back to the layout's active
+//! tabs when nothing has reported. The `kaava://workspace/focus` resource serves
+//! the same answer and is what a subscribed agent is told has changed.
 
+use super::McpResource;
 use crate::devtools;
 use crate::layout::PaneNode;
-use crate::mcp::{McpServer, McpTool, ToolAnswer};
+use crate::mcp::{FocusReport, FocusState, McpServer, McpTool, ToolAnswer};
 use crate::shell_state::{Cluster, ShellSnapshot, ShellState, SurfaceKind, WindowPlacement};
 use kaava_rpc::{RpcError, INTERNAL_ERROR, METHOD_NOT_FOUND};
 use serde::Deserialize;
@@ -24,7 +27,7 @@ use serde_json::{json, Value};
 use tauri::{AppHandle, Manager};
 
 pub static SERVER: McpServer = McpServer {
-    id: "workspace",
+    id: ID,
     name: "Workspace",
     description: "Where the person is working: which pane has focus, how the panes are \
                   arranged, and which project each cluster is on. Read-only.",
@@ -32,6 +35,30 @@ pub static SERVER: McpServer = McpServer {
     call,
     dev_only: false,
 };
+
+/// The server id, which the subscription table and the notifier key on.
+pub const ID: &str = "workspace";
+
+/// What an agent subscribes to in order to hear that focus moved. Reading it
+/// returns exactly what the `focus` tool does.
+pub const FOCUS_URI: &str = "kaava://workspace/focus";
+
+pub static RESOURCES: &[McpResource] = &[McpResource {
+    uri: FOCUS_URI,
+    name: "focus",
+    description: "Where the person is working right now: the same answer as the `focus` tool.                   Subscribe to be sent notifications/resources/updated when it changes, then                   read it again.",
+    mime_type: "application/json",
+}];
+
+/// Answer a `resources/read`. `None` for a uri this server does not publish.
+pub fn read_resource(app: &AppHandle, uri: &str) -> Option<Result<Value, RpcError>> {
+    (uri == FOCUS_URI).then(|| Ok(focus_answer(app)))
+}
+
+fn focus_answer(app: &AppHandle) -> Value {
+    let snapshot = app.state::<ShellState>().snapshot();
+    focus_view(&snapshot, &page_contexts(app))
+}
 
 static TOOLS: &[McpTool] = &TOOL_LIST;
 
@@ -68,7 +95,7 @@ fn no_params() -> Value {
 fn call(app: &AppHandle, tool: &str, _params: Option<Value>) -> Result<ToolAnswer, RpcError> {
     let snapshot = app.state::<ShellState>().snapshot();
     match tool {
-        "focus" => Ok(focus_view(&snapshot, &page_contexts(app)).into()),
+        "focus" => Ok(focus_answer(app).into()),
         "layout" => Ok(layout_view(&snapshot, &page_contexts(app)).into()),
         "project" => Ok(project_view(&snapshot).into()),
         other => Err(RpcError::new(
@@ -112,6 +139,27 @@ pub(super) struct PageContext {
     pub apps: Vec<PageApp>,
     pub selected_text: String,
     pub selected_text_length: usize,
+    /// The pane the shell treats as active, from the shell's focus report.
+    pub pane: Option<String>,
+    /// The cluster on screen, from the shell's focus report.
+    pub cluster: Option<String>,
+}
+
+impl PageContext {
+    /// Make the stored report the answer for who has focus.
+    ///
+    /// The page's own probe still supplies what only the DOM knows at this
+    /// moment (the apps' reports, the selection); *where focus is* comes from
+    /// the report, so the `focus` tool and the resource a subscriber re-reads
+    /// can never disagree with the notification that sent them.
+    fn with_report(mut self, report: &FocusReport) -> Self {
+        self.window_has_focus = report.window_has_focus;
+        self.focus_in = report.focus_in.clone();
+        self.instance = report.instance.clone();
+        self.pane = report.pane.clone();
+        self.cluster = report.cluster.clone();
+        self
+    }
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -141,7 +189,11 @@ impl Pages {
 
 /// Ask every window. A window that will not answer costs its own entry and
 /// nothing else, so one blocked webview does not blind the rest.
+///
+/// Where focus is comes from [`FocusState`]. A window whose probe fails still
+/// answers from its report, with no app detail, rather than going missing.
 pub(super) fn page_contexts(app: &AppHandle) -> Pages {
+    let reports = app.state::<FocusState>();
     let mut pages = Pages::default();
     for label in devtools::window_labels(app) {
         let asked = super::ui::evaluate(
@@ -154,9 +206,14 @@ pub(super) fn page_contexts(app: &AppHandle) -> Pages {
             serde_json::from_str::<PageContext>(&text)
                 .map_err(|e| RpcError::new(INTERNAL_ERROR, format!("the page's answer: {e}")))
         });
-        match parsed {
-            Ok(page) => pages.windows.push((label, page)),
-            Err(e) => pages.errors.push(format!("{label}: {}", e.message)),
+        let report = reports.report_for(&label);
+        match (parsed, report) {
+            (Ok(page), Some(report)) => pages.windows.push((label, page.with_report(&report))),
+            (Ok(page), None) => pages.windows.push((label, page)),
+            (Err(_), Some(report)) => pages
+                .windows
+                .push((label, PageContext::default().with_report(&report))),
+            (Err(e), None) => pages.errors.push(format!("{label}: {}", e.message)),
         }
     }
     pages
@@ -458,6 +515,7 @@ pub(super) fn focus_view(snapshot: &ShellSnapshot, pages: &Pages) -> Value {
         "focusSource": if from_page.is_some() { "page" } else { "layout" },
         "windowHasFocus": from_page.is_some(),
         "focusIn": focus_in,
+        "activePane": from_page.and_then(|(_, p)| p.pane.clone()),
         "focused": focused,
         "activeCluster": active,
         "visible": visible,
@@ -582,6 +640,8 @@ pub(super) mod fixtures {
             ],
             selected_text: String::new(),
             selected_text_length: 0,
+            pane: None,
+            cluster: None,
         }
     }
 
@@ -685,6 +745,54 @@ mod tests {
         assert_eq!(clusters[0]["active"], true);
         assert_eq!(clusters[1]["root"], "C:/work/other");
         assert_eq!(clusters[1]["active"], false);
+    }
+
+    fn report(window_has_focus: bool, instance: Option<&str>, focus_in: &str) -> FocusReport {
+        FocusReport {
+            window: "main".into(),
+            window_has_focus,
+            focus_in: focus_in.into(),
+            instance: instance.map(str::to_owned),
+            pane: Some("pane-2".into()),
+            cluster: Some("cluster-1".into()),
+        }
+    }
+
+    /// One source of truth: whatever the page probe saw, the stored report wins
+    /// for who has focus, and the probe's app detail survives.
+    #[test]
+    fn a_report_overrides_the_probe_for_where_focus_is() {
+        let probed = page(false, None, "nothing");
+        let merged = probed.with_report(&report(true, Some("canvas-2"), "app"));
+        let out = focus_view(&snapshot(), &pages(merged));
+
+        assert_eq!(out["focusIn"], "app");
+        assert_eq!(out["focused"]["instance"], "canvas-2");
+        assert_eq!(out["activePane"], "pane-2");
+        assert_eq!(
+            out["focused"]["file"], "levels/two",
+            "the app report from the probe is kept"
+        );
+    }
+
+    /// A window whose probe fails still answers from its report.
+    #[test]
+    fn a_report_alone_is_enough_to_answer_focus() {
+        let only = PageContext::default().with_report(&report(true, Some("term-1"), "terminal"));
+        let out = focus_view(&snapshot(), &pages(only));
+
+        assert_eq!(out["focusSource"], "page");
+        assert_eq!(out["focusIn"], "terminal");
+        assert_eq!(out["focused"]["app"], "terminal");
+    }
+
+    #[test]
+    fn the_focus_resource_is_published_and_readable_as_json() {
+        assert_eq!(RESOURCES.len(), 1);
+        assert_eq!(RESOURCES[0].uri, FOCUS_URI);
+        assert_eq!(RESOURCES[0].mime_type, "application/json");
+        assert_eq!(super::super::resources(ID).len(), 1);
+        assert!(super::super::resources("echo").is_empty());
     }
 
     #[test]

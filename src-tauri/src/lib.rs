@@ -202,6 +202,11 @@ pub fn run() {
         // stays empty on a machine that would not give us a socket — which
         // costs the MCP feature and nothing else.
         .manage(mcp::Endpoint::default())
+        // Where the person's focus is, as each window's shell last reported it,
+        // and which MCP sessions have subscribed to hear when it moves. See
+        // `mcp::focus` and `mcp::subscriptions`.
+        .manage(mcp::FocusState::default())
+        .manage(mcp::Subscriptions::default())
         // What can be changed, and what has been. Empty until `settings::seed`
         // registers the shell's groups and every app's — a registry with no
         // groups answers every read with "no such setting", which is why the
@@ -292,6 +297,11 @@ pub fn run() {
                 // wreckage as the layout to restore. See `ShellState::closing`.
                 WindowEvent::Destroyed => {
                     windows::reclaim(app, &app.state::<ShellState>(), window.label());
+                    // A closed window cannot hold focus; drop its last report so
+                    // the focus resource does not keep pointing at it.
+                    if app.state::<mcp::FocusState>().forget(window.label()) {
+                        mcp::notify_focus_changed(app);
+                    }
                 }
                 _ => {}
             }
@@ -545,6 +555,7 @@ pub fn run() {
             mcp::commands::mcp_catalog,
             mcp::commands::mcp_set_server_enabled,
             mcp::commands::mcp_sync_config,
+            mcp::commands::report_focus,
             settings::commands::settings_snapshot,
             settings::commands::settings_set,
             settings::commands::settings_reset,
