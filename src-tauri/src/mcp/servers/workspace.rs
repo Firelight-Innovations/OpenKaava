@@ -1,10 +1,7 @@
 //! Where the person is working, for any agent connected to OpenKaava.
+//! An agent in a terminal pane cannot see the window around it; these three tools say which
+//! pane has focus, how panes are arranged, and which project each cluster is on.
 //!
-//! An agent in a terminal pane cannot see the window around it. "This
-//! diagram", "the file I have open", "the other canvas" all point at something
-//! it has no way to resolve, so it asks, or guesses. These three tools answer
-//! that: which pane has focus, how the panes are arranged, and which project
-//! each cluster is on.
 //!
 //! **Read-only, and on in every build.** Unlike [`super::debug`] there is no
 //! developer gate, because nothing here reaches past what the person can see on
@@ -16,11 +13,6 @@
 //! is the one fact the backend does not hold, since it lives in the DOM, so
 //! `focus` asks each window's page the way the `context` tool does and falls
 //! back to the layout's active tabs when no page answers.
-//!
-//! Change notification (`notifications/resources/updated` on
-//! `kaava://workspace/focus`) is a follow-up: the listener only advertises
-//! tools today, and focus changes originate in the webview, which has no channel
-//! to the backend. See `docs/mcp-server-manager.md`.
 
 use crate::devtools;
 use crate::layout::PaneNode;
