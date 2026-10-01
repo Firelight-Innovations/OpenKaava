@@ -17,7 +17,7 @@
 //! `targets`) or a frame-relative box (markup's `bounds`), plus text, author,
 //! status and a resolution note. It does not depend on either.
 
-use super::{bad, file_for, now_rfc3339, relative, DIR};
+use super::{bad, file_for, now_rfc3339, plain_file_for, relative, DIR};
 use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -67,9 +67,10 @@ pub struct Comment {
     pub resolution: Option<Resolution>,
 }
 
-/// `canvas/<id>.comments/`.
+/// `canvas/<id>.comments/`, named after the id even when the canvas file is
+/// `<id>.canvas.json`, so renaming the file does not orphan its comments.
 pub fn dir_for(root: &Path, canvas: &str) -> PathBuf {
-    let file = file_for(root, canvas);
+    let file = plain_file_for(root, canvas);
     let mut name = file.file_stem().unwrap_or_default().to_os_string();
     name.push(".comments");
     file.with_file_name(name)
