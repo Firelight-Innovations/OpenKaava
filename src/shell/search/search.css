@@ -50,16 +50,44 @@
   flex: none;
 }
 
+/* A claimed field is a real input, so it keeps its width at every size: an icon
+   cannot be typed into. The `:focus-within` edge is the field's own. */
+.search-slot--claimed {
+  cursor: text;
+}
+
+.search-slot--claimed:focus-within {
+  border-color: var(--accent);
+  outline: 3px solid var(--accent-subtle);
+  outline-offset: 0;
+}
+
+.search-slot__input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--txt-primary);
+  font: inherit;
+  outline: none;
+}
+
+.search-slot__input::placeholder {
+  color: var(--txt-placeholder);
+}
+
 @container titlebar (max-width: 1239px) {
-  .search-slot {
+  .search-slot:not(.search-slot--claimed) {
     flex: none;
     width: var(--control-md);
     padding: 0;
     justify-content: center;
   }
 
-  .search-slot .search-slot__label,
-  .search-slot .search-slot__hint {
+  .search-slot:not(.search-slot--claimed) .search-slot__label,
+  .search-slot:not(.search-slot--claimed) .search-slot__hint {
     display: none;
   }
 }

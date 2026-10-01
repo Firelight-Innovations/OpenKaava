@@ -19,6 +19,9 @@ import {
   type Session,
 } from "./protocol.js";
 import { KaavaErrorCode, KaavaRpcError } from "./errors.js";
+import { createSearchClaimer, type SearchClaim, type SearchHandle } from "./search.js";
+
+export type { SearchClaim, SearchHandle };
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -116,6 +119,11 @@ export interface Client {
   subscribe(topic: string, cb: (value: unknown, from: string) => void): () => void;
   session(): Promise<Session>;
   host(): Host;
+  /**
+   * Claim the shell's title bar search field for this frame; see `search.ts`.
+   * Refused under a standalone host, where the frame should draw its own input.
+   */
+  claimSearch(claim: SearchClaim): SearchHandle;
 }
 
 interface PendingRequest {
@@ -295,7 +303,13 @@ export function createClient(opts: ClientOptions): Client {
     // `kaava/drag` is refused with them, for `kaava/open`'s reason: a drag out of
     // a frame aims at somewhere else in the window, a standalone app has no
     // elsewhere, and the user is mid-gesture while it is answered.
-    if (method === "kaava/open" || method === "kaava/publish" || method === "kaava/drag") {
+    if (
+      method === "kaava/open" ||
+      method === "kaava/publish" ||
+      method === "kaava/drag" ||
+      method === "kaava/search-claim" ||
+      method === "kaava/search-release"
+    ) {
       throw new KaavaRpcError(
         KaavaErrorCode.MethodNotFound,
         `${method}: there is no shell here — this frontend is its own window`,
@@ -358,6 +372,11 @@ export function createClient(opts: ClientOptions): Client {
       unlisten?.();
     };
   }
+
+  const claimSearch = createSearchClaimer({
+    invoke: (method, params) => invokeAny(method, params),
+    on: onEvent,
+  });
 
   return {
     invoke: invokeAny,
@@ -436,5 +455,7 @@ export function createClient(opts: ClientOptions): Client {
     host(): Host {
       return host;
     },
+
+    claimSearch,
   };
 }
