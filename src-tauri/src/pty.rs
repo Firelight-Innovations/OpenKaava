@@ -738,7 +738,31 @@ fn candidate(program: &str) -> Candidate {
 /// error text — but a value read from the environment or a file can carry one
 /// in, and this is the one place both directions are made safe.
 fn strip_nul(text: &str) -> String {
-    text.replace('\u{0}', "")
+    let mut out = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '\u{0}' => {}
+            // portable-pty prints its program through `{:?}` of an `OsString`,
+            // and Debug spells a NUL as the two characters `\0` rather than
+            // emitting one. That is the NUL a reader kept seeing after
+            // `pwsh.exe`: it was never U+0000, so filtering U+0000 alone left
+            // it in place. Debug escapes a real backslash as `\\`, so a lone
+            // `\0` is always a NUL and `\\0` is a path separator and a zero.
+            '\\' => match chars.peek() {
+                Some('0') => {
+                    chars.next();
+                }
+                Some('\\') => {
+                    chars.next();
+                    out.push_str("\\\\");
+                }
+                _ => out.push('\\'),
+            },
+            other => out.push(other),
+        }
+    }
+    out
 }
 
 /// The directory a shell is started in, made fit for `CreateProcessW`.
@@ -971,6 +995,25 @@ mod tests {
         );
     }
     use std::time::Duration;
+
+    #[test]
+    fn strip_nul_removes_a_real_nul_and_a_debug_escaped_one() {
+        // What portable-pty's CreateProcessW failure prints for a program whose
+        // wide buffer carries its terminator.
+        let wide: std::ffi::OsString = "pwsh.exe\0".into();
+        let message = format!("CreateProcessW `{wide:?}` failed");
+        assert!(message.contains("\\0"));
+        assert_eq!(strip_nul(&message), "CreateProcessW `\"pwsh.exe\"` failed");
+        assert_eq!(strip_nul("pwsh.exe\u{0}"), "pwsh.exe");
+    }
+
+    #[test]
+    fn strip_nul_keeps_an_escaped_backslash_before_a_zero() {
+        // Debug of `C:\0dir` is `C:\\0dir`; the zero there is a directory name.
+        let path: std::ffi::OsString = "C:\\0dir".into();
+        let debug = format!("{path:?}");
+        assert_eq!(strip_nul(&debug), debug);
+    }
 
     /// The test that would have caught issue #36. A file on `PATH` that begins
     /// `MZ` and is not a program image is what Windows answers with a modal

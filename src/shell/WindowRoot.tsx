@@ -44,7 +44,7 @@ import ToolWindow, { type ToolWindowHandle } from "./toolwindow/ToolWindow";
 // The two the tool window draws through a render prop rather than importing;
 // see its `renderPanes`/`renderTerminal` props for why.
 import PaneTree from "./panes/PaneTree";
-import XTermView from "./terminal/XTermView";
+import PaneTerminal from "./terminal/PaneTerminal";
 import { splitDirOnOpen } from "./panes/splitOnOpen";
 import { toggleMaximize } from "./panes/paneMaximize";
 import BottomPanel from "./panel/BottomPanel";
@@ -2104,13 +2104,10 @@ export default function WindowRoot({
                 />
               )}
               renderTerminal={(instanceId) => (
-                <XTermView
+                <PaneTerminal
                   id={instanceId}
                   transport={terminalTransport}
                   onTitle={(title) => terminalControl.setTitle(instanceId, title)}
-                  // A terminal in a pane takes a file drop exactly as one in
-                  // the band does. Nothing about the gesture depends on where
-                  // the emulator is drawn, so nothing here does either.
                   fileDropActive={instanceId === fileDrag.targetId}
                 />
               )}

@@ -125,6 +125,20 @@ describe("NewClusterDialog", () => {
     expect(screen.getByRole("radiogroup", { name: "Environment" })).toBeTruthy();
   });
 
+  it("draws a pane thumbnail for every starting layout", () => {
+    listClusterEnvironments.mockResolvedValue([]);
+    renderDialog();
+
+    fireEvent.click(screen.getByRole("radio", { name: /Browse main/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    const icons = document.querySelectorAll(".new-cluster__layout-icon");
+    expect(icons.length).toBe(4);
+    icons.forEach((icon) => {
+      expect(icon.querySelectorAll(".new-cluster__layout-pane").length).toBeGreaterThanOrEqual(3);
+    });
+  });
+
   it("submits a new-local-worktree choice with the typed name and base main", async () => {
     listClusterEnvironments.mockResolvedValue([]);
     createClusterWithEnvironment.mockResolvedValue("cluster-1");
