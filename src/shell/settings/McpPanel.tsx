@@ -18,18 +18,45 @@
  * The rule that follows: a second section wanting a panel is a signal the schema
  * is missing a control, not that panels are how sections are built.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import McpTools from "./McpTools";
 import ToggleControl from "./controls/ToggleControl";
 import {
+  mcpCatalog,
   mcpStatus,
   onSettingsChanged,
   setMcpServerEnabled,
+  type McpCatalog,
   type McpServerInfo,
   type McpStatus,
 } from "../../bindings";
 
 export default function McpPanel() {
   const [status, setStatus] = useState<McpStatus | null>(null);
+  // Read on first expansion rather than at mount: building it scans the app
+  // sources for method names, and most visits never open a row.
+  const [catalog, setCatalog] = useState<McpCatalog | null>(null);
+  const [wantCatalog, setWantCatalog] = useState(false);
+
+  useEffect(() => {
+    if (!wantCatalog) return;
+    let live = true;
+    const load = () =>
+      mcpCatalog()
+        .then((next) => {
+          if (live) setCatalog(next);
+        })
+        .catch((err: unknown) => console.error("kaava: could not read the MCP tools:", err));
+    void load();
+    // Developer mode changes which servers exist, so the tools follow it.
+    const subscription = onSettingsChanged(() => void load());
+    return () => {
+      live = false;
+      void subscription.then((unlisten) => {
+        unlisten();
+      });
+    };
+  }, [wantCatalog]);
 
   // Fetched here rather than by `useSettings`, which is the settings *store* and
   // holds none of this: the servers live in the MCP registry and the port
@@ -104,7 +131,13 @@ export default function McpPanel() {
         </p>
       ) : (
         status.servers.map((server) => (
-          <ServerRow key={server.id} server={server} onToggle={toggle} />
+          <ServerRow
+            key={server.id}
+            server={server}
+            onToggle={toggle}
+            catalog={catalog}
+            onOpen={() => setWantCatalog(true)}
+          />
         ))
       )}
     </section>
@@ -140,43 +173,92 @@ function Endpoint({ port }: { port: number | null }) {
 function ServerRow({
   server,
   onToggle,
+  catalog,
+  onOpen,
 }: {
   server: McpServerInfo;
   onToggle: (server: McpServerInfo, next: boolean) => void;
+  catalog: McpCatalog | null;
+  onOpen: () => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const panelId = useId();
+  const tools = catalog?.servers.find((s) => s.id === server.id)?.tools;
+  const flip = () => {
+    if (!open) onOpen();
+    setOpen(!open);
+  };
+
   return (
-    <div className="setting">
-      <div className="setting__label">
-        <span className="setting__title">
-          {server.name}
-          {/* Marked rather than merely present. Reaching this row took a
+    <div className="settings-mcp__server">
+      <div className="setting">
+        <div className="setting__label">
+          <span className="setting__title">
+            {server.name}
+            {/* Marked rather than merely present. Reaching this row took a
               deliberate switch in another section, and by the time somebody has
               scrolled to it that is easy to have forgotten — so the row says
               what it is at the moment the switch beside it is being considered. */}
-          {server.devOnly && (
-            <span className="k-badge k-badge--idle">
-              <span className="k-badge__dot" />
-              developer
-            </span>
-          )}
-        </span>
-        <span className="setting__description">{server.description}</span>
-        {/* The config key and the route, in mono because both are things you
+            {server.devOnly && (
+              <span className="k-badge k-badge--idle">
+                <span className="k-badge__dot" />
+                developer
+              </span>
+            )}
+          </span>
+          <span className="setting__description">{server.description}</span>
+          {/* The config key and the route, in mono because both are things you
             retype into somewhere else — a project's `.mcp.json` and a browser
             respectively. The tool count rides along on the same line: it is the
             one number that says whether switching this on is worth anything. */}
-        <span className="settings-mcp__meta">
-          {server.configKey} · {server.path} · {toolCount(server.toolCount)}
-        </span>
+          <span className="settings-mcp__meta">
+            {server.configKey} · {server.path} ·{" "}
+            <button
+              type="button"
+              className="settings-mcp__expand"
+              aria-expanded={open}
+              aria-controls={panelId}
+              aria-label={`${open ? "Hide" : "Show"} the tools of ${server.name}`}
+              onClick={flip}
+            >
+              <svg
+                className="mcp-tools__chevron"
+                data-open={open || undefined}
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+                aria-hidden="true"
+              >
+                <path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+              {toolCount(server.toolCount)}
+            </button>
+          </span>
+        </div>
+        <div className="setting__control">
+          <ToggleControl
+            on={server.enabled}
+            label={server.name}
+            onChange={(next) => onToggle(server, next)}
+          />
+        </div>
+        <div className="setting__reset-slot" />
       </div>
-      <div className="setting__control">
-        <ToggleControl
-          on={server.enabled}
-          label={server.name}
-          onChange={(next) => onToggle(server, next)}
-        />
-      </div>
-      <div className="setting__reset-slot" />
+      {open && (
+        <div className="settings-mcp__tools" id={panelId}>
+          {tools === undefined ? (
+            <p className="settings-mcp__empty" role="status">
+              Reading the tools&hellip;
+            </p>
+          ) : (
+            <McpTools
+              serverName={server.name}
+              tools={tools}
+              appMethods={server.id === "agent" ? (catalog?.appMethods ?? []) : []}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

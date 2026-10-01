@@ -22,6 +22,7 @@ mod design;
 mod files;
 mod godot_viewer;
 mod home;
+pub mod method_catalog;
 // `pub(crate)`, for the same reason `apps::projects` is: `lib.rs` needs
 // `apps::home_create::CreateManager` to `.manage()` it. `home::call` reaches
 // straight into this module's `start`/`status` for its two `home/create-

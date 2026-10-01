@@ -2039,6 +2039,47 @@ export function mcpStatus(): Promise<McpStatus> {
   return invoke<McpStatus>("mcp_status");
 }
 
+/** Mirrors `mcp::registry::PanelTool`: one tool spelled as `tools/list` spells it. */
+export interface McpToolInfo {
+  name: string;
+  description: string;
+  /** A JSON Schema object, exactly what the server advertises as `inputSchema`. */
+  inputSchema: unknown;
+  /** Present only where the backend knows. Absent means "not claimed", not "writes". */
+  annotations?: { readOnlyHint: boolean };
+}
+
+/** Mirrors `mcp::registry::ServerCatalog`. */
+export interface McpServerTools {
+  id: string;
+  tools: McpToolInfo[];
+}
+
+/** Mirrors `apps::method_catalog::AppMethod`. There is no parameter schema: apps declare none. */
+export interface McpAppMethod {
+  method: string;
+  write: boolean;
+  doc: string | null;
+  blocked: string | null;
+}
+
+/** Mirrors `apps::method_catalog::AppMethodGroup`. */
+export interface McpAppMethodGroup {
+  app: string;
+  name: string;
+  methods: McpAppMethod[];
+}
+
+/** Mirrors `mcp::commands::McpCatalog`. */
+export interface McpCatalog {
+  servers: McpServerTools[];
+  appMethods: McpAppMethodGroup[];
+}
+
+export function mcpCatalog(): Promise<McpCatalog> {
+  return invoke<McpCatalog>("mcp_catalog");
+}
+
 /**
  * Switch a server on or off, resolving with whether anything changed.
  *

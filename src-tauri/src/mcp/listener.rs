@@ -337,13 +337,19 @@ fn uncacheable(result: ListToolsResult) -> ListToolsResult {
 /// keeps the fallback below unreachable; an empty object is used rather than a
 /// panic so that one malformed schema costs one tool its arguments instead of
 /// taking the process down.
-fn into_rmcp_tool(descriptor: ToolDescriptor) -> Tool {
+pub(super) fn into_rmcp_tool(descriptor: ToolDescriptor) -> Tool {
     let schema = match descriptor.schema {
         serde_json::Value::Object(map) => map,
         _ => serde_json::Map::new(),
     };
 
-    Tool::new(descriptor.name, descriptor.description, Arc::new(schema))
+    let tool = Tool::new(descriptor.name, descriptor.description, Arc::new(schema));
+    // Only a hint we actually know. `None` leaves the field off the wire rather
+    // than claiming a tool is read-only or not.
+    match descriptor.read_only {
+        Some(read_only) => tool.annotate(rmcp::model::ToolAnnotations::new().read_only(read_only)),
+        None => tool,
+    }
 }
 
 #[cfg(test)]
@@ -409,6 +415,7 @@ mod tests {
             name: "ping".to_string(),
             description: "Answers.".to_string(),
             schema: serde_json::json!({ "type": "object", "properties": {} }),
+            read_only: None,
         };
 
         let tool = into_rmcp_tool(descriptor);
@@ -452,6 +459,7 @@ mod tests {
             name: "broken".to_string(),
             description: "Has a schema that is not an object.".to_string(),
             schema: serde_json::json!([1, 2, 3]),
+            read_only: None,
         };
 
         let tool = into_rmcp_tool(descriptor);
