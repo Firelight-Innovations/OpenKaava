@@ -12,6 +12,8 @@ import { Excalidraw, MainMenu } from "@excalidraw/excalidraw";
 import About from "./About";
 import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import LinkBadges, { type BadgeSink } from "./LinkBadges";
+import HighlightOverlay, { type HighlightSink } from "./HighlightOverlay";
+import type { Highlight, HighlightView } from "./commentHighlight";
 import {
   CANVAS_LINK,
   childOf,
@@ -39,7 +41,11 @@ export interface EditorProps {
   titleOf: (canvasId: string) => string;
   /** A `kaava://diagram/<id>` link (an index row) was followed. */
   onOpenDiagram?: (id: string) => void;
+  /** Outlines to draw over what a comment is about; an overlay, never scene elements. */
+  highlights?: Highlight[];
 }
+
+const NO_HIGHLIGHTS: Highlight[] = [];
 
 const DIAGRAM_LINK = "kaava://diagram/";
 
@@ -69,6 +75,7 @@ export default function Editor({
   onOpenChild,
   titleOf,
   onOpenDiagram,
+  highlights = NO_HIGHLIGHTS,
 }: EditorProps) {
   const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
   const [about, setAbout] = useState(false);
@@ -95,6 +102,7 @@ export default function Editor({
   // Held in refs so the props handed to Excalidraw below stay the same objects
   // across renders, whatever the parent passes.
   const badgeSink = useRef<BadgeSink | null>(null);
+  const highlightSink = useRef<HighlightSink | null>(null);
   const titleOfRef = useRef(titleOf);
   titleOfRef.current = titleOf;
   const onChangeRef = useRef(onChange);
@@ -141,6 +149,13 @@ export default function Editor({
           titleOfRef.current,
         ),
       );
+      highlightSink.current?.(elements as readonly SceneElement[], {
+        scrollX: appState.scrollX,
+        scrollY: appState.scrollY,
+        zoom: { value: appState.zoom.value },
+        width: appState.width,
+        height: appState.height,
+      } satisfies HighlightView);
       onChangeRef.current(
         elements as readonly SceneElement[],
         appState as unknown as Record<string, unknown>,
@@ -190,6 +205,7 @@ export default function Editor({
         </MainMenu>
       </Excalidraw>
       <LinkBadges sinkRef={badgeSink} onOpen={(id) => onOpenChildRef.current(id)} />
+      <HighlightOverlay highlights={highlights} sinkRef={highlightSink} />
       {about && <About onClose={() => setAbout(false)} />}
     </div>
   );
