@@ -472,7 +472,9 @@ function validateWorktreeName(name: string, taken: string[]): string | null {
   if (trimmed.endsWith(".") || trimmed.endsWith(".lock")) {
     return "A worktree name cannot end with a dot, or with “.lock”.";
   }
-  if (taken.includes(trimmed)) return `"${trimmed}" is already in use.`;
+  if (taken.includes(trimmed)) {
+    return `A worktree named "${trimmed}" already exists. Reopen it under Existing environment, or choose another name.`;
+  }
   return null;
 }
 
