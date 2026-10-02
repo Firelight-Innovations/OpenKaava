@@ -50,6 +50,39 @@
   --button-hover-bg: var(--bg-layer-2-hover);
   --button-active-bg: var(--accent-subtle);
   --button-active-border: var(--accent);
+
+  /* Excalidraw's own purple, grey and blue, which the block above leaves in
+     place: the "brand" pair behind the selected tool, the slider, the text
+     selection, links, the select highlight, keybinding hints and the greys
+     its buttons and borders reach for. Each is pointed at the token the other
+     apps use for the same job. */
+  --color-brand-hover: var(--accent-hover);
+  --color-brand-active: var(--accent-hover);
+  --color-selection: var(--accent);
+  --color-slider-track: var(--bg-layer-3);
+  --color-slider-thumb: var(--accent);
+  --select-highlight-color: var(--accent);
+  --link-color: var(--txt-accent);
+  --icon-fill-color: var(--txt-secondary);
+  --keybinding-color: var(--txt-placeholder);
+  --input-hover-bg-color: var(--bg-layer-1-hover);
+  --input-label-color: var(--txt-secondary);
+  --default-border-color: var(--border-subtle-1);
+  --list-border-color: var(--border-subtle);
+  --color-border-outline: var(--border-strong);
+  --color-border-outline-variant: var(--border-subtle-1);
+  --color-gray-30: var(--border-strong);
+  --color-disabled: var(--txt-disabled);
+  --color-muted: var(--border-strong);
+  --button-gray-1: var(--bg-layer-1-selected);
+  --button-gray-2: var(--bg-layer-2-hover);
+  --button-gray-3: var(--bg-layer-3);
+  --scrollbar-thumb: var(--border-strong);
+  --scrollbar-thumb-hover: var(--border-strong-1);
+
+  /* The control ladder: a tool is `control-md` like a button elsewhere. */
+  --default-button-size: var(--control-md);
+  --lg-button-size: var(--control-lg);
 }
 
 /* The Help dialog's header is links to Excalidraw's blog, docs and GitHub. */
