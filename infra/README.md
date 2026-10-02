@@ -18,6 +18,8 @@ session record shapes, and authentication.
 | `images/agent` | The agent VM image (Packer). `provision.sh` defines everything installed on it |
 | `terraform/worker` | Agent VMs, one per entry in `agents`, all booting the agent image |
 | `terraform/gpu` | Spot L4 render node, stopped at rest, with a queue agent and a 15-minute idle stop |
+| `terraform/plane` | Plane CE on `plane-vm`, its secrets, the `kaava.internal` zone and the `kaavaWaker` role |
+| `terraform/kaava-api` | The app's gateway to Plane on Cloud Run ([`services/kaava-api`](../services/kaava-api/README.md)), its image repository and service account |
 
 ## Where configuration lives
 
@@ -29,6 +31,7 @@ session record shapes, and authentication.
 | Hindsight version | `hindsight_version` in `terraform/hindsight` (upstream tag, pinned) | same |
 | Claude Code on agent VMs | `/etc/claude-code/managed-settings.json` (hooks) and `managed-mcp.json` (Hindsight) | image and boot |
 | Secrets | Secret Manager only | `gcloud secrets versions add` |
+| kaava-api code and settings | `services/kaava-api/` (image tag is a hash of its source) and `terraform/kaava-api` | `deploy.sh apply kaava-api` |
 
 ## Services and how they are reached
 
@@ -42,6 +45,11 @@ session record shapes, and authentication.
   after 30 idle minutes.
 - **GPU node.** Agents call `kaava-render model.glb gs://…/screenshots/`. That queues a job and
   starts the node, and the node stops itself when the queue has been empty for 15 minutes.
+- **kaava-api.** The OpenKaava desktop app's door to Plane: a Cloud Run service behind IAM that
+  proxies Plane's REST API, wakes plane-vm and lists the project records. It reaches plane-vm over
+  Direct VPC egress and holds the Plane token itself. The app sends a Google ID token from its own
+  sign-in (or from `gcloud`). Plane's web UI in the app still uses the IAP tunnel. See
+  [services/kaava-api](../services/kaava-api/README.md).
 
 ## Standing it up
 
@@ -71,7 +79,7 @@ at 0; request it under IAM & Admin > Quotas.
 | Stopped VM disks: 100 GB agent, 100 GB GPU node | 16 |
 | Cloud NAT, when a VM is running | 1 per running day |
 | Storage, Artifact Registry cache, agent image | 1 to 3 |
-| Cloud Run, Vertex AI, Discovery Engine | usage only, no charge when idle |
+| Cloud Run (Hindsight, kaava-api), Vertex AI, Discovery Engine | usage only, no charge when idle |
 
 Running costs: e2-standard-8 about 0.27 USD an hour; the Spot L4 node about 0.25 to 0.35 USD an
 hour.
