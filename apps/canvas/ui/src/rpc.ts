@@ -43,6 +43,14 @@ export const createCanvas = (id: string, title: string, parent?: string) =>
 export const writeCanvas = (id: string, scene: SceneFile, baseMtime: number | null) =>
   invoke<{ id: string; mtime: number | null }>("canvas/write", { id, scene, baseMtime });
 
+/**
+ * Open the shell's Settings on the Canvas section, where the detail level and the
+ * drawing style agents use are chosen. A host method rather than a `canvas/*`
+ * one: the screen belongs to the shell, and an app has no other way to ask for it.
+ */
+export const openCanvasSettings = () =>
+  invoke<{ section: string | null }>("shell/open-settings", { section: "canvas" });
+
 // --- review comments and reference images -------------------------------------
 // Every one of these names its actor; the sidebar is always a person.
 

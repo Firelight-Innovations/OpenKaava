@@ -38,6 +38,13 @@ pub trait Webview {
         self.run(op, payload, None)
             .map_err(|e| name_canvas(e, canvas))
     }
+
+    /// A setting's current text, or `None` where there is no registry to ask (the
+    /// tests). A canvas with no override draws with the settings, so this is how
+    /// the methods reach them without holding an app handle of their own.
+    fn setting(&self, _key: &str) -> Option<String> {
+        None
+    }
 }
 
 /// `err`, when it is "no canvas is open", rewritten to name the canvas that was asked for.
@@ -91,6 +98,10 @@ pub struct Live<'a> {
 }
 
 impl Webview for Live<'_> {
+    fn setting(&self, key: &str) -> Option<String> {
+        Some(crate::settings::text(self.app, key)).filter(|s| !s.is_empty())
+    }
+
     fn run(&self, op: &str, payload: &Value, canvas: Option<&str>) -> Result<Value, RpcError> {
         self.evaluate(op, payload, canvas, true)
     }

@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { cachedStack, loadStack, onLibraryOpen, type StackSnapshot } from "./bindings";
+import {
+  cachedStack,
+  loadStack,
+  onLibraryOpen,
+  onSettingsOpen,
+  type StackSnapshot,
+} from "./bindings";
 import WindowRoot from "./shell/WindowRoot";
 import SettingsScreen from "./shell/settings/SettingsScreen";
 import { useSettings } from "./shell/settings/useSettings";
 import { readCopilotAction } from "./shell/settings/copilotSetting";
 import { useAppearance } from "./shell/settings/appearance";
-import { useSettingsSurface } from "./shell/settingsSurface";
+import { openSettings, useSettingsSurface } from "./shell/settingsSurface";
 import LibraryScreen from "./shell/library/LibraryScreen";
 import { openLibrary, useLibrarySurface } from "./shell/librarySurface";
 import ShortcutsScreen from "./shell/keys/ShortcutsScreen";
@@ -78,6 +84,15 @@ export default function App() {
   // iframe on another origin, so it calls its own Rust half and Rust emits.
   useEffect(() => {
     const stop = onLibraryOpen(openLibrary);
+    return () => {
+      void stop.then((off) => off());
+    };
+  }, []);
+
+  // An app's *Drawing style* button and the like: the app cannot reach this
+  // component, so it calls Rust, which emits, and the section arrives here.
+  useEffect(() => {
+    const stop = onSettingsOpen((section) => openSettings(section ?? undefined));
     return () => {
       void stop.then((off) => off());
     };

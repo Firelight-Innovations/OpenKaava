@@ -317,6 +317,16 @@ export function onLibraryOpen(cb: () => void): Promise<UnlistenFn> {
   return listen(LIBRARY_OPEN_EVENT, () => cb());
 }
 
+/** Mirrors `apps::OPEN_SETTINGS_EVENT`. */
+export const OPEN_SETTINGS_EVENT = "settings:open";
+
+/** An app asking the shell to open Settings, on `section` when it names one. */
+export function onSettingsOpen(cb: (section: string | null) => void): Promise<UnlistenFn> {
+  return listen<{ section: string | null }>(OPEN_SETTINGS_EVENT, (event) =>
+    cb(event.payload?.section ?? null),
+  );
+}
+
 /** Every install's progress, from every window. Filter on `key`. */
 export function onInstallProgress(cb: (p: InstallProgress) => void): Promise<UnlistenFn> {
   return listen<InstallProgress>(INSTALL_PROGRESS_EVENT, (event) => cb(event.payload));
