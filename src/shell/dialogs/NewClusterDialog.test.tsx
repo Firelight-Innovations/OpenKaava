@@ -70,7 +70,12 @@ describe("NewClusterDialog", () => {
 
     fireEvent.change(await screen.findByLabelText("Name"), { target: { value: "my-feature" } });
     await waitFor(() => {
-      expect(screen.getByText('"my-feature" is already in use.')).toBeTruthy();
+      // The E2E run met the old "is already in use" and could not tell why or what to do.
+      expect(
+        screen.getByText(
+          'A worktree named "my-feature" already exists. Reopen it under Existing environment, or choose another name.',
+        ),
+      ).toBeTruthy();
     });
     expect(screen.getByRole("button", { name: "Next" })).toHaveProperty("disabled", true);
   });
