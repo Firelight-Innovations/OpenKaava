@@ -124,6 +124,42 @@ export function describeFailure(error: unknown, subject: string): FailureNote {
         ),
         detail,
       };
+    case "gatewayUnconfigured":
+      return {
+        kind,
+        heading: "The Plane gateway is not set up",
+        steps: (
+          <p className="app__note">
+            {subject} reaches Plane through the kaava-api gateway. Paste its URL into Settings,
+            Cloud, Gateway URL. Until it is deployed, see <code>services/kaava-api/README.md</code>.
+          </p>
+        ),
+        detail,
+      };
+    case "gatewayUnreachable":
+      return {
+        kind,
+        heading: "The Plane gateway did not answer",
+        steps: (
+          <p className="app__note">
+            Check the network connection and the Gateway URL in Settings, Cloud, then retry. The
+            gateway may take a few seconds to start after a quiet spell.
+          </p>
+        ),
+        detail,
+      };
+    case "planeAsleep":
+      return {
+        kind,
+        heading: "Plane is not running",
+        steps: (
+          <p className="app__note">
+            plane-vm is stopped or still starting. Pick the project again to start Plane, then
+            retry.
+          </p>
+        ),
+        detail,
+      };
     default:
       return { kind, heading: `Could not read ${subject}`, steps: null, detail };
   }

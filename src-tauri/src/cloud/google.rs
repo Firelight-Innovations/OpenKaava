@@ -225,8 +225,6 @@ impl GoogleAuth {
         }
     }
 
-    // Its first caller outside the tests is the gateway client (cloud::gateway).
-    #[cfg_attr(not(test), allow(dead_code))]
     pub fn is_signed_in(&self, client_id: &str) -> bool {
         self.stored(client_id).is_some()
     }
@@ -320,8 +318,6 @@ impl GoogleAuth {
     /// An ID token for `kaava-api`, refreshed when it is near expiry.
     /// `Ok(None)` means nobody is signed in with this client, which the
     /// caller may answer with the `gcloud` fallback.
-    // Its first caller outside the tests is the gateway client (cloud::gateway).
-    #[cfg_attr(not(test), allow(dead_code))]
     pub fn id_token(&self, client: &Client) -> Result<Option<String>> {
         {
             let slot = self.id_token.lock().unwrap_or_else(|e| e.into_inner());
