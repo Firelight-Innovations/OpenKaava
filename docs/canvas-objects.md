@@ -44,15 +44,15 @@ All take `actor: "agent"`. Canvas ids are the id or a `canvas/x.json` path.
 | Method | Params | Result |
 |---|---|---|
 | `canvas/types` | | `{builtin, custom, path, problem}` |
-| `canvas/frames` | `canvas?`, `recursive?` | `{scope, canvases, frames, legacyCards, unreadable, problems}`; no `canvas` means the whole project |
-| `canvas/search-frames` | `query?`, `type?`, `canvas?`, `limit?` | `{query, type, total, matches}`, each a frame plus `score`, `matchedIn` |
+| `canvas/frames` | `canvas?`, `recursive?` | `{scope, canvases, frames, legacyCards, unreadable, problems}`; no `canvas` means the whole project. `recursive` follows both frame links and canvases whose `kaava.parent` names this one. A named canvas that does not exist is an error (`data.kind: "missing"`) |
+| `canvas/search-frames` | `query?`, `type?`, `canvas?`, `limit?` | `{query, type, total, matches}`, each a frame plus `score`, `matchedIn`; a missing named canvas is an error |
 | `canvas/frame` | `canvas`, `frame` (element id, diagram id, or exact title; the element id is the primary key) | the frame, its `typeDef`, `contents`, `canvasPath`, `image` |
 | `canvas/frame-image` | `canvas`, `frame`, `scale?`, `maxDimension?`, `theme?` | `{path, relative, width, height, scale, bytes, frame, hint}` |
 | `canvas/tree` | | `{roots, cycles, problems}`; a node is `{id, title, path, parent, frames, error, children}` |
 | `canvas/save-type` | `type: {id?, name, color, icon, description?, fields}` | the saved type |
 | `canvas/delete-type` | `id` | |
-| `canvas/set-frame` | `canvas`, `frame` (id or name), `name?`, `type?`, `values?` (field key to value, `null` unsets) | `{frame, mtime}` |
-| `canvas/create-frame` | `canvas`, `name`, `type?`, `values?`, and one of `elementIds` (wrap those shapes) or `bbox {x,y,width,height}` (empty frame) | `{frame, adopted, mtime}` |
+| `canvas/set-frame` | `canvas`, `frame` (id or name), `name?`, `type?`, `values?` (field key to value, `null` unsets) | `{frame, mtime}`. The child canvas is not a value: set it with `canvas/link-frame` |
+| `canvas/create-frame` | `canvas`, `name`, `type?`, `values?`, `move?`, and one of `elementIds` (wrap those shapes) or `bbox {x,y,width,height}` (empty frame) | `{frame, adopted, movedFrom, mtime}`. Elements already in another frame are refused (`data.kind: "in-another-frame"`, naming the frame) unless `move` is true |
 | `canvas/set-parent` | `id`, `parent` (a canvas id or `null`; required, omitting it is an error) | `{id, parent, unlinkedFrames}`; frames in the old parent that linked to this canvas are unlinked |
 | `canvas/link-frame` | `canvas`, `frame`, `child` (an existing canvas or `null` to unlink), `reparent?` | Sets the frame's `child` and `link` and the child's `parent`, and releases any previous child. Refused for a missing child, a loop (itself or an ancestor), or a child already nested elsewhere unless `reparent` is true |
 

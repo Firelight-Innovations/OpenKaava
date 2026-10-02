@@ -479,7 +479,8 @@ static KEYS_SETTINGS: &[Setting] = &[
     Setting {
         key: keys::KEYS_COPILOT_ACTION,
         title: "Copilot key",
-        description: "What the Copilot key on a Windows keyboard does while OpenKaava has focus.                       Windows sends it as Win+Shift+F23.",
+        description: "What the Copilot key on a Windows keyboard does while OpenKaava has focus. \
+                      Windows sends it as Win+Shift+F23.",
         control: Control::Select {
             default: "palette",
             options: COPILOT_ACTIONS,
@@ -489,7 +490,9 @@ static KEYS_SETTINGS: &[Setting] = &[
     Setting {
         key: keys::KEYS_COPILOT_GLOBAL,
         title: "Claim the Copilot key everywhere",
-        description: "Installs a keyboard hook so the key reaches OpenKaava even when it is not                       the focused window, and stops Windows launching Copilot. Off, only a focused                       OpenKaava sees the key, and Windows may still act on it first.",
+        description: "Installs a keyboard hook so the key reaches OpenKaava even when it is not \
+                      the focused window, and stops Windows launching Copilot. Off, only a focused \
+                      OpenKaava sees the key, and Windows may still act on it first.",
         control: Control::Toggle { default: false },
         applies: Applies::Now,
     },

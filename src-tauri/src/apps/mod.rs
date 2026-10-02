@@ -238,7 +238,8 @@ const REGISTRY: &[Registered] = &[
     Registered {
         id: "canvas",
         name: "Canvas",
-        description: "Draw the game's design on an Excalidraw canvas, stored in the environment's                       checkout as canvas/<name>.json.",
+        description: "Draw the game's design on an Excalidraw canvas, stored in the environment's \
+                      checkout as canvas/<name>.json.",
         // Not `design`: that id is the feature-gated Design Mode app, which
         // points at a running page. This is the design canvas of
         // `docs/KAAVA-UX-REWORK.md` §5, and it is always compiled in.

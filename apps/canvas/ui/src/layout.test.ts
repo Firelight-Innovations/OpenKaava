@@ -219,6 +219,128 @@ describe("addShapes", () => {
   });
 });
 
+// The Minecraft E2E run asked for `brown`, `#8B5A2B` and a filled line, got ink and
+// no fill, and was told nothing.
+describe("addShapes: colours, filled lines and what replace removes", () => {
+  const f = { id: "blocks", title: "Blocks" };
+
+  it("warns on a color or fill that is not a palette name, and draws it in ink", () => {
+    const r = addShapes(
+      [],
+      {
+        frame: f,
+        shapes: [
+          { id: "wood", type: "rectangle", color: "brown" as never, fill: "#8B5A2B" as never },
+          { id: "leaf", type: "rectangle", color: "green", fill: "green" },
+        ],
+      },
+      mono,
+    );
+    const wood = byId(r.elements, "blocks:wood");
+    expect(wood.strokeColor).toBe("#1e1e1e");
+    expect(
+      r.warnings.some((w) => w.startsWith("`wood`: color `brown` is not a palette name")),
+    ).toBe(true);
+    expect(
+      r.warnings.some((w) => w.startsWith("`wood`: fill `#8B5A2B` is not a palette name")),
+    ).toBe(true);
+    expect(r.warnings.some((w) => w.startsWith("`leaf`"))).toBe(false);
+  });
+
+  it("fills a line of 3 or more points as a closed polygon", () => {
+    const r = addShapes(
+      [],
+      {
+        frame: f,
+        shapes: [
+          {
+            id: "roof",
+            type: "line",
+            points: [
+              [0, 100],
+              [50, 0],
+              [100, 100],
+            ],
+            color: "red",
+            fill: "red",
+          },
+        ],
+      },
+      mono,
+    );
+    const roof = byId(r.elements, "blocks:roof");
+    expect(roof.backgroundColor).toBe("#ffc9c9");
+    const pts = roof.points as [number, number][];
+    expect(pts.length).toBe(4);
+    expect(pts[pts.length - 1]).toEqual(pts[0]);
+    expect(r.warnings).toEqual([]);
+  });
+
+  it("keeps an already closed polygon as given", () => {
+    const r = addShapes(
+      [],
+      {
+        frame: f,
+        shapes: [
+          {
+            id: "sq",
+            type: "line",
+            points: [
+              [0, 0],
+              [10, 0],
+              [10, 10],
+              [0, 0],
+            ],
+            fill: "solid",
+          },
+        ],
+      },
+      mono,
+    );
+    expect((byId(r.elements, "blocks:sq").points as unknown[]).length).toBe(4);
+  });
+
+  it("warns that fill on an arrow or a two-point line does nothing", () => {
+    const r = addShapes(
+      [],
+      {
+        frame: f,
+        shapes: [
+          { id: "a", type: "arrow", from: [0, 0], to: [100, 0], fill: "blue" },
+          { id: "l", type: "line", from: [0, 50], to: [100, 50], fill: "blue" },
+        ],
+      },
+      mono,
+    );
+    expect(byId(r.elements, "blocks:a").backgroundColor).toBe("transparent");
+    expect(r.warnings.filter((w) => /fill applies only to a line/.test(w)).length).toBe(2);
+  });
+
+  it("says when replace removes elements it did not draw", () => {
+    const first = addShapes([], states, mono, { gravity: { value: 24 } });
+    const handDrawn = {
+      id: "sketch-1",
+      type: "rectangle",
+      x: 10,
+      y: 200,
+      width: 20,
+      height: 20,
+      frameId: first.frame.elementId,
+    } as Element;
+    const again = addShapes([...first.elements, handDrawn], states, mono, {
+      gravity: { value: 24 },
+    });
+    expect(again.elements.some((e) => e.id === "sketch-1")).toBe(false);
+    expect(
+      again.warnings.some((w) =>
+        w.startsWith("replace removed 1 element(s) this diagram did not draw: `sketch-1`"),
+      ),
+    ).toBe(true);
+    const plain = addShapes(first.elements, states, mono, { gravity: { value: 24 } });
+    expect(plain.warnings.some((w) => w.startsWith("replace removed"))).toBe(false);
+  });
+});
+
 describe("the index", () => {
   it("links every named diagram, top level first", () => {
     const a = addShapes(

@@ -35,6 +35,10 @@ mod types;
 /// The frontend work only a webview can do.
 mod webview;
 
+/// The icon names and field kinds a type may use, for the MCP schema that lists
+/// them up front.
+pub use types::{ICONS as TYPE_ICONS, KINDS as FIELD_KINDS};
+
 use crate::apps::CallContext;
 use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde::Deserialize;

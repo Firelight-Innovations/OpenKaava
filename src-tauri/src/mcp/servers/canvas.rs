@@ -40,6 +40,8 @@ pub static SERVER: McpServer = McpServer {
 /// What a tool needs resolved before its method can run.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Scope {
+    /// Answered from the manuals compiled in; no app, no pane, no project.
+    Guide,
     /// Answered from the open panes alone; no app method.
     Open,
     /// Needs a cluster (its project holds the canvas files) but no canvas.
@@ -77,6 +79,15 @@ macro_rules! canvas_tools {
 }
 
 canvas_tools! {
+    "drawing_guide" => "", Scope::Guide, true,
+    "The manual, as text: how to draw a design (`topic: \"drawing\"`, the default: palette, \
+     sizes, spacing, every add_shapes option, viewing and comments) or how frames, types and \
+     nested canvases work (`topic: \"frames\"`). Read it before your first add_shapes.",
+    || obj(
+        json!({ "topic": { "type": "string", "enum": ["drawing", "frames"], "description": "Default drawing." } }),
+        &[],
+    );
+
     "list_canvases" => "", Scope::Open, true,
     "Every Canvas open in OpenKaava right now: pane instance id, the canvas it shows, its \
      cluster, whether it is focused or visible. Also says which canvas a tool would act on if \
@@ -160,21 +171,30 @@ canvas_tools! {
     );
 
     "add_shapes" => "canvas/add-shapes", Scope::Canvas, false,
-    "Draw or rebuild a diagram from a spec. Shapes are laid out and measured in the app, then \
-     written with a checkpoint first; the answer maps your ids to element ids and lists \
-     warnings. Needs a Canvas pane open. Other options (`index`, `replace`, `nudge`) pass \
-     through; docs/canvas-drawing-guide.md is the manual.",
+    "Draw a diagram: one frame and the shapes in it. `frame.id` and `frame.title` are \
+     required; every shape lands inside that frame (there are no loose shapes). Shapes are \
+     laid out and measured in the app, then written with a checkpoint first; the answer maps \
+     your shape ids to element ids (`<frame.id>:<shape id>`; the frame itself is \
+     `frame:<frame.id>`, and get_frame/set_frame take either) and lists warnings. Calling it \
+     again with the same `frame.id` rebuilds that frame: its old contents are replaced \
+     (`replace: false` adds instead), while its type, values and child link are kept. Colours \
+     are palette names only; anything else is drawn in `ink` and warned about. Needs a Canvas \
+     pane open. Call drawing_guide for the full manual.",
     || canvas_schema_open(
         json!({
-            "frame": { "type": "object", "description": "The diagram frame: `id`, `title`, `summary`, `level`, `parent`, `covers`." },
+            "frame": frame_spec_schema(),
             "shapes": {
                 "type": "array",
-                "description": "Shapes to draw, each with an `id` and a `type` of rectangle, ellipse, diamond, text, arrow, line or image.",
-                "items": { "type": "object" },
+                "description": "Shapes to draw. Coordinates are relative to the frame's drawing \
+                                area: the frame keeps 40 px of padding and puts its title (and \
+                                summary) on top, so `{x: 0, y: 0}` is just below the header, about \
+                                110 px under the frame's top edge. Negative coordinates land on \
+                                the header and are warned about. Boxes grow to fit their labels.",
+                "items": shape_spec_schema(),
             },
-            "index": { "type": "boolean", "description": "Build the index frame listing every diagram instead." },
-            "replace": { "type": "boolean", "description": "Rebuild the frame (default true)." },
-            "nudge": { "type": "boolean", "description": "Move overlapping text clear (default true)." },
+            "index": { "type": "boolean", "description": "Build the index frame listing every diagram instead; no `frame` or `shapes` needed." },
+            "replace": { "type": "boolean", "description": "Rebuild the frame from these shapes, dropping what was in it (default true). False adds to it." },
+            "nudge": { "type": "boolean", "description": "Move overlapping text clear (default true); false only warns." },
         }),
         &[],
     );
@@ -183,7 +203,7 @@ canvas_tools! {
     "Turn Mermaid source into shapes in a diagram frame, checkpointed. Needs a Canvas pane open.",
     || canvas_schema_open(
         json!({
-            "frame": { "type": "object", "description": "The diagram frame: `id`, `title`, `summary`, `level`, `parent`, `covers`." },
+            "frame": frame_spec_schema(),
             "source": { "type": "string", "description": "Mermaid text, e.g. `stateDiagram-v2 ...`." },
         }),
         &["source"],
@@ -312,7 +332,7 @@ canvas_tools! {
     "One frame in full: its type and values, the type's schema, and every element inside it. \
      Pair it with frame_image to see it. `canvas` defaults to the focused canvas.",
     || canvas_schema(
-        json!({ "frame": { "type": "string", "description": "A frame's element id, or its exact name (case-insensitive)." } }),
+        json!({ "frame": { "type": "string", "description": FRAME_HELP } }),
         &["frame"],
     );
 
@@ -322,7 +342,7 @@ canvas_tools! {
      open somewhere. The next render of the same frame overwrites the file.",
     || canvas_schema(
         json!({
-            "frame": { "type": "string", "description": "A frame's element id, or its exact name." },
+            "frame": { "type": "string", "description": FRAME_HELP },
             "scale": { "type": "number", "exclusiveMinimum": 0, "description": "Pixel scale; default fits the max dimension." },
             "maxDimension": { "type": "integer", "minimum": 1, "description": "Widest or tallest side in pixels." },
             "theme": { "type": "string", "enum": ["light", "dark"], "description": "Render in this theme." },
@@ -346,10 +366,25 @@ canvas_tools! {
                 "properties": {
                     "id": { "type": "string", "description": "An existing type id to update; omit to create." },
                     "name": { "type": "string" },
-                    "color": { "type": "string", "description": "A color, e.g. `#7c5cff`." },
-                    "icon": { "type": "string" },
+                    "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$", "description": "`#rrggbb`, e.g. `#7c5cff`." },
+                    "icon": { "type": "string", "enum": crate::apps::canvas::TYPE_ICONS, "description": "One of the icons the Inspector draws." },
                     "description": { "type": "string" },
-                    "fields": { "type": "array", "items": { "type": "object" }, "description": "The typed fields a frame of this type carries." },
+                    "fields": {
+                        "type": "array",
+                        "description": "The typed fields a frame of this type carries.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "key": { "type": "string", "description": "Lowercase slug; the key in set_frame's `values`." },
+                                "label": { "type": "string" },
+                                "kind": { "type": "string", "enum": crate::apps::canvas::FIELD_KINDS },
+                                "options": { "type": "array", "items": { "type": "string" }, "description": "The choices; `enum` fields only, and required for them." },
+                                "default": { "description": "A value of the field's kind." },
+                                "help": { "type": "string" },
+                            },
+                            "required": ["key", "label", "kind"],
+                        },
+                    },
                 },
                 "required": ["name", "color", "icon", "fields"],
             },
@@ -373,10 +408,15 @@ canvas_tools! {
     );
 
     "link_frame" => "canvas/link-frame", Scope::Canvas, false,
-    "Make a frame open an EXISTING canvas as its child (double-click, or the ↳ badge on      the frame), or unlink it with `child: null`. Sets the child's parent too, so      canvas_tree and the breadcrumb agree. Refused for the canvas itself, an ancestor (a      loop), or a canvas already nested elsewhere unless `reparent` is true. `canvas` is the      canvas holding the frame and is required.",
+    "Make a frame open an EXISTING canvas as its child (double-click, or the ↳ badge on \
+     the frame), or unlink it with `child: null`. This is how a frame gets a `childCanvas`: \
+     set_frame cannot, and set_parent only nests canvases. Sets the child's parent too, so \
+     canvas_tree and the breadcrumb agree. Refused for the canvas itself, an ancestor (a \
+     loop), or a canvas already nested elsewhere unless `reparent` is true. `canvas` is the \
+     canvas holding the frame and is required.",
     || canvas_schema(
         json!({
-            "frame": { "type": "string", "description": "A frame's element id, or its exact name." },
+            "frame": { "type": "string", "description": FRAME_HELP },
             "child": { "type": ["string", "null"], "description": "The canvas id to open from the frame, or null to unlink." },
             "reparent": { "type": "boolean", "description": "Move the child here if it is nested under another canvas (default false)." },
         }),
@@ -388,7 +428,7 @@ canvas_tools! {
      focused canvas.",
     || canvas_schema(
         json!({
-            "frame": { "type": "string", "description": "A frame's element id, or its exact name." },
+            "frame": { "type": "string", "description": FRAME_HELP },
             "name": { "type": "string", "description": "A new name." },
             "type": { "type": "string", "description": "A type id from list_types." },
             "values": { "type": "object", "description": "field id -> value, per the type's schema.", "additionalProperties": true },
@@ -397,19 +437,126 @@ canvas_tools! {
     );
 
     "create_frame" => "canvas/create-frame", Scope::Canvas, false,
-    "Group existing elements into a labelled, typed frame (a named object). Give the elements \
-     by `elementIds`, or a `bbox` to take whatever lies inside it. `canvas` defaults to the \
-     focused canvas.",
+    "Make a labelled, typed frame (a named object): either around existing elements given by \
+     `elementIds` (they and their bound labels move into it), or empty at a `bbox` to draw \
+     into. An element belongs to one frame, so elements already inside another frame are \
+     refused, naming that frame; pass `move: true` to take them anyway, which leaves a gap \
+     in the old frame. To draw a new picture, use add_shapes instead. `canvas` defaults to \
+     the focused canvas.",
     || canvas_schema(
         json!({
             "name": { "type": "string", "description": "The frame's name." },
             "type": { "type": "string", "description": "A type id from list_types." },
-            "values": { "type": "object", "description": "field id -> value, per the type's schema.", "additionalProperties": true },
+            "values": { "type": "object", "description": "field id -> value, per the type's schema. A child canvas is not a value: use link_frame.", "additionalProperties": true },
             "elementIds": { "type": "array", "items": { "type": "string" }, "description": "The elements to group." },
-            "bbox": region_schema("Or: group everything inside this scene-coordinate box."),
+            "bbox": region_schema("Or: an empty frame at this scene-coordinate box."),
+            "move": { "type": "boolean", "description": "Take elements out of the frame they are in now. The result's `movedFrom` lists them." },
         }),
         &["name"],
     );
+}
+
+/// How every frame tool names a frame.
+const FRAME_HELP: &str = "The frame: its element id (`frame:board-title`), its diagram id \
+    (`board-title`, as add_shapes was given it) or its exact name, case-insensitive.";
+
+/// The manuals `drawing_guide` serves. Compiled in, so an agent that only has these
+/// tools can read them; the files stay the single source.
+const DRAWING_GUIDE: &str = include_str!("../../../../docs/canvas-drawing-guide.md");
+const FRAMES_GUIDE: &str = include_str!("../../../../docs/canvas-objects.md");
+
+/// The `drawing_guide` answer.
+pub(super) fn guide(args: &Map<String, Value>) -> Result<Value, RpcError> {
+    let (topic, path, text) = match args.get("topic").and_then(Value::as_str) {
+        None | Some("drawing") => ("drawing", "docs/canvas-drawing-guide.md", DRAWING_GUIDE),
+        Some("frames") => ("frames", "docs/canvas-objects.md", FRAMES_GUIDE),
+        Some(other) => {
+            return Err(bad(format!(
+                "no guide on `{other}`; the topics are drawing and frames"
+            )))
+        }
+    };
+    Ok(json!({ "topic": topic, "source": path, "text": text }))
+}
+
+/// The palette names `add_shapes` draws with. Mirrors `PALETTE` in
+/// `apps/canvas/ui/src/draw.ts`; a test holds the two together.
+pub(super) const PALETTE: &[&str] = &[
+    "ink", "muted", "red", "green", "blue", "orange", "violet", "teal",
+];
+
+/// The diagram frame of `add_shapes` and `import_mermaid`.
+fn frame_spec_schema() -> Value {
+    json!({
+        "type": "object",
+        "description": "The diagram frame. Created, or rebuilt when a frame with this id exists.",
+        "properties": {
+            "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                "description": "Required. Lowercase letters, digits and -, e.g. `flap-timing`. Stable: \
+                                comments, links and rebuilds find the frame by it.",
+            },
+            "title": { "type": "string", "description": "Required. The heading drawn at the top of the frame." },
+            "summary": { "type": "string", "description": "One line under the title: what the diagram shows." },
+            "level": { "type": "string", "enum": ["overview", "subsystem", "detail"] },
+            "parent": { "type": "string", "description": "The id of the diagram this one details." },
+            "covers": { "type": "array", "items": { "type": "string" }, "description": "Checklist topics it covers, for coverage." },
+            "x": { "type": "number", "description": "Scene position of the frame's top-left. Default: where it already is, else right of the other frames." },
+            "y": { "type": "number" },
+            "width": { "type": "number", "description": "Fixed size. Default: fit the content. Too small is warned about and clips." },
+            "height": { "type": "number" },
+        },
+        "required": ["id", "title"],
+    })
+}
+
+/// One shape of `add_shapes`. Left open (`additionalProperties`) so the layout's
+/// own checks, which say what is wrong in words, stay the authority.
+fn shape_spec_schema() -> Value {
+    let mut fills: Vec<&str> = PALETTE.to_vec();
+    fills.extend(["solid", "none"]);
+    let head = json!({ "type": "string", "enum": ["arrow", "triangle", "dot", "bar", "none"] });
+    let point =
+        json!({ "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 });
+    let end = json!({ "description": "A shape id in this call, or a point [x, y].", "anyOf": [{ "type": "string" }, point] });
+    json!({
+        "type": "object",
+        "properties": {
+            "id": { "type": "string", "description": "Letters, digits, - and _. Unique in this call." },
+            "type": { "type": "string", "enum": ["rectangle", "ellipse", "diamond", "text", "arrow", "line", "image"] },
+            "x": { "type": "number" }, "y": { "type": "number" },
+            "width": { "type": "number", "description": "Give only when size means something; boxes otherwise fit their label." },
+            "height": { "type": "number" },
+            "label": { "type": "string", "description": "Text inside a shape, or on an arrow. `{{name}}` fills from set_values." },
+            "text": { "type": "string", "description": "A text element's text." },
+            "size": { "type": "string", "enum": ["title", "heading", "body", "small"], "description": "28, 20, 16 or 14 px. Default body (small on arrows)." },
+            "color": { "description": "Stroke and text colour. Default ink.", "type": "string", "enum": PALETTE },
+            "fill": {
+                "type": "string",
+                "enum": fills,
+                "description": "A palette name fills with its light shade, `solid` with the stroke colour, \
+                                `none` leaves it empty. Works on rectangle, ellipse, diamond, and on a \
+                                `line` with 3 or more `points` (closed into a polygon for you).",
+            },
+            "dashed": { "type": "boolean" },
+            "strokeWidth": { "type": "number" },
+            "rounded": { "type": "boolean", "description": "Rectangles are rounded unless false." },
+            "align": { "type": "string", "enum": ["left", "center", "right"], "description": "Text: which edge `x` names." },
+            "valign": { "type": "string", "enum": ["top", "middle", "bottom"], "description": "Text: which edge `y` names." },
+            "maxWidth": { "type": "number", "description": "Text: wrap to this width." },
+            "from": end.clone(),
+            "to": end,
+            "points": { "type": "array", "items": point, "description": "Arrow/line: every point, in drawing-area coordinates." },
+            "curved": { "type": "boolean" },
+            "head": head.clone(),
+            "tail": head,
+            "ref": { "type": "string", "description": "Image: `refs/<file>`, a reference image of this canvas (see refs)." },
+            "fixed": { "type": "boolean", "description": "Never move this text to clear an overlap." },
+            "link": { "type": "string", "description": "Opened on click; `kaava://diagram/<id>` moves to that diagram." },
+        },
+        "required": ["id", "type"],
+    })
 }
 
 fn region_schema(about: &str) -> Value {
@@ -804,7 +951,9 @@ pub(super) fn list_open(all: &[Surface], active: Option<&str>) -> Value {
         "canvases": rows,
         "ifNoCanvasIsNamed": default,
         "note": (unknown > 0).then(|| format!(
-            "{unknown} pane(s) show `canvas: null`: a Canvas pane reports its canvas only while              its cluster is on screen, so one in another cluster cannot be identified here.              Name `canvas` explicitly, or switch to that cluster."
+            "{unknown} pane(s) show `canvas: null`: a Canvas pane reports its canvas only while \
+             its cluster is on screen, so one in another cluster cannot be identified here. \
+             Name `canvas` explicitly, or switch to that cluster."
         )),
     })
 }
@@ -863,7 +1012,9 @@ pub(super) fn require_named_canvas(tool: &str, target: &Target) -> Result<(), Rp
         return Err(RpcError::with_data(
             INVALID_PARAMS,
             format!(
-                "`{tool}` requires `canvas`: it changes how that canvas is nested and never                  defaults to the focused one or to an `instance`'s. Pass the canvas id (see                  list_files)."
+                "`{tool}` requires `canvas`: it changes how that canvas is nested and never \
+                 defaults to the focused one or to an `instance`'s. Pass the canvas id (see \
+                 list_files)."
             ),
             json!({ "kind": "canvas-required", "tool": tool }),
         ));
@@ -873,6 +1024,7 @@ pub(super) fn require_named_canvas(tool: &str, target: &Target) -> Result<(), Rp
 
 fn needs_page(route: &Route, target: &Target) -> bool {
     match route.scope {
+        Scope::Guide => false,
         Scope::Open => true,
         Scope::Canvas => {
             !(target.canvas.is_some() && (target.instance.is_some() || target.cluster.is_some()))
@@ -895,6 +1047,9 @@ fn call(app: &AppHandle, tool: &str, params: Option<Value>) -> Result<ToolAnswer
         None | Some(Value::Null) => Map::new(),
         Some(_) => return Err(bad("arguments must be an object")),
     };
+    if route.scope == Scope::Guide {
+        return Ok(guide(&args)?.into());
+    }
     let target = Target::from_args(&args)?;
     require_named_canvas(tool, &target)?;
 
@@ -908,6 +1063,7 @@ fn call(app: &AppHandle, tool: &str, params: Option<Value>) -> Result<ToolAnswer
     let active = workspace::active_cluster(&snapshot, &pages).map(|(_, cluster)| cluster);
 
     let (resolved, id) = match route.scope {
+        Scope::Guide => return Ok(guide(&args)?.into()),
         Scope::Open => return Ok(list_open(&all, active.as_deref()).into()),
         Scope::Canvas => {
             let r = resolve_canvas(&target, &all, active.as_deref())?;
@@ -1040,7 +1196,10 @@ mod tests {
     /// and anything else (no project, bad params) for one it does.
     #[test]
     fn every_route_names_a_method_the_canvas_app_dispatches() {
-        for route in ROUTES.iter().filter(|r| r.scope != Scope::Open) {
+        for route in ROUTES
+            .iter()
+            .filter(|r| r.scope != Scope::Open && r.scope != Scope::Guide)
+        {
             let context = CallContext {
                 cluster_id: None,
                 project: None,
@@ -1416,6 +1575,118 @@ mod tests {
         assert_eq!(out["ifNoCanvasIsNamed"]["canvas"], "levels/one");
         let none_focused = list_open(&surfaces_with_focus(None), Some("cluster-1"));
         assert!(none_focused["ifNoCanvasIsNamed"]["error"].is_string());
+    }
+
+    fn descriptions(v: &Value, out: &mut Vec<String>) {
+        match v {
+            Value::Object(map) => {
+                if let Some(Value::String(d)) = map.get("description") {
+                    out.push(d.clone());
+                }
+                map.values().for_each(|x| descriptions(x, out));
+            }
+            Value::Array(items) => items.iter().for_each(|x| descriptions(x, out)),
+            _ => {}
+        }
+    }
+
+    /// Regression: `link_frame`'s description, the `list_canvases` note and the
+    /// `canvas-required` error carried runs of spaces where a `\` line continuation had
+    /// been lost, and agents read them that way.
+    #[test]
+    fn no_agent_facing_text_carries_a_run_of_spaces() {
+        let mut texts: Vec<String> = Vec::new();
+        for tool in TOOLS {
+            texts.push(tool.description.to_string());
+            descriptions(&(tool.schema)(), &mut texts);
+        }
+        texts.push(
+            list_open(&surfaces_with_focus(None), Some("cluster-1"))["note"]
+                .as_str()
+                .unwrap()
+                .to_string(),
+        );
+        texts.push(
+            require_named_canvas("set_parent", &Target::default())
+                .unwrap_err()
+                .message,
+        );
+        for text in texts {
+            assert!(!text.contains("  "), "a run of spaces in: {text}");
+        }
+    }
+
+    /// The E2E agent had no way to read the drawing manual through the tools and
+    /// guessed property names; `drawing_guide` serves it.
+    #[test]
+    fn drawing_guide_serves_both_manuals_and_refuses_an_unknown_topic() {
+        let none: Map<String, Value> = Map::new();
+        let drawing = guide(&none).unwrap();
+        assert_eq!(drawing["topic"], "drawing");
+        assert!(drawing["text"].as_str().unwrap().contains("## Palette"));
+        let args: Map<String, Value> =
+            serde_json::from_value(json!({ "topic": "frames" })).unwrap();
+        let frames = guide(&args).unwrap();
+        assert!(frames["text"]
+            .as_str()
+            .unwrap()
+            .contains("canvas/link-frame"));
+        let bad_topic: Map<String, Value> =
+            serde_json::from_value(json!({ "topic": "colour" })).unwrap();
+        assert!(guide(&bad_topic).is_err());
+        let route = ROUTES.iter().find(|r| r.tool == "drawing_guide").unwrap();
+        assert_eq!((route.scope, route.read_only), (Scope::Guide, true));
+    }
+
+    /// The schema's palette is the layout's: a name missing here is refused by a
+    /// validating client, and one only here is drawn in ink.
+    #[test]
+    fn the_add_shapes_palette_matches_the_canvas_app() {
+        let draw = include_str!("../../../../apps/canvas/ui/src/draw.ts");
+        let start = draw.find("export const PALETTE").unwrap();
+        let block = &draw[start..start + draw[start..].find("};").unwrap()];
+        let names: Vec<&str> = block
+            .lines()
+            .filter_map(|l| l.trim().split_once(": {").map(|(name, _)| name))
+            .collect();
+        assert_eq!(names, PALETTE);
+    }
+
+    /// The E2E agent tripped over a required `frame.id` the schema never mentioned,
+    /// found the icons only through an error, and guessed field kinds.
+    #[test]
+    fn add_shapes_and_save_type_schemas_say_what_is_required_and_allowed() {
+        let schema = |name: &str| (TOOLS.iter().find(|t| t.name == name).unwrap().schema)();
+        let add = schema("add_shapes");
+        let frame = &add["properties"]["frame"];
+        assert_eq!(frame["required"], json!(["id", "title"]));
+        assert!(frame["properties"]["x"].is_object());
+        let shape = &add["properties"]["shapes"]["items"];
+        assert_eq!(shape["required"], json!(["id", "type"]));
+        assert_eq!(shape["properties"]["color"]["enum"], json!(PALETTE));
+        assert!(shape["properties"]["fill"]["enum"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("solid")));
+        let mermaid = schema("import_mermaid");
+        assert_eq!(
+            mermaid["properties"]["frame"]["required"],
+            json!(["id", "title"])
+        );
+        let save = schema("save_type");
+        let def = &save["properties"]["type"]["properties"];
+        assert_eq!(def["icon"]["enum"], json!(crate::apps::canvas::TYPE_ICONS));
+        assert_eq!(
+            def["fields"]["items"]["properties"]["kind"]["enum"],
+            json!(crate::apps::canvas::FIELD_KINDS)
+        );
+        for tool in ["get_frame", "frame_image", "set_frame", "link_frame"] {
+            let help = schema(tool)["properties"]["frame"]["description"].clone();
+            assert!(
+                help.as_str().unwrap().contains("diagram id"),
+                "{tool}: {help}"
+            );
+        }
     }
 
     #[test]
