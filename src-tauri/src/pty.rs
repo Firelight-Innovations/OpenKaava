@@ -24,6 +24,7 @@ use crate::sync::MutexExt;
 use portable_pty::{native_pty_system, Child, CommandBuilder, MasterPty, PtySize, SlavePty};
 use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};
+use std::ffi::OsString;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -598,6 +599,10 @@ fn spawn_shell(
         // — which would look like our emulator was broken.
         cmd.env("TERM", "xterm-256color");
 
+        for name in inherited_session_markers(std::env::vars_os().map(|(key, _)| key)) {
+            cmd.env_remove(name);
+        }
+
         // Applied per candidate rather than once, because each candidate here
         // owns a fresh `CommandBuilder` and only one of them is going to spawn.
         // Setting it on the first would leave the shell that actually started
@@ -948,10 +953,103 @@ pub fn busy(sessions: &PtySessions, id: &str) -> Option<Busy> {
         })
 }
 
+/// Environment variables Claude Code sets on a session so that anything it
+/// launches knows it is a child of that session.
+///
+/// A terminal here is the user's own shell, not a child of whatever started
+/// OpenKaava. When an agent launches the app from inside Claude Code, these
+/// leak through the process environment into every pane, and a `claude` run
+/// there reads `CLAUDE_CODE_CHILD_SESSION` as "I am a nested child": it turns
+/// transcript saving off, so the session never appears under `/resume`.
+///
+/// Only identity and transport markers belong here. User configuration such as
+/// `ANTHROPIC_API_KEY` or `CLAUDE_CONFIG_DIR` must keep flowing to the shell.
+/// Names are upper case; matching is case-insensitive because Windows
+/// environment names are.
+const CLAUDE_SESSION_MARKERS: &[&str] = &[
+    "CLAUDECODE",
+    "CLAUDE_CODE_CHILD_SESSION",
+    "CLAUDE_CODE_SESSION_ID",
+    "CLAUDE_CODE_HOST_SESSION_ID",
+    "CLAUDE_CODE_SESSION_ATTENDED",
+    "CLAUDE_CODE_ENTRYPOINT",
+    "CLAUDE_CODE_EXECPATH",
+    "CLAUDE_CODE_MESSAGING_SOCKET",
+    "CLAUDE_CODE_MESSAGING_TOKEN",
+    "CLAUDE_CODE_SDK_HAS_HOST_AUTH_REFRESH",
+    "CLAUDE_CODE_DESKTOP_APP_VERSION",
+    "CLAUDE_CODE_TERMINAL_MCP_TOOLS",
+    "CLAUDE_AGENT_SDK_VERSION",
+    "CLAUDE_PID",
+];
+
+/// Of the given environment variable names, those that are Claude Code session
+/// markers and so must be removed from a shell's environment.
+///
+/// Pure on purpose: it takes names rather than reading the process
+/// environment, so a test can hand it a made-up one. `impl IntoIterator`
+/// accepts any collection of owned `OsString`s; `OsString` rather than
+/// `String` because an environment name is not guaranteed to be valid Unicode.
+fn inherited_session_markers(names: impl IntoIterator<Item = OsString>) -> Vec<OsString> {
+    names
+        .into_iter()
+        .filter(|name| {
+            let upper = name.to_string_lossy().to_ascii_uppercase();
+            CLAUDE_SESSION_MARKERS.contains(&upper.as_str())
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::sync::mpsc;
+
+    fn os(names: &[&str]) -> Vec<OsString> {
+        names.iter().map(OsString::from).collect()
+    }
+
+    #[test]
+    fn session_markers_are_picked_out_of_an_environment() {
+        let found = inherited_session_markers(os(&[
+            "PATH",
+            "CLAUDE_CODE_CHILD_SESSION",
+            "CLAUDECODE",
+            "claude_code_session_id",
+        ]));
+        assert_eq!(
+            found,
+            os(&[
+                "CLAUDE_CODE_CHILD_SESSION",
+                "CLAUDECODE",
+                "claude_code_session_id"
+            ])
+        );
+    }
+
+    #[test]
+    fn user_configuration_is_left_alone() {
+        let found = inherited_session_markers(os(&[
+            "ANTHROPIC_API_KEY",
+            "CLAUDE_CONFIG_DIR",
+            "CLAUDE_CODE_USE_BEDROCK",
+            "HOME",
+        ]));
+        assert!(found.is_empty());
+    }
+
+    #[test]
+    fn a_spawned_shell_does_not_see_the_markers() {
+        let mut cmd = CommandBuilder::new("sh");
+        cmd.env("CLAUDE_CODE_CHILD_SESSION", "1");
+        cmd.env("ANTHROPIC_API_KEY", "keep");
+        let names = cmd.iter_full_env_as_str().map(|(k, _)| OsString::from(k));
+        for name in inherited_session_markers(names.collect::<Vec<_>>()) {
+            cmd.env_remove(name);
+        }
+        assert!(cmd.get_env("CLAUDE_CODE_CHILD_SESSION").is_none());
+        assert!(cmd.get_env("ANTHROPIC_API_KEY").is_some());
+    }
 
     #[test]
     fn emulator_replies_are_not_typing() {

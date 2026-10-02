@@ -19,6 +19,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
+import { withoutSessionMarkers } from "./claude-session-env.mjs";
 
 /**
  * The identifier `pnpm ui:build` compiles this binary under.
@@ -108,7 +109,12 @@ function launch() {
 
   enable();
 
-  const child = spawn(EXE, [], { detached: true, stdio: "ignore" });
+  const child = spawn(EXE, [], {
+    detached: true,
+    stdio: "ignore",
+    // The app is not a child of the Claude Code session that launched it.
+    env: withoutSessionMarkers(process.env),
+  });
   child.unref();
 
   note(`launched ${EXE}`);
