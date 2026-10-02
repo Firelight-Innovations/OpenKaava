@@ -121,6 +121,14 @@
   text-decoration-color: var(--warn);
 }
 
+/* A strike through an emoji reads as a rendering bug, so a missing worktree
+   dims the emoji instead; the warn dot still says why. */
+.clusterstrip__badge[data-missing] .clusterstrip__mono[data-kind="emoji"] {
+  text-decoration: none;
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
 .clusterstrip__add {
   flex: none;
   width: var(--control-md, 28px);
