@@ -217,39 +217,6 @@
    `TitleBar.tsx`'s header for why the product name itself is not part of the
    replacement. */
 
-/* --- actions: search and Review & merge --------------------------------- */
-
-.titlebar__action {
-  appearance: none;
-  flex: none;
-  height: var(--control-md);
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border-subtle-1);
-  border-radius: var(--radius-md);
-  background: transparent;
-  display: flex;
-  align-items: center;
-  gap: var(--space-1-5);
-  color: var(--txt-secondary);
-  font: var(--type-caption);
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.titlebar__action:hover {
-  background: var(--bg-layer-1-hover);
-  color: var(--txt-primary);
-}
-
-.titlebar__action:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.titlebar__action-icon {
-  flex: none;
-}
-
 /* --- window controls ------------------------------------------------------ */
 
 .titlebar__controls {
@@ -293,45 +260,7 @@
 /* --- collapse order --------------------------------------------------------
    Widths are the bar's own (it fills the window). Each step gives up the least
    useful thing first so nothing ever reaches the centred pill, which wins:
-     <1500  the on-disk path
-     <1400  ahead/behind
-     <1320  the environment chip's label (its glyph stays)
      <1240  the search box becomes an icon
      <1180  the six menus become the hamburger (`useNarrowTitlebar`)
-     <900   Review & merge becomes an icon
    Anything still too long ellipsises inside its own cell; the cells are
    clipped or shrink, never overlap the pill. */
-
-@container titlebar (max-width: 1499px) {
-  .envbar__path {
-    display: none;
-  }
-}
-
-@container titlebar (max-width: 1399px) {
-  .envbar__ahead-behind {
-    display: none;
-  }
-}
-
-@container titlebar (max-width: 1319px) {
-  .envbar__kind-label {
-    display: none;
-  }
-
-  .envbar__kind {
-    padding: 0 var(--space-1-5);
-  }
-}
-
-@container titlebar (max-width: 899px) {
-  .titlebar__action-label {
-    display: none;
-  }
-
-  .titlebar__action {
-    width: var(--control-md);
-    padding: 0;
-    justify-content: center;
-  }
-}

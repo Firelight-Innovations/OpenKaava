@@ -50,8 +50,6 @@ import { splitDirOnOpen } from "./panes/splitOnOpen";
 import { toggleMaximize } from "./panes/paneMaximize";
 import BottomPanel from "./panel/BottomPanel";
 import StatusBar from "./statusbar/StatusBar";
-import EnvironmentBar from "./envbar/EnvironmentBar";
-import ReviewMergeButton from "./titlebar/ReviewMergeButton";
 import SearchSlot from "./search/SearchSlot";
 import SearchOverlay from "./search/SearchOverlay";
 import { useSearchSession } from "./search/useSearchSession";
@@ -2038,23 +2036,10 @@ export default function WindowRoot({
                 onHome: () => activeClusterId !== null && onSelectCluster(activeClusterId),
               }}
               menus={menus}
-              environmentSlot={
-                environment !== null && (
-                  <EnvironmentBar
-                    environment={environment}
-                    ahead={git.status?.ahead}
-                    behind={git.status?.behind}
-                  />
-                )
-              }
               actionsSlot={
                 <>
                   <ToolHealthBadge healthOf={stackTools} onRescan={onRescan} />
                   <SearchSlot open={searchExpanded} onOpen={openSearch} />
-                  {environment !== null &&
-                    (environment.kind === "worktree" || environment.kind === "design") && (
-                      <ReviewMergeButton onClick={onReviewAndMerge} />
-                    )}
                 </>
               }
             />
@@ -2283,6 +2268,7 @@ export default function WindowRoot({
               environment={environment}
               git={git.status}
               githubOk={!error}
+              onReviewAndMerge={onReviewAndMerge}
               update={updateNotice(updates.state, updates.asked, updates.install)}
             />
           ),

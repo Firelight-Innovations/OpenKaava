@@ -9,11 +9,131 @@
  */
 
 .statusbar {
+  container: statusbar / inline-size;
   display: flex;
   align-items: center;
   height: 100%;
   padding: 0 12px;
   gap: 14px;
+}
+
+/* The left cluster: shrinks and clips as one, so the right cluster stays put. */
+.statusbar__left {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.statusbar__left > * {
+  flex: none;
+}
+
+/* The branch is the one segment allowed to give ground. */
+.statusbar__left > .statusbar__branch {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The environment kind chip: "Local worktree" / "Cloud session" / "Main". A
+   button (click copies the path) when the environment has one. */
+.statusbar__kind {
+  height: 18px;
+  padding: 0 6px;
+  border: none;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  background: var(--bg-layer-3);
+  color: var(--txt-primary, var(--text));
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.statusbar__kind--button {
+  cursor: pointer;
+}
+
+.statusbar__kind--button:hover,
+.statusbar__review:hover {
+  background: var(--bg-layer-1-hover);
+}
+
+.statusbar__kind--button:focus-visible,
+.statusbar__review:focus-visible,
+.statusbar__settings:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.statusbar__ahead-behind {
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.statusbar__ahead {
+  color: var(--ok);
+}
+
+.statusbar__behind {
+  color: var(--text-dim);
+}
+
+/* "Review & merge": the one worktree action, beside GitHub. */
+.statusbar__review {
+  appearance: none;
+  flex: none;
+  height: 20px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-subtle-1);
+  border-radius: var(--radius-md);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--txt-secondary);
+  font-family: var(--sans);
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.statusbar__review:hover {
+  color: var(--txt-primary);
+}
+
+.statusbar__review-icon {
+  flex: none;
+}
+
+/* Narrow windows give up, in order: the file count, then the Review & merge
+   label (its glyph stays; the accessible name is unchanged). */
+@container statusbar (max-width: 899px) {
+  .statusbar__diffstat-files {
+    display: none;
+  }
+}
+
+@container statusbar (max-width: 700px) {
+  .statusbar__review-label {
+    display: none;
+  }
+
+  .statusbar__review {
+    width: 24px;
+    padding: 0;
+    justify-content: center;
+  }
 }
 
 /* GitHub status is a dot then a label. */
