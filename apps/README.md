@@ -287,7 +287,9 @@ the child, double-click the frame. The split is explicit, not done on open, for 
 It turns one committed file into many, which is the person's call. Read-only main cannot write.
 The parent is checkpointed first, so the split can be undone. A frame is skipped, with the
 reason, when something outside it is bound to or grouped with its contents. Review comments on
-a split frame move into the child's comment folder.
+a split frame move into the child's comment folder. The split checkpoint is kept outside the
+five-entry ring. Restoring it brings the comments back to the parent and removes the children,
+each copied into its own checkpoint ring first.
 
 Pictures are drawn by Excalidraw's exporter from the child file, in the light theme. The dark
 theme's picture is that image passed through the inverse of Excalidraw's dark-mode image

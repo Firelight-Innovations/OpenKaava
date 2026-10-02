@@ -417,7 +417,6 @@ export default function App() {
       await saverRef.current?.flush();
       const out = await splitFrames(open.id);
       setSplitOffer(0);
-      declinedSplit.current.add(open.id);
       void refreshList();
       await load(open.id);
       if (out.skipped.length) {

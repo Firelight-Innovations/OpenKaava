@@ -559,23 +559,27 @@ pub fn split_frames(root: &Path, params: Option<&Value>) -> Result<Value, RpcErr
         "checkpoint": checkpoint, "mtime": mtime, "dryRun": false,
         "hint": "each split frame now shows a picture of its child canvas; double-click it, \
                  or pass the diagram id to any canvas method and it is followed into the child. \
-                 restore-checkpoint on the parent undoes the split (the child files stay).",
+                 restore-checkpoint on the parent undoes the split and brings the comments home.",
     }))
 }
 
-/// Move comments back to `parent` from every child that `before` linked as a
-/// sub-canvas and `after` no longer does. Returns how many moved.
-pub fn unsplit_comments(
+/// Undo a split's files for every child that `before` linked as a sub-canvas
+/// and `after` no longer does: its comments move back to `parent`, and the
+/// child, once copied into its own checkpoint ring, is removed with its cached
+/// picture, so a later split does not stack `-2`, `-3` copies beside it.
+/// Returns how many comments moved and the children removed.
+pub fn unsplit(
     root: &Path,
     parent: &str,
     before: &Value,
     after: &Value,
-) -> Result<usize, RpcError> {
+) -> Result<(usize, Vec<String>), RpcError> {
     let still: HashSet<String> = subcanvas_frames(after)
         .into_iter()
         .map(|(_, c)| c)
         .collect();
     let mut moved = 0;
+    let mut removed = Vec::new();
     for (_, child) in subcanvas_frames(before) {
         if still.contains(&child) {
             continue;
@@ -584,8 +588,22 @@ pub fn unsplit_comments(
             comments::move_to(root, &c, parent)?;
             moved += 1;
         }
+        let path = file_for(root, &child);
+        let ours = super::load(&path)
+            .ok()
+            .is_some_and(|s| s.pointer("/kaava/parent").and_then(Value::as_str) == Some(parent));
+        if ours && store::checkpoint(root, &child, "unsplit")?.is_some() {
+            std::fs::remove_file(&path)
+                .map_err(|e| bad(format!("could not remove {child}: {e}")))?;
+            let (png, meta) = store::snapshot_paths(root, &child)?;
+            let _ = std::fs::remove_file(png);
+            let _ = std::fs::remove_file(meta);
+            // Its comments folder, now empty; remove_dir leaves a full one.
+            let _ = std::fs::remove_dir(path.with_extension("comments"));
+            removed.push(child);
+        }
     }
-    Ok(moved)
+    Ok((moved, removed))
 }
 
 // --- pictures ---------------------------------------------------------------------
@@ -771,6 +789,7 @@ mod tests {
             before
         );
         assert!(!dir.path().join("canvas/game/big.json").exists());
+        assert!(!dir.path().join("canvas/game/big.comments").exists());
     }
 
     #[test]
@@ -893,6 +912,19 @@ mod tests {
         )
         .unwrap();
         assert_eq!(restored["commentsReturned"], 1);
+        assert_eq!(restored["childrenRemoved"], json!(["game/big"]));
+        assert!(!dir.path().join("canvas/game/big.json").exists());
+        // The removed child can still be recovered from its own ring.
+        let kept = store::checkpoint_names(dir.path(), "game/big").unwrap();
+        assert!(kept.last().is_some_and(|n| n.ends_with("unsplit")));
+        // So the next split takes the same id instead of `big-2`.
+        let again = run(
+            dir.path(),
+            "canvas/split-frames",
+            json!({ "id": "game", "actor": "agent", "dryRun": true }),
+        )
+        .unwrap();
+        assert_eq!(again["split"][0]["child"], "game/big");
         assert_eq!(
             comments::load_one(dir.path(), "game", cid).unwrap().canvas,
             "game"

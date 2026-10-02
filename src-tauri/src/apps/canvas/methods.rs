@@ -13,8 +13,8 @@
 use super::comments::{self, Region};
 use super::diagrams::{self, Bounds, Diagram};
 use super::store;
-use super::subcanvas;
 use super::style;
+use super::subcanvas;
 use super::webview::Webview;
 use super::{bad, file_for, load, mtime_at, relative, stamp, validate_id, write_file};
 use kaava_rpc::{RpcError, INVALID_PARAMS};
@@ -375,6 +375,7 @@ pub fn author(
     // Drawing into a split frame draws into its child canvas, with the
     // parent's value table so `{{name}}` templates still resolve.
     let parent_values = scene.pointer("/kaava/values").cloned();
+    let parent_design = scene.pointer("/kaava/design").cloned();
     let (id, mut scene, base, parent) = match p.pointer("/frame/id").and_then(Value::as_str) {
         Some(f) => subcanvas::follow(root, id, scene, base, f)?,
         None => (id, scene, base, None),
@@ -388,7 +389,11 @@ pub fn author(
         obj.remove("actor");
         // How this canvas is drawn is not the agent's call: the person's choice
         // (or the canvas's own override) goes to the renderer whatever it sent.
-        let e = effective_design(&scene, web);
+        // A child without its own override draws as its parent does.
+        let e = match (&parent, &parent_design, scene.pointer("/kaava/design")) {
+            (Some(_), Some(d), None) => effective_design(&json!({ "kaava": { "design": d } }), web),
+            _ => effective_design(&scene, web),
+        };
         obj.insert("render".into(), style::render_params(e.style));
     }
     // The layout needs each image's `kaavaRef` to place `{type: image, ref}`,
@@ -565,12 +570,13 @@ pub fn restore_checkpoint(root: &Path, params: Option<&Value>) -> Result<Value, 
     let saved = store::checkpoint(root, &id, "before-restore")?;
     let mtime = save_scene(root, &id, scene.clone(), base, who)?;
     // Undoing a split brings the frames' comments home with their elements.
-    let returned = subcanvas::unsplit_comments(root, &id, &current, &scene)?;
+    let (returned, removed) = subcanvas::unsplit(root, &id, &current, &scene)?;
     Ok(json!({
         "restored": name,
         "previousSavedAs": saved,
         "mtime": mtime,
         "commentsReturned": returned,
+        "childrenRemoved": removed,
     }))
 }
 
@@ -1249,6 +1255,35 @@ mod tests {
         assert_eq!(render["style"], "blueprint");
         assert_eq!(render["roughness"], 0);
         assert_eq!(render["fontName"], "Nunito");
+    }
+
+    /// Drawing into a split frame uses the parent's design override, which its
+    /// child canvas does not carry.
+    #[test]
+    fn a_split_frame_draws_in_its_parents_style() {
+        let dir = setup();
+        let mut parent = scene();
+        parent["kaava"] = json!({ "design": { "style": "whiteboard" } });
+        let frame = &mut parent["elements"][0];
+        frame["customData"]["kaava"]["child"] = json!("game/playfield");
+        frame["customData"]["kaava"]["subcanvas"] = json!(true);
+        let ball = parent["elements"][1].clone();
+        parent["elements"].as_array_mut().unwrap().truncate(1);
+        let root = dir.path().join("canvas");
+        std::fs::write(root.join("game.json"), parent.to_string()).unwrap();
+        std::fs::create_dir_all(root.join("game")).unwrap();
+        let mut child = scene();
+        child["elements"] = json!([ball, scene()["elements"][0].clone()]);
+        child["kaava"] = json!({ "title": "Playfield", "parent": "game" });
+        std::fs::write(root.join("game/playfield.json"), child.to_string()).unwrap();
+
+        let fake = Fake::default();
+        let mut params = draw_params();
+        params["frame"] = json!({ "id": "playfield", "title": "Playfield" });
+        let out = run(&dir, &fake, "canvas/add-shapes", params).unwrap();
+        assert_eq!(out["canvas"], "game/playfield");
+        let render = fake.calls.borrow()[0].1["spec"]["render"].clone();
+        assert_eq!(render["style"], "whiteboard");
     }
 
     /// An agent may not pick its own render parameters by sending them.

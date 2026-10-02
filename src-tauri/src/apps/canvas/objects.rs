@@ -440,11 +440,12 @@ pub fn frame_image(
     let mut scene = scene;
     frames::migrate(&mut scene);
     let all = frames::list(&scene);
-    let f = frames::find(&all, &string(p, "frame")?)
+    let mut f = frames::find(&all, &string(p, "frame")?)
         .map_err(bad)?
         .clone();
     // A split frame is drawn from its child canvas, where its elements are.
     let (id, scene, _, _) = subcanvas::follow(root, id, scene, None, &f.id)?;
+    f.elements = diagrams::members_of(diagrams::elements_of(&scene), &f.id).len();
     let mut view: ViewParams =
         serde_json::from_value(p.clone()).map_err(|e| bad(format!("bad params: {e}")))?;
     view.region = None;
