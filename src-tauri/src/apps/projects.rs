@@ -5,18 +5,24 @@
 //! actually live today.
 //!
 //! Every read here follows the same rule the Agents app already does
-//! (`cloud`'s module doc): no key on disk, a signed-out `gcloud` is a state
+//! (`cloud`'s module doc): no key on disk, a signed-out identity is a state
 //! rather than a network error, and nothing starts a VM or opens a tunnel
 //! except in reaction to something a person did. Listing projects
 //! (`projects/list`) is a plain bucket read and **never** wakes Plane
 //! (design §3.1) — it does not touch [`wake`] or [`tunnel`] at all.
 //!
+//! The REST proxy, the wake flow and the list go through the `kaava-api`
+//! gateway ([`gateway`]). The IAP tunnel and the hosts entry remain only for
+//! Plane's own web UI in the child webview.
+//!
 //! **B1.2 (the `prod`/`dev` profile switch) is deferred.** Every method below
 //! reads the `prod` prefix only; see the PR description for the follow-up.
 
 use crate::apps::CallContext;
+use crate::cloud::gateway::{self, Gateway};
 use crate::cloud::{self, compute, plane, storage, tunnel, wake, Cloud, Source, Trouble};
 use crate::plane_webview::{self, Bounds};
+use crate::settings::{self, keys};
 use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -30,15 +36,10 @@ use tauri::{AppHandle, Manager};
 /// `projects/list` ever reads.
 const PROFILE: &str = "prod";
 
-/// design §3.3 / §11 B2.4.
+/// design §3.3 / §11 B2.4. Named for the fixture source only; live, the
+/// gateway knows which VM it wakes.
 const PLANE_VM: &str = "plane-vm";
 const PLANE_ZONE: &str = "us-central1-a";
-
-/// The health check design §3 and §12 V1 confirmed: both paths return 200.
-/// Not the same as [`plane::BASE_URL`] — that is `/api/v1/`, these are the
-/// bare origin's own root and instances endpoint.
-const PLANE_ORIGIN: &str = "http://plane.kaava.internal:8765";
-const HEALTH_PATHS: [&str; 2] = ["/", "/api/instances/"];
 
 /// §11 B2.3: the one-line fix, named rather than left for the frontend to
 /// invent — a wrong path here is a support question, not a crash.
@@ -52,12 +53,22 @@ pub fn call(
 ) -> Result<Value, RpcError> {
     let cloud = app.state::<Cloud>();
     let source = Source::from_env();
+    let gateway = gateway_of(app);
     match method {
-        "projects/list" => encode(&list(&cloud, &source)?),
+        "projects/list" => match &source {
+            Source::Live { .. } if gateway.is_configured() => {
+                encode(&list_via_gateway(&cloud, &gateway)?)
+            }
+            // No gateway yet: read the bucket with the gcloud login, as before.
+            _ => encode(&list(&cloud, &source)?),
+        },
 
         "projects/wake-status" => Ok(wake_status(app)),
         "projects/wake-start" => {
-            wake_start(app, source);
+            if matches!(source, Source::Live { .. }) && !gateway.is_configured() {
+                return Err(Trouble::GatewayUnconfigured.into());
+            }
+            wake_start(app, source, gateway);
             Ok(json!({ "started": true }))
         }
         "projects/wake-cancel" => {
@@ -65,18 +76,27 @@ pub fn call(
             Ok(json!({ "cancelled": true }))
         }
 
-        "projects/plane-get" => {
-            ensure_tunnel(app, &source);
-            plane_proxy(&cloud, &source, plane::Method::Get, params.as_ref())
-        }
-        "projects/plane-post" => {
-            ensure_tunnel(app, &source);
-            plane_proxy(&cloud, &source, plane::Method::Post, params.as_ref())
-        }
-        "projects/plane-patch" => {
-            ensure_tunnel(app, &source);
-            plane_proxy(&cloud, &source, plane::Method::Patch, params.as_ref())
-        }
+        "projects/plane-get" => plane_proxy(
+            &cloud,
+            &source,
+            &gateway,
+            plane::Method::Get,
+            params.as_ref(),
+        ),
+        "projects/plane-post" => plane_proxy(
+            &cloud,
+            &source,
+            &gateway,
+            plane::Method::Post,
+            params.as_ref(),
+        ),
+        "projects/plane-patch" => plane_proxy(
+            &cloud,
+            &source,
+            &gateway,
+            plane::Method::Patch,
+            params.as_ref(),
+        ),
 
         "projects/hosts-check" => Ok(hosts_check()),
 
@@ -97,6 +117,14 @@ pub fn call(
 
 fn encode<T: Serialize>(value: &T) -> Result<Value, RpcError> {
     serde_json::to_value(value).map_err(|e| RpcError::new(INTERNAL_ERROR, e.to_string()))
+}
+
+/// The gateway's URL and the sign-in's client, as Settings, Cloud has them now.
+fn gateway_of(app: &AppHandle) -> Gateway {
+    Gateway {
+        url: settings::text(app, keys::CLOUD_GATEWAY_URL),
+        client_id: settings::text(app, keys::CLOUD_GOOGLE_CLIENT_ID),
+    }
 }
 
 // --- projects/list -------------------------------------------------------
@@ -173,6 +201,37 @@ fn list(cloud: &Cloud, source: &Source) -> Result<ProjectsList, Trouble> {
     })
 }
 
+/// The same list, read by the gateway's service account instead of the
+/// gcloud login. Still a bucket read that never wakes Plane.
+fn list_via_gateway(cloud: &Cloud, gateway: &Gateway) -> Result<ProjectsList, Trouble> {
+    Ok(records_to_list(gateway::project_records(
+        cloud, gateway, PROFILE,
+    )?))
+}
+
+/// Parse what the gateway sent. It forwards each record as it found it, so
+/// one malformed record becomes a problem here and the rest still list.
+fn records_to_list(records: gateway::Records) -> ProjectsList {
+    let mut problems = records.problems;
+    let mut projects = Vec::new();
+    for (index, raw) in records.projects.into_iter().enumerate() {
+        let label = raw["slug"]
+            .as_str()
+            .map_or_else(|| format!("record {}", index + 1), str::to_string);
+        match serde_json::from_value::<ProjectRecord>(raw) {
+            Ok(record) => projects.push(record),
+            Err(e) => problems.push(format!("{label}: {e}")),
+        }
+    }
+    projects.sort_by(|a, b| a.name.cmp(&b.name));
+    ProjectsList {
+        source: "live",
+        profile: PROFILE,
+        projects,
+        problems,
+    }
+}
+
 // --- the wake flow (§3.3 / B2.4) ------------------------------------------
 
 /// What `projects/wake-status` answers. Tagged by `phase` so the frontend's
@@ -200,6 +259,10 @@ pub enum WakeSnapshot {
     },
     Failed {
         detail: String,
+        /// The cause, when a call had one: the frontend draws the same
+        /// signed-out or gateway state a failed read would.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        trouble: Option<Trouble>,
     },
 }
 
@@ -231,11 +294,10 @@ fn wake_cancel(app: &AppHandle) {
 }
 
 /// Start the wake flow on a background thread, unless one is already
-/// running. A fixture source has nothing to wait on — [`health_check`]
-/// answers `Ok` at once for it — so this still runs the same state machine
-/// rather than special-casing it, which is what keeps the UI path identical
-/// in both modes.
-fn wake_start(app: &AppHandle, source: Source) {
+/// running. Live, every probe is a gateway call. A fixture source answers
+/// from the compute fixtures and is healthy at once, but still runs the same
+/// state machine, which is what keeps the UI path identical in both modes.
+fn wake_start(app: &AppHandle, source: Source, gateway: Gateway) {
     let manager = app.state::<WakeManager>();
     {
         let mut active = manager.active.lock().unwrap_or_else(|e| e.into_inner());
@@ -250,29 +312,58 @@ fn wake_start(app: &AppHandle, source: Source) {
         detail: "checking plane-vm".to_string(),
     };
 
+    // The REST calls no longer need it, but Plane's web UI in the child
+    // webview still does (gcloud's IAP tunnel and the hosts entry).
     if let Source::Live { project } = &source {
         app.state::<tunnel::Tunnel>().start(project.clone());
     }
 
     let app = app.clone();
-    std::thread::spawn(move || run_wake(&app, source));
+    std::thread::spawn(move || run_wake(&app, source, gateway));
 }
 
-fn run_wake(app: &AppHandle, source: Source) {
+fn run_wake(app: &AppHandle, source: Source, gateway: Gateway) {
     let cloud = app.state::<Cloud>();
-    let project = match &source {
-        Source::Live { project } => project.clone(),
-        Source::Fixture { .. } => "fixture".to_string(),
+    let live = matches!(source, Source::Live { .. });
+    // The last failure's cause, so a failed wake can name it to the UI; the
+    // state machine itself only carries strings.
+    let cause: Mutex<Option<Trouble>> = Mutex::new(None);
+    let keep = |trouble: Trouble| -> String {
+        let message = trouble.message();
+        *cause.lock().unwrap_or_else(|e| e.into_inner()) = Some(trouble);
+        message
     };
 
     let status_probe = || -> Result<String, String> {
-        compute::status(&cloud, &source, &project, PLANE_ZONE, PLANE_VM).map_err(|t| t.message())
+        if live {
+            gateway::plane_status(&cloud, &gateway)
+                .map(|s| s.vm)
+                .map_err(keep)
+        } else {
+            compute::status(&cloud, &source, "fixture", PLANE_ZONE, PLANE_VM).map_err(keep)
+        }
     };
     let start_probe = || -> Result<(), String> {
-        compute::start_named(&cloud, &source, &project, PLANE_ZONE, PLANE_VM)
-            .map_err(|t| t.message())
+        if live {
+            gateway::plane_wake(&cloud, &gateway)
+                .map(|_| ())
+                .map_err(keep)
+        } else {
+            compute::start_named(&cloud, &source, "fixture", PLANE_ZONE, PLANE_VM).map_err(keep)
+        }
     };
-    let health_probe = || -> Result<(), String> { health_check(&source) };
+    // design §3.3 step 3: the gateway checks Plane's two health paths from
+    // inside the VPC. "Not yet" is an `Err` that `wake::wake` keeps polling.
+    let health_probe = || -> Result<(), String> {
+        if !live {
+            return Ok(());
+        }
+        match gateway::plane_status(&cloud, &gateway) {
+            Ok(status) if status.healthy => Ok(()),
+            Ok(status) => Err(status.detail),
+            Err(trouble) => Err(keep(trouble)),
+        }
+    };
     let probes = wake::Probes {
         status: &status_probe,
         start: &start_probe,
@@ -304,63 +395,38 @@ fn run_wake(app: &AppHandle, source: Source) {
     let cancel_check = || app.state::<WakeManager>().cancel.load(Ordering::SeqCst);
 
     let result = wake::wake(&probes, &clock, on_progress, &cancel_check);
-    let outcome = match result {
-        Ok(elapsed_seconds) => WakeSnapshot::Healthy { elapsed_seconds },
-        Err(wake::WakeError::Cancelled) => WakeSnapshot::Cancelled,
-        Err(wake::WakeError::NotRunning { last_status }) => WakeSnapshot::TimedOut {
-            detail: format!("plane-vm stayed {last_status}"),
-        },
-        Err(wake::WakeError::Unhealthy { detail }) => WakeSnapshot::TimedOut { detail },
-        Err(wake::WakeError::Probe(detail)) => WakeSnapshot::Failed { detail },
-    };
+    let trouble = cause.lock().unwrap_or_else(|e| e.into_inner()).take();
+    let outcome = outcome(result, trouble);
 
     let manager = app.state::<WakeManager>();
     *manager.snapshot.lock().unwrap_or_else(|e| e.into_inner()) = outcome;
     *manager.active.lock().unwrap_or_else(|e| e.into_inner()) = false;
 }
 
-/// design §3.3 step 3 / §12 V1: both [`HEALTH_PATHS`] answer 200. A refused
-/// connection or an HTTP 502 is "not yet", not a failure — [`wake::wake`]
-/// is what turns repeated failures here into a timeout.
-fn health_check(source: &Source) -> Result<(), String> {
-    if matches!(source, Source::Fixture { .. }) {
-        return Ok(());
+/// The snapshot a finished wake leaves. `trouble` is the last probe failure's
+/// cause, attached only to `Failed`, which is the one outcome a probe error
+/// ends in.
+fn outcome(result: Result<f64, wake::WakeError>, trouble: Option<Trouble>) -> WakeSnapshot {
+    match result {
+        Ok(elapsed_seconds) => WakeSnapshot::Healthy { elapsed_seconds },
+        Err(wake::WakeError::Cancelled) => WakeSnapshot::Cancelled,
+        Err(wake::WakeError::NotRunning { last_status }) => WakeSnapshot::TimedOut {
+            detail: format!("plane-vm stayed {last_status}"),
+        },
+        Err(wake::WakeError::Unhealthy { detail }) => WakeSnapshot::TimedOut { detail },
+        Err(wake::WakeError::Probe(detail)) => WakeSnapshot::Failed { detail, trouble },
     }
-    for path in HEALTH_PATHS {
-        let url = format!("{PLANE_ORIGIN}{path}");
-        match cloud::http::agent().get(&url).call() {
-            Ok(response) if response.status().as_u16() == 200 => {}
-            Ok(response) => return Err(format!("{url}: HTTP {}", response.status())),
-            Err(e) => return Err(format!("{url}: {e}")),
-        }
-    }
-    Ok(())
 }
 
 // --- Plane REST proxy (§7.1 / B2.1) ---------------------------------------
 
-/// Bring the IAP tunnel up before a direct `plane/get|post|patch`, rather
-/// than assume `projects/wake-start` already ran — `apps/projects/ui`'s
-/// `rpc.ts` exposes these independently of the switcher's own wake flow, so
-/// call order between the two is not something this app can assume.
-///
-/// A dispatch-layer step rather than folded into [`plane_proxy`] itself: the
-/// `AppHandle` only `tunnel::Tunnel` needs would otherwise force every
-/// `plane_proxy` test below to build one, for a side effect none of them are
-/// about. `Source::Fixture` never reaches [`tunnel::Tunnel::start`] at all —
-/// there is nothing to tunnel to in a fixture.
-fn ensure_tunnel(app: &AppHandle, source: &Source) {
-    if let Source::Live { project } = source {
-        let tunnel = app.state::<tunnel::Tunnel>();
-        if !tunnel.is_running() {
-            tunnel.start(project.clone());
-        }
-    }
-}
-
+/// `plane/get|post|patch`. No tunnel: the gateway reaches Plane, so these
+/// work wherever the gateway does. A stopped Plane answers `PlaneAsleep`
+/// rather than being woken here; waking is the button's job.
 fn plane_proxy(
     cloud: &Cloud,
     source: &Source,
+    gateway: &Gateway,
     method: plane::Method,
     params: Option<&Value>,
 ) -> Result<Value, RpcError> {
@@ -397,7 +463,9 @@ fn plane_proxy(
     }
 
     let body = params.and_then(|p| p.get("body")).cloned();
-    Ok(plane::call(cloud, source, method, path, &query, body)?)
+    Ok(plane::call(
+        cloud, source, gateway, method, path, &query, body,
+    )?)
 }
 
 // --- the child webview (§11 B1.4/B1.5) ------------------------------------
@@ -496,6 +564,91 @@ mod tests {
         }
     }
 
+    fn no_gateway() -> Gateway {
+        Gateway {
+            url: String::new(),
+            client_id: String::new(),
+        }
+    }
+
+    #[test]
+    fn records_from_the_gateway_list_sorted_and_a_bad_one_becomes_a_problem() {
+        let record = |slug: &str, name: &str| {
+            json!({
+                "schema": 1, "slug": slug, "name": name, "game": null,
+                "plane": { "workspace": "veistra", "project_id": "p", "identifier": "X" },
+                "created": "2026-09-01T00:00:00Z",
+            })
+        };
+        let list = records_to_list(gateway::Records {
+            projects: vec![
+                record("torn", "Torn Apart"),
+                json!({ "slug": "broken", "name": 7 }),
+                record("anomaly", "Anomaly"),
+            ],
+            problems: vec!["prod/projects/x.json: unreadable".into()],
+        });
+        assert_eq!(list.source, "live");
+        let names: Vec<&str> = list.projects.iter().map(|p| p.name.as_str()).collect();
+        assert_eq!(names, vec!["Anomaly", "Torn Apart"]);
+        assert_eq!(list.problems.len(), 2);
+        assert!(list.problems[1].starts_with("broken: "));
+    }
+
+    #[test]
+    fn a_failed_wake_carries_its_cause_for_the_ui() {
+        let snapshot = outcome(
+            Err(wake::WakeError::Probe("signed out".into())),
+            Some(Trouble::SignInNeeded {
+                detail: "lapsed".into(),
+            }),
+        );
+        assert_eq!(
+            serde_json::to_value(&snapshot).unwrap(),
+            json!({
+                "phase": "failed",
+                "detail": "signed out",
+                "trouble": { "kind": "signInNeeded", "detail": "lapsed" },
+            })
+        );
+        let unexplained = outcome(Err(wake::WakeError::Probe("x".into())), None);
+        assert!(serde_json::to_value(&unexplained)
+            .unwrap()
+            .get("trouble")
+            .is_none());
+    }
+
+    #[test]
+    fn a_timeout_does_not_borrow_a_cause_from_an_earlier_poll() {
+        let snapshot = outcome(
+            Err(wake::WakeError::Unhealthy {
+                detail: "502".into(),
+            }),
+            Some(Trouble::GatewayUnreachable {
+                detail: "blip".into(),
+            }),
+        );
+        assert!(matches!(snapshot, WakeSnapshot::TimedOut { .. }));
+    }
+
+    #[test]
+    fn a_live_proxy_call_without_a_gateway_is_the_unconfigured_state() {
+        let cloud = Cloud::default();
+        let source = Source::Live {
+            project: "veistra-prod".into(),
+        };
+        let params = json!({ "path": "workspaces/veistra/projects/" });
+        let err = plane_proxy(
+            &cloud,
+            &source,
+            &no_gateway(),
+            plane::Method::Get,
+            Some(&params),
+        )
+        .unwrap_err();
+        assert_eq!(err.data.unwrap()["kind"], "gatewayUnconfigured");
+    }
+
     #[test]
     fn the_committed_fixture_lists_every_well_formed_project_sorted_by_name() {
         let list = list(&Cloud::default(), &committed_fixture()).unwrap();
@@ -547,7 +700,14 @@ mod tests {
         let cloud = Cloud::default();
         let source = committed_fixture();
         let params = json!({ "path": "../escape" });
-        let err = plane_proxy(&cloud, &source, plane::Method::Get, Some(&params)).unwrap_err();
+        let err = plane_proxy(
+            &cloud,
+            &source,
+            &no_gateway(),
+            plane::Method::Get,
+            Some(&params),
+        )
+        .unwrap_err();
         assert_eq!(err.code, INVALID_PARAMS);
     }
 
@@ -564,7 +724,14 @@ mod tests {
         // clamp ran without erroring rather than what value it produced;
         // `plane::tests::per_page_is_never_widened_past_the_cap` covers the
         // clamp itself.
-        let value = plane_proxy(&cloud, &source, plane::Method::Get, Some(&params)).unwrap();
+        let value = plane_proxy(
+            &cloud,
+            &source,
+            &no_gateway(),
+            plane::Method::Get,
+            Some(&params),
+        )
+        .unwrap();
         assert!(value["results"].is_array());
     }
 

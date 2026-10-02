@@ -97,9 +97,9 @@ impl Tunnel {
         let _ = handle.thread.join();
     }
 
-    /// Whether a tunnel is currently supervised. Read by `projects/plane-*`
-    /// so a call can say "the tunnel was never started" distinctly from a
-    /// connection failure through one that is.
+    /// Whether a tunnel is currently supervised. Only the tests read it now:
+    /// `projects/plane-*` goes through the `kaava-api` gateway, not the tunnel.
+    #[cfg(test)]
     pub fn is_running(&self) -> bool {
         self.handle
             .lock()

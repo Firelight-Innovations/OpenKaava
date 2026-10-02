@@ -20,6 +20,7 @@ pub mod auth;
 pub mod bigquery;
 pub mod billing;
 pub mod compute;
+pub mod gateway;
 pub mod google;
 pub mod hindsight;
 pub(crate) mod http;
@@ -114,6 +115,13 @@ pub enum Trouble {
     /// OpenKaava's own Google sign-in has lapsed (revoked, expired, or the
     /// password changed). The fix is Settings, Cloud, Sign in with Google.
     SignInNeeded { detail: String },
+    /// No `kaava-api` URL in Settings, Cloud: the gateway is not deployed yet.
+    GatewayUnconfigured,
+    /// The gateway did not answer, or something else answered at its URL.
+    GatewayUnreachable { detail: String },
+    /// The gateway answered, but Plane behind it did not: plane-vm is stopped
+    /// or still starting. The fix is the wake button, never an automatic wake.
+    PlaneAsleep { detail: String },
 }
 
 impl Trouble {
@@ -131,6 +139,13 @@ impl Trouble {
             Trouble::SignInNeeded { .. } => {
                 "the Google sign-in has lapsed — sign in again in Settings, Cloud".into()
             }
+            Trouble::GatewayUnconfigured => {
+                "no gateway URL is set — add the kaava-api URL in Settings, Cloud".into()
+            }
+            Trouble::GatewayUnreachable { detail } => {
+                format!("the kaava-api gateway did not answer: {detail}")
+            }
+            Trouble::PlaneAsleep { detail } => format!("Plane is not running: {detail}"),
         }
     }
 }
@@ -151,7 +166,7 @@ pub struct Cloud {
     pub tokens: auth::Tokens,
     pub cache: storage::Cache,
     pub prices: billing::Prices,
-    /// The Plane PAT, once fetched, and its call budget. See [`plane`].
+    /// The Plane call budget. See [`plane`].
     pub plane: plane::PlaneState,
     /// OpenKaava's own Google sign-in. See [`google`].
     pub google: google::GoogleAuth,

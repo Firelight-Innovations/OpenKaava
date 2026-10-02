@@ -156,7 +156,12 @@ export default function App() {
   }, []);
 
   const blocking = !list && listError !== null;
-  const wakeFailure = wake.phase === "failed" ? describeFailure(wakeError, "Plane") : null;
+  // A wake fails either at `wake-start` (thrown, such as no gateway URL) or
+  // later in the backend's own loop (a `trouble` on the snapshot, such as a
+  // lapsed sign-in). Both read as the same states a failed list would.
+  const wakeCause =
+    wakeError ?? (wake.phase === "failed" && wake.trouble ? { data: wake.trouble } : null);
+  const wakeFailure = wake.phase === "failed" ? describeFailure(wakeCause, "Plane") : null;
 
   return (
     <div className="app">
@@ -220,6 +225,9 @@ export default function App() {
                   {hosts && !hosts.ok && <p className="app__error projects__fix">{hosts.fix}</p>}
                   {webviewError && <p className="app__error">{webviewError}</p>}
                   <WakeStatus wake={wake} onCancel={cancel} />
+                  {wakeFailure && wakeFailure.kind !== "other" && (
+                    <h2 className="app__trouble-title">{wakeFailure.heading}</h2>
+                  )}
                   {wakeFailure?.steps}
                   {/* The child webview draws over this element — see
                       `plane_webview`'s module doc for why Rust, not this

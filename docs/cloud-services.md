@@ -65,7 +65,27 @@ For the `kaava-api` gateway (`services/kaava-api`), OpenKaava can sign in to Goo
   and the call fails with `Trouble::SignInNeeded`, which names Settings, Cloud as the fix.
 - **Sign-out** revokes the refresh token at Google (best effort) and always forgets it locally.
 
-Everything else in this section still uses `gcloud`.
+### Plane through the gateway
+
+Plane's REST API, the plane-vm status and wake, and the project list all go through `kaava-api`
+(`src-tauri/src/cloud/gateway.rs`). The gateway holds the Plane token; OpenKaava holds none.
+
+- **Configuration.** Settings, Cloud, Gateway URL (`cloud.gatewayUrl`): the service's `url`
+  output. With no URL, Plane calls and the wake fail with `Trouble::GatewayUnconfigured`, and the
+  project list falls back to reading Cloud Storage directly.
+- **Identity.** The in-app sign-in's ID token when it is configured and signed in. Otherwise the
+  `gcloud auth print-identity-token` token, which the gateway also accepts.
+- **Errors.** The gateway marks its own answers with `X-Kaava-Api: 1`. An unmarked 401 or 403 came
+  from Cloud Run IAM: a sign-in or access problem. A marked 503 `plane_unreachable` is
+  `Trouble::PlaneAsleep`. A gateway that does not answer is `Trouble::GatewayUnreachable`.
+
+### What still uses `gcloud`
+
+- Cost (BigQuery, billing), the Agents app (Compute inventory and monitoring, Storage reads), and
+  Hindsight's ID token.
+- The embedded Plane web UI: the IAP tunnel and the `plane.kaava.internal` hosts entry. See
+  `services/kaava-api/README.md` for why the gateway does not serve it yet.
+- The identity fallback and the direct project list above, when no sign-in or no URL is set.
 
 ## 3. Artifacts
 
