@@ -352,12 +352,16 @@ of the drawing and collapse to a strip; nothing floats over the drawing.
 | `canvas/import-mermaid` | `{frame, source}`: a Mermaid flowchart or state diagram as a new frame. |
 | `canvas/checkpoints`, `canvas/restore-checkpoint` | The last five saves before a bulk edit; restore one (default the newest). |
 | `canvas/values`, `canvas/set-values` | The `{{name}}` value table, where each is used, and labels that no longer match. |
+| `canvas/design-brief`, `canvas/set-design` | The detail level and drawing style in force for a canvas (its override, else Settings > Canvas, else the default), and a per-canvas override: `{detail?, style?}`, `null` clears. `add_shapes` draws in the style; `drawing_guide` ends with the guidance. |
 | `canvas/coverage` | Which frames cover each checklist topic, and which topics none do. |
 | `canvas/refs` | Reference images under `canvas/<id>/refs/`. |
 | `canvas/list-comments` | `{status?: open\|resolved\|all, diagram?}`. |
 | `canvas/create-comment` | `{diagram, elementIds \| region, text}`; the region is frame-relative. |
 | `canvas/view-comment` | `{commentId}`: a PNG of what the comment points at, with a margin. |
 | `canvas/resolve-comment`, `canvas/reopen-comment` | `{commentId, note}` / `{commentId}`. |
+
+An app opens the shell's Settings on a section with the host method `shell/open-settings`
+(`{section: "canvas"}`); Canvas' *Drawing style* button is the example.
 
 `view-diagram`, `add-shapes`, `import-mermaid` and `view-comment` render and measure in the canvas
 app's webview, so they need a canvas pane open in some window; without one they fail with

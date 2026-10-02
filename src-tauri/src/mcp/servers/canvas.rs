@@ -20,6 +20,7 @@
 //! `readOnlyHint` all come from that row.
 
 use super::workspace::{self, Pages, Surface};
+use crate::apps::canvas::style;
 use crate::apps::{self, CallContext};
 use crate::mcp::{McpServer, McpTool, ToolAnswer};
 use crate::shell_state::ShellState;
@@ -82,9 +83,34 @@ canvas_tools! {
     "drawing_guide" => "", Scope::Guide, true,
     "The manual, as text: how to draw a design (`topic: \"drawing\"`, the default: palette, \
      sizes, spacing, every add_shapes option, viewing and comments) or how frames, types and \
-     nested canvases work (`topic: \"frames\"`). Read it before your first add_shapes.",
+     nested canvases work (`topic: \"frames\"`). The drawing manual ends with the detail level \
+     and style the person chose in Settings (or this canvas's override): follow them. \
+     `topic: \"style\"` lists every level and style. Read it before your first add_shapes.",
     || obj(
-        json!({ "topic": { "type": "string", "enum": ["drawing", "frames"], "description": "Default drawing." } }),
+        json!({
+            "topic": { "type": "string", "enum": ["drawing", "frames", "style"], "description": "Default drawing." },
+            "canvas": { "type": "string", "description": "The canvas whose detail level and style to append, for a per-canvas override. Default: the focused canvas, else the settings alone." },
+            "instance": { "type": "string", "description": "A pane instance id; its canvas is used." },
+            "cluster": { "type": "string", "description": CLUSTER_HELP },
+        }),
+        &[],
+    );
+
+    "design_brief" => "canvas/design-brief", Scope::Canvas, true,
+    "The detail level (sparse, standard, dense) and drawing style (blueprint, whiteboard, minimal, \
+     explainer) in force for a canvas: the canvas's own override, else Settings, else the \
+     default. Returns where each came from, the render parameters and the guidance to follow.",
+    || canvas_schema(json!({}), &[]);
+
+    "set_design" => "canvas/set-design", Scope::Canvas, false,
+    "Give this canvas its own detail level and/or style, overriding Settings; `null` or \
+     `\"default\"` clears the override. Only when the person asks: Settings, Canvas is where \
+     they choose.",
+    || canvas_schema(
+        json!({
+            "detail": { "type": ["string", "null"], "enum": ["sparse", "standard", "dense", "default", null] },
+            "style": { "type": ["string", "null"], "enum": ["blueprint", "whiteboard", "minimal", "explainer", "default", null] },
+        }),
         &[],
     );
 
@@ -483,22 +509,71 @@ const DRAWING_GUIDE: &str = include_str!("../../../../docs/canvas-drawing-guide.
 const FRAMES_GUIDE: &str = include_str!("../../../../docs/canvas-objects.md");
 
 /// The `drawing_guide` answer.
-pub(super) fn guide(args: &Map<String, Value>) -> Result<Value, RpcError> {
+///
+/// `design` is the brief for the canvas asked about ([`style::brief`]): the drawing
+/// manual and the style topic end with its guidance, so an agent that reads only
+/// the guide still draws at the level and in the style the person chose.
+pub(super) fn guide(args: &Map<String, Value>, design: &Value) -> Result<Value, RpcError> {
+    let design_text = design["text"].as_str().unwrap_or_default();
     let (topic, path, text) = match args.get("topic").and_then(Value::as_str) {
-        None | Some("drawing") => ("drawing", "docs/canvas-drawing-guide.md", DRAWING_GUIDE),
-        Some("frames") => ("frames", "docs/canvas-objects.md", FRAMES_GUIDE),
+        None | Some("drawing") => (
+            "drawing",
+            "docs/canvas-drawing-guide.md",
+            format!("{DRAWING_GUIDE}\n{design_text}"),
+        ),
+        Some("frames") => ("frames", "docs/canvas-objects.md", FRAMES_GUIDE.to_string()),
+        Some("style") => (
+            "style",
+            "src-tauri/src/apps/canvas/style.rs",
+            format!("{}{design_text}", style::catalog_text()),
+        ),
         Some(other) => {
             return Err(bad(format!(
-                "no guide on `{other}`; the topics are drawing and frames"
+                "no guide on `{other}`; the topics are drawing, frames and style"
             )))
         }
     };
-    Ok(json!({ "topic": topic, "source": path, "text": text }))
+    let mut out = json!({ "topic": topic, "source": path, "text": text });
+    if topic != "frames" {
+        out["design"] = json!({ "detail": design["detail"]["id"], "style": design["style"]["id"] });
+    }
+    Ok(out)
+}
+
+/// The brief a guide ends with: the focused (or named) canvas's, with its override,
+/// and the settings alone when no canvas can be resolved. A guide must still answer
+/// with no canvas open, so nothing here is an error.
+fn guide_design(app: &AppHandle, args: &Map<String, Value>) -> Value {
+    let setting = |key| Some(crate::settings::text(app, key)).filter(|s| !s.is_empty());
+    let fallback = || {
+        style::brief(&style::resolve(
+            None,
+            None,
+            setting(style::KEY_DETAIL).as_deref(),
+            setting(style::KEY_STYLE).as_deref(),
+        ))
+    };
+    let Ok(target) = Target::from_args(args) else {
+        return fallback();
+    };
+    let snapshot = app.state::<ShellState>().snapshot();
+    let pages = workspace::page_contexts(app);
+    let all = workspace::surfaces(&snapshot, &pages);
+    let active = workspace::active_cluster(&snapshot, &pages).map(|(_, cluster)| cluster);
+    let Ok(resolved) = resolve_canvas(&target, &all, active.as_deref()) else {
+        return fallback();
+    };
+    let context = CallContext::resolve(app, None, Some(&resolved.cluster));
+    let params = method_params(args, resolved.canvas.as_deref(), "canvas/design-brief");
+    apps::call(app, &context, "canvas", "canvas/design-brief", Some(params))
+        .ok()
+        .filter(|brief| brief["text"].is_string())
+        .unwrap_or_else(fallback)
 }
 
 /// The palette names `add_shapes` draws with. Mirrors `PALETTE` in
 /// `apps/canvas/ui/src/draw.ts`; a test holds the two together.
-pub(super) const PALETTE: &[&str] = &[
+pub(crate) const PALETTE: &[&str] = &[
     "ink", "muted", "red", "green", "blue", "orange", "violet", "teal",
 ];
 
@@ -1065,7 +1140,7 @@ fn call(app: &AppHandle, tool: &str, params: Option<Value>) -> Result<ToolAnswer
         Some(_) => return Err(bad("arguments must be an object")),
     };
     if route.scope == Scope::Guide {
-        return Ok(guide(&args)?.into());
+        return Ok(guide(&args, &guide_design(app, &args))?.into());
     }
     let target = Target::from_args(&args)?;
     require_named_canvas(tool, &target)?;
@@ -1080,7 +1155,7 @@ fn call(app: &AppHandle, tool: &str, params: Option<Value>) -> Result<ToolAnswer
     let active = workspace::active_cluster(&snapshot, &pages).map(|(_, cluster)| cluster);
 
     let (resolved, id) = match route.scope {
-        Scope::Guide => return Ok(guide(&args)?.into()),
+        Scope::Guide => unreachable!("answered above"),
         Scope::Open => return Ok(list_open(&all, active.as_deref()).into()),
         Scope::Canvas => {
             let r = resolve_canvas(&target, &all, active.as_deref())?;
@@ -1147,6 +1222,8 @@ mod tests {
             "add_shapes",
             "import_mermaid",
             "set_values",
+            "design_brief",
+            "set_design",
             "create_comment",
             "restore_checkpoint",
         ] {
@@ -1638,21 +1715,71 @@ mod tests {
     #[test]
     fn drawing_guide_serves_both_manuals_and_refuses_an_unknown_topic() {
         let none: Map<String, Value> = Map::new();
-        let drawing = guide(&none).unwrap();
+        let design = style::brief(&style::resolve(None, None, None, None));
+        let drawing = guide(&none, &design).unwrap();
         assert_eq!(drawing["topic"], "drawing");
         assert!(drawing["text"].as_str().unwrap().contains("## Palette"));
         let args: Map<String, Value> =
             serde_json::from_value(json!({ "topic": "frames" })).unwrap();
-        let frames = guide(&args).unwrap();
+        let frames = guide(&args, &design).unwrap();
         assert!(frames["text"]
             .as_str()
             .unwrap()
             .contains("canvas/link-frame"));
         let bad_topic: Map<String, Value> =
             serde_json::from_value(json!({ "topic": "colour" })).unwrap();
-        assert!(guide(&bad_topic).is_err());
+        assert!(guide(&bad_topic, &design).is_err());
         let route = ROUTES.iter().find(|r| r.tool == "drawing_guide").unwrap();
         assert_eq!((route.scope, route.read_only), (Scope::Guide, true));
+    }
+
+    /// The person's detail level and style reach the agent through the guide: the
+    /// drawing manual ends with the effective guidance, and a different choice
+    /// gives different text.
+    #[test]
+    fn the_guide_carries_the_effective_detail_and_style() {
+        let none: Map<String, Value> = Map::new();
+        let standard = guide(
+            &none,
+            &style::brief(&style::resolve(None, None, None, None)),
+        )
+        .unwrap();
+        let text = standard["text"].as_str().unwrap();
+        assert!(text.contains("## Detail level and style for this canvas"));
+        assert!(text.contains(style::detail("standard").unwrap().guidance));
+        assert!(text.contains(style::style("blueprint").unwrap().guidance));
+        assert_eq!(standard["design"]["detail"], "standard");
+
+        let picked = style::brief(&style::resolve(
+            None,
+            None,
+            Some("sparse"),
+            Some("whiteboard"),
+        ));
+        let sketch = guide(&none, &picked).unwrap();
+        let text = sketch["text"].as_str().unwrap();
+        assert!(text.contains(style::detail("sparse").unwrap().guidance));
+        assert!(text.contains(style::style("whiteboard").unwrap().guidance));
+        assert!(!text.contains(style::detail("standard").unwrap().guidance));
+        assert_eq!(sketch["design"]["style"], "whiteboard");
+
+        let args: Map<String, Value> = serde_json::from_value(json!({ "topic": "style" })).unwrap();
+        let catalog = guide(&args, &picked).unwrap();
+        let text = catalog["text"].as_str().unwrap();
+        for d in style::DETAIL_LEVELS {
+            assert!(text.contains(d.guidance));
+        }
+    }
+
+    /// A style that names a colour the layout does not have would tell agents to
+    /// draw in a colour that comes out as ink.
+    #[test]
+    fn every_style_palette_name_is_a_palette_name() {
+        for s in style::STYLES {
+            for (role, name) in s.palette {
+                assert!(PALETTE.contains(name), "{}: `{name}` ({role})", s.id);
+            }
+        }
     }
 
     /// The schema's palette is the layout's: a name missing here is refused by a

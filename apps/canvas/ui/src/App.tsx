@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { reportPainted, session } from "@openkaava/bridge";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { AlertTriangle, ChevronRight, FilePlus2, Lock, SquareDashed } from "lucide-react";
+import { AlertTriangle, ChevronRight, FilePlus2, Lock, Palette, SquareDashed } from "lucide-react";
 import { SendButton, SendFooter } from "../../../shared/SendFooter";
 import {
   dragContext,
@@ -17,6 +17,7 @@ import TypesPanel from "./TypesPanel";
 import TypeIcon from "./TypeIcon";
 import Sidebar, { type SideTab } from "./Sidebar";
 import CommentsPanel, { type CommentTarget } from "./CommentsPanel";
+import { activeHighlights, type Highlight } from "./commentHighlight";
 import { setEditorHooks } from "./agentBridge";
 import {
   framesIn,
@@ -48,6 +49,7 @@ import {
   listRefs,
   listTypes,
   messageOf,
+  openCanvasSettings,
   readCanvas,
   saveType,
   setParent,
@@ -68,6 +70,8 @@ import { signature, slugify, toSaved, uniqueId, type SceneElement, type SceneFil
 import "./App.css";
 
 // The editor is the bulk of this app's weight; load it only once a canvas is open.
+const NO_HIGHLIGHTS: Highlight[] = [];
+
 const Editor = lazy(() => import("./Editor"));
 
 type View = "canvas" | "assets";
@@ -194,6 +198,7 @@ export default function App() {
   const [commentsKey, setCommentsKey] = useState(0);
   const [commentTarget, setCommentTarget] = useState<CommentTarget | null>(null);
   const [targetError, setTargetError] = useState<string | null>(null);
+  const [hoveredComment, setHoveredComment] = useState<CanvasComment | null>(null);
   /** The area picker: null when off, else the drag so far in stage pixels. */
   const [picking, setPicking] = useState<
     { from: [number, number]; to: [number, number] } | "idle" | null
@@ -826,6 +831,26 @@ export default function App() {
     [reveal],
   );
 
+  // Only on the Comments tab: elsewhere the draft and hover are not on screen to explain.
+  const highlights = useMemo(
+    () =>
+      side.tab !== "comments"
+        ? NO_HIGHLIGHTS
+        : activeHighlights(
+            commentTarget,
+            hoveredComment
+              ? {
+                  id: hoveredComment.id,
+                  status: hoveredComment.status,
+                  spec: hoveredComment.region
+                    ? { frameId: hoveredComment.frameId, region: hoveredComment.region }
+                    : { frameId: hoveredComment.frameId, elementIds: hoveredComment.elementIds },
+                }
+              : null,
+          ),
+    [side.tab, commentTarget, hoveredComment],
+  );
+
   const flushNow = useCallback(async () => {
     await saverRef.current?.flush();
   }, []);
@@ -994,6 +1019,14 @@ export default function App() {
         >
           <FilePlus2 size={14} aria-hidden /> New canvas
         </button>
+        <button
+          type="button"
+          className="k-btn k-btn--ghost k-btn--sm"
+          onClick={() => void openCanvasSettings().catch(() => undefined)}
+          title="Detail level and drawing style for agents (opens Settings)"
+        >
+          <Palette size={14} aria-hidden /> Drawing style
+        </button>
         {doc && <code className="cv__path">{doc.path}</code>}
         <span className="cv__spacer" />
         {readOnly ? (
@@ -1133,6 +1166,7 @@ export default function App() {
                 onOpenChild={(id) => void openChild(id)}
                 titleOf={titleOf}
                 onOpenDiagram={openDiagram}
+                highlights={highlights}
               />
             </Suspense>
           ) : (
@@ -1228,6 +1262,7 @@ export default function App() {
                 frameTitle={frameTitle}
                 flush={flushNow}
                 onShow={showComment}
+                onHover={setHoveredComment}
                 onCounts={setOpenComments}
               />
             )}

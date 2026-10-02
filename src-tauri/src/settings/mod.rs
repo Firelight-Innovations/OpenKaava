@@ -499,6 +499,11 @@ pub fn app_set(app: &AppHandle, params: Option<&Value>) -> Result<Value, kaava_r
     Ok(stored)
 }
 
+/// The ids of the shell's own sections, for anything that names a section.
+pub fn shell_group_ids() -> impl Iterator<Item = &'static str> {
+    schema::groups().iter().map(|g| g.id)
+}
+
 /// A toggle's current value, for the Rust that acts on it.
 pub fn flag(app: &AppHandle, key: &str) -> bool {
     app.state::<Registry>()

@@ -45,6 +45,59 @@ export const TEXT_SIZE: Record<TextSize, number> = {
 /** Excalidraw's "Normal" font (Nunito): clean, measured, not hand-drawn. */
 export const FONT_FAMILY = 6;
 
+/**
+ * How shapes are drawn: the renderable half of a style (`apps/canvas/style.rs`,
+ * `render_params`). Rust sends it with every `add_shapes`, resolved from the
+ * canvas's override and the settings, so the layout never decides it.
+ */
+export interface RenderStyle {
+  style?: string;
+  /** Excalidraw roughness: 0 clean, 1 slightly drawn, 2 sketched. */
+  roughness: number;
+  fillStyle: "solid" | "hachure" | "cross-hatch";
+  /** Stroke width for a shape that does not set its own. */
+  strokeWidth: number;
+  /** Excalidraw's font family id. */
+  fontFamily: number;
+  /** The face's CSS name, which text is measured in. */
+  fontName: string;
+  /** Rectangles are rounded unless the shape says otherwise. */
+  rounded: boolean;
+}
+
+/** The blueprint look: what every canvas was drawn with before styles existed. */
+export const DEFAULT_RENDER: RenderStyle = {
+  style: "blueprint",
+  roughness: 0,
+  fillStyle: "solid",
+  strokeWidth: 2,
+  fontFamily: FONT_FAMILY,
+  fontName: "Nunito",
+  rounded: true,
+};
+
+// Module state rather than a parameter on every builder: the layout is one
+// synchronous pass, and threading a style through `shape`, `text`, `linear` and
+// every call site in it would touch each of them for one setting that never
+// changes mid-pass. `withRender` is the only writer and always restores it.
+let current: RenderStyle = DEFAULT_RENDER;
+
+/** The style the elements being built right now are drawn in. */
+export function currentRender(): RenderStyle {
+  return current;
+}
+
+/** Run `fn` with `render` (over the blueprint defaults) as the drawing style. */
+export function withRender<T>(render: Partial<RenderStyle> | undefined, fn: () => T): T {
+  const before = current;
+  current = { ...DEFAULT_RENDER, ...render };
+  try {
+    return fn();
+  } finally {
+    current = before;
+  }
+}
+
 /** Nunito's line height as Excalidraw sets it. */
 export const LINE_HEIGHT = 1.35;
 
@@ -92,10 +145,10 @@ function base(type: string, b: Base): Element {
     angle: 0,
     strokeColor: b.stroke ?? PALETTE.ink.stroke,
     backgroundColor: b.fill ?? TRANSPARENT,
-    fillStyle: "solid",
-    strokeWidth: b.strokeWidth ?? 2,
+    fillStyle: current.fillStyle,
+    strokeWidth: b.strokeWidth ?? current.strokeWidth,
     strokeStyle: b.dashed ? "dashed" : "solid",
-    roughness: 0,
+    roughness: current.roughness,
     opacity: 100,
     groupIds: [],
     frameId: b.frameId,
@@ -117,7 +170,7 @@ export function shape(
   b: Base & { rounded?: boolean },
 ): Element {
   const el = base(type, b);
-  if (type === "rectangle" && b.rounded !== false) el.roundness = { type: 3 };
+  if (type === "rectangle" && (b.rounded ?? current.rounded)) el.roundness = { type: 3 };
   if (type === "diamond") el.roundness = { type: 2 };
   return el;
 }
@@ -138,7 +191,7 @@ export function text(t: TextOptions): Element {
     text: t.text,
     originalText: t.text,
     fontSize: t.fontSize,
-    fontFamily: FONT_FAMILY,
+    fontFamily: current.fontFamily,
     textAlign: t.align ?? "left",
     verticalAlign: t.verticalAlign ?? "top",
     containerId: t.containerId ?? null,
@@ -195,6 +248,8 @@ export function frame(b: {
 }): Element {
   const el = base("frame", { ...b, frameId: null, strokeWidth: 2 });
   el.strokeColor = PALETTE.ink.stroke;
+  // A frame is the page, not a drawing on it: it stays crisp in every style.
+  el.roughness = 0;
   el.boundElements = null;
   const custom = (b.previous?.customData as Record<string, unknown> | undefined) ?? {};
   const kaava = (custom.kaava as Record<string, unknown> | undefined) ?? {};

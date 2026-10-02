@@ -20,6 +20,31 @@ from the diagrams alone. Text labels the picture and does not replace it.
   and the distance.
 - Put a sentence of prose only where no picture can carry the idea, and keep it short.
 
+## Detail level and style
+
+How much to draw, and how it should look, is the person's choice, made in Settings, Canvas
+(and overridable per canvas). `drawing_guide` ends with the guidance for the level and style in
+force, so read it to the end; `{"topic": "style"}` lists every option, and `canvas/design-brief`
+answers for one canvas and says where each choice came from.
+
+| Detail | Panels per frame | Required |
+|---|---|---|
+| `sparse` | 1 to 2 | Nothing beyond labelled shapes. No tables or scales. |
+| `standard` (default) | 2 to 4 | Real numbers with units, a scale on geometry, a table or a worked example. |
+| `dense` | 4 to 6 | Several tables, worked examples with the arithmetic, edge cases, ranges. |
+
+| Style | Look |
+|---|---|
+| `blueprint` (default) | Thin outlines, muted fills, colour-coded categories, panel titles in caps. |
+| `whiteboard` | Hand-drawn strokes, hatched fills, marker colours. |
+| `minimal` | Slide-like: white space, one accent colour, no fills. |
+| `explainer` | Bold strokes, a colour per concept, filled boxes, numbered steps. |
+
+The style's stroke, roughness, fill pattern and font are applied by `add_shapes` itself; you do
+not set them per shape. What the guidance asks of you is what to choose: which palette names,
+how much to fill, how to word labels. Follow the person's choice over your own taste, and use
+`canvas/set-design` only when they ask.
+
 ## Diagrams are named frames
 
 Every diagram is an Excalidraw frame with a stable id. `canvas/add-shapes` creates it, or you can
@@ -83,8 +108,9 @@ filled. A `fill` on an arrow or on a two-point line does nothing and is warned a
 
 ## Fonts and sizes
 
-There is one font: Nunito, the editor's "Normal" face. `canvas/add-shapes` measures every label
-with it before placing anything. There are four sizes, and nothing smaller than 14 px reads at 1x.
+The font comes from the style: Nunito for `blueprint`, the editor's "Normal" face, and a different
+face for each of the others. `canvas/add-shapes` measures every label in it before placing
+anything. There are four sizes, and nothing smaller than 14 px reads at 1x.
 
 | Size | px | Use |
 |---|---|---|

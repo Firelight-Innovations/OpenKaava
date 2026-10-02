@@ -14,7 +14,13 @@ import {
   convertToExcalidrawElements,
 } from "@excalidraw/excalidraw";
 import "./assetPath";
-import { text as textElement, type Element } from "./draw";
+import {
+  currentRender,
+  text as textElement,
+  withRender,
+  type Element,
+  type RenderStyle,
+} from "./draw";
 import { addShapes, indexSpec, type AddShapesSpec, type FrameSpec, type LineWidth } from "./layout";
 
 export interface RenderRequest {
@@ -31,34 +37,42 @@ export interface RenderRequest {
 
 const live = (els: readonly Element[]) => els.filter((e) => !e.isDeleted);
 
-let fontsReady: Promise<void> | null = null;
+const fontsReady = new Map<number, Promise<void>>();
 
 /**
- * Make sure Nunito is loaded before anything is measured. Rendering a
- * one-word scene through `exportToCanvas` is what loads it: Excalidraw
- * registers its font faces and waits for them there, so measuring afterwards
- * uses exactly the font the renderer draws with.
+ * Make sure a font is loaded before anything is measured in it (Nunito unless a
+ * style says otherwise). Rendering a one-word scene through `exportToCanvas` is
+ * what loads it: Excalidraw registers its font faces and waits for them there,
+ * so measuring afterwards uses exactly the font the renderer draws with. Cached
+ * per family, since each style brings its own.
  */
-function loadFonts(): Promise<void> {
-  fontsReady ??= (async () => {
-    const probe = textElement({
-      id: "font-probe",
-      x: 0,
-      y: 0,
-      width: 10,
-      height: 10,
-      frameId: null,
-      text: "Probe",
-      fontSize: 16,
-    });
-    await exportToCanvas({
-      elements: restoreElements([probe] as never, null) as never,
-      files: null,
-      appState: { exportBackground: false },
-    });
-    await document.fonts.ready;
-  })();
-  return fontsReady;
+function loadFonts(render?: Partial<RenderStyle>): Promise<void> {
+  const family = render?.fontFamily ?? 6;
+  let ready = fontsReady.get(family);
+  if (!ready) {
+    ready = (async () => {
+      const probe = withRender(render, () =>
+        textElement({
+          id: "font-probe",
+          x: 0,
+          y: 0,
+          width: 10,
+          height: 10,
+          frameId: null,
+          text: "Probe",
+          fontSize: 16,
+        }),
+      );
+      await exportToCanvas({
+        elements: restoreElements([probe] as never, null) as never,
+        files: null,
+        appState: { exportBackground: false },
+      });
+      await document.fonts.ready;
+    })();
+    fontsReady.set(family, ready);
+  }
+  return ready;
 }
 
 let context: CanvasRenderingContext2D | null = null;
@@ -67,7 +81,7 @@ let context: CanvasRenderingContext2D | null = null;
 export const lineWidth: LineWidth = (line, fontSize) => {
   context ??= document.createElement("canvas").getContext("2d");
   if (!context) return line.length * fontSize * 0.6;
-  context.font = `${fontSize}px Nunito, Segoe UI Emoji`;
+  context.font = `${fontSize}px ${currentRender().fontName}, Nunito, Segoe UI Emoji`;
   return context.measureText(line).width;
 };
 
@@ -132,7 +146,14 @@ interface AuthorRequest {
     kaava?: { values?: Record<string, unknown> };
     files?: Record<string, { kaavaRef?: string }>;
   };
-  spec: AddShapesSpec & { index?: boolean; title?: string; x?: number; y?: number };
+  spec: AddShapesSpec & {
+    index?: boolean;
+    title?: string;
+    x?: number;
+    y?: number;
+    /** The drawing style in force, resolved by Rust from the canvas and Settings. */
+    render?: Partial<RenderStyle>;
+  };
 }
 
 /** Fill in whatever a newer Excalidraw expects, keeping our sizes. */
@@ -144,25 +165,31 @@ function normalise(elements: Element[]): Element[] {
 }
 
 export async function addShapesOp(req: AuthorRequest) {
-  await loadFonts();
+  const render = req.spec.render;
+  await loadFonts(render);
   const elements = req.scene.elements ?? [];
-  const spec = req.spec.index
-    ? indexSpec(
-        elements,
-        lineWidth,
-        req.spec.title,
-        req.spec.x !== undefined && req.spec.y !== undefined
-          ? { x: req.spec.x, y: req.spec.y }
-          : undefined,
-      )
-    : req.spec;
-  const result = addShapes(
-    elements,
-    spec,
-    lineWidth,
-    req.scene.kaava?.values ?? {},
-    req.scene.files ?? {},
-  );
+  // Measured and built inside the style, so text is measured in the face it is
+  // drawn in and every element gets that style's stroke, fill and roughness.
+  const { spec, result } = withRender(render, () => {
+    const spec = req.spec.index
+      ? indexSpec(
+          elements,
+          lineWidth,
+          req.spec.title,
+          req.spec.x !== undefined && req.spec.y !== undefined
+            ? { x: req.spec.x, y: req.spec.y }
+            : undefined,
+        )
+      : req.spec;
+    const result = addShapes(
+      elements,
+      spec,
+      lineWidth,
+      req.scene.kaava?.values ?? {},
+      req.scene.files ?? {},
+    );
+    return { spec, result };
+  });
   return {
     elements: normalise(result.elements),
     ids: result.ids,

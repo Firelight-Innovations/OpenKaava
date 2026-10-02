@@ -14,6 +14,7 @@ use super::comments::{self, Region};
 use super::diagrams::{self, Bounds, Diagram};
 use super::store;
 use super::subcanvas;
+use super::style;
 use super::webview::Webview;
 use super::{bad, file_for, load, mtime_at, relative, stamp, validate_id, write_file};
 use kaava_rpc::{RpcError, INVALID_PARAMS};
@@ -385,6 +386,10 @@ pub fn author(
     if let Some(obj) = spec.as_object_mut() {
         obj.remove("id");
         obj.remove("actor");
+        // How this canvas is drawn is not the agent's call: the person's choice
+        // (or the canvas's own override) goes to the renderer whatever it sent.
+        let e = effective_design(&scene, web);
+        obj.insert("render".into(), style::render_params(e.style));
     }
     // The layout needs each image's `kaavaRef` to place `{type: image, ref}`,
     // and never its bytes, so an inline `dataURL` stays behind.
@@ -427,6 +432,53 @@ pub fn author(
         "elementCount": live_count(&scene),
         "hint": "view-diagram the frame to check the result; restore-checkpoint undoes this edit",
     }))
+}
+
+/// The detail level and style in force for `scene`: its own override, else the
+/// settings, else the defaults.
+fn effective_design(scene: &Value, web: &dyn Webview) -> style::Effective {
+    let (detail, look) = style::override_of(scene);
+    style::resolve(
+        detail.as_deref(),
+        look.as_deref(),
+        web.setting(style::KEY_DETAIL).as_deref(),
+        web.setting(style::KEY_STYLE).as_deref(),
+    )
+}
+
+/// `canvas/design-brief`: the detail level and style in force for one canvas,
+/// where each came from, the render parameters and the prose to follow.
+pub fn design_brief(
+    root: &Path,
+    web: &dyn Webview,
+    params: Option<&Value>,
+) -> Result<Value, RpcError> {
+    let p = params_of(params);
+    actor(p)?;
+    let (id, scene, _) = open(root, p)?;
+    let mut out = style::brief(&effective_design(&scene, web));
+    out["canvas"] = json!(id);
+    Ok(out)
+}
+
+/// `canvas/set-design`: give one canvas its own level and/or style, or clear
+/// the override (`null` or `"default"`) so it follows the settings again.
+pub fn set_design(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
+    let p = params_of(params);
+    let who = actor(p)?;
+    let (id, mut scene, base) = open(root, p)?;
+    let detail = style::parse_choice(p, "detail", |s| style::detail(s).is_some()).map_err(bad)?;
+    let look = style::parse_choice(p, "style", |s| style::style(s).is_some()).map_err(bad)?;
+    if detail.is_none() && look.is_none() {
+        return Err(bad(
+            "give `detail` and/or `style` (null clears the override)",
+        ));
+    }
+    style::store_choice(&mut scene, "detail", detail);
+    style::store_choice(&mut scene, "style", look);
+    let mtime = save_scene(root, &id, scene.clone(), base, who)?;
+    let (detail, look) = style::override_of(&scene);
+    Ok(json!({ "canvas": id, "override": { "detail": detail, "style": look }, "mtime": mtime }))
 }
 
 fn merge_values(scene: &mut Value, incoming: &Map<String, Value>) {
@@ -678,9 +730,18 @@ mod tests {
     #[derive(Default)]
     struct Fake {
         calls: RefCell<Vec<(String, Value)>>,
+        /// What the settings registry would answer, as `(key, value)`.
+        settings: Vec<(&'static str, &'static str)>,
     }
 
     impl Webview for Fake {
+        fn setting(&self, key: &str) -> Option<String> {
+            self.settings
+                .iter()
+                .find(|(k, _)| *k == key)
+                .map(|(_, v)| (*v).to_string())
+        }
+
         fn run(&self, op: &str, payload: &Value, canvas: Option<&str>) -> Result<Value, RpcError> {
             self.calls
                 .borrow_mut()
@@ -1155,6 +1216,123 @@ mod tests {
         )
         .unwrap_err();
         assert!(err.message.contains("ghost"));
+    }
+
+    fn draw_params() -> Value {
+        json!({ "id": "game", "actor": "agent",
+                "frame": { "id": "x", "title": "X" }, "shapes": [] })
+    }
+
+    /// The renderer is told the style in force, so a sketch is drawn sketchily.
+    #[test]
+    fn add_shapes_hands_the_renderer_the_style_from_settings() {
+        let dir = setup();
+        let fake = Fake {
+            settings: vec![("canvas.style", "whiteboard")],
+            ..Fake::default()
+        };
+        run(&dir, &fake, "canvas/add-shapes", draw_params()).unwrap();
+        let calls = fake.calls.borrow();
+        let render = &calls[0].1["spec"]["render"];
+        assert_eq!(render["style"], "whiteboard");
+        assert_eq!(render["roughness"], 2);
+        assert_eq!(render["fillStyle"], "hachure");
+        assert_eq!(render["fontName"], "Excalifont");
+    }
+
+    #[test]
+    fn with_no_setting_and_no_override_add_shapes_draws_the_blueprint() {
+        let dir = setup();
+        let fake = Fake::default();
+        run(&dir, &fake, "canvas/add-shapes", draw_params()).unwrap();
+        let render = fake.calls.borrow()[0].1["spec"]["render"].clone();
+        assert_eq!(render["style"], "blueprint");
+        assert_eq!(render["roughness"], 0);
+        assert_eq!(render["fontName"], "Nunito");
+    }
+
+    /// An agent may not pick its own render parameters by sending them.
+    #[test]
+    fn an_agent_cannot_override_the_render_style_in_the_call() {
+        let dir = setup();
+        let fake = Fake::default();
+        let mut params = draw_params();
+        params["render"] = json!({ "roughness": 9, "style": "mine" });
+        run(&dir, &fake, "canvas/add-shapes", params).unwrap();
+        assert_eq!(
+            fake.calls.borrow()[0].1["spec"]["render"]["style"],
+            "blueprint"
+        );
+    }
+
+    #[test]
+    fn a_canvas_override_wins_over_settings_and_can_be_cleared() {
+        let dir = setup();
+        let fake = Fake {
+            settings: vec![
+                ("canvas.detailLevel", "sparse"),
+                ("canvas.style", "minimal"),
+            ],
+            ..Fake::default()
+        };
+        let brief = |fake: &Fake| {
+            run(
+                &dir,
+                fake,
+                "canvas/design-brief",
+                json!({ "id": "game", "actor": "agent" }),
+            )
+            .unwrap()
+        };
+        let before = brief(&fake);
+        assert_eq!(before["detail"]["id"], "sparse");
+        assert_eq!(before["detail"]["from"], "settings");
+        assert_eq!(before["style"]["id"], "minimal");
+
+        let set = run(
+            &dir,
+            &fake,
+            "canvas/set-design",
+            json!({ "id": "game", "actor": "agent", "detail": "dense", "style": "explainer" }),
+        )
+        .unwrap();
+        assert_eq!(set["override"]["detail"], "dense");
+        let after = brief(&fake);
+        assert_eq!(after["detail"]["id"], "dense");
+        assert_eq!(after["detail"]["from"], "this canvas");
+        assert_eq!(after["style"]["id"], "explainer");
+        assert!(after["text"].as_str().unwrap().contains("4 to 6 panels"));
+
+        // The override is in the file, and add_shapes draws with it.
+        run(&dir, &fake, "canvas/add-shapes", draw_params()).unwrap();
+        let calls = fake.calls.borrow();
+        assert_eq!(calls[0].1["spec"]["render"]["style"], "explainer");
+        assert_eq!(calls[0].1["spec"]["render"]["strokeWidth"], 3);
+        drop(calls);
+
+        run(
+            &dir,
+            &fake,
+            "canvas/set-design",
+            json!({ "id": "game", "actor": "agent", "detail": null, "style": "default" }),
+        )
+        .unwrap();
+        let cleared = brief(&fake);
+        assert_eq!(cleared["detail"]["id"], "sparse");
+        assert_eq!(cleared["style"]["from"], "settings");
+    }
+
+    #[test]
+    fn set_design_refuses_an_unknown_choice_and_an_empty_call() {
+        let dir = setup();
+        let fake = Fake::default();
+        for params in [
+            json!({ "id": "game", "actor": "agent", "detail": "huge" }),
+            json!({ "id": "game", "actor": "agent", "style": "neon" }),
+            json!({ "id": "game", "actor": "agent" }),
+        ] {
+            assert!(run(&dir, &fake, "canvas/set-design", params).is_err());
+        }
     }
 
     #[test]

@@ -30,6 +30,8 @@ mod methods;
 mod objects;
 /// Reference images, checkpoints and views on disk.
 mod store;
+/// Detail levels and visual styles for what an agent draws.
+pub mod style;
 /// Heavy frames split into child canvases, and the pictures drawn of them.
 mod subcanvas;
 /// Object types: the built-ins and the project's own.
@@ -47,6 +49,85 @@ use serde::Deserialize;
 use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
+
+/// The Canvas app's settings section: how much an agent draws and how it looks.
+/// Both are read when an agent asks for the guide or draws, so a change reaches
+/// the next `add_shapes` and `drawing_guide` call.
+pub static SETTINGS: crate::settings::Group = crate::settings::Group {
+    id: "canvas",
+    title: "Canvas",
+    description: "How agents draw design diagrams on the canvas.",
+    order: 101,
+    settings: SETTINGS_ROWS,
+};
+
+static DETAIL_OPTIONS: &[crate::settings::SelectOption] = &[
+    crate::settings::SelectOption {
+        value: "sparse",
+        label: "Sparse",
+        description: "One idea per frame: 1 to 2 panels, a few labelled shapes, no tables.",
+    },
+    crate::settings::SelectOption {
+        value: "standard",
+        label: "Standard",
+        description: "2 to 4 panels per frame with real numbers and units, tables or worked                       examples, and diagrams drawn to a stated scale.",
+    },
+    crate::settings::SelectOption {
+        value: "dense",
+        label: "Dense",
+        description: "A build spec: 4 to 6 panels, several tables, worked examples with the                       arithmetic, edge cases and ranges.",
+    },
+];
+
+static STYLE_OPTIONS: &[crate::settings::SelectOption] = &[
+    crate::settings::SelectOption {
+        value: "blueprint",
+        label: "Technical blueprint",
+        description: "Thin outlines, muted fills, colour-coded categories, panel titles in caps.",
+    },
+    crate::settings::SelectOption {
+        value: "whiteboard",
+        label: "Whiteboard sketch",
+        description: "Hand-drawn strokes and hatching in marker colours.",
+    },
+    crate::settings::SelectOption {
+        value: "minimal",
+        label: "Clean presentation",
+        description: "Slide-like: white space, one accent colour, no fills.",
+    },
+    crate::settings::SelectOption {
+        value: "explainer",
+        label: "Colourful explainer",
+        description: "Bold strokes, a colour per concept, filled boxes, numbered steps.",
+    },
+];
+
+static SETTINGS_ROWS: &[crate::settings::Setting] = &[
+    crate::settings::Setting {
+        key: style::KEY_DETAIL,
+        title: "Level of detail",
+        description: "How much an agent puts in each frame. A canvas can override this with                       `canvas/set-design`.",
+        control: crate::settings::Control::Select {
+            default: style::DEFAULT_DETAIL,
+            options: DETAIL_OPTIONS,
+        },
+        applies: crate::settings::Applies::Next {
+            what: "diagram an agent draws",
+        },
+    },
+    crate::settings::Setting {
+        key: style::KEY_STYLE,
+        title: "Drawing style",
+        description: "Palette, stroke, fill and font agents draw with. Frames already drawn                       keep the style they were drawn in.",
+        control: crate::settings::Control::Select {
+            default: style::DEFAULT_STYLE,
+            options: STYLE_OPTIONS,
+        },
+        applies: crate::settings::Applies::Next {
+            what: "diagram an agent draws",
+        },
+    },
+];
 
 /// The folder canvases live in, relative to the environment root.
 pub const DIR: &str = "canvas";
@@ -99,6 +180,8 @@ pub fn call_with(
         "canvas/describe-diagram" => methods::describe_diagram(&root(context)?, p),
         "canvas/view-diagram" => methods::view_diagram(&root(context)?, web, p),
         "canvas/save" => methods::save(&root(context)?, web, p),
+        "canvas/design-brief" => methods::design_brief(&root(context)?, web, p),
+        "canvas/set-design" => methods::set_design(&root(context)?, p),
         "canvas/add-shapes" => methods::author(&root(context)?, web, p, "addShapes"),
         "canvas/import-mermaid" => methods::author(&root(context)?, web, p, "mermaid"),
         "canvas/coverage" => methods::coverage(&root(context)?, p),
