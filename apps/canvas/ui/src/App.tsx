@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { reportPainted } from "@openkaava/bridge";
+import { reportPainted, session } from "@openkaava/bridge";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { AlertTriangle, ChevronRight, FilePlus2, Lock, SquareDashed } from "lucide-react";
 import { SendButton, SendFooter } from "../../../shared/SendFooter";
@@ -101,17 +101,29 @@ function writeSide(side: { tab: SideTab; collapsed: boolean }): void {
   }
 }
 
-/** Best-effort: private windows and blocked storage throw. */
-function readLast(): string | null {
+/**
+ * The canvas this pane instance last had open, keyed by the instance's own id.
+ *
+ * The key has to be per instance: every Canvas frame shares one origin and so
+ * one `localStorage`, and a cluster switch unmounts the frame and loads it
+ * afresh, so a single global key held whichever canvas was opened last in any
+ * pane. The value is a canvas id, which is a path-like id and so names a child
+ * canvas as readily as a root. Best-effort: private windows and blocked storage
+ * throw.
+ */
+function lastKey(instanceId: string | null): string {
+  return instanceId ? `${LAST_KEY}.${instanceId}` : LAST_KEY;
+}
+function readLast(instanceId: string | null): string | null {
   try {
-    return localStorage.getItem(LAST_KEY);
+    return localStorage.getItem(lastKey(instanceId));
   } catch {
     return null;
   }
 }
-function writeLast(id: string): void {
+function writeLast(instanceId: string | null, id: string): void {
   try {
-    localStorage.setItem(LAST_KEY, id);
+    localStorage.setItem(lastKey(instanceId), id);
   } catch {
     // Remembering the last canvas is a convenience.
   }
@@ -143,6 +155,7 @@ const STATUS_TEXT: Record<SaveState, string> = {
 
 export default function App() {
   const theme = useTheme();
+  const instanceRef = useRef<string | null>(null);
   const [state, setState] = useState<CanvasState | null>(null);
   const [list, setList] = useState<CanvasSummary[] | null>(null);
   const [current, setCurrent] = useState<string | null>(null);
@@ -219,6 +232,11 @@ export default function App() {
   useEffect(() => {
     void (async () => {
       try {
+        instanceRef.current = (await session()).instanceId ?? null;
+      } catch {
+        // No handshake: fall back to the shared key.
+      }
+      try {
         setState(await getState());
       } catch (err) {
         setLoadError({ message: messageOf(err), corrupt: false });
@@ -226,7 +244,7 @@ export default function App() {
       void loadTypes();
       const rows = await refreshList();
       if (rows && rows.length > 0) {
-        const remembered = readLast();
+        const remembered = readLast(instanceRef.current);
         const pick =
           rows.find((r) => r.id === remembered && !r.error) ??
           rows.find((r) => !r.parent && !r.error) ??
@@ -267,7 +285,7 @@ export default function App() {
       setSelectedN(0);
       setNotice(null);
       setLoadKey((k) => k + 1);
-      writeLast(id);
+      writeLast(instanceRef.current, id);
     } catch (err) {
       setDoc(null);
       setLoadError({ message: messageOf(err), corrupt: isCorrupt(err) });

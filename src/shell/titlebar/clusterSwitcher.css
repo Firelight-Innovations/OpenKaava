@@ -248,13 +248,3 @@
   flex: 1;
   min-width: 0;
 }
-
-.clusterswitch__hint {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-top: 1px solid var(--line);
-  font-size: 11px;
-  color: var(--txt-placeholder);
-}

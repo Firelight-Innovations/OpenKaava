@@ -15,6 +15,13 @@
 export interface Session {
   /** Root of the open project. Null until projects exist. */
   projectPath: string | null;
+  /**
+   * This frame's own instance id: stable across cluster switches (which unmount
+   * the frame and reload it) and across restarts. It is a key for the frame's
+   * own remembered state, never an identity claim; the shell resolves identity
+   * from `event.source`. Absent outside a shell.
+   */
+  instanceId?: string;
 }
 
 export interface KaavaErrorPayload {
