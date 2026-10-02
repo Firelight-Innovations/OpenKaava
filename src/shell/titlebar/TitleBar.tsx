@@ -1,14 +1,13 @@
 /**
- * The title bar — logo, six menus (or their hamburger collapse), the
- * environment summary, the centred project pill (which is the cluster
- * switcher), search and Review & merge,
- * and the three window controls.
+ * The title bar — logo, six menus (or their hamburger collapse), the centred
+ * project pill (which is the cluster switcher), search and the three window
+ * controls.
  *
  * Menu geometry is lifted from `docs/handoffs/shell-spec.html` (search
  * `>File<`); the pill is `docs/design/KAAVA-UX-SPEC.md` §1.2 / board 08. The
- * environment summary and the two actions used to be a bar of their own below
- * the cluster switcher (§1.4) and a box on the switcher's right; they live here
- * now so the panes get that height. `titlebar.css` owns the collapse order.
+ * environment summary (worktree kind, branch, ahead/behind, path) and Review &
+ * merge live in the status bar (`StatusBar`), so each git fact is drawn once.
+ * `titlebar.css` owns the collapse order.
  *
  * This component does not set the bar's height or background: `Frame` already
  * renders it into `.frame__titlebar`. Setting either here would be two owners
@@ -70,12 +69,7 @@ export interface TitleBarProps {
    * Save disables when nothing is dirty, the toggles say which way they will go.
    */
   menus: Menu[];
-  /**
-   * The environment summary (`EnvironmentBar`), drawn after the menus. Optional:
-   * omitted while no cluster is open.
-   */
-  environmentSlot?: ReactNode;
-  /** Search and Review & merge, right-aligned beside the window controls. */
+  /** Tool health and search, right-aligned beside the window controls. */
   actionsSlot?: ReactNode;
 }
 
@@ -88,7 +82,6 @@ export default function TitleBar({
   environmentCount,
   switcher,
   menus,
-  environmentSlot,
   actionsSlot,
 }: TitleBarProps) {
   const narrow = useNarrowTitlebar();
@@ -113,8 +106,6 @@ export default function TitleBar({
         </div>
 
         {narrow ? <HamburgerMenu menus={menus} /> : <MenuBar menus={menus} />}
-
-        {environmentSlot}
       </div>
 
       {/* Drawn while there is something to name or switch between: a project, or
