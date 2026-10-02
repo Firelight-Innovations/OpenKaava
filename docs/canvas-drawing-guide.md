@@ -3,6 +3,9 @@
 How to draw a design on an OpenKaava canvas, for people and for agents. The worked example is
 `docs/canvas-examples/flap-ball.json`, a small game designed in four diagrams plus an index.
 
+An agent that only has the `kaava-canvas` tools can read this page with `drawing_guide`
+(`{"topic": "drawing"}`). `{"topic": "frames"}` gives the frames-and-types manual.
+
 ## The rule: show, don't describe
 
 A canvas is a set of pictures. Someone who has never seen the thing should be able to rebuild it
@@ -64,6 +67,14 @@ palette can turn muddy or disappear in dark mode.
 `fill` takes a palette name for its light shade, `solid` for the stroke colour, or `none`. Keep
 fills light. A large solid fill hides the text around it.
 
+Any other `color` or `fill`, such as `brown` or `#8B5A2B`, is drawn in `ink`. The answer has a
+warning for each one, so read `warnings` after every call. There is no brown or yellow. Use
+`orange` for wood and earth.
+
+A `line` with three or more `points` takes a `fill` too. The line is closed into a polygon (the
+first point is added again at the end if it is missing), so a roof, a hill or a block face can be
+filled. A `fill` on an arrow or on a two-point line does nothing and is warned about.
+
 ## Fonts and sizes
 
 There is one font: Nunito, the editor's "Normal" face. `canvas/add-shapes` measures every label
@@ -81,7 +92,11 @@ with it before placing anything. There are four sizes, and nothing smaller than 
 - Everything snaps to a **10 px grid**.
 - A frame has **40 px** of padding. Its title and summary sit at the top, and shape coordinates
   are measured from just below them. So `{x: 0, y: 0}` is the top-left of the drawing area, not of
-  the frame.
+  the frame. With a title alone it is about 110 px below the frame's top. The answer gives it
+  exactly as `frame.origin`.
+- `frame.x` and `frame.y` are scene coordinates of the frame's top-left. Leave them out and a new
+  frame goes to the right of the others; a rebuilt one stays where it is.
+- Negative shape coordinates put a shape above or left of the frame. The answer warns about it.
 - Leave at least **20 px** between unrelated shapes and **40 px** between groups.
 - Boxes grow to fit their labels. Give a `width` only when size means something (to scale).
 - Text that lands on other text, or partly across a filled shape, is moved clear and reported in
@@ -114,6 +129,15 @@ with it before placing anything. There are four sizes, and nothing smaller than 
 - **Ids:** every element's id is `<diagram>:<shape>`, so `game-states:ready` here. The answer
   maps your ids to them. Rebuilding a frame (the default, `"replace": true`) gives the same ids,
   so a rebuild is a readable diff.
+- **One frame per call.** `frame.id` and `frame.title` are required. There are no loose shapes:
+  everything `add_shapes` draws is inside its frame.
+- **Replace removes everything in the frame.** That includes shapes drawn by hand or wrapped in by
+  `create_frame`. The answer names any it removed that it did not draw. Pass `"replace": false`
+  to add to a frame instead.
+- **`create_frame` is for wrapping shapes, not drawing.** It groups elements that are already on
+  the canvas. An element sits in one frame only, so it refuses elements that are inside another
+  frame and names that frame. `"move": true` takes them anyway and leaves a gap in the old frame.
+  To draw a new picture, call `add_shapes` with a new `frame.id`.
 - **Undo:** each call saves a checkpoint first. `canvas/restore-checkpoint` undoes it, and
   `canvas/checkpoints` lists the last five.
 - **Mermaid:** `canvas/import-mermaid` with `{"frame": {...}, "source": "stateDiagram-v2 …"}` is

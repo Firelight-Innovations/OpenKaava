@@ -69,7 +69,10 @@ export interface ShapeSpec {
   text?: string;
   size?: TextSize;
   color?: PaletteName;
-  /** A palette name to fill with its light shade, `solid` for the stroke colour, or `none`. */
+  /**
+   * A palette name to fill with its light shade, `solid` for the stroke colour, or
+   * `none`. On a line it needs 3 or more points, and closes them into a polygon.
+   */
   fill?: PaletteName | "solid" | "none";
   dashed?: boolean;
   strokeWidth?: number;
@@ -194,6 +197,27 @@ export function fillTemplate(template: string, values: Record<string, unknown>):
   });
 }
 
+const PALETTE_NAMES = Object.keys(PALETTE) as PaletteName[];
+const isPaletteName = (v: unknown): v is PaletteName =>
+  typeof v === "string" && (PALETTE_NAMES as string[]).indexOf(v) >= 0;
+
+/**
+ * Say so when `color` or `fill` is not a palette name. `colour()` draws an unknown
+ * name in ink, and the E2E run's agent asked for `brown` and `#8B5A2B`, got black
+ * and grey, and only noticed when it looked at the picture.
+ */
+function checkColours(s: ShapeSpec, warnings: string[]) {
+  const names = PALETTE_NAMES.join(", ");
+  if (s.color !== undefined && !isPaletteName(s.color))
+    warnings.push(
+      `\`${s.id}\`: color \`${String(s.color)}\` is not a palette name (${names}); drew it in ink`,
+    );
+  if (s.fill !== undefined && s.fill !== "solid" && s.fill !== "none" && !isPaletteName(s.fill))
+    warnings.push(
+      `\`${s.id}\`: fill \`${String(s.fill)}\` is not a palette name, \`solid\` or \`none\` (${names}); filled it with ink's shade`,
+    );
+}
+
 function fillOf(s: ShapeSpec): string {
   if (!s.fill || s.fill === "none") return TRANSPARENT;
   if (s.fill === "solid") return colour(s.color).stroke;
@@ -315,6 +339,26 @@ export function addShapes(
     : scene.filter((el) => el.frameId === realFrameId && survivors.has(el.id));
   for (const el of carried) survivors.delete(el.id);
 
+  // `replace` drops everything in the frame. What add_shapes drew comes back under
+  // the same ids; anything else (drawn by hand, or wrapped in by create_frame) does
+  // not, and an agent should hear about it.
+  const lost = replace
+    ? scene.filter(
+        (el) =>
+          el !== existing &&
+          !el.isDeleted &&
+          !survivors.has(el.id) &&
+          !String(el.id).startsWith(prefix),
+      )
+    : [];
+  if (lost.length) {
+    const shown = lost.slice(0, 5).map((el) => `\`${el.id}\``);
+    if (lost.length > 5) shown.push(`and ${lost.length - 5} more`);
+    warnings.push(
+      `replace removed ${lost.length} element(s) this diagram did not draw: ${shown.join(", ")}; pass replace: false to add to the frame instead`,
+    );
+  }
+
   // The header: title and summary, measured.
   const out: Element[] = [];
   const titleSize = TEXT_SIZE.title;
@@ -369,6 +413,7 @@ export function addShapes(
       );
     if (seen.has(s.id)) throw new Error(`shape id \`${s.id}\` is used twice`);
     seen.add(s.id);
+    checkColours(s, warnings);
     const id = `${prefix}${s.id}`;
     ids[s.id] = id;
     const stroke = colour(s.color).stroke;
@@ -541,6 +586,21 @@ export function addShapes(
       finish = end(s.to, a);
       abs = [start!.p, finish!.p];
     }
+    // A filled line is a polygon: Excalidraw fills a line whose last point is its
+    // first, and only then. Close the loop here so `fill` means what it says.
+    let fill = TRANSPARENT;
+    if (s.fill !== undefined && s.fill !== "none") {
+      if (s.type === "line" && abs.length >= 3) {
+        const first = abs[0]!;
+        const last = abs[abs.length - 1]!;
+        if (first[0] !== last[0] || first[1] !== last[1]) abs = [...abs, [first[0], first[1]]];
+        fill = fillOf(s);
+      } else {
+        warnings.push(
+          `\`${s.id}\`: fill applies only to a line with 3 or more points (a polygon); ignored it`,
+        );
+      }
+    }
     const [x0, y0] = abs[0]!;
     const binding = (e: { bindTo?: Element } | null): Binding | null =>
       e?.bindTo ? { elementId: e.bindTo.id, focus: 0, gap: ARROW_GAP } : null;
@@ -552,6 +612,7 @@ export function addShapes(
       height: Math.max(...abs.map((p) => p[1])) - Math.min(...abs.map((p) => p[1])),
       frameId: realFrameId,
       stroke: colour(s.color).stroke,
+      fill,
       dashed: s.dashed,
       strokeWidth: s.strokeWidth,
       points: abs.map(([x, y]) => [x - x0, y - y0] as Point),

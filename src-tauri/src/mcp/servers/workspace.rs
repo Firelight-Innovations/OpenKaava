@@ -46,7 +46,9 @@ pub const FOCUS_URI: &str = "kaava://workspace/focus";
 pub static RESOURCES: &[McpResource] = &[McpResource {
     uri: FOCUS_URI,
     name: "focus",
-    description: "Where the person is working right now: the same answer as the `focus` tool.                   Subscribe to be sent notifications/resources/updated when it changes, then                   read it again.",
+    description: "Where the person is working right now: the same answer as the `focus` tool. \
+                  Subscribe to be sent notifications/resources/updated when it changes, then \
+                  read it again.",
     mime_type: "application/json",
 }];
 

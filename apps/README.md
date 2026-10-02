@@ -270,8 +270,14 @@ after its parent (`levels` becomes `levels/ward-b`), sets `customData.kaava.chil
 `kaava.parent` in the child's file, and opens it. Double-clicking a frame that has a child opens
 it (the app takes that double-click before Excalidraw's own text edit does), and the breadcrumb
 in the header follows `parent` back up. A frame whose child file is missing says so and stays
-put. Unlinking only removes the frame's link; the child file is left alone. Linking a frame to an
-already existing canvas is not built: it would have to rewrite that canvas's `parent`.
+put. Unlinking only removes the frame's link; the child file is left alone. To link a frame to a
+canvas that already exists, agents call `canvas/link-frame` (the `link_frame` tool), which also
+rewrites that canvas's `parent`; `set-frame` cannot set the child, and says so.
+
+An agent driving the editor through `kaava-ui` should know that Excalidraw's properties island
+sits over the left edge of the canvas (about the first 195 px) while a shape is selected. A
+click or drag there lands on the island, not on the scene. Draw with `canvas/add-shapes`
+instead, or press Escape to clear the selection first.
 
 Spec cards (`customData.kaava.spec`, fields from `docs/cloud-services.md` section 4) are made
 by selecting any shape and filling in the inspector: name, size in metres, triangle budget,

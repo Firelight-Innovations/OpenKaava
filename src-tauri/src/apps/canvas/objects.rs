@@ -143,15 +143,22 @@ struct Read {
     legacy: Vec<frames::LegacyCard>,
 }
 
-fn read_canvas(root: &Path, id: &str) -> Result<Read, RpcError> {
+/// "There is no canvas `id`", unless there is.
+fn must_exist(root: &Path, id: &str) -> Result<(), RpcError> {
     let path = file_for(root, id);
-    if !path.is_file() {
-        return Err(RpcError::with_data(
-            kaava_rpc::INVALID_PARAMS,
-            format!("there is no canvas `{id}` ({})", relative(root, &path)),
-            json!({ "kind": "missing" }),
-        ));
+    if path.is_file() {
+        return Ok(());
     }
+    Err(RpcError::with_data(
+        kaava_rpc::INVALID_PARAMS,
+        format!("there is no canvas `{id}` ({})", relative(root, &path)),
+        json!({ "kind": "missing" }),
+    ))
+}
+
+fn read_canvas(root: &Path, id: &str) -> Result<Read, RpcError> {
+    must_exist(root, id)?;
+    let path = file_for(root, id);
     let mut scene = load(&path)?;
     let migration = frames::migrate(&mut scene);
     let title = scene
@@ -169,8 +176,21 @@ fn read_canvas(root: &Path, id: &str) -> Result<Read, RpcError> {
     })
 }
 
+/// Every canvas's children by `kaava.parent`, in file order.
+fn nested_children(root: &Path) -> HashMap<String, Vec<String>> {
+    let mut out: HashMap<String, Vec<String>> = HashMap::new();
+    for (id, _) in files(root) {
+        if let Some(parent) = parent_of(root, &id) {
+            out.entry(parent).or_default().push(id);
+        }
+    }
+    out
+}
+
 /// The canvases a listing covers, in order: the one asked for, plus its
-/// descendants by frame link when `recursive`; or every canvas in the project.
+/// descendants when `recursive` (both the canvases its frames link to and the ones
+/// whose `kaava.parent` names it, as `canvas/tree` shows them); or every canvas in
+/// the project.
 fn scope(
     root: &Path,
     only: Option<&str>,
@@ -187,6 +207,14 @@ fn scope(
             }
         }
         return (out, unreadable, problems);
+    };
+    // A canvas nested with `parent` and no frame link is still a descendant: the E2E
+    // run made `world-generation` with `create_canvas {parent}` and a recursive listing
+    // of its parent left it out.
+    let nested = if recursive {
+        nested_children(root)
+    } else {
+        HashMap::new()
     };
     let mut seen: HashSet<String> = HashSet::new();
     let mut queue = vec![(start.to_string(), 0usize)];
@@ -209,6 +237,9 @@ fn scope(
                                 ));
                             }
                         }
+                    }
+                    for child in nested.get(&id).into_iter().flatten() {
+                        queue.push((child.clone(), depth + 1));
                     }
                 }
                 out.push(r);
@@ -250,6 +281,11 @@ pub fn frames_list(root: &Path, params: Option<&Value>) -> Result<Value, RpcErro
     let p = params_of(params);
     actor(p)?;
     let only = optional_canvas(p, "canvas")?;
+    // A canvas that was named and does not exist is a mistake in the call, as it is for
+    // every other frame method, not an empty listing with a note in `problems`.
+    if let Some(id) = only.as_deref() {
+        must_exist(root, id)?;
+    }
     let (reads, unreadable, problems) = scope(root, only.as_deref(), flag(p, "recursive"));
     let (table, _) = types::all(root);
     let rows: Vec<Value> = reads
@@ -293,6 +329,9 @@ pub fn search_frames(root: &Path, params: Option<&Value>) -> Result<Value, RpcEr
         .and_then(Value::as_u64)
         .map_or(25, |n| n.clamp(1, 100) as usize);
     let only = optional_canvas(p, "canvas")?;
+    if let Some(id) = only.as_deref() {
+        must_exist(root, id)?;
+    }
     let (reads, _, _) = scope(root, only.as_deref(), false);
     let (table, _) = types::all(root);
     let mut hits: Vec<(u32, Value)> = Vec::new();
@@ -692,7 +731,8 @@ pub fn set_parent(root: &Path, params: Option<&Value>) -> Result<Value, RpcError
         Some(Value::String(s)) => Some(canvas_id(s)?),
         None => {
             return Err(bad(
-                "parent is required: a canvas id, or null to make `id` a root. Leaving it out                  does not mean null",
+                "parent is required: a canvas id, or null to make `id` a root. Leaving it out \
+                 does not mean null",
             ))
         }
         Some(_) => return Err(bad("parent must be a canvas id or null")),
@@ -753,6 +793,21 @@ fn opt_values(p: &Value) -> Result<Option<&Map<String, Value>>, RpcError> {
 /// Set the object on frame element `el`: switch to `type_id` (keeping every
 /// stored value, adding the new type's defaults) and merge `values`, each
 /// checked against its field. A `null` value unsets a field.
+/// Extra words for an error about `values.<key>` when the key is an attempt to
+/// set the frame's child canvas, which is a link and not a field.
+fn link_hint(key: &str) -> &'static str {
+    let k = key.to_ascii_lowercase();
+    if matches!(
+        k.as_str(),
+        "childcanvas" | "child" | "child_canvas" | "child-canvas"
+    ) {
+        ". A frame's child canvas is not a field: use `canvas/link-frame` (the link_frame tool) \
+         to point it at an existing canvas"
+    } else {
+        ""
+    }
+}
+
 fn apply_object(
     table: &[TypeDef],
     el: &mut Value,
@@ -772,10 +827,12 @@ fn apply_object(
         .cloned()
         .unwrap_or_default();
     let Some(type_id) = type_id.map(str::to_string).or(have_type) else {
-        if values.is_some_and(|v| !v.is_empty()) {
-            return Err(bad(
-                "this frame has no type yet; pass `type` along with `values`",
-            ));
+        if let Some(v) = values.filter(|v| !v.is_empty()) {
+            let hint = v.keys().map(|k| link_hint(k)).find(|h| !h.is_empty());
+            return Err(bad(format!(
+                "this frame has no type yet; pass `type` along with `values`{}",
+                hint.unwrap_or("")
+            )));
         }
         return Ok(());
     };
@@ -797,13 +854,14 @@ fn apply_object(
     for (key, value) in values.into_iter().flatten() {
         let field = def.field(key).ok_or_else(|| {
             bad(format!(
-                "type `{}` has no field `{key}`; its fields are: {}",
+                "type `{}` has no field `{key}`; its fields are: {}{}",
                 def.id,
                 def.fields
                     .iter()
                     .map(|f| f.key.as_str())
                     .collect::<Vec<_>>()
-                    .join(", ")
+                    .join(", "),
+                link_hint(key)
             ))
         })?;
         types::check_value(field, value).map_err(bad)?;
@@ -948,9 +1006,10 @@ fn box_around(elements: &[Value], members: &[String]) -> (f64, f64, f64, f64) {
 /// labels become its contents; frames cannot be wrapped) or `bbox`
 /// `{x, y, width, height}` (an empty frame at that scene position, to draw into
 /// afterwards). `type` and `values` are as in `canvas/set-frame`; `values`
-/// needs a `type`. The name must be unique on the canvas.
+/// needs a `type`. The name must be unique on the canvas. Shapes that already
+/// sit in another frame are refused unless `move: true` is passed.
 ///
-/// Result: `{frame: Frame, adopted: [element ids], mtime}`.
+/// Result: `{frame: Frame, adopted: [element ids], movedFrom: [{element, frame}], mtime}`.
 pub fn create_frame(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
     let p = params_of(params);
     let who = actor(p)?;
@@ -1002,6 +1061,25 @@ pub fn create_frame(root: &Path, params: Option<&Value>) -> Result<Value, RpcErr
             (box_around(&elements, &members), members)
         }
     };
+    let moved = taken_from(&scene, &members);
+    if !moved.is_empty() && !flag(p, "move") {
+        let list = moved
+            .iter()
+            .map(|(el, name)| format!("`{el}` (in `{name}`)"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        return Err(RpcError::with_data(
+            kaava_rpc::INVALID_PARAMS,
+            format!(
+                "{list} already belong to a frame. An element sits in one frame, so wrapping it \
+                 would take it out of that one and leave a gap there (and a diagram rebuilt by \
+                 add_shapes drops what it no longer holds). Draw new shapes for this frame, give a \
+                 `bbox` for an empty one, or pass `move: true` to move them anyway."
+            ),
+            json!({ "kind": "in-another-frame",
+                    "elements": moved.iter().map(|(el, name)| json!({ "element": el, "frame": name })).collect::<Vec<_>>() }),
+        ));
+    }
     let frame_id = element_id();
     let mut frame = json!({
         "id": frame_id, "type": "frame", "x": x, "y": y, "width": w, "height": h,
@@ -1028,7 +1106,28 @@ pub fn create_frame(root: &Path, params: Option<&Value>) -> Result<Value, RpcErr
     let mtime = save_scene(root, &id, scene, base, who)?;
     let after = read_canvas(root, &id)?;
     let f = frames::find(&after.frames, &frame_id).map_err(bad)?;
-    Ok(json!({ "frame": frames::frame_json(&id, f, &table), "adopted": members, "mtime": mtime }))
+    Ok(json!({
+        "frame": frames::frame_json(&id, f, &table),
+        "adopted": members,
+        "movedFrom": moved.iter().map(|(el, name)| json!({ "element": el, "frame": name })).collect::<Vec<_>>(),
+        "mtime": mtime,
+    }))
+}
+
+/// Which of `members` already sit in a live frame, with that frame's name.
+fn taken_from(scene: &Value, members: &[String]) -> Vec<(String, String)> {
+    let frames = frames::list(scene);
+    scene["elements"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|e| is_live_el(e) && members.iter().any(|m| e["id"] == json!(m)))
+        .filter_map(|e| {
+            let owner = e["frameId"].as_str()?;
+            let frame = frames.iter().find(|f| f.id == owner)?;
+            Some((e["id"].as_str()?.to_string(), frame.name.clone()))
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -1536,14 +1635,157 @@ mod tests {
         .unwrap();
         assert_eq!(out["adopted"], json!([]));
         assert_eq!(out["frame"]["bbox"]["width"], 400.0);
+        // `s1` sits in `Flap`, so taking it needs `move` since the E2E fix below.
         let wrapped = run(
             dir.path(),
             "canvas/create-frame",
-            agent(json!({ "canvas": "world", "name": "Ball again", "elementIds": ["s1"] })),
+            agent(
+                json!({ "canvas": "world", "name": "Ball again", "elementIds": ["s1"],
+                          "move": true }),
+            ),
         )
         .unwrap();
         let adopted = wrapped["adopted"].as_array().unwrap();
         assert!(adopted.contains(&json!("s1")) && adopted.contains(&json!("l1")));
+    }
+
+    /// The Minecraft E2E run wrapped `legend:wood` in a new frame and silently took it
+    /// out of the legend diagram, which then had a hole in it.
+    #[test]
+    fn create_frame_refuses_shapes_in_another_frame_unless_told_to_move_them() {
+        let dir = project();
+        let err = run(
+            dir.path(),
+            "canvas/create-frame",
+            agent(json!({ "canvas": "world", "name": "Thief", "elementIds": ["s1"] })),
+        )
+        .unwrap_err();
+        assert!(err.message.contains("`s1` (in `Flap`)"), "{}", err.message);
+        assert!(err.message.contains("move: true"), "{}", err.message);
+        let data = err.data.unwrap();
+        assert_eq!(data["kind"], "in-another-frame");
+        let read = run(dir.path(), "canvas/read", json!({ "id": "world" })).unwrap();
+        let els = read["scene"]["elements"].as_array().unwrap();
+        assert!(
+            els.iter().any(|e| e["id"] == "s1" && e["frameId"] == "f1"),
+            "a refusal leaves the shape where it was"
+        );
+
+        let out = run(
+            dir.path(),
+            "canvas/create-frame",
+            agent(
+                json!({ "canvas": "world", "name": "Thief", "elementIds": ["s1"],
+                          "move": true }),
+            ),
+        )
+        .unwrap();
+        let moved = out["movedFrom"].as_array().unwrap();
+        assert!(moved.contains(&json!({ "element": "s1", "frame": "Flap" })));
+        assert!(moved.contains(&json!({ "element": "l1", "frame": "Flap" })));
+
+        // A loose shape is not moved from anywhere and needs no flag.
+        let loose = run(
+            dir.path(),
+            "canvas/create-frame",
+            agent(json!({ "canvas": "world", "name": "Loose", "elementIds": ["legacy"] })),
+        )
+        .unwrap();
+        assert_eq!(loose["movedFrom"], json!([]));
+    }
+
+    /// The E2E agent tried `set_frame {values: {childCanvas}}` and was told only that
+    /// the type had no such field.
+    #[test]
+    fn setting_child_canvas_as_a_value_points_at_link_frame() {
+        let dir = project();
+        let typed = run(
+            dir.path(),
+            "canvas/set-frame",
+            agent(json!({ "canvas": "world", "frame": "Flap",
+                          "values": { "childCanvas": "world/pillar" } })),
+        )
+        .unwrap_err();
+        assert!(typed.message.contains("has no field"), "{}", typed.message);
+        assert!(typed.message.contains("link_frame"), "{}", typed.message);
+
+        let untyped = run(
+            dir.path(),
+            "canvas/create-frame",
+            agent(json!({ "canvas": "world", "name": "New",
+                          "bbox": { "x": 0, "y": 0, "width": 1, "height": 1 },
+                          "values": { "child": "world/pillar" } })),
+        )
+        .unwrap_err();
+        assert!(untyped.message.contains("no type"), "{}", untyped.message);
+        assert!(
+            untyped.message.contains("link_frame"),
+            "{}",
+            untyped.message
+        );
+
+        let other = run(
+            dir.path(),
+            "canvas/set-frame",
+            agent(json!({ "canvas": "world", "frame": "Flap", "values": { "nope": 1 } })),
+        )
+        .unwrap_err();
+        assert!(!other.message.contains("link_frame"), "{}", other.message);
+    }
+
+    /// `create_canvas {parent}` nests a canvas with no frame linking to it; the E2E
+    /// run's recursive listing of the parent left `world-generation` out.
+    #[test]
+    fn a_recursive_listing_includes_canvases_nested_by_parent_alone() {
+        let dir = project();
+        put(
+            dir.path(),
+            "world/gen",
+            Some("world"),
+            vec![frame("g1", "Generation", json!({}))],
+        );
+        let deep = run(
+            dir.path(),
+            "canvas/frames",
+            agent(json!({ "canvas": "world", "recursive": true })),
+        )
+        .unwrap();
+        let names: Vec<&str> = deep["frames"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|f| f["name"].as_str().unwrap())
+            .collect();
+        assert!(names.contains(&"Generation"), "{names:?}");
+        assert!(names.contains(&"Pillar gap"), "{names:?}");
+        let flat = run(
+            dir.path(),
+            "canvas/frames",
+            agent(json!({ "canvas": "world" })),
+        )
+        .unwrap();
+        assert_eq!(flat["frames"].as_array().unwrap().len(), 2);
+    }
+
+    /// A misspelt canvas used to come back as an empty listing with a `problems`
+    /// line, which the E2E agent read as "no frames".
+    #[test]
+    fn listing_or_searching_a_missing_canvas_is_an_error() {
+        let dir = project();
+        for method in ["canvas/frames", "canvas/search-frames"] {
+            let err = run(
+                dir.path(),
+                method,
+                agent(json!({ "canvas": "wrold", "query": "flap" })),
+            )
+            .unwrap_err();
+            assert!(
+                err.message.contains("no canvas `wrold`"),
+                "{method}: {}",
+                err.message
+            );
+            assert_eq!(err.data.unwrap()["kind"], "missing", "{method}");
+        }
     }
 
     #[test]

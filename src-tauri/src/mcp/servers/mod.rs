@@ -143,7 +143,8 @@ pub fn instructions(id: &str) -> Option<&'static str> {
             "Design canvases. More than one can be open: call `list_canvases` to see them and which has \
              focus. Every tool takes `canvas` (id), `instance` or `cluster`; omit them and the focused \
              canvas is used, which the result's `resolved` block says. All writes are made as the agent. \
-             `view_diagram` renders to a PNG file: read the path it returns.",
+             `view_diagram` renders to a PNG file: read the path it returns. Call `drawing_guide` \
+             before your first `add_shapes`: it is the manual (palette, spacing, every option).",
         ),
         "debug" => Some(
             "Read-only views of a running OpenKaava: its shell layout, recent errors and boot \

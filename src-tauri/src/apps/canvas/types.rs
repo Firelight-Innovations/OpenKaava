@@ -24,6 +24,9 @@ pub const ICONS: &[&str] = &[
     "monitor",
 ];
 
+/// Every [`Kind`] as it is spelled in JSON, for schemas that list them.
+pub const KINDS: &[&str] = &["text", "multiline", "number", "enum", "path-list", "bool"];
+
 const MAX_CUSTOM_TYPES: usize = 100;
 const MAX_FIELDS: usize = 40;
 const SCHEMA: u64 = 1;
@@ -553,6 +556,27 @@ mod tests {
             ..field("t", "T", Kind::Text, None)
         }];
         assert!(validate(&stray).is_err());
+    }
+
+    /// `KINDS` is what the MCP schema offers, so every name must parse and none may
+    /// be missing; the E2E agent could not tell whether `bool` was a real kind.
+    #[test]
+    fn kinds_lists_every_kind_by_its_json_name() {
+        let parsed: Vec<Kind> = KINDS
+            .iter()
+            .map(|k| serde_json::from_value(json!(k)).unwrap())
+            .collect();
+        for kind in [
+            Kind::Text,
+            Kind::Multiline,
+            Kind::Number,
+            Kind::Enum,
+            Kind::PathList,
+            Kind::Bool,
+        ] {
+            assert!(parsed.contains(&kind), "{kind:?} is not in KINDS");
+        }
+        assert_eq!(parsed.len(), KINDS.len());
     }
 
     #[test]
