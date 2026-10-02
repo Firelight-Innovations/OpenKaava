@@ -498,6 +498,37 @@
   font: var(--type-caption);
 }
 
+/* --- the Google account panel ----------------------------------------------
+   Ordinary `.setting` rows for the account and the client secret; see
+   CloudAccountPanel.tsx for why they are not schema rows. */
+
+.settings-cloud {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.settings-cloud__line {
+  margin: 0;
+  padding: var(--space-4) 0;
+  color: var(--txt-tertiary);
+  font: var(--type-caption);
+}
+
+.settings-cloud__secret {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+.settings-cloud__error {
+  margin: 0;
+  padding: var(--space-2) 0 var(--space-4);
+  color: var(--txt-secondary);
+  font: var(--type-caption);
+  overflow-wrap: anywhere;
+}
+
 /* --- MCP tools -------------------------------------------------------------
    Each server row can open into its tool list. The wrapper owns the divider so
    the open panel sits inside the row's rule rather than under it. */

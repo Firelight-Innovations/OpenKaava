@@ -5,7 +5,9 @@
 //! it so no app has to remember them:
 //!
 //! - **No keys.** Every call carries a token from the user's own `gcloud`, held
-//!   in memory only ([`auth`]). Nothing here writes a token anywhere.
+//!   in memory only ([`auth`]), or from OpenKaava's own Google sign-in
+//!   ([`google`]), whose refresh token is in the OS credential store. Nothing
+//!   here writes a token anywhere else.
 //! - **A missing or signed-out `gcloud` is a state, not a network error.**
 //!   [`Trouble`] names it, and the frontend draws the fix.
 //! - **Nothing starts on its own.** The only write is [`compute::start`], and
@@ -18,6 +20,7 @@ pub mod auth;
 pub mod bigquery;
 pub mod billing;
 pub mod compute;
+pub mod google;
 pub mod hindsight;
 pub(crate) mod http;
 pub mod inventory;
@@ -108,6 +111,9 @@ pub enum Trouble {
     Api { status: u16, detail: String },
     /// A fixture file is missing or malformed.
     Fixture { detail: String },
+    /// OpenKaava's own Google sign-in has lapsed (revoked, expired, or the
+    /// password changed). The fix is Settings, Cloud, Sign in with Google.
+    SignInNeeded { detail: String },
 }
 
 impl Trouble {
@@ -122,6 +128,9 @@ impl Trouble {
             Trouble::Unreachable { detail } => format!("Google Cloud did not answer: {detail}"),
             Trouble::Api { status, detail } => format!("Google Cloud error {status}: {detail}"),
             Trouble::Fixture { detail } => format!("cloud fixture: {detail}"),
+            Trouble::SignInNeeded { .. } => {
+                "the Google sign-in has lapsed — sign in again in Settings, Cloud".into()
+            }
         }
     }
 }
@@ -144,6 +153,8 @@ pub struct Cloud {
     pub prices: billing::Prices,
     /// The Plane PAT, once fetched, and its call budget. See [`plane`].
     pub plane: plane::PlaneState,
+    /// OpenKaava's own Google sign-in. See [`google`].
+    pub google: google::GoogleAuth,
 }
 
 /// `2026-09-28T15:12:40Z` from seconds since the Unix epoch — Google's own

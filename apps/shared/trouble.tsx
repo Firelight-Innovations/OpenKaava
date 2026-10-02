@@ -9,9 +9,10 @@ import type { ReactNode } from "react";
  * works under each app's stubbed bridge in tests. `data.kind` is the backend's
  * `cloud::Trouble` tag; `-32001` is the bridge's own timeout code.
  *
- * There is no Settings section for Google Cloud: OpenKaava holds no keys and
- * uses the `gcloud` login on the machine (`docs/cloud-services.md` §2), so the
- * setup is a terminal command, and the note says so rather than link nowhere.
+ * Most reads use the `gcloud` login on the machine (`docs/cloud-services.md`
+ * §2), so their setup is a terminal command, and the note says so. The one
+ * exception is `signInNeeded`: OpenKaava's own Google sign-in, which lives in
+ * Settings, Cloud.
  */
 
 const TIMEOUT_CODE = -32001;
@@ -107,6 +108,18 @@ export function describeFailure(error: unknown, subject: string): FailureNote {
           <p className="app__note">
             Check the network connection or proxy, then retry. Nothing is wrong with your login as
             far as OpenKaava can tell.
+          </p>
+        ),
+        detail,
+      };
+    case "signInNeeded":
+      return {
+        kind,
+        heading: "Sign in to Google again",
+        steps: (
+          <p className="app__note">
+            OpenKaava&apos;s Google sign-in has lapsed. Open Settings, Cloud, and press Sign in with
+            Google, then retry.
           </p>
         ),
         detail,

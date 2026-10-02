@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import SettingRow from "./SettingRow";
 import McpPanel from "./McpPanel";
+import CloudAccountPanel from "./CloudAccountPanel";
 import { settingsBackdrop, settingsScreen } from "../motion";
 import { closeSettings } from "../settingsSurface";
 import { X } from "lucide-react";
@@ -25,12 +26,14 @@ import "./settings.css";
  * the glyph that opened this screen. `settings.css` spells out both.
  *
  * Nothing below is per-setting: every row comes from the schema Rust publishes,
- * so adding a setting is a Rust-only edit. The MCP panel is the one exception,
- * and `McpPanel.tsx` says why.
+ * so adding a setting is a Rust-only edit. The MCP panel and the Google account
+ * panel are the two exceptions; `McpPanel.tsx` and `CloudAccountPanel.tsx` say
+ * why.
  */
 
-/** The section that gets the extra panel. The only id this file knows. */
+/** The sections that get an extra panel. The only ids this file knows. */
 const MCP_GROUP = "mcp";
+const CLOUD_GROUP = "cloud";
 
 export default function SettingsScreen({
   session,
@@ -233,6 +236,7 @@ function Section({ group, session }: { group: SettingsGroup; session: SettingsSe
       </div>
 
       {group.id === MCP_GROUP && <McpPanel />}
+      {group.id === CLOUD_GROUP && <CloudAccountPanel />}
 
       {group.settings.map((setting) => (
         <SettingRow key={setting.key} setting={setting} session={session} />
