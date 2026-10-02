@@ -758,3 +758,51 @@
 .cv__manage {
   align-self: flex-start;
 }
+
+/* What a comment is about: a border round the elements or area, a pin, and a leader
+   line. DOM over the editor, positioned from scene coordinates, never a scene element. */
+.cv__hl {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.cv__hl-box {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid var(--accent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.cv__hl-item--draft .cv__hl-box {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.cv__hl-leader {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.cv__hl-leader line {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.cv__hl-pin {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border-radius: 50% 50% 50% 4px;
+  background: var(--accent);
+  color: var(--txt-on-accent, #fff);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
+}

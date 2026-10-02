@@ -47,6 +47,8 @@ interface Props {
   /** Write pending edits first, so the elements named exist on disk. */
   flush: () => Promise<void>;
   onShow: (comment: CanvasComment) => void;
+  /** The comment under the pointer or keyboard focus, or null: the canvas outlines it. */
+  onHover?: (comment: CanvasComment | null) => void;
   onCounts?: (open: number) => void;
 }
 
@@ -214,7 +216,14 @@ export default function CommentsPanel(props: Props) {
       )}
       <ul className="cv__comment-list">
         {shown.map((c) => (
-          <li key={c.id} className={`cv__comment cv__comment--${c.status}`}>
+          <li
+            key={c.id}
+            className={`cv__comment cv__comment--${c.status}`}
+            onMouseEnter={() => props.onHover?.(c)}
+            onMouseLeave={() => props.onHover?.(null)}
+            onFocus={() => props.onHover?.(c)}
+            onBlur={() => props.onHover?.(null)}
+          >
             <p className="cv__comment-text">{c.text}</p>
             <span className="cv__meta">
               {c.author} · {when(c.createdAt)} · {props.frameTitle(c.frameId)} · {describe(c)}

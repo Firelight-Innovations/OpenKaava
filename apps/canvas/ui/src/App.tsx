@@ -17,6 +17,7 @@ import TypesPanel from "./TypesPanel";
 import TypeIcon from "./TypeIcon";
 import Sidebar, { type SideTab } from "./Sidebar";
 import CommentsPanel, { type CommentTarget } from "./CommentsPanel";
+import { activeHighlights, type Highlight } from "./commentHighlight";
 import { setEditorHooks } from "./agentBridge";
 import {
   framesIn,
@@ -66,6 +67,8 @@ import { signature, slugify, toSaved, uniqueId, type SceneElement, type SceneFil
 import "./App.css";
 
 // The editor is the bulk of this app's weight; load it only once a canvas is open.
+const NO_HIGHLIGHTS: Highlight[] = [];
+
 const Editor = lazy(() => import("./Editor"));
 
 type View = "canvas" | "assets";
@@ -187,6 +190,7 @@ export default function App() {
   const [commentsKey, setCommentsKey] = useState(0);
   const [commentTarget, setCommentTarget] = useState<CommentTarget | null>(null);
   const [targetError, setTargetError] = useState<string | null>(null);
+  const [hoveredComment, setHoveredComment] = useState<CanvasComment | null>(null);
   /** The area picker: null when off, else the drag so far in stage pixels. */
   const [picking, setPicking] = useState<
     { from: [number, number]; to: [number, number] } | "idle" | null
@@ -758,6 +762,26 @@ export default function App() {
     [reveal],
   );
 
+  // Only on the Comments tab: elsewhere the draft and hover are not on screen to explain.
+  const highlights = useMemo(
+    () =>
+      side.tab !== "comments"
+        ? NO_HIGHLIGHTS
+        : activeHighlights(
+            commentTarget,
+            hoveredComment
+              ? {
+                  id: hoveredComment.id,
+                  status: hoveredComment.status,
+                  spec: hoveredComment.region
+                    ? { frameId: hoveredComment.frameId, region: hoveredComment.region }
+                    : { frameId: hoveredComment.frameId, elementIds: hoveredComment.elementIds },
+                }
+              : null,
+          ),
+    [side.tab, commentTarget, hoveredComment],
+  );
+
   const flushNow = useCallback(async () => {
     await saverRef.current?.flush();
   }, []);
@@ -1037,6 +1061,7 @@ export default function App() {
                 onOpenChild={(id) => void openChild(id)}
                 titleOf={titleOf}
                 onOpenDiagram={openDiagram}
+                highlights={highlights}
               />
             </Suspense>
           ) : (
@@ -1132,6 +1157,7 @@ export default function App() {
                 frameTitle={frameTitle}
                 flush={flushNow}
                 onShow={showComment}
+                onHover={setHoveredComment}
                 onCounts={setOpenComments}
               />
             )}
