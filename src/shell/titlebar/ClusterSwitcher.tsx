@@ -16,17 +16,7 @@
  */
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  Cloud,
-  GitBranch,
-  Home,
-  Lock,
-  Pin,
-  Plus,
-  ArrowUpDown,
-  FolderOpen,
-  Smile,
-} from "lucide-react";
+import { Cloud, GitBranch, Home, Lock, Pin, Plus, FolderOpen, Smile } from "lucide-react";
 import type { Cluster } from "../contract";
 import { environmentOf, ENVIRONMENT_LABEL, type Environment } from "../environment";
 import { popover } from "../motion";
@@ -234,10 +224,6 @@ export default function ClusterSwitcher(props: ClusterSwitcherProps) {
               >
                 Switch project…
               </ActionRow>
-            </div>
-
-            <div className="clusterswitch__hint">
-              <ArrowUpDown size={11} aria-hidden /> Ctrl+Tab cycles · Ctrl+1…9 jumps
             </div>
           </motion.div>
         )}
