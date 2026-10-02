@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { reportPainted, session } from "@openkaava/bridge";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { AlertTriangle, ChevronRight, FilePlus2, Lock, SquareDashed } from "lucide-react";
+import { AlertTriangle, ChevronRight, FilePlus2, Lock, Palette, SquareDashed } from "lucide-react";
 import { SendButton, SendFooter } from "../../../shared/SendFooter";
 import {
   dragContext,
@@ -48,6 +48,7 @@ import {
   listRefs,
   listTypes,
   messageOf,
+  openCanvasSettings,
   readCanvas,
   saveType,
   setParent,
@@ -925,6 +926,14 @@ export default function App() {
           title={readOnly ? "Main is read-only. Open a worktree to draw." : "New canvas"}
         >
           <FilePlus2 size={14} aria-hidden /> New canvas
+        </button>
+        <button
+          type="button"
+          className="k-btn k-btn--ghost k-btn--sm"
+          onClick={() => void openCanvasSettings().catch(() => undefined)}
+          title="Detail level and drawing style for agents (opens Settings)"
+        >
+          <Palette size={14} aria-hidden /> Drawing style
         </button>
         {doc && <code className="cv__path">{doc.path}</code>}
         <span className="cv__spacer" />
