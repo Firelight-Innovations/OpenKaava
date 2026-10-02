@@ -1,9 +1,7 @@
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-
-const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "native.css"), "utf8");
+// `?raw` rather than node:fs: the app tsconfig carries no Node types, so a
+// node: import type-checks only where a stray node_modules leaks them in.
+import css from "./native.css?raw";
 
 // Excalidraw 0.18 variables that carry its own purple, greys and sizes.
 const MAPPED = [
