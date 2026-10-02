@@ -21,8 +21,11 @@ import {
   type BadgeView,
 } from "./nesting";
 import type { SceneElement, SceneFile } from "./scene";
+import { SnapshotPainter } from "./snapshots";
 
 export interface EditorProps {
+  /** The canvas shown, whose sub-canvas frames get pictures of their children. */
+  canvasId: string;
   /** What to open. Changing it does nothing: remount with a new `key`. */
   initial: SceneFile;
   theme: "dark" | "light";
@@ -60,7 +63,18 @@ const UI_OPTIONS = {
   },
 } as const;
 
+interface View {
+  scrollX: number;
+  scrollY: number;
+  zoom: { value: number };
+}
+
+/** Where each canvas was last looked at this session, so a reload after a
+ *  split, or coming back from a child, lands where the person left it. */
+const views = new Map<string, View>();
+
 export default function Editor({
+  canvasId,
   initial,
   theme,
   readOnly,
@@ -71,6 +85,7 @@ export default function Editor({
   onOpenDiagram,
 }: EditorProps) {
   const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
+  const [api, setApi] = useState<ExcalidrawImperativeAPI | null>(null);
   const [about, setAbout] = useState(false);
   const onOpenDiagramRef = useRef(onOpenDiagram);
   onOpenDiagramRef.current = onOpenDiagram;
@@ -101,16 +116,20 @@ export default function Editor({
   onChangeRef.current = onChange;
   const onApiRef = useRef(onApi);
   onApiRef.current = onApi;
+  const canvasIdRef = useRef(canvasId);
+  canvasIdRef.current = canvasId;
 
   // The scene is restored once, on mount; later changes to it are ignored.
   const initialData = useMemo(
-    () =>
-      ({
+    () => {
+      const view = views.get(canvasId);
+      return {
         elements: initial.elements,
-        appState: { ...initial.appState, theme },
+        appState: { ...initial.appState, ...view, theme },
         files: initial.files,
-        scrollToContent: true,
-      }) as never,
+        scrollToContent: !view,
+      } as never;
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [initial],
   );
@@ -121,10 +140,26 @@ export default function Editor({
   }, [theme]);
   const themeRef = useRef(theme);
   themeRef.current = theme;
-  const handleApi = useCallback((api: ExcalidrawImperativeAPI) => {
-    apiRef.current = api;
-    onApiRef.current(api);
+  const handleApi = useCallback((next: ExcalidrawImperativeAPI) => {
+    apiRef.current = next;
+    setApi(next);
+    onApiRef.current(next);
   }, []);
+  // Pictures of the children in sub-canvas frames, kept current while open.
+  const painterRef = useRef<SnapshotPainter | null>(null);
+  useEffect(() => {
+    if (!api) return;
+    const painter = new SnapshotPainter(api, canvasId, () => themeRef.current, readOnly);
+    painterRef.current = painter;
+    painter.start();
+    return () => {
+      painter.stop();
+      painterRef.current = null;
+    };
+  }, [api, canvasId, readOnly]);
+  useEffect(() => {
+    painterRef.current?.repaint();
+  }, [theme]);
   const handleChange = useCallback(
     (elements: readonly unknown[], appState: AppState, files: BinaryFiles) => {
       // Excalidraw's own async init can land after the first theme push and
@@ -133,6 +168,8 @@ export default function Editor({
       if (themeNeedsPush(appState.theme, themeRef.current)) {
         apiRef.current?.updateScene({ appState: { theme: themeRef.current } } as never);
       }
+      const { scrollX, scrollY, zoom } = appState;
+      views.set(canvasIdRef.current, { scrollX, scrollY, zoom: { value: zoom.value } });
       // Scroll and zoom arrive here too, which is what keeps the badges on their frames.
       badgeSink.current?.(
         linkBadges(

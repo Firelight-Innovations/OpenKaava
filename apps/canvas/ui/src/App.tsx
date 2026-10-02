@@ -51,6 +51,7 @@ import {
   readCanvas,
   saveType,
   setParent,
+  splitFrames,
   staleWrite,
   statCanvas,
   writeCanvas,
@@ -62,6 +63,7 @@ import {
 } from "./rpc";
 import { ancestry, childId, stillLinked, treeOrder, viewportToScene, withChild } from "./nesting";
 import { Autosaver, type SaveState } from "./saver";
+import { sceneVersion, splitCandidates } from "./subcanvas";
 import { signature, slugify, toSaved, uniqueId, type SceneElement, type SceneFile } from "./scene";
 import "./App.css";
 
@@ -167,6 +169,11 @@ export default function App() {
   const [createError, setCreateError] = useState<string | null>(null);
 
   const [notice, setNotice] = useState<string | null>(null);
+  /** Heavy frames the open canvas could split into sub-canvases; 0 hides the offer. */
+  const [splitOffer, setSplitOffer] = useState(0);
+  const [splitting, setSplitting] = useState(false);
+  /** Canvases whose split offer was turned down this session. */
+  const declinedSplit = useRef(new Set<string>());
   const [sendSlot, setSendSlot] = useState<HTMLElement | null>(null);
   /** What the Inspector describes: the selected frame, shape or shapes. */
   const [target, setTarget] = useState<Target>({ kind: "none" });
@@ -192,6 +199,14 @@ export default function App() {
     { from: [number, number]; to: [number, number] } | "idle" | null
   >(null);
   /** The editor's last report, for the agent hooks and the comment targets. */
+  const lastChangeRef = useRef<{
+    elements?: unknown;
+    version?: number;
+    selected?: unknown;
+    files?: unknown;
+    background?: unknown;
+    grid?: unknown;
+  }>({});
   const liveRef = useRef<{
     elements: readonly SceneElement[];
     selected: Record<string, unknown> | undefined;
@@ -341,6 +356,28 @@ export default function App() {
         elements: elements as readonly SceneElement[],
         selected: appState.selectedElementIds as Record<string, unknown> | undefined,
       };
+      // Scrolling and zooming report the same elements, selection and files;
+      // everything below builds strings over the whole scene, so a pan skips
+      // it rather than paying it on every frame. Excalidraw mutates elements
+      // in place, so the array alone is no proof: the version sum is.
+      const key = lastChangeRef.current;
+      const version = sceneVersion(elements as readonly SceneElement[]);
+      const same =
+        key.elements === elements &&
+        key.version === version &&
+        key.selected === appState.selectedElementIds &&
+        key.files === files &&
+        key.background === appState.viewBackgroundColor &&
+        key.grid === appState.gridSize;
+      lastChangeRef.current = {
+        elements,
+        version,
+        selected: appState.selectedElementIds,
+        files,
+        background: appState.viewBackgroundColor,
+        grid: appState.gridSize,
+      };
+      if (same) return;
       const rows = framesIn(elements as readonly SceneElement[]);
       setFrames((prev) => (JSON.stringify(prev) === JSON.stringify(rows) ? prev : rows));
       const next = targetOf(
@@ -353,12 +390,43 @@ export default function App() {
       );
       const saver = saverRef.current;
       const open = docRef.current;
+      const offer =
+        open && !readOnly && !declinedSplit.current.has(open.id)
+          ? splitCandidates(elements as readonly SceneElement[])
+          : 0;
+      setSplitOffer((prev) => (prev === offer ? prev : offer));
       if (!saver || !open || readOnly) return;
       const scene = toSaved(elements, appState, files, open.scene.kaava);
       saver.schedule(scene, signature(scene));
     },
     [readOnly],
   );
+
+  /** Move the open canvas's heavy frames into sub-canvases (`canvas/split-frames`),
+   *  after saving what is on screen, then reopen it with their pictures. */
+  const splitHeavyFrames = useCallback(async () => {
+    const open = docRef.current;
+    if (!open) return;
+    setSplitting(true);
+    try {
+      await saverRef.current?.flush();
+      const out = await splitFrames(open.id);
+      setSplitOffer(0);
+      declinedSplit.current.add(open.id);
+      void refreshList();
+      await load(open.id);
+      if (out.skipped.length) {
+        setNotice(
+          `Split ${out.split.length} frame(s) into sub-canvases. Left ${out.skipped.length} as ` +
+            `they were: ${out.skipped.map((s) => `${s.frame} (${s.reason})`).join("; ")}`,
+        );
+      }
+    } catch (err) {
+      setNotice(`Couldn't split the frames: ${messageOf(err)}`);
+    } finally {
+      setSplitting(false);
+    }
+  }, [load, refreshList]);
 
   const switchTo = useCallback(async (id: string) => {
     await saverRef.current?.flush();
@@ -983,6 +1051,33 @@ export default function App() {
         </div>
       )}
 
+      {splitOffer > 0 && doc && view === "canvas" && (
+        <div className="cv__notice" role="status">
+          <span>
+            This canvas is large: {splitOffer} frame(s) hold enough to slow panning down. Each can
+            become its own sub-canvas, shown here as a picture; double-click one to edit it.
+          </span>
+          <button
+            type="button"
+            className="k-btn k-btn--secondary k-btn--sm"
+            disabled={splitting}
+            onClick={() => void splitHeavyFrames()}
+          >
+            {splitting ? "Splitting..." : "Split into sub-canvases"}
+          </button>
+          <button
+            type="button"
+            className="k-btn k-btn--ghost k-btn--sm"
+            onClick={() => {
+              declinedSplit.current.add(doc.id);
+              setSplitOffer(0);
+            }}
+          >
+            Not now
+          </button>
+        </div>
+      )}
+
       {notice && (
         <div className="cv__notice cv__notice--warn" role="alert">
           <AlertTriangle size={14} aria-hidden />
@@ -1027,6 +1122,7 @@ export default function App() {
             <Suspense fallback={<div className="cv__empty">Loading the editor...</div>}>
               <Editor
                 key={`${doc.id}:${loadKey}`}
+                canvasId={doc.id}
                 initial={doc.scene as SceneFile}
                 theme={theme}
                 readOnly={readOnly}

@@ -24,6 +24,9 @@ use std::path::{Path, PathBuf};
 /// How many checkpoints each canvas keeps.
 pub const CHECKPOINTS: usize = 5;
 
+/// The reason `canvas/split-frames` checkpoints under, kept out of the ring.
+pub const SPLIT_CHECKPOINT: &str = "split-frames";
+
 /// The largest reference image accepted, decoded.
 const MAX_REF_BYTES: usize = 25 * 1024 * 1024;
 
@@ -262,7 +265,12 @@ pub fn checkpoint(root: &Path, canvas: &str, reason: &str) -> Result<Option<Stri
         n += 1;
     }
     atomic_write(&dir.join(format!("{name}.json")), &bytes)?;
-    let names = checkpoint_names(root, canvas)?;
+    let mut names = checkpoint_names(root, canvas)?;
+    // The newest split stays outside the ring: it is the only way back to the
+    // unsplit canvas, and ordinary edits would otherwise push it out in five.
+    if let Some(i) = names.iter().rposition(|n| n.ends_with(SPLIT_CHECKPOINT)) {
+        names.remove(i);
+    }
     if names.len() > CHECKPOINTS {
         for old in &names[..names.len() - CHECKPOINTS] {
             let _ = std::fs::remove_file(dir.join(format!("{old}.json")));
@@ -357,6 +365,14 @@ pub fn frame_image_path(root: &Path, canvas: &str, frame_id: &str) -> Result<Pat
     Ok(nest(kaava_dir(root, "preview/canvas")?, canvas).join(format!("{safe}.png")))
 }
 
+/// Where a sub-canvas's picture is cached: `.kaava/canvas-snapshots/<child>.png`,
+/// with a `.json` beside it naming the child's mtime the picture was drawn from.
+/// A cache, so it is under `.kaava/` and ignored by git: a clone redraws it.
+pub fn snapshot_paths(root: &Path, child: &str) -> Result<(PathBuf, PathBuf), RpcError> {
+    let base = nest(kaava_dir(root, "canvas-snapshots")?, child);
+    Ok((base.with_extension("png"), base.with_extension("json")))
+}
+
 /// Decode the frontend's base64 PNG and write it to `path`.
 pub fn write_png(path: &Path, base64_png: &str) -> Result<usize, RpcError> {
     let data = base64_png
@@ -446,6 +462,25 @@ mod tests {
         let ignore = dir.path().join(".kaava/canvas-checkpoints/.gitignore");
         assert_eq!(std::fs::read_to_string(ignore).unwrap(), "*\n");
         assert!(checkpoint(dir.path(), "none", "x").unwrap().is_none());
+    }
+
+    #[test]
+    fn the_newest_split_checkpoint_outlives_the_ring() {
+        let dir = TempDir::new().unwrap();
+        let file = dir.path().join("canvas/game.json");
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        std::fs::write(&file, "{\"n\":\"unsplit\"}").unwrap();
+        let split = checkpoint(dir.path(), "game", SPLIT_CHECKPOINT)
+            .unwrap()
+            .unwrap();
+        for n in 0..8 {
+            std::fs::write(&file, format!("{{\"n\":{n}}}")).unwrap();
+            checkpoint(dir.path(), "game", "set-values").unwrap();
+        }
+        let names = checkpoint_names(dir.path(), "game").unwrap();
+        assert_eq!(names.len(), CHECKPOINTS + 1);
+        let (_, kept) = checkpoint_scene(dir.path(), "game", Some(&split)).unwrap();
+        assert_eq!(kept["n"], "unsplit");
     }
 
     #[test]

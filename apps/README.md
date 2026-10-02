@@ -274,6 +274,41 @@ put. Unlinking only removes the frame's link; the child file is left alone. To l
 canvas that already exists, agents call `canvas/link-frame` (the `link_frame` tool), which also
 rewrites that canvas's `parent`; `set-frame` cannot set the child, and says so.
 
+A heavy canvas can be split into **sub-canvases**. Excalidraw repaints every element on every
+pan, so a canvas holding thousands of elements across dozens of frames pans at a few frames a
+second. When a canvas has over 1500 elements and frames of 40 or more, the pane offers "Split
+into sub-canvases". The agent tool is `split_frames` (`canvas/split-frames`, with `frames`,
+`minElements` and `dryRun` params). Each split frame's elements move into a child canvas,
+`<parent>/<diagram id>`, together with a copy of the frame. The child keeps the frame's id, its
+position and its diagram metadata. The parent keeps the empty frame. That frame is linked to
+the child as any nested frame is, and it is marked `customData.kaava.subcanvas`. In the parent,
+the frame shows a picture of its child: a locked image element that is never saved. To edit
+the child, double-click the frame. The split is explicit, not done on open, for three reasons.
+It turns one committed file into many, which is the person's call. Read-only main cannot write.
+The parent is checkpointed first, so the split can be undone. A frame is skipped, with the
+reason, when something outside it is bound to or grouped with its contents. Review comments on
+a split frame move into the child's comment folder.
+
+Pictures are drawn by Excalidraw's exporter from the child file, in the light theme. The dark
+theme's picture is that image passed through the inverse of Excalidraw's dark-mode image
+filter, so it inverts with the canvas like the drawing it stands for. They are cached in memory
+for the session, and on disk in `.kaava/canvas-snapshots/`. Those files are git-ignored and
+keyed by the child's mtime. They are listed by `canvas/snapshots` and written by
+`canvas/put-snapshot`; neither is a design write. While a parent is open it polls its
+children's mtimes every two seconds and redraws any that changed. Redrawing runs one picture at
+a time in idle time, so panning never waits for it. The parent's frame follows its child's frame
+size and name.
+
+The agent methods still accept a diagram on the parent after a split. `describe-diagram`,
+`view-diagram`, `add-shapes`, `import-mermaid`, `create-comment`, `frame` and `frame-image` all
+follow a split frame into its child; their results name the canvas they used. `add-shapes`
+writes into the child. It brings the parent's value table along, and afterwards it syncs the
+parent's frame. `list-diagrams` counts a split frame's elements in its child and names that
+child as `childCanvas`. `list-comments`, `resolve-comment` and `view-comment` also find the
+comments that moved into children. `values` includes the uses found in children, and
+`set-values` updates the children's copies of the table. `set-frame` renames the child's copy
+of the frame as well.
+
 An agent driving the editor through `kaava-ui` should know that Excalidraw's properties island
 sits over the left edge of the canvas (about the first 195 px) while a shape is selected. A
 click or drag there lands on the island, not on the scene. Draw with `canvas/add-shapes`

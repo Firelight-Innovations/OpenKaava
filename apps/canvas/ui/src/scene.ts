@@ -42,6 +42,12 @@ export interface SceneFile {
  *  gesture and would make each save a noisy diff. */
 const KEPT_APP_STATE = ["viewBackgroundColor", "gridSize"] as const;
 
+/** Whether `el` is the picture the editor draws into a sub-canvas frame. */
+export function isSnapshot(el: { [key: string]: unknown }): boolean {
+  const kaava = (el.customData as { kaava?: { snapshot?: unknown } } | undefined)?.kaava;
+  return kaava?.snapshot === true;
+}
+
 /**
  * What to write for the editor's current state.
  *
@@ -55,7 +61,9 @@ export function toSaved(
   files: Record<string, unknown>,
   kaava: KaavaMeta | undefined,
 ): SceneFile {
-  const live = elements.filter((e) => !e.isDeleted);
+  // A sub-canvas frame's picture is redrawn from its child on every open, so
+  // it is never written into the parent (`subcanvas.ts`).
+  const live = elements.filter((e) => !e.isDeleted && !isSnapshot(e));
   const referenced = new Set(live.map((e) => e.fileId).filter((f): f is string => !!f));
   const keptFiles: Record<string, unknown> = {};
   for (const id of Object.keys(files)) if (referenced.has(id)) keptFiles[id] = files[id];

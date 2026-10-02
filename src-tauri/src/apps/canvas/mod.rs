@@ -30,6 +30,8 @@ mod methods;
 mod objects;
 /// Reference images, checkpoints and views on disk.
 mod store;
+/// Heavy frames split into child canvases, and the pictures drawn of them.
+mod subcanvas;
 /// Object types: the built-ins and the project's own.
 mod types;
 /// The frontend work only a webview can do.
@@ -122,6 +124,9 @@ pub fn call_with(
         "canvas/link-frame" => objects::link_frame(&root(context)?, p),
         "canvas/set-frame" => objects::set_frame(&root(context)?, p),
         "canvas/create-frame" => objects::create_frame(&root(context)?, p),
+        "canvas/split-frames" => subcanvas::split_frames(&root(context)?, p),
+        "canvas/snapshots" => subcanvas::snapshots(&root(context)?, p),
+        "canvas/put-snapshot" => subcanvas::put_snapshot(&root(context)?, p),
         _ => call_file(context, read_only, method, params),
     }
 }
