@@ -829,12 +829,12 @@ const ToolWindow = forwardRef<
      * message posted before the frame's listener exists is simply gone, with no
      * replay).
      *
-     * The reply carries the *app* id, deliberately, not the instance id. A frame
-     * needs to know what kind of thing it is; it does not need to know which of
-     * several copies it is, because nothing it can send requires saying so.
-     * Identity is resolved from `event.source` against `frames`, which is the
-     * security property, and an instance id in a payload would be one more claim
-     * to have to distrust.
+     * The reply carries the *app* id for what the frame is. It also carries the
+     * frame's own instance id in `session`, but only as a storage key: a cluster
+     * switch unmounts the frame, and an app that wants its open document back
+     * needs a name for "this copy" that survives the reload. Nothing the frame
+     * sends is trusted to say it. Identity is still resolved from
+     * `event.source` against `frames`, which is the security property.
      */
     function answerHello(source: Window, origin: string, frame: MountedFrame) {
       const reply: ReadyMessage = {
@@ -842,7 +842,7 @@ const ToolWindow = forwardRef<
         kind: "ready",
         toolId: frame.appId,
         protocol: 1,
-        session: { projectPath: null },
+        session: { projectPath: null, instanceId: frame.id },
       };
       source.postMessage(reply, origin);
       frame.origin = origin;

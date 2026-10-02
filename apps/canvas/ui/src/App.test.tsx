@@ -18,13 +18,14 @@ const bridge = vi.hoisted(() => {
       super(message);
     }
   }
-  return { invoke: vi.fn(), KaavaRpcError };
+  return { invoke: vi.fn(), KaavaRpcError, instanceId: "inst-a" as string | undefined };
 });
 
 vi.mock("@openkaava/bridge", () => ({
   invoke: bridge.invoke,
   KaavaRpcError: bridge.KaavaRpcError,
   reportPainted: vi.fn(),
+  session: () => Promise.resolve({ projectPath: null, instanceId: bridge.instanceId }),
 }));
 
 // Excalidraw needs a real canvas and layout; the wiring around it is what is under test.
@@ -254,6 +255,7 @@ function fake(b: Backend) {
 beforeEach(() => {
   live.selected = {};
   bridge.invoke.mockReset();
+  bridge.instanceId = "inst-a";
   localStorage.clear();
 });
 afterEach(cleanup);
@@ -354,6 +356,47 @@ describe("Canvas app", () => {
       }),
     );
     expect(await screen.findByTestId("editor")).toBeTruthy();
+  });
+
+  describe("remembering the open canvas", () => {
+    const rows = [
+      { id: "balls", title: "Balls", parent: null, error: null },
+      { id: "minecraft-clone", title: "Minecraft", parent: null, error: null },
+    ];
+    const reads = { balls: scene(1, "Balls"), "minecraft-clone": scene(4, "Minecraft") };
+
+    it("reopens the canvas this instance had open after the frame is unmounted and reloaded", async () => {
+      fake({ readOnly: false, rows, reads });
+      const first = render(<App />);
+      expect(await screen.findByText("1 elements")).toBeTruthy();
+      fireEvent.change(screen.getByLabelText("Canvas"), { target: { value: "minecraft-clone" } });
+      expect(await screen.findByText("4 elements")).toBeTruthy();
+      first.unmount();
+
+      // A cluster switch unmounts the frame; coming back loads the app afresh.
+      render(<App />);
+      expect(await screen.findByText("4 elements")).toBeTruthy();
+      expect(screen.getByText("canvas/minecraft-clone.json")).toBeTruthy();
+    });
+
+    it("keeps each instance's canvas apart rather than sharing one last-opened", async () => {
+      fake({ readOnly: false, rows, reads });
+      const a = render(<App />);
+      expect(await screen.findByText("1 elements")).toBeTruthy();
+      fireEvent.change(screen.getByLabelText("Canvas"), { target: { value: "minecraft-clone" } });
+      expect(await screen.findByText("4 elements")).toBeTruthy();
+      a.unmount();
+
+      // Another Canvas instance, in another cluster, opens its own canvas.
+      bridge.instanceId = "inst-b";
+      const b = render(<App />);
+      expect(await screen.findByText("1 elements")).toBeTruthy();
+      b.unmount();
+
+      bridge.instanceId = "inst-a";
+      render(<App />);
+      expect(await screen.findByText("4 elements")).toBeTruthy();
+    });
   });
 
   describe("nesting", () => {
