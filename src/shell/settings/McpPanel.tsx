@@ -1,7 +1,7 @@
 /**
  * The MCP servers OpenKaava hosts, with a switch on each.
  *
- * ## This is the only section with a custom panel, and it should stay that way
+ * ## Panels are the exception, and should stay one
  *
  * Every other section is drawn entirely from the schema: Rust declares a key, a
  * control and a default, and `ControlFor` draws it. That is what makes adding a
@@ -15,8 +15,8 @@
  * a type that is supposed to be about values. So the exception is drawn here, in
  * one file, next to the section it belongs to.
  *
- * The rule that follows: a second section wanting a panel is a signal the schema
- * is missing a control, not that panels are how sections are built.
+ * The other is `CloudAccountPanel.tsx`, for credentials. A third section wanting
+ * a panel means the schema is missing a control, not that panels are the way.
  */
 import { useEffect, useId, useRef, useState } from "react";
 import McpTools from "./McpTools";

@@ -252,6 +252,43 @@ export function setGithubToken(token: string): Promise<void> {
   return invoke<void>("set_github_token", { token });
 }
 
+/** Mirrors `cloud::google::Status`. Carries an email and never a token. */
+export interface GoogleAuthStatus {
+  /** A client ID is set and a client secret is stored. */
+  configured: boolean;
+  hasClientId: boolean;
+  hasClientSecret: boolean;
+  /** The signed-in Google account, or null. */
+  email: string | null;
+  /** A sign-in is waiting for the browser. */
+  pending: boolean;
+}
+
+/** Who is signed in to OpenKaava's own Google sign-in. No network. */
+export function googleAuthStatus(): Promise<GoogleAuthStatus> {
+  return invoke<GoogleAuthStatus>("google_auth_status");
+}
+
+/** Open the system browser and wait for the approval. Resolves to the email. */
+export function googleSignIn(): Promise<string> {
+  return invoke<string>("google_sign_in");
+}
+
+/** Stop a sign-in that is waiting for the browser. */
+export function googleCancelSignIn(): Promise<void> {
+  return invoke<void>("google_cancel_sign_in");
+}
+
+/** Revoke the sign-in at Google and forget it here. */
+export function googleSignOut(): Promise<void> {
+  return invoke<void>("google_sign_out");
+}
+
+/** Store the OAuth client secret in the credential store, or clear it with "". */
+export function setGoogleClientSecret(secret: string): Promise<void> {
+  return invoke<void>("set_google_client_secret", { secret });
+}
+
 /** Mirrors `plugins::install::Phase`. */
 export type InstallPhase =
   "resolving" | "downloading" | "verifying" | "unpacking" | "done" | "failed";

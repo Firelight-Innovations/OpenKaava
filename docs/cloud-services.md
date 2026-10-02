@@ -45,6 +45,28 @@ OpenKaava holds no keys. It uses the signed-in user's Google identity, through t
 - The user is a project owner, so these tokens can read and write everything listed above. Agent
   VMs use their own service account (`kaava-agent`), not the user's identity.
 
+### OpenKaava's own Google sign-in
+
+For the `kaava-api` gateway (`services/kaava-api`), OpenKaava can sign in to Google itself, without
+`gcloud`. The code is `src-tauri/src/cloud/google.rs`.
+
+- **Flow.** OAuth 2.0 for installed apps: the system browser, a one-shot redirect listener on
+  `127.0.0.1`, PKCE `S256`, and a random `state`. Scopes are `openid email` only. The result is an
+  ID token whose audience is the OAuth client ID, which `kaava-api` lists as a custom audience.
+- **Storage.** The refresh token goes to Windows Credential Manager, with the account's email.
+  The ID token is kept in memory and refreshed five minutes before it expires. The access token
+  is not kept at all.
+- **Configuration.** Settings, Cloud: the client ID is a setting (`cloud.googleClientId`). The
+  client secret is entered in the same section's account panel and goes to the credential store,
+  not `settings.json`, because settings are broadcast to every app frame.
+- **What the frontend sees.** Only `GoogleAuthStatus`: whether the client is configured, the email,
+  and whether a sign-in is waiting. No command returns a token or the client secret.
+- **Lapsed sign-ins.** A refresh that Google answers with `invalid_grant` forgets the stored token,
+  and the call fails with `Trouble::SignInNeeded`, which names Settings, Cloud as the fix.
+- **Sign-out** revokes the refresh token at Google (best effort) and always forgets it locally.
+
+Everything else in this section still uses `gcloud`.
+
 ## 3. Artifacts
 
 This section restates PRD §4.1 with the field shapes filled in.
