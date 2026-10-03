@@ -31,7 +31,7 @@ import { withoutSessionMarkers } from "./claude-session-env.mjs";
  * from the same field, so this one override buys both a second process and a
  * private `%APPDATA%` tree.
  */
-const IDENTIFIER = "com.firelightinnovations.openkaava.agent";
+const IDENTIFIER = process.env.KAAVA_IDENTIFIER || "com.firelightinnovations.openkaava.agent";
 
 /** The built binary, honouring `CARGO_TARGET_DIR` if the worktree shares one. */
 const TARGET_DIR = process.env.CARGO_TARGET_DIR ?? join(process.cwd(), "target");

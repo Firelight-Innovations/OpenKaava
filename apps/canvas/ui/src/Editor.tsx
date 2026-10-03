@@ -24,6 +24,7 @@ import {
 } from "./nesting";
 import type { SceneElement, SceneFile } from "./scene";
 import { SnapshotPainter } from "./snapshots";
+import { viewMissesContent, type ViewBox } from "./viewFit";
 
 export interface EditorProps {
   /** The canvas shown, whose sub-canvas frames get pictures of their children. */
@@ -124,6 +125,7 @@ export default function Editor({
   onChangeRef.current = onChange;
   const onApiRef = useRef(onApi);
   onApiRef.current = onApi;
+  const viewChecked = useRef(false);
   const canvasIdRef = useRef(canvasId);
   canvasIdRef.current = canvasId;
 
@@ -175,6 +177,15 @@ export default function Editor({
       // it is drawing with, so a mismatch is corrected here.
       if (themeNeedsPush(appState.theme, themeRef.current)) {
         apiRef.current?.updateScene({ appState: { theme: themeRef.current } } as never);
+      }
+      // Once, on the first change that knows the viewport size: a saved or
+      // remembered view that shows none of the content is replaced by a fit.
+      if (!viewChecked.current && appState.width > 0 && appState.height > 0) {
+        viewChecked.current = true;
+        const live = (elements as readonly SceneElement[]).filter((e) => !e.isDeleted);
+        if (viewMissesContent(live, appState as unknown as ViewBox)) {
+          apiRef.current?.scrollToContent(live as never, { fitToContent: true });
+        }
       }
       const { scrollX, scrollY, zoom } = appState;
       views.set(canvasIdRef.current, { scrollX, scrollY, zoom: { value: zoom.value } });
