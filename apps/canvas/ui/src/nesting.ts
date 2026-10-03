@@ -23,6 +23,7 @@ const MAX_DEPTH = 4;
 
 interface Kaava {
   child?: unknown;
+  subcanvas?: unknown;
 }
 
 function kaavaData(el: SceneElement): Kaava | undefined {
@@ -276,14 +277,17 @@ export function linkBadges(
     const px = width * zoom;
     if (px < BADGE_MIN_PX) continue;
     const label = titleOf(child);
-    const compact = px < BADGE_COMPACT_PX;
     // The name label owns the top edge's left end. If the chip would run into it,
     // the chip goes under the frame's bottom edge instead, where nothing is drawn.
     const nameChars = typeof el.name === "string" && el.name ? el.name.length : 5;
     const labelPx = nameChars * LABEL_CHAR_PX + LABEL_PAD_PX;
-    const chipPx = compact
-      ? CHIP_COMPACT_PX
-      : Math.min(CHIP_MAX_PX, CHIP_FIXED_PX + label.length * CHIP_CHAR_PX);
+    const fullPx = Math.min(CHIP_MAX_PX, CHIP_FIXED_PX + label.length * CHIP_CHAR_PX);
+    // A split canvas tiles its sub-canvas frames edge to edge, so under the
+    // bottom edge is the next frame's picture: shrink to the arrow first.
+    const tiled = kaavaData(el)?.subcanvas === true;
+    const compact =
+      px < BADGE_COMPACT_PX || (tiled && labelPx + fullPx > px && labelPx + CHIP_COMPACT_PX <= px);
+    const chipPx = compact ? CHIP_COMPACT_PX : fullPx;
     const below = labelPx + chipPx > px;
     const edge = below ? y + height : y;
     out.push({

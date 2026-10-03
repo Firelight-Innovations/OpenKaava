@@ -261,6 +261,18 @@ pub fn require_canvas(root: &Path, canvas: &str) -> Result<(), RpcError> {
     }
 }
 
+/// Move `comment` to canvas `to`: written into `to`'s sidecar folder with its
+/// `canvas` rewritten, then removed from the old one. Used when a frame moves
+/// into a sub-canvas, so its review thread goes with its elements.
+pub fn move_to(root: &Path, comment: &Comment, to: &str) -> Result<Comment, RpcError> {
+    let old = path_of(root, &comment.canvas, &comment.id);
+    let mut moved = comment.clone();
+    moved.canvas = to.to_string();
+    save(root, &moved)?;
+    let _ = std::fs::remove_file(old);
+    Ok(moved)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -131,6 +131,25 @@ describe("addShapes", () => {
     expect(r.warnings).toContain("`one` overlaps `two`");
   });
 
+  it("adds to a frame with replace: false without copying what is already in it", () => {
+    const first = addShapes([], states, mono, { gravity: { value: 24 } });
+    const more = addShapes(
+      first.elements,
+      {
+        frame: states.frame,
+        replace: false,
+        shapes: [{ id: "mark", type: "ellipse", x: 0, y: 300, label: "Mark" }],
+      },
+      mono,
+      { gravity: { value: 24 } },
+    );
+    const ids = more.elements.map((e) => e.id);
+    expect(ids.filter((id, i) => ids.indexOf(id) !== i)).toEqual([]);
+    expect(more.elements.length).toBe(first.elements.length + 2);
+    expect(ids).toContain("states:ready");
+    expect(ids).toContain("states:mark");
+  });
+
   it("replaces the frame's old contents and keeps its place", () => {
     const moved = addShapes([], { ...states, frame: { ...states.frame, x: 500, y: 80 } }, mono);
     const again = addShapes(moved.elements, { frame: states.frame, shapes: [] }, mono);

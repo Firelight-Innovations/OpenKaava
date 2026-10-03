@@ -127,6 +127,47 @@ export const deleteType = (id: string) =>
 export const setParent = (id: string, parent: string | null) =>
   invoke<{ id: string; parent: string | null }>("canvas/set-parent", { id, parent, ...HUMAN });
 
+// --- sub-canvases ---------------------------------------------------------------
+
+export interface SplitResult {
+  canvas: string;
+  split: { frame: string; diagram: string; title: string; child: string; elements: number }[];
+  skipped: { frame: string; reason: string }[];
+  checkpoint: string | null;
+  mtime: number | null;
+}
+
+/** Move every heavy frame of canvas `id` into a child canvas of its own. */
+export const splitFrames = (id: string) =>
+  invoke<SplitResult>("canvas/split-frames", { id, ...HUMAN });
+
+export interface SnapshotRow {
+  /** The sub-canvas frame's element id on the parent. */
+  frame: string;
+  child: string;
+  mtime: number | null;
+  missing: boolean;
+  /** The child's mtime matched `known`: nothing else is sent. */
+  unchanged?: boolean;
+  childFrame?: { id: string | null; width: number; height: number; name: string | null };
+  /** The cached picture, base64 PNG, when it was drawn from `mtime`. */
+  png?: string;
+}
+
+/** Each sub-canvas frame on `id`, with any cached picture of its child that is
+ *  newer than the mtime `known` lists for it. */
+export const listSnapshots = (id: string, known: Record<string, number>) =>
+  invoke<{ frames: SnapshotRow[] }>("canvas/snapshots", { id, known });
+
+/** Cache a picture of `child` as it was at `mtime`. */
+export const putSnapshot = (
+  child: string,
+  mtime: number,
+  png: string,
+  width: number,
+  height: number,
+) => invoke<{ bytes: number }>("canvas/put-snapshot", { child, mtime, png, width, height });
+
 // --- reading the errors -------------------------------------------------------
 
 function kindOf(err: unknown): string | null {

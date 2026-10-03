@@ -5,9 +5,11 @@
 //! server can expose them as they stand. Every method takes the `actor` rule of
 //! the rest of the app (`"human"` or `"agent"`).
 
+use super::diagrams;
 use super::frames::{self, Frame};
 use super::methods::{actor, open, params_of, render, save_scene, string, ViewParams};
 use super::store;
+use super::subcanvas;
 use super::types::{self, TypeDef};
 use super::webview::Webview;
 use super::{bad, file_for, files, load, relative, validate_id, DIR};
@@ -167,10 +169,21 @@ fn read_canvas(root: &Path, id: &str) -> Result<Read, RpcError> {
         .filter(|t| !t.is_empty())
         .unwrap_or_else(|| id.rsplit('/').next().unwrap_or(id))
         .to_string();
+    let mut listed = frames::list(&scene);
+    // A split frame's elements live in its child, so count them there.
+    for (el, child) in subcanvas::subcanvas_frames(&scene) {
+        let fid = el.get("id").and_then(Value::as_str).unwrap_or("");
+        let Some(f) = listed.iter_mut().find(|f| f.id == fid) else {
+            continue;
+        };
+        if let Ok(cscene) = load(&file_for(root, &child)) {
+            f.elements = diagrams::members_of(diagrams::elements_of(&cscene), fid).len();
+        }
+    }
     Ok(Read {
         id: id.to_string(),
         title,
-        frames: frames::list(&scene),
+        frames: listed,
         legacy: migration.legacy,
         scene,
     })
@@ -388,7 +401,21 @@ pub fn frame_detail(root: &Path, params: Option<&Value>) -> Result<Value, RpcErr
         .as_deref()
         .and_then(|t| table.iter().find(|d| d.id == t))
         .map_or(Value::Null, TypeDef::to_json);
-    out["contents"] = json!(frames::contents(&r.scene, &f.id));
+    // A split frame's contents are in its child canvas, under the same frame id.
+    let child = r
+        .scene
+        .get("elements")
+        .and_then(Value::as_array)
+        .and_then(|a| a.iter().find(|e| e["id"] == json!(f.id)))
+        .and_then(subcanvas::child_of_frame)
+        .and_then(|c| open(root, &json!({ "id": c })).ok());
+    out["contents"] = match &child {
+        Some((cid, cscene, _)) => {
+            out["childCanvas"] = json!(cid);
+            json!(frames::contents(cscene, &f.id))
+        }
+        None => json!(frames::contents(&r.scene, &f.id)),
+    };
     out["canvasPath"] = json!(relative(root, &file_for(root, &r.id)));
     out["image"] =
         json!({ "method": "canvas/frame-image", "params": { "canvas": r.id, "frame": f.id } });
@@ -413,9 +440,12 @@ pub fn frame_image(
     let mut scene = scene;
     frames::migrate(&mut scene);
     let all = frames::list(&scene);
-    let f = frames::find(&all, &string(p, "frame")?)
+    let mut f = frames::find(&all, &string(p, "frame")?)
         .map_err(bad)?
         .clone();
+    // A split frame is drawn from its child canvas, where its elements are.
+    let (id, scene, _, _) = subcanvas::follow(root, id, scene, None, &f.id)?;
+    f.elements = diagrams::members_of(diagrams::elements_of(&scene), &f.id).len();
     let mut view: ViewParams =
         serde_json::from_value(p.clone()).map_err(|e| bad(format!("bad params: {e}")))?;
     view.region = None;
@@ -554,6 +584,7 @@ fn set_child_link(el: &mut Value, child: Option<&str>) {
         None => {
             if let Some(k) = el["customData"]["kaava"].as_object_mut() {
                 k.remove("child");
+                k.remove("subcanvas");
             }
             if el
                 .get("link")
@@ -922,7 +953,9 @@ pub fn set_frame(root: &Path, params: Option<&Value>) -> Result<Value, RpcError>
         el["name"] = json!(name);
     }
     bump(el);
+    let mirrored = el.clone();
     let mtime = save_scene(root, &id, scene, base, who)?;
+    subcanvas::mirror_into_child(root, &mirrored, who)?;
     let after = read_canvas(root, &id)?;
     let f = frames::find(&after.frames, &frame_id).map_err(bad)?;
     Ok(json!({ "frame": frames::frame_json(&id, f, &table), "mtime": mtime }))

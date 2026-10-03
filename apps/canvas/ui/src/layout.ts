@@ -328,16 +328,16 @@ export function addShapes(
 
   // Keep everything that is not this frame's, unless adding to it.
   const replace = spec.replace !== false;
+  // Adding carries the frame's members once, apart from `kept`; listing them in
+  // both is what used to duplicate every element in the frame.
   const kept = scene.filter((el) => {
-    if (el === existing) return false;
-    if (!replace) return true;
-    return el.frameId !== realFrameId && !String(el.id).startsWith(prefix);
+    if (el === existing || el.frameId === realFrameId) return false;
+    return !replace || !String(el.id).startsWith(prefix);
   });
   const survivors = new Set(kept.map((el) => el.id));
   const carried = replace
     ? []
-    : scene.filter((el) => el.frameId === realFrameId && survivors.has(el.id));
-  for (const el of carried) survivors.delete(el.id);
+    : scene.filter((el) => el.frameId === realFrameId && el !== existing);
 
   // `replace` drops everything in the frame. What add_shapes drew comes back under
   // the same ids; anything else (drawn by hand, or wrapped in by create_frame) does
@@ -715,10 +715,14 @@ export function addShapes(
     }
   }
 
+  // What this call redrew (the header, a shape given again) replaces its old copy.
+  const drawn = new Set(out.map((el) => el.id));
+  const stay = carried.filter((el) => !drawn.has(el.id));
+
   // Size the frame to what is in it.
   let right = fx + FRAME_PAD + headerWidth;
   let bottom = oy;
-  for (const el of [...out, ...carried]) {
+  for (const el of [...out, ...stay]) {
     const b = boxOf(el);
     const pts = el.points as Point[] | undefined;
     if (pts) {
@@ -757,7 +761,7 @@ export function addShapes(
   });
 
   // Children before their frame, the order Excalidraw draws frames in.
-  const elements = [...kept, ...carried, ...out, frameEl];
+  const elements = [...kept, ...stay, ...out, frameEl];
   return {
     elements,
     ids,

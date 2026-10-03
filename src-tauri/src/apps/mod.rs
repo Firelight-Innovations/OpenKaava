@@ -674,6 +674,7 @@ pub const WRITE_METHODS: &[&str] = &[
     "canvas/link-frame",
     "canvas/set-frame",
     "canvas/create-frame",
+    "canvas/split-frames",
 ];
 
 /// Whether `method` is a write to the cluster's checkout.

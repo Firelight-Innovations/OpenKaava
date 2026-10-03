@@ -68,6 +68,12 @@ timing chart, a transition table) gets its own frame with that subsystem as its 
 every diagram by level with its summary and topics. Each title is a `kaava://diagram/<id>` link,
 so clicking it moves to that diagram. Rebuild it after adding diagrams.
 
+**Big canvases split.** Once a canvas holds thousands of elements, `canvas/split-frames` moves
+each heavy frame into a child canvas of its own. The parent then shows a picture of each child.
+Keep naming diagrams on the parent as before. `describe-diagram`, `view-diagram`, `add-shapes`
+and comments follow a split frame into its child, and the result's `canvas` says which file
+they used.
+
 **One concern per canvas.** A game's design and the spec cards for its 3D assets are different
 things. A spec card (name, size in metres, triangle budget, style notes, reference images, review
 state) belongs to one asset. The game's rules belong in diagrams.

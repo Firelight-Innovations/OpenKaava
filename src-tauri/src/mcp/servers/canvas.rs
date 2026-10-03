@@ -254,6 +254,23 @@ canvas_tools! {
         &["values"],
     );
 
+    "split_frames" => "canvas/split-frames", Scope::Canvas, false,
+    "Move heavy frames into child canvases of their own (sub-canvases), so a big canvas pans \
+     smoothly: the parent then shows each split frame as a picture of its child, and \
+     double-clicking it opens the child. With no `frames`, every frame of at least \
+     `minElements` elements (default 40) is split. Comments move with their frame. Every \
+     diagram tool (describe, view, add_shapes, comments) follows a split frame's diagram id \
+     into its child, so you keep naming diagrams on the parent. Checkpointed; use `dryRun` \
+     to see the plan first.",
+    || canvas_schema(
+        json!({
+            "frames": { "type": "array", "items": { "type": "string" }, "description": "Diagram ids (or frame ids or titles) to split. Omit to split every heavy frame." },
+            "minElements": { "type": "integer", "minimum": 1, "description": "With no `frames`: the fewest elements a frame needs to be split (default 40)." },
+            "dryRun": { "type": "boolean", "description": "Report what would be split, and why any frame would be skipped, without writing." },
+        }),
+        &[],
+    );
+
     "refs" => "canvas/refs", Scope::Canvas, true,
     "The reference images stored for a canvas, and which are used or missing.",
     || canvas_schema(json!({}), &[]);

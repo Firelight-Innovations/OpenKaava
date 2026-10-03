@@ -14,6 +14,7 @@ use super::comments::{self, Region};
 use super::diagrams::{self, Bounds, Diagram};
 use super::store;
 use super::style;
+use super::subcanvas;
 use super::webview::Webview;
 use super::{bad, file_for, load, mtime_at, relative, stamp, validate_id, write_file};
 use kaava_rpc::{RpcError, INVALID_PARAMS};
@@ -144,6 +145,24 @@ pub fn list_diagrams(root: &Path, params: Option<&Value>) -> Result<Value, RpcEr
     actor(p)?;
     let (id, scene, _) = open(root, p)?;
     let mut out = diagrams::list_json(&scene);
+    // A split frame's elements are in its child canvas: count them there.
+    let split = subcanvas::subcanvas_frames(&scene);
+    if let Some(rows) = out["diagrams"].as_array_mut() {
+        for row in rows.iter_mut() {
+            let Some((frame, child)) = split
+                .iter()
+                .find(|(f, _)| f.get("id") == Some(&row["frameElementId"]))
+            else {
+                continue;
+            };
+            row["childCanvas"] = json!(child);
+            if let Ok((_, cscene, _)) = open(root, &json!({ "id": child })) {
+                let fid = frame.get("id").and_then(Value::as_str).unwrap_or("");
+                row["elements"] =
+                    json!(diagrams::members_of(diagrams::elements_of(&cscene), fid).len());
+            }
+        }
+    }
     out["canvas"] = json!(id);
     out["path"] = json!(relative(root, &file_for(root, &id)));
     Ok(out)
@@ -152,11 +171,14 @@ pub fn list_diagrams(root: &Path, params: Option<&Value>) -> Result<Value, RpcEr
 pub fn describe_diagram(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
     let p = params_of(params);
     actor(p)?;
-    let (_, scene, _) = open(root, p)?;
+    let wanted = diagram_param(p)?;
+    let (id, scene, mtime) = open(root, p)?;
+    let (id, scene, _, _) = subcanvas::follow(root, id, scene, mtime, &wanted)?;
     let all = diagrams::list(&scene);
-    let d = diagram(&all, &diagram_param(p)?)?;
+    let d = diagram(&all, &wanted)?;
     let mut out = diagrams::describe(&scene, d);
     out["diagram"]["path"] = json!(diagrams::path_of(&all, d));
+    out["canvas"] = json!(id);
     Ok(out)
 }
 
@@ -172,7 +194,38 @@ pub fn values(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
     let p = params_of(params);
     actor(p)?;
     let (_, scene, _) = open(root, p)?;
-    Ok(diagrams::values_report(&scene))
+    Ok(values_with_children(root, &scene))
+}
+
+/// The values report for `scene`, with the uses and mismatches inside its
+/// split frames' children added under their `canvas`.
+fn values_with_children(root: &Path, scene: &Value) -> Value {
+    let mut out = diagrams::values_report(scene);
+    // Templated texts in split frames live in the child canvases.
+    for (_, child) in subcanvas::subcanvas_frames(scene) {
+        let Ok((_, cscene, _)) = open(root, &json!({ "id": child })) else {
+            continue;
+        };
+        let report = diagrams::values_report(&cscene);
+        for key in ["uses", "mismatches"] {
+            let extra: Vec<Value> = report[key]
+                .as_array()
+                .cloned()
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|r| r.get("elementId").is_some_and(|e| !e.is_null()))
+                .map(|mut r| {
+                    r["canvas"] = json!(child);
+                    r
+                })
+                .collect();
+            if let Some(list) = out[key].as_array_mut() {
+                list.extend(extra);
+            }
+        }
+    }
+    out["consistent"] = json!(out["mismatches"].as_array().is_none_or(Vec::is_empty));
+    out
 }
 
 pub fn refs(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
@@ -257,15 +310,18 @@ pub fn view_diagram(
 ) -> Result<Value, RpcError> {
     let p = params_of(params);
     actor(p)?;
-    let (id, scene, _) = open(root, p)?;
+    let wanted = diagram_param(p)?;
+    let (id, scene, mtime) = open(root, p)?;
+    let (id, scene, _, _) = subcanvas::follow(root, id, scene, mtime, &wanted)?;
     let view: ViewParams =
         serde_json::from_value(p.clone()).map_err(|e| bad(format!("bad params: {e}")))?;
     let all = diagrams::list(&scene);
-    let d = diagram(&all, &diagram_param(p)?)?.clone();
+    let d = diagram(&all, &wanted)?.clone();
     let file = store::view_path(root, &id, &key_of(&d), view.region.is_some())?;
     let mut out = render(root, web, &id, scene, &d.element_id, &view, &file)?;
     out["diagram"] = json!({ "id": d.id, "title": d.title, "summary": d.summary,
                              "frameElementId": d.element_id, "bounds": d.bounds.to_json() });
+    out["canvas"] = json!(id);
     Ok(out)
 }
 
@@ -315,14 +371,29 @@ pub fn author(
 ) -> Result<Value, RpcError> {
     let p = params_of(params);
     let who = actor(p)?;
-    let (id, mut scene, base) = open(root, p)?;
+    let (id, scene, base) = open(root, p)?;
+    // Drawing into a split frame draws into its child canvas, with the
+    // parent's value table so `{{name}}` templates still resolve.
+    let parent_values = scene.pointer("/kaava/values").cloned();
+    let parent_design = scene.pointer("/kaava/design").cloned();
+    let (id, mut scene, base, parent) = match p.pointer("/frame/id").and_then(Value::as_str) {
+        Some(f) => subcanvas::follow(root, id, scene, base, f)?,
+        None => (id, scene, base, None),
+    };
+    if let (Some(_), Some(Value::Object(table))) = (&parent, parent_values) {
+        merge_values(&mut scene, &table);
+    }
     let mut spec = p.clone();
     if let Some(obj) = spec.as_object_mut() {
         obj.remove("id");
         obj.remove("actor");
         // How this canvas is drawn is not the agent's call: the person's choice
         // (or the canvas's own override) goes to the renderer whatever it sent.
-        let e = effective_design(&scene, web);
+        // A child without its own override draws as its parent does.
+        let e = match (&parent, &parent_design, scene.pointer("/kaava/design")) {
+            (Some(_), Some(d), None) => effective_design(&json!({ "kaava": { "design": d } }), web),
+            _ => effective_design(&scene, web),
+        };
         obj.insert("render".into(), style::render_params(e.style));
     }
     // The layout needs each image's `kaavaRef` to place `{type: image, ref}`,
@@ -348,7 +419,16 @@ pub fn author(
         diagrams::apply_values(&mut scene);
     }
     let mtime = save_scene(root, &id, scene.clone(), base, who)?;
+    if let Some(parent) = &parent {
+        if let Some(values) = out.get("values").and_then(Value::as_object) {
+            let (_, mut pscene, pbase) = open(root, &json!({ "id": parent }))?;
+            merge_values(&mut pscene, values);
+            save_scene(root, parent, pscene, pbase, who)?;
+        }
+        subcanvas::sync_parent(root, parent, &id, who)?;
+    }
     Ok(json!({
+        "canvas": id,
         "ids": out.get("ids"),
         "frame": out.get("frame"),
         "warnings": out.get("warnings").cloned().unwrap_or(json!([])),
@@ -462,7 +542,18 @@ pub fn set_values(root: &Path, params: Option<&Value>) -> Result<Value, RpcError
     merge_values(&mut scene, incoming);
     let changed = diagrams::apply_values(&mut scene);
     let mtime = save_scene(root, &id, scene.clone(), base, who)?;
-    let mut out = diagrams::values_report(&scene);
+    // Each split frame's child keeps a copy of the table its texts render from.
+    let mut changed = changed;
+    for (_, child) in subcanvas::subcanvas_frames(&scene) {
+        let Ok((_, mut cscene, cbase)) = open(root, &json!({ "id": child })) else {
+            continue;
+        };
+        store::checkpoint(root, &child, "set-values")?;
+        merge_values(&mut cscene, incoming);
+        changed += diagrams::apply_values(&mut cscene);
+        save_scene(root, &child, cscene, cbase, who)?;
+    }
+    let mut out = values_with_children(root, &scene);
     out["changedElements"] = json!(changed);
     out["checkpoint"] = json!(checkpoint);
     out["mtime"] = json!(mtime);
@@ -472,13 +563,24 @@ pub fn set_values(root: &Path, params: Option<&Value>) -> Result<Value, RpcError
 pub fn restore_checkpoint(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
     let p = params_of(params);
     let who = actor(p)?;
-    let (id, _, base) = open(root, p)?;
+    let (id, current, base) = open(root, p)?;
     let wanted = p.get("checkpoint").and_then(Value::as_str);
-    let (name, scene) = store::checkpoint_scene(root, &id, wanted)?;
+    let (name, mut scene) = store::checkpoint_scene(root, &id, wanted)?;
     super::validate_scene(&scene).map_err(|why| bad(format!("checkpoint {name}: {why}")))?;
+    // Edits made inside a child since the split come home with it.
+    let merged = subcanvas::merge_children(root, &id, &current, &mut scene)?;
     let saved = store::checkpoint(root, &id, "before-restore")?;
-    let mtime = save_scene(root, &id, scene, base, who)?;
-    Ok(json!({ "restored": name, "previousSavedAs": saved, "mtime": mtime }))
+    let mtime = save_scene(root, &id, scene.clone(), base, who)?;
+    // Undoing a split brings the frames' comments home with their elements.
+    let (returned, removed) = subcanvas::unsplit(root, &id, &current, &scene)?;
+    Ok(json!({
+        "restored": name,
+        "previousSavedAs": saved,
+        "mtime": mtime,
+        "commentsReturned": returned,
+        "childrenRemoved": removed,
+        "childrenMerged": merged,
+    }))
 }
 
 // --- comments ---------------------------------------------------------------
@@ -494,7 +596,15 @@ pub fn list_comments(root: &Path, params: Option<&Value>) -> Result<Value, RpcEr
         return Err(bad("status must be open, resolved or all"));
     }
     let wanted_diagram = p.get("diagram").and_then(Value::as_str);
-    let (all, unreadable) = comments::load_all(root, &id);
+    let (mut all, mut unreadable) = comments::load_all(root, &id);
+    // Comments on a split frame moved into its child with its elements.
+    if let Ok((_, scene, _)) = open(root, p) {
+        for (_, child) in subcanvas::subcanvas_frames(&scene) {
+            let (more, bad_files) = comments::load_all(root, &child);
+            all.extend(more);
+            unreadable.extend(bad_files);
+        }
+    }
     let open_count = all.iter().filter(|c| c.status == "open").count();
     let rows: Vec<Value> = all
         .iter()
@@ -513,9 +623,10 @@ pub fn list_comments(root: &Path, params: Option<&Value>) -> Result<Value, RpcEr
 pub fn create_comment(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
     let p = params_of(params);
     let who = actor(p)?;
-    let (id, scene, _) = open(root, p)?;
     let cp: comments::CreateParams =
         serde_json::from_value(p.clone()).map_err(|e| bad(format!("bad params: {e}")))?;
+    let (id, scene, mtime) = open(root, p)?;
+    let (id, scene, _, _) = subcanvas::follow(root, id, scene, mtime, &cp.diagram)?;
     let all = diagrams::list(&scene);
     let d = diagram(&all, &cp.diagram)?;
     let known: std::collections::HashSet<&str> = diagrams::elements_of(&scene)
@@ -540,8 +651,26 @@ pub fn resolve_comment(
     validate_id(&id)?;
     let comment_id = string(p, "commentId")?;
     let note = p.get("note").and_then(Value::as_str);
+    let id = comment_home(root, &id, &comment_id);
     let c = comments::set_status(root, &id, &comment_id, resolved, note, who)?;
     Ok(comments::to_json(root, &c))
+}
+
+/// The canvas comment `comment_id` is filed under: `id` itself, or the child of
+/// one of its split frames, where the comment moved with the frame's elements.
+fn comment_home(root: &Path, id: &str, comment_id: &str) -> String {
+    if comments::load_one(root, id, comment_id).is_ok() {
+        return id.to_string();
+    }
+    open(root, &json!({ "id": id }))
+        .ok()
+        .and_then(|(_, scene, _)| {
+            subcanvas::subcanvas_frames(&scene)
+                .into_iter()
+                .map(|(_, c)| c)
+                .find(|c| comments::load_one(root, c, comment_id).is_ok())
+        })
+        .unwrap_or_else(|| id.to_string())
 }
 
 /// The frame-relative box a comment points at: its region, else the union of
@@ -576,8 +705,11 @@ pub fn view_comment(
 ) -> Result<Value, RpcError> {
     let p = params_of(params);
     actor(p)?;
-    let (id, scene, _) = open(root, p)?;
-    let c = comments::load_one(root, &id, &string(p, "commentId")?)?;
+    let (id, _, _) = open(root, p)?;
+    let comment_id = string(p, "commentId")?;
+    let id = comment_home(root, &id, &comment_id);
+    let (id, scene, _) = open(root, &json!({ "id": id }))?;
+    let c = comments::load_one(root, &id, &comment_id)?;
     let all = diagrams::list(&scene);
     let d = diagram(&all, &c.frame_id)?.clone();
     let region = comment_region(&scene, &d, &c);
@@ -1126,6 +1258,35 @@ mod tests {
         assert_eq!(render["style"], "blueprint");
         assert_eq!(render["roughness"], 0);
         assert_eq!(render["fontName"], "Nunito");
+    }
+
+    /// Drawing into a split frame uses the parent's design override, which its
+    /// child canvas does not carry.
+    #[test]
+    fn a_split_frame_draws_in_its_parents_style() {
+        let dir = setup();
+        let mut parent = scene();
+        parent["kaava"] = json!({ "design": { "style": "whiteboard" } });
+        let frame = &mut parent["elements"][0];
+        frame["customData"]["kaava"]["child"] = json!("game/playfield");
+        frame["customData"]["kaava"]["subcanvas"] = json!(true);
+        let ball = parent["elements"][1].clone();
+        parent["elements"].as_array_mut().unwrap().truncate(1);
+        let root = dir.path().join("canvas");
+        std::fs::write(root.join("game.json"), parent.to_string()).unwrap();
+        std::fs::create_dir_all(root.join("game")).unwrap();
+        let mut child = scene();
+        child["elements"] = json!([ball, scene()["elements"][0].clone()]);
+        child["kaava"] = json!({ "title": "Playfield", "parent": "game" });
+        std::fs::write(root.join("game/playfield.json"), child.to_string()).unwrap();
+
+        let fake = Fake::default();
+        let mut params = draw_params();
+        params["frame"] = json!({ "id": "playfield", "title": "Playfield" });
+        let out = run(&dir, &fake, "canvas/add-shapes", params).unwrap();
+        assert_eq!(out["canvas"], "game/playfield");
+        let render = fake.calls.borrow()[0].1["spec"]["render"].clone();
+        assert_eq!(render["style"], "whiteboard");
     }
 
     /// An agent may not pick its own render parameters by sending them.

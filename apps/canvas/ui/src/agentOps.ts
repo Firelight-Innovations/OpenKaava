@@ -31,6 +31,8 @@ export interface RenderRequest {
   scale?: number | null;
   maxDimension?: number;
   theme?: "light" | "dark";
+  /** Fill the canvas background (default); `false` leaves it transparent. */
+  background?: boolean;
 }
 
 const live = (els: readonly Element[]) => els.filter((e) => !e.isDeleted);
@@ -107,7 +109,7 @@ export async function render(req: RenderRequest) {
     exportingFrame: frame as never,
     exportPadding: 0,
     appState: {
-      exportBackground: true,
+      exportBackground: req.background !== false,
       viewBackgroundColor: "#ffffff",
       exportWithDarkMode: req.theme === "dark",
       exportScale: scale,
