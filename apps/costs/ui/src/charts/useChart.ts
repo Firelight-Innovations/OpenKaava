@@ -23,7 +23,6 @@ import { onThemeChanged } from "@openkaava/bridge/theme";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef, type RefObject } from "react";
-import { readChartTheme } from "./theme";
 
 echarts.use([
   BarChart,
@@ -58,7 +57,10 @@ export function useChart(option: EChartsOption): RefObject<HTMLDivElement | null
     if (!el.current) return undefined;
     const target = el.current;
     const init = (): void => {
-      chart.current = echarts.init(target, readChartTheme(), { renderer: "canvas" });
+      // No ECharts theme: the option builders already draw with `readChartTheme()`.
+      // Passing it here made ECharts read `theme.grid` (a colour string) as the
+      // `grid` component and throw, which unmounted the whole page to a blank root.
+      chart.current = echarts.init(target, undefined, { renderer: "canvas" });
       apply(chart.current, latest.current);
     };
     init();

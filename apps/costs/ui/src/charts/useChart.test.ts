@@ -80,6 +80,13 @@ describe("useChart", () => {
     expect(lastChart().setOption).toHaveBeenCalledTimes(2);
   });
 
+  it("initialises with no ECharts theme, so the page's own palette is never read as component options", () => {
+    render(createElement(TestChart, { option: { series: [] } }));
+    // A `ChartTheme` has a string `grid`; ECharts reads a theme's `grid` as the
+    // grid component and throws, which blanked the whole Cost Tracker page.
+    expect((echarts.init.mock.calls[0] as unknown[] | undefined)?.[1]).toBeUndefined();
+  });
+
   it("calls setOption again, without re-initialising, when the option changes", () => {
     const { rerender } = render(createElement(TestChart, { option: { series: [] } }));
     rerender(createElement(TestChart, { option: { series: [{ type: "bar" }] } }));
