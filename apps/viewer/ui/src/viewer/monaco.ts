@@ -368,6 +368,8 @@ export function mountEditor(
       showSlider: "mouseover",
     },
     scrollBeyondLastLine: false,
+    // Room for the floating Code | Preview | Steps switch above line 1.
+    padding: { top: 36 },
     fontFamily: settings.fontFamily,
     fontSize: settings.fontSize,
     // `detectIndentation` is left at Monaco's default `true`, which is not a

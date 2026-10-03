@@ -95,6 +95,10 @@ pnpm ui launch                # starts it, with developer mode and the server on
 pnpm ui close                 # stops it, by pid, leaving anyone else's alone
 ```
 
+A second agent instance needs its own identifier, or its argv is handed to the first. Set
+`KAAVA_IDENTIFIER` (e.g. `com.firelightinnovations.openkaava.agent2`) for both `pnpm ui` and
+`pnpm probe --agent`; unset, they use the `.agent` default.
+
 Then drive it. **`--server agent` is the one to use** — it hosts the ten input
 tools (`fill_field`, `context`, `drag` and `scroll` among them), the three `kaava-debug`
 reads, and three more that reach the backend directly. Long or quote-heavy parameters go in a

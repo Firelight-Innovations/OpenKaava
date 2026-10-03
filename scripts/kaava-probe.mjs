@@ -33,7 +33,7 @@ import { tmpdir } from "node:os";
  * OpenKaava somebody is using. `KAAVA_IDENTIFIER` covers anything else.
  */
 const IDENTIFIER = process.env.KAAVA_IDENTIFIER || "com.firelightinnovations.openkaava";
-const AGENT_IDENTIFIER = "com.firelightinnovations.openkaava.agent";
+const AGENT_IDENTIFIER = process.env.KAAVA_IDENTIFIER || "com.firelightinnovations.openkaava.agent";
 
 /** Which one this run is talking to. `--agent` moves it; nothing else does. */
 let identifier = IDENTIFIER;
