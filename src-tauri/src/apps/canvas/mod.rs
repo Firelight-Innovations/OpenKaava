@@ -20,7 +20,7 @@
 //! checkout is refused centrally before any handler here runs.
 
 mod comments;
-mod diagrams;
+pub(crate) mod diagrams;
 /// Frames as labelled objects: type, properties, migration, search.
 mod frames;
 /// What an agent works through: named diagrams, views, comments, drawing and

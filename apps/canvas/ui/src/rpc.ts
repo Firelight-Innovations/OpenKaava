@@ -190,3 +190,16 @@ export const isExists = (err: unknown) => kindOf(err) === "exists";
 export function messageOf(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
+
+// --- detail level and drawing style ---------------------------------------------
+
+/** What `canvas/design-brief` answers with, the half a picker needs. */
+export interface DesignBrief {
+  detail: { id: string; from: string };
+  style: { id: string; from: string };
+  options: { detail: string[]; style: string[]; names: Record<string, string> };
+}
+
+/** The level and style in force for a canvas: its override, else Settings, else the default. */
+export const designBrief = (id: string) =>
+  invoke<DesignBrief>("canvas/design-brief", { id, actor: "human" });

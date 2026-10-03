@@ -354,7 +354,7 @@ of the drawing and collapse to a strip; nothing floats over the drawing.
 | `canvas/import-mermaid` | `{frame, source}`: a Mermaid flowchart or state diagram as a new frame. |
 | `canvas/checkpoints`, `canvas/restore-checkpoint` | The last five saves before a bulk edit; restore one (default the newest). |
 | `canvas/values`, `canvas/set-values` | The `{{name}}` value table, where each is used, and labels that no longer match. |
-| `canvas/design-brief`, `canvas/set-design` | The detail level and drawing style in force for a canvas (its override, else Settings > Canvas, else the default), and a per-canvas override: `{detail?, style?}`, `null` clears. `add_shapes` draws in the style; `drawing_guide` ends with the guidance. |
+| `canvas/design-brief`, `canvas/set-design` | The detail level and drawing style in force for a canvas (its override, else Settings > Canvas, else the default), and a per-canvas override: `{detail?, style?}`, `null` clears. `add_shapes` draws in the style; `drawing_guide` ends with the guidance. The Canvas toolbar's Drawing style control sets the same override by hand (`kaava.design` in the file). `drawing_guide {topic: "design"}` serves `docs/canvas-design-prompt.md`, the brief for designing a game. |
 | `canvas/coverage` | Which frames cover each checklist topic, and which topics none do. |
 | `canvas/refs` | Reference images under `canvas/<id>/refs/`. |
 | `canvas/list-comments` | `{status?: open\|resolved\|all, diagram?}`. |

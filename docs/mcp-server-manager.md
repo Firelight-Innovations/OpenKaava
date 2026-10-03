@@ -466,7 +466,7 @@ offer `actor`.
 - **Reads:** `list_canvases`, `list_files`, `assets`, `read_canvas`, `stat_canvas`,
   `list_diagrams`, `describe_diagram`, `view_diagram`, `coverage`, `values`, `refs`,
   `checkpoints`, `list_comments`, `view_comment`, and `drawing_guide`, which returns
-  `docs/canvas-drawing-guide.md` or `docs/canvas-objects.md` (compiled in) so an agent
+  `docs/canvas-drawing-guide.md`, `docs/canvas-design-prompt.md` or `docs/canvas-objects.md` (compiled in) so an agent
   with only these tools can read the manual before it draws.
 - **Writes:** `create_canvas`, `write_canvas`, `save`, `add_shapes`, `import_mermaid`,
   `set_values`, `restore_checkpoint`, `create_comment`, `resolve_comment`,
