@@ -66,7 +66,17 @@ import {
 import { ancestry, childId, stillLinked, treeOrder, viewportToScene, withChild } from "./nesting";
 import { Autosaver, type SaveState } from "./saver";
 import { sceneVersion, splitCandidates, splitSummary } from "./subcanvas";
-import { signature, slugify, toSaved, uniqueId, type SceneElement, type SceneFile } from "./scene";
+import {
+  signature,
+  slugify,
+  toSaved,
+  uniqueId,
+  withDesign,
+  type DesignOverride,
+  type SceneElement,
+  type SceneFile,
+} from "./scene";
+import DesignControl from "./DesignControl";
 import "./App.css";
 
 // The editor is the bulk of this app's weight; load it only once a canvas is open.
@@ -163,6 +173,8 @@ export default function App() {
   const [list, setList] = useState<CanvasSummary[] | null>(null);
   const [current, setCurrent] = useState<string | null>(null);
   const [doc, setDoc] = useState<CanvasDoc | null>(null);
+  /** The open canvas's own detail level and style, kept beside `doc` so the picker redraws. */
+  const [design, setDesign] = useState<DesignOverride | undefined>(undefined);
   /** Bumped to remount the editor with a freshly loaded scene. */
   const [loadKey, setLoadKey] = useState(0);
   const [loadError, setLoadError] = useState<{ message: string; corrupt: boolean } | null>(null);
@@ -294,6 +306,7 @@ export default function App() {
       saver.setBase(next.mtime, signature(toSaved(s.elements, s.appState, s.files, s.kaava)));
       saverRef.current = saver;
       setDoc(next);
+      setDesign(s.kaava?.design);
       setFrames(framesIn(s.elements));
       setCommentTarget(null);
       setTargetError(null);
@@ -473,6 +486,23 @@ export default function App() {
       setTarget(targetOf(elements, state.selectedElementIds as Record<string, unknown>));
     },
     [],
+  );
+
+  /** Give the open canvas its own detail level or style, or clear it (`null`) to follow
+   *  Settings. It lives in the file's `kaava.design`, so it is saved like any edit and
+   *  is what `canvas/design-brief` and `add_shapes` read. */
+  const chooseDesign = useCallback(
+    async (key: keyof DesignOverride, choice: string | null) => {
+      const api = apiRef.current;
+      const open = docRef.current;
+      if (!api || !open || readOnly) return;
+      // The saver's next write reads `open.scene.kaava`; replacing it here rather than
+      // calling `setDoc` keeps the editor's `initial` prop, and so its scene, untouched.
+      open.scene.kaava = withDesign(open.scene.kaava, key, choice);
+      setDesign(open.scene.kaava.design);
+      await commitElements(api.getSceneElementsIncludingDeleted() as unknown as SceneElement[]);
+    },
+    [commitElements, readOnly],
   );
 
   const patchElement = useCallback(
@@ -1016,14 +1046,23 @@ export default function App() {
         >
           <FilePlus2 size={14} aria-hidden /> New canvas
         </button>
-        <button
-          type="button"
-          className="k-btn k-btn--ghost k-btn--sm"
-          onClick={() => void openCanvasSettings().catch(() => undefined)}
-          title="Detail level and drawing style for agents (opens Settings)"
-        >
-          <Palette size={14} aria-hidden /> Drawing style
-        </button>
+        {doc ? (
+          <DesignControl
+            canvasId={doc.id}
+            override={design}
+            readOnly={readOnly}
+            onChange={(key, choice) => void chooseDesign(key, choice)}
+          />
+        ) : (
+          <button
+            type="button"
+            className="k-btn k-btn--ghost k-btn--sm"
+            onClick={() => void openCanvasSettings().catch(() => undefined)}
+            title="Detail level and drawing style for agents (opens Settings)"
+          >
+            <Palette size={14} aria-hidden /> Drawing style
+          </button>
+        )}
         {doc && <code className="cv__path">{doc.path}</code>}
         <span className="cv__spacer" />
         {readOnly ? (

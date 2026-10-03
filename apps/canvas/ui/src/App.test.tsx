@@ -244,6 +244,16 @@ function fake(b: Backend) {
         });
         b.reads[params!.id as string] = scene(0, params!.title as string);
         return { id: params!.id, path: "x", scene: scene(0), mtime: 100 };
+      case "canvas/design-brief":
+        return {
+          detail: { id: "standard", from: "default" },
+          style: { id: "blueprint", from: "default" },
+          options: {
+            detail: ["sparse", "standard", "dense"],
+            style: ["blueprint", "whiteboard", "minimal", "explainer"],
+            names: { whiteboard: "Whiteboard sketch", blueprint: "Technical blueprint" },
+          },
+        };
       case "canvas/split-frames":
         return {
           canvas: params!.id,
@@ -321,6 +331,50 @@ describe("Canvas app", () => {
       { timeout: 3000 },
     );
     await screen.findByText("Saved");
+  });
+
+  it("saves a per-canvas style choice into kaava.design and clears it again", async () => {
+    fake({
+      readOnly: false,
+      rows: [{ id: "world", title: "World", parent: null, error: null }],
+      reads: { world: scene(1) },
+    });
+    render(<App />);
+    await screen.findByText("1 elements");
+    fireEvent.click(screen.getByText("Drawing style"));
+    const style = (await screen.findByDisplayValue(
+      "Follow Settings (Technical blueprint)",
+    )) as HTMLSelectElement;
+    fireEvent.change(style, { target: { value: "whiteboard" } });
+    await waitFor(
+      () => {
+        const writes = bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write");
+        expect(writes.length).toBeGreaterThan(0);
+        expect(writes[writes.length - 1]![1].scene.kaava.design).toEqual({ style: "whiteboard" });
+      },
+      { timeout: 3000 },
+    );
+    fireEvent.change(screen.getByDisplayValue("Whiteboard sketch"), { target: { value: "" } });
+    await waitFor(
+      () => {
+        const writes = bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write");
+        expect(writes[writes.length - 1]![1].scene.kaava.design).toBeUndefined();
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  it("disables the per-canvas style choice on a read-only checkout", async () => {
+    fake({
+      readOnly: true,
+      rows: [{ id: "world", title: "World", parent: null, error: null }],
+      reads: { world: scene(1) },
+    });
+    render(<App />);
+    await screen.findByText("1 elements");
+    fireEvent.click(screen.getByText("Drawing style"));
+    const style = await screen.findByDisplayValue("Follow Settings (Technical blueprint)");
+    expect((style as HTMLSelectElement).disabled).toBe(true);
   });
 
   it("leaves an untouched canvas Saved and writes nothing while the editor keeps reporting it", async () => {

@@ -16,6 +16,33 @@ export interface KaavaMeta {
   parent?: string;
   updated?: string;
   updated_by?: string;
+  /** This canvas's own detail level and style, over Settings (`style.rs`). */
+  design?: DesignOverride;
+}
+
+/** The two choices a canvas can make for itself; absent means "follow Settings". */
+export interface DesignOverride {
+  detail?: string;
+  style?: string;
+}
+
+/**
+ * `kaava` with one design choice set, or cleared when `choice` is null. An empty
+ * `design` is dropped, so a canvas that follows Settings in both has no trace of it,
+ * the same rule `style::store_choice` keeps on the Rust side.
+ */
+export function withDesign(
+  kaava: KaavaMeta | undefined,
+  key: keyof DesignOverride,
+  choice: string | null,
+): KaavaMeta {
+  const design: DesignOverride = { ...kaava?.design };
+  if (choice) design[key] = choice;
+  else delete design[key];
+  const next: KaavaMeta = { ...kaava };
+  delete next.design;
+  if (Object.keys(design).length) next.design = design;
+  return next;
 }
 
 export interface SceneElement {
@@ -92,6 +119,7 @@ export function signature(scene: SceneFile): string {
   parts.push(`bg=${String(scene.appState.viewBackgroundColor ?? "")}`);
   parts.push(`grid=${String(scene.appState.gridSize ?? "")}`);
   parts.push(`title=${scene.kaava?.title ?? ""}`);
+  parts.push(`design=${scene.kaava?.design?.detail ?? ""}/${scene.kaava?.design?.style ?? ""}`);
   return parts.join("|");
 }
 

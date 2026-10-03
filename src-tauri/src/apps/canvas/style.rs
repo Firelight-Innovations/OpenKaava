@@ -413,6 +413,12 @@ pub fn brief(e: &Effective) -> Value {
         "options": {
             "detail": DETAIL_LEVELS.iter().map(|d| d.id).collect::<Vec<_>>(),
             "style": STYLES.iter().map(|s| s.id).collect::<Vec<_>>(),
+            "names": DETAIL_LEVELS
+                .iter()
+                .map(|d| (d.id, d.name))
+                .chain(STYLES.iter().map(|s| (s.id, s.name)))
+                .map(|(id, name)| (id.to_string(), json!(name)))
+                .collect::<Map<String, Value>>(),
         },
         "text": guidance_text(e),
     })
@@ -593,5 +599,23 @@ mod tests {
             scene["kaava"].get("design").is_none(),
             "an empty override is removed"
         );
+    }
+
+    /// The canvas's picker labels its choices from the brief, so every option the
+    /// brief offers has a name there.
+    #[test]
+    fn the_brief_names_every_option_for_the_picker() {
+        let brief = brief(&resolve(None, None, None, None));
+        for kind in ["detail", "style"] {
+            for id in brief["options"][kind].as_array().unwrap() {
+                let id = id.as_str().unwrap();
+                assert!(
+                    brief["options"]["names"][id]
+                        .as_str()
+                        .is_some_and(|n| !n.is_empty()),
+                    "{kind} `{id}` has no name"
+                );
+            }
+        }
     }
 }

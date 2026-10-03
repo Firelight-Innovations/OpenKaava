@@ -83,12 +83,16 @@ canvas_tools! {
     "drawing_guide" => "", Scope::Guide, true,
     "The manual, as text: how to draw a design (`topic: \"drawing\"`, the default: palette, \
      sizes, spacing, every add_shapes option, viewing and comments) or how frames, types and \
-     nested canvases work (`topic: \"frames\"`). The drawing manual ends with the detail level \
-     and style the person chose in Settings (or this canvas's override): follow them. \
-     `topic: \"style\"` lists every level and style. Read it before your first add_shapes.",
+     nested canvases work (`topic: \"frames\"`), or what a game design must contain \
+     (`topic: \"design\"`: mechanics with numbers, controls, the game loop, states and screens, \
+     entities, progression, art and audio direction, the asset list as spec cards, open \
+     questions). The drawing and design manuals end with the detail level and style the person \
+     chose in Settings (or this canvas's override): follow them. `topic: \"style\"` lists every \
+     level and style. Read drawing before your first add_shapes, and design when the job is to \
+     design a game.",
     || obj(
         json!({
-            "topic": { "type": "string", "enum": ["drawing", "frames", "style"], "description": "Default drawing." },
+            "topic": { "type": "string", "enum": ["drawing", "design", "frames", "style"], "description": "Default drawing." },
             "canvas": { "type": "string", "description": "The canvas whose detail level and style to append, for a per-canvas override. Default: the focused canvas, else the settings alone." },
             "instance": { "type": "string", "description": "A pane instance id; its canvas is used." },
             "cluster": { "type": "string", "description": CLUSTER_HELP },
@@ -507,6 +511,7 @@ const FRAME_HELP: &str = "The frame: its element id (`frame:board-title`), its d
 /// tools can read them; the files stay the single source.
 const DRAWING_GUIDE: &str = include_str!("../../../../docs/canvas-drawing-guide.md");
 const FRAMES_GUIDE: &str = include_str!("../../../../docs/canvas-objects.md");
+const DESIGN_GUIDE: &str = include_str!("../../../../docs/canvas-design-prompt.md");
 
 /// The `drawing_guide` answer.
 ///
@@ -521,6 +526,14 @@ pub(super) fn guide(args: &Map<String, Value>, design: &Value) -> Result<Value, 
             "docs/canvas-drawing-guide.md",
             format!("{DRAWING_GUIDE}\n{design_text}"),
         ),
+        Some("design") => (
+            "design",
+            "docs/canvas-design-prompt.md",
+            format!(
+                "{DESIGN_GUIDE}
+{design_text}"
+            ),
+        ),
         Some("frames") => ("frames", "docs/canvas-objects.md", FRAMES_GUIDE.to_string()),
         Some("style") => (
             "style",
@@ -529,7 +542,7 @@ pub(super) fn guide(args: &Map<String, Value>, design: &Value) -> Result<Value, 
         ),
         Some(other) => {
             return Err(bad(format!(
-                "no guide on `{other}`; the topics are drawing, frames and style"
+                "no guide on `{other}`; the topics are drawing, design, frames and style"
             )))
         }
     };
@@ -1768,6 +1781,98 @@ mod tests {
         let text = catalog["text"].as_str().unwrap();
         for d in style::DETAIL_LEVELS {
             assert!(text.contains(d.guidance));
+        }
+    }
+
+    /// The design brief is reachable as a topic of the guide the agents already read,
+    /// ends with the person's detail level and style like the drawing manual, and
+    /// asks for every part of a game design.
+    #[test]
+    fn the_design_topic_serves_the_brief_and_ends_with_the_settings() {
+        let args: Map<String, Value> =
+            serde_json::from_value(json!({ "topic": "design" })).unwrap();
+        let picked = style::brief(&style::resolve(None, None, Some("dense"), Some("minimal")));
+        let out = guide(&args, &picked).unwrap();
+        assert_eq!(out["topic"], "design");
+        assert_eq!(out["source"], "docs/canvas-design-prompt.md");
+        assert_eq!(out["design"]["detail"], "dense");
+        let text = out["text"].as_str().unwrap();
+        for part in [
+            "### 1. Overview",
+            "### 2. Controls and input",
+            "### 3. Mechanics, with numbers",
+            "### 4. The game loop",
+            "### 5. States and screens",
+            "### 6. Entities with properties",
+            "### 7. Progression",
+            "### 8. Art direction",
+            "### 9. Audio direction",
+            "### 10. The asset list as spec cards",
+            "### 11. Open questions",
+        ] {
+            assert!(text.contains(part), "the design brief lost `{part}`");
+        }
+        let brief_end = text
+            .rfind("## Detail level and style for this canvas")
+            .unwrap();
+        assert!(brief_end > text.find("### 11. Open questions").unwrap());
+        assert!(text.contains(style::detail("dense").unwrap().guidance));
+        assert!(text.contains(style::style("minimal").unwrap().guidance));
+        assert!(!text.contains(style::detail("sparse").unwrap().guidance));
+        let listed = ROUTES.iter().find(|r| r.tool == "drawing_guide").unwrap();
+        let tool = TOOLS.iter().find(|t| t.name == listed.tool).unwrap();
+        assert!((tool.schema)()["properties"]["topic"]["enum"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|t| t == "design"));
+    }
+
+    /// The brief must agree with the rest of the canvas: the levels, the coverage
+    /// topics it tells agents to set and the tools it tells them to call all exist.
+    #[test]
+    fn the_design_brief_names_only_things_that_exist() {
+        let doc = DESIGN_GUIDE;
+        for level in style::DETAIL_LEVELS {
+            assert!(
+                doc.contains(&format!("`{}`", level.id)),
+                "level {}",
+                level.id
+            );
+        }
+        for topic in crate::apps::canvas::diagrams::GAME_CHECKLIST {
+            assert!(
+                doc.contains(&format!("`{topic}`")),
+                "checklist topic {topic}"
+            );
+        }
+        let names: Vec<&str> = TOOLS.iter().map(|t| t.name).collect();
+        for tool in [
+            "drawing_guide",
+            "design_brief",
+            "list_canvases",
+            "read_canvas",
+            "list_diagrams",
+            "set_values",
+            "values",
+            "add_shapes",
+            "view_diagram",
+            "coverage",
+            "create_frame",
+            "set_frame",
+            "assets",
+            "link_frame",
+            "list_comments",
+            "refs",
+        ] {
+            assert!(
+                doc.contains(&format!("`{tool}`")),
+                "the brief never calls {tool}"
+            );
+            assert!(
+                names.contains(&tool),
+                "the brief calls {tool}, which is not a tool"
+            );
         }
     }
 
