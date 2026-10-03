@@ -86,6 +86,38 @@ export function splitCandidates(elements: readonly SceneElement[]): number {
   ).length;
 }
 
+/** The file id of the stand-in picture shown until a frame's real one exists. */
+export const PLACEHOLDER_FILE_ID = "kaava-snapshot:placeholder";
+
+/** A neutral "rendering..." picture, as an SVG data URL. Drawn right after a
+ *  split so a frame is never empty while its snapshot renders. */
+export const PLACEHOLDER_DATA_URL =
+  "data:image/svg+xml;charset=utf-8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">' +
+      '<text x="200" y="150" text-anchor="middle" dominant-baseline="middle" ' +
+      'font-family="sans-serif" font-size="22" fill="#8a8a8a">Rendering...</text></svg>',
+  );
+
+/** What the notice after "Split into sub-canvases" says: how many frames were
+ *  split, how many were left alone, and that the split can be undone. */
+export function splitSummary(out: {
+  split: readonly unknown[];
+  skipped: readonly { frame: string; reason: string }[];
+  checkpoint: string | null;
+}): string {
+  const n = out.split.length;
+  const k = out.skipped.length;
+  let text = `Split ${n} frame${n === 1 ? "" : "s"} into sub-canvases`;
+  text +=
+    k === 0
+      ? "."
+      : `, skipped ${k}: ${out.skipped.map((s) => `${s.frame} (${s.reason})`).join("; ")}.`;
+  if (n > 0 && out.checkpoint)
+    text += " Undo is available: restore the checkpoint taken before the split.";
+  return text;
+}
+
 /** A picture ready to place: the Excalidraw file id holding it. */
 export interface Placed {
   fileId: string;
