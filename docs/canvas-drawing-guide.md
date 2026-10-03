@@ -4,7 +4,9 @@ How to draw a design on an OpenKaava canvas, for people and for agents. The work
 `docs/canvas-examples/flap-ball.json`, a small game designed in four diagrams plus an index.
 
 An agent that only has the `kaava-canvas` tools can read this page with `drawing_guide`
-(`{"topic": "drawing"}`). `{"topic": "frames"}` gives the frames-and-types manual.
+(`{"topic": "drawing"}`). `{"topic": "frames"}` gives the frames-and-types manual, and
+`{"topic": "design"}` gives the brief for designing a game: what the design must contain, from
+mechanics with numbers to the asset list and the open questions.
 
 ## The rule: show, don't describe
 
