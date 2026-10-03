@@ -254,6 +254,16 @@ function fake(b: Backend) {
             names: { whiteboard: "Whiteboard sketch", blueprint: "Technical blueprint" },
           },
         };
+      case "canvas/split-frames":
+        return {
+          canvas: params!.id,
+          split: [
+            { frame: "big", diagram: "big", title: "Big", child: "world/big", elements: 1600 },
+          ],
+          skipped: [{ frame: "tied", reason: "it is empty" }],
+          checkpoint: "cp1",
+          mtime: 300,
+        };
       case "context/put":
         return { id: "ctx1" };
       default:
@@ -283,6 +293,24 @@ describe("Canvas app", () => {
     render(<App />);
     expect(await screen.findByText("3 elements")).toBeTruthy();
     expect(screen.getByText("canvas/world.json")).toBeTruthy();
+  });
+
+  it("summarises a split: frames split, frames skipped, and that Undo is available", async () => {
+    const heavy = scene(1600);
+    heavy.elements.push({ id: "big", type: "frame", version: 1, versionNonce: 1 });
+    for (const el of heavy.elements.slice(0, 1600)) el.frameId = "big";
+    fake({
+      readOnly: false,
+      rows: [{ id: "world", title: "World", parent: null, error: null }],
+      reads: { world: heavy },
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByText("draw"));
+    fireEvent.click(await screen.findByText("Split into sub-canvases"));
+    const note = await screen.findByTestId("split-summary");
+    expect(note.textContent).toMatch(/Split 1 frame into sub-canvases/);
+    expect(note.textContent).toMatch(/skipped 1/);
+    expect(note.textContent).toMatch(/Undo is available/);
   });
 
   it("saves a drawing change with the mtime it read", async () => {

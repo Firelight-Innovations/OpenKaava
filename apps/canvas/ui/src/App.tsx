@@ -65,7 +65,7 @@ import {
 } from "./rpc";
 import { ancestry, childId, stillLinked, treeOrder, viewportToScene, withChild } from "./nesting";
 import { Autosaver, type SaveState } from "./saver";
-import { sceneVersion, splitCandidates } from "./subcanvas";
+import { sceneVersion, splitCandidates, splitSummary } from "./subcanvas";
 import {
   signature,
   slugify,
@@ -188,6 +188,8 @@ export default function App() {
   /** Heavy frames the open canvas could split into sub-canvases; 0 hides the offer. */
   const [splitOffer, setSplitOffer] = useState(0);
   const [splitting, setSplitting] = useState(false);
+  /** The result of the last split; informational, unlike `notice`. */
+  const [splitNote, setSplitNote] = useState<string | null>(null);
   /** Canvases whose split offer was turned down this session. */
   const declinedSplit = useRef(new Set<string>());
   const [sendSlot, setSendSlot] = useState<HTMLElement | null>(null);
@@ -313,6 +315,7 @@ export default function App() {
       setManaging(false);
       setSelectedN(0);
       setNotice(null);
+      setSplitNote(null);
       setLoadKey((k) => k + 1);
       writeLast(instanceRef.current, id);
     } catch (err) {
@@ -432,12 +435,7 @@ export default function App() {
       setSplitOffer(0);
       void refreshList();
       await load(open.id);
-      if (out.skipped.length) {
-        setNotice(
-          `Split ${out.split.length} frame(s) into sub-canvases. Left ${out.skipped.length} as ` +
-            `they were: ${out.skipped.map((s) => `${s.frame} (${s.reason})`).join("; ")}`,
-        );
-      }
+      setSplitNote(splitSummary(out));
     } catch (err) {
       setNotice(`Couldn't split the frames: ${messageOf(err)}`);
     } finally {
@@ -1145,6 +1143,19 @@ export default function App() {
             }}
           >
             Not now
+          </button>
+        </div>
+      )}
+
+      {splitNote && (
+        <div className="cv__notice" role="status" data-testid="split-summary">
+          <span>{splitNote}</span>
+          <button
+            type="button"
+            className="k-btn k-btn--ghost k-btn--sm"
+            onClick={() => setSplitNote(null)}
+          >
+            Dismiss
           </button>
         </div>
       )}

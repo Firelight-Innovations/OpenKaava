@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import { signature, toSaved, type SceneElement } from "./scene";
 import {
   HEAVY_CANVAS,
+  PLACEHOLDER_DATA_URL,
+  PLACEHOLDER_FILE_ID,
   isSnapshot,
   placeSnapshots,
   sceneVersion,
   snapshotIdFor,
   splitCandidates,
+  splitSummary,
   subcanvasChild,
   subcanvasFrames,
   syncFrames,
@@ -121,5 +124,42 @@ describe("sceneVersion", () => {
     const v = sceneVersion(elements);
     elements[0]!.version = 2;
     expect(sceneVersion(elements)).not.toBe(v);
+  });
+});
+
+describe("split summary", () => {
+  it("counts split and skipped frames and mentions Undo", () => {
+    const text = splitSummary({
+      split: [{}, {}],
+      skipped: [{ frame: "a", reason: "it is empty" }],
+      checkpoint: "cp",
+    });
+    expect(text).toContain("Split 2 frames into sub-canvases");
+    expect(text).toContain("skipped 1: a (it is empty)");
+    expect(text).toContain("Undo is available");
+  });
+
+  it("is singular for one frame, and offers no Undo without a checkpoint", () => {
+    const text = splitSummary({ split: [{}], skipped: [], checkpoint: null });
+    expect(text).toBe("Split 1 frame into sub-canvases.");
+  });
+});
+
+describe("placeholder pictures", () => {
+  it("a placeholder fills a sub-canvas frame that has no picture yet, then gives way", () => {
+    const els = [split("f", "c/f")];
+    const first = placeSnapshots(els, new Map([["f", { fileId: PLACEHOLDER_FILE_ID }]]));
+    expect(first).not.toBeNull();
+    const pic = first!.find(isSnapshot)!;
+    expect(pic.fileId).toBe(PLACEHOLDER_FILE_ID);
+    expect(pic.width).toBe(400);
+    const next = placeSnapshots(first!, new Map([["f", { fileId: "real" }]]));
+    expect(next!.filter(isSnapshot)).toHaveLength(1);
+    expect(next!.find(isSnapshot)!.fileId).toBe("real");
+  });
+
+  it("is a decodable SVG saying it is rendering", () => {
+    expect(PLACEHOLDER_DATA_URL.startsWith("data:image/svg+xml")).toBe(true);
+    expect(decodeURIComponent(PLACEHOLDER_DATA_URL)).toContain("Rendering");
   });
 });

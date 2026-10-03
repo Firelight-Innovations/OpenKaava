@@ -17,6 +17,8 @@ import type { BinaryFileData, ExcalidrawImperativeAPI } from "@excalidraw/excali
 import { listSnapshots, putSnapshot, readCanvas, type SnapshotRow } from "./rpc";
 import type { SceneElement } from "./scene";
 import {
+  PLACEHOLDER_DATA_URL,
+  PLACEHOLDER_FILE_ID,
   placeSnapshots,
   subcanvasFrames,
   syncFrames,
@@ -115,7 +117,8 @@ export class SnapshotPainter {
   ) {}
 
   start() {
-    void this.tick();
+    // Place stand-ins at once; real pictures replace them as they arrive.
+    void this.queueApply().then(() => this.tick());
   }
 
   stop() {
@@ -207,7 +210,19 @@ export class SnapshotPainter {
     const have = this.api.getFiles();
     for (const { frame, child } of subcanvasFrames(this.elements())) {
       const d = drawn.get(child);
-      if (!d) continue;
+      if (!d) {
+        if (!have[PLACEHOLDER_FILE_ID]) {
+          files.push({
+            id: PLACEHOLDER_FILE_ID,
+            dataURL: PLACEHOLDER_DATA_URL,
+            mimeType: "image/svg+xml",
+            created: Date.now(),
+          } as unknown as BinaryFileData);
+          have[PLACEHOLDER_FILE_ID] = files[files.length - 1] as never;
+        }
+        pictures.set(frame.id, { fileId: PLACEHOLDER_FILE_ID });
+        continue;
+      }
       const fileId = `kaava-snapshot:${child}:${d.mtime}:${theme}`;
       if (!have[fileId]) {
         const dataURL = theme === "dark" ? (d.dark ??= await darken(d.light)) : d.light;
