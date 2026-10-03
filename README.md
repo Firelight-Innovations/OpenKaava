@@ -60,6 +60,12 @@ on one repository without colliding.
 
 ![A cluster for a Minecraft-clone project: the design canvas, a Godot viewer with a running scene and its log, and the file explorer](assets/ui/godot-cluster.png)
 
+A terminal pane has a context strip beside it. Items you keep from the canvas,
+Godot or Blender (a rendered view, a canvas frame) collect there as thumbnails,
+and you insert them at the agent's prompt in the form the agent can read.
+
+![A terminal pane with the context strip: kept renders and canvas views, ready to insert at the agent's prompt](assets/ui/terminal-pane.png)
+
 ### Design canvas
 
 The canvas is where you and your agents draw designs. Frames nest into
@@ -98,7 +104,7 @@ OpenKaava drives headless Blender. You need Blender installed.
 - **Markup and Send to agent** let you mark up a view and send it to an agent.
 - **Open in Blender** opens the file in Blender itself.
 
-![The Blender Viewer with an exported room model and its parts list](assets/ui/blender-viewer.png)
+![The Blender Viewer in the full window: an exported room model with its parts list, beside the Godot viewer and file explorer](assets/ui/blender-viewer.png)
 
 ### Files, context and sending things to agents
 
@@ -109,8 +115,11 @@ with **Send to agent**, instead of pasted into a terminal by hand.
 ### Plane project management
 
 The Projects page shows the work items of a Plane workspace, so planning sits
-next to the work. **Preview:** it reaches Plane through the OpenKaava Cloud
-gateway, so it needs a cloud setup that is not generally available yet.
+next to the work. **Preview / coming soon:** it reaches Plane through the
+OpenKaava Cloud gateway, so it needs a cloud setup that is not generally
+available yet. The screenshot shows fixture data, not a live workspace.
+
+![The Plane page listing a workspace's projects, from fixture data (preview, coming soon)](assets/ui/plane-projects.png)
 
 ### MCP servers
 
@@ -120,14 +129,16 @@ workspace and design tools. Each server has its own switch under
 Settings, MCP servers. [The MCP server manager](docs/mcp-server-manager.md)
 explains each one.
 
-![The MCP servers settings section: each server with its route and tool count and a switch](assets/ui/mcp-servers.png)
+![The MCP servers settings section: the Canvas and Workspace servers, each with its route, tool count and a switch](assets/ui/mcp-servers.png)
 
 ### Cost tracker
 
 The Cost Tracker estimates what your OpenKaava Cloud resources have cost this
 month at list price, forecasts the month against a budget, and shows what
-Google has billed beside it. An estimate, not a bill. **Preview:** it is only
-useful with a cloud setup.
+Google has billed beside it. An estimate, not a bill. **Preview / coming soon:**
+it is only useful with a cloud setup, and the screenshot shows fixture data.
+
+![The Cost Tracker with fixture data: estimate, forecast, budget and charts (preview, coming soon)](assets/ui/cost-tracker.png)
 
 ### Search, git and settings
 
@@ -140,6 +151,8 @@ commit message. Every setting comes from one schema.
 - **Cloud agents.** Running agents on cloud machines, with a page to watch
   their sessions, machines and workflows. This is **not shipped**. A preview
   exists, but it is not usable yet.
+
+![The Cloud agents page with fixture data: agents, sessions and a transcript (preview, coming soon)](assets/ui/cloud-agents.png)
 
 ## Known limits
 
@@ -196,30 +209,22 @@ step takes several minutes. Later runs are fast.
 
 ## Learn your way around
 
-[Ten short tutorials](docs/user/tutorials/README.md) cover the window, panes
-and clusters, files, search, terminals, git, MCP servers, and settings. OpenKaava
-ships the same ten pages in its own Tutorials tool. Read each tutorial beside
-the thing it describes.
+[Ten short tutorials](docs/user/tutorials/README.md) cover the window, your
+first project, panes and clusters, terminals, search, settings, files and
+editing, git and worktrees, MCP servers, and the stack. OpenKaava ships the same
+pages in its own Tutorials tool. Read each tutorial beside the thing it
+describes.
 
 Start with [The OpenKaava window](docs/user/tutorials/the-window.md).
 
 ## The stack
 
-OpenKaava is multi-repo by design: a tool with its own repository, its own release
-cadence, and its own checkout beside this one, pinned to an exact version in
-`kaava.toml`. That stays the model for a genuinely third-party tool — it is why
-`kaava.toml` and `catalog.toml` both keep working with zero rows rather than
-being deleted (see their headers).
-
-Schematify is not that kind of tool, though. It lives in this repository,
-under `apps/`, and ships in the same binary as Home and the File Explorer
-rather than as a separate checkout — see [`apps/README.md`](apps/README.md)
-for what that distinction means. That
-leaves `kaava.toml`'s `[[tool]]` array empty today: there is nothing pinned,
-and nothing for the switcher bar's health badge to report on, which is the
-badge's normal silent state rather than a sign that something failed to load.
-[The stack, end to end](docs/user/tutorials/the-stack.md) is what that badge
-means and how to read it once something is pinned there again.
+OpenKaava's own tools are apps inside this repository, under `apps/`, and ship
+in the same binary as the window. A third-party tool can live in its own
+repository instead, pinned to an exact version in `kaava.toml`. Nothing is
+pinned today, so the switcher bar's health badge stays silent.
+[The stack, end to end](docs/user/tutorials/the-stack.md) explains how to read
+that badge once something is pinned.
 
 ## Contributing
 
@@ -235,11 +240,11 @@ technical details:
 - [The tool protocol](docs/tool-protocol.md)
 - [What exists around releases](docs/dev/releases.md)
 
-The maintainer builds two pieces directly: the app download system and
-Schematify. This is not a closed door. Nobody should spend a weekend on a
+The maintainer builds the core directly, including the app download system and
+the design canvas. This is not a closed door. Nobody should spend a weekend on a
 foundation that already has an owner. Outside contributions fit best as
-features and quality-of-life work on top of those two pieces. A roadmap and
-a set of starter issues are coming. They will point to exactly where.
+features and quality-of-life work on top of it. A roadmap and a set of starter
+issues are coming. They will point to exactly where.
 
 Found a bug? Open an issue. Want something that is not here? Open an issue
 too. Want to talk about an idea first? Open a
@@ -257,7 +262,7 @@ would give someone a real argument that private tools mounting into OpenKaava ar
 derivative works.
 
 The license covers the code. It does not cover the names. OpenKaava and
-Schematify, and the marks that go with them, are trademarks of Firelight
+the marks that go with it are trademarks of Firelight
 Innovations.
 
 You can fork OpenKaava. You can sell what you build on it. State plainly that your
