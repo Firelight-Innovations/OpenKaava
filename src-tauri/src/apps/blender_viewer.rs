@@ -840,4 +840,166 @@ mod tests {
             "the earlier export survives a cancel"
         );
     }
+
+    // Opt-in: a real Blender. These run only with `KAAVA_TEST_REAL_BLENDER=1`
+    // and a Blender that `detect` can find; anywhere else they return at once,
+    // so CI needs neither. The mocked tests above cannot notice the export
+    // script disagreeing with a real `bpy`.
+
+    const CHAIR_SCRIPT: &str = r#"
+import bpy, sys
+bpy.ops.wm.read_factory_settings(use_empty=True)
+def mat(name, rgb):
+    m = bpy.data.materials.new(name)
+    m.diffuse_color = (*rgb, 1)
+    return m
+red, wood = mat("Red", (0.8, 0.05, 0.05)), mat("Wood", (0.4, 0.25, 0.1))
+def cube(name, loc, scale, m):
+    bpy.ops.mesh.primitive_cube_add(location=loc)
+    o = bpy.context.object
+    o.name = name
+    o.scale = scale
+    o.data.materials.append(m)
+    bpy.ops.object.transform_apply(scale=True)
+cube("Seat", (0, 0, 0.5), (0.5, 0.5, 0.05), wood)
+cube("Back", (0, -0.45, 1.0), (0.5, 0.05, 0.5), red)
+cube("Leg", (0.45, 0.45, 0.225), (0.05, 0.05, 0.225), wood)
+bpy.ops.wm.save_as_mainfile(filepath=sys.argv[-1])
+"#;
+
+    fn real_blender() -> Option<PathBuf> {
+        if std::env::var("KAAVA_TEST_REAL_BLENDER").as_deref() != Ok("1") {
+            return None;
+        }
+        let found = detect::find(&RealHost, "").hit;
+        if found.is_none() {
+            eprintln!("KAAVA_TEST_REAL_BLENDER is set but no Blender was found; skipping");
+        }
+        found.map(|(_, path)| path)
+    }
+
+    fn make_chair(exe: &Path, blend: &Path) {
+        let script = blend.with_extension("py");
+        std::fs::write(&script, CHAIR_SCRIPT).unwrap();
+        let status = std::process::Command::new(exe)
+            .args(["-b", "--factory-startup", "--python"])
+            .arg(&script)
+            .arg("--")
+            .arg(blend)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .status()
+            .unwrap();
+        assert!(
+            status.success() && blend.is_file(),
+            "could not build the chair"
+        );
+    }
+
+    fn real_services<'a>(fx: &'a Fixture, exe: &Path) -> Services<'a> {
+        Services {
+            config: config_with(exe),
+            jobs: &fx.jobs,
+            versions: &fx.versions,
+            host: &RealHost,
+            read_only: false,
+        }
+    }
+
+    fn wait_real(jobs: &Jobs) {
+        let until = std::time::Instant::now() + Duration::from_secs(120);
+        loop {
+            let snap = jobs.snapshot();
+            if !snap.running && snap.outcome.is_some() {
+                return;
+            }
+            assert!(std::time::Instant::now() < until, "export did not finish");
+            std::thread::sleep(Duration::from_millis(100));
+        }
+    }
+
+    #[test]
+    fn a_real_blender_exports_a_chair_end_to_end() {
+        let Some(exe) = real_blender() else { return };
+        let env = TempDir::new().unwrap();
+        std::fs::create_dir_all(env.path().join("art")).unwrap();
+        make_chair(&exe, &env.path().join("art/chair.blend"));
+        let fx = Fixture::new();
+        let ctx = context(env.path());
+        let services = real_services(&fx, &exe);
+
+        dispatch(
+            &ctx,
+            &services,
+            "blender-viewer/export-start",
+            Some(json!({ "blend": "art/chair.blend" })),
+        )
+        .unwrap();
+        wait_real(&fx.jobs);
+        let status = dispatch(&ctx, &services, "blender-viewer/export-status", None).unwrap();
+        assert_eq!(status["outcome"], "ok", "{status}");
+
+        let state = dispatch(&ctx, &services, "blender-viewer/state", None).unwrap();
+        assert_eq!(state["stale"], false);
+        assert_eq!(state["warnings"], json!([]), "{state}");
+        let parts = state["parts"].as_array().unwrap();
+        let names: Vec<_> = parts.iter().map(|p| p["name"].as_str().unwrap()).collect();
+        assert_eq!(names, ["Seat", "Back", "Leg"]);
+        assert!(parts.iter().all(|p| p["verts"] == 8 && p["tris"] == 12));
+        assert_eq!(parts[1]["materials"], json!(["Red"]));
+        assert_eq!(parts[0]["dimensions"], json!([1.0, 1.0, 0.1]));
+        let ids: Vec<String> = state["renders"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r["id"].as_str().unwrap().to_string())
+            .collect();
+        assert_eq!(ids, ["front", "three-quarter", "side", "wire"]);
+
+        let glb = dispatch(
+            &ctx,
+            &services,
+            "blender-viewer/glb",
+            Some(json!({ "blend": "art/chair.blend" })),
+        )
+        .unwrap();
+        let bytes = BASE64.decode(glb["base64"].as_str().unwrap()).unwrap();
+        assert_eq!(&bytes[..4], b"glTF");
+        assert_eq!(u32::from_le_bytes(bytes[4..8].try_into().unwrap()), 2);
+        assert_eq!(
+            u32::from_le_bytes(bytes[8..12].try_into().unwrap()) as usize,
+            bytes.len()
+        );
+        for id in ids {
+            let image = dispatch(
+                &ctx,
+                &services,
+                "blender-viewer/image",
+                Some(json!({ "blend": "art/chair.blend", "id": id })),
+            )
+            .unwrap();
+            let png = BASE64.decode(image["base64"].as_str().unwrap()).unwrap();
+            assert!(png.starts_with(b"\x89PNG"), "{id} is not a PNG");
+        }
+    }
+
+    #[test]
+    fn a_real_blender_reports_a_corrupt_blend_instead_of_hanging() {
+        let Some(exe) = real_blender() else { return };
+        let env = TempDir::new().unwrap();
+        std::fs::write(env.path().join("bad.blend"), b"not a blend file at all").unwrap();
+        let fx = Fixture::new();
+        let ctx = context(env.path());
+        let services = real_services(&fx, &exe);
+        dispatch(
+            &ctx,
+            &services,
+            "blender-viewer/export-start",
+            Some(json!({ "blend": "bad.blend" })),
+        )
+        .unwrap();
+        wait_real(&fx.jobs);
+        let status = dispatch(&ctx, &services, "blender-viewer/export-status", None).unwrap();
+        assert_ne!(status["outcome"], "ok", "{status}");
+    }
 }

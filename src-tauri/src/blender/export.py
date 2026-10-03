@@ -188,7 +188,9 @@ def sync_viewport_colours():
     Principled BSDF base colour across. In memory only: nothing here is saved."""
     for mat in bpy.data.materials:
         try:
-            if not mat.use_nodes or mat.node_tree is None:
+            # Not the material's node-usage flag: 5.x deprecates it (removal in
+            # 6.0) and prints a warning per material. No node tree, nothing to read.
+            if mat.node_tree is None:
                 continue
             for node in mat.node_tree.nodes:
                 if node.type != "BSDF_PRINCIPLED":
