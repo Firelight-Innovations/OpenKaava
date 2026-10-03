@@ -6,7 +6,8 @@
 
 <p>
   <strong>An Agentic Development Environment (ADE).</strong><br/>
-  One window for your tools, your terminal, your files, and your coding agent.
+  Built for game development, and general enough for any project.<br/>
+  Clusters, terminals, a design canvas, Godot, Blender, and your coding agents in one window.
 </p>
 
 <p>
@@ -14,7 +15,7 @@
   <a href="https://github.com/Firelight-Innovations/OpenKaava/stargazers"><img src="https://img.shields.io/github/stars/Firelight-Innovations/OpenKaava?style=flat&label=%E2%98%85&color=08C" alt="GitHub stars" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-08C?style=flat" alt="License: Apache-2.0" /></a>
   <img src="https://img.shields.io/badge/platform-Windows-4493F8?style=flat" alt="Platform: Windows" />
-  <a href="#what-works-today"><img src="https://img.shields.io/badge/status-pre--alpha-orange?style=flat" alt="Status: pre-alpha" /></a>
+  <a href="#status"><img src="https://img.shields.io/badge/status-alpha-yellow?style=flat" alt="Status: alpha" /></a>
 </p>
 
 <p>
@@ -30,204 +31,120 @@
 
 ## What OpenKaava is
 
-OpenKaava is an Agentic Development Environment, or ADE. An ADE is a desktop app.
-It holds your development tools in one window. It also holds a coding agent
-that works alongside you.
+OpenKaava is an Agentic Development Environment (ADE): a desktop app that puts
+your terminals, your files, a design canvas and your game tools in one window,
+beside the coding agents you already use (Claude Code, Codex).
 
-VS Code works in a similar way. VS Code is a code editor. Extensions add tools
-to VS Code. OpenKaava works the same way: tools mount into OpenKaava.
+It is built for game development first. The Godot and Blender integrations and
+the design canvas exist because that is the work it was made for. Nothing in it
+is game-specific, so it works for other projects too.
 
-OpenKaava makes one assumption that VS Code does not. OpenKaava assumes you work next
-to a coding agent from the start.
+OpenKaava is a development tool. It does not run the software you build with it.
 
-This repository holds the orchestrator. The orchestrator is the main window
-itself. It loads your tools. It also runs the code that your tools share.
+## Status
 
-OpenKaava is a development tool. It does not run the software that you build with
-it.
+OpenKaava is **alpha**. The features below run today, but expect rough edges,
+changing behavior and bugs. It is Windows only. Parts marked **preview** or
+**coming soon** are not finished, and the list is plain about which is which.
 
-## What makes OpenKaava different
+## What it does
 
-Most tools bolt a coding agent onto an existing code editor. OpenKaava takes a
-different approach: it keeps design and code in one place.
+### Clusters, worktrees and agent terminals
 
-<table>
-<tr>
-<td>
+A cluster is one workspace: a project, a git worktree, and its own layout of
+panes and terminals. Split panes freely and run Claude Code or Codex in a
+terminal pane. Switch clusters and the panes and terminals swap together. The
+main branch is read-only; work happens in worktrees, so several agents can work
+on one repository without colliding.
 
-Two design tools mount into OpenKaava.
+![A cluster for a Minecraft-clone project: the design canvas, a Godot viewer with a running scene and its log, and the file explorer](assets/ui/godot-cluster.png)
 
-**A product design tool.** Use it to write a product requirements document, or
-PRD. A PRD describes what to build and why.
+### Design canvas
 
-**A technical design tool.** Use it to turn the PRD into a technical design. A
-technical design specifies the architecture, the interfaces, and the
-boundaries between systems.
+The canvas is where you and your agents draw designs. Frames nest into
+sub-canvases, so a game's design can be split into one canvas per system. Each
+frame can carry a spec card, and the asset list gathers what the design needs
+to have built.
 
-A team of coding agents reads both documents and builds the software. The
-agents work inside an environment that enforces strict code quality rules.
+Leave comments on the canvas and they go to your agents, which read them, edit
+the drawing and reply: a comment loop between you and the agent. Settings
+control the level of detail and the drawing style agents use, and a design-agent
+prompt tells an agent how to draw.
 
-OpenKaava traces every step. The trace starts at the PRD. It runs through the
-technical design, the code, the tests, and the build. You can follow any line
-of code back to the decision that produced it.
+![The canvas overview with the Minecraft-clone design,](assets/ui/canvas-overview.png)
 
-This traceability is the idea that sets OpenKaava apart from other development
-environments.
+![A sub-canvas: the crafting design with recipes, a tech tree and the inspector](assets/ui/canvas-subcanvas.png)
 
-**Schematify** is the design layer — the technical design and the product
-design in one application. It ships as an app inside this repository rather
-than as a separate download — see [`apps/README.md`](apps/README.md) — and it
-is not built yet. [What does not work yet](#what-does-not-work-yet) has the
-full list.
+![Settings, Canvas: level of detail and drawing style for agents](assets/ui/settings-canvas.png)
 
-</td>
-</tr>
-</table>
+### Godot
 
-## The window
+OpenKaava drives the headless Godot CLI. You need Godot installed; OpenKaava
+does not bundle it.
 
-OpenKaava has one main window. The window has five bands. The bands stack in a
-column. Only the middle band grows or shrinks. The other four bands stay a
-fixed height.
+- **Godot Viewer** shows the scene tree and a 3D preview. The preview is
+  approximate, not Godot's own renderer.
+- **Play** runs the project's main scene and streams its log into a pane.
+- **Open in Godot** hands the scene to the Godot editor.
+- **Send to agent** puts a scene tree or log on the agent's context.
 
-![The OpenKaava window with a project open: the title bar, the switcher bar, a tool window split between the File Explorer and the File Viewer, the terminal band, and the status bar](assets/ui/window.png)
+### Blender
 
-[The OpenKaava window](docs/user/tutorials/the-window.md) tutorial explains each
-band. Read it first. Every other tutorial uses these five names.
+OpenKaava drives headless Blender. You need Blender installed.
 
-## What works today
+- **Blender Viewer** exports a `.blend` to `.glb` and shows the model, with a
+  parts list and renders.
+- **Markup and Send to agent** let you mark up a view and send it to an agent.
+- **Open in Blender** opens the file in Blender itself.
 
-The window runs. Its own tools run inside it: Home, the File Explorer, the
-File Viewer, and Tutorials. Rust answers all of them.
+![The Blender Viewer with an exported room model and its parts list, beside the Godot viewer and file explorer](assets/ui/blender-viewer.png)
 
-<table>
-<tr>
-<td width="50%" valign="middle">
+### Files, context and sending things to agents
 
-### Panes and clusters
+The File Explorer and File Viewer open any project file. Files, scenes, logs
+and canvas selections can be kept as **context items** and sent to an agent
+with **Send to agent**, instead of pasted into a terminal by hand.
 
-A cluster is one workspace. Each cluster has its own project and its own
-arrangement of panes. Split a pane. The tool beside it keeps working.
+### Plane project management
 
-Clusters sit along the switcher bar. Switch clusters. The panes and the
-terminals under them swap together.
+OpenKaava reads your Plane projects so planning sits next to the work. It
+needs a Plane workspace you connect yourself.
 
-</td>
-<td width="50%">
-  <img src="assets/ui/panes.png" alt="Two panes side by side in one cluster: the File Explorer on a project's tree, and the File Viewer showing a Rust file from it" width="100%" />
-</td>
-</tr>
-<tr>
-<td width="50%" valign="middle">
+### MCP servers
 
-### Terminals
+OpenKaava hosts MCP (Model Context Protocol) servers and writes them into
+`.mcp.json`, so your coding agent can call them. They cover the canvas, the
+workspace and design tools. Each server has its own switch under
+Settings, MCP servers. [The MCP server manager](docs/mcp-server-manager.md)
+explains each one.
 
-The terminal band runs the full width, under your panes. Press Ctrl and the
-key under Escape to open and close it.
+![The MCP servers settings section: each server with its route and tool count and a switch](assets/ui/mcp-servers.png)
 
-Terminals belong to the cluster, not to the window. Switch clusters. The
-terminal band swaps with everything else.
+### Cost tracker
 
-</td>
-<td width="50%">
-  <img src="assets/ui/terminal.png" alt="The terminal band: two PowerShell tabs down the left, the active one at a prompt in the project's directory" width="100%" />
-</td>
-</tr>
-<tr>
-<td width="50%" valign="middle">
+A cost page tracks spend on agent usage. It reads usage the app can see and
+shows estimates.
 
-### Search, and the command palette
+### Search, git and settings
 
-Press `Ctrl+K` to search the open project. The results, the file each result
-came from, and a preview all sit on one screen.
+`Ctrl+K` searches the project and `Ctrl+Shift+P` opens the command palette. A
+source control panel shows branch, staged and unstaged changes, and takes a
+commit message. Every setting comes from one schema.
 
-Press `Ctrl+Shift+P` for the command palette. It holds every menu row the
-window has, fuzzy-matched as you type — including the ones that ask for a name
-or a command before they act.
+## Coming soon
 
-</td>
-<td width="50%">
-  <img src="assets/ui/search.png" alt="Project search: a query, a result list, the file it matched, and a preview" width="100%" />
-</td>
-</tr>
-<tr>
-<td width="50%" valign="middle">
+- **Cloud agents.** Running agents on cloud machines, with a page to watch
+  their sessions, machines and workflows. This is **not shipped**. A preview
+  exists, but it is not usable yet.
 
-### Source control
+## Known limits
 
-The panel on the right shows your branch, your staged changes, and your
-unstaged changes. A box below takes your commit message. Press `Ctrl+B` to
-collapse the panel and bring it back.
-
-Git worktrees are here too. A second branch does not need a second clone.
-
-</td>
-<td width="50%">
-  <img src="assets/ui/git.png" alt="Source control: staged changes, unstaged changes, and a commit box" width="100%" />
-</td>
-</tr>
-<tr>
-<td width="50%" valign="middle">
-
-### MCP servers for your agent
-
-MCP stands for Model Context Protocol. MCP lets your coding agent call
-external tools. OpenKaava hosts MCP servers for you. It writes each one into
-`.mcp.json`. Turn on a server. Your coding agent can then call it.
-
-[The MCP server manager](docs/mcp-server-manager.md) explains which servers
-exist and when a new one is worth adding.
-
-</td>
-<td width="50%">
-  <img src="assets/ui/mcp.png" alt="The MCP servers settings section: each server with its route and tool count and a switch, and below them the switch that writes .mcp.json into open projects" width="100%" />
-</td>
-</tr>
-<tr>
-<td colspan="2">
-
-### Open with OpenKaava
-
-Right-click a folder in Explorer and open it as a project. Right-click a file
-and it opens in the File Viewer, with its folder as the project.
-
-A second right-click while OpenKaava is running goes to the window that is already
-open. OpenKaava runs as one process, so two windows can never disagree about your
-layout.
-
-</td>
-</tr>
-<tr>
-<td width="50%" valign="middle">
-
-### Settings
-
-OpenKaava generates every setting from one schema. A row you can see is a value
-that something reads.
-
-</td>
-<td width="50%">
-  <img src="assets/ui/settings.png" alt="The settings screen, with sections down the left and rows on the right" width="100%" />
-</td>
-</tr>
-</table>
-
-## What does not work yet
-
-OpenKaava is pre-alpha. The honest list is short.
-
-- **The design layer is not built yet.** Schematify is an app that lives in
-  this repository (see [`apps/README.md`](apps/README.md)) and has no working
-  screen behind it yet. The switcher bar shows only the orchestrator's other
-  apps in the meantime.
 - **Nothing is signed.** Windows SmartScreen warns about the installer. You
   have to click through it.
-- **Windows only.** macOS and Linux are untested, not excluded. Nothing in the
-  design is Windows-only. No machine here runs them yet.
-- **One menu item does nothing.** Help ▸ Documentation has nothing published to
-  point at yet. Every other row in every menu acts — the Run menu runs a command
-  in the cluster's terminal, stops it, and runs it again, and View ▸ Command
-  Palette opens the palette that menu tree is flattened into.
+- **Windows only.** macOS and Linux are untested, not excluded.
+- **Godot and Blender previews are approximate.** Open the real editor for
+  anything that has to be exact.
+- **Help, Documentation** has nothing published to point at yet.
 
 ## Install
 
@@ -239,8 +156,8 @@ machine does not already have it.
 
 > **Windows will warn you. You can go ahead.** The installer is not signed.
 > SmartScreen shows "Windows protected your PC" and hides the button. Click
-> **More info**, then **Run anyway**. A signing certificate costs money that a
-> pre-alpha does not yet justify. [Releases and
+> **More info**, then **Run anyway**. A signing certificate costs money that an
+> alpha does not yet justify. [Releases and
 > updates](docs/dev/releases.md#what-still-does-not-exist) explains what
 > signing would and would not fix.
 
