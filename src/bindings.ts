@@ -1249,6 +1249,9 @@ export interface WindowGeometry {
   y: number;
   width: number;
   height: number;
+  /** The normal bounds above are kept while maximized. Absent means false. */
+  maximized?: boolean;
+  fullscreen?: boolean;
 }
 
 /** Mirrors `pages::PageMode`. */

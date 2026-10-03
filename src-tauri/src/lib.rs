@@ -672,6 +672,10 @@ fn restore_session(app: &tauri::AppHandle) {
 
     if stored.windows.is_empty() {
         seed_first_run(app, &shell);
+        // Nothing remembered, so nothing to restore: centre rather than take the OS's cascade.
+        if let Some(window) = app.get_webview_window("main") {
+            windows::apply_geometry(&window, None);
+        }
         return;
     }
 
@@ -694,9 +698,8 @@ fn restore_session(app: &tauri::AppHandle) {
             .and_then(|g| shell_store::clamp_to_visible(app, g));
 
         if placement.label == "main" {
-            if let (Some(window), Some(g)) = (app.get_webview_window("main"), geometry) {
-                let _ = window.set_position(tauri::PhysicalPosition::new(g.x, g.y));
-                let _ = window.set_size(tauri::PhysicalSize::new(g.width, g.height));
+            if let Some(window) = app.get_webview_window("main") {
+                windows::apply_geometry(&window, geometry);
             }
             continue;
         }

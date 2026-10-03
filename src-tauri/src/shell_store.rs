@@ -369,6 +369,8 @@ impl From<Rect> for WindowGeometry {
             y: r.y,
             width: r.width,
             height: r.height,
+            maximized: false,
+            fullscreen: false,
         }
     }
 }
@@ -434,7 +436,12 @@ pub fn clamp_to_visible(app: &AppHandle, saved: WindowGeometry) -> Option<Window
         height: m.size().height,
     });
 
-    place_within(saved.into(), &monitors, primary).map(Into::into)
+    // `Rect` carries no window mode, so the flags are put back by hand.
+    place_within(saved.into(), &monitors, primary).map(|r| WindowGeometry {
+        maximized: saved.maximized,
+        fullscreen: saved.fullscreen,
+        ..r.into()
+    })
 }
 
 #[cfg(test)]
@@ -678,6 +685,8 @@ mod tests {
                     y: 50,
                     width: 1440,
                     height: 900,
+                    maximized: true,
+                    fullscreen: false,
                 }),
                 right_page: None,
             }],
@@ -996,6 +1005,8 @@ mod tests {
                         y: 40,
                         width: 1600,
                         height: 900,
+                        maximized: false,
+                        fullscreen: false,
                     }),
                     right_page: Some(RightPage {
                         id: "costs".to_string(),
@@ -1297,5 +1308,65 @@ mod tests {
         wb.submit(2);
         std::thread::sleep(Duration::from_millis(400));
         assert_eq!(*written.lock().unwrap(), vec![1, 2]);
+    }
+
+    fn geo(x: i32, y: i32, w: u32, h: u32, maximized: bool, fullscreen: bool) -> WindowGeometry {
+        WindowGeometry {
+            x,
+            y,
+            width: w,
+            height: h,
+            maximized,
+            fullscreen,
+        }
+    }
+
+    #[test]
+    fn a_normal_window_is_recorded_as_seen() {
+        let prev = geo(10, 10, 800, 600, true, false);
+        let seen = geo(200, 100, 1000, 700, false, false);
+        assert_eq!(WindowGeometry::observe(Some(prev), seen), seen);
+    }
+
+    #[test]
+    fn a_maximized_window_keeps_its_normal_bounds() {
+        // Windows reports a maximized window as display-sized, offset by its frame.
+        let prev = geo(200, 100, 1000, 700, false, false);
+        let seen = geo(-8, -8, 1936, 1056, true, false);
+        let got = WindowGeometry::observe(Some(prev), seen);
+        assert_eq!(got, geo(200, 100, 1000, 700, true, false));
+    }
+
+    #[test]
+    fn a_fullscreen_window_keeps_its_normal_bounds() {
+        let prev = geo(200, 100, 1000, 700, false, false);
+        let seen = geo(0, 0, 1920, 1080, false, true);
+        assert_eq!(
+            WindowGeometry::observe(Some(prev), seen),
+            geo(200, 100, 1000, 700, false, true)
+        );
+    }
+
+    #[test]
+    fn a_first_observation_while_maximized_falls_back_to_what_was_seen() {
+        let seen = geo(-8, -8, 1936, 1056, true, false);
+        assert_eq!(WindowGeometry::observe(None, seen), seen);
+    }
+
+    #[test]
+    fn geometry_from_before_the_mode_flags_loads_as_a_normal_window() {
+        let g: WindowGeometry =
+            serde_json::from_str(r#"{"x":5,"y":6,"width":700,"height":500}"#).unwrap();
+        assert_eq!(g, geo(5, 6, 700, 500, false, false));
+    }
+
+    #[test]
+    fn the_mode_flags_round_trip_and_are_omitted_when_false() {
+        let max = geo(1, 2, 3, 4, true, false);
+        let text = serde_json::to_string(&max).unwrap();
+        assert_eq!(serde_json::from_str::<WindowGeometry>(&text).unwrap(), max);
+
+        let plain = serde_json::to_string(&geo(1, 2, 3, 4, false, false)).unwrap();
+        assert!(!plain.contains("maximized") && !plain.contains("fullscreen"));
     }
 }
