@@ -62,10 +62,7 @@ pub fn create(
             source,
         })?;
 
-    if let Some(g) = geometry {
-        let _ = window.set_position(PhysicalPosition::new(g.x, g.y));
-        let _ = window.set_size(PhysicalSize::new(g.width, g.height));
-    }
+    apply_geometry(&window, geometry);
 
     if visible {
         // `visible` is false only while restoring a session: those windows are built behind the
@@ -81,6 +78,27 @@ pub fn create(
     }
 
     Ok(())
+}
+
+/// Put a hidden window where it should appear, in the state it was left in.
+///
+/// `Some`: the rectangle first, then maximize or fullscreen on top of it, so the remembered normal
+/// bounds are what un-maximizing returns to. `None` (first launch, or no monitor information):
+/// centre on a monitor rather than leave it wherever the OS cascades it. Callers have already
+/// clamped `geometry` onto a display that exists. Errors are ignored on purpose; a window that
+/// could not be moved is still a window, and failing to start over it would be worse.
+pub fn apply_geometry(window: &WebviewWindow, geometry: Option<WindowGeometry>) {
+    let Some(g) = geometry else {
+        let _ = window.center();
+        return;
+    };
+    let _ = window.set_position(PhysicalPosition::new(g.x, g.y));
+    let _ = window.set_size(PhysicalSize::new(g.width, g.height));
+    if g.fullscreen {
+        let _ = window.set_fullscreen(true);
+    } else if g.maximized {
+        let _ = window.maximize();
+    }
 }
 
 /// Where a window torn off by a drag should appear: under the cursor that dropped it.
@@ -114,6 +132,8 @@ fn at_drop_point(app: &AppHandle) -> Option<WindowGeometry> {
             y: (cursor.y - TITLEBAR_HEIGHT * scale / 2.0).round() as i32,
             width,
             height,
+            maximized: false,
+            fullscreen: false,
         },
     )
 }
@@ -197,7 +217,15 @@ pub fn at_cursor(app: &AppHandle) -> Option<String> {
 ///
 /// Takes a `Window` rather than a `WebviewWindow` because the only caller, `on_window_event`, is
 /// handed the former — a window's position belongs to the OS window, not the webview inside it.
+///
+/// `None` while minimized: Windows parks a minimized window at (-32000, -32000), and remembering
+/// that sent the next launch's window to the primary monitor's centre instead of where it was.
+/// The maximized and fullscreen flags ride along; `WindowGeometry::observe` decides whether the
+/// rectangle is trustworthy.
 pub fn geometry_of(window: &tauri::Window) -> Option<WindowGeometry> {
+    if window.is_minimized().unwrap_or(false) {
+        return None;
+    }
     let (Ok(pos), Ok(size)) = (window.outer_position(), window.outer_size()) else {
         return None;
     };
@@ -206,6 +234,8 @@ pub fn geometry_of(window: &tauri::Window) -> Option<WindowGeometry> {
         y: pos.y,
         width: size.width,
         height: size.height,
+        maximized: window.is_maximized().unwrap_or(false),
+        fullscreen: window.is_fullscreen().unwrap_or(false),
     })
 }
 

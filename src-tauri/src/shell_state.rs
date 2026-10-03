@@ -301,6 +301,10 @@ impl Cluster {
 /// Physical rather than logical because that is what `outer_position` and
 /// `outer_size` report and what `available_monitors` measures against; mixing
 /// in a scale factor is how a window restores half-size on a scaled display.
+///
+/// The rectangle is always the window's *normal* (restored) bounds. While a window is maximized or
+/// fullscreen the OS reports a display-sized rectangle instead, and saving that would restore as a
+/// huge unmaximized window; see [`WindowGeometry::observe`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WindowGeometry {
@@ -308,6 +312,40 @@ pub struct WindowGeometry {
     pub y: i32,
     pub width: u32,
     pub height: u32,
+    /// Whether the window was maximized. `default` so a `layout.json` written before this field
+    /// existed loads as "not maximized", and omitted when false so it stays out of old files.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub maximized: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub fullscreen: bool,
+}
+
+// serde's `skip_serializing_if` wants a function taking `&T`, hence the reference.
+fn is_false(b: &bool) -> bool {
+    !*b
+}
+
+impl WindowGeometry {
+    /// Fold a fresh observation of a window into what was remembered about it.
+    ///
+    /// `seen` is the window right now. Maximized or fullscreen: keep the remembered normal
+    /// rectangle and only update the flags, so un-maximizing next launch has somewhere to go back
+    /// to. A first observation with nothing remembered has no better rectangle than `seen`.
+    /// Otherwise the window is in its normal state and `seen` is the new truth, flags cleared.
+    pub fn observe(prev: Option<WindowGeometry>, seen: WindowGeometry) -> WindowGeometry {
+        if !(seen.maximized || seen.fullscreen) {
+            return seen;
+        }
+        match prev {
+            // Struct update syntax: every field not named comes from `p`.
+            Some(p) => WindowGeometry {
+                maximized: seen.maximized,
+                fullscreen: seen.fullscreen,
+                ..p
+            },
+            None => seen,
+        }
+    }
 }
 
 /// What a given window is holding.
@@ -701,7 +739,7 @@ impl ShellState {
         // `windows::request_close`).
         let mut guard = self.inner.write_or_panic();
         if let Some(w) = guard.windows.iter_mut().find(|w| w.label == label) {
-            w.geometry = Some(geometry);
+            w.geometry = Some(WindowGeometry::observe(w.geometry, geometry));
         }
     }
 
