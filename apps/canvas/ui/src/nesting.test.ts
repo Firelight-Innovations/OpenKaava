@@ -4,7 +4,11 @@ import {
   childId,
   childOf,
   hitLinkedFrame,
+  linkBadges,
+  linkable,
   selectedFrame,
+  stillLinked,
+  treeOrder,
   viewportToScene,
   withChild,
 } from "./nesting";
@@ -139,5 +143,103 @@ describe("childId", () => {
   });
   it("goes beside the parent at the depth limit", () => {
     expect(childId("a/b/c/d", "e")).toBe("a/b/c/e");
+  });
+});
+
+describe("treeOrder", () => {
+  it("lists children under their parent with a depth", () => {
+    const rows = [row("b", "a"), row("a", null), row("c", "b"), row("z", null)];
+    expect(treeOrder(rows).map((t) => [t.row.id, t.depth])).toEqual([
+      ["a", 0],
+      ["b", 1],
+      ["c", 2],
+      ["z", 0],
+    ]);
+  });
+
+  it("keeps a canvas in a parent loop rather than hiding it", () => {
+    const rows = [row("a", "b"), row("b", "a")];
+    expect(
+      treeOrder(rows)
+        .map((t) => t.row.id)
+        .sort(),
+    ).toEqual(["a", "b"]);
+  });
+});
+
+describe("linkable", () => {
+  it("leaves out the current canvas, its ancestors and canvases already nested elsewhere", () => {
+    const rows = [
+      row("root", null),
+      row("mid", "root"),
+      row("cur", "mid"),
+      row("free", null),
+      row("taken", "root"),
+    ];
+    expect(linkable(rows, "cur").map((r) => r.id)).toEqual(["free"]);
+  });
+});
+
+describe("stillLinked", () => {
+  it("is true while a live frame links to the canvas", () => {
+    const f = withChild(frame("a", 0, 0, 10, 100), "kid");
+    expect(stillLinked([f], "kid")).toBe(true);
+    expect(stillLinked([f], "other")).toBe(false);
+    expect(stillLinked([{ ...f, isDeleted: true }], "kid")).toBe(false);
+  });
+});
+
+describe("linkBadges", () => {
+  const view = { scrollX: 0, scrollY: 0, zoom: { value: 1 } };
+  const title = (id: string) => `T:${id}`;
+
+  it("puts a chip at the frame's top-right corner, named for the child", () => {
+    const f = withChild(frame("a", 100, 50, 300, 100), "world/kid");
+    expect(linkBadges([f], view, title)).toEqual([
+      {
+        id: "a",
+        child: "world/kid",
+        label: "T:world/kid",
+        right: 400,
+        bottom: 46,
+        compact: false,
+        below: false,
+      },
+    ]);
+  });
+
+  it("moves under the frame when the top edge has no room beside the name label", () => {
+    const narrow = { ...withChild(frame("n", 100, 50, 150, 100), "world/kid"), name: "Zone" };
+    const [b] = linkBadges([narrow], view, title);
+    expect(b).toMatchObject({ below: true, bottom: 50 + 100 + 26 });
+    const wide = { ...withChild(frame("w", 100, 50, 400, 100), "kid"), name: "Zone" };
+    expect(linkBadges([wide], view, title)[0]?.below).toBe(false);
+  });
+
+  it("keeps a sub-canvas frame's chip on its top edge, as the arrow alone", () => {
+    // Split frames sit edge to edge: under one is the next one's picture.
+    const base = { ...withChild(frame("n", 100, 50, 150, 100), "world/kid"), name: "Zone" };
+    const tiled = { ...base, customData: { kaava: { child: "world/kid", subcanvas: true } } };
+    expect(linkBadges([tiled], view, title)[0]).toMatchObject({ below: false, compact: true });
+    // With no room even for the arrow, it still goes underneath.
+    const long = { ...tiled, name: "A much longer frame name" };
+    expect(linkBadges([long], view, title)[0]?.below).toBe(true);
+  });
+
+  it("follows scroll and zoom", () => {
+    const f = withChild(frame("a", 100, 50, 300, 100), "kid");
+    const [b] = linkBadges([f], { scrollX: -20, scrollY: 10, zoom: { value: 2 } }, title);
+    // (100 + 300 - 20) * 2 = 760; (50 + 10) * 2 - 4 = 116
+    expect(b).toMatchObject({ right: 760, bottom: 116 });
+  });
+
+  it("skips frames with no child and deleted ones, and shrinks tiny ones", () => {
+    const plain = frame("p", 0, 0, 300, 100);
+    const gone = { ...withChild(frame("g", 0, 0, 300, 100), "kid"), isDeleted: true };
+    const small = withChild(frame("s", 0, 0, 100, 100), "kid");
+    const tiny = withChild(frame("t", 0, 0, 100, 100), "kid");
+    expect(linkBadges([plain, gone], view, title)).toEqual([]);
+    expect(linkBadges([small], view, title)[0]?.compact).toBe(true);
+    expect(linkBadges([tiny], { ...view, zoom: { value: 0.1 } }, title)).toEqual([]);
   });
 });

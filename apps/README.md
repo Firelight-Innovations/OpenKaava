@@ -270,8 +270,51 @@ after its parent (`levels` becomes `levels/ward-b`), sets `customData.kaava.chil
 `kaava.parent` in the child's file, and opens it. Double-clicking a frame that has a child opens
 it (the app takes that double-click before Excalidraw's own text edit does), and the breadcrumb
 in the header follows `parent` back up. A frame whose child file is missing says so and stays
-put. Unlinking only removes the frame's link; the child file is left alone. Linking a frame to an
-already existing canvas is not built: it would have to rewrite that canvas's `parent`.
+put. Unlinking only removes the frame's link; the child file is left alone. To link a frame to a
+canvas that already exists, agents call `canvas/link-frame` (the `link_frame` tool), which also
+rewrites that canvas's `parent`; `set-frame` cannot set the child, and says so.
+
+A heavy canvas can be split into **sub-canvases**. Excalidraw repaints every element on every
+pan, so a canvas holding thousands of elements across dozens of frames pans at a few frames a
+second. When a canvas has over 1500 elements and frames of 40 or more, the pane offers "Split
+into sub-canvases". The agent tool is `split_frames` (`canvas/split-frames`, with `frames`,
+`minElements` and `dryRun` params). Each split frame's elements move into a child canvas,
+`<parent>/<diagram id>`, together with a copy of the frame. The child keeps the frame's id, its
+position and its diagram metadata. The parent keeps the empty frame. That frame is linked to
+the child as any nested frame is, and it is marked `customData.kaava.subcanvas`. In the parent,
+the frame shows a picture of its child: a locked image element that is never saved. To edit
+the child, double-click the frame. The split is explicit, not done on open, for three reasons.
+It turns one committed file into many, which is the person's call. Read-only main cannot write.
+The parent is checkpointed first, so the split can be undone. A frame is skipped, with the
+reason, when something outside it is bound to or grouped with its contents. Review comments on
+a split frame move into the child's comment folder. The split checkpoint is kept outside the
+five-entry ring. Restoring it brings the comments back to the parent and removes the children,
+each copied into its own checkpoint ring first.
+
+Pictures are drawn by Excalidraw's exporter from the child file, in the light theme. The dark
+theme's picture is that image passed through the inverse of Excalidraw's dark-mode image
+filter, so it inverts with the canvas like the drawing it stands for. They are cached in memory
+for the session, and on disk in `.kaava/canvas-snapshots/`. Those files are git-ignored and
+keyed by the child's mtime. They are listed by `canvas/snapshots` and written by
+`canvas/put-snapshot`; neither is a design write. While a parent is open it polls its
+children's mtimes every two seconds and redraws any that changed. Redrawing runs one picture at
+a time in idle time, so panning never waits for it. The parent's frame follows its child's frame
+size and name.
+
+The agent methods still accept a diagram on the parent after a split. `describe-diagram`,
+`view-diagram`, `add-shapes`, `import-mermaid`, `create-comment`, `frame` and `frame-image` all
+follow a split frame into its child; their results name the canvas they used. `add-shapes`
+writes into the child. It brings the parent's value table along, and afterwards it syncs the
+parent's frame. `list-diagrams` counts a split frame's elements in its child and names that
+child as `childCanvas`. `list-comments`, `resolve-comment` and `view-comment` also find the
+comments that moved into children. `values` includes the uses found in children, and
+`set-values` updates the children's copies of the table. `set-frame` renames the child's copy
+of the frame as well.
+
+An agent driving the editor through `kaava-ui` should know that Excalidraw's properties island
+sits over the left edge of the canvas (about the first 195 px) while a shape is selected. A
+click or drag there lands on the island, not on the scene. Draw with `canvas/add-shapes`
+instead, or press Escape to clear the selection first.
 
 Spec cards (`customData.kaava.spec`, fields from `docs/cloud-services.md` section 4) are made
 by selecting any shape and filling in the inspector: name, size in metres, triangle budget,
@@ -291,6 +334,54 @@ checkout. The PNG is tried at 2x, 1x, 0.5x and 0.25x until it fits the store's 8
 Excalidraw is loaded lazily (`React.lazy`), and its fonts are served from
 `/vendor/excalidraw/fonts/` by the `excalidrawFonts` plugin in `vite.config.ts` rather than from
 a CDN. The 13 MB CJK fallback font is not shipped.
+
+The editor wears the shell's tokens in both themes (`native.css`), and its links out to
+excalidraw.com, the library site and socials are hidden. Excalidraw's MIT notice is under the main
+menu's "About this editor". The app's own panels (Inspector, Diagrams, Comments) dock to the right
+of the drawing and collapse to a strip; nothing floats over the drawing.
+
+**For agents.** A design is a set of named frames (diagrams). These methods take an `actor` of
+`"agent"` or `"human"` (never `"system"`) and an `id` (the canvas). How to draw is in
+`docs/canvas-drawing-guide.md`.
+
+| Method | Does |
+|---|---|
+| `canvas/list-diagrams` | Every named frame: id, title, summary, parent, level, covers. |
+| `canvas/describe-diagram` | `{diagram}`: its shapes, labels and what each arrow joins, as text. |
+| `canvas/view-diagram` | `{diagram, region?, scale?, theme?}`: a PNG of that frame alone, at `.kaava/canvas-views/<id>/<diagram>.png`, overwritten each time. |
+| `canvas/save` | Flushes the open editor, then reports the file's path, element count and diagrams. |
+| `canvas/add-shapes` | `{frame, shapes, replace?, nudge?, values?}` or `{index: true}`: measured layout, returns ids and warnings, checkpoints first. |
+| `canvas/import-mermaid` | `{frame, source}`: a Mermaid flowchart or state diagram as a new frame. |
+| `canvas/checkpoints`, `canvas/restore-checkpoint` | The last five saves before a bulk edit; restore one (default the newest). |
+| `canvas/values`, `canvas/set-values` | The `{{name}}` value table, where each is used, and labels that no longer match. |
+| `canvas/design-brief`, `canvas/set-design` | The detail level and drawing style in force for a canvas (its override, else Settings > Canvas, else the default), and a per-canvas override: `{detail?, style?}`, `null` clears. `add_shapes` draws in the style; `drawing_guide` ends with the guidance. The Canvas toolbar's Drawing style control sets the same override by hand (`kaava.design` in the file). `drawing_guide {topic: "design"}` serves `docs/canvas-design-prompt.md`, the brief for designing a game. |
+| `canvas/coverage` | Which frames cover each checklist topic, and which topics none do. |
+| `canvas/refs` | Reference images under `canvas/<id>/refs/`. |
+| `canvas/list-comments` | `{status?: open\|resolved\|all, diagram?}`. |
+| `canvas/create-comment` | `{diagram, elementIds \| region, text}`; the region is frame-relative. |
+| `canvas/view-comment` | `{commentId}`: a PNG of what the comment points at, with a margin. |
+| `canvas/resolve-comment`, `canvas/reopen-comment` | `{commentId, note}` / `{commentId}`. |
+
+An app opens the shell's Settings on a section with the host method `shell/open-settings`
+(`{section: "canvas"}`); Canvas' *Drawing style* button is the example.
+
+`view-diagram`, `add-shapes`, `import-mermaid` and `view-comment` render and measure in the canvas
+app's webview, so they need a canvas pane open in some window; without one they fail with
+`kind: "canvas-not-open"` and say so. The rest read and write files and work either way. Through the
+agent MCP server:
+
+```sh
+pnpm probe --agent --server agent app_call @view.json
+# view.json: {"app":"canvas","method":"canvas/view-diagram",
+#             "params":{"id":"flap-ball","diagram":"playfield","actor":"agent"}}
+```
+
+Comments are one JSON file each in `canvas/<id>.comments/`, beside the canvas, so they are
+committed with it. The shape (`id`, `frameId`, `elementIds` or `region`, `text`, `author`,
+`createdAt`, `status`, `resolution`) follows `@kaava/markup`'s annotation in spirit, pinned to a
+frame instead of a page, without depending on that package. Images dropped into the editor are
+written to `canvas/<id>/refs/` and the scene keeps a `kaavaRef` path instead of base64; a read puts
+the bytes back, so the editor never knows.
 
 **Tutorials** (`tutorial/catalog`, `tutorial/complete`, `tutorial/reset`) — short
 walkthroughs of what OpenKaava does today, with a tick against the ones you have
@@ -402,7 +493,17 @@ await invoke("context/put", { path: "C:/game/renders/out.png" }); // a file you 
 await invoke("context/list"); // ContextItem[], newest first
 await invoke("context/get", { id: item.id });
 await invoke("context/remove", { id: item.id });
+// Type @path references at the agent terminal's prompt, without pressing Enter. Answers
+// { inserted: false, reason } when no agent is running; the items stay attached either way.
+await invoke("context/insert", { itemIds: [item.id] });
 ```
+
+Pass a stable `key` that names the source, never the moment
+(`blender/<blend>/<view>`, `godot/<scene>/frame`, `file/<relpath>`). Sending
+the same key again overwrites the one file and record and moves the strip entry
+to the top; the path an agent was given for a key always holds the latest
+version. Without a key, a file is keyed by its path and anything else by its
+content hash, so identical pastes are stored once.
 
 Send exactly one of `bytesBase64`, `text` or `path`. The item is a file under
 `<environment>/.kaava/context/` plus a `<id>.json` record (id, kind, sniffed

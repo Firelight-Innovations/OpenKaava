@@ -1,8 +1,7 @@
 /*
- * File Viewer's own layout: a tab strip, and whatever is showing under it.
+ * File Viewer's own layout: one file, with the mode switch floating over it.
  *
- * Only what spans regions lives here. The tab strip's rows are in
- * `tabs/tabs.css`, and each viewer carries its own sheet next to it — which is
+ * Only what spans regions lives here. Each viewer carries its own sheet next to it — which is
  * not just tidiness: a viewer is behind a dynamic `import()`, so its CSS
  * becomes a chunk fetched when that format is first opened, and never
  * otherwise. A single sheet would have put every viewer's styling on the
@@ -33,42 +32,31 @@
   padding: 18px;
 }
 
-/* The Code / Build steps switch, spec'd as a trailing segmented control on
-   the viewer header (KAAVA-UX-SPEC.md §board 03). This app draws no header of
-   its own — see this file's top note — so the strip sits alone, above the tab
-   strip, and only while a file is open: nothing to switch modes on otherwise. */
-.viewerapp__modebar {
-  flex: 0 0 auto;
+/* The file and everything floating over it. Positioned, so the Code / Preview /
+   Steps switch (`modeSwitch.css`) can sit over the editor rather than costing
+   it a bar of height. */
+.viewerapp__body {
+  position: relative;
   display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px 0;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
 }
 
-.viewerapp__send {
+.viewerapp__file {
   display: flex;
-  gap: 6px;
-  margin-right: auto;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
 }
 
-.viewerapp__send .k-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+.viewerapp__file[hidden] {
+  display: none;
 }
 
-/* The "LATER" micro-label the spec calls for on the Build steps tab — plain
-   text rather than `.k-badge`, which is sized for a status pill and would
-   overflow this control's dense row. */
-.viewerapp__later {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--txt-tertiary);
-}
-
-.viewerapp__buildsteps {
+.viewerapp__steps {
   margin: auto;
   padding: 18px;
   max-width: 40em;
@@ -76,12 +64,12 @@
   line-height: 1.5;
 }
 
-.viewerapp__buildsteps code {
+.viewerapp__steps code {
   font-family: var(--mono);
 }
 
 /* An error from a call that belongs to the app rather than to the editor —
-   `files/root` failing, or a save the tab strip started. Pinned above the strip
+   `files/root` failing, or a save that was started here. Pinned above the file
    because neither region owns it. */
 .viewerapp__error {
   flex: 0 0 auto;

@@ -4,7 +4,7 @@
  * environment-conditioned pieces of the right cluster: the "main is
  * read-only" label, and the ahead/behind upgrade once `git` lands.
  */
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import type { GitStatus } from "../contract";
 import type { Environment } from "../environment";
@@ -60,7 +60,60 @@ describe("StatusBar", () => {
       />,
     );
 
-    expect(screen.getByText("wt/flashlight-cone · ↑1 ↓0")).not.toBeNull();
+    expect(screen.getByText("wt/flashlight-cone")).not.toBeNull();
+    expect(screen.getByText("↑1")).not.toBeNull();
+    expect(screen.getByText("↓0")).not.toBeNull();
+  });
+
+  it("draws the worktree kind chip, once, with the path as its tooltip", () => {
+    const env: Environment = { kind: "worktree", branch: "wt/x", path: "/repo/wt/x" };
+    render(<StatusBar project="OpenKaava" environment={env} git={git()} githubOk update={null} />);
+
+    const chip = screen.getByRole("button", { name: /Local worktree/ });
+    expect(chip.textContent).toBe("Local worktree");
+    expect(chip.getAttribute("title")).toContain("/repo/wt/x");
+    expect(screen.getAllByText("wt/x")).toHaveLength(1);
+  });
+
+  it("copies the worktree path when the chip is pressed", () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const env: Environment = { kind: "worktree", branch: "wt/x", path: "/repo/wt/x" };
+    render(<StatusBar project="OpenKaava" environment={env} git={null} githubOk update={null} />);
+
+    screen.getByRole("button", { name: /Local worktree/ }).click();
+    expect(writeText).toHaveBeenCalledWith("/repo/wt/x");
+  });
+
+  it("draws Review & merge for a worktree and wires it to the handler", () => {
+    const onReview = vi.fn();
+    const env: Environment = { kind: "worktree", branch: "wt/x", path: "/x" };
+    render(
+      <StatusBar
+        project="OpenKaava"
+        environment={env}
+        git={null}
+        githubOk
+        update={null}
+        onReviewAndMerge={onReview}
+      />,
+    );
+
+    screen.getByRole("button", { name: "Review & merge" }).click();
+    expect(onReview).toHaveBeenCalledTimes(1);
+  });
+
+  it("omits Review & merge on main, where there is nothing to merge", () => {
+    render(
+      <StatusBar
+        project="OpenKaava"
+        environment={{ kind: "main" }}
+        git={null}
+        githubOk
+        update={null}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Review & merge" })).toBeNull();
   });
 
   it("reads main as a bare branch segment with no ahead/behind, plus the trailing read-only label", () => {

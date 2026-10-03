@@ -81,7 +81,7 @@ export const terminals: Body = {
     { kind: "heading", body: "A terminal in a pane" },
     {
       kind: "text",
-      body: "The `+` in the switcher bar also offers **Terminal**, and that one is different: it puts a shell in a **pane** of the tool window rather than in the band. Useful when you want a terminal tall rather than wide — watching a long build beside the code, instead of under it.",
+      body: "The **Apps** menu also offers **Terminal**, and that one is different: it puts a shell in a **pane** of the tool window rather than in the band. Useful when you want a terminal tall rather than wide — watching a long build beside the code, instead of under it.",
     },
 
     { kind: "heading", body: "Which shell you get" },

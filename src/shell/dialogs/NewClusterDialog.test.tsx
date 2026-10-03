@@ -70,7 +70,12 @@ describe("NewClusterDialog", () => {
 
     fireEvent.change(await screen.findByLabelText("Name"), { target: { value: "my-feature" } });
     await waitFor(() => {
-      expect(screen.getByText('"my-feature" is already in use.')).toBeTruthy();
+      // The E2E run met the old "is already in use" and could not tell why or what to do.
+      expect(
+        screen.getByText(
+          'A worktree named "my-feature" already exists. Reopen it under Existing environment, or choose another name.',
+        ),
+      ).toBeTruthy();
     });
     expect(screen.getByRole("button", { name: "Next" })).toHaveProperty("disabled", true);
   });
@@ -123,6 +128,20 @@ describe("NewClusterDialog", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.getByRole("radiogroup", { name: "Environment" })).toBeTruthy();
+  });
+
+  it("draws a pane thumbnail for every starting layout", () => {
+    listClusterEnvironments.mockResolvedValue([]);
+    renderDialog();
+
+    fireEvent.click(screen.getByRole("radio", { name: /Browse main/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    const icons = document.querySelectorAll(".new-cluster__layout-icon");
+    expect(icons.length).toBe(4);
+    icons.forEach((icon) => {
+      expect(icon.querySelectorAll(".new-cluster__layout-pane").length).toBeGreaterThanOrEqual(3);
+    });
   });
 
   it("submits a new-local-worktree choice with the typed name and base main", async () => {
@@ -189,5 +208,20 @@ describe("NewClusterDialog", () => {
       "disabled",
       false,
     );
+  });
+
+  it("opens on the environment it is asked for", async () => {
+    listClusterEnvironments.mockResolvedValue([]);
+    render(
+      <NewClusterDialog
+        label="win-1"
+        project={project}
+        initialKind="main"
+        onCancel={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    );
+    // "Browse main" needs no name, so Next is live straight away.
+    expect(screen.getByRole("button", { name: "Next" })).toHaveProperty("disabled", false);
   });
 });

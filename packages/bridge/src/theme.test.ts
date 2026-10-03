@@ -5,7 +5,16 @@
 // bridge is otherwise pure protocol code with no DOM), so this file opts in
 // alone, the same convention the root `vitest.config.ts` documents.
 import { afterEach, describe, expect, it } from "vitest";
-import { accentThemeColors, applyTheme, hexWithAlpha, parseThemePayload } from "./theme.js";
+import {
+  accentThemeColors,
+  applyTheme,
+  currentDocumentTheme,
+  hexWithAlpha,
+  monacoBase,
+  monacoThemeData,
+  parseThemePayload,
+  surfaceTheme,
+} from "./theme.js";
 import type { ThemeChangedPayload } from "./protocol.js";
 
 describe("parseThemePayload", () => {
@@ -87,5 +96,49 @@ describe("accentThemeColors", () => {
     expect(colors.focusBorder).toBe("#a585f0ff");
     expect(colors["editor.selectionBackground"]).toBe("#a585f040");
     expect(Object.values(colors).join(" ")).not.toContain("d98a3f");
+  });
+});
+
+describe("shell theme to surface theme", () => {
+  afterEach(() => {
+    const root = document.documentElement;
+    delete root.dataset.theme;
+    for (const prop of ["--surface", "--text", "--accent", "--warn"])
+      root.style.removeProperty(prop);
+  });
+
+  it("maps light to Monaco's light base and dark to vs-dark", () => {
+    expect(monacoBase("light")).toBe("vs");
+    expect(monacoBase("dark")).toBe("vs-dark");
+  });
+
+  it("maps the shell theme to the Excalidraw and xterm theme names", () => {
+    expect(surfaceTheme("light")).toBe("light");
+    expect(surfaceTheme("dark")).toBe("dark");
+  });
+
+  it("reads the document theme, defaulting to dark", () => {
+    expect(currentDocumentTheme()).toBe("dark");
+    document.documentElement.dataset.theme = "light";
+    expect(currentDocumentTheme()).toBe("light");
+  });
+
+  it("builds the Monaco theme from the live tokens, so a switch changes it", () => {
+    const root = document.documentElement;
+    root.style.setProperty("--surface", "#14161a");
+    root.style.setProperty("--text", "#e4e7ec");
+    root.style.setProperty("--accent", "#3f76ff");
+    root.dataset.theme = "dark";
+    const dark = monacoThemeData();
+    expect(dark.base).toBe("vs-dark");
+    expect(dark.colors["editor.background"]).toBe("#14161aff");
+
+    root.style.setProperty("--surface", "#ffffff");
+    root.style.setProperty("--text", "#0f0f10");
+    root.dataset.theme = "light";
+    const light = monacoThemeData();
+    expect(light.base).toBe("vs");
+    expect(light.colors["editor.background"]).toBe("#ffffffff");
+    expect(light.colors["editor.foreground"]).toBe("#0f0f10ff");
   });
 });

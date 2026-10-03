@@ -63,7 +63,7 @@ pub fn call(
     }
     let read_only = context.cluster_id.as_deref().is_some_and(|cluster| {
         app.state::<crate::shell_state::ShellState>()
-            .cluster_environment(cluster)
+            .cluster_write_environment(cluster)
             .is_some_and(|env| env.is_main())
     });
     let services = Services {
@@ -96,6 +96,9 @@ pub fn dispatch(
     match method {
         "blender-viewer/state" => state(context, services, params.as_ref()),
         "blender-viewer/image" => image(context, params.as_ref()),
+        "blender-viewer/glb" => glb(context, params.as_ref()),
+        "blender-viewer/markup-save" => markup_save(context, params.as_ref()),
+        "blender-viewer/markup" => markup_load(context, params.as_ref()),
         "blender-viewer/detect" => {
             services.versions.forget();
             Ok(json!(detected(services)))
@@ -181,12 +184,15 @@ fn state(
 
     let blends = blender::find_blends(project);
     let requested = params.and_then(|p| p.get("blend")).and_then(Value::as_str);
-    let selected = match requested {
-        Some(raw) => Some(resolve_blend(project, raw)?),
-        None => blends
-            .first()
-            .and_then(|b| resolve_blend(project, &b.path).ok()),
-    };
+    // A path from before the project changed is no longer inside it: fall back
+    // to this project's first .blend (or none) rather than failing the poll.
+    let selected = requested
+        .and_then(|raw| resolve_blend(project, raw).ok())
+        .or_else(|| {
+            blends
+                .first()
+                .and_then(|b| resolve_blend(project, &b.path).ok())
+        });
 
     let mut value = json!({
         "blender": blender, "project": true, "readOnly": services.read_only,
@@ -245,6 +251,51 @@ fn image(context: &CallContext, params: Option<&Value>) -> Result<Value, RpcErro
         )
     })?;
     Ok(json!({ "mime": "image/png", "base64": BASE64.encode(bytes) }))
+}
+
+/// The exported `.glb`, base64, for the 3D preview. Reads the file the last
+/// export's manifest names, never a caller-supplied path.
+fn glb(context: &CallContext, params: Option<&Value>) -> Result<Value, RpcError> {
+    let project = project_of(context)?;
+    let (_, rel) = resolve_blend(project, &required_str(params, "blend")?)?;
+    let cache = blender::cache_dir(project, &rel);
+    let manifest: Manifest = blender::read_manifest(&cache)
+        .ok_or_else(|| invalid("this file has not been exported yet"))?;
+    let file = manifest
+        .glb
+        .ok_or_else(|| invalid("this export has no .glb"))?;
+    let bytes = std::fs::read(&file)
+        .map_err(|e| RpcError::new(INTERNAL_ERROR, format!("could not read {file}: {e}")))?;
+    Ok(json!({ "base64": BASE64.encode(&bytes), "size": bytes.len() }))
+}
+
+/// Keeps the markup picture and JSON for a `.blend`, beside its export cache.
+fn markup_save(context: &CallContext, params: Option<&Value>) -> Result<Value, RpcError> {
+    let project = project_of(context)?;
+    let (_, rel) = resolve_blend(project, &required_str(params, "blend")?)?;
+    let png = BASE64
+        .decode(required_str(params, "pngBase64")?)
+        .map_err(|e| invalid(format!("pngBase64 is not base64: {e}")))?;
+    let json = required_str(params, "json")?;
+    let saved_at = blender::write_markup(&blender::cache_dir(project, &rel), &png, &json)
+        .map_err(|e| RpcError::new(INTERNAL_ERROR, e))?;
+    Ok(json!({ "savedAt": saved_at }))
+}
+
+/// `null` when nothing has been marked up on this `.blend` yet.
+fn markup_load(context: &CallContext, params: Option<&Value>) -> Result<Value, RpcError> {
+    let project = project_of(context)?;
+    let (_, rel) = resolve_blend(project, &required_str(params, "blend")?)?;
+    Ok(
+        match blender::read_markup(&blender::cache_dir(project, &rel)) {
+            Some(m) => json!({
+                "png": BASE64.encode(m.png),
+                "json": m.json,
+                "savedAt": m.saved_at,
+            }),
+            None => Value::Null,
+        },
+    )
 }
 
 const KNOWN_VIEWS: &[&str] = &["front", "three-quarter", "side", "wire"];
@@ -452,9 +503,20 @@ mod tests {
         }
     }
 
+    /// Block until the job has finished and recorded its outcome. Both are
+    /// written under one lock. Giving up is a failure here: returning quietly
+    /// after the deadline let the caller read a job that was still running.
     fn wait(jobs: &Jobs) {
         let until = std::time::Instant::now() + Duration::from_secs(30);
-        while jobs.snapshot().running && std::time::Instant::now() < until {
+        loop {
+            let snap = jobs.snapshot();
+            if !snap.running && snap.outcome.is_some() {
+                return;
+            }
+            assert!(
+                std::time::Instant::now() < until,
+                "the export did not finish within 30s: {snap:?}"
+            );
             std::thread::sleep(Duration::from_millis(50));
         }
     }
@@ -476,6 +538,37 @@ mod tests {
         assert_eq!(value["renders"], json!([]));
         assert_eq!(value["blender"]["found"], false);
         assert_eq!(value["blends"], json!([]));
+    }
+
+    #[test]
+    fn state_drops_a_blend_from_another_project() {
+        let old = TempDir::new().expect("tempdir");
+        let stale = old.path().join("room.blend");
+        std::fs::write(&stale, b"x").expect("write");
+        let env = TempDir::new().expect("tempdir");
+        let fx = Fixture::new();
+        let services = fx.services(Config::default(), false);
+        let params = json!({ "blend": stale.display().to_string() });
+
+        let empty = dispatch(
+            &context(env.path()),
+            &services,
+            "blender-viewer/state",
+            Some(params.clone()),
+        )
+        .expect("a stale path is not an error");
+        assert_eq!(empty["blend"], Value::Null);
+        assert_eq!(empty["blends"], json!([]));
+
+        std::fs::write(env.path().join("new.blend"), b"x").expect("write");
+        let listed = dispatch(
+            &context(env.path()),
+            &services,
+            "blender-viewer/state",
+            Some(params),
+        )
+        .expect("state");
+        assert_eq!(listed["rel"], "new.blend");
     }
 
     #[test]
@@ -637,6 +730,70 @@ mod tests {
     }
 
     #[test]
+    fn glb_and_markup_round_trip_per_blend() {
+        let env = TempDir::new().unwrap();
+        let tools = TempDir::new().unwrap();
+        let exe = fake_blender(tools.path(), "ok");
+        std::fs::write(env.path().join("bed.blend"), b"b").unwrap();
+        std::fs::write(env.path().join("desk.blend"), b"b").unwrap();
+        let mut fx = Fixture::new();
+        fx.host.files.insert(exe.clone());
+        let ctx = context(env.path());
+        let services = fx.services(config_with(&exe), false);
+        let bed = json!({ "blend": "bed.blend" });
+
+        // Nothing exported yet: no glb, and no markup either.
+        let none = dispatch(&ctx, &services, "blender-viewer/glb", Some(bed.clone()));
+        assert!(none.is_err());
+        let nothing =
+            dispatch(&ctx, &services, "blender-viewer/markup", Some(bed.clone())).unwrap();
+        assert_eq!(nothing, Value::Null);
+
+        dispatch(
+            &ctx,
+            &services,
+            "blender-viewer/export-start",
+            Some(bed.clone()),
+        )
+        .unwrap();
+        wait(&fx.jobs);
+        let glb = dispatch(&ctx, &services, "blender-viewer/glb", Some(bed.clone())).unwrap();
+        assert!(glb["size"].as_u64().unwrap() > 0);
+        assert!(!glb["base64"].as_str().unwrap().is_empty());
+
+        let png = BASE64.encode(b"\x89PNG\r\n\x1a\nrest");
+        dispatch(
+            &ctx,
+            &services,
+            "blender-viewer/markup-save",
+            Some(json!({ "blend": "bed.blend", "pngBase64": png, "json": "{\"v\":1}" })),
+        )
+        .unwrap();
+        let back = dispatch(&ctx, &services, "blender-viewer/markup", Some(bed.clone())).unwrap();
+        assert_eq!(back["json"], "{\"v\":1}");
+        assert_eq!(back["png"], png);
+
+        // Another .blend keeps its own, and a non-PNG is refused.
+        let other = dispatch(
+            &ctx,
+            &services,
+            "blender-viewer/markup",
+            Some(json!({ "blend": "desk.blend" })),
+        )
+        .unwrap();
+        assert_eq!(other, Value::Null);
+        let bad = dispatch(
+            &ctx,
+            &services,
+            "blender-viewer/markup-save",
+            Some(
+                json!({ "blend": "bed.blend", "pngBase64": BASE64.encode(b"nope"), "json": "{}" }),
+            ),
+        );
+        assert!(bad.is_err());
+    }
+
+    #[test]
     fn cancel_leaves_the_previous_export_alone() {
         let env = TempDir::new().unwrap();
         let tools = TempDir::new().unwrap();
@@ -682,5 +839,167 @@ mod tests {
             state["parts"][0]["name"], "Frame",
             "the earlier export survives a cancel"
         );
+    }
+
+    // Opt-in: a real Blender. These run only with `KAAVA_TEST_REAL_BLENDER=1`
+    // and a Blender that `detect` can find; anywhere else they return at once,
+    // so CI needs neither. The mocked tests above cannot notice the export
+    // script disagreeing with a real `bpy`.
+
+    const CHAIR_SCRIPT: &str = r#"
+import bpy, sys
+bpy.ops.wm.read_factory_settings(use_empty=True)
+def mat(name, rgb):
+    m = bpy.data.materials.new(name)
+    m.diffuse_color = (*rgb, 1)
+    return m
+red, wood = mat("Red", (0.8, 0.05, 0.05)), mat("Wood", (0.4, 0.25, 0.1))
+def cube(name, loc, scale, m):
+    bpy.ops.mesh.primitive_cube_add(location=loc)
+    o = bpy.context.object
+    o.name = name
+    o.scale = scale
+    o.data.materials.append(m)
+    bpy.ops.object.transform_apply(scale=True)
+cube("Seat", (0, 0, 0.5), (0.5, 0.5, 0.05), wood)
+cube("Back", (0, -0.45, 1.0), (0.5, 0.05, 0.5), red)
+cube("Leg", (0.45, 0.45, 0.225), (0.05, 0.05, 0.225), wood)
+bpy.ops.wm.save_as_mainfile(filepath=sys.argv[-1])
+"#;
+
+    fn real_blender() -> Option<PathBuf> {
+        if std::env::var("KAAVA_TEST_REAL_BLENDER").as_deref() != Ok("1") {
+            return None;
+        }
+        let found = detect::find(&RealHost, "").hit;
+        if found.is_none() {
+            eprintln!("KAAVA_TEST_REAL_BLENDER is set but no Blender was found; skipping");
+        }
+        found.map(|(_, path)| path)
+    }
+
+    fn make_chair(exe: &Path, blend: &Path) {
+        let script = blend.with_extension("py");
+        std::fs::write(&script, CHAIR_SCRIPT).unwrap();
+        let status = std::process::Command::new(exe)
+            .args(["-b", "--factory-startup", "--python"])
+            .arg(&script)
+            .arg("--")
+            .arg(blend)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .status()
+            .unwrap();
+        assert!(
+            status.success() && blend.is_file(),
+            "could not build the chair"
+        );
+    }
+
+    fn real_services<'a>(fx: &'a Fixture, exe: &Path) -> Services<'a> {
+        Services {
+            config: config_with(exe),
+            jobs: &fx.jobs,
+            versions: &fx.versions,
+            host: &RealHost,
+            read_only: false,
+        }
+    }
+
+    fn wait_real(jobs: &Jobs) {
+        let until = std::time::Instant::now() + Duration::from_secs(120);
+        loop {
+            let snap = jobs.snapshot();
+            if !snap.running && snap.outcome.is_some() {
+                return;
+            }
+            assert!(std::time::Instant::now() < until, "export did not finish");
+            std::thread::sleep(Duration::from_millis(100));
+        }
+    }
+
+    #[test]
+    fn a_real_blender_exports_a_chair_end_to_end() {
+        let Some(exe) = real_blender() else { return };
+        let env = TempDir::new().unwrap();
+        std::fs::create_dir_all(env.path().join("art")).unwrap();
+        make_chair(&exe, &env.path().join("art/chair.blend"));
+        let fx = Fixture::new();
+        let ctx = context(env.path());
+        let services = real_services(&fx, &exe);
+
+        dispatch(
+            &ctx,
+            &services,
+            "blender-viewer/export-start",
+            Some(json!({ "blend": "art/chair.blend" })),
+        )
+        .unwrap();
+        wait_real(&fx.jobs);
+        let status = dispatch(&ctx, &services, "blender-viewer/export-status", None).unwrap();
+        assert_eq!(status["outcome"], "ok", "{status}");
+
+        let state = dispatch(&ctx, &services, "blender-viewer/state", None).unwrap();
+        assert_eq!(state["stale"], false);
+        assert_eq!(state["warnings"], json!([]), "{state}");
+        let parts = state["parts"].as_array().unwrap();
+        let names: Vec<_> = parts.iter().map(|p| p["name"].as_str().unwrap()).collect();
+        assert_eq!(names, ["Seat", "Back", "Leg"]);
+        assert!(parts.iter().all(|p| p["verts"] == 8 && p["tris"] == 12));
+        assert_eq!(parts[1]["materials"], json!(["Red"]));
+        assert_eq!(parts[0]["dimensions"], json!([1.0, 1.0, 0.1]));
+        let ids: Vec<String> = state["renders"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r["id"].as_str().unwrap().to_string())
+            .collect();
+        assert_eq!(ids, ["front", "three-quarter", "side", "wire"]);
+
+        let glb = dispatch(
+            &ctx,
+            &services,
+            "blender-viewer/glb",
+            Some(json!({ "blend": "art/chair.blend" })),
+        )
+        .unwrap();
+        let bytes = BASE64.decode(glb["base64"].as_str().unwrap()).unwrap();
+        assert_eq!(&bytes[..4], b"glTF");
+        assert_eq!(u32::from_le_bytes(bytes[4..8].try_into().unwrap()), 2);
+        assert_eq!(
+            u32::from_le_bytes(bytes[8..12].try_into().unwrap()) as usize,
+            bytes.len()
+        );
+        for id in ids {
+            let image = dispatch(
+                &ctx,
+                &services,
+                "blender-viewer/image",
+                Some(json!({ "blend": "art/chair.blend", "id": id })),
+            )
+            .unwrap();
+            let png = BASE64.decode(image["base64"].as_str().unwrap()).unwrap();
+            assert!(png.starts_with(b"\x89PNG"), "{id} is not a PNG");
+        }
+    }
+
+    #[test]
+    fn a_real_blender_reports_a_corrupt_blend_instead_of_hanging() {
+        let Some(exe) = real_blender() else { return };
+        let env = TempDir::new().unwrap();
+        std::fs::write(env.path().join("bad.blend"), b"not a blend file at all").unwrap();
+        let fx = Fixture::new();
+        let ctx = context(env.path());
+        let services = real_services(&fx, &exe);
+        dispatch(
+            &ctx,
+            &services,
+            "blender-viewer/export-start",
+            Some(json!({ "blend": "bad.blend" })),
+        )
+        .unwrap();
+        wait_real(&fx.jobs);
+        let status = dispatch(&ctx, &services, "blender-viewer/export-status", None).unwrap();
+        assert_ne!(status["outcome"], "ok", "{status}");
     }
 }

@@ -22,6 +22,7 @@ mod design;
 mod files;
 mod godot_viewer;
 mod home;
+pub mod method_catalog;
 // `pub(crate)`, for the same reason `apps::projects` is: `lib.rs` needs
 // `apps::home_create::CreateManager` to `.manage()` it. `home::call` reaches
 // straight into this module's `start`/`status` for its two `home/create-
@@ -42,11 +43,11 @@ pub mod tutorial;
 use crate::plugins;
 use crate::project;
 use crate::shell_state::ShellState;
-use kaava_rpc::{RpcError, INTERNAL_ERROR, METHOD_NOT_FOUND};
+use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde::Serialize;
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 /// One app, as the switcher bar needs to see it.
 ///
@@ -237,7 +238,8 @@ const REGISTRY: &[Registered] = &[
     Registered {
         id: "canvas",
         name: "Canvas",
-        description: "Draw the game's design on an Excalidraw canvas, stored in the environment's                       checkout as canvas/<name>.json.",
+        description: "Draw the game's design on an Excalidraw canvas, stored in the environment's \
+                      checkout as canvas/<name>.json.",
         // Not `design`: that id is the feature-gated Design Mode app, which
         // points at a running page. This is the design canvas of
         // `docs/KAAVA-UX-REWORK.md` §5, and it is always compiled in.
@@ -543,6 +545,30 @@ pub fn call(
             .map_err(|e| RpcError::new(INTERNAL_ERROR, format!("could not read settings: {e}")));
     }
 
+    // An app changing one of its own listed settings; see `settings::APP_WRITABLE`.
+    if method == crate::settings::APP_SET_METHOD {
+        return crate::settings::app_set(app, params.as_ref());
+    }
+
+    // An app asking the shell to show its section of Settings; see
+    // [`OPEN_SETTINGS_METHOD`]. Host-answered because an app has no door to the
+    // shell's React tree, and the section is the shell's to draw.
+    if method == OPEN_SETTINGS_METHOD {
+        let section = settings_section(params.as_ref())?;
+        let _ = app.emit(OPEN_SETTINGS_EVENT, json!({ "section": section }));
+        return Ok(json!({ "section": section }));
+    }
+
+    // Typing context references at the agent's prompt needs the terminals, which
+    // the store (`context.rs`) deliberately knows nothing about.
+    if method == crate::context_commands::INSERT_METHOD {
+        return crate::context_commands::insert_for_cluster(
+            app,
+            context.cluster_id.as_deref(),
+            params,
+        );
+    }
+
     // The context store, likewise answered by the host so every app (and every
     // plugin surface) reaches one implementation. Deliberately *before* the
     // write refusal: `.kaava/context/` is Kaava's own gitignored state, not the
@@ -562,7 +588,7 @@ pub fn call(
         // app's own frontend, the shell's menu, or an agent over MCP `app_call`
         // all arrive here with a resolved cluster.
         if let Some(cluster) = context.cluster_id.as_deref() {
-            let env = app.state::<ShellState>().cluster_environment(cluster);
+            let env = app.state::<ShellState>().cluster_write_environment(cluster);
             write_refusal(env.as_ref(), method)?;
         }
         return (registered.call)(app, context, method, params);
@@ -633,6 +659,22 @@ pub const WRITE_METHODS: &[&str] = &[
     "play/addon-remove",
     "canvas/create",
     "canvas/write",
+    "canvas/save",
+    "canvas/add-shapes",
+    "canvas/import-mermaid",
+    "canvas/set-values",
+    "canvas/set-design",
+    "canvas/restore-checkpoint",
+    "canvas/create-comment",
+    "canvas/resolve-comment",
+    "canvas/reopen-comment",
+    "canvas/save-type",
+    "canvas/delete-type",
+    "canvas/set-parent",
+    "canvas/link-frame",
+    "canvas/set-frame",
+    "canvas/create-frame",
+    "canvas/split-frames",
 ];
 
 /// Whether `method` is a write to the cluster's checkout.
@@ -659,6 +701,34 @@ pub fn write_refusal(
 /// because a tool in its own process will want the same call later.
 pub const SETTINGS_METHOD: &str = "settings/all";
 
+/// What an app calls to open Settings on a section, e.g. `{"section": "canvas"}`.
+pub const OPEN_SETTINGS_METHOD: &str = "shell/open-settings";
+
+/// The event the shell listens for. Mirrored by `OPEN_SETTINGS_EVENT` in
+/// `src/bindings.ts`.
+pub const OPEN_SETTINGS_EVENT: &str = "settings:open";
+
+/// The section a `shell/open-settings` call names: one the registry could hold,
+/// or none (open where it was last). A typo is refused here rather than landing
+/// on the first section without a word.
+fn settings_section(params: Option<&Value>) -> Result<Option<String>, RpcError> {
+    let Some(section) = params.and_then(|p| p.get("section")) else {
+        return Ok(None);
+    };
+    let known = |id: &str| {
+        settings_groups().iter().any(|g| g.id == id)
+            || crate::settings::shell_group_ids().any(|shell| shell == id)
+    };
+    match section.as_str() {
+        Some(id) if known(id) => Ok(Some(id.to_string())),
+        Some(id) => Err(RpcError::new(
+            INVALID_PARAMS,
+            format!("there is no settings section `{id}`"),
+        )),
+        None => Err(RpcError::new(INVALID_PARAMS, "`section` must be a string")),
+    }
+}
+
 /// Every settings section an app declares — `docs/settings.md` §6. Deliberately
 /// not a field on [`Registered`], so that a *tool* can register through this
 /// same list without ever being in `REGISTRY`.
@@ -668,6 +738,7 @@ pub fn settings_groups() -> &'static [&'static crate::settings::Group] {
 
 static APP_SETTINGS: &[&crate::settings::Group] = &[
     &files::SETTINGS,
+    &canvas::SETTINGS,
     &crate::blender::SETTINGS,
     &crate::godot::SETTINGS,
 ];
@@ -675,6 +746,31 @@ static APP_SETTINGS: &[&crate::settings::Group] = &[
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn open_settings_accepts_a_known_section_and_refuses_a_typo() {
+        let section = |v: Value| settings_section(Some(&v));
+        assert_eq!(
+            section(json!({ "section": "canvas" })).unwrap().as_deref(),
+            Some("canvas")
+        );
+        assert_eq!(
+            section(json!({ "section": "appearance" }))
+                .unwrap()
+                .as_deref(),
+            Some("appearance")
+        );
+        assert_eq!(settings_section(None).unwrap(), None);
+        assert!(section(json!({ "section": "cnavas" })).is_err());
+        assert!(section(json!({ "section": 3 })).is_err());
+    }
+
+    #[test]
+    fn the_canvas_section_is_registered_with_a_select_per_knob() {
+        let group = settings_groups().iter().find(|g| g.id == "canvas").unwrap();
+        let keys: Vec<&str> = group.settings.iter().map(|s| s.key).collect();
+        assert_eq!(keys, ["canvas.detailLevel", "canvas.style"]);
+    }
     use crate::environments::Environment;
 
     fn worktree() -> Environment {
@@ -744,7 +840,8 @@ mod tests {
             include_str!("trash.rs"),
             include_str!("schematify.rs"),
             include_str!("home.rs"),
-            include_str!("canvas.rs"),
+            include_str!("canvas/mod.rs"),
+            include_str!("canvas/methods.rs"),
             include_str!("../comments.rs"),
         ];
         let verbs = [

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { signature, slugify, toSaved, uniqueId, type SceneElement } from "./scene";
+import { signature, slugify, toSaved, uniqueId, withDesign, type SceneElement } from "./scene";
 
 const el = (id: string, extra: Partial<SceneElement> = {}): SceneElement => ({
   id,
@@ -86,5 +86,33 @@ describe("ids", () => {
     expect(uniqueId("world", new Set(["world"]))).toBe("world-2");
     expect(uniqueId("world", new Set(["world", "world-2"]))).toBe("world-3");
     expect(uniqueId("", new Set())).toBe("canvas");
+  });
+});
+
+describe("design override", () => {
+  it("sets one choice without touching the other or the bookkeeping", () => {
+    const kaava = { id: "game", title: "Game", design: { style: "whiteboard" } };
+    expect(withDesign(kaava, "detail", "dense")).toEqual({
+      id: "game",
+      title: "Game",
+      design: { style: "whiteboard", detail: "dense" },
+    });
+    expect(kaava.design).toEqual({ style: "whiteboard" });
+  });
+
+  it("drops an emptied design so a canvas that follows Settings leaves no trace", () => {
+    const one = withDesign({ id: "g", design: { detail: "sparse" } }, "detail", null);
+    expect(one).toEqual({ id: "g" });
+    expect("design" in one).toBe(false);
+    expect(withDesign(undefined, "style", null)).toEqual({});
+  });
+
+  it("changes the signature, so choosing a style is saved", () => {
+    const base = toSaved([], {}, {}, { id: "g" });
+    const picked = toSaved([], {}, {}, withDesign({ id: "g" }, "style", "minimal"));
+    expect(signature(picked)).not.toBe(signature(base));
+    expect(toSaved([], {}, {}, withDesign({ id: "g" }, "style", "minimal")).kaava?.design).toEqual({
+      style: "minimal",
+    });
   });
 });

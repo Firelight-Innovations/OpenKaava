@@ -5,16 +5,19 @@
 //! bearer token, the routing table, and the adapter between `rmcp`'s handler
 //! trait and [`Registry`](super::Registry).
 
-use super::{route, Registry, ToolAnswer, ToolDescriptor};
+use super::{route, Registry, Subscriptions, ToolAnswer, ToolDescriptor};
 use axum::response::IntoResponse;
 use base64::Engine;
 use rand::RngCore;
 use rmcp::handler::server::ServerHandler;
 use rmcp::model::{
     CacheScope, CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, ErrorData,
-    Implementation, ListToolsResult, PaginatedRequestParams, ServerCapabilities, ServerInfo, Tool,
+    Implementation, ListResourcesResult, ListToolsResult, PaginatedRequestParams,
+    ReadResourceRequestParams, ReadResourceResponse, ReadResourceResult, Resource,
+    ResourceContents, ResourceUpdatedNotificationParam, ResourcesCapability, ServerCapabilities,
+    ServerInfo, SubscribeRequestParams, SubscriptionFilter, Tool, UnsubscribeRequestParams,
 };
-use rmcp::service::RequestContext;
+use rmcp::service::{RequestContext, SubscriptionContext};
 use rmcp::transport::streamable_http_server::{
     session::local::LocalSessionManager, StreamableHttpService,
 };
@@ -219,6 +222,44 @@ struct Bridge {
     id: String,
 }
 
+impl Bridge {
+    fn reachable(&self) -> bool {
+        self.app
+            .state::<Registry>()
+            .is_reachable(&self.id, super::dev_mode(&self.app))
+    }
+
+    /// Refuse a resource this server does not publish, or any while it is off.
+    fn require_resource(&self, uri: &str) -> Result<(), ErrorData> {
+        let published = super::servers::resources(&self.id)
+            .iter()
+            .any(|r| r.uri == uri);
+        if published && self.reachable() {
+            Ok(())
+        } else {
+            Err(not_found(uri))
+        }
+    }
+}
+
+fn not_found(uri: &str) -> ErrorData {
+    ErrorData::resource_not_found(format!("no resource at `{uri}`"), None)
+}
+
+/// Which client session a request belongs to: the `mcp-session-id` header the
+/// transport minted at `initialize`, which `rmcp` leaves on the request's
+/// extensions. Falls back to the request id so a transport that carries none
+/// still gets a key, if not a stable one.
+fn session_of(context: &RequestContext<RoleServer>) -> String {
+    context
+        .extensions
+        .get::<axum::http::request::Parts>()
+        .and_then(|parts| parts.headers.get("mcp-session-id"))
+        .and_then(|value| value.to_str().ok())
+        .map(str::to_owned)
+        .unwrap_or_else(|| format!("request-{}", context.id))
+}
+
 impl ServerHandler for Bridge {
     /// Built by mutating a default rather than with a struct literal, because
     /// both of these types are `#[non_exhaustive]` — `rmcp` reserves the right
@@ -237,10 +278,19 @@ impl ServerHandler for Bridge {
             .enable_tool_list_changed()
             .build();
 
+        // Declared only for a server that publishes something. `subscribe` is the
+        // part an agent acts on: without it a client will not ask to be told.
+        if !super::servers::resources(&self.id).is_empty() {
+            let mut resources = ResourcesCapability::default();
+            resources.subscribe = Some(true);
+            info.capabilities.resources = Some(resources);
+        }
+
         info.server_info = Implementation::new(
             format!("kaava-{}", self.id),
             env!("CARGO_PKG_VERSION").to_string(),
         );
+        info.instructions = super::servers::instructions(&self.id).map(str::to_string);
 
         info
     }
@@ -263,6 +313,167 @@ impl ServerHandler for Bridge {
         // by construction — see the rule in `servers` — so there is nothing to
         // page through.
         Ok(uncacheable(ListToolsResult::with_all_items(tools)))
+    }
+
+    /// Resources are published only while the server is switched on, for the
+    /// reason `list_tools` is empty while it is off.
+    async fn list_resources(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListResourcesResult, ErrorData> {
+        let listed = if self.reachable() {
+            super::servers::resources(&self.id)
+                .iter()
+                .map(|r| {
+                    Resource::new(r.uri, r.name)
+                        .with_description(r.description)
+                        .with_mime_type(r.mime_type)
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+        Ok(ListResourcesResult::with_all_items(listed)
+            .with_ttl_ms(0)
+            .with_cache_scope(CacheScope::Private))
+    }
+
+    /// Reads run off the async worker: the workspace resource asks each webview
+    /// a question and waits for the answer, which is blocking work.
+    async fn read_resource(
+        &self,
+        request: ReadResourceRequestParams,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ReadResourceResponse, ErrorData> {
+        self.require_resource(&request.uri)?;
+
+        let (app, id, uri) = (self.app.clone(), self.id.clone(), request.uri.clone());
+        let read = tauri::async_runtime::spawn_blocking(move || {
+            super::servers::read_resource(&app, &id, &uri)
+        })
+        .await
+        .map_err(|e| ErrorData::internal_error(format!("the read did not finish: {e}"), None))?;
+
+        let value = match read {
+            Some(Ok(value)) => value,
+            Some(Err(e)) => return Err(ErrorData::internal_error(e.message, None)),
+            None => return Err(not_found(&request.uri)),
+        };
+
+        let contents = ResourceContents::TextResourceContents {
+            uri: request.uri,
+            mime_type: Some("application/json".to_string()),
+            text: value.to_string(),
+            meta: None,
+        };
+        Ok(ReadResourceResult::new(vec![contents])
+            .with_ttl_ms(0)
+            .with_cache_scope(CacheScope::Private)
+            .into())
+    }
+
+    /// `resources/subscribe`, the form of subscription clients on protocol
+    /// versions before 2026-07-28 use. The session's `peer` is what carries
+    /// notifications back down its event stream, so a task is spawned to move
+    /// each queued uri from [`Subscriptions`] onto it.
+    #[allow(deprecated)]
+    async fn subscribe(
+        &self,
+        request: SubscribeRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<(), ErrorData> {
+        self.require_resource(&request.uri)?;
+
+        let session = session_of(&context);
+        let mut queue =
+            self.app
+                .state::<Subscriptions>()
+                .subscribe(&self.id, &request.uri, &session);
+
+        let peer = context.peer.clone();
+        tauri::async_runtime::spawn(async move {
+            while let Some(uri) = queue.recv().await {
+                if peer
+                    .notify_resource_updated(ResourceUpdatedNotificationParam::new(uri))
+                    .await
+                    .is_err()
+                {
+                    break;
+                }
+            }
+        });
+        Ok(())
+    }
+
+    #[allow(deprecated)]
+    async fn unsubscribe(
+        &self,
+        request: UnsubscribeRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<(), ErrorData> {
+        self.require_resource(&request.uri)?;
+
+        self.app.state::<Subscriptions>().unsubscribe(
+            &self.id,
+            &request.uri,
+            &session_of(&context),
+        );
+        Ok(())
+    }
+
+    /// The 2026-07-28 form: one `subscriptions/listen` request that stays open
+    /// and carries the notifications. We accept the uris we publish and ignore
+    /// the rest, and `listen` below holds the request open until it ends.
+    fn accepted_subscription_filter(
+        &self,
+        requested: &SubscriptionFilter,
+    ) -> Option<SubscriptionFilter> {
+        let published = super::servers::resources(&self.id);
+        let uris: Vec<String> = requested
+            .resource_subscriptions
+            .iter()
+            .flatten()
+            .filter(|uri| published.iter().any(|r| r.uri == uri.as_str()))
+            .cloned()
+            .collect();
+
+        (!uris.is_empty()).then(|| {
+            SubscriptionFilter::builder()
+                .resource_subscriptions(uris)
+                .build()
+        })
+    }
+
+    async fn listen(&self, context: SubscriptionContext) -> Result<(), ErrorData> {
+        let session = format!("listen-{}", context.request_context().id);
+        let uris = context
+            .accepted()
+            .resource_subscriptions
+            .clone()
+            .unwrap_or_default();
+
+        let subscriptions = self.app.state::<Subscriptions>();
+        for uri in &uris {
+            let mut queue = subscriptions.subscribe(&self.id, uri, &session);
+            let sink = context.sink().clone();
+            tauri::async_runtime::spawn(async move {
+                while let Some(uri) = queue.recv().await {
+                    if sink.notify_resource_updated(uri).await.is_err() {
+                        break;
+                    }
+                }
+            });
+        }
+
+        context.cancelled().await;
+
+        // Dropping the entries closes each queue, which ends its forwarder.
+        for uri in &uris {
+            subscriptions.unsubscribe(&self.id, uri, &session);
+        }
+        Ok(())
     }
 
     /// A tool that fails comes back as a **result** carrying `is_error`, not as
@@ -336,13 +547,19 @@ fn uncacheable(result: ListToolsResult) -> ListToolsResult {
 /// keeps the fallback below unreachable; an empty object is used rather than a
 /// panic so that one malformed schema costs one tool its arguments instead of
 /// taking the process down.
-fn into_rmcp_tool(descriptor: ToolDescriptor) -> Tool {
+pub(super) fn into_rmcp_tool(descriptor: ToolDescriptor) -> Tool {
     let schema = match descriptor.schema {
         serde_json::Value::Object(map) => map,
         _ => serde_json::Map::new(),
     };
 
-    Tool::new(descriptor.name, descriptor.description, Arc::new(schema))
+    let tool = Tool::new(descriptor.name, descriptor.description, Arc::new(schema));
+    // Only a hint we actually know. `None` leaves the field off the wire rather
+    // than claiming a tool is read-only or not.
+    match descriptor.read_only {
+        Some(read_only) => tool.annotate(rmcp::model::ToolAnnotations::new().read_only(read_only)),
+        None => tool,
+    }
 }
 
 #[cfg(test)]
@@ -408,6 +625,7 @@ mod tests {
             name: "ping".to_string(),
             description: "Answers.".to_string(),
             schema: serde_json::json!({ "type": "object", "properties": {} }),
+            read_only: None,
         };
 
         let tool = into_rmcp_tool(descriptor);
@@ -451,6 +669,7 @@ mod tests {
             name: "broken".to_string(),
             description: "Has a schema that is not an object.".to_string(),
             schema: serde_json::json!([1, 2, 3]),
+            read_only: None,
         };
 
         let tool = into_rmcp_tool(descriptor);

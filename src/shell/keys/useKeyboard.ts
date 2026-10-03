@@ -27,8 +27,10 @@ import { isCopilotKey } from "../copilotKey";
  * bar displays it.
  */
 export interface KeyboardActions {
-  /** Ctrl+1…Ctrl+9 — select the nth tool in this window's bar. */
+  /** Ctrl+1…Ctrl+9 — select the nth cluster, counting in the order the switcher shows them. */
   selectToolByIndex(index: number): void;
+  /** Ctrl+Tab (`1`) and Ctrl+Shift+Tab (`-1`) — the next and previous cluster, wrapping. */
+  cycleCluster(step: 1 | -1): void;
   /** Ctrl+R — re-scan tools. */
   rescan(): void;
   /** Ctrl+. — cancel the tool that is currently booting. */
@@ -147,6 +149,15 @@ export const CHORDS: Record<string, Chord> = {
   "\\": {
     plain: (a) => a.splitTerminal,
     shift: null,
+  },
+  // Ctrl+Tab and Ctrl+Shift+Tab cycle clusters, the way they cycle tabs in every
+  // browser and editor. Nothing else in the shell binds them; the two places
+  // that would otherwise swallow the key are xterm (which types a Tab, see
+  // `terminal/clipboard.ts`'s `handleKey`) and an app's own iframe, which never
+  // reaches this listener at all — the same reach Ctrl+1…9 has.
+  tab: {
+    plain: (a) => () => a.cycleCluster(1),
+    shift: (a) => () => a.cycleCluster(-1),
   },
   // `=`/`+` and `-`/`_` are each the same physical key on a US layout, and
   // which half arrives depends on Shift and on the layout. Both halves mean the

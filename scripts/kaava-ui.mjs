@@ -19,6 +19,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
+import { withoutSessionMarkers } from "./claude-session-env.mjs";
 
 /**
  * The identifier `pnpm ui:build` compiles this binary under.
@@ -30,7 +31,7 @@ import { spawn } from "node:child_process";
  * from the same field, so this one override buys both a second process and a
  * private `%APPDATA%` tree.
  */
-const IDENTIFIER = "com.firelightinnovations.openkaava.agent";
+const IDENTIFIER = process.env.KAAVA_IDENTIFIER || "com.firelightinnovations.openkaava.agent";
 
 /** The built binary, honouring `CARGO_TARGET_DIR` if the worktree shares one. */
 const TARGET_DIR = process.env.CARGO_TARGET_DIR ?? join(process.cwd(), "target");
@@ -89,10 +90,12 @@ function enable() {
   // launch that answers both spellings is worth the second key.
   const mcpPath = join(dir, "mcp.json");
   const mcp = read(mcpPath);
-  mcp.switched = { ...mcp.switched, ui: true, agent: true };
+  // `debug` and `echo` are developer-only too, and `pnpm probe` defaults to
+  // `debug`, so `pnpm probe --agent` needs it on as much as `agent` is.
+  mcp.switched = { ...mcp.switched, ui: true, agent: true, debug: true, echo: true };
   writeFileSync(mcpPath, `${JSON.stringify(mcp, null, 2)}\n`);
 
-  note(`developer mode and the agent server switched on in ${dir}`);
+  note(`developer mode and the agent, debug and echo servers switched on in ${dir}`);
 }
 
 function launch() {
@@ -106,7 +109,12 @@ function launch() {
 
   enable();
 
-  const child = spawn(EXE, [], { detached: true, stdio: "ignore" });
+  const child = spawn(EXE, [], {
+    detached: true,
+    stdio: "ignore",
+    // The app is not a child of the Claude Code session that launched it.
+    env: withoutSessionMarkers(process.env),
+  });
   child.unref();
 
   note(`launched ${EXE}`);

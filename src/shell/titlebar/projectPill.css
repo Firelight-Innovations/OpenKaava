@@ -8,10 +8,12 @@
   appearance: none;
   border: 1px solid var(--border-subtle-1);
   margin: 0;
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  /* Fills its wrapper (`.clusterswitch`), which is the title bar's middle cell
+     and sets how wide it may get. It gives way (ellipsis) before it ever
+     reaches the cells beside it. */
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   height: 26px;
   padding: 0 10px 0 6px;
   border-radius: 13px;
@@ -29,10 +31,16 @@
   background: var(--bg-layer-1-hover);
 }
 
-/* The dialog this opens does not exist yet (see `ProjectPill.tsx`'s header),
-   so there is no controlled "open" state to draw the accent border and halo
-   for — `docs/design/KAAVA-UX-SPEC.md` §1.2's board 08 crop is left for the
-   **clusters** workstream to wire once the dialog itself lands. */
+/* Open: the accent border board 08 draws while the dropdown is showing. */
+.projectpill[data-open] {
+  border-color: var(--accent);
+  background: var(--bg-layer-1-hover);
+}
+
+.projectpill:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
 
 .projectpill__tile {
   flex: none;
@@ -60,6 +68,9 @@
 }
 
 .projectpill__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--txt-primary);
 }
 
@@ -69,6 +80,7 @@
 }
 
 .projectpill__chip {
+  flex: none;
   height: 18px;
   padding: 0 6px;
   border-radius: 9px;

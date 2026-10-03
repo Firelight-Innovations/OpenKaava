@@ -1,21 +1,14 @@
 /**
  * The only module in this app that touches `monaco-editor`.
  *
- * Everything Monaco-shaped is here — the worker environment, the feature
- * contributions, the language registrations, the theme, and the two factory
- * functions a component needs — so `TextViewer.tsx` reads as a React component
- * and nothing else in `apps/files/` imports Monaco at all. The one exception is
- * a *type-only* import in `tabs/useOpenFiles.ts`, which `import type` erases
- * before Rollup ever sees it; see the note there.
+ * Everything Monaco-shaped is here, so `TextViewer.tsx` reads as a React
+ * component and nothing else in `apps/files/` imports Monaco at all (bar a
+ * type-only import in `tabs/useOpenFiles.ts`).
  *
- * That matters beyond tidiness. `apps/` is not a pnpm workspace member, so
- * Monaco sits in the repository root's dependencies with nothing scoping it to
- * this app; the only thing keeping it out of the Files entry chunk, and out of
- * the shell's, is that the sole runtime path here is the dynamic `import()`
- * behind the `text` viewer in `registry.ts`. **Nothing may import this module
- * statically from anything reachable at load.** What it deliberately does not
- * do — no `editor.main`, no `languages/features/typescript`, no diff editor
- * wiring — and why, is in `docs/design-notes/viewer-renderers.md`.
+ * Nothing may import this module statically from anything reachable at load:
+ * the only runtime path is the dynamic `import()` behind the `text` viewer in
+ * `registry.ts`. What it deliberately omits, and why, is in
+ * `docs/design-notes/viewer-renderers.md`.
  */
 import * as monaco from "monaco-editor/editor/editor.api";
 import type { GitHunk } from "./gitHunks";
@@ -67,7 +60,7 @@ import "monaco-editor/languages/definitions/ini/register";
 import { jsonDefaults } from "monaco-editor/languages/features/json/register";
 
 import { registerToml } from "@openkaava/monaco-languages";
-import { accentThemeColors, onThemeChanged } from "@openkaava/bridge/theme";
+import { monacoThemeData, onThemeChanged } from "@openkaava/bridge/theme";
 
 import EditorWorker from "monaco-editor/editor/editor.worker?worker";
 import JsonWorker from "monaco-editor/languages/features/json/json.worker?worker";
@@ -116,93 +109,20 @@ jsonDefaults.setDiagnosticsOptions({
 registerToml(monaco);
 
 /**
- * The editor theme, defined once at module scope — not per-mount: `defineTheme`
- * writes into Monaco's global theme registry, so redefining it on every editor
- * would be repeated work for no visual change.
- *
- * Named `kaava-dark`, the same as `src/shell/diff/DiffView.tsx`'s copy. Two
- * definitions of one name is a real hazard — whichever module evaluates last
- * wins — tolerated only because the two never load together today: nothing in
- * the shell imports `DiffView`. That copy retires when the diff viewer moves in.
- *
- * **Every colour below is a value from `src/tokens.css`, named in the comment
- * beside it**, and alphas are 8-digit `#RRGGBBAA`, never `rgba()`: `Color.fromHex`
- * **silently returns opaque red** for anything else, a valid `rgba(...)`
- * included. That, and why each group takes the token it does, is in
- * `docs/design-notes/viewer-renderers.md`.
+ * The editor theme. Every colour comes from the live `src/tokens.css` values
+ * via `monacoThemeData` in `@openkaava/bridge/theme` (base `vs` in light,
+ * `vs-dark` in dark), as 8-digit `#RRGGBBAA`: `Color.fromHex` silently returns
+ * opaque red for `rgba()`. Named like `src/shell/diff/DiffView.tsx`'s copy;
+ * the two never load together.
  */
 export const THEME = "kaava-dark";
 
-const BASE_COLORS: Record<string, string> = {
-  // --- the page ---------------------------------------------------------
-  "editor.background": "#14161a", // --bg
-  "editor.foreground": "#e4e7ec", // --text
-  "editorGutter.background": "#14161a", // --bg — the gutter is page, not bar
-  "editorLineNumber.foreground": "#4a505b", // --text-faint
-  "editorLineNumber.activeForeground": "#949cab", // --text-dim
-
-  // --- the current line -------------------------------------------------
-  "editor.lineHighlightBackground": "#1b1e24", // --surface
-  "editor.lineHighlightBorder": "#1b1e24", // --surface
-
-  // --- find (`--warn`, not `--accent`: a match is not focus) -------------
-  "editor.findMatchBackground": "#d9a93f59", // --warn @ 0.35
-  "editor.findMatchHighlightBackground": "#d9a93f2e", // --warn @ 0.18
-  "editor.findRangeHighlightBackground": "#d9a93f14", // --warn @ 0.08
-
-  // --- structure --------------------------------------------------------
-  "editorBracketMatch.background": "#22262e", // --surface-2
-  // The numbered keys are 0.56's; the unsuffixed aliases are deprecated.
-  "editorIndentGuide.background1": "#2c313b", // --line
-  "editorIndentGuide.activeBackground1": "#3a404b", // --line-2
-  "editorWhitespace.foreground": "#3a404b", // --line-2
-  "editorRuler.foreground": "#2c313b", // --line
-  "editorOverviewRuler.border": "#2c313b", // --line
-
-  // --- scrollbar --------------------------------------------------------
-  "scrollbarSlider.background": "#2c313b80", // --line @ 0.50
-  "scrollbarSlider.hoverBackground": "#3a404bb3", // --line-2 @ 0.70
-  "scrollbarSlider.activeBackground": "#3a404b", // --line-2
-
-  // --- minimap (page, not chrome; its slider is the scrollbar's) ---------
-  "minimap.background": "#14161a", // --bg
-  "minimapSlider.background": "#2c313b4d", // --line @ 0.30
-  "minimapSlider.hoverBackground": "#2c313b80", // --line @ 0.50
-  "minimapSlider.activeBackground": "#3a404bb3", // --line-2 @ 0.70
-
-  // --- the widgets the feature barrel brings with it (floating panels) ---
-  "editorWidget.background": "#1b1e24", // --surface
-  "editorWidget.foreground": "#e4e7ec", // --text
-  "editorWidget.border": "#2c313b", // --line
-  "editorHoverWidget.background": "#1b1e24", // --surface
-  "editorHoverWidget.border": "#2c313b", // --line
-  "editorSuggestWidget.background": "#1b1e24", // --surface
-  "editorSuggestWidget.border": "#2c313b", // --line
-  "editorSuggestWidget.foreground": "#e4e7ec", // --text
-  "editorSuggestWidget.selectedBackground": "#22262e", // --surface-2
-  "menu.background": "#1b1e24", // --surface
-  "menu.foreground": "#949cab", // --text-dim
-  "menu.border": "#2c313b", // --line
-  "menu.selectionBackground": "#22262e", // --surface-2
-  "menu.selectionForeground": "#e4e7ec", // --text
-  "list.hoverBackground": "#22262e", // --surface-2
-  "input.background": "#14161a", // --bg
-  "input.foreground": "#e4e7ec", // --text
-  "input.border": "#3a404b", // --line-2
-
-  // --- diagnostics (only JSON produces these today) ----------------------
-  "editorError.foreground": "#d9635f", // --err
-  "editorWarning.foreground": "#d9a93f", // --warn
-  "editorInfo.foreground": "#949cab", // --text-dim
-};
-
-/** The fixed palette plus the accent as it is now; Monaco cannot take `var()`. */
+/** Redefined on every theme or accent change; Monaco cannot take `var()`. */
 function defineAccentTheme(): void {
   monaco.editor.defineTheme(THEME, {
-    base: "vs-dark",
-    inherit: true, // syntax token colours stay vs-dark's; see the design note
+    ...monacoThemeData(),
+    inherit: true, // syntax token colours come from the vs / vs-dark base
     rules: [],
-    colors: { ...BASE_COLORS, ...accentThemeColors() },
   });
   monaco.editor.setTheme(THEME);
 }
@@ -448,6 +368,8 @@ export function mountEditor(
       showSlider: "mouseover",
     },
     scrollBeyondLastLine: false,
+    // Room for the floating Code | Preview | Steps switch above line 1.
+    padding: { top: 36 },
     fontFamily: settings.fontFamily,
     fontSize: settings.fontSize,
     // `detectIndentation` is left at Monaco's default `true`, which is not a
@@ -478,6 +400,76 @@ export function mountEditor(
  */
 export function bindSave(editor: CodeEditor, run: () => void): void {
   editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, run);
+}
+
+/**
+ * Ctrl+Shift+V and Ctrl+K V, inside the editor, for a file that has a rendered
+ * form.
+ *
+ * Bound on the editor rather than left to the frame's document listener because
+ * Monaco takes the keystroke first: Ctrl+Shift+V would otherwise reach its
+ * hidden textarea as a plain-text paste, and Ctrl+K is the prefix of its own
+ * chords. Registered as *actions* rather than bare commands so they also appear
+ * in the editor's context menu and F1 palette under the names VS Code uses.
+ * Called only for previewable files; a `.rs` keeps Ctrl+Shift+V as paste.
+ */
+export function bindPreview(
+  editor: CodeEditor,
+  run: { toggle: () => void; toggleSide: () => void },
+): void {
+  editor.addAction({
+    id: "openkaava.preview.toggle",
+    label: "Open Preview",
+    keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyV],
+    contextMenuGroupId: "navigation",
+    contextMenuOrder: 1.5,
+    run: () => run.toggle(),
+  });
+  editor.addAction({
+    id: "openkaava.preview.side",
+    label: "Open Preview to the Side",
+    keybindings: [
+      monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, monaco.KeyCode.KeyV),
+    ],
+    contextMenuGroupId: "navigation",
+    contextMenuOrder: 1.6,
+    run: () => run.toggleSide(),
+  });
+}
+
+/**
+ * The Monaco language id for a Markdown fence's info word (`ts`, `python`,
+ * `sh`…), or `undefined` when none of the registered languages claims it.
+ */
+function languageForFence(word: string): string | undefined {
+  const wanted = word.toLowerCase();
+  return monaco.languages
+    .getLanguages()
+    .find(
+      (language) =>
+        language.id === wanted ||
+        (language.aliases ?? []).some((alias) => alias.toLowerCase() === wanted) ||
+        (language.extensions ?? []).includes(`.${wanted}`),
+    )?.id;
+}
+
+/**
+ * Tokenise a code block for the Markdown preview, or `null` for a language this
+ * build has no grammar for.
+ *
+ * `colorize` is called first and its result thrown away: grammars are lazy
+ * chunks, `colorize` awaits the one it needs, and `tokenize` — the call whose
+ * output we want, because it is theme-free — silently returns plain text if the
+ * grammar has not arrived. Priming is cheaper than reimplementing the wait.
+ */
+export async function tokenizeFence(
+  code: string,
+  fenceWord: string,
+): Promise<{ lines: string[]; tokens: { offset: number; type: string }[][] } | null> {
+  const id = languageForFence(fenceWord);
+  if (!id || id === "plaintext") return null;
+  await monaco.editor.colorize(code, id, {});
+  return { lines: code.split(/\r\n|\r|\n/), tokens: monaco.editor.tokenize(code, id) };
 }
 
 /**

@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef } from "react";
-import { animate, motion, useMotionValue } from "framer-motion";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion } from "framer-motion";
 import type { FrameSlots, WindowKind } from "../contract";
 import { settle } from "../motion";
-import { pageGeometry, pageWidthFromPointer } from "./pageGeometry";
+import { beginResize } from "../resizeGate";
+import PageSurface, { type PageMode } from "./PageSurface";
+import { clampPageWidth, pageGeometry, pageWidthFromPointer } from "./pageGeometry";
 import "./frame.css";
 
 /**
@@ -64,10 +66,6 @@ export const BOTTOM_MAXIMIZE_OVERSHOOT = 60;
  * third geometry — covering everything left of the rail while the panes
  * stay mounted behind it. See `FrameSlots.projectRail` / `projectPage` /
  * `projectPageExpanded`.
- *
- * `envBar` is the plainest of the lot: a fixed-height row at the top of
- * `.frame__main`, ahead of the tool window, with no drag of its own — see
- * `FrameSlots.envBar`.
  */
 export default function Frame({
   kind,
@@ -141,9 +139,28 @@ export default function Frame({
   // equals `projectPageWidth` whenever nobody is dragging it.
   const pageWidth = useMotionValue(projectPageWidth);
   const pageDragging = useRef(false);
+  // The row's own width, so the page can be held to what the window affords. Unbounded until
+  // measured, so the first paint uses the stored width and the first observation corrects it.
+  const [rowWidth, setRowWidth] = useState(Number.POSITIVE_INFINITY);
   useEffect(() => {
-    if (!pageDragging.current) pageWidth.set(projectPageWidth);
-  }, [projectPageWidth, pageWidth]);
+    const row = rowRef.current;
+    if (!row) return;
+    const observer = new ResizeObserver(() => setRowWidth(row.getBoundingClientRect().width));
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (pageDragging.current) return;
+    pageWidth.set(
+      clampPageWidth(
+        projectPageWidth,
+        rowWidth,
+        PROJECT_RAIL_WIDTH,
+        PROJECT_PAGE_MIN,
+        PROJECT_PAGE_MAX,
+      ),
+    );
+  }, [projectPageWidth, rowWidth, pageWidth]);
 
   // The band with the tool window at zero: the column, minus the handle. A
   // fraction of the OS window rather than a number — see the resize observer
@@ -200,6 +217,7 @@ export default function Frame({
         // Optimisation only; the window listeners below are the mechanism.
       }
       bottomDragging.current = true;
+      const endResize = beginResize();
 
       const colRect = col.getBoundingClientRect();
       const colBottom = colRect.bottom;
@@ -238,6 +256,7 @@ export default function Frame({
 
       const onUp = () => {
         bottomDragging.current = false;
+        endResize();
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);
@@ -284,16 +303,21 @@ export default function Frame({
         // actually track the drag.
       }
       pageDragging.current = true;
+      const endResize = beginResize();
 
-      const rowRight = row.getBoundingClientRect().right;
+      const rowBox = row.getBoundingClientRect();
+      const rowRight = rowBox.right;
 
       const onMove = (ev: PointerEvent) => {
         const raw = pageWidthFromPointer(rowRight, PROJECT_RAIL_WIDTH, ev.clientX);
-        pageWidth.set(Math.min(Math.max(raw, PROJECT_PAGE_MIN), PROJECT_PAGE_MAX));
+        pageWidth.set(
+          clampPageWidth(raw, rowBox.width, PROJECT_RAIL_WIDTH, PROJECT_PAGE_MIN, PROJECT_PAGE_MAX),
+        );
       };
 
       const onUp = () => {
         pageDragging.current = false;
+        endResize();
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);
@@ -313,19 +337,24 @@ export default function Frame({
     projectPageExpanded,
   );
 
+  // The panes stay painted until the expanded page has finished growing over
+  // them; hiding them on the first frame would show an empty canvas through
+  // the part of the page that has not arrived yet. Reset the moment the page
+  // is no longer expanded, so a close reveals them at once.
+  const reducedMotion = useReducedMotion() ?? false;
+  const [covered, setCovered] = useState(false);
+  const onPageSettled = useCallback((mode: PageMode) => setCovered(mode === "expanded"), []);
+  useEffect(() => {
+    if (!expanded) setCovered(false);
+  }, [expanded]);
+
   return (
     <div className="frame" data-window-kind={kind}>
-      {/* Plain divs, fixed heights, no `layout` prop. The four bars never
+      {/* Plain divs, fixed heights, no `layout` prop. The bars never
           animate — only what sits inside them does. */}
       <div className="frame__titlebar" data-region="titlebar">
         {slots.titleBar}
       </div>
-
-      {slots.switcherBar !== undefined && (
-        <div className="frame__switcher" data-region="switcher">
-          {slots.switcherBar}
-        </div>
-      )}
 
       <div className="frame__split" ref={rowRef}>
         {/* Everything left of the rail: the tool window, the terminal band
@@ -334,17 +363,11 @@ export default function Frame({
             `display`, and not an unmount, so the panes underneath (and any
             terminal running in them) keep going behind it. See
             `FrameSlots.projectPageExpanded`. */}
-        <div className="frame__workspace-body" data-hidden={expanded || undefined}>
+        <div className="frame__workspace-body" data-hidden={(expanded && covered) || undefined}>
           {/* The tool window and the terminal band are one column, so the band
               stops at the docked page's edge instead of spanning the window.
               See `FrameSlots.bottomPanel` for why that is the arrangement. */}
           <div className="frame__main" ref={mainRef}>
-            {slots.envBar !== undefined && (
-              <div className="frame__envbar" data-region="envbar">
-                {slots.envBar}
-              </div>
-            )}
-
             <div className="frame__toolwindow" data-region="toolwindow">
               {slots.toolWindow}
             </div>
@@ -372,34 +395,18 @@ export default function Frame({
             )}
           </div>
 
-          {/* The docked project page and its own handle — omitted, not just
-              empty, while no page is open or a page is showing expanded
-              instead (`Board 12`'s rule: the two geometries are never both on
-              screen). Omitted means no border and no gap: an empty bordered
-              column is what `slotFilled` exists to prevent. */}
+          {/* The docked page's handle — omitted, not just empty, while no page
+              is open or a page is showing expanded instead (`Board 12`'s
+              rule: the two geometries are never both on screen). Omitted means
+              no border and no gap: an empty bordered column is what
+              `slotFilled` exists to prevent. */}
           {docked && (
-            <>
-              <div
-                className="frame__pagehandle"
-                data-region="pagehandle"
-                onPointerDown={onPageHandleDown}
-              >
-                <div className="frame__grip" />
-              </div>
-
-              <motion.div className="frame__page" data-region="page" style={{ width: pageWidth }}>
-                {slots.projectPage}
-              </motion.div>
-            </>
-          )}
-
-          {/* The expanded page. `visibility: visible` fights its own hidden
-              ancestor above by design — CSS lets a descendant do that — which
-              is what keeps this on screen while the wrapper it sits inside
-              hides everything else in one declaration. */}
-          {expanded && (
-            <div className="frame__page-expanded" data-region="page-expanded">
-              {slots.projectPageExpanded}
+            <div
+              className="frame__pagehandle"
+              data-region="pagehandle"
+              onPointerDown={onPageHandleDown}
+            >
+              <div className="frame__grip" />
             </div>
           )}
 
@@ -411,13 +418,40 @@ export default function Frame({
           {slots.splitOverlay}
         </div>
 
-        {/* The project-page rail. Outside the hidden wrapper on purpose — an
-            expanded page still shows it (`docs/design/KAAVA-UX-SPEC.md` §1.8:
-            "the rail persist[s]") — and it is a fixed width, never a split, so
-            it takes no motion value of its own. */}
-        {slots.projectRail !== undefined && (
-          <div className="frame__rail" data-region="rail">
-            {slots.projectRail}
+        {/* The right-hand box: the project-page rail and, beside it, the docked
+            page — ONE rounded card, so a page pulling out of the rail widens
+            the card leftward rather than floating beside a second one. It sits
+            outside the hidden wrapper on purpose: an expanded page still shows
+            the rail (`docs/design/KAAVA-UX-SPEC.md` §1.8: "the rail
+            persist[s]"), and the rail is a fixed width, never a split. An
+            expanded page is positioned against the split row rather than this
+            box (see `frame.css`), so it can span the panes while the rail
+            stays put. */}
+        {(slots.projectRail !== undefined || docked || expanded) && (
+          <div
+            className="frame__side"
+            data-region="side"
+            data-docked={docked || undefined}
+            data-expanded={expanded || undefined}
+          >
+            <AnimatePresence>
+              {(docked || expanded) && (
+                <PageSurface
+                  key="page"
+                  mode={expanded ? "expanded" : "docked"}
+                  reduced={reducedMotion}
+                  width={pageWidth}
+                  onSettled={onPageSettled}
+                >
+                  {expanded ? slots.projectPageExpanded : slots.projectPage}
+                </PageSurface>
+              )}
+            </AnimatePresence>
+            {slots.projectRail !== undefined && (
+              <div className="frame__rail" data-region="rail">
+                {slots.projectRail}
+              </div>
+            )}
           </div>
         )}
       </div>

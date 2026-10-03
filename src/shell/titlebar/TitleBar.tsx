@@ -1,20 +1,19 @@
 /**
  * The title bar — logo, six menus (or their hamburger collapse), the centred
- * project pill, and the three window controls.
+ * project pill (which is the cluster switcher), search and the three window
+ * controls.
  *
  * Menu geometry is lifted from `docs/handoffs/shell-spec.html` (search
- * `>File<` and the `REFERENCE` table's Title bar row) rather than chosen —
- * see `titlebar.css`'s header comment for the one place that isn't. The pill
- * replaces this file's old plain-text title, per
- * `docs/design/KAAVA-UX-SPEC.md` §1.2 and board 08: `PRODUCT_NAME` no longer
- * appears here at all, because the mark to its left already says it, and the
- * centre of the bar is worth spending on the one fact the mark cannot say —
- * which project, and which environment.
+ * `>File<`); the pill is `docs/design/KAAVA-UX-SPEC.md` §1.2 / board 08. The
+ * environment summary (worktree kind, branch, ahead/behind, path) and Review &
+ * merge live in the status bar (`StatusBar`), so each git fact is drawn once.
+ * `titlebar.css` owns the collapse order.
  *
  * This component does not set the bar's height or background: `Frame` already
  * renders it into `.frame__titlebar`. Setting either here would be two owners
  * of one property.
  */
+import type { ReactNode } from "react";
 import type { Menu, WindowKind } from "../contract";
 import type { Environment } from "../environment";
 import { BrandGlyph } from "../../ui/Icon";
@@ -22,7 +21,7 @@ import MenuBar from "./MenuBar";
 import HamburgerMenu from "./HamburgerMenu";
 import WindowControls from "./WindowControls";
 import { useNarrowTitlebar } from "./useNarrowTitlebar";
-import ProjectPill from "./ProjectPill";
+import ClusterSwitcher, { type ClusterSwitcherProps } from "./ClusterSwitcher";
 import "./titlebar.css";
 
 export interface TitleBarProps {
@@ -55,18 +54,23 @@ export interface TitleBarProps {
    */
   environmentCount: number;
   /**
-   * Opens the Switch-project dialog. The **clusters** workstream builds that
-   * dialog; until it exists this is the no-op `WindowRoot` supplies, and the
-   * pill is still a real, clickable button rather than a dead one — pressing
-   * it just has nothing to open yet.
+   * Everything the pill's dropdown needs beyond what the pill itself draws: the
+   * clusters and the verbs on them. The pill *is* the cluster switcher now, so
+   * it is drawn whenever this is given, project or not — a window with clusters
+   * but no project still has to be able to switch between them.
    */
-  onOpenProjectSwitcher?: () => void;
+  switcher?: Omit<
+    ClusterSwitcherProps,
+    "project" | "projectIcon" | "environment" | "environmentLabel" | "environmentCount"
+  >;
   /**
    * Built by `defaultMenus()`, wired against `WindowRoot`'s state and the active
    * app frame. Rebuilt on every render, because half the items read live state —
    * Save disables when nothing is dirty, the toggles say which way they will go.
    */
   menus: Menu[];
+  /** Tool health and search, right-aligned beside the window controls. */
+  actionsSlot?: ReactNode;
 }
 
 export default function TitleBar({
@@ -76,43 +80,52 @@ export default function TitleBar({
   environment,
   environmentLabel,
   environmentCount,
-  onOpenProjectSwitcher,
+  switcher,
   menus,
+  actionsSlot,
 }: TitleBarProps) {
   const narrow = useNarrowTitlebar();
+  const showPill = switcher !== undefined && (project !== null || switcher.clusters.length > 0);
 
   return (
-    // The drag region lives on this element only. The logo, the menus, the
-    // pill, and the window controls are all separate elements without the
-    // attribute, so pointer-downs on them never start a window drag —
-    // clicking through to this element's own background is what does.
-    <div className="titlebar" data-window-kind={kind} data-tauri-drag-region>
-      <div className="titlebar__logo">
-        <BrandGlyph size={15} className="titlebar__logo-icon" />
+    // Three cells on a grid whose outer tracks are equal (`titlebar.css`), so
+    // the pill is centred on the window whatever the two sides hold. The drag
+    // attribute is on the bar, the two cells, and every non-interactive
+    // element inside them: Tauri applies it to the element that was pressed,
+    // not its descendants, so a button never starts a drag and the gaps between
+    // controls always do.
+    <div
+      className="titlebar"
+      data-window-kind={kind}
+      data-has-pill={showPill || undefined}
+      data-tauri-drag-region
+    >
+      <div className="titlebar__start" data-tauri-drag-region>
+        <div className="titlebar__logo" data-tauri-drag-region>
+          <BrandGlyph size={15} className="titlebar__logo-icon" />
+        </div>
+
+        {narrow ? <HamburgerMenu menus={menus} /> : <MenuBar menus={menus} />}
       </div>
 
-      {narrow ? <HamburgerMenu menus={menus} /> : <MenuBar menus={menus} />}
-
-      {/* Absolutely centred across the whole bar, and deliberately allowed to
-          sit under the menu block or the window controls at narrow widths —
-          the spec calls that out by name for the title this pill replaces,
-          and the placement rule carries over unchanged. Drawn only with a
-          project open: a segment with no answer is dropped rather than shown
-          as a placeholder pill with nothing in it. */}
-      {project !== null && (
-        <ProjectPill
+      {/* Drawn while there is something to name or switch between: a project, or
+          at least one cluster. A window with neither has no answer to show and
+          gets no placeholder pill. */}
+      {showPill && switcher && (
+        <ClusterSwitcher
+          {...switcher}
           project={project}
-          icon={projectIcon}
+          projectIcon={projectIcon}
           environment={environment}
           environmentLabel={environmentLabel}
           environmentCount={environmentCount}
-          onOpenSwitcher={onOpenProjectSwitcher}
         />
       )}
 
-      <div className="titlebar__spacer" />
-
-      <WindowControls />
+      <div className="titlebar__end" data-tauri-drag-region>
+        {actionsSlot}
+        <WindowControls />
+      </div>
     </div>
   );
 }

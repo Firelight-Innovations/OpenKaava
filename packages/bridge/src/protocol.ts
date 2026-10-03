@@ -15,6 +15,13 @@
 export interface Session {
   /** Root of the open project. Null until projects exist. */
   projectPath: string | null;
+  /**
+   * This frame's own instance id: stable across cluster switches (which unmount
+   * the frame and reload it) and across restarts. It is a key for the frame's
+   * own remembered state, never an identity claim; the shell resolves identity
+   * from `event.source`. Absent outside a shell.
+   */
+  instanceId?: string;
 }
 
 export interface KaavaErrorPayload {
@@ -128,6 +135,19 @@ export const THEME_CHANGED_EVENT = "kaava:theme-changed";
 export interface ThemeChangedPayload {
   theme: "dark" | "light";
   accent: "amber" | "blue" | "green" | "violet" | "coral";
+}
+
+/** The event carrying a titlebar-search interaction; see `kaava/search-claim`. */
+export const SEARCH_EVENT = "kaava:search";
+
+export interface SearchClaimParams {
+  placeholder: string;
+  value: string;
+}
+
+export interface SearchEventPayload {
+  kind: "query" | "submit" | "escape";
+  value: string;
 }
 
 /** What arrives with a `kaava:topic/*` event. */

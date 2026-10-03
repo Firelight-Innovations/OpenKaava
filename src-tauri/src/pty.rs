@@ -24,8 +24,9 @@ use crate::sync::MutexExt;
 use portable_pty::{native_pty_system, Child, CommandBuilder, MasterPty, PtySize, SlavePty};
 use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};
+use std::ffi::OsString;
 use std::io::{Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -172,6 +173,69 @@ struct Session {
     /// The user's "this terminal is running..." choice, which beats detection.
     /// See [`crate::harness`].
     harness_override: Option<crate::harness::Harness>,
+    /// Whether a person has typed into this shell. Automatic emulator replies
+    /// (cursor-position answers, focus reports) do not count; see
+    /// [`is_user_input`]. A shell nobody has typed in can be moved to a new
+    /// directory without pulling anything out from under them.
+    typed: bool,
+}
+
+/// Whether `data` contains anything a person typed, as opposed to the escape
+/// sequences an emulator sends by itself.
+///
+/// ConPTY's opening `ESC[6n` is answered automatically, so a session's first
+/// write says nothing about whether anyone is using it. Every escape sequence
+/// is skipped, which also skips arrow keys; a session touched only by those has
+/// still had nothing run in it.
+fn is_user_input(data: &str) -> bool {
+    let mut chars = data.chars();
+    while let Some(c) = chars.next() {
+        if c != '\u{1b}' {
+            return true;
+        }
+        match chars.next() {
+            Some('[') => {
+                for f in chars.by_ref() {
+                    if ('@'..='~').contains(&f) {
+                        break;
+                    }
+                }
+            }
+            Some(']') => {
+                while let Some(f) = chars.next() {
+                    if f == '\u{7}' {
+                        break;
+                    }
+                    if f == '\u{1b}' {
+                        chars.next();
+                        break;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
+/// Whether a `cd` may be written into a session: nobody typed in it, and no
+/// program is running under its shell. Either one means the bytes would land in
+/// someone's input, or in a program's (an agent harness would read it as a
+/// prompt).
+pub fn may_retarget(typed: bool, has_child_process: bool) -> bool {
+    !typed && !has_child_process
+}
+
+/// The line that moves a shell into `dir`, quoted for its dialect.
+///
+/// `cmd` needs `/d` to change drive as well as directory.
+pub fn cd_line(family: crate::quoting::ShellFamily, dir: &Path) -> String {
+    use crate::quoting::ShellFamily;
+    let quoted = crate::quoting::quote(family, &dir.display().to_string());
+    match family {
+        ShellFamily::Cmd => format!("cd /d {quoted}\r"),
+        ShellFamily::PowerShell | ShellFamily::Posix => format!("cd {quoted}\r"),
+    }
 }
 
 /// Where a reference inserted into a session should be aimed.
@@ -274,6 +338,7 @@ impl PtySessions {
                 backlog,
                 shell: name.clone(),
                 harness_override: None,
+                typed: false,
             },
         );
 
@@ -308,6 +373,7 @@ impl PtySessions {
         let data = tap_input(id, data);
         let mut map = self.inner.lock_or_panic();
         if let Some(s) = map.get_mut(id) {
+            s.typed |= is_user_input(&data);
             // Deliberately ignored. A write failing means the shell is already
             // gone, and the read loop's end-of-file is what tells the frontend
             // that — reporting it twice, from two threads, would race.
@@ -413,6 +479,62 @@ impl PtySessions {
         }
     }
 
+    /// Move every listed session that is an idle, untouched default shell to
+    /// `dir`, and leave the rest alone. Returns the ids that were moved.
+    ///
+    /// A session is moved only if [`may_retarget`] allows it: nobody has typed
+    /// in it, and the shell has no child process right now. Every session
+    /// opened by [`PtySessions::open`] is a plain default shell; there is no
+    /// startup-command path, and anything launched into a shell afterwards
+    /// arrives through [`PtySessions::write`], which marks it typed. The
+    /// remaining gap is a program started by the shell's own rc files, which
+    /// shows up as a child process only once it has actually spawned.
+    ///
+    /// The `cd` is written straight to the pty rather than through [`write`],
+    /// so it does not mark the session as used.
+    pub fn retarget_untyped(&self, ids: &[String], dir: &Path) -> Vec<String> {
+        let mut candidates: Vec<(String, Option<u32>)> = Vec::new();
+        {
+            let mut map = self.inner.lock_or_panic();
+            for id in ids {
+                if let Some(s) = map.get_mut(id) {
+                    if !s.typed {
+                        candidates.push((id.clone(), s.child.process_id()));
+                    }
+                }
+            }
+        }
+        if candidates.is_empty() {
+            return Vec::new();
+        }
+
+        let mut sys = sysinfo::System::new();
+        sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+        let has_child = |pid: Option<u32>| {
+            // An unknown pid cannot be shown idle, so it is treated as busy.
+            pid.is_none_or(|pid| {
+                sys.processes()
+                    .values()
+                    .any(|p| p.parent().is_some_and(|pp| pp.as_u32() == pid))
+            })
+        };
+
+        let mut moved = Vec::new();
+        let mut map = self.inner.lock_or_panic();
+        for (id, pid) in candidates {
+            let Some(s) = map.get_mut(&id) else { continue };
+            if !may_retarget(s.typed, has_child(pid)) {
+                continue;
+            }
+            let line = cd_line(crate::quoting::ShellFamily::of(&s.shell), dir);
+            if s.writer.write_all(line.as_bytes()).is_ok() {
+                let _ = s.writer.flush();
+                moved.push(id);
+            }
+        }
+        moved
+    }
+
     /// Kill the shell and forget the session. Idempotent — closing a tab whose
     /// shell already exited is not an error.
     pub fn close(&self, id: &str) {
@@ -458,6 +580,8 @@ fn spawn_shell(
     preferred: &str,
 ) -> Result<(String, Box<dyn Child + Send + Sync>)> {
     let mut last_err = String::from("no shell candidate was tried");
+    let cwd = clean_cwd(cwd);
+    let cwd = cwd.as_path();
 
     let candidates = preferred_candidate(preferred)
         .into_iter()
@@ -474,6 +598,10 @@ fn spawn_shell(
         // fall back to a dumb-terminal path and render as a wall of plain text
         // — which would look like our emulator was broken.
         cmd.env("TERM", "xterm-256color");
+
+        for name in inherited_session_markers(std::env::vars_os().map(|(key, _)| key)) {
+            cmd.env_remove(name);
+        }
 
         // Applied per candidate rather than once, because each candidate here
         // owns a fresh `CommandBuilder` and only one of them is going to spawn.
@@ -498,8 +626,13 @@ fn spawn_shell(
             // probe recent_errors` could not answer what happened during a
             // launch. That silence is why issue #36 was unanswerable.
             Err(e) => {
-                crate::kaava_log!("shell candidate {program} did not start: {e}");
-                last_err = format!("{name}: {e}");
+                // `strip_nul`: portable-pty formats its NUL-terminated wide
+                // buffers straight into this message, so an unfiltered one
+                // reads as a trailing NUL after `pwsh.exe` in `recent_errors` and sends a reader
+                // after a NUL that was never in the program or the cwd.
+                let reason = strip_error_nul(&e.to_string());
+                crate::kaava_log!("shell candidate {program} did not start: {reason}");
+                last_err = format!("{name}: {reason}");
             }
         }
     }
@@ -588,6 +721,8 @@ fn pump(
 /// directory it was found in. `C:\Program Files\Git\bin\bash.exe` becomes
 /// `bash`.
 fn candidate(program: &str) -> Candidate {
+    let program = strip_nul(program);
+    let program = program.as_str();
     let name = Path::new(program)
         .file_stem()
         .map(|s| s.to_string_lossy().to_string())
@@ -597,6 +732,80 @@ fn candidate(program: &str) -> Candidate {
         program: program.to_string(),
         cmd: CommandBuilder::new(program),
     }
+}
+
+/// `text` without any NUL characters.
+///
+/// A NUL inside a string handed to `CreateProcessW` ends it early, so the
+/// program or cwd can never legitimately contain one. Nothing here builds a
+/// NUL-terminated string itself — portable-pty appends the terminator to its
+/// own wide-character buffer and, on a failure, prints that buffer into its
+/// error text — but a value read from the environment or a file can carry one
+/// in, and this is the one place both directions are made safe.
+fn strip_nul(text: &str) -> String {
+    text.replace('\u{0}', "")
+}
+
+/// An error message without any NUL, real or Debug-escaped.
+///
+/// Only for error text. A raw path such as `C:\code\01-game` holds a backslash
+/// then a zero that is not a NUL, so the program and cwd go through
+/// `strip_nul` instead.
+fn strip_error_nul(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '\u{0}' => {}
+            // portable-pty prints its program through `{:?}` of an `OsString`,
+            // and Debug spells a NUL as the two characters `\0` rather than
+            // emitting one. That is the NUL a reader kept seeing after
+            // `pwsh.exe`: it was never U+0000, so filtering U+0000 alone left
+            // it in place. Debug escapes a real backslash as `\\`, so a lone
+            // `\0` is always a NUL and `\\0` is a path separator and a zero.
+            '\\' => match chars.peek() {
+                Some('0') => {
+                    chars.next();
+                }
+                Some('\\') => {
+                    chars.next();
+                    out.push_str("\\\\");
+                }
+                _ => out.push('\\'),
+            },
+            other => out.push(other),
+        }
+    }
+    out
+}
+
+/// The directory a shell is started in, made fit for `CreateProcessW`.
+///
+/// NULs removed; on Windows a verbatim `\\?\` prefix dropped (a long-path form
+/// that `CreateProcessW` does not accept as a working directory) and forward
+/// slashes turned into backslashes. A directory that does not exist falls
+/// back to the process's own, because a bad cwd fails *every* shell candidate
+/// and leaves the tab with nothing, which is worse than starting somewhere
+/// slightly wrong.
+fn clean_cwd(cwd: &Path) -> PathBuf {
+    let raw = strip_nul(&cwd.to_string_lossy());
+    #[cfg(windows)]
+    let raw = {
+        let unprefixed = match raw.strip_prefix(r"\\?\") {
+            Some(rest) if !rest.starts_with("UNC\\") => rest.to_string(),
+            _ => raw,
+        };
+        unprefixed.replace('/', "\\")
+    };
+    let cleaned = PathBuf::from(raw);
+    if cleaned.is_dir() {
+        return cleaned;
+    }
+    crate::kaava_log!(
+        "shell cwd {} is not a folder, starting in the process's own instead",
+        cleaned.display()
+    );
+    std::env::current_dir().unwrap_or(cleaned)
 }
 
 /// One shell worth trying.
@@ -744,11 +953,188 @@ pub fn busy(sessions: &PtySessions, id: &str) -> Option<Busy> {
         })
 }
 
+/// Environment variables Claude Code sets on a session so that anything it
+/// launches knows it is a child of that session.
+///
+/// A terminal here is the user's own shell, not a child of whatever started
+/// OpenKaava. When an agent launches the app from inside Claude Code, these
+/// leak through the process environment into every pane, and a `claude` run
+/// there reads `CLAUDE_CODE_CHILD_SESSION` as "I am a nested child": it turns
+/// transcript saving off, so the session never appears under `/resume`.
+///
+/// Only identity and transport markers belong here. User configuration such as
+/// `ANTHROPIC_API_KEY` or `CLAUDE_CONFIG_DIR` must keep flowing to the shell.
+/// Names are upper case; matching is case-insensitive because Windows
+/// environment names are.
+const CLAUDE_SESSION_MARKERS: &[&str] = &[
+    "CLAUDECODE",
+    "CLAUDE_CODE_CHILD_SESSION",
+    "CLAUDE_CODE_SESSION_ID",
+    "CLAUDE_CODE_HOST_SESSION_ID",
+    "CLAUDE_CODE_SESSION_ATTENDED",
+    "CLAUDE_CODE_ENTRYPOINT",
+    "CLAUDE_CODE_EXECPATH",
+    "CLAUDE_CODE_MESSAGING_SOCKET",
+    "CLAUDE_CODE_MESSAGING_TOKEN",
+    "CLAUDE_CODE_SDK_HAS_HOST_AUTH_REFRESH",
+    "CLAUDE_CODE_DESKTOP_APP_VERSION",
+    "CLAUDE_CODE_TERMINAL_MCP_TOOLS",
+    "CLAUDE_AGENT_SDK_VERSION",
+    "CLAUDE_PID",
+];
+
+/// Of the given environment variable names, those that are Claude Code session
+/// markers and so must be removed from a shell's environment.
+///
+/// Pure on purpose: it takes names rather than reading the process
+/// environment, so a test can hand it a made-up one. `impl IntoIterator`
+/// accepts any collection of owned `OsString`s; `OsString` rather than
+/// `String` because an environment name is not guaranteed to be valid Unicode.
+fn inherited_session_markers(names: impl IntoIterator<Item = OsString>) -> Vec<OsString> {
+    names
+        .into_iter()
+        .filter(|name| {
+            let upper = name.to_string_lossy().to_ascii_uppercase();
+            CLAUDE_SESSION_MARKERS.contains(&upper.as_str())
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::sync::mpsc;
+
+    fn os(names: &[&str]) -> Vec<OsString> {
+        names.iter().map(OsString::from).collect()
+    }
+
+    #[test]
+    fn session_markers_are_picked_out_of_an_environment() {
+        let found = inherited_session_markers(os(&[
+            "PATH",
+            "CLAUDE_CODE_CHILD_SESSION",
+            "CLAUDECODE",
+            "claude_code_session_id",
+        ]));
+        assert_eq!(
+            found,
+            os(&[
+                "CLAUDE_CODE_CHILD_SESSION",
+                "CLAUDECODE",
+                "claude_code_session_id"
+            ])
+        );
+    }
+
+    #[test]
+    fn user_configuration_is_left_alone() {
+        let found = inherited_session_markers(os(&[
+            "ANTHROPIC_API_KEY",
+            "CLAUDE_CONFIG_DIR",
+            "CLAUDE_CODE_USE_BEDROCK",
+            "HOME",
+        ]));
+        assert!(found.is_empty());
+    }
+
+    #[test]
+    fn a_spawned_shell_does_not_see_the_markers() {
+        let mut cmd = CommandBuilder::new("sh");
+        cmd.env("CLAUDE_CODE_CHILD_SESSION", "1");
+        cmd.env("ANTHROPIC_API_KEY", "keep");
+        let names = cmd.iter_full_env_as_str().map(|(k, _)| OsString::from(k));
+        for name in inherited_session_markers(names.collect::<Vec<_>>()) {
+            cmd.env_remove(name);
+        }
+        assert!(cmd.get_env("CLAUDE_CODE_CHILD_SESSION").is_none());
+        assert!(cmd.get_env("ANTHROPIC_API_KEY").is_some());
+    }
+
+    #[test]
+    fn emulator_replies_are_not_typing() {
+        assert!(!is_user_input("\u{1b}[1;1R"));
+        assert!(!is_user_input("\u{1b}[I\u{1b}[O"));
+        assert!(!is_user_input("\u{1b}]11;rgb:0/0/0\u{7}"));
+        assert!(!is_user_input("\u{1b}]11;rgb:0/0/0\u{1b}\\"));
+        assert!(!is_user_input(""));
+    }
+
+    #[test]
+    fn a_character_or_enter_is_typing() {
+        assert!(is_user_input("l"));
+        assert!(is_user_input("\r"));
+        assert!(is_user_input("\u{1b}[1;1Rx"));
+    }
+
+    #[test]
+    fn only_an_untyped_shell_with_no_child_is_retargeted() {
+        assert!(may_retarget(false, false));
+        assert!(!may_retarget(true, false), "typed in");
+        assert!(!may_retarget(false, true), "a program is running under it");
+        assert!(!may_retarget(true, true));
+    }
+
+    #[test]
+    fn a_missing_session_is_skipped() {
+        let pty = PtySessions::default();
+        // An id with no session is skipped rather than moved.
+        assert!(pty
+            .retarget_untyped(&["nope".to_string()], Path::new("."))
+            .is_empty());
+    }
+
+    #[test]
+    fn cd_line_is_quoted_per_dialect() {
+        use crate::quoting::ShellFamily;
+        let dir = Path::new("C:/My Projects/demo");
+        assert_eq!(
+            cd_line(ShellFamily::Cmd, dir),
+            "cd /d \"C:/My Projects/demo\"\r"
+        );
+        assert_eq!(
+            cd_line(ShellFamily::PowerShell, dir),
+            "cd 'C:/My Projects/demo'\r"
+        );
+        assert_eq!(
+            cd_line(ShellFamily::Posix, dir),
+            "cd 'C:/My Projects/demo'\r"
+        );
+    }
     use std::time::Duration;
+
+    #[test]
+    fn strip_error_nul_removes_a_real_nul_and_a_debug_escaped_one() {
+        // What portable-pty's CreateProcessW failure prints for a program whose
+        // wide buffer carries its terminator.
+        let wide: std::ffi::OsString = "pwsh.exe\0".into();
+        let message = format!("CreateProcessW `{wide:?}` failed");
+        assert!(message.contains("\\0"));
+        assert_eq!(
+            strip_error_nul(&message),
+            "CreateProcessW `\"pwsh.exe\"` failed"
+        );
+        assert_eq!(strip_error_nul("pwsh.exe\u{0}"), "pwsh.exe");
+    }
+
+    #[test]
+    fn strip_error_nul_keeps_an_escaped_backslash_before_a_zero() {
+        // Debug of `C:\0dir` is `C:\\0dir`; the zero there is a directory name.
+        let path: std::ffi::OsString = "C:\\0dir".into();
+        let debug = format!("{path:?}");
+        assert_eq!(strip_error_nul(&debug), debug);
+    }
+
+    #[test]
+    fn a_raw_path_with_a_backslash_before_a_zero_survives() {
+        // A cwd or program is a raw path, not Debug text: `\0` there is a
+        // separator and a directory name starting with a zero.
+        assert_eq!(strip_nul(r"C:\code\01-game"), r"C:\code\01-game");
+        assert_eq!(
+            candidate(r"C:\tools\0bin\pwsh.exe").program,
+            r"C:\tools\0bin\pwsh.exe"
+        );
+    }
 
     /// The test that would have caught issue #36. A file on `PATH` that begins
     /// `MZ` and is not a program image is what Windows answers with a modal
@@ -1014,5 +1400,64 @@ mod tests {
 
         let _ = child.kill();
         let _ = child.wait();
+    }
+
+    // --- no NUL reaches CreateProcessW ---------------------------------------
+
+    fn has_nul(text: &std::ffi::OsStr) -> bool {
+        text.to_string_lossy().contains('\u{0}')
+    }
+
+    /// `recent_errors` showed `pwsh.exe\0` and a cwd ending in `\0`. A NUL in
+    /// either would end the string early for CreateProcessW, so whatever the
+    /// source, none may survive into the command.
+    #[test]
+    fn a_program_with_a_trailing_nul_is_built_without_one() {
+        let c = candidate("pwsh.exe\u{0}");
+        assert_eq!(c.program, "pwsh.exe");
+        assert_eq!(c.name, "pwsh");
+        assert!(c.cmd.get_argv().iter().all(|a| !has_nul(a)));
+    }
+
+    #[test]
+    fn every_automatic_candidate_is_free_of_nul() {
+        for c in shell_candidates() {
+            assert!(!c.program.contains('\u{0}'), "{:?}", c.program);
+            assert!(c.cmd.get_argv().iter().all(|a| !has_nul(a)));
+        }
+    }
+
+    #[test]
+    fn a_cwd_with_a_trailing_nul_is_cleaned_to_the_real_folder() {
+        let dir = std::env::temp_dir();
+        let dirty = PathBuf::from(format!("{}\u{0}", dir.display()));
+        let cleaned = clean_cwd(&dirty);
+        assert!(!has_nul(cleaned.as_os_str()));
+        assert!(cleaned.is_dir());
+    }
+
+    #[test]
+    fn a_cwd_that_does_not_exist_falls_back_to_a_folder_that_does() {
+        let missing = std::env::temp_dir().join("kaava-no-such-folder-for-a-shell");
+        let cleaned = clean_cwd(&missing);
+        assert!(cleaned.is_dir());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_verbatim_prefix_and_forward_slashes_are_normalised_on_windows() {
+        let dir = std::env::temp_dir();
+        let odd = format!(r"\\?\{}", dir.display());
+        let cleaned = clean_cwd(Path::new(&odd));
+        assert!(!cleaned.to_string_lossy().starts_with(r"\\?\"));
+        assert!(cleaned.is_dir());
+    }
+
+    #[test]
+    fn nul_is_stripped_from_an_error_message() {
+        assert_eq!(
+            strip_nul("CreateProcessW `pwsh.exe\u{0}` failed"),
+            "CreateProcessW `pwsh.exe` failed"
+        );
     }
 }

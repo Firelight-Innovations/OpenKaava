@@ -8,8 +8,9 @@
   align-items: center;
   gap: 4px;
   padding: 2px 0 6px;
-  /* Chrome, not a bordered region -- it sits directly on bg-canvas. */
-  background: var(--bg-canvas);
+  /* No ground of its own: it sits inside the right-hand box (`.frame__side`),
+     which is the one rounded card the rail and an open page share. */
+  background: transparent;
 }
 
 .k-rail__btn {
@@ -55,5 +56,5 @@
   width: 7px;
   height: 7px;
   border-radius: 4px;
-  border: 2px solid var(--bg-canvas);
+  border: 2px solid var(--bg-surface-1);
 }

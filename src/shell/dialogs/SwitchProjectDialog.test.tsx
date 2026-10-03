@@ -104,6 +104,17 @@ describe("SwitchProjectDialog", () => {
     expect(screen.getByText("3 environments · 2 clusters")).toBeTruthy();
   });
 
+  it("only says 'Never opened' for a project with no last-opened time", async () => {
+    listRecentProjects.mockResolvedValue([
+      row({ name: "Seen", initialized: false }),
+      row({ name: "Fresh", path: "C:/fresh", initialized: false, lastOpened: null }),
+    ]);
+    renderDialog();
+    await screen.findByText("Seen");
+    expect(screen.getAllByText("Never opened in Kaava.")).toHaveLength(1);
+    expect(screen.getByText("Not open.")).toBeTruthy();
+  });
+
   it("filters the list by the search field, case-insensitively", async () => {
     listRecentProjects.mockResolvedValue([
       row({ name: "Flashlight" }),
@@ -232,5 +243,16 @@ describe("SwitchProjectDialog", () => {
       const button = screen.getByRole("button", { name: "Change icon for Gone" });
       expect((button as HTMLButtonElement).disabled).toBe(true);
     });
+  });
+});
+
+describe("switcher search ring", () => {
+  it("overrides the dialog-wide input ring with a more specific selector", async () => {
+    const { default: css } = await import("./SwitchProjectDialog.css?raw");
+    // dialogs.css rings `.k-dialog :is(..., a[href]):focus-visible` at (0,3,1).
+    // Three classes, an element type and the pseudo-class make (0,4,1).
+    expect(css).toContain(
+      ".k-dialog.switch-project input.switch-project__search-field:focus-visible",
+    );
   });
 });

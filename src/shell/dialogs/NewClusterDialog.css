@@ -192,12 +192,25 @@
 }
 
 .new-cluster__layout-icon {
+  position: relative;
+  overflow: hidden;
   width: 64px;
   height: 42px;
   flex: none;
   border-radius: 6px;
   background: var(--surface-2);
   border: 1px solid var(--line);
+}
+
+.new-cluster__layout-pane {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid var(--text-dim-2);
+  background: var(--surface);
+}
+
+.new-cluster__layout-row.is-selected .new-cluster__layout-pane {
+  border-color: var(--accent);
 }
 
 .new-cluster__layout-text {

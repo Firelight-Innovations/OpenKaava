@@ -104,9 +104,17 @@
   color: var(--txt-warning);
 }
 
+/* The drawing and the docked panels side by side; nothing floats over the
+   drawing but Excalidraw's own toolbars and the area picker while it is on. */
 .cv__body {
   flex: 1;
   min-height: 0;
+  display: flex;
+}
+
+.cv__stage {
+  flex: 1;
+  min-width: 0;
   position: relative;
 }
 
@@ -133,24 +141,60 @@
   font-size: 12px;
 }
 
-/* Excalidraw fills the body, and takes its accent and panels from the tokens. */
-.cv__body .excalidraw {
+/* Excalidraw fills the stage; `native.css` gives it the tokens. */
+.cv__stage .excalidraw {
   height: 100%;
-  --color-primary: var(--accent);
-  --color-primary-darker: var(--accent-hover);
-  --island-bg-color: var(--bg-layer-2);
-  --focus-highlight-color: var(--accent);
-}
-
-.cv__body .excalidraw.theme--dark {
-  --color-surface-lowest: var(--bg-surface-1);
-  --color-surface-low: var(--bg-layer-1);
-  --color-surface-mid: var(--bg-layer-2);
-  --color-surface-high: var(--bg-layer-3);
 }
 
 .cv__editor {
   height: 100%;
+  position: relative;
+}
+
+/* Chips over frames that open a child canvas. Positioned from scene coordinates by
+   the editor; the layer ignores the pointer so drawing underneath is unaffected. */
+.cv__badges {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.cv__badge {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 220px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--bg-layer-1, var(--bg-layer-2));
+  color: var(--txt-primary);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.cv__badge span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cv__badge:hover {
+  background: var(--bg-layer-2);
+}
+
+.cv__badge:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
+.cv__badge.is-compact {
+  padding: 2px 4px;
 }
 
 .cv__crumbs {
@@ -187,29 +231,31 @@
   outline: 2px solid var(--accent);
 }
 
-/* The link controls for the selected frame float over the canvas, top centre,
-   clear of Excalidraw's own toolbar. */
+/* The selected frame's link controls, first in the Inspector. */
 .cv__frame {
-  position: absolute;
-  z-index: 5;
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  background: var(--bg-layer-2);
+  flex-direction: column;
+  gap: 6px;
   color: var(--txt-secondary);
-  font-size: 12px;
 }
 
 .cv__frame-form {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cv__frame .cv__input,
+.cv__side .cv__input,
+.cv__side .cv__select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cv__side textarea.cv__input {
+  height: auto;
+  padding: 6px 8px;
+  resize: vertical;
 }
 
 .cv__frame-label code {
@@ -248,24 +294,295 @@
   outline: 2px solid var(--accent);
 }
 
-/* The spec inspector sits at the right edge, under the editor toolbar. */
 .cv__spec {
-  position: absolute;
-  z-index: 5;
-  top: 60px;
-  right: 12px;
-  bottom: 12px;
-  width: 280px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  color: var(--txt-secondary);
+}
+
+/* --- the docked panels ------------------------------------------------------ */
+
+/* A narrow pane gives the drawing at least half; the panel stops at 200px. The
+   container lets the tab row below respond to the panel's width, not the
+   window's. */
+.cv__side {
+  width: 300px;
+  max-width: 50%;
+  min-width: 200px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--border-subtle);
+  background: var(--bg-layer-1);
+  font-size: 12px;
+  container: cv-side / inline-size;
+}
+
+.cv__side.is-collapsed {
+  width: 34px;
+  min-width: 0;
+}
+
+.cv__side-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* The tabs shrink; the hide button never does, and sits at the end. */
+.cv__side-bar > [role="tab"] {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.cv__side-tab > svg,
+.cv__side-tab > .cv__count {
+  flex-shrink: 0;
+}
+
+.cv__side-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cv__side-toggle {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.cv__side.is-collapsed .cv__side-toggle {
+  margin-left: 0;
+}
+
+/* Three labels, a count and the button do not fit in 300px, so only the open
+   tab is named; the others are icons with a tooltip. Too narrow even for that,
+   the open one goes icon-only as well. Clipped rather than removed, so each tab
+   keeps its label as its accessible name. */
+.cv__side-tab:not(.is-on) > .cv__side-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+@container cv-side (max-width: 219px) {
+  .cv__side-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
+/* In the collapsed strip the count rides on the icon's corner instead of
+   widening the button past the strip. */
+.cv__side.is-collapsed .cv__side-tab {
+  position: relative;
+}
+
+.cv__side.is-collapsed .cv__count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 12px;
+  padding: 0 2px;
+  font-size: 9px;
+  line-height: 12px;
+}
+
+.cv__side.is-collapsed .cv__side-bar {
+  flex-direction: column;
+  border-bottom: 0;
+}
+
+.cv__side-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--txt-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cv__side-tab:hover {
+  background: var(--bg-layer-1-hover);
+}
+
+.cv__side-tab.is-on {
+  background: var(--bg-layer-2);
+  color: var(--txt-primary);
+}
+
+.cv__side-tab:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
+.cv__count {
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent-subtle);
+  color: var(--txt-accent);
+  font-size: 10px;
+  text-align: center;
+}
+
+.cv__side-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   padding: 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
+}
+
+.cv__side-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cv__side-section h3 {
+  margin: 0;
+  color: var(--txt-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cv__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.cv__meta {
+  color: var(--txt-tertiary);
+  font-size: 11px;
+}
+
+.cv__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cv__list-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--txt-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cv__list-item:hover {
+  background: var(--bg-layer-1-hover);
+}
+
+.cv__list-item:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
+.cv__comments {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cv__comment-new {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cv__comment-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cv__comment {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-layer-2);
+}
+
+.cv__comment--resolved {
+  opacity: 0.75;
+}
+
+.cv__comment-text {
+  margin: 0;
+  color: var(--txt-primary);
+  white-space: pre-wrap;
+}
+
+.cv__comment-resolution {
+  margin: 0;
+  color: var(--txt-success);
+}
+
+/* The area picker: on only while a person drags out a box to comment on. */
+.cv__pick {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  cursor: crosshair;
+  background: var(--accent-wash-faint);
+}
+
+.cv__pick-hint {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
   background: var(--bg-layer-2);
   color: var(--txt-secondary);
   font-size: 12px;
+  pointer-events: none;
+}
+
+.cv__pick-box {
+  position: absolute;
+  border: 2px dashed var(--accent);
+  background: var(--accent-wash);
+  pointer-events: none;
 }
 
 .cv__spec-head {
@@ -273,6 +590,11 @@
   align-items: center;
   justify-content: space-between;
   color: var(--txt-primary);
+}
+
+/* The Send card button is portalled in here; the wrapper adds no box of its own. */
+.cv__send-slot {
+  display: contents;
 }
 
 .cv__spec-actions {
@@ -382,4 +704,150 @@
 .cv__warn {
   color: var(--txt-warning);
   font-size: 11px;
+}
+
+.cv__object,
+.cv__types {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cv__typechip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.35));
+  font-size: 12px;
+}
+
+.cv__type-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.cv__type-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cv__fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.35));
+  border-radius: 6px;
+}
+
+.cv__field--check {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.cv__manage {
+  align-self: flex-start;
+}
+
+/* What a comment is about: a border round the elements or area, a pin, and a leader
+   line. DOM over the editor, positioned from scene coordinates, never a scene element. */
+.cv__hl {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.cv__hl-box {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid var(--accent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.cv__hl-item--draft .cv__hl-box {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.cv__hl-leader {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.cv__hl-leader line {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.cv__hl-pin {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border-radius: 50% 50% 50% 4px;
+  background: var(--accent);
+  color: var(--txt-on-accent, #fff);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
+}
+
+.cv__design {
+  position: relative;
+}
+
+.cv__design-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.cv__design-pop {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 280px;
+  padding: 10px;
+  border: 1px solid var(--border-subtle-1);
+  border-radius: var(--radius-md);
+  background: var(--bg-layer-2);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 30%);
+}
+
+.cv__design-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--txt-secondary);
+}
+
+.cv__design-row .cv__select {
+  max-width: none;
+}
+
+.cv__design-note {
+  margin: 0;
+  font-size: 11px;
+  color: var(--txt-tertiary);
 }

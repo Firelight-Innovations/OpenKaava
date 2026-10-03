@@ -252,6 +252,43 @@ export function setGithubToken(token: string): Promise<void> {
   return invoke<void>("set_github_token", { token });
 }
 
+/** Mirrors `cloud::google::Status`. Carries an email and never a token. */
+export interface GoogleAuthStatus {
+  /** A client ID is set and a client secret is stored. */
+  configured: boolean;
+  hasClientId: boolean;
+  hasClientSecret: boolean;
+  /** The signed-in Google account, or null. */
+  email: string | null;
+  /** A sign-in is waiting for the browser. */
+  pending: boolean;
+}
+
+/** Who is signed in to OpenKaava's own Google sign-in. No network. */
+export function googleAuthStatus(): Promise<GoogleAuthStatus> {
+  return invoke<GoogleAuthStatus>("google_auth_status");
+}
+
+/** Open the system browser and wait for the approval. Resolves to the email. */
+export function googleSignIn(): Promise<string> {
+  return invoke<string>("google_sign_in");
+}
+
+/** Stop a sign-in that is waiting for the browser. */
+export function googleCancelSignIn(): Promise<void> {
+  return invoke<void>("google_cancel_sign_in");
+}
+
+/** Revoke the sign-in at Google and forget it here. */
+export function googleSignOut(): Promise<void> {
+  return invoke<void>("google_sign_out");
+}
+
+/** Store the OAuth client secret in the credential store, or clear it with "". */
+export function setGoogleClientSecret(secret: string): Promise<void> {
+  return invoke<void>("set_google_client_secret", { secret });
+}
+
 /** Mirrors `plugins::install::Phase`. */
 export type InstallPhase =
   "resolving" | "downloading" | "verifying" | "unpacking" | "done" | "failed";
@@ -278,6 +315,16 @@ export const LIBRARY_OPEN_EVENT = "library:open";
 /** Home asking the shell to show the app library. Carries nothing. */
 export function onLibraryOpen(cb: () => void): Promise<UnlistenFn> {
   return listen(LIBRARY_OPEN_EVENT, () => cb());
+}
+
+/** Mirrors `apps::OPEN_SETTINGS_EVENT`. */
+export const OPEN_SETTINGS_EVENT = "settings:open";
+
+/** An app asking the shell to open Settings, on `section` when it names one. */
+export function onSettingsOpen(cb: (section: string | null) => void): Promise<UnlistenFn> {
+  return listen<{ section: string | null }>(OPEN_SETTINGS_EVENT, (event) =>
+    cb(event.payload?.section ?? null),
+  );
 }
 
 /** Every install's progress, from every window. Filter on `key`. */
@@ -1075,6 +1122,19 @@ export function toggleHostMaximize(): Promise<void> {
   return getCurrentWindow().toggleMaximize();
 }
 
+export function hostWindowIsMaximized(): Promise<boolean> {
+  return getCurrentWindow().isMaximized();
+}
+
+/**
+ * Calls `handler` whenever the window is resized, which is how a maximise or a
+ * restore announces itself (Tauri has no dedicated event for either). Returns
+ * the unlisten function.
+ */
+export function onHostWindowResized(handler: () => void): Promise<UnlistenFn> {
+  return getCurrentWindow().onResized(handler);
+}
+
 export function hostWindowIsFullscreen(): Promise<boolean> {
   return getCurrentWindow().isFullscreen();
 }
@@ -1166,11 +1226,21 @@ export interface Cluster {
    *  and defaults to `false` when reading a `layout.json` old enough to
    *  predate it. */
   pinned: boolean;
+  /** What the user chose to draw instead of the initials chip. Absent is the
+   *  default: initials, untinted. */
+  icon?: ClusterIcon | null;
   /** The environment's worktree folder was not on disk when the layout was
    *  restored at launch. Recomputed by the backend at every restore, so a
    *  stale value never survives a restart. Optional so fixtures that predate
    *  it stay valid; absent means present. */
   environmentMissing?: boolean;
+}
+
+/** Mirrors `shell_state::ClusterIcon`. An empty `emoji` means "initials, on this tint". */
+export interface ClusterIcon {
+  emoji: string;
+  /** A palette key from `clusterIcon.ts`; absent is the neutral chip. */
+  color?: string | null;
 }
 
 /** Mirrors `shell_state::WindowGeometry`. Physical pixels. */
@@ -1179,6 +1249,9 @@ export interface WindowGeometry {
   y: number;
   width: number;
   height: number;
+  /** The normal bounds above are kept while maximized. Absent means false. */
+  maximized?: boolean;
+  fullscreen?: boolean;
 }
 
 /** Mirrors `pages::PageMode`. */
@@ -1425,8 +1498,28 @@ export function newClusterForDrop(
   });
 }
 
+/**
+ * Tell the backend where this window's focus is. Mirrors `mcp::focus::FocusReport`;
+ * the backend ignores a repeat and wakes subscribed agents on a real change.
+ */
+export function reportFocus(report: {
+  window: string;
+  windowHasFocus: boolean;
+  focusIn: string;
+  instance: string | null;
+  pane: string | null;
+  cluster: string | null;
+}): Promise<void> {
+  return invoke("report_focus", { report });
+}
+
 export function setActiveCluster(label: string, clusterId: string | null): Promise<void> {
   return invoke("set_active_cluster", { label, clusterId });
+}
+
+/** Choose a cluster's icon, or `null` to go back to its initials. */
+export function setClusterIcon(clusterId: string, icon: ClusterIcon | null): Promise<void> {
+  return invoke("set_cluster_icon", { clusterId, icon });
 }
 
 export function renameCluster(clusterId: string, name: string): Promise<void> {
@@ -1603,7 +1696,7 @@ export function terminalInsertPaths(id: string, paths: string[]): Promise<string
  * once, into Rust; everything after passes ids.
  */
 
-export type ContextKind = "image" | "file" | "text" | "panel";
+export type ContextKind = "image" | "file" | "text" | "json" | "panel";
 export type Harness = "claude" | "codex" | "gemini" | "shell";
 
 export interface ContextItem {
@@ -1615,6 +1708,15 @@ export interface ContextItem {
   source: { appId: string; label?: string };
   method: "put" | "drop" | "clipboard";
   createdAt: number;
+  /** Stable source key (`blender/<blend>/<view>`); a re-send replaces the item. Empty on old records. */
+  key?: string;
+  /** Latest send, epoch ms. Later than `createdAt` means "updated". */
+  updatedAt?: number;
+  sha256?: string;
+  /** The file's modification time, epoch ms, when it was last written. */
+  mtime?: number;
+  /** Set when a locked file forced a new name for this item. */
+  notice?: string;
   size: number;
   path: string;
   relPath: string;
@@ -2015,6 +2117,47 @@ export interface McpStatus {
 
 export function mcpStatus(): Promise<McpStatus> {
   return invoke<McpStatus>("mcp_status");
+}
+
+/** Mirrors `mcp::registry::PanelTool`: one tool spelled as `tools/list` spells it. */
+export interface McpToolInfo {
+  name: string;
+  description: string;
+  /** A JSON Schema object, exactly what the server advertises as `inputSchema`. */
+  inputSchema: unknown;
+  /** Present only where the backend knows. Absent means "not claimed", not "writes". */
+  annotations?: { readOnlyHint: boolean };
+}
+
+/** Mirrors `mcp::registry::ServerCatalog`. */
+export interface McpServerTools {
+  id: string;
+  tools: McpToolInfo[];
+}
+
+/** Mirrors `apps::method_catalog::AppMethod`. There is no parameter schema: apps declare none. */
+export interface McpAppMethod {
+  method: string;
+  write: boolean;
+  doc: string | null;
+  blocked: string | null;
+}
+
+/** Mirrors `apps::method_catalog::AppMethodGroup`. */
+export interface McpAppMethodGroup {
+  app: string;
+  name: string;
+  methods: McpAppMethod[];
+}
+
+/** Mirrors `mcp::commands::McpCatalog`. */
+export interface McpCatalog {
+  servers: McpServerTools[];
+  appMethods: McpAppMethodGroup[];
+}
+
+export function mcpCatalog(): Promise<McpCatalog> {
+  return invoke<McpCatalog>("mcp_catalog");
 }
 
 /**

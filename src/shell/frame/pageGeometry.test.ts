@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { PROJECT_RAIL_GAP, pageGeometry, pageWidthFromPointer, slotFilled } from "./pageGeometry";
+import {
+  PANES_MIN_WIDTH,
+  PAGE_SQUEEZED_MIN,
+  PROJECT_RAIL_GAP,
+  clampPageWidth,
+  pageGeometry,
+  pageWidthFromPointer,
+  slotFilled,
+} from "./pageGeometry";
 
 describe("slotFilled", () => {
   it("treats every value React draws nothing for as empty", () => {
@@ -40,14 +48,40 @@ describe("pageGeometry", () => {
 });
 
 describe("pageWidthFromPointer", () => {
-  // The bug: the page's right edge is the rail's left margin further in than the
-  // rail itself, and the old maths forgot the margin, so the page landed 6px off.
-  it("measures from the page's own right edge, past the rail and its margin", () => {
-    expect(PROJECT_RAIL_GAP).toBe(6);
-    expect(pageWidthFromPointer(1000, 44, 500)).toBe(450);
+  // The page's right edge is the right-hand box's margin (6px) and border (1px)
+  // further in than the window's, and forgetting them lands the page 7px off.
+  it("measures from the page's own right edge, past the rail, margin and border", () => {
+    expect(PROJECT_RAIL_GAP).toBe(7);
+    expect(pageWidthFromPointer(1000, 44, 500)).toBe(449);
   });
 
   it("is wider the further left the pointer goes", () => {
-    expect(pageWidthFromPointer(1000, 44, 400)).toBe(550);
+    expect(pageWidthFromPointer(1000, 44, 400)).toBe(549);
+  });
+});
+
+describe("clampPageWidth", () => {
+  const rail = 44;
+
+  it("leaves the page alone in a window with room, like main", () => {
+    expect(clampPageWidth(380, 2000, rail, 320, 640)).toBe(380);
+    expect(clampPageWidth(900, 2000, rail, 320, 640)).toBe(640);
+    expect(clampPageWidth(100, 2000, rail, 320, 640)).toBe(320);
+  });
+
+  // The popped-out window opens at 900px: a page saved at 640 in main left 209px for the panes.
+  it("keeps the panes their minimum in a popped-out window", () => {
+    const width = clampPageWidth(640, 900, rail, 320, 640);
+    expect(900 - rail - PROJECT_RAIL_GAP - width).toBeGreaterThanOrEqual(PANES_MIN_WIDTH);
+  });
+
+  it("squeezes below the page minimum in the smallest window rather than crush the panes", () => {
+    const width = clampPageWidth(380, 480, rail, 320, 640);
+    expect(width).toBe(PAGE_SQUEEZED_MIN);
+  });
+
+  it("never returns less than the squeezed floor or more than max", () => {
+    expect(clampPageWidth(380, 0, rail, 320, 640)).toBe(PAGE_SQUEEZED_MIN);
+    expect(clampPageWidth(380, Number.POSITIVE_INFINITY, rail, 320, 640)).toBe(380);
   });
 });

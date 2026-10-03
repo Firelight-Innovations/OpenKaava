@@ -97,6 +97,10 @@ pub struct PartEntry {
     pub polys: u64,
     pub tris: u64,
     pub dimensions: Vec<f64>,
+    /// For `kind == "instance"`: the collection the empty instances.
+    pub instance_of: Option<String>,
+    /// For `kind == "instance"`: how many meshes that collection brings in.
+    pub instance_meshes: u64,
 }
 
 /// What `export.py` wrote to `result.json`.
@@ -152,6 +156,9 @@ pub fn run(
     };
 
     let tail = Arc::new(Mutex::new(Vec::<String>::new()));
+    // Set once Blender has been deliberately stopped: from then on the readers
+    // are on their own and must not touch the job's log.
+    let detached = Arc::new(AtomicBool::new(false));
     let readers: Vec<_> = [
         child
             .stdout
@@ -167,10 +174,14 @@ pub fn run(
     .map(|stream| {
         let on_event = on_event.clone();
         let tail = tail.clone();
+        let detached = detached.clone();
         std::thread::spawn(move || {
             let mut reader = BufReader::new(stream);
             let mut buf = Vec::new();
             while matches!(reader.read_until(b'\n', &mut buf), Ok(n) if n > 0) {
+                if detached.load(Ordering::SeqCst) {
+                    break;
+                }
                 let line = String::from_utf8_lossy(&buf).trim_end().to_string();
                 buf.clear();
                 match parse_progress(&line) {
@@ -210,8 +221,17 @@ pub fn run(
         }
         std::thread::sleep(Duration::from_millis(40));
     };
-    for reader in readers {
-        let _ = reader.join();
+    if stopped.is_some() {
+        // The outcome is already decided, so do not wait for the pipes to reach
+        // end-of-file. They close only when every process holding the write end
+        // is gone, and `taskkill /T` can miss a grandchild spawned while it
+        // enumerated the tree. Joining here would hold the job at
+        // `running: true` until that orphan exits on its own.
+        detached.store(true, Ordering::SeqCst);
+    } else {
+        for reader in readers {
+            let _ = reader.join();
+        }
     }
 
     match (stopped, status) {
@@ -416,6 +436,16 @@ impl Jobs {
 pub(crate) mod tests {
     use super::*;
     use tempfile::TempDir;
+
+    #[test]
+    fn instance_fields_survive_result_parsing() {
+        let json = r#"{"parts":[{"name":"CrateLinked","kind":"instance","tris":108,
+            "instanceOf":"CrateProp","instanceMeshes":1},{"name":"Old","kind":"mesh"}]}"#;
+        let result: ScriptResult = serde_json::from_str(json).unwrap();
+        assert_eq!(result.parts[0].instance_of.as_deref(), Some("CrateProp"));
+        assert_eq!(result.parts[0].instance_meshes, 1);
+        assert_eq!(result.parts[1].instance_of, None);
+    }
 
     /// A stand-in `blender`. On Windows a `.cmd`, elsewhere `sh`; both read the
     /// same environment variables the real script does and write the same
@@ -632,6 +662,34 @@ echo '{\"blenderVersion\":\"4.2.1\",\"glb\":\"model.glb\",\"renders\":[{\"id\":\
         assert!(
             started.elapsed() < Duration::from_secs(20),
             "cancel took too long"
+        );
+    }
+
+    /// A grandchild that outlives the process we kill keeps the output pipes
+    /// open. The cancelled outcome must not wait for it. `kill` reaches only the
+    /// shell here, where Windows' `taskkill /T` would also take the child.
+    #[cfg(unix)]
+    #[test]
+    fn cancel_does_not_wait_for_an_orphan_holding_the_pipes() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = TempDir::new().unwrap();
+        let exe = dir.path().join("blender");
+        std::fs::write(&exe, "#!/bin/sh\nsleep 30 &\nwait\n").unwrap();
+        std::fs::set_permissions(&exe, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let flag = cancel.clone();
+        let stopper = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(400));
+            flag.store(true, Ordering::SeqCst);
+        });
+        let started = Instant::now();
+        let (sink, _) = sink();
+        let outcome = run(&spec(dir.path(), exe), &cancel, sink);
+        stopper.join().unwrap();
+        assert!(matches!(outcome, Outcome::Cancelled), "{outcome:?}");
+        assert!(
+            started.elapsed() < Duration::from_secs(10),
+            "the run waited on the orphan's pipes"
         );
     }
 

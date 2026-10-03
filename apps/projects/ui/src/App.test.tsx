@@ -42,7 +42,9 @@ vi.mock("@openkaava/bridge", () => ({
   // exercises the wake flow also drive a fake `kaava/window-rect` message —
   // `frameRect.test.ts` is where the combining logic itself is covered.
   on: vi.fn((event: string, cb: (payload: unknown) => void) => {
-    if (event === "kaava/window-rect") cb({ x: 10, y: 20, width: 300, height: 300 });
+    if (event === "kaava/window-rect") {
+      cb({ x: 10, y: 20, width: 300, height: 300, window: "win-2" });
+    }
     return () => {};
   }),
 }));
@@ -70,7 +72,9 @@ const LIST: ProjectsList = {
   problems: [],
 };
 
-function backend(opts: { list?: ProjectsList; wake?: WakeSnapshot[] } = {}): {
+function backend(
+  opts: { list?: ProjectsList; wake?: WakeSnapshot[]; wakeStart?: () => Promise<unknown> } = {},
+): {
   wakeStatusCalls: () => number;
 } {
   const wakeSteps = [...(opts.wake ?? [{ phase: "healthy", elapsedSeconds: 1.2 }])];
@@ -82,7 +86,7 @@ function backend(opts: { list?: ProjectsList; wake?: WakeSnapshot[] } = {}): {
       case "projects/hosts-check":
         return Promise.resolve({ ok: true, resolved: "127.0.0.1", fix: null });
       case "projects/wake-start":
-        return Promise.resolve({ started: true });
+        return opts.wakeStart ? opts.wakeStart() : Promise.resolve({ started: true });
       case "projects/wake-status": {
         wakeCalls += 1;
         const step = wakeSteps[Math.min(wakeCalls - 1, wakeSteps.length - 1)];
@@ -134,7 +138,10 @@ describe("Projects", () => {
   it("shows the empty state when the bucket has no projects yet", async () => {
     backend({ list: { source: "live", profile: "prod", projects: [], problems: [] } });
     render(<App />);
-    expect(await screen.findByText(/No projects yet/)).toBeTruthy();
+    const note = await screen.findByText(/No projects yet/);
+    expect(note.textContent).not.toContain("`");
+    expect(note.querySelector("code")?.textContent).toBe("kaava-project");
+    expect(screen.getByRole("heading", { level: 1 }).className).toContain("app__title--hidden");
   });
 
   it("selecting a project starts the wake flow and reports progress", async () => {
@@ -152,7 +159,12 @@ describe("Projects", () => {
       () =>
         expect(bridge.invoke).toHaveBeenCalledWith(
           "projects/webview-open",
-          expect.objectContaining({ url: expect.stringContaining("abc-123") }),
+          // `window` is the popped-out window the shell reported the frame in: Rust attaches
+          // the webview to it rather than to `main`.
+          expect.objectContaining({
+            url: expect.stringContaining("abc-123"),
+            window: "win-2",
+          }),
         ),
       // The second `wake-status` (the one answering "healthy") arrives on
       // this app's own 1 s poll tick, not synchronously like the first —
@@ -216,6 +228,49 @@ describe("Projects", () => {
     render(<App />);
     expect(await screen.findByText("This Google account may not read that")).toBeTruthy();
     expect(screen.getByText("gcloud auth list")).toBeTruthy();
+  });
+
+  it("names Settings, Cloud when no gateway URL is set yet", async () => {
+    backend({
+      wakeStart: () =>
+        Promise.reject(
+          new bridge.KaavaRpcError(-32603, "no gateway URL", { kind: "gatewayUnconfigured" }),
+        ),
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: /Anomaly/ }));
+    expect(await screen.findByText("The Plane gateway is not set up")).toBeTruthy();
+    expect(screen.getByText(/Gateway URL/)).toBeTruthy();
+  });
+
+  it("shows a lapsed sign-in that the wake loop ran into as the sign-in state", async () => {
+    backend({
+      wake: [
+        {
+          phase: "failed",
+          detail: "the Google sign-in has lapsed",
+          trouble: { kind: "signInNeeded", detail: "invalid_grant" },
+        },
+      ],
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: /Anomaly/ }));
+    expect(await screen.findByText("Sign in to Google again")).toBeTruthy();
+  });
+
+  it("says the gateway did not answer, rather than a generic failure", async () => {
+    backend({
+      wake: [
+        {
+          phase: "failed",
+          detail: "the kaava-api gateway did not answer: connection refused",
+          trouble: { kind: "gatewayUnreachable", detail: "connection refused" },
+        },
+      ],
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: /Anomaly/ }));
+    expect(await screen.findByText("The Plane gateway did not answer")).toBeTruthy();
   });
 
   it("tells you to install the CLI when gcloud is missing", async () => {

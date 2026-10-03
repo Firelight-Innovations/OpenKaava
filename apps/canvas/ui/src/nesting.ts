@@ -12,11 +12,18 @@
 import type { CanvasSummary } from "./rpc";
 import type { SceneElement } from "./scene";
 
+/**
+ * A frame with a child canvas also carries this as its Excalidraw `link`, so the
+ * editor draws its link badge on the frame and a click on it opens the child.
+ */
+export const CANVAS_LINK = "kaava://canvas/";
+
 /** The deepest folder nesting the backend accepts; see `canvas.rs`. */
 const MAX_DEPTH = 4;
 
 interface Kaava {
   child?: unknown;
+  subcanvas?: unknown;
 }
 
 function kaavaData(el: SceneElement): Kaava | undefined {
@@ -48,9 +55,16 @@ export function withChild(el: SceneElement, child: string | null): SceneElement 
   else kaava.child = child;
   if (Object.keys(kaava).length > 0) custom.kaava = kaava;
   else delete custom.kaava;
+  const link =
+    child !== null
+      ? `${CANVAS_LINK}${child}`
+      : typeof el.link === "string" && el.link.startsWith(CANVAS_LINK)
+        ? null
+        : el.link;
   return {
     ...el,
     customData: Object.keys(custom).length > 0 ? custom : undefined,
+    link,
     version: (el.version ?? 0) + 1,
     versionNonce: Math.floor(Math.random() * 2 ** 31),
     updated: Date.now(),
@@ -151,4 +165,140 @@ export function childId(parentId: string, slug: string): string {
   if (depth < MAX_DEPTH) return `${parentId}/${slug}`;
   const dir = parentId.slice(0, parentId.lastIndexOf("/") + 1);
   return `${dir}${slug}`;
+}
+
+export interface TreeRow {
+  row: CanvasSummary;
+  depth: number;
+}
+
+/**
+ * The canvases as a tree, parents before their children, siblings by title: what
+ * the picker lists, indented by `depth`. A canvas whose parent is missing is a
+ * root, and one that sits in a parent loop is listed last at depth 0 rather than
+ * dropped, so a hand-edited file cannot hide a canvas.
+ */
+export function treeOrder(rows: readonly CanvasSummary[]): TreeRow[] {
+  const ids = new Set(rows.map((r) => r.id));
+  const kids = new Map<string, CanvasSummary[]>();
+  const roots: CanvasSummary[] = [];
+  for (const r of rows) {
+    if (r.parent && ids.has(r.parent) && r.parent !== r.id) {
+      kids.set(r.parent, [...(kids.get(r.parent) ?? []), r]);
+    } else roots.push(r);
+  }
+  const byTitle = (a: CanvasSummary, b: CanvasSummary) =>
+    a.title.localeCompare(b.title) || a.id.localeCompare(b.id);
+  const out: TreeRow[] = [];
+  const seen = new Set<string>();
+  const walk = (r: CanvasSummary, depth: number) => {
+    if (seen.has(r.id)) return;
+    seen.add(r.id);
+    out.push({ row: r, depth });
+    for (const k of (kids.get(r.id) ?? []).slice().sort(byTitle)) walk(k, depth + 1);
+  };
+  for (const r of roots.slice().sort(byTitle)) walk(r, 0);
+  for (const r of rows) if (!seen.has(r.id)) walk(r, 0);
+  return out;
+}
+
+/** The canvases a frame may link to as an existing child: not this one, not an
+ *  ancestor of it, and not already nested under some other canvas. */
+export function linkable(rows: readonly CanvasSummary[], current: string): CanvasSummary[] {
+  const blocked = selfAndAncestors(rows, current);
+  return rows.filter(
+    (r) => !r.error && !blocked.has(r.id) && (r.parent === null || r.parent === current),
+  );
+}
+
+/** Whether some live frame in `elements` still links to canvas `child`. */
+export function stillLinked(elements: readonly SceneElement[], child: string): boolean {
+  return elements.some((el) => childOf(el) === child);
+}
+
+/** A "↳ child" chip to draw over a frame that links to a child canvas. */
+export interface LinkBadge {
+  /** The frame's element id. */
+  id: string;
+  child: string;
+  label: string;
+  /** Pixels from the editor's top-left to the chip's right edge, and to its bottom edge. */
+  right: number;
+  bottom: number;
+  /** The frame is too small on screen for words; draw the arrow alone. */
+  compact: boolean;
+  /** Drawn under the frame's bottom edge because the top edge's label would be covered. */
+  below: boolean;
+}
+
+/** What the badges need of Excalidraw's `appState`. */
+export interface BadgeView {
+  scrollX: number;
+  scrollY: number;
+  zoom: { value: number };
+}
+
+/** Frames narrower than this on screen (px) get no badge at all. */
+const BADGE_MIN_PX = 28;
+/** Rough on-screen size of Excalidraw's frame-name label: it does not scale with zoom. */
+const LABEL_CHAR_PX = 8;
+const LABEL_PAD_PX = 12;
+/** Rough size of the chip: arrow, padding and the child's name at 12px. */
+const CHIP_CHAR_PX = 7;
+const CHIP_FIXED_PX = 30;
+const CHIP_COMPACT_PX = 24;
+const CHIP_MAX_PX = 220;
+const CHIP_HEIGHT_PX = 22;
+/** Frames narrower than this on screen get the arrow without the name. */
+const BADGE_COMPACT_PX = 140;
+
+/**
+ * The badges for every linked frame, in editor pixels. A scene point goes to the
+ * viewport as `(scene + scroll) * zoom`, the inverse of [`viewportToScene`], so the
+ * chip follows the frame as the person pans and zooms; it is drawn over the editor
+ * rather than put in the scene, so it is never saved and never selected. It sits on
+ * the frame's top edge, at the right-hand corner, clear of the name label on the left.
+ */
+export function linkBadges(
+  elements: readonly SceneElement[],
+  view: BadgeView,
+  titleOf: (canvasId: string) => string,
+): LinkBadge[] {
+  const zoom = view.zoom.value;
+  const out: LinkBadge[] = [];
+  for (const el of elements) {
+    const child = childOf(el);
+    if (!child) continue;
+    const x = Number(el.x);
+    const y = Number(el.y);
+    const width = Number(el.width);
+    const height = Number(el.height);
+    if (![x, y, width, height, zoom, view.scrollX, view.scrollY].every(Number.isFinite)) continue;
+    const px = width * zoom;
+    if (px < BADGE_MIN_PX) continue;
+    const label = titleOf(child);
+    // The name label owns the top edge's left end. If the chip would run into it,
+    // the chip goes under the frame's bottom edge instead, where nothing is drawn.
+    const nameChars = typeof el.name === "string" && el.name ? el.name.length : 5;
+    const labelPx = nameChars * LABEL_CHAR_PX + LABEL_PAD_PX;
+    const fullPx = Math.min(CHIP_MAX_PX, CHIP_FIXED_PX + label.length * CHIP_CHAR_PX);
+    // A split canvas tiles its sub-canvas frames edge to edge, so under the
+    // bottom edge is the next frame's picture: shrink to the arrow first.
+    const tiled = kaavaData(el)?.subcanvas === true;
+    const compact =
+      px < BADGE_COMPACT_PX || (tiled && labelPx + fullPx > px && labelPx + CHIP_COMPACT_PX <= px);
+    const chipPx = compact ? CHIP_COMPACT_PX : fullPx;
+    const below = labelPx + chipPx > px;
+    const edge = below ? y + height : y;
+    out.push({
+      id: el.id,
+      child,
+      label,
+      right: Math.round((x + width + view.scrollX) * zoom),
+      bottom: Math.round((edge + view.scrollY) * zoom) + (below ? CHIP_HEIGHT_PX + 4 : -4),
+      compact,
+      below,
+    });
+  }
+  return out;
 }

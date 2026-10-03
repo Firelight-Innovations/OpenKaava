@@ -4,8 +4,15 @@
  * store and the strip beside each terminal are the host's (`context/put`).
  */
 import { invoke } from "@openkaava/bridge";
-import type { ContextRef } from "../../../shared/context";
-import type { GodotNode, GodotViewerState } from "./rpc";
+import { contextKey, type ContextRef } from "../../../shared/context";
+import type { MarkupJson } from "@kaava/markup";
+import {
+  GODOT_TARGET,
+  blobBase64,
+  putMarkup as putMarkupShared,
+  sendMarkup as sendMarkupShared,
+} from "../../../shared/markupFlow";
+import { saveMarkup, type GodotNode, type GodotViewerState } from "./rpc";
 
 export { dragContext } from "../../../shared/context";
 
@@ -29,6 +36,7 @@ export function treeText(state: Pick<GodotViewerState, "scenePath" | "source" | 
 
 export function putTree(state: GodotViewerState) {
   return invoke<ContextRef>("context/put", {
+    key: contextKey("godot", state.scenePath ?? "scene", "tree"),
     kind: "text",
     title: `${state.scenePath ?? "Godot"} - scene tree`,
     label: "Godot - scene tree",
@@ -38,9 +46,28 @@ export function putTree(state: GodotViewerState) {
 
 export function putFrame(base64: string, scenePath: string | null) {
   return invoke<ContextRef>("context/put", {
+    key: contextKey("godot", scenePath ?? "scene", "frame"),
     kind: "image",
     title: `${scenePath ?? "Godot"} - rendered view`,
     label: "Godot - rendered view",
     bytesBase64: base64,
   });
+}
+
+export { base64Blob, markupJsonText } from "../../../shared/markupFlow";
+
+/** The picture's item, for a drag onto a terminal. */
+export const putMarkup = (png: Blob, json: MarkupJson, scenePath: string | null) =>
+  putMarkupShared(GODOT_TARGET, png, json, scenePath);
+
+/**
+ * Attaches a markup as context and types `@path` references to it at the
+ * agent's prompt; the shared flow, as Godot.
+ */
+export const sendMarkup = (png: Blob, json: MarkupJson, scenePath: string | null) =>
+  sendMarkupShared(GODOT_TARGET, png, json, scenePath);
+
+/** Keeps the picture and JSON a markup was drawn on, so it can be looked at again. */
+export async function keepMarkup(png: Blob, json: MarkupJson, scene: string): Promise<void> {
+  await saveMarkup(scene, await blobBase64(png), JSON.stringify(json));
 }

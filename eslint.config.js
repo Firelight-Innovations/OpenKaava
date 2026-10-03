@@ -339,7 +339,13 @@ export default tseslint.config(
   // tools run by hand, which happen to sit beside the crate whose test input
   // they write rather than in `scripts/`.
   {
-    files: ["scripts/**/*.mjs", "crates/*/fixtures/*.mjs", "*.config.{ts,js}", "*.config.mjs"],
+    files: [
+      "scripts/**/*.mjs",
+      "packages/*/scripts/*.mjs",
+      "crates/*/fixtures/*.mjs",
+      "*.config.{ts,js}",
+      "*.config.mjs",
+    ],
     languageOptions: { globals: { ...globals.node } },
   },
 );

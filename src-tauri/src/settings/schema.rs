@@ -27,6 +27,8 @@ pub mod keys {
     pub const SEARCH_MAX_FILES: &str = "search.maxFiles";
     pub const SEARCH_MAX_FILE_SIZE_MB: &str = "search.maxFileSizeMb";
     pub const GITHUB_ITEM_LIMIT: &str = "github.itemLimit";
+    pub const CLOUD_GOOGLE_CLIENT_ID: &str = "cloud.googleClientId";
+    pub const CLOUD_GATEWAY_URL: &str = "cloud.gatewayUrl";
     pub const MCP_WRITE_PROJECT_CONFIG: &str = "mcp.writeProjectConfig";
     pub const UPDATES_CHECK_AUTOMATICALLY: &str = "updates.checkAutomatically";
     pub const DEVELOPER_MODE: &str = "developer.mode";
@@ -46,7 +48,9 @@ static GROUPS: &[&Group] = &[
     &TERMINAL,
     &KEYS,
     &SEARCH,
+    &super::markup::GROUP,
     &GITHUB,
+    &CLOUD,
     &UPDATES,
     &MCP,
     &DEVELOPER,
@@ -478,7 +482,8 @@ static KEYS_SETTINGS: &[Setting] = &[
     Setting {
         key: keys::KEYS_COPILOT_ACTION,
         title: "Copilot key",
-        description: "What the Copilot key on a Windows keyboard does while OpenKaava has focus.                       Windows sends it as Win+Shift+F23.",
+        description: "What the Copilot key on a Windows keyboard does while OpenKaava has focus. \
+                      Windows sends it as Win+Shift+F23.",
         control: Control::Select {
             default: "palette",
             options: COPILOT_ACTIONS,
@@ -488,7 +493,9 @@ static KEYS_SETTINGS: &[Setting] = &[
     Setting {
         key: keys::KEYS_COPILOT_GLOBAL,
         title: "Claim the Copilot key everywhere",
-        description: "Installs a keyboard hook so the key reaches OpenKaava even when it is not                       the focused window, and stops Windows launching Copilot. Off, only a focused                       OpenKaava sees the key, and Windows may still act on it first.",
+        description: "Installs a keyboard hook so the key reaches OpenKaava even when it is not \
+                      the focused window, and stops Windows launching Copilot. Off, only a focused \
+                      OpenKaava sees the key, and Windows may still act on it first.",
         control: Control::Toggle { default: false },
         applies: Applies::Now,
     },
@@ -611,6 +618,55 @@ static GITHUB: Group = Group {
                   here — a token is a secret and this screen's values are stored in the clear.",
     order: 45,
     settings: GITHUB_SETTINGS,
+};
+
+// --- cloud ------------------------------------------------------------------
+//
+// The kaava-api gateway (`cloud::gateway`, read by `apps::projects`) and
+// OpenKaava's own Google sign-in (`cloud::google`). The client ID is a setting
+// because it is not a secret: Google prints it in every consent URL. The client
+// secret and the sign-in itself are credentials, so they go to the OS
+// credential store through the panel drawn above this section's rows
+// (`CloudAccountPanel.tsx`), for the reason the GitHub section gives.
+
+static CLOUD_SETTINGS: &[Setting] = &[
+    Setting {
+        key: keys::CLOUD_GATEWAY_URL,
+        title: "Gateway URL",
+        description: "The kaava-api service the Projects page reaches Plane through: the `url` \
+                      output of infra/terraform/kaava-api. Empty until it is deployed, and the \
+                      Projects page says so.",
+        control: Control::Text {
+            default: "",
+            placeholder: "https://kaava-api-….run.app",
+        },
+        applies: Applies::Next {
+            what: "the next Plane call",
+        },
+    },
+    Setting {
+        key: keys::CLOUD_GOOGLE_CLIENT_ID,
+        title: "Google OAuth client ID",
+        description: "The Desktop app OAuth client OpenKaava signs in with, from the Google Cloud \
+                      console (services/kaava-api/README.md says how to make one). Changing it \
+                      signs you out, because a sign-in belongs to the client that made it.",
+        control: Control::Text {
+            default: "",
+            placeholder: "1234567890-abc.apps.googleusercontent.com",
+        },
+        applies: Applies::Next {
+            what: "the next sign-in",
+        },
+    },
+];
+
+static CLOUD: Group = Group {
+    id: "cloud",
+    title: "Cloud",
+    description: "The Google account OpenKaava uses for OpenKaava Cloud. Without a sign-in here, \
+                  the gcloud login on this machine is used instead.",
+    order: 47,
+    settings: CLOUD_SETTINGS,
 };
 
 // --- updates ----------------------------------------------------------------
@@ -787,6 +843,8 @@ mod tests {
             (keys::SEARCH_MAX_FILES, "number"),
             (keys::SEARCH_MAX_FILE_SIZE_MB, "number"),
             (keys::GITHUB_ITEM_LIMIT, "number"),
+            (keys::CLOUD_GOOGLE_CLIENT_ID, "string"),
+            (keys::CLOUD_GATEWAY_URL, "string"),
             (keys::MCP_WRITE_PROJECT_CONFIG, "bool"),
             (keys::UPDATES_CHECK_AUTOMATICALLY, "bool"),
             (keys::DEVELOPER_MODE, "bool"),

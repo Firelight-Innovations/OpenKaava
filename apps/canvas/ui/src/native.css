@@ -1,0 +1,135 @@
+/*
+ * Excalidraw dressed as part of the app: its islands, menus and dialogs take
+ * the shell's tokens in both themes, and the pieces that point at
+ * excalidraw.com are hidden. Loaded with the editor, so it costs nothing until
+ * a canvas opens.
+ *
+ * The drawing itself is left alone. Excalidraw's dark mode inverts the canvas,
+ * and the palette in `draw.ts` is its own picker's, chosen to survive that
+ * inversion; recolouring elements per theme would change the file.
+ *
+ * Rejected: forking Excalidraw's stylesheet. Its class names are stable across
+ * minor releases and its custom properties are the supported way in.
+ *
+ * Not scoped under `.cv__editor`: Excalidraw portals its dialogs to <body>
+ * (`.excalidraw.excalidraw-modal-container`), and a scoped rule missed them.
+ * The canvas app has its own iframe, so nothing else here is `.excalidraw`.
+ * The doubled class outranks Excalidraw's own `.excalidraw.theme--dark`.
+ */
+
+.excalidraw.excalidraw {
+  --ui-font: var(--sans);
+  --color-primary: var(--accent);
+  --color-primary-darker: var(--accent-hover);
+  --color-primary-darkest: var(--accent-hover);
+  --color-primary-light: var(--accent-subtle);
+  --color-primary-light-darker: var(--accent-subtle);
+  --color-primary-hover: var(--accent-hover);
+  --focus-highlight-color: var(--accent);
+  --island-bg-color: var(--bg-layer-2);
+  --popup-bg-color: var(--bg-layer-2);
+  --default-bg-color: var(--bg-layer-1);
+  --input-bg-color: var(--bg-layer-1);
+  --input-border-color: var(--border-subtle-1);
+  --sidebar-bg-color: var(--bg-layer-1);
+  --sidebar-border-color: var(--border-subtle);
+  --text-primary-color: var(--txt-primary);
+  --color-on-surface: var(--txt-primary);
+  --color-gray-100: var(--txt-primary);
+  --dialog-border-color: var(--border-strong);
+  --shadow-island: var(--shadow-raised);
+  --modal-shadow: var(--shadow-overlay);
+  --border-radius-md: var(--radius-md);
+  --border-radius-lg: var(--radius-lg);
+  --color-surface-lowest: var(--bg-surface-1);
+  --color-surface-low: var(--bg-layer-1);
+  --color-surface-mid: var(--bg-layer-2);
+  --color-surface-high: var(--bg-layer-3);
+  --color-surface-primary-container: var(--accent-subtle);
+  --color-on-primary-container: var(--txt-primary);
+  --button-hover-bg: var(--bg-layer-2-hover);
+  --button-active-bg: var(--accent-subtle);
+  --button-active-border: var(--accent);
+
+  /* Excalidraw's own purple, grey and blue, which the block above leaves in
+     place: the "brand" pair behind the selected tool, the slider, the text
+     selection, links, the select highlight, keybinding hints and the greys
+     its buttons and borders reach for. Each is pointed at the token the other
+     apps use for the same job. */
+  --color-brand-hover: var(--accent-hover);
+  --color-brand-active: var(--accent-hover);
+  --color-selection: var(--accent);
+  --color-slider-track: var(--bg-layer-3);
+  --color-slider-thumb: var(--accent);
+  --select-highlight-color: var(--accent);
+  --link-color: var(--txt-accent);
+  --icon-fill-color: var(--txt-secondary);
+  --keybinding-color: var(--txt-placeholder);
+  --input-hover-bg-color: var(--bg-layer-1-hover);
+  --input-label-color: var(--txt-secondary);
+  --default-border-color: var(--border-subtle-1);
+  --list-border-color: var(--border-subtle);
+  --color-border-outline: var(--border-strong);
+  --color-border-outline-variant: var(--border-subtle-1);
+  --color-gray-30: var(--border-strong);
+  --color-disabled: var(--txt-disabled);
+  --color-muted: var(--border-strong);
+  --button-gray-1: var(--bg-layer-1-selected);
+  --button-gray-2: var(--bg-layer-2-hover);
+  --button-gray-3: var(--bg-layer-3);
+  --scrollbar-thumb: var(--border-strong);
+  --scrollbar-thumb-hover: var(--border-strong-1);
+
+  /* The control ladder: a tool is `control-md` like a button elsewhere. */
+  --default-button-size: var(--control-md);
+  --lg-button-size: var(--control-lg);
+}
+
+/* The Help dialog's header is links to Excalidraw's blog, docs and GitHub. */
+.excalidraw .HelpDialog__header,
+/* The library panel's "Browse libraries" goes to libraries.excalidraw.com, and
+   its menu offers publishing there. */
+.excalidraw .library-menu-browse-button,
+.excalidraw .library-menu-dropdown-container,
+.excalidraw .publish-library,
+/* Its logo, wherever a dialog would show it. */
+.excalidraw .ExcalidrawLogo {
+  display: none !important;
+}
+
+/* The credits dialog behind "About this editor". */
+.cv__about-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-backdrop);
+}
+
+.cv__about {
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-layer-2);
+  box-shadow: var(--shadow-overlay);
+  color: var(--txt-secondary);
+  font-size: 13px;
+}
+
+.cv__about h2 {
+  margin: 0;
+  color: var(--txt-primary);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.cv__about p {
+  margin: 0;
+}

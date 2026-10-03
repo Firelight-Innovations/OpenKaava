@@ -57,9 +57,41 @@ def mesh_objects(scene):
     return [o for o in scene.objects if o.type == "MESH" and not o.hide_render]
 
 
+def mesh_counts(depsgraph, obj):
+    """(verts, polys, tris) of an object's evaluated mesh."""
+    ev = obj.evaluated_get(depsgraph)
+    mesh = ev.to_mesh()
+    try:
+        mesh.calc_loop_triangles()
+        return len(mesh.vertices), len(mesh.polygons), len(mesh.loop_triangles)
+    finally:
+        ev.to_mesh_clear()
+
+
+def mesh_instances(depsgraph):
+    """Every instanced mesh (collection instances, nested ones, geometry-node
+    and particle instances) as (parent object name or None, evaluated object,
+    world matrix). The originals are not repeated here; scene.objects has them."""
+    found = []
+    for inst in depsgraph.object_instances:
+        if not inst.is_instance or inst.object.type != "MESH" or inst.object.hide_render:
+            continue
+        parent = inst.parent.original.name if inst.parent is not None else None
+        found.append((parent, inst.object, inst.matrix_world.copy()))
+    return found
+
+
 def collect_parts(scene):
     depsgraph = bpy.context.evaluated_depsgraph_get()
     parts = []
+    instanced = {}
+    for parent, obj, _matrix in mesh_instances(depsgraph):
+        verts, polys, tris = mesh_counts(depsgraph, obj)
+        total = instanced.setdefault(parent, {"verts": 0, "polys": 0, "tris": 0, "meshes": 0})
+        total["verts"] += verts
+        total["polys"] += polys
+        total["tris"] += tris
+        total["meshes"] += 1
     for obj in scene.objects:
         entry = {
             "name": obj.name,
@@ -74,16 +106,18 @@ def collect_parts(scene):
             "dimensions": [round(d, 4) for d in obj.dimensions],
         }
         if obj.type == "MESH":
-            ev = obj.evaluated_get(depsgraph)
-            mesh = ev.to_mesh()
-            try:
-                mesh.calc_loop_triangles()
-                entry["mesh"] = obj.data.name
-                entry["verts"] = len(mesh.vertices)
-                entry["polys"] = len(mesh.polygons)
-                entry["tris"] = len(mesh.loop_triangles)
-            finally:
-                ev.to_mesh_clear()
+            entry["mesh"] = obj.data.name
+            entry["verts"], entry["polys"], entry["tris"] = mesh_counts(depsgraph, obj)
+        if obj.instance_type == "COLLECTION" and obj.instance_collection is not None:
+            # Additive fields: "kind" stays "empty" only for plain empties.
+            total = instanced.get(obj.name, {"verts": 0, "polys": 0, "tris": 0, "meshes": 0})
+            entry["kind"] = "instance"
+            entry["instanceOf"] = obj.instance_collection.name
+            entry["instanceMeshes"] = total["meshes"]
+            entry["verts"] = total["verts"]
+            entry["polys"] = total["polys"]
+            entry["tris"] = total["tris"]
+            entry["dimensions"] = instance_dimensions(depsgraph, obj.name)
         for slot in obj.material_slots:
             if slot.material is not None and slot.material.name not in entry["materials"]:
                 entry["materials"].append(slot.material.name)
@@ -91,16 +125,35 @@ def collect_parts(scene):
     return parts
 
 
+def world_corners(obj, matrix):
+    return [matrix @ Vector(corner) for corner in obj.bound_box]
+
+
+def instance_dimensions(depsgraph, parent_name):
+    """World-space size of everything one instancing object brings in."""
+    points = []
+    for parent, obj, matrix in mesh_instances(depsgraph):
+        if parent == parent_name:
+            points.extend(world_corners(obj, matrix))
+    if not points:
+        return [0.0, 0.0, 0.0]
+    return [round(max(p[i] for p in points) - min(p[i] for p in points), 4) for i in range(3)]
+
+
 def scene_bounds(scene):
     lo = Vector((math.inf,) * 3)
     hi = Vector((-math.inf,) * 3)
     found = False
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    corners = []
     for obj in mesh_objects(scene):
-        for corner in obj.bound_box:
-            world = obj.matrix_world @ Vector(corner)
-            lo = Vector((min(lo[i], world[i]) for i in range(3)))
-            hi = Vector((max(hi[i], world[i]) for i in range(3)))
-            found = True
+        corners.extend(world_corners(obj, obj.matrix_world))
+    for _parent, obj, matrix in mesh_instances(depsgraph):
+        corners.extend(world_corners(obj, matrix))
+    for world in corners:
+        lo = Vector((min(lo[i], world[i]) for i in range(3)))
+        hi = Vector((max(hi[i], world[i]) for i in range(3)))
+        found = True
     if not found:
         return None
     return lo, hi
@@ -129,6 +182,27 @@ def pick_engine(scene, wire):
     warnings.append("Eevee is unavailable in this Blender; rendered with Workbench")
 
 
+def sync_viewport_colours():
+    """Workbench's MATERIAL colour reads Material.diffuse_color, which stays the
+    default grey when the colour lives only in the node tree. Copy each
+    Principled BSDF base colour across. In memory only: nothing here is saved."""
+    for mat in bpy.data.materials:
+        try:
+            # Not the material's node-usage flag: 5.x deprecates it (removal in
+            # 6.0) and prints a warning per material. No node tree, nothing to read.
+            if mat.node_tree is None:
+                continue
+            for node in mat.node_tree.nodes:
+                if node.type != "BSDF_PRINCIPLED":
+                    continue
+                base = node.inputs["Base Color"]
+                if not base.is_linked:
+                    mat.diffuse_color = tuple(base.default_value)
+                    break
+        except Exception as exc:  # e.g. linked library data refusing the write
+            warnings.append("viewport colour for %s not synced: %s" % (mat.name, exc))
+
+
 def render_views(scene, bounds):
     lo, hi = bounds
     center = (lo + hi) / 2
@@ -149,6 +223,8 @@ def render_views(scene, bounds):
         sun = bpy.data.objects.new("kaava_sun", sun_data)
         sun.rotation_euler = (math.radians(50), 0, math.radians(30))
         scene.collection.objects.link(sun)
+
+    sync_viewport_colours()
 
     scene.render.resolution_x = RES
     scene.render.resolution_y = RES
@@ -178,6 +254,8 @@ def render_views(scene, bounds):
                 scene.display.shading.show_object_outline = False
             else:
                 scene.display.shading.type = "SOLID"
+                # Default is the studio grey; MATERIAL shows each material's viewport colour.
+                scene.display.shading.color_type = "MATERIAL"
             filename = "%s.png" % view_id
             scene.render.filepath = os.path.join(OUT, filename)
             bpy.ops.render.render(write_still=True)
@@ -198,10 +276,11 @@ def main():
     try:
         parts = collect_parts(scene)
         result["parts"] = parts
-        meshes = [p for p in parts if p["kind"] == "mesh"]
+        meshes = [p for p in parts if p["kind"] in ("mesh", "instance")]
         result["stats"] = {
             "objects": len(parts),
-            "meshes": len(meshes),
+            "meshes": len([p for p in parts if p["kind"] == "mesh"]),
+            "instances": len([p for p in parts if p["kind"] == "instance"]),
             "materials": len(bpy.data.materials),
             "polys": sum(p["polys"] for p in meshes),
             "tris": sum(p["tris"] for p in meshes),
@@ -210,7 +289,7 @@ def main():
         warnings.append("parts list failed: %s" % exc)
 
     progress("glb")
-    if mesh_objects(scene):
+    if mesh_objects(scene) or mesh_instances(bpy.context.evaluated_depsgraph_get()):
         export_glb(os.path.join(OUT, "model.glb"))
     else:
         warnings.append("no visible mesh objects, so there is nothing to export or render")

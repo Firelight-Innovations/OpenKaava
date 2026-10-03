@@ -1,5 +1,5 @@
 /**
- * What the cluster bar's `+` (and Ctrl+Shift+N) should do next.
+ * What the New cluster entries (the rail strip's `+`, the title bar dropdown's, and Ctrl+Shift+N) should do next.
  *
  * Every new cluster needs a project and an environment, and the New Cluster
  * dialog is what supplies the environment — so with no project set, the project

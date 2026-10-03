@@ -15,12 +15,14 @@
 }
 
 .pl__header {
-  height: 40px;
+  min-height: 40px;
+  min-width: 0;
   flex-shrink: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  padding: 0 10px;
+  gap: 4px 10px;
+  padding: 4px 10px;
   border-bottom: 1px solid var(--border-subtle);
   background: var(--bg-layer-1);
 }
@@ -30,9 +32,13 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--txt-secondary);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .pl__pill {
+  flex-shrink: 0;
+  white-space: nowrap;
   font-size: 10px;
   font-weight: 600;
   padding: 2px 7px;
@@ -48,6 +54,7 @@
 
 .pl__transport {
   display: flex;
+  flex-shrink: 0;
   gap: 4px;
 }
 
@@ -81,6 +88,8 @@
   font-size: 11px;
   font-weight: 600;
   padding: 5px 10px;
+  flex-shrink: 0;
+  white-space: nowrap;
   border-radius: var(--radius-sm, 4px);
   border: 1px solid var(--accent);
   background: var(--accent);
@@ -98,6 +107,9 @@
 
 .pl__select {
   margin-left: auto;
+  min-width: 0;
+  max-width: 100%;
+  text-overflow: ellipsis;
   font: inherit;
   font-size: 11px;
   padding: 3px 6px;
@@ -141,7 +153,8 @@
 .pl__log {
   align-self: stretch;
   flex: 1;
-  min-width: 0;
+  min-width: 8em;
+  min-height: 0;
   overflow: auto;
   padding: 8px 10px;
   border-radius: var(--radius-md, 6px);
@@ -153,7 +166,9 @@
 
 .pl__line {
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  /* Break at spaces first; only a word longer than the line (a path) is split. */
+  overflow-wrap: break-word;
+  word-break: normal;
   color: var(--txt-secondary);
 }
 
@@ -199,10 +214,11 @@
 .pl__frame {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 8px;
   position: relative;
 }
 
@@ -318,20 +334,9 @@
   cursor: default;
 }
 
-.pl__footer {
-  height: 36px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 10px;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--bg-layer-1);
-  font-size: 11px;
-}
-
 .pl__footer-scene {
-  margin-right: auto;
+  min-width: 0;
+  font-size: 11px;
   font-family: var(--type-font-mono, monospace);
   color: var(--txt-secondary);
   overflow: hidden;
@@ -340,6 +345,9 @@
 }
 
 .pl__footer-time {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 11px;
   font-family: var(--type-font-mono, monospace);
   color: var(--txt-secondary);
 }
@@ -351,6 +359,8 @@
   font-size: 11px;
   font-weight: 500;
   padding: 4px 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
   border-radius: var(--radius-sm, 4px);
   border: 1px solid var(--border-subtle);
   background: var(--bg-surface-1);

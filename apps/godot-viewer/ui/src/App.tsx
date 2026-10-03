@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { openIn, reportPainted } from "@openkaava/bridge";
 import {
   ChevronDown,
@@ -20,12 +20,33 @@ import {
 import { formatRenderAge } from "../../../shared/age";
 import { errorText, getStatus, openInGodot, type GodotStatus } from "../../../shared/godot";
 import { SegmentedControl } from "../../../shared/SegmentedControl";
-import { getImage, getState, refresh, type GodotNode, type GodotViewerState } from "./rpc";
+import { SendButton, SendFooter, useSendAction } from "../../../shared/SendFooter";
+import {
+  getImage,
+  getState,
+  loadMarkup,
+  refresh,
+  type GodotNode,
+  type GodotViewerState,
+} from "./rpc";
 import { sampleState } from "./fixtures";
-import { dragContext, putFrame, putTree } from "./context";
+import { dragContext, keepMarkup, putFrame, putMarkup, putTree } from "./context";
+import { useMarkup } from "../../../shared/useMarkup";
+import { AUTO_SEND_KEY, GODOT_TARGET, TIP_KEY } from "../../../shared/markupFlow";
+import { MarkupBar, MarkupTip, PreviousMarkup } from "../../../shared/MarkupPanels";
+import { nodeLookup } from "./preview";
+import { usePreview, type PreviewState } from "./usePreview";
 import "./App.css";
 
+/**
+ * three.js and Excalidraw live behind this import and nowhere else, so the
+ * viewer's first paint does not pay for them (the Godot Viewer is the app
+ * people open to read a tree; 3D is one tab of it).
+ */
+const Scene3D = lazy(() => import("./Scene3D"));
+
 type Mode = "scene" | "play";
+type View = "3d" | "render";
 
 const POLL_MS = 600;
 
@@ -44,8 +65,7 @@ export default function App() {
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
-  const [sent, setSent] = useState<string | null>(null);
-
+  const [view, setView] = useState<View>("3d");
   const refreshComments = useCallback(async () => {
     setCommentsLoading(true);
     setCommentsError(null);
@@ -89,6 +109,28 @@ export default function App() {
     return () => clearInterval(timer);
   }, [jobRunning, load]);
 
+  const wants3d =
+    mode === "scene" &&
+    view === "3d" &&
+    !preview &&
+    state !== null &&
+    state.engineFound &&
+    state.scenes.length > 0;
+  const p3d = usePreview(state?.scene ?? undefined, wants3d);
+  const recheck3d = p3d.load;
+  const lookup = useMemo(
+    () => (p3d.state.kind === "ready" ? nodeLookup(p3d.state.data.nodeMap) : null),
+    [p3d.state],
+  );
+
+  // A refresh that just finished may have been prompted by an edit to the
+  // scene; ask again. An unchanged scene answers from cache and keeps the view.
+  const wasRunning = useRef(false);
+  useEffect(() => {
+    if (wasRunning.current && !jobRunning && wants3d) recheck3d(false, true);
+    wasRunning.current = jobRunning;
+  }, [jobRunning, wants3d, recheck3d]);
+
   const startRefresh = async (render: boolean) => {
     setProblem(null);
     try {
@@ -108,16 +150,38 @@ export default function App() {
   const busy = job?.running === true;
   const noScenes = !preview && state !== null && state.scenes.length === 0;
 
-  const send = async (what: string, put: () => Promise<unknown>) => {
-    setProblem(null);
-    try {
-      await put();
-      setSent(what);
-      setTimeout(() => setSent((s) => (s === what ? null : s)), 1800);
-    } catch (e) {
-      setProblem(`Couldn't send ${what} to the agent: ${errorText(e)}`);
-    }
-  };
+  const { sent, send } = useSendAction(setProblem, errorText);
+
+  const {
+    markup,
+    barOpen,
+    setBarOpen,
+    previousOpen,
+    setPreviousOpen,
+    tip,
+    closeTip,
+    onMarkup,
+    sendKept: sendMarkup,
+    flip,
+  } = useMarkup({
+    target: GODOT_TARGET,
+    subject: state?.scene ?? null,
+    enabled: !preview,
+    load: (scene) => loadMarkup(scene),
+    save: (scene, png, json) => keepMarkup(png, json, scene),
+    send,
+    onProblem: setProblem,
+    describeError: errorText,
+  });
+  // What the pane is showing decides which send buttons the footer offers: the
+  // markup only exists over the 3D view, the frame only over the rendered one.
+  const inThreeD = p3d.state.kind === "ready" && lookup !== null && view === "3d";
+  const frameShown =
+    !inThreeD &&
+    !(view === "3d" && p3d.state.kind === "loading") &&
+    shown?.scenePath != null &&
+    image !== null &&
+    !preview;
 
   const postComment = async () => {
     if (!selected || !draft.trim()) return;
@@ -229,6 +293,15 @@ export default function App() {
 
             <main className="gv__viewport">
               <div className="gv__actions">
+                <SegmentedControl
+                  aria-label="Scene view"
+                  value={view}
+                  onChange={setView}
+                  options={[
+                    { value: "3d", label: "3D" },
+                    { value: "render", label: "Render" },
+                  ]}
+                />
                 <button
                   type="button"
                   className="gv__action"
@@ -252,21 +325,48 @@ export default function App() {
                   <ImageIcon size={13} strokeWidth={1.5} aria-hidden="true" />
                   Render view
                 </button>
-                <button
-                  type="button"
-                  className="gv__action"
-                  disabled={preview || busy || nodes.length === 0 || !state}
-                  title="Send the scene tree to the agent, or drag this onto a terminal"
-                  onClick={() => state && void send("tree", () => putTree(state))}
-                  onPointerDown={state ? dragContext(() => putTree(state)) : undefined}
-                >
-                  {sent === "tree" ? "Sent" : "Send tree"}
-                </button>
                 {busy && <span className="gv__phase">{job?.phase}...</span>}
                 {sourceLabel && !busy && <span className="gv__phase">{sourceLabel}</span>}
               </div>
               {shown?.note && !busy && <p className="gv__note">{shown.note}</p>}
-              {shown?.scenePath == null ? (
+              {view === "3d" && !preview && (
+                <Preview3DStatus
+                  state={p3d.state}
+                  engineFound={state?.engineFound ?? true}
+                  onRetry={() => p3d.load(true, false)}
+                />
+              )}
+              {p3d.state.kind === "ready" && lookup && view === "3d" ? (
+                <>
+                  <Suspense fallback={<p className="gv__hint">Loading the 3D view...</p>}>
+                    <Scene3D
+                      glb={p3d.state.data.glb}
+                      lookup={lookup}
+                      glbPath={p3d.state.data.path}
+                      scenePath={state?.scene ?? ""}
+                      godot={p3d.state.data.godot}
+                      selected={selected}
+                      onSelect={setSelected}
+                      onMarkup={onMarkup}
+                      onNotice={setProblem}
+                    />
+                  </Suspense>
+                  {markup && (
+                    <MarkupBar
+                      url={markup.url}
+                      json={markup.json}
+                      fresh={markup.fresh}
+                      open={barOpen}
+                      onOpenChange={setBarOpen}
+                      onView={() => setPreviousOpen(true)}
+                      onPointerDown={dragContext(() =>
+                        putMarkup(markup.png, markup.json, state?.scene ?? null),
+                      )}
+                    />
+                  )}
+                </>
+              ) : view === "3d" && p3d.state.kind === "loading" ? null : shown?.scenePath ==
+                null ? (
                 <p className="gv__hint">
                   {noScenes
                     ? "This project has no scenes yet."
@@ -285,13 +385,6 @@ export default function App() {
                         title="Drag onto a terminal to send to the agent"
                         onPointerDown={dragContext(() => putFrame(image, shown.scenePath))}
                       />
-                      <button
-                        type="button"
-                        className="gv__action"
-                        onClick={() => void send("frame", () => putFrame(image, shown.scenePath))}
-                      >
-                        {sent === "frame" ? "Sent" : "Send frame"}
-                      </button>
                       <span className="gv__frame-age">
                         {formatRenderAge(shown.imageAt).replace("rendered", "frame rendered")}
                       </span>
@@ -368,31 +461,85 @@ export default function App() {
         )}
       </div>
 
-      <footer className="gv__footer">
-        <button type="button" className="gv__footer-btn" onClick={() => setCommentsOpen((v) => !v)}>
-          <MessageSquarePlus size={13} strokeWidth={1.5} aria-hidden="true" />
-          Comments {openCount > 0 ? `· ${openCount} open` : ""}
-        </button>
-        <button
-          type="button"
-          className="gv__footer-btn"
-          disabled={!found || readOnly}
-          title={
-            readOnly
-              ? "The main checkout is read-only; open a worktree to edit."
-              : found
-                ? "Open this project in the Godot editor"
-                : "Godot 4 was not found."
-          }
-          onClick={() => {
-            setProblem(null);
-            openInGodot().catch((e) => setProblem(errorText(e)));
-          }}
-        >
-          <ExternalLink size={13} strokeWidth={1.5} aria-hidden="true" />
-          Open in Godot
-        </button>
-      </footer>
+      {previousOpen && markup && (
+        <PreviousMarkup
+          url={markup.url}
+          json={markup.json}
+          savedAt={markup.savedAt}
+          onClose={() => setPreviousOpen(false)}
+        />
+      )}
+      {tip && (
+        <MarkupTip
+          onEnable={() => flip(AUTO_SEND_KEY, true)}
+          onNever={() => flip(TIP_KEY, false)}
+          onClose={closeTip}
+        />
+      )}
+      <SendFooter
+        trailing={
+          <>
+            <button
+              type="button"
+              className="gv__footer-btn"
+              onClick={() => setCommentsOpen((v) => !v)}
+            >
+              <MessageSquarePlus size={13} strokeWidth={1.5} aria-hidden="true" />
+              Comments {openCount > 0 ? `· ${openCount} open` : ""}
+            </button>
+            <button
+              type="button"
+              className="gv__footer-btn"
+              disabled={!found || readOnly}
+              title={
+                readOnly
+                  ? "The main checkout is read-only; open a worktree to edit."
+                  : found
+                    ? "Open this project in the Godot editor"
+                    : "Godot 4 was not found."
+              }
+              onClick={() => {
+                setProblem(null);
+                openInGodot().catch((e) => setProblem(errorText(e)));
+              }}
+            >
+              <ExternalLink size={13} strokeWidth={1.5} aria-hidden="true" />
+              Open in Godot
+            </button>
+          </>
+        }
+      >
+        {mode === "scene" && (
+          <SendButton
+            label="Send tree"
+            sent={sent === "tree"}
+            disabled={preview || busy || nodes.length === 0 || !state}
+            title="Send the scene tree to the agent, or drag this onto a terminal"
+            onClick={() => state && void send("tree", "tree", () => putTree(state))}
+            onPointerDown={state ? dragContext(() => putTree(state)) : undefined}
+          />
+        )}
+        {mode === "scene" && frameShown && shown && image && (
+          <SendButton
+            label="Send frame"
+            sent={sent === "frame"}
+            title="Send the rendered frame to the agent, or drag this onto a terminal"
+            onClick={() => void send("frame", "frame", () => putFrame(image, shown.scenePath))}
+            onPointerDown={dragContext(() => putFrame(image, shown.scenePath))}
+          />
+        )}
+        {mode === "scene" && inThreeD && markup && (
+          <SendButton
+            label="Send markup"
+            sent={sent === "markup"}
+            title="Send the markup you drew to the agent, or drag this onto a terminal"
+            onClick={() => void sendMarkup()}
+            onPointerDown={dragContext(() =>
+              putMarkup(markup.png, markup.json, state?.scene ?? null),
+            )}
+          />
+        )}
+      </SendFooter>
     </div>
   );
 }
@@ -456,4 +603,39 @@ function TreeRow({
       )}
     </div>
   );
+}
+
+/** Why the 3D view is not showing, when it is not, and what the person can do about it. */
+function Preview3DStatus({
+  state,
+  engineFound,
+  onRetry,
+}: {
+  state: PreviewState;
+  engineFound: boolean;
+  onRetry: () => void;
+}) {
+  if (state.kind === "loading") {
+    return <p className="gv__hint">Exporting the scene for 3D ({state.phase})...</p>;
+  }
+  if (state.kind === "failed") {
+    return (
+      <div className="gv__notice gv__notice--error">
+        <p>3D preview unavailable: {state.message} The last rendered frame is shown instead.</p>
+        {state.output.length > 0 && <code className="gv__output">{state.output.join("\n")}</code>}
+        <button type="button" className="gv__action" onClick={onRetry}>
+          <RefreshCw size={13} strokeWidth={1.5} aria-hidden="true" />
+          Try again
+        </button>
+      </div>
+    );
+  }
+  if (state.kind === "off" && !engineFound) {
+    return (
+      <p className="gv__notice">
+        The 3D preview needs Godot 4 to export the scene. Set its path under Settings, Godot.
+      </p>
+    );
+  }
+  return null;
 }

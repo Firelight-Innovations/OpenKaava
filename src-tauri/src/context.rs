@@ -8,7 +8,7 @@
 //! Layout, per environment:
 //! ```text
 //! .kaava/context/.gitignore          `*` — context never enters a commit
-//! .kaava/context/<stamp>-<slug>.png  the bytes (an "owned" item)
+//! .kaava/context/<key-slug>.png      the bytes (an "owned" item)
 //! .kaava/context/<id>.json           the sidecar: one [`ContextItem`]
 //! ```
 //!
@@ -34,9 +34,20 @@ pub const MAX_IMAGE_BYTES: usize = 8 * 1024 * 1024;
 pub const MAX_TEXT_BYTES: usize = 256 * 1024;
 /// The copy limit for a file dropped in from outside the environment.
 pub const MAX_FILE_BYTES: u64 = 25 * 1024 * 1024;
-/// Per-environment retention. Oldest owned items go first.
-pub const MAX_ITEMS: usize = 500;
-pub const MAX_TOTAL_BYTES: u64 = 500 * 1024 * 1024;
+/// Per-environment retention, a backstop now that a key overwrites rather than
+/// accumulates. Whichever limit is hit first, the oldest owned item goes first.
+pub const MAX_ITEMS: usize = 200;
+pub const MAX_TOTAL_BYTES: u64 = 200 * 1024 * 1024;
+/// A key longer than this is refused; the file name is cut well before it.
+const MAX_KEY_CHARS: usize = 240;
+/// How long a rename over a file a reader has open is retried before the write
+/// falls back to a new name.
+const RENAME_ATTEMPTS: u32 = 12;
+const RENAME_DELAY_MS: u64 = 40;
+/// Prefix of the in-flight file of an atomic write. A leftover older than
+/// [`STALE_TMP_SECS`] (a crash between write and rename) is swept by `prune`.
+const TMP_PREFIX: &str = ".tmp-";
+const STALE_TMP_SECS: u64 = 600;
 
 /// The event Rust emits after any change to a store. The payload is
 /// `{ "root": "<environment root>" }`; a listener refetches if that root is
@@ -50,6 +61,9 @@ pub enum Kind {
     File,
     /// A snippet of text: a log tail, a selection, a note.
     Text,
+    /// Structured data an agent reads as JSON (a markup export). Stored as a
+    /// `.json` file, never truncated: a cut document would not parse.
+    Json,
     /// A capture of a whole panel. Stored exactly like an image; the kind is
     /// there so a strip can say where it came from.
     Panel,
@@ -100,9 +114,13 @@ pub struct TextInfo {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContextItem {
-    /// `ctx_` + 12 hex digits of milliseconds + 6 of randomness, so ids sort
-    /// by age and never need a shared counter.
+    /// `ctx_` + 16 hex digits of the key's hash (see [`id_for_key`]). Records
+    /// from before keys existed carry `ctx_` + time and randomness instead.
     pub id: String,
+    /// The stable source key the id and file name derive from. Empty on a
+    /// record written before keys existed.
+    #[serde(default)]
+    pub key: String,
     pub v: u8,
     pub kind: Kind,
     /// Sniffed from the bytes for images, from the extension otherwise.
@@ -110,8 +128,22 @@ pub struct ContextItem {
     pub title: String,
     pub source: Source,
     pub method: Method,
-    /// Epoch milliseconds.
+    /// Epoch milliseconds, when the key was first sent.
     pub created_at: u64,
+    /// Epoch milliseconds of the latest send; the strip orders by this and
+    /// shows "updated" when it is later than `created_at`. 0 on an old record.
+    #[serde(default)]
+    pub updated_at: u64,
+    /// Hex SHA-256 of the stored bytes, when known.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sha256: Option<String>,
+    /// The file's modification time (epoch ms) when it was last written.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mtime: Option<u64>,
+    /// Set when the write could not overwrite the usual file (a reader held it)
+    /// and this item lives under a different name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notice: Option<String>,
     pub size: u64,
     /// Absolute, native separators.
     pub path: String,
@@ -145,6 +177,9 @@ pub enum Payload {
 
 #[derive(Debug, Clone)]
 pub struct PutRequest {
+    /// The stable source key. `None` derives one: `paste/<hash>` for bytes and
+    /// text, `file/<path>` for a file.
+    pub key: Option<String>,
     /// `None` infers: an image by its bytes, a file otherwise, text for
     /// [`Payload::Text`].
     pub kind: Option<Kind>,
@@ -226,12 +261,15 @@ pub fn list(root: &Path) -> Vec<ContextItem> {
             }
         })
         .collect();
-    items.sort_by(|a, b| {
-        b.created_at
-            .cmp(&a.created_at)
-            .then_with(|| b.id.cmp(&a.id))
-    });
+    items.sort_by(|a, b| b.recency().cmp(&a.recency()).then_with(|| b.id.cmp(&a.id)));
     items
+}
+
+impl ContextItem {
+    /// When this item was last sent: a re-send bumps it to the top.
+    fn recency(&self) -> u64 {
+        self.updated_at.max(self.created_at)
+    }
 }
 
 pub fn get(root: &Path, id: &str) -> Result<ContextItem, RpcError> {
@@ -280,8 +318,25 @@ pub fn read_image(root: &Path, id: &str) -> Result<(String, String), RpcError> {
 }
 
 /// Materialise something into the store and return its record.
+///
+/// Every item has a stable key (`blender/<blend>/<view>`, `godot/<scene>/frame`,
+/// `file/<relpath>`, `paste/<content hash>`). The id and the file name both
+/// derive from it, so sending the same source again overwrites the file and the
+/// sidecar and bumps the one record, instead of adding a copy. Overwrites are
+/// atomic, and identical bytes arriving under a different key are stored once.
 pub fn put(root: &Path, request: PutRequest) -> Result<ContextItem, RpcError> {
+    put_with(root, request, &|from, to| std::fs::rename(from, to))
+}
+
+/// [`put`] with the rename injected, so a test can stand in for a reader that
+/// holds the destination open.
+fn put_with(
+    root: &Path,
+    request: PutRequest,
+    rename: &dyn Fn(&Path, &Path) -> std::io::Result<()>,
+) -> Result<ContextItem, RpcError> {
     let PutRequest {
+        key,
         kind,
         title,
         payload,
@@ -296,8 +351,11 @@ pub fn put(root: &Path, request: PutRequest) -> Result<ContextItem, RpcError> {
         Payload::Path(p) => p.file_name().map(|n| n.to_string_lossy().into_owned()),
         _ => None,
     });
-    let created_at = crate::comments::monotonic_ms();
-    let id = new_id(created_at);
+    let now = crate::comments::monotonic_ms();
+    let source_path = match &payload {
+        Payload::Path(p) => Some(p.clone()),
+        _ => None,
+    };
 
     // What the content is, and the bytes to write (or the file to reference).
     enum Body {
@@ -315,14 +373,23 @@ pub fn put(root: &Path, request: PutRequest) -> Result<ContextItem, RpcError> {
             (kind, Body::Write(bytes), sniffed, None, None, None)
         }
         Payload::Text(text) => {
+            let kind = kind.unwrap_or(Kind::Text);
+            let json = kind == Kind::Json;
+            if json && text.len() > MAX_TEXT_BYTES {
+                return Err(invalid(format!(
+                    "that JSON is {} KB; the limit is {} KB and a cut document would not parse",
+                    text.len() / 1024,
+                    MAX_TEXT_BYTES / 1024
+                )));
+            }
             let (text, meta) = clamp_text(text);
             let preview: String = text.chars().take(240).collect();
             let bytes = text.into_bytes();
             (
-                kind.unwrap_or(Kind::Text),
+                kind,
                 Body::Write(bytes),
                 None,
-                Some("txt".to_string()),
+                Some(if json { "json" } else { "txt" }.to_string()),
                 Some(meta),
                 Some(preview),
             )
@@ -381,20 +448,60 @@ pub fn put(root: &Path, request: PutRequest) -> Result<ContextItem, RpcError> {
         }
     }
 
-    let (path, size, mime, owned) = match body {
+    let sha = match &body {
+        Body::Write(bytes) => Some(sha_hex(bytes)),
+        Body::InPlace(path) => hash_file(path),
+    };
+    let key = match key {
+        Some(k) => normalize_key(&k)?,
+        None => default_key(root, source_path.as_deref(), sha.as_deref()),
+    };
+    let id = id_for_key(&key);
+    let previous = get(root, &id).ok();
+    let created_at = previous.as_ref().map_or(now, |p| p.created_at);
+
+    // The same bytes under a key nobody has used: store them once, and hand back
+    // the record that already holds them, bumped to the top.
+    if let (None, Body::Write(_), Some(sha)) = (&previous, &body, &sha) {
+        let twin = list(root).into_iter().find(|i| {
+            i.owned && !i.missing && i.kind == kind && i.sha256.as_deref() == Some(sha.as_str())
+        });
+        if let Some(mut twin) = twin {
+            twin.updated_at = now;
+            write_sidecar(&dir, &twin, rename)?;
+            return Ok(twin);
+        }
+    }
+
+    let (path, size, mime, owned, notice, mtime) = match body {
         Body::Write(bytes) => {
             let ext = match &sniffed {
                 Some(s) => s.ext.to_string(),
                 None => sanitize_ext(ext_hint.as_deref().unwrap_or("bin")),
             };
-            let name = file_name(created_at, title.as_deref(), kind, &ext, &id);
-            let path = dir.join(&name);
-            write_new(&path, &bytes)?;
             let mime = sniffed
                 .as_ref()
                 .map(|s| s.mime.to_string())
                 .unwrap_or_else(|| mime_for_ext(&ext).to_string());
-            (path, bytes.len() as u64, mime, true)
+            // Identical bytes already in place: nothing to write, only a bump.
+            let current = previous.as_ref().filter(|p| {
+                p.owned && !p.missing && p.sha256 == sha && p.size == bytes.len() as u64
+            });
+            if let Some(p) = current {
+                (
+                    PathBuf::from(&p.path),
+                    p.size,
+                    mime,
+                    true,
+                    p.notice.clone(),
+                    p.mtime,
+                )
+            } else {
+                let target = stable_path(&dir, previous.as_ref(), &key, &id, &ext);
+                let (path, notice) = write_owned(&target, &bytes, rename)?;
+                let mtime = file_mtime_ms(&path);
+                (path, bytes.len() as u64, mime, true, notice, mtime)
+            }
         }
         Body::InPlace(path) => {
             let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
@@ -403,7 +510,8 @@ pub fn put(root: &Path, request: PutRequest) -> Result<ContextItem, RpcError> {
                 .as_ref()
                 .map(|s| s.mime.to_string())
                 .unwrap_or_else(|| mime_for_ext(&ext).to_string());
-            (path, size, mime, false)
+            let mtime = file_mtime_ms(&path);
+            (path, size, mime, false, None, mtime)
         }
     };
 
@@ -418,6 +526,7 @@ pub fn put(root: &Path, request: PutRequest) -> Result<ContextItem, RpcError> {
 
     let item = ContextItem {
         id: id.clone(),
+        key,
         v: 1,
         kind,
         mime,
@@ -425,6 +534,10 @@ pub fn put(root: &Path, request: PutRequest) -> Result<ContextItem, RpcError> {
         source: Source { app_id, label },
         method,
         created_at,
+        updated_at: now,
+        sha256: sha,
+        mtime,
+        notice,
         size,
         rel_path: relative_to(root, &path).unwrap_or_default(),
         path: path.to_string_lossy().into_owned(),
@@ -437,12 +550,249 @@ pub fn put(root: &Path, request: PutRequest) -> Result<ContextItem, RpcError> {
         missing: false,
     };
 
-    let json = serde_json::to_string_pretty(&item).map_err(|e| internal(e.to_string()))?;
-    std::fs::write(sidecar(&dir, &id), json)
-        .map_err(|e| internal(format!("could not write the context record: {e}")))?;
+    write_sidecar(&dir, &item, rename)?;
+
+    // A copy Kaava wrote under another name (the extension changed, or the
+    // last send fell back to a new name) is now stale: the record moved on.
+    // The exception is the canonical file a reader is holding: it stays, stale,
+    // and the next send over it succeeds once the reader lets go.
+    let held_canonical = |p: &ContextItem| item.notice.is_some() && p.notice.is_none();
+    if let Some(old) = previous
+        .as_ref()
+        .filter(|p| p.owned && p.path != item.path && !held_canonical(p))
+    {
+        let old = PathBuf::from(&old.path);
+        if old.starts_with(&dir) {
+            let _ = std::fs::remove_file(old);
+        }
+    }
 
     prune(root);
     Ok(item)
+}
+
+// --- keys, and writing over them ---------------------------------------------
+
+fn sha_hex(bytes: &[u8]) -> String {
+    use sha2::{Digest, Sha256};
+    Sha256::digest(bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
+}
+
+fn hash_file(path: &Path) -> Option<String> {
+    let len = std::fs::metadata(path).ok()?.len();
+    if len > MAX_FILE_BYTES {
+        return None;
+    }
+    std::fs::read(path).ok().map(|b| sha_hex(&b))
+}
+
+/// Lower-case, forward slashes, no empty segments, so `Blender/Room//Top` and
+/// `blender/room/top` are one key.
+fn normalize_key(raw: &str) -> Result<String, RpcError> {
+    let joined = raw
+        .trim()
+        .replace('\\', "/")
+        .to_lowercase()
+        .split('/')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("/");
+    if joined.is_empty() {
+        return Err(invalid("a context key cannot be empty"));
+    }
+    if joined.chars().count() > MAX_KEY_CHARS {
+        return Err(invalid(format!(
+            "a context key is at most {MAX_KEY_CHARS} characters"
+        )));
+    }
+    Ok(joined)
+}
+
+/// The key for a put whose caller did not name one: a file is its path, anything
+/// else is its content.
+fn default_key(root: &Path, path: Option<&Path>, sha: Option<&str>) -> String {
+    let normalized = match path {
+        Some(p) => {
+            let shown = relative_to(root, p).unwrap_or_else(|| p.to_string_lossy().into_owned());
+            format!("file/{shown}")
+        }
+        None => {
+            let short: String = sha.unwrap_or("none").chars().take(16).collect();
+            format!("paste/{short}")
+        }
+    };
+    normalize_key(&normalized).unwrap_or_else(|_| "paste/unknown".into())
+}
+
+/// `ctx_` + 16 hex digits of the key's SHA-256. Valid by [`valid_id`], and the
+/// same every time, which is what makes a re-send land on the same record.
+fn id_for_key(key: &str) -> String {
+    let full = sha_hex(key.as_bytes());
+    format!("ctx_{}", &full[..16])
+}
+
+/// The readable part of a file name, from the key: `blender/room/three-quarter`
+/// becomes `blender-room-three-quarter`. A long key keeps its first and last
+/// segment and the id's tail, so the name stays short and stays unique.
+fn key_stem(key: &str, id: &str) -> String {
+    let segments: Vec<String> = key
+        .split('/')
+        .map(slugify)
+        .filter(|s| !s.is_empty())
+        .collect();
+    let tail = &id[id.len().saturating_sub(4)..];
+    let joined = segments.join("-");
+    if joined.is_empty() {
+        return format!("item-{tail}");
+    }
+    if joined.len() <= 40 {
+        return joined;
+    }
+    let first = segments.first().cloned().unwrap_or_default();
+    let last: String = segments
+        .last()
+        .map(|s| s.chars().take(28).collect())
+        .unwrap_or_default();
+    format!("{first}-{last}-{tail}")
+        .trim_matches('-')
+        .to_string()
+}
+
+/// Where the file for `key` goes. A record that already owns the canonical name
+/// keeps it. A name held by a different key (or an old timestamped file) is not
+/// touched: the id's tail is added.
+fn stable_path(
+    dir: &Path,
+    previous: Option<&ContextItem>,
+    key: &str,
+    id: &str,
+    ext: &str,
+) -> PathBuf {
+    let stem = key_stem(key, id);
+    let want = dir.join(format!("{stem}.{ext}"));
+    let ours = previous.is_some_and(|p| {
+        Path::new(&p.path) == want.as_path()
+            // The last send could not take this name, so it is ours and locked.
+            || p.notice.is_some()
+    });
+    if ours || !want.exists() {
+        return want;
+    }
+    let tail = &id[id.len().saturating_sub(4)..];
+    dir.join(format!("{stem}-{tail}.{ext}"))
+}
+
+fn is_busy(e: &std::io::Error) -> bool {
+    e.kind() == std::io::ErrorKind::PermissionDenied
+        || matches!(e.raw_os_error(), Some(5) | Some(32) | Some(33))
+}
+
+/// Temp file in the destination's own directory, then a rename over the target.
+/// The rename is atomic on one volume and replaces an existing file on Windows
+/// too. A reader with the target open makes it fail there; that is retried for
+/// a moment before the error is returned. A failure leaves no temp file behind.
+fn write_atomic(
+    path: &Path,
+    bytes: &[u8],
+    rename: &dyn Fn(&Path, &Path) -> std::io::Result<()>,
+) -> std::io::Result<()> {
+    use std::io::Write;
+    let dir = path
+        .parent()
+        .ok_or_else(|| std::io::Error::other("a context file needs a directory"))?;
+    let tmp = dir.join(format!("{TMP_PREFIX}{:08x}", rand::rng().next_u32()));
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&tmp)?;
+    let written = file.write_all(bytes).and_then(|_| file.sync_all());
+    drop(file);
+    if let Err(e) = written {
+        let _ = std::fs::remove_file(&tmp);
+        return Err(e);
+    }
+    let mut attempt = 1;
+    loop {
+        match rename(&tmp, path) {
+            Ok(()) => return Ok(()),
+            Err(e) if attempt < RENAME_ATTEMPTS && is_busy(&e) => {
+                attempt += 1;
+                std::thread::sleep(std::time::Duration::from_millis(RENAME_DELAY_MS));
+            }
+            Err(e) => {
+                let _ = std::fs::remove_file(&tmp);
+                return Err(e);
+            }
+        }
+    }
+}
+
+/// [`write_atomic`] to the stable name; only if that stays impossible, a new
+/// name, reported in the returned notice.
+fn write_owned(
+    target: &Path,
+    bytes: &[u8],
+    rename: &dyn Fn(&Path, &Path) -> std::io::Result<()>,
+) -> Result<(PathBuf, Option<String>), RpcError> {
+    let first = match write_atomic(target, bytes, rename) {
+        Ok(()) => return Ok((target.to_path_buf(), None)),
+        Err(e) => e,
+    };
+    let stem = target
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let ext = target
+        .extension()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let alt = target.with_file_name(format!(
+        "{stem}-{}-{:04x}.{ext}",
+        stamp(crate::comments::monotonic_ms()),
+        rand::rng().next_u32() & 0xFFFF
+    ));
+    write_atomic(&alt, bytes, rename).map_err(|e| {
+        internal(format!(
+            "could not write {} ({first}) or {} ({e})",
+            target.display(),
+            alt.display()
+        ))
+    })?;
+    let shown = |p: &Path| {
+        p.file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default()
+    };
+    let note = format!(
+        "{} was in use ({first}), so this was saved as {}",
+        shown(target),
+        shown(&alt)
+    );
+    crate::kaava_log!("context: {note}");
+    Ok((alt, Some(note)))
+}
+
+fn write_sidecar(
+    dir: &Path,
+    item: &ContextItem,
+    rename: &dyn Fn(&Path, &Path) -> std::io::Result<()>,
+) -> Result<(), RpcError> {
+    let json = serde_json::to_string_pretty(item).map_err(|e| internal(e.to_string()))?;
+    write_atomic(&sidecar(dir, &item.id), json.as_bytes(), rename)
+        .map_err(|e| internal(format!("could not write the context record: {e}")))
+}
+
+fn file_mtime_ms(path: &Path) -> Option<u64> {
+    let modified = std::fs::metadata(path).ok()?.modified().ok()?;
+    let ms = modified
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()?
+        .as_millis();
+    u64::try_from(ms).ok()
 }
 
 /// Keep the store inside its retention limits, oldest owned item first.
@@ -451,7 +801,28 @@ pub fn prune(root: &Path) {
     prune_to(root, MAX_ITEMS, MAX_TOTAL_BYTES);
 }
 
+fn sweep_stale_temp(dir: &Path) {
+    let Ok(reader) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in reader.flatten() {
+        if !entry.file_name().to_string_lossy().starts_with(TMP_PREFIX) {
+            continue;
+        }
+        let old = entry
+            .metadata()
+            .and_then(|m| m.modified())
+            .ok()
+            .and_then(|t| t.elapsed().ok())
+            .is_some_and(|age| age.as_secs() > STALE_TMP_SECS);
+        if old {
+            let _ = std::fs::remove_file(entry.path());
+        }
+    }
+}
+
 fn prune_to(root: &Path, max_items: usize, max_bytes: u64) {
+    sweep_stale_temp(&store_dir(root));
     let mut items = list(root);
     items.reverse(); // oldest first
     let mut count = items.len();
@@ -616,32 +987,8 @@ fn clamp_text(text: String) -> (String, TextInfo) {
 
 // --- names and paths ---------------------------------------------------------
 
-/// `<yyyymmdd-hhmmss>-<slug>-<id tail>.<ext>`. The slug is `[a-z0-9-]` only, so
-/// no harness adapter ever has to quote a name Kaava chose.
-fn file_name(created_at: u64, title: Option<&str>, kind: Kind, ext: &str, id: &str) -> String {
-    let fallback = match kind {
-        Kind::Image => "image",
-        Kind::File => "file",
-        Kind::Text => "text",
-        Kind::Panel => "panel",
-    };
-    let stem = title
-        .and_then(|t| {
-            Path::new(t)
-                .file_stem()
-                .map(|s| s.to_string_lossy().into_owned())
-        })
-        .unwrap_or_default();
-    let slug = slugify(&stem);
-    let slug = if slug.is_empty() {
-        fallback.to_string()
-    } else {
-        slug
-    };
-    let tail = &id[id.len().saturating_sub(4)..];
-    format!("{}-{slug}-{tail}.{ext}", stamp(created_at))
-}
-
+/// File names are `[a-z0-9-]` only (see [`key_stem`]), so no harness adapter
+/// ever has to quote a name Kaava chose.
 pub fn slugify(s: &str) -> String {
     let mut out = String::new();
     for c in s.chars().flat_map(char::to_lowercase) {
@@ -700,17 +1047,6 @@ fn stamp(ms: u64) -> String {
     )
 }
 
-fn write_new(path: &Path, bytes: &[u8]) -> Result<(), RpcError> {
-    use std::io::Write;
-    let mut file = std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(path)
-        .map_err(|e| internal(format!("could not create {}: {e}", path.display())))?;
-    file.write_all(bytes)
-        .map_err(|e| internal(format!("could not write {}: {e}", path.display())))
-}
-
 /// Lexical containment, with `.` and `..` folded. Not `canonicalize`: the path
 /// may be on a drive that has since gone, and Windows verbatim prefixes make a
 /// canonical path compare unequal to the one the user typed.
@@ -763,15 +1099,6 @@ pub fn relative_to(root: &Path, path: &Path) -> Option<String> {
     Some(rel)
 }
 
-fn new_id(ms: u64) -> String {
-    let mut suffix = [0u8; 3];
-    rand::rng().fill_bytes(&mut suffix);
-    format!(
-        "ctx_{ms:012x}{:02x}{:02x}{:02x}",
-        suffix[0], suffix[1], suffix[2]
-    )
-}
-
 // --- the RPC surface for apps ---------------------------------------------------
 
 /// Answered by the host before any app is looked up, so every app (and a
@@ -783,6 +1110,10 @@ pub fn is_method(method: &str) -> bool {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct PutParams {
+    /// Names the source, e.g. `blender/<blend>/<view>`; sending it again
+    /// replaces the earlier item instead of adding one.
+    #[serde(default)]
+    key: Option<String>,
     #[serde(default)]
     kind: Option<Kind>,
     #[serde(default)]
@@ -849,6 +1180,7 @@ pub fn call(
             to_value(put(
                 root,
                 PutRequest {
+                    key: p.key,
                     kind: p.kind,
                     title: p.title,
                     payload,
@@ -900,6 +1232,7 @@ mod tests {
 
     fn req(payload: Payload) -> PutRequest {
         PutRequest {
+            key: None,
             kind: None,
             title: None,
             payload,
@@ -1162,5 +1495,355 @@ mod tests {
             5,
             "2 files + 2 sidecars + .gitignore"
         );
+    }
+
+    fn keyed(key: &str, payload: Payload) -> PutRequest {
+        PutRequest {
+            key: Some(key.into()),
+            ..req(payload)
+        }
+    }
+
+    fn files_in(dir: &Path) -> Vec<String> {
+        let mut names: Vec<String> = std::fs::read_dir(store_dir(dir))
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| n != ".gitignore")
+            .collect();
+        names.sort();
+        names
+    }
+
+    #[test]
+    fn the_same_key_overwrites_one_file_however_many_times_it_is_sent() {
+        let dir = TempDir::new().unwrap();
+        let key = "blender/room/three-quarter";
+        let mut last = None;
+        for n in 1..=6u32 {
+            last = Some(put(dir.path(), keyed(key, Payload::Bytes(png(10 + n, 10)))).unwrap());
+        }
+        let last = last.unwrap();
+        assert_eq!(
+            files_in(dir.path()),
+            vec![
+                "blender-room-three-quarter.png".to_string(),
+                format!("{}.json", last.id)
+            ]
+        );
+        assert_eq!(std::fs::read(&last.path).unwrap(), png(16, 10));
+        assert_eq!(list(dir.path()).len(), 1);
+        assert_eq!(last.sha256.as_deref(), Some(sha_hex(&png(16, 10)).as_str()));
+        assert!(last.mtime.is_some());
+        assert!(last.updated_at >= last.created_at);
+    }
+
+    #[test]
+    fn json_is_stored_as_a_json_file_whole_and_overwritten_in_place() {
+        let dir = TempDir::new().unwrap();
+        let key = "godot/main/markup-json";
+        let one = r#"{"v":1,"pins":[]}"#;
+        let mut first = req(Payload::Text(one.into()));
+        first.key = Some(key.into());
+        first.kind = Some(Kind::Json);
+        let a = put(dir.path(), first).unwrap();
+        assert_eq!(a.kind, Kind::Json);
+        assert_eq!(a.mime, "application/json");
+        assert!(a.path.ends_with(".json"), "{}", a.path);
+
+        let two = r#"{"v":1,"pins":[1,2,3]}"#;
+        let mut second = req(Payload::Text(two.into()));
+        second.key = Some(key.into());
+        second.kind = Some(Kind::Json);
+        let b = put(dir.path(), second).unwrap();
+        assert_eq!(b.id, a.id);
+        assert_eq!(std::fs::read_to_string(&b.path).unwrap(), two);
+        assert_eq!(files_in(dir.path()).len(), 2, "one body and one sidecar");
+        assert_eq!(list(dir.path()).len(), 1);
+    }
+
+    #[test]
+    fn json_over_the_text_limit_is_refused_rather_than_cut() {
+        let dir = TempDir::new().unwrap();
+        let big = format!("{{\"a\":\"{}\"}}", "x".repeat(MAX_TEXT_BYTES));
+        let mut r = req(Payload::Text(big));
+        r.kind = Some(Kind::Json);
+        let err = put(dir.path(), r).unwrap_err();
+        assert!(err.message.contains("would not parse"), "{}", err.message);
+    }
+
+    #[test]
+    fn a_resend_keeps_the_id_and_moves_the_item_to_the_top() {
+        let dir = TempDir::new().unwrap();
+        let a = put(
+            dir.path(),
+            keyed("godot/main/frame", Payload::Bytes(png(4, 4))),
+        )
+        .unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(3));
+        put(
+            dir.path(),
+            keyed("godot/main/tree", Payload::Text("tree".into())),
+        )
+        .unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(3));
+        let again = put(
+            dir.path(),
+            keyed("godot/main/frame", Payload::Bytes(png(5, 5))),
+        )
+        .unwrap();
+        assert_eq!(again.id, a.id);
+        assert_eq!(again.created_at, a.created_at, "first-sent time is kept");
+        assert!(again.updated_at > a.updated_at);
+        let listed = list(dir.path());
+        assert_eq!(listed.len(), 2);
+        assert_eq!(listed[0].id, a.id, "the re-sent item is first");
+    }
+
+    #[test]
+    fn keys_are_case_and_separator_insensitive() {
+        let dir = TempDir::new().unwrap();
+        let a = put(
+            dir.path(),
+            keyed("Blender/Room\\Top", Payload::Bytes(png(3, 3))),
+        )
+        .unwrap();
+        let b = put(
+            dir.path(),
+            keyed("blender//room/top", Payload::Bytes(png(4, 4))),
+        )
+        .unwrap();
+        assert_eq!(a.id, b.id);
+        assert_eq!(a.key, "blender/room/top");
+    }
+
+    #[test]
+    fn different_views_of_one_source_are_different_files() {
+        let dir = TempDir::new().unwrap();
+        let a = put(
+            dir.path(),
+            keyed("blender/room/front", Payload::Bytes(png(3, 3))),
+        )
+        .unwrap();
+        let b = put(
+            dir.path(),
+            keyed("blender/room/top", Payload::Bytes(png(4, 4))),
+        )
+        .unwrap();
+        assert_ne!(a.path, b.path);
+        assert_ne!(a.id, b.id);
+        assert_eq!(list(dir.path()).len(), 2);
+        assert!(a.rel_path.ends_with("blender-room-front.png"));
+        assert!(b.rel_path.ends_with("blender-room-top.png"));
+    }
+
+    #[test]
+    fn identical_bytes_under_two_keys_are_stored_once() {
+        let dir = TempDir::new().unwrap();
+        let a = put(
+            dir.path(),
+            keyed("blender/room/top", Payload::Bytes(png(8, 8))),
+        )
+        .unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(3));
+        let b = put(
+            dir.path(),
+            keyed("play/hospital/shot", Payload::Bytes(png(8, 8))),
+        )
+        .unwrap();
+        assert_eq!(a.id, b.id, "the second send resolves to the stored copy");
+        assert_eq!(a.path, b.path);
+        assert_eq!(list(dir.path()).len(), 1);
+        assert_eq!(files_in(dir.path()).len(), 2, "one file and its sidecar");
+        assert!(b.updated_at > a.updated_at);
+    }
+
+    #[test]
+    fn a_paste_is_keyed_by_its_content_hash() {
+        let dir = TempDir::new().unwrap();
+        let a = put(dir.path(), req(Payload::Text("same log".into()))).unwrap();
+        let b = put(dir.path(), req(Payload::Text("same log".into()))).unwrap();
+        let c = put(dir.path(), req(Payload::Text("other log".into()))).unwrap();
+        assert_eq!(a.id, b.id);
+        assert_ne!(a.id, c.id);
+        assert!(a.key.starts_with("paste/"), "{}", a.key);
+        assert_eq!(list(dir.path()).len(), 2);
+    }
+
+    #[test]
+    fn a_file_is_keyed_by_its_path_so_sending_it_again_replaces_the_copy() {
+        let env = TempDir::new().unwrap();
+        let elsewhere = TempDir::new().unwrap();
+        let shot = elsewhere.path().join("shot.png");
+        std::fs::write(&shot, png(4, 4)).unwrap();
+        let a = put(env.path(), req(Payload::Path(shot.clone()))).unwrap();
+        std::fs::write(&shot, png(6, 6)).unwrap();
+        let b = put(env.path(), req(Payload::Path(shot))).unwrap();
+        assert_eq!(a.id, b.id);
+        assert_eq!(std::fs::read(&b.path).unwrap(), png(6, 6));
+        assert_eq!(list(env.path()).len(), 1);
+    }
+
+    #[test]
+    fn a_key_whose_extension_changes_leaves_no_stale_file() {
+        let dir = TempDir::new().unwrap();
+        let first = put(dir.path(), keyed("x/y", Payload::Text("t".into()))).unwrap();
+        let second = put(dir.path(), keyed("x/y", Payload::Bytes(png(2, 2)))).unwrap();
+        assert!(!Path::new(&first.path).exists());
+        assert!(Path::new(&second.path).exists());
+        assert_eq!(files_in(dir.path()).len(), 2);
+    }
+
+    #[test]
+    fn a_long_key_gets_a_short_name_and_stays_unique() {
+        let dir = TempDir::new().unwrap();
+        let long = format!("file/{}/deep/report.md", "very-long-folder-name/".repeat(8));
+        let other = format!(
+            "file/{}/deep/report.md",
+            "another-long-folder-name/".repeat(8)
+        );
+        let a = put(dir.path(), keyed(&long, Payload::Text("a".into()))).unwrap();
+        let b = put(dir.path(), keyed(&other, Payload::Text("b".into()))).unwrap();
+        let name = |i: &ContextItem| {
+            Path::new(&i.path)
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .into_owned()
+        };
+        assert!(name(&a).len() < 60, "{}", name(&a));
+        assert_ne!(name(&a), name(&b));
+    }
+
+    #[test]
+    fn a_write_leaves_no_temp_file_and_a_failed_one_cleans_up() {
+        let dir = TempDir::new().unwrap();
+        put(dir.path(), keyed("a/b", Payload::Text("one".into()))).unwrap();
+        put(dir.path(), keyed("a/b", Payload::Text("two".into()))).unwrap();
+        assert!(files_in(dir.path())
+            .iter()
+            .all(|n| !n.starts_with(TMP_PREFIX)));
+
+        let target = store_dir(dir.path()).join("never.bin");
+        let denied = |_: &Path, _: &Path| Err(std::io::Error::from(std::io::ErrorKind::NotFound));
+        assert!(write_atomic(&target, b"x", &denied).is_err());
+        assert!(!target.exists());
+        assert!(files_in(dir.path())
+            .iter()
+            .all(|n| !n.starts_with(TMP_PREFIX)));
+    }
+
+    #[test]
+    fn a_target_a_reader_holds_falls_back_to_a_new_name_and_says_so() {
+        let dir = TempDir::new().unwrap();
+        let key = "blender/room/top";
+        let first = put(dir.path(), keyed(key, Payload::Bytes(png(3, 3)))).unwrap();
+        let held = PathBuf::from(&first.path);
+        let locked = |from: &Path, to: &Path| {
+            if to == held {
+                Err(std::io::Error::from(std::io::ErrorKind::PermissionDenied))
+            } else {
+                std::fs::rename(from, to)
+            }
+        };
+        let second = put_with(dir.path(), keyed(key, Payload::Bytes(png(9, 9))), &locked).unwrap();
+        assert_ne!(second.path, first.path);
+        assert!(second.notice.as_deref().unwrap().contains("was in use"));
+        assert_eq!(
+            std::fs::read(&first.path).unwrap(),
+            png(3, 3),
+            "the held file is untouched"
+        );
+        assert!(files_in(dir.path())
+            .iter()
+            .all(|n| !n.starts_with(TMP_PREFIX)));
+
+        // Once the reader lets go, the next send takes the usual name back and
+        // drops the stand-in.
+        let third = put(dir.path(), keyed(key, Payload::Bytes(png(11, 11)))).unwrap();
+        assert_eq!(third.path, first.path);
+        assert!(third.notice.is_none());
+        assert!(!Path::new(&second.path).exists());
+        assert_eq!(list(dir.path()).len(), 1);
+    }
+
+    #[test]
+    fn the_cap_evicts_the_oldest_first_by_size_as_well_as_count() {
+        let dir = TempDir::new().unwrap();
+        let mut ids = Vec::new();
+        for n in 0..4u32 {
+            let mut bytes = png(10 + n, 10);
+            bytes.resize(1000, 0);
+            ids.push(
+                put(dir.path(), keyed(&format!("k/{n}"), Payload::Bytes(bytes)))
+                    .unwrap()
+                    .id,
+            );
+            std::thread::sleep(std::time::Duration::from_millis(3));
+        }
+        prune_to(dir.path(), usize::MAX, 2500);
+        let kept: Vec<_> = list(dir.path()).into_iter().map(|i| i.id).collect();
+        assert_eq!(kept, vec![ids[3].clone(), ids[2].clone()]);
+    }
+
+    #[test]
+    fn a_resend_protects_an_old_item_from_eviction() {
+        let dir = TempDir::new().unwrap();
+        let old = put(dir.path(), keyed("k/old", Payload::Text("old".into()))).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(3));
+        put(dir.path(), keyed("k/mid", Payload::Text("mid".into()))).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(3));
+        put(
+            dir.path(),
+            keyed("k/old", Payload::Text("old, updated".into())),
+        )
+        .unwrap();
+        prune_to(dir.path(), 1, u64::MAX);
+        let kept: Vec<_> = list(dir.path()).into_iter().map(|i| i.id).collect();
+        assert_eq!(kept, vec![old.id]);
+    }
+
+    #[test]
+    fn old_timestamped_records_still_load_and_are_the_first_to_go() {
+        let dir = TempDir::new().unwrap();
+        let store = ensure_dir(dir.path()).unwrap();
+        let legacy = store.join("20260930-135016-main-f3c3.png");
+        std::fs::write(&legacy, png(2, 2)).unwrap();
+        let record = serde_json::json!({
+            "id": "ctx_0199a1b2c3d4e5f6a7", "v": 1, "kind": "image", "mime": "image/png",
+            "title": "main", "source": { "appId": "godot-viewer" }, "method": "put",
+            "createdAt": 1, "size": 2, "path": legacy.to_string_lossy(),
+            "relPath": ".kaava/context/x.png", "owned": true
+        });
+        std::fs::write(
+            store.join("ctx_0199a1b2c3d4e5f6a7.json"),
+            record.to_string(),
+        )
+        .unwrap();
+        assert_eq!(
+            list(dir.path()).len(),
+            1,
+            "an old record without a key still loads"
+        );
+        put(dir.path(), keyed("k/new", Payload::Text("n".into()))).unwrap();
+        prune_to(dir.path(), 1, u64::MAX);
+        assert!(!legacy.exists());
+        assert_eq!(list(dir.path()).len(), 1);
+    }
+
+    #[test]
+    fn the_host_put_takes_a_key() {
+        let dir = TempDir::new().unwrap();
+        let b64 = BASE64.encode(png(3, 3));
+        for _ in 0..3 {
+            call(
+                Some(dir.path()),
+                "godot-viewer",
+                "context/put",
+                Some(serde_json::json!({ "key": "godot/main/frame", "kind": "image", "bytesBase64": b64 })),
+            )
+            .unwrap();
+        }
+        assert_eq!(list(dir.path()).len(), 1);
     }
 }

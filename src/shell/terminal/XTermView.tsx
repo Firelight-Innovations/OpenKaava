@@ -2,9 +2,13 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 
 import { Terminal, type ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
+import { onThemeChange } from "../themeBroadcast";
 import type { TerminalTransport } from "../contract";
 import { useDropZone } from "../dropZones";
 import { attachClipboard } from "./clipboard";
+import { requestHarnessRefresh } from "../harnessRefresh";
+import { createFitController } from "./fitController";
+import { isResizing, subscribeResizing } from "../resizeGate";
 import { pasteImage } from "../contextInput";
 // Imported here, not from a global entry, so nothing pays for xterm's CSS
 // until a terminal actually mounts — the tool window and every other region
@@ -152,6 +156,11 @@ function XTermView(
 
     term.open(container);
     termRef.current = term;
+    // xterm paints to a canvas and cannot read CSS variables, so a light/dark
+    // switch has to hand it a fresh palette resolved from the new tokens.
+    const offTheme = onThemeChange(() => {
+      term.options.theme = buildTheme();
+    });
 
     const detach = transport.attach(id, (chunk) => term.write(chunk));
     const onData = term.onData((data) => transport.write(id, data));
@@ -159,12 +168,20 @@ function XTermView(
     // in the Rust module for why the parsing happens here rather than in the
     // pty layer: xterm already copes with a title sequence split across two
     // reads, which a from-scratch Rust parser would have to redo.
-    const onTitleChange = term.onTitleChange((title) => onTitleRef.current?.(title));
+    // Claude Code and the other harnesses set the title when they start, so a
+    // title change is a cheap hint that detection's answer may have changed.
+    const onTitleChange = term.onTitleChange((title) => {
+      requestHarnessRefresh(id);
+      onTitleRef.current?.(title);
+    });
     // xterm has no `onFocus` event of its own — focus lands on the hidden
     // `<textarea>` it types into (`term.textarea`), which only exists once
     // `open()` has run, so this is wired here rather than declared up front
     // with the other `on*` handlers.
-    const onTextareaFocus = () => onFocusRef.current?.();
+    const onTextareaFocus = () => {
+      requestHarnessRefresh(id);
+      onFocusRef.current?.();
+    };
     term.textarea?.addEventListener("focus", onTextareaFocus);
 
     // Ctrl+V, and what a right-click may and may not do. Wired after `open()`
@@ -178,59 +195,37 @@ function XTermView(
 
     // Fits are driven by a `ResizeObserver` on the container, not `window`'s
     // resize event — the panel is resized by a drag handle and by collapse,
-    // neither of which touches the window. Coalesced to one fit per repaint
-    // so a drag doesn't emit hundreds of pty resizes a second.
-    let rafHandle: number | null = null;
-    const runFit = () => {
-      rafHandle = null;
-      // A hidden terminal (the deck sets `display: none` on the inactive
-      // ones) or one that hasn't been laid out yet measures 0×0 — checked
-      // against this element's own rect, not `FitAddon.proposeDimensions()`.
-      // `proposeDimensions` reads its *parent's* `getComputedStyle(...).width`
-      // and runs it through `parseInt`; with a `display: none` ancestor that
-      // percentage can't resolve to a pixel value, so the browser hands back
-      // the literal string `"100%"` and `parseInt` truncates that to `100` —
-      // a small but finite, non-zero number that sails straight past a
-      // `cols <= 0` guard. Measured this way instead, a hidden container
-      // reliably reports zero. Fitting to a degenerate size would hand the
-      // pty a corrupt viewport, and a pty that disagrees with the emulator
-      // about its size renders a corrupt frame — so skip and wait for the
-      // next real measurement. The observer fires again on the 0→real
-      // transition when the deck makes this one visible, which is what
-      // re-establishes the correct size without any extra wiring here.
-      const rect = container.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return;
-
-      const dims = fitAddon.proposeDimensions();
-      if (
-        !dims ||
-        !Number.isFinite(dims.cols) ||
-        !Number.isFinite(dims.rows) ||
-        dims.cols <= 0 ||
-        dims.rows <= 0
-      ) {
-        return;
-      }
-      fitAddon.fit();
-      transport.resize(id, dims.cols, dims.rows);
-    };
-    const scheduleFit = () => {
-      if (rafHandle !== null) return;
-      rafHandle = requestAnimationFrame(runFit);
-    };
-
-    const observer = new ResizeObserver(scheduleFit);
+    // neither of which touches the window. The policy — no fit during a
+    // splitter drag, one fit on release, debounced otherwise — is
+    // `fitController.ts`; this only supplies the measurements.
+    const controller = createFitController({
+      isResizing,
+      subscribeResizing,
+      measure: () => container.getBoundingClientRect(),
+      propose: () => fitAddon.proposeDimensions(),
+      fit: () => fitAddon.fit(),
+      resize: (cols, rows) => transport.resize(id, cols, rows),
+    });
+    // A hidden terminal (the deck sets `display: none` on the inactive ones)
+    // measures 0x0 by this element's own rect, and the controller skips it. It
+    // is not measured with `FitAddon.proposeDimensions()`, which reads its
+    // parent's computed width through `parseInt`: under `display: none` that
+    // is the string "100%", which parses to a small finite 100 and sails past
+    // a `cols <= 0` guard. The observer fires again on the 0 to real
+    // transition, which is what re-establishes the size on a tab switch.
+    const observer = new ResizeObserver(controller.notify);
     observer.observe(container);
-    scheduleFit(); // the container already has its first-paint size by now.
+    controller.notify(); // the container already has its first-paint size by now.
 
     return () => {
       observer.disconnect();
-      if (rafHandle !== null) cancelAnimationFrame(rafHandle);
+      controller.dispose();
       onData.dispose();
       onTitleChange.dispose();
       detachClipboard();
       term.textarea?.removeEventListener("focus", onTextareaFocus);
       detach();
+      offTheme();
       termRef.current = null;
       term.dispose();
     };
@@ -266,7 +261,7 @@ function readToken(name: string): string {
  * so the bright variant reuses the base token — a narrower palette than a
  * full 16-colour scheme, but not a fabricated one.
  */
-function buildTheme(): ITheme {
+export function buildTheme(): ITheme {
   const bg = readToken("--surface"); // the panel's own background — the deck
   // renders inside the panel body, which sets no background of its own.
   const text = readToken("--text");

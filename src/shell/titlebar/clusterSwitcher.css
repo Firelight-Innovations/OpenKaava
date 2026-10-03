@@ -1,0 +1,250 @@
+/*
+ * The cluster switcher: the title bar's middle cell and the dropdown under it.
+ *
+ * The wrapper is the grid cell. It carries what `.projectpill` used to carry
+ * for itself — centred on the window by the bar's equal outer tracks, and no
+ * wider than a third of the bar — so the pill inside fills it and ellipsises.
+ */
+
+.clusterswitch {
+  position: relative;
+  justify-self: center;
+  min-width: 0;
+  max-width: 34cqw;
+  display: flex;
+}
+
+.clusterswitch__panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  translate: -50% 0;
+  z-index: 40;
+  width: 400px;
+  max-width: calc(100vw - 16px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.clusterswitch__header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-dim-2);
+  letter-spacing: 0.1em;
+}
+
+.clusterswitch__empty {
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--txt-tertiary);
+}
+
+.clusterswitch__list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-1, 4px);
+  max-height: min(320px, 50vh);
+  overflow-y: auto;
+}
+
+.clusterswitch__row {
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-lg, 8px);
+}
+
+.clusterswitch__row[data-active] {
+  background: var(--bg-layer-2);
+}
+
+.clusterswitch__option,
+.clusterswitch__action {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--txt-secondary);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: var(--radius-lg, 8px);
+}
+
+.clusterswitch__option {
+  flex: 1;
+}
+
+.clusterswitch__row[data-active] .clusterswitch__option {
+  color: var(--txt-primary);
+}
+
+.clusterswitch__option:hover,
+.clusterswitch__action:hover {
+  background: var(--bg-layer-1-hover);
+  color: var(--txt-primary);
+}
+
+.clusterswitch__option:focus-visible,
+.clusterswitch__action:focus-visible,
+.clusterswitch__close:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.clusterswitch__env {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 5px;
+  background: var(--bg-layer-3);
+  color: var(--txt-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.clusterswitch__env[data-env-kind="cloud"] {
+  background: var(--info-subtle, #16244a);
+  color: var(--txt-info, #a3c1ff);
+}
+
+.clusterswitch__pin {
+  flex: none;
+  color: var(--txt-tertiary);
+}
+
+.clusterswitch__name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.clusterswitch__name[data-missing] {
+  text-decoration: line-through;
+  text-decoration-color: var(--warn);
+}
+
+.clusterswitch__branch {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--txt-tertiary);
+}
+
+.clusterswitch__diverged {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--txt-secondary);
+}
+
+.clusterswitch__flag {
+  flex: none;
+  font-size: 11px;
+  color: var(--warn);
+}
+
+.clusterswitch__dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.clusterswitch__num {
+  flex: none;
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--txt-placeholder);
+}
+
+.clusterswitch__branch + .clusterswitch__num,
+.clusterswitch__dot + .clusterswitch__num,
+.clusterswitch__diverged + .clusterswitch__num {
+  margin-left: 4px;
+}
+
+.clusterswitch__close {
+  appearance: none;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-right: 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--txt-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  opacity: 0;
+}
+
+.clusterswitch__row:hover .clusterswitch__close,
+.clusterswitch__row:focus-within .clusterswitch__close {
+  opacity: 1;
+}
+
+.clusterswitch__close:hover {
+  background: var(--bg-layer-3);
+  color: var(--txt-primary);
+}
+
+/* The row's own icon button sits beside the close button, so it gives up its margin. */
+.clusterswitch__icon-btn {
+  margin-right: 0;
+}
+
+/* A cluster's chosen icon, at the row's text size; rows with none draw nothing here. */
+.clusterswitch__option .cluster-chip[data-kind].clusterswitch__chip {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  font-size: 13px;
+}
+
+.clusterswitch__actions {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-1, 4px);
+  border-top: 1px solid var(--line);
+}
+
+.clusterswitch__action-icon {
+  flex: none;
+  display: flex;
+  color: var(--txt-tertiary);
+}
+
+.clusterswitch__action-label {
+  flex: 1;
+  min-width: 0;
+}

@@ -1,15 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { reportPainted } from "@openkaava/bridge";
+import { reportPainted, session } from "@openkaava/bridge";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import {
-  AlertTriangle,
-  ChevronRight,
-  ExternalLink,
-  FilePlus2,
-  Link2Off,
-  Lock,
-  Send,
-} from "lucide-react";
+import { AlertTriangle, ChevronRight, FilePlus2, Lock, Palette, SquareDashed } from "lucide-react";
+import { SendButton, SendFooter } from "../../../shared/SendFooter";
 import {
   dragContext,
   exportSelectionPng,
@@ -19,29 +12,76 @@ import {
   selectionElements,
 } from "./sendToAgent";
 import AssetList from "./AssetList";
-import SpecPanel from "./SpecPanel";
-import { selectedElement, specOf, withSpec, type SpecCard } from "./spec";
+import ObjectPanel from "./ObjectPanel";
+import TypesPanel from "./TypesPanel";
+import TypeIcon from "./TypeIcon";
+import Sidebar, { type SideTab } from "./Sidebar";
+import CommentsPanel, { type CommentTarget } from "./CommentsPanel";
+import { activeHighlights, type Highlight } from "./commentHighlight";
+import { setEditorHooks } from "./agentBridge";
+import {
+  framesIn,
+  frameForKey,
+  regionTarget,
+  selectionTarget,
+  type Box,
+  type FrameRow,
+} from "./review";
+import {
+  changeType,
+  convertLegacy,
+  objectOf,
+  setProp,
+  targetOf,
+  withName,
+  withObject,
+  wrapSelection,
+  type Target,
+  type TypeDef,
+} from "./objects";
 import {
   createCanvas,
+  deleteType,
   getState,
   isCorrupt,
   isExists,
   listCanvases,
+  listRefs,
+  listTypes,
   messageOf,
+  openCanvasSettings,
   readCanvas,
+  saveType,
+  setParent,
+  splitFrames,
   staleWrite,
   statCanvas,
   writeCanvas,
   type CanvasDoc,
   type CanvasState,
+  type CanvasComment,
   type CanvasSummary,
+  type RefRow,
 } from "./rpc";
-import { ancestry, childId, childOf, selectedFrame, withChild } from "./nesting";
+import { ancestry, childId, stillLinked, treeOrder, viewportToScene, withChild } from "./nesting";
 import { Autosaver, type SaveState } from "./saver";
-import { signature, slugify, toSaved, uniqueId, type SceneElement, type SceneFile } from "./scene";
+import { sceneVersion, splitCandidates, splitSummary } from "./subcanvas";
+import {
+  signature,
+  slugify,
+  toSaved,
+  uniqueId,
+  withDesign,
+  type DesignOverride,
+  type SceneElement,
+  type SceneFile,
+} from "./scene";
+import DesignControl from "./DesignControl";
 import "./App.css";
 
 // The editor is the bulk of this app's weight; load it only once a canvas is open.
+const NO_HIGHLIGHTS: Highlight[] = [];
+
 const Editor = lazy(() => import("./Editor"));
 
 type View = "canvas" | "assets";
@@ -49,18 +89,54 @@ type View = "canvas" | "assets";
 const SAVE_DELAY_MS = 700;
 const POLL_MS = 2000;
 const LAST_KEY = "canvas.last";
+const SIDE_KEY = "canvas.side";
 
-/** Best-effort: private windows and blocked storage throw. */
-function readLast(): string | null {
+function readSide(): { tab: SideTab; collapsed: boolean } {
   try {
-    return localStorage.getItem(LAST_KEY);
+    const raw = JSON.parse(localStorage.getItem(SIDE_KEY) ?? "null") as {
+      tab?: unknown;
+      collapsed?: unknown;
+    } | null;
+    const tab = raw?.tab;
+    return {
+      tab: tab === "diagrams" || tab === "comments" ? tab : "inspector",
+      collapsed: raw?.collapsed === true,
+    };
+  } catch {
+    return { tab: "inspector", collapsed: false };
+  }
+}
+function writeSide(side: { tab: SideTab; collapsed: boolean }): void {
+  try {
+    localStorage.setItem(SIDE_KEY, JSON.stringify(side));
+  } catch {
+    // The panel layout is a convenience.
+  }
+}
+
+/**
+ * The canvas this pane instance last had open, keyed by the instance's own id.
+ *
+ * The key has to be per instance: every Canvas frame shares one origin and so
+ * one `localStorage`, and a cluster switch unmounts the frame and loads it
+ * afresh, so a single global key held whichever canvas was opened last in any
+ * pane. The value is a canvas id, which is a path-like id and so names a child
+ * canvas as readily as a root. Best-effort: private windows and blocked storage
+ * throw.
+ */
+function lastKey(instanceId: string | null): string {
+  return instanceId ? `${LAST_KEY}.${instanceId}` : LAST_KEY;
+}
+function readLast(instanceId: string | null): string | null {
+  try {
+    return localStorage.getItem(lastKey(instanceId));
   } catch {
     return null;
   }
 }
-function writeLast(id: string): void {
+function writeLast(instanceId: string | null, id: string): void {
   try {
-    localStorage.setItem(LAST_KEY, id);
+    localStorage.setItem(lastKey(instanceId), id);
   } catch {
     // Remembering the last canvas is a convenience.
   }
@@ -92,10 +168,13 @@ const STATUS_TEXT: Record<SaveState, string> = {
 
 export default function App() {
   const theme = useTheme();
+  const instanceRef = useRef<string | null>(null);
   const [state, setState] = useState<CanvasState | null>(null);
   const [list, setList] = useState<CanvasSummary[] | null>(null);
   const [current, setCurrent] = useState<string | null>(null);
   const [doc, setDoc] = useState<CanvasDoc | null>(null);
+  /** The open canvas's own detail level and style, kept beside `doc` so the picker redraws. */
+  const [design, setDesign] = useState<DesignOverride | undefined>(undefined);
   /** Bumped to remount the editor with a freshly loaded scene. */
   const [loadKey, setLoadKey] = useState(0);
   const [loadError, setLoadError] = useState<{ message: string; corrupt: boolean } | null>(null);
@@ -106,19 +185,52 @@ export default function App() {
   const [createError, setCreateError] = useState<string | null>(null);
 
   const [notice, setNotice] = useState<string | null>(null);
-  const [frame, setFrame] = useState<{ id: string; name: string; child: string | null } | null>(
-    null,
-  );
-  const [childName, setChildName] = useState("");
+  /** Heavy frames the open canvas could split into sub-canvases; 0 hides the offer. */
+  const [splitOffer, setSplitOffer] = useState(0);
+  const [splitting, setSplitting] = useState(false);
+  /** The result of the last split; informational, unlike `notice`. */
+  const [splitNote, setSplitNote] = useState<string | null>(null);
+  /** Canvases whose split offer was turned down this session. */
+  const declinedSplit = useRef(new Set<string>());
+  const [sendSlot, setSendSlot] = useState<HTMLElement | null>(null);
+  /** What the Inspector describes: the selected frame, shape or shapes. */
+  const [target, setTarget] = useState<Target>({ kind: "none" });
+  const [types, setTypes] = useState<TypeDef[]>([]);
+  const [managing, setManaging] = useState(false);
+  /** A frame just made from a selection: its name field takes focus once. */
+  const [focusFrame, setFocusFrame] = useState<string | null>(null);
   const [view, setView] = useState<View>("canvas");
   /** How many elements are selected: what "Send selection" would send. */
   const [selectedN, setSelectedN] = useState(0);
   const [sentSelection, setSentSelection] = useState(false);
   /** Bumped when a card is saved, so the asset list reads disk again. */
   const [assetsKey, setAssetsKey] = useState(0);
-  const [pick, setPick] = useState<{ id: string; spec: Record<string, unknown> | null } | null>(
-    null,
-  );
+  const [side, setSide] = useState(readSide);
+  const [frames, setFrames] = useState<FrameRow[]>([]);
+  const [refs, setRefs] = useState<RefRow[]>([]);
+  const [openComments, setOpenComments] = useState(0);
+  const [commentsKey, setCommentsKey] = useState(0);
+  const [commentTarget, setCommentTarget] = useState<CommentTarget | null>(null);
+  const [targetError, setTargetError] = useState<string | null>(null);
+  const [hoveredComment, setHoveredComment] = useState<CanvasComment | null>(null);
+  /** The area picker: null when off, else the drag so far in stage pixels. */
+  const [picking, setPicking] = useState<
+    { from: [number, number]; to: [number, number] } | "idle" | null
+  >(null);
+  /** The editor's last report, for the agent hooks and the comment targets. */
+  const lastChangeRef = useRef<{
+    elements?: unknown;
+    version?: number;
+    selected?: unknown;
+    files?: unknown;
+    background?: unknown;
+    grid?: unknown;
+  }>({});
+  const liveRef = useRef<{
+    elements: readonly SceneElement[];
+    selected: Record<string, unknown> | undefined;
+  }>({ elements: [], selected: undefined });
+  const stageRef = useRef<HTMLDivElement | null>(null);
   const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
   const saverRef = useRef<Autosaver | null>(null);
   const docRef = useRef<CanvasDoc | null>(null);
@@ -137,17 +249,32 @@ export default function App() {
     }
   }, []);
 
+  const loadTypes = useCallback(async () => {
+    try {
+      const got = await listTypes();
+      setTypes([...got.builtin, ...got.custom]);
+    } catch {
+      // Without types a frame can still be named and linked; the picker is empty.
+    }
+  }, []);
+
   // First contact: the environment's state and the canvases in it.
   useEffect(() => {
     void (async () => {
+      try {
+        instanceRef.current = (await session()).instanceId ?? null;
+      } catch {
+        // No handshake: fall back to the shared key.
+      }
       try {
         setState(await getState());
       } catch (err) {
         setLoadError({ message: messageOf(err), corrupt: false });
       }
+      void loadTypes();
       const rows = await refreshList();
       if (rows && rows.length > 0) {
-        const remembered = readLast();
+        const remembered = readLast(instanceRef.current);
         const pick =
           rows.find((r) => r.id === remembered && !r.error) ??
           rows.find((r) => !r.parent && !r.error) ??
@@ -157,7 +284,7 @@ export default function App() {
       }
       reportPainted();
     })();
-  }, [refreshList]);
+  }, [refreshList, loadTypes]);
 
   // Load the chosen canvas and start a saver whose base is what was just read.
   const load = useCallback(async (id: string) => {
@@ -179,12 +306,18 @@ export default function App() {
       saver.setBase(next.mtime, signature(toSaved(s.elements, s.appState, s.files, s.kaava)));
       saverRef.current = saver;
       setDoc(next);
-      setFrame(null);
-      setPick(null);
+      setDesign(s.kaava?.design);
+      setFrames(framesIn(s.elements));
+      setCommentTarget(null);
+      setTargetError(null);
+      setPicking(null);
+      setTarget({ kind: "none" });
+      setManaging(false);
       setSelectedN(0);
       setNotice(null);
+      setSplitNote(null);
       setLoadKey((k) => k + 1);
-      writeLast(id);
+      writeLast(instanceRef.current, id);
     } catch (err) {
       setDoc(null);
       setLoadError({ message: messageOf(err), corrupt: isCorrupt(err) });
@@ -240,41 +373,75 @@ export default function App() {
       appState: Record<string, unknown>,
       files: Record<string, unknown>,
     ) => {
-      const picked = selectedFrame(
+      liveRef.current = {
+        elements: elements as readonly SceneElement[],
+        selected: appState.selectedElementIds as Record<string, unknown> | undefined,
+      };
+      // Scrolling and zooming report the same elements, selection and files;
+      // everything below builds strings over the whole scene, so a pan skips
+      // it rather than paying it on every frame. Excalidraw mutates elements
+      // in place, so the array alone is no proof: the version sum is.
+      const key = lastChangeRef.current;
+      const version = sceneVersion(elements as readonly SceneElement[]);
+      const same =
+        key.elements === elements &&
+        key.version === version &&
+        key.selected === appState.selectedElementIds &&
+        key.files === files &&
+        key.background === appState.viewBackgroundColor &&
+        key.grid === appState.gridSize;
+      lastChangeRef.current = {
+        elements,
+        version,
+        selected: appState.selectedElementIds,
+        files,
+        background: appState.viewBackgroundColor,
+        grid: appState.gridSize,
+      };
+      if (same) return;
+      const rows = framesIn(elements as readonly SceneElement[]);
+      setFrames((prev) => (JSON.stringify(prev) === JSON.stringify(rows) ? prev : rows));
+      const next = targetOf(
         elements as readonly SceneElement[],
         appState.selectedElementIds as Record<string, unknown> | undefined,
       );
-      const next = picked
-        ? { id: picked.id, name: String(picked.name ?? ""), child: childOf(picked) }
-        : null;
-      setFrame((prev) =>
-        prev?.id === next?.id && prev?.child === next?.child && prev?.name === next?.name
-          ? prev
-          : next,
-      );
+      setTarget((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
       setSelectedN(
         selectedCount(appState.selectedElementIds as Record<string, unknown> | undefined),
       );
-      const one = selectedElement(
-        elements as readonly SceneElement[],
-        appState.selectedElementIds as Record<string, unknown> | undefined,
-      );
-      const spec = one ? specOf(one) : null;
-      setPick((prev) =>
-        prev?.id === one?.id && JSON.stringify(prev?.spec) === JSON.stringify(spec)
-          ? prev
-          : one
-            ? { id: one.id, spec }
-            : null,
-      );
       const saver = saverRef.current;
       const open = docRef.current;
+      const offer =
+        open && !readOnly && !declinedSplit.current.has(open.id)
+          ? splitCandidates(elements as readonly SceneElement[])
+          : 0;
+      setSplitOffer((prev) => (prev === offer ? prev : offer));
       if (!saver || !open || readOnly) return;
       const scene = toSaved(elements, appState, files, open.scene.kaava);
       saver.schedule(scene, signature(scene));
     },
     [readOnly],
   );
+
+  /** Move the open canvas's heavy frames into sub-canvases (`canvas/split-frames`),
+   *  after saving what is on screen, then reopen it with their pictures. */
+  const splitHeavyFrames = useCallback(async () => {
+    const open = docRef.current;
+    if (!open) return;
+    setSplitting(true);
+    try {
+      await saverRef.current?.flush();
+      const out = await splitFrames(open.id);
+      setSplitOffer(0);
+      void refreshList();
+      await load(open.id);
+      setSplitNote(splitSummary(out));
+    } catch (err) {
+      setNotice(`Couldn't split the frames: ${messageOf(err)}`);
+    } finally {
+      setSplitting(false);
+    }
+  }, [load, refreshList]);
 
   const switchTo = useCallback(async (id: string) => {
     await saverRef.current?.flush();
@@ -298,65 +465,223 @@ export default function App() {
     [list, refreshList, switchTo],
   );
 
-  /** Replace one element in the live scene and write it now, so the link is on
-   *  disk before the view moves to the child. */
-  const patchElement = useCallback(async (id: string, edit: (el: SceneElement) => SceneElement) => {
-    const api = apiRef.current;
-    const saver = saverRef.current;
-    const open = docRef.current;
-    if (!api || !saver || !open) return;
-    const elements = (api.getSceneElementsIncludingDeleted() as unknown as SceneElement[]).map(
-      (el) => (el.id === id ? edit(el) : el),
-    );
-    api.updateScene({ elements: elements as never });
-    const scene = toSaved(
-      elements,
-      api.getAppState() as unknown as Record<string, unknown>,
-      api.getFiles() as unknown as Record<string, unknown>,
-      open.scene.kaava,
-    );
-    saver.schedule(scene, signature(scene));
-    await saver.flush();
-  }, []);
+  /** Put `elements` in the live scene and write it now, so an edit that the
+   *  agent or a child canvas depends on is on disk before the view moves. */
+  const commitElements = useCallback(
+    async (elements: SceneElement[], appState?: Record<string, unknown>) => {
+      const api = apiRef.current;
+      const saver = saverRef.current;
+      const open = docRef.current;
+      if (!api || !saver || !open) return;
+      api.updateScene({ elements: elements as never, ...(appState ? { appState } : {}) } as never);
+      const scene = toSaved(
+        elements,
+        api.getAppState() as unknown as Record<string, unknown>,
+        api.getFiles() as unknown as Record<string, unknown>,
+        open.scene.kaava,
+      );
+      saver.schedule(scene, signature(scene));
+      await saver.flush();
+      const state = api.getAppState() as unknown as Record<string, unknown>;
+      setTarget(targetOf(elements, state.selectedElementIds as Record<string, unknown>));
+    },
+    [],
+  );
 
-  const createChild = useCallback(async () => {
-    const open = docRef.current;
-    if (!frame || !open) return;
-    const title = (childName.trim() || frame.name || "Child canvas").trim();
-    const taken = new Set((list ?? []).map((r) => r.id));
-    const id = uniqueId(childId(open.id, slugify(title) || "canvas"), taken);
+  /** Give the open canvas its own detail level or style, or clear it (`null`) to follow
+   *  Settings. It lives in the file's `kaava.design`, so it is saved like any edit and
+   *  is what `canvas/design-brief` and `add_shapes` read. */
+  const chooseDesign = useCallback(
+    async (key: keyof DesignOverride, choice: string | null) => {
+      const api = apiRef.current;
+      const open = docRef.current;
+      if (!api || !open || readOnly) return;
+      // The saver's next write reads `open.scene.kaava`; replacing it here rather than
+      // calling `setDoc` keeps the editor's `initial` prop, and so its scene, untouched.
+      open.scene.kaava = withDesign(open.scene.kaava, key, choice);
+      setDesign(open.scene.kaava.design);
+      await commitElements(api.getSceneElementsIncludingDeleted() as unknown as SceneElement[]);
+    },
+    [commitElements, readOnly],
+  );
+
+  const patchElement = useCallback(
+    async (id: string, edit: (el: SceneElement) => SceneElement) => {
+      const api = apiRef.current;
+      if (!api) return;
+      const elements = (api.getSceneElementsIncludingDeleted() as unknown as SceneElement[]).map(
+        (el) => (el.id === id ? edit(el) : el),
+      );
+      await commitElements(elements);
+    },
+    [commitElements],
+  );
+
+  const frameId = target.kind === "frame" ? target.id : null;
+  const frameName = target.kind === "frame" ? target.name : "";
+
+  const createChild = useCallback(
+    async (name: string) => {
+      const open = docRef.current;
+      if (!frameId || !open) return;
+      const title = (name.trim() || frameName || "Child canvas").trim();
+      const taken = new Set((list ?? []).map((r) => r.id));
+      const id = uniqueId(childId(open.id, slugify(title) || "canvas"), taken);
+      try {
+        await createCanvas(id, title, open.id);
+        await patchElement(frameId, (el) => withChild(el, id));
+        await refreshList();
+        await switchTo(id);
+      } catch (err) {
+        setNotice(messageOf(err));
+      }
+    },
+    [frameId, frameName, list, patchElement, refreshList, switchTo],
+  );
+
+  /** A canvas that no frame here links to any more is a root again. The frame is
+   *  saved first, so the backend finds nothing of ours left to clear in this file. */
+  const releaseChild = useCallback(
+    async (child: string) => {
+      const api = apiRef.current;
+      const open = docRef.current;
+      if (!api || !open) return;
+      const elements = api.getSceneElements() as unknown as SceneElement[];
+      if (stillLinked(elements, child)) return;
+      const row = (list ?? []).find((r) => r.id === child);
+      if (row && row.parent === open.id) await setParent(child, null);
+    },
+    [list],
+  );
+
+  /** What a frame's link badge calls the child canvas: its title, else its id. */
+  const titleOf = useCallback(
+    (id: string) => (list ?? []).find((r) => r.id === id)?.title || id.split("/").pop() || id,
+    [list],
+  );
+
+  const linkExisting = useCallback(
+    async (child: string) => {
+      const open = docRef.current;
+      if (!frameId || !open) return;
+      const previous = target.kind === "frame" ? target.child : null;
+      try {
+        await setParent(child, open.id);
+        await patchElement(frameId, (el) => withChild(el, child));
+        if (previous && previous !== child) await releaseChild(previous);
+        await refreshList();
+      } catch (err) {
+        setNotice(messageOf(err));
+      }
+    },
+    [frameId, patchElement, refreshList, releaseChild, target],
+  );
+
+  const unlinkChild = useCallback(async () => {
+    if (!frameId) return;
+    const previous = target.kind === "frame" ? target.child : null;
     try {
-      await createCanvas(id, title, open.id);
-      await patchElement(frame.id, (el) => withChild(el, id));
-      setChildName("");
+      await patchElement(frameId, (el) => withChild(el, null));
+      if (previous) await releaseChild(previous);
       await refreshList();
-      await switchTo(id);
     } catch (err) {
       setNotice(messageOf(err));
     }
-  }, [childName, frame, list, patchElement, refreshList, switchTo]);
+  }, [frameId, patchElement, refreshList, releaseChild, target]);
 
-  const unlinkChild = useCallback(async () => {
-    if (!frame) return;
-    await patchElement(frame.id, (el) => withChild(el, null));
-  }, [frame, patchElement]);
-
-  const saveCard = useCallback(
-    async (card: SpecCard) => {
-      if (!pick) return;
-      await patchElement(pick.id, (el) => withSpec(el, card));
-      setPick({ id: pick.id, spec: { ...card } });
-      setAssetsKey((k) => k + 1);
+  const renameFrame = useCallback(
+    async (name: string) => {
+      if (!frameId) return;
+      setFocusFrame(null);
+      await patchElement(frameId, (el) => withName(el, name));
     },
-    [patchElement, pick],
+    [frameId, patchElement],
   );
 
-  const removeCard = useCallback(async () => {
-    if (!pick) return;
-    await patchElement(pick.id, (el) => withSpec(el, null));
-    setPick({ id: pick.id, spec: null });
-    setAssetsKey((k) => k + 1);
-  }, [patchElement, pick]);
+  const retype = useCallback(
+    async (typeId: string) => {
+      const def = types.find((t) => t.id === typeId);
+      if (!frameId || !def) return;
+      await patchElement(frameId, (el) => withObject(el, changeType(objectOf(el), def)));
+      setAssetsKey((k) => k + 1);
+    },
+    [frameId, patchElement, types],
+  );
+
+  const setField = useCallback(
+    async (key: string, value: unknown) => {
+      if (!frameId) return;
+      await patchElement(frameId, (el) => {
+        const current = objectOf(el);
+        return current ? withObject(el, setProp(current, key, value)) : el;
+      });
+      setAssetsKey((k) => k + 1);
+    },
+    [frameId, patchElement],
+  );
+
+  /** Wrap the selected shapes in a new labelled frame: the way to cluster them
+   *  into one object the agent can name, search and look at. */
+  const frameSelection = useCallback(async () => {
+    const api = apiRef.current;
+    if (!api) return;
+    const state = api.getAppState() as unknown as Record<string, unknown>;
+    const got = wrapSelection(
+      api.getSceneElementsIncludingDeleted() as unknown as SceneElement[],
+      state.selectedElementIds as Record<string, unknown> | undefined,
+    );
+    if (!got.ok) {
+      setNotice(got.error);
+      return;
+    }
+    setNotice(null);
+    setFocusFrame(got.frameId);
+    await commitElements(got.elements, { selectedElementIds: { [got.frameId]: true } });
+  }, [commitElements]);
+
+  const convertCard = useCallback(
+    async (id: string) => {
+      const api = apiRef.current;
+      if (!api) return;
+      const got = convertLegacy(
+        api.getSceneElementsIncludingDeleted() as unknown as SceneElement[],
+        id,
+      );
+      if (!got.ok) {
+        setNotice(got.error);
+        return;
+      }
+      await commitElements(got.elements, { selectedElementIds: { [got.frameId]: true } });
+      setAssetsKey((k) => k + 1);
+    },
+    [commitElements],
+  );
+
+  const saveTypeDef = useCallback(
+    async (def: Omit<TypeDef, "builtin">) => {
+      try {
+        await saveType(def);
+        await loadTypes();
+        return null;
+      } catch (err) {
+        return messageOf(err);
+      }
+    },
+    [loadTypes],
+  );
+
+  const deleteTypeDef = useCallback(
+    async (id: string) => {
+      try {
+        await deleteType(id);
+        await loadTypes();
+        return null;
+      } catch (err) {
+        return messageOf(err);
+      }
+    },
+    [loadTypes],
+  );
 
   /** The selection rendered as a PNG and put in the agent's context. */
   const putSelection = useCallback(async () => {
@@ -443,6 +768,174 @@ export default function App() {
     }
   }, [current]);
 
+  const setSideTab = useCallback((tab: SideTab) => {
+    setSide((s) => {
+      const next = { ...s, tab };
+      writeSide(next);
+      return next;
+    });
+  }, []);
+  const setSideCollapsed = useCallback((collapsed: boolean) => {
+    setSide((s) => {
+      const next = { ...s, collapsed };
+      writeSide(next);
+      return next;
+    });
+  }, []);
+
+  // What the panels list besides the drawing: stored reference images, and
+  // how many comments are open (for the tab's badge).
+  useEffect(() => {
+    if (!doc) return;
+    let stale = false;
+    listRefs(doc.id).then(
+      (r) => !stale && setRefs(r.refs),
+      () => !stale && setRefs([]),
+    );
+    setCommentsKey((k) => k + 1);
+    return () => {
+      stale = true;
+    };
+  }, [doc]);
+
+  /** Scroll the editor to some elements and select them. */
+  const reveal = useCallback((ids: string[], fit: string[] = ids) => {
+    const api = apiRef.current;
+    if (!api) return;
+    const all = api.getSceneElements() as unknown as SceneElement[];
+    const targets = all.filter((e) => fit.includes(e.id));
+    if (ids.length) {
+      api.updateScene({
+        appState: { selectedElementIds: Object.fromEntries(ids.map((id) => [id, true])) } as never,
+      });
+    }
+    if (targets.length)
+      api.scrollToContent(targets as never, { fitToContent: true, animate: true });
+  }, []);
+
+  const goToFrame = useCallback((elementId: string) => reveal([elementId]), [reveal]);
+
+  const openDiagram = useCallback(
+    (id: string) => {
+      const api = apiRef.current;
+      const el = api ? frameForKey(api.getSceneElements() as unknown as SceneElement[], id) : null;
+      if (el) reveal([el.id]);
+      else setNotice(`There is no diagram "${id}" on this canvas.`);
+    },
+    [reveal],
+  );
+
+  const frameTitle = useCallback(
+    (key: string) => {
+      const row = frames.find((f) => f.diagramId === key || f.elementId === key);
+      return row?.title ?? key;
+    },
+    [frames],
+  );
+
+  const commentOnSelection = useCallback(() => {
+    const got = selectionTarget(liveRef.current.elements, liveRef.current.selected);
+    if ("error" in got) {
+      setTargetError(got.error);
+      setCommentTarget(null);
+    } else {
+      setTargetError(null);
+      setCommentTarget(got);
+    }
+  }, []);
+
+  const showComment = useCallback(
+    (c: CanvasComment) => {
+      const api = apiRef.current;
+      if (!api) return;
+      const all = api.getSceneElements() as unknown as SceneElement[];
+      const frameEl = frameForKey(all, c.frameId);
+      const present = c.elementIds.filter((id) => all.some((e) => e.id === id));
+      if (present.length) reveal(present);
+      else if (frameEl) reveal([], [frameEl.id]);
+      else setNotice(`The frame this comment is on ("${c.frameId}") is no longer on the canvas.`);
+    },
+    [reveal],
+  );
+
+  // Only on the Comments tab: elsewhere the draft and hover are not on screen to explain.
+  const highlights = useMemo(
+    () =>
+      side.tab !== "comments"
+        ? NO_HIGHLIGHTS
+        : activeHighlights(
+            commentTarget,
+            hoveredComment
+              ? {
+                  id: hoveredComment.id,
+                  status: hoveredComment.status,
+                  spec: hoveredComment.region
+                    ? { frameId: hoveredComment.frameId, region: hoveredComment.region }
+                    : { frameId: hoveredComment.frameId, elementIds: hoveredComment.elementIds },
+                }
+              : null,
+          ),
+    [side.tab, commentTarget, hoveredComment],
+  );
+
+  const flushNow = useCallback(async () => {
+    await saverRef.current?.flush();
+  }, []);
+
+  /** The dragged box, from stage pixels to a frame and a frame-relative region. */
+  const finishPick = useCallback((from: [number, number], to: [number, number]) => {
+    const api = apiRef.current;
+    const stage = stageRef.current;
+    setPicking(null);
+    if (!api || !stage) return;
+    const view = api.getAppState() as unknown as Parameters<typeof viewportToScene>[2];
+    const rect = stage.getBoundingClientRect();
+    const a = viewportToScene(rect.left + from[0], rect.top + from[1], view);
+    const b = viewportToScene(rect.left + to[0], rect.top + to[1], view);
+    const drag: Box = { x: a.x, y: a.y, width: b.x - a.x, height: b.y - a.y };
+    const got = regionTarget(liveRef.current.elements, drag);
+    if ("error" in got) {
+      setTargetError(got.error);
+      setCommentTarget(null);
+    } else {
+      setTargetError(null);
+      setCommentTarget(got);
+    }
+  }, []);
+
+  // Escape leaves the area picker.
+  useEffect(() => {
+    if (!picking) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPicking(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [picking]);
+
+  // What Rust's canvas methods and the agent server's `context` tool ask the
+  // open editor: which canvas, flush now, and what is selected.
+  useEffect(() => {
+    setEditorHooks({
+      currentId: () => docRef.current?.id ?? null,
+      flush: async () => {
+        const saver = saverRef.current;
+        if (!saver) return { saved: false, mtime: null };
+        await saver.flush();
+        return { saved: !saver.hasUnsaved, mtime: saver.mtime ?? null };
+      },
+      selection: () => {
+        const { elements, selected } = liveRef.current;
+        const ids = Object.keys(selected ?? {}).filter((k) => selected?.[k]);
+        const got = selectionTarget(elements, selected);
+        const frameEl = "error" in got ? null : elements.find((e) => e.id === got.frameId);
+        const diagram = frameEl ? (framesIn([frameEl])[0]?.diagramId ?? frameEl.id) : null;
+        return { elementIds: ids, diagram };
+      },
+    });
+    return () => setEditorHooks(null);
+  }, []);
+
   const empty = list !== null && list.length === 0;
   const createForm = (
     <form
@@ -496,8 +989,9 @@ export default function App() {
           disabled={!list || list.length === 0}
           onChange={(e) => void switchTo(e.target.value)}
         >
-          {(list ?? []).map((row) => (
+          {treeOrder(list ?? []).map(({ row, depth }) => (
             <option key={row.id} value={row.id}>
+              {"  ".repeat(depth)}
               {row.error ? `${row.title} (unreadable)` : row.title}
             </option>
           ))}
@@ -552,20 +1046,25 @@ export default function App() {
         >
           <FilePlus2 size={14} aria-hidden /> New canvas
         </button>
-        {doc && <code className="cv__path">{doc.path}</code>}
-        <span className="cv__spacer" />
-        {doc && view === "canvas" && (
+        {doc ? (
+          <DesignControl
+            canvasId={doc.id}
+            override={design}
+            readOnly={readOnly}
+            onChange={(key, choice) => void chooseDesign(key, choice)}
+          />
+        ) : (
           <button
             type="button"
-            className="k-btn k-btn--secondary k-btn--sm"
-            disabled={selectedN === 0}
-            title="Add the selection, as an image, to the agent's context. Drag to a terminal to send it."
-            onPointerDown={selectedN > 0 ? dragContext(() => putSelection()) : undefined}
-            onClick={sendSelection}
+            className="k-btn k-btn--ghost k-btn--sm"
+            onClick={() => void openCanvasSettings().catch(() => undefined)}
+            title="Detail level and drawing style for agents (opens Settings)"
           >
-            <Send size={14} aria-hidden /> {sentSelection ? "Sent" : "Send selection"}
+            <Palette size={14} aria-hidden /> Drawing style
           </button>
         )}
+        {doc && <code className="cv__path">{doc.path}</code>}
+        <span className="cv__spacer" />
         {readOnly ? (
           <span className="k-badge k-badge--idle">
             <Lock size={12} aria-hidden /> Read-only
@@ -621,6 +1120,46 @@ export default function App() {
         </div>
       )}
 
+      {splitOffer > 0 && doc && view === "canvas" && (
+        <div className="cv__notice" role="status">
+          <span>
+            This canvas is large: {splitOffer} frame(s) hold enough to slow panning down. Each can
+            become its own sub-canvas, shown here as a picture; double-click one to edit it.
+          </span>
+          <button
+            type="button"
+            className="k-btn k-btn--secondary k-btn--sm"
+            disabled={splitting}
+            onClick={() => void splitHeavyFrames()}
+          >
+            {splitting ? "Splitting..." : "Split into sub-canvases"}
+          </button>
+          <button
+            type="button"
+            className="k-btn k-btn--ghost k-btn--sm"
+            onClick={() => {
+              declinedSplit.current.add(doc.id);
+              setSplitOffer(0);
+            }}
+          >
+            Not now
+          </button>
+        </div>
+      )}
+
+      {splitNote && (
+        <div className="cv__notice" role="status" data-testid="split-summary">
+          <span>{splitNote}</span>
+          <button
+            type="button"
+            className="k-btn k-btn--ghost k-btn--sm"
+            onClick={() => setSplitNote(null)}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {notice && (
         <div className="cv__notice cv__notice--warn" role="alert">
           <AlertTriangle size={14} aria-hidden />
@@ -640,101 +1179,330 @@ export default function App() {
       )}
 
       <main className="cv__body" hidden={view !== "canvas"}>
-        {doc && frame && (frame.child || !readOnly) && (
-          <aside className="cv__frame" aria-label="Frame link">
-            {frame.child ? (
-              <>
-                <span className="cv__frame-label">
-                  Child canvas <code>{frame.child}</code>
-                </span>
-                <button
-                  type="button"
-                  className="k-btn k-btn--primary k-btn--sm"
-                  onClick={() => void openChild(frame.child!)}
-                >
-                  <ExternalLink size={14} aria-hidden /> Open
-                </button>
-                {!readOnly && (
-                  <button
-                    type="button"
-                    className="k-btn k-btn--ghost k-btn--sm"
-                    onClick={() => void unlinkChild()}
-                  >
-                    <Link2Off size={14} aria-hidden /> Unlink
-                  </button>
-                )}
-              </>
-            ) : (
-              <form
-                className="cv__frame-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void createChild();
-                }}
-              >
-                <input
-                  className="cv__input"
-                  aria-label="Child canvas name"
-                  placeholder={frame.name || "Child canvas name"}
-                  value={childName}
-                  onChange={(e) => setChildName(e.target.value)}
-                />
-                <button type="submit" className="k-btn k-btn--secondary k-btn--sm">
-                  Create child canvas
-                </button>
-              </form>
-            )}
-          </aside>
-        )}
-        {doc && pick && (pick.spec || !readOnly) && (
-          <SpecPanel
-            key={`${doc.id}:${loadKey}:${pick.id}`}
-            stored={pick.spec}
-            readOnly={readOnly}
-            onSave={(card) => void saveCard(card)}
-            onRemove={() => void removeCard()}
-            putCard={putCard}
-            onSendError={setNotice}
-          />
-        )}
-        {loadError ? (
-          <div className="cv__empty" role="alert">
-            <AlertTriangle size={20} aria-hidden />
-            <p>{loadError.message}</p>
-            {loadError.corrupt && (
-              <p className="cv__hint">
-                The file was not touched. Fix or restore it in git, or pick another canvas.
+        <div className="cv__stage" ref={stageRef}>
+          {loadError ? (
+            <div className="cv__empty" role="alert">
+              <AlertTriangle size={20} aria-hidden />
+              <p>{loadError.message}</p>
+              {loadError.corrupt && (
+                <p className="cv__hint">
+                  The file was not touched. Fix or restore it in git, or pick another canvas.
+                </p>
+              )}
+            </div>
+          ) : empty ? (
+            <div className="cv__empty">
+              <p>
+                {readOnly
+                  ? "There are no canvases in this checkout, and main is read-only."
+                  : "No canvases in this environment yet."}
               </p>
-            )}
-          </div>
-        ) : empty ? (
-          <div className="cv__empty">
-            <p>
-              {readOnly
-                ? "There are no canvases in this checkout, and main is read-only."
-                : "No canvases in this environment yet."}
-            </p>
-            {!readOnly && state?.hasEnvironment && createForm}
-            {!state?.hasEnvironment && state && <p className="cv__hint">Open a project first.</p>}
-          </div>
-        ) : doc ? (
-          <Suspense fallback={<div className="cv__empty">Loading the editor...</div>}>
-            <Editor
-              key={`${doc.id}:${loadKey}`}
-              initial={doc.scene as SceneFile}
-              theme={theme}
-              readOnly={readOnly}
-              onChange={onEditorChange}
-              onApi={(api) => {
-                apiRef.current = api;
+              {!readOnly && state?.hasEnvironment && createForm}
+              {!state?.hasEnvironment && state && <p className="cv__hint">Open a project first.</p>}
+            </div>
+          ) : doc ? (
+            <Suspense fallback={<div className="cv__empty">Loading the editor...</div>}>
+              <Editor
+                key={`${doc.id}:${loadKey}`}
+                canvasId={doc.id}
+                initial={doc.scene as SceneFile}
+                theme={theme}
+                readOnly={readOnly}
+                onChange={onEditorChange}
+                onApi={(api) => {
+                  apiRef.current = api;
+                }}
+                onOpenChild={(id) => void openChild(id)}
+                titleOf={titleOf}
+                onOpenDiagram={openDiagram}
+                highlights={highlights}
+              />
+            </Suspense>
+          ) : (
+            <div className="cv__empty">Loading...</div>
+          )}
+          {picking && (
+            <div
+              className="cv__pick"
+              onPointerDown={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                const p: [number, number] = [e.clientX - r.left, e.clientY - r.top];
+                e.currentTarget.setPointerCapture(e.pointerId);
+                setPicking({ from: p, to: p });
               }}
-              onOpenChild={(id) => void openChild(id)}
-            />
-          </Suspense>
-        ) : (
-          <div className="cv__empty">Loading...</div>
+              onPointerMove={(e) => {
+                if (picking === "idle") return;
+                const r = e.currentTarget.getBoundingClientRect();
+                setPicking({ from: picking.from, to: [e.clientX - r.left, e.clientY - r.top] });
+              }}
+              onPointerUp={() => {
+                if (picking !== "idle") finishPick(picking.from, picking.to);
+              }}
+            >
+              <span className="cv__pick-hint">
+                Drag a box around what the comment is about. Esc cancels.
+              </span>
+              {picking !== "idle" && (
+                <span
+                  className="cv__pick-box"
+                  style={{
+                    left: Math.min(picking.from[0], picking.to[0]),
+                    top: Math.min(picking.from[1], picking.to[1]),
+                    width: Math.abs(picking.to[0] - picking.from[0]),
+                    height: Math.abs(picking.to[1] - picking.from[1]),
+                  }}
+                />
+              )}
+            </div>
+          )}
+        </div>
+        {doc && !loadError && (
+          <Sidebar
+            tab={side.tab}
+            onTab={setSideTab}
+            collapsed={side.collapsed}
+            onCollapsed={setSideCollapsed}
+            openComments={openComments}
+          >
+            {side.tab === "diagrams" && (
+              <section className="cv__side-section" aria-label="Diagrams">
+                {frames.length === 0 ? (
+                  <p className="cv__hint">
+                    No diagrams yet. Press F and drag around a drawing to make it one, or ask an
+                    agent to draw one.
+                  </p>
+                ) : (
+                  <ul className="cv__list">
+                    {frames.map((f) => (
+                      <li key={f.elementId}>
+                        <button
+                          type="button"
+                          className="cv__list-item"
+                          onClick={() => goToFrame(f.elementId)}
+                        >
+                          <span>{f.title}</span>
+                          <span className="cv__meta">
+                            {[f.level, f.diagramId ?? "unnamed frame"].filter(Boolean).join(" · ")}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
+            {side.tab === "comments" && (
+              <CommentsPanel
+                canvasId={doc.id}
+                readOnly={readOnly}
+                refreshKey={commentsKey}
+                target={commentTarget}
+                targetError={targetError}
+                canUseSelection={selectedN > 0}
+                onUseSelection={commentOnSelection}
+                onPickArea={() => {
+                  setTargetError(null);
+                  setPicking("idle");
+                }}
+                onClearTarget={() => {
+                  setCommentTarget(null);
+                  setTargetError(null);
+                }}
+                frameTitle={frameTitle}
+                flush={flushNow}
+                onShow={showComment}
+                onHover={setHoveredComment}
+                onCounts={setOpenComments}
+              />
+            )}
+            {side.tab === "inspector" && managing && (
+              <TypesPanel
+                types={types}
+                readOnly={readOnly}
+                onSave={saveTypeDef}
+                onDelete={deleteTypeDef}
+                onClose={() => setManaging(false)}
+              />
+            )}
+            {side.tab === "inspector" && !managing && (
+              <>
+                {target.kind === "frame" && (
+                  <ObjectPanel
+                    key={`${doc.id}:${loadKey}:${target.id}`}
+                    frame={target}
+                    types={types}
+                    readOnly={readOnly}
+                    refs={refs.map((r) => ({ name: r.name, path: r.path }))}
+                    focusName={focusFrame === target.id}
+                    canvases={list ?? []}
+                    current={doc.id}
+                    onName={(name) => void renameFrame(name)}
+                    onType={(id) => void retype(id)}
+                    onProp={(key, value) => void setField(key, value)}
+                    onOpenChild={(id) => void openChild(id)}
+                    onUnlink={() => void unlinkChild()}
+                    onCreateChild={(name) => void createChild(name)}
+                    onLinkExisting={(id) => void linkExisting(id)}
+                    onManageTypes={() => setManaging(true)}
+                    putCard={putCard}
+                    onSendError={setNotice}
+                    sendSlot={sendSlot}
+                  />
+                )}
+                {target.kind === "shape" && (
+                  <section className="cv__object cv__side-section" aria-label="Shape">
+                    {target.frame ? (
+                      <>
+                        <h3>In a frame</h3>
+                        <p className="cv__hint">Detail lives on the frame, not on each shape.</p>
+                        <span className="cv__typechip">
+                          {(() => {
+                            const def = types.find((t) => t.id === target.frame!.type);
+                            return def ? (
+                              <>
+                                <TypeIcon icon={def.icon} color={def.color} size={12} /> {def.name}
+                              </>
+                            ) : (
+                              "No type"
+                            );
+                          })()}
+                          {" - "}
+                          {target.frame.name || "unnamed frame"}
+                        </span>
+                        <button
+                          type="button"
+                          className="k-btn k-btn--secondary k-btn--sm"
+                          onClick={() => reveal([target.frame!.id])}
+                        >
+                          Select frame
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <h3>Not in a frame</h3>
+                        <p className="cv__hint">Wrap in a frame to describe this for the agent.</p>
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            className="k-btn k-btn--secondary k-btn--sm"
+                            onClick={() => void frameSelection()}
+                          >
+                            <SquareDashed size={14} aria-hidden /> Frame selection
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {target.legacy && (
+                      <>
+                        <p className="cv__hint">
+                          This shape carries a spec card
+                          {target.legacy.name ? ` (${target.legacy.name})` : ""} from before frames
+                          held the detail.
+                        </p>
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            className="k-btn k-btn--secondary k-btn--sm"
+                            onClick={() => void convertCard(target.id)}
+                          >
+                            Convert to a Model frame
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </section>
+                )}
+                {target.kind === "many" && (
+                  <section className="cv__object cv__side-section" aria-label="Selection">
+                    <h3>{target.count} shapes selected</h3>
+                    {target.wrappable ? (
+                      <>
+                        <p className="cv__hint">
+                          Wrap them in one labelled frame to make a single object the agent can
+                          name, search and look at.
+                        </p>
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            className="k-btn k-btn--secondary k-btn--sm"
+                            onClick={() => void frameSelection()}
+                          >
+                            <SquareDashed size={14} aria-hidden /> Frame selection
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <p className="cv__hint">
+                        The selection includes a frame, and frames cannot nest. Select the shapes
+                        alone to frame them.
+                      </p>
+                    )}
+                  </section>
+                )}
+                {target.kind === "none" && (
+                  <p className="cv__hint">
+                    Select a frame to describe it. To describe loose shapes, select them and wrap
+                    them in a frame.
+                  </p>
+                )}
+                <section className="cv__side-section" aria-label="Reference images">
+                  <h3>Reference images</h3>
+                  {refs.length === 0 ? (
+                    <p className="cv__hint">
+                      None stored. Drop or insert an image on the canvas and it is saved beside the
+                      file, not inside it.
+                    </p>
+                  ) : (
+                    <ul className="cv__list">
+                      {refs.map((r) => (
+                        <li key={r.ref}>
+                          <button
+                            type="button"
+                            className="cv__list-item"
+                            title={r.path}
+                            onClick={() => {
+                              const api = apiRef.current;
+                              const placed = api
+                                ? (api.getSceneElements() as unknown as SceneElement[]).filter(
+                                    (e) => e.type === "image" && e.fileId === r.fileId,
+                                  )
+                                : [];
+                              if (placed.length) reveal(placed.map((e) => e.id));
+                            }}
+                          >
+                            <span>{r.name}</span>
+                            <span className="cv__meta">
+                              {r.fileId ? "placed · show" : "not placed"}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              </>
+            )}
+          </Sidebar>
         )}
       </main>
+
+      {/* Send to agent sits below the whole body, drawing and side panel alike,
+          so it takes its own height instead of covering the canvas. The spec
+          card's Send card button portals into the empty slot after Send
+          selection: the card's draft lives in the side panel. */}
+      {doc && view === "canvas" && (
+        <SendFooter>
+          <SendButton
+            label="Send selection"
+            sent={sentSelection}
+            disabled={selectedN === 0}
+            title="Add the selection, as an image, to the agent's context. Drag to a terminal to send it."
+            onPointerDown={selectedN > 0 ? dragContext(() => putSelection()) : undefined}
+            onClick={sendSelection}
+          />
+          <span className="cv__send-slot" ref={setSendSlot} />
+        </SendFooter>
+      )}
     </div>
   );
 }

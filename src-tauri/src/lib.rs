@@ -202,6 +202,11 @@ pub fn run() {
         // stays empty on a machine that would not give us a socket — which
         // costs the MCP feature and nothing else.
         .manage(mcp::Endpoint::default())
+        // Where the person's focus is, as each window's shell last reported it,
+        // and which MCP sessions have subscribed to hear when it moves. See
+        // `mcp::focus` and `mcp::subscriptions`.
+        .manage(mcp::FocusState::default())
+        .manage(mcp::Subscriptions::default())
         // What can be changed, and what has been. Empty until `settings::seed`
         // registers the shell's groups and every app's — a registry with no
         // groups answers every read with "no such setting", which is why the
@@ -267,7 +272,7 @@ pub fn run() {
                     // taskbar. `set_geometry` above never runs `mutate`, so
                     // this is the only other trigger `sync_visibility` needs
                     // beside the one inside it.
-                    if window.label() == "main" {
+                    if window.label() == app.state::<plane_webview::PlaneWebview>().owner() {
                         plane_webview::sync_visibility(app, &app.state::<ShellState>().snapshot());
                     }
                 }
@@ -292,6 +297,11 @@ pub fn run() {
                 // wreckage as the layout to restore. See `ShellState::closing`.
                 WindowEvent::Destroyed => {
                     windows::reclaim(app, &app.state::<ShellState>(), window.label());
+                    // A closed window cannot hold focus; drop its last report so
+                    // the focus resource does not keep pointing at it.
+                    if app.state::<mcp::FocusState>().forget(window.label()) {
+                        mcp::notify_focus_changed(app);
+                    }
                 }
                 _ => {}
             }
@@ -483,6 +493,7 @@ pub fn run() {
             commands::new_cluster_for_drop,
             commands::set_active_cluster,
             commands::rename_cluster,
+            commands::set_cluster_icon,
             commands::close_cluster,
             commands::set_cluster_project,
             commands::cluster_project,
@@ -542,8 +553,10 @@ pub fn run() {
             commands::app_call,
             diagnostics::report_frontend_error,
             mcp::commands::mcp_status,
+            mcp::commands::mcp_catalog,
             mcp::commands::mcp_set_server_enabled,
             mcp::commands::mcp_sync_config,
+            mcp::commands::report_focus,
             settings::commands::settings_snapshot,
             settings::commands::settings_set,
             settings::commands::settings_reset,
@@ -573,6 +586,11 @@ pub fn run() {
             github::github_feed,
             github::github_open_in_browser,
             cloud::hindsight::hindsight_status,
+            cloud::google::google_auth_status,
+            cloud::google::google_sign_in,
+            cloud::google::google_cancel_sign_in,
+            cloud::google::google_sign_out,
+            cloud::google::set_google_client_secret,
             search::search_content,
             updater::update_state,
             updater::check_for_update,
@@ -654,6 +672,10 @@ fn restore_session(app: &tauri::AppHandle) {
 
     if stored.windows.is_empty() {
         seed_first_run(app, &shell);
+        // Nothing remembered, so nothing to restore: centre rather than take the OS's cascade.
+        if let Some(window) = app.get_webview_window("main") {
+            windows::apply_geometry(&window, None);
+        }
         return;
     }
 
@@ -676,9 +698,8 @@ fn restore_session(app: &tauri::AppHandle) {
             .and_then(|g| shell_store::clamp_to_visible(app, g));
 
         if placement.label == "main" {
-            if let (Some(window), Some(g)) = (app.get_webview_window("main"), geometry) {
-                let _ = window.set_position(tauri::PhysicalPosition::new(g.x, g.y));
-                let _ = window.set_size(tauri::PhysicalSize::new(g.width, g.height));
+            if let Some(window) = app.get_webview_window("main") {
+                windows::apply_geometry(&window, geometry);
             }
             continue;
         }
@@ -761,7 +782,9 @@ fn respawn_terminals(app: &tauri::AppHandle, shell: &ShellState) {
             .unwrap_or_else(|| std::path::PathBuf::from("."));
 
         let marker = crate::environments::read_only_env(
-            shell.cluster_environment(&terminal.cluster_id).as_ref(),
+            shell
+                .cluster_write_environment(&terminal.cluster_id)
+                .as_ref(),
         );
         if let Err(e) = ptys.open(app, &terminal.id, &cwd, 80, 24, &marker) {
             crate::kaava_log!("could not restore the shell behind {}: {e}", terminal.id);

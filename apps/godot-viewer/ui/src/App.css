@@ -6,6 +6,7 @@
  */
 
 .gv {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -14,12 +15,14 @@
 }
 
 .gv__header {
-  height: 34px;
+  min-height: 34px;
+  min-width: 0;
   flex-shrink: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  padding: 0 10px;
+  gap: 4px 12px;
+  padding: 4px 10px;
   border-bottom: 1px solid var(--border-subtle);
   background: var(--bg-layer-1);
 }
@@ -29,9 +32,14 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--txt-secondary);
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .gv__age {
+  white-space: nowrap;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -41,6 +49,7 @@
 
 .gv__preview-toggle {
   margin-left: auto;
+  white-space: nowrap;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -53,7 +62,7 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: minmax(120px, 220px) minmax(0, 1fr);
   position: relative;
 }
 
@@ -253,17 +262,6 @@
   cursor: default;
 }
 
-.gv__footer {
-  height: 36px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 10px;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--bg-layer-1);
-}
-
 .gv__footer-btn {
   display: flex;
   align-items: center;
@@ -271,6 +269,8 @@
   font-size: 11px;
   font-weight: 500;
   padding: 4px 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
   border-radius: var(--radius-sm, 4px);
   border: 1px solid var(--border-subtle);
   background: var(--bg-surface-1);

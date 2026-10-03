@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const invoke = vi.hoisted(() => vi.fn());
 vi.mock("@openkaava/bridge", () => ({ invoke }));
 
-import { partsText, putGlb, putParts, putRender } from "./context";
-import type { BlenderViewerState } from "./rpc";
+import { partSummary, partsText, putGlb, putParts, putRender } from "./context";
+import type { BlenderPart, BlenderViewerState } from "./rpc";
 
 const state = {
   rel: "art/crate.blend",
@@ -31,6 +31,33 @@ beforeEach(() => {
   invoke.mockResolvedValue({ id: "ctx-1" });
 });
 
+describe("instances", () => {
+  const crate = {
+    name: "CrateLinked",
+    kind: "instance",
+    parent: null,
+    visible: true,
+    mesh: null,
+    materials: [],
+    verts: 54,
+    polys: 54,
+    tris: 108,
+    dimensions: [1, 1, 1],
+    instanceOf: "CrateProp",
+    instanceMeshes: 1,
+  } as unknown as BlenderPart;
+
+  it("summarises an instance with its collection and triangles", () => {
+    expect(partSummary(crate)).toBe("instance of CrateProp · 108 tris");
+    expect(partSummary(state.parts[1] as BlenderPart)).toBe("armature");
+  });
+
+  it("lists an instance with its collection in the parts text", () => {
+    const text = partsText({ ...state, parts: [crate] }).split("\n");
+    expect(text[1]).toBe("CrateLinked | instance | of CrateProp | 108 tris | 54 verts");
+  });
+});
+
 describe("partsText", () => {
   it("lists meshes with counts and other kinds by kind", () => {
     const text = partsText(state).split("\n");
@@ -47,6 +74,13 @@ describe("context puts", () => {
       "context/put",
       expect.objectContaining({ kind: "image", bytesBase64: "AAAA" }),
     );
+  });
+
+  it("keys a render by blend and view, so the same view replaces itself", async () => {
+    await putRender("AAAA", "3/4", "art/crate.blend", "three-quarter");
+    await putRender("BBBB", "Top", "art/crate.blend", "top");
+    const keys = invoke.mock.calls.map((c) => (c[1] as { key: string }).key);
+    expect(keys).toEqual(["blender/art/crate/three-quarter", "blender/art/crate/top"]);
   });
 
   it("sends the parts list as text", async () => {

@@ -93,10 +93,74 @@ fn write_cached(cache: &Path, scene: &str, cached: &Cached) -> Result<(), String
     std::fs::rename(&tmp, dir.join("scene.json")).map_err(|e| e.to_string())
 }
 
+/// The last markup drawn over a scene: the picture it was drawn on and the JSON
+/// beside it. One pair per scene, overwritten in place, so marking up again
+/// replaces rather than accumulates.
+#[derive(Debug, PartialEq)]
+pub struct Markup {
+    pub png: Vec<u8>,
+    pub json: String,
+    /// Epoch milliseconds the picture was written.
+    pub saved_at: u64,
+}
+
+/// A markup picture is a screenshot of the viewport; past this it is not one.
+pub const MAX_MARKUP_PNG: usize = 8 * 1024 * 1024;
+
+/// Temp file in the same folder, then rename over the target, so a reader (or a
+/// crash) sees the old file or the new one and never half of either.
+pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    let mut tmp = path.as_os_str().to_owned();
+    tmp.push(".tmp");
+    let tmp = PathBuf::from(tmp);
+    std::fs::write(&tmp, bytes).map_err(|e| format!("could not write {}: {e}", tmp.display()))?;
+    std::fs::rename(&tmp, path).map_err(|e| {
+        let _ = std::fs::remove_file(&tmp);
+        format!("could not replace {}: {e}", path.display())
+    })
+}
+
+pub fn write_markup(cache: &Path, scene: &str, png: &[u8], json: &str) -> Result<u64, String> {
+    if !png.starts_with(b"\x89PNG\r\n\x1a\n") {
+        return Err("the markup picture is not a PNG".to_string());
+    }
+    if png.len() > MAX_MARKUP_PNG {
+        return Err(format!(
+            "the markup picture is {:.1} MB; the limit is {} MB",
+            png.len() as f64 / 1_048_576.0,
+            MAX_MARKUP_PNG / 1024 / 1024
+        ));
+    }
+    let dir = scene_dir(cache, scene);
+    std::fs::create_dir_all(&dir)
+        .map_err(|e| format!("could not create {}: {e}", dir.display()))?;
+    // JSON first: a failure between the two leaves the old picture with a newer
+    // note, which `read_markup` still returns whole, rather than the reverse.
+    write_atomic(&dir.join("markup.json"), json.as_bytes())?;
+    write_atomic(&dir.join("markup.png"), png)?;
+    Ok(now_ms())
+}
+
+pub fn read_markup(cache: &Path, scene: &str) -> Option<Markup> {
+    let dir = scene_dir(cache, scene);
+    let png = std::fs::read(dir.join("markup.png")).ok()?;
+    let json = std::fs::read_to_string(dir.join("markup.json")).ok()?;
+    let saved_at = std::fs::metadata(dir.join("markup.png"))
+        .and_then(|m| m.modified())
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map_or(0, |d| d.as_millis() as u64);
+    Some(Markup {
+        png,
+        json,
+        saved_at,
+    })
+}
+
 // --- parsing a .tscn --------------------------------------------------------
 
 /// The value of `key="..."` in a header line.
-fn attr(line: &str, key: &str) -> Option<String> {
+pub(super) fn attr(line: &str, key: &str) -> Option<String> {
     let needle = format!("{key}=\"");
     let start = line.find(&needle)? + needle.len();
     let end = line[start..].find('"')?;
@@ -129,7 +193,7 @@ pub fn parse_tscn(project: &Path, scene: &str) -> Result<Vec<Node>, String> {
     parse_tscn_depth(project, scene, 0)
 }
 
-fn res_to_path(project: &Path, res: &str) -> PathBuf {
+pub(super) fn res_to_path(project: &Path, res: &str) -> PathBuf {
     project.join(res.trim_start_matches("res://"))
 }
 
@@ -281,11 +345,11 @@ impl Jobs {
     }
 }
 
-fn set_phase(job: &Arc<Mutex<Job>>, phase: &str) {
+pub(super) fn set_phase(job: &Arc<Mutex<Job>>, phase: &str) {
     job.lock_or_panic().phase = phase.to_string();
 }
 
-fn finish(job: &Arc<Mutex<Job>>, error: Option<String>) {
+pub(super) fn finish(job: &Arc<Mutex<Job>>, error: Option<String>) {
     let mut j = job.lock_or_panic();
     j.running = false;
     j.phase = if error.is_some() { "failed" } else { "done" }.to_string();
@@ -310,6 +374,7 @@ pub struct Refresh {
 pub struct Limits {
     pub import: Duration,
     pub dump: Duration,
+    pub export: Duration,
     pub render: Duration,
 }
 
@@ -318,6 +383,7 @@ impl Default for Limits {
         Self {
             import: Duration::from_secs(300),
             dump: Duration::from_secs(60),
+            export: Duration::from_secs(120),
             render: Duration::from_secs(90),
         }
     }
@@ -381,26 +447,33 @@ fn parsed(opts: &Refresh, godot: Option<&Found>) -> Result<Cached, String> {
     })
 }
 
-fn dump_headless(job: &Arc<Mutex<Job>>, opts: &Refresh, godot: &Found) -> Result<Cached, String> {
-    if !opts.project.join(".godot").join("imported").is_dir() {
-        set_phase(job, "importing resources (first run only)");
-        let import_flag: &[&str] = if godot.major == 4 && godot.minor >= 2 {
-            &["--import"]
-        } else {
-            &["--editor", "--quit"]
-        };
-        let mut args = vec!["--headless", "--path", opts.project.to_str().unwrap_or(".")];
-        args.extend_from_slice(import_flag);
-        let out = run_capture(
-            godot.for_logging(),
-            &args,
-            &opts.project,
-            opts.limits.import,
-        )?;
-        push_output(job, &out.text);
-        // A project with nothing to import still exits 0; a non-zero exit here is
-        // reported by the dump below if it actually matters.
+/// Run Godot's resource import once, when the project has never been imported.
+/// A project with nothing to import still exits 0; a non-zero exit here is
+/// reported by whatever runs next if it actually matters.
+pub(super) fn ensure_imported(
+    job: &Arc<Mutex<Job>>,
+    project: &Path,
+    godot: &Found,
+    limit: Duration,
+) -> Result<(), String> {
+    if project.join(".godot").join("imported").is_dir() {
+        return Ok(());
     }
+    set_phase(job, "importing resources (first run only)");
+    let import_flag: &[&str] = if godot.major == 4 && godot.minor >= 2 {
+        &["--import"]
+    } else {
+        &["--editor", "--quit"]
+    };
+    let mut args = vec!["--headless", "--path", project.to_str().unwrap_or(".")];
+    args.extend_from_slice(import_flag);
+    let out = run_capture(godot.for_logging(), &args, project, limit)?;
+    push_output(job, &out.text);
+    Ok(())
+}
+
+fn dump_headless(job: &Arc<Mutex<Job>>, opts: &Refresh, godot: &Found) -> Result<Cached, String> {
+    ensure_imported(job, &opts.project, godot, opts.limits.import)?;
 
     set_phase(job, "reading the scene tree");
     std::fs::create_dir_all(&opts.scratch).map_err(|e| e.to_string())?;
@@ -453,7 +526,7 @@ fn dump_headless(job: &Arc<Mutex<Job>>, opts: &Refresh, godot: &Found) -> Result
     })
 }
 
-fn tail(text: &str) -> String {
+pub(super) fn tail(text: &str) -> String {
     let last: Vec<&str> = text.lines().rev().take(3).collect();
     if last.is_empty() {
         String::new()
@@ -465,7 +538,7 @@ fn tail(text: &str) -> String {
     }
 }
 
-fn push_output(job: &Arc<Mutex<Job>>, text: &str) {
+pub(super) fn push_output(job: &Arc<Mutex<Job>>, text: &str) {
     let mut j = job.lock_or_panic();
     for line in text.lines().filter(|l| !l.trim().is_empty()) {
         j.output.push(line.to_string());
@@ -527,14 +600,14 @@ fn render_frame(job: &Arc<Mutex<Job>>, opts: &Refresh, godot: &Found) -> Result<
 
 // --- running a command to completion ---------------------------------------
 
-struct Captured {
-    text: String,
+pub(super) struct Captured {
+    pub(super) text: String,
     code: Option<i32>,
     timed_out: bool,
 }
 
 impl Captured {
-    fn code_label(&self) -> String {
+    pub(super) fn code_label(&self) -> String {
         if self.timed_out {
             "timed out".to_string()
         } else {
@@ -547,7 +620,7 @@ impl Captured {
 /// Run `program args` to completion with both streams merged, killing the whole
 /// tree if it outlasts `limit`. A timeout is a result rather than an error so
 /// the caller can still read whatever the process wrote before it stalled.
-fn run_capture(
+pub(super) fn run_capture(
     program: &Path,
     args: &[&str],
     cwd: &Path,
@@ -692,6 +765,49 @@ script = ExtResource("3_player")
         .unwrap();
         // The file above is malformed (root last); what matters is that it terminates.
         let _ = parse_tscn(dir.path(), "res://a.tscn");
+    }
+
+    fn tiny_png() -> Vec<u8> {
+        let mut v = b"\x89PNG\r\n\x1a\n".to_vec();
+        v.extend_from_slice(&[0, 1, 2, 3]);
+        v
+    }
+
+    #[test]
+    fn markup_is_kept_per_scene_and_overwritten_in_place() {
+        let cache = TempDir::new().unwrap();
+        assert!(read_markup(cache.path(), "res://a.tscn").is_none());
+        write_markup(cache.path(), "res://a.tscn", &tiny_png(), "{\"n\":1}").unwrap();
+        let mut second = tiny_png();
+        second.push(9);
+        write_markup(cache.path(), "res://a.tscn", &second, "{\"n\":2}").unwrap();
+
+        let got = read_markup(cache.path(), "res://a.tscn").unwrap();
+        assert_eq!(got.png, second);
+        assert_eq!(got.json, "{\"n\":2}");
+        assert!(read_markup(cache.path(), "res://b.tscn").is_none());
+
+        let mut names: Vec<String> = std::fs::read_dir(scene_dir(cache.path(), "res://a.tscn"))
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect();
+        names.sort();
+        assert_eq!(
+            names,
+            ["markup.json", "markup.png"],
+            "no temp or older copies"
+        );
+    }
+
+    #[test]
+    fn a_markup_picture_that_is_not_a_png_or_is_too_big_is_refused() {
+        let cache = TempDir::new().unwrap();
+        assert!(write_markup(cache.path(), "res://a.tscn", b"hello", "{}").is_err());
+        let mut big = tiny_png();
+        big.resize(MAX_MARKUP_PNG + 1, 0);
+        assert!(write_markup(cache.path(), "res://a.tscn", &big, "{}").is_err());
+        assert!(read_markup(cache.path(), "res://a.tscn").is_none());
     }
 
     #[test]

@@ -25,26 +25,31 @@ import { environmentOf, environmentKey, isReadOnly } from "./environment";
 import { snap } from "./motion";
 import { INTERRUPT, commandLine, terminalInput } from "./run";
 import ContextMenuHost from "./ContextMenuHost";
-import CommandPalette from "./palette/CommandPalette";
-import NewClusterDialog from "./dialogs/NewClusterDialog";
+import CommandPalette, { type PalettePage } from "./palette/CommandPalette";
+import ClusterIconDialog from "./dialogs/ClusterIconDialog";
+import NewClusterDialog, {
+  type EnvironmentKind as ClusterEnvironmentKind,
+} from "./dialogs/NewClusterDialog";
 import SwitchProjectDialog from "./dialogs/SwitchProjectDialog";
+import CloseUnsavedDialog from "./dialogs/CloseUnsavedDialog";
+import { getSubject } from "./viewerSubjects";
 import { nextAddClusterStep } from "./addClusterFlow";
 import { commandsFromMenus, withOpenAppCommands } from "./palette/registry";
-import AppPicker from "./panes/AppPicker";
 import TitleBar from "./titlebar/TitleBar";
 import { APP_COMMAND, defaultMenus, type CommandHandlers } from "./titlebar/menus";
 import { editHandlers, useEditTarget } from "./titlebar/useEditTarget";
-import ClusterBar from "./switcher/ClusterBar";
+import ClusterStrip from "./rail/ClusterStrip";
+import ToolHealthBadge from "./titlebar/ToolHealthBadge";
+import { cycleTarget, orderClusters } from "./clusterList";
 import ToolWindow, { type ToolWindowHandle } from "./toolwindow/ToolWindow";
 // The two the tool window draws through a render prop rather than importing;
 // see its `renderPanes`/`renderTerminal` props for why.
 import PaneTree from "./panes/PaneTree";
-import XTermView from "./terminal/XTermView";
+import PaneTerminal from "./terminal/PaneTerminal";
 import { splitDirOnOpen } from "./panes/splitOnOpen";
 import { toggleMaximize } from "./panes/paneMaximize";
 import BottomPanel from "./panel/BottomPanel";
 import StatusBar from "./statusbar/StatusBar";
-import EnvironmentBar from "./envbar/EnvironmentBar";
 import SearchSlot from "./search/SearchSlot";
 import SearchOverlay from "./search/SearchOverlay";
 import { useSearchSession } from "./search/useSearchSession";
@@ -53,6 +58,7 @@ import { useDrag } from "./drag/useDrag";
 import { useFileDrag } from "./drag/useFileDrag";
 import { useDropZone } from "./dropZones";
 import { useKeyboard } from "./keys/useKeyboard";
+import { useFocusReporter } from "./useFocusReporter";
 import { dispatchCopilotKey, type CopilotAction, type CopilotHandlers } from "./copilotKey";
 import GithubPanel from "./github/GithubPanel";
 import WorktreePanel from "./worktree/WorktreePanel";
@@ -74,6 +80,7 @@ import {
   openInstance,
   openPage,
   renameCluster,
+  setClusterIcon,
   setActiveCluster,
   setActiveTerminal,
   setBandHeight,
@@ -89,8 +96,7 @@ import { githubAuthControl, githubControl } from "./state/github";
 import { copyToClipboard, reviewControl } from "./state/review";
 import { isFullscreen, isTauri, nextZoom, setFullscreen, setZoom } from "./hostWindow";
 import Rail from "./rail/Rail";
-import DockedPage from "./rail/DockedPage";
-import ExpandedPage from "./rail/ExpandedPage";
+import PageShell from "./rail/PageShell";
 import AppPage from "./rail/AppPage";
 import HindsightPage from "./rail/HindsightPage";
 import GitPage, { type GitPageView } from "./rail/GitPage";
@@ -196,7 +202,7 @@ export default function WindowRoot({
   // Not the same thing as an installed plugin, and the distinction is the whole
   // reason both exist. These are the `[[tool]]` entries in `kaava.toml` — the
   // stack this build expects, at the versions it pins — and what the shell does
-  // with them is *report* on them: this is what the cluster bar's warning badge
+  // with them is *report* on them: this is what the title bar's warning badge
   // and its health list read, and the only place that says a component needs an
   // update or is not checked out. A plugin somebody installed is a different
   // question with no pinned version to disagree with, and arrives through
@@ -239,9 +245,35 @@ export default function WindowRoot({
   const pages = usePages();
   const rightPage = placement?.rightPage ?? null;
   const activePage = rightPage ? pages.find((p) => p.id === rightPage.id) : undefined;
+
+  // Focus follows the rail page. Opening or switching lands focus on the page
+  // (the surface is focusable; an app's iframe cannot be focused from here),
+  // and closing hands it back to that page's rail button. The close half runs
+  // while the page is still mounted, tucking away, so it can tell whether
+  // focus was inside it; focus that is somewhere else entirely is left alone.
+  const openPageId = rightPage?.id ?? null;
+  const previousPageId = useRef<string | null>(null);
+  useEffect(() => {
+    const previous = previousPageId.current;
+    previousPageId.current = openPageId;
+    if (openPageId !== null) {
+      if (openPageId !== previous) pageShellRef.current?.focus({ preventScroll: true });
+      return;
+    }
+    if (previous === null) return;
+    const active = document.activeElement;
+    const inPage =
+      active instanceof HTMLElement && active.closest(".k-docked-page, .k-expanded-page") !== null;
+    if (inPage || active === document.body || active === null) {
+      document
+        .querySelector<HTMLElement>(`.k-rail__btn[data-page-id="${previous}"]`)
+        ?.focus({ preventScroll: true });
+    }
+  }, [openPageId]);
   // The element an app-backed page's iframe is portaled into; `AppPage` reports
   // it. State, not a ref, so `ToolWindow` re-renders once it exists.
   const [pageHost, setPageHost] = useState<HTMLElement | null>(null);
+  const pageShellRef = useRef<HTMLDivElement>(null);
 
   // There is no seeding effect any more, and its absence is the point.
   //
@@ -266,6 +298,10 @@ export default function WindowRoot({
   // which is what the bar's chips, Ctrl+1…9 and the new-cluster number count.
   const allClusters = placement?.clusters;
   const clusters = useMemo(() => (allClusters ?? []).filter((c) => !c.page), [allClusters]);
+  // The order every cluster surface shows and numbers them in — the dropdown,
+  // the rail strip, Ctrl+1…9 and Ctrl+Tab — so Ctrl+2 is the second thing on
+  // screen. See `clusterList.ts`.
+  const orderedClusters = useMemo(() => orderClusters(clusters), [clusters]);
   const shownCluster =
     allClusters?.find((c) => c.id === placement?.activeClusterId) ?? clusters[0] ?? null;
   const activePageId = shownCluster?.page ?? null;
@@ -398,6 +434,10 @@ export default function WindowRoot({
       setActivePane(paneIds[0] ?? null);
     }
   }, [paneIds, activePaneId]);
+
+  // Tells the backend where focus is, so an agent subscribed to
+  // `kaava://workspace/focus` hears when it moves. See `focusReport.ts`.
+  useFocusReporter(label, activeClusterId, activePaneId);
 
   // Which pane, if any, is drawn full-size with the rest hidden but still
   // mounted — KAAVA-UX-REWORK.md §5's "double-click a tab to maximise its
@@ -708,32 +748,48 @@ export default function WindowRoot({
   }, [pages, rightPage, onSelectPage, onClosePage, onTogglePageMode]);
 
   /**
-   * The switcher bar's `+` and Ctrl+Shift+N both land here. Every new cluster
+   * The New cluster entries — the title bar dropdown's, the rail strip's `+`,
+   * and Ctrl+Shift+N — all land here. Every new cluster
    * needs a project and an environment, and `NewClusterDialog` supplies the
    * environment relative to a project — so with none set, Switch project opens
    * first and the New Cluster dialog follows once a project lands (see the
    * effect below). Only a window with no cluster at all, which has nowhere to
    * put a project, still gets a bare numbered cluster. See `nextAddClusterStep`.
+   *
+   * `kind` is which environment the dialog opens on; omitted, its own default.
    */
-  const onAddCluster = useCallback(() => {
-    const step = nextAddClusterStep(project !== null, activeClusterId !== null);
-    if (step === "new-cluster") {
-      setNewClusterOpen(true);
-    } else if (step === "pick-project") {
-      setNewClusterAfterProject(true);
-      setSwitchProjectOpen(true);
-    } else {
-      void addCluster(label, `Cluster ${clusters.length + 1}`);
-    }
-  }, [label, clusters.length, project, activeClusterId]);
+  const onAddCluster = useCallback(
+    (kind?: ClusterEnvironmentKind) => {
+      const step = nextAddClusterStep(project !== null, activeClusterId !== null);
+      if (step === "new-cluster") {
+        setNewClusterKind(kind);
+        setNewClusterOpen(true);
+      } else if (step === "pick-project") {
+        setNewClusterKind(kind);
+        setNewClusterAfterProject(true);
+        setSwitchProjectOpen(true);
+      } else {
+        void addCluster(label, `Cluster ${clusters.length + 1}`);
+      }
+    },
+    [label, clusters.length, project, activeClusterId],
+  );
 
   const onCloseCluster = useCallback((clusterId: string) => {
     void closeCluster(clusterId);
   }, []);
 
-  const onRenameCluster = useCallback((clusterId: string, name: string) => {
-    void renameCluster(clusterId, name);
-  }, []);
+  // The cluster whose icon picker is open. Held as an id, not a cluster, so the
+  // dialog reads the live one and closes itself if the cluster is closed under it.
+  const [iconClusterId, setIconClusterId] = useState<string | null>(null);
+  const iconCluster =
+    iconClusterId === null ? null : (clusters.find((c) => c.id === iconClusterId) ?? null);
+  const onChangeClusterIcon = useCallback((clusterId: string) => setIconClusterId(clusterId), []);
+
+  const onRenameCluster = useCallback(
+    (clusterId: string, name: string) => renameCluster(clusterId, name),
+    [],
+  );
 
   /**
    * Close this window, through the backend rather than through Tauri directly.
@@ -1049,6 +1105,7 @@ export default function WindowRoot({
           // silently would look like a rendering bug rather than a state one.
           title: instance?.title ?? id,
           kind: instance?.kind ?? "app",
+          appId: instance?.appId,
           paneId: leaf.id,
           showing: leaf.activeTab === id,
           agentFinished: terminalsById.get(id)?.agentFinished ?? false,
@@ -1117,6 +1174,8 @@ export default function WindowRoot({
    * would interrupt. A terminal goes through the same "still running, close
    * anyway?" path the Terminal menu's Kill item uses, because it might.
    */
+  const [unsavedClose, setUnsavedClose] = useState<ClusterMember | null>(null);
+
   const onCloseMember = useCallback(
     (member: ClusterMember) => {
       // A terminal is a terminal wherever it is drawn. One in a pane tree must
@@ -1130,6 +1189,12 @@ export default function WindowRoot({
         return;
       }
       if (member.paneId !== null) {
+        // A File Viewer with unsaved edits is asked about first: closing the
+        // instance destroys the only copy of them.
+        if (member.appId === "viewer" && getSubject(member.id)?.dirty) {
+          setUnsavedClose(member);
+          return;
+        }
         void closeInstance(member.id);
         return;
       }
@@ -1232,15 +1297,21 @@ export default function WindowRoot({
   // looks inside the open project's files and can neither list nor run a
   // command. Both point here now, and Ctrl+K still opens search.
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const openPalette = useCallback(() => setPaletteOpen(true), []);
+  const [palettePage, setPalettePage] = useState<PalettePage>("commands");
+  const openPalette = useCallback(() => {
+    setPalettePage("commands");
+    setPaletteOpen(true);
+  }, []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
 
-  // The app picker raised over the window: by the empty state's button, by
-  // Ctrl+Shift+A, and by the palette's "Open app…". The `+` on a pane's strip
-  // draws its own copy of the same component, anchored to itself.
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const openPicker = useCallback(() => setPickerOpen(true), []);
-  const closePicker = useCallback(() => setPickerOpen(false), []);
+  // The app list raised over the window, by the empty state's button and by
+  // Ctrl+Shift+A: the command palette opened on its apps page, so both share
+  // one panel and one scrim. The `+` on a pane's strip draws its own anchored
+  // `AppPicker`.
+  const openPicker = useCallback(() => {
+    setPalettePage("apps");
+    setPaletteOpen(true);
+  }, []);
 
   /**
    * Opens `entry` as a **tab in `paneId`** — the picker, the strip's `+` and the
@@ -1266,6 +1337,8 @@ export default function WindowRoot({
   // see its own note on why a clusterless window skips this and falls back
   // to the old instant creation instead.
   const [newClusterOpen, setNewClusterOpen] = useState(false);
+  // Which environment the dialog opens on; `undefined` is its own default.
+  const [newClusterKind, setNewClusterKind] = useState<ClusterEnvironmentKind | undefined>();
   const closeNewCluster = useCallback(() => setNewClusterOpen(false), []);
 
   // The Switch Project dialog (board 08). The pill's own click, wherever it
@@ -1642,7 +1715,7 @@ export default function WindowRoot({
     palette: openPalette,
     search: () => setSearchExpanded(true),
     switchProject: onOpenProjectSwitcher,
-    newCluster: onAddCluster,
+    newCluster: () => onAddCluster(),
     toggleGit: () => onSelectPage("git"),
     toggleTerminal: onToggleTerminal,
   };
@@ -1672,8 +1745,21 @@ export default function WindowRoot({
     // while already there should do nothing — not pull the view off whatever is
     // on screen onto Home, which is easy to trigger by repeat and hard to undo.
     selectToolByIndex: (index) => {
-      const cluster = clusters[index];
-      if (cluster && cluster.id !== activeClusterId) void setActiveCluster(label, cluster.id);
+      const cluster = orderedClusters[index];
+      if (cluster && cluster.id !== activeClusterId) {
+        hideTakeover();
+        void setActiveCluster(label, cluster.id);
+      }
+    },
+    // Ctrl+Tab and Ctrl+Shift+Tab walk the same order, wrapping. Like the number
+    // keys this is navigation, not the chip's gesture, so it never toggles Home;
+    // it does take a takeover down on the way out, for the reason `onSelectCluster` gives.
+    cycleCluster: (step) => {
+      const target = cycleTarget(orderedClusters, activeClusterId, step);
+      if (target !== null) {
+        hideTakeover();
+        void setActiveCluster(label, target);
+      }
     },
     rescan: onRescan,
     // Ctrl+. is drawn under the boot spinner, but nothing can act on it yet:
@@ -1688,7 +1774,7 @@ export default function WindowRoot({
     // clicking a greyed-out Save does — nothing — rather than posting a command
     // the app has said it cannot carry out.
     newFile: () => runIfAllowed(app, APP_COMMAND.newFile),
-    newCluster: onAddCluster,
+    newCluster: () => onAddCluster(),
     openProject: onOpenProject,
     save: () => runIfAllowed(app, APP_COMMAND.save),
     saveAs: () => runIfAllowed(app, APP_COMMAND.saveAs),
@@ -1772,7 +1858,6 @@ export default function WindowRoot({
   };
   const paletteCommands = withOpenAppCommands(commandsFromMenus(menus), {
     apps: appsHandlers.available,
-    openPicker,
     open: (entry) => onOpenInPane(entry, activePaneId),
     blocked: appsHandlers.blocked,
     accelerator: "Ctrl+Shift+A",
@@ -1800,6 +1885,7 @@ export default function WindowRoot({
             git={git}
             activeBranch={activeBranch}
             readOnly={isReadOnly(environment)}
+            root={activeCluster?.worktree?.path ?? activeCluster?.project ?? null}
           />
         }
         githubView={
@@ -1841,15 +1927,16 @@ export default function WindowRoot({
           than occupying a band, and `Frame` has no slot it belongs in. The
           commands are the menu tree above, flattened — one source of truth for
           the bar and the palette both. */}
-      <CommandPalette open={paletteOpen} commands={paletteCommands} onClose={closePalette} />
-      {pickerOpen && (
-        <AppPicker
-          apps={appsHandlers.available}
-          blocked={appsHandlers.blocked}
-          onPick={(entry) => onOpenInPane(entry, activePaneId)}
-          onClose={closePicker}
-        />
-      )}
+      <CommandPalette
+        open={paletteOpen}
+        page={palettePage}
+        commands={paletteCommands}
+        apps={appsHandlers.available}
+        blocked={appsHandlers.blocked}
+        onPickApp={(entry) => onOpenInPane(entry, activePaneId)}
+        onClose={closePalette}
+      />
+
       {/* Beside the frame for the same reason as the two above. `project` is
           never null while this is open — `onAddCluster` only sets
           `newClusterOpen` when it already has one, and the after-project
@@ -1858,8 +1945,29 @@ export default function WindowRoot({
         <NewClusterDialog
           label={label}
           project={project}
+          initialKind={newClusterKind}
           onCancel={closeNewCluster}
           onCreated={closeNewCluster}
+        />
+      )}
+      {iconCluster && (
+        <ClusterIconDialog
+          cluster={iconCluster}
+          onCancel={() => setIconClusterId(null)}
+          onPick={(icon) => {
+            void setClusterIcon(iconCluster.id, icon);
+            setIconClusterId(null);
+          }}
+        />
+      )}
+      {unsavedClose && (
+        <CloseUnsavedDialog
+          name={unsavedClose.title}
+          onKeep={() => setUnsavedClose(null)}
+          onDiscard={() => {
+            void closeInstance(unsavedClose.id);
+            setUnsavedClose(null);
+          }}
         />
       )}
       {switchProjectOpen && (
@@ -1911,48 +2019,29 @@ export default function WindowRoot({
               environment={environment}
               environmentLabel={activeCluster?.name ?? null}
               environmentCount={environmentCount}
-              onOpenProjectSwitcher={onOpenProjectSwitcher}
+              switcher={{
+                clusters: orderedClusters,
+                activeClusterId,
+                ahead: git.status?.ahead,
+                behind: git.status?.behind,
+                terminals: shell?.terminals ?? [],
+                onSelect: onSelectCluster,
+                onClose: onCloseCluster,
+                onChangeIcon: onChangeClusterIcon,
+                onNewCluster: () => onAddCluster(),
+                onNewWorktreeCluster: () => onAddCluster("newLocalWorktree"),
+                onSwitchProject: onOpenProjectSwitcher,
+                // The chip's other job: pressing the open cluster covers the
+                // window with Home, and pressing it again takes Home down.
+                onHome: () => activeClusterId !== null && onSelectCluster(activeClusterId),
+              }}
               menus={menus}
-            />
-          ),
-          // Present in *every* window now, where it used to be omitted from a
-          // detached one. That omission was right when a detached window held
-          // exactly one tool and so had nothing to switch between; it holds real
-          // clusters that can be added to and switched between, so there is.
-          //
-          // Cluster tabs only, per §1.3 — see `ClusterBar.tsx`'s header for
-          // where the tabs this row used to list inline went instead.
-          switcherBar: (
-            <ClusterBar
-              clusters={clusters}
-              activeClusterId={activeClusterId}
-              onSelect={onSelectCluster}
-              onAdd={onAddCluster}
-              onClose={onCloseCluster}
-              onRename={onRenameCluster}
-              // A cluster drags too, and it is the one thing in this row that
-              // is not a tab: it can only be released on a *window*, so it
-              // moves into whichever one it was let go over, or takes a new one
-              // — which is the whole point, a cluster per monitor. Same handle
-              // and same press threshold as a tab, so a press that never moves
-              // still selects the chip and a double-click still renames it.
-              dragHandleForCluster={(cluster) =>
-                drag.tabHandle({ what: "cluster", clusterId: cluster.id, name: cluster.name })
+              actionsSlot={
+                <>
+                  <ToolHealthBadge healthOf={stackTools} onRescan={onRescan} />
+                  <SearchSlot open={searchExpanded} onOpen={openSearch} />
+                </>
               }
-              healthOf={stackTools}
-              onRescan={onRescan}
-              searchSlot={<SearchSlot open={searchExpanded} onOpen={openSearch} />}
-            />
-          ),
-          // Omitted while no cluster is open — see the slot's own doc comment
-          // in contract.ts. `onReviewAndMerge` opens the Git page on its
-          // Source Control tab.
-          envBar: environment !== null && (
-            <EnvironmentBar
-              environment={environment}
-              ahead={git.status?.ahead}
-              behind={git.status?.behind}
-              onReviewAndMerge={onReviewAndMerge}
             />
           ),
           toolWindow: (
@@ -2020,13 +2109,10 @@ export default function WindowRoot({
                 />
               )}
               renderTerminal={(instanceId) => (
-                <XTermView
+                <PaneTerminal
                   id={instanceId}
                   transport={terminalTransport}
                   onTitle={(title) => terminalControl.setTitle(instanceId, title)}
-                  // A terminal in a pane takes a file drop exactly as one in
-                  // the band does. Nothing about the gesture depends on where
-                  // the emulator is drawn, so nothing here does either.
                   fileDropActive={instanceId === fileDrag.targetId}
                 />
               )}
@@ -2101,22 +2187,63 @@ export default function WindowRoot({
           // page's own live data (Plane asleep/running, Cost's burn against
           // budget), and none of that is read anywhere yet — a TODO here
           // rather than an invented colour.
+          //
+          // The cluster strip sits at the top of it, above the page icons —
+          // the cluster tab bar's replacement, with the title bar's pill
+          // dropdown as the full list.
           projectRail: (
-            <Rail pages={pages} activePageId={rightPage?.id ?? null} onSelect={onSelectPage} />
+            <>
+              <ClusterStrip
+                clusters={orderedClusters}
+                activeClusterId={activeClusterId}
+                terminals={shell?.terminals ?? []}
+                onSelect={onSelectCluster}
+                onAdd={() => onAddCluster()}
+                onClose={onCloseCluster}
+                onRename={onRenameCluster}
+                onChangeIcon={onChangeClusterIcon}
+                // A cluster drags too, and it is the one thing here that is
+                // not a tab: it can only be released on a *window*, so it
+                // moves into whichever one it was let go over, or takes a new
+                // one — the whole point, a cluster per monitor. Same handle
+                // and same press threshold as a tab, so a press that never
+                // moves still selects the badge.
+                dragHandleForCluster={(cluster) =>
+                  drag.tabHandle({ what: "cluster", clusterId: cluster.id, name: cluster.name })
+                }
+              />
+              <Rail pages={pages} activePageId={rightPage?.id ?? null} onSelect={onSelectPage} />
+            </>
           ),
+          // Both slots are the same component type on purpose: `Frame` draws
+          // one surface and swaps which slot fills it, and a page's app iframe
+          // is portalled into a host inside `pageBody`. Two types would make
+          // React remount that host — and reload the iframe — on every
+          // dock/expand toggle.
           projectPage: rightPage && (
-            <DockedPage title={activePage?.name ?? rightPage.id} onClose={onClosePage}>
-              {pageBody}
-            </DockedPage>
-          ),
-          projectPageExpanded: rightPage && (
-            <ExpandedPage
-              backLabel={activeCluster ? activeCluster.name : "Back"}
-              onBack={onClosePage}
+            <PageShell
+              ref={pageShellRef}
+              mode="docked"
+              pageId={rightPage.id}
               title={activePage?.name ?? rightPage.id}
+              backLabel={activeCluster ? activeCluster.name : "Back"}
+              onClose={onClosePage}
+              onExpand={onTogglePageMode}
             >
               {pageBody}
-            </ExpandedPage>
+            </PageShell>
+          ),
+          projectPageExpanded: rightPage && (
+            <PageShell
+              ref={pageShellRef}
+              mode="expanded"
+              pageId={rightPage.id}
+              title={activePage?.name ?? rightPage.id}
+              backLabel={activeCluster ? activeCluster.name : "Back"}
+              onClose={onClosePage}
+            >
+              {pageBody}
+            </PageShell>
           ),
           // Both drag layers draw into the one overlay slot. Never both at
           // once in practice — a pointer carries one gesture — but composed
@@ -2141,6 +2268,7 @@ export default function WindowRoot({
               environment={environment}
               git={git.status}
               githubOk={!error}
+              onReviewAndMerge={onReviewAndMerge}
               update={updateNotice(updates.state, updates.asked, updates.install)}
             />
           ),

@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { reportPainted } from "@openkaava/bridge";
 import {
+  Box,
   Clock,
   Copy,
+  List,
   ExternalLink,
   MessageSquarePlus,
   Package,
+  PenLine,
   RefreshCw,
-  Send,
   Square,
 } from "lucide-react";
 import { CommentPanel } from "../../../shared/CommentPanel";
@@ -19,18 +21,34 @@ import {
 } from "../../../shared/comments";
 import { formatRenderAge } from "../../../shared/age";
 import { SegmentedControl } from "../../../shared/SegmentedControl";
+import { SendButton, SendFooter, useSendAction } from "../../../shared/SendFooter";
 import {
   cancelExport,
   detectBlender,
   getImage,
   getState,
+  loadMarkup,
   openInBlender,
   setExecutable,
   startExport,
   type BlenderPart,
   type BlenderViewerState,
 } from "./rpc";
-import { dragContext, putGlb, putParts, putRender } from "./context";
+import ModelPreview from "./ModelPreview";
+import { footerIsCompact } from "./layout";
+import { reconcileBlend, selectionWasDropped } from "./selection";
+import {
+  dragContext,
+  keepMarkup,
+  partSummary,
+  putGlb,
+  putMarkup,
+  putParts,
+  putRender,
+} from "./context";
+import { useMarkup } from "../../../shared/useMarkup";
+import { AUTO_SEND_KEY, BLENDER_TARGET, TIP_KEY } from "../../../shared/markupFlow";
+import { MarkupBar, MarkupTip, PreviousMarkup } from "../../../shared/MarkupPanels";
 import "./App.css";
 
 type Mode = "model" | "renders" | "wire";
@@ -54,6 +72,36 @@ function formatBytes(n: number): string {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/**
+ * A footer button whose label never wraps. In a narrow pane it keeps only its
+ * icon; the label moves to the tooltip and the accessible name.
+ */
+function FooterAction(props: {
+  label: string;
+  icon: ReactNode;
+  compact: boolean;
+  title?: string;
+  disabled?: boolean;
+  onClick?: () => void;
+  onPointerDown?: (e: React.PointerEvent<HTMLButtonElement>) => void;
+}) {
+  const hint = props.title ? `${props.label}. ${props.title}` : props.label;
+  return (
+    <button
+      type="button"
+      className={`bv__footer-btn${props.compact ? " bv__footer-btn--icon" : ""}`}
+      aria-label={props.compact ? props.label : undefined}
+      title={props.compact ? hint : props.title}
+      disabled={props.disabled}
+      onClick={props.onClick}
+      onPointerDown={props.onPointerDown}
+    >
+      {props.icon}
+      {!props.compact && props.label}
+    </button>
+  );
+}
+
 function message(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
@@ -74,9 +122,22 @@ export default function App() {
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [sent, setSent] = useState<string | null>(null);
   const autoStartedFor = useRef<number | null>(null);
   const lastSeenMtime = useRef<number | null>(null);
+  const [root, setRoot] = useState<HTMLDivElement | null>(null);
+  const [paneWidth, setPaneWidth] = useState(0);
+
+  useEffect(() => {
+    if (!root) return;
+    setPaneWidth(root.getBoundingClientRect().width);
+    const observer = new ResizeObserver((entries) => {
+      const box = entries[0]?.contentRect;
+      if (box) setPaneWidth(box.width);
+    });
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, [root]);
+  const compact = footerIsCompact(paneWidth);
 
   const refreshComments = useCallback(async () => {
     setCommentsLoading(true);
@@ -94,7 +155,13 @@ export default function App() {
     try {
       const next = await getState(blend);
       setState(next);
-      setBlend((current) => current ?? next.blend);
+      // The host answers with the file it resolved. After a project switch the
+      // old path no longer resolves, so drop it and everything hung off it.
+      if (selectionWasDropped(blend, next)) {
+        setSelected(null);
+        setError(null);
+      }
+      setBlend((current) => reconcileBlend(current, next));
     } catch (err) {
       setError(message(err));
     }
@@ -211,22 +278,37 @@ export default function App() {
     }
   };
 
-  const send = async (what: string, put: () => Promise<unknown>) => {
-    setError(null);
-    try {
-      await put();
-      setSent(what);
-      setTimeout(() => setSent((s) => (s === what ? null : s)), 1800);
-    } catch (err) {
-      setError(`Couldn't send ${what} to the agent: ${message(err)}`);
-    }
-  };
+  const { sent, send } = useSendAction(setError, message);
+
+  // The kept markup is per `.blend`: it is saved with the export cache and
+  // brought back when the file is shown again. `rel` names it in the strip.
+  const {
+    markup,
+    barOpen,
+    setBarOpen,
+    previousOpen,
+    setPreviousOpen,
+    tip,
+    closeTip,
+    onMarkup,
+    sendKept: sendMarkup,
+    flip,
+  } = useMarkup({
+    target: BLENDER_TARGET,
+    subject: state?.rel ?? null,
+    enabled: !!state?.model,
+    load: () => (blend ? loadMarkup(blend) : Promise.resolve(null)),
+    save: (_rel, png, json) => (blend ? keepMarkup(png, json, blend) : Promise.resolve()),
+    send,
+    onProblem: setError,
+    describeError: message,
+  });
 
   // A render is already in memory as a data URL; the bytes cross the bridge once.
   const renderPut = (id: string, label: string) => () => {
     const url = images[id];
     if (!url) return Promise.reject(new Error("the render has not loaded"));
-    return putRender(url.slice(url.indexOf(",") + 1), label, state?.rel ?? null);
+    return putRender(url.slice(url.indexOf(",") + 1), label, state?.rel ?? null, id);
   };
 
   const saveExecutable = async () => {
@@ -242,7 +324,7 @@ export default function App() {
 
   if (!state) {
     return (
-      <div className="bv">
+      <div className="bv" ref={setRoot}>
         <p className="bv__hint">{error ?? "Loading…"}</p>
       </div>
     );
@@ -260,7 +342,7 @@ export default function App() {
   const showJob = job.running || (jobIsForThis && job.outcome !== null && job.outcome !== "ok");
 
   return (
-    <div className="bv">
+    <div className="bv" ref={setRoot}>
       <header className="bv__header">
         <span className="bv__badge">BLENDER VIEWER</span>
         {state.blends.length > 1 ? (
@@ -311,7 +393,7 @@ export default function App() {
               ? "The path in Settings points at nothing. "
               : "Looked in the BLENDER variable, PATH, Program Files and Steam. "}
             Point this at <code>blender.exe</code> (or its folder) to export and open files. Blender
-            4.x is expected.
+            4.x or 5.x is expected.
           </p>
           <div className="bv__setup-row">
             <input
@@ -342,7 +424,7 @@ export default function App() {
       {state.blender.found && !state.blender.supported && (
         <p className="bv__notice">
           Blender {state.blender.version ?? "of unknown version"} found; the export is written for
-          4.x and may not work on this one.
+          4.x and 5.x and may not work on this one.
         </p>
       )}
       {error && (
@@ -388,12 +470,23 @@ export default function App() {
             No <code>.blend</code> files in this environment. Save one here and it will appear.
           </p>
         ) : !hasExport ? (
-          <p className="bv__hint bv__empty">
-            <code>{state.rel}</code> has not been exported yet.
-            {state.blender.found
-              ? " Export runs Blender headless and shows the previews, the parts list and the .glb here."
-              : " Set up Blender above, then export."}
-          </p>
+          <div className="bv__empty bv__empty--export">
+            <p className="bv__hint">
+              <code>{state.rel}</code> has not been exported yet.
+              {state.blender.found
+                ? " Export runs Blender headless and shows the 3D model, the renders and the parts list here."
+                : " Set up Blender above, then export."}
+            </p>
+            <button
+              type="button"
+              className="k-btn k-btn--primary k-btn--sm"
+              disabled={!blend || !state.blender.found || job.running}
+              onClick={runExport}
+            >
+              <RefreshCw size={13} strokeWidth={1.5} aria-hidden="true" />
+              Export
+            </button>
+          </div>
         ) : mode === "renders" ? (
           <main className="bv__renders">
             <div className="bv__renders-strip">
@@ -416,7 +509,7 @@ export default function App() {
                       <button
                         type="button"
                         className="bv__send"
-                        onClick={() => void send(r.label, renderPut(r.id, r.label))}
+                        onClick={() => void send(r.label, r.label, renderPut(r.id, r.label))}
                       >
                         {sent === r.label ? "Sent" : "Send to agent"}
                       </button>
@@ -438,16 +531,43 @@ export default function App() {
             )}
           </main>
         ) : (
-          <main className="bv__viewport">
+          <main className="bv__viewport bv__viewport--model">
             <div className="bv__model">
-              {hero && images[hero.id] ? (
-                <figure className="bv__hero">
-                  <img src={images[hero.id]} alt={hero.label} />
-                  <figcaption>{hero.label}</figcaption>
-                </figure>
-              ) : (
-                <p className="bv__hint">No renders in this export.</p>
-              )}
+              <ModelPreview
+                blend={state.blend ?? blend ?? ""}
+                rel={state.rel}
+                model={state.model}
+                exportedAt={state.exportedAt}
+                blenderVersion={state.blenderVersion}
+                stale={state.stale === true}
+                parts={state.parts}
+                selected={selected?.name ?? null}
+                onSelect={(name) => setSelected(state.parts.find((p) => p.name === name) ?? null)}
+                onMarkup={onMarkup}
+                onNotice={setError}
+                canExport={state.blender.found && !job.running}
+                onExport={runExport}
+                fallback={
+                  hero && images[hero.id] ? (
+                    <figure className="bv__hero">
+                      <img src={images[hero.id]} alt={hero.label} />
+                      <figcaption>{hero.label}</figcaption>
+                    </figure>
+                  ) : null
+                }
+              >
+                {markup && (
+                  <MarkupBar
+                    url={markup.url}
+                    json={markup.json}
+                    fresh={markup.fresh}
+                    open={barOpen}
+                    onOpenChange={setBarOpen}
+                    onView={() => setPreviousOpen(true)}
+                    onPointerDown={dragContext(() => putMarkup(markup.png, markup.json, state.rel))}
+                  />
+                )}
+              </ModelPreview>
               <dl className="bv__facts">
                 <dt>.glb</dt>
                 <dd>
@@ -465,6 +585,7 @@ export default function App() {
                     <dt>Scene</dt>
                     <dd>
                       {state.stats.objects ?? 0} objects · {state.stats.meshes ?? 0} meshes ·{" "}
+                      {state.stats.instances ? `${state.stats.instances} instances · ` : ""}
                       {state.stats.materials ?? 0} materials ·{" "}
                       {(state.stats.tris ?? 0).toLocaleString()} triangles
                     </dd>
@@ -475,10 +596,6 @@ export default function App() {
                   Blender {state.blenderVersion}, {state.engine} at {state.resolution}px
                 </dd>
               </dl>
-              <p className="bv__note">
-                The viewer shows renders of the export, not a live 3D view: orbiting is not part of
-                this build.
-              </p>
               {state.warnings && state.warnings.length > 0 && (
                 <ul className="bv__warnings">
                   {state.warnings.map((w, i) => (
@@ -504,20 +621,32 @@ export default function App() {
                   <button
                     key={p.name}
                     type="button"
-                    className={`bv__part-row${selected?.name === p.name ? " bv__part-row--selected" : ""}${p.kind !== "mesh" ? " bv__part-row--other" : ""}`}
+                    className={`bv__part-row${selected?.name === p.name ? " bv__part-row--selected" : ""}${p.kind !== "mesh" && p.kind !== "instance" ? " bv__part-row--other" : ""}`}
                     onClick={() => setSelected(p)}
                   >
                     <span className="bv__part-name">{p.name}</span>
-                    <span className="bv__part-material">
-                      {p.kind === "mesh"
-                        ? `${p.materials.join(", ") || "no material"} · ${p.tris.toLocaleString()} tris`
-                        : p.kind}
-                    </span>
+                    <span className="bv__part-material">{partSummary(p)}</span>
                   </button>
                 ))}
               </div>
             )}
           </aside>
+        )}
+
+        {previousOpen && markup && (
+          <PreviousMarkup
+            url={markup.url}
+            json={markup.json}
+            savedAt={markup.savedAt}
+            onClose={() => setPreviousOpen(false)}
+          />
+        )}
+        {tip && (
+          <MarkupTip
+            onEnable={() => flip(AUTO_SEND_KEY, true)}
+            onNever={() => flip(TIP_KEY, false)}
+            onClose={closeTip}
+          />
         )}
 
         {selected && (
@@ -563,90 +692,111 @@ export default function App() {
         )}
       </div>
 
-      <footer className="bv__footer">
-        {job.running ? (
-          <button
-            type="button"
-            className="bv__footer-btn"
-            onClick={() => void cancelExport().then(refresh)}
-          >
-            <Square size={13} strokeWidth={1.5} aria-hidden="true" />
-            Cancel export
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="bv__footer-btn"
-            disabled={!blend || !state.blender.found}
-            onClick={runExport}
-            title={
-              state.blender.found
-                ? "Run Blender headless on this file"
-                : "Blender was not found — set it up first"
-            }
-          >
-            <RefreshCw size={13} strokeWidth={1.5} aria-hidden="true" />
-            {hasExport ? "Re-export" : "Export"}
-          </button>
-        )}
-        <label className="bv__auto" title="Re-export when the .blend is saved">
-          <input type="checkbox" checked={auto} onChange={(e) => toggleAuto(e.target.checked)} />
-          Auto
-        </label>
-        <button type="button" className="bv__footer-btn" onClick={() => setCommentsOpen((v) => !v)}>
-          <MessageSquarePlus size={13} strokeWidth={1.5} aria-hidden="true" />
-          Comments {openCount > 0 ? `· ${openCount} open` : ""}
-        </button>
-        <span className="bv__footer-spacer" />
+      <SendFooter
+        trailing={
+          <>
+            {job.running ? (
+              <button
+                type="button"
+                className="bv__footer-btn"
+                onClick={() => void cancelExport().then(refresh)}
+              >
+                <Square size={13} strokeWidth={1.5} aria-hidden="true" />
+                Cancel export
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="bv__footer-btn"
+                disabled={!blend || !state.blender.found}
+                onClick={runExport}
+                title={
+                  state.blender.found
+                    ? "Run Blender headless on this file"
+                    : "Blender was not found — set it up first"
+                }
+              >
+                <RefreshCw size={13} strokeWidth={1.5} aria-hidden="true" />
+                {hasExport ? "Re-export" : "Export"}
+              </button>
+            )}
+            <label className="bv__auto" title="Re-export when the .blend is saved">
+              <input
+                type="checkbox"
+                checked={auto}
+                onChange={(e) => toggleAuto(e.target.checked)}
+              />
+              Auto
+            </label>
+            <FooterAction
+              label={`Comments${openCount > 0 ? ` · ${openCount} open` : ""}`}
+              icon={<MessageSquarePlus size={13} strokeWidth={1.5} aria-hidden="true" />}
+              compact={compact}
+              onClick={() => setCommentsOpen((v) => !v)}
+            />
+            {state.model && (
+              <FooterAction
+                label={copied ? "Copied" : "Copy .glb path"}
+                icon={<Copy size={13} strokeWidth={1.5} aria-hidden="true" />}
+                compact={compact}
+                onClick={copyGlb}
+              />
+            )}
+            <button
+              type="button"
+              className="bv__footer-btn"
+              disabled={!blend || !state.blender.found}
+              onClick={() => {
+                if (!blend) return;
+                setError(null);
+                openInBlender(blend).catch((err: unknown) => setError(message(err)));
+              }}
+              title={
+                state.blender.found
+                  ? `Open ${state.rel ?? "the file"} in Blender ${state.blender.version ?? ""}`
+                  : "Blender was not found — set it up first"
+              }
+            >
+              <ExternalLink size={13} strokeWidth={1.5} aria-hidden="true" />
+              Open in Blender
+            </button>
+          </>
+        }
+      >
         {state.parts.length > 0 && (
-          <button
-            type="button"
-            className="bv__footer-btn"
+          <SendButton
+            label="Send parts"
+            sent={sent === "parts"}
+            icon={<List size={13} strokeWidth={1.5} aria-hidden="true" />}
+            compact={compact}
             title="Add the parts list to the agent's context. Drag to a terminal to send it."
             onPointerDown={dragContext(() => putParts(state))}
-            onClick={() => void send("parts", () => putParts(state))}
-          >
-            <Send size={13} strokeWidth={1.5} aria-hidden="true" />
-            {sent === "parts" ? "Sent" : "Send parts"}
-          </button>
+            onClick={() => void send("parts", "parts", () => putParts(state))}
+          />
+        )}
+        {mode === "model" && markup && (
+          <SendButton
+            label="Send markup"
+            sent={sent === "markup"}
+            icon={<PenLine size={13} strokeWidth={1.5} aria-hidden="true" />}
+            compact={compact}
+            title="Send the markup you drew to the agent, or drag this onto a terminal"
+            onPointerDown={dragContext(() => putMarkup(markup.png, markup.json, state.rel))}
+            onClick={() => void sendMarkup()}
+          />
         )}
         {state.model && (
-          <button
-            type="button"
-            className="bv__footer-btn"
+          <SendButton
+            label="Send .glb"
+            sent={sent === ".glb"}
+            icon={<Box size={13} strokeWidth={1.5} aria-hidden="true" />}
+            compact={compact}
             title="Add the .glb to the agent's context. Drag to a terminal to send it."
             onPointerDown={dragContext(() => putGlb(state))}
-            onClick={() => void send(".glb", () => putGlb(state))}
-          >
-            <Send size={13} strokeWidth={1.5} aria-hidden="true" />
-            {sent === ".glb" ? "Sent" : "Send .glb"}
-          </button>
+            onClick={() => void send(".glb", ".glb", () => putGlb(state))}
+          />
         )}
-        {state.model && (
-          <button type="button" className="bv__footer-btn" onClick={copyGlb}>
-            <Copy size={13} strokeWidth={1.5} aria-hidden="true" />
-            {copied ? "Copied" : "Copy .glb path"}
-          </button>
-        )}
-        <button
-          type="button"
-          className="bv__footer-btn"
-          disabled={!blend || !state.blender.found}
-          onClick={() => {
-            if (!blend) return;
-            setError(null);
-            openInBlender(blend).catch((err: unknown) => setError(message(err)));
-          }}
-          title={
-            state.blender.found
-              ? `Open ${state.rel ?? "the file"} in Blender ${state.blender.version ?? ""}`
-              : "Blender was not found — set it up first"
-          }
-        >
-          <ExternalLink size={13} strokeWidth={1.5} aria-hidden="true" />
-          Open in Blender
-        </button>
-      </footer>
+      </SendFooter>
     </div>
   );
 }

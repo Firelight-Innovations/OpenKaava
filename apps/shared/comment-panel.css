@@ -55,16 +55,11 @@
   color: var(--danger, #c0392b);
 }
 
-.k-comment-panel__footer {
-  flex-shrink: 0;
-  border-top: 1px solid var(--border-subtle);
-  padding: 8px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
 .k-comment-panel__footer-note {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 6px 12px;
+  border-top: 1px solid var(--border-subtle);
   font-size: 10px;
   color: var(--txt-tertiary, var(--txt-secondary));
   line-height: 1.4;
@@ -72,21 +67,6 @@
 
 .k-comment-panel__footer-note code {
   font-family: var(--type-font-mono, monospace);
-}
-
-.k-comment-panel__send-to-agent {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm, 4px);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-surface-1);
-  color: var(--txt-tertiary, var(--txt-secondary));
-  cursor: not-allowed;
 }
 
 .k-comment-card {

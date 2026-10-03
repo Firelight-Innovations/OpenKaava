@@ -18,13 +18,14 @@ const bridge = vi.hoisted(() => {
       super(message);
     }
   }
-  return { invoke: vi.fn(), KaavaRpcError };
+  return { invoke: vi.fn(), KaavaRpcError, instanceId: "inst-a" as string | undefined };
 });
 
 vi.mock("@openkaava/bridge", () => ({
   invoke: bridge.invoke,
   KaavaRpcError: bridge.KaavaRpcError,
   reportPainted: vi.fn(),
+  session: () => Promise.resolve({ projectPath: null, instanceId: bridge.instanceId }),
 }));
 
 // Excalidraw needs a real canvas and layout; the wiring around it is what is under test.
@@ -57,8 +58,15 @@ vi.mock("./Editor", () => ({
     }
     onApi({
       getSceneElementsIncludingDeleted: () => live.elements,
-      updateScene: ({ elements }: { elements: unknown[] }) => {
+      updateScene: ({
+        elements,
+        appState,
+      }: {
+        elements: unknown[];
+        appState?: { selectedElementIds?: Record<string, boolean> };
+      }) => {
         live.elements = elements;
+        if (appState?.selectedElementIds) live.selected = appState.selectedElementIds;
       },
       getAppState: () => ({ viewBackgroundColor: "#ffffff", selectedElementIds: live.selected }),
       getFiles: () => ({}),
@@ -102,6 +110,44 @@ vi.mock("./Editor", () => ({
         >
           select frame
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            const model = {
+              id: "m1",
+              type: "frame",
+              name: "Gurney",
+              version: 1,
+              versionNonce: 1,
+              customData: {
+                kaava: { object: { type: "model", props: { size_m: 2, triangle_budget: 8000 } } },
+              },
+            };
+            live.elements = [...initial.elements, model];
+            live.selected = { m1: true };
+            onChange([...initial.elements, model], { selectedElementIds: { m1: true } }, {});
+          }}
+        >
+          select model frame
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            live.selected = { e0: true };
+            onChange([...initial.elements], { selectedElementIds: { e0: true } }, {});
+          }}
+        >
+          select shape
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            live.selected = { e0: true, e1: true };
+            onChange([...initial.elements], { selectedElementIds: live.selected }, {});
+          }}
+        >
+          select two shapes
+        </button>
         <button type="button" onClick={() => onOpenChild("world/ward-b")}>
           double-click linked frame
         </button>
@@ -129,6 +175,37 @@ const scene = (n: number, title = "World"): SceneFile => ({
   kaava: { title },
 });
 
+const TYPES = [
+  {
+    id: "feature",
+    name: "Feature",
+    color: "#2563eb",
+    icon: "star",
+    builtin: true,
+    fields: [{ key: "summary", label: "Summary", kind: "multiline" }],
+  },
+  {
+    id: "model",
+    name: "Model",
+    color: "#d97706",
+    icon: "box",
+    builtin: true,
+    fields: [
+      { key: "size_m", label: "Size (m, largest side)", kind: "number" },
+      { key: "triangle_budget", label: "Triangle budget", kind: "number" },
+      { key: "style_notes", label: "Style notes", kind: "multiline" },
+      { key: "reference_images", label: "Reference images", kind: "path-list" },
+      {
+        key: "review_state",
+        label: "Review state",
+        kind: "enum",
+        options: ["draft", "review", "accepted", "rejected"],
+        default: "draft",
+      },
+    ],
+  },
+];
+
 interface Backend {
   readOnly: boolean;
   rows: { id: string; title: string; parent: string | null; error: string | null }[];
@@ -148,6 +225,10 @@ function fake(b: Backend) {
         if (got instanceof Error) throw got;
         return { id: params!.id, path: `canvas/${params!.id}.json`, scene: got, mtime: 100 };
       }
+      case "canvas/types":
+        return { builtin: TYPES, custom: [], path: ".kaava/canvas/types.json", problem: null };
+      case "canvas/set-parent":
+        return { id: params!.id, parent: params!.parent };
       case "canvas/assets":
         return b.assets ?? { cards: [], canvases: b.rows.length, unreadable: [] };
       case "canvas/stat":
@@ -163,6 +244,26 @@ function fake(b: Backend) {
         });
         b.reads[params!.id as string] = scene(0, params!.title as string);
         return { id: params!.id, path: "x", scene: scene(0), mtime: 100 };
+      case "canvas/design-brief":
+        return {
+          detail: { id: "standard", from: "default" },
+          style: { id: "blueprint", from: "default" },
+          options: {
+            detail: ["sparse", "standard", "dense"],
+            style: ["blueprint", "whiteboard", "minimal", "explainer"],
+            names: { whiteboard: "Whiteboard sketch", blueprint: "Technical blueprint" },
+          },
+        };
+      case "canvas/split-frames":
+        return {
+          canvas: params!.id,
+          split: [
+            { frame: "big", diagram: "big", title: "Big", child: "world/big", elements: 1600 },
+          ],
+          skipped: [{ frame: "tied", reason: "it is empty" }],
+          checkpoint: "cp1",
+          mtime: 300,
+        };
       case "context/put":
         return { id: "ctx1" };
       default:
@@ -174,6 +275,7 @@ function fake(b: Backend) {
 beforeEach(() => {
   live.selected = {};
   bridge.invoke.mockReset();
+  bridge.instanceId = "inst-a";
   localStorage.clear();
 });
 afterEach(cleanup);
@@ -191,6 +293,24 @@ describe("Canvas app", () => {
     render(<App />);
     expect(await screen.findByText("3 elements")).toBeTruthy();
     expect(screen.getByText("canvas/world.json")).toBeTruthy();
+  });
+
+  it("summarises a split: frames split, frames skipped, and that Undo is available", async () => {
+    const heavy = scene(1600);
+    heavy.elements.push({ id: "big", type: "frame", version: 1, versionNonce: 1 });
+    for (const el of heavy.elements.slice(0, 1600)) el.frameId = "big";
+    fake({
+      readOnly: false,
+      rows: [{ id: "world", title: "World", parent: null, error: null }],
+      reads: { world: heavy },
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByText("draw"));
+    fireEvent.click(await screen.findByText("Split into sub-canvases"));
+    const note = await screen.findByTestId("split-summary");
+    expect(note.textContent).toMatch(/Split 1 frame into sub-canvases/);
+    expect(note.textContent).toMatch(/skipped 1/);
+    expect(note.textContent).toMatch(/Undo is available/);
   });
 
   it("saves a drawing change with the mtime it read", async () => {
@@ -211,6 +331,50 @@ describe("Canvas app", () => {
       { timeout: 3000 },
     );
     await screen.findByText("Saved");
+  });
+
+  it("saves a per-canvas style choice into kaava.design and clears it again", async () => {
+    fake({
+      readOnly: false,
+      rows: [{ id: "world", title: "World", parent: null, error: null }],
+      reads: { world: scene(1) },
+    });
+    render(<App />);
+    await screen.findByText("1 elements");
+    fireEvent.click(screen.getByText("Drawing style"));
+    const style = (await screen.findByDisplayValue(
+      "Follow Settings (Technical blueprint)",
+    )) as HTMLSelectElement;
+    fireEvent.change(style, { target: { value: "whiteboard" } });
+    await waitFor(
+      () => {
+        const writes = bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write");
+        expect(writes.length).toBeGreaterThan(0);
+        expect(writes[writes.length - 1]![1].scene.kaava.design).toEqual({ style: "whiteboard" });
+      },
+      { timeout: 3000 },
+    );
+    fireEvent.change(screen.getByDisplayValue("Whiteboard sketch"), { target: { value: "" } });
+    await waitFor(
+      () => {
+        const writes = bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write");
+        expect(writes[writes.length - 1]![1].scene.kaava.design).toBeUndefined();
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  it("disables the per-canvas style choice on a read-only checkout", async () => {
+    fake({
+      readOnly: true,
+      rows: [{ id: "world", title: "World", parent: null, error: null }],
+      reads: { world: scene(1) },
+    });
+    render(<App />);
+    await screen.findByText("1 elements");
+    fireEvent.click(screen.getByText("Drawing style"));
+    const style = await screen.findByDisplayValue("Follow Settings (Technical blueprint)");
+    expect((style as HTMLSelectElement).disabled).toBe(true);
   });
 
   it("leaves an untouched canvas Saved and writes nothing while the editor keeps reporting it", async () => {
@@ -274,6 +438,47 @@ describe("Canvas app", () => {
       }),
     );
     expect(await screen.findByTestId("editor")).toBeTruthy();
+  });
+
+  describe("remembering the open canvas", () => {
+    const rows = [
+      { id: "balls", title: "Balls", parent: null, error: null },
+      { id: "minecraft-clone", title: "Minecraft", parent: null, error: null },
+    ];
+    const reads = { balls: scene(1, "Balls"), "minecraft-clone": scene(4, "Minecraft") };
+
+    it("reopens the canvas this instance had open after the frame is unmounted and reloaded", async () => {
+      fake({ readOnly: false, rows, reads });
+      const first = render(<App />);
+      expect(await screen.findByText("1 elements")).toBeTruthy();
+      fireEvent.change(screen.getByLabelText("Canvas"), { target: { value: "minecraft-clone" } });
+      expect(await screen.findByText("4 elements")).toBeTruthy();
+      first.unmount();
+
+      // A cluster switch unmounts the frame; coming back loads the app afresh.
+      render(<App />);
+      expect(await screen.findByText("4 elements")).toBeTruthy();
+      expect(screen.getByText("canvas/minecraft-clone.json")).toBeTruthy();
+    });
+
+    it("keeps each instance's canvas apart rather than sharing one last-opened", async () => {
+      fake({ readOnly: false, rows, reads });
+      const a = render(<App />);
+      expect(await screen.findByText("1 elements")).toBeTruthy();
+      fireEvent.change(screen.getByLabelText("Canvas"), { target: { value: "minecraft-clone" } });
+      expect(await screen.findByText("4 elements")).toBeTruthy();
+      a.unmount();
+
+      // Another Canvas instance, in another cluster, opens its own canvas.
+      bridge.instanceId = "inst-b";
+      const b = render(<App />);
+      expect(await screen.findByText("1 elements")).toBeTruthy();
+      b.unmount();
+
+      bridge.instanceId = "inst-a";
+      render(<App />);
+      expect(await screen.findByText("4 elements")).toBeTruthy();
+    });
   });
 
   describe("nesting", () => {
@@ -350,73 +555,113 @@ describe("Canvas app", () => {
     });
   });
 
-  describe("spec cards", () => {
+  describe("frame inspector", () => {
     const one = (): Backend => ({
       readOnly: false,
       rows: [{ id: "world", title: "World", parent: null, error: null }],
-      reads: { world: scene(1) },
+      reads: { world: scene(2) },
     });
+    const written = (id: string) => {
+      const write = bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write").slice(-1)[0];
+      return (write?.[1].scene.elements as Record<string, unknown>[] | undefined)?.find(
+        (e) => e.id === id,
+      );
+    };
 
-    it("saves a filled card on the selected element, and refuses an empty one", async () => {
+    it("asks an untyped frame for a type, then saves the type with its default values", async () => {
       fake(one());
       render(<App />);
-      await screen.findByText("1 elements");
+      await screen.findByText("2 elements");
       fireEvent.click(screen.getByText("select frame"));
-      await screen.findByText("Make a spec card");
+      await screen.findByText("Pick a type to describe this frame for the agent.");
 
-      fireEvent.click(screen.getByText("Save card"));
-      expect(bridge.invoke.mock.calls.some((c) => c[0] === "canvas/write")).toBe(false);
-      expect(await screen.findByText("A name is required.")).toBeTruthy();
-
-      fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Gurney" } });
-      fireEvent.change(screen.getByLabelText("Size (m, largest side)"), {
-        target: { value: "2" },
-      });
-      fireEvent.change(screen.getByLabelText("Triangle budget"), { target: { value: "8000" } });
-      fireEvent.change(screen.getByLabelText("Review state"), { target: { value: "review" } });
-      fireEvent.click(screen.getByText("Save card"));
-
-      await waitFor(() => {
-        const write = bridge.invoke.mock.calls.find((c) => c[0] === "canvas/write");
-        expect(write).toBeTruthy();
-        const el = (write![1].scene.elements as { id: string; customData?: unknown }[]).find(
-          (e) => e.id === "f1",
-        );
-        expect(el?.customData).toEqual({
-          kaava: {
-            spec: {
-              name: "Gurney",
-              reference_images: [],
-              size_m: 2,
-              triangle_budget: 8000,
-              style_notes: "",
-              status: "review",
-            },
-          },
-        });
-      });
+      fireEvent.change(screen.getByLabelText("Type"), { target: { value: "model" } });
+      await waitFor(() =>
+        expect(written("f1")?.customData).toMatchObject({
+          kaava: { object: { type: "model", props: { review_state: "draft" } } },
+        }),
+      );
+      expect(await screen.findByLabelText("Triangle budget")).toBeTruthy();
     });
 
-    it("shows the exported JSON for a valid card", async () => {
+    it("keeps a value across a type change when the new type has that field", async () => {
       fake(one());
       render(<App />);
-      await screen.findByText("1 elements");
-      fireEvent.click(screen.getByText("select frame"));
-      fireEvent.change(await screen.findByLabelText("Name"), { target: { value: "Gurney" } });
-      fireEvent.change(screen.getByLabelText("Size (m, largest side)"), {
-        target: { value: "2" },
-      });
-      fireEvent.change(screen.getByLabelText("Triangle budget"), { target: { value: "8000" } });
+      await screen.findByText("2 elements");
+      fireEvent.click(screen.getByText("select model frame"));
+      fireEvent.change(await screen.findByLabelText("Type"), { target: { value: "feature" } });
+      await waitFor(() => expect(screen.queryByLabelText("Triangle budget")).toBeNull());
+      const object = (written("m1")?.customData as { kaava: { object: { props: unknown } } }).kaava
+        .object;
+      expect(object.props).toMatchObject({ size_m: 2, triangle_budget: 8000 });
+    });
+
+    it("shows the exported JSON for a model frame", async () => {
+      fake(one());
+      render(<App />);
+      await screen.findByText("2 elements");
+      fireEvent.click(screen.getByText("select model frame"));
+      await screen.findByLabelText("Triangle budget");
       const json = screen.getByLabelText("Exported JSON").textContent ?? "";
       expect(JSON.parse(json)).toMatchObject({ name: "Gurney", size_m: 2, triangle_budget: 8000 });
+    });
+
+    it("refuses a non-number in a number field and writes nothing", async () => {
+      fake(one());
+      render(<App />);
+      await screen.findByText("2 elements");
+      fireEvent.click(screen.getByText("select model frame"));
+      const input = await screen.findByLabelText("Triangle budget");
+      fireEvent.change(input, { target: { value: "lots" } });
+      fireEvent.blur(input);
+      expect(await screen.findByRole("alert")).toBeTruthy();
+      expect(bridge.invoke.mock.calls.some((c) => c[0] === "canvas/write")).toBe(false);
+    });
+
+    it("sends a shape to its frame's summary instead of a form", async () => {
+      fake(one());
+      render(<App />);
+      await screen.findByText("2 elements");
+      fireEvent.click(screen.getByText("select frame"));
+      fireEvent.click(screen.getByText("select shape"));
+      expect(
+        await screen.findByText("Wrap in a frame to describe this for the agent."),
+      ).toBeTruthy();
+      expect(screen.queryByLabelText("Type")).toBeNull();
+    });
+
+    it("wraps the selection in a new labelled frame and focuses its name", async () => {
+      fake(one());
+      render(<App />);
+      await screen.findByText("2 elements");
+      fireEvent.click(screen.getByText("select two shapes"));
+      fireEvent.click(await screen.findByText("Frame selection"));
+
+      await waitFor(() => {
+        const frames = (
+          bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write").slice(-1)[0]![1].scene
+            .elements as Record<string, unknown>[]
+        ).filter((e) => e.type === "frame");
+        expect(frames).toHaveLength(1);
+        expect(frames[0]!.name).toBe("New frame");
+      });
+      const name = (await screen.findByLabelText("Name")) as HTMLInputElement;
+      expect(name.value).toBe("New frame");
+      expect(document.activeElement).toBe(name);
+      const kids = (
+        bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write").slice(-1)[0]![1].scene
+          .elements as { id: string; frameId?: string }[]
+      ).filter((e) => e.id === "e0" || e.id === "e1");
+      expect(kids.every((e) => typeof e.frameId === "string")).toBe(true);
     });
 
     it("offers no editing on read-only main", async () => {
       fake({ ...one(), readOnly: true });
       render(<App />);
-      await screen.findByText("1 elements");
+      await screen.findByText("2 elements");
       fireEvent.click(screen.getByText("select frame"));
-      expect(screen.queryByText("Make a spec card")).toBeNull();
+      expect(screen.queryByText("Manage types")).toBeNull();
+      expect(screen.queryByText("Frame selection")).toBeNull();
     });
   });
 
@@ -496,6 +741,23 @@ describe("Canvas app", () => {
     });
     const puts = () => bridge.invoke.mock.calls.filter((c) => c[0] === "context/put");
 
+    it("keeps Send selection and Send card together in the shared footer", async () => {
+      fake(one());
+      const { container } = render(<App />);
+      await screen.findByText("1 elements");
+      const footer = container.querySelector(".k-send-footer") as HTMLElement;
+      expect(footer.contains(screen.getByText("Send selection"))).toBe(true);
+      expect(
+        container.querySelector(".cv__header")?.contains(screen.getByText("Send selection")),
+      ).toBe(false);
+      fireEvent.click(screen.getByText("select model frame"));
+      await screen.findByLabelText("Triangle budget");
+      expect(footer.contains(screen.getByText("Send card"))).toBe(true);
+      expect(container.querySelector(".cv__side")?.contains(screen.getByText("Send card"))).toBe(
+        false,
+      );
+    });
+
     it("sends the selection as an image, even on read-only main", async () => {
       fake(one(true));
       render(<App />);
@@ -513,19 +775,14 @@ describe("Canvas app", () => {
       });
     });
 
-    it("sends a valid spec card as JSON text, and not an invalid one", async () => {
+    it("sends a model frame's card as JSON text", async () => {
       fake(one());
       render(<App />);
       await screen.findByText("1 elements");
-      fireEvent.click(screen.getByText("select frame"));
-      await screen.findByText("Make a spec card");
+      fireEvent.click(screen.getByText("select model frame"));
+      await screen.findByLabelText("Triangle budget");
       const button = screen.getByText("Send card").closest("button") as HTMLButtonElement;
-      expect(button.disabled).toBe(true);
-      fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Gurney" } });
-      fireEvent.change(screen.getByLabelText("Size (m, largest side)"), {
-        target: { value: "2" },
-      });
-      fireEvent.change(screen.getByLabelText("Triangle budget"), { target: { value: "8000" } });
+      expect(button.disabled).toBe(false);
       fireEvent.click(screen.getByText("Send card"));
       await waitFor(() => expect(puts()).toHaveLength(1));
       const params = puts()[0]![1] as { kind: string; title: string; text: string };
@@ -549,6 +806,137 @@ describe("Canvas app", () => {
       fireEvent.click(screen.getByText("Send selection"));
       expect(await screen.findByText(/no room in the store/)).toBeTruthy();
       expect(screen.queryByText("Sent")).toBeNull();
+    });
+  });
+
+  describe("comments", () => {
+    /** The fake backend plus an in-memory comment sidecar, like `comments.rs`. */
+    const withComments = () => {
+      fake({
+        readOnly: false,
+        rows: [{ id: "world", title: "World", parent: null, error: null }],
+        reads: { world: scene(1) },
+      });
+      const base = bridge.invoke.getMockImplementation()!;
+      const store: Record<string, unknown>[] = [];
+      bridge.invoke.mockImplementation(async (m: string, p?: Record<string, unknown>) => {
+        switch (m) {
+          case "canvas/refs":
+            return { refs: [], dir: "canvas/world/refs" };
+          case "canvas/list-comments":
+            return {
+              comments: store,
+              open: store.filter((c) => c.status === "open").length,
+              total: store.length,
+              unreadable: [],
+            };
+          case "canvas/create-comment": {
+            const c = {
+              id: `c${store.length + 1}`,
+              frameId: p!.diagram,
+              elementIds: p!.elementIds ?? [],
+              region: p!.region ?? null,
+              text: p!.text,
+              author: p!.actor,
+              createdAt: "2026-09-30T10:00:00Z",
+              status: "open",
+              resolution: null,
+            };
+            store.push(c);
+            return c;
+          }
+          case "canvas/resolve-comment": {
+            const c = store.find((x) => x.id === p!.commentId)!;
+            c.status = "resolved";
+            c.resolution = { note: p!.note, by: p!.actor, at: "2026-09-30T11:00:00Z" };
+            return c;
+          }
+          default:
+            return base(m, p);
+        }
+      });
+      return store;
+    };
+
+    it("posts a comment on the selection as the human, then resolves it with a note", async () => {
+      const store = withComments();
+      render(<App />);
+      await screen.findByText("1 elements");
+      fireEvent.click(screen.getByText("select frame"));
+      fireEvent.click(screen.getByRole("tab", { name: /Comments/ }));
+      fireEvent.click(await screen.findByText("On selection"));
+      fireEvent.change(screen.getByLabelText("Comment"), {
+        target: { value: "The ward is too narrow" },
+      });
+      fireEvent.click(screen.getByText("Post"));
+      await waitFor(() => expect(store).toHaveLength(1));
+      expect(bridge.invoke.mock.calls.find((c) => c[0] === "canvas/create-comment")![1]).toEqual({
+        id: "world",
+        diagram: "f1",
+        elementIds: ["f1"],
+        text: "The ward is too narrow",
+        actor: "human",
+      });
+      expect(await screen.findByText("The ward is too narrow")).toBeTruthy();
+      expect(screen.getByLabelText("1 open")).toBeTruthy();
+
+      fireEvent.click(screen.getByText("Resolve"));
+      fireEvent.change(screen.getByLabelText("Resolution note"), {
+        target: { value: "Widened to 6 m" },
+      });
+      fireEvent.click(screen.getAllByText("Resolve")[0]!);
+      await waitFor(() => expect(store[0]!.status).toBe("resolved"));
+      await waitFor(() => expect(screen.queryByLabelText("1 open")).toBeNull());
+      expect(screen.getByText("No open comments.")).toBeTruthy();
+    });
+
+    it("says why when nothing is selected", async () => {
+      withComments();
+      render(<App />);
+      await screen.findByText("1 elements");
+      fireEvent.click(screen.getByRole("tab", { name: /Comments/ }));
+      const on = (await screen.findByText("On selection")).closest("button") as HTMLButtonElement;
+      expect(on.disabled).toBe(true);
+      expect(screen.queryByLabelText("Comment")).toBeNull();
+    });
+
+    it("collapses the panels to a strip and remembers it", async () => {
+      withComments();
+      render(<App />);
+      await screen.findByText("1 elements");
+      fireEvent.click(screen.getByLabelText("Hide panels"));
+      expect(screen.queryByRole("tabpanel")).toBeNull();
+      expect(JSON.parse(localStorage.getItem("canvas.side")!)).toMatchObject({ collapsed: true });
+      fireEvent.click(screen.getByRole("tab", { name: /Diagrams/ }));
+      expect(screen.getByRole("tabpanel")).toBeTruthy();
+    });
+
+    // Braden saw the hide button clipped by the panel's edge: the tabs pushed it
+    // out. jsdom has no layout, so this holds the structure the CSS relies on.
+    it("pins the hide button at the end of the tab row, where the tabs cannot push it", async () => {
+      withComments();
+      render(<App />);
+      await screen.findByText("1 elements");
+      const hide = screen.getByLabelText("Hide panels");
+      const row = hide.parentElement as HTMLElement;
+      expect(row.getAttribute("role")).toBe("tablist");
+      expect(row.lastElementChild).toBe(hide);
+      expect(hide.classList.contains("cv__side-toggle")).toBe(true);
+      expect(row.querySelector(".cv__spacer")).toBeNull();
+      const tabs = row.querySelectorAll('[role="tab"]');
+      expect(tabs.length).toBe(3);
+      for (const tab of Array.from(tabs)) {
+        expect(tab.querySelector(".cv__side-label")).toBeTruthy();
+      }
+      expect(screen.getByRole("tab", { name: /Comments/ })).toBeTruthy();
+    });
+
+    it("tells a person how to make a diagram when there are none", async () => {
+      withComments();
+      render(<App />);
+      await screen.findByText("1 elements");
+      fireEvent.click(screen.getByRole("tab", { name: /Diagrams/ }));
+      expect(await screen.findByText(/No diagrams yet\. Press F/)).toBeTruthy();
     });
   });
 });

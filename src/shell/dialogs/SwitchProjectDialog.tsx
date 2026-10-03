@@ -223,7 +223,10 @@ function ProjectRow({ row, busy, disabled, iconDisabled, onOpen, onChangeIcon }:
 function summaryOf(row: RecentProjectRow, busy: boolean): string {
   if (busy) return "Opening…";
   if (!row.exists) return "Folder not found.";
-  if (!row.open) return row.initialized ? "Not open." : "Never opened in Kaava.";
+  if (!row.open) {
+    // A row with a last-opened time was opened, whether or not `.kaava/` was written.
+    return row.initialized || row.lastOpened !== null ? "Not open." : "Never opened in Kaava.";
+  }
   const envs = row.environmentCount;
   const clusters = row.clusterCount;
   return `${envs} environment${envs === 1 ? "" : "s"} · ${clusters} cluster${clusters === 1 ? "" : "s"}`;

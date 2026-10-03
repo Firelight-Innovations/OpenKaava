@@ -18,11 +18,38 @@
  */
 
 .titlebar {
-  display: flex;
+  /* Three cells, outer tracks equal: the pill sits on the window's centre
+     whatever the two sides hold, and each side can only ever take its half of
+     what the pill leaves. `container-type` lets the collapse rules below
+     answer to the bar's own width. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   height: 100%;
   width: 100%;
   position: relative;
+  container: titlebar / inline-size;
+}
+
+/* No project, no pill: the two cells split the bar as a plain row. */
+.titlebar:not([data-has-pill]) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.titlebar__start {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  min-width: 0;
+}
+
+.titlebar__end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  height: 100%;
+  min-width: 0;
 }
 
 /* --- logo -------------------------------------------------------------- */
@@ -72,6 +99,11 @@
   cursor: default;
 }
 
+.menubar__item:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
 .menubar__item:hover,
 .menubar__item[data-open] {
   background: var(--bg-layer-1-hover, var(--surface-2));
@@ -104,18 +136,25 @@
   appearance: none;
   border: none;
   background: none;
-  width: 34px;
-  height: 34px;
+  width: var(--control-md);
+  height: var(--control-md);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-dim);
+  color: var(--txt-tertiary);
   cursor: default;
+}
+
+.hamburger__button:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
 }
 
 .hamburger__button:hover,
 .hamburger__button[data-open] {
-  background: var(--surface-2);
+  background: var(--bg-layer-1-hover);
+  color: var(--txt-primary);
 }
 
 .hamburger__dropdown {
@@ -178,11 +217,7 @@
    `TitleBar.tsx`'s header for why the product name itself is not part of the
    replacement. */
 
-/* --- spacer + window controls -------------------------------------------- */
-
-.titlebar__spacer {
-  flex: 1;
-}
+/* --- window controls ------------------------------------------------------ */
 
 .titlebar__controls {
   flex: none;
@@ -199,10 +234,33 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-dim);
+  color: var(--txt-tertiary);
   cursor: default;
 }
 
 .titlebar__control:hover {
-  background: var(--surface-2);
+  background: var(--bg-layer-1-hover);
+  color: var(--txt-primary);
 }
+
+.titlebar__control:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
+/* Windows' own close: red ground, white glyph. #c42b1c is the value the OS
+   uses; there is no danger token at that strength (`--danger` is the softer
+   status red). */
+.titlebar__control--close:hover,
+.titlebar__control--close:focus-visible {
+  background: #c42b1c;
+  color: #fff;
+}
+
+/* --- collapse order --------------------------------------------------------
+   Widths are the bar's own (it fills the window). Each step gives up the least
+   useful thing first so nothing ever reaches the centred pill, which wins:
+     <1240  the search box becomes an icon
+     <1180  the six menus become the hamburger (`useNarrowTitlebar`)
+   Anything still too long ellipsises inside its own cell; the cells are
+   clipped or shrink, never overlap the pill. */

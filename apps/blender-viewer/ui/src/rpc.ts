@@ -8,7 +8,7 @@ import { invoke } from "@openkaava/bridge";
 
 export interface BlenderPart {
   name: string;
-  /** `mesh`, `empty`, `armature`, `light`, `camera`, ... */
+  /** `mesh`, `instance`, `empty`, `armature`, `light`, `camera`, ... */
   kind: string;
   parent: string | null;
   visible: boolean;
@@ -18,6 +18,10 @@ export interface BlenderPart {
   polys: number;
   tris: number;
   dimensions: number[];
+  /** For `kind: "instance"`: the collection this empty instances. */
+  instanceOf?: string | null;
+  /** For `kind: "instance"`: how many meshes the collection brings in. */
+  instanceMeshes?: number;
 }
 
 export interface BlenderRender {
@@ -34,7 +38,7 @@ export interface BlenderInstall {
   source: "setting" | "env" | "path" | "programFiles" | "steam" | "standard" | null;
   version: string | null;
   major: number | null;
-  /** Blender 4.x is what the export script is written and tested against. */
+  /** Blender 4.x and 5.x are what the export script is written and tested against. */
   supported: boolean;
   /** The Settings path is set but nothing is there. */
   configuredMissing: boolean;
@@ -64,6 +68,7 @@ export interface ExportJob {
 export interface BlenderStats {
   objects?: number;
   meshes?: number;
+  instances?: number;
   materials?: number;
   polys?: number;
   tris?: number;
@@ -114,3 +119,17 @@ export const detectBlender = () => invoke<BlenderInstall>("blender-viewer/detect
 
 export const setExecutable = (path: string) =>
   invoke<BlenderInstall>("blender-viewer/set-executable", { path });
+
+/** The exported `.glb` as standard base64, for the 3D preview. */
+export const getGlb = (blend: string) =>
+  invoke<{ base64: string; size: number }>("blender-viewer/glb", { blend });
+
+/** Replaces this `.blend`'s kept markup; one pair per file, so it never accumulates. */
+export const saveMarkup = (blend: string, pngBase64: string, json: string) =>
+  invoke<{ savedAt: number }>("blender-viewer/markup-save", { blend, pngBase64, json });
+
+/** `null` when nothing has been marked up on this `.blend` yet. */
+export const loadMarkup = (blend: string) =>
+  invoke<{ png: string; json: string; savedAt: number } | null>("blender-viewer/markup", {
+    blend,
+  });

@@ -1,0 +1,158 @@
+/*
+ * The cluster strip at the top of the rail's 44px column.
+ *
+ * 28px badges (`--control-md`) centred in the column, so each has 8px either
+ * side. The strip has no ground of its own: it sits inside the rail card
+ * (`.frame__side`), the same as the page icons below it.
+ */
+
+.clusterstrip {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 6px 0 0;
+}
+
+.clusterstrip__list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  /* A window with a dozen clusters scrolls this rather than pushing the page
+     icons off the bottom of the rail. The scrollbar is hidden: the badges are
+     the affordance, and a 44px column has no room for a track. */
+  max-height: min(240px, 40vh);
+  padding: 4px 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.clusterstrip__list::-webkit-scrollbar {
+  display: none;
+}
+
+.clusterstrip__badge {
+  position: relative;
+  flex: none;
+  width: var(--control-md, 28px);
+  height: var(--control-md, 28px);
+  padding: 0;
+  border: 1px solid var(--border-subtle-1);
+  border-radius: 7px;
+  background: var(--bg-layer-1);
+  color: var(--txt-secondary);
+  font: 600 10.5px/1 var(--sans);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.clusterstrip__badge:hover {
+  background: var(--bg-layer-1-hover);
+  color: var(--txt-primary);
+}
+
+.clusterstrip__badge:focus-visible,
+.clusterstrip__add:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Cloud clusters take the info tint, as the env chip does. */
+.clusterstrip__badge[data-env-kind="cloud"] {
+  color: var(--txt-info, #a3c1ff);
+}
+
+/* The open cluster: a stronger fill and the accent edge, drawn in the 8px
+   between the badge and the column's own edge so it reads as a tab marker. */
+.clusterstrip__badge[data-active] {
+  background: var(--bg-layer-2);
+  border-color: var(--border-strong);
+  color: var(--txt-primary);
+}
+
+.clusterstrip__badge[data-active]::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--accent);
+}
+
+/* An agent finished in a cluster you are not in. The same dot the rail's page
+   buttons wear, on the same ring, so the two read as one language. */
+.clusterstrip__dot {
+  position: absolute;
+  right: -3px;
+  top: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--accent);
+  border: 2px solid var(--bg-surface-1);
+  box-sizing: content-box;
+}
+
+/* The cluster's worktree folder is gone from disk. */
+.clusterstrip__warn {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--warn);
+  border: 2px solid var(--bg-surface-1);
+  box-sizing: content-box;
+}
+
+.clusterstrip__badge[data-missing] .clusterstrip__mono {
+  text-decoration: line-through;
+  text-decoration-color: var(--warn);
+}
+
+/* A strike through an emoji reads as a rendering bug, so a missing worktree
+   dims the emoji instead; the warn dot still says why. */
+.clusterstrip__badge[data-missing] .clusterstrip__mono[data-kind="emoji"] {
+  text-decoration: none;
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.clusterstrip__add {
+  flex: none;
+  width: var(--control-md, 28px);
+  height: 22px;
+  padding: 0;
+  border: 1px dashed var(--border-subtle-1);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--txt-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.clusterstrip__add:hover {
+  color: var(--txt-primary);
+  background: var(--bg-layer-1-hover);
+}
+
+.clusterstrip__divider {
+  flex: none;
+  align-self: stretch;
+  height: 1px;
+  margin: 4px 8px 2px;
+  background: var(--border-subtle-1);
+}

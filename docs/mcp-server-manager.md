@@ -308,11 +308,24 @@ happen at all:
 
 ## 11. Developer-only servers
 
+`echo`, `debug`, `ui` and `agent` are all `dev_only`. `design` is the only server
+an ordinary build serves.
+
 `dev_only: true` on an `McpServer` makes it **absent** until `developer.mode` is
 switched on in settings. Not greyed out, not marked unavailable: no row in the
 panel, no key in `.mcp.json`, nothing from `tools/list`, and a `tools/call` that
 answers "no MCP server with id `<id>`" — the same thing a client is told about a
 server this build was never compiled with.
+
+**What the two input servers can do.** `ui` and `agent` both host `screenshot`,
+`snapshot`, `click`, `type_text`, `fill_field`, `context`, `press_key`, `drag`,
+`scroll` and `eval`. `click`, `press_key`, `drag` and `scroll` take `modifiers`
+(`ctrl`, `shift`, `alt`, `meta`), which are pressed as real keys around the action;
+`press_key` accepts a single character as well as the named keys, so
+`{"key":"a","modifiers":["ctrl"]}` is Ctrl+A; `drag` goes from `{x,y}` or a ref to
+another, in `steps` moves; `scroll` turns the wheel with `deltaX`/`deltaY`. All of it
+is real input through WebView2, and none of it exists in a build without developer
+mode, because the servers that carry it are `dev_only`.
 
 One predicate on `Entry` in `registry.rs` decides all four, so a fifth surface
 cannot be added and quietly forget one of them.
@@ -367,3 +380,158 @@ So the escape hatch is used once, knowingly. A second section reaching for it is
 a signal that something is being modelled wrong — either it is really a list, and
 belongs somewhere other than a settings screen, or it is really settings, and
 should be written as some.
+
+## 13. The two servers every build ships: `canvas` and `workspace`
+
+Everything above `dev_only` is for whoever works on OpenKaava. These two are for the
+agent working *in* it, so neither is gated: both start on, both appear with
+developer mode off, and both are written into `.mcp.json` as `kaava-canvas` and
+`kaava-workspace` (the committed `.mcp.json` carries them, and a test holds it to
+what a fresh sync writes). Harness terminals reach them through the same
+`KAAVA_MCP_PORT` and `KAAVA_MCP_TOKEN` as every other route; `mcp-endpoint.json`
+serves the same endpoint to an agent outside OpenKaava, at `/mcp/canvas` and
+`/mcp/workspace`.
+
+### `workspace` (read-only)
+
+Tells an agent where the person is working. Nothing here writes, and it leaves out
+what `shell_snapshot` carries for the shell's own sake (geometry, band heights,
+restore bookkeeping).
+
+| Tool | Answers |
+|---|---|
+| `focus` | The focused pane: window, cluster, pane, app, instance id, title, and the file and selection the app reports. Also `visible`, every app showing in the active cluster, because focus is usually in the agent's own terminal. Falls back to each pane's active tab when no page answers. |
+| `layout` | Windows, clusters, nested panes and their tabs (app, instance, title, file where known), the active tab per pane, and each cluster's terminals. |
+| `project` | Per cluster: the project folder, the folder files are read from (a worktree's, when set), the environment kind and branch, and which cluster is active. |
+
+The layout comes from the same `ShellState` snapshot `shell_snapshot` reads. Where
+focus is comes from `mcp::FocusState`, which each window's shell keeps current (see
+below); `focus` still asks each window's page for what only the DOM knows at that
+moment, the way the `context` tool does. An app can say what it shows by defining
+`window.__kaavaContext`; Canvas reports its open canvas and selection.
+
+#### Focus push: `kaava://workspace/focus`
+
+Polling `focus` works, but an agent that wants to know what "this" means when the
+person speaks is better told when focus moves. The server publishes one resource,
+`kaava://workspace/focus` (`application/json`), and declares the `resources`
+capability with `subscribe: true`. Reading it returns exactly what the `focus` tool
+returns, so there is one answer however it is asked for. It lists, reads and
+subscribes only while the server is switched on, like its tools.
+
+**How an agent subscribes.** The notification carries only the uri; the agent
+re-reads to see the new state.
+
+1. `resources/list` shows `kaava://workspace/focus`.
+2. `resources/subscribe` with `{"uri": "kaava://workspace/focus"}` (clients on
+   protocol versions before 2026-07-28), or `subscriptions/listen` with
+   `resourceSubscriptions: ["kaava://workspace/focus"]` (2026-07-28). Both are
+   supported; the second holds one request open and carries the notifications on it.
+3. On `notifications/resources/updated` for that uri, call `resources/read` (or the
+   `focus` tool).
+4. `resources/unsubscribe` to stop. A session that simply goes away is dropped the
+   next time a notification is queued for it.
+
+Whether the agent surfaces `resources/updated` to the model is up to the harness; a
+client that ignores it loses nothing, since `focus` still works.
+
+**What counts as a change.** Each window reports `{window, windowHasFocus, focusIn,
+instance, pane, cluster}`, and the backend compares it with that window's last
+report. Only a difference notifies: moving focus to another pane, instance or
+cluster, or the window gaining or losing OS focus. With several canvases open, the
+instance and pane say which one.
+
+**How it is built.**
+
+- *Reporter* (`src/shell/focusReport.ts`, `useFocusReporter.ts`): listens to
+  `focusin`/`focusout`, window `focus`/`blur`, and changes of active pane or
+  cluster; waits 150 ms for the events to stop; sends only if the reading differs
+  from the last one sent.
+- *State* (`src-tauri/src/mcp/focus.rs`): `FocusState` holds the latest report per
+  window; the `report_focus` command updates it and says whether it was news. A
+  closed window's report is dropped. A 50 ms coalescer folds the blur-then-focus
+  pair of switching windows into one notification.
+- *Subscriptions* (`src-tauri/src/mcp/subscriptions.rs`): a `(server, uri, session)`
+  table whose entries hold a queue; the session's task forwards each queued uri down
+  its event stream with `notify_resource_updated`. `Bridge` in `listener.rs`
+  implements `resources/list|read|subscribe|unsubscribe` and, for the newer
+  protocol, `subscriptions/listen`.
+
+### `canvas`
+
+One tool per Canvas method, so an agent in a release build can read and draw
+without `app_call`. Every call goes out with `actor: "agent"`; the schemas do not
+offer `actor`.
+
+- **Reads:** `list_canvases`, `list_files`, `assets`, `read_canvas`, `stat_canvas`,
+  `list_diagrams`, `describe_diagram`, `view_diagram`, `coverage`, `values`, `refs`,
+  `checkpoints`, `list_comments`, `view_comment`, and `drawing_guide`, which returns
+  `docs/canvas-drawing-guide.md`, `docs/canvas-design-prompt.md` or `docs/canvas-objects.md` (compiled in) so an agent
+  with only these tools can read the manual before it draws.
+- **Writes:** `create_canvas`, `write_canvas`, `save`, `add_shapes`, `import_mermaid`,
+  `set_values`, `restore_checkpoint`, `create_comment`, `resolve_comment`,
+  `reopen_comment`.
+
+`canvas/state` has no tool: `list_canvases` and `workspace/project` cover it.
+
+**Several canvases at once.** Each canvas tool takes `canvas` (the id, a path under
+`canvas/`), `instance` (a pane's instance id) and `cluster`. They resolve as follows:
+
+1. `instance` wins: its canvas and cluster are used.
+2. Else `canvas` as named, in the cluster it is open in, or `cluster`, or the active
+   one. An id open in two clusters is an error that lists both.
+3. Else the focused canvas, or the only one open. Two or more open with none focused
+   is an error listing them; nothing open is an error too.
+
+Every answer carries a `resolved` block (`canvas`, `instance`, `cluster`, `how`, and a
+note when a default was used), so a default is never silent. `list_canvases` also
+reports what a call that names nothing would use.
+
+**Frames and types.** A frame is the unit of meaning on a canvas (a labelled, typed
+object); see `docs/canvas-objects.md`. Twelve tools expose it:
+
+- **Reads:** `list_types`, `list_frames`, `search_frames`, `get_frame`, `frame_image`,
+  `canvas_tree`.
+- **Writes:** `save_type`, `delete_type`, `set_parent`, `link_frame`, `set_frame`, `create_frame`.
+
+The intended order is `list_frames` or `search_frames` first, then `get_frame` and
+`frame_image` for detail, and `create_frame` to group elements into a labelled typed
+object. `frame_image` returns the PNG's path and size and does not attach the image:
+`ToolAnswer` is either JSON or an image, and the path is what the caller needs.
+
+Scope differs per tool. The project-wide ones (`list_types`, `list_frames`,
+`search_frames`, `canvas_tree`, `save_type`, `delete_type`) use `Scope::Project`: they
+resolve only a cluster, and an optional `canvas` is a filter handed to the method
+untouched, so omitting it means the whole project and never the focused canvas. The
+per-canvas ones (`get_frame`, `frame_image`, `set_frame`, `create_frame`) use the
+resolution above. `set_parent` and `link_frame` do too, but require `canvas`, and the
+server refuses the call with `canvas-required` when it is missing, so neither can
+touch the focused canvas by accident. `link_frame` links a frame to an existing child
+canvas (or unlinks it with `child: null`) and keeps the child's `parent` in step. The frame methods read the canvas as `canvas` and the
+older ones as `id`; the server sends the resolved canvas under whichever the method
+expects.
+
+**Adding a tool** is one row in the `canvas_tools!` table in
+`src-tauri/src/mcp/servers/canvas.rs`: tool name, app method, `Scope`, read-only
+flag, description, schema. The tool list, dispatch and `readOnlyHint` come from it.
+
+Rendering (`view_diagram`, `view_comment`, `add_shapes`, `import_mermaid`) runs in a
+Canvas pane's webview, so one must be open somewhere; the error says how to open one.
+
+**Which canvas a render or write lands on.** `view_diagram`, `add_shapes`,
+`import_mermaid` and `view_comment` always read and write the file of the canvas they
+resolve to. The Canvas pane is only an engine for fonts, Excalidraw and Mermaid: the
+pane showing that canvas is preferred, but with several canvases open any pane may
+do the drawing, and the file written is still the named one. If no Canvas pane is open
+anywhere the error names the canvas and says to open one. `describe_diagram` and
+`view_diagram` take `frame` as an alias for `diagram`.
+
+**Inactive clusters.** A pane learns its canvas from the page's `__kaavaContext`, which
+only exists for a mounted pane, so a pane in an inactive cluster reports `canvas: null`.
+`list_canvases` flags these with `canvasKnown: false` and a `note`. When a call names no
+canvas and some pane's canvas is unknown, it is refused (`canvas-unknown` when no
+canvas is known at all, otherwise an ambiguity listing every pane, including the ones
+with no file) rather than guessed. Name `canvas` or `instance` to be certain.
+
+**Transport.** The streamable-HTTP endpoint requires an `initialize` call and the
+returned `mcp-session-id` header on later requests; a bare `tools/call` returns 422.

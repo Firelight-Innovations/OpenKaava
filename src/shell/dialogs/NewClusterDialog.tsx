@@ -32,12 +32,16 @@ export interface NewClusterDialogProps {
    *  worktree list, "new local worktree"'s repo, "browse main") is relative
    *  to it. `WindowRoot` only opens this dialog when one is set. */
   project: { name: string; path: string };
+  /** Which environment choice is selected on open. The title bar's "New worktree
+   *  cluster" asks for `newLocalWorktree` by name rather than relying on it being
+   *  the default, so the entry keeps meaning that if the default ever moves. */
+  initialKind?: EnvironmentKind;
   onCancel: () => void;
   /** `create_cluster_with_environment` succeeded; the new cluster's id. */
   onCreated: (clusterId: string) => void;
 }
 
-type EnvironmentKind = "newLocalWorktree" | "existing" | "cloud" | "main";
+export type EnvironmentKind = "newLocalWorktree" | "existing" | "cloud" | "main";
 
 interface LayoutOption {
   value: StartingLayout;
@@ -56,14 +60,44 @@ const LAYOUTS: LayoutOption[] = [
   { value: "watchAgent", title: "Watch an agent", panes: "Streamed terminal · explorer · viewer" },
 ];
 
+/** One pane of a layout thumbnail: left, top, width, height as percentages. */
+type ThumbPane = readonly [number, number, number, number];
+
+// Sketches of the trees `starting_layout_preset` builds, one rectangle per
+// pane. The thumbnail is drawn from these; an empty icon box read as broken.
+export const LAYOUT_THUMBS: Record<StartingLayout, readonly ThumbPane[]> = {
+  code: [
+    [0, 0, 28, 100],
+    [28, 0, 72, 62],
+    [28, 62, 72, 38],
+  ],
+  godot: [
+    [0, 0, 24, 100],
+    [24, 0, 46, 62],
+    [70, 0, 30, 62],
+    [24, 62, 76, 38],
+  ],
+  blender: [
+    [0, 0, 28, 100],
+    [28, 0, 72, 62],
+    [28, 62, 72, 38],
+  ],
+  watchAgent: [
+    [0, 0, 55, 100],
+    [55, 0, 45, 50],
+    [55, 50, 45, 50],
+  ],
+};
+
 export default function NewClusterDialog({
   label,
   project,
+  initialKind = "newLocalWorktree",
   onCancel,
   onCreated,
 }: NewClusterDialogProps) {
   const [step, setStep] = useState<1 | 2>(1);
-  const [kind, setKind] = useState<EnvironmentKind>("newLocalWorktree");
+  const [kind, setKind] = useState<EnvironmentKind>(initialKind);
   const [worktreeName, setWorktreeName] = useState("");
   const [existing, setExisting] = useState<Environment[] | null>(null);
   const [selectedExisting, setSelectedExisting] = useState<Environment | null>(null);
@@ -362,7 +396,15 @@ function LayoutStep({ layout, onLayout }: LayoutStepProps) {
             checked={layout === option.value}
             onChange={() => onLayout(option.value)}
           />
-          <span className="new-cluster__layout-icon" aria-hidden="true" />
+          <span className="new-cluster__layout-icon" aria-hidden="true">
+            {LAYOUT_THUMBS[option.value].map(([x, y, w, h], i) => (
+              <span
+                key={i}
+                className="new-cluster__layout-pane"
+                style={{ left: `${x}%`, top: `${y}%`, width: `${w}%`, height: `${h}%` }}
+              />
+            ))}
+          </span>
           <span className="new-cluster__layout-text">
             <span className="new-cluster__layout-title">{option.title}</span>
             <span className="new-cluster__layout-panes">{option.panes}</span>
@@ -430,7 +472,9 @@ function validateWorktreeName(name: string, taken: string[]): string | null {
   if (trimmed.endsWith(".") || trimmed.endsWith(".lock")) {
     return "A worktree name cannot end with a dot, or with “.lock”.";
   }
-  if (taken.includes(trimmed)) return `"${trimmed}" is already in use.`;
+  if (taken.includes(trimmed)) {
+    return `A worktree named "${trimmed}" already exists. Reopen it under Existing environment, or choose another name.`;
+  }
   return null;
 }
 

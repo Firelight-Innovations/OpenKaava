@@ -1,24 +1,24 @@
 /*
- * The cluster row's search field. A `control-lg` (32px) box with a
- * `border-subtle-1` edge and radius 8, per the spec's component table; the
- * row itself is `--h-switcher` tall, so the field sits centred with a gutter
- * either side rather than stretching to the bar's edges.
+ * The search field, in the title bar's right cell beside Review & merge. A
+ * `control-md` (28px) box with a `border-subtle-1` edge and `radius-md`, the
+ * same size and edge as the bar's other action. It shrinks (label ellipsis)
+ * before it pushes anything, and becomes an icon under 1240px — see the
+ * collapse order in `titlebar/titlebar.css`.
  */
 
 .search-slot {
-  flex: none;
+  flex: 0 1 240px;
+  min-width: var(--control-md);
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  width: 280px;
-  height: var(--control-lg);
-  margin: 0 var(--space-2);
+  height: var(--control-md);
   padding: 0 var(--space-2);
   border: 1px solid var(--border-subtle-1);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--bg-layer-1);
   color: var(--txt-placeholder);
-  font: var(--type-body);
+  font: var(--type-caption);
   text-align: left;
   cursor: text;
 }
@@ -50,15 +50,44 @@
   flex: none;
 }
 
-@media (max-width: 900px) {
-  .search-slot {
-    width: 32px;
+/* A claimed field is a real input, so it keeps its width at every size: an icon
+   cannot be typed into. The `:focus-within` edge is the field's own. */
+.search-slot--claimed {
+  cursor: text;
+}
+
+.search-slot--claimed:focus-within {
+  border-color: var(--accent);
+  outline: 3px solid var(--accent-subtle);
+  outline-offset: 0;
+}
+
+.search-slot__input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--txt-primary);
+  font: inherit;
+  outline: none;
+}
+
+.search-slot__input::placeholder {
+  color: var(--txt-placeholder);
+}
+
+@container titlebar (max-width: 1239px) {
+  .search-slot:not(.search-slot--claimed) {
+    flex: none;
+    width: var(--control-md);
     padding: 0;
     justify-content: center;
   }
 
-  .search-slot__label,
-  .search-slot__hint {
+  .search-slot:not(.search-slot--claimed) .search-slot__label,
+  .search-slot:not(.search-slot--claimed) .search-slot__hint {
     display: none;
   }
 }

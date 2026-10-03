@@ -132,6 +132,23 @@ function dropStrayNodes(id: string): void {
   document.getElementById(`d${id}`)?.remove();
 }
 
+/**
+ * Render diagram source to an SVG string, for the callers that have text and no
+ * file — a ```mermaid fence in a Markdown preview, or the live split. Same
+ * configuration and the same `strict` sanitising as the pane below; throws
+ * mermaid's own error on a syntax mistake.
+ */
+export async function renderDiagram(source: string): Promise<string> {
+  ensureConfigured();
+  const id = `mermaid-${(renders += 1)}`;
+  try {
+    const { svg } = await mermaid.render(id, source);
+    return svg;
+  } finally {
+    dropStrayNodes(id);
+  }
+}
+
 type State =
   | { status: "loading" }
   | { status: "ready"; svg: string; truncated: boolean }

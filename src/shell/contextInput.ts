@@ -15,6 +15,7 @@ import {
   type ContextInserted,
   type Harness,
 } from "../bindings";
+import { requestHarnessRefresh } from "./harnessRefresh";
 import { notify } from "./terminalNotice";
 
 /** How each harness is named to a person. */
@@ -45,6 +46,8 @@ export function describe(result: ContextInserted): { text: string; error: boolea
 function report(id: string, result: ContextInserted): void {
   const said = describe(result);
   if (said) notify(id, said.text, said.error);
+  // An insert is a moment the strip's "Insert as" label should be right.
+  requestHarnessRefresh(id);
 }
 
 function failed(id: string, what: string, e: unknown): void {

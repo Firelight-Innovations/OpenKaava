@@ -37,14 +37,17 @@
   flex-direction: column;
 }
 
-/* `flex-basis` is written inline from the node's `sizes`, and overwritten
-   directly on this element for the duration of a divider drag. `flex-grow: 0`
-   and `flex-shrink: 0` matter: with either of them free, flex would
-   redistribute space on its own terms and the authored weights would stop
-   being what is on screen. */
+/* `flex-grow` is written inline from the node's `sizes`, and overwritten
+   directly on this element for the duration of a divider drag. The basis is 0
+   so the shares divide the space left *after* the `gap` seams: percentage
+   bases summed to 100% of the box and the gaps then pushed the last pane past
+   the container's edge, where the tool window clipped its border and rounded
+   corners. `flex-shrink: 0` matters: with it free, flex would redistribute
+   space on its own terms and the authored weights would stop being what is
+   on screen. */
 .pane-split__child {
   position: relative;
-  flex-grow: 0;
+  flex-basis: 0;
   flex-shrink: 0;
   min-width: 0;
   min-height: 0;
@@ -79,7 +82,10 @@
 .pane-split__divider::after {
   content: "";
   position: absolute;
-  background: var(--line);
+  /* Transparent at rest: the seam is already 6px of canvas between two
+     bordered panes, so a grey bar there is only noise. It lights up on
+     hover and while dragged. */
+  background: transparent;
 }
 
 .pane-split__divider[data-dir="row"]::after {
@@ -184,11 +190,9 @@
   box-shadow: inset 0 -2px 0 var(--accent);
 }
 
-.pane-tab__swatch {
+.pane-tab__fileicon {
   flex: none;
-  width: 11px;
-  height: 11px;
-  border-radius: 3px;
+  display: block;
 }
 
 .pane-tab__icon {
@@ -196,9 +200,7 @@
   color: inherit;
 }
 
-/* The swatch already says which file kind this is; the app glyph beside it is
-   the fallback identity for a title `fileTypeColor` did not recognise — see
-   that function's own header on how often that is the common case today. */
+/* The app glyph, for a tab that is not a file. */
 .pane-tab__icon--app {
   opacity: 0.7;
 }
@@ -229,6 +231,10 @@
   height: 6px;
   border-radius: 50%;
   background: var(--ok);
+}
+
+.pane-tab__dot--dirty {
+  background: var(--txt-secondary);
 }
 
 .pane-tab__dot ~ .pane-tab__close,

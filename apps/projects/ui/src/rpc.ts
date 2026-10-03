@@ -49,7 +49,8 @@ export type WakeSnapshot =
   | { phase: "healthy"; elapsedSeconds: number }
   | { phase: "cancelled" }
   | { phase: "timedOut"; detail: string }
-  | { phase: "failed"; detail: string };
+  /** `trouble` is the cause when a call had one, such as a lapsed sign-in. */
+  | { phase: "failed"; detail: string; trouble?: Trouble };
 
 export const wakeStart = (): Promise<{ started: boolean }> => invoke("projects/wake-start");
 
@@ -91,8 +92,11 @@ export interface Bounds {
   height: number;
 }
 
-export const webviewOpen = (bounds: Bounds, url: string): Promise<{ opened: boolean }> =>
-  invoke("projects/webview-open", { bounds, url });
+export const webviewOpen = (
+  bounds: Bounds,
+  url: string,
+  window?: string,
+): Promise<{ opened: boolean }> => invoke("projects/webview-open", { bounds, url, window });
 
 export const webviewNavigate = (url: string): Promise<{ navigated: boolean }> =>
   invoke("projects/webview-navigate", { url });
@@ -113,7 +117,11 @@ export type Trouble =
   | { kind: "missing"; what: string }
   | { kind: "unreachable"; detail: string }
   | { kind: "api"; status: number; detail: string }
-  | { kind: "fixture"; detail: string };
+  | { kind: "fixture"; detail: string }
+  | { kind: "signInNeeded"; detail: string }
+  | { kind: "gatewayUnconfigured" }
+  | { kind: "gatewayUnreachable"; detail: string }
+  | { kind: "planeAsleep"; detail: string };
 
 export function troubleOf(error: unknown): Trouble | null {
   if (!(error instanceof KaavaRpcError)) return null;

@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import SettingRow from "./SettingRow";
 import McpPanel from "./McpPanel";
+import CloudAccountPanel from "./CloudAccountPanel";
 import { settingsBackdrop, settingsScreen } from "../motion";
 import { closeSettings } from "../settingsSurface";
-import { Search, X } from "lucide-react";
+import { X } from "lucide-react";
+import { useTitlebarSearch } from "../titlebarSearch";
 import type { Setting, SettingsGroup } from "../../bindings";
 import type { SettingsSession } from "./useSettings";
 import "./settings.css";
@@ -24,12 +26,14 @@ import "./settings.css";
  * the glyph that opened this screen. `settings.css` spells out both.
  *
  * Nothing below is per-setting: every row comes from the schema Rust publishes,
- * so adding a setting is a Rust-only edit. The MCP panel is the one exception,
- * and `McpPanel.tsx` says why.
+ * so adding a setting is a Rust-only edit. The MCP panel and the Google account
+ * panel are the two exceptions; `McpPanel.tsx` and `CloudAccountPanel.tsx` say
+ * why.
  */
 
-/** The section that gets the extra panel. The only id this file knows. */
+/** The sections that get an extra panel. The only ids this file knows. */
 const MCP_GROUP = "mcp";
+const CLOUD_GROUP = "cloud";
 
 export default function SettingsScreen({
   session,
@@ -46,6 +50,11 @@ export default function SettingsScreen({
   // would mean a click that the next render silently undid.
   const [picked, setPicked] = useState<string | null>(landOn);
   const [filter, setFilter] = useState("");
+
+  // One search bar on screen: this screen's filter lives in the title bar's
+  // field rather than in a second one beneath it. Escape is left to the
+  // listener below, which closes the screen.
+  useTitlebarSearch({ placeholder: "Search settings", value: filter, onChange: setFilter });
 
   // Escape closes, and this is deliberately a listener on `document` rather than
   // an entry in `../keys/useKeyboard.ts`. That hook is the *window's* accelerator
@@ -116,21 +125,8 @@ export default function SettingsScreen({
       >
         <header className="settings__header">
           <h1 className="settings__heading">Settings</h1>
-          {/* The search and the close button sit together at the right edge. The
-              field's box is the label's, so `:focus-within` on it lights the
-              whole field rather than the bare input inside it. */}
-          <label className="settings__search">
-            <Search size={16} strokeWidth={1.5} aria-hidden="true" />
-            <input
-              className="settings__search-input"
-              type="text"
-              spellCheck={false}
-              placeholder="Search settings"
-              aria-label="Search settings"
-              value={filter}
-              onChange={(event) => setFilter(event.target.value)}
-            />
-          </label>
+          {/* The filter is typed in the title bar's search field, which this
+              screen claims while it is mounted — see `useTitlebarSearch` above. */}
           <button
             type="button"
             className="k-btn k-btn--ghost k-btn--icon k-btn--lg"
@@ -240,6 +236,7 @@ function Section({ group, session }: { group: SettingsGroup; session: SettingsSe
       </div>
 
       {group.id === MCP_GROUP && <McpPanel />}
+      {group.id === CLOUD_GROUP && <CloudAccountPanel />}
 
       {group.settings.map((setting) => (
         <SettingRow key={setting.key} setting={setting} session={session} />

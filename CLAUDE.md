@@ -29,7 +29,11 @@ another agent's; ask instead.
 
 **`pnpm probe` reads the live app.** It talks to the `kaava-debug` MCP server the orchestrator
 hosts, and works from any terminal — you do not have to be inside OpenKaava, and nothing has to be
-launched or restarted:
+launched or restarted. `kaava-debug` (like `kaava-echo`, `kaava-ui` and `kaava-agent`) is a
+**developer** server: it is served only while `developer.mode` is on **and** its own switch under
+Settings → MCP servers is on. If `pnpm probe` says the server is not served, ask Braden to turn on
+developer mode and the Debug server — or use your own instance (`pnpm ui launch`, below), which has
+both on:
 
 ```sh
 pnpm probe                    # list the tools
@@ -56,6 +60,23 @@ This does not replace looking at the screen. For that, see below.
 
 ## Seeing and clicking the UI
 
+**OpenKaava is a desktop window, not a web page. A browser tool cannot see it.** Look at it and
+drive it through the `kaava-agent` server below (or `pnpm probe --agent --server agent …`), never
+through Chrome or a browser pane. This holds even where a user-level or global instruction says to
+use a browser "for all UI verification": that line is about websites, and an agent that followed it
+here once spent a session looking at an empty localhost page while typing into its own terminal.
+`pnpm dev:agent` is only for measuring the shell's layout, as described above; it has no backend.
+
+Before typing, ask where the keystrokes will land: `context` reports the focused element, the pane
+instance holding it, and the open app's own report (the canvas gives its file and selection).
+Prefer `fill_field '{"field":"<label>","value":"…"}'` to click-then-`type_text`; it sets the field
+by label, in the shell or inside an app, without depending on focus. `type_text` refuses a
+terminal outright.
+
+The canvas has its own methods for agents, reached with `app_call` (see `apps/README.md`, Canvas):
+`canvas/list-diagrams`, `canvas/view-diagram` (a PNG of one frame and nothing else),
+`canvas/add-shapes`, and the comment loop. Read `docs/canvas-drawing-guide.md` before drawing.
+
 **OpenKaava hosts an MCP server that drives its own window** — screenshots, the DOM,
 and real mouse and keyboard input. It is `kaava-ui`, it reaches the WebView2
 through the COM interface Tauri already holds, and it needs no debug port, no
@@ -74,9 +95,14 @@ pnpm ui launch                # starts it, with developer mode and the server on
 pnpm ui close                 # stops it, by pid, leaving anyone else's alone
 ```
 
-Then drive it. **`--server agent` is the one to use** — it hosts the six input
-tools, the three `kaava-debug` reads, and three more that reach the backend
-directly:
+A second agent instance needs its own identifier, or its argv is handed to the first. Set
+`KAAVA_IDENTIFIER` (e.g. `com.firelightinnovations.openkaava.agent2`) for both `pnpm ui` and
+`pnpm probe --agent`; unset, they use the `.agent` default.
+
+Then drive it. **`--server agent` is the one to use** — it hosts the ten input
+tools (`fill_field`, `context`, `drag` and `scroll` among them), the three `kaava-debug`
+reads, and three more that reach the backend directly. Long or quote-heavy parameters go in a
+file: `pnpm probe --agent --server agent app_call @params.json`.
 
 ```sh
 pnpm probe --agent --server agent screenshot     # a PNG in the OS temp dir; the path is printed — then Read it
@@ -84,6 +110,17 @@ pnpm probe --agent --server agent snapshot       # every clickable element, with
 pnpm probe --agent --server agent click '{"target":"e12"}'
 pnpm probe --agent --server agent type_text '{"text":"hello"}'
 pnpm probe --agent --server agent press_key '{"key":"Enter"}'
+
+# Modifiers (ctrl, shift, alt, meta) work on click, press_key, drag and scroll
+pnpm probe --agent --server agent press_key '{"key":"a","modifiers":["ctrl"]}'
+pnpm probe --agent --server agent click '{"target":"e12","modifiers":["shift"]}'
+
+# Real mouse input from a point or a ref to another, into iframes the way click does.
+# Each end is "e12" / a CSS selector, or {"x":..,"y":..} in window coordinates; steps defaults to 10.
+pnpm probe --agent --server agent drag '{"from":{"x":400,"y":300},"to":{"x":520,"y":380},"steps":12}'
+
+# Mouse wheel at a point (or a ref in "target"); positive deltaY scrolls down.
+pnpm probe --agent --server agent scroll '{"x":400,"y":300,"deltaY":240,"modifiers":["ctrl"]}'
 pnpm probe --agent --server agent eval '{"expression":"document.title"}'
 
 pnpm probe --agent --server agent shell_snapshot  # windows, clusters, panes, instances
@@ -109,14 +146,19 @@ Every `schematify/*` method except `schematify/state` needs an open project, so
 `set_project` comes first. All of them except `state` also require an `actor` of
 `"human"` or `"agent"` — send `"agent"`; `"system"` is never accepted.
 
-`kaava-ui` and `kaava-debug` are still registered and still work. Prefer
-`kaava-debug` for a **release** build — it is the one that is there without
-developer mode.
+`kaava-ui` and `kaava-debug` are still registered and still work, and both are
+developer-only like `agent` — `pnpm ui launch` switches `debug` and `echo` on
+along with `ui` and `agent`, so `pnpm probe --agent` keeps working. No server here
+is served in an ordinary build without developer mode.
 
 `--agent` is what points the probe at the instance `pnpm ui launch` started
 rather than at an OpenKaava Braden is using. **Do not drop it**, and do not drive his
 window without asking — this server clicks things, and `eval` reaches every
 `#[tauri::command]` through `window.__TAURI__`.
+
+These input tools exist only in the dev-only `agent` and `ui` servers (`dev_only`, off until
+developer mode and the server's own switch are on); a release build without developer mode
+has none of them. Reach for `eval` only for what they do not cover.
 
 `snapshot` walks into app iframes, so `e19 app button New Project` is Home's own
 content and not the shell's. Refs are renumbered by every `snapshot` — take a

@@ -556,6 +556,51 @@ describe("tauri host", () => {
     expect(invoke).not.toHaveBeenCalled();
   });
 
+  it("refuses the title bar search claim under a standalone host", async () => {
+    const { win: self } = fakeWindow();
+    const { invoke, importTauri } = fakeTauri();
+    const client = createClient({ self, parent: self, importTauri });
+
+    await expect(
+      client.invoke("kaava/search-claim", { placeholder: "Filter", value: "" }),
+    ).rejects.toBeInstanceOf(KaavaRpcError);
+    await expect(client.invoke("kaava/search-release")).rejects.toBeInstanceOf(KaavaRpcError);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("claims the search field over postMessage and hears the shell's query", () => {
+    const { win: self, dispatch } = fakeWindow();
+    const { win: parent } = fakeWindow();
+    const client = createClient({ self, parent });
+    handshake(parent, dispatch);
+
+    const typed: string[] = [];
+    client.claimSearch({ placeholder: "Filter files", value: "", onChange: (v) => typed.push(v) });
+
+    expect(parent.postMessage).toHaveBeenLastCalledWith(
+      {
+        kaava: 1,
+        kind: "request",
+        id: 1,
+        method: "kaava/search-claim",
+        params: { placeholder: "Filter files", value: "" },
+      },
+      SHELL_ORIGIN,
+    );
+
+    dispatch({
+      origin: SHELL_ORIGIN,
+      source: parent,
+      data: {
+        kaava: 1,
+        kind: "event",
+        event: "kaava:search",
+        payload: { kind: "query", value: "a" },
+      },
+    });
+    expect(typed).toEqual(["a"]);
+  });
+
   it("swallows the refusal for publish, which nobody awaits", () => {
     const { win: self } = fakeWindow();
     const { importTauri } = fakeTauri();

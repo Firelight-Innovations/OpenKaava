@@ -199,17 +199,6 @@
   cursor: default;
 }
 
-.bv__footer {
-  height: 36px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 10px;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--bg-layer-1);
-}
-
 .bv__footer-btn {
   display: flex;
   align-items: center;
@@ -222,6 +211,15 @@
   background: var(--bg-surface-1);
   color: var(--txt-primary);
   cursor: pointer;
+}
+
+.bv__footer-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.bv__footer-btn--icon {
+  padding: 4px 6px;
 }
 
 .bv__footer-btn:disabled {
@@ -431,16 +429,14 @@
 }
 
 .bv__auto {
+  white-space: nowrap;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 4px;
   font-size: 11px;
   color: var(--txt-secondary);
   cursor: pointer;
-}
-
-.bv__footer-spacer {
-  flex: 1;
 }
 
 .bv__send {
@@ -460,4 +456,37 @@
 
 .bv__render-tile img {
   cursor: grab;
+}
+
+/* The Model tab holds a 3D stage that takes the room, not a centred picture. */
+.bv__viewport--model {
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.bv__viewport--model .bv__model {
+  align-items: stretch;
+  min-height: 0;
+}
+
+.bv__stage {
+  display: flex;
+  flex-direction: column;
+  min-height: 340px;
+  flex: 1;
+}
+
+.bv__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bv__empty--export {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  grid-column: 1 / -1;
+  align-self: center;
 }

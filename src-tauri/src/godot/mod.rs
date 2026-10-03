@@ -12,10 +12,12 @@
 //! * [`runner`] - a game run as a child process, with a bounded classified log.
 //! * [`addon`]  - the opt-in capture script and its file channel.
 //! * [`scene`]  - the viewer's headless tree read, render and cache.
+//! * [`preview`] - a scene exported to glTF for the viewer's interactive 3D view.
 //! * [`rpc`]    - the methods `play` and `godot-viewer` answer.
 
 pub mod addon;
 pub mod detect;
+pub mod preview;
 pub mod rpc;
 pub mod runner;
 pub mod scene;
@@ -42,8 +44,8 @@ static SETTINGS_ROWS: &[crate::settings::Setting] = &[crate::settings::Setting {
     key: KEY_EXECUTABLE_PATH,
     title: "Godot 4 executable",
     description: "Leave empty to look for it: GODOT4 and GODOT environment variables, PATH, \
-                  common install folders and Steam. A path set here is used as it is and is \
-                  never replaced by another install. A folder works too.",
+                      common install folders and Steam. A path set here is used as it is and is \
+                      never replaced by another install. A folder works too.",
     control: crate::settings::Control::Text {
         default: "",
         placeholder: "C:\\Tools\\Godot\\Godot_v4.3-stable_win64.exe",

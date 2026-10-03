@@ -20,6 +20,9 @@ import type {
 } from "../contract";
 import { paneLeaves, paneOfTab, paneTabs } from "../contract";
 import { activateInstance, openInstance, setInstanceTitle } from "../state/shellState";
+import { clearsSubject, declaredSubject, getSubject, setSubject } from "../viewerSubjects";
+import { resolveViewerTarget as planViewerTarget } from "../viewerTarget";
+import { baseNameOf } from "../viewerTitle";
 // The wire types come from `@openkaava/bridge`'s `protocol`/`errors` subpaths
 // rather than its root entry. The root package does depend on `@openkaava/bridge`
 // now — the first-party apps under `apps/` import it, and they are built by
@@ -38,7 +41,14 @@ import type {
   ResponseMessage,
 } from "@openkaava/bridge/protocol";
 import { relayPageEscape } from "./pageEscape";
-import { OPENED_EVENT, THEME_CHANGED_EVENT, TOPIC_EVENT_PREFIX } from "@openkaava/bridge/protocol";
+import { relayChord } from "./relayChord";
+import { createFrameSearch } from "./frameSearch";
+import {
+  OPENED_EVENT,
+  SEARCH_EVENT,
+  THEME_CHANGED_EVENT,
+  TOPIC_EVENT_PREFIX,
+} from "@openkaava/bridge/protocol";
 import { KaavaErrorCode } from "@openkaava/bridge/errors";
 import { appPainted, onLaunchTarget, onProjectChanged, takeLaunchTarget } from "../../bindings";
 import { instantOutCss, instantOutMs } from "../motion";
@@ -46,6 +56,7 @@ import { callApp } from "../state/apps";
 import { windowLabel } from "../state/shellState";
 import { currentTheme, onThemeChange, type ThemeChangedPayload } from "../themeBroadcast";
 import ToolMount from "./ToolMount";
+import { sameOrder, stableOrder } from "./stableOrder";
 import EmptyState from "./EmptyState";
 import NoClustersState from "./NoClustersState";
 import { registerToolWindow, unregisterToolWindow } from "../toolWindowRegistry";
@@ -302,6 +313,8 @@ const ToolWindow = forwardRef<
   const hosts = useRef<Map<string, HTMLDivElement>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
   const [rects, setRects] = useState<Map<string, PaneRect>>(() => new Map());
+  const rectsRef = useRef(rects);
+  rectsRef.current = rects;
 
   // Re-measure every pane host against the container. Called on mount, on any
   // host arriving or leaving, and from a `ResizeObserver` — a divider drag and
@@ -433,6 +446,17 @@ const ToolWindow = forwardRef<
     [],
   );
 
+  // Frames claiming the title bar's search field. Declared before
+  // `deliverEvent` exists, so it posts through a ref that is filled in below.
+  const deliverRef = useRef<(instanceId: string, event: string, payload: unknown) => void>(
+    () => {},
+  );
+  const frameSearch = useRef(
+    createFrameSearch((instanceId, payload) =>
+      deliverRef.current(instanceId, SEARCH_EVENT, payload),
+    ),
+  );
+
   const unregisterFrame = useCallback((win: Window) => {
     const frame = frames.current.get(win);
     frames.current.delete(win);
@@ -441,6 +465,7 @@ const ToolWindow = forwardRef<
     // still offering Save for a surface that has unmounted would be offering to
     // post into a window that no longer exists.
     if (frame) report.current?.(frame.id, []);
+    if (frame) frameSearch.current.release(frame.id);
 
     // And it publishes nothing. Retained topics are what a late-mounting frame
     // is told on handshake (see `topics` below), so a value left behind by a
@@ -490,6 +515,8 @@ const ToolWindow = forwardRef<
     }
   }, []);
 
+  deliverRef.current = deliverEvent;
+
   /**
    * Events waiting on a frame that has not said hello yet, keyed by instance —
    * at most one per instance, since a second request for the same frame
@@ -528,6 +555,21 @@ const ToolWindow = forwardRef<
     }
   }, [readyIds, deliverEvent]);
 
+  // A File Viewer that has just come up is handed the file it was showing, if
+  // the shell remembers one. This is what makes a restored layout show its
+  // files again: the layout persists the instance, and `viewerSubjects` the path.
+  // Once per instance; a viewer opened fresh already has its file queued above.
+  const restoredViewers = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const id of readyIds) {
+      if (restoredViewers.current.has(id)) continue;
+      if (roster.current.get(id)?.appId !== VIEWER_APP) continue;
+      restoredViewers.current.add(id);
+      const subject = getSubject(id);
+      if (subject) deliverEvent(id, OPENED_EVENT, { path: subject.path, preview: subject.preview });
+    }
+  }, [readyIds, deliverEvent]);
+
   // Push each `NEEDS_WINDOW_RECT` instance its surface's window-space rect,
   // whenever `rects` (or the tree owning it) changes. This is the only place
   // that reads the container's own `getBoundingClientRect()` — `measure()`
@@ -558,7 +600,7 @@ const ToolWindow = forwardRef<
       const prev = lastWindowRect.current.get(instanceId);
       if (prev && sameWindowRect(prev, next)) continue;
       lastWindowRect.current.set(instanceId, next);
-      sendEventWhenReady(instanceId, "kaava/window-rect", next);
+      sendEventWhenReady(instanceId, "kaava/window-rect", { ...next, window: windowLabel() });
     }
   }, [rects, tree, instances, sendEventWhenReady]);
 
@@ -581,7 +623,7 @@ const ToolWindow = forwardRef<
       const prev = lastWindowRect.current.get(pageInstanceId);
       if (prev && sameWindowRect(prev, next)) return;
       lastWindowRect.current.set(pageInstanceId, next);
-      sendEventWhenReady(pageInstanceId, "kaava/window-rect", next);
+      sendEventWhenReady(pageInstanceId, "kaava/window-rect", { ...next, window: windowLabel() });
     };
     send();
     const observer = new ResizeObserver(send);
@@ -658,6 +700,64 @@ const ToolWindow = forwardRef<
   }, []);
 
   /**
+   * Which File Viewer shows `path`. One viewer is one file, so this is not
+   * `resolveOpenTarget`'s "first instance of the app": `viewerTarget.ts` picks
+   * the instance already showing the file, an empty one, or the cluster's peek,
+   * and only otherwise opens a new viewer, in the pane that last had a viewer
+   * focused and never beside the requester if another pane exists.
+   *
+   * The subject is recorded here, before the viewer has said anything, or two
+   * quick opens of one file would both find no instance and open two.
+   */
+  const focusedPaneRef = useRef(focusedPaneId);
+  focusedPaneRef.current = focusedPaneId;
+  const lastViewerPane = useRef<string | null>(null);
+
+  const resolveViewerTarget = useCallback(
+    async (path: string, preview: boolean, sourceInstance?: string): Promise<string> => {
+      const isViewer = (id: string) => {
+        const instance = roster.current.get(id);
+        return !!instance && instance.kind !== "terminal" && instance.appId === VIEWER_APP;
+      };
+      const viewerIds = paneTabs(layout.current).filter(isViewer);
+      const panes = paneLeaves(layout.current).map((leaf) => {
+        const rect = rectsRef.current.get(leaf.id);
+        return { id: leaf.id, tabs: leaf.tabs, area: rect ? rect.width * rect.height : 0 };
+      });
+      const focused = panes.find((pane) => pane.id === focusedPaneRef.current);
+      if (focused?.tabs.some(isViewer)) lastViewerPane.current = focused.id;
+      const plan = planViewerTarget(
+        {
+          panes,
+          viewerIds,
+          subjectOf: getSubject,
+          lastViewerPaneId: lastViewerPane.current,
+          sourcePaneId: sourceInstance ? paneOfTab(layout.current, sourceInstance) : null,
+        },
+        path,
+        preview,
+      );
+      let id: string;
+      if (plan.kind === "new") {
+        id = await openInstance(windowLabel(), VIEWER_APP, plan.paneId);
+      } else {
+        id = plan.id;
+        void activateInstance(id);
+      }
+      const keep = plan.kind === "focus" ? getSubject(id) : undefined;
+      setSubject(id, {
+        path,
+        // Asking again for a file that is already a settled tab does not make it a peek.
+        preview: keep ? keep.preview && preview : preview,
+        dirty: keep?.dirty ?? false,
+      });
+      void setInstanceTitle(id, baseNameOf(path));
+      return id;
+    },
+    [],
+  );
+
+  /**
    * Explorer's "Open with OpenKaava", pointed at a file.
    *
    * Only the file case arrives here. A folder is already open as a project by
@@ -687,7 +787,7 @@ const ToolWindow = forwardRef<
       // Narrowed rather than assumed. Rust only ever parks a file, but this is
       // a wire boundary and the check costs nothing.
       if (!live || target === null || target.kind !== "file") return;
-      const instanceId = await resolveOpenTarget(VIEWER_APP);
+      const instanceId = await resolveViewerTarget(target.path, false);
       if (!live) return;
       // Queued if the viewer was just opened and has not finished its
       // handshake, which is the common case here — see `sendEventWhenReady`.
@@ -710,7 +810,7 @@ const ToolWindow = forwardRef<
       live = false;
       unlisten?.();
     };
-  }, [resolveOpenTarget, sendEventWhenReady]);
+  }, [resolveViewerTarget, sendEventWhenReady]);
 
   // Reachable from outside this component tree, by window label — see
   // `toolWindowRegistry.ts`'s header for why this exists instead of a prop.
@@ -729,12 +829,12 @@ const ToolWindow = forwardRef<
      * message posted before the frame's listener exists is simply gone, with no
      * replay).
      *
-     * The reply carries the *app* id, deliberately, not the instance id. A frame
-     * needs to know what kind of thing it is; it does not need to know which of
-     * several copies it is, because nothing it can send requires saying so.
-     * Identity is resolved from `event.source` against `frames`, which is the
-     * security property, and an instance id in a payload would be one more claim
-     * to have to distrust.
+     * The reply carries the *app* id for what the frame is. It also carries the
+     * frame's own instance id in `session`, but only as a storage key: a cluster
+     * switch unmounts the frame, and an app that wants its open document back
+     * needs a name for "this copy" that survives the reload. Nothing the frame
+     * sends is trusted to say it. Identity is still resolved from
+     * `event.source` against `frames`, which is the security property.
      */
     function answerHello(source: Window, origin: string, frame: MountedFrame) {
       const reply: ReadyMessage = {
@@ -742,7 +842,7 @@ const ToolWindow = forwardRef<
         kind: "ready",
         toolId: frame.appId,
         protocol: 1,
-        session: { projectPath: null },
+        session: { projectPath: null, instanceId: frame.id },
       };
       source.postMessage(reply, origin);
       frame.origin = origin;
@@ -807,6 +907,7 @@ const ToolWindow = forwardRef<
      * shell from accumulating a table of every app's vocabulary.
      */
     function answerOpen(
+      frameId: string,
       params: unknown,
       respond: (body: Omit<ResponseMessage, "kaava" | "kind">) => void,
       id: ResponseMessage["id"],
@@ -822,7 +923,14 @@ const ToolWindow = forwardRef<
         });
         return;
       }
-      void resolveOpenTarget(target.appId)
+      // A file for the viewer is routed by path, not by app: see
+      // `resolveViewerTarget`. The payload is still not interpreted beyond the
+      // two fields that decide *which* viewer — the rest goes through as is.
+      const file = viewerFileRequest(target.appId, target.payload);
+      const resolved = file
+        ? resolveViewerTarget(file.path, file.preview, frameId)
+        : resolveOpenTarget(target.appId);
+      void resolved
         .then((instanceId) => {
           // Queued if that frame has not finished its handshake, which is the
           // common case for the branch that just opened one — see
@@ -949,6 +1057,17 @@ const ToolWindow = forwardRef<
         respond({ id, result: null });
         const title = declaredTitle(params);
         if (title) void setInstanceTitle(frame.id, title);
+        // A File Viewer also says which file that title is, and whether it is
+        // a peek or holds unsaved edits. See `viewerSubjects.ts`.
+        const subject = frame.appId === VIEWER_APP ? declaredSubject(params) : null;
+        if (frame.appId === VIEWER_APP && clearsSubject(params)) setSubject(frame.id, null);
+        if (subject) {
+          setSubject(frame.id, {
+            path: subject.path,
+            preview: subject.preview,
+            dirty: subject.dirty,
+          });
+        }
         return;
       }
 
@@ -993,7 +1112,7 @@ const ToolWindow = forwardRef<
       // ignore. Per-tool permissions are a later pass; see the `[permissions]`
       // table in `docs/tool-protocol.md` §1, reserved and unenforced today.
       if (method === "kaava/open") {
-        answerOpen(params, respond, id);
+        answerOpen(frame.id, params, respond, id);
         return;
       }
 
@@ -1005,8 +1124,37 @@ const ToolWindow = forwardRef<
         return;
       }
 
+      // A shell chord typed inside a frame (Ctrl+Shift+P, Alt+1, ...), replayed
+      // on the shell's document so the same handlers hear it as outside a frame.
+      if (method === "kaava/key") {
+        respond({ id, result: null });
+        relayChord(params, document);
+        return;
+      }
+
       if (method === "kaava/publish") {
         answerPublish(params, respond, id, frame);
+        return;
+      }
+
+      // The title bar's search field. Recorded for any frame and shown only while
+      // that frame is an active surface; see `frameSearch.ts`.
+      if (method === "kaava/search-claim") {
+        if (frameSearch.current.claim(frame.id, params)) respond({ id, result: null });
+        else
+          respond({
+            id,
+            error: {
+              code: KaavaErrorCode.InvalidParams,
+              message: "kaava/search-claim needs a non-empty `placeholder` string",
+            },
+          });
+        return;
+      }
+
+      if (method === "kaava/search-release") {
+        frameSearch.current.release(frame.id);
+        respond({ id, result: null });
         return;
       }
 
@@ -1154,6 +1302,25 @@ const ToolWindow = forwardRef<
   // changes, not when it is rebuilt.
   const activeKey = [...activeByPane].map(([pane, tab]) => `${pane}:${tab ?? ""}`).join("|");
 
+  // The surfaces whose search claims may show: the focused pane's visible tab,
+  // a takeover, and the rail page. Said as a string for the same reason
+  // `activeKey` is, and applied in an effect so a claim made earlier appears the
+  // moment its pane is focused and goes the moment it is not.
+  const searchActive = [
+    soloInstanceId,
+    pageInstanceId,
+    focusedPaneId ? activeByPane.get(focusedPaneId) : null,
+  ]
+    .filter((id): id is string => typeof id === "string")
+    .join("|");
+  useEffect(() => {
+    frameSearch.current.setActive(searchActive === "" ? [] : searchActive.split("|"));
+  }, [searchActive]);
+  useEffect(() => {
+    const search = frameSearch.current;
+    return () => search.setActive([]);
+  }, []);
+
   /**
    * The surface each pane was showing a moment ago, kept over its replacement.
    *
@@ -1270,7 +1437,13 @@ const ToolWindow = forwardRef<
     };
   }, [outgoing.ids]);
 
-  const tabs = paneTabs(tree);
+  // Layout order decides where a surface is drawn, never where it sits among its siblings:
+  // see `stableOrder` for why moving a keyed iframe's node reloads the app.
+  const renderOrder = useRef<string[]>([]);
+  const laidOut = paneTabs(tree);
+  const ordered = stableOrder(renderOrder.current, laidOut);
+  if (!sameOrder(ordered, renderOrder.current)) renderOrder.current = ordered;
+  const tabs = renderOrder.current;
   const empty = tabs.length === 0;
 
   return (
@@ -1485,6 +1658,16 @@ function changedCluster(payload: unknown): string | null {
   if (typeof payload !== "object" || payload === null) return null;
   const { clusterId } = payload as { clusterId?: unknown };
   return typeof clusterId === "string" ? clusterId : null;
+}
+
+/** `{path, preview}` when this is a request to show a file in the viewer, else `null`. */
+function viewerFileRequest(
+  appId: string,
+  payload: unknown,
+): { path: string; preview: boolean } | null {
+  if (appId !== VIEWER_APP || typeof payload !== "object" || payload === null) return null;
+  const { path, preview } = payload as { path?: unknown; preview?: unknown };
+  return typeof path === "string" && path !== "" ? { path, preview: preview === true } : null;
 }
 
 /**

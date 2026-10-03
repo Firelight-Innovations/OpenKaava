@@ -189,10 +189,13 @@ pub fn migrate_environment(
 /// `HEAD` on it is refused here, once, rather than trusted to every
 /// command that could reach it. Every write path funnels through this
 /// function or through `apps::write_refusal`, which wraps it for app
-/// methods. `env` is `None` for a cluster with no
-/// environment set at all (the legacy, pre-migration case): that is *not*
-/// read as `Main` for the same reason [`migrate_environment`] declines to —
-/// a cluster nobody has ever pointed at "read-only" stays writable.
+/// methods.
+///
+/// `env` is the *effective* environment. A cluster whose stored environment is
+/// `None` (a legacy layout, or a creation path that forgot to assign one) must
+/// not be passed straight in as `None`: that is how a write reached a main
+/// checkout. Callers with a cluster go through [`effective_environment`] or
+/// [`guard_cluster_write`], which fail closed.
 ///
 /// `op` names the action for the error message (`"commit"`, `"stage"`) —
 /// see `git::run_git`'s own `op` parameter for the same reasoning about why
@@ -202,6 +205,71 @@ pub fn refuse_write_on_main(env: Option<&Environment>, op: &str) -> Result<()> {
         return Err(AppError::ReadOnlyMain { op: op.to_string() });
     }
     Ok(())
+}
+
+/// What kind of checkout `path` is, or `None` when it is not in a git
+/// repository at all (a plain folder has no "main" to protect).
+///
+/// The one place a path becomes an [`Environment`]: `Main` when `path` sits in
+/// the repository's primary working tree, `LocalWorktree` when it sits in a
+/// linked one. Every cluster-creation path that only knows a folder
+/// (`ShellState::set_cluster_project`, the agent server's `set_project`, Home,
+/// launch seeding, restoring an old layout) funnels through here, so none of
+/// them can leave a cluster with a null environment pointing at a repo.
+pub fn detect_environment(path: &Path) -> Option<Environment> {
+    let top = git::repo_root(path)?;
+    let main = git::main_repo_root(path)?;
+    if same_path(&top, &main) {
+        return Some(Environment::Main);
+    }
+    let name = top
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or_default()
+        .to_string();
+    let branch = git::worktrees(&main)
+        .ok()
+        .and_then(|list| {
+            list.into_iter()
+                .find(|w| same_path(Path::new(&w.path), &top))
+                .and_then(|w| w.branch)
+        })
+        .unwrap_or_else(|| name.clone());
+    Some(Environment::LocalWorktree {
+        name,
+        path: top.to_string_lossy().to_string(),
+        branch,
+        base: String::new(),
+    })
+}
+
+/// The environment a write guard should judge a cluster by: the stored one, or
+/// — when none is stored — the one its project folder implies.
+///
+/// This is the fail-closed half of the main guard. A null environment pointing
+/// at the repository's main checkout is `Main`, so it is read-only; a null
+/// environment on a plain folder stays `None` and writable.
+pub fn effective_environment(
+    stored: Option<Environment>,
+    project: Option<&Path>,
+) -> Option<Environment> {
+    stored.or_else(|| project.and_then(detect_environment))
+}
+
+/// Whether two paths name the same folder, ignoring verbatim (`\\?\`) prefixes, slash
+/// direction and (on Windows) case — what git prints and what the layout
+/// stored are rarely spelled the same.
+fn same_path(a: &Path, b: &Path) -> bool {
+    let norm = |p: &Path| {
+        let canon = p.canonicalize().unwrap_or_else(|_| p.to_path_buf());
+        canon
+            .to_string_lossy()
+            .trim_start_matches(r"\\?\")
+            .replace('\\', "/")
+            .trim_end_matches('/')
+            .to_lowercase()
+    };
+    norm(a) == norm(b)
 }
 
 /// [`refuse_write_on_main`] for a caller that has a cluster id and an app
@@ -214,7 +282,7 @@ pub fn guard_cluster_write(app: &tauri::AppHandle, cluster_id: &str, op: &str) -
     use tauri::Manager;
     let env = app
         .state::<crate::shell_state::ShellState>()
-        .cluster_environment(cluster_id);
+        .cluster_write_environment(cluster_id);
     refuse_write_on_main(env.as_ref(), op)
 }
 
@@ -532,5 +600,106 @@ mod tests {
             AppError::Git { op, .. } => assert_eq!(op, "worktree add"),
             other => panic!("expected AppError::Git, got {other:?}"),
         }
+    }
+
+    // --- detecting an environment from a bare folder --------------------------
+
+    /// Runs `git` in `dir` for a fixture, panicking with git's own message.
+    fn fixture_git(dir: &Path, args: &[&str]) {
+        let out = std::process::Command::new("git")
+            .current_dir(dir)
+            .args(["-c", "user.name=t", "-c", "user.email=t@example.com"])
+            .args(args)
+            .output()
+            .expect("git runs");
+        assert!(
+            out.status.success(),
+            "git {args:?}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+
+    /// The bug: a cluster created from a bare folder (the agent server's
+    /// `set_project`) carried a null environment, so the guard saw nothing to
+    /// refuse. Detection must name the main checkout `Main`.
+    #[test]
+    fn a_main_checkout_is_detected_as_main_and_a_subfolder_too() {
+        let dir = tempfile::tempdir().unwrap();
+        fixture_git(dir.path(), &["init", "-q", "-b", "trunk"]);
+        fixture_git(
+            dir.path(),
+            &["commit", "-q", "--allow-empty", "-m", "first"],
+        );
+        assert_eq!(detect_environment(dir.path()), Some(Environment::Main));
+
+        let sub = dir.path().join("canvas");
+        std::fs::create_dir(&sub).unwrap();
+        assert_eq!(detect_environment(&sub), Some(Environment::Main));
+    }
+
+    #[test]
+    fn a_linked_worktree_is_detected_as_a_worktree_not_main() {
+        let dir = tempfile::tempdir().unwrap();
+        let main = dir.path().join("main");
+        std::fs::create_dir(&main).unwrap();
+        fixture_git(&main, &["init", "-q", "-b", "trunk"]);
+        fixture_git(&main, &["commit", "-q", "--allow-empty", "-m", "first"]);
+        let linked = dir.path().join("feat-x");
+        fixture_git(
+            &main,
+            &[
+                "worktree",
+                "add",
+                "-q",
+                "-b",
+                "wt/feat-x",
+                linked.to_str().unwrap(),
+            ],
+        );
+
+        match detect_environment(&linked) {
+            Some(Environment::LocalWorktree { name, branch, .. }) => {
+                assert_eq!(name, "feat-x");
+                assert_eq!(branch, "wt/feat-x");
+            }
+            other => panic!("expected a LocalWorktree, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_folder_outside_any_repository_has_no_environment() {
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(detect_environment(dir.path()), None);
+    }
+
+    /// The fail-closed half: no stored environment, a project that is a main
+    /// checkout, and the guard still refuses.
+    #[test]
+    fn a_null_environment_on_a_main_checkout_is_refused() {
+        let dir = tempfile::tempdir().unwrap();
+        fixture_git(dir.path(), &["init", "-q", "-b", "trunk"]);
+        let effective = effective_environment(None, Some(dir.path()));
+        assert!(refuse_write_on_main(effective.as_ref(), "canvas/save").is_err());
+    }
+
+    #[test]
+    fn a_null_environment_on_a_plain_folder_stays_writable() {
+        let dir = tempfile::tempdir().unwrap();
+        let effective = effective_environment(None, Some(dir.path()));
+        assert!(refuse_write_on_main(effective.as_ref(), "canvas/save").is_ok());
+    }
+
+    #[test]
+    fn a_stored_environment_is_never_overridden_by_detection() {
+        let dir = tempfile::tempdir().unwrap();
+        fixture_git(dir.path(), &["init", "-q", "-b", "trunk"]);
+        let design = Environment::Design {
+            path: "C:/wt/design".to_string(),
+            branch: "wt/design".to_string(),
+        };
+        assert_eq!(
+            effective_environment(Some(design.clone()), Some(dir.path())),
+            Some(design)
+        );
     }
 }

@@ -107,3 +107,98 @@ export function accentThemeColors(): Record<string, string> {
     focusBorder: hexWithAlpha(raw, 1),
   };
 }
+
+/** The Monaco base theme for a resolved shell theme: dark gets `vs-dark`,
+ *  light gets `vs`, so syntax token colours flip along with the chrome. */
+export function monacoBase(theme: "dark" | "light"): "vs" | "vs-dark" {
+  return theme === "light" ? "vs" : "vs-dark";
+}
+
+/** The theme this document is showing, read from `<html data-theme>`. Dark is
+ *  the default, as in `tokens.css`. */
+export function currentDocumentTheme(): "dark" | "light" {
+  return document.documentElement.dataset.theme === "light" ? "light" : "dark";
+}
+
+/** Which Excalidraw/xterm/Monaco-style theme name a shell theme maps to. */
+export function surfaceTheme(theme: "dark" | "light"): "dark" | "light" {
+  return theme === "light" ? "light" : "dark";
+}
+
+/** One live token as `#RRGGBBAA`, at `alpha`. */
+function tokenHex(name: string, alpha = 1): string {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name);
+  return hexWithAlpha(raw, alpha);
+}
+
+/**
+ * Every Monaco colour that is not the accent, built from the live `tokens.css`
+ * values so a theme switch only has to call this again. Replaces three
+ * hand-copied dark-only hex tables; the alphas are the ones those tables used.
+ */
+export function monacoBaseColors(): Record<string, string> {
+  const t = (name: string, alpha = 1) => tokenHex(name, alpha);
+  return {
+    "editor.background": t("--surface"),
+    "editor.foreground": t("--text"),
+    "editorGutter.background": t("--surface"),
+    "editorLineNumber.foreground": t("--text-faint"),
+    "editorLineNumber.activeForeground": t("--text-dim"),
+    "editor.lineHighlightBackground": t("--bg-layer-1"),
+    "editor.lineHighlightBorder": t("--bg-layer-1"),
+
+    "editor.findMatchBackground": t("--warn", 0.35),
+    "editor.findMatchHighlightBackground": t("--warn", 0.18),
+    "editor.findRangeHighlightBackground": t("--warn", 0.08),
+
+    "editorBracketMatch.background": t("--bg-layer-2"),
+    "editorIndentGuide.background1": t("--line"),
+    "editorIndentGuide.activeBackground1": t("--line-2"),
+    "editorWhitespace.foreground": t("--line-2"),
+    "editorRuler.foreground": t("--line"),
+    "editorOverviewRuler.border": t("--line"),
+
+    "scrollbarSlider.background": t("--line-2", 0.5),
+    "scrollbarSlider.hoverBackground": t("--line-2", 0.7),
+    "scrollbarSlider.activeBackground": t("--line-2"),
+
+    "minimap.background": t("--surface"),
+    "minimapSlider.background": t("--line-2", 0.3),
+    "minimapSlider.hoverBackground": t("--line-2", 0.5),
+    "minimapSlider.activeBackground": t("--line-2", 0.7),
+
+    "editorWidget.background": t("--bg-layer-2"),
+    "editorWidget.foreground": t("--text"),
+    "editorWidget.border": t("--line"),
+    "editorHoverWidget.background": t("--bg-layer-2"),
+    "editorHoverWidget.border": t("--line"),
+    "editorSuggestWidget.background": t("--bg-layer-2"),
+    "editorSuggestWidget.border": t("--line"),
+    "editorSuggestWidget.foreground": t("--text"),
+    "editorSuggestWidget.selectedBackground": t("--bg-layer-1-selected"),
+    "menu.background": t("--bg-layer-2"),
+    "menu.foreground": t("--text-dim"),
+    "menu.border": t("--line"),
+    "menu.selectionBackground": t("--bg-layer-1-selected"),
+    "menu.selectionForeground": t("--text"),
+    "list.hoverBackground": t("--bg-layer-1-hover"),
+    "input.background": t("--surface"),
+    "input.foreground": t("--text"),
+    "input.border": t("--line-2"),
+
+    "editorError.foreground": t("--err"),
+    "editorWarning.foreground": t("--warn"),
+    "editorInfo.foreground": t("--text-dim"),
+  };
+}
+
+/** The full Monaco theme body (base plus colours) for the current document. */
+export function monacoThemeData(): {
+  base: "vs" | "vs-dark";
+  colors: Record<string, string>;
+} {
+  return {
+    base: monacoBase(currentDocumentTheme()),
+    colors: { ...monacoBaseColors(), ...accentThemeColors() },
+  };
+}

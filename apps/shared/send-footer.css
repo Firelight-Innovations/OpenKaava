@@ -1,0 +1,41 @@
+/* The shared bottom bar for "Send to agent" actions. Tokens only. */
+.k-send-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-xl);
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  flex-wrap: wrap;
+  background: var(--bg-surface-1);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.k-send-footer__actions,
+.k-send-footer__trailing {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.k-send-footer__trailing {
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Footer text and buttons never wrap mid-label; the group wraps as a whole. */
+.k-send-footer__trailing > * {
+  white-space: nowrap;
+}
+
+.k-send-footer__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+}

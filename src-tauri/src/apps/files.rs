@@ -193,6 +193,7 @@ fn shell_methods(
     let answer = match method {
         "files/reveal" => reveal(app, params),
         "files/open-external" => open_external(app, params),
+        "files/open-url" => open_url(app, params),
         "files/open-in-blender" => open_in_blender(app, params),
         _ => return None,
     };
@@ -436,7 +437,7 @@ fn root(app: &AppHandle, context: &CallContext) -> Result<Value, RpcError> {
     // methods refuse on main whether or not it listens (`apps::call`).
     let read_only = context.cluster_id.as_deref().is_some_and(|cluster| {
         app.state::<crate::shell_state::ShellState>()
-            .cluster_environment(cluster)
+            .cluster_write_environment(cluster)
             .is_some_and(|env| env.is_main())
     });
     Ok(json!({
@@ -1583,6 +1584,43 @@ fn open_external(app: &AppHandle, params: Option<&Value>) -> Result<Value, RpcEr
     Ok(Value::Null)
 }
 
+/// Whether a link in a rendered document may be handed to the system browser.
+///
+/// Only `http`, `https` and `mailto`. A Markdown preview draws links from files
+/// nobody has vetted, so `file:`, `javascript:` and every custom scheme a
+/// registered handler might act on are refused here, in Rust, rather than
+/// trusted to whatever the webview filtered.
+fn is_openable_url(url: &str) -> bool {
+    let lower = url.trim().to_ascii_lowercase();
+    ["http://", "https://", "mailto:"]
+        .iter()
+        .any(|scheme| lower.starts_with(scheme))
+}
+
+/// Hand a web link to the system browser. See [`is_openable_url`].
+fn open_url(app: &AppHandle, params: Option<&Value>) -> Result<Value, RpcError> {
+    let url = match params.and_then(|p| p.get("url")) {
+        Some(Value::String(raw)) => raw.trim().to_string(),
+        Some(other) => {
+            return Err(RpcError::new(
+                INVALID_PARAMS,
+                format!("url must be a string, got {other}"),
+            ))
+        }
+        None => return Err(RpcError::new(INVALID_PARAMS, "url is required")),
+    };
+    if !is_openable_url(&url) {
+        return Err(RpcError::new(
+            INVALID_PARAMS,
+            "only http, https and mailto links can be opened",
+        ));
+    }
+    app.opener()
+        .open_url(url.clone(), None::<&str>)
+        .map_err(|e| RpcError::new(INTERNAL_ERROR, format!("could not open {url}: {e}")))?;
+    Ok(Value::Null)
+}
+
 /// The `path` param, for the methods that have no honest default.
 ///
 /// [`resolve_path`] falls back to the checkout root when `path` is missing, which
@@ -1658,6 +1696,18 @@ pub(super) fn default_root(app: &AppHandle, context: &CallContext) -> Result<Pat
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_web_and_mail_links_are_openable() {
+        assert!(is_openable_url("https://example.com/a?b=c"));
+        assert!(is_openable_url("HTTP://example.com"));
+        assert!(is_openable_url("mailto:someone@example.com"));
+        assert!(!is_openable_url("file:///C:/Windows/System32/calc.exe"));
+        assert!(!is_openable_url("javascript:alert(1)"));
+        assert!(!is_openable_url("ms-settings:"));
+        assert!(!is_openable_url("C:\\Windows\\notepad.exe"));
+        assert!(!is_openable_url(""));
+    }
 
     /// A temp directory that cleans itself up, following `project/marker.rs` —
     /// these tests are about what a real filesystem does, and a fake one would

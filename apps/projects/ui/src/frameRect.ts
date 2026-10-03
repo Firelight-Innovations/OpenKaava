@@ -8,6 +8,10 @@ export interface FrameRect {
   y: number;
   width: number;
   height: number;
+  /** The label of the window the iframe is in: `main`, or `win-<n>` for a popped-out one. Rust
+   * attaches the child webview to that window, so a rect measured in a popped-out window is not
+   * applied to `main`. Absent from a shell that predates popped-out windows. */
+  window?: string;
 }
 
 /** Narrows an `on()` payload (`unknown`) to a `FrameRect` before it is trusted
@@ -19,7 +23,8 @@ export function isFrameRect(payload: unknown): payload is FrameRect {
     typeof p.x === "number" &&
     typeof p.y === "number" &&
     typeof p.width === "number" &&
-    typeof p.height === "number"
+    typeof p.height === "number" &&
+    (p.window === undefined || typeof p.window === "string")
   );
 }
 

@@ -98,7 +98,7 @@ export default function App() {
     if (!local) return;
     openedFor.current = project.slug;
     const url = projectUrl(project.plane.project_id);
-    rpc.webviewOpen(absoluteBounds(frameRect, local), url).catch((e) => {
+    rpc.webviewOpen(absoluteBounds(frameRect, local), url, frameRect.window).catch((e) => {
       setWebviewError(rpc.messageOf(e));
     });
   }, [wake, project, frameRect]);
@@ -156,12 +156,17 @@ export default function App() {
   }, []);
 
   const blocking = !list && listError !== null;
-  const wakeFailure = wake.phase === "failed" ? describeFailure(wakeError, "Plane") : null;
+  // A wake fails either at `wake-start` (thrown, such as no gateway URL) or
+  // later in the backend's own loop (a `trouble` on the snapshot, such as a
+  // lapsed sign-in). Both read as the same states a failed list would.
+  const wakeCause =
+    wakeError ?? (wake.phase === "failed" && wake.trouble ? { data: wake.trouble } : null);
+  const wakeFailure = wake.phase === "failed" ? describeFailure(wakeCause, "Plane") : null;
 
   return (
     <div className="app">
       <header className="app__head">
-        <h1 className="app__title">Projects</h1>
+        <h1 className="app__title app__title--hidden">Projects</h1>
         {list && (
           <span className="app__sub">
             {list.profile}
@@ -186,7 +191,7 @@ export default function App() {
                 ))}
                 {list.projects.length === 0 ? (
                   <p className="app__note">
-                    No projects yet. `kaava-project` writes one to{" "}
+                    No projects yet. <code>kaava-project</code> writes one to{" "}
                     <code>gs://veistra-projects/{list.profile}/projects/</code> per project.
                   </p>
                 ) : (
@@ -220,6 +225,9 @@ export default function App() {
                   {hosts && !hosts.ok && <p className="app__error projects__fix">{hosts.fix}</p>}
                   {webviewError && <p className="app__error">{webviewError}</p>}
                   <WakeStatus wake={wake} onCancel={cancel} />
+                  {wakeFailure && wakeFailure.kind !== "other" && (
+                    <h2 className="app__trouble-title">{wakeFailure.heading}</h2>
+                  )}
                   {wakeFailure?.steps}
                   {/* The child webview draws over this element — see
                       `plane_webview`'s module doc for why Rust, not this

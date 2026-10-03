@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import type { GitStatus, UpdateNotice } from "../contract";
 import type { Environment } from "../environment";
+import { ENVIRONMENT_BAR_LABEL } from "../environment";
 import { Sliders } from "../../ui/Icon";
 import SettingsPopover from "./SettingsPopover";
+import ReviewMergeButton from "./ReviewMergeButton";
 import "./statusbar.css";
 
 export interface StatusBarProps {
@@ -30,6 +32,9 @@ export interface StatusBarProps {
    */
   git: GitStatus | null;
   githubOk: boolean;
+  /** Opens the rail's Git page on Source Control. The "Review & merge" button
+   *  is drawn for worktree and design environments only. */
+  onReviewAndMerge?: () => void;
 }
 
 /**
@@ -44,7 +49,14 @@ export interface StatusBarProps {
  * the spec's own right-cluster chips, since it predates this rework and the
  * spec has no board that draws it.
  */
-export default function StatusBar({ project, environment, git, githubOk, update }: StatusBarProps) {
+export default function StatusBar({
+  project,
+  environment,
+  git,
+  githubOk,
+  update,
+  onReviewAndMerge,
+}: StatusBarProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsWrapRef = useRef<HTMLDivElement>(null);
 
@@ -69,17 +81,37 @@ export default function StatusBar({ project, environment, git, githubOk, update 
 
   return (
     <div className="statusbar">
-      {environment !== null && (
-        <>
-          {project !== null && <span className="statusbar__project">{project}</span>}
-          <span className="statusbar__branch">{branchSegment(environment, git)}</span>
-          {git !== null && filesTouched(git) > 0 && <DiffStat status={git} />}
-        </>
-      )}
+      {/* The left cluster is one flex child that shrinks and clips, so a narrow
+          window loses the end of the branch name before it can push the right
+          cluster (Review & merge, GitHub, settings) off the bar. */}
+      <div className="statusbar__left">
+        {environment !== null && (
+          <>
+            {project !== null && <span className="statusbar__project">{project}</span>}
+            <EnvironmentChip environment={environment} />
+            <span className="statusbar__branch">{branchName(environment)}</span>
+            {environment.kind !== "main" && git !== null && (
+              <span
+                className="statusbar__ahead-behind"
+                title={`${git.ahead} ahead, ${git.behind} behind`}
+              >
+                <span className="statusbar__ahead">↑{git.ahead}</span>{" "}
+                <span className="statusbar__behind">↓{git.behind}</span>
+              </span>
+            )}
+            {git !== null && filesTouched(git) > 0 && <DiffStat status={git} />}
+          </>
+        )}
+      </div>
 
       <div className="statusbar__spacer" />
 
       {update !== null && <UpdateNoticeRow notice={update} />}
+
+      {environment !== null &&
+        (environment.kind === "worktree" || environment.kind === "design") && (
+          <ReviewMergeButton onClick={onReviewAndMerge} />
+        )}
 
       <div className="statusbar__github">
         {/* The handoff only draws GitHub healthy (--ok). --err is this
@@ -165,40 +197,54 @@ const TONE_TOKEN: Record<UpdateNotice["tone"], string> = {
 };
 
 /**
- * `main · ↑1 ↓0` — the spec's exact separator (a middle dot, not a pipe) and
- * arrows, confirmed verbatim against the handoff crop. The arrows are not
- * separately coloured there, so this stays one plain-text run rather than
- * wrapping them in their own span.
- *
- * The handoff doesn't draw the no-upstream case. `ahead`/`behind` have no way
- * to say "no upstream" distinctly from "even with it" (see the doc comment on
- * `Worktree` in contract.ts) — this treats zero-and-zero as no upstream and
- * prints the bare branch name, on the read that a branch evenly caught up
- * with its remote is the less useful thing to call out in a status bar.
+ * The branch name: `main`, or the environment's own branch, falling back to the
+ * kind when a worktree or cloud session reports none yet. Ahead/behind is its
+ * own segment drawn once `git` has landed; `git` is cluster-scoped
+ * (`useGitStatus` in `WindowRoot.tsx`), so its numbers belong to this same
+ * branch. A read-only `main` has no upstream to be ahead of.
  */
-function branchText(status: { branch: string; ahead: number; behind: number }): string {
-  if (status.ahead === 0 && status.behind === 0) return status.branch;
-  return `${status.branch} · ↑${status.ahead} ↓${status.behind}`;
+function branchName(environment: Environment): string {
+  if (environment.kind === "main") return "main";
+  return environment.branch ?? environment.kind;
 }
 
 /**
- * The branch/environment segment's text: `main`, a bare branch name, or the
- * ahead/behind form above once `git` has landed for it.
- *
- * `main` short-circuits before touching `git` — a read-only checkout has no
- * upstream to be ahead or behind of, and the trailing "main is read-only"
- * chip already says the rest. Every other kind reads its name from
- * `environment.branch`, falling back to the environment's own kind label
- * only for the odd case a worktree or cloud session reports no branch yet;
- * `git` is assumed scoped to the same cluster (`useGitStatus` in
- * `WindowRoot.tsx`), so its ahead/behind numbers are trusted without
- * re-checking its own `branch` field against this one.
+ * The environment's kind chip ("Local worktree", "Cloud session", "Main"). When
+ * the environment has an on-disk path the chip is a button: hover shows the
+ * path, click copies it. The path used to sit inline in the title bar, where it
+ * was the first thing truncated away; here it is always one hover off.
  */
-function branchSegment(environment: Environment, git: GitStatus | null): string {
-  if (environment.kind === "main") return "main";
-  const name = environment.branch ?? environment.kind;
-  if (git === null) return name;
-  return branchText({ branch: name, ahead: git.ahead, behind: git.behind });
+function EnvironmentChip({ environment }: { environment: Environment }) {
+  const [copied, setCopied] = useState(false);
+  const label = ENVIRONMENT_BAR_LABEL[environment.kind];
+  const path = environment.kind === "cloud" ? undefined : environment.path;
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 1500);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+
+  if (path === undefined) return <span className="statusbar__kind">{label}</span>;
+
+  const onCopy = () => {
+    void navigator.clipboard?.writeText(path).then(
+      () => setCopied(true),
+      () => undefined,
+    );
+  };
+
+  return (
+    <button
+      type="button"
+      className="statusbar__kind statusbar__kind--button"
+      title={copied ? "Copied" : `${path}\nClick to copy path`}
+      aria-label={`${label}: ${path}. Copy path`}
+      onClick={onCopy}
+    >
+      {label}
+    </button>
+  );
 }
 
 /**

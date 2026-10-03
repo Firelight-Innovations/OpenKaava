@@ -1,6 +1,6 @@
 //! The one server an agent working on OpenKaava connects to.
 //!
-//! Everything needed to drive this window behind a single endpoint: the six
+//! Everything needed to drive this window behind a single endpoint: the ten
 //! interaction tools [`super::ui`] owns, the three reads [`super::debug`] owns,
 //! and three that had no home before — [`app_call`] reaches any app's Rust
 //! half, [`open_app`] mounts one, [`set_project`] points a cluster at a folder
@@ -41,18 +41,22 @@ pub static SERVER: McpServer = McpServer {
 
 static TOOLS: &[McpTool] = &TOOL_LIST;
 
-/// The twelve, composed rather than restated.
+/// The sixteen, composed rather than restated.
 ///
 /// Indexing `ui`'s and `debug`'s const arrays is what keeps one description of
 /// each tool in the codebase. The order is the order an agent uses them in:
 /// look, act, read back, then the three that set a surface up.
-const TOOL_LIST: [McpTool; 12] = [
+const TOOL_LIST: [McpTool; 16] = [
     super::ui::TOOL_LIST[0],
     super::ui::TOOL_LIST[1],
     super::ui::TOOL_LIST[2],
     super::ui::TOOL_LIST[3],
     super::ui::TOOL_LIST[4],
     super::ui::TOOL_LIST[5],
+    super::ui::TOOL_LIST[6],
+    super::ui::TOOL_LIST[7],
+    super::ui::TOOL_LIST[8],
+    super::ui::TOOL_LIST[9],
     super::debug::TOOL_LIST[0],
     super::debug::TOOL_LIST[1],
     super::debug::TOOL_LIST[2],
@@ -77,6 +81,14 @@ const TOOL_LIST: [McpTool; 12] = [
         schema: set_project_schema,
     },
 ];
+
+/// Why `app_call` refuses `method`, for the panel.
+pub fn blocked_reason(method: &str) -> Option<String> {
+    NEEDS_A_PERSON
+        .iter()
+        .find(|(name, _)| *name == method)
+        .map(|(_, instead)| format!("Raises a native dialog, so app_call refuses it: {instead}"))
+}
 
 /// The methods that raise a native dialog, and what to reach for instead.
 ///
@@ -211,9 +223,8 @@ fn set_project_schema() -> Value {
 fn call(app: &AppHandle, tool: &str, params: Option<Value>) -> Result<ToolAnswer, RpcError> {
     match tool {
         // Handed back to the modules that own them. See the module doc.
-        "screenshot" | "snapshot" | "click" | "type_text" | "press_key" | "eval" => {
-            super::ui::call(app, tool, params)
-        }
+        "screenshot" | "snapshot" | "click" | "type_text" | "fill_field" | "context"
+        | "press_key" | "drag" | "scroll" | "eval" => super::ui::call(app, tool, params),
         "shell_snapshot" | "recent_errors" | "boot_status" => super::debug::call(app, tool, params),
         "app_call" => app_call(app, params.as_ref()).map(Into::into),
         "open_app" => open_app(app, params.as_ref()).map(Into::into),

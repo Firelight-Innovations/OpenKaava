@@ -33,7 +33,7 @@ import { tmpdir } from "node:os";
  * OpenKaava somebody is using. `KAAVA_IDENTIFIER` covers anything else.
  */
 const IDENTIFIER = process.env.KAAVA_IDENTIFIER || "com.firelightinnovations.openkaava";
-const AGENT_IDENTIFIER = "com.firelightinnovations.openkaava.agent";
+const AGENT_IDENTIFIER = process.env.KAAVA_IDENTIFIER || "com.firelightinnovations.openkaava.agent";
 
 /** Which one this run is talking to. `--agent` moves it; nothing else does. */
 let identifier = IDENTIFIER;
@@ -209,6 +209,18 @@ async function connect(endpoint, server) {
   return opened.sessionId;
 }
 
+/**
+ * What to add when a server answers as if it were not there.
+ *
+ * `debug`, `echo`, `ui` and `agent` are all developer-only: they are absent, not
+ * merely off, until `developer.mode` is on and the server's own switch in
+ * Settings -> MCP servers is on too. `pnpm ui launch` does both for the agent's
+ * own instance, which is what `--agent` reaches.
+ */
+function notServedHint(server) {
+  return ` If OpenKaava is not serving \`${server}\`, turn on developer mode (Settings -> Developer) and switch the ${server} server on under Settings -> MCP servers. An instance from \`pnpm ui launch\` has both already; use --agent to reach it.`;
+}
+
 async function main() {
   const args = process.argv.slice(2);
 
@@ -228,10 +240,20 @@ async function main() {
 
   const [tool, rawParams] = args;
 
+  // `@path` reads the parameters from a file, and `-` from stdin. A long
+  // add-shapes spec or a value with quotes and braces does not survive
+  // Windows command-line quoting, and `pnpm probe` goes through cmd.exe.
   let params = {};
   if (rawParams) {
+    let text = rawParams;
     try {
-      params = JSON.parse(rawParams);
+      if (rawParams === "-") text = readFileSync(0, "utf8");
+      else if (rawParams.startsWith("@")) text = readFileSync(rawParams.slice(1), "utf8");
+    } catch (e) {
+      die(`could not read the parameters from ${rawParams}: ${e.message}`);
+    }
+    try {
+      params = JSON.parse(text);
     } catch (e) {
       die(`the parameters are not valid JSON: ${e.message}`);
     }
@@ -248,13 +270,21 @@ async function main() {
 
   const { message } = await rpc(endpoint, server, request, sessionId);
 
-  if (message?.error) die(`${request.method} failed: ${message.error.message}`);
+  if (message?.error)
+    die(`${request.method} failed: ${message.error.message}${notServedHint(server)}`);
+
+  if (!tool && message?.result?.tools?.length === 0) {
+    die(`the ${server} server lists no tools.${notServedHint(server)}`);
+  }
 
   // A tool that fails answers with `isError` and its reason as content rather
   // than with a JSON-RPC error, so a caller checking only for `error` would read
   // a failure as a result.
   if (message?.result?.isError) {
-    die(`${tool} reported an error: ${JSON.stringify(message.result.content)}`);
+    const reason = JSON.stringify(message.result.content);
+    die(
+      `${tool} reported an error: ${reason}${/no MCP server/i.test(reason) ? notServedHint(server) : ""}`,
+    );
   }
 
   const image = message?.result?.content?.find((block) => block.type === "image");

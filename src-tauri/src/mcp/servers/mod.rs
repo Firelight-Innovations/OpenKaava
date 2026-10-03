@@ -15,31 +15,26 @@
 //! what earns its place, and what decides its gate where it writes.
 //!
 //! [`agent`] is the fifth and the exception, earning its place on the client's
-//! axis rather than a capability's: nine of its twelve tools are [`ui`]'s and
-//! [`debug`]'s, composed so one job needs one connection instead of four. It
-//! indexes their arrays and delegates, so nothing here is a second copy.
+//! axis rather than a capability's: eleven of its fourteen tools are [`ui`]'s
+//! and [`debug`]'s, composed so one job needs one connection instead of four.
+//! It indexes their arrays and delegates, so nothing here is a second copy.
 
 pub mod agent;
+pub mod canvas;
 pub mod debug;
 #[cfg(feature = "design-mode")]
 pub mod design;
 pub mod echo;
 pub mod ui;
+pub mod workspace;
 
 use super::Registry;
 
 /// Register every server this build hosts, in the order settings lists them.
 ///
-/// The echo server is registered unconditionally, release included, because a
-/// feature whose whole surface is compiled out cannot be verified by the person
-/// who most needs to verify it. Now that real servers have landed this is the
-/// line that should grow a `cfg` — left alone so that switching echo off is its
-/// own decision rather than a side effect of adding something beside it.
-///
-/// `debug` is likewise unconditional, for a reason that will outlast echo's: a
-/// shipped OpenKaava misbehaving on a machine none of us have is exactly where
-/// reading its layout and its failures is worth the most, and a server compiled
-/// out of that build cannot answer.
+/// `echo` and `debug` are registered in every build, release included, but are
+/// `dev_only`: a `cfg` would put them out of reach of the build somebody most
+/// needs to diagnose, so the gate is developer mode, checked at the point of use.
 ///
 /// `design` ships for the ordinary user rather than for us — the comments it
 /// serves are theirs — which is why it is the one write surface with no gate.
@@ -53,13 +48,196 @@ pub fn seed(registry: &Registry) {
     registry.register(&debug::SERVER);
     #[cfg(feature = "design-mode")]
     registry.register(&design::SERVER);
+    registry.register(&canvas::SERVER);
+    registry.register(&workspace::SERVER);
     registry.register(&ui::SERVER);
     registry.register(&agent::SERVER);
+}
+
+/// Whether a tool is known to leave OpenKaava's state alone, for MCP's
+/// `readOnlyHint`.
+///
+/// `None` means "not claimed", and is what an unlisted tool gets: the hint is
+/// advertised only where somebody has read the handler and can say. A
+/// `screenshot` writes a temp PNG but changes nothing the user can see, which
+/// is the sense MCP means. `app_call` is `false` rather than `None` because it
+/// can reach a write method (see `apps::WRITE_METHODS`).
+/// `every_declared_tool_has_a_hint_entry` makes adding a tool force the question.
+pub fn read_only_hint(server: &str, tool: &str) -> Option<bool> {
+    let read = match (server, tool) {
+        ("echo", "ping" | "echo") => true,
+        ("debug", "shell_snapshot" | "recent_errors" | "boot_status") => true,
+        ("design", "list_comments" | "read_comment" | "comment_screenshot") => true,
+        ("design", "resolve_comment" | "ask_comment") => false,
+        // `agent` composes `ui` and `debug`; one answer for each shared name.
+        ("ui" | "agent", "screenshot" | "snapshot" | "context") => true,
+        (
+            "ui" | "agent",
+            "click" | "type_text" | "fill_field" | "press_key" | "drag" | "scroll" | "eval",
+        ) => false,
+        ("agent", "shell_snapshot" | "recent_errors" | "boot_status") => true,
+        ("agent", "app_call" | "open_app" | "set_project") => false,
+        ("workspace", "focus" | "layout" | "project") => true,
+        ("canvas", tool) => return canvas::read_only(tool),
+        _ => return None,
+    };
+    Some(read)
+}
+/// One readable, subscribable thing a server publishes, beside its tools.
+///
+/// Resources are for state an agent wants to be *told* about rather than ask
+/// for. Declared per server by [`resources`] and read by [`read_resource`],
+/// matched on the server id the way [`instructions`] is, so a server with none
+/// has nothing to add.
+pub struct McpResource {
+    pub uri: &'static str,
+    pub name: &'static str,
+    pub description: &'static str,
+    pub mime_type: &'static str,
+}
+
+/// The resources a server publishes; empty for every server but `workspace`.
+pub fn resources(id: &str) -> &'static [McpResource] {
+    match id {
+        "workspace" => workspace::RESOURCES,
+        _ => &[],
+    }
+}
+
+/// Read one resource. `None` when the server has no resource at that uri.
+pub fn read_resource(
+    app: &tauri::AppHandle,
+    id: &str,
+    uri: &str,
+) -> Option<Result<serde_json::Value, kaava_rpc::RpcError>> {
+    match id {
+        "workspace" => workspace::read_resource(app, uri),
+        _ => None,
+    }
+}
+
+/// What an MCP client is told at `initialize`, before it reads a single tool.
+///
+/// Said here because an agent once went looking for OpenKaava in a browser —
+/// its global instructions named a Chrome extension for "all UI verification" —
+/// and found nothing, since the app is a desktop window. The servers that can
+/// see the window say so up front. Rejected: a field on `McpServer`, which
+/// would put a `None` in every server that has nothing to add.
+pub fn instructions(id: &str) -> Option<&'static str> {
+    match id {
+        "ui" | "agent" => Some(
+            "This server is how you see and drive OpenKaava, a desktop app. It is not a web \
+             page: browser and Chrome tools cannot reach it, and a dev server on localhost \
+             serves the shell with no backend behind it. Use `screenshot` to look, `snapshot` \
+             for clickable refs, `click`, `drag`, `scroll`, `press_key`, `fill_field` and `type_text` to act, and `context` \
+             to ask what is focused and what the open app has selected. `type_text` refuses \
+             to type into a terminal; that terminal is probably yours.",
+        ),
+        "workspace" => Some(
+            "Read-only: where the person is working. Call `focus` when they say \"this\" or \"here\"; \
+             it names the focused pane, the app and the file or selection it reports. `layout` and \
+             `project` give the panes and the folder each cluster is on. Pass the instance ids you \
+             find here to the canvas server.",
+        ),
+        "canvas" => Some(
+            "Design canvases. More than one can be open: call `list_canvases` to see them and which has \
+             focus. Every tool takes `canvas` (id), `instance` or `cluster`; omit them and the focused \
+             canvas is used, which the result's `resolved` block says. All writes are made as the agent. \
+             `view_diagram` renders to a PNG file: read the path it returns. Call `drawing_guide` \
+             before your first `add_shapes`: it is the manual (palette, spacing, every option) and \
+             ends with the detail level and style the person chose in Settings, which you follow.",
+        ),
+        "debug" => Some(
+            "Read-only views of a running OpenKaava: its shell layout, recent errors and boot \
+             progress. To see or click the window, use the `agent` server, not a browser.",
+        ),
+        _ => None,
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_servers_that_see_the_window_say_a_browser_cannot() {
+        for id in ["ui", "agent", "debug"] {
+            let text = instructions(id).unwrap_or_default();
+            assert!(text.contains("browser"), "{id}: {text}");
+        }
+        assert!(instructions("echo").is_none());
+    }
+
+    /// Every declared tool has an entry in the hint table, so a new tool cannot
+    /// ship without somebody deciding what to claim for it.
+    #[test]
+    fn every_declared_tool_has_a_hint_entry() {
+        let registry = Registry::default();
+        seed(&registry);
+        for server in registry.catalog(true) {
+            let hinted = server
+                .tools
+                .iter()
+                .filter(|t| t.annotations.is_some())
+                .count();
+            assert_eq!(
+                hinted,
+                server.tools.len(),
+                "{} has an unclaimed tool",
+                server.id
+            );
+        }
+        assert_eq!(read_only_hint("ui", "nonesuch"), None);
+    }
+
+    /// The panel's data is the data `tools/list` serves, not a copy that can
+    /// drift: for every server, with everything switched on, each panel tool
+    /// equals the wire shape `listener::into_rmcp_tool` produces.
+    #[test]
+    fn the_panel_catalog_equals_what_tools_list_serves() {
+        let registry = Registry::default();
+        seed(&registry);
+        for server in registry.list(true) {
+            registry.set_enabled(&server.id, true);
+        }
+
+        let catalog = registry.catalog(true);
+        assert_eq!(catalog.len(), registry.list(true).len());
+        for server in catalog {
+            let served: Vec<serde_json::Value> = registry
+                .tools(&server.id, true)
+                .into_iter()
+                .map(|d| serde_json::to_value(crate::mcp::listener::into_rmcp_tool(d)).unwrap())
+                .collect();
+            assert_eq!(server.tools.len(), served.len(), "{}", server.id);
+            for (panel, wire) in server.tools.iter().zip(&served) {
+                let panel = serde_json::to_value(panel).unwrap();
+                assert_eq!(panel["name"], wire["name"]);
+                assert_eq!(panel["description"], wire["description"]);
+                assert_eq!(panel["inputSchema"], wire["inputSchema"]);
+                assert_eq!(
+                    panel["annotations"]["readOnlyHint"], wire["annotations"]["readOnlyHint"],
+                    "{}/{}",
+                    server.id, panel["name"]
+                );
+            }
+        }
+    }
+
+    /// A switched-off server answers `tools/list` with nothing, but the panel
+    /// still shows what it would offer.
+    #[test]
+    fn a_disabled_server_still_lists_its_tools_in_the_panel() {
+        let registry = Registry::default();
+        seed(&registry);
+        assert!(registry.tools("echo", true).is_empty());
+        let echo = registry
+            .catalog(true)
+            .into_iter()
+            .find(|s| s.id == "echo")
+            .unwrap();
+        assert_eq!(echo.tools.len(), 2);
+    }
 
     #[test]
     fn seeding_registers_every_server_this_build_hosts() {
@@ -68,9 +246,23 @@ mod tests {
 
         let ids: Vec<String> = registry.list(true).into_iter().map(|s| s.id).collect();
         #[cfg(feature = "design-mode")]
-        assert_eq!(ids, vec!["echo", "debug", "design", "ui", "agent"]);
+        assert_eq!(
+            ids,
+            vec![
+                "echo",
+                "debug",
+                "design",
+                "canvas",
+                "workspace",
+                "ui",
+                "agent"
+            ]
+        );
         #[cfg(not(feature = "design-mode"))]
-        assert_eq!(ids, vec!["echo", "debug", "ui", "agent"]);
+        assert_eq!(
+            ids,
+            vec!["echo", "debug", "canvas", "workspace", "ui", "agent"]
+        );
     }
 
     /// Every ordinary server is usable the moment OpenKaava starts. The one that
@@ -90,29 +282,50 @@ mod tests {
         }
     }
 
-    /// With developer mode off, the shipped build looks exactly as it did before
-    /// the UI server existed. This is the assertion that would fail if a future
-    /// change leaked one of them into the ordinary list.
-    ///
-    /// `design` is in this list and is meant to be: it is the one write surface
-    /// an ordinary user is supposed to have, for the reasons in its module doc.
-    /// Two servers are now absent rather than one — `agent` can click for the
-    /// same reason `ui` can, and composing `debug`'s three reads into it does
-    /// not pull them out from behind that gate, which is why `debug` itself
-    /// stays registered and stays in the list below.
+    /// With developer mode off, the ordinary user sees only what is for them.
+    /// `design` is meant to be here: it is the one write surface an ordinary
+    /// user is supposed to have, for the reasons in its module doc. `canvas` and
+    /// `workspace` are the ones agents use in a release build. `echo`, `debug`,
+    /// `ui` and `agent` are all developer-only.
     #[test]
-    fn a_default_install_sees_no_server_that_can_click() {
+    fn a_default_install_sees_only_the_servers_that_are_not_developer_only() {
         let registry = Registry::default();
         seed(&registry);
 
         #[cfg(feature = "design-mode")]
-        let expected = vec!["echo", "debug", "design"];
+        let expected: Vec<&str> = vec!["design", "canvas", "workspace"];
         #[cfg(not(feature = "design-mode"))]
-        let expected = vec!["echo", "debug"];
+        let expected: Vec<&str> = vec!["canvas", "workspace"];
 
         let ids: Vec<String> = registry.list(false).into_iter().map(|s| s.id).collect();
         assert_eq!(ids, expected);
         assert_eq!(registry.enabled_ids(false), expected);
+    }
+
+    /// With developer mode on, echo and debug are listed and badged, but start
+    /// off like `ui` and `agent`: revealing is not enabling. Once switched on
+    /// they are reachable, and switching developer mode off takes them away.
+    #[test]
+    fn echo_and_debug_appear_with_developer_mode_and_need_their_own_switch() {
+        let registry = Registry::default();
+        seed(&registry);
+
+        for id in ["echo", "debug"] {
+            let row = registry
+                .list(true)
+                .into_iter()
+                .find(|s| s.id == id)
+                .unwrap_or_else(|| panic!("{id} is listed with developer mode on"));
+            assert!(row.dev_only, "{id} carries the developer badge");
+            assert!(!row.enabled, "{id} starts off");
+            assert!(!registry.enabled_ids(true).contains(&id.to_string()));
+
+            assert!(registry.set_enabled(id, true));
+            assert!(registry.enabled_ids(true).contains(&id.to_string()));
+            assert!(!registry.enabled_ids(false).contains(&id.to_string()));
+            assert!(registry.tools(id, false).is_empty());
+            assert!(!registry.tools(id, true).is_empty());
+        }
     }
 
     /// The id reaches two places a typo would not be caught in: a URL path and a

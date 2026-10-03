@@ -6,6 +6,11 @@ describe("isFrameRect", () => {
     expect(isFrameRect({ x: 1, y: 2, width: 3, height: 4 })).toBe(true);
   });
 
+  it("accepts the window label a popped-out window reports, and rejects a non-string one", () => {
+    expect(isFrameRect({ x: 1, y: 2, width: 3, height: 4, window: "win-2" })).toBe(true);
+    expect(isFrameRect({ x: 1, y: 2, width: 3, height: 4, window: 7 })).toBe(false);
+  });
+
   it("rejects anything missing a numeric field", () => {
     expect(isFrameRect(null)).toBe(false);
     expect(isFrameRect(undefined)).toBe(false);

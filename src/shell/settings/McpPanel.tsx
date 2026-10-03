@@ -1,7 +1,7 @@
 /**
  * The MCP servers OpenKaava hosts, with a switch on each.
  *
- * ## This is the only section with a custom panel, and it should stay that way
+ * ## Panels are the exception, and should stay one
  *
  * Every other section is drawn entirely from the schema: Rust declares a key, a
  * control and a default, and `ControlFor` draws it. That is what makes adding a
@@ -15,21 +15,60 @@
  * a type that is supposed to be about values. So the exception is drawn here, in
  * one file, next to the section it belongs to.
  *
- * The rule that follows: a second section wanting a panel is a signal the schema
- * is missing a control, not that panels are how sections are built.
+ * The other is `CloudAccountPanel.tsx`, for credentials. A third section wanting
+ * a panel means the schema is missing a control, not that panels are the way.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import McpTools from "./McpTools";
+import { useTitlebarSearch } from "../titlebarSearch";
 import ToggleControl from "./controls/ToggleControl";
 import {
+  mcpCatalog,
   mcpStatus,
   onSettingsChanged,
   setMcpServerEnabled,
+  type McpCatalog,
   type McpServerInfo,
   type McpStatus,
 } from "../../bindings";
 
 export default function McpPanel() {
   const [status, setStatus] = useState<McpStatus | null>(null);
+  // Read on first expansion rather than at mount: building it scans the app
+  // sources for method names, and most visits never open a row.
+  const [catalog, setCatalog] = useState<McpCatalog | null>(null);
+  const [wantCatalog, setWantCatalog] = useState(false);
+  // How many servers have their tool list open, and the one filter they share.
+  // The filter is typed in the title bar's search field: it is claimed here only
+  // while a list is open, so it sits above the Settings search and gives it back
+  // when the last list closes.
+  const [openCount, setOpenCount] = useState(0);
+  const [toolQuery, setToolQuery] = useState("");
+  useTitlebarSearch(
+    openCount > 0
+      ? { placeholder: "Filter tools", value: toolQuery, onChange: setToolQuery }
+      : null,
+  );
+
+  useEffect(() => {
+    if (!wantCatalog) return;
+    let live = true;
+    const load = () =>
+      mcpCatalog()
+        .then((next) => {
+          if (live) setCatalog(next);
+        })
+        .catch((err: unknown) => console.error("kaava: could not read the MCP tools:", err));
+    void load();
+    // Developer mode changes which servers exist, so the tools follow it.
+    const subscription = onSettingsChanged(() => void load());
+    return () => {
+      live = false;
+      void subscription.then((unlisten) => {
+        unlisten();
+      });
+    };
+  }, [wantCatalog]);
 
   // Fetched here rather than by `useSettings`, which is the settings *store* and
   // holds none of this: the servers live in the MCP registry and the port
@@ -104,7 +143,15 @@ export default function McpPanel() {
         </p>
       ) : (
         status.servers.map((server) => (
-          <ServerRow key={server.id} server={server} onToggle={toggle} />
+          <ServerRow
+            key={server.id}
+            server={server}
+            onToggle={toggle}
+            catalog={catalog}
+            onOpen={() => setWantCatalog(true)}
+            onOpenChange={(now) => setOpenCount((n) => n + (now ? 1 : -1))}
+            query={toolQuery}
+          />
         ))
       )}
     </section>
@@ -140,43 +187,109 @@ function Endpoint({ port }: { port: number | null }) {
 function ServerRow({
   server,
   onToggle,
+  catalog,
+  onOpen,
+  onOpenChange,
+  query,
 }: {
   server: McpServerInfo;
   onToggle: (server: McpServerInfo, next: boolean) => void;
+  catalog: McpCatalog | null;
+  onOpen: () => void;
+  onOpenChange: (open: boolean) => void;
+  query: string;
 }) {
+  const [open, setOpen] = useState(false);
+  const panelId = useId();
+  const tools = catalog?.servers.find((s) => s.id === server.id)?.tools;
+  const flip = () => {
+    if (!open) onOpen();
+    setOpen(!open);
+    onOpenChange(!open);
+  };
+
+  // A row that unmounts while open (the section changed, or Settings closed)
+  // must give its count back, or the claim would outlive the lists.
+  const openRef = useRef(false);
+  openRef.current = open;
+  useEffect(
+    () => () => {
+      if (openRef.current) onOpenChange(false);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- unmount only
+    [],
+  );
+
   return (
-    <div className="setting">
-      <div className="setting__label">
-        <span className="setting__title">
-          {server.name}
-          {/* Marked rather than merely present. Reaching this row took a
+    <div className="settings-mcp__server">
+      <div className="setting">
+        <div className="setting__label">
+          <span className="setting__title">
+            {server.name}
+            {/* Marked rather than merely present. Reaching this row took a
               deliberate switch in another section, and by the time somebody has
               scrolled to it that is easy to have forgotten — so the row says
               what it is at the moment the switch beside it is being considered. */}
-          {server.devOnly && (
-            <span className="k-badge k-badge--idle">
-              <span className="k-badge__dot" />
-              developer
-            </span>
-          )}
-        </span>
-        <span className="setting__description">{server.description}</span>
-        {/* The config key and the route, in mono because both are things you
+            {server.devOnly && (
+              <span className="k-badge k-badge--idle">
+                <span className="k-badge__dot" />
+                developer
+              </span>
+            )}
+          </span>
+          <span className="setting__description">{server.description}</span>
+          {/* The config key and the route, in mono because both are things you
             retype into somewhere else — a project's `.mcp.json` and a browser
             respectively. The tool count rides along on the same line: it is the
             one number that says whether switching this on is worth anything. */}
-        <span className="settings-mcp__meta">
-          {server.configKey} · {server.path} · {toolCount(server.toolCount)}
-        </span>
+          <span className="settings-mcp__meta">
+            {server.configKey} · {server.path} ·{" "}
+            <button
+              type="button"
+              className="settings-mcp__expand"
+              aria-expanded={open}
+              aria-controls={panelId}
+              aria-label={`${open ? "Hide" : "Show"} the tools of ${server.name}`}
+              onClick={flip}
+            >
+              <svg
+                className="mcp-tools__chevron"
+                data-open={open || undefined}
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+                aria-hidden="true"
+              >
+                <path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+              {toolCount(server.toolCount)}
+            </button>
+          </span>
+        </div>
+        <div className="setting__control">
+          <ToggleControl
+            on={server.enabled}
+            label={server.name}
+            onChange={(next) => onToggle(server, next)}
+          />
+        </div>
+        <div className="setting__reset-slot" />
       </div>
-      <div className="setting__control">
-        <ToggleControl
-          on={server.enabled}
-          label={server.name}
-          onChange={(next) => onToggle(server, next)}
-        />
-      </div>
-      <div className="setting__reset-slot" />
+      {open && (
+        <div className="settings-mcp__tools" id={panelId}>
+          {tools === undefined ? (
+            <p className="settings-mcp__empty" role="status">
+              Reading the tools&hellip;
+            </p>
+          ) : (
+            <McpTools
+              tools={tools}
+              query={query}
+              appMethods={server.id === "agent" ? (catalog?.appMethods ?? []) : []}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

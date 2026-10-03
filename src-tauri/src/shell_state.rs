@@ -251,6 +251,14 @@ pub struct Cluster {
     /// environment enum just to answer "can this be closed".
     #[serde(default)]
     pub pinned: bool,
+    /// An emoji (or just a tint behind the initials) the user chose for this cluster.
+    ///
+    /// `None` is the default and draws the initials chip, so nothing changes until someone picks
+    /// one. `default`/`skip_serializing_if`, as on every optional field here, so a `layout.json`
+    /// from before this key existed still loads and a cluster without an icon writes the same
+    /// bytes it always did.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<ClusterIcon>,
     /// The environment's folder was not on disk when the layout was restored.
     ///
     /// A **runtime fact, recomputed at every restore** by
@@ -267,6 +275,21 @@ pub struct Cluster {
     pub environment_missing: bool,
 }
 
+/// The emoji a cluster wears in place of its initials, and the tint behind it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClusterIcon {
+    pub emoji: String,
+    /// A palette key the frontend defines, or `None` for the neutral chip. An unknown key from
+    /// a newer build is kept as written; the frontend falls back to neutral for one it can't draw.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+}
+
+/// Longest emoji string accepted. A ZWJ family sequence is 11 scalars; this leaves headroom
+/// without letting a paste of prose become an "icon".
+const MAX_ICON_SCALARS: usize = 16;
+
 impl Cluster {
     pub fn is_page(&self) -> bool {
         self.page.is_some()
@@ -278,6 +301,10 @@ impl Cluster {
 /// Physical rather than logical because that is what `outer_position` and
 /// `outer_size` report and what `available_monitors` measures against; mixing
 /// in a scale factor is how a window restores half-size on a scaled display.
+///
+/// The rectangle is always the window's *normal* (restored) bounds. While a window is maximized or
+/// fullscreen the OS reports a display-sized rectangle instead, and saving that would restore as a
+/// huge unmaximized window; see [`WindowGeometry::observe`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WindowGeometry {
@@ -285,6 +312,40 @@ pub struct WindowGeometry {
     pub y: i32,
     pub width: u32,
     pub height: u32,
+    /// Whether the window was maximized. `default` so a `layout.json` written before this field
+    /// existed loads as "not maximized", and omitted when false so it stays out of old files.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub maximized: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub fullscreen: bool,
+}
+
+// serde's `skip_serializing_if` wants a function taking `&T`, hence the reference.
+fn is_false(b: &bool) -> bool {
+    !*b
+}
+
+impl WindowGeometry {
+    /// Fold a fresh observation of a window into what was remembered about it.
+    ///
+    /// `seen` is the window right now. Maximized or fullscreen: keep the remembered normal
+    /// rectangle and only update the flags, so un-maximizing next launch has somewhere to go back
+    /// to. A first observation with nothing remembered has no better rectangle than `seen`.
+    /// Otherwise the window is in its normal state and `seen` is the new truth, flags cleared.
+    pub fn observe(prev: Option<WindowGeometry>, seen: WindowGeometry) -> WindowGeometry {
+        if !(seen.maximized || seen.fullscreen) {
+            return seen;
+        }
+        match prev {
+            // Struct update syntax: every field not named comes from `p`.
+            Some(p) => WindowGeometry {
+                maximized: seen.maximized,
+                fullscreen: seen.fullscreen,
+                ..p
+            },
+            None => seen,
+        }
+    }
 }
 
 /// What a given window is holding.
@@ -517,6 +578,7 @@ fn seed_window(counters: &mut Counters, label: &str) -> WindowPlacement {
         page: None,
         environment: None,
         pinned: false,
+        icon: None,
         environment_missing: false,
     };
 
@@ -562,6 +624,9 @@ impl ShellState {
         // filled in before `cluster_root`/`cluster_environment` are asked
         // about it.
         migrate_environments(&mut snapshot);
+        repair_null_environments(&mut snapshot, &|p| {
+            crate::environments::detect_environment(Path::new(p))
+        });
         mark_missing_environments(&mut snapshot, &|p| Path::new(p).is_dir());
         // Order matters: a terminal has to be given a cluster before anything
         // asks which cluster's band it is in.
@@ -674,7 +739,7 @@ impl ShellState {
         // `windows::request_close`).
         let mut guard = self.inner.write_or_panic();
         if let Some(w) = guard.windows.iter_mut().find(|w| w.label == label) {
-            w.geometry = Some(geometry);
+            w.geometry = Some(WindowGeometry::observe(w.geometry, geometry));
         }
     }
 
@@ -744,6 +809,7 @@ impl ShellState {
                 page: None,
                 environment: None,
                 pinned: false,
+                icon: None,
                 environment_missing: false,
             });
             w.active_cluster_id = Some(cluster_id.clone());
@@ -876,12 +942,23 @@ impl ShellState {
     /// Silent when `cluster_id` names nothing: a cluster can be closed while a
     /// picker is up, and the honest answer to "set the project of a cluster
     /// that is gone" is that there is nothing to set.
+    ///
+    /// Every cluster that gets a project gets an environment with it: this is
+    /// the one funnel Home, the agent server's `set_project`, launch seeding
+    /// and the `set_cluster_project` command all pass through, so deriving
+    /// the environment here (see `environments::detect_environment`) is what
+    /// stops a cluster pointing at a main checkout with a null environment —
+    /// the state that let writes past the read-only guard. The derivation
+    /// shells out to git, so it happens before `mutate` takes the lock.
     pub fn set_cluster_project(&self, app: &AppHandle, cluster_id: &str, path: Option<String>) {
+        let derived = path
+            .as_deref()
+            .and_then(|p| crate::environments::detect_environment(Path::new(p)));
         self.mutate(app, |s| {
             for w in s.windows.iter_mut() {
                 // A page is about the cloud, never a folder: silent, as for a gone id.
                 if let Some(c) = w.cluster_mut(cluster_id).filter(|c| !c.is_page()) {
-                    c.project = path;
+                    apply_project(c, path, derived);
                     return;
                 }
             }
@@ -1008,6 +1085,24 @@ impl ShellState {
             .and_then(|c| c.environment.clone())
     }
 
+    /// The environment a *write guard* should judge a cluster by: the stored
+    /// one, or the one its project folder implies when none is stored.
+    ///
+    /// Fails closed — a null environment on a cluster pointed at a repo's main
+    /// checkout reads as `Main`. See `environments::effective_environment`.
+    /// The git lookup runs after the lock is released.
+    pub fn cluster_write_environment(
+        &self,
+        cluster_id: &str,
+    ) -> Option<crate::environments::Environment> {
+        let stored = self.cluster_environment(cluster_id);
+        if stored.is_some() {
+            return stored;
+        }
+        let project = self.cluster_project(cluster_id);
+        crate::environments::effective_environment(None, project.as_deref().map(Path::new))
+    }
+
     /// Where a cluster's work actually happens, as opposed to what it is
     /// *about*.
     ///
@@ -1114,6 +1209,13 @@ impl ShellState {
     pub fn rename_cluster(&self, app: &AppHandle, cluster_id: &str, name: &str) {
         self.mutate(app, |s| {
             rename_cluster_pure(s, cluster_id, name);
+        });
+    }
+
+    /// Set or clear (`None`) a cluster's icon. See `set_cluster_icon_pure`.
+    pub fn set_cluster_icon(&self, app: &AppHandle, cluster_id: &str, icon: Option<ClusterIcon>) {
+        self.mutate(app, |s| {
+            set_cluster_icon_pure(s, cluster_id, icon);
         });
     }
 
@@ -1767,6 +1869,28 @@ impl ShellState {
         });
     }
 
+    /// The ids of every terminal in a cluster's band, the one it is showing
+    /// first. For a caller that wants "the agent's terminal" and has only a
+    /// cluster to go on; it still has to check which of them runs an agent.
+    pub fn terminals_in_cluster(&self, cluster_id: &str) -> Vec<String> {
+        let guard = self.read();
+        let active = guard
+            .windows
+            .iter()
+            .flat_map(|w| w.clusters.iter())
+            .find(|c| c.id == cluster_id)
+            .and_then(|c| c.active_terminal.clone());
+        order_active_first(
+            active.as_deref(),
+            guard
+                .terminals
+                .iter()
+                .filter(|t| t.cluster_id == cluster_id)
+                .map(|t| t.id.clone())
+                .collect(),
+        )
+    }
+
     /// Which cluster a session sits in, for the split command — it opens the
     /// new pty beside the one it is splitting from, and the caller has no other
     /// way to know where that is.
@@ -2325,17 +2449,26 @@ fn is_pinned_cluster(s: &ShellSnapshot, cluster_id: &str) -> bool {
         .any(|c| c.id == cluster_id && c.pinned)
 }
 
+/// A project path with the spellings that name the same folder folded
+/// together: backslash and slash, a trailing separator, and case (Windows paths are
+/// case-insensitive, and the Recent list and a cluster's `project` are written
+/// by different code, so an exact compare reported the open project as closed).
+fn comparable_path(path: &str) -> String {
+    path.replace('\\', "/").trim_end_matches('/').to_lowercase()
+}
+
 /// The pure core of [`ShellState::project_live_counts`] — see that method's
 /// doc for what it answers and why. Pulled out to the usual pattern: this
 /// type's getters take `&self` and lock internally, which a unit test cannot
 /// reach without a real `AppHandle`, so the arithmetic lives here instead,
 /// tested directly against a bare snapshot.
 fn project_live_counts_pure(s: &ShellSnapshot, path: &str) -> ProjectLiveCounts {
+    let wanted = comparable_path(path);
     let clusters: Vec<&Cluster> = s
         .windows
         .iter()
         .flat_map(|w| w.clusters.iter())
-        .filter(|c| c.project.as_deref() == Some(path))
+        .filter(|c| c.project.as_deref().map(comparable_path).as_deref() == Some(wanted.as_str()))
         .collect();
 
     let mut environments: Vec<String> = clusters
@@ -2422,6 +2555,7 @@ fn add_design_cluster_pure(
             page: None,
             environment: Some(environment),
             pinned: true,
+            icon: None,
             environment_missing: false,
         },
     );
@@ -2437,6 +2571,40 @@ fn rename_cluster_pure(s: &mut ShellSnapshot, cluster_id: &str, name: &str) -> b
     for w in s.windows.iter_mut() {
         if let Some(c) = w.cluster_mut(cluster_id) {
             c.name = name.to_string();
+            return true;
+        }
+    }
+    false
+}
+
+/// Set or clear a cluster's icon; `false`, unchanged, for a page, an id naming nothing, or an
+/// emoji too long to be one. A blank emoji with no colour clears the icon; a blank emoji with a
+/// colour is the initials on that tint, which is a real choice.
+fn set_cluster_icon_pure(
+    s: &mut ShellSnapshot,
+    cluster_id: &str,
+    icon: Option<ClusterIcon>,
+) -> bool {
+    if is_page_cluster(s, cluster_id) {
+        return false;
+    }
+    let icon = match icon {
+        Some(i) => {
+            let emoji = i.emoji.trim().to_string();
+            if emoji.chars().count() > MAX_ICON_SCALARS {
+                return false;
+            }
+            if emoji.is_empty() && i.color.is_none() {
+                None
+            } else {
+                Some(ClusterIcon { emoji, ..i })
+            }
+        }
+        None => None,
+    };
+    for w in s.windows.iter_mut() {
+        if let Some(c) = w.cluster_mut(cluster_id) {
+            c.icon = icon;
             return true;
         }
     }
@@ -2663,12 +2831,21 @@ fn detach_instance_pure(
     // already rooted somewhere. A Files dragged onto a second monitor
     // that came back rooted at nothing would read as the drag having
     // broken it.
-    let project = s
+    //
+    // The worktree and environment travel with it, for the same reason the project does. A
+    // surface popped out of a cluster working in a worktree used to land in a cluster with
+    // neither, so the new window's Files and terminals rooted at the project folder instead of
+    // the worktree they were torn out of — `cluster_root` prefers `environment`, then
+    // `worktree`, then `project`. `pinned` does not travel: the Design cluster stays one.
+    let source = s
         .windows
         .iter()
         .flat_map(|w| w.clusters.iter())
-        .find(|c| c.tree.tabs().contains(&instance_id))
-        .and_then(|c| c.project.clone());
+        .find(|c| c.tree.tabs().contains(&instance_id));
+    let project = source.and_then(|c| c.project.clone());
+    let worktree = source.and_then(|c| c.worktree.clone());
+    let environment = source.and_then(|c| c.environment.clone());
+    let environment_missing = source.is_some_and(|c| c.environment_missing);
 
     for w in s.windows.iter_mut() {
         for c in w.clusters.iter_mut() {
@@ -2684,13 +2861,14 @@ fn detach_instance_pure(
         name,
         tree,
         project,
-        worktree: None,
+        worktree,
         active_terminal: None,
         band_height: None,
         page: None,
-        environment: None,
+        environment,
         pinned: false,
-        environment_missing: false,
+        icon: None,
+        environment_missing,
     };
 
     // A terminal dragged out has to bring its band home with it. It is
@@ -2952,6 +3130,52 @@ fn migrate_environments(snapshot: &mut ShellSnapshot) {
     }
 }
 
+/// Give a cluster its environment when its project implies one.
+///
+/// A cluster with a project in a git repository is never left at `None`:
+/// `set_cluster_project` assigns one, `restore` repairs a layout that lacks one
+/// ([`repair_null_environments`]), and the write guard reads a remaining
+/// `None` on a main checkout as `Main`.
+///
+/// A project that moved takes the derived environment with it (the old one
+/// belonged to the old repository). A project that stayed only fills a gap, so
+/// an explicit choice such as the Design worktree is never overwritten.
+fn apply_project(
+    c: &mut Cluster,
+    path: Option<String>,
+    derived: Option<crate::environments::Environment>,
+) {
+    let moved = c.project != path;
+    c.project = path;
+    if (moved && c.project.is_some()) || c.environment.is_none() {
+        c.environment = derived;
+    }
+}
+
+/// Repair a restored layout whose clusters have a project but no environment —
+/// written by a build (or a creation path) that never assigned one.
+///
+/// `detect` is the git lookup, injected so the rule is tested without a repo.
+/// A folder that is not in a repository stays `None`; everything else gets
+/// `Main` or `LocalWorktree`, which is what makes the read-only guard hold for
+/// layouts that predate it.
+fn repair_null_environments(
+    snapshot: &mut ShellSnapshot,
+    detect: &dyn Fn(&str) -> Option<crate::environments::Environment>,
+) {
+    for c in snapshot
+        .windows
+        .iter_mut()
+        .flat_map(|w| w.clusters.iter_mut())
+    {
+        if c.environment.is_none() && !c.is_page() {
+            if let Some(project) = c.project.as_deref() {
+                c.environment = detect(project);
+            }
+        }
+    }
+}
+
 /// Flag every cluster whose worktree folder is gone, and say so in the log.
 ///
 /// `exists` is the disk, injected so the rule can be tested without one. The
@@ -3061,6 +3285,7 @@ fn add_cluster_for_environment_pure(
         page: None,
         environment,
         pinned: false,
+        icon: None,
         environment_missing: false,
     });
     w.active_cluster_id = Some(cluster_id.to_string());
@@ -3124,7 +3349,7 @@ fn reseat_active_terminals(snapshot: &mut ShellSnapshot) {
                     && !in_a_tree.iter().any(|held| held == id)
             };
 
-            if c.active_terminal.as_deref().is_some_and(&is_band_terminal) {
+            if c.active_terminal.as_deref().is_some_and(is_band_terminal) {
                 continue;
             }
             c.active_terminal = terminals
@@ -3444,6 +3669,7 @@ mod tests {
                     page: None,
                     environment: None,
                     pinned: false,
+                    icon: None,
                     environment_missing: false,
                 }],
                 active_cluster_id: Some("cluster-3".to_string()),
@@ -3557,6 +3783,7 @@ mod tests {
                 page: None,
                 environment: None,
                 pinned: false,
+                icon: None,
                 environment_missing: false,
             }],
             active_cluster_id: Some(cluster.to_string()),
@@ -3665,6 +3892,7 @@ mod tests {
             page: None,
             environment: None,
             pinned: false,
+            icon: None,
             environment_missing: false,
         });
 
@@ -3773,6 +4001,7 @@ mod tests {
             page: None,
             environment: None,
             pinned: false,
+            icon: None,
             environment_missing: false,
         });
 
@@ -4006,6 +4235,7 @@ mod tests {
             page: None,
             environment: None,
             pinned: false,
+            icon: None,
             environment_missing: false,
         });
         state(vec![placement], Vec::new())
@@ -4843,6 +5073,7 @@ mod tests {
             page: Some(page_id.to_string()),
             environment: None,
             pinned: false,
+            icon: None,
             environment_missing: false,
         }
     }
@@ -5048,6 +5279,67 @@ mod tests {
     }
 
     #[test]
+    fn a_cluster_has_no_icon_by_default() {
+        let json = r#"{
+            "id": "cluster-1",
+            "name": "orchestrator",
+            "tree": { "kind": "leaf", "id": "pane-1", "tabs": [], "activeTab": null },
+            "worktree": null
+        }"#;
+        let c: Cluster = serde_json::from_str(json).expect("a cluster from before icons loads");
+        assert_eq!(c.icon, None);
+        let back = serde_json::to_value(&c).unwrap();
+        assert!(back.get("icon").is_none(), "no icon writes no key");
+    }
+
+    #[test]
+    fn a_cluster_icon_survives_a_round_trip() {
+        let mut s = with_agents_page();
+        let icon = ClusterIcon {
+            emoji: "🚀".to_string(),
+            color: Some("blue".to_string()),
+        };
+        assert!(set_cluster_icon_pure(
+            &mut s,
+            "cluster-1",
+            Some(icon.clone())
+        ));
+        let json = serde_json::to_string(&*cluster_mut(&mut s, "cluster-1")).unwrap();
+        let back: Cluster = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.icon, Some(icon));
+
+        assert!(set_cluster_icon_pure(&mut s, "cluster-1", None));
+        assert_eq!(cluster_mut(&mut s, "cluster-1").icon, None);
+    }
+
+    #[test]
+    fn a_bad_icon_is_refused() {
+        let mut s = with_agents_page();
+        let long = ClusterIcon {
+            emoji: "x".repeat(40),
+            color: None,
+        };
+        assert!(!set_cluster_icon_pure(&mut s, "cluster-1", Some(long)));
+        let tinted_initials = ClusterIcon {
+            emoji: String::new(),
+            color: Some("green".to_string()),
+        };
+        assert!(set_cluster_icon_pure(
+            &mut s,
+            "cluster-1",
+            Some(tinted_initials.clone())
+        ));
+        assert_eq!(cluster_mut(&mut s, "cluster-1").icon, Some(tinted_initials));
+        let blank = ClusterIcon {
+            emoji: "  ".to_string(),
+            color: None,
+        };
+        assert!(set_cluster_icon_pure(&mut s, "cluster-1", Some(blank)));
+        assert_eq!(cluster_mut(&mut s, "cluster-1").icon, None);
+        assert!(!set_cluster_icon_pure(&mut s, "cluster-404", None));
+    }
+
+    #[test]
     fn a_page_is_not_renamed() {
         let mut s = with_agents_page();
 
@@ -5091,6 +5383,43 @@ mod tests {
         assert!(!move_cluster_pure(&mut s, "cluster-9", "tear-new"));
         assert_eq!(s.windows[0].clusters.len(), 2);
         assert_eq!(s.windows.len(), 2, "no window was made for it");
+    }
+
+    /// The regression: an app popped out of a cluster working in a worktree arrived in a cluster
+    /// with no environment and no worktree, so the new window worked in the project folder.
+    #[test]
+    fn a_detached_instance_keeps_the_environment_of_the_cluster_it_left() {
+        let mut s = state(vec![window("main", "cluster-1", &["files-1"])], vec![]);
+        s.instances.push(SurfaceInstance {
+            id: "files-1".into(),
+            app_id: "files".into(),
+            kind: SurfaceKind::App,
+            title: "Files".into(),
+        });
+        {
+            let c = cluster_mut(&mut s, "cluster-1");
+            c.project = Some("C:/game".into());
+            c.environment = Some(crate::environments::Environment::Main);
+            c.environment_missing = true;
+            c.pinned = true;
+        }
+
+        assert!(detach_instance_pure(
+            &mut s,
+            "files-1",
+            "win-2",
+            "cluster-2",
+            "pane-2"
+        ));
+
+        let moved = cluster_mut(&mut s, "cluster-2");
+        assert_eq!(moved.project.as_deref(), Some("C:/game"));
+        assert!(matches!(
+            moved.environment,
+            Some(crate::environments::Environment::Main)
+        ));
+        assert!(moved.environment_missing);
+        assert!(!moved.pinned, "the pin stays with the Design cluster");
     }
 
     #[test]
@@ -5489,6 +5818,16 @@ mod tests {
     }
 
     #[test]
+    fn project_live_counts_ignores_slash_style_trailing_separator_and_case() {
+        let mut w = window("main", "cluster-1", &[]);
+        w.clusters[0].project = Some("C:\\Users\\Me\\Proj\\".to_string());
+        let s = state(vec![w], Vec::new());
+        let counts = project_live_counts_pure(&s, "c:/users/me/proj");
+        assert!(counts.open);
+        assert_eq!(counts.cluster_count, 1);
+    }
+
+    #[test]
     fn project_live_counts_counts_clusters_across_every_window() {
         let mut w1 = window("main", "cluster-1", &[]);
         w1.clusters[0].project = Some("C:/proj".to_string());
@@ -5522,6 +5861,7 @@ mod tests {
             // Same environment as cluster-1 — one worktree, opened twice.
             environment: Some(design_environment()),
             pinned: false,
+            icon: None,
             environment_missing: false,
         });
         let s = state(vec![w], Vec::new());
@@ -5532,6 +5872,127 @@ mod tests {
         assert_eq!(
             counts.environment_count, 1,
             "one environment, shared by both"
+        );
+    }
+
+    // --- every cluster with a project gets an environment ------------------------
+
+    fn project_only_cluster(project: Option<&str>) -> Cluster {
+        let mut c = page_cluster("cluster-9", "pane-9", "inst-9", "none");
+        c.page = None;
+        c.project = project.map(str::to_string);
+        c.environment = None;
+        c
+    }
+
+    /// The bug: `set_project` left a null environment on a cluster pointing at
+    /// the main checkout, so the read-only guard never fired.
+    #[test]
+    fn pointing_a_cluster_at_a_project_assigns_the_derived_environment() {
+        let mut c = project_only_cluster(None);
+        apply_project(
+            &mut c,
+            Some("C:/proj".to_string()),
+            Some(crate::environments::Environment::Main),
+        );
+        assert_eq!(c.project.as_deref(), Some("C:/proj"));
+        assert_eq!(c.environment, Some(crate::environments::Environment::Main));
+    }
+
+    #[test]
+    fn moving_a_cluster_to_another_project_replaces_its_environment() {
+        let mut c = project_only_cluster(Some("C:/a"));
+        c.environment = Some(crate::environments::Environment::Main);
+        let wt = crate::environments::Environment::LocalWorktree {
+            name: "x".to_string(),
+            path: "C:/b".to_string(),
+            branch: "wt/x".to_string(),
+            base: String::new(),
+        };
+        apply_project(&mut c, Some("C:/b".to_string()), Some(wt.clone()));
+        assert_eq!(c.environment, Some(wt));
+    }
+
+    #[test]
+    fn repointing_at_the_same_project_keeps_an_explicit_environment() {
+        let mut c = project_only_cluster(Some("C:/a"));
+        let design = crate::environments::Environment::Design {
+            path: "C:/a/.kaava/worktrees/design".to_string(),
+            branch: "wt/design".to_string(),
+        };
+        c.environment = Some(design.clone());
+        apply_project(
+            &mut c,
+            Some("C:/a".to_string()),
+            Some(crate::environments::Environment::Main),
+        );
+        assert_eq!(c.environment, Some(design));
+    }
+
+    #[test]
+    fn restoring_a_layout_repairs_a_null_environment_on_a_project_cluster() {
+        let mut snapshot = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        snapshot.windows[0].clusters[0].project = Some("C:/proj".to_string());
+
+        repair_null_environments(&mut snapshot, &|_| {
+            Some(crate::environments::Environment::Main)
+        });
+
+        assert_eq!(
+            snapshot.windows[0].clusters[0].environment,
+            Some(crate::environments::Environment::Main)
+        );
+    }
+
+    #[test]
+    fn repair_leaves_clusters_without_a_project_or_a_repository_alone() {
+        let mut snapshot = state(
+            vec![
+                window("main", "cluster-1", &[]),
+                window("w2", "cluster-2", &[]),
+            ],
+            Vec::new(),
+        );
+        snapshot.windows[1].clusters[0].project = Some("C:/plain".to_string());
+
+        repair_null_environments(&mut snapshot, &|_| None);
+
+        assert_eq!(snapshot.windows[0].clusters[0].environment, None);
+        assert_eq!(snapshot.windows[1].clusters[0].environment, None);
+    }
+}
+
+/// `ids` with `active` moved to the front, when it is one of them.
+fn order_active_first(active: Option<&str>, mut ids: Vec<String>) -> Vec<String> {
+    if let Some(pos) = active.and_then(|a| ids.iter().position(|id| id == a)) {
+        let first = ids.remove(pos);
+        ids.insert(0, first);
+    }
+    ids
+}
+
+#[cfg(test)]
+mod active_first_tests {
+    use super::order_active_first;
+
+    fn ids(v: &[&str]) -> Vec<String> {
+        v.iter().map(|s| (*s).to_string()).collect()
+    }
+
+    #[test]
+    fn the_shown_terminal_comes_first_and_the_rest_keep_their_order() {
+        assert_eq!(
+            order_active_first(Some("c"), ids(&["a", "b", "c", "d"])),
+            ids(&["c", "a", "b", "d"])
+        );
+    }
+
+    #[test]
+    fn no_active_terminal_or_a_stale_one_changes_nothing() {
+        assert_eq!(order_active_first(None, ids(&["a", "b"])), ids(&["a", "b"]));
+        assert_eq!(
+            order_active_first(Some("gone"), ids(&["a", "b"])),
+            ids(&["a", "b"])
         );
     }
 }

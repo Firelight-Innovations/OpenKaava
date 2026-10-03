@@ -6,6 +6,7 @@
 
 pub mod commands;
 
+pub mod markup;
 mod schema;
 mod store;
 
@@ -402,6 +403,7 @@ pub fn seed(app: &AppHandle) {
             json!(migrated),
         );
     }
+    markup::migrate_legacy(&mut stored);
     registry.hydrate(stored);
 }
 
@@ -455,6 +457,51 @@ fn react_group(app: &AppHandle, id: &str) {
     if id == "keys" {
         crate::copilot_key::sync(app);
     }
+}
+
+/// The method an app frame calls to change one of its own settings.
+pub const APP_SET_METHOD: &str = "settings/set";
+
+/// The only keys an app frame may write. Every other setting is the person's to
+/// change on the settings screen: an app that could write any key could turn on
+/// developer mode or move the MCP servers. These two are the shared Markup
+/// section, flipped from a viewer's own "make this automatic" prompt.
+pub const APP_WRITABLE: &[&str] = &[markup::AUTO_SEND, markup::TIP];
+
+/// Validates a `settings/set` call without touching the registry, so the refusal
+/// is testable without an app handle.
+pub fn parse_app_set(params: Option<&Value>) -> Result<(String, Value), kaava_rpc::RpcError> {
+    let bad = |m: String| kaava_rpc::RpcError::new(kaava_rpc::INVALID_PARAMS, m);
+    let key = params
+        .and_then(|p| p.get("key"))
+        .and_then(Value::as_str)
+        .ok_or_else(|| bad("settings/set needs a string `key`".into()))?;
+    let value = params
+        .and_then(|p| p.get("value"))
+        .cloned()
+        .ok_or_else(|| bad("settings/set needs a `value`".into()))?;
+    if !APP_WRITABLE.contains(&key) {
+        return Err(bad(format!("an app may not change the setting `{key}`")));
+    }
+    Ok((key.to_string(), value))
+}
+
+/// `settings/set` from an app frame: validated, stored, persisted and announced
+/// the same way the settings screen's own write is.
+pub fn app_set(app: &AppHandle, params: Option<&Value>) -> Result<Value, kaava_rpc::RpcError> {
+    let (key, value) = parse_app_set(params)?;
+    let stored = app
+        .state::<Registry>()
+        .set(&key, value)
+        .map_err(|e| kaava_rpc::RpcError::new(kaava_rpc::INVALID_PARAMS, e.to_string()))?;
+    commit(app);
+    react(app, &key);
+    Ok(stored)
+}
+
+/// The ids of the shell's own sections, for anything that names a section.
+pub fn shell_group_ids() -> impl Iterator<Item = &'static str> {
+    schema::groups().iter().map(|g| g.id)
 }
 
 /// A toggle's current value, for the Rust that acts on it.
@@ -685,5 +732,39 @@ mod tests {
             .map(|g| g.id)
             .collect::<Vec<_>>();
         assert_eq!(ids, vec!["zzz", "demo"]);
+    }
+
+    #[test]
+    fn an_app_may_write_only_its_own_listed_settings() {
+        use serde_json::json;
+        let ok = parse_app_set(Some(&json!({ "key": "markup.autoSend", "value": true })));
+        assert_eq!(ok.unwrap(), ("markup.autoSend".to_string(), json!(true)));
+        for key in [
+            "developer.mode",
+            "mcp.writeProjectConfig",
+            "godot.executablePath",
+            // The keys the Markup section replaced are no longer settings.
+            "godot.markupAutoSend",
+            "godot.markupTip",
+        ] {
+            let refused = parse_app_set(Some(&json!({ "key": key, "value": true })));
+            assert!(refused.is_err(), "{key} must not be app-writable");
+        }
+        assert!(parse_app_set(Some(&json!({ "key": "markup.tip" }))).is_err());
+        assert!(parse_app_set(None).is_err());
+    }
+
+    #[test]
+    fn every_app_writable_key_is_declared_by_a_group() {
+        let registry = Registry::default();
+        for group in schema::groups() {
+            registry.register(group);
+        }
+        for group in crate::apps::settings_groups() {
+            registry.register(group);
+        }
+        for key in APP_WRITABLE {
+            assert!(registry.get(key).is_some(), "{key} is not declared");
+        }
     }
 }
