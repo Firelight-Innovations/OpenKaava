@@ -36,8 +36,9 @@ your terminals, your files, a design canvas and your game tools in one window,
 beside the coding agents you already use (Claude Code, Codex).
 
 It is built for game development first. The Godot and Blender integrations and
-the design canvas exist because that is the work it was made for. Nothing in it
-is game-specific, so it works for other projects too.
+the design canvas exist because that is the work it was made for. The rest
+(clusters, terminals, files, git, MCP servers) is not tied to games, so with
+some tweaks it works for ordinary software too.
 
 OpenKaava is a development tool. It does not run the software you build with it.
 
@@ -71,7 +72,7 @@ the drawing and reply: a comment loop between you and the agent. Settings
 control the level of detail and the drawing style agents use, and a design-agent
 prompt tells an agent how to draw.
 
-![The canvas overview with the Minecraft-clone design,](assets/ui/canvas-overview.png)
+![The canvas overview with the Minecraft-clone design split into numbered frames](assets/ui/canvas-overview.png)
 
 ![A sub-canvas: the crafting design with recipes, a tech tree and the inspector](assets/ui/canvas-subcanvas.png)
 
@@ -97,7 +98,7 @@ OpenKaava drives headless Blender. You need Blender installed.
 - **Markup and Send to agent** let you mark up a view and send it to an agent.
 - **Open in Blender** opens the file in Blender itself.
 
-![The Blender Viewer with an exported room model and its parts list, beside the Godot viewer and file explorer](assets/ui/blender-viewer.png)
+![The Blender Viewer with an exported room model and its parts list](assets/ui/blender-viewer.png)
 
 ### Files, context and sending things to agents
 
@@ -107,8 +108,9 @@ with **Send to agent**, instead of pasted into a terminal by hand.
 
 ### Plane project management
 
-OpenKaava reads your Plane projects so planning sits next to the work. It
-needs a Plane workspace you connect yourself.
+The Projects page shows the work items of a Plane workspace, so planning sits
+next to the work. **Preview:** it reaches Plane through the OpenKaava Cloud
+gateway, so it needs a cloud setup that is not generally available yet.
 
 ### MCP servers
 
@@ -122,8 +124,10 @@ explains each one.
 
 ### Cost tracker
 
-A cost page tracks spend on agent usage. It reads usage the app can see and
-shows estimates.
+The Cost Tracker estimates what your OpenKaava Cloud resources have cost this
+month at list price, forecasts the month against a budget, and shows what
+Google has billed beside it. An estimate, not a bill. **Preview:** it is only
+useful with a cloud setup.
 
 ### Search, git and settings
 
