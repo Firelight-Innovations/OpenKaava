@@ -565,8 +565,10 @@ pub fn restore_checkpoint(root: &Path, params: Option<&Value>) -> Result<Value, 
     let who = actor(p)?;
     let (id, current, base) = open(root, p)?;
     let wanted = p.get("checkpoint").and_then(Value::as_str);
-    let (name, scene) = store::checkpoint_scene(root, &id, wanted)?;
+    let (name, mut scene) = store::checkpoint_scene(root, &id, wanted)?;
     super::validate_scene(&scene).map_err(|why| bad(format!("checkpoint {name}: {why}")))?;
+    // Edits made inside a child since the split come home with it.
+    let merged = subcanvas::merge_children(root, &id, &current, &mut scene)?;
     let saved = store::checkpoint(root, &id, "before-restore")?;
     let mtime = save_scene(root, &id, scene.clone(), base, who)?;
     // Undoing a split brings the frames' comments home with their elements.
@@ -577,6 +579,7 @@ pub fn restore_checkpoint(root: &Path, params: Option<&Value>) -> Result<Value, 
         "mtime": mtime,
         "commentsReturned": returned,
         "childrenRemoved": removed,
+        "childrenMerged": merged,
     }))
 }
 

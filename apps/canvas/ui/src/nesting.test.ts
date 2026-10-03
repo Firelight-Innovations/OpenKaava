@@ -216,6 +216,16 @@ describe("linkBadges", () => {
     expect(linkBadges([wide], view, title)[0]?.below).toBe(false);
   });
 
+  it("keeps a sub-canvas frame's chip on its top edge, as the arrow alone", () => {
+    // Split frames sit edge to edge: under one is the next one's picture.
+    const base = { ...withChild(frame("n", 100, 50, 150, 100), "world/kid"), name: "Zone" };
+    const tiled = { ...base, customData: { kaava: { child: "world/kid", subcanvas: true } } };
+    expect(linkBadges([tiled], view, title)[0]).toMatchObject({ below: false, compact: true });
+    // With no room even for the arrow, it still goes underneath.
+    const long = { ...tiled, name: "A much longer frame name" };
+    expect(linkBadges([long], view, title)[0]?.below).toBe(true);
+  });
+
   it("follows scroll and zoom", () => {
     const f = withChild(frame("a", 100, 50, 300, 100), "kid");
     const [b] = linkBadges([f], { scrollX: -20, scrollY: 10, zoom: { value: 2 } }, title);

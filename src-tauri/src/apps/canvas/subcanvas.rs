@@ -563,6 +563,98 @@ pub fn split_frames(root: &Path, params: Option<&Value>) -> Result<Value, RpcErr
     }))
 }
 
+/// Before an undone split is saved: for every child that `before` linked as a
+/// sub-canvas and `after` no longer does, put the child's current elements
+/// back into `after` in place of the frame's members there. Without this,
+/// restoring the split checkpoint would bring back the members as they were at
+/// the split and drop every edit made in the child since.
+/// A child whose frame is not on `after` is left out, so a checkpoint older
+/// than the frame stays as it was. Returns the children merged.
+pub fn merge_children(
+    root: &Path,
+    parent: &str,
+    before: &Value,
+    after: &mut Value,
+) -> Result<Vec<String>, RpcError> {
+    let still: HashSet<String> = subcanvas_frames(after)
+        .into_iter()
+        .map(|(_, c)| c)
+        .collect();
+    let gone: Vec<(String, String)> = subcanvas_frames(before)
+        .into_iter()
+        .filter(|(_, c)| !still.contains(c))
+        .filter_map(|(f, c)| str_of(f, "id").map(|id| (id.to_string(), c)))
+        .collect();
+    let mut merged = Vec::new();
+    for (frame_id, child) in gone {
+        let Ok(mut cscene) = super::load(&file_for(root, &child)) else {
+            continue;
+        };
+        if cscene.pointer("/kaava/parent").and_then(Value::as_str) != Some(parent) {
+            continue;
+        }
+        store::inflate(root, &child, &mut cscene);
+        let Some(list) = after.get_mut("elements").and_then(Value::as_array_mut) else {
+            break;
+        };
+        if !list
+            .iter()
+            .any(|e| str_of(e, "id") == Some(frame_id.as_str()))
+        {
+            continue;
+        }
+        let stale: HashSet<String> = diagrams::members_of(list, &frame_id).into_iter().collect();
+        list.retain(|e| str_of(e, "id").is_none_or(|id| !stale.contains(id)));
+        let taken: HashSet<String> = list
+            .iter()
+            .filter_map(|e| str_of(e, "id").map(str::to_owned))
+            .collect();
+        let celements = diagrams::elements_of(&cscene);
+        let incoming: Vec<Value> = celements
+            .iter()
+            .filter(|e| is_live(e))
+            .filter(|e| str_of(e, "id").is_some_and(|id| !taken.contains(id)))
+            .cloned()
+            .collect();
+        let at = list
+            .iter()
+            .position(|e| str_of(e, "id") == Some(frame_id.as_str()))
+            .unwrap_or(list.len());
+        // The child's frame: its size and name carry over to the parent's.
+        if let Some(cframe) = celements
+            .iter()
+            .find(|e| str_of(e, "id") == Some(frame_id.as_str()))
+        {
+            let target = &mut list[at];
+            for key in ["width", "height", "name"] {
+                if let Some(v) = cframe.get(key) {
+                    target[key] = v.clone();
+                }
+            }
+            diagrams::bump(target);
+        }
+        let used: Vec<String> = incoming
+            .iter()
+            .filter_map(|e| str_of(e, "fileId").map(str::to_owned))
+            .collect();
+        list.splice(at..at, incoming);
+        if let Some(cfiles) = cscene.get("files").and_then(Value::as_object) {
+            if !after.get("files").is_some_and(Value::is_object) {
+                after["files"] = json!({});
+            }
+            if let Some(files) = after["files"].as_object_mut() {
+                for fid in used {
+                    if let Some(f) = cfiles.get(&fid) {
+                        files.entry(fid).or_insert_with(|| f.clone());
+                    }
+                }
+            }
+        }
+        merged.push(child);
+    }
+    Ok(merged)
+}
+
 /// Undo a split's files for every child that `before` linked as a sub-canvas
 /// and `after` no longer does: its comments move back to `parent`, and the
 /// child, once copied into its own checkpoint ring, is removed with its cached
@@ -930,6 +1022,58 @@ mod tests {
             "game"
         );
         assert!(comments::load_one(dir.path(), "game/big", cid).is_err());
+    }
+
+    #[test]
+    fn undoing_a_split_keeps_the_edits_made_in_the_child() {
+        let dir = setup();
+        let out = run(
+            dir.path(),
+            "canvas/split-frames",
+            json!({ "id": "game", "actor": "agent" }),
+        )
+        .unwrap();
+        let split = out["checkpoint"].as_str().unwrap().to_string();
+
+        // Edit the child: move one member, delete another, add one, widen the frame.
+        let (_, mut child, base) = open(dir.path(), &json!({ "id": "game/big" })).unwrap();
+        for e in child["elements"].as_array_mut().unwrap() {
+            match e["id"].as_str() {
+                Some("b3") => e["x"] = json!(77),
+                Some("b4") => e["isDeleted"] = json!(true),
+                Some("fb") => e["width"] = json!(900),
+                _ => {}
+            }
+        }
+        let list = child["elements"].as_array_mut().unwrap();
+        list.insert(0, rect("new", "fb"));
+        save_scene(dir.path(), "game/big", child, base, "human").unwrap();
+
+        let restored = run(
+            dir.path(),
+            "canvas/restore-checkpoint",
+            json!({ "id": "game", "actor": "agent", "checkpoint": split }),
+        )
+        .unwrap();
+        assert_eq!(restored["childrenMerged"], json!(["game/big"]));
+        assert!(!dir.path().join("canvas/game/big.json").exists());
+
+        let parent = read(dir.path(), "game");
+        let elements = diagrams::elements_of(&parent);
+        let ids: Vec<&str> = elements.iter().filter_map(|e| str_of(e, "id")).collect();
+        let unique: HashSet<&str> = ids.iter().copied().collect();
+        assert_eq!(unique.len(), ids.len(), "no element twice: {ids:?}");
+        let by = |id: &str| elements.iter().find(|e| e["id"] == id);
+        assert_eq!(by("b3").unwrap()["x"], 77);
+        assert!(by("b4").is_none());
+        assert!(by("new").is_some());
+        assert_eq!(by("fb").unwrap()["width"], 900);
+        assert!(child_of_frame(by("fb").unwrap()).is_none());
+        // 51 members, less one deleted, plus one added; the frame after them.
+        let at = |id: &str| ids.iter().position(|x| *x == id).unwrap();
+        assert_eq!(diagrams::members_of(elements, "fb").len(), 51);
+        assert!(at("new") < at("fb") && at("label") < at("fb"));
+        assert!(by("s1").is_some() && by("arrow").is_some());
     }
 
     #[test]
