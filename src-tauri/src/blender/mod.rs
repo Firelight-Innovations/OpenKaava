@@ -582,4 +582,11 @@ mod tests {
             "*\n"
         );
     }
+
+    #[test]
+    fn the_export_script_avoids_apis_blender_5_deprecates() {
+        // `Material.use_nodes` warns once per material on 5.x and goes in 6.0;
+        // found by running export.py in a real Blender 5.2.
+        assert!(!EXPORT_SCRIPT.contains("use_nodes"));
+    }
 }
