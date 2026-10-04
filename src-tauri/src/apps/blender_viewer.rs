@@ -324,7 +324,7 @@ fn export_start(
     if !export_dir.is_empty() && services.read_only {
         return Err(RpcError::new(
             crate::apps::READ_ONLY,
-            "main is read-only — the .glb export folder is set, so exporting would write into the \
+            "The main checkout is read-only — the .glb export folder is set, so exporting would write into the \
              checkout. Open a worktree, or clear Settings > Blender > Export the .glb into.",
         ));
     }
