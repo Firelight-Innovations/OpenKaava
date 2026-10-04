@@ -28,7 +28,6 @@ export default function PaneTabStrip({
   caret,
   onSelect,
   onClose,
-  onToggleMaximize,
   dragHandleFor,
   appPicker,
 }: {
@@ -41,8 +40,6 @@ export default function PaneTabStrip({
   caret: number | null;
   onSelect: (member: ClusterMember) => void;
   onClose: (member: ClusterMember) => void;
-  /** Double-click a tab: maximise this pane, or restore it if it already is. */
-  onToggleMaximize: (paneId: string) => void;
   dragHandleFor?: (member: ClusterMember) => DragHandleProps | undefined;
   /** The list behind the trailing `+`. Omitted, the strip has no `+`. */
   appPicker?: PaneAppPicker;
@@ -71,7 +68,6 @@ export default function PaneTabStrip({
           caretBefore={caret === i}
           onSelect={onSelect}
           onClose={onClose}
-          onToggleMaximize={() => onToggleMaximize(paneId)}
           dragHandle={dragHandleFor?.(member)}
           tabRef={(el) => {
             if (el) tabRefs.current.set(member.id, el);
@@ -132,7 +128,6 @@ function PaneTab({
   caretBefore,
   onSelect,
   onClose,
-  onToggleMaximize,
   dragHandle,
   tabRef,
 }: {
@@ -140,7 +135,6 @@ function PaneTab({
   caretBefore: boolean;
   onSelect: (member: ClusterMember) => void;
   onClose: (member: ClusterMember) => void;
-  onToggleMaximize: () => void;
   dragHandle?: DragHandleProps;
   tabRef: (el: HTMLElement | null) => void;
 }) {
@@ -164,7 +158,6 @@ function PaneTab({
         className={classes.join(" ")}
         title={file ? file.path : member.title}
         onClick={() => onSelect(member)}
-        onDoubleClick={onToggleMaximize}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
