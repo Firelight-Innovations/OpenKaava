@@ -160,6 +160,7 @@ fn entry_methods(
 ) -> Option<Result<Value, RpcError>> {
     let answer = match method {
         "files/root" => root(app, context),
+        "files/watch" => watch(app, context),
         "files/list" => list(app, context, params),
         "files/stat" => required_path(params).map(|path| stat_at(&path)),
         "files/read" => read(app, context, params),
@@ -445,6 +446,17 @@ fn root(app: &AppHandle, context: &CallContext) -> Result<Value, RpcError> {
         "name": base_name(&path),
         "readOnly": read_only,
     }))
+}
+
+/// Start watching the cluster's project folder, so the explorer hears about changes made
+/// from outside. Idempotent and read-class: it changes nothing on disk, so it is allowed
+/// on main too. The answer is the root being watched, which the `files:changed` event
+/// then names. See `file_watch`.
+fn watch(app: &AppHandle, context: &CallContext) -> Result<Value, RpcError> {
+    let path = default_root(app, context)?;
+    app.state::<crate::file_watch::FileWatches>()
+        .ensure(app, &path);
+    Ok(json!({ "root": path.display().to_string() }))
 }
 
 #[derive(Debug, Serialize)]

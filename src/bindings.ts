@@ -517,6 +517,15 @@ export function onProjectChanged(cb: (payload: unknown) => void): Promise<Unlist
   return listen<unknown>(PROJECT_CHANGED_EVENT, (e) => cb(e.payload));
 }
 
+/** The event Rust emits when a watched project folder changed under the explorer
+ *  (`file_watch::FILES_CHANGED_EVENT`). Payload `{ root: string }`. */
+export const FILES_CHANGED_EVENT = "files:changed";
+
+/** Hear that a project folder changed on disk, from the terminal, the OS or an agent. */
+export function onFilesChanged(cb: (payload: unknown) => void): Promise<UnlistenFn> {
+  return listen<unknown>(FILES_CHANGED_EVENT, (e) => cb(e.payload));
+}
+
 /** A project's `.kaava/icon.*` as a `data:` URL, or `null` for "draw the
  *  letter tile". Mirrors `commands::project_icon`. */
 export function projectIcon(path: string): Promise<string | null> {

@@ -50,7 +50,13 @@ import {
   TOPIC_EVENT_PREFIX,
 } from "@openkaava/bridge/protocol";
 import { KaavaErrorCode } from "@openkaava/bridge/errors";
-import { appPainted, onLaunchTarget, onProjectChanged, takeLaunchTarget } from "../../bindings";
+import {
+  appPainted,
+  onFilesChanged,
+  onLaunchTarget,
+  onProjectChanged,
+  takeLaunchTarget,
+} from "../../bindings";
 import { instantOutCss, instantOutMs } from "../motion";
 import { callApp } from "../state/apps";
 import { windowLabel } from "../state/shellState";
@@ -1286,6 +1292,33 @@ const ToolWindow = forwardRef<
       unlisten = stop;
     })();
 
+    return () => {
+      live = false;
+      unlisten?.();
+    };
+  }, []);
+
+  // A project folder changed on disk (`file_watch`): tell every app frame in this window,
+  // and let each Files compare the root to its own. Unlike `project:changed` there is no
+  // cluster filter to apply here, because the payload names a folder and not a cluster;
+  // a frame showing some other folder ignores it.
+  useEffect(() => {
+    let live = true;
+    let unlisten: (() => void) | undefined;
+    void (async () => {
+      const stop = await onFilesChanged((payload) => {
+        if (!live) return;
+        for (const [win, frame] of frames.current) {
+          if (!frame.isApp || frame.origin === null) continue;
+          win.postMessage(
+            { kaava: 1, kind: "event", event: "files:changed", payload } satisfies EventMessage,
+            frame.origin,
+          );
+        }
+      });
+      if (!live) return stop();
+      unlisten = stop;
+    })();
     return () => {
       live = false;
       unlisten?.();

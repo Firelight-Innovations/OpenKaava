@@ -32,7 +32,7 @@ import {
   isAtOrUnder,
   type TreeChange,
 } from "./topics";
-import { describe, getRoot, type Root } from "./rpc";
+import { describe, getRoot, watchRoot, type Root } from "./rpc";
 
 /** The app id this app opens files into. A *kind*, never a surface — see
  *  `openIn`. Written down here rather than inlined because it is the one string
@@ -89,6 +89,27 @@ export default function App() {
         reloadTree();
       }),
     [loadRoot, reloadTree],
+  );
+
+  /**
+   * Files created, dropped or deleted from outside (a terminal, the OS, an agent). The
+   * backend watches the project folder once this app asks, debounces, and the shell relays
+   * `files:changed` here. Re-listing also refreshes the git badges, which ride the same
+   * reload. A change under some other root (another cluster's project) is not ours.
+   * The ask is repeated whenever the root changes; it is idempotent on the backend.
+   */
+  const rootPath = root?.path ?? null;
+  useEffect(() => {
+    if (rootPath !== null) void watchRoot().catch(noop);
+  }, [rootPath]);
+  useEffect(
+    () =>
+      on("files:changed", (payload) => {
+        const changed = (payload as { root?: unknown } | null)?.root;
+        if (typeof changed !== "string" || rootPath === null) return;
+        if (samePath(changed, rootPath)) reloadTree();
+      }),
+    [rootPath, reloadTree],
   );
 
   /**
@@ -244,6 +265,12 @@ export default function App() {
       {del.notice && <NoticeBar notice={del.notice} onEscape={del.cancel} />}
     </div>
   );
+}
+
+/** Whether two paths name one folder: separators and case (Windows) do not matter. */
+function samePath(a: string, b: string): boolean {
+  const norm = (p: string) => p.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+  return norm(a) === norm(b);
 }
 
 /** The last segment of a path. Both separators, for the reason `rpc.ts` gives. */

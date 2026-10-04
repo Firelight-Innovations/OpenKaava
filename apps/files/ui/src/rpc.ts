@@ -91,6 +91,10 @@ export interface Created {
 /** Where the tree roots: the open project, else the manifest's directory. */
 export const getRoot = () => invoke<Root>("files/root");
 
+/** Ask the backend to watch this cluster's project folder; it then sends `files:changed`
+ *  (debounced, ignoring .git internals, node_modules, target and other worktrees). Idempotent. */
+export const watchRoot = () => invoke<{ root: string }>("files/watch");
+
 /** One directory's immediate children, sorted directories-first by name. */
 export const list = (path: string | null) => invoke<Listing>("files/list", { path });
 

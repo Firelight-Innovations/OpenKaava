@@ -23,6 +23,7 @@ mod diagnostics;
 mod discovery;
 mod environments;
 mod error;
+mod file_watch;
 mod git;
 mod git_repo;
 mod github;
@@ -154,6 +155,7 @@ pub fn run() {
         // this holds OS handles and reader threads that must never be cloned or
         // sent anywhere near the frontend.
         .manage(PtySessions::default())
+        .manage(file_watch::FileWatches::default())
         // The Recent list: every project this machine has opened. *Not* which
         // one is open — that belongs to a cluster and travels in `layout.json`
         // with the rest of the layout, so that two windows can be working on
