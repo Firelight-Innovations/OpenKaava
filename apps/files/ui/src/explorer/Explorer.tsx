@@ -205,9 +205,21 @@ const Explorer = forwardRef<
      * about open buffers and therefore about what a delete would cost.
      */
     onDelete: (target: DeleteTarget) => void;
+    /** The folder an OS file drag is over (the root's own path for blank space), or `null`. */
+    dropTarget?: string | null;
   }
 >(function Explorer(
-  { root, reloadNonce, selectedPath, onFirstListing, onRefresh, onOpenFile, onRenamed, onDelete },
+  {
+    root,
+    reloadNonce,
+    selectedPath,
+    onFirstListing,
+    onRefresh,
+    onOpenFile,
+    onRenamed,
+    onDelete,
+    dropTarget,
+  },
   ref,
 ) {
   const [filter, setFilter] = useState("");
@@ -699,6 +711,7 @@ const Explorer = forwardRef<
           <div
             ref={scrollRef}
             className="explorer__scroll"
+            data-drop-root={(root !== null && dropTarget === root.path) || undefined}
             role="tree"
             aria-label={root ? `${root.name} files` : "Files"}
             // One tab stop for the whole tree. 4,000 rows must not be 4,000 of
@@ -776,6 +789,9 @@ const Explorer = forwardRef<
                   onActivate={activate}
                   onKeep={keep}
                   drag={rowDrag(row)}
+                  dropTarget={
+                    dropTarget != null && row.entry.kind === "dir" && row.entry.path === dropTarget
+                  }
                   onContextMenu={(target, event) => {
                     event.preventDefault();
                     // Or the scrollport's own handler runs too and replaces this

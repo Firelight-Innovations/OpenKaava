@@ -65,7 +65,11 @@ import ToolMount from "./ToolMount";
 import { sameOrder, stableOrder } from "./stableOrder";
 import EmptyState from "./EmptyState";
 import NoClustersState from "./NoClustersState";
-import { registerToolWindow, unregisterToolWindow } from "../toolWindowRegistry";
+import {
+  registerToolWindow,
+  unregisterToolWindow,
+  type OsFileDragMessage,
+} from "../toolWindowRegistry";
 import { sameWindowRect, windowRectOfPane, type WindowRect } from "./surfaceRect";
 import "./toolwindow.css";
 
@@ -75,6 +79,9 @@ import "./toolwindow.css";
  * the person clicking made.
  */
 const VIEWER_APP = "viewer";
+
+/** The app an operating-system file drop is handed to when it lands on one of its frames. */
+const FILES_APP = "files";
 
 /**
  * Apps whose native content Rust places directly onto the window rather than
@@ -820,7 +827,45 @@ const ToolWindow = forwardRef<
 
   // Reachable from outside this component tree, by window label — see
   // `toolWindowRegistry.ts`'s header for why this exists instead of a prop.
-  const bridge = useMemo(() => ({ sendEventWhenReady }), [sendEventWhenReady]);
+  // The Files frame an OS drag is currently over, so it can be told when the drag leaves it.
+  const osDragTarget = useRef<string | null>(null);
+  const routeOsFileDrag = useCallback(
+    (drag: OsFileDragMessage): boolean => {
+      const previous = osDragTarget.current;
+      let target: string | null = null;
+      let origin = { left: 0, top: 0 };
+      if (drag.phase !== "leave") {
+        const wrapper = document
+          .elementFromPoint(drag.x, drag.y)
+          ?.closest<HTMLElement>("[data-instance]");
+        const id = wrapper?.dataset.instance;
+        if (wrapper && id && roster.current.get(id)?.appId === FILES_APP) {
+          target = id;
+          const rect = wrapper.getBoundingClientRect();
+          origin = { left: rect.left, top: rect.top };
+        }
+      }
+      if (previous !== null && previous !== target) {
+        deliverEvent(previous, "files:os-drag", { phase: "leave" });
+      }
+      osDragTarget.current = drag.phase === "drop" ? null : target;
+      if (target === null) return false;
+      deliverEvent(
+        target,
+        "files:os-drag",
+        drag.phase === "leave"
+          ? drag
+          : { ...drag, x: drag.x - origin.left, y: drag.y - origin.top },
+      );
+      return true;
+    },
+    [deliverEvent],
+  );
+
+  const bridge = useMemo(
+    () => ({ sendEventWhenReady, routeOsFileDrag }),
+    [sendEventWhenReady, routeOsFileDrag],
+  );
   useEffect(() => {
     const label = windowLabel();
     registerToolWindow(label, bridge);

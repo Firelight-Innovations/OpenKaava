@@ -639,6 +639,7 @@ pub const WRITE_METHODS: &[&str] = &[
     "files/duplicate",
     "files/save-as",
     "files/delete",
+    "files/import",
     "trash/restore",
     "trash/purge",
     "home/initialize-project",

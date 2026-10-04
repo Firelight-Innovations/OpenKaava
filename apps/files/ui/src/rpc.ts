@@ -93,6 +93,17 @@ export const getRoot = () => invoke<Root>("files/root");
 
 /** Ask the backend to watch this cluster's project folder; it then sends `files:changed`
  *  (debounced, ignoring .git internals, node_modules, target and other worktrees). Idempotent. */
+/** What `files/import` did, per name. */
+export interface Imported {
+  copied: string[];
+  conflicts: string[];
+  failed: { name: string; reason: string }[];
+}
+
+/** Copy dropped files and folders into `dest`. Never overwrites; refused on main. */
+export const importFiles = (dest: string, paths: string[]) =>
+  invoke<Imported>("files/import", { dest, paths });
+
 export const watchRoot = () => invoke<{ root: string }>("files/watch");
 
 /** One directory's immediate children, sorted directories-first by name. */

@@ -20,7 +20,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { on, openIn, publish, reportPainted, subscribe } from "@openkaava/bridge";
 import Explorer, { type ExplorerHandle } from "./explorer/Explorer";
-import NoticeBar from "./NoticeBar";
+import NoticeBar, { type Notice } from "./NoticeBar";
+import { useOsDrop } from "./explorer/useOsDrop";
 import { useMenuCommands } from "./commands";
 import { useDelete } from "./useDelete";
 import {
@@ -212,6 +213,20 @@ export default function App() {
     onDeleted: reloadTree,
   });
 
+  // Files dragged in from the OS. A problem (a name already taken, a read-only checkout)
+  // is a bar with one button, the same bar delete uses.
+  const [dropNotice, setDropNotice] = useState<Notice | null>(null);
+  const osDrop = useOsDrop({
+    root,
+    onImported: reloadTree,
+    onProblem: (message) =>
+      setDropNotice({
+        tone: "warn",
+        message,
+        actions: [{ label: "OK", run: () => setDropNotice(null) }],
+      }),
+  });
+
   const explorerRef = useRef<ExplorerHandle | null>(null);
   useMenuCommands({
     root,
@@ -258,11 +273,15 @@ export default function App() {
           publish(TREE_CHANGE, { kind: "renamed", from, to } satisfies TreeChange)
         }
         onDelete={del.ask}
+        dropTarget={osDrop.target}
       />
 
       {/* The one question this app is allowed to have on screen. Escape answers
           it the same way Cancel does — see `NoticeBar`. */}
       {del.notice && <NoticeBar notice={del.notice} onEscape={del.cancel} />}
+      {!del.notice && dropNotice && (
+        <NoticeBar notice={dropNotice} onEscape={() => setDropNotice(null)} />
+      )}
     </div>
   );
 }
