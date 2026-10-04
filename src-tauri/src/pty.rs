@@ -535,13 +535,24 @@ impl PtySessions {
         moved
     }
 
-    /// Kill the shell and forget the session. Idempotent — closing a tab whose
-    /// shell already exited is not an error.
+    /// Forget the session now and put the shell down in the background. Idempotent: closing
+    /// a tab whose shell already exited, or one that was never opened, is not an error.
+    ///
+    /// **Returns without waiting for the process.** This used to hold the session map's
+    /// lock across `kill()` and `wait()`, and `close_terminal` ran it before removing the
+    /// tab. A shell that would not die (a child still holding the pty, or `wait` on a
+    /// process the OS had already half torn down) therefore blocked every other terminal
+    /// operation on that lock and, because the command runs on the main thread, froze the
+    /// window with the tab still showing: a terminal that could not be closed. Now the lock
+    /// is dropped the moment the session is out of the map, and the kill, the wait and the
+    /// pty teardown (which can itself block on Windows) happen on a thread of their own.
     pub fn close(&self, id: &str) {
-        let mut map = self.inner.lock_or_panic();
-        if let Some(mut s) = map.remove(id) {
-            let _ = s.child.kill();
-            let _ = s.child.wait();
+        let session = self.inner.lock_or_panic().remove(id);
+        if let Some(session) = session {
+            retire(session, |s| {
+                let _ = s.child.kill();
+                let _ = s.child.wait();
+            });
         }
     }
 
@@ -550,6 +561,19 @@ impl PtySessions {
         let mut map = self.inner.lock_or_panic();
         map.get_mut(id).and_then(|s| s.child.process_id())
     }
+}
+
+/// Run `reap` on `item` on a detached thread, then drop it there. The caller never waits:
+/// whatever `reap` and the drop do, including blocking forever, cannot hold anything of the
+/// caller's. Falls back to dropping on this thread only if a thread cannot be made.
+fn retire<T: Send + 'static>(mut item: T, reap: impl FnOnce(&mut T) + Send + 'static) {
+    let spawned = std::thread::Builder::new()
+        .name("pty-reap".to_string())
+        .spawn(move || {
+            reap(&mut item);
+            drop(item);
+        });
+    drop(spawned);
 }
 
 /// Try each shell candidate in turn and return the first that actually starts.
@@ -1002,6 +1026,45 @@ fn inherited_session_markers(names: impl IntoIterator<Item = OsString>) -> Vec<O
 
 #[cfg(test)]
 mod tests {
+    /// A process that never dies: `kill` does nothing and `wait` blocks until released.
+    struct Immortal {
+        release: std::sync::mpsc::Receiver<()>,
+        reaped: std::sync::mpsc::Sender<()>,
+    }
+
+    #[test]
+    fn closing_a_session_whose_process_will_not_die_returns_at_once() {
+        let (release_tx, release_rx) = std::sync::mpsc::channel();
+        let (reaped_tx, reaped_rx) = std::sync::mpsc::channel();
+        let started = std::time::Instant::now();
+        retire(
+            Immortal {
+                release: release_rx,
+                reaped: reaped_tx,
+            },
+            |p| {
+                let _ = p.release.recv();
+                let _ = p.reaped.send(());
+            },
+        );
+        // The wait is stuck on its own thread; the caller is already free.
+        assert!(started.elapsed() < std::time::Duration::from_secs(1));
+        assert!(reaped_rx.try_recv().is_err());
+
+        // And it is still reaped once the process finally goes.
+        release_tx.send(()).unwrap();
+        reaped_rx
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .expect("the retired process is reaped in the background");
+    }
+
+    #[test]
+    fn closing_an_unknown_or_already_closed_session_is_not_an_error() {
+        let sessions = PtySessions::default();
+        sessions.close("never-opened");
+        sessions.close("never-opened");
+    }
+
     use super::*;
     use std::sync::mpsc;
 

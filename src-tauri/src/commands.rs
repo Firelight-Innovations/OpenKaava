@@ -1169,8 +1169,10 @@ pub fn close_terminal(
     ptys: State<'_, PtySessions>,
     id: String,
 ) {
-    ptys.close(&id);
+    // The tab goes first and does not depend on the process: whatever the shell does when
+    // told to stop, the tab is already gone from the layout. See `PtySessions::close`.
     shell.close_terminal(&app, &id);
+    ptys.close(&id);
 }
 
 /// Split a terminal: open a second pty and fold it into `id`'s tab.
