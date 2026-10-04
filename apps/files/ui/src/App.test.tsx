@@ -42,7 +42,7 @@ import App from "./App";
 beforeEach(() => {
   handlers.clear();
   watchRoot.mockReset();
-  watchRoot.mockResolvedValue({ root: "C:\proj" });
+  watchRoot.mockResolvedValue({ root: "C:/proj" });
 });
 afterEach(cleanup);
 
