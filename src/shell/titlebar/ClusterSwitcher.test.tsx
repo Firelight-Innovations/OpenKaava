@@ -76,7 +76,8 @@ describe("ClusterSwitcher", () => {
     expect(options.map((o) => o.getAttribute("aria-selected"))).toEqual(["true", "false", "false"]);
     expect(within(options[0]).getByText("feat/auth")).toBeTruthy();
     expect(within(options[1]).getByText("feat/billing")).toBeTruthy();
-    expect(within(options[2]).getAllByText("main")).toHaveLength(2);
+    expect(within(options[2]).getByText("default branch")).toBeTruthy();
+    expect(within(options[2]).getByText("main")).toBeTruthy();
   });
 
   it("shows ahead/behind for the open cluster only, and each row's Ctrl+N", () => {
