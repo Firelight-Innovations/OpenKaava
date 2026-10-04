@@ -491,7 +491,7 @@ function CodeSection({
         </Field>
       )}
 
-      {form.codeSource === "localFolder" && form.kind !== "openExisting" && (
+      {form.codeSource === "localFolder" && (
         <label className="new-project__checkbox-row">
           <input
             type="checkbox"
