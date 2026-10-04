@@ -10,19 +10,11 @@ export interface ToolWindowBridge {
    *  handshake completes, queuing if it has not: an instance id can be minted
    *  and handed here before the iframe behind it mounts. See `ToolWindow.tsx`. */
   sendEventWhenReady(instanceId: string, event: string, payload: unknown): void;
-  /**
-   * Hand an operating-system file drag to the File Explorer frame under the point, if one
-   * is there. `x`/`y` are window coordinates; the frame is told them relative to itself,
-   * since it cannot see the shell's. Returns whether a Files frame took it, so the caller
-   * can fall back (a drop over a terminal is the terminal's, not this).
-   *
-   * Needed because the webview owns OS drops (Tauri's `dragDropEnabled`): the HTML5 drop
-   * events never reach an iframe, so the shell has to pass the drop in by hand.
-   */
+  /** Pass an OS file drag to the Files frame under the point; false if none took it. */
   routeOsFileDrag(drag: OsFileDragMessage): boolean;
 }
 
-/** What a Files frame is told about an OS drag over it, in the frame's own coordinates. */
+/** An OS drag as a Files frame sees it (frame coordinates). */
 export type OsFileDragMessage =
   | { phase: "over"; x: number; y: number }
   | { phase: "leave" }
