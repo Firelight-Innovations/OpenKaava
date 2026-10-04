@@ -10,13 +10,16 @@
 //! its filter is "this exact path". What is shared is the shape, a debounce built on
 //! `recv_timeout`.
 //!
-//! **What is not watched.** `.git` internals (a commit or an index write inside a repo
-//! fires dozens of events and the working tree did not change), `node_modules` and
-//! `target` (build output, tens of thousands of files and never in the explorer's way),
-//! and `.kaava/worktrees` (other clusters' checkouts: their churn is not this tree's).
-//! The cost of skipping `.git`: a `git add` or a checkout from a terminal moves badges
-//! only when it also moves a file, which a checkout does and a bare `add` does not; the
-//! explorer's own refresh and focus reload still pick that up.
+//! **What is not watched.** `.git` internals (a commit writes dozens of objects and refs
+//! and the working tree did not change), `node_modules` and `target` (build output, tens
+//! of thousands of files and never in the explorer's way), and `.kaava/worktrees` (other
+//! clusters' checkouts: their churn is not this tree's).
+//!
+//! **The two `.git` files that are.** `index` and `HEAD`: a `git add`, a commit or a
+//! checkout in a terminal rewrites them, and that is the only sign a git badge changed
+//! when no file did. Nothing else under `.git` counts. In a linked worktree `.git` is a
+//! file pointing at a directory outside the root, so [`resolve_git_dir`] follows it and
+//! that directory gets its own non-recursive watch.
 
 use crate::sync::MutexExt;
 use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher};
@@ -58,6 +61,43 @@ pub fn is_relevant(root: &Path, path: &Path) -> bool {
     !parts
         .windows(2)
         .any(|pair| pair[0] == ".kaava" && pair[1] == "worktrees")
+}
+
+/// The directory holding `root`'s `index` and `HEAD`: `root/.git` when that is a
+/// directory, or the `gitdir:` target when it is a file (a linked worktree). `None` for a
+/// folder that is not a repository.
+pub fn resolve_git_dir(root: &Path) -> Option<PathBuf> {
+    let dot_git = root.join(".git");
+    if dot_git.is_dir() {
+        return Some(dot_git);
+    }
+    let text = std::fs::read_to_string(&dot_git).ok()?;
+    let target = text.lines().find_map(|l| l.strip_prefix("gitdir:"))?.trim();
+    let target = Path::new(target);
+    let full = if target.is_absolute() {
+        target.to_path_buf()
+    } else {
+        root.join(target)
+    };
+    full.is_dir().then_some(full)
+}
+
+/// Whether `path` is the `index` or `HEAD` file of `git_dir`, and nothing else in it.
+pub fn is_git_signal(git_dir: &Path, path: &Path) -> bool {
+    let named = path
+        .file_name()
+        .is_some_and(|n| n == "index" || n == "HEAD");
+    if !named {
+        return false;
+    }
+    let Some(parent) = path.parent() else {
+        return false;
+    };
+    let same = |a: &Path, b: &Path| match (a.canonicalize(), b.canonicalize()) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => a == b,
+    };
+    same(parent, git_dir)
 }
 
 /// The live watchers, one per project root. Managed state.
@@ -109,6 +149,15 @@ pub(crate) fn spawn_watch(
         .map_err(|e| eprintln!("kaava: could not watch {}: {e}", root.display()))
         .ok()?;
 
+    // A linked worktree's git directory sits outside `root`, so the recursive watch above
+    // never sees it. A normal repository's is inside and already covered.
+    let git_dir = resolve_git_dir(root);
+    if let Some(dir) = git_dir.as_deref().filter(|d| !d.starts_with(root)) {
+        if let Err(e) = watcher.watch(dir, RecursiveMode::NonRecursive) {
+            eprintln!("kaava: could not watch {}: {e}", dir.display());
+        }
+    }
+
     let root = root.to_path_buf();
     std::thread::Builder::new()
         .name("files-watch".to_string())
@@ -123,7 +172,11 @@ pub(crate) fn spawn_watch(
                 };
                 match rx.recv_timeout(timeout) {
                     Ok(Ok(event)) => {
-                        if event.paths.iter().any(|p| is_relevant(&root, p)) {
+                        let counts = |p: &PathBuf| {
+                            is_relevant(&root, p)
+                                || git_dir.as_deref().is_some_and(|g| is_git_signal(g, p))
+                        };
+                        if event.paths.iter().any(counts) {
                             pending = true;
                         }
                     }
@@ -165,6 +218,7 @@ mod tests {
     #[test]
     fn git_internals_node_modules_and_target_do_not() {
         assert!(!rel(".git/index"));
+        assert!(!rel(".git/objects/ab/cdef"));
         assert!(!rel(".git/refs/heads/main"));
         assert!(!rel("node_modules/left-pad/index.js"));
         assert!(!rel("apps/x/node_modules/y.js"));
@@ -203,7 +257,9 @@ mod tests {
 
         // Noise in ignored places announces nothing.
         std::fs::write(root.join("node_modules/a.js"), "x").unwrap();
-        std::fs::write(root.join(".git/index"), "x").unwrap();
+        std::fs::create_dir_all(root.join(".git/objects")).unwrap();
+        std::fs::write(root.join(".git/objects/blob"), "x").unwrap();
+        std::fs::write(root.join(".git/config"), "x").unwrap();
         std::thread::sleep(Duration::from_millis(1200));
         assert_eq!(count.load(Ordering::SeqCst), 0);
 
@@ -218,5 +274,87 @@ mod tests {
         // And a delete announces too.
         std::fs::remove_file(root.join("f0.txt")).unwrap();
         assert!(wait_for(&count, 2, Duration::from_secs(5)));
+    }
+
+    #[test]
+    fn only_index_and_head_of_the_git_dir_are_signals() {
+        let dir = tempfile::tempdir().unwrap();
+        let git = dir.path().canonicalize().unwrap().join(".git");
+        std::fs::create_dir_all(&git).unwrap();
+        assert!(is_git_signal(&git, &git.join("index")));
+        assert!(is_git_signal(&git, &git.join("HEAD")));
+        assert!(!is_git_signal(&git, &git.join("config")));
+        assert!(!is_git_signal(&git, &git.join("refs").join("HEAD")));
+    }
+
+    #[test]
+    fn a_worktrees_dot_git_file_resolves_to_its_real_git_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let real = base.join("main/.git/worktrees/wt");
+        std::fs::create_dir_all(&real).unwrap();
+        let root = base.join("wt");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(
+            root.join(".git"),
+            format!(
+                "gitdir: {}
+",
+                real.display()
+            ),
+        )
+        .unwrap();
+        assert_eq!(resolve_git_dir(&root), Some(real));
+        assert_eq!(resolve_git_dir(&base.join("nothing")), None);
+    }
+
+    #[test]
+    fn staging_or_committing_announces_but_other_git_writes_do_not() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().canonicalize().unwrap();
+        std::fs::create_dir_all(root.join(".git")).unwrap();
+        let count = Arc::new(AtomicUsize::new(0));
+        let seen = Arc::clone(&count);
+        let _watcher = spawn_watch(&root, move || {
+            seen.fetch_add(1, Ordering::SeqCst);
+        })
+        .expect("the temp folder can be watched");
+
+        std::fs::write(root.join(".git/COMMIT_EDITMSG"), "x").unwrap();
+        std::thread::sleep(Duration::from_millis(1000));
+        assert_eq!(count.load(Ordering::SeqCst), 0);
+
+        std::fs::write(root.join(".git/index"), "x").unwrap();
+        assert!(wait_for(&count, 1, Duration::from_secs(5)));
+        std::fs::write(root.join(".git/HEAD"), "ref: refs/heads/x").unwrap();
+        assert!(wait_for(&count, 2, Duration::from_secs(5)));
+    }
+
+    #[test]
+    fn a_linked_worktrees_index_outside_the_root_is_watched() {
+        let dir = tempfile::tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let real = base.join("main/.git/worktrees/wt");
+        std::fs::create_dir_all(&real).unwrap();
+        let root = base.join("wt");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(
+            root.join(".git"),
+            format!(
+                "gitdir: {}
+",
+                real.display()
+            ),
+        )
+        .unwrap();
+        let count = Arc::new(AtomicUsize::new(0));
+        let seen = Arc::clone(&count);
+        let _watcher = spawn_watch(&root, move || {
+            seen.fetch_add(1, Ordering::SeqCst);
+        })
+        .expect("the temp folder can be watched");
+
+        std::fs::write(real.join("index"), "x").unwrap();
+        assert!(wait_for(&count, 1, Duration::from_secs(5)));
     }
 }
