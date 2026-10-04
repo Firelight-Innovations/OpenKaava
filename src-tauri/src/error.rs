@@ -163,6 +163,12 @@ pub enum AppError {
     #[error("{0}")]
     Review(String),
 
+    /// A project with no usable git repository, or one that cannot be given one. The
+    /// whole sentence, shown as it is: "run `git config`..." is the fix, not a stderr
+    /// dump. See `git_repo`.
+    #[error("{0}")]
+    Repo(String),
+
     /// A project icon that cannot be set: the wrong kind of file, too large, or a
     /// copy that failed. The whole sentence, for `Review`'s reason.
     #[error("{0}")]

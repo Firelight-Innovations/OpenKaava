@@ -1424,7 +1424,7 @@ export function addCluster(label: string, name: string): Promise<string | null> 
  * read from `listClusterEnvironments` or built for "browse main" itself.
  */
 export type EnvironmentChoice =
-  | { kind: "newLocalWorktree"; name: string; base: string }
+  | { kind: "newLocalWorktree"; name: string; base?: string }
   | { kind: "existing"; environment: Environment };
 
 /** The New Cluster dialog's second step. Mirrors `commands::StartingLayout`. */
@@ -1453,6 +1453,35 @@ export function createClusterWithEnvironment(
     choice,
     layout,
   });
+}
+
+/** Whether a project can have worktree clusters. Mirrors `git_repo::RepoState`. */
+export type RepoState =
+  | { state: "notARepo" }
+  | { state: "noCommits"; root: string; nested: boolean }
+  | { state: "ready" };
+
+/** What `gitInitProject` did. Mirrors `git_repo::InitOutcome`. */
+export interface InitOutcome {
+  branch: string | null;
+  committedEverything: boolean;
+}
+
+/** Ask whether `project` is a git repository with a commit to fork worktrees from. */
+export function gitRepoState(project: string): Promise<RepoState> {
+  return invoke<RepoState>("git_repo_state", { project });
+}
+
+/** The repository's default branch (remote HEAD, then main, master, the current one), or
+ *  null when the project is not a repository. */
+export function gitDefaultBranch(project: string): Promise<string | null> {
+  return invoke<string | null>("git_default_branch", { project });
+}
+
+/** `git init` plus an initial commit. Rejects with a sentence to show as it is, for
+ *  instance when git has no identity configured or the folder is inside another repo. */
+export function gitInitProject(project: string): Promise<InitOutcome> {
+  return invoke<InitOutcome>("git_init_project", { project });
 }
 
 /** The New Cluster dialog's "existing environment" list. See

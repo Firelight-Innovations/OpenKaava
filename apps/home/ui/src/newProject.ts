@@ -40,6 +40,10 @@ export interface NewProjectForm {
    * `existingRepo`, and the folder itself for `localFolder`. */
   path: string;
   protectMain: boolean;
+  /** `localFolder` only, and not for Open existing: run `git init` and make a first
+   *  commit so worktrees work. On by default; a project with no repository cannot have
+   *  worktree clusters or the Design canvas. */
+  initGit: boolean;
   services: {
     plane: boolean;
     /** Games only — the page hides this row entirely for every other kind,
@@ -65,6 +69,7 @@ export function emptyForm(): NewProjectForm {
     repoUrl: "",
     path: "",
     protectMain: true,
+    initGit: true,
     services: {
       // Only `designWorktree` corresponds to a step this build actually runs
       // (`StepId::DesignWorktree` in `project::create`) — Plane, the
@@ -254,6 +259,8 @@ export type CreateRequestCode =
 export interface CreateRequest {
   kind: Kind;
   code: CreateRequestCode;
+  /** Sent for a new local folder only; the backend treats absent as yes. */
+  initGit?: boolean;
 }
 
 export function buildCreateRequest(form: NewProjectForm): CreateRequest {
@@ -266,7 +273,12 @@ export function buildCreateRequest(form: NewProjectForm): CreateRequest {
         code: { source: "existingRepo", url: form.repoUrl, cloneTo: form.path },
       };
     case "localFolder":
-      return { kind: form.kind, code: { source: "localFolder", path: form.path } };
+      return {
+        kind: form.kind,
+        code: { source: "localFolder", path: form.path },
+        // Open existing only links a folder; it never changes what is in it.
+        ...(form.kind === "openExisting" ? {} : { initGit: form.initGit }),
+      };
   }
 }
 

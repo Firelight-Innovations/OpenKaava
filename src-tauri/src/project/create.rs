@@ -135,6 +135,10 @@ impl Snapshot {
 pub struct Request {
     pub kind: Kind,
     pub code: CodeSource,
+    /// Give a freshly made local folder a git repository and a first commit, so the
+    /// Design worktree and worktree clusters have something to fork from. Ignored for a
+    /// clone (already a repository) and for Open existing (never changes the folder).
+    pub init_git: bool,
 }
 
 /// The message every not-wired step reports. One constant so the five of them
@@ -507,6 +511,7 @@ mod tests {
             code: CodeSource::LocalFolder {
                 path: PathBuf::from("C:/code/torn-apart"),
             },
+            init_git: false,
         }
     }
 
@@ -567,6 +572,7 @@ mod tests {
         let request = Request {
             kind: Kind::Game,
             code: CodeSource::NewGithubRepo,
+            init_git: false,
         };
         let snapshot = run(&request, &spy.ops(), |_| {});
 

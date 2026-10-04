@@ -24,6 +24,7 @@ mod discovery;
 mod environments;
 mod error;
 mod git;
+mod git_repo;
 mod github;
 mod godot;
 mod harness;
@@ -566,6 +567,9 @@ pub fn run() {
             git::git_cluster_unstage,
             git::git_cluster_commit,
             git::git_worktrees,
+            commands::git_repo_state,
+            commands::git_default_branch,
+            commands::git_init_project,
             git::git_worktree_create,
             git::git_worktree_remove,
             git::git_worktree_reconcile,
