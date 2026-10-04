@@ -27,10 +27,10 @@ export type DraftKind = "file" | "dir";
 
 export interface MenuTarget {
   /**
-   * The row or tab that was right-clicked, or `null` for blank space — which
-   * leaves only the two creates, aimed at the project root. There is nothing
-   * else to point at, and the project root is not this app's to rename or
-   * delete.
+   * The row or tab that was right-clicked. Blank space in the tree is the
+   * project root itself: `path` is the root, `name` is `null` (so no Rename and
+   * no Delete — the root is not this app's to rename or delete) and `kind` is
+   * `"dir"`. `null` is for a menu with nothing to point at.
    */
   path: string | null;
   /**
@@ -184,6 +184,9 @@ export default function ContextMenu({
   // Narrowed once, so the items below do not each have to re-prove that a
   // blank-space menu has no path.
   const { path, createIn, name, kind } = target;
+  // The root is a folder with nothing above it in the tree: "relative to the
+  // project" is the empty string, and opening it as a document means nothing.
+  const isRoot = path !== null && path === rootPath;
 
   return (
     <div
@@ -266,7 +269,7 @@ export default function ContextMenu({
           offered them greyed out would be four rows of nothing. */}
       {path !== null && (
         <>
-          {canSendToAgent(target) && (
+          {!isRoot && canSendToAgent(target) && (
             <>
               <div className="menu__rule" role="separator" />
               <button
@@ -290,33 +293,43 @@ export default function ContextMenu({
           >
             Copy path
           </button>
-          <button
-            type="button"
-            className="menu__item"
-            role="menuitem"
-            onClick={() =>
-              run("clipboard", () => navigator.clipboard.writeText(relativeTo(rootPath, path)))
-            }
-          >
-            Copy relative path
-          </button>
+          {!isRoot && (
+            <button
+              type="button"
+              className="menu__item"
+              role="menuitem"
+              onClick={() =>
+                run("clipboard", () => navigator.clipboard.writeText(relativeTo(rootPath, path)))
+              }
+            >
+              Copy relative path
+            </button>
+          )}
           <div className="menu__rule" role="separator" />
           <button
             type="button"
             className="menu__item"
             role="menuitem"
-            onClick={() => run("files/reveal", () => reveal(path))}
+            // `reveal` selects an item inside its parent; for the root that would
+            // open the folder *above* the project, so the root is opened itself.
+            onClick={() =>
+              isRoot
+                ? run("files/open-external", () => openExternal(path))
+                : run("files/reveal", () => reveal(path))
+            }
           >
             Reveal in File Explorer
           </button>
-          <button
-            type="button"
-            className="menu__item"
-            role="menuitem"
-            onClick={() => run("files/open-external", () => openExternal(path))}
-          >
-            Open with the default app
-          </button>
+          {!isRoot && (
+            <button
+              type="button"
+              className="menu__item"
+              role="menuitem"
+              onClick={() => run("files/open-external", () => openExternal(path))}
+            >
+              Open with the default app
+            </button>
+          )}
           {/* Only for a .blend: the OS may not associate it with Blender at
               all, and this one says so when Blender is not installed. */}
           {kind !== "dir" && /\.blend$/i.test(path) && (

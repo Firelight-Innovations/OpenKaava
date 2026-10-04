@@ -718,13 +718,14 @@ const Explorer = forwardRef<
               if (!root) return;
               event.preventDefault();
               setMenu({
-                path: null,
-                createIn: createInFor(null),
-                // The project root is not this app's to rename or delete — it is
+                // Blank space is the project root: a folder, with the folder-level
+                // items. `name: null` keeps Rename and Delete off it — the root is
                 // the folder the whole tree is anchored on, and `files/root` is the
                 // only thing that decides where that is.
+                path: root.path,
+                createIn: createInFor(null),
                 name: null,
-                kind: null,
+                kind: "dir",
                 x: event.clientX,
                 y: event.clientY,
               });
