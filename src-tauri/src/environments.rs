@@ -534,8 +534,8 @@ mod tests {
             Environment::LocalWorktree {
                 name: "feat-x".to_string(),
                 path: legacy.path.clone(),
+                branch: "feat-x".to_string(),
                 base: String::new(),
-                base: "main".to_string(),
             }
         );
     }
