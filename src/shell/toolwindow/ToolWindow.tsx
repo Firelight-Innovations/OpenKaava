@@ -50,7 +50,13 @@ import {
   TOPIC_EVENT_PREFIX,
 } from "@openkaava/bridge/protocol";
 import { KaavaErrorCode } from "@openkaava/bridge/errors";
-import { appPainted, onLaunchTarget, onProjectChanged, takeLaunchTarget } from "../../bindings";
+import {
+  appPainted,
+  onFilesChanged,
+  onLaunchTarget,
+  onProjectChanged,
+  takeLaunchTarget,
+} from "../../bindings";
 import { instantOutCss, instantOutMs } from "../motion";
 import { callApp } from "../state/apps";
 import { windowLabel } from "../state/shellState";
@@ -59,7 +65,11 @@ import ToolMount from "./ToolMount";
 import { sameOrder, stableOrder } from "./stableOrder";
 import EmptyState from "./EmptyState";
 import NoClustersState from "./NoClustersState";
-import { registerToolWindow, unregisterToolWindow } from "../toolWindowRegistry";
+import {
+  registerToolWindow,
+  unregisterToolWindow,
+  type OsFileDragMessage,
+} from "../toolWindowRegistry";
 import { sameWindowRect, windowRectOfPane, type WindowRect } from "./surfaceRect";
 import "./toolwindow.css";
 
@@ -69,6 +79,9 @@ import "./toolwindow.css";
  * the person clicking made.
  */
 const VIEWER_APP = "viewer";
+
+/** The app an operating-system file drop is handed to when it lands on one of its frames. */
+const FILES_APP = "files";
 
 /**
  * Apps whose native content Rust places directly onto the window rather than
@@ -814,7 +827,45 @@ const ToolWindow = forwardRef<
 
   // Reachable from outside this component tree, by window label — see
   // `toolWindowRegistry.ts`'s header for why this exists instead of a prop.
-  const bridge = useMemo(() => ({ sendEventWhenReady }), [sendEventWhenReady]);
+  // The Files frame an OS drag is currently over, so it can be told when the drag leaves it.
+  const osDragTarget = useRef<string | null>(null);
+  const routeOsFileDrag = useCallback(
+    (drag: OsFileDragMessage): boolean => {
+      const previous = osDragTarget.current;
+      let target: string | null = null;
+      let origin = { left: 0, top: 0 };
+      if (drag.phase !== "leave") {
+        const wrapper = document
+          .elementFromPoint(drag.x, drag.y)
+          ?.closest<HTMLElement>("[data-instance]");
+        const id = wrapper?.dataset.instance;
+        if (wrapper && id && roster.current.get(id)?.appId === FILES_APP) {
+          target = id;
+          const rect = wrapper.getBoundingClientRect();
+          origin = { left: rect.left, top: rect.top };
+        }
+      }
+      if (previous !== null && previous !== target) {
+        deliverEvent(previous, "files:os-drag", { phase: "leave" });
+      }
+      osDragTarget.current = drag.phase === "drop" ? null : target;
+      if (target === null) return false;
+      deliverEvent(
+        target,
+        "files:os-drag",
+        drag.phase === "leave"
+          ? drag
+          : { ...drag, x: drag.x - origin.left, y: drag.y - origin.top },
+      );
+      return true;
+    },
+    [deliverEvent],
+  );
+
+  const bridge = useMemo(
+    () => ({ sendEventWhenReady, routeOsFileDrag }),
+    [sendEventWhenReady, routeOsFileDrag],
+  );
   useEffect(() => {
     const label = windowLabel();
     registerToolWindow(label, bridge);
@@ -1286,6 +1337,33 @@ const ToolWindow = forwardRef<
       unlisten = stop;
     })();
 
+    return () => {
+      live = false;
+      unlisten?.();
+    };
+  }, []);
+
+  // A project folder changed on disk (`file_watch`): tell every app frame in this window,
+  // and let each Files compare the root to its own. Unlike `project:changed` there is no
+  // cluster filter to apply here, because the payload names a folder and not a cluster;
+  // a frame showing some other folder ignores it.
+  useEffect(() => {
+    let live = true;
+    let unlisten: (() => void) | undefined;
+    void (async () => {
+      const stop = await onFilesChanged((payload) => {
+        if (!live) return;
+        for (const [win, frame] of frames.current) {
+          if (!frame.isApp || frame.origin === null) continue;
+          win.postMessage(
+            { kaava: 1, kind: "event", event: "files:changed", payload } satisfies EventMessage,
+            frame.origin,
+          );
+        }
+      });
+      if (!live) return stop();
+      unlisten = stop;
+    })();
     return () => {
       live = false;
       unlisten?.();

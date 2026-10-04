@@ -19,11 +19,15 @@ import Dialog from "./Dialog";
 import "./NewClusterDialog.css";
 import {
   createClusterWithEnvironment,
+  gitDefaultBranch,
+  gitRepoState,
   listClusterEnvironments,
   type Environment,
   type EnvironmentChoice,
+  type RepoState,
   type StartingLayout,
 } from "../../bindings";
+import InitGitButton from "../git/InitGitButton";
 
 export interface NewClusterDialogProps {
   /** The window the new cluster is added to. */
@@ -104,6 +108,27 @@ export default function NewClusterDialog({
   const [layout, setLayout] = useState<StartingLayout>("code");
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  // Null until asked. A project that is not ready cannot have a worktree made from it,
+  // and says so here instead of failing on submit with a raw git error.
+  const [repo, setRepo] = useState<RepoState | null>(null);
+  const [defaultBranch, setDefaultBranch] = useState<string | null>(null);
+  const [repoNonce, setRepoNonce] = useState(0);
+
+  useEffect(() => {
+    let live = true;
+    void Promise.all([gitRepoState(project.path), gitDefaultBranch(project.path)])
+      .then(([state, branch]) => {
+        if (!live) return;
+        setRepo(state);
+        setDefaultBranch(branch);
+      })
+      .catch(() => {
+        if (live) setRepo(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [project.path, repoNonce]);
 
   // Fetched once, up front, rather than only when "Existing environment" is
   // chosen — the taken-name check below needs it the moment someone starts
@@ -134,13 +159,15 @@ export default function NewClusterDialog({
 
   const nameProblem =
     kind === "newLocalWorktree" ? validateWorktreeName(worktreeName, takenWorktreeNames) : null;
+  const needsRepo = kind === "newLocalWorktree" && repo !== null && repo.state !== "ready";
 
   const choice = useMemo((): EnvironmentChoice | null => {
     switch (kind) {
       case "newLocalWorktree":
-        return nameProblem
+        // No `base`: the backend resolves the default branch itself.
+        return nameProblem || needsRepo
           ? null
-          : { kind: "newLocalWorktree", name: worktreeName.trim(), base: "main" };
+          : { kind: "newLocalWorktree", name: worktreeName.trim() };
       case "existing":
         return selectedExisting ? { kind: "existing", environment: selectedExisting } : null;
       case "main":
@@ -150,7 +177,7 @@ export default function NewClusterDialog({
         // There is nothing this choice could resolve to.
         return null;
     }
-  }, [kind, worktreeName, nameProblem, selectedExisting]);
+  }, [kind, worktreeName, nameProblem, needsRepo, selectedExisting]);
 
   const canProceed = choice !== null;
 
@@ -188,6 +215,10 @@ export default function NewClusterDialog({
           worktreeName={worktreeName}
           onWorktreeName={setWorktreeName}
           nameProblem={nameProblem}
+          repo={repo}
+          defaultBranch={defaultBranch}
+          projectPath={project.path}
+          onRepoChanged={() => setRepoNonce((n) => n + 1)}
           existing={existing}
           selectedExisting={selectedExisting}
           onSelectExisting={setSelectedExisting}
@@ -200,7 +231,8 @@ export default function NewClusterDialog({
 
       <footer className="new-cluster__footer">
         <p className="new-cluster__note">
-          Nothing in Kaava writes to main. Merges go through Git → PR.
+          Nothing in Kaava writes to {defaultBranch ?? "the default branch"}. Merges go through Git
+          → PR.
         </p>
         <div className="new-cluster__actions">
           {step === 2 && (
@@ -261,6 +293,10 @@ interface EnvironmentStepProps {
   worktreeName: string;
   onWorktreeName: (name: string) => void;
   nameProblem: string | null;
+  repo: RepoState | null;
+  defaultBranch: string | null;
+  projectPath: string;
+  onRepoChanged: () => void;
   existing: Environment[] | null;
   selectedExisting: Environment | null;
   onSelectExisting: (env: Environment) => void;
@@ -273,6 +309,10 @@ function EnvironmentStep({
   worktreeName,
   onWorktreeName,
   nameProblem,
+  repo,
+  defaultBranch,
+  projectPath,
+  onRepoChanged,
   existing,
   selectedExisting,
   onSelectExisting,
@@ -288,7 +328,8 @@ function EnvironmentStep({
         />
         <span className="new-cluster__card-title">New local worktree</span>
         <span className="new-cluster__card-text">
-          A fresh checkout of {projectName}, on its own branch. Nothing here touches main.
+          A fresh checkout of {projectName}, on its own branch. Nothing here touches{" "}
+          {defaultBranch ?? "the default branch"}.
         </span>
         {kind === "newLocalWorktree" && (
           <div className="new-cluster__worktree-detail">
@@ -306,9 +347,21 @@ function EnvironmentStep({
               onClick={(e) => e.stopPropagation()}
             />
             <p className="new-cluster__branch-preview">
-              Branch: <code>wt/{worktreeName.trim() || "…"}</code> · From <code>main</code>
+              Branch: <code>wt/{worktreeName.trim() || "…"}</code> · From{" "}
+              <code>{defaultBranch ?? "the default branch"}</code>
             </p>
             {nameProblem && <p className="new-cluster__error">{nameProblem}</p>}
+            {repo !== null && repo.state !== "ready" && (
+              <div className="new-cluster__repo" onClick={(e) => e.stopPropagation()}>
+                <InitGitButton
+                  projectPath={projectPath}
+                  state={repo}
+                  onInitialised={onRepoChanged}
+                  className="new-cluster__primary"
+                  errorClassName="new-cluster__error"
+                />
+              </div>
+            )}
           </div>
         )}
       </label>
@@ -368,7 +421,9 @@ function EnvironmentStep({
           checked={kind === "main"}
           onChange={() => onKind("main")}
         />
-        <span className="new-cluster__card-title">Browse main (read-only)</span>
+        <span className="new-cluster__card-title">
+          Browse {defaultBranch ?? "main"} (read-only)
+        </span>
         <span className="new-cluster__card-text">
           No agent, no writable terminal, nothing to merge.
         </span>

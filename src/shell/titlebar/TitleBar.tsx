@@ -56,8 +56,8 @@ export interface TitleBarProps {
   /**
    * Everything the pill's dropdown needs beyond what the pill itself draws: the
    * clusters and the verbs on them. The pill *is* the cluster switcher now, so
-   * it is drawn whenever this is given, project or not — a window with clusters
-   * but no project still has to be able to switch between them.
+   * it is drawn whenever this is given, with a project or without, with zero
+   * clusters or one.
    */
   switcher?: Omit<
     ClusterSwitcherProps,
@@ -85,7 +85,7 @@ export default function TitleBar({
   actionsSlot,
 }: TitleBarProps) {
   const narrow = useNarrowTitlebar();
-  const showPill = switcher !== undefined && (project !== null || switcher.clusters.length > 0);
+  const showPill = switcher !== undefined;
 
   return (
     // Three cells on a grid whose outer tracks are equal (`titlebar.css`), so
@@ -108,9 +108,10 @@ export default function TitleBar({
         {narrow ? <HamburgerMenu menus={menus} /> : <MenuBar menus={menus} />}
       </div>
 
-      {/* Drawn while there is something to name or switch between: a project, or
-          at least one cluster. A window with neither has no answer to show and
-          gets no placeholder pill. */}
+      {/* Always drawn: it is the cluster switcher, and the only place a window
+          with no project and no clusters can start one (it reads "No project"
+          and its menu carries New cluster). Hiding it at zero or one cluster
+          left nothing on screen to say clusters exist. */}
       {showPill && switcher && (
         <ClusterSwitcher
           {...switcher}

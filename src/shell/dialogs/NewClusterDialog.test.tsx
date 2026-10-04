@@ -8,20 +8,37 @@
  * per test, since the dialog's "Looking…" state depends on it not having
  * resolved yet.
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import NewClusterDialog from "./NewClusterDialog";
 import type { Environment } from "../../bindings";
 
-const { createClusterWithEnvironment, listClusterEnvironments } = vi.hoisted(() => ({
+const {
+  createClusterWithEnvironment,
+  listClusterEnvironments,
+  gitRepoState,
+  gitDefaultBranch,
+  gitInitProject,
+} = vi.hoisted(() => ({
+  gitRepoState: vi.fn(),
+  gitDefaultBranch: vi.fn(),
+  gitInitProject: vi.fn(),
   createClusterWithEnvironment: vi.fn(),
   listClusterEnvironments: vi.fn(),
 }));
 
 vi.mock("../../bindings", () => ({
+  gitRepoState,
+  gitDefaultBranch,
+  gitInitProject,
   createClusterWithEnvironment,
   listClusterEnvironments,
 }));
+
+beforeEach(() => {
+  gitRepoState.mockResolvedValue({ state: "ready" });
+  gitDefaultBranch.mockResolvedValue("main");
+});
 
 afterEach(cleanup);
 
@@ -144,7 +161,7 @@ describe("NewClusterDialog", () => {
     });
   });
 
-  it("submits a new-local-worktree choice with the typed name and base main", async () => {
+  it("submits a new-local-worktree choice with the typed name and no base (the backend resolves it)", async () => {
     listClusterEnvironments.mockResolvedValue([]);
     createClusterWithEnvironment.mockResolvedValue("cluster-1");
     const { onCreated } = renderDialog();
@@ -158,7 +175,7 @@ describe("NewClusterDialog", () => {
       "win-1",
       "my-feature",
       project.path,
-      { kind: "newLocalWorktree", name: "my-feature", base: "main" },
+      { kind: "newLocalWorktree", name: "my-feature" },
       "code",
     );
   });
@@ -223,5 +240,49 @@ describe("NewClusterDialog", () => {
     );
     // "Browse main" needs no name, so Next is live straight away.
     expect(screen.getByRole("button", { name: "Next" })).toHaveProperty("disabled", false);
+  });
+
+  it("names the real default branch, not a hardcoded main", async () => {
+    listClusterEnvironments.mockResolvedValue([]);
+    gitDefaultBranch.mockResolvedValue("master");
+    renderDialog();
+    expect(await screen.findByText("master")).toBeTruthy();
+  });
+
+  it("says there is no git repository, offers one button, and blocks Next until it is made", async () => {
+    listClusterEnvironments.mockResolvedValue([]);
+    gitRepoState.mockResolvedValueOnce({ state: "notARepo" });
+    gitInitProject.mockResolvedValue({ branch: "main", committedEverything: true });
+    renderDialog();
+    fireEvent.change(await screen.findByLabelText("Name"), { target: { value: "feat" } });
+    expect(await screen.findByText(/no git repository in this project/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Next" })).toHaveProperty("disabled", true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Initialise git repository" }));
+    expect(gitInitProject).toHaveBeenCalledWith("C:/repo");
+    await waitFor(() => {
+      expect(screen.queryByText(/no git repository in this project/)).toBeNull();
+      expect(screen.getByRole("button", { name: "Next" })).toHaveProperty("disabled", false);
+    });
+  });
+
+  it("shows the init failure as a message and offers no button for a repository in a parent folder", async () => {
+    listClusterEnvironments.mockResolvedValue([]);
+    gitRepoState.mockResolvedValueOnce({ state: "noCommits", root: "C:/parent", nested: true });
+    renderDialog();
+    expect(await screen.findByText(/inside the git repository at C:\/parent/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Initialise git repository" })).toBeNull();
+  });
+
+  it("surfaces a missing git identity as the message it is", async () => {
+    listClusterEnvironments.mockResolvedValue([]);
+    gitRepoState.mockResolvedValueOnce({ state: "notARepo" });
+    gitInitProject.mockRejectedValue("Git does not know your name. Set it once with `git config`");
+    renderDialog();
+    fireEvent.click(await screen.findByRole("button", { name: "Initialise git repository" }));
+    expect(await screen.findByRole("alert")).toHaveProperty(
+      "textContent",
+      expect.stringContaining("Git does not know your name"),
+    );
   });
 });

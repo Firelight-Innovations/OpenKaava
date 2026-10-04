@@ -368,6 +368,7 @@ export default function Frame({
               stops at the docked page's edge instead of spanning the window.
               See `FrameSlots.bottomPanel` for why that is the arrangement. */}
           <div className="frame__main" ref={mainRef}>
+            {slots.banner}
             <div className="frame__toolwindow" data-region="toolwindow">
               {slots.toolWindow}
             </div>

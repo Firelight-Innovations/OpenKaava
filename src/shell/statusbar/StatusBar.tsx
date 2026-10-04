@@ -89,7 +89,7 @@ export default function StatusBar({
           <>
             {project !== null && <span className="statusbar__project">{project}</span>}
             <EnvironmentChip environment={environment} />
-            <span className="statusbar__branch">{branchName(environment)}</span>
+            <span className="statusbar__branch">{branchName(environment, git)}</span>
             {environment.kind !== "main" && git !== null && (
               <span
                 className="statusbar__ahead-behind"
@@ -125,7 +125,7 @@ export default function StatusBar({
       </div>
 
       {environment?.kind === "main" && (
-        <span className="statusbar__readonly">main is read-only</span>
+        <span className="statusbar__readonly">{branchName(environment, git)} is read-only</span>
       )}
 
       <div className="statusbar__settings-wrap" ref={settingsWrapRef}>
@@ -203,8 +203,10 @@ const TONE_TOKEN: Record<UpdateNotice["tone"], string> = {
  * (`useGitStatus` in `WindowRoot.tsx`), so its numbers belong to this same
  * branch. A read-only `main` has no upstream to be ahead of.
  */
-function branchName(environment: Environment): string {
-  if (environment.kind === "main") return "main";
+function branchName(environment: Environment, git: GitStatus | null): string {
+  // The main checkout is whatever branch the repository's primary tree has out, which is
+  // `master` in older repositories; the status the bar already holds names it.
+  if (environment.kind === "main") return git?.branch || "main";
   return environment.branch ?? environment.kind;
 }
 

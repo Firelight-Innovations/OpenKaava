@@ -9,6 +9,7 @@ import { act, cleanup, render } from "@testing-library/react";
 import type { ClusterMember } from "../contract";
 import { resetSubjectsForTest, setSubject } from "../viewerSubjects";
 import PaneTabStrip from "./PaneTabStrip";
+import stripSource from "./PaneTabStrip.tsx?raw";
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -36,7 +37,6 @@ function strip(members: ClusterMember[]) {
       caret={null}
       onSelect={vi.fn()}
       onClose={vi.fn()}
-      onToggleMaximize={vi.fn()}
     />,
   );
 }
@@ -63,6 +63,12 @@ describe("a File Viewer tab", () => {
     const { container } = strip([member({ title: "File Viewer" })]);
     expect(container.querySelector("img.pane-tab__fileicon")).toBeNull();
     expect(container.querySelector(".pane-tab__icon--app")).not.toBeNull();
+  });
+});
+
+describe("double-clicking a tab", () => {
+  it("has no maximise gesture bound on the tab", () => {
+    expect(stripSource).not.toMatch(/onDoubleClick|onToggleMaximize/);
   });
 });
 

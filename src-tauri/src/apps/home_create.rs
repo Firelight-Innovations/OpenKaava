@@ -101,7 +101,8 @@ pub fn status(app: &AppHandle) -> Result<Value, RpcError> {
 /// `app.state::<CreateManager>()` is asked for fresh here rather than
 /// captured, which is what lets `start` return before this has even begun.
 fn run_create(app: &AppHandle, cluster_id: &str, request: &create::Request) {
-    let land_code = |source: &create::CodeSource, kind: create::Kind| land(source, kind);
+    let init_git = request.init_git;
+    let land_code = |source: &create::CodeSource, kind: create::Kind| land(source, kind, init_git);
     let unland_code = |result: &create::CodeResult| unland(result);
     let is_git_repo = |path: &Path| git::repo_root(path).is_some();
     let create_worktree = |path: &Path| {
@@ -146,7 +147,17 @@ fn design_worktree_path(repo: &Path) -> PathBuf {
 /// says it "only links" a project, so a folder with no manifest is a
 /// validation failure here rather than something this step fixes on the
 /// user's behalf.
-fn land(source: &create::CodeSource, kind: create::Kind) -> Result<create::CodeResult, String> {
+///
+/// With `init_git`, a new local folder also gets a repository and a first commit
+/// (`git_repo::init_repository`), because nothing downstream works without one: the
+/// Design worktree and every worktree cluster fork from a commit. A failure there (no
+/// git identity, say) undoes what this step made and reports the sentence as it is.
+/// A folder already inside a repository is left alone, and a clone is already one.
+fn land(
+    source: &create::CodeSource,
+    kind: create::Kind,
+    init_git: bool,
+) -> Result<create::CodeResult, String> {
     let (path, created_dir) = match source {
         create::CodeSource::ExistingRepo { url, clone_to } => {
             if clone_to.exists() {
@@ -188,11 +199,19 @@ fn land(source: &create::CodeSource, kind: create::Kind) -> Result<create::CodeR
     }
 
     let wrote_manifest = project::ensure_manifest(&path).map_err(|e| e.to_string())?;
-    Ok(create::CodeResult {
+    let result = create::CodeResult {
         path,
         created_dir,
         wrote_manifest,
-    })
+    };
+    let is_local_folder = matches!(source, create::CodeSource::LocalFolder { .. });
+    if init_git && is_local_folder {
+        if let Err(e) = crate::git_repo::init_repository(&result.path) {
+            let _ = unland(&result);
+            return Err(e.to_string());
+        }
+    }
+    Ok(result)
 }
 
 /// [`create::Ops::unland_code`]'s real body, deferring the "delete the whole
@@ -289,7 +308,16 @@ fn parse_request(params: Option<&Value>) -> Result<create::Request, RpcError> {
         }
     };
 
-    Ok(create::Request { kind, code })
+    // Absent means yes: a project made here is meant to be worked in worktrees.
+    let init_git = params
+        .and_then(|p| p.get("initGit"))
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    Ok(create::Request {
+        kind,
+        code,
+        init_git,
+    })
 }
 
 fn string_field(params: Option<&Value>, field: &str) -> Result<String, RpcError> {
@@ -402,6 +430,17 @@ mod tests {
     }
 
     #[test]
+    fn parse_request_defaults_to_initialising_git_and_honours_a_no() {
+        let mut params = json!({
+            "kind": "game",
+            "code": { "source": "localFolder", "path": "C:/code/x" },
+        });
+        assert!(parse_request(Some(&params)).unwrap().init_git);
+        params["initGit"] = json!(false);
+        assert!(!parse_request(Some(&params)).unwrap().init_git);
+    }
+
+    #[test]
     fn parse_request_rejects_an_unknown_kind() {
         let params = json!({
             "kind": "sandwich",
@@ -431,7 +470,7 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
 
         let source = create::CodeSource::LocalFolder { path: dir.clone() };
-        let result = land(&source, create::Kind::OpenExisting);
+        let result = land(&source, create::Kind::OpenExisting, false);
 
         let _ = std::fs::remove_dir_all(&dir);
         assert!(result.is_err());
@@ -447,7 +486,7 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
 
         let source = create::CodeSource::LocalFolder { path: dir.clone() };
-        let result = land(&source, create::Kind::Game);
+        let result = land(&source, create::Kind::Game, false);
 
         let ok = result.is_ok();
         let wrote_manifest = result.map(|r| r.wrote_manifest).unwrap_or(false);

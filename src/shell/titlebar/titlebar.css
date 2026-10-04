@@ -31,7 +31,7 @@
   container: titlebar / inline-size;
 }
 
-/* No project, no pill: the two cells split the bar as a plain row. */
+/* No switcher given, no pill: the two cells split the bar as a plain row. */
 .titlebar:not([data-has-pill]) {
   grid-template-columns: minmax(0, 1fr) auto;
 }

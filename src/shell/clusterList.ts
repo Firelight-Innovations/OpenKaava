@@ -54,7 +54,7 @@ export function folderName(path: string): string {
 /** A cluster's branch as a person reads it: the branch, else the kind's word. */
 export function branchLabel(cluster: Cluster): string {
   const env = environmentOf(cluster);
-  return env.branch ?? (env.kind === "main" ? "main" : ENVIRONMENT_LABEL[env.kind]);
+  return env.branch ?? (env.kind === "main" ? "default branch" : ENVIRONMENT_LABEL[env.kind]);
 }
 
 /** "project · branch" — the strip badge's tooltip. */

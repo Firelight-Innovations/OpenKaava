@@ -22,6 +22,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMotionValue, useSpring } from "framer-motion";
 import { onFileDrag } from "../../bindings";
 import { terminalAt } from "../dropZones";
+import { windowLabel } from "../state/shellState";
+import { toolWindowBridge, type OsFileDragMessage } from "../toolWindowRegistry";
 import { terminalTransport } from "../state/terminals";
 import { ghostSpring } from "./ghostSpring";
 import FileGhost from "./FileGhost";
@@ -87,11 +89,29 @@ function useOsFileDrag(setTargetId: (id: string | null) => void): void {
     void (async () => {
       const unlisten = await onFileDrag((drag) => {
         if (!live) return;
-        if (drag.kind === "leave") return setTargetId(null);
-        if (drag.kind === "over") return setTargetId(terminalAt(drag.x, drag.y));
+        if (drag.kind === "leave") {
+          setTargetId(null);
+          return routeToFiles({ phase: "leave" });
+        }
+        if (drag.kind === "over") {
+          const terminal = terminalAt(drag.x, drag.y);
+          setTargetId(terminal);
+          // Over a terminal the terminal's own affordance is the answer; anywhere else the
+          // File Explorer under the cursor, if there is one, shows where the drop would land.
+          return routeToFiles(
+            terminal ? { phase: "leave" } : { phase: "over", x: drag.x, y: drag.y },
+          );
+        }
 
         setTargetId(null);
-        commit(drag.x, drag.y, drag.paths);
+        if (terminalAt(drag.x, drag.y)) {
+          routeToFiles({ phase: "leave" });
+          return commit(drag.x, drag.y, drag.paths);
+        }
+        // Not a terminal: a File Explorer frame under the cursor takes the drop, which
+        // copies the paths into the folder it landed on. Over nothing, nothing happens.
+        const taken = routeToFiles({ phase: "drop", x: drag.x, y: drag.y, paths: drag.paths });
+        if (!taken) commit(drag.x, drag.y, drag.paths);
       });
 
       if (!live) return unlisten();
@@ -103,6 +123,11 @@ function useOsFileDrag(setTargetId: (id: string | null) => void): void {
       stop?.();
     };
   }, [setTargetId]);
+}
+
+/** Pass an OS drag to the Files frame under the cursor. `false` when none is there. */
+function routeToFiles(message: OsFileDragMessage): boolean {
+  return toolWindowBridge(windowLabel())?.routeOsFileDrag(message) ?? false;
 }
 
 /**

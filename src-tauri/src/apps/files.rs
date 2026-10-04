@@ -160,6 +160,7 @@ fn entry_methods(
 ) -> Option<Result<Value, RpcError>> {
     let answer = match method {
         "files/root" => root(app, context),
+        "files/watch" => watch(app, context),
         "files/list" => list(app, context, params),
         "files/stat" => required_path(params).map(|path| stat_at(&path)),
         "files/read" => read(app, context, params),
@@ -173,6 +174,7 @@ fn entry_methods(
         "files/duplicate" => required_path(params).and_then(|path| duplicate_at(&path)),
         "files/save-as" => save_as(app, params),
         "files/delete" => required_path(params).and_then(|path| delete_at(&path)),
+        "files/import" => import(params),
         "files/tree-size" => required_path(params).map(|path| tree_size_at(&path)),
         _ => return None,
     };
@@ -445,6 +447,17 @@ fn root(app: &AppHandle, context: &CallContext) -> Result<Value, RpcError> {
         "name": base_name(&path),
         "readOnly": read_only,
     }))
+}
+
+/// Start watching the cluster's project folder, so the explorer hears about changes made
+/// from outside. Idempotent and read-class: it changes nothing on disk, so it is allowed
+/// on main too. The answer is the root being watched, which the `files:changed` event
+/// then names. See `file_watch`.
+fn watch(app: &AppHandle, context: &CallContext) -> Result<Value, RpcError> {
+    let path = default_root(app, context)?;
+    app.state::<crate::file_watch::FileWatches>()
+        .ensure(app, &path);
+    Ok(json!({ "root": path.display().to_string() }))
 }
 
 #[derive(Debug, Serialize)]
@@ -1134,6 +1147,104 @@ fn copy_children(from: &Path, to: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
+/// What an import did, per name, so the explorer can say exactly what happened.
+#[derive(Debug, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Imported {
+    /// Names now present in the destination.
+    copied: Vec<String>,
+    /// Names skipped because something with that name was already there. Never overwritten.
+    conflicts: Vec<String>,
+    /// Names that could not be copied, with the reason in words.
+    failed: Vec<ImportFailure>,
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize)]
+struct ImportFailure {
+    name: String,
+    reason: String,
+}
+
+/// `files/import`: copy files and folders from anywhere (a drop from the OS) into `dest`.
+///
+/// A write, so it is refused on main like the rest (`apps::WRITE_METHODS`). It copies and
+/// never moves, never overwrites (a name already in `dest` is reported under `conflicts`
+/// and left alone) and never copies a folder into itself.
+fn import(params: Option<&Value>) -> Result<Value, RpcError> {
+    let dest = PathBuf::from(required_string(params, "dest")?);
+    let paths: Vec<PathBuf> = match params.and_then(|p| p.get("paths")) {
+        Some(Value::Array(items)) => items
+            .iter()
+            .filter_map(|v| v.as_str().map(PathBuf::from))
+            .collect(),
+        _ => {
+            return Err(RpcError::new(
+                INVALID_PARAMS,
+                "paths must be an array of strings",
+            ))
+        }
+    };
+    let done = import_into(&dest, &paths)?;
+    serde_json::to_value(done).map_err(|e| RpcError::new(INTERNAL_ERROR, e.to_string()))
+}
+
+fn import_into(dest: &Path, sources: &[PathBuf]) -> Result<Imported, RpcError> {
+    if !dest.is_dir() {
+        return Err(RpcError::new(
+            INVALID_PARAMS,
+            format!(
+                "{} is not a folder, so nothing can be dropped into it",
+                dest.display()
+            ),
+        ));
+    }
+    let dest_real = dest.canonicalize().unwrap_or_else(|_| dest.to_path_buf());
+    let mut out = Imported::default();
+    for source in sources {
+        let name = base_name(source);
+        let target = dest.join(&name);
+        let mut fail = |reason: String| {
+            out.failed.push(ImportFailure {
+                name: name.clone(),
+                reason,
+            })
+        };
+        let metadata = match std::fs::metadata(source) {
+            Ok(m) => m,
+            Err(e) => {
+                fail(format!("could not be read: {e}"));
+                continue;
+            }
+        };
+        if metadata.is_dir() {
+            let real = source.canonicalize().unwrap_or_else(|_| source.clone());
+            if dest_real.starts_with(&real) {
+                fail("a folder cannot be copied into itself".to_string());
+                continue;
+            }
+        }
+        // `symlink_metadata` so a dangling link in the way still counts as taken.
+        if std::fs::symlink_metadata(&target).is_ok() {
+            out.conflicts.push(name);
+            continue;
+        }
+        let made = if metadata.is_dir() {
+            copy_tree(source, &target)
+        } else if metadata.is_file() {
+            copy_file_new(source, &target)
+        } else {
+            fail("is not a file or a folder".to_string());
+            continue;
+        };
+        match made {
+            Ok(()) => out.copied.push(name),
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => out.conflicts.push(name),
+            Err(e) => fail(e.to_string()),
+        }
+    }
+    Ok(out)
+}
+
 /// Write a buffer to a file the user chooses, through the OS save dialog.
 ///
 /// The one method in this module that opens a dialog, and it is here rather than
@@ -1695,6 +1806,79 @@ pub(super) fn default_root(app: &AppHandle, context: &CallContext) -> Result<Pat
 
 #[cfg(test)]
 mod tests {
+    fn tmp() -> tempfile::TempDir {
+        tempfile::tempdir().unwrap()
+    }
+
+    #[test]
+    fn import_copies_files_and_folders_and_leaves_the_originals() {
+        let src = tmp();
+        let dest = tmp();
+        std::fs::write(src.path().join("a.txt"), "a").unwrap();
+        std::fs::create_dir_all(src.path().join("dir/sub")).unwrap();
+        std::fs::write(src.path().join("dir/sub/b.txt"), "b").unwrap();
+
+        let done = import_into(
+            dest.path(),
+            &[src.path().join("a.txt"), src.path().join("dir")],
+        )
+        .unwrap();
+
+        assert_eq!(done.copied, ["a.txt", "dir"]);
+        assert!(done.conflicts.is_empty() && done.failed.is_empty());
+        assert_eq!(
+            std::fs::read_to_string(dest.path().join("dir/sub/b.txt")).unwrap(),
+            "b"
+        );
+        assert!(src.path().join("a.txt").exists());
+    }
+
+    #[test]
+    fn import_never_overwrites_and_reports_the_name() {
+        let src = tmp();
+        let dest = tmp();
+        std::fs::write(src.path().join("a.txt"), "new").unwrap();
+        std::fs::write(dest.path().join("a.txt"), "mine").unwrap();
+
+        let done = import_into(dest.path(), &[src.path().join("a.txt")]).unwrap();
+
+        assert_eq!(done.conflicts, ["a.txt"]);
+        assert!(done.copied.is_empty());
+        assert_eq!(
+            std::fs::read_to_string(dest.path().join("a.txt")).unwrap(),
+            "mine"
+        );
+    }
+
+    #[test]
+    fn import_refuses_a_folder_into_itself_and_a_missing_source() {
+        let dest = tmp();
+        std::fs::create_dir(dest.path().join("inner")).unwrap();
+        let done = import_into(
+            &dest.path().join("inner"),
+            &[dest.path().to_path_buf(), dest.path().join("gone.txt")],
+        )
+        .unwrap();
+        assert_eq!(done.failed.len(), 2);
+        assert!(done.failed[0].reason.contains("into itself"));
+        assert!(done.copied.is_empty());
+    }
+
+    #[test]
+    fn import_into_a_file_is_an_error_not_a_copy() {
+        let dest = tmp();
+        let file = dest.path().join("f.txt");
+        std::fs::write(&file, "x").unwrap();
+        assert!(import_into(&file, &[]).is_err());
+    }
+
+    #[test]
+    fn import_is_a_write_method_so_main_refuses_it() {
+        assert!(crate::apps::is_write_method("files/import"));
+        let main = crate::environments::Environment::Main;
+        assert!(crate::apps::write_refusal(Some(&main), "files/import").is_err());
+    }
+
     use super::*;
 
     #[test]
