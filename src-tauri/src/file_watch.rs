@@ -5,10 +5,8 @@
 //! stayed invisible until someone pressed refresh, and the git badges with it. This watches
 //! a project root and emits one [`FILES_CHANGED_EVENT`] when the changes settle.
 //!
-//! `notify` is already a dependency, used by `plugins::watch` for a different job (two
-//! narrow paths, one callback). That module is not reusable here: it reloads a plugin, and
-//! its filter is "this exact path". What is shared is the shape, a debounce built on
-//! `recv_timeout`.
+//! Not shared with `plugins::watch` (it reloads one exact path); only the `recv_timeout`
+//! debounce shape is.
 //!
 //! **What is not watched.** `.git` internals (a commit writes dozens of objects and refs
 //! and the working tree did not change), `node_modules` and `target` (build output, tens
