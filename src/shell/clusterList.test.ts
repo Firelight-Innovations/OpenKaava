@@ -69,7 +69,7 @@ describe("labels", () => {
   it("reads project · branch for a worktree, and main for none", () => {
     expect(clusterTooltip(cluster("a", { worktree: wt("feat/x") }))).toBe("openkaava · feat/x");
     expect(clusterTooltip(cluster("a"))).toBe("openkaava · main");
-    expect(branchLabel(cluster("a"))).toBe("main");
+    expect(branchLabel(cluster("a"))).toBe("default branch");
   });
 
   it("says when the worktree folder is gone", () => {

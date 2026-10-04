@@ -67,7 +67,7 @@ export interface MenuTarget {
 const MARGIN = 4;
 
 /** The tooltip on a write item in a main cluster; same words as the shell's. */
-const READ_ONLY_HINT = "main is read-only — open a worktree to edit";
+const READ_ONLY_HINT = "The default branch is read-only — open a worktree to edit";
 
 export default function ContextMenu({
   target,

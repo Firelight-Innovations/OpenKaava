@@ -522,7 +522,7 @@ export default function App() {
               onClick={() => void doOpenEditor()}
               title={
                 readOnly
-                  ? "The main checkout is read-only; open a worktree to edit."
+                  ? "The default branch is read-only; open a worktree to edit."
                   : found
                     ? "Open this project in the Godot editor (Ctrl+Shift+O)"
                     : "Godot 4 was not found."

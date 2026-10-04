@@ -1042,7 +1042,9 @@ export default function App() {
           className="k-btn k-btn--secondary k-btn--sm"
           onClick={() => setCreating((c) => !c)}
           disabled={readOnly || !state?.hasEnvironment}
-          title={readOnly ? "Main is read-only. Open a worktree to draw." : "New canvas"}
+          title={
+            readOnly ? "The default branch is read-only. Open a worktree to draw." : "New canvas"
+          }
         >
           <FilePlus2 size={14} aria-hidden /> New canvas
         </button>
@@ -1194,7 +1196,7 @@ export default function App() {
             <div className="cv__empty">
               <p>
                 {readOnly
-                  ? "There are no canvases in this checkout, and main is read-only."
+                  ? "There are no canvases in this checkout, and the default branch is read-only."
                   : "No canvases in this environment yet."}
               </p>
               {!readOnly && state?.hasEnvironment && createForm}

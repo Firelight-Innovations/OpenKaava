@@ -64,7 +64,7 @@ pub enum AppError {
     Git { op: String, reason: String },
 
     /// A write refused on a main cluster; see `environments::refuse_write_on_main`.
-    #[error("the main checkout is read-only — open a worktree to edit ({op} refused)")]
+    #[error("the default branch is read-only — open a worktree to edit ({op} refused)")]
     ReadOnlyMain { op: String },
 
     // A flattened string for the same reason `Git` above uses one: the cause is
