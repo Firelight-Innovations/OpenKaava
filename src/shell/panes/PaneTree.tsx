@@ -229,7 +229,6 @@ function Pane({
   onSelectMember,
   onCloseMember,
   dragHandleFor,
-  onToggleMaximizePane,
   appPicker,
 }: PaneTreeProps & { leaf: Extract<PaneNode, { kind: "leaf" }> }) {
   const hostRef = useCallback(
@@ -265,7 +264,6 @@ function Pane({
           caret={stripDropTarget?.index ?? null}
           onSelect={onSelectMember ?? noop}
           onClose={onCloseMember ?? noop}
-          onToggleMaximize={onToggleMaximizePane ?? noop}
           dragHandleFor={dragHandleFor}
           appPicker={appPicker}
         />

@@ -491,6 +491,18 @@ function CodeSection({
         </Field>
       )}
 
+      {form.codeSource === "localFolder" && (
+        <label className="new-project__checkbox-row">
+          <input
+            type="checkbox"
+            checked={form.initGit}
+            disabled={disabled}
+            onChange={(e) => onChange({ initGit: e.target.checked })}
+          />
+          Initialise a git repository (needed for worktrees)
+        </label>
+      )}
+
       <label className="new-project__checkbox-row">
         <input
           type="checkbox"

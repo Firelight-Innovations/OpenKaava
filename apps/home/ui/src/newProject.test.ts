@@ -182,7 +182,30 @@ describe("buildCreateRequest", () => {
     expect(buildCreateRequest(form)).toEqual({
       kind: "tool",
       code: { source: "localFolder", path: "C:/code/torn-apart" },
+      initGit: true,
     });
+  });
+
+  it("asks to initialise git by default and carries a no", () => {
+    const base = { ...emptyForm(), codeSource: "localFolder" as const, path: "C:/code/x" };
+    expect(emptyForm().initGit).toBe(true);
+    expect(buildCreateRequest(base).initGit).toBe(true);
+    expect(buildCreateRequest({ ...base, initGit: false }).initGit).toBe(false);
+  });
+
+  it("never asks Open existing to initialise anything", () => {
+    const form = {
+      ...emptyForm(),
+      kind: "openExisting" as const,
+      codeSource: "localFolder" as const,
+      path: "C:/code/x",
+    };
+    expect(buildCreateRequest(form)).not.toHaveProperty("initGit");
+  });
+
+  it("sends no initGit for a clone, which is already a repository", () => {
+    const form = { ...emptyForm(), codeSource: "existingRepo" as const, repoUrl: "u", path: "p" };
+    expect(buildCreateRequest(form)).not.toHaveProperty("initGit");
   });
 
   it("shapes an existing-repo request with both the url and the clone-to path", () => {

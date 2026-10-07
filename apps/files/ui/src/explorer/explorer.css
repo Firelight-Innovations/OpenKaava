@@ -178,6 +178,13 @@
 /* The file showing in the viewer, which is not the same fact as the cursor and
    so is not the same mark. The rule at the leading edge is the idiom
    `apps/shared/app.css` already uses for a current row. */
+/* An OS file drag is over this folder, or over blank space (the project root). */
+.explorer__row[data-drop],
+.explorer__scroll[data-drop-root] {
+  outline: 1px dashed var(--accent);
+  outline-offset: -1px;
+}
+
 .explorer__row[data-open] {
   box-shadow: inset 2px 0 0 var(--accent);
   color: var(--text);

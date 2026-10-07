@@ -35,7 +35,7 @@ function open(t: MenuTarget) {
   render(
     <ContextMenu
       target={t}
-      rootPath="C:\\game"
+      rootPath={"C:\\game"}
       onCreate={() => {}}
       onRename={() => {}}
       onDelete={() => {}}
@@ -74,5 +74,41 @@ describe("Send to agent", () => {
     open(target({}));
     fireEvent.click(screen.getByRole("menuitem", { name: "Send to agent" }));
     await waitFor(() => expect(screen.getByText(/25 MB copy limit/)).toBeTruthy());
+  });
+});
+
+describe("the menu over blank space (the project root)", () => {
+  const root = target({ path: "C:\\game", createIn: "C:\\game", name: null, kind: "dir" });
+  const labels = () => screen.getAllByRole("menuitem").map((el) => el.textContent);
+
+  it("offers the folder-level items and no Rename or Delete", () => {
+    open(root);
+    expect(labels()).toEqual(["New File", "New Folder", "Copy path", "Reveal in File Explorer"]);
+  });
+
+  it("copies the root's own path", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    open(root);
+    fireEvent.click(screen.getByRole("menuitem", { name: "Copy path" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("C:\\game"));
+  });
+
+  it("opens the root folder itself rather than revealing it inside its parent", async () => {
+    invoke.mockResolvedValue(null);
+    open(root);
+    fireEvent.click(screen.getByRole("menuitem", { name: "Reveal in File Explorer" }));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("files/open-external", { path: "C:\\game" }),
+    );
+  });
+
+  it("still reveals an ordinary row", async () => {
+    invoke.mockResolvedValue(null);
+    open(target({}));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Reveal in File Explorer" }));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("files/reveal", { path: "C:\\game\\src\\a.ts" }),
+    );
   });
 });

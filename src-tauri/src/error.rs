@@ -64,7 +64,7 @@ pub enum AppError {
     Git { op: String, reason: String },
 
     /// A write refused on a main cluster; see `environments::refuse_write_on_main`.
-    #[error("main is read-only — open a worktree to edit ({op} refused)")]
+    #[error("the default branch is read-only — open a worktree to edit ({op} refused)")]
     ReadOnlyMain { op: String },
 
     // A flattened string for the same reason `Git` above uses one: the cause is
@@ -162,6 +162,12 @@ pub enum AppError {
     /// are shown in, so a caller assembling the sentence would be a second author of it.
     #[error("{0}")]
     Review(String),
+
+    /// A project with no usable git repository, or one that cannot be given one. The
+    /// whole sentence, shown as it is: "run `git config`..." is the fix, not a stderr
+    /// dump. See `git_repo`.
+    #[error("{0}")]
+    Repo(String),
 
     /// A project icon that cannot be set: the wrong kind of file, too large, or a
     /// copy that failed. The whole sentence, for `Review`'s reason.

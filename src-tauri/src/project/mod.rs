@@ -321,8 +321,27 @@ pub fn create(app: &AppHandle, dir: &Path, cluster_id: &str) -> Result<ProjectSn
         source,
     })?;
 
-    marker::create(dir, &folder_name(dir))?;
+    prepare_new_folder(dir)?;
     open(app, dir, cluster_id)
+}
+
+/// The filesystem half of [`create`]: write the manifest, then give the folder a git
+/// repository and a first commit, because worktree clusters need one. The picker has no
+/// place to ask, so this is on by default, under `git_repo`'s rules: never inside an
+/// existing repository, never an invented identity, never a blind commit of a huge tree.
+///
+/// A git failure does not fail the project. It is returned as the sentence to show, and
+/// the read-only notice offers "Initialise git repository" again with the same message.
+pub(crate) fn prepare_new_folder(dir: &Path) -> Result<Option<String>> {
+    marker::create(dir, &folder_name(dir))?;
+    Ok(match crate::git_repo::init_repository(dir) {
+        Ok(_) => None,
+        Err(e) => {
+            let message = e.to_string();
+            eprintln!("new project: no git repository was created: {message}");
+            Some(message)
+        }
+    })
 }
 
 /// Write a manifest into a folder that is already open without one — the "set
@@ -556,5 +575,33 @@ mod tests {
     fn folder_name_of_a_root_falls_back_to_the_path() {
         let root = Path::new(r"C:\");
         assert!(!folder_name(root).is_empty());
+    }
+
+    #[test]
+    fn a_new_project_folder_gets_a_manifest_and_a_repository() {
+        let dir = std::env::temp_dir().join(format!("kaava-newproj-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let notice = prepare_new_folder(&dir).unwrap();
+        // Without a git identity on this machine the repository is refused with a
+        // sentence, never an error; with one it exists. Either way the manifest does.
+        assert!(has_manifest(&dir));
+        match notice {
+            None => assert!(dir.join(".git").exists()),
+            Some(message) => assert!(message.contains("git config"), "{message}"),
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_new_project_inside_an_existing_repository_is_not_given_a_second_one() {
+        let outer = std::env::temp_dir().join(format!("kaava-newproj-in-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&outer);
+        let inner = outer.join("sub");
+        std::fs::create_dir_all(&inner).unwrap();
+        crate::git::run_git_env(&outer, "init", &["init", "-q"], &[]).unwrap();
+        prepare_new_folder(&inner).unwrap();
+        assert!(!inner.join(".git").exists());
+        let _ = std::fs::remove_dir_all(&outer);
     }
 }

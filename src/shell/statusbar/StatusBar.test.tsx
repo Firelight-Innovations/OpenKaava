@@ -131,6 +131,21 @@ describe("StatusBar", () => {
     expect(screen.getByText("main is read-only")).not.toBeNull();
   });
 
+  it("names the real branch when the repository's default is master", () => {
+    render(
+      <StatusBar
+        project="OpenKaava"
+        environment={{ kind: "main" }}
+        git={git({ branch: "master" })}
+        githubOk
+        update={null}
+      />,
+    );
+
+    expect(screen.getByText("master is read-only")).not.toBeNull();
+    expect(screen.queryByText("main is read-only")).toBeNull();
+  });
+
   it("omits the read-only label for a worktree", () => {
     const env: Environment = { kind: "worktree", branch: "wt/x", path: "/x" };
     render(<StatusBar project="OpenKaava" environment={env} git={null} githubOk update={null} />);

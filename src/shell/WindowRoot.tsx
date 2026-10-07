@@ -67,6 +67,7 @@ import TerminalDeck, { type TerminalDeckHandle } from "./terminal/TerminalDeck";
 import { callApp, useApps, useOpenables, usePages } from "./state/apps";
 import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
+import ReadOnlyBanner from "./git/ReadOnlyBanner";
 import { useProjectIcon } from "./state/projectIcon";
 import { useUpdates } from "./state/updates";
 import {
@@ -2044,6 +2045,13 @@ export default function WindowRoot({
               }
             />
           ),
+          banner:
+            environment?.kind === "main" && project ? (
+              <ReadOnlyBanner
+                projectPath={project.path}
+                onNewWorktreeCluster={() => onAddCluster("newLocalWorktree")}
+              />
+            ) : undefined,
           toolWindow: (
             <ToolWindow
               ref={toolRef}

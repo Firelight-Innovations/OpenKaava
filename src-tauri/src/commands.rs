@@ -428,7 +428,15 @@ pub enum EnvironmentChoice {
     /// "New local worktree", with the name and base the dialog collected.
     /// `crate::git::validate_worktree_name` is what actually enforces the
     /// name is usable — this struct makes no claim about it.
-    NewLocalWorktree { name: String, base: String },
+    ///
+    /// `base` is optional: absent, the repository's default branch is resolved with
+    /// `git_repo::default_branch`, so a `master` repository works without the dialog
+    /// having to know that.
+    NewLocalWorktree {
+        name: String,
+        #[serde(default)]
+        base: Option<String>,
+    },
     /// "An existing environment" or "browse main, read-only" — anything the
     /// dialog already had a fully-formed [`crate::environments::Environment`]
     /// for, including `Environment::Main` itself.
@@ -524,6 +532,33 @@ fn starting_layout_preset(layout: StartingLayout) -> presets::PresetNode {
     }
 }
 
+/// Whether the project can have worktree clusters, for the New Cluster dialog and the
+/// read-only notice to say so before anything is attempted.
+#[tauri::command]
+pub fn git_repo_state(project: String) -> crate::git_repo::RepoState {
+    crate::git_repo::repo_state(Path::new(&project))
+}
+
+/// The branch a new worktree forks from and the read-only labels name; see
+/// `git_repo::default_branch` for the order it is resolved in.
+#[tauri::command]
+pub fn git_default_branch(project: String) -> Option<String> {
+    let root = crate::git::main_repo_root(Path::new(&project))?;
+    crate::git_repo::default_branch(&root)
+}
+
+/// Give a project folder a git repository and a first commit. Refuses inside an existing
+/// repository and when git has no identity to commit as, each with a sentence that says
+/// what to do. Runs `git`, so it is off the async runtime's threads.
+#[tauri::command]
+pub async fn git_init_project(project: String) -> Result<crate::git_repo::InitOutcome> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::git_repo::init_repository(Path::new(&project))
+    })
+    .await
+    .map_err(|e| AppError::Repo(format!("git init did not finish: {e}")))?
+}
+
 /// The New Cluster dialog's first step, the "existing environment" list —
 /// see `environments::list_local_worktrees` for what it excludes and why.
 #[tauri::command]
@@ -542,10 +577,27 @@ fn resolve_environment_choice(
 ) -> Result<crate::environments::Environment> {
     match choice {
         EnvironmentChoice::NewLocalWorktree { name, base } => {
+            let not_a_repo = || {
+                AppError::Repo(
+                    "There is no git repository in this project yet, and a worktree cluster needs                      one. Initialise a git repository first."
+                        .to_string(),
+                )
+            };
             let main_repo =
-                crate::git::main_repo_root(Path::new(project)).ok_or_else(|| AppError::Git {
-                    op: "worktree add".to_string(),
-                    reason: format!("`{project}` is not inside a git repository."),
+                crate::git::main_repo_root(Path::new(project)).ok_or_else(not_a_repo)?;
+            if !crate::git_repo::has_commits_in(&main_repo) {
+                return Err(AppError::Repo(
+                    "This project's git repository has no commits yet, and a worktree cluster                      is forked from one. Make the first commit, or initialise the repository                      from here."
+                        .to_string(),
+                ));
+            }
+            let base = base
+                .filter(|b| !b.trim().is_empty())
+                .or_else(|| crate::git_repo::default_branch(&main_repo))
+                .ok_or_else(|| {
+                    AppError::Repo(
+                        "Could not tell which branch to start the worktree from.".to_string(),
+                    )
                 })?;
             crate::environments::create_local_worktree(&main_repo, &name, &base)
         }
@@ -1117,8 +1169,10 @@ pub fn close_terminal(
     ptys: State<'_, PtySessions>,
     id: String,
 ) {
-    ptys.close(&id);
+    // The tab goes first and does not depend on the process: whatever the shell does when
+    // told to stop, the tab is already gone from the layout. See `PtySessions::close`.
     shell.close_terminal(&app, &id);
+    ptys.close(&id);
 }
 
 /// Split a terminal: open a second pty and fold it into `id`'s tab.
@@ -2034,6 +2088,74 @@ pub(crate) fn apply_project_open_preset(app: &tauri::AppHandle, cluster_id: &str
 mod tests {
     use super::*;
     use crate::environments::Environment;
+
+    fn new_worktree(name: &str, base: Option<&str>) -> EnvironmentChoice {
+        EnvironmentChoice::NewLocalWorktree {
+            name: name.to_string(),
+            base: base.map(str::to_string),
+        }
+    }
+
+    #[test]
+    fn a_new_worktree_in_a_plain_folder_says_there_is_no_repository() {
+        let dir = tempfile::tempdir().unwrap();
+        let err =
+            resolve_environment_choice(dir.path().to_str().unwrap(), new_worktree("feat", None))
+                .unwrap_err()
+                .to_string();
+        assert!(err.contains("no git repository"), "{err}");
+        assert!(!err.contains("fatal"), "{err}");
+    }
+
+    #[test]
+    fn a_new_worktree_in_an_empty_repository_says_there_are_no_commits() {
+        let dir = tempfile::tempdir().unwrap();
+        let out = std::process::Command::new("git")
+            .current_dir(dir.path())
+            .args(["init", "-q"])
+            .output()
+            .unwrap();
+        assert!(out.status.success());
+        let err =
+            resolve_environment_choice(dir.path().to_str().unwrap(), new_worktree("feat", None))
+                .unwrap_err()
+                .to_string();
+        assert!(err.contains("no commits yet"), "{err}");
+    }
+
+    #[test]
+    fn a_new_worktree_without_a_base_forks_from_master_when_that_is_the_only_branch() {
+        let dir = tempfile::tempdir().unwrap();
+        for args in [
+            vec!["init", "-q", "-b", "master"],
+            vec![
+                "-c",
+                "user.name=t",
+                "-c",
+                "user.email=t@example.com",
+                "commit",
+                "-q",
+                "--allow-empty",
+                "-m",
+                "first",
+            ],
+        ] {
+            let out = std::process::Command::new("git")
+                .current_dir(dir.path())
+                .args(&args)
+                .output()
+                .unwrap();
+            assert!(out.status.success(), "{args:?}");
+        }
+        let env =
+            resolve_environment_choice(dir.path().to_str().unwrap(), new_worktree("feat", None))
+                .expect("a master-only repository can have a worktree");
+        let Environment::LocalWorktree { base, branch, .. } = env else {
+            panic!("expected a local worktree");
+        };
+        assert_eq!(base, "master");
+        assert_eq!(branch, "wt/feat");
+    }
 
     #[test]
     fn a_terminal_starts_in_the_cluster_root_before_any_fallback() {

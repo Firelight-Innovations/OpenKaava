@@ -846,6 +846,8 @@ export type WindowKind = "main" | "detached";
 export interface FrameSlots {
   titleBar: ReactNode;
   toolWindow: ReactNode;
+  /** A notice band above the tool window, full width of the column. Omitted, nothing renders. */
+  banner?: ReactNode;
   /** The terminal band, under the tool window and stopping at the docked
    *  page's edge — `.frame__main` in frame.css says why it does not span the
    *  window. Omitted, neither the band nor its handle is rendered at all. */

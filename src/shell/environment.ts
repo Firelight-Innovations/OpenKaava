@@ -132,7 +132,13 @@ export const ENVIRONMENT_BAR_LABEL: Record<EnvironmentKind, string> = {
 
 /** The sentence every disabled write affordance carries as its tooltip. The
  *  backend's refusal (`AppError::ReadOnlyMain`) says the same thing. */
-export const READ_ONLY_HINT = "main is read-only — open a worktree to edit";
+export const READ_ONLY_HINT = "The default branch is read-only — open a worktree to edit";
+
+/** The same sentence naming the real default branch (`master`, `trunk`, ...). `branch`
+ *  comes from `git_default_branch`; unknown falls back to "main". */
+export function readOnlyHint(branch: string | null | undefined): string {
+  return `${branch || "The default branch"} is read-only — open a worktree to edit`;
+}
 
 /** Whether writes are refused in this environment. Cosmetic: Rust is the
  *  authority (`environments::refuse_write_on_main`), this only stops the UI

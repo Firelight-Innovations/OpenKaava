@@ -69,7 +69,6 @@ describe("the pane strip's + button", () => {
         caret={null}
         onSelect={vi.fn()}
         onClose={vi.fn()}
-        onToggleMaximize={vi.fn()}
         appPicker={{ apps: APPS, onOpen }}
       />,
     );

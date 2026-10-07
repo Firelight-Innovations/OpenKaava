@@ -44,6 +44,7 @@ export default function TreeRow({
   onKeep,
   onContextMenu,
   drag,
+  dropTarget = false,
 }: {
   row: Row;
   /** Referenced by the tree's `aria-activedescendant`; see `Explorer`. */
@@ -73,6 +74,8 @@ export default function TreeRow({
    * double-click and its context menu, and simply cannot be picked up.
    */
   drag?: RowDragProps;
+  /** An OS file drag is over this folder: the drop would land in it. */
+  dropTarget?: boolean;
 }) {
   const isDir = row.entry.kind === "dir";
 
@@ -92,6 +95,12 @@ export default function TreeRow({
       aria-selected={cursor}
       data-cursor={cursor || undefined}
       data-open={open || undefined}
+      // Read by the OS-drop hit test (`osDrop.ts`) to find the folder under the cursor,
+      // and by the drop highlight.
+      data-path={row.entry.path}
+      data-kind={row.entry.kind}
+      data-parent={row.parent}
+      data-drop={dropTarget || undefined}
       // Git is not tracking anything here. Dimmed as a whole row rather than
       // just the name, so the icon goes with it — a bright folder icon over a
       // grey `node_modules` would read as half-decorated.

@@ -20,7 +20,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { on, openIn, publish, reportPainted, subscribe } from "@openkaava/bridge";
 import Explorer, { type ExplorerHandle } from "./explorer/Explorer";
-import NoticeBar from "./NoticeBar";
+import NoticeBar, { type Notice } from "./NoticeBar";
+import { useOsDrop } from "./explorer/useOsDrop";
 import { useMenuCommands } from "./commands";
 import { useDelete } from "./useDelete";
 import {
@@ -32,7 +33,7 @@ import {
   isAtOrUnder,
   type TreeChange,
 } from "./topics";
-import { describe, getRoot, type Root } from "./rpc";
+import { describe, getRoot, watchRoot, type Root } from "./rpc";
 
 /** The app id this app opens files into. A *kind*, never a surface — see
  *  `openIn`. Written down here rather than inlined because it is the one string
@@ -89,6 +90,27 @@ export default function App() {
         reloadTree();
       }),
     [loadRoot, reloadTree],
+  );
+
+  /**
+   * Files created, dropped or deleted from outside (a terminal, the OS, an agent). The
+   * backend watches the project folder once this app asks, debounces, and the shell relays
+   * `files:changed` here. Re-listing also refreshes the git badges, which ride the same
+   * reload. A change under some other root (another cluster's project) is not ours.
+   * The ask is repeated whenever the root changes; it is idempotent on the backend.
+   */
+  const rootPath = root?.path ?? null;
+  useEffect(() => {
+    if (rootPath !== null) void watchRoot().catch(noop);
+  }, [rootPath]);
+  useEffect(
+    () =>
+      on("files:changed", (payload) => {
+        const changed = (payload as { root?: unknown } | null)?.root;
+        if (typeof changed !== "string" || rootPath === null) return;
+        if (samePath(changed, rootPath)) reloadTree();
+      }),
+    [rootPath, reloadTree],
   );
 
   /**
@@ -191,6 +213,20 @@ export default function App() {
     onDeleted: reloadTree,
   });
 
+  // Files dragged in from the OS. A problem (a name already taken, a read-only checkout)
+  // is a bar with one button, the same bar delete uses.
+  const [dropNotice, setDropNotice] = useState<Notice | null>(null);
+  const osDrop = useOsDrop({
+    root,
+    onImported: reloadTree,
+    onProblem: (message) =>
+      setDropNotice({
+        tone: "warn",
+        message,
+        actions: [{ label: "OK", run: () => setDropNotice(null) }],
+      }),
+  });
+
   const explorerRef = useRef<ExplorerHandle | null>(null);
   useMenuCommands({
     root,
@@ -237,13 +273,23 @@ export default function App() {
           publish(TREE_CHANGE, { kind: "renamed", from, to } satisfies TreeChange)
         }
         onDelete={del.ask}
+        dropTarget={osDrop.target}
       />
 
       {/* The one question this app is allowed to have on screen. Escape answers
           it the same way Cancel does — see `NoticeBar`. */}
       {del.notice && <NoticeBar notice={del.notice} onEscape={del.cancel} />}
+      {!del.notice && dropNotice && (
+        <NoticeBar notice={dropNotice} onEscape={() => setDropNotice(null)} />
+      )}
     </div>
   );
+}
+
+/** Whether two paths name one folder: separators and case (Windows) do not matter. */
+function samePath(a: string, b: string): boolean {
+  const norm = (p: string) => p.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+  return norm(a) === norm(b);
 }
 
 /** The last segment of a path. Both separators, for the reason `rpc.ts` gives. */

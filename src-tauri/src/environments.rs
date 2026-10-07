@@ -173,7 +173,9 @@ pub fn migrate_environment(
         .unwrap_or(&wt.path)
         .to_string();
     let branch = wt.branch.clone().unwrap_or_else(|| name.clone());
-    let base = wt.base.clone().unwrap_or_else(|| "main".to_string());
+    // A legacy layout never recorded the fork point; empty, as `detect_environment` does,
+    // rather than a guessed "main" that is wrong for a `master` repository.
+    let base = wt.base.clone().unwrap_or_default();
     Some(Environment::LocalWorktree {
         name,
         path: wt.path.clone(),
@@ -533,7 +535,7 @@ mod tests {
                 name: "feat-x".to_string(),
                 path: legacy.path.clone(),
                 branch: "feat-x".to_string(),
-                base: "main".to_string(),
+                base: String::new(),
             }
         );
     }

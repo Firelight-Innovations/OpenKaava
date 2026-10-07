@@ -661,9 +661,24 @@ fn cluster_checkout(app: &AppHandle, cluster_id: &str, op: &str) -> Result<PathB
 /// error reading `git commit -m <the user's three paragraphs> failed` helps
 /// nobody. Failing to spawn and exiting non-zero collapse to the same error:
 /// from the caller's side both mean "git did not answer".
-fn run_git(cwd: &Path, op: &str, args: &[&str]) -> Result<String> {
+pub(crate) fn run_git(cwd: &Path, op: &str, args: &[&str]) -> Result<String> {
+    run_git_env(cwd, op, args, &[])
+}
+
+/// [`run_git`] with extra environment variables for the one child. A test uses
+/// it to point git at an empty global config without touching this process's
+/// own environment, which every other test shares.
+pub(crate) fn run_git_env(
+    cwd: &Path,
+    op: &str,
+    args: &[&str],
+    env: &[(&str, &str)],
+) -> Result<String> {
     let mut command = Command::new("git");
-    command.current_dir(cwd).args(args);
+    command
+        .current_dir(cwd)
+        .args(args)
+        .envs(env.iter().copied());
 
     // Without this, every one of these spawns flashes a console window on
     // Windows — and the panel re-runs `status` after every single mutation.

@@ -10,7 +10,15 @@ export interface ToolWindowBridge {
    *  handshake completes, queuing if it has not: an instance id can be minted
    *  and handed here before the iframe behind it mounts. See `ToolWindow.tsx`. */
   sendEventWhenReady(instanceId: string, event: string, payload: unknown): void;
+  /** Pass an OS file drag to the Files frame under the point; false if none took it. */
+  routeOsFileDrag(drag: OsFileDragMessage): boolean;
 }
+
+/** An OS drag as a Files frame sees it (frame coordinates). */
+export type OsFileDragMessage =
+  | { phase: "over"; x: number; y: number }
+  | { phase: "leave" }
+  | { phase: "drop"; x: number; y: number; paths: string[] };
 
 const bridges = new Map<string, ToolWindowBridge>();
 
