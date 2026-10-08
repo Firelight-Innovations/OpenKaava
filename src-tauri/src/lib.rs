@@ -30,6 +30,7 @@ mod github;
 mod godot;
 mod harness;
 mod launch;
+mod launch_guard;
 mod layout;
 mod manifest;
 mod mcp;
@@ -102,6 +103,13 @@ fn quiet_hard_errors() {}
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     quiet_hard_errors();
+
+    // Bound to a name rather than written inline at `.build` below, so the
+    // identifier can be read before any plugin runs. An agent build overrides
+    // it on the command line, so the constant in `userdata::identity` would
+    // name the wrong process there.
+    let context = tauri::generate_context!();
+    launch_guard::clear_hung_primary(&context.config().identifier);
 
     let launched = tauri::Builder::default()
         // **First, before every other plugin.** Explorer's "Open with OpenKaava"
@@ -609,7 +617,7 @@ pub fn run() {
         // outlives every window and would be orphaned by an exit that did not go
         // looking for it. `RunEvent::Exit` is the one hook that fires once, for
         // the application, rather than once per window.
-        .build(tauri::generate_context!())
+        .build(context)
         .map(|app| {
             app.run(|handle, event| {
                 if matches!(event, tauri::RunEvent::Exit) {
