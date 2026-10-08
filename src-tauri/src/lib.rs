@@ -23,6 +23,7 @@ mod diagnostics;
 mod discovery;
 mod environments;
 mod error;
+mod exit_watchdog;
 mod file_watch;
 mod git;
 mod git_repo;
@@ -612,6 +613,11 @@ pub fn run() {
         .build(tauri::generate_context!())
         .map(|app| {
             app.run(|handle, event| {
+                // Every route out passes through here, including the ones
+                // that never visit `windows::request_close`.
+                if matches!(event, tauri::RunEvent::ExitRequested { .. }) {
+                    exit_watchdog::arm();
+                }
                 if matches!(event, tauri::RunEvent::Exit) {
                     // Layout writes are debounced; commit one still waiting.
                     shell_store::flush_pending();

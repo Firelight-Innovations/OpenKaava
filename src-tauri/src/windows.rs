@@ -36,6 +36,10 @@ const TITLEBAR_HEIGHT: f64 = 34.0;
 /// The rectangle is applied after the build, not in the builder: the builder takes **logical**
 /// pixels and every rectangle here is physical. The window is built hidden and shown at the end,
 /// so nothing is on screen at the wrong place. See `docs/design-notes/backend-core.md`.
+///
+/// **Never call this from a synchronous `#[tauri::command]`.** On the main thread a window closing
+/// mid-build is handled at once, and dropping its webview takes the lock this build holds: the
+/// thread waits on itself for good. An `async` command builds through the event loop instead.
 pub fn create(
     app: &AppHandle,
     label: &str,
@@ -269,6 +273,7 @@ pub fn request_close(app: &AppHandle, state: &ShellState, label: &str) {
         // three windows next launch. Flush first: `set_geometry` records position and size without
         // writing them, and this is the last moment to commit that before the process ends.
         state.flush(app);
+        crate::exit_watchdog::arm();
         app.exit(0);
         return;
     }

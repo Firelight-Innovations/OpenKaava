@@ -819,8 +819,10 @@ pub fn window_at_cursor(app: tauri::AppHandle) -> Option<String> {
 /// menu item has always claimed and could not do while a window's label was
 /// derived from the tool inside it — there was no label a second empty window
 /// could have had.
+///
+/// `async` because it builds a window; see `windows::create`.
 #[tauri::command]
-pub fn new_window(app: tauri::AppHandle, shell: State<'_, ShellState>) -> Result<()> {
+pub async fn new_window(app: tauri::AppHandle, shell: State<'_, ShellState>) -> Result<()> {
     let label = shell.claim_window_label();
     // Bookkeeping first, window second, the same order `detach` uses: a window
     // on screen with no entry in the shared state would render nothing and have
@@ -869,7 +871,7 @@ pub fn new_window(app: tauri::AppHandle, shell: State<'_, ShellState>) -> Result
 /// gone; see `move_cluster_pure`. The frontend reports whatever comes back rather than dropping it,
 /// because a detach that quietly does nothing is the hardest failure here to diagnose.
 #[tauri::command]
-pub fn detach_cluster(
+pub async fn detach_cluster(
     app: tauri::AppHandle,
     shell: State<'_, ShellState>,
     cluster_id: String,
@@ -893,8 +895,10 @@ pub fn detach_cluster(
 }
 
 /// Drag a tab clear of its window. The gesture that makes a second window.
+///
+/// `async` because it builds a window; see `windows::create`.
 #[tauri::command]
-pub fn detach_instance(
+pub async fn detach_instance(
     app: tauri::AppHandle,
     shell: State<'_, ShellState>,
     instance_id: String,
@@ -2088,6 +2092,38 @@ pub(crate) fn apply_project_open_preset(app: &tauri::AppHandle, cluster_id: &str
 mod tests {
     use super::*;
     use crate::environments::Environment;
+
+    /// A synchronous command runs on the main thread, and building a window
+    /// there can deadlock it for good; `windows::create` says how. The hang
+    /// needs a second window to be closing at that instant, so no test can
+    /// reproduce it. This reads the source and holds the rule instead.
+    #[test]
+    fn every_command_that_builds_a_window_is_async() {
+        let source = include_str!("commands.rs");
+        let commands = source.split("#[cfg(test)]").next().unwrap_or_default();
+        let builders = [
+            "windows::create(",
+            "windows::detach(",
+            "windows::detach_cluster(",
+        ];
+
+        let mut checked = 0;
+        for command in commands.split("#[tauri::command]").skip(1) {
+            if !builders.iter().any(|call| command.contains(call)) {
+                continue;
+            }
+            let signature = command
+                .lines()
+                .find(|l| l.starts_with("pub "))
+                .unwrap_or_default();
+            assert!(
+                signature.starts_with("pub async fn "),
+                "a command that builds a window must be async: `{signature}`"
+            );
+            checked += 1;
+        }
+        assert_eq!(checked, 3, "new_window, detach_cluster and detach_instance");
+    }
 
     fn new_worktree(name: &str, base: Option<&str>) -> EnvironmentChoice {
         EnvironmentChoice::NewLocalWorktree {
