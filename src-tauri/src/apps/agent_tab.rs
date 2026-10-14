@@ -40,6 +40,10 @@ pub const ID: &str = "agent-tab";
 /// The event every envelope is emitted as. Mirrored in `src/bindings.ts`.
 pub const EVENT: &str = "agent-tab:event";
 
+/// The event a tab's choice of harness is emitted as, `{ instanceId, harness }`,
+/// so the tab and the agent bar show the same one. Mirrored in `src/bindings.ts`.
+pub const CHOSEN: &str = "agent-tab:chosen";
+
 /// The JSON-RPC code for a refusal this module or the host made. `data.code`
 /// says which; the tab draws the words for it from its own `strings.ts`.
 pub const REFUSED: i32 = -32010;
@@ -298,6 +302,10 @@ pub fn call_for(
                 ));
             }
             sessions.chosen().insert(instance.to_string(), harness);
+            let _ = app.emit(
+                CHOSEN,
+                json!({ "instanceId": instance, "harness": harness }),
+            );
             Ok(json!({}))
         }
         _ => Err(unreached(method)),

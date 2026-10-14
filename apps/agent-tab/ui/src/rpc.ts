@@ -47,6 +47,13 @@ export const setConfig = (configId: string, value: string) =>
 export const onEnvelope = (cb: (envelope: Envelope) => void) =>
   on(EVENT, (payload) => cb(payload as Envelope));
 
+/** Mirrors `apps::agent_tab::CHOSEN`. */
+export const CHOSEN = "agent-tab:chosen";
+
+/** This tab's choice of harness, whether made here or in the agent bar. */
+export const onChosen = (cb: (harness: Harness) => void) =>
+  on(CHOSEN, (payload) => cb((payload as { harness: Harness }).harness));
+
 /** A refusal's `data`: which refusal, and the hint that explains it. */
 export interface Refusal {
   code: string;

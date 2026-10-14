@@ -112,6 +112,7 @@ export default function App() {
 
   useEffect(() => {
     const stop = rpc.onEnvelope((envelope) => dispatch({ type: "envelope", envelope }));
+    const stopChosen = rpc.onChosen(setChosen);
     void attach().finally(() => reportPainted());
     rpc
       .harnesses()
@@ -121,7 +122,10 @@ export default function App() {
         setChosen(answer.current);
       })
       .catch(() => {});
-    return stop;
+    return () => {
+      stop();
+      stopChosen();
+    };
   }, [attach]);
 
   const status = state.status;

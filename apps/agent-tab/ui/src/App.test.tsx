@@ -1076,6 +1076,21 @@ describe("the harness", () => {
     expect(alert.textContent).toContain("Start a new session to switch.");
   });
 
+  it("follows a choice made in the agent bar", async () => {
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        "agent-tab/harnesses": () =>
+          Promise.resolve({ harnesses: [CLAUDE, PI], current: "pi", blocked: null }),
+      },
+    );
+    const { container } = render(<App />);
+    await waitFor(() => expect(chips(container)).toContain("Pi"));
+    act(() => bridge.listeners.get("agent-tab:chosen")?.({ instanceId: "i", harness: "claude" }));
+    expect(chips(container)).toContain("Claude");
+    expect(chips(container)).not.toContain("Pi");
+  });
+
   it("says what the chosen harness still needs, in its own commands", async () => {
     backend(
       { status: null, seq: 0, items: [] },
