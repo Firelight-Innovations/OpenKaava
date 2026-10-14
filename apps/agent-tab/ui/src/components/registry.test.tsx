@@ -229,6 +229,33 @@ describe("the slot registry", () => {
     expect(container.querySelector(".at-hint")).toBeNull();
   });
 
+  it("sums a tool call's diffs into its row, and names its status only until it is done", () => {
+    const { ToolCall } = defaultSlots;
+    const diff = (path: string, added: number, removed: number) => ({
+      path,
+      isNew: false,
+      lines: [],
+      added,
+      removed,
+    });
+    const row = (status: "inProgress" | "completed") =>
+      render(
+        <ToolCall
+          title="Edit a.ts"
+          toolKind="edit"
+          status={status}
+          output=""
+          truncated={false}
+          paths={[]}
+          diffs={[diff("a.ts", 3, 1), diff("b.ts", 2, 0)]}
+        />,
+      ).container.querySelector(".at-tool__head")!;
+    expect(row("completed").querySelector(".at-tool__counts")?.textContent).toBe("+5 −1");
+    expect(row("completed").querySelector(".at-tool__status")).toBeNull();
+    cleanup();
+    expect(row("inProgress").querySelector(".at-tool__status")?.textContent).toBe("Running");
+  });
+
   it("names the harness and model it is given, and leaves out the unknown ones", () => {
     const { Header } = defaultSlots;
     const header = (harness: string | null, model: string | null) =>
