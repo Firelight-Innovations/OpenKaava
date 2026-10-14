@@ -710,9 +710,11 @@ pub const WRITE_METHODS: &[&str] = &[
     "canvas/set-frame",
     "canvas/create-frame",
     "canvas/split-frames",
-    // An agent edits the checkout it runs in, and an approval lets it.
+    // An agent edits the checkout it runs in, and an approval lets it; so
+    // does a mode that accepts edits unasked.
     "agent-tab/send",
     "agent-tab/answer",
+    "agent-tab/set-mode",
 ];
 
 /// Whether `method` is a write to the cluster's checkout.
