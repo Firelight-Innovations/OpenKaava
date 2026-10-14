@@ -1,0 +1,47 @@
+/**
+ * Items into turns: each prompt is its own user turn, everything after it is
+ * one agent turn, and a turn whose items did not change is the same object.
+ */
+import { describe, expect, it } from "vitest";
+import type { Item } from "./protocol.generated";
+import { ITEM_TOOL, toTurns } from "./thread";
+
+function item(id: string, kind: Item["kind"]): Item {
+  return { id, turnId: "t1", kind };
+}
+
+const U1 = item("u1", { kind: "userMessage", text: "go" });
+const A1 = item("a1", { kind: "assistantText", text: "ok" });
+const R1 = item("r1", { kind: "reasoning", text: "hmm" });
+const G1 = item("g1", { kind: "usage", used: 1, size: 2 });
+const U2 = item("u2", { kind: "userMessage", text: "again" });
+
+describe("toTurns", () => {
+  it("makes each prompt a user turn and the run after it one agent turn", () => {
+    const turns = toTurns([U1, A1, R1, G1, U2]);
+    expect(turns.map((t) => [t.message.role, t.items.map((i) => i.id)])).toEqual([
+      ["user", ["u1"]],
+      ["assistant", ["a1", "r1", "g1"]],
+      ["user", ["u2"]],
+    ]);
+    expect(turns[1].message.content).toEqual([
+      { type: "text", id: "a1", text: "ok" },
+      { type: "reasoning", id: "r1", text: "hmm" },
+      { type: "tool-call", toolCallId: "g1", toolName: ITEM_TOOL, args: {}, result: null },
+    ]);
+  });
+
+  it("starts with an agent turn when the agent spoke first", () => {
+    expect(toTurns([A1, U1]).map((t) => t.message.role)).toEqual(["assistant", "user"]);
+  });
+
+  it("keeps the turns that did not change and remakes the one that did", () => {
+    const first = toTurns([U1, A1]);
+    const changed = { ...A1, kind: { kind: "assistantText" as const, text: "ok, done" } };
+    const second = toTurns([U1, changed], first);
+    expect(second[0]).toBe(first[0]);
+    expect(second[1]).not.toBe(first[1]);
+    expect(toTurns([U1, changed], second)).toEqual(second);
+    expect(toTurns([U1, changed], second)[1]).toBe(second[1]);
+  });
+});
