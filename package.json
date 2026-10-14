@@ -52,6 +52,7 @@
     "app:build": "tauri build"
   },
   "dependencies": {
+    "@assistant-ui/react": "0.15.28",
     "@excalidraw/excalidraw": "0.18.1",
     "@excalidraw/mermaid-to-excalidraw": "2.2.2",
     "@fontsource/ibm-plex-mono": "^5.3.0",
