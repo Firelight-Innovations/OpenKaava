@@ -6,7 +6,7 @@ import AgentBar from "./AgentBar";
 afterEach(cleanup);
 
 function prompt() {
-  return screen.getByRole("textbox", { name: "Message the agent" });
+  return screen.getByRole("textbox", { name: "Message the agent from the agent bar" });
 }
 
 describe("AgentBar", () => {

@@ -10,7 +10,9 @@ export const ADAPTER_INSTALL =
 export const strings = {
   label: "Agent bar",
   harness: "Claude",
-  promptLabel: "Message the agent",
+  // Not the tab's "Message the agent": both can be on screen at once, and a
+  // field is found by its name.
+  promptLabel: "Message the agent from the agent bar",
   placeholder: "Ask Claude to do something in this worktree. Enter sends.",
   send: "Send",
   sending: "Sending",
