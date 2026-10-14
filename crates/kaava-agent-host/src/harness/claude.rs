@@ -28,6 +28,6 @@ pub static CLAUDE: Descriptor = Descriptor {
     capabilities: Capabilities {
         steer: false,
         fork: false,
-        modes: false,
+        modes: true,
     },
 };

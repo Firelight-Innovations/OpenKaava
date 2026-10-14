@@ -172,6 +172,37 @@ impl Mock {
         }
     }
 
+    /// `session/set_config_option`, as Claude's adapter answers it: every
+    /// option as it now stands, after a `current_mode_update` for a mode.
+    /// With `--settles-elsewhere` a mode change settles on `acceptEdits`
+    /// instead, and only the reply says so; the adapter does settle elsewhere
+    /// when it falls back from `auto`.
+    fn set_config(&mut self, id: &Value, params: &Value) {
+        let config = params
+            .get("configId")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        let value = params
+            .get("value")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+        match config {
+            "mode" if MODES.iter().any(|(m, _)| *m == value) => {
+                if self.has("--settles-elsewhere") {
+                    self.mode = "acceptEdits".into();
+                } else {
+                    self.mode = value;
+                    self.update(json!({
+                        "sessionUpdate": "current_mode_update", "currentModeId": self.mode
+                    }));
+                }
+            }
+            _ => return self.reply_error(id, -32602, "Unknown config option"),
+        }
+        self.reply(id, json!({ "configOptions": self.config_options() }));
+    }
+
     fn end_turn(&mut self, stop_reason: &str) {
         if let Some(id) = self.prompt_id.take() {
             self.reply(&id, json!({ "stopReason": stop_reason }));
@@ -242,20 +273,36 @@ impl Mock {
                 self.reply(&id, result);
             }
             (Some("session/set_mode"), Some(id)) => {
-                let only = self.flag_value("--only-mode");
-                let asked = params.get("modeId").and_then(Value::as_str);
-                if self.has("--no-mode") || only.is_some_and(|m| Some(m.as_str()) != asked) {
+                let mode = params
+                    .get("modeId")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
+                let known = match self.flag_value("--only-mode") {
+                    Some(only) => only == mode,
+                    None => MODES.iter().any(|(m, _)| *m == mode),
+                };
+                if self.has("--no-mode") || !known {
                     self.reply_error(&id, -32602, "unknown mode");
                 } else {
-                    self.mode = params
-                        .get("modeId")
-                        .and_then(Value::as_str)
-                        .unwrap_or_default()
-                        .to_string();
+                    // Under `--settles-elsewhere` every switch but the
+                    // handshake's settles on `acceptEdits`, and says so in a
+                    // notification, since this reply cannot.
+                    let settled = if self.has("--settles-elsewhere") && mode != "default" {
+                        "acceptEdits"
+                    } else {
+                        mode
+                    };
+                    self.mode = settled.to_string();
+                    if settled != mode {
+                        self.update(json!({
+                            "sessionUpdate": "current_mode_update", "currentModeId": settled
+                        }));
+                    }
                     self.config_update();
                     self.reply(&id, json!({}));
                 }
             }
+            (Some("session/set_config_option"), Some(id)) => self.set_config(&id, &params),
             (Some("session/prompt"), Some(id)) => {
                 let text = params
                     .pointer("/prompt/0/text")

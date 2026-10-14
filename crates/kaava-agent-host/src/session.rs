@@ -1,6 +1,6 @@
 //! One agent process and the ACP session inside it.
 //!
-//! Five threads, each owning one thing, so that nothing that can block — a
+//! Six threads, each owning one thing, so that nothing that can block — a
 //! pipe write, a read, a wait — ever runs while another thread needs the
 //! session's lock:
 //!
@@ -12,11 +12,13 @@
 //!   end, is what ends the session: a grandchild can hold stdout open long
 //!   after the agent is gone.
 //! - the **driver** runs the handshake and then one prompt at a time.
+//! - the **settings** thread asks the agent for one setting change at a time
+//!   — a mode, a model — in the order the user made them.
 //!
 //! None of them is joined. Each holds the shared state, and goes when its own
 //! work ends.
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 use std::io::{BufRead, BufReader, ErrorKind, Read, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -109,7 +111,9 @@ struct Shared {
     /// What ends the child and everything it started at once.
     job: Option<Job>,
     writer: Sender<Line>,
+    settings: Sender<Setting>,
     seq: Arc<AtomicU64>,
+    changes: Arc<AtomicU64>,
     log: Log,
     stderr: Mutex<VecDeque<String>>,
     stderr_done: AtomicBool,
@@ -129,10 +133,17 @@ struct Inner {
     transcript: Transcript,
     status: SessionStatus,
     session_id: Option<String>,
-    /// Requests whose replies carry the session's settings. The reader takes
-    /// each reply in as it arrives, so a notification sent after it is never
-    /// overwritten by it.
-    changing: HashSet<i64>,
+    /// The id of the agent's config option for the mode, when it has one.
+    /// Claude's does, and a change through it answers with every setting as
+    /// it now stands, which `session/set_mode` does not.
+    mode_option: Option<String>,
+    /// Requests whose replies carry the session's settings, by id. The reader
+    /// takes each reply in as it arrives, so a notification sent after it is
+    /// never overwritten by it.
+    changing: HashMap<i64, Asked>,
+    /// How many times the agent has reported its mode, so a reply to
+    /// `session/set_mode`, which does not say, knows whether one came first.
+    mode_reports: u64,
     events: Sender<Envelope>,
     last_seq: u64,
     noise: u64,
@@ -150,6 +161,30 @@ struct Waiting {
 enum Line {
     Send(String),
     Close,
+}
+
+/// Work for the settings thread.
+enum Setting {
+    Change(Change),
+    Close,
+}
+
+/// One request that changes a setting.
+struct Change {
+    method: &'static str,
+    params: Value,
+    /// The mode it sets, for `session/set_mode`, whose reply does not say.
+    mode: Option<String>,
+    /// Its number, which `status.answered` takes once it is answered.
+    ticket: u64,
+}
+
+/// A request in flight whose reply carries the session's settings.
+struct Asked {
+    /// The mode it sets, for `session/set_mode`, whose reply does not say.
+    mode: Option<String>,
+    /// `mode_reports` when it was sent.
+    reports: u64,
 }
 
 impl Session {
@@ -190,6 +225,7 @@ impl Session {
         };
         let pid = child.id();
         let (writer, lines) = mpsc::channel();
+        let (settings, queued) = mpsc::channel();
         let status = SessionStatus {
             state: SessionState::Starting,
             harness: spec.harness,
@@ -211,7 +247,9 @@ impl Session {
             child: Mutex::new(child),
             job,
             writer,
+            settings,
             seq: Arc::clone(&seq),
+            changes,
             log,
             stderr: Mutex::new(VecDeque::new()),
             stderr_done: AtomicBool::new(false),
@@ -226,7 +264,9 @@ impl Session {
                 transcript: Transcript::from_items(prior),
                 status,
                 session_id: None,
-                changing: HashSet::new(),
+                mode_option: None,
+                changing: HashMap::new(),
+                mode_reports: 0,
                 events,
                 last_seq: seq.load(Ordering::SeqCst),
                 noise: 0,
@@ -255,6 +295,8 @@ impl Session {
         spawn("agent-waiter", move || s.wait_for_exit());
         let s = Arc::clone(&shared);
         spawn("agent-driver", move || s.drive());
+        let s = Arc::clone(&shared);
+        spawn("agent-settings", move || s.change_settings(&queued));
         Ok(Self { shared })
     }
 
@@ -322,6 +364,31 @@ impl Session {
         shared.complete_approval(&mut inner, item_id, option_id);
         shared.settle(&mut inner);
         Ok(())
+    }
+
+    /// Switch the agent to `mode_id`, one of the modes its status offers.
+    /// Returns the change's number once it is queued. The first status whose
+    /// `answered` reaches that number shows the mode the agent settled on,
+    /// which can differ from the one asked for.
+    pub(crate) fn set_mode(&self, mode_id: &str) -> Result<u64, HostError> {
+        let inner = self.shared.lock();
+        let session_id = open(&inner)?;
+        if !inner.status.modes.iter().any(|m| m.value == mode_id) {
+            return Err(HostError::UnknownOption);
+        }
+        let change = match &inner.mode_option {
+            Some(config_id) => (
+                "session/set_config_option",
+                json!({ "sessionId": session_id, "configId": config_id, "value": mode_id }),
+                None,
+            ),
+            None => (
+                "session/set_mode",
+                json!({ "sessionId": session_id, "modeId": mode_id }),
+                Some(mode_id.to_string()),
+            ),
+        };
+        Ok(self.shared.queue(&inner, change))
     }
 
     /// Everything drawn so far.
@@ -398,6 +465,7 @@ impl Inner {
         if let Some(mode) = settings.mode {
             self.show_mode(mode.value);
             self.status.modes = config::allowed(mode.choices);
+            self.mode_option = Some(mode.id);
         }
         self.status.config = settings.options;
     }
@@ -417,15 +485,32 @@ impl Inner {
     }
 
     /// Take in a reply that carries the settings: `session/new`'s modes and
-    /// list.
-    fn answered(&mut self, result: &Value) {
+    /// list, or a change's list. `session/set_mode` answers `{}`, so the mode
+    /// it asked for is taken as set, unless the agent has reported one since.
+    fn answered(&mut self, result: &Value, asked: Asked) {
         if let Some(choices) = result.get("modes").and_then(config::modes) {
             self.status.modes = config::allowed(choices);
         }
         if let Some(list) = result.get("configOptions").filter(|l| l.is_array()) {
             self.apply(config::settings(list));
         }
+        if let Some(mode) = asked.mode {
+            if self.mode_reports == asked.reports {
+                self.status.mode = Some(mode);
+            }
+        }
     }
+}
+
+/// The ACP session id, for a session that is open and past its handshake.
+fn open(inner: &Inner) -> Result<String, HostError> {
+    if inner.closed || inner.status.state == SessionState::Failed {
+        return Err(HostError::Closed);
+    }
+    if inner.status.state == SessionState::Starting {
+        return Err(HostError::NoSession);
+    }
+    inner.session_id.clone().ok_or(HostError::NoSession)
 }
 
 impl Shared {
@@ -435,6 +520,25 @@ impl Shared {
 
     fn send(&self, line: String) {
         let _ = self.writer.send(Line::Send(line));
+    }
+
+    /// Number a change and hand it to the settings thread, which sends them
+    /// in the order they were numbered. Taking the lock's guard keeps two
+    /// callers from numbering in one order and queueing in the other.
+    fn queue(
+        &self,
+        _held: &Inner,
+        (method, params, mode): (&'static str, Value, Option<String>),
+    ) -> u64 {
+        let ticket = self.changes.fetch_add(1, Ordering::SeqCst) + 1;
+        let change = Change {
+            method,
+            params,
+            mode,
+            ticket,
+        };
+        let _ = self.settings.send(Setting::Change(change));
+        ticket
     }
 
     fn send_close(&self) {
@@ -581,7 +685,7 @@ impl Shared {
             .send_request(
                 "session/new",
                 json!({ "cwd": cwd, "mcpServers": [] }),
-                carries_settings,
+                carries_settings(None),
             )
             .and_then(|id| self.finish(id, "session/new", Some(HANDSHAKE)))
             .map_err(Failure::from)?;
@@ -783,6 +887,53 @@ impl Shared {
         }
     }
 
+    // --- the settings thread ---------------------------------------------
+
+    /// Send each change and wait for its reply before the next, so two quick
+    /// changes land in the order they were made. The reader takes the reply's
+    /// settings in; this draws a refusal as an error and ends in a status
+    /// whose `answered` counts the change, so the tab knows its choice was
+    /// answered.
+    fn change_settings(self: Arc<Self>, changes: &Receiver<Setting>) {
+        for setting in changes {
+            let Setting::Change(change) = setting else {
+                return;
+            };
+            let Change {
+                method,
+                params,
+                mode,
+                ticket,
+            } = change;
+            let Ok(id) = self.send_request(method, params, carries_settings(mode)) else {
+                return;
+            };
+            let reply = self.finish(id, method, None);
+            if !self.report(reply, Some(ticket)) {
+                return;
+            }
+        }
+    }
+
+    /// Draw a refusal, if it is one, then the status, with the number of the
+    /// change it answers, if it does. False once the session has closed.
+    fn report(&self, reply: Result<Value, RemoteError>, answered: Option<u64>) -> bool {
+        let mut inner = self.lock();
+        if inner.closed {
+            return false;
+        }
+        if let Err(e) = reply {
+            let events = inner.normalizer.error(&e.message, None);
+            self.emit_all(&mut inner, events);
+        }
+        if let Some(ticket) = answered {
+            inner.status.answered = ticket;
+        }
+        let status = inner.status.clone();
+        self.emit(&mut inner, Event::Status { status });
+        true
+    }
+
     // --- the reader ------------------------------------------------------
 
     fn read(self: Arc<Self>, stdout: impl Read) {
@@ -803,9 +954,9 @@ impl Shared {
             Some(Incoming::Response { id, outcome }) => {
                 let Id::Number(n) = id else { return };
                 let mut inner = self.lock();
-                if inner.changing.remove(&n) {
+                if let Some(asked) = inner.changing.remove(&n) {
                     if let Ok(result) = &outcome {
-                        inner.answered(result);
+                        inner.answered(result, asked);
                     }
                 }
                 if let Some(slot) = inner.replies.get_mut(&n) {
@@ -842,8 +993,12 @@ impl Shared {
                     }
                     if let Some(mode) = mode {
                         inner.show_mode(mode);
+                        inner.mode_reports += 1;
                     }
                     if let Some(settings) = settings {
+                        if settings.mode.is_some() {
+                            inner.mode_reports += 1;
+                        }
                         inner.apply(settings);
                     }
                     // During the handshake, the status it ends with carries
@@ -996,6 +1151,7 @@ impl Shared {
             let status = inner.status.clone();
             self.emit(&mut inner, Event::Status { status });
             self.wake.notify_all();
+            let _ = self.settings.send(Setting::Close);
             (inner.normalizer.dropped(), inner.noise, ready)
         };
         let code_text = code.map_or("none".to_string(), |c| c.to_string());
@@ -1080,9 +1236,12 @@ fn timed_out(method: &str) -> RemoteError {
 }
 
 /// Mark a request as one whose reply carries the settings, for the reader to
-/// take in.
-fn carries_settings(inner: &mut Inner, id: i64) {
-    inner.changing.insert(id);
+/// take in. `mode` is the mode a `session/set_mode` sets.
+fn carries_settings(mode: Option<String>) -> impl FnOnce(&mut Inner, i64) {
+    move |inner, id| {
+        let reports = inner.mode_reports;
+        inner.changing.insert(id, Asked { mode, reports });
+    }
 }
 
 /// Read one line into `buf`, keeping at most `limit` bytes of it and reading
@@ -1191,7 +1350,9 @@ mod tests {
                 pending_prompt: None,
             },
             session_id: None,
-            changing: HashSet::new(),
+            mode_option: None,
+            changing: HashMap::new(),
+            mode_reports: 0,
             events,
             last_seq: 0,
             noise: 0,
