@@ -6,7 +6,7 @@
  * registry itself lives in Rust (`crates/kaava-agent-host/src/harness.rs`),
  * so a new harness shows up here with no change to this file.
  */
-import type { Harness, HarnessInfo, Hint } from "./protocol.generated";
+import type { Harness, HarnessInfo, Hint, SessionStatus } from "./protocol.generated";
 import { strings, type HarnessWords } from "./strings";
 
 /** What `agent-tab/harnesses` says about `harness`, if the registry lists it. */
@@ -22,4 +22,14 @@ export function hintText(hint: Hint, words: HarnessWords | undefined): string {
   const known = Object.prototype.hasOwnProperty.call(strings.hint, hint);
   const sentence = known ? strings.hint[hint] : undefined;
   return words && sentence ? sentence(words) : strings.hintUnknown;
+}
+
+/**
+ * The running model's name: the agent's own label for the value of its option
+ * in ACP's `model` category. `null` before the agent reports one.
+ */
+export function modelName(status: SessionStatus | null): string | null {
+  const option = status?.config.find((o) => o.category === "model");
+  if (!option) return null;
+  return option.choices.find((c) => c.value === option.value)?.name ?? option.value;
 }

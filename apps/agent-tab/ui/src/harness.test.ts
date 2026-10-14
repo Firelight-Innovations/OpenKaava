@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { hintText, infoOf } from "./harness";
-import type { HarnessInfo, Hint } from "./protocol.generated";
+import { hintText, infoOf, modelName } from "./harness";
+import type { HarnessInfo, Hint, SessionStatus } from "./protocol.generated";
 
 /**
  * A harness the registry might list one day, so no sentence can hide behind
@@ -18,6 +18,21 @@ const PI: HarnessInfo = {
   },
   capabilities: { steer: false, fork: false, modes: true },
 };
+
+const status = (config: SessionStatus["config"]): SessionStatus => ({
+  state: "ready",
+  harness: "claude",
+  cwd: "C:/wt/x",
+  mode: "default",
+  modes: [],
+  config,
+  adapterVersion: "1.2.3",
+  exitCode: null,
+  hint: null,
+  pendingPrompt: null,
+  answered: 0,
+  settingTrouble: null,
+});
 
 describe("hint sentences", () => {
   it("name the harness and its own setup commands", () => {
@@ -54,5 +69,29 @@ describe("the registry's answer", () => {
   it("finds a harness's info by its id, and nothing for none", () => {
     expect(infoOf([PI], "claude")).toBe(PI);
     expect(infoOf([PI], null)).toBeUndefined();
+  });
+});
+
+describe("the running model", () => {
+  const model = (value: string) => ({
+    id: "model",
+    name: "Model",
+    description: null,
+    category: "model",
+    value,
+    choices: [{ value: "opus", name: "Opus", description: null }],
+  });
+
+  it("is the agent's label for the value of its model option", () => {
+    expect(modelName(status([model("opus")]))).toBe("Opus");
+  });
+
+  it("is the bare value when the agent offers no label for it", () => {
+    expect(modelName(status([model("haiku")]))).toBe("haiku");
+  });
+
+  it("is unknown without a session or a model option", () => {
+    expect(modelName(null)).toBeNull();
+    expect(modelName(status([{ ...model("opus"), category: "thought_level" }]))).toBeNull();
   });
 });

@@ -55,7 +55,7 @@ import { toTurns, type Turn } from "./thread";
 import { Turns, TurnsProvider } from "./Turns";
 import { useSlots } from "./components/registry";
 import type { PickerProps } from "./components/types";
-import { hintText, infoOf } from "./harness";
+import { hintText, infoOf, modelName } from "./harness";
 import { strings, type HarnessWords } from "./strings";
 
 type Action =
@@ -266,7 +266,8 @@ export default function App() {
             <S.Header
               cwd={status?.cwd ?? null}
               harness={current?.name ?? null}
-              model={null}
+              // An ended session's model is not what the next prompt runs.
+              model={running ? modelName(status) : null}
               state={status?.state ?? null}
               onNewSession={() => {
                 setNotice(null);

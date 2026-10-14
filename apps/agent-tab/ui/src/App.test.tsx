@@ -1003,6 +1003,33 @@ describe("the agent tab", () => {
 });
 
 describe("the harness", () => {
+  const MODEL = {
+    id: "model",
+    name: "Model",
+    description: null,
+    category: "model",
+    value: "opus",
+    choices: [{ value: "opus", name: "Opus", description: null }],
+  };
+
+  function chips(container: HTMLElement) {
+    return [...container.querySelectorAll(".at-header .at-chip")].map((c) => c.textContent);
+  }
+
+  it("names the running harness and its model in the header", async () => {
+    backend({ status: { ...STATUS, config: [MODEL] }, seq: 1, items: [] });
+    const { container } = render(<App />);
+    await screen.findByText("Opus");
+    expect(chips(container)).toEqual(expect.arrayContaining(["Claude", "Opus"]));
+  });
+
+  it("drops an ended session's model, which the next prompt does not run", async () => {
+    backend({ status: { ...STATUS, state: "stopped", config: [MODEL] }, seq: 1, items: [] });
+    const { container } = render(<App />);
+    await waitFor(() => expect(chips(container)).toContain("Claude"));
+    expect(chips(container)).not.toContain("Opus");
+  });
+
   it("says what the chosen harness still needs, in its own commands", async () => {
     backend(
       { status: null, seq: 0, items: [] },
