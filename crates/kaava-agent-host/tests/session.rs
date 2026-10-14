@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Barrier, Mutex};
 use std::time::{Duration, Instant};
 
+use kaava_agent_host::harness::{Policy, CLAUDE};
 use kaava_agent_host::mask::looks_secret;
 use kaava_agent_host::{
     AgentHost, Envelope, Event, Harness, Hint, HostError, Item, ItemKind, LaunchSpec, SessionState,
@@ -69,6 +70,7 @@ fn mock(args: &[&str]) -> LaunchSpec {
         args: args.iter().map(|a| a.to_string()).collect(),
         env: Vec::new(),
         expected_version: Some("0.90.0"),
+        policy: CLAUDE.policy,
     }
 }
 
@@ -594,6 +596,28 @@ fn a_retry_after_a_failed_handshake_starts_a_new_session_and_runs() {
         })
         .collect();
     assert_eq!(prompts, ["first try", "stream"]);
+}
+
+#[test]
+fn the_session_asks_for_its_harness_policy_mode() {
+    let asked = rig();
+    let spec = LaunchSpec {
+        policy: Policy {
+            ask_first: "read-only",
+        },
+        ..mock(&["--only-mode", "read-only"])
+    };
+    asked
+        .host
+        .send(TAB, spec, asked.tree.clone(), "hi")
+        .unwrap();
+    asked.turns_done(1);
+    let status = last_status(&asked.events()).unwrap();
+    assert_eq!(status.mode.as_deref(), Some("read-only"));
+
+    let refused = rig();
+    refused.send(&["--only-mode", "read-only"], "hi").unwrap();
+    refused.state(SessionState::Failed);
 }
 
 #[test]

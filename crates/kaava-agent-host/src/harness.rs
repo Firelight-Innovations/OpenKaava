@@ -65,6 +65,18 @@ pub struct Descriptor {
     pub sign_in: &'static str,
     /// More variables for the adapter's environment. Never a credential.
     pub env: &'static [(&'static str, &'static str)],
+    /// What Kaava holds every session of it to.
+    pub policy: Policy,
+}
+
+/// What Kaava holds a harness's sessions to, whatever the user's own settings
+/// for that harness would choose.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Policy {
+    /// The mode id every session is put in before its first prompt: the one
+    /// that asks before acting. A session that will not switch to it does not
+    /// run.
+    pub ask_first: &'static str,
 }
 
 /// An ACP adapter, as npm installs it on PATH.
@@ -103,6 +115,8 @@ pub struct LaunchSpec {
     pub env: Vec<(String, String)>,
     /// The adapter version this build expects, if it checks one.
     pub expected_version: Option<&'static str>,
+    /// What the session is held to.
+    pub policy: Policy,
 }
 
 /// The spec for `harness`, or the reason there is none. `path` and `pathext`
@@ -141,6 +155,7 @@ pub fn spec(
         args: Vec::new(),
         env,
         expected_version: Some(descriptor.adapter.version),
+        policy: descriptor.policy,
     })
 }
 

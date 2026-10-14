@@ -79,10 +79,6 @@ const MAX_PENDING_APPROVALS: usize = 64;
 const CLOSED: i64 = -1;
 const TIMED_OUT: i64 = -2;
 
-/// The mode Kaava starts every Claude session in: ask before acting. A user
-/// whose own default is to act without asking still gets asked here.
-const ASK_FIRST: &str = "default";
-
 /// Everything a session needs to start.
 pub(crate) struct Start {
     pub(crate) instance_id: String,
@@ -104,6 +100,8 @@ struct Shared {
     instance_id: String,
     worktree: Worktree,
     expected_version: Option<&'static str>,
+    /// The mode the handshake puts the session in, from its harness's policy.
+    ask_first: &'static str,
     child: Mutex<Child>,
     /// What ends the child and everything it started at once.
     job: Option<Job>,
@@ -198,6 +196,7 @@ impl Session {
             instance_id,
             worktree,
             expected_version: spec.expected_version,
+            ask_first: spec.policy.ask_first,
             child: Mutex::new(child),
             job,
             writer,
@@ -545,12 +544,12 @@ impl Shared {
         // run, whatever mode the user's own settings would have chosen.
         self.request(
             "session/set_mode",
-            json!({ "sessionId": session_id, "modeId": ASK_FIRST }),
+            json!({ "sessionId": session_id, "modeId": self.ask_first }),
             Some(HANDSHAKE),
         )
         .map_err(|_| Failure::Protocol("the agent would not switch to ask-first mode"))?;
         let mut inner = self.lock();
-        inner.status.mode = Some(ASK_FIRST.to_string());
+        inner.status.mode = Some(self.ask_first.to_string());
         if inner.closed {
             return Ok(());
         }
