@@ -14,7 +14,7 @@ use std::time::{Duration, Instant};
 
 use crate::event::{Attachment, Envelope, Event, Hint, Item};
 use crate::guard::{NotAWorktree, Worktree};
-use crate::harness::{LaunchSpec, Protocol};
+use crate::harness::{Harness, LaunchSpec, Protocol};
 use crate::session::{Level, Log, Session, Sink, Start};
 
 /// How long a retired session gets to exit before its thread gives up
@@ -24,10 +24,12 @@ const RETIRE_WAIT: Duration = Duration::from_secs(3);
 /// One harness's session, as the host drives it — the part of handoff §3.2's
 /// adapter trait this slice uses. [`Session`] implements it over ACP, for
 /// every harness whose descriptor says [`Protocol::Acp`]; a harness that
-/// speaks something else gets a type of its own that translates. `harness`,
+/// speaks something else gets a type of its own that translates.
 /// `capabilities`, `resume`, `fork`, `steer`, `set_model` and `list_commands`
 /// arrive with the features that need them.
 pub trait Adapter: Send + Sync {
+    /// Which harness it runs.
+    fn harness(&self) -> Harness;
     /// Start a turn with `text`.
     fn prompt(&self, text: &str) -> Result<(), HostError>;
     /// Stop the running turn.
@@ -57,6 +59,9 @@ pub trait Adapter: Send + Sync {
 }
 
 impl Adapter for Session {
+    fn harness(&self) -> Harness {
+        Session::harness(self)
+    }
     fn prompt(&self, text: &str) -> Result<(), HostError> {
         Session::prompt(self, text)
     }
@@ -331,6 +336,14 @@ impl AgentHost {
     /// The worktree the tab's session runs in, if it has one.
     pub fn worktree(&self, instance_id: &str) -> Option<Worktree> {
         self.get(instance_id).map(|s| s.worktree().clone())
+    }
+
+    /// The harness the tab's agent runs, while its process lives. A prompt
+    /// goes to that agent, whatever harness the tab has chosen since.
+    pub fn running(&self, instance_id: &str) -> Option<Harness> {
+        self.get(instance_id)
+            .filter(|s| s.is_alive())
+            .map(|s| s.harness())
     }
 
     /// Kill every session whose tab `keep` does not name. Returns at once.

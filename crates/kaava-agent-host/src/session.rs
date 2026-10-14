@@ -34,7 +34,7 @@ use crate::event::{
     Attachment, Envelope, Event, Hint, Item, ItemKind, SessionState, SessionStatus, SettingTrouble,
 };
 use crate::guard::{outside, request_paths, Worktree};
-use crate::harness::LaunchSpec;
+use crate::harness::{Harness, LaunchSpec};
 use crate::host::HostError;
 use crate::job::{self, Job};
 use crate::mask::mask;
@@ -455,6 +455,11 @@ impl Session {
     /// the caller numbers next.
     pub(crate) fn silence(&self) {
         self.shared.lock().silenced = true;
+    }
+
+    /// Which harness it runs.
+    pub(crate) fn harness(&self) -> Harness {
+        self.shared.lock().status.harness
     }
 
     /// Where it runs.

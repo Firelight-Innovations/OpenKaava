@@ -515,6 +515,18 @@ fn a_crash_stops_the_session_and_the_next_prompt_restarts_it() {
 }
 
 #[test]
+fn a_tab_runs_its_harness_only_while_its_agent_lives() {
+    let rig = rig();
+    assert_eq!(rig.host.running(TAB), None);
+    rig.send(&[], "stream").unwrap();
+    rig.turns_done(1);
+    assert_eq!(rig.host.running(TAB), Some(Harness::Claude));
+    rig.send(&[], "crash").unwrap();
+    rig.state(SessionState::Stopped);
+    assert_eq!(rig.host.running(TAB), None, "an exited agent runs nothing");
+}
+
+#[test]
 fn a_session_belongs_to_its_worktree() {
     let rig = rig();
     rig.send(&[], "slow").unwrap();
