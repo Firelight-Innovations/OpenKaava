@@ -15,6 +15,10 @@ export interface Harnesses {
   harnesses: HarnessInfo[];
   /** The harness this tab's next prompt goes to. */
   current: Harness;
+  /** The harness this tab's agent runs, while it lives. */
+  running: Harness | null;
+  /** The name of the model that agent runs, once it has said. */
+  model: string | null;
   /** Why this cluster cannot run an agent: a key of `strings.refusal`. */
   blocked: string | null;
 }

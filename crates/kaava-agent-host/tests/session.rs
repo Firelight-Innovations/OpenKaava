@@ -527,6 +527,31 @@ fn a_tab_runs_its_harness_only_while_its_agent_lives() {
 }
 
 #[test]
+fn a_tab_names_its_model_only_while_its_agent_lives() {
+    let rig = rig();
+    assert_eq!(rig.host.model(TAB), None);
+    rig.send(&[], "stream").unwrap();
+    rig.turns_done(1);
+    assert_eq!(
+        rig.host.model(TAB).as_deref(),
+        Some("DEFAULT"),
+        "the agent's label"
+    );
+    rig.send(&[], "crash").unwrap();
+    rig.state(SessionState::Stopped);
+    assert_eq!(rig.host.model(TAB), None, "an exited agent runs no model");
+}
+
+#[test]
+fn an_agent_that_reports_no_model_names_none() {
+    let rig = rig();
+    rig.send(&["--no-config"], "stream").unwrap();
+    rig.turns_done(1);
+    assert_eq!(rig.host.running(TAB), Some(Harness::Claude));
+    assert_eq!(rig.host.model(TAB), None);
+}
+
+#[test]
 fn a_session_belongs_to_its_worktree() {
     let rig = rig();
     rig.send(&[], "slow").unwrap();

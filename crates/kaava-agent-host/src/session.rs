@@ -467,6 +467,11 @@ impl Session {
         &self.shared.worktree
     }
 
+    /// Where it is, without the transcript `attach` copies.
+    pub(crate) fn status(&self) -> SessionStatus {
+        self.shared.lock().status.clone()
+    }
+
     /// Kill the process and everything it started. Returns at once; the
     /// waiter reports the exit.
     pub(crate) fn kill(&self) {

@@ -306,26 +306,34 @@ pub fn call_for(
 
 /// What the agent bar and the tab's empty state need before a first prompt:
 /// each harness and what stands in its way, the one `tab`'s next prompt goes
-/// to, and whether this cluster can run one at all.
+/// to, the harness and model its agent runs while it lives, and whether this
+/// cluster can run one at all.
 fn harnesses(app: &AppHandle, context: &CallContext, tab: Option<&str>) -> Value {
     let (path, pathext) = (std::env::var_os("PATH"), std::env::var_os("PATHEXT"));
     let harnesses: Vec<HarnessInfo> = REGISTRY
         .iter()
         .map(|d| d.info(spec(d.harness, path.as_deref(), pathext.as_deref()).err()))
         .collect();
-    let current = match tab {
+    let (current, running, model) = match tab {
         Some(id) => {
             let sessions = app.state::<Sessions>();
-            sessions.current(sessions.host(app), id)
+            let host = sessions.host(app);
+            (sessions.current(host, id), host.running(id), host.model(id))
         }
-        None => current(None, None),
+        None => (current(None, None), None, None),
     };
     let blocked = refuse_unless_developer(app)
         .and_then(|()| worktree(app, context).map(|_| ()))
         .err()
         .and_then(|e| e.data)
         .and_then(|d| d.get("code").cloned());
-    json!({ "harnesses": harnesses, "current": current, "blocked": blocked })
+    json!({
+        "harnesses": harnesses,
+        "current": current,
+        "running": running,
+        "model": model,
+        "blocked": blocked,
+    })
 }
 
 /// The harness a tab's next prompt goes to: the one its agent runs, else the
