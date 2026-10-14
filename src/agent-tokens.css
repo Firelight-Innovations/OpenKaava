@@ -1,0 +1,110 @@
+/*
+ * The agent surfaces' design tokens: the agent tab (apps/agent-tab) and the
+ * agent bar (src/shell/agentbar). Their components read only the `--k-*` names
+ * below, and this file is the one place that says which Kaava token each one
+ * is. Restyle the agent UI here, not in a component.
+ *
+ * Every value is a Kaava token or a size, never a hex, so the shell's live
+ * theme and accent carry straight through: light and dark come from
+ * `src/tokens.css`. It sits beside that file for the same reason
+ * `src/kaava-ui.css` does: the shell and an app both import it, and neither may
+ * import the other's source.
+ *
+ * The colour names are the VS Code-style ones from handoff §2.1.1
+ * (`docs/handoffs/agent-host.md`), kept so nothing that reads them moves.
+ */
+:root {
+  /* Colour: surfaces */
+  --k-editor-bg: var(--bg-surface-1);
+  --k-sidebar-bg: var(--bg-layer-1);
+  --k-card-bg: var(--bg-layer-1);
+  --k-raised-bg: var(--bg-layer-2);
+  --k-input-bg: var(--bg-layer-1);
+  --k-code-bg: var(--bg-layer-2);
+  --k-badge-bg: var(--bg-layer-2);
+  --k-list-hover: var(--bg-layer-1-hover);
+  --k-list-active: var(--bg-layer-1-selected);
+
+  /* Colour: text */
+  --k-editor-fg: var(--txt-primary);
+  --k-fg-secondary: var(--txt-secondary);
+  --k-fg-muted: var(--txt-tertiary);
+  --k-fg-faint: var(--txt-placeholder);
+  --k-fg-disabled: var(--txt-disabled);
+  --k-badge-fg: var(--txt-secondary);
+  --k-link: var(--txt-accent);
+
+  /* Colour: lines and focus */
+  --k-panel-border: var(--border-subtle);
+  --k-input-border: var(--border-subtle-1);
+  --k-border-strong: var(--border-strong);
+  --k-focus-ring: var(--focus-ring);
+
+  /* Colour: accent and status */
+  --k-accent: var(--accent);
+  --k-accent-subtle: var(--accent-subtle);
+  --k-on-accent: var(--txt-on-accent);
+  --k-diff-add: var(--success-subtle);
+  --k-diff-add-fg: var(--txt-success);
+  --k-diff-del: var(--danger-subtle);
+  --k-diff-del-fg: var(--txt-danger);
+  --k-warning-bg: var(--warning-subtle);
+  --k-warning-fg: var(--txt-warning);
+  --k-error-bg: var(--danger-subtle);
+  --k-error-fg: var(--txt-danger);
+  --k-state-idle: var(--state-idle);
+  --k-state-ready: var(--success);
+  --k-state-working: var(--info);
+  --k-state-attention: var(--warning);
+  --k-state-failed: var(--danger);
+
+  /* Type */
+  --k-font: var(--sans);
+  --k-mono: var(--mono);
+  --k-text-body: var(--type-body);
+  --k-text-strong: var(--type-body-strong);
+  --k-text-small: var(--type-caption);
+  --k-text-heading: var(--type-h2);
+  --k-text-code: 400 12px/1.45 var(--mono);
+  --k-text-label-size: 11px;
+  --k-text-label-tracking: var(--type-label-tracking);
+  --k-size-small: 12px;
+
+  /* Spacing */
+  --k-space-0-5: 2px;
+  --k-space-1: var(--space-1);
+  --k-space-1-5: var(--space-1-5);
+  --k-space-2: var(--space-2);
+  --k-space-2-5: 10px;
+  --k-space-3: var(--space-3);
+  --k-space-4: var(--space-4);
+  --k-item-gap: var(--space-2);
+
+  /* Radius */
+  --k-radius-sm: var(--radius-sm);
+  --k-radius-card: var(--radius-sm);
+  --k-radius-input: var(--radius-sm);
+  --k-radius-control: var(--radius-md);
+  --k-radius-bar: var(--radius-region);
+  --k-radius-pill: 999px;
+
+  /* Size */
+  --k-control-md: var(--control-md);
+  --k-row: 22px;
+
+  /* Motion: one tween, the shell's `instant` (src/shell/motion.ts) */
+  --k-motion-fast: 90ms;
+  --k-motion-base: 180ms;
+  --k-ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Elevation: none on cards (handoff §2.1.3); menus only */
+  --k-shadow-card: none;
+  --k-shadow-menu: var(--shadow-overlay);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --k-motion-fast: 0ms;
+    --k-motion-base: 0ms;
+  }
+}
