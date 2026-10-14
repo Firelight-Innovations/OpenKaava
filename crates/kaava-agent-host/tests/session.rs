@@ -1149,3 +1149,13 @@ fn the_agent_can_change_its_settings_on_its_own() {
     let status = drawn.expect("drawn as it happened, not only at the end of the turn");
     assert_eq!(status.mode.as_deref(), Some("acceptEdits"));
 }
+
+#[test]
+fn a_handshake_that_fails_early_never_shows_the_users_own_mode() {
+    let rig = rig();
+    // The mock's own default mode is `auto`, which the tab holds back.
+    rig.send(&["--no-session-id"], "hi").unwrap();
+    rig.state(SessionState::Failed);
+    let status = last_status(&rig.events()).unwrap();
+    assert_eq!(status.mode, None);
+}

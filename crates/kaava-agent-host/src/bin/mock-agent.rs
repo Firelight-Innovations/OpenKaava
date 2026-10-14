@@ -234,6 +234,9 @@ impl Mock {
                     }));
                 }
                 let mut result = json!({ "sessionId": "mock-1", "modes": self.modes() });
+                if self.has("--no-session-id") {
+                    result["sessionId"] = Value::Null;
+                }
                 if !self.has("--no-config") {
                     result["configOptions"] = self.config_options();
                 }
