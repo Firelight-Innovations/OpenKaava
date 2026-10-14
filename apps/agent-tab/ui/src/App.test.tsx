@@ -376,6 +376,30 @@ describe("the agent tab", () => {
     expect(agent[0].textContent).toContain("Here");
   });
 
+  it("says it is working after a tool row only while the turn runs", async () => {
+    const tool = item("c1", {
+      kind: "toolCall",
+      title: "pnpm test",
+      toolKind: "execute",
+      status: "completed",
+      output: "",
+      truncated: false,
+      paths: [],
+      diffs: [],
+    });
+    const items = [item("u1", { kind: "userMessage", text: "run the tests" }), tool];
+    backend({ status: STATUS, seq: 2, items });
+    render(<App />);
+    await screen.findByText("pnpm test");
+    expect(screen.queryByText("Working…")).toBeNull();
+    cleanup();
+
+    backend({ status: { ...STATUS, state: "working" }, seq: 2, items });
+    render(<App />);
+    await screen.findByText("pnpm test");
+    expect(screen.getByText("Working…")).toBeTruthy();
+  });
+
   it("never names the harness Claude Code", async () => {
     backend({ status: STATUS, seq: 1, items: [] });
     render(<App />);

@@ -29,9 +29,14 @@ function ById({ id }: { id: string | undefined }) {
   return item && lookup ? <ItemView item={item} actions={lookup.actions} /> : null;
 }
 
-function Empty() {
+/**
+ * assistant-ui draws this in an empty agent turn, and after a turn's last
+ * tool row, whether or not the turn is still running: it is left to us to
+ * check.
+ */
+function Empty({ status }: { status: { type: string } }) {
   const S = useSlots();
-  return <S.Working />;
+  return status.type === "running" ? <S.Working /> : null;
 }
 
 const parts = {
