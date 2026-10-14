@@ -273,13 +273,13 @@ Agent C cannot sign in to Claude or ChatGPT. Prepare a script and a checklist. T
 
 | # | Item | Owner | Result |
 |---|---|---|---|
-| V1 | Claude, Codex, and Pi run natively on Windows as Tauri child processes without WSL | Owner | |
-| V2 | The Claude ACP adapter keeps the unmodified binary's sign-in and passes permission prompts through | C, then owner | |
-| V3 | Whether a maintained Pi ACP shim exists; if not, T1.4 writes one | C | |
-| V4 | Pi RPC covers steer, abort, fork, and extension UI requests as documented | C | |
-| V5 | `codex-acp` covers approval, diff, and plan items | C | |
+| V1 | Claude, Codex, and Pi run natively on Windows as Tauri child processes without WSL | Owner | Partly checked 2026-10-14 on the owner's machine: `claude` 2.1.296 is a native `claude.exe`, `codex` 0.153.0 a native exe, `pi` 0.84.1 an npm `.cmd` shim. All three run without WSL. The Tauri child-process run is still owner-run. |
+| V2 | The Claude ACP adapter keeps the unmodified binary's sign-in and passes permission prompts through | C, then owner | **Passes technically, with two conflicts raised in §11.6.** Adapter: `@agentclientprotocol/claude-agent-acp` 0.90.0 (Apache-2.0; the Zed packages `@zed-industries/claude-code-acp` and `claude-agent-acp` are deprecated renames of it). By default it runs the native `claude` that the Agent SDK bundles; with `CLAUDE_CODE_EXECUTABLE` set it runs the user's own unmodified `claude`. Sign-in stays in that binary: the adapter only runs `claude auth status --json` (no token in the output) and offers `claude auth login` as a terminal method, which Kaava never runs. Permission prompts arrive as ACP `session/request_permission`. The adapter reads no credential file. Owner still runs the real login (§9.2). |
+| V3 | Whether a maintained Pi ACP shim exists; if not, T1.4 writes one | C | Exists: `pi-acp` 0.0.34 (MIT, github.com/svkozak/pi-acp, in Zed's ACP registry, releases about monthly, last 2026-09-24). Self-described MVP. Gaps against §3.3: no steer (queue is client-side), no fork, no thought stream, client MCP servers not passed to Pi. T1.4 decides between extending it and owning a shim. |
+| V4 | Pi RPC covers steer, abort, fork, and extension UI requests as documented | C | Passes, from `docs/rpc.md` of the installed `@earendil-works/pi-coding-agent` 0.84.1 (the package moved from `@mariozechner/pi-coding-agent`): `steer`, `follow_up`, `abort`, `fork`, `clone`, `switch_session`, `agent_settled`, and `extension_ui_request` / `extension_ui_response` (select, confirm, input, editor). |
+| V5 | `codex-acp` covers approval, diff, and plan items | C | Passes: `@agentclientprotocol/codex-acp` 2.2.2 (Apache-2.0; replaces `@zed-industries/codex-acp`) emits permission requests, `diff` content and `plan` updates. It bundles `@openai/codex` ^0.160.1; `CODEX_PATH` selects the user's own binary. |
 | V6 | Anthropic written confirmation before any external release that includes Claude | Owner | |
-| V7 | Codex CLI license text confirmed (the adapter is Apache-2.0) | C | |
+| V7 | Codex CLI license text confirmed (the adapter is Apache-2.0) | C | Passes: `@openai/codex` 0.160.1 and 0.162.1 are Apache-2.0 (github.com/openai/codex). |
 
 ---
 
@@ -290,12 +290,57 @@ Agent C cannot sign in to Claude or ChatGPT. Prepare a script and a checklist. T
 3. Confirm the default harness for the first release: Pi (needs an API key) or Claude/Codex (user plan).
 4. Decide whether the worker VM later runs Pi by default.
 5. Decide on the optional full-editor tab.
+6. **Conflicts found by V2 (2026-10-14).** The Claude ACP adapter is built on the Claude Agent SDK.
+   - *License (§7.1).* `@anthropic-ai/claude-agent-sdk` is not MIT, Apache-2.0, BSD or ISC: its
+     `LICENSE.md` reads "© Anthropic PBC. All rights reserved", subject to Anthropic's legal
+     agreements. A pinned dependency in this repository would fail the license rule.
+   - *Sign-in policy (design §6).* Row 1 allows the unmodified binary with the user's own
+     subscription. Row 2 says a product built on the Agent SDK must use API keys and must not
+     route through Free, Pro or Max credentials. The adapter is such a product. It ships
+     `--hide-claude-auth`, which refuses every turn a subscription would pay for.
+   - Proposed handling: do not vendor the adapter. The user installs it once, pinned, with
+     `npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@0.90.0`. Kaava runs it with
+     `CLAUDE_CODE_EXECUTABLE` set to the user's own `claude`. Subscription use is limited to the
+     owner's single-user testing, the same gray area design §6 rule 4 accepts. V6 gates any
+     external release. Owner decision recorded in §12.
+7. **Codicons license (§2.1.4 against §7.1).** `@vscode/codicons` 0.0.46 is published under
+   CC-BY-4.0, not MIT. Decide whether to allow CC-BY-4.0 for the icon font (it needs attribution),
+   or keep the agent tab on text labels and the repository's existing icons.
 
 ---
 
 ## 12. Results log
 
-(Agent C fills this in: final paths, pinned versions, V-row results, owner checklist results, known gaps.)
+### 2026-10-14 — owner decisions
+
+- **Paths (§11.2).** The app is `apps/agent-tab`, not `apps/agent`. The crate is
+  `crates/kaava-agent-host`. The agent bar is the shell region `src/shell/agentbar`. Every
+  `apps/agent/...` path in this document reads as `apps/agent-tab/ui/...`.
+- **Cloud Agents app.** The owner asked for the cloud Agents app (`apps/agents/`) to be disabled
+  while the MVP focuses on core features. It is hidden from the app registry and the rail in its
+  own PR, not deleted.
+- **§11.6 (V2 conflicts).** Personal testing only. The adapter is not vendored. The user installs
+  it once, pinned, with `npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@0.90.0`.
+  Kaava runs it with `CLAUDE_CODE_EXECUTABLE` set to the user's own `claude` and the user's own
+  sign-in. `--hide-claude-auth` is not passed. V6 gates any external release that includes Claude.
+
+### Deviations from this document
+
+- **Mock agent location.** `packages/mock-agent/` (§3.3) would be a Node package. The mock is a
+  Rust binary inside the crate (`crates/kaava-agent-host/src/bin/mock-agent.rs`) so `cargo test`
+  needs no Node and the host's own tests spawn it as a real child process.
+- **Codicons (§2.1.4).** `@vscode/codicons` is published as CC-BY-4.0 (the font and SVGs), not
+  MIT, which fails §7.1. Not added. Raised in §11.7.
+- **ACP types.** `agent-client-protocol-schema` (Apache-2.0) is not used: it turns on
+  `serde_json/preserve_order`, and feature unification would change JSON key order for the whole
+  workspace. The host writes the subset of ACP v1 it uses by hand, with a tolerant parser.
+
+### Pinned versions (tested 2026-10-14, Windows 11)
+
+| Program | Version | Source |
+|---|---|---|
+| `claude` | 2.1.296 | the user's own install |
+| `@agentclientprotocol/claude-agent-acp` | 0.90.0 | the user's global npm install (§11.6) |
 
 ---
 
