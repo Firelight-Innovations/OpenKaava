@@ -287,6 +287,13 @@ modes: Array<ConfigChoice>,
  */
 config: Array<ConfigOption>, 
 /**
+ * The number of the last setting change the agent answered. Changing a
+ * setting returns the change's number, and numbers only grow, so the tab
+ * knows which status answers the choice it is showing. A new session
+ * starts past every change made before it.
+ */
+answered: number, 
+/**
  * The adapter's own version, as it reported it at `initialize`.
  */
 adapterVersion: string | null, 

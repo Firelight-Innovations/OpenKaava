@@ -44,6 +44,7 @@ function session(state: SessionState, items: Item[]): Attachment {
       pendingPrompt: null,
       modes: [],
       config: [],
+      answered: 0,
     },
     items,
   };

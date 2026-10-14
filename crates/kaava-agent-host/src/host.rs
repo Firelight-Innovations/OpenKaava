@@ -150,6 +150,8 @@ pub struct AgentHost {
     /// one between them rather than one each.
     sending: Mutex<()>,
     seq: Arc<AtomicU64>,
+    /// The last number given to a setting change, across every session.
+    changes: Arc<AtomicU64>,
     generation: AtomicU64,
     events: Mutex<mpsc::Sender<Envelope>>,
     log: Log,
@@ -171,6 +173,7 @@ impl AgentHost {
             sessions: Mutex::new(HashMap::new()),
             sending: Mutex::new(()),
             seq: Arc::new(AtomicU64::new(0)),
+            changes: Arc::new(AtomicU64::new(0)),
             generation: AtomicU64::new(0),
             events: Mutex::new(events),
             log,
@@ -219,6 +222,7 @@ impl AgentHost {
             worktree,
             prior,
             seq: Arc::clone(&self.seq),
+            changes: Arc::clone(&self.changes),
             events,
             log: Arc::clone(&self.log),
         };

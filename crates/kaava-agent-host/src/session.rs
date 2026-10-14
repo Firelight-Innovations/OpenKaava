@@ -88,6 +88,8 @@ pub(crate) struct Start {
     pub(crate) prefix: String,
     pub(crate) prior: Vec<Item>,
     pub(crate) seq: Arc<AtomicU64>,
+    /// The host's count of setting changes, which numbers this session's.
+    pub(crate) changes: Arc<AtomicU64>,
     pub(crate) events: Sender<Envelope>,
     pub(crate) log: Log,
 }
@@ -161,6 +163,7 @@ impl Session {
             prefix,
             prior,
             seq,
+            changes,
             events,
             log,
         } = start;
@@ -194,6 +197,7 @@ impl Session {
             mode: None,
             modes: Vec::new(),
             config: Vec::new(),
+            answered: changes.load(Ordering::SeqCst),
             adapter_version: None,
             exit_code: None,
             hint: None,
@@ -1180,6 +1184,7 @@ mod tests {
                 mode: None,
                 modes: Vec::new(),
                 config: Vec::new(),
+                answered: 0,
                 adapter_version: None,
                 exit_code: None,
                 hint: None,

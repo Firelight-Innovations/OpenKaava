@@ -45,6 +45,7 @@ const STATUS: SessionStatus = {
   mode: "default",
   modes: [],
   config: [],
+  answered: 0,
   adapterVersion: "0.90.0",
   exitCode: null,
   hint: null,

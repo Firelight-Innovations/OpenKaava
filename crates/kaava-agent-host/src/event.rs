@@ -333,6 +333,11 @@ pub struct SessionStatus {
     /// last reported them. Filled from the `session/new` reply, so a session
     /// that fails later in its handshake still carries them.
     pub config: Vec<ConfigOption>,
+    /// The number of the last setting change the agent answered. Changing a
+    /// setting returns the change's number, and numbers only grow, so the tab
+    /// knows which status answers the choice it is showing. A new session
+    /// starts past every change made before it.
+    pub answered: u64,
     /// The adapter's own version, as it reported it at `initialize`.
     pub adapter_version: Option<String>,
     /// The process's exit code, once it has exited. Never its output: what an

@@ -43,6 +43,7 @@ const EVERYTHING: Attachment = {
     pendingPrompt: "and then",
     modes: [],
     config: [],
+    answered: 0,
   },
   items: [
     item("u", { kind: "userMessage", text: "hi" }),
