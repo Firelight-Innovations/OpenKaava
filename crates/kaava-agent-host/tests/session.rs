@@ -142,6 +142,14 @@ impl Rig {
     }
 }
 
+fn value_of<'a>(status: &'a kaava_agent_host::SessionStatus, id: &str) -> Option<&'a str> {
+    status
+        .config
+        .iter()
+        .find(|o| o.id == id)
+        .map(|o| o.value.as_str())
+}
+
 fn last_status(events: &[Envelope]) -> Option<kaava_agent_host::SessionStatus> {
     events.iter().rev().find_map(|e| match &e.event {
         Event::Status { status } => Some(status.clone()),
@@ -1091,4 +1099,31 @@ fn a_node_cmd_in_the_worktree_is_not_run_by_the_npm_shim() {
         !rig.tree.root().join("planted.txt").exists(),
         "the worktree's node.cmd ran"
     );
+}
+
+#[test]
+fn the_session_reports_its_modes_and_settings() {
+    let rig = rig();
+    rig.send(&[], "stream").unwrap();
+    rig.turns_done(1);
+    let status = last_status(&rig.events()).unwrap();
+    assert_eq!(
+        status.mode.as_deref(),
+        Some("default"),
+        "forced to ask first"
+    );
+    let modes: Vec<&str> = status.modes.iter().map(|m| m.value.as_str()).collect();
+    assert_eq!(
+        modes,
+        ["default", "acceptEdits", "plan"],
+        "bypass (D4) and auto are never offered"
+    );
+    let ids: Vec<&str> = status.config.iter().map(|o| o.id.as_str()).collect();
+    assert_eq!(
+        ids,
+        ["model", "effort", "fast"],
+        "the mode is not drawn twice"
+    );
+    assert_eq!(value_of(&status, "model"), Some("default"));
+    assert_eq!(status.config[0].choices.len(), 4);
 }

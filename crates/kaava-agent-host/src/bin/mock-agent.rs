@@ -11,6 +11,15 @@ use std::time::Duration;
 
 use serde_json::{json, Value};
 
+/// The modes on offer, as Claude's adapter names them.
+const MODES: [(&str, &str); 5] = [
+    ("default", "Manual"),
+    ("acceptEdits", "Accept edits"),
+    ("plan", "Plan"),
+    ("auto", "Auto"),
+    ("bypassPermissions", "Bypass permissions"),
+];
+
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.first().map(String::as_str) == Some("--sleep") {
@@ -40,6 +49,10 @@ fn main() {
         prompt_id: None,
         waiting: None,
         slow: false,
+        mode: "auto".into(),
+        model: "default".into(),
+        effort: "medium".into(),
+        fast: "off".into(),
     };
     if mock.has("--secret") {
         eprintln!("debug: token sk-ant-oat01-AbCdEf0123456789xyzAbCd for someone@example.com");
@@ -61,6 +74,10 @@ struct Mock {
     /// The scenario waiting on our permission request's answer.
     waiting: Option<String>,
     slow: bool,
+    mode: String,
+    model: String,
+    effort: String,
+    fast: String,
 }
 
 impl Mock {
@@ -103,6 +120,48 @@ impl Mock {
             "messageId": message_id,
             "content": { "type": "text", "text": text }
         }));
+    }
+
+    fn modes(&self) -> Value {
+        let available: Vec<Value> = MODES
+            .iter()
+            .map(|(id, name)| json!({ "id": id, "name": name }))
+            .collect();
+        json!({ "currentModeId": self.mode, "availableModes": available })
+    }
+
+    /// The settings, shaped as Claude's adapter shapes them: the mode again
+    /// as an option, effort only for a model that has it, and fast mode as an
+    /// on/off select. `gone` is a model the agent refuses to switch to.
+    fn config_options(&self) -> Value {
+        let select = |id: &str, category: &str, current: &str, choices: &[&str]| {
+            let options: Vec<Value> = choices
+                .iter()
+                .map(|c| json!({ "value": c, "name": c.to_uppercase() }))
+                .collect();
+            json!({ "id": id, "name": id.to_uppercase(), "category": category,
+                    "type": "select", "currentValue": current, "options": options })
+        };
+        let mode_ids: Vec<&str> = MODES.iter().map(|(id, _)| *id).collect();
+        let mut options = vec![
+            select("mode", "mode", &self.mode, &mode_ids),
+            select(
+                "model",
+                "model",
+                &self.model,
+                &["default", "opus", "haiku", "gone"],
+            ),
+        ];
+        if self.model != "haiku" {
+            options.push(select(
+                "effort",
+                "thought_level",
+                &self.effort,
+                &["low", "medium", "high"],
+            ));
+        }
+        options.push(select("fast", "model_config", &self.fast, &["on", "off"]));
+        Value::Array(options)
     }
 
     fn end_turn(&mut self, stop_reason: &str) {
@@ -165,13 +224,11 @@ impl Mock {
                         } }
                     }));
                 }
-                self.reply(
-                    &id,
-                    json!({
-                        "sessionId": "mock-1",
-                        "modes": { "currentModeId": "auto", "availableModes": [] }
-                    }),
-                );
+                let mut result = json!({ "sessionId": "mock-1", "modes": self.modes() });
+                if !self.has("--no-config") {
+                    result["configOptions"] = self.config_options();
+                }
+                self.reply(&id, result);
             }
             (Some("session/set_mode"), Some(id)) => {
                 let only = self.flag_value("--only-mode");

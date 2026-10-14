@@ -16,7 +16,7 @@
 //! None of them is joined. Each holds the shared state, and goes when its own
 //! work ends.
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::io::{BufRead, BufReader, ErrorKind, Read, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -27,6 +27,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 
+use crate::config::{self, Settings};
 use crate::event::{
     Attachment, Envelope, Event, Hint, Item, ItemKind, SessionState, SessionStatus,
 };
@@ -126,6 +127,10 @@ struct Inner {
     transcript: Transcript,
     status: SessionStatus,
     session_id: Option<String>,
+    /// Requests whose replies carry the session's settings. The reader takes
+    /// each reply in as it arrives, so a notification sent after it is never
+    /// overwritten by it.
+    changing: HashSet<i64>,
     events: Sender<Envelope>,
     last_seq: u64,
     noise: u64,
@@ -217,6 +222,7 @@ impl Session {
                 transcript: Transcript::from_items(prior),
                 status,
                 session_id: None,
+                changing: HashSet::new(),
                 events,
                 last_seq: seq.load(Ordering::SeqCst),
                 noise: 0,
@@ -381,6 +387,29 @@ impl Drop for Session {
     }
 }
 
+impl Inner {
+    /// Take in a `configOptions` list: the mode option, if there is one, and
+    /// every other option as the agent now reports it.
+    fn apply(&mut self, settings: Settings) {
+        if let Some(mode) = settings.mode {
+            self.status.mode = Some(mode.value);
+            self.status.modes = config::allowed(mode.choices);
+        }
+        self.status.config = settings.options;
+    }
+
+    /// Take in a reply that carries the settings: `session/new`'s modes and
+    /// list.
+    fn answered(&mut self, result: &Value) {
+        if let Some((_, choices)) = result.get("modes").and_then(config::modes) {
+            self.status.modes = config::allowed(choices);
+        }
+        if let Some(list) = result.get("configOptions").filter(|l| l.is_array()) {
+            self.apply(config::settings(list));
+        }
+    }
+}
+
 impl Shared {
     fn lock(&self) -> MutexGuard<'_, Inner> {
         self.state.lock().unwrap_or_else(|e| e.into_inner())
@@ -529,19 +558,27 @@ impl Shared {
             );
         }
         let cwd = self.worktree.path().to_string_lossy().into_owned();
+        // Its modes and settings are taken in by the reader.
         let new = self
-            .request(
+            .send_request(
                 "session/new",
                 json!({ "cwd": cwd, "mcpServers": [] }),
-                Some(HANDSHAKE),
+                carries_settings,
             )
+            .and_then(|id| self.finish(id, "session/new", Some(HANDSHAKE)))
             .map_err(Failure::from)?;
         let session_id = new
             .get("sessionId")
             .and_then(Value::as_str)
             .ok_or(Failure::Protocol("session/new returned no sessionId"))?
             .to_string();
-        self.lock().session_id = Some(session_id.clone());
+        {
+            let mut inner = self.lock();
+            inner.session_id = Some(session_id.clone());
+            // Whatever the user's own default is, it is not this session's
+            // mode until the switch to ask-first below is confirmed.
+            inner.status.mode = None;
+        }
         // Fail closed: a session that cannot be put in ask-first mode does not
         // run, whatever mode the user's own settings would have chosen.
         self.request(
@@ -671,6 +708,18 @@ impl Shared {
         params: Value,
         timeout: Option<Duration>,
     ) -> Result<Value, RemoteError> {
+        let id = self.send_request(method, params, |_, _| {})?;
+        self.finish(id, method, timeout)
+    }
+
+    /// Send a request with a slot for its reply. `track` notes anything else
+    /// about it under the same lock, before the reply can arrive.
+    fn send_request(
+        &self,
+        method: &str,
+        params: Value,
+        track: impl FnOnce(&mut Inner, i64),
+    ) -> Result<i64, RemoteError> {
         let id = {
             let mut inner = self.lock();
             if inner.closed {
@@ -679,29 +728,48 @@ impl Shared {
             inner.next_id += 1;
             let id = inner.next_id;
             inner.replies.insert(id, None);
+            track(&mut inner, id);
             id
         };
         self.send(wire::request(&Id::Number(id), method, params));
+        Ok(id)
+    }
+
+    /// Wait for the reply to `id`; past `timeout`, give up on it.
+    fn finish(
+        &self,
+        id: i64,
+        method: &str,
+        timeout: Option<Duration>,
+    ) -> Result<Value, RemoteError> {
         let deadline = timeout.map(|t| Instant::now() + t);
+        self.await_reply(id, deadline).unwrap_or_else(|| {
+            let mut inner = self.lock();
+            inner.replies.remove(&id);
+            inner.changing.remove(&id);
+            Err(timed_out(method))
+        })
+    }
+
+    /// Wait for the reply to `id` until `deadline`. `None` if it passes
+    /// first, with the slot kept, so the reply can still be waited for.
+    fn await_reply(
+        &self,
+        id: i64,
+        deadline: Option<Instant>,
+    ) -> Option<Result<Value, RemoteError>> {
         let mut inner = self.lock();
         loop {
             if let Some(Some(_)) = inner.replies.get(&id) {
-                return inner
-                    .replies
-                    .remove(&id)
-                    .flatten()
-                    .unwrap_or_else(|| Err(closed()));
+                let reply = inner.replies.remove(&id).flatten();
+                return Some(reply.unwrap_or_else(|| Err(closed())));
             }
             inner = match deadline {
                 None => self.wake.wait(inner).unwrap_or_else(|e| e.into_inner()),
                 Some(deadline) => {
                     let left = deadline.saturating_duration_since(Instant::now());
                     if left.is_zero() {
-                        inner.replies.remove(&id);
-                        return Err(RemoteError {
-                            code: TIMED_OUT,
-                            message: format!("{method} got no reply"),
-                        });
+                        return None;
                     }
                     self.wake
                         .wait_timeout(inner, left)
@@ -732,6 +800,11 @@ impl Shared {
             Some(Incoming::Response { id, outcome }) => {
                 let Id::Number(n) = id else { return };
                 let mut inner = self.lock();
+                if inner.changing.remove(&n) {
+                    if let Ok(result) = &outcome {
+                        inner.answered(result);
+                    }
+                }
                 if let Some(slot) = inner.replies.get_mut(&n) {
                     *slot = Some(outcome);
                     self.wake.notify_all();
@@ -982,6 +1055,19 @@ fn closed() -> RemoteError {
         code: CLOSED,
         message: "the agent exited".to_string(),
     }
+}
+
+fn timed_out(method: &str) -> RemoteError {
+    RemoteError {
+        code: TIMED_OUT,
+        message: format!("{method} got no reply"),
+    }
+}
+
+/// Mark a request as one whose reply carries the settings, for the reader to
+/// take in.
+fn carries_settings(inner: &mut Inner, id: i64) {
+    inner.changing.insert(id);
 }
 
 /// Read one line into `buf`, keeping at most `limit` bytes of it and reading
