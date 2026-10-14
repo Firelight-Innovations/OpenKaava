@@ -1,10 +1,10 @@
 # What this product is called, and what it is drawn as.
 #
 # The source in this repository is open. The names and the marks in this file
-# are not: they are trademarks of Firelight Innovations. That position is only
-# followable if a fork can strip them in one place instead of by grep, so this
-# file — plus `node scripts/check-branding.mjs --list`, which prints every
-# surface that has to agree with it — is that one place.
+# are not: they are trademarks of Veistra. That position is only followable if
+# a fork can strip them in one place instead of by grep, so this file — plus
+# `node scripts/check-branding.mjs --list`, which prints every surface that has
+# to agree with it — is that one place.
 #
 # Three things read it:
 #

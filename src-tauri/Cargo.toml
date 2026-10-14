@@ -2,7 +2,7 @@
 name = "openkaava-orchestrator"
 version.workspace = true
 description = "Entry point for the OpenKaava stack — loads and orchestrates the dev tools"
-authors = ["Firelight Innovations"]
+authors = ["Veistra"]
 edition = "2021"
 
 # Inherited, so the license is stated in exactly one place. The three fields

@@ -10,7 +10,7 @@ All commands below are Windows PowerShell 5.1, run as-is in a normal PowerShell 
 
 ## 1. Make the token
 
-On your own machine, with Claude Code signed in to the Firelight account:
+On your own machine, with Claude Code signed in to the company account:
 
 ```powershell
 claude setup-token
