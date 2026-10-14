@@ -17,7 +17,7 @@ use crate::event::{ConfigChoice, ConfigOption};
 pub const MODE_CATEGORY: &str = "mode";
 
 /// Claude's bypass-permissions mode. Never offered in the tab (owner
-/// decision D4), and refused if asked for.
+/// decision D4).
 pub const BYPASS: &str = "bypassPermissions";
 
 /// Claude's auto mode, where a classifier approves calls in the user's place.
@@ -26,10 +26,12 @@ pub const BYPASS: &str = "bypassPermissions";
 /// until the owner decides otherwise.
 pub const AUTO: &str = "auto";
 
-/// The values the tab never offers, and refuses if asked for. They are held
-/// back in every option, not only the mode's: the host cannot tell a
-/// permission mode set through another option from an ordinary value. A
-/// harness that uses one of them for something else needs a narrower rule.
+/// The values the tab never offers. They are dropped from every option's
+/// choices, not only the mode's: the host cannot tell a permission mode set
+/// through another option from an ordinary value. A value the agent reports
+/// as current is shown as it is, so the tab never claims another mode than
+/// the one the agent is in. A harness that uses one of them for something
+/// else needs a narrower rule.
 pub const NOT_OFFERED: [&str; 2] = [BYPASS, AUTO];
 
 /// What one `configOptions` list says.
@@ -43,8 +45,8 @@ pub struct Settings {
 
 /// Read a `configOptions` list. Anything that is not a well-formed select
 /// option is left out, and so is any mode option after the first: a second
-/// one would be a way round [`NOT_OFFERED`]. Other options lose those values
-/// here; the mode option loses them where it is applied.
+/// one would be a way round [`NOT_OFFERED`]. Other options' choices lose
+/// those values here; the mode option's lose them where it is applied.
 pub fn settings(list: &Value) -> Settings {
     let mut out = Settings::default();
     for option in list.as_array().into_iter().flatten().filter_map(option) {

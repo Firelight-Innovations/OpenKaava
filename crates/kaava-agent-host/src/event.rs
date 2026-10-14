@@ -322,13 +322,16 @@ pub struct SessionStatus {
     pub harness: Harness,
     /// The working directory: the cluster's worktree.
     pub cwd: String,
-    /// The agent's current mode id (Claude: `default` is ask-before-acting).
+    /// The agent's current mode id (Claude: `default` is ask-before-acting),
+    /// as the agent reports it, even one the tab does not offer. Empty until
+    /// the handshake has switched the agent to ask-first.
     pub mode: Option<String>,
     /// The modes the tab may switch to, in the agent's order. Bypass and auto
     /// are never among them (`config::NOT_OFFERED`).
     pub modes: Vec<ConfigChoice>,
     /// The agent's other session settings — model, effort, fast mode — as it
-    /// last reported them. Empty until the session is open.
+    /// last reported them. Filled from the `session/new` reply, so a session
+    /// that fails later in its handshake still carries them.
     pub config: Vec<ConfigOption>,
     /// The adapter's own version, as it reported it at `initialize`.
     pub adapter_version: Option<String>,

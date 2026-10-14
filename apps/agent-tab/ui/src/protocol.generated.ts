@@ -270,7 +270,9 @@ harness: Harness,
  */
 cwd: string, 
 /**
- * The agent's current mode id (Claude: `default` is ask-before-acting).
+ * The agent's current mode id (Claude: `default` is ask-before-acting),
+ * as the agent reports it, even one the tab does not offer. Empty until
+ * the handshake has switched the agent to ask-first.
  */
 mode: string | null, 
 /**
@@ -280,7 +282,8 @@ mode: string | null,
 modes: Array<ConfigChoice>, 
 /**
  * The agent's other session settings — model, effort, fast mode — as it
- * last reported them. Empty until the session is open.
+ * last reported them. Filled from the `session/new` reply, so a session
+ * that fails later in its handshake still carries them.
  */
 config: Array<ConfigOption>, 
 /**
