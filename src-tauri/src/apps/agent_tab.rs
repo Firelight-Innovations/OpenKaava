@@ -23,8 +23,9 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
-use kaava_agent_host::harness::{spec, REGISTRY};
-use kaava_agent_host::{claude_spec, AgentHost, HarnessInfo, HostError, Level, Worktree};
+use kaava_agent_host::{
+    spec, AgentHost, Harness, HarnessInfo, HostError, Level, Worktree, REGISTRY,
+};
 use kaava_rpc::{RpcError, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager};
@@ -208,25 +209,22 @@ pub fn call_for(
     match method {
         "agent-tab/send" => {
             let text = text_param(&params, "text")?;
-            if text_param(&params, "harness")? != "claude" {
-                return Err(RpcError::new(
-                    INVALID_PARAMS,
-                    "the only harness is `claude`",
-                ));
-            }
+            let harness = harness_param(&params)?;
             let worktree = worktree(app, context)?;
-            let spec = claude_spec(
+            let launch = spec(
+                harness,
                 std::env::var_os("PATH").as_deref(),
                 std::env::var_os("PATHEXT").as_deref(),
             )
             .map_err(|hint| {
+                let name = harness.descriptor().name;
                 refused(
                     "harness",
-                    "Claude or its ACP adapter is not on PATH",
+                    &format!("{name} or its ACP adapter is not on PATH"),
                     json!(hint),
                 )
             })?;
-            host.send(instance, spec, worktree, &text)
+            host.send(instance, launch, worktree, &text)
                 .map_err(host_error)?;
             sessions.record(app, host, instance);
             Ok(json!({}))
@@ -360,6 +358,21 @@ fn host_error(error: HostError) -> RpcError {
 
 fn refused(code: &str, message: &str, hint: Value) -> RpcError {
     RpcError::with_data(REFUSED, message, json!({ "code": code, "hint": hint }))
+}
+
+/// The `harness` param, which must name a registered harness by its id.
+fn harness_param(params: &Value) -> Result<Harness, RpcError> {
+    let id = text_param(params, "harness")?;
+    serde_json::from_value(Value::String(id.clone())).map_err(|_| {
+        let known: Vec<String> = REGISTRY
+            .iter()
+            .map(|d| json!(d.harness).to_string())
+            .collect();
+        RpcError::new(
+            INVALID_PARAMS,
+            format!("no harness `{id}`; registered: {}", known.join(", ")),
+        )
+    })
 }
 
 fn text_param(params: &Value, name: &str) -> Result<String, RpcError> {
@@ -652,5 +665,20 @@ mod tests {
         for name in ["blank", "number", "missing"] {
             assert_eq!(text_param(&params, name).unwrap_err().code, INVALID_PARAMS);
         }
+    }
+
+    #[test]
+    fn a_send_names_a_registered_harness_by_its_id() {
+        for d in REGISTRY {
+            let params = json!({ "harness": d.harness });
+            assert_eq!(harness_param(&params).unwrap(), d.harness);
+        }
+        for id in ["Claude", "claude-code", "nonesuch"] {
+            let err = harness_param(&json!({ "harness": id })).unwrap_err();
+            assert_eq!(err.code, INVALID_PARAMS, "{id}");
+            assert!(err.message.contains("\"claude\""), "{}", err.message);
+        }
+        let missing = harness_param(&json!({})).unwrap_err();
+        assert_eq!(missing.code, INVALID_PARAMS);
     }
 }

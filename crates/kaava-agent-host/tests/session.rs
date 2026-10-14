@@ -1061,7 +1061,7 @@ fn no_token_or_account_reaches_a_log_or_a_status() {
 
 /// The adapter is an npm shim, which `cmd.exe` runs with the worktree as its
 /// current directory, and the shim ends in a bare `node`. A repository can ship
-/// a `node.cmd`; `claude_spec` must keep it from running.
+/// a `node.cmd`; `spec` must keep it from running.
 #[cfg(windows)]
 #[test]
 fn a_node_cmd_in_the_worktree_is_not_run_by_the_npm_shim() {
@@ -1079,9 +1079,12 @@ fn a_node_cmd_in_the_worktree_is_not_run_by_the_npm_shim() {
         "@echo off\r\necho planted> planted.txt\r\n",
     )
     .unwrap();
-    let spec =
-        kaava_agent_host::claude_spec(Some(bin.as_os_str()), Some(std::ffi::OsStr::new(".CMD")))
-            .unwrap();
+    let spec = kaava_agent_host::spec(
+        Harness::Claude,
+        Some(bin.as_os_str()),
+        Some(std::ffi::OsStr::new(".CMD")),
+    )
+    .unwrap();
     rig.host.send(TAB, spec, rig.tree.clone(), "hi").unwrap();
     rig.logged("exited with code");
     assert!(

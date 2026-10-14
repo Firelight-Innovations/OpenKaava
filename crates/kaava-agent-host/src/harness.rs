@@ -219,11 +219,6 @@ pub fn spec(
     })
 }
 
-/// The Claude spec, or the reason there is none.
-pub fn claude_spec(path: Option<&OsStr>, pathext: Option<&OsStr>) -> Result<LaunchSpec, Hint> {
-    spec(Harness::Claude, path, pathext)
-}
-
 /// The first file named `name` on `path`, trying each `pathext` extension on
 /// Windows (`.COM;.EXE;.BAT;.CMD` when unset) and the bare name elsewhere.
 pub fn which(name: &str, path: Option<&OsStr>, pathext: Option<&OsStr>) -> Option<PathBuf> {
@@ -281,13 +276,13 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = Some(dir.path().as_os_str());
         let ext = Some(OsStr::new(".EXE;.CMD"));
-        assert_eq!(claude_spec(path, ext), Err(Hint::HarnessMissing));
+        assert_eq!(spec(Harness::Claude, path, ext), Err(Hint::HarnessMissing));
 
         let claude = touch(dir.path(), &exe("claude"));
-        assert_eq!(claude_spec(path, ext), Err(Hint::AdapterMissing));
+        assert_eq!(spec(Harness::Claude, path, ext), Err(Hint::AdapterMissing));
 
         let adapter = touch(dir.path(), &exe("claude-agent-acp"));
-        let spec = claude_spec(path, ext).unwrap();
+        let spec = spec(Harness::Claude, path, ext).unwrap();
         assert_eq!(spec.program, adapter);
         assert!(spec.args.is_empty(), "a .cmd shim must get no arguments");
         assert_eq!(
@@ -352,7 +347,7 @@ mod tests {
     #[test]
     fn nothing_is_found_without_a_path() {
         assert_eq!(which("claude", None, None), None);
-        assert_eq!(claude_spec(None, None), Err(Hint::HarnessMissing));
+        assert_eq!(spec(Harness::Claude, None, None), Err(Hint::HarnessMissing));
     }
 
     #[test]
