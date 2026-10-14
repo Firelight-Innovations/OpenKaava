@@ -17,4 +17,5 @@
 
 pub mod assets;
 pub mod policy;
+pub mod resolve;
 pub mod uri;
