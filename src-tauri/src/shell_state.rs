@@ -386,8 +386,8 @@ pub struct WindowPlacement {
 #[serde(rename_all = "camelCase")]
 pub struct RightPage {
     /// `crate::pages::Page::id`. Kept even if a future build drops the page —
-    /// `migrate_legacy_page_clusters`'s restore-time cleanup is the only place
-    /// that drops a stale one; nothing else has to check `pages::find` before
+    /// `drop_unavailable_pages`, at restore, is the only place that closes a
+    /// stale or disabled one; nothing else has to check `pages::find` before
     /// reading this.
     pub id: String,
     pub mode: crate::pages::PageMode,
@@ -618,7 +618,9 @@ impl ShellState {
         // First, so a terminal in a converted page's band is re-homed below
         // rather than left naming a cluster that has gone.
         migrate_legacy_page_clusters(&mut snapshot);
-        drop_unavailable_pages(&mut snapshot, &|id| crate::pages::find(id).is_some());
+        drop_unavailable_pages(&mut snapshot, &|id| {
+            crate::pages::find(id).is_some_and(|p| !p.disabled)
+        });
         // Before anything reads `environment` below: a cluster whose only
         // record of where it works is the legacy `worktree` field needs that
         // filled in before `cluster_root`/`cluster_environment` are asked
@@ -3089,11 +3091,14 @@ fn reclaim_window_pure(s: &mut ShellSnapshot, label: &str) {
     }
 }
 
-/// Drop every page cluster whose page this build cannot draw, with its instance.
+/// Drop every page cluster whose page this build cannot draw, with its instance,
+/// and close a window's open page on the same test.
 ///
 /// Reached from `restore` only. A layout saved by a build that had a page this
 /// one lacks would otherwise restore a cluster no chip offers — possibly as the
-/// active one, drawing a frame with no app behind it and no way to leave.
+/// active one, drawing a frame with no app behind it and no way to leave. A
+/// disabled page fails `available` too: `open_page` refuses it, so a layout
+/// saved while it was enabled must not be the one way back in.
 fn drop_unavailable_pages(s: &mut ShellSnapshot, available: &dyn Fn(&str) -> bool) {
     let mut dropped = Vec::new();
     for w in s.windows.iter_mut() {
@@ -3107,6 +3112,9 @@ fn drop_unavailable_pages(s: &mut ShellSnapshot, available: &dyn Fn(&str) -> boo
             if let Some(c) = take_cluster(w, &id) {
                 dropped.extend(c.tree.tabs().into_iter().map(str::to_string));
             }
+        }
+        if w.right_page.as_ref().is_some_and(|rp| !available(&rp.id)) {
+            dropped.extend(w.right_page.take().and_then(|rp| rp.instance_id));
         }
     }
     s.instances.retain(|i| !dropped.contains(&i.id));
@@ -5533,6 +5541,47 @@ mod tests {
         assert_eq!(
             shell.active_pane("main", None),
             Some(("cluster-1".to_string(), "pane-1".to_string()))
+        );
+    }
+
+    #[test]
+    fn a_disabled_page_left_open_does_not_come_back_on_restore() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        open_page_pure(&mut s, "main", agents());
+        let instance_id = s.windows[0]
+            .right_page
+            .as_ref()
+            .unwrap()
+            .instance_id
+            .clone();
+
+        let shell = ShellState::default();
+        shell.restore(s);
+
+        let back = shell.snapshot();
+        assert!(back.windows[0].right_page.is_none(), "Cloud agents is off");
+        assert!(
+            !back
+                .instances
+                .iter()
+                .any(|i| Some(&i.id) == instance_id.as_ref()),
+            "its app instance goes with it"
+        );
+    }
+
+    #[test]
+    fn an_enabled_page_left_open_survives_restore() {
+        let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
+        let git = crate::pages::find("git").expect("Git is a page in this build");
+        open_page_pure(&mut s, "main", git);
+
+        let shell = ShellState::default();
+        shell.restore(s);
+
+        let back = shell.snapshot();
+        assert_eq!(
+            back.windows[0].right_page.as_ref().map(|rp| rp.id.as_str()),
+            Some("git")
         );
     }
 
