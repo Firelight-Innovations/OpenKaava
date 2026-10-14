@@ -301,6 +301,7 @@ mod tests {
             "the worktree is never searched for the `node` a shim runs"
         );
         assert_eq!(spec.expected_version, Some("0.90.0"));
+        assert_eq!(spec.policy.ask_first, "default");
     }
 
     #[test]
