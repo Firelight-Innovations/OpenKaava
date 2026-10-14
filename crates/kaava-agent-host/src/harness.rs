@@ -2,9 +2,9 @@
 //!
 //! Every harness Kaava can run is a [`Descriptor`] in [`REGISTRY`]: its name,
 //! the program the user installs and signs in to, and the ACP adapter that
-//! drives it. The host and the agent tab read the registry and nothing else,
-//! so a new harness is one descriptor and no UI change. How to add one:
-//! `docs/agent-harnesses.md`.
+//! drives it. The host reads the registry, and the tab reads it through
+//! `agent-tab/harnesses`, so a new harness needs no change to the host. How to
+//! add one: `docs/agent-harnesses.md`.
 //!
 //! A descriptor is resolved into a [`LaunchSpec`] — a program, its arguments
 //! and its extra environment — and the session runs whatever spec it is
@@ -117,7 +117,7 @@ pub enum Protocol {
     Acp,
 }
 
-/// What a harness can do beyond the basics. The tab hides what is `false`.
+/// What a harness can do beyond the basics, so the tab can hide what is `false`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]

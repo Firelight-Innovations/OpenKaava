@@ -3,6 +3,9 @@
 A harness is a coding agent the agent tab can run: Claude today, with Codex and Pi next. This page
 describes the boundary between a harness and the rest of OpenKaava, and how to add a harness.
 
+`src-tauri/src/harness.rs` is a different thing. It recognises a harness that runs in a terminal, so
+that a dropped file is quoted the way that harness reads it. Nothing on this page touches it.
+
 ## The boundary
 
 ```text
@@ -17,8 +20,8 @@ agent tab, agent bar ── agent-tab/* ── AgentHost ── Adapter ── h
   - how the user installs it and signs in to it
   - the mode it starts in
   - what it supports
-- **The event model.** `event.rs` is generated to `apps/agent-tab/ui/src/protocol.generated.ts`,
-  and it is the only thing the UI reads. No harness's wire format reaches the UI.
+- **The event model.** `apps/agent-tab/ui/src/protocol.generated.ts` is generated from the types
+  in `event.rs`, and it is the only thing the UI reads. No harness's wire format reaches the UI.
 - **The `Adapter` trait.** `host.rs` drives every session through it. `Session` implements it over
   ACP, for every descriptor whose `protocol` is `Protocol::Acp`. A harness that does not speak ACP
   gets its own type that implements `Adapter` and translates, and a new `Protocol` variant that
@@ -28,8 +31,8 @@ agent tab, agent bar ── agent-tab/* ── AgentHost ── Adapter ── h
   - what stands in its way, as a `Hint`
   - the commands that set it up: sign in, install the pinned adapter
   - its capabilities
-- **`agent-tab/send`.** It takes a harness id from the registry and resolves the id with
-  `harness::spec`.
+- **`agent-tab/send`.** It takes the id of a harness in `REGISTRY`, refuses any other id, and
+  resolves the id with `harness::spec`.
 
 ## Rules every harness follows
 
@@ -43,11 +46,15 @@ breaks one.
   `Adapter` trait, never a second UI.
 - The user installs the adapter, pinned to a tested version. Record that version in
   `docs/agent-host-versions.md`.
-- Every session starts in the harness's ask-first mode, `Policy::ask_first`. If the agent refuses
-  to switch to it, the session does not run.
-- The tab holds back two kinds of mode: a mode in which the agent acts without asking, and one in
-  which something other than the user approves a request. The worktree guard sees only the
-  approvals the user answers.
+- Every session that `harness::spec` builds starts in the harness's ask-first mode,
+  `Policy::ask_first`. If the agent refuses to switch to it, the session does not run.
+- The tab must never offer two kinds of mode:
+  - a mode in which the agent acts without asking
+  - a mode in which something other than the user approves a request
+
+  The worktree guard checks each `session/request_permission`, and a mode like these skips that
+  request, so the guard never sees what the agent does. Name those modes when you verify the
+  adapter (step 1).
 - `env` never carries a credential.
 - The UI calls a harness by its short name: "Claude", "Codex", "Pi".
 
@@ -55,21 +62,26 @@ breaks one.
 
 1. **Verify first.** Install the adapter in a scratch directory. Run `initialize` and
    `session/new` against a scratch git repository, and record what the adapter answers:
-   - its modes, and which one asks before acting
+   - its modes, which one asks before acting, and which ones skip the user's approval
    - its config options
    - the kinds of its approval options
    - what a signed-out session answers
 
    Do not send a prompt that spends the user's quota without asking them.
 2. **Add the variant.** Add it to `Harness` in `harness.rs` and to the match in
-   `Harness::descriptor`. The compiler then lists each other place that must handle it.
+   `Harness::descriptor`. The compiler then lists each match that must handle it. It cannot check
+   `REGISTRY`, which is a plain list, so step 3 adds the variant there.
 3. **Write the descriptor.** Create `harness/<name>.rs` with one `Descriptor`, modelled on
-   `harness/claude.rs`, and add it to `REGISTRY`. The struct documents each field.
+   `harness/claude.rs`. Declare it in `harness.rs` with `mod <name>;` and
+   `pub use <name>::<NAME>;`, and add it to `REGISTRY`. The struct documents each field.
 4. **Extend the guard if needed.** `guard::request_paths` reads the paths that a permission
    request names. If the new adapter puts paths under keys that it does not read, add those keys,
    with a test.
 5. **Regenerate the TypeScript types.** Run
    `KAAVA_BLESS=1 cargo test -p kaava-agent-host generated_types`. The new id joins the `Harness`
    union.
-6. **Record the version.** Add a row to `docs/agent-host-versions.md`.
-7. **Run `pnpm verify`.**
+6. **Name it in the tab.** For now the tab's own strings still name each harness: add it to
+   `harness` in `apps/agent-tab/ui/src/strings.ts`. `tsc` fails until you do. The harness picker
+   replaces that list with `HarnessInfo.name`.
+7. **Record the version.** Add a row to `docs/agent-host-versions.md`.
+8. **Run `pnpm verify`.**
