@@ -42,6 +42,10 @@ mod presets;
 mod project;
 mod pty;
 mod quoting;
+// Reached from the host's `refs/resolve` method once the resolver lands; until
+// then only its tests use it.
+#[allow(dead_code)]
+mod refs;
 mod review;
 mod runnable;
 mod search;
