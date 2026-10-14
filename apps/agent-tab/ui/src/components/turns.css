@@ -7,9 +7,25 @@
   min-width: 0;
 }
 
+/* Out of the way until the turn is hovered or reached by keyboard. */
 .at-turn__actions {
   display: flex;
   gap: var(--k-space-1);
+  margin-left: calc(-1 * var(--k-space-2));
+  color: var(--k-fg-faint);
+  font-size: var(--k-size-small);
+  opacity: 0;
+  transition: opacity var(--k-motion-fast) var(--k-ease);
+}
+
+.at-turn:hover .at-turn__actions,
+.at-turn__actions:focus-within {
+  opacity: 1;
+}
+
+.at-turn__actions .k-btn {
+  color: inherit;
+  font-size: inherit;
 }
 
 .at-working {
