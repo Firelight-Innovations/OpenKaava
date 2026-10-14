@@ -117,23 +117,28 @@ export default function App() {
     }
   };
 
-  const actions = {
-    onAnswer: (itemId: string, optionId: string) =>
-      rpc.answer(itemId, optionId).then(
-        () => undefined,
-        (err: unknown) => {
-          setNotice(noticeOf(err, strings.failed.send));
-          throw err;
-        },
-      ),
-    onRetry: (itemId: string) => {
-      const text = promptBefore(state.items, itemId);
-      if (text !== null) submit(text);
-    },
-  };
+  const actions = useMemo(
+    () => ({
+      onAnswer: (itemId: string, optionId: string) =>
+        rpc.answer(itemId, optionId).then(
+          () => undefined,
+          (err: unknown) => {
+            setNotice(noticeOf(err, strings.failed.send));
+            throw err;
+          },
+        ),
+      onRetry: (itemId: string) => {
+        const text = promptBefore(state.items, itemId);
+        if (text !== null) submit(text);
+      },
+    }),
+    [state.items, submit],
+  );
 
   // The transcript as assistant-ui's thread. Turns whose items did not change
-  // keep their identity, so only the turn the agent is writing redraws.
+  // keep their identity, and `convertMessage` is one function for the tab's
+  // life, so assistant-ui converts again only the turn the agent is writing.
+  // The lookup changes only with the items, so typing a prompt redraws none.
   const [turns, setTurns] = useState<{ items: TabState["items"]; turns: Turn[] }>({
     items: [],
     turns: [],
@@ -141,10 +146,13 @@ export default function App() {
   if (turns.items !== state.items) {
     setTurns({ items: state.items, turns: toTurns(state.items, turns.turns) });
   }
-  const byId = useMemo(() => new Map(state.items.map((item) => [item.id, item])), [state.items]);
+  const lookup = useMemo(
+    () => ({ byId: new Map(state.items.map((item) => [item.id, item])), actions }),
+    [state.items, actions],
+  );
   const runtime = useExternalStoreRuntime({
     messages: turns.turns,
-    convertMessage: (turn: Turn) => turn.message,
+    convertMessage,
     isRunning: working,
     onNew: async (message: AppendMessage) => submit(textOf(message)),
     onCancel: async () => stopTurn(),
@@ -157,7 +165,7 @@ export default function App() {
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <TurnsProvider value={{ byId, actions }}>
+      <TurnsProvider value={lookup}>
         <S.Layout
           header={
             <S.Header
@@ -233,6 +241,12 @@ export default function App() {
       </TurnsProvider>
     </AssistantRuntimeProvider>
   );
+}
+
+/** Module-level: a new function each render would make assistant-ui drop its
+ *  cache and convert every turn again. */
+function convertMessage(turn: Turn) {
+  return turn.message;
 }
 
 /** The text of a message assistant-ui asks to send, such as a suggestion. */

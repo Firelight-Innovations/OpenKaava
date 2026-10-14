@@ -400,6 +400,48 @@ describe("the agent tab", () => {
     expect(screen.getByText("Working…")).toBeTruthy();
   });
 
+  it("puts Copy on every finished agent turn, where the keyboard can reach it", async () => {
+    backend({
+      status: STATUS,
+      seq: 4,
+      items: [
+        item("u1", { kind: "userMessage", text: "one" }),
+        item("a1", { kind: "assistantText", text: "first answer" }),
+        item("u2", { kind: "userMessage", text: "two" }),
+        item("a2", { kind: "assistantText", text: "second answer" }),
+      ],
+    });
+    render(<App />);
+    await screen.findByText("first answer");
+    expect(screen.getAllByRole("button", { name: "Copy" })).toHaveLength(2);
+  });
+
+  it("redraws no transcript item while a prompt is typed", async () => {
+    const drawn = vi.fn();
+    const { SlotsProvider } = await import("./components/registry");
+    function CountingUserMessage({ text }: { text: string }) {
+      drawn(text);
+      return <p>{text}</p>;
+    }
+    backend({
+      status: STATUS,
+      seq: 2,
+      items: [
+        item("u1", { kind: "userMessage", text: "list the files" }),
+        item("a1", { kind: "assistantText", text: "Here" }),
+      ],
+    });
+    render(
+      <SlotsProvider slots={{ UserMessage: CountingUserMessage }}>
+        <App />
+      </SlotsProvider>,
+    );
+    await screen.findByText("list the files");
+    const before = drawn.mock.calls.length;
+    for (const value of ["a", "ab", "abc"]) fireEvent.change(prompt(), { target: { value } });
+    expect(drawn.mock.calls.length).toBe(before);
+  });
+
   it("never names the harness Claude Code", async () => {
     backend({ status: STATUS, seq: 1, items: [] });
     render(<App />);
