@@ -36,7 +36,28 @@ vi.mock("@openkaava/bridge", () => ({
 
 import App from "./App";
 import { strings } from "./strings";
-import type { Attachment, ConfigOption, Envelope, Item, SessionStatus } from "./protocol.generated";
+import type {
+  Attachment,
+  ConfigOption,
+  Envelope,
+  HarnessInfo,
+  Item,
+  SessionStatus,
+} from "./protocol.generated";
+
+/** Claude as `agent-tab/harnesses` describes it, from `harness/claude.rs`. */
+const CLAUDE: HarnessInfo = {
+  harness: "claude",
+  name: "Claude",
+  hint: null,
+  setup: {
+    cli: "claude",
+    signIn: "claude",
+    adapterInstall: "npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@0.90.0",
+    adapterVersion: "0.90.0",
+  },
+  capabilities: { steer: false, fork: false, modes: false },
+};
 
 const STATUS: SessionStatus = {
   state: "ready",
@@ -116,7 +137,7 @@ function backend(attachment: Attachment, overrides: Record<string, () => Promise
       case "agent-tab/attach":
         return Promise.resolve(attachment);
       case "agent-tab/harnesses":
-        return Promise.resolve({ harnesses: [{ harness: "claude", hint: null }], blocked: null });
+        return Promise.resolve({ harnesses: [CLAUDE], current: "claude", blocked: null });
       case "agent-tab/set-mode":
       case "agent-tab/set-config":
         return Promise.resolve({ ticket: ++ticket });
@@ -254,11 +275,15 @@ describe("the agent tab", () => {
       { status: null, seq: 0, items: [] },
       {
         "agent-tab/harnesses": () =>
-          Promise.resolve({ harnesses: [{ harness: "claude", hint: "signedOut" }], blocked: null }),
+          Promise.resolve({
+            harnesses: [{ ...CLAUDE, hint: "signedOut" }],
+            current: "claude",
+            blocked: null,
+          }),
       },
     );
     render(<App />);
-    expect(await screen.findByText(strings.hint.signedOut)).toBeTruthy();
+    expect(await screen.findByText(strings.hint.signedOut(CLAUDE))).toBeTruthy();
   });
 
   it("words an error item's hint inside the error", async () => {
@@ -270,7 +295,7 @@ describe("the agent tab", () => {
     render(<App />);
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("boom");
-    expect(alert.textContent).toContain(strings.hint.harnessMissing);
+    expect(alert.textContent).toContain(strings.hint.harnessMissing(CLAUDE));
   });
 
   it("says a main checkout is why, when the shell refuses the write before the tab's own code", async () => {
@@ -974,5 +999,23 @@ describe("the agent tab", () => {
     render(<App />);
     expect((await screen.findAllByText("Claude")).length).toBeGreaterThan(0);
     expect(document.body.textContent).not.toContain("Claude Code");
+  });
+});
+
+describe("the harness", () => {
+  it("says what the chosen harness still needs, in its own commands", async () => {
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        "agent-tab/harnesses": () =>
+          Promise.resolve({
+            harnesses: [{ ...CLAUDE, hint: "signedOut" }],
+            current: "claude",
+            blocked: null,
+          }),
+      },
+    );
+    render(<App />);
+    await screen.findByText(/Claude is not signed in\. Run `claude` once/);
   });
 });

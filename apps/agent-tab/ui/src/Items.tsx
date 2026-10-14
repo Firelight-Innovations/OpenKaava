@@ -4,7 +4,7 @@
  * here draws; every piece of DOM comes from `components/` through `useSlots()`.
  */
 import { useMemo, useState, type MouseEvent } from "react";
-import type { FileDiff, Item, ItemKind } from "./protocol.generated";
+import type { FileDiff, Hint, Item, ItemKind } from "./protocol.generated";
 import { counts, lineDiff } from "./diff";
 import { renderMarkdown } from "./markdown";
 import { strings } from "./strings";
@@ -18,6 +18,8 @@ export interface ItemActions {
   onAnswer: (itemId: string, optionId: string) => Promise<void>;
   /** Send again what the user asked before the error `itemId`. */
   onRetry: (itemId: string) => void;
+  /** A hint as a sentence about the session's harness. */
+  hintText: (hint: Hint) => string;
 }
 
 /** `live`: the item is the part still streaming in a running turn. */
@@ -51,7 +53,7 @@ export function ItemView({
       return (
         <S.ErrorItem
           message={kind.message}
-          hint={kind.hint && strings.hint[kind.hint]}
+          hint={kind.hint && actions.hintText(kind.hint)}
           onRetry={() => actions.onRetry(item.id)}
         />
       );
