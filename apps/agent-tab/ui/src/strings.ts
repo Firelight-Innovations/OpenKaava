@@ -90,7 +90,7 @@ export const strings = {
   exited: (code: number | null) =>
     code === null ? "The agent stopped." : `The agent stopped with exit code ${code}.`,
   hint: {
-    claudeMissing:
+    harnessMissing:
       "Claude is not installed, or not on PATH. Install it, then run `claude` once in a terminal to sign in.",
     adapterMissing: `The Claude ACP adapter is not installed. Run \`${ADAPTER_INSTALL}\` in a terminal.`,
     signedOut:

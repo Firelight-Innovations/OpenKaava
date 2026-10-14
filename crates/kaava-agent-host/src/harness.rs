@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::event::Hint;
+use crate::event::{HarnessInfo, Hint};
 
 mod claude;
 
@@ -71,6 +71,41 @@ pub struct Descriptor {
     pub protocol: Protocol,
     /// What the tab may offer for it.
     pub capabilities: Capabilities,
+}
+
+impl Descriptor {
+    /// What `agent-tab/harnesses` answers for it, with `hint` saying what
+    /// stands in its way.
+    pub fn info(&self, hint: Option<Hint>) -> HarnessInfo {
+        HarnessInfo {
+            harness: self.harness,
+            name: self.name.to_string(),
+            hint,
+            setup: Setup {
+                cli: self.cli.to_string(),
+                sign_in: self.sign_in.to_string(),
+                adapter_install: self.adapter.install(),
+                adapter_version: self.adapter.version.to_string(),
+            },
+            capabilities: self.capabilities,
+        }
+    }
+}
+
+/// The commands that set a harness up, for the tab's hint sentences to name.
+/// The user runs each in a terminal; Kaava never does.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct Setup {
+    /// The harness's own program.
+    pub cli: String,
+    /// The command that signs in.
+    pub sign_in: String,
+    /// The command that installs the tested adapter.
+    pub adapter_install: String,
+    /// The adapter version this build was tested with.
+    pub adapter_version: String,
 }
 
 /// The wire protocol between the host and a harness's process.
@@ -153,7 +188,7 @@ pub fn spec(
     pathext: Option<&OsStr>,
 ) -> Result<LaunchSpec, Hint> {
     let descriptor = harness.descriptor();
-    let cli = which(descriptor.cli, path, pathext).ok_or(Hint::ClaudeMissing)?;
+    let cli = which(descriptor.cli, path, pathext).ok_or(Hint::HarnessMissing)?;
     let adapter = which(descriptor.adapter.program, path, pathext).ok_or(Hint::AdapterMissing)?;
     let mut env = vec![
         (
@@ -246,7 +281,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = Some(dir.path().as_os_str());
         let ext = Some(OsStr::new(".EXE;.CMD"));
-        assert_eq!(claude_spec(path, ext), Err(Hint::ClaudeMissing));
+        assert_eq!(claude_spec(path, ext), Err(Hint::HarnessMissing));
 
         let claude = touch(dir.path(), &exe("claude"));
         assert_eq!(claude_spec(path, ext), Err(Hint::AdapterMissing));
@@ -294,6 +329,19 @@ mod tests {
     }
 
     #[test]
+    fn info_carries_what_the_hint_sentences_name() {
+        let info = CLAUDE.info(Some(Hint::SignedOut));
+        assert_eq!(info.harness, Harness::Claude);
+        assert_eq!(info.name, "Claude");
+        assert_eq!(info.hint, Some(Hint::SignedOut));
+        assert_eq!(info.setup.cli, "claude");
+        assert_eq!(info.setup.sign_in, "claude");
+        assert_eq!(info.setup.adapter_install, CLAUDE.adapter.install());
+        assert_eq!(info.setup.adapter_version, "0.90.0");
+        assert_eq!(info.capabilities, CLAUDE.capabilities);
+    }
+
+    #[test]
     fn the_adapter_installs_pinned_without_its_bundled_harness() {
         assert_eq!(
             CLAUDE.adapter.install(),
@@ -304,7 +352,7 @@ mod tests {
     #[test]
     fn nothing_is_found_without_a_path() {
         assert_eq!(which("claude", None, None), None);
-        assert_eq!(claude_spec(None, None), Err(Hint::ClaudeMissing));
+        assert_eq!(claude_spec(None, None), Err(Hint::HarnessMissing));
     }
 
     #[test]

@@ -23,6 +23,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
+use kaava_agent_host::harness::{spec, REGISTRY};
 use kaava_agent_host::{claude_spec, AgentHost, HarnessInfo, HostError, Level, Worktree};
 use kaava_rpc::{RpcError, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde_json::{json, Value};
@@ -256,14 +257,11 @@ pub fn call_for(
 /// each harness and what stands in its way, and whether this cluster can run
 /// one at all.
 fn harnesses(app: &AppHandle, context: &CallContext) -> Value {
-    let claude = claude_spec(
-        std::env::var_os("PATH").as_deref(),
-        std::env::var_os("PATHEXT").as_deref(),
-    );
-    let harnesses = [HarnessInfo {
-        harness: kaava_agent_host::Harness::Claude,
-        hint: claude.err(),
-    }];
+    let (path, pathext) = (std::env::var_os("PATH"), std::env::var_os("PATHEXT"));
+    let harnesses: Vec<HarnessInfo> = REGISTRY
+        .iter()
+        .map(|d| d.info(spec(d.harness, path.as_deref(), pathext.as_deref()).err()))
+        .collect();
     let blocked = refuse_unless_developer(app)
         .and_then(|()| worktree(app, context).map(|_| ()))
         .err()

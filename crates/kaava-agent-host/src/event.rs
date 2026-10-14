@@ -13,7 +13,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::harness::Harness;
+use crate::harness::{Capabilities, Harness, Setup};
 
 /// One event, addressed to one agent tab and numbered within it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -266,9 +266,9 @@ pub enum SessionState {
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub enum Hint {
-    /// No `claude` on PATH.
-    ClaudeMissing,
-    /// No Claude ACP adapter on PATH.
+    /// The harness's own program is not on PATH.
+    HarnessMissing,
+    /// Its ACP adapter is not on PATH.
     AdapterMissing,
     /// The harness reports nobody signed in.
     SignedOut,
@@ -293,15 +293,22 @@ pub struct Attachment {
     pub seq: u64,
 }
 
-/// Whether a harness can start here, and if not, why.
+/// One registered harness, as the tab and the bar see it: whether it can
+/// start here, and what to say about it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct HarnessInfo {
     /// Which harness.
     pub harness: Harness,
+    /// Its name in the UI.
+    pub name: String,
     /// Why it cannot start, or `None` when it can.
     pub hint: Option<Hint>,
+    /// The commands a hint's sentence names.
+    pub setup: Setup,
+    /// What the tab may offer for it.
+    pub capabilities: Capabilities,
 }
 
 /// A session's whole status.
@@ -340,6 +347,8 @@ mod tests {
         let cfg = Config::new().with_large_int("number");
         let decls = [
             Harness::decl(&cfg),
+            Capabilities::decl(&cfg),
+            Setup::decl(&cfg),
             Envelope::decl(&cfg),
             Event::decl(&cfg),
             Item::decl(&cfg),
