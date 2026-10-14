@@ -31,6 +31,6 @@ pub use event::{
     Attachment, Envelope, Event, HarnessInfo, Hint, Item, ItemKind, SessionState, SessionStatus,
 };
 pub use guard::{NotAWorktree, Worktree};
-pub use harness::{claude_spec, Harness, LaunchSpec};
-pub use host::{Adapter, AgentHost, Capabilities, HostError};
+pub use harness::{claude_spec, Capabilities, Harness, LaunchSpec};
+pub use host::{Adapter, AgentHost, HostError};
 pub use session::{Level, Log, Sink};

@@ -4,7 +4,7 @@
 //! `CLAUDE_CODE_EXECUTABLE`, so it never falls back to a copy of its own.
 //! Nothing else is passed: no flag, no token, no settings file.
 
-use super::{AcpAdapter, Descriptor, Harness, Policy};
+use super::{AcpAdapter, Capabilities, Descriptor, Harness, Policy, Protocol};
 
 /// Claude, through `claude-agent-acp`.
 pub static CLAUDE: Descriptor = Descriptor {
@@ -23,5 +23,11 @@ pub static CLAUDE: Descriptor = Descriptor {
     // without asking still gets asked here.
     policy: Policy {
         ask_first: "default",
+    },
+    protocol: Protocol::Acp,
+    capabilities: Capabilities {
+        steer: false,
+        fork: false,
+        modes: false,
     },
 };

@@ -14,33 +14,26 @@ use std::time::{Duration, Instant};
 
 use crate::event::{Attachment, Envelope, Event, Hint, Item};
 use crate::guard::{NotAWorktree, Worktree};
-use crate::harness::LaunchSpec;
+use crate::harness::{Capabilities, Harness, LaunchSpec, Protocol};
 use crate::session::{Level, Log, Session, Sink, Start};
 
 /// How long a retired session gets to exit before its thread gives up
 /// waiting. It has already been killed; this only bounds the wait.
 const RETIRE_WAIT: Duration = Duration::from_secs(3);
 
-/// What an adapter can do beyond the basics. Nothing reads these yet; the tab
-/// will hide what is `false` once they are sent to it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Capabilities {
-    /// Add to a running turn without stopping it.
-    pub steer: bool,
-    /// Branch a thread.
-    pub fork: bool,
-    /// Switch between the agent's modes.
-    pub modes: bool,
-}
-
 /// One harness's session, as the host drives it — the part of handoff §3.2's
-/// adapter trait this slice uses. Claude implements it over ACP, and `Session` is
-/// the only implementor: the mock the tests run is a separate process driven
-/// through the same `Session` with a different [`LaunchSpec`]. `resume`, `fork`, `steer`, `set_model` and
-/// `list_commands` arrive with the features that need them.
+/// adapter trait this slice uses. [`Session`] implements it over ACP, for
+/// every harness whose descriptor says [`Protocol::Acp`]; a harness that
+/// speaks something else gets a type of its own that translates. `resume`,
+/// `fork`, `steer`, `set_model` and `list_commands` arrive with the features
+/// that need them.
 pub trait Adapter: Send + Sync {
-    /// What it supports.
-    fn capabilities(&self) -> Capabilities;
+    /// Which harness it runs.
+    fn harness(&self) -> Harness;
+    /// What it supports: its descriptor's capabilities.
+    fn capabilities(&self) -> Capabilities {
+        self.harness().descriptor().capabilities
+    }
     /// Start a turn with `text`.
     fn prompt(&self, text: &str) -> Result<(), HostError>;
     /// Stop the running turn.
@@ -64,12 +57,8 @@ pub trait Adapter: Send + Sync {
 }
 
 impl Adapter for Session {
-    fn capabilities(&self) -> Capabilities {
-        Capabilities {
-            steer: false,
-            fork: false,
-            modes: false,
-        }
+    fn harness(&self) -> Harness {
+        Session::harness(self)
     }
     fn prompt(&self, text: &str) -> Result<(), HostError> {
         Session::prompt(self, text)
@@ -232,16 +221,19 @@ impl AgentHost {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .clone();
-        let session: Arc<dyn Adapter> = Arc::new(Session::start(Start {
+        let start = Start {
             instance_id: instance_id.to_string(),
+            prefix: format!("s{generation}"),
             spec,
             worktree,
-            prefix: format!("s{generation}"),
             prior,
             seq: Arc::clone(&self.seq),
             events,
             log: Arc::clone(&self.log),
-        })?);
+        };
+        let session: Arc<dyn Adapter> = match start.spec.harness.descriptor().protocol {
+            Protocol::Acp => Arc::new(Session::start(start)?),
+        };
         let replaced = self
             .map()
             .insert(instance_id.to_string(), Arc::clone(&session));

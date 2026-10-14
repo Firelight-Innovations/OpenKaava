@@ -67,6 +67,31 @@ pub struct Descriptor {
     pub env: &'static [(&'static str, &'static str)],
     /// What Kaava holds every session of it to.
     pub policy: Policy,
+    /// How the host talks to it, which picks the [`crate::Adapter`] that runs it.
+    pub protocol: Protocol,
+    /// What the tab may offer for it.
+    pub capabilities: Capabilities,
+}
+
+/// The wire protocol between the host and a harness's process.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Protocol {
+    /// The Agent Client Protocol on stdio (design AGT-002), run by `Session`.
+    /// A harness without it gets a translating adapter and a variant here.
+    Acp,
+}
+
+/// What a harness can do beyond the basics. The tab hides what is `false`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct Capabilities {
+    /// Add to a running turn without stopping it.
+    pub steer: bool,
+    /// Branch a thread.
+    pub fork: bool,
+    /// Switch between the agent's modes.
+    pub modes: bool,
 }
 
 /// What Kaava holds a harness's sessions to, whatever the user's own settings
