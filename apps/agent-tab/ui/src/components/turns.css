@@ -1,0 +1,18 @@
+/* Turns: a user prompt, then everything the agent did until the next one. */
+
+.at-turn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-item-gap);
+  min-width: 0;
+}
+
+.at-turn__actions {
+  display: flex;
+  gap: var(--k-space-1);
+}
+
+.at-working {
+  color: var(--k-fg-faint);
+  font-size: var(--k-size-small);
+}

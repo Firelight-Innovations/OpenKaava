@@ -51,6 +51,8 @@ export const strings = {
   thinking: "Thinking",
   copy: "Copy",
   copied: "Copied",
+  copyTurn: "Copy everything the agent wrote in this turn",
+  working: "Working…",
   tool: {
     pending: "Pending",
     inProgress: "Running",

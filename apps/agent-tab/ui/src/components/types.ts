@@ -37,6 +37,17 @@ export interface TranscriptProps {
   children: ReactNode;
 }
 
+/** One turn of the conversation; `children` is its items, already drawn. */
+export interface TurnProps {
+  children: ReactNode;
+}
+
+/** Shown in an agent turn that has nothing to show yet. */
+export type WorkingProps = Record<string, never>;
+
+/** Actions on a whole agent turn, such as copying it. */
+export type TurnActionsProps = Record<string, never>;
+
 export interface EmptyStateProps {
   /**
    * A refusal code for the whole cluster, or `null`. Unlike `setupHint` it stays
