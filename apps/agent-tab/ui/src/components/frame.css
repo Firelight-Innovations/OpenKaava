@@ -32,7 +32,7 @@
 }
 
 .at-header__title {
-  font-weight: 600;
+  font-weight: var(--k-weight-strong);
 }
 
 .at-header__spacer {
@@ -102,8 +102,8 @@
 .at-empty__heading {
   margin: 0 0 var(--k-space-1);
   color: var(--k-editor-fg);
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--k-size-heading);
+  font-weight: var(--k-weight-strong);
 }
 
 .at-empty__examples {
@@ -119,7 +119,7 @@
 .at-empty__keys {
   margin: var(--k-space-3) 0 var(--k-space-1);
   font-size: var(--k-text-label-size);
-  font-weight: 600;
+  font-weight: var(--k-weight-strong);
   letter-spacing: var(--k-text-label-tracking);
   text-transform: uppercase;
   color: var(--k-fg-faint);

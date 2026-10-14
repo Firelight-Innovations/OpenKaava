@@ -62,13 +62,13 @@
   --k-font: var(--sans);
   --k-mono: var(--mono);
   --k-text-body: var(--type-body);
-  --k-text-strong: var(--type-body-strong);
   --k-text-small: var(--type-caption);
-  --k-text-heading: var(--type-h2);
   --k-text-code: 400 12px/1.45 var(--mono);
   --k-text-label-size: 11px;
   --k-text-label-tracking: var(--type-label-tracking);
   --k-size-small: 12px;
+  --k-size-heading: 16px;
+  --k-weight-strong: 600;
 
   /* Spacing */
   --k-space-0-5: 2px;

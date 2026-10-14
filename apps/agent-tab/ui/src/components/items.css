@@ -11,7 +11,7 @@
 .at-item__label {
   color: var(--k-fg-faint);
   font-size: var(--k-text-label-size);
-  font-weight: 600;
+  font-weight: var(--k-weight-strong);
   letter-spacing: var(--k-text-label-tracking);
   text-transform: uppercase;
 }
@@ -179,7 +179,7 @@ details > .at-tool__head {
 }
 
 .at-approval__head {
-  font-weight: 600;
+  font-weight: var(--k-weight-strong);
   color: var(--k-warning-fg);
 }
 
