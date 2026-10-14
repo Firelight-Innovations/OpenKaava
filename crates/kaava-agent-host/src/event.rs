@@ -337,6 +337,39 @@ pub struct SessionStatus {
     pub pending_prompt: Option<String>,
 }
 
+/// One session setting the agent offers: ACP's select config option. Every
+/// name and value is the agent's own; the tab hardcodes none of them.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct ConfigOption {
+    /// What to send back to change it: `model`, `effort`, `fast`, ...
+    pub id: String,
+    /// The agent's label for it.
+    pub name: String,
+    /// The agent's longer description, if it gave one.
+    pub description: Option<String>,
+    /// ACP's category (`model`, `thought_level`, `model_config`, ...), if any.
+    pub category: Option<String>,
+    /// The value in use.
+    pub value: String,
+    /// The values on offer, in the agent's order, groups flattened.
+    pub choices: Vec<ConfigChoice>,
+}
+
+/// One value a [`ConfigOption`] or the mode can take.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct ConfigChoice {
+    /// What to send back to choose it.
+    pub value: String,
+    /// The agent's label for it.
+    pub name: String,
+    /// The agent's longer description, if it gave one.
+    pub description: Option<String>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -360,6 +393,8 @@ mod tests {
             SessionState::decl(&cfg),
             Hint::decl(&cfg),
             SessionStatus::decl(&cfg),
+            ConfigOption::decl(&cfg),
+            ConfigChoice::decl(&cfg),
             Attachment::decl(&cfg),
             HarnessInfo::decl(&cfg),
         ];

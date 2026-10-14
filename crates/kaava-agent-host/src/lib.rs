@@ -16,6 +16,7 @@
 
 #![warn(missing_docs, unreachable_pub)]
 
+pub mod config;
 pub mod event;
 pub mod guard;
 pub mod harness;
@@ -28,7 +29,8 @@ pub mod transcript;
 pub mod wire;
 
 pub use event::{
-    Attachment, Envelope, Event, HarnessInfo, Hint, Item, ItemKind, SessionState, SessionStatus,
+    Attachment, ConfigChoice, ConfigOption, Envelope, Event, HarnessInfo, Hint, Item, ItemKind,
+    SessionState, SessionStatus,
 };
 pub use guard::{NotAWorktree, Worktree};
 pub use harness::{spec, Capabilities, Descriptor, Harness, LaunchSpec, Setup, REGISTRY};

@@ -293,6 +293,46 @@ hint: Hint | null,
  */
 pendingPrompt: string | null, };
 
+export type ConfigOption = { 
+/**
+ * What to send back to change it: `model`, `effort`, `fast`, ...
+ */
+id: string, 
+/**
+ * The agent's label for it.
+ */
+name: string, 
+/**
+ * The agent's longer description, if it gave one.
+ */
+description: string | null, 
+/**
+ * ACP's category (`model`, `thought_level`, `model_config`, ...), if any.
+ */
+category: string | null, 
+/**
+ * The value in use.
+ */
+value: string, 
+/**
+ * The values on offer, in the agent's order, groups flattened.
+ */
+choices: Array<ConfigChoice>, };
+
+export type ConfigChoice = { 
+/**
+ * What to send back to choose it.
+ */
+value: string, 
+/**
+ * The agent's label for it.
+ */
+name: string, 
+/**
+ * The agent's longer description, if it gave one.
+ */
+description: string | null, };
+
 export type Attachment = { 
 /**
  * The session's status, or `None` before the first prompt.
