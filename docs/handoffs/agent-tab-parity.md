@@ -29,8 +29,16 @@ until Braden says otherwise; none of them is a decision row.
   "applies next session". Decided as that default; the toggle itself is
   built in the P1 pass, not in PR 3.
 
-Done so far: nothing yet. Each PR adds its entry here and updates the
-"OpenKaava today" cells of the rows it closes in section 2.
+Done so far. Each PR adds its entry here and updates the "OpenKaava today"
+cells of the rows it closes in section 2.
+
+- **PR 1** (setup): the host reads `modes` and `configOptions` from the
+  `session/new` reply and from `config_option_update` into
+  `SessionStatus.modes` and `SessionStatus.config`. The mode option is split
+  out, so the mode is drawn once. Bypass and Auto are held back in every
+  option (`config::NOT_OFFERED`). `agentCapabilities` and `authMethods` are
+  not stored yet: nothing reads them, so PR 7 (session list) and PR 24
+  (auth) read them when they need them.
 
 Constraints for later PRs, found while reading the adapter:
 
