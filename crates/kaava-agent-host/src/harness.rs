@@ -1,15 +1,14 @@
 //! Which agent to run, and how to start it.
 //!
-//! A harness is resolved into a [`LaunchSpec`] — a program, its arguments and
-//! its extra environment — and the session runs whatever spec it is handed.
-//! That is also how the tests run `src/bin/mock-agent.rs`: as a spec, with no
-//! harness of its own.
+//! Every harness Kaava can run is a [`Descriptor`] in [`REGISTRY`]: its name,
+//! the program the user installs and signs in to, and the ACP adapter that
+//! drives it. The host and the agent tab read the registry and nothing else,
+//! so a new harness is one descriptor and no UI change.
 //!
-//! Claude (handoff §5.2): the unmodified `claude` binary, signed in by the
-//! user, driven through the ACP adapter `claude-agent-acp`, which the user
-//! installs with npm. The adapter is told where the user's `claude` is through
-//! `CLAUDE_CODE_EXECUTABLE`, so it never falls back to a copy of its own.
-//! Nothing else is passed: no flag, no token, no settings file.
+//! A descriptor is resolved into a [`LaunchSpec`] — a program, its arguments
+//! and its extra environment — and the session runs whatever spec it is
+//! handed. That is also how the tests run `src/bin/mock-agent.rs`: as a spec,
+//! with no harness of its own.
 
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
@@ -18,7 +17,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::event::Hint;
 
-/// An agent the tab can run.
+mod claude;
+
+pub use claude::CLAUDE;
+
+/// An agent the tab can run. Each has one [`Descriptor`] in [`REGISTRY`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
@@ -27,17 +30,63 @@ pub enum Harness {
     Claude,
 }
 
-/// The ACP adapter for Claude, as npm installs it on PATH.
-pub const CLAUDE_ADAPTER: &str = "claude-agent-acp";
+impl Harness {
+    /// Its descriptor.
+    pub fn descriptor(self) -> &'static Descriptor {
+        match self {
+            Harness::Claude => &CLAUDE,
+        }
+    }
+}
 
 /// The variable that stops `cmd.exe` and the Windows loader from searching the
 /// current directory for a bare command name.
 pub const NO_CWD_SEARCH: &str = "NoDefaultCurrentDirectoryInExePath";
 
-/// The adapter version this build was tested against. Recorded with the
-/// `claude` version in `docs/handoffs/agent-host.md` §12, "Pinned versions";
-/// another version still runs, with [`Hint::AdapterVersion`] on its status.
-pub const CLAUDE_ADAPTER_VERSION: &str = "0.90.0";
+/// Every harness, in the order the tab lists them.
+pub static REGISTRY: &[&Descriptor] = &[&CLAUDE];
+
+/// One harness: what the UI calls it, how to find and start it, and how the
+/// user sets it up. Kaava runs the user's own binary, signed in by the user.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Descriptor {
+    /// Which harness this describes.
+    pub harness: Harness,
+    /// Its name in the UI: "Claude", "Codex", "Pi" (handoff §0).
+    pub name: &'static str,
+    /// The program the user installs and signs in to, as found on PATH.
+    pub cli: &'static str,
+    /// The variable that tells the adapter where `cli` is, so it never runs
+    /// a copy of its own.
+    pub cli_env: &'static str,
+    /// The ACP adapter Kaava spawns.
+    pub adapter: AcpAdapter,
+    /// What the user runs in a terminal to sign in. Kaava never runs it.
+    pub sign_in: &'static str,
+    /// More variables for the adapter's environment. Never a credential.
+    pub env: &'static [(&'static str, &'static str)],
+}
+
+/// An ACP adapter, as npm installs it on PATH.
+#[derive(Debug, PartialEq, Eq)]
+pub struct AcpAdapter {
+    /// Its program on PATH.
+    pub program: &'static str,
+    /// Its npm package.
+    pub package: &'static str,
+    /// The version this build was tested against, recorded in
+    /// `docs/agent-host-versions.md`. Another version still runs, with
+    /// [`Hint::AdapterVersion`] on its status.
+    pub version: &'static str,
+}
+
+impl AcpAdapter {
+    /// The command that installs the tested version. `--omit=optional` skips
+    /// any copy of the harness bundled with it: Kaava runs the user's own.
+    pub fn install(&self) -> String {
+        format!("npm i -g --omit=optional {}@{}", self.package, self.version)
+    }
+}
 
 /// How to start one agent process.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -56,30 +105,48 @@ pub struct LaunchSpec {
     pub expected_version: Option<&'static str>,
 }
 
-/// The Claude spec, or the reason there is none. `path` and `pathext` are the
-/// caller's `PATH` and `PATHEXT`, passed in so a test never reads the machine's.
-pub fn claude_spec(path: Option<&OsStr>, pathext: Option<&OsStr>) -> Result<LaunchSpec, Hint> {
-    let claude = which("claude", path, pathext).ok_or(Hint::ClaudeMissing)?;
-    let adapter = which(CLAUDE_ADAPTER, path, pathext).ok_or(Hint::AdapterMissing)?;
+/// The spec for `harness`, or the reason there is none. `path` and `pathext`
+/// are the caller's `PATH` and `PATHEXT`, passed in so a test never reads the
+/// machine's.
+pub fn spec(
+    harness: Harness,
+    path: Option<&OsStr>,
+    pathext: Option<&OsStr>,
+) -> Result<LaunchSpec, Hint> {
+    let descriptor = harness.descriptor();
+    let cli = which(descriptor.cli, path, pathext).ok_or(Hint::ClaudeMissing)?;
+    let adapter = which(descriptor.adapter.program, path, pathext).ok_or(Hint::AdapterMissing)?;
+    let mut env = vec![
+        (
+            descriptor.cli_env.to_string(),
+            cli.to_string_lossy().into_owned(),
+        ),
+        // The adapter runs in the user's worktree, which is untrusted
+        // repository content. An npm shim ends in a bare `node`, and
+        // `cmd.exe` looks in the current directory before PATH for a bare
+        // name unless this is set, so a `node.cmd` at a repository's root
+        // would run the moment the user pressed Send, before any permission
+        // request could stop it. Every harness's adapter is an npm shim.
+        (NO_CWD_SEARCH.to_string(), "1".to_string()),
+    ];
+    env.extend(
+        descriptor
+            .env
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string())),
+    );
     Ok(LaunchSpec {
-        harness: Harness::Claude,
+        harness,
         program: adapter,
         args: Vec::new(),
-        env: vec![
-            (
-                "CLAUDE_CODE_EXECUTABLE".to_string(),
-                claude.to_string_lossy().into_owned(),
-            ),
-            // The adapter runs in the user's worktree, which is untrusted
-            // repository content. An npm shim ends in a bare `node`, and
-            // `cmd.exe` looks in the current directory before PATH for a bare
-            // name unless this is set, so a `node.cmd` at a repository's root
-            // would run the moment the user pressed Send, before any
-            // permission request could stop it.
-            (NO_CWD_SEARCH.to_string(), "1".to_string()),
-        ],
-        expected_version: Some(CLAUDE_ADAPTER_VERSION),
+        env,
+        expected_version: Some(descriptor.adapter.version),
     })
+}
+
+/// The Claude spec, or the reason there is none.
+pub fn claude_spec(path: Option<&OsStr>, pathext: Option<&OsStr>) -> Result<LaunchSpec, Hint> {
+    spec(Harness::Claude, path, pathext)
 }
 
 /// The first file named `name` on `path`, trying each `pathext` extension on
@@ -144,7 +211,7 @@ mod tests {
         let claude = touch(dir.path(), &exe("claude"));
         assert_eq!(claude_spec(path, ext), Err(Hint::AdapterMissing));
 
-        let adapter = touch(dir.path(), &exe(CLAUDE_ADAPTER));
+        let adapter = touch(dir.path(), &exe("claude-agent-acp"));
         let spec = claude_spec(path, ext).unwrap();
         assert_eq!(spec.program, adapter);
         assert!(spec.args.is_empty(), "a .cmd shim must get no arguments");
@@ -161,6 +228,36 @@ mod tests {
                 ),
             ],
             "the worktree is never searched for the `node` a shim runs"
+        );
+        assert_eq!(spec.expected_version, Some("0.90.0"));
+    }
+
+    #[test]
+    fn every_harness_has_one_descriptor_that_names_it() {
+        for descriptor in REGISTRY {
+            assert_eq!(descriptor.harness.descriptor(), *descriptor);
+            let same = REGISTRY.iter().filter(|d| d.harness == descriptor.harness);
+            assert_eq!(
+                same.count(),
+                1,
+                "{:?} is registered twice",
+                descriptor.harness
+            );
+        }
+    }
+
+    #[test]
+    fn a_name_is_the_short_one() {
+        for d in REGISTRY {
+            assert!(!d.name.contains(' '), "handoff §0: {} is too long", d.name);
+        }
+    }
+
+    #[test]
+    fn the_adapter_installs_pinned_without_its_bundled_harness() {
+        assert_eq!(
+            CLAUDE.adapter.install(),
+            "npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@0.90.0"
         );
     }
 
