@@ -7,7 +7,9 @@
  * picker, the mode indicator and the context chips come later.
  */
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useBarSlots } from "./slots";
 import { strings } from "./strings";
+import "../../agent-tokens.css";
 import "./agentbar.css";
 
 export interface AgentBarProps {
@@ -29,6 +31,7 @@ export function ClusterAgentBar({ clusterId, ...props }: AgentBarProps & { clust
 }
 
 export default function AgentBar({ blocked, hint, onSend }: AgentBarProps) {
+  const S = useBarSlots();
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -79,34 +82,25 @@ export default function AgentBar({ blocked, hint, onSend }: AgentBarProps) {
     (hint !== null ? (strings.hint[hint] ?? null) : null);
 
   return (
-    <section className="agentbar" aria-label={strings.label}>
-      {notice !== null && (
-        <div className="agentbar__notice" role="status">
-          {notice}
-        </div>
-      )}
-      <div className="agentbar__row">
-        <span className="agentbar__harness">{strings.harness}</span>
-        <textarea
+    <S.Frame
+      notice={notice !== null && <S.Notice text={notice} />}
+      harness={<S.Harness name={strings.harness} />}
+      input={
+        <S.Input
           ref={input}
-          className="agentbar__input"
-          aria-label={strings.promptLabel}
-          placeholder={strings.placeholder}
-          rows={1}
           value={draft}
           disabled={disabled}
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={setDraft}
           onKeyDown={onKeyDown}
         />
-        <button
-          type="button"
-          className="k-btn k-btn--primary k-btn--sm"
+      }
+      action={
+        <S.Send
           disabled={disabled || sending || draft.trim() === ""}
+          sending={sending}
           onClick={send}
-        >
-          {sending ? strings.sending : strings.send}
-        </button>
-      </div>
-    </section>
+        />
+      }
+    />
   );
 }
