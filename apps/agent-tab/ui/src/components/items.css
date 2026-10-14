@@ -165,11 +165,16 @@ details.at-tool > :not(summary) {
 
 .at-tool__title {
   min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--k-mono);
+  font-size: var(--k-size-small);
+}
+
+/* A closed row keeps to one line; opening it shows the whole title. */
+details:not([open]) > .at-tool__head .at-tool__title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: var(--k-mono);
-  font-size: var(--k-size-small);
 }
 
 .at-tool__counts {

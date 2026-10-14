@@ -18,7 +18,9 @@ export function ToolCall({ title, status, output, truncated, paths, diffs }: Too
       <span className={`at-tool__glyph at-tool__glyph--${status}`} aria-hidden="true">
         {strings.toolGlyph[status]}
       </span>
-      <span className="at-tool__title">{title}</span>
+      <span className="at-tool__title" title={title}>
+        {title}
+      </span>
       {added + removed > 0 && (
         <span className="at-tool__counts">
           <span className="at-diff__add">{strings.diffAdded(added)}</span>{" "}
