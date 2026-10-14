@@ -107,6 +107,7 @@ struct Shared {
     expected_version: Option<&'static str>,
     /// The mode the handshake puts the session in, from its harness's policy.
     ask_first: &'static str,
+    setting_timeout: Duration,
     child: Mutex<Child>,
     /// What ends the child and everything it started at once.
     job: Option<Job>,
@@ -244,6 +245,7 @@ impl Session {
             worktree,
             expected_version: spec.expected_version,
             ask_first: spec.policy.ask_first,
+            setting_timeout: spec.setting_timeout,
             child: Mutex::new(child),
             job,
             writer,
@@ -863,20 +865,35 @@ impl Shared {
         timeout: Option<Duration>,
     ) -> Result<Value, RemoteError> {
         let deadline = timeout.map(|t| Instant::now() + t);
+        self.await_reply(id, deadline, |inner| {
+            inner.changing.remove(&id);
+            inner.replies.remove(&id);
+        })
+        .unwrap_or_else(|| Err(timed_out(method)))
+    }
+
+    /// Wait for the reply to `id` until `deadline`. `None` if it passes
+    /// first, after `give_up` has run under the hold of the lock that found
+    /// no reply; without one the slot stays, and can still be waited for.
+    fn await_reply(
+        &self,
+        id: i64,
+        deadline: Option<Instant>,
+        give_up: impl FnOnce(&mut Inner),
+    ) -> Option<Result<Value, RemoteError>> {
         let mut inner = self.lock();
         loop {
             if let Some(Some(_)) = inner.replies.get(&id) {
                 let reply = inner.replies.remove(&id).flatten();
-                return reply.unwrap_or_else(|| Err(closed()));
+                return Some(reply.unwrap_or_else(|| Err(closed())));
             }
             inner = match deadline {
                 None => self.wake.wait(inner).unwrap_or_else(|e| e.into_inner()),
                 Some(deadline) => {
                     let left = deadline.saturating_duration_since(Instant::now());
                     if left.is_zero() {
-                        inner.changing.remove(&id);
-                        inner.replies.remove(&id);
-                        return Err(timed_out(method));
+                        give_up(&mut inner);
+                        return None;
                     }
                     self.wake
                         .wait_timeout(inner, left)
@@ -893,7 +910,9 @@ impl Shared {
     /// changes land in the order they were made. The reader takes the reply's
     /// settings in; this draws a refusal as an error and ends in a status
     /// whose `answered` counts the change, so the tab knows its choice was
-    /// answered.
+    /// answered. A change with no reply within the spec's `setting_timeout`
+    /// is drawn as not answered yet, and still waited for, so a late reply is
+    /// taken in and the next change never overtakes it.
     fn change_settings(self: Arc<Self>, changes: &Receiver<Setting>) {
         for setting in changes {
             let Setting::Change(change) = setting else {
@@ -908,8 +927,15 @@ impl Shared {
             let Ok(id) = self.send_request(method, params, carries_settings(mode)) else {
                 return;
             };
-            let reply = self.finish(id, method, None);
-            if !self.report(reply, Some(ticket)) {
+            let deadline = Instant::now() + self.setting_timeout;
+            let mut reply = self.await_reply(id, Some(deadline), |_| {});
+            if reply.is_none() {
+                if !self.report(Err(not_answered_yet()), None) {
+                    return;
+                }
+                reply = self.await_reply(id, None, |_| {});
+            }
+            if !self.report(reply.unwrap_or_else(|| Err(closed())), Some(ticket)) {
                 return;
             }
         }
@@ -1232,6 +1258,14 @@ fn timed_out(method: &str) -> RemoteError {
     RemoteError {
         code: TIMED_OUT,
         message: format!("{method} got no reply"),
+    }
+}
+
+fn not_answered_yet() -> RemoteError {
+    RemoteError {
+        code: TIMED_OUT,
+        message: "The agent has not answered that setting change yet. Later changes wait for it."
+            .to_string(),
     }
 }
 

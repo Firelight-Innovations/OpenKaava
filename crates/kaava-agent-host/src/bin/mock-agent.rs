@@ -176,7 +176,8 @@ impl Mock {
     /// option as it now stands, after a `current_mode_update` for a mode.
     /// With `--settles-elsewhere` a mode change settles on `acceptEdits`
     /// instead, and only the reply says so; the adapter does settle elsewhere
-    /// when it falls back from `auto`.
+    /// when it falls back from `auto`. With `--slow-setting` every reply comes
+    /// a second late.
     fn set_config(&mut self, id: &Value, params: &Value) {
         let config = params
             .get("configId")
@@ -199,6 +200,9 @@ impl Mock {
                 }
             }
             _ => return self.reply_error(id, -32602, "Unknown config option"),
+        }
+        if self.has("--slow-setting") {
+            std::thread::sleep(Duration::from_secs(1));
         }
         self.reply(id, json!({ "configOptions": self.config_options() }));
     }

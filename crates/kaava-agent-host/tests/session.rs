@@ -71,6 +71,7 @@ fn mock(args: &[&str]) -> LaunchSpec {
         env: Vec::new(),
         expected_version: Some("0.90.0"),
         policy: CLAUDE.policy,
+        setting_timeout: PATIENCE,
     }
 }
 
@@ -1339,4 +1340,53 @@ fn settings_wait_for_the_session() {
         rig.host.set_mode(TAB, "plan"),
         Err(HostError::Closed)
     ));
+}
+
+#[test]
+fn a_slow_setting_is_drawn_as_unanswered_and_still_taken_in() {
+    let rig = rig();
+    let mut spec = mock(&["--slow-setting"]);
+    spec.setting_timeout = Duration::from_millis(100);
+    rig.host
+        .send(TAB, spec, rig.tree.clone(), "stream")
+        .unwrap();
+    rig.turns_done(1);
+    let before = rig.events().len();
+    rig.host.set_mode(TAB, "plan").unwrap();
+    let last = rig.host.set_mode(TAB, "acceptEdits").unwrap();
+    rig.status_where("both answered", |s| s.answered >= last);
+    let unanswered = rig.events()[before..]
+        .iter()
+        .filter(|e| {
+            matches!(&e.event, Event::ItemCompleted { item }
+                if matches!(&item.kind, ItemKind::Error { message, .. }
+                    if message.contains("not answered")))
+        })
+        .count();
+    assert!(unanswered >= 1, "the wait is drawn");
+    let answered: Vec<(u64, String)> = rig
+        .statuses_since(before)
+        .iter()
+        .filter(|s| s.answered > 0)
+        .map(|s| (s.answered, s.mode.clone().unwrap_or_default()))
+        .collect();
+    assert_eq!(answered.first(), Some(&(1, "plan".to_string())));
+    assert_eq!(answered.last(), Some(&(2, "acceptEdits".to_string())));
+}
+
+#[test]
+fn a_new_session_starts_past_every_earlier_change() {
+    let rig = rig();
+    rig.send(&["--slow-setting"], "stream").unwrap();
+    rig.turns_done(1);
+    let ticket = rig.host.set_mode(TAB, "plan").unwrap();
+    rig.host.stop(TAB);
+    rig.state(SessionState::Stopped);
+    rig.send(&[], "stream").unwrap();
+    rig.turns_done(2);
+    let status = last_status(&rig.events()).unwrap();
+    assert!(
+        status.answered >= ticket,
+        "nothing the old process left unanswered is waited for"
+    );
 }
