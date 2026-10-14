@@ -10,9 +10,9 @@
       reaches dist/. Delete it whenever; nothing imports it.
 
       It exists because splash.html is hard to judge in a browser tab. It is
-      designed for a 560x360 card in a 632x432 transparent window, and stretched across a maximised viewport
+      designed for a 600x420 card in a 672x492 transparent window, and stretched across a maximised viewport
       its proportions lie — the art floats in dead space and the bottom bar
-      becomes a stripe. So this renders it in an iframe at exactly 632x432.
+      becomes a stripe. So this renders it in an iframe at exactly 672x492.
 
       It also stands in for the Rust backend. splash.html talks to Tauri
       through `window.__TAURI__`, which does not exist in a plain browser, so
@@ -50,14 +50,14 @@
       /* A ring around the frame so the splash's own 1px border stays legible
          against the page, and the real window bounds are obvious. */
       .stage {
-        width: 632px;
-        height: 432px;
+        width: 672px;
+        height: 492px;
       }
 
       iframe {
         display: block;
-        width: 632px;
-        height: 432px;
+        width: 672px;
+        height: 492px;
         border: 0;
         background: transparent;
       }

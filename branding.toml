@@ -65,6 +65,16 @@ wordmark = "OpenKaava"
 # repeated on a second surface stops being a tagline.
 tagline = "The Veistra custom agentic development stack"
 
+# The company that makes the product. The splash sets it beside the wordmark, in
+# tracked capitals that its stylesheet applies, so this is written as a word for
+# the same reason `wordmark` is.
+company = "Veistra"
+
+# The copyright notice on the splash, as it is printed. The year is the year of
+# publication rather than the year the app is launched in, which is why it is
+# written here and not computed from the clock.
+copyright = "© 2026 Veistra. All rights reserved."
+
 
 [assets]
 # Paths are relative to this file. Every one of them is checked to exist, so a

@@ -9,6 +9,7 @@ import {
 } from "../shell/settings/splashAppearance";
 import splash from "../../splash.html?raw";
 import tokens from "../tokens.css?raw";
+import tauriConf from "../../src-tauri/tauri.conf.json?raw";
 
 /** The `--name: value` declarations of the first block whose selector is `selector`. */
 function declarations(css: string, selector: string): Map<string, string> {
@@ -79,16 +80,36 @@ describe("splash.html head script", () => {
   });
 });
 
-describe("splash.html footer", () => {
-  it("reserves a logo slot for the mark that is still to be drawn", () => {
-    expect(splash).toMatch(/<i class="splash__logo" id="logo"/);
+describe("splash.html lockup and band", () => {
+  // The mark is drawn by the art now, so the old placeholder slot is gone; what
+  // stands in for it is the SVG the art falls back to when it cannot draw.
+  it("keeps the mark as an SVG fallback, hidden until the art gives up", () => {
+    expect(splash).toMatch(/<svg class="splash__mark"[^>]*\shidden>/);
+    expect(splash).not.toMatch(/class="splash__logo"/);
   });
 
-  it("sets the wordmark as written, in a face that has the lowercase", () => {
-    expect(splash).toContain('<p class="splash__wordmark">OpenKaava</p>');
+  it("sets the wordmark as written, in a face that has the lowercase and the TM", () => {
+    expect(splash).toContain(
+      '<p class="splash__wordmark">OpenKaava<span class="splash__tm">™</span></p>',
+    );
     const wordmark = /\.splash__wordmark \{([^}]*)\}/.exec(splash)?.[1] ?? "";
     expect(wordmark).not.toContain("text-transform");
-    expect(splash).toMatch(/U\+0061-007A\s+the wordmark/);
+    expect(splash).toMatch(/U\+0061-007A, U\+2122\s+the wordmark/);
+  });
+
+  // OpenKaava is the trademark; the company beside it is not.
+  it("sets the company without a trademark sign", () => {
+    expect(splash).toContain('<span class="splash__company">Veistra</span>');
+  });
+
+  // package.json is the one source of the version: tauri.conf.json reads it,
+  // and getVersion() answers with what was compiled in. A number written into
+  // the splash would be a second copy that check-version.mjs does not see.
+  it("shows the app's own version rather than a number of its own", () => {
+    expect(splash).toContain('<span class="splash__version"></span>');
+    expect(splash).toMatch(/\.getVersion\(\)/);
+    expect(splash).not.toMatch(/Version \d+\.\d+/);
+    expect(JSON.parse(tauriConf).version).toBe("../package.json");
   });
 
   it("fetches nothing: no image, no stylesheet, no script by URL", () => {
@@ -138,5 +159,31 @@ describe("splash.html art", () => {
     art.working(2, 3);
     art.fail();
     art.working(3, 3);
+  });
+
+  describe("the progress bar", () => {
+    const barScript = /<script id="splash-bar">([\s\S]*?)<\/script>/.exec(splash)?.[1] ?? "";
+
+    function mountBar(): Art {
+      document.body.innerHTML = '<div class="splash__bar"><canvas></canvas></div>';
+      vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(blankContext);
+      vi.stubGlobal("requestAnimationFrame", () => 0);
+      window.matchMedia = (() => ({ matches: false })) as unknown as typeof window.matchMedia;
+      return new Function(`${barScript}; return splashBar;`)() as Art;
+    }
+
+    it("is present", () => {
+      expect(barScript).not.toBe("");
+    });
+
+    it("follows boot through every phase, and stops on failure", () => {
+      const bar = mountBar();
+      for (let step = 0; step <= 5; step++) bar.working(step, 5);
+      bar.finalizing();
+      bar.ready();
+      const failing = mountBar();
+      failing.working(2, 3);
+      failing.fail();
+    });
   });
 });
