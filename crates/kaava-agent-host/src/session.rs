@@ -739,7 +739,9 @@ impl Shared {
         Ok(id)
     }
 
-    /// Wait for the reply to `id`; past `timeout`, give up on it.
+    /// Wait for the reply to `id`; past `timeout`, give up on it. A reply
+    /// that lands as the wait ends is still the answer: the reader has taken
+    /// in whatever it carries, so calling it timed out would contradict that.
     fn finish(
         &self,
         id: i64,
@@ -747,12 +749,15 @@ impl Shared {
         timeout: Option<Duration>,
     ) -> Result<Value, RemoteError> {
         let deadline = timeout.map(|t| Instant::now() + t);
-        self.await_reply(id, deadline).unwrap_or_else(|| {
-            let mut inner = self.lock();
-            inner.replies.remove(&id);
-            inner.changing.remove(&id);
-            Err(timed_out(method))
-        })
+        if let Some(reply) = self.await_reply(id, deadline) {
+            return reply;
+        }
+        let mut inner = self.lock();
+        inner.changing.remove(&id);
+        match inner.replies.remove(&id) {
+            Some(Some(reply)) => reply,
+            _ => Err(timed_out(method)),
+        }
     }
 
     /// Wait for the reply to `id` until `deadline`. `None` if it passes
