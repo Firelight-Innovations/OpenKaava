@@ -85,18 +85,34 @@ pub fn parse(line: &str) -> Option<Incoming> {
         }),
         (None, Some(id)) => {
             let outcome = match object.get("error") {
-                Some(error) => Err(
-                    serde_json::from_value(error.clone()).unwrap_or(RemoteError {
-                        code: 0,
-                        message: String::new(),
-                    }),
-                ),
+                Some(error) => Err(remote_error(error)),
                 None => Ok(object.get("result").cloned().unwrap_or(Value::Null)),
             };
             Some(Incoming::Response { id, outcome })
         }
         (None, None) => None,
     }
+}
+
+/// Read an error object. ACP's TypeScript SDK answers a thrown error with
+/// "Internal error" and puts the reason in `data.details`, so the reason is
+/// kept: "Internal error" alone tells the user nothing.
+fn remote_error(error: &Value) -> RemoteError {
+    let code = error.get("code").and_then(Value::as_i64).unwrap_or(0);
+    let message = error
+        .get("message")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    let details = error
+        .pointer("/data/details")
+        .and_then(Value::as_str)
+        .filter(|d| !d.is_empty());
+    let message = match details {
+        Some(d) if message.is_empty() => d.to_string(),
+        Some(d) => format!("{message}: {d}"),
+        None => message.to_string(),
+    };
+    RemoteError { code, message }
 }
 
 /// A request line, without its newline.
@@ -151,6 +167,19 @@ mod tests {
             panic!("not a response");
         };
         assert_eq!(outcome.unwrap_err().code, AUTH_REQUIRED);
+    }
+
+    #[test]
+    fn the_reason_behind_an_internal_error_is_kept() {
+        let Some(Incoming::Response { outcome, .. }) = parse(
+            r#"{"jsonrpc":"2.0","id":3,"error":{"code":-32603,"message":"Internal error","data":{"details":"Model gone is not available"}}}"#,
+        ) else {
+            panic!("not a response");
+        };
+        assert_eq!(
+            outcome.unwrap_err().message,
+            "Internal error: Model gone is not available"
+        );
     }
 
     #[test]
