@@ -1,15 +1,19 @@
 import { strings } from "../strings";
 import type { SendButtonProps } from "./types";
+import "./composer.css";
 
+/** A round accent button with an arrow; its name is still "Send". */
 export function SendButton({ disabled, onClick }: SendButtonProps) {
   return (
     <button
       type="button"
-      className="k-btn k-btn--primary k-btn--sm"
+      className="at-round at-round--send"
+      aria-label={strings.send}
+      title={strings.send}
       disabled={disabled}
       onClick={onClick}
     >
-      {strings.send}
+      <span aria-hidden="true">{strings.sendGlyph}</span>
     </button>
   );
 }

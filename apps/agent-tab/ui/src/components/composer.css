@@ -3,13 +3,16 @@
  * meter. Reads only `--k-*` tokens (src/agent-tokens.css).
  */
 
+/* Sits under the transcript in the same centred column, with no rule above. */
 .at-prompt {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: var(--k-space-1-5);
-  padding: var(--k-space-2) var(--k-space-3) var(--k-space-2-5);
-  border-top: 1px solid var(--k-panel-border);
+  width: 100%;
+  max-width: calc(var(--k-thread-width) + 2 * var(--k-space-3));
+  margin-inline: auto;
+  padding: 0 var(--k-space-3) var(--k-space-3);
 }
 
 .at-notice {
@@ -19,31 +22,87 @@
   color: var(--k-error-fg);
 }
 
-.at-prompt__input {
-  resize: vertical;
-  min-height: 56px;
-  max-height: 40vh;
-  padding: var(--k-space-1-5) var(--k-space-2);
+.at-prompt__box {
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--k-input-border);
-  border-radius: var(--k-radius-input);
-  background: var(--k-input-bg);
+  border-radius: var(--k-radius-composer);
+  background: var(--k-composer-bg);
+  transition: border-color var(--k-motion-fast) var(--k-ease);
+}
+
+.at-prompt__box:focus-within {
+  border-color: var(--k-border-strong);
+}
+
+/* The ring moves from the input to the card, so focus still shows. */
+.at-prompt__box:has(.at-prompt__input:focus-visible) {
+  outline: var(--k-focus-ring);
+}
+
+/* The card draws the edge; the input inside it has none of its own. */
+.at-prompt__input {
+  resize: none;
+  min-height: 44px;
+  max-height: 40vh;
+  field-sizing: content;
+  padding: var(--k-space-2-5) var(--k-space-3) var(--k-space-1);
+  border: none;
+  background: transparent;
   color: var(--k-editor-fg);
   font: inherit;
 }
 
 .at-prompt__input:focus-visible {
-  outline: var(--k-focus-ring);
-  outline-offset: 0;
+  outline: none;
 }
 
 .at-prompt__footer {
   display: flex;
   align-items: center;
   gap: var(--k-space-2);
+  padding: var(--k-space-1) var(--k-space-2) var(--k-space-2) var(--k-space-3);
 }
 
 .at-prompt__spacer {
   flex: 1;
+}
+
+.at-round {
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--k-radius-pill);
+  font: inherit;
+  font-weight: var(--k-weight-strong);
+  cursor: pointer;
+  transition: opacity var(--k-motion-fast) var(--k-ease);
+}
+
+.at-round:focus-visible {
+  outline: var(--k-focus-ring);
+  outline-offset: 1px;
+}
+
+.at-round--send {
+  background: var(--k-accent);
+  color: var(--k-on-accent);
+}
+
+.at-round--send:disabled {
+  background: var(--k-badge-bg);
+  color: var(--k-fg-disabled);
+  cursor: default;
+}
+
+.at-round--stop {
+  background: var(--k-editor-fg);
+  color: var(--k-editor-bg);
+  font-size: var(--k-text-label-size);
 }
 
 .at-prompt__mode {

@@ -1,15 +1,18 @@
 import { strings } from "../strings";
 import type { StopButtonProps } from "./types";
+import "./composer.css";
 
+/** Where Send was, while the agent works: a round button with a square. */
 export function StopButton({ onClick }: StopButtonProps) {
   return (
     <button
       type="button"
-      className="k-btn k-btn--secondary k-btn--sm"
+      className="at-round at-round--stop"
+      aria-label={strings.stopTurn}
       title={strings.stopTurnHint}
       onClick={onClick}
     >
-      {strings.stopTurn}
+      <span aria-hidden="true">{strings.stopGlyph}</span>
     </button>
   );
 }
