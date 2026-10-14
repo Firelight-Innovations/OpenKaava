@@ -13,6 +13,9 @@
 //! here, reached over transport B and dispatched by [`call`] below — no child
 //! process, no broker in between.
 
+// `pub(crate)` for `lib.rs` (which manages its `Sessions`), `shell_state`
+// (which stops a closed tab's agent) and the MCP panel's refusal reasons.
+pub(crate) mod agent_tab;
 mod agents;
 mod blender_viewer;
 pub mod canvas;
@@ -244,6 +247,14 @@ const REGISTRY: &[Registered] = &[
         // points at a running page. This is the design canvas of
         // `docs/KAAVA-UX-REWORK.md` §5, and it is always compiled in.
         call: canvas::call_live,
+    },
+    Registered {
+        id: "agent-tab",
+        name: "Agent",
+        description: "Run Claude in this cluster's worktree, and follow what it does.",
+        // Reached with its instance through `call_for_instance` below; this
+        // dispatch is the instance-free path, and answers one read.
+        call: agent_tab::call,
     },
     Registered {
         id: "agents",
@@ -618,6 +629,29 @@ pub fn call(
     ))
 }
 
+/// [`call`], for a caller that knows which instance asked — the shell's
+/// `app_call` command, and nothing else. The agent tab is the one app whose
+/// state belongs to an instance rather than to its cluster, so it is the one
+/// app that is handed it; every other call carries on through [`call`].
+pub fn call_for_instance(
+    app: &AppHandle,
+    context: &CallContext,
+    instance_id: Option<&str>,
+    id: &str,
+    method: &str,
+    params: Option<Value>,
+) -> Result<Value, RpcError> {
+    if id != agent_tab::ID || !method.starts_with("agent-tab/") {
+        return call(app, context, id, method, params);
+    }
+    // The same choke point `call` applies to every registered app.
+    if let Some(cluster) = context.cluster_id.as_deref() {
+        let env = app.state::<ShellState>().cluster_write_environment(cluster);
+        write_refusal(env.as_ref(), method)?;
+    }
+    agent_tab::call_for(app, context, instance_id, method, params)
+}
+
 /// The JSON-RPC code for a write refused because the cluster is on main.
 /// Outside the range `kaava_rpc` reserves; the bridge hands it to the app
 /// unchanged and the message is what gets shown.
@@ -676,6 +710,9 @@ pub const WRITE_METHODS: &[&str] = &[
     "canvas/set-frame",
     "canvas/create-frame",
     "canvas/split-frames",
+    // An agent edits the checkout it runs in, and an approval lets it.
+    "agent-tab/send",
+    "agent-tab/answer",
 ];
 
 /// Whether `method` is a write to the cluster's checkout.

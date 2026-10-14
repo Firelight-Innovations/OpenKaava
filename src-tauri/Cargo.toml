@@ -100,6 +100,10 @@ kaava-tool-manifest = { path = "../crates/kaava-tool-manifest" }
 # error vocabularies for one `invoke` — one for apps, one for tools — is exactly
 # the drift this crate exists to prevent.
 kaava-rpc = { path = "../crates/kaava-rpc" }
+# The agent tab's engine: coding agents over the Agent Client Protocol, one
+# per tab, in its cluster's worktree. No Tauri in it; `apps::agent_tab` is the
+# glue. See `docs/design/KAAVA-AGENT-EMBEDDING-DESIGN.md`.
+kaava-agent-host = { path = "../crates/kaava-agent-host" }
 
 # The Schematify design graph: schemas, atomic storage, the loader, and the
 # lifecycle rules. `src-tauri/src/apps/schematify.rs` is the thin JSON-RPC

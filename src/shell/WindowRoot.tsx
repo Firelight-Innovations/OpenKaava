@@ -67,6 +67,8 @@ import TerminalDeck, { type TerminalDeckHandle } from "./terminal/TerminalDeck";
 import { callApp, useApps, useOpenables, usePages } from "./state/apps";
 import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
+import { sendToAgent, useAgentBarStatus } from "./state/agentBar";
+import AgentBar from "./agentbar/AgentBar";
 import ReadOnlyBanner from "./git/ReadOnlyBanner";
 import { useProjectIcon } from "./state/projectIcon";
 import { useUpdates } from "./state/updates";
@@ -1637,6 +1639,22 @@ export default function WindowRoot({
   );
   const onOpenProjectSwitcher = useCallback(() => setSwitchProjectOpen(true), []);
 
+  // The agent bar (handoff §4), shown only while Rust says this cluster may run an agent at
+  // all: developer mode gates it until V6. A main checkout still shows the bar, disabled, with
+  // the reason, so the way to a worktree is on screen.
+  const agentBarStatus = useAgentBarStatus(
+    activeClusterId,
+    environment ? environmentKey(environment) : null,
+  );
+  const onAgentSend = useCallback(
+    (text: string) =>
+      sendToAgent(
+        { label, tree, instances, paneId: activePaneId, dir: splitDirOnOpen(activePaneId) },
+        text,
+      ),
+    [label, tree, instances, activePaneId],
+  );
+
   // The dialog's own "Open folder…"/"New project" buttons close it and hand
   // off to Home's pickers — the same two `home/*` methods the File menu and
   // Home's own cards already call, scoped to this window's active cluster
@@ -2050,6 +2068,15 @@ export default function WindowRoot({
               <ReadOnlyBanner
                 projectPath={project.path}
                 onNewWorktreeCluster={() => onAddCluster("newLocalWorktree")}
+              />
+            ) : undefined,
+          agentBar:
+            activeCluster && agentBarStatus && agentBarStatus.blocked !== "developerMode" ? (
+              <AgentBar
+                key={activeCluster.id}
+                blocked={agentBarStatus.blocked}
+                hint={agentBarStatus.hint}
+                onSend={onAgentSend}
               />
             ) : undefined,
           toolWindow: (

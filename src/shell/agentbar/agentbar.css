@@ -1,0 +1,66 @@
+/*
+ * The agent bar. Renders into `.frame__agentbar`, which already insets it by
+ * the region gutter (src/shell/frame/frame.css). A region card like the tool
+ * window above it: surface background, region radius, no shadow.
+ */
+
+.agentbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+  padding: var(--space-1-5, 6px) var(--space-2, 8px);
+  border-radius: var(--radius-region, 10px);
+  background: var(--bg-surface-1);
+  color: var(--txt-primary);
+  font: var(--type-body);
+}
+
+.agentbar__notice {
+  font: var(--type-caption);
+  color: var(--txt-warning);
+}
+
+.agentbar__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.agentbar__harness {
+  flex: none;
+  padding: 1px var(--space-1-5, 6px);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--bg-layer-2);
+  color: var(--txt-secondary);
+  font: var(--type-caption);
+}
+
+.agentbar__input {
+  flex: 1;
+  min-width: 0;
+  /* AgentBar sets the height from what is typed, up to max-height. */
+  height: auto;
+  min-height: var(--control-md, 28px);
+  max-height: 120px;
+  resize: none;
+  padding: 4px var(--space-2, 8px);
+  border: 1px solid var(--border-subtle-1);
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-layer-1);
+  color: var(--txt-primary);
+  font: inherit;
+  line-height: 18px;
+}
+
+.agentbar__input::placeholder {
+  color: var(--txt-placeholder);
+}
+
+.agentbar__input:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 0;
+}
+
+.agentbar__input:disabled {
+  color: var(--txt-disabled);
+}

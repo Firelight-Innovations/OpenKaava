@@ -1598,7 +1598,7 @@ pub async fn app_call(
         // name a cluster that closed while the call was queued.
         let context =
             apps::CallContext::resolve(&app, instance_id.as_deref(), cluster_id.as_deref());
-        apps::call(&app, &context, &id, &method, params)
+        apps::call_for_instance(&app, &context, instance_id.as_deref(), &id, &method, params)
     })
     .await
     // The worker itself failed — it panicked, or the runtime is shutting down.

@@ -281,6 +281,10 @@ Agent C cannot sign in to Claude or ChatGPT. Prepare a script and a checklist. T
 | V6 | Anthropic written confirmation before any external release that includes Claude | Owner | |
 | V7 | Codex CLI license text confirmed (the adapter is Apache-2.0) | C | Passes: `@openai/codex` 0.160.1 and 0.162.1 are Apache-2.0 (github.com/openai/codex). |
 
+**T0.1 transcripts.** The mock agent runs in `cargo test` as a real child process, and its
+scenarios are the golden files. Real Claude, Codex and Pi transcripts are not run. Kaava never
+signs in to Claude or ChatGPT, so those runs are owner-run (§9.2).
+
 ---
 
 ## 11. Open items for the owner
@@ -306,6 +310,11 @@ Agent C cannot sign in to Claude or ChatGPT. Prepare a script and a checklist. T
 7. **Codicons license (§2.1.4 against §7.1).** `@vscode/codicons` 0.0.46 is published under
    CC-BY-4.0, not MIT. Decide whether to allow CC-BY-4.0 for the icon font (it needs attribution),
    or keep the agent tab on text labels and the repository's existing icons.
+8. **Strings in one file (§0) against the shell's layering.** The agent bar is a shell region,
+   and the shell may not import an app's source (`eslint.config.js`, `appIsolation`). So the
+   agent tab's strings are in `apps/agent-tab/ui/src/strings.ts` and the bar's few strings are in
+   `src/shell/agentbar/strings.ts`. Decide whether two files is acceptable, or whether the shared
+   strings move to a package both may import.
 
 ---
 
@@ -334,6 +343,33 @@ Agent C cannot sign in to Claude or ChatGPT. Prepare a script and a checklist. T
 - **ACP types.** `agent-client-protocol-schema` (Apache-2.0) is not used: it turns on
   `serde_json/preserve_order`, and feature unification would change JSON key order for the whole
   workspace. The host writes the subset of ACP v1 it uses by hand, with a tolerant parser.
+
+#### First slice (Claude only)
+
+- **Adapter trait (§3.2).** The trait has the subset the Claude path uses: start, prompt,
+  cancel, answer, stop. Steer, fork and model listing arrive with Codex and Pi.
+- **Developer mode gate.** `agent-tab/send` and `agent-tab/answer`, the calls that start or
+  advance a session, are refused unless `developer.mode` is on, and the agent bar is hidden
+  without it. Stop, cancel, reset and attach always work. This holds until V6.
+- **Call routing.** `apps::CallContext` is not widened. A new `apps::call_for_instance` passes
+  the instance id to `agent-tab/*` methods only, and checks that the id names an agent tab in the
+  layout. An MCP `app_call` has no instance, so it can reach `agent-tab/harnesses` and nothing else.
+- **Path guard.** The host refuses an approval that names a path outside the cluster's worktree,
+  and the tab shows it as refused (§3.4, applied early). Paths are resolved through symlinks
+  before `..` is folded.
+- **A session stays where it started.** A tab dragged to another cluster, or whose cluster is
+  pointed at another folder, loses its session and its conversation.
+- **Limits.** One agent message is read up to 32 MiB, and a longer one is dropped as noise. A
+  diff side over 256 KiB is shown as "too large". A stderr line is kept up to 4 KiB.
+- **No Job Object.** Windows stops a session with `taskkill /T /F` on its process tree.
+- **No trace switch (§8).** The host logs lifecycle lines only, with tokens masked. A raw trace
+  switch is a follow-up.
+- **Questions from the agent.** ACP has no elicitation request yet, so a Claude question that is
+  not a permission prompt does not reach the tab.
+- **No docs link (§4.5).** Apps have no way to open a URL yet, so the one-line fix has no link.
+- **Icons.** Text and Unicode glyphs only, pending §11.7.
+- **Agent bar.** Harness label, prompt and Send. The model picker, mode indicator, context chips
+  and the `Ctrl+L` binding are later steps.
 
 ### Pinned versions (tested 2026-10-14, Windows 11)
 

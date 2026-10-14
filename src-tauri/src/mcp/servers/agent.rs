@@ -84,6 +84,9 @@ const TOOL_LIST: [McpTool; 16] = [
 
 /// Why `app_call` refuses `method`, for the panel.
 pub fn blocked_reason(method: &str) -> Option<String> {
+    if apps::agent_tab::needs_its_tab(method) {
+        return Some("Acts on one agent tab's session, so only that tab may call it".to_string());
+    }
     NEEDS_A_PERSON
         .iter()
         .find(|(name, _)| *name == method)
