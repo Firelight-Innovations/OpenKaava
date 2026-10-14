@@ -296,8 +296,14 @@ struct Excerpt {
 
 /// Lines `lines` of a text file (or its start), within the caps.
 fn excerpt(abs: &Path, lines: Option<Lines>) -> Result<Excerpt, String> {
+    excerpt_within(abs, lines, MAX_SCAN_BYTES)
+}
+
+/// [`excerpt`], reading at most `scan` bytes of the file.
+fn excerpt_within(abs: &Path, lines: Option<Lines>, scan: u64) -> Result<Excerpt, String> {
     let file = std::fs::File::open(abs).map_err(|e| format!("cannot open that file: {e}"))?;
-    let mut reader = BufReader::new(file).take(MAX_SCAN_BYTES);
+    let size = file.metadata().map(|m| m.len()).unwrap_or(0);
+    let mut reader = BufReader::new(file).take(scan);
     let start = lines.map_or(1, |l| l.start);
     let last = lines.map(Lines::last);
     let (mut text, mut buf) = (String::new(), Vec::new());
@@ -330,14 +336,21 @@ fn excerpt(abs: &Path, lines: Option<Lines>) -> Result<Excerpt, String> {
         text.push_str(&line);
         taken += 1;
     }
+    // The scan limit looks like the end of the file to the reader, so it is
+    // told apart here: a file longer than the limit was cut, not finished.
+    let capped = eof && reader.limit() == 0 && size > scan;
     if lines.is_some() && line_no < start && eof {
-        return Err(format!(
-            "the file has {line_no} lines, so line {start} does not exist"
-        ));
+        return Err(if capped {
+            format!(
+                "line {start} is past the first {} of the file, which is as far as a reference reads",
+                human_size(scan)
+            )
+        } else {
+            format!("the file has {line_no} lines, so line {start} does not exist")
+        });
     }
-    // A file longer than the scan limit counts as cut short too.
-    let complete = eof && reader.limit() > 0;
-    if !complete && last.is_none() {
+    let complete = eof && !capped;
+    if capped || (!complete && last.is_none()) {
         truncated = true;
     }
     if text.ends_with('\n') {
@@ -601,6 +614,31 @@ mod tests {
         let (text, _, truncated) = text_of(&r);
         assert!(truncated);
         assert!(text.len() <= MAX_EXCERPT_BYTES && !text.is_empty());
+    }
+
+    /// The scan limit is not the end of the file: a range it cuts is flagged,
+    /// and a line beyond it is not reported as missing.
+    #[test]
+    fn the_scan_limit_cuts_a_range_rather_than_ending_the_file() {
+        let dir = project();
+        let body: String = (1..=100).map(|n| format!("{n:03}\n")).collect();
+        put(&dir, "big.csv", body.as_bytes());
+        let abs = dir.path().join("big.csv");
+        let range = |start, end| {
+            Some(Lines {
+                start,
+                end: Some(end),
+            })
+        };
+
+        let cut = excerpt_within(&abs, range(5, 30), 80).unwrap();
+        assert!(cut.truncated, "lines 21-30 lie past the limit");
+        assert_eq!(cut.total_lines, None);
+        let err = excerpt_within(&abs, range(50, 50), 80).err().unwrap();
+        assert!(err.contains("past the first"), "{err}");
+        let whole = excerpt_within(&abs, None, body.len() as u64).unwrap();
+        assert!(!whole.truncated);
+        assert_eq!(whole.total_lines, Some(100));
     }
 
     #[test]
