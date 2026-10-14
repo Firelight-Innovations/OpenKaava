@@ -146,6 +146,8 @@ export default function App() {
       header={
         <S.Header
           cwd={status?.cwd ?? null}
+          harness={strings.harness.claude}
+          model={null}
           state={status?.state ?? null}
           onNewSession={() => {
             setNotice(null);
@@ -158,7 +160,7 @@ export default function App() {
           {state.items.length === 0 && pending === null ? (
             <S.EmptyState
               blocked={blocked}
-              setupHint={setupHint}
+              setupHint={setupHint && strings.hint[setupHint]}
               onExample={(text) => {
                 setDraft(text);
                 prompt.current?.focus();

@@ -9,7 +9,7 @@ export function EmptyState({ blocked, setupHint, onExample }: EmptyStateProps) {
       <h2 className="at-empty__heading">{strings.empty.heading}</h2>
       <p>{strings.empty.body}</p>
       {blocked && <p className="at-hint">{strings.refusal[blocked] ?? blocked}</p>}
-      {setupHint && <p className="at-hint">{strings.hint[setupHint]}</p>}
+      {setupHint !== null && <p className="at-hint">{setupHint}</p>}
       <ul className="at-empty__examples">
         {strings.empty.examples.map((text) => (
           <li key={text}>

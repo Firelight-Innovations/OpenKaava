@@ -184,4 +184,15 @@ describe("the slot registry", () => {
     // The truncated detail and the waiting prompt say so through Note, not beside it.
     expect(container.querySelector(".at-note")).toBeNull();
   });
+
+  it("names the harness and model it is given, and leaves out the unknown ones", () => {
+    const { Header } = defaultSlots;
+    const header = (harness: string | null, model: string | null) =>
+      render(
+        <Header cwd={null} harness={harness} model={model} state={null} onNewSession={vi.fn()} />,
+      ).container.querySelectorAll(".at-chip");
+    expect([...header("Codex", "gpt-5")].map((el) => el.textContent)).toEqual(["Codex", "gpt-5"]);
+    cleanup();
+    expect(header(null, null)).toHaveLength(0);
+  });
 });

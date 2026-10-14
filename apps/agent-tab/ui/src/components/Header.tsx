@@ -3,12 +3,13 @@ import { useSlots } from "./registry";
 import type { HeaderProps } from "./types";
 import "./frame.css";
 
-export function Header({ cwd, state, onNewSession }: HeaderProps) {
+export function Header({ cwd, harness, model, state, onNewSession }: HeaderProps) {
   const S = useSlots();
   return (
     <header className="at-header">
       <span className="at-header__title">{strings.title}</span>
-      <span className="at-chip">{strings.harness.claude}</span>
+      {harness !== null && <span className="at-chip">{harness}</span>}
+      {model !== null && <span className="at-chip">{model}</span>}
       {cwd !== null && (
         <span className="at-chip at-mono" title={cwd}>
           {strings.environment(baseName(cwd))}

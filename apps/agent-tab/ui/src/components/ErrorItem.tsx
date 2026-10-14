@@ -11,7 +11,7 @@ export function ErrorItem({ message, hint, onRetry }: ErrorItemProps) {
         <span aria-hidden="true">✕ </span>
         {strings.error}: {message}
       </div>
-      {hint && <S.Hint text={strings.hint[hint]} />}
+      {hint !== null && <S.Hint text={hint} />}
       <button type="button" className="k-btn k-btn--secondary k-btn--sm" onClick={onRetry}>
         {strings.retry}
       </button>

@@ -42,7 +42,7 @@ export function ItemView({ item, actions }: { item: Item; actions: ItemActions }
       return (
         <S.ErrorItem
           message={kind.message}
-          hint={kind.hint}
+          hint={kind.hint && strings.hint[kind.hint]}
           onRetry={() => actions.onRetry(item.id)}
         />
       );

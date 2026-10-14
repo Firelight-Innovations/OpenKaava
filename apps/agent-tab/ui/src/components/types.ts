@@ -5,13 +5,7 @@
  * an RPC or the transcript.
  */
 import type { KeyboardEvent, MouseEvent, ReactNode, Ref } from "react";
-import type {
-  ApprovalOption,
-  Hint,
-  PlanEntry,
-  SessionState,
-  ToolStatus,
-} from "../protocol.generated";
+import type { ApprovalOption, PlanEntry, SessionState, ToolStatus } from "../protocol.generated";
 import type { DiffLine } from "../diff";
 
 /** The tab's frame: header on top, transcript in the middle, composer below. */
@@ -24,6 +18,10 @@ export interface LayoutProps {
 export interface HeaderProps {
   /** The worktree the session runs in, or `null` before there is a session. */
   cwd: string | null;
+  /** The harness's display name ("Claude"), or `null` before the tab has heard. */
+  harness: string | null;
+  /** The running model's name, or `null` when it is not known. */
+  model: string | null;
   state: SessionState | null;
   onNewSession: () => void;
 }
@@ -42,7 +40,8 @@ export interface TranscriptProps {
 export interface EmptyStateProps {
   /** A refusal code for the whole cluster, or `null`. */
   blocked: string | null;
-  setupHint: Hint | null;
+  /** What the harness still needs, already in words, or `null`. */
+  setupHint: string | null;
   onExample: (text: string) => void;
 }
 
@@ -119,7 +118,8 @@ export interface ContextMeterProps {
 
 export interface ErrorItemProps {
   message: string;
-  hint: Hint | null;
+  /** The one-line fix, already in words, or `null`. */
+  hint: string | null;
   onRetry: () => void;
 }
 
