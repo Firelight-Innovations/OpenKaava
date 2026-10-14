@@ -27,6 +27,7 @@ export const strings = {
   stopTurn: "Stop",
   stopTurnHint: "Stop the current turn (Esc)",
   send: "Send",
+  mode: "Mode",
   promptLabel: "Message the agent",
   promptPlaceholder: "Ask the agent to do something in this worktree",
   promptBusy: "The agent is working. Press Esc to stop it.",
