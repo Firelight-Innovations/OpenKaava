@@ -24,7 +24,8 @@
   --k-card-bg: var(--bg-layer-1);
   --k-raised-bg: var(--bg-layer-2);
   --k-input-bg: var(--bg-layer-1);
-  --k-user-bg: var(--bg-layer-2);
+  /* Set off from the transcript in both themes: layer-2 is white in light. */
+  --k-user-bg: var(--bg-layer-1-hover);
   --k-composer-bg: var(--bg-layer-1);
   --k-code-bg: var(--bg-layer-2);
   --k-badge-bg: var(--bg-layer-2);
