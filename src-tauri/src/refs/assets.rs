@@ -1,0 +1,295 @@
+//! What kind of thing a file is, from its name and its first bytes, and the
+//! cheap facts worth reporting about it without decoding it: an image's size,
+//! a model's mesh count, a sound's length.
+
+use serde_json::{json, Map, Value};
+
+/// The kinds a file reference resolves to. Text files of any language are
+/// `Text`; a scene or a model that happens to be text keeps its own kind.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Kind {
+    Text,
+    Image,
+    Model,
+    Scene,
+    Audio,
+    Video,
+    Binary,
+}
+
+impl Kind {
+    pub fn name(self) -> &'static str {
+        match self {
+            Kind::Text => "text",
+            Kind::Image => "image",
+            Kind::Model => "model",
+            Kind::Scene => "scene",
+            Kind::Audio => "audio",
+            Kind::Video => "video",
+            Kind::Binary => "binary",
+        }
+    }
+}
+
+/// What the extension says: the kind, a mime type, whether the bytes are text
+/// (so an excerpt makes sense), and an editor language name for highlighting.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Class {
+    pub kind: Kind,
+    pub mime: &'static str,
+    pub textual: bool,
+    pub language: Option<&'static str>,
+}
+
+const fn class(
+    kind: Kind,
+    mime: &'static str,
+    textual: bool,
+    language: Option<&'static str>,
+) -> Class {
+    Class {
+        kind,
+        mime,
+        textual,
+        language,
+    }
+}
+
+/// Classify by extension. Unknown extensions are `Binary` here; the caller
+/// sniffs the bytes and promotes text it finds.
+pub fn classify(name: &str) -> Class {
+    let ext = name
+        .rsplit_once('.')
+        .map(|(_, e)| e.to_ascii_lowercase())
+        .unwrap_or_default();
+    let code = |lang| class(Kind::Text, "text/plain", true, Some(lang));
+    match ext.as_str() {
+        "png" => class(Kind::Image, "image/png", false, None),
+        "jpg" | "jpeg" => class(Kind::Image, "image/jpeg", false, None),
+        "gif" => class(Kind::Image, "image/gif", false, None),
+        "webp" => class(Kind::Image, "image/webp", false, None),
+        "svg" => class(Kind::Image, "image/svg+xml", true, Some("xml")),
+        "bmp" | "tga" | "psd" | "exr" | "hdr" | "dds" | "ktx" | "ktx2" | "ico" | "tif" | "tiff" => {
+            class(Kind::Image, "application/octet-stream", false, None)
+        }
+        "glb" => class(Kind::Model, "model/gltf-binary", false, None),
+        "gltf" => class(Kind::Model, "model/gltf+json", true, Some("json")),
+        "obj" => class(Kind::Model, "model/obj", true, None),
+        "dae" => class(Kind::Model, "model/vnd.collada+xml", true, Some("xml")),
+        "usda" => class(Kind::Model, "model/vnd.usda", true, None),
+        "fbx" | "blend" | "stl" | "ply" | "3ds" | "usd" | "usdz" | "usdc" => {
+            class(Kind::Model, "application/octet-stream", false, None)
+        }
+        "tscn" | "tres" | "godot" => class(Kind::Scene, "text/plain", true, Some("ini")),
+        "unity" | "prefab" | "asset" | "mat" => class(Kind::Scene, "text/yaml", true, Some("yaml")),
+        "scn" | "res" | "umap" | "uasset" => {
+            class(Kind::Scene, "application/octet-stream", false, None)
+        }
+        "wav" => class(Kind::Audio, "audio/wav", false, None),
+        "mp3" => class(Kind::Audio, "audio/mpeg", false, None),
+        "ogg" | "oga" => class(Kind::Audio, "audio/ogg", false, None),
+        "flac" => class(Kind::Audio, "audio/flac", false, None),
+        "opus" | "m4a" | "aac" | "aif" | "aiff" => {
+            class(Kind::Audio, "application/octet-stream", false, None)
+        }
+        "mp4" | "m4v" => class(Kind::Video, "video/mp4", false, None),
+        "webm" => class(Kind::Video, "video/webm", false, None),
+        "mov" | "mkv" | "avi" | "ogv" => {
+            class(Kind::Video, "application/octet-stream", false, None)
+        }
+        "md" | "markdown" => class(Kind::Text, "text/markdown", true, Some("markdown")),
+        "json" | "jsonc" => class(Kind::Text, "application/json", true, Some("json")),
+        "csv" => class(Kind::Text, "text/csv", true, None),
+        "rs" => code("rust"),
+        "ts" | "tsx" | "mts" | "cts" => code("typescript"),
+        "js" | "jsx" | "mjs" | "cjs" => code("javascript"),
+        "gd" => code("gdscript"),
+        "gdshader" | "shader" | "glsl" | "hlsl" | "wgsl" => code("glsl"),
+        "cs" => code("csharp"),
+        "py" => code("python"),
+        "lua" => code("lua"),
+        "c" | "h" => code("c"),
+        "cpp" | "cc" | "hpp" | "hh" => code("cpp"),
+        "toml" => code("toml"),
+        "yaml" | "yml" => code("yaml"),
+        "xml" => code("xml"),
+        "html" | "htm" => code("html"),
+        "css" => code("css"),
+        "sh" | "bash" => code("shell"),
+        "ps1" => code("powershell"),
+        "ini" | "cfg" | "conf" => code("ini"),
+        "txt" | "log" | "" => class(Kind::Text, "text/plain", true, None),
+        _ => class(Kind::Binary, "application/octet-stream", false, None),
+    }
+}
+
+/// Text, as far as the first bytes can tell: valid UTF-8 (a cut final
+/// character allowed) with no NUL.
+pub fn looks_textual(head: &[u8]) -> bool {
+    if head.contains(&0) {
+        return false;
+    }
+    match std::str::from_utf8(head) {
+        Ok(_) => true,
+        Err(e) => e.error_len().is_none() && head.len() - e.valid_up_to() < 4,
+    }
+}
+
+/// Facts read from a model's header without loading it. A GLB's JSON chunk or
+/// a glTF file is parsed from the bytes given and its arrays counted; a chunk
+/// cut short by the caller's read limit yields no facts rather than wrong ones.
+pub fn model_facts(ext: &str, bytes: &[u8]) -> Map<String, Value> {
+    let json = match ext {
+        "glb" => glb_json(bytes),
+        "gltf" => serde_json::from_slice(bytes).ok(),
+        _ => None,
+    };
+    let mut out = Map::new();
+    if let Some(doc) = json {
+        for key in [
+            "scenes",
+            "nodes",
+            "meshes",
+            "materials",
+            "textures",
+            "animations",
+            "skins",
+        ] {
+            let n = doc.get(key).and_then(Value::as_array).map_or(0, Vec::len);
+            out.insert(key.into(), json!(n));
+        }
+        if let Some(gen) = doc.pointer("/asset/generator").and_then(Value::as_str) {
+            out.insert(
+                "generator".into(),
+                json!(gen.chars().take(120).collect::<String>()),
+            );
+        }
+    }
+    out
+}
+
+/// The JSON chunk of a binary glTF: 12-byte header, then `length`, `JSON`.
+fn glb_json(bytes: &[u8]) -> Option<Value> {
+    if bytes.len() < 20 || &bytes[0..4] != b"glTF" || &bytes[16..20] != b"JSON" {
+        return None;
+    }
+    let len = u32::from_le_bytes(bytes[12..16].try_into().ok()?) as usize;
+    let chunk = bytes.get(20..20usize.checked_add(len)?)?;
+    serde_json::from_slice(chunk).ok()
+}
+
+/// A WAV file's format and length, from its `fmt ` and `data` chunks.
+pub fn wav_facts(bytes: &[u8]) -> Map<String, Value> {
+    let mut out = Map::new();
+    if bytes.len() < 12 || &bytes[0..4] != b"RIFF" || &bytes[8..12] != b"WAVE" {
+        return out;
+    }
+    let le16 = |i: usize| u16::from_le_bytes([bytes[i], bytes[i + 1]]);
+    let le32 = |i: usize| u32::from_le_bytes([bytes[i], bytes[i + 1], bytes[i + 2], bytes[i + 3]]);
+    let (mut i, mut byte_rate) = (12usize, 0u32);
+    while i + 8 <= bytes.len() {
+        let size = le32(i + 4) as usize;
+        match &bytes[i..i + 4] {
+            b"fmt " if i + 24 <= bytes.len() => {
+                out.insert("channels".into(), json!(le16(i + 10)));
+                out.insert("sampleRate".into(), json!(le32(i + 12)));
+                out.insert("bitsPerSample".into(), json!(le16(i + 22)));
+                byte_rate = le32(i + 16);
+            }
+            b"data" if byte_rate > 0 => {
+                let seconds = size as f64 / f64::from(byte_rate);
+                out.insert("seconds".into(), json!((seconds * 100.0).round() / 100.0));
+                break;
+            }
+            _ => {}
+        }
+        i = i.saturating_add(8 + size + (size & 1));
+    }
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn game_assets_classify_by_extension() {
+        assert_eq!(classify("hero.GLB").kind, Kind::Model);
+        assert_eq!(classify("level.tscn").kind, Kind::Scene);
+        assert!(classify("level.tscn").textual);
+        assert!(!classify("level.scn").textual);
+        assert_eq!(classify("jump.wav").kind, Kind::Audio);
+        assert_eq!(classify("intro.webm").kind, Kind::Video);
+        assert_eq!(classify("sheet.png").mime, "image/png");
+        assert_eq!(classify("player.gd").language, Some("gdscript"));
+        assert_eq!(classify("README").kind, Kind::Text);
+        assert_eq!(classify("data.weird").kind, Kind::Binary);
+    }
+
+    #[test]
+    fn text_is_utf8_without_nul_and_a_cut_last_character_is_forgiven() {
+        assert!(looks_textual(b"fn main() {}\n"));
+        assert!(!looks_textual(b"PK\x03\x04\x00\x00"));
+        assert!(!looks_textual(&[0xC3, 0x28, b'a', b'b', b'c', b'd']));
+        let cut = "h\u{e9}llo".as_bytes();
+        assert!(looks_textual(&cut[..2]));
+    }
+
+    fn glb(json: &str) -> Vec<u8> {
+        let mut chunk = json.as_bytes().to_vec();
+        while !chunk.len().is_multiple_of(4) {
+            chunk.push(b' ');
+        }
+        let total = 12 + 8 + chunk.len();
+        let mut out = b"glTF".to_vec();
+        out.extend_from_slice(&2u32.to_le_bytes());
+        out.extend_from_slice(&(total as u32).to_le_bytes());
+        out.extend_from_slice(&(chunk.len() as u32).to_le_bytes());
+        out.extend_from_slice(b"JSON");
+        out.extend_from_slice(&chunk);
+        out
+    }
+
+    #[test]
+    fn a_glb_reports_what_it_holds() {
+        let bytes = glb(
+            r#"{"asset":{"version":"2.0","generator":"Blender"},"meshes":[{},{}],"materials":[{}]}"#,
+        );
+        let facts = model_facts("glb", &bytes);
+        assert_eq!(facts["meshes"], 2);
+        assert_eq!(facts["materials"], 1);
+        assert_eq!(facts["animations"], 0);
+        assert_eq!(facts["generator"], "Blender");
+    }
+
+    #[test]
+    fn a_truncated_or_foreign_glb_reports_nothing_rather_than_failing() {
+        let mut bytes = glb(r#"{"meshes":[{}]}"#);
+        bytes.truncate(24);
+        assert!(model_facts("glb", &bytes).is_empty());
+        assert!(model_facts("glb", b"not a model at all").is_empty());
+    }
+
+    #[test]
+    fn a_wav_reports_its_format_and_length() {
+        let (rate, channels, bits) = (8000u32, 1u16, 16u16);
+        let byte_rate = rate * u32::from(channels) * u32::from(bits / 8);
+        let data_len = byte_rate * 2;
+        let mut b = b"RIFF".to_vec();
+        b.extend_from_slice(&(36 + data_len).to_le_bytes());
+        b.extend_from_slice(b"WAVEfmt ");
+        b.extend_from_slice(&16u32.to_le_bytes());
+        b.extend_from_slice(&1u16.to_le_bytes());
+        b.extend_from_slice(&channels.to_le_bytes());
+        b.extend_from_slice(&rate.to_le_bytes());
+        b.extend_from_slice(&byte_rate.to_le_bytes());
+        b.extend_from_slice(&(channels * bits / 8).to_le_bytes());
+        b.extend_from_slice(&bits.to_le_bytes());
+        b.extend_from_slice(b"data");
+        b.extend_from_slice(&data_len.to_le_bytes());
+        let facts = wav_facts(&b);
+        assert_eq!(facts["sampleRate"], 8000);
+        assert_eq!(facts["channels"], 1);
+        assert_eq!(facts["seconds"], 2.0);
+    }
+}

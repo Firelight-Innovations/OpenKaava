@@ -10,10 +10,11 @@
 //! kaava://comment/<id>                 a viewer comment and its screenshot
 //! kaava://design-comment/<id>          a Design Mode comment and its screenshot
 //! kaava://context/<id>                 an item in the context store
-//! kaava://selection                    what is selected in the focused pane
+//! kaava://selection                    what is selected in the cluster's panes
 //! ```
 //!
 //! A reference only ever resolves inside the cluster it is resolved for.
 
+pub mod assets;
 pub mod policy;
 pub mod uri;
