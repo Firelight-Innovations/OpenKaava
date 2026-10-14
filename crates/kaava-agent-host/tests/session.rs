@@ -1127,3 +1127,23 @@ fn the_session_reports_its_modes_and_settings() {
     assert_eq!(value_of(&status, "model"), Some("default"));
     assert_eq!(status.config[0].choices.len(), 4);
 }
+
+#[test]
+fn the_agent_can_change_its_settings_on_its_own() {
+    let rig = rig();
+    rig.send(&[], "stream").unwrap();
+    rig.turns_done(1);
+    rig.send(&[], "drift").unwrap();
+    rig.turns_done(2);
+    let events = rig.events();
+    let done = events
+        .iter()
+        .rposition(|e| matches!(e.event, Event::TurnCompleted { .. }))
+        .unwrap();
+    let drawn = events[..done].iter().find_map(|e| match &e.event {
+        Event::Status { status } if value_of(status, "fast") == Some("on") => Some(status),
+        _ => None,
+    });
+    let status = drawn.expect("drawn as it happened, not only at the end of the turn");
+    assert_eq!(status.mode.as_deref(), Some("acceptEdits"));
+}

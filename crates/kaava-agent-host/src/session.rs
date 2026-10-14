@@ -832,8 +832,20 @@ impl Shared {
                     let update = params.get("update").unwrap_or(&Value::Null);
                     let events = inner.normalizer.update(update);
                     self.emit_all(&mut inner, events);
-                    if let Some(mode) = inner.normalizer.take_mode() {
+                    let mode = inner.normalizer.take_mode();
+                    let settings = inner.normalizer.take_settings();
+                    if mode.is_none() && settings.is_none() {
+                        return;
+                    }
+                    if let Some(mode) = mode {
                         inner.status.mode = Some(mode);
+                    }
+                    if let Some(settings) = settings {
+                        inner.apply(settings);
+                    }
+                    // During the handshake, the status it ends with carries
+                    // these; one per update would only flicker.
+                    if inner.status.state != SessionState::Starting {
                         let status = inner.status.clone();
                         self.emit(&mut inner, Event::Status { status });
                     }

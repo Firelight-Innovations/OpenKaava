@@ -164,6 +164,15 @@ impl Mock {
         Value::Array(options)
     }
 
+    fn config_update(&self) {
+        if !self.has("--no-config") {
+            self.update(json!({
+                "sessionUpdate": "config_option_update",
+                "configOptions": self.config_options()
+            }));
+        }
+    }
+
     fn end_turn(&mut self, stop_reason: &str) {
         if let Some(id) = self.prompt_id.take() {
             self.reply(&id, json!({ "stopReason": stop_reason }));
@@ -236,6 +245,12 @@ impl Mock {
                 if self.has("--no-mode") || only.is_some_and(|m| Some(m.as_str()) != asked) {
                     self.reply_error(&id, -32602, "unknown mode");
                 } else {
+                    self.mode = params
+                        .get("modeId")
+                        .and_then(Value::as_str)
+                        .unwrap_or_default()
+                        .to_string();
+                    self.config_update();
                     self.reply(&id, json!({}));
                 }
             }
@@ -357,6 +372,14 @@ impl Mock {
                 self.update(
                     json!({ "sessionUpdate": "current_mode_update", "currentModeId": "plan" }),
                 );
+                self.end_turn("end_turn");
+            }
+            // Settings the agent changes on its own, as Claude's adapter does
+            // on leaving plan mode or when fast mode runs out.
+            "drift" => {
+                self.mode = "acceptEdits".into();
+                self.fast = "on".into();
+                self.config_update();
                 self.end_turn("end_turn");
             }
             "slow" => {
