@@ -214,7 +214,7 @@ describe("the agent tab", () => {
     expect(screen.getByRole("status").textContent).toContain("Ready");
   });
 
-  it("sends on Enter as Claude and clears the prompt", async () => {
+  it("sends on Enter to the tab's harness and clears the prompt", async () => {
     backend({ status: null, seq: 0, items: [] });
     render(<App />);
     await screen.findByText("Start a session");
@@ -222,10 +222,8 @@ describe("the agent tab", () => {
     await act(async () => {
       fireEvent.keyDown(prompt(), { key: "Enter" });
     });
-    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
-      harness: "claude",
-      text: "fix the test",
-    });
+    // The host picks the harness: the live agent's, else the tab's choice.
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", { text: "fix the test" });
     expect(prompt()).toHaveProperty("value", "");
   });
 
@@ -371,10 +369,7 @@ describe("the agent tab", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     });
-    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
-      harness: "claude",
-      text: "fix the build",
-    });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", { text: "fix the build" });
     expect(prompt()).toHaveProperty("value", "half typed");
   });
 
@@ -468,10 +463,7 @@ describe("the agent tab", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     });
-    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
-      harness: "claude",
-      text: "the one that failed",
-    });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", { text: "the one that failed" });
   });
 
   it("groups the transcript into turns, and says it is working before the first reply", async () => {

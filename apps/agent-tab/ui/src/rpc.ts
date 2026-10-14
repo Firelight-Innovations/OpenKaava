@@ -3,7 +3,7 @@
  * comes from `protocol.generated.ts`, which the Rust crate writes.
  */
 import { invoke, on, KaavaRpcError } from "@openkaava/bridge";
-import type { Attachment, Envelope, HarnessInfo } from "./protocol.generated";
+import type { Attachment, Envelope, Harness, HarnessInfo } from "./protocol.generated";
 
 /** Mirrors `apps::agent_tab::EVENT`. */
 export const EVENT = "agent-tab:event";
@@ -13,13 +13,18 @@ export const REFUSED = -32010;
 
 export interface Harnesses {
   harnesses: HarnessInfo[];
+  /** The harness this tab's next prompt goes to. */
+  current: Harness;
   /** Why this cluster cannot run an agent: a key of `strings.refusal`. */
   blocked: string | null;
 }
 
 export const harnesses = () => invoke<Harnesses>("agent-tab/harnesses");
 export const attach = () => invoke<Attachment>("agent-tab/attach");
-export const send = (text: string) => invoke<object>("agent-tab/send", { harness: "claude", text });
+/** Sends to the tab's current harness: the running agent's, else the one chosen. */
+export const send = (text: string) => invoke<object>("agent-tab/send", { text });
+/** Picks the harness for the tab's next session. */
+export const choose = (harness: Harness) => invoke<object>("agent-tab/choose", { harness });
 export const cancel = () => invoke<object>("agent-tab/cancel");
 export const answer = (itemId: string, optionId: string) =>
   invoke<object>("agent-tab/answer", { itemId, optionId });
