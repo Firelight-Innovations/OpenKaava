@@ -1138,16 +1138,25 @@ fn the_agent_can_change_its_settings_on_its_own() {
     rig.send(&[], "drift").unwrap();
     rig.turns_done(2);
     let events = rig.events();
-    let done = events
+    let said = events
         .iter()
-        .rposition(|e| matches!(e.event, Event::TurnCompleted { .. }))
-        .unwrap();
-    let drawn = events[..done].iter().find_map(|e| match &e.event {
+        .position(|e| {
+            matches!(&e.event, Event::ItemStarted { item }
+                if matches!(&item.kind, ItemKind::AssistantText { text } if text == "drifted"))
+        })
+        .expect("the agent went on talking");
+    let drawn = events[..said].iter().find_map(|e| match &e.event {
         Event::Status { status } if value_of(status, "fast") == Some("on") => Some(status),
         _ => None,
     });
     let status = drawn.expect("drawn as it happened, not only at the end of the turn");
     assert_eq!(status.mode.as_deref(), Some("acceptEdits"));
+    let last = last_status(&events).unwrap();
+    assert_eq!(
+        last.config.len(),
+        3,
+        "the update with no list cleared nothing"
+    );
 }
 
 #[test]
@@ -1158,4 +1167,16 @@ fn a_handshake_that_fails_early_never_shows_the_users_own_mode() {
     rig.state(SessionState::Failed);
     let status = last_status(&rig.events()).unwrap();
     assert_eq!(status.mode, None);
+}
+
+#[test]
+fn an_agent_without_config_options_still_reports_its_modes() {
+    let rig = rig();
+    rig.send(&["--no-config"], "stream").unwrap();
+    rig.turns_done(1);
+    let status = last_status(&rig.events()).unwrap();
+    assert!(status.config.is_empty());
+    let modes: Vec<_> = status.modes.iter().map(|m| m.value.as_str()).collect();
+    assert_eq!(modes, ["default", "acceptEdits", "plan"]);
+    assert_eq!(status.mode.as_deref(), Some("default"));
 }

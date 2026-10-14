@@ -200,6 +200,10 @@ mod tests {
         assert_eq!(current, "default");
         let ids: Vec<_> = allowed(choices).into_iter().map(|c| c.value).collect();
         assert_eq!(ids, ["default", "plan"]);
+    }
+
+    #[test]
+    fn a_mode_list_without_modes_is_none() {
         assert!(modes(&json!({"availableModes": []})).is_none());
     }
 

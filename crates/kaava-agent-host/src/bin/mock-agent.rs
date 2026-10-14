@@ -132,7 +132,7 @@ impl Mock {
 
     /// The settings, shaped as Claude's adapter shapes them: the mode again
     /// as an option, effort only for a model that has it, and fast mode as an
-    /// on/off select. `gone` is a model the agent refuses to switch to.
+    /// on/off select.
     fn config_options(&self) -> Value {
         let select = |id: &str, category: &str, current: &str, choices: &[&str]| {
             let options: Vec<Value> = choices
@@ -378,11 +378,15 @@ impl Mock {
                 self.end_turn("end_turn");
             }
             // Settings the agent changes on its own, as Claude's adapter does
-            // on leaving plan mode or when fast mode runs out.
+            // on leaving plan mode or when fast mode's state changes under it.
+            // Then an update with no list, which changes nothing, and more
+            // words, so a status held back to the turn's end would come last.
             "drift" => {
                 self.mode = "acceptEdits".into();
                 self.fast = "on".into();
                 self.config_update();
+                self.update(json!({ "sessionUpdate": "config_option_update" }));
+                self.chunk("drifted", "drift-1");
                 self.end_turn("end_turn");
             }
             "slow" => {
