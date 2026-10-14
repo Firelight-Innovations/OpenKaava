@@ -252,6 +252,7 @@ describe("the slot registry", () => {
       ).container.querySelector(".at-tool__head")!;
     expect(row("completed").querySelector(".at-tool__counts")?.textContent).toBe("+5 −1");
     expect(row("completed").querySelector(".at-tool__status")).toBeNull();
+    expect(row("completed").querySelector("svg.at-tool__glyph--completed")).not.toBeNull();
     cleanup();
     expect(row("inProgress").querySelector(".at-tool__status")?.textContent).toBe("Running");
   });

@@ -148,19 +148,34 @@ details.at-tool > :not(summary) {
 }
 
 .at-tool__glyph {
-  font-family: var(--k-mono);
+  flex-shrink: 0;
+  align-self: center;
+  color: var(--k-tool-pending);
 }
 
 .at-tool__glyph--inProgress {
-  color: var(--k-state-working);
+  color: var(--k-tool-running);
+  animation: at-spin 1s linear infinite;
 }
 
 .at-tool__glyph--completed {
-  color: var(--k-fg-faint);
+  color: var(--k-tool-done);
 }
 
 .at-tool__glyph--failed {
-  color: var(--k-state-failed);
+  color: var(--k-tool-failed);
+}
+
+@keyframes at-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .at-tool__glyph--inProgress {
+    animation: none;
+  }
 }
 
 .at-tool__title {

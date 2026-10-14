@@ -1,7 +1,17 @@
+import { Check, Circle, LoaderCircle, X, type LucideIcon } from "lucide-react";
+import type { ToolStatus } from "../protocol.generated";
 import { strings } from "../strings";
 import { useSlots } from "./registry";
 import type { ToolCallProps } from "./types";
 import "./items.css";
+
+/** The shell's own icon set. Colours come from `--k-tool-*` in agent-tokens.css. */
+const ICON: Record<ToolStatus, LucideIcon> = {
+  pending: Circle,
+  inProgress: LoaderCircle,
+  completed: Check,
+  failed: X,
+};
 
 /**
  * One quiet row: glyph, summary, what it changed, and its status while it is
@@ -13,11 +23,15 @@ export function ToolCall({ title, status, output, truncated, paths, diffs }: Too
   const added = diffs.reduce((n, diff) => n + diff.added, 0);
   const removed = diffs.reduce((n, diff) => n + diff.removed, 0);
   const done = status === "completed";
+  const Icon = ICON[status];
   const head = (
     <>
-      <span className={`at-tool__glyph at-tool__glyph--${status}`} aria-hidden="true">
-        {strings.toolGlyph[status]}
-      </span>
+      <Icon
+        className={`at-tool__glyph at-tool__glyph--${status}`}
+        size={14}
+        strokeWidth={2.5}
+        aria-hidden="true"
+      />
       <span className="at-tool__title" title={title}>
         {title}
       </span>

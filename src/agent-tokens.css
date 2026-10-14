@@ -64,6 +64,11 @@
   --k-state-working: var(--info);
   --k-state-attention: var(--warning);
   --k-state-failed: var(--danger);
+  /* Tool call status icons: done and failed match the diff colours. */
+  --k-tool-pending: var(--k-fg-faint);
+  --k-tool-running: var(--k-state-working);
+  --k-tool-done: var(--k-diff-add-fg);
+  --k-tool-failed: var(--k-diff-del-fg);
 
   /* Type */
   --k-font: var(--sans);
