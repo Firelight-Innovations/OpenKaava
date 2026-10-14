@@ -42,6 +42,8 @@ function session(state: SessionState, items: Item[]): Attachment {
       exitCode: null,
       hint: null,
       pendingPrompt: null,
+      modes: [],
+      config: [],
     },
     items,
   };

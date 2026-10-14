@@ -187,6 +187,8 @@ impl Session {
             harness: spec.harness,
             cwd: worktree.path().to_string_lossy().into_owned(),
             mode: None,
+            modes: Vec::new(),
+            config: Vec::new(),
             adapter_version: None,
             exit_code: None,
             hint: None,

@@ -324,6 +324,12 @@ pub struct SessionStatus {
     pub cwd: String,
     /// The agent's current mode id (Claude: `default` is ask-before-acting).
     pub mode: Option<String>,
+    /// The modes the tab may switch to, in the agent's order. Bypass and auto
+    /// are never among them (`config::NOT_OFFERED`).
+    pub modes: Vec<ConfigChoice>,
+    /// The agent's other session settings — model, effort, fast mode — as it
+    /// last reported them. Empty until the session is open.
+    pub config: Vec<ConfigOption>,
     /// The adapter's own version, as it reported it at `initialize`.
     pub adapter_version: Option<String>,
     /// The process's exit code, once it has exited. Never its output: what an

@@ -274,6 +274,16 @@ cwd: string,
  */
 mode: string | null, 
 /**
+ * The modes the tab may switch to, in the agent's order. Bypass and auto
+ * are never among them (`config::NOT_OFFERED`).
+ */
+modes: Array<ConfigChoice>, 
+/**
+ * The agent's other session settings — model, effort, fast mode — as it
+ * last reported them. Empty until the session is open.
+ */
+config: Array<ConfigOption>, 
+/**
  * The adapter's own version, as it reported it at `initialize`.
  */
 adapterVersion: string | null, 

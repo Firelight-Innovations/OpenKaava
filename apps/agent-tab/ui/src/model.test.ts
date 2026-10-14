@@ -15,6 +15,8 @@ const status = (state: SessionStatus["state"]): SessionStatus => ({
   harness: "claude",
   cwd: "C:/wt/x",
   mode: "default",
+  modes: [],
+  config: [],
   adapterVersion: "0.90.0",
   exitCode: null,
   hint: null,
