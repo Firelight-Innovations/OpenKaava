@@ -46,8 +46,14 @@ impl Harness {
 /// current directory for a bare command name.
 pub const NO_CWD_SEARCH: &str = "NoDefaultCurrentDirectoryInExePath";
 
-/// Every harness, in the order the tab lists them.
+/// Every harness, in the order the tab lists them. The first is the one a tab
+/// runs until it chooses another.
 pub static REGISTRY: &[&Descriptor] = &[&CLAUDE];
+
+/// The harness a tab runs until it chooses another.
+pub fn first() -> Harness {
+    REGISTRY[0].harness
+}
 
 /// One harness: what the UI calls it, how to find and start it, and how the
 /// user sets it up. Kaava runs the user's own binary, signed in by the user.
@@ -320,6 +326,7 @@ mod tests {
 
     #[test]
     fn every_harness_has_one_descriptor_that_names_it() {
+        assert_eq!(first(), Harness::Claude);
         for descriptor in REGISTRY {
             assert_eq!(descriptor.harness.descriptor(), *descriptor);
             let same = REGISTRY.iter().filter(|d| d.harness == descriptor.harness);
