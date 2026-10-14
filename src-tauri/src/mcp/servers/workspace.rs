@@ -529,6 +529,40 @@ pub(super) fn focus_view(snapshot: &ShellSnapshot, pages: &Pages) -> Value {
     })
 }
 
+/// What the person has selected in one cluster, for `kaava://selection`: the
+/// surfaces showing in it (with what each app reports, such as the canvas's
+/// selected shapes), the focused one, and the selected text.
+pub fn selection_in(app: &AppHandle, cluster: &str) -> Value {
+    let snapshot = app.state::<ShellState>().snapshot();
+    selection_view(&snapshot, &page_contexts(app), cluster)
+}
+
+pub(super) fn selection_view(snapshot: &ShellSnapshot, pages: &Pages, cluster: &str) -> Value {
+    let all = surfaces(snapshot, pages);
+    let shown: Vec<Value> = all
+        .iter()
+        .filter(|s| s.cluster == cluster && s.visible && s.kind != "terminal")
+        .map(Surface::to_json)
+        .collect();
+    let focused = all
+        .iter()
+        .find(|s| s.cluster == cluster && s.focused)
+        .map_or(Value::Null, Surface::to_json);
+    // A DOM selection belongs to a window, not to a cluster: it is this
+    // cluster's only while its window is showing it.
+    let page = cluster_of(snapshot, cluster)
+        .filter(|(w, _)| w.active_cluster_id.as_deref() == Some(cluster))
+        .and_then(|(w, _)| pages.of(&w.label))
+        .filter(|p| !p.selected_text.is_empty());
+    json!({
+        "cluster": cluster,
+        "focused": focused,
+        "surfaces": shown,
+        "selectedText": page.map(|p| p.selected_text.clone()),
+        "selectedTextLength": page.map_or(0, |p| p.selected_text_length),
+    })
+}
+
 fn hint(focus_in: &str, has_page: bool) -> &'static str {
     match (has_page, focus_in) {
         (false, _) => {
@@ -709,6 +743,22 @@ mod tests {
             .collect();
         assert_eq!(visible, vec!["canvas-1", "canvas-2"]);
         assert!(out["hint"].as_str().unwrap().contains("terminal"));
+    }
+
+    #[test]
+    fn a_selection_belongs_to_the_cluster_its_window_is_showing() {
+        let mut shown = page(true, Some("canvas-2"), "app");
+        shown.selected_text = "door".into();
+        shown.selected_text_length = 4;
+        let pages = pages(shown);
+        let here = selection_view(&snapshot(), &pages, "cluster-1");
+        assert_eq!(here["focused"]["instance"], "canvas-2");
+        assert_eq!(here["selectedText"], "door");
+        assert_eq!(here["surfaces"].as_array().unwrap().len(), 2);
+        let away = selection_view(&snapshot(), &pages, "cluster-2");
+        assert_eq!(away["selectedText"], Value::Null);
+        assert_eq!(away["focused"], Value::Null);
+        assert!(away["surfaces"].as_array().unwrap().is_empty());
     }
 
     #[test]

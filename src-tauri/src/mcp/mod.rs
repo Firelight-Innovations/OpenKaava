@@ -23,6 +23,7 @@ pub use listener::{start, Endpoint};
 pub use registry::{
     config_key, route, McpServer, McpTool, Registry, ServerInfo, ToolAnswer, ToolDescriptor,
 };
+pub use servers::workspace::selection_in;
 use std::time::Duration;
 pub use subscriptions::Subscriptions;
 use tauri::{AppHandle, Manager};
