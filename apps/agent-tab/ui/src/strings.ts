@@ -159,6 +159,7 @@ export const strings = {
     attach: "Could not reach the agent host.",
     send: "Could not send that.",
     setting: "Could not change that setting.",
+    choose: "Could not switch the harness.",
   },
   exited: (code: number | null) =>
     code === null ? "The agent stopped." : `The agent stopped with exit code ${code}.`,
@@ -188,6 +189,7 @@ export const strings = {
     noSession: "There is no session yet.",
     unknownOption: "The agent does not offer that choice.",
     harness: "The agent is not ready to run.",
+    running: "This tab's agent runs another harness. Start a new session to switch.",
     spawn: "The agent could not be started.",
   } as Record<string, string>,
 };

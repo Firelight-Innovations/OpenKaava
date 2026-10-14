@@ -1030,6 +1030,52 @@ describe("the harness", () => {
     expect(chips(container)).not.toContain("Opus");
   });
 
+  /** A second harness, fictional: the registry lists only Claude so far. */
+  const PI = { ...CLAUDE, harness: "pi", name: "Pi" } as unknown as HarnessInfo;
+  const both = () => Promise.resolve({ harnesses: [CLAUDE, PI], current: "claude", blocked: null });
+
+  /** The one item under harness `name` in the settings menu: its default model. */
+  async function harnessItem(name: string) {
+    fireEvent.click(await settingsButton());
+    const group = await screen.findByRole("group", { name });
+    return within(group).getByRole("menuitemradio");
+  }
+
+  it("is chosen in the settings menu, and the host is told", async () => {
+    backend({ status: null, seq: 0, items: [] }, { "agent-tab/harnesses": both });
+    render(<App />);
+    const pi = await harnessItem("Pi");
+    expect(pi.getAttribute("aria-disabled")).toBe("false");
+    await act(async () => {
+      fireEvent.click(pi);
+    });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/choose", { harness: "pi" });
+  });
+
+  it("cannot be switched while its agent runs", async () => {
+    backend({ status: STATUS, seq: 1, items: [] }, { "agent-tab/harnesses": both });
+    render(<App />);
+    expect((await harnessItem("Pi")).getAttribute("aria-disabled")).toBe("true");
+  });
+
+  it("shows a choice the host refused", async () => {
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        "agent-tab/harnesses": both,
+        "agent-tab/choose": () =>
+          Promise.reject(new bridge.KaavaRpcError(-32010, "x", { code: "running", hint: null })),
+      },
+    );
+    render(<App />);
+    const pi = await harnessItem("Pi");
+    await act(async () => {
+      fireEvent.click(pi);
+    });
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Start a new session to switch.");
+  });
+
   it("says what the chosen harness still needs, in its own commands", async () => {
     backend(
       { status: null, seq: 0, items: [] },

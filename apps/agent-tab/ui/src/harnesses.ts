@@ -43,8 +43,9 @@ export function harnessChoices(
     (id, i, all) => all.indexOf(id) === i,
   );
   return ids.map((id) => {
-    const name = strings.harnessName[id] ?? id;
     const info = reported.find((h) => h.harness === id) as (HarnessInfo & Scanned) | undefined;
+    // The registry's own name for a harness it reports; the menu's for the rest.
+    const name = info?.name ?? strings.harnessName[id] ?? id;
     const inUse = id === current;
     const live = inUse ? running : null;
     // The one in use is running, or about to: whatever the host has said so far.

@@ -148,6 +148,16 @@ export default function App() {
     [current],
   );
 
+  // The menu lists each harness's models, but the host takes only the harness
+  // for now, and its default model with it.
+  const chooseHarness = (harness: string) => {
+    setNotice(null);
+    rpc.choose(harness as Harness).then(
+      () => setChosen(harness as Harness),
+      (err: unknown) => setNotice(noticeOf(err, strings.failed.choose, current)),
+    );
+  };
+
   const stopTurn = useCallback(() => {
     void rpc.cancel().catch(() => {});
   }, []);
@@ -250,7 +260,7 @@ export default function App() {
       ? { models: model.choices, model: live?.config[model.id]?.value ?? model.value }
       : null;
   // Only the harness in use can change model: picking another is not taken yet.
-  const onChoose =
+  const onModel =
     model && settable(status)
       ? (picked: string, value: string | null) => {
           if (picked === running && value !== null) onConfig(model.id, value);
@@ -323,7 +333,10 @@ export default function App() {
                   // The model is the running session's own option, so it is
                   // listed under the harness in use, with the agent's names.
                   harnesses={harnessChoices(harnesses, running ?? chosen, runningModel)}
-                  onChoose={onChoose}
+                  // With no agent running, a pick chooses the next session's
+                  // harness. While one runs, its prompts go to that agent until
+                  // a new session starts, so only its model can change.
+                  onChoose={running === null ? (harness) => chooseHarness(harness) : onModel}
                   sections={settingSections(status, live, onMode, onConfig)}
                 />
               }

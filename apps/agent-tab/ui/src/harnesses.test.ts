@@ -64,6 +64,11 @@ describe("harnessChoices", () => {
     ]);
   });
 
+  it("names a harness the host reports by the registry's name", () => {
+    const renamed = { ...CLAUDE, name: "Claude (beta)" };
+    expect(harnessChoices([renamed], "claude", null)[0].name).toBe("Claude (beta)");
+  });
+
   it("reads a scan that has not run yet as no models", () => {
     const unscanned = { ...CLAUDE, models: null, model: null };
     expect(harnessChoices([unscanned], "claude", null)[0].models).toEqual([]);
