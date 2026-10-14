@@ -392,10 +392,20 @@ impl Inner {
     /// every other option as the agent now reports it.
     fn apply(&mut self, settings: Settings) {
         if let Some(mode) = settings.mode {
-            self.status.mode = Some(mode.value);
+            self.show_mode(mode.value);
             self.status.modes = config::allowed(mode.choices);
         }
         self.status.config = settings.options;
+    }
+
+    /// Record the mode the agent reports, except during the handshake:
+    /// whatever the user's own default is, it is not this session's mode
+    /// until the switch to ask-first is confirmed, so neither a status sent
+    /// meanwhile nor a failed handshake ever shows it.
+    fn show_mode(&mut self, mode: String) {
+        if self.status.state != SessionState::Starting {
+            self.status.mode = Some(mode);
+        }
     }
 
     /// Take in a reply that carries the settings: `session/new`'s modes and
@@ -572,13 +582,7 @@ impl Shared {
             .and_then(Value::as_str)
             .ok_or(Failure::Protocol("session/new returned no sessionId"))?
             .to_string();
-        {
-            let mut inner = self.lock();
-            inner.session_id = Some(session_id.clone());
-            // Whatever the user's own default is, it is not this session's
-            // mode until the switch to ask-first below is confirmed.
-            inner.status.mode = None;
-        }
+        self.lock().session_id = Some(session_id.clone());
         // Fail closed: a session that cannot be put in ask-first mode does not
         // run, whatever mode the user's own settings would have chosen.
         self.request(
@@ -838,7 +842,7 @@ impl Shared {
                         return;
                     }
                     if let Some(mode) = mode {
-                        inner.status.mode = Some(mode);
+                        inner.show_mode(mode);
                     }
                     if let Some(settings) = settings {
                         inner.apply(settings);

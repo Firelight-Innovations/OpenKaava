@@ -559,6 +559,8 @@ fn an_agent_that_will_not_ask_first_does_not_run() {
         texts(&rig.items()).is_empty(),
         "the prompt never reached the agent, so it never answered"
     );
+    let status = last_status(&rig.events()).unwrap();
+    assert_eq!(status.mode, None, "not the user's own default");
 }
 
 /// The tab clears its draft when a prompt is accepted, so a handshake that
