@@ -1,0 +1,151 @@
+/*
+ * The tab's frame: layout, header, status, transcript and the empty state.
+ * Reads only `--k-*` tokens (src/agent-tokens.css).
+ */
+
+.at {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--k-editor-bg);
+  color: var(--k-editor-fg);
+  font: var(--k-text-body);
+  font-family: var(--k-font);
+}
+
+.at-mono {
+  font-family: var(--k-mono);
+  font-size: var(--k-size-small);
+}
+
+.at-header {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--k-space-1) var(--k-space-2);
+  min-height: 34px;
+  padding: var(--k-space-1) var(--k-space-2-5);
+  border-bottom: 1px solid var(--k-panel-border);
+  background: var(--k-sidebar-bg);
+}
+
+.at-header__title {
+  font-weight: 600;
+}
+
+.at-header__spacer {
+  flex: 1;
+}
+
+.at-chip {
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px var(--k-space-1-5);
+  border-radius: var(--k-radius-sm);
+  background: var(--k-badge-bg);
+  color: var(--k-badge-fg);
+  font-size: var(--k-size-small);
+}
+
+.at-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--k-space-1-5);
+  color: var(--k-fg-muted);
+  font-size: var(--k-size-small);
+}
+
+.at-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--k-state-idle);
+}
+
+.at-status--ready .at-status__dot {
+  background: var(--k-state-ready);
+}
+
+.at-status--working .at-status__dot,
+.at-status--starting .at-status__dot {
+  background: var(--k-state-working);
+}
+
+.at-status--needsInput .at-status__dot {
+  background: var(--k-state-attention);
+}
+
+.at-status--failed .at-status__dot {
+  background: var(--k-state-failed);
+}
+
+.at-transcript {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--k-space-2-5) var(--k-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-item-gap);
+}
+
+.at-empty {
+  margin: auto 0;
+  padding: var(--k-space-3) var(--k-space-1);
+  color: var(--k-fg-muted);
+}
+
+.at-empty__heading {
+  margin: 0 0 var(--k-space-1);
+  color: var(--k-editor-fg);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.at-empty__examples {
+  margin: var(--k-space-2) 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--k-space-1);
+}
+
+.at-empty__keys {
+  margin: var(--k-space-3) 0 var(--k-space-1);
+  font-size: var(--k-text-label-size);
+  font-weight: 600;
+  letter-spacing: var(--k-text-label-tracking);
+  text-transform: uppercase;
+  color: var(--k-fg-faint);
+}
+
+.at-keys {
+  margin: 0;
+}
+
+.at-keys > div {
+  display: flex;
+  gap: var(--k-space-2);
+}
+
+.at-keys dt {
+  min-width: 11ch;
+}
+
+.at-keys dd {
+  margin: 0;
+}
+
+.at-keys kbd {
+  font-family: var(--k-mono);
+  font-size: var(--k-size-small);
+  padding: 0 var(--k-space-1);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-sm);
+}

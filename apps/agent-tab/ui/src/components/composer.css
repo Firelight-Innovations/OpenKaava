@@ -1,0 +1,91 @@
+/*
+ * The composer: notices, the input, its footer, the pickers and the context
+ * meter. Reads only `--k-*` tokens (src/agent-tokens.css).
+ */
+
+.at-prompt {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-1-5);
+  padding: var(--k-space-2) var(--k-space-3) var(--k-space-2-5);
+  border-top: 1px solid var(--k-panel-border);
+}
+
+.at-notice {
+  padding: var(--k-space-1) var(--k-space-2);
+  border-radius: var(--k-radius-sm);
+  background: var(--k-error-bg);
+  color: var(--k-error-fg);
+}
+
+.at-prompt__input {
+  resize: vertical;
+  min-height: 56px;
+  max-height: 40vh;
+  padding: var(--k-space-1-5) var(--k-space-2);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-input);
+  background: var(--k-input-bg);
+  color: var(--k-editor-fg);
+  font: inherit;
+}
+
+.at-prompt__input:focus-visible {
+  outline: var(--k-focus-ring);
+  outline-offset: 0;
+}
+
+.at-prompt__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-2);
+}
+
+.at-prompt__spacer {
+  flex: 1;
+}
+
+.at-prompt__mode {
+  color: var(--k-fg-faint);
+  font-size: var(--k-size-small);
+}
+
+.at-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--k-space-1);
+  color: var(--k-fg-faint);
+  font-size: var(--k-size-small);
+}
+
+.at-picker__select {
+  max-width: 14em;
+  padding: 1px var(--k-space-1);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-input);
+  background: var(--k-input-bg);
+  color: var(--k-editor-fg);
+  font: inherit;
+}
+
+.at-picker__select:focus-visible {
+  outline: var(--k-focus-ring);
+  outline-offset: 0;
+}
+
+.at-meter {
+  display: inline-block;
+  width: 48px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--k-radius-pill);
+  background: var(--k-badge-bg);
+}
+
+.at-meter__fill {
+  display: block;
+  height: 100%;
+  background: var(--k-fg-muted);
+  transition: width var(--k-motion-base) var(--k-ease);
+}

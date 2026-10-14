@@ -1,0 +1,239 @@
+/*
+ * Transcript items. Density per handoff §2.1.3: 13px text, 1px borders, 4px
+ * card radius, no shadows. Reads only `--k-*` tokens (src/agent-tokens.css).
+ */
+
+.at-item {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.at-item__label {
+  color: var(--k-fg-faint);
+  font-size: var(--k-text-label-size);
+  font-weight: 600;
+  letter-spacing: var(--k-text-label-tracking);
+  text-transform: uppercase;
+}
+
+.at-user {
+  padding: var(--k-space-1-5) var(--k-space-2-5);
+  border: 1px solid var(--k-panel-border);
+  border-radius: var(--k-radius-card);
+  background: var(--k-card-bg);
+}
+
+/* Accepted, but the agent is still starting: shown as not yet sent. */
+.at-user--pending {
+  opacity: 0.75;
+}
+
+.at-user__text {
+  white-space: pre-wrap;
+}
+
+.at-assistant p {
+  margin: 0 0 var(--k-space-1-5);
+}
+
+.at-assistant a {
+  color: var(--k-link);
+}
+
+.at-assistant code {
+  font-family: var(--k-mono);
+  font-size: var(--k-size-small);
+  padding: 0 3px;
+  border-radius: var(--k-radius-sm);
+  background: var(--k-code-bg);
+}
+
+.at-code {
+  position: relative;
+}
+
+.at-code pre,
+.at-pre {
+  margin: var(--k-space-1) 0;
+  padding: var(--k-space-1-5) var(--k-space-2);
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--k-panel-border);
+  border-radius: var(--k-radius-card);
+  background: var(--k-code-bg);
+  font: var(--k-text-code);
+  white-space: pre;
+}
+
+.at-code pre code {
+  padding: 0;
+  background: none;
+}
+
+.at-code__copy {
+  position: absolute;
+  top: var(--k-space-1-5);
+  right: var(--k-space-1-5);
+  padding: 0 var(--k-space-1-5);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-sm);
+  background: var(--k-badge-bg);
+  color: var(--k-badge-fg);
+  font: inherit;
+  font-size: var(--k-text-label-size);
+  cursor: pointer;
+}
+
+.at-reasoning summary,
+.at-tool summary {
+  cursor: pointer;
+  color: var(--k-fg-muted);
+}
+
+.at-reasoning__text {
+  white-space: pre-wrap;
+  color: var(--k-fg-muted);
+  padding-left: var(--k-space-3);
+}
+
+.at-tool {
+  border-left: 1px solid var(--k-panel-border);
+  padding-left: var(--k-space-2);
+}
+
+.at-tool__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--k-space-1-5);
+  min-height: var(--k-row);
+}
+
+details > .at-tool__head {
+  display: list-item;
+}
+
+.at-tool__glyph {
+  font-family: var(--k-mono);
+}
+
+.at-tool__glyph--completed {
+  color: var(--k-state-ready);
+}
+
+.at-tool__glyph--failed {
+  color: var(--k-state-failed);
+}
+
+.at-tool__title {
+  font-family: var(--k-mono);
+  font-size: var(--k-size-small);
+}
+
+.at-tool__status {
+  color: var(--k-fg-faint);
+  font-size: var(--k-size-small);
+}
+
+.at-paths {
+  margin: var(--k-space-1) 0;
+  padding-left: 18px;
+  color: var(--k-fg-muted);
+}
+
+.at-diff {
+  margin: var(--k-space-1) 0;
+}
+
+.at-diff__head {
+  display: flex;
+  gap: var(--k-space-2);
+  align-items: baseline;
+}
+
+.at-diff__new {
+  color: var(--k-fg-faint);
+  font-size: var(--k-size-small);
+}
+
+.at-diff__add {
+  color: var(--k-diff-add-fg);
+}
+
+.at-diff__del {
+  color: var(--k-diff-del-fg);
+}
+
+.at-diff__line--add {
+  background: var(--k-diff-add);
+}
+
+.at-diff__line--del {
+  background: var(--k-diff-del);
+}
+
+.at-approval {
+  padding: var(--k-space-2) var(--k-space-2-5);
+  border: 1px solid var(--k-panel-border);
+  border-radius: var(--k-radius-card);
+  background: var(--k-warning-bg);
+}
+
+.at-approval__head {
+  font-weight: 600;
+  color: var(--k-warning-fg);
+}
+
+.at-approval__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--k-space-1-5);
+  margin-top: var(--k-space-1-5);
+}
+
+.at-approval__answer {
+  margin-top: var(--k-space-1-5);
+  color: var(--k-fg-muted);
+}
+
+.at-plan {
+  padding: var(--k-space-1-5) var(--k-space-2-5);
+  border: 1px solid var(--k-panel-border);
+  border-radius: var(--k-radius-card);
+  background: var(--k-card-bg);
+}
+
+.at-plan ul {
+  margin: var(--k-space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.at-plan__entry--completed {
+  color: var(--k-fg-muted);
+  text-decoration: line-through;
+}
+
+.at-usage,
+.at-note {
+  color: var(--k-fg-faint);
+  font-size: var(--k-size-small);
+  overflow-wrap: anywhere;
+}
+
+.at-error {
+  padding: var(--k-space-1-5) var(--k-space-2-5);
+  border: 1px solid var(--k-panel-border);
+  border-radius: var(--k-radius-card);
+  background: var(--k-error-bg);
+}
+
+.at-error__message {
+  color: var(--k-error-fg);
+  margin-bottom: var(--k-space-1);
+}
+
+.at-hint {
+  color: var(--k-warning-fg);
+  font-size: var(--k-size-small);
+  overflow-wrap: anywhere;
+}
