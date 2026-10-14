@@ -3,6 +3,7 @@
  * The agent tab end to end against a scripted bridge: attach, live envelopes,
  * sending, approvals and refusals.
  */
+import "./jsdom-shims";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
@@ -346,6 +347,33 @@ describe("the agent tab", () => {
       harness: "claude",
       text: "the one that failed",
     });
+  });
+
+  it("groups the transcript into turns, and says it is working before the first reply", async () => {
+    backend({
+      status: { ...STATUS, state: "working" },
+      seq: 2,
+      items: [item("u1", { kind: "userMessage", text: "list the files" })],
+    });
+    const { container } = render(<App />);
+    await screen.findByText("list the files");
+    expect(screen.getByText("Working…")).toBeTruthy();
+
+    emit({
+      instanceId: "i",
+      seq: 3,
+      event: { type: "itemStarted", item: item("a1", { kind: "assistantText", text: "Here" }) },
+    });
+    emit({
+      instanceId: "i",
+      seq: 4,
+      event: { type: "itemStarted", item: item("r1", { kind: "reasoning", text: "hmm" }) },
+    });
+    expect(screen.queryByText("Working…")).toBeNull();
+    expect(container.querySelectorAll(".at-turn--user")).toHaveLength(1);
+    const agent = container.querySelectorAll(".at-turn--agent");
+    expect(agent).toHaveLength(1);
+    expect(agent[0].textContent).toContain("Here");
   });
 
   it("never names the harness Claude Code", async () => {

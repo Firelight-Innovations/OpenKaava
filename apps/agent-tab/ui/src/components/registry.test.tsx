@@ -4,6 +4,7 @@
  * comes from a slot, and a slot replaced through `SlotsProvider` is the one
  * that shows, at the top level and inside other components alike.
  */
+import "../jsdom-shims";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { isValidElement, type ComponentType, type ReactNode } from "react";
@@ -132,6 +133,8 @@ describe("the slot registry", () => {
       "Layout",
       "Header",
       "Transcript",
+      "UserTurn",
+      "AssistantTurn",
       "UserMessage",
       "AssistantText",
       "Thinking",
@@ -169,13 +172,15 @@ describe("the slot registry", () => {
   it("reaches the pieces other components draw, through the same map", async () => {
     backend(() => Promise.resolve(EVERYTHING));
     const { container } = render(
-      <SlotsProvider slots={stubs(["StatusBadge", "Diff", "PathList", "Note", "Hint"])}>
+      <SlotsProvider
+        slots={stubs(["StatusBadge", "Diff", "PathList", "Note", "Hint", "TurnActions"])}
+      >
         <App />
       </SlotsProvider>,
     );
     await screen.findByText("hi");
     const shown = slotsShown(container);
-    for (const name of ["StatusBadge", "Diff", "PathList", "Note", "Hint"]) {
+    for (const name of ["StatusBadge", "Diff", "PathList", "Note", "Hint", "TurnActions"]) {
       expect(shown, name).toContain(name);
     }
     // The defaults are gone wherever a stub stands in.
