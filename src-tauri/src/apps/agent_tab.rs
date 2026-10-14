@@ -360,19 +360,25 @@ fn refused(code: &str, message: &str, hint: Value) -> RpcError {
     RpcError::with_data(REFUSED, message, json!({ "code": code, "hint": hint }))
 }
 
-/// The `harness` param, which must name a registered harness by its id.
+/// The `harness` param, which must name a harness in `REGISTRY` by its id. A
+/// variant with no row there is never started, since the tab cannot list it.
 fn harness_param(params: &Value) -> Result<Harness, RpcError> {
     let id = text_param(params, "harness")?;
-    serde_json::from_value(Value::String(id.clone())).map_err(|_| {
-        let known: Vec<String> = REGISTRY
-            .iter()
-            .map(|d| json!(d.harness).to_string())
-            .collect();
-        RpcError::new(
-            INVALID_PARAMS,
-            format!("no harness `{id}`; registered: {}", known.join(", ")),
-        )
-    })
+    let wanted = Value::String(id.clone());
+    REGISTRY
+        .iter()
+        .find(|d| json!(d.harness) == wanted)
+        .map(|d| d.harness)
+        .ok_or_else(|| {
+            let known: Vec<String> = REGISTRY
+                .iter()
+                .map(|d| json!(d.harness).to_string())
+                .collect();
+            RpcError::new(
+                INVALID_PARAMS,
+                format!("no harness `{id}`; registered: {}", known.join(", ")),
+            )
+        })
 }
 
 fn text_param(params: &Value, name: &str) -> Result<String, RpcError> {
