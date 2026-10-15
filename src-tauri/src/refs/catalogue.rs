@@ -20,8 +20,8 @@ pub const VERSION: u32 = 1;
 pub const NAMES: &[&str] = &[
     "refs", "callout", "steps", "table", "compare", "diagram", "chart", "choice",
 ];
-/// Most JSON the props may take as sent, which is also the most the agent
-/// host lifts off a tool result.
+/// Most JSON the props may take, both as sent and as answered, once each
+/// reference is in its canonical form. The marker around them adds a little.
 pub const MAX_PROPS_BYTES: usize = 64 * 1024;
 /// Most references a `refs` component or a callout shows.
 pub const MAX_SHOWN: usize = 8;
@@ -291,14 +291,8 @@ impl Component {
     /// every field of the right type, every limit kept. The error names the
     /// field, such as `steps[2].title`.
     pub fn parse(name: &str, props: &Value) -> Result<Self, String> {
-        let size = props.to_string().len();
-        if size > MAX_PROPS_BYTES {
-            return Err(format!(
-                "the props are {} KB of JSON; at most {} KB",
-                size.div_ceil(1024),
-                MAX_PROPS_BYTES / 1024
-            ));
-        }
+        measure("are", props)?;
+        let props = &without_nulls(props);
         let mut shown = match name {
             "refs" => Self::Refs(props_of(props)?),
             "callout" => Self::Callout(props_of(props)?),
@@ -313,6 +307,11 @@ impl Component {
                 return Err(format!("`{other}` is not a component; use {all}"));
             }
         };
+        if let Self::Refs(p) = &mut shown {
+            // Trimmed, and dropped when blank, as `show` always has.
+            let caption = p.caption.take().map(|c| c.trim().to_string());
+            p.caption = caption.filter(|c| !c.is_empty());
+        }
         shown.check()?;
         let refs: usize = shown.refs_mut().iter().map(|list| list.len()).sum();
         if refs > MAX_REFS {
@@ -321,6 +320,13 @@ impl Component {
             ));
         }
         Ok(shown)
+    }
+
+    /// The props held to [`MAX_PROPS_BYTES`] again as they will be answered,
+    /// after the server has put each reference in its canonical form.
+    pub fn check_size(&self) -> Result<(), String> {
+        let tagged = serde_json::to_value(self).map_err(|e| e.to_string())?;
+        measure("come to", &tagged["props"])
     }
 
     /// Every list of references in the props, for the server to check each
@@ -424,7 +430,7 @@ fn check_chart(p: &ChartProps) -> Result<(), String> {
     maybe_words("unit", &p.unit, MAX_UNIT)?;
     count("xLabels", p.x_labels.len(), 1, MAX_X)?;
     for (i, label) in p.x_labels.iter().enumerate() {
-        length(&format!("xLabels[{i}]"), label, MAX_TITLE)?;
+        words(&format!("xLabels[{i}]"), label, MAX_TITLE)?;
     }
     count("series", p.series.len(), 1, MAX_SERIES)?;
     for (i, series) in p.series.iter().enumerate() {
@@ -474,6 +480,34 @@ fn props_of<T: DeserializeOwned>(props: &Value) -> Result<T, String> {
         at if at == "." => e.inner().to_string(),
         at => format!("`{at}`: {}", e.inner()),
     })
+}
+
+/// Props within [`MAX_PROPS_BYTES`] of JSON.
+fn measure(verb: &str, props: &Value) -> Result<(), String> {
+    match props.to_string().len() {
+        n if n > MAX_PROPS_BYTES => Err(format!(
+            "the props {verb} {} KB of JSON; at most {} KB",
+            n.div_ceil(1024),
+            MAX_PROPS_BYTES / 1024
+        )),
+        _ => Ok(()),
+    }
+}
+
+/// The props with every member given as null left out, so a null list or
+/// flag reads as absent, as a null text does. A table cell sits in an array,
+/// so a null cell stays.
+fn without_nulls(value: &Value) -> Value {
+    match value {
+        Value::Object(map) => Value::Object(
+            map.iter()
+                .filter(|(_, v)| !v.is_null())
+                .map(|(k, v)| (k.clone(), without_nulls(v)))
+                .collect(),
+        ),
+        Value::Array(items) => Value::Array(items.iter().map(without_nulls).collect()),
+        other => other.clone(),
+    }
 }
 
 /// Text that is not blank and not over `max` characters.
@@ -621,6 +655,49 @@ mod tests {
     }
 
     #[test]
+    fn a_null_list_or_flag_reads_as_left_out_as_a_null_text_does() {
+        let props = json!({ "tone": "note", "title": null, "body": "b", "refs": null });
+        assert!(parse("callout", props).is_ok());
+        let items =
+            json!([{ "title": "a", "pros": null, "cons": null, "refs": null }, { "title": "b" }]);
+        assert!(parse("compare", json!({ "items": items })).is_ok());
+        let options = json!([{ "id": "a", "label": "A" }, { "id": "b", "label": "B" }]);
+        let choice = json!({ "question": "q", "options": options, "multiple": null });
+        assert!(parse("choice", choice).is_ok());
+        let wrong = refused(
+            "callout",
+            json!({ "tone": "note", "body": "b", "refs": "x" }),
+        );
+        assert!(wrong.starts_with("`refs`: invalid type"), "{wrong}");
+    }
+
+    #[test]
+    fn a_refs_caption_is_trimmed_and_a_blank_one_left_out_as_show_does() {
+        let caption = |c: &str| match parse(
+            "refs",
+            json!({ "refs": ["kaava://selection"], "caption": c }),
+        ) {
+            Ok(Component::Refs(p)) => p.caption,
+            other => panic!("{other:?}"),
+        };
+        assert_eq!(caption("  Here  "), Some("Here".into()));
+        assert_eq!(caption("   "), None);
+        let padded = format!("{}{}", " ".repeat(200), "x".repeat(MAX_CAPTION));
+        assert_eq!(caption(&padded).map(|c| c.len()), Some(MAX_CAPTION));
+    }
+
+    #[test]
+    fn the_props_are_measured_again_as_they_will_be_answered() {
+        let mut shown = parse("refs", json!({ "refs": ["kaava://selection"] })).unwrap();
+        assert!(shown.check_size().is_ok());
+        // A canonical form can be longer than what was sent: a space in a
+        // path is written %20.
+        shown.refs_mut()[0][0] = "x".repeat(MAX_PROPS_BYTES);
+        let over = shown.check_size().unwrap_err();
+        assert!(over.starts_with("the props come to 65 KB"), "{over}");
+    }
+
+    #[test]
     fn references_are_capped_across_every_list() {
         let step = || json!({ "title": "t", "refs": vec!["kaava://selection"; MAX_ITEM_REFS] });
         let steps = |n: usize| json!({ "steps": vec![step(); n] });
@@ -669,6 +746,9 @@ mod tests {
             .unwrap()
             .push(json!({ "name": "n", "values": vec![1.0; 100] }));
         assert_eq!(refused("chart", many), "`series` holds 9; at most 8");
+        let mut blank = chart(2, 2, 1);
+        blank["xLabels"][1] = json!(" ");
+        assert!(refused("chart", blank).starts_with("`xLabels[1]` is empty"));
         let mut unit = chart(1, 1, 1);
         unit["unit"] = json!("ms");
         unit["stacked"] = json!(true);

@@ -133,6 +133,8 @@ ACP prompt blocks.
    a provider's 5 MB per image. A resolved reference carries at most one picture. Every picture
    has a width and height, so the tab can hold its place: a raster's from its header, an SVG's
    from its `width` and `height` in pixels or else its `viewBox`, and 300×150 when neither says.
+   Only a regular file is opened. A named pipe or a device is refused before it is, since opening
+   a pipe waits for a writer.
 5. **The token is per launch.** A tab session's server entry carries a token bound to that
    cluster. The token is accepted only on `/mcp/context`, and every call made with it answers from
    that cluster, whatever `cluster` it names. It is never the master token, which also reaches the
@@ -312,14 +314,16 @@ until it loads or when it fails to parse. A canvas frame is a `refs` chip, not a
 
 **Limits.** A title, label or name is at most 200 characters, a caption or question 500, a body or
 detail 4,000, a pro or con 300, a table cell 500, and a diagram's source 20,000. The props are at
-most 64 KB of JSON as sent, and hold at most 24 references across every list. Props that pass fit
-the tab's layouts, so it need not check them again.
+most 64 KB of JSON as sent, and again once each reference is in its canonical form, which can be
+longer. They hold at most 24 references across every list. `show` is held to the same limits.
+Props that pass fit the tab's layouts, so it need not check them again.
 
 **Refusals.** The call is refused when the component is unknown, a field is missing, unknown or of
 the wrong type, a text is blank, or a limit is broken. The error names the field, such as
-`steps[2].status`. Every reference in the props is checked as `show` checks them. One that fails is
-dropped from the props and listed in `failed`, and the component is still shown. Only a `refs`
-component left with no references is refused.
+`steps[2].status`. A member given as null reads as left out. A `refs` caption is trimmed, and a
+blank one left out, as `show` does. Every reference in the props is checked as `show` checks them.
+One that fails is dropped from the props and listed in `failed`, and the component is still shown.
+Only a `refs` component left with no references is refused.
 
 **The marker.** Every component answers as `show` does, `{ kaavaShow: { version, component, props },
 failed? }`. Every component is at version 1. An optional prop that was not given is left out, never

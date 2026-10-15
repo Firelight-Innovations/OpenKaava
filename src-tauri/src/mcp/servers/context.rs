@@ -15,7 +15,7 @@
 use super::{workspace, McpResource};
 use crate::apps::CallContext;
 use crate::mcp::{McpServer, McpTool, ToolAnswer};
-use crate::refs::catalogue::{self, Component, KaavaShow, RefsProps};
+use crate::refs::catalogue::{self, Component, KaavaShow};
 use crate::refs::comments::{self, Wanted};
 use crate::refs::fault::{Fault, Reason};
 use crate::refs::live::{self, Actor};
@@ -458,13 +458,8 @@ fn show(
     let refs = strings(args, "refs")?
         .filter(|refs| !refs.is_empty())
         .ok_or_else(|| bad("`refs` needs at least one kaava:// reference"))?;
-    let caption = maybe_text(args, "caption")?.map(str::trim);
-    let shown = Component::Refs(RefsProps {
-        refs,
-        caption: caption.filter(|c| !c.is_empty()).map(String::from),
-    });
-    shown.check().map_err(bad)?;
-    present(app, ctx, shown)
+    let props = json!({ "refs": refs, "caption": args.get("caption") });
+    present(app, ctx, Component::parse("refs", &props).map_err(bad)?)
 }
 
 /// Check every reference in the props, then answer with the marker the agent
@@ -487,6 +482,7 @@ fn present(
             }
         });
     }
+    shown.check_size().map_err(bad)?;
     show_answer(shown, failed).map(ToolAnswer::Json)
 }
 
@@ -529,6 +525,7 @@ fn show_answer(shown: Component, failed: Vec<(String, Fault)>) -> Result<Value, 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::refs::catalogue::RefsProps;
 
     /// A `refs` component holding what survived its check.
     fn refs(shown: &[&str], caption: Option<&str>) -> Component {
