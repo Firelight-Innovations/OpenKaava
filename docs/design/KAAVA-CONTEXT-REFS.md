@@ -116,7 +116,10 @@ ACP prompt blocks.
    them, and search (PR 3) does not list them.
 3. **Gitignored files are named, not read.** Kaava's own stores have their own reference kinds,
    which do not apply this rule. Everything else that `.gitignore` excludes, such as build output,
-   caches and local config, resolves to `withheld`.
+   caches and local config, resolves to `withheld`. The rules follow git's: a folder that is
+   excluded stays excluded, so a `!` line cannot re-include a file under it. A line that does not
+   parse costs only that line. Patterns ignore case on Windows and macOS, where `core.ignorecase`
+   is on by default.
 4. **Caps.** An excerpt holds at most 1,000 lines and 64 KB. A file is scanned at most 16 MB deep
    for a range. An image is sent inline only up to 3.5 MB, which is about 4.7 MB in base64, under
    a provider's 5 MB per image.

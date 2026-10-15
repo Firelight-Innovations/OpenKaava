@@ -5,7 +5,7 @@
 //! really lands once symlinks and junctions are followed, and what kind of file
 //! it is (secrets are never served, gitignored files are named but not read).
 
-use ignore::gitignore::GitignoreBuilder;
+use ignore::gitignore::{Gitignore, GitignoreBuilder};
 use ignore::Match;
 use std::path::{Path, PathBuf};
 
@@ -161,36 +161,87 @@ pub fn secret_content(head: &[u8]) -> Option<&'static str> {
     key.then_some("private keys and key stores")
 }
 
-/// Whether `abs` (canonical, under the canonical `root`) is excluded by a
-/// `.gitignore` between it and the root. The deepest file that has an
-/// opinion wins, as in git; `.git/info/exclude` is read at the root.
-pub fn ignored(root: &Path, abs: &Path) -> bool {
-    let is_dir = abs.is_dir();
-    let mut dir = abs.parent();
-    while let Some(d) = dir.filter(|d| d.starts_with(root)) {
-        let mut builder = GitignoreBuilder::new(d);
-        let mut any = false;
-        if d == root {
-            let exclude = d.join(".git").join("info").join("exclude");
-            any |= exclude.is_file() && builder.add(&exclude).is_none();
+/// Whether gitignore patterns ignore case. Git's `core.ignorecase` is on by
+/// default where the file system ignores case, which is Windows and macOS.
+const IGNORE_CASE: bool = cfg!(any(windows, target_os = "macos"));
+
+/// The ignore files that govern one folder: the root's (with
+/// `.git/info/exclude`) and each one between it and the folder, outermost
+/// first. Built once, then asked about any number of paths under the folder.
+pub struct Ignores {
+    levels: Vec<(PathBuf, Gitignore)>,
+    root: PathBuf,
+}
+
+impl Ignores {
+    /// The rules for `folder`, canonical and under the canonical `root`.
+    pub fn for_folder(root: &Path, folder: &Path) -> Ignores {
+        let mut chain: Vec<&Path> = folder
+            .ancestors()
+            .take_while(|d| d.starts_with(root))
+            .collect();
+        chain.reverse();
+        let levels = chain
+            .into_iter()
+            .filter_map(|d| matcher(root, d).map(|m| (d.to_path_buf(), m)))
+            .collect();
+        Ignores {
+            levels,
+            root: root.to_path_buf(),
         }
-        let file = d.join(".gitignore");
-        any |= file.is_file() && builder.add(&file).is_none();
-        if any {
-            if let Ok(matcher) = builder.build() {
-                match matcher.matched_path_or_any_parents(abs, is_dir) {
-                    Match::Ignore(_) => return true,
-                    Match::Whitelist(_) => return false,
-                    Match::None => {}
-                }
+    }
+
+    /// Whether git would ignore `abs`. As in git, a folder that is excluded
+    /// is never entered, so nothing under it can be re-included; below that,
+    /// the deepest file with an opinion wins.
+    pub fn ignored(&self, abs: &Path, is_dir: bool) -> bool {
+        let mut above: Vec<&Path> = abs
+            .ancestors()
+            .skip(1)
+            .take_while(|d| d.starts_with(&self.root) && *d != self.root)
+            .collect();
+        above.reverse();
+        above.into_iter().any(|d| self.decide(d, true)) || self.decide(abs, is_dir)
+    }
+
+    fn decide(&self, path: &Path, is_dir: bool) -> bool {
+        for (dir, rules) in self.levels.iter().rev() {
+            if path == dir || !path.starts_with(dir) {
+                continue;
+            }
+            match rules.matched(path, is_dir) {
+                Match::Ignore(_) => return true,
+                Match::Whitelist(_) => return false,
+                Match::None => {}
             }
         }
-        if d == root {
-            break;
-        }
-        dir = d.parent();
+        false
     }
-    false
+}
+
+/// The rules one folder's own files give, if it has any. A line that does not
+/// parse costs that line, as in git, not the rest of the file.
+fn matcher(root: &Path, dir: &Path) -> Option<Gitignore> {
+    let mut builder = GitignoreBuilder::new(dir);
+    builder.case_insensitive(IGNORE_CASE).ok()?;
+    // Later files win a tie, so `.gitignore` goes after `info/exclude`.
+    let mut files = Vec::new();
+    if dir == root {
+        files.push(dir.join(".git").join("info").join("exclude"));
+    }
+    files.push(dir.join(".gitignore"));
+    let mut any = false;
+    for file in files.iter().filter(|f| f.is_file()) {
+        let _partial = builder.add(file);
+        any = true;
+    }
+    any.then(|| builder.build().ok()).flatten()
+}
+
+/// Whether `abs` (canonical, under the canonical `root`) is gitignored.
+/// One path's question; a folder listing builds [`Ignores`] once instead.
+pub fn ignored(root: &Path, abs: &Path) -> bool {
+    Ignores::for_folder(root, abs.parent().unwrap_or(root)).ignored(abs, abs.is_dir())
 }
 
 #[cfg(test)]
@@ -342,6 +393,41 @@ mod tests {
         ] {
             write(&root, rel, "x");
             assert_eq!(ignored(&root, &root.join(rel)), expected, "{rel}");
+        }
+    }
+
+    #[test]
+    fn an_excluded_folder_stays_excluded_and_a_bad_line_costs_only_itself() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let root = std::fs::canonicalize(dir.path()).unwrap();
+        write(
+            &root,
+            ".gitignore",
+            "private/\n!private/token.txt\n{a,b\nlocal.settings.json\n",
+        );
+        write(&root, "private/.gitignore", "!notes.md\n");
+        for (rel, expected) in [
+            ("private/token.txt", true),
+            ("private/notes.md", true),
+            ("local.settings.json", true),
+            ("src/main.gd", false),
+        ] {
+            write(&root, rel, "x");
+            assert_eq!(ignored(&root, &root.join(rel)), expected, "{rel}");
+        }
+        let listing = Ignores::for_folder(&root, &root.join("private"));
+        assert!(listing.ignored(&root.join("private/notes.md"), false));
+    }
+
+    #[cfg(any(windows, target_os = "macos"))]
+    #[test]
+    fn gitignore_ignores_case_where_the_file_system_does() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let root = std::fs::canonicalize(dir.path()).unwrap();
+        write(&root, ".gitignore", "Build/\n*.LOG\n");
+        for rel in ["build/out.bin", "debug.log"] {
+            write(&root, rel, "x");
+            assert!(ignored(&root, &root.join(rel)), "{rel}");
         }
     }
 }

@@ -259,6 +259,7 @@ fn folder(mut out: Resolved, root: &Path, abs: &Path) -> Result<Resolved, String
     let reader = std::fs::read_dir(abs).map_err(|e| format!("cannot list that folder: {e}"))?;
     let mut entries: Vec<(bool, String)> = Vec::new();
     let mut hidden = 0usize;
+    let rules = policy::Ignores::for_folder(root, abs);
     for entry in reader.flatten() {
         let name = entry.file_name().to_string_lossy().into_owned();
         let path = entry.path();
@@ -266,7 +267,7 @@ fn folder(mut out: Resolved, root: &Path, abs: &Path) -> Result<Resolved, String
             .strip_prefix(root)
             .map(|p| p.to_string_lossy().replace('\\', "/"))
             .unwrap_or_default();
-        if policy::secret_rule(&rel).is_some() || policy::ignored(root, &path) {
+        if policy::secret_rule(&rel).is_some() || rules.ignored(&path, path.is_dir()) {
             hidden += 1;
             continue;
         }
