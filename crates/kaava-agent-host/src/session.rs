@@ -77,6 +77,11 @@ const MESSAGE_LIMIT: usize = 32 * 1024 * 1024;
 /// refused unseen.
 const MAX_PENDING_APPROVALS: usize = 64;
 
+/// The most characters of an agent's reason for refusing a change that are
+/// kept. It rides on every status event until the next change is answered
+/// and is drawn inline, so a stack or a dumped option list stops short.
+const REFUSAL_REASON: usize = 300;
+
 /// Local codes for a reply that never came. Negative and far from JSON-RPC's
 /// reserved range, so no agent sends them.
 const CLOSED: i64 = -1;
@@ -940,7 +945,7 @@ impl Shared {
                 Ok(_) => None,
                 Err(e) => Some(SettingTrouble::Refused {
                     ticket,
-                    message: mask(&e.message),
+                    message: refusal_reason(&e.message),
                 }),
             };
             if !self.report(trouble, Some(ticket)) {
@@ -1268,6 +1273,22 @@ fn timed_out(method: &str) -> RemoteError {
     }
 }
 
+/// An agent's reason for refusing a change, as it is stored and sent with
+/// every status: its first line, masked, and cut to [`REFUSAL_REASON`]
+/// characters with an ellipsis.
+fn refusal_reason(message: &str) -> String {
+    let line = message
+        .lines()
+        .map(str::trim)
+        .find(|l| !l.is_empty())
+        .unwrap_or_default();
+    let line = mask(line);
+    match line.char_indices().nth(REFUSAL_REASON) {
+        Some((end, _)) => format!("{}…", line[..end].trim_end()),
+        None => line,
+    }
+}
+
 /// Mark a request as one whose reply carries the settings, for the reader to
 /// take in. `mode` is the mode a `session/set_mode` sets.
 fn carries_settings(mode: Option<String>) -> impl FnOnce(&mut Inner, i64) {
@@ -1336,6 +1357,29 @@ fn spawn(name: &str, work: impl FnOnce() + Send + 'static) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_refusal_reason_is_one_masked_line_of_bounded_length() {
+        assert_eq!(refusal_reason("Internal error: no"), "Internal error: no");
+        assert_eq!(refusal_reason(""), "");
+        // The first line only, so a stack stays out of every status.
+        assert_eq!(
+            refusal_reason("\n  Invalid Mode: plan\n    at run (agent.js:1)\n"),
+            "Invalid Mode: plan"
+        );
+        assert_eq!(
+            refusal_reason("bad key sk-abcdefghijklmnopqrstuvwxyz"),
+            "bad key <redacted>"
+        );
+        // Cut on a character boundary, however wide the characters are.
+        let long = "é".repeat(REFUSAL_REASON + 50);
+        let cut = refusal_reason(&long);
+        assert_eq!(cut.chars().count(), REFUSAL_REASON + 1);
+        assert!(cut.ends_with('…'));
+        // Exactly the limit is kept whole.
+        let exact = "x".repeat(REFUSAL_REASON);
+        assert_eq!(refusal_reason(&exact), exact);
+    }
 
     #[test]
     fn a_long_line_is_cut_and_the_next_one_is_whole() {
