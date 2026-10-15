@@ -535,8 +535,8 @@ export function onAgentTabEvent(cb: (payload: unknown) => void): Promise<Unliste
   return listen<unknown>(AGENT_TAB_EVENT, (e) => cb(e.payload));
 }
 
-/** The event Rust emits when an agent tab chooses its next harness
- *  (`apps::agent_tab::CHOSEN`). Payload is `{ instanceId, harness }`. */
+/** The event Rust emits when an agent tab chooses its next harness and model
+ *  (`apps::agent_tab::CHOSEN`). Payload is `{ instanceId, harness, model }`. */
 export const AGENT_TAB_CHOSEN = "agent-tab:chosen";
 
 /** Hear every agent tab's choice of harness, for the tab and the agent bar alike. */

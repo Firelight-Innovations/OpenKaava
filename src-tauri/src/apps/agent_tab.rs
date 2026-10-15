@@ -41,8 +41,8 @@ pub const ID: &str = "agent-tab";
 /// The event every envelope is emitted as. Mirrored in `src/bindings.ts`.
 pub const EVENT: &str = "agent-tab:event";
 
-/// The event a tab's choice of harness is emitted as, `{ instanceId, harness }`,
-/// so the tab and the agent bar show the same one. Mirrored in `src/bindings.ts`.
+/// The event a tab's choice is emitted as, `{ instanceId, harness, model }`, so
+/// the tab and the agent bar show the same one. Mirrored in `src/bindings.ts`.
 pub const CHOSEN: &str = "agent-tab:chosen";
 
 /// The JSON-RPC code for a refusal this module or the host made. `data.code`
@@ -92,17 +92,26 @@ const UNGATED_METHODS: &[&str] = &[
 ];
 
 /// The host, built on first use so it can hold the `AppHandle` it emits on,
-/// where each tab's session started, and the harness each tab has chosen.
+/// where each tab's session started, and what each tab has chosen.
 #[derive(Default)]
 pub struct Sessions {
     host: OnceLock<AgentHost>,
     homes: Mutex<HashMap<String, Home>>,
-    chosen: Mutex<HashMap<String, Harness>>,
+    chosen: Mutex<HashMap<String, Choice>>,
     /// Held by a send from reading the tab's harness until its agent has
     /// started, and by a choice from its check until it is stored. Without
     /// it, a choice could land in between, and the tab would run one harness
     /// while holding another as its choice.
     turn: Mutex<()>,
+}
+
+/// What a tab chose for its next session. Generic, as [`choose`] is, so it
+/// is tested with more harnesses than the registry has yet.
+#[derive(Debug, Clone, PartialEq)]
+struct Choice<H = Harness> {
+    harness: H,
+    /// The model's value, or `None` for the agent's default.
+    model: Option<String>,
 }
 
 /// The cluster a tab's session started in, and what that cluster pointed at
@@ -133,7 +142,7 @@ impl Sessions {
         self.homes.lock().unwrap_or_else(|e| e.into_inner())
     }
 
-    fn chosen(&self) -> std::sync::MutexGuard<'_, HashMap<String, Harness>> {
+    fn chosen(&self) -> std::sync::MutexGuard<'_, HashMap<String, Choice>> {
         self.chosen.lock().unwrap_or_else(|e| e.into_inner())
     }
 
@@ -141,7 +150,7 @@ impl Sessions {
     fn current(&self, host: &AgentHost, instance_id: &str) -> Harness {
         current(
             host.running(instance_id),
-            self.chosen().get(instance_id).copied(),
+            self.chosen().get(instance_id).map(|c| c.harness),
         )
     }
 
@@ -149,16 +158,23 @@ impl Sessions {
         self.turn.lock().unwrap_or_else(|e| e.into_inner())
     }
 
-    /// `start` handed the harness the tab's next prompt goes to. No choice
-    /// lands until it returns, so it starts the harness the tab still holds.
+    /// `start` handed the harness the tab's next prompt goes to, and the
+    /// model the tab chose for it. No choice lands until it returns, so it
+    /// starts what the tab still holds.
     fn send_as<T>(
         &self,
         host: &AgentHost,
         instance_id: &str,
-        start: impl FnOnce(Harness) -> T,
+        start: impl FnOnce(Harness, Option<String>) -> T,
     ) -> T {
         let _turn = self.turn();
-        start(self.current(host, instance_id))
+        let harness = self.current(host, instance_id);
+        let model = self
+            .chosen()
+            .get(instance_id)
+            .filter(|c| c.harness == harness)
+            .and_then(|c| c.model.clone());
+        start(harness, model)
     }
 
     /// [`choose`], holding the tab's turn from its check until the choice is
@@ -168,6 +184,7 @@ impl Sessions {
         host: &AgentHost,
         instance_id: &str,
         harness: Harness,
+        model: Option<Option<String>>,
         open: impl FnOnce() -> bool,
     ) -> Result<Value, RpcError> {
         let _turn = self.turn();
@@ -176,6 +193,7 @@ impl Sessions {
             instance_id,
             host.running(instance_id),
             harness,
+            model,
             open,
         )
     }
@@ -282,7 +300,7 @@ pub fn call_for(
         "agent-tab/send" => {
             let text = text_param(&params, "text")?;
             let worktree = worktree(app, context)?;
-            sessions.send_as(host, instance, |harness| {
+            sessions.send_as(host, instance, |harness, model| {
                 let mut launch = spec(
                     harness,
                     std::env::var_os("PATH").as_deref(),
@@ -297,6 +315,7 @@ pub fn call_for(
                     )
                 })?;
                 launch.mcp_servers = session_servers(app, context.cluster_id.as_deref());
+                launch.model = model;
                 host.send(instance, launch, worktree, &text)
                     .map_err(host_error)
             })?;
@@ -328,10 +347,13 @@ pub fn call_for(
             host.reset(instance);
             Ok(json!({}))
         }
-        // The tab's next session runs this harness.
+        // The tab's next session runs this harness, on this model.
         "agent-tab/choose" => {
             let harness = harness_param(&params)?;
-            let event = sessions.choose(host, instance, harness, || is_agent_tab(app, instance))?;
+            let model = model_param(&params)?;
+            let event = sessions.choose(host, instance, harness, model, || {
+                is_agent_tab(app, instance)
+            })?;
             let _ = app.emit(CHOSEN, event);
             Ok(json!({}))
         }
@@ -383,8 +405,9 @@ fn harnesses_answer<H: Serialize>(
     })
 }
 
-/// `agent-tab/choose` once its harness is read: `instance`'s next session
-/// runs `harness`, unless its agent runs another. Answers the
+/// `agent-tab/choose` once its params are read: `instance`'s next session
+/// runs `harness`, on `model` as [`next_choice`] reads it, unless its agent
+/// runs another harness. Answers the
 /// [`CHOSEN`] event, which the tab's `rpc.ts` and the shell's
 /// `ToolWindow.tsx` read.
 ///
@@ -392,20 +415,26 @@ fn harnesses_answer<H: Serialize>(
 /// the call began has missed `sync`'s prune, so its choice is taken back here
 /// rather than left for a page reopened under its id.
 fn choose<H: Copy + PartialEq + Serialize>(
-    chosen: &Mutex<HashMap<String, H>>,
+    chosen: &Mutex<HashMap<String, Choice<H>>>,
     instance: &str,
     running: Option<H>,
     harness: H,
+    model: Option<Option<String>>,
     open: impl FnOnce() -> bool,
 ) -> Result<Value, RpcError> {
     may_choose(running, harness)?;
     let lock = || chosen.lock().unwrap_or_else(|e| e.into_inner());
-    lock().insert(instance.to_string(), harness);
+    let choice = {
+        let mut chosen = lock();
+        let choice = next_choice(chosen.get(instance), harness, model);
+        chosen.insert(instance.to_string(), choice.clone());
+        choice
+    };
     if !open() {
         lock().remove(instance);
         return Err(unreached("agent-tab/choose"));
     }
-    Ok(json!({ "instanceId": instance, "harness": harness }))
+    Ok(json!({ "instanceId": instance, "harness": choice.harness, "model": choice.model }))
 }
 
 /// The harness a tab's next prompt goes to: the one its agent runs, else the
@@ -418,6 +447,23 @@ fn current(running: Option<Harness>, chosen: Option<Harness>) -> Harness {
 /// the registry has yet.
 fn next_of<H>(running: Option<H>, chosen: Option<H>, first: H) -> H {
     running.or(chosen).unwrap_or(first)
+}
+
+/// A choice of `harness`, and of `model` when the call named one: `Some(None)`
+/// is the agent's default. A call that names none keeps the model chosen
+/// before for the same harness, so choosing a harness alone, as the agent bar
+/// does, never drops the tab's model.
+fn next_choice<H: Copy + PartialEq>(
+    before: Option<&Choice<H>>,
+    harness: H,
+    model: Option<Option<String>>,
+) -> Choice<H> {
+    let model = model.unwrap_or_else(|| {
+        before
+            .filter(|c| c.harness == harness)
+            .and_then(|c| c.model.clone())
+    });
+    Choice { harness, model }
 }
 
 /// Whether a tab may choose `harness`: not while its agent runs another,
@@ -563,6 +609,17 @@ fn harness_param(params: &Value) -> Result<Harness, RpcError> {
         })
 }
 
+/// The optional `model` param: absent keeps the tab's model, `null` is the
+/// agent's default, and a model's value is a non-empty string. Whether the
+/// agent offers it is the session's to check, once it has said.
+fn model_param(params: &Value) -> Result<Option<Option<String>>, RpcError> {
+    match params.get("model") {
+        None => Ok(None),
+        Some(Value::Null) => Ok(Some(None)),
+        Some(_) => text_param(params, "model").map(|model| Some(Some(model))),
+    }
+}
+
 fn text_param(params: &Value, name: &str) -> Result<String, RpcError> {
     params
         .get(name)
@@ -596,13 +653,13 @@ mod tests {
             s.spawn(move || {
                 starting.recv().unwrap();
                 sessions
-                    .choose(host, "tab", Harness::Codex, || true)
+                    .choose(host, "tab", Harness::Codex, None, || true)
                     .unwrap();
                 order.lock().unwrap().push("chose");
             });
             // `move`, so a failed assertion drops `started` and the chooser's
             // `recv` fails rather than waiting for ever.
-            sessions.send_as(host, "tab", move |harness| {
+            sessions.send_as(host, "tab", move |harness, _| {
                 assert_eq!(harness, harness::first());
                 started.send(()).unwrap();
                 std::thread::sleep(Duration::from_millis(200));
@@ -611,6 +668,58 @@ mod tests {
         });
         assert_eq!(*order.lock().unwrap(), ["started", "chose"]);
         assert_eq!(sessions.current(host, "tab"), Harness::Codex);
+    }
+
+    #[test]
+    fn a_send_starts_the_model_chosen_for_its_harness() {
+        let sessions = Sessions::default();
+        let host = AgentHost::new(Arc::new(|_| {}), Arc::new(|_, _| {}));
+        let model = |m: &str| Some(Some(m.to_string()));
+        let next = || sessions.send_as(&host, "tab", |harness, model| (harness, model));
+        assert_eq!(next(), (harness::first(), None));
+        sessions
+            .choose(&host, "tab", Harness::Codex, model("gpt-5.2"), || true)
+            .unwrap();
+        assert_eq!(next(), (Harness::Codex, Some("gpt-5.2".to_string())));
+        sessions
+            .choose(&host, "tab", Harness::Codex, Some(None), || true)
+            .unwrap();
+        assert_eq!(next(), (Harness::Codex, None));
+    }
+
+    #[test]
+    fn a_harness_chosen_alone_keeps_only_its_own_model() {
+        let on = |harness, model: Option<&str>| Choice {
+            harness,
+            model: model.map(str::to_string),
+        };
+        let codex = on(Harness::Codex, Some("gpt-5.2"));
+        assert_eq!(next_choice(Some(&codex), Harness::Codex, None), codex);
+        assert_eq!(
+            next_choice(Some(&codex), Harness::Claude, None),
+            on(Harness::Claude, None)
+        );
+        assert_eq!(
+            next_choice(Some(&codex), Harness::Codex, Some(None)),
+            on(Harness::Codex, None)
+        );
+        assert_eq!(
+            next_choice(None, Harness::Claude, Some(Some("opus".into()))),
+            on(Harness::Claude, Some("opus"))
+        );
+    }
+
+    #[test]
+    fn a_model_param_is_absent_null_or_a_value() {
+        assert_eq!(model_param(&json!({ "harness": "codex" })).unwrap(), None);
+        assert_eq!(model_param(&json!({ "model": null })).unwrap(), Some(None));
+        assert_eq!(
+            model_param(&json!({ "model": "opus" })).unwrap(),
+            Some(Some("opus".to_string()))
+        );
+        for bad in [json!({ "model": "" }), json!({ "model": 4 })] {
+            assert_eq!(model_param(&bad).unwrap_err().code, INVALID_PARAMS);
+        }
     }
 
     /// Handoff §0: never on main. Only a local worktree has a path to run in.
@@ -945,26 +1054,28 @@ mod tests {
         assert_eq!(next_of(Some("running"), Some("chosen"), "first"), "running");
     }
 
-    fn chosen<H: Clone>(map: &Mutex<HashMap<String, H>>, id: &str) -> Option<H> {
-        map.lock().unwrap().get(id).cloned()
+    /// The harness `id` chose, if any.
+    fn chosen<H: Clone>(map: &Mutex<HashMap<String, Choice<H>>>, id: &str) -> Option<H> {
+        map.lock().unwrap().get(id).map(|c| c.harness.clone())
     }
 
     #[test]
     fn a_choice_is_kept_and_told_to_every_view_of_the_tab() {
         let map = Mutex::new(HashMap::new());
-        let event = choose(&map, "agent-tab-1", None, "pi", || true).unwrap();
+        let opus = Some(Some("opus".to_string()));
+        let event = choose(&map, "agent-tab-1", None, "pi", opus, || true).unwrap();
         assert_eq!(chosen(&map, "agent-tab-1"), Some("pi"));
         // The keys the tab's `onChosen` and the shell's relay read.
         assert_eq!(
             event,
-            json!({ "instanceId": "agent-tab-1", "harness": "pi" })
+            json!({ "instanceId": "agent-tab-1", "harness": "pi", "model": "opus" })
         );
     }
 
     #[test]
     fn a_choice_for_a_tab_that_closed_meanwhile_is_taken_back() {
         let map = Mutex::new(HashMap::new());
-        let err = choose(&map, "agent-tab-1", None, "pi", || {
+        let err = choose(&map, "agent-tab-1", None, "pi", None, || {
             // Checked after the store: a prune that ran first would miss it.
             assert_eq!(chosen(&map, "agent-tab-1"), Some("pi"));
             false
@@ -976,8 +1087,12 @@ mod tests {
 
     #[test]
     fn a_choice_while_another_harness_runs_is_refused_and_not_kept() {
-        let map = Mutex::new(HashMap::from([("agent-tab-1".to_string(), "claude")]));
-        let err = choose(&map, "agent-tab-1", Some("claude"), "pi", || true).unwrap_err();
+        let claude = Choice {
+            harness: "claude",
+            model: None,
+        };
+        let map = Mutex::new(HashMap::from([("agent-tab-1".to_string(), claude)]));
+        let err = choose(&map, "agent-tab-1", Some("claude"), "pi", None, || true).unwrap_err();
         assert_eq!(code_of(&err), Some("running"));
         assert_eq!(chosen(&map, "agent-tab-1"), Some("claude"));
     }
