@@ -12,6 +12,8 @@ use std::fmt;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Reason {
+    /// The call is malformed: a parameter missing, mistyped or over its cap.
+    BadParams,
     /// Not a `kaava://` reference, or a path no reference may name.
     BadUri,
     /// No project is open, or the surface is in no cluster.
@@ -31,6 +33,7 @@ pub enum Reason {
 impl Reason {
     pub fn word(self) -> &'static str {
         match self {
+            Reason::BadParams => "bad-params",
             Reason::BadUri => "bad-uri",
             Reason::NoProject => "no-project",
             Reason::Missing => "missing",
@@ -104,6 +107,7 @@ mod tests {
     #[test]
     fn the_word_is_the_one_serde_writes() {
         for reason in [
+            Reason::BadParams,
             Reason::BadUri,
             Reason::NoProject,
             Reason::Missing,

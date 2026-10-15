@@ -25,14 +25,29 @@ pub mod resolve;
 pub mod search;
 pub mod uri;
 
+use fault::{Fault, Reason};
 use kaava_rpc::{RpcError, INTERNAL_ERROR, METHOD_NOT_FOUND};
-use serde_json::Value;
+use live::Actor;
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use serde_json::{json, Value};
 use tauri::AppHandle;
 
 /// `refs/resolve {uri}` → [`resolve::Resolved`]: what the agent tab draws for
 /// a reference chip or a `show` card. Answered as the person, who is the one
-/// looking.
+/// looking, as every `refs/*` method is.
 pub const RESOLVE_METHOD: &str = "refs/resolve";
+/// `refs/search {query?, kinds?, limit?}` → `{items}`: the @-mention picker's
+/// matches, as `search_context` finds them.
+pub const SEARCH_METHOD: &str = "refs/search";
+
+#[derive(Debug, Deserialize)]
+struct SearchParams {
+    #[serde(default)]
+    query: String,
+    kinds: Option<Vec<String>>,
+    limit: Option<usize>,
+}
 
 /// Whether the host answers `method` here rather than an app.
 pub fn is_method(method: &str) -> bool {
@@ -51,9 +66,15 @@ pub fn call(
     match method {
         RESOLVE_METHOD => {
             let r = uri_param(params.as_ref())?;
-            let resolved =
-                live::resolve(app, ctx, live::Actor::Human, &r).map_err(fault::Fault::rpc)?;
+            let resolved = live::resolve(app, ctx, Actor::Human, &r).map_err(Fault::rpc)?;
             serde_json::to_value(resolved).map_err(|e| RpcError::new(INTERNAL_ERROR, e.to_string()))
+        }
+        SEARCH_METHOD => {
+            let asked: SearchParams = parse_params(params)?;
+            live::root_of(ctx).map_err(Fault::rpc)?;
+            let q = search::Query::new(&asked.query, asked.kinds, asked.limit)
+                .map_err(|why| Fault::new(Reason::BadParams, why).rpc())?;
+            Ok(json!({ "items": search::run(app, ctx, Actor::Human, &q) }))
         }
         other => Err(RpcError::new(
             METHOD_NOT_FOUND,
@@ -74,14 +95,21 @@ fn admit(caller: &str) -> Result<(), RpcError> {
     ))
 }
 
-/// The `uri` parameter, parsed. A failure carries `data.reason` `bad-uri`.
+/// The `uri` parameter, parsed: `bad-params` when it is absent or not a
+/// string, `bad-uri` when it does not parse.
 fn uri_param(params: Option<&Value>) -> Result<uri::Ref, RpcError> {
-    let bad = |why: String| fault::Fault::new(fault::Reason::BadUri, why).rpc();
     let raw = params
         .and_then(|p| p.get("uri"))
         .and_then(Value::as_str)
-        .ok_or_else(|| bad("`uri` is required".into()))?;
-    uri::parse(raw).map_err(bad)
+        .ok_or_else(|| Fault::new(Reason::BadParams, "`uri` is required").rpc())?;
+    uri::parse(raw).map_err(|why| Fault::new(Reason::BadUri, why).rpc())
+}
+
+/// A method's parameters, an absent one read as `{}`. A missing or mistyped
+/// field is `bad-params`, with serde's account of which.
+fn parse_params<T: DeserializeOwned>(params: Option<Value>) -> Result<T, RpcError> {
+    let given = params.unwrap_or_else(|| json!({}));
+    serde_json::from_value(given).map_err(|e| Fault::new(Reason::BadParams, e.to_string()).rpc())
 }
 
 #[cfg(test)]
@@ -93,6 +121,7 @@ mod tests {
     #[test]
     fn only_refs_methods_are_answered_here() {
         assert!(is_method(RESOLVE_METHOD));
+        assert!(is_method(SEARCH_METHOD));
         assert!(!is_method("context/get"));
         assert!(!is_method("refsx/resolve"));
     }
@@ -112,12 +141,41 @@ mod tests {
 
     #[test]
     fn a_resolve_call_needs_a_uri_that_parses() {
-        assert!(uri_param(None).is_err());
-        assert!(uri_param(Some(&json!({ "uri": 7 }))).is_err());
+        let reason = |e: RpcError| e.data.unwrap()["reason"].clone();
+        assert_eq!(reason(uri_param(None).unwrap_err()), "bad-params");
+        assert_eq!(
+            reason(uri_param(Some(&json!({ "uri": 7 }))).unwrap_err()),
+            "bad-params"
+        );
         let escape = uri_param(Some(&json!({ "uri": "kaava://file/../secrets" }))).unwrap_err();
         assert_eq!(escape.code, INVALID_PARAMS);
         assert_eq!(escape.data, Some(json!({ "reason": "bad-uri" })));
         let ok = uri_param(Some(&json!({ "uri": "kaava://selection" })));
         assert_eq!(ok.unwrap(), uri::Ref::Selection);
+    }
+
+    #[test]
+    fn search_params_are_typed_and_default_to_everything() {
+        let asked: SearchParams = parse_params(None).unwrap();
+        assert_eq!(
+            (asked.query.as_str(), asked.kinds, asked.limit),
+            ("", None, None)
+        );
+        let asked: SearchParams = parse_params(Some(
+            json!({ "query": "player", "kinds": ["file"], "limit": 5 }),
+        ))
+        .unwrap();
+        assert_eq!(asked.query, "player");
+        assert_eq!(asked.kinds, Some(vec!["file".to_string()]));
+        assert_eq!(asked.limit, Some(5));
+        for bad in [
+            json!({ "query": 7 }),
+            json!({ "kinds": "file" }),
+            json!({ "limit": -1 }),
+        ] {
+            let e = parse_params::<SearchParams>(Some(bad.clone())).unwrap_err();
+            assert_eq!(e.code, INVALID_PARAMS, "{bad}");
+            assert_eq!(e.data, Some(json!({ "reason": "bad-params" })), "{bad}");
+        }
     }
 }
