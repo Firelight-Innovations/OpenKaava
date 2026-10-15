@@ -28,7 +28,7 @@ use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde_json::Value;
 use tauri::AppHandle;
 
-/// `refs/resolve {uri}` → [`resolve::Resolved`]: what the agent tab draws for
+/// `refs/resolve` `{uri}` → [`resolve::Resolved`]: what the agent tab draws for
 /// a reference chip or a `show` card. Answered as the person, who is the one
 /// looking.
 pub const RESOLVE_METHOD: &str = "refs/resolve";
@@ -48,8 +48,10 @@ pub fn call(
     params: Option<Value>,
 ) -> Result<Value, RpcError> {
     admit(caller)?;
+    // Spelt out, not [`RESOLVE_METHOD`], so the MCP panel's method catalogue
+    // finds the arm.
     match method {
-        RESOLVE_METHOD => {
+        "refs/resolve" => {
             let r = uri_param(params.as_ref())?;
             let resolved = live::resolve(app, ctx, live::Actor::Human, &r)
                 .map_err(|e| RpcError::new(INVALID_PARAMS, e))?;

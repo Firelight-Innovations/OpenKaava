@@ -57,6 +57,7 @@ const GROUPS: &[(&str, &str)] = &[
     ("tutorial", "Tutorials"),
     ("comments", "Comments (shared by the viewers)"),
     ("context", "Context store (every app)"),
+    ("refs", "References (every app)"),
     #[cfg(feature = "schematify")]
     ("schematify", "Schematify"),
     #[cfg(feature = "design-mode")]
@@ -79,6 +80,7 @@ fn sources() -> Vec<&'static str> {
         include_str!("../godot/rpc.rs"),
         include_str!("../comments.rs"),
         include_str!("../context.rs"),
+        include_str!("../refs/mod.rs"),
     ];
     #[cfg(feature = "schematify")]
     all.push(include_str!("schematify.rs"));
@@ -241,6 +243,7 @@ mod tests {
             "blender-viewer/export-start",
             "comments/create",
             "context/put",
+            "refs/resolve",
             "agent-tab/harnesses",
             "agent-tab/send",
         ] {
@@ -248,6 +251,11 @@ mod tests {
         }
         // A mime type in a `match` is not a method.
         assert!(!found.iter().any(|m| m.starts_with("image/")));
+        let resolve = all().into_iter().find(|m| m.method == "refs/resolve");
+        assert!(
+            resolve.and_then(|m| m.doc).is_some(),
+            "the host's own methods are documented too"
+        );
     }
 
     #[test]
