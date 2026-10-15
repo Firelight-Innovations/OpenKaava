@@ -22,12 +22,11 @@ pub enum Id {
 }
 
 /// An error object from the other side.
-#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RemoteError {
     /// JSON-RPC's code. ACP's `authRequired` is [`AUTH_REQUIRED`].
     pub code: i64,
     /// The other side's message. May carry anything; mask before showing.
-    #[serde(default)]
     pub message: String,
 }
 
@@ -181,6 +180,62 @@ mod tests {
             outcome.unwrap_err().message,
             "Internal error: Model gone is not available"
         );
+    }
+
+    /// The error of a response line carrying `error`.
+    fn error_of(error: &str) -> RemoteError {
+        let line = format!(r#"{{"jsonrpc":"2.0","id":1,"error":{error}}}"#);
+        let Some(Incoming::Response { outcome, .. }) = parse(&line) else {
+            panic!("not a response: {line}");
+        };
+        outcome.unwrap_err()
+    }
+
+    #[test]
+    fn an_error_without_data_keeps_its_own_message() {
+        let error = error_of(r#"{"code":-32602,"message":"Invalid params"}"#);
+        assert_eq!(error.code, -32602);
+        assert_eq!(error.message, "Invalid params");
+    }
+
+    #[test]
+    fn details_that_say_nothing_are_left_out() {
+        for data in [
+            r#""data":{"details":""}"#,
+            r#""data":{"details":42}"#,
+            r#""data":{"details":null}"#,
+            r#""data":{"other":"x"}"#,
+            r#""data":"text""#,
+            r#""data":null"#,
+        ] {
+            let error = error_of(&format!(
+                r#"{{"code":-32603,"message":"Internal error",{data}}}"#
+            ));
+            assert_eq!(error.message, "Internal error", "{data}");
+        }
+    }
+
+    #[test]
+    fn details_stand_in_for_a_missing_message() {
+        assert_eq!(
+            error_of(r#"{"code":-32603,"data":{"details":"Invalid Mode: plan"}}"#).message,
+            "Invalid Mode: plan"
+        );
+        assert_eq!(
+            error_of(r#"{"code":-32603,"message":"","data":{"details":"Invalid Mode: plan"}}"#)
+                .message,
+            "Invalid Mode: plan"
+        );
+    }
+
+    #[test]
+    fn an_error_missing_its_code_or_message_is_still_an_error() {
+        let error = error_of(r#"{}"#);
+        assert_eq!((error.code, error.message.as_str()), (0, ""));
+        let error = error_of(r#"{"message":"odd"}"#);
+        assert_eq!((error.code, error.message.as_str()), (0, "odd"));
+        // Not even an object.
+        assert_eq!(error_of(r#""bad""#).message, "");
     }
 
     #[test]
