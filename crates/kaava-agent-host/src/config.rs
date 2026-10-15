@@ -26,6 +26,13 @@ pub const BYPASS: &str = "bypassPermissions";
 /// until the owner decides otherwise.
 pub const AUTO: &str = "auto";
 
+/// Codex's auto-review mode, its adapter's default: a reviewer model approves
+/// calls in the user's place, so, like [`AUTO`], they never reach the guard.
+pub const CODEX_AUTO_REVIEW: &str = "agent";
+
+/// Codex's full-access mode: no approvals and no sandbox. Codex's [`BYPASS`].
+pub const CODEX_FULL_ACCESS: &str = "agent-full-access";
+
 /// The values the tab never offers. They are dropped from every option's
 /// choices, not only the mode's: the host cannot tell a permission mode set
 /// through another option from an ordinary value. A value the agent reports
@@ -33,7 +40,7 @@ pub const AUTO: &str = "auto";
 /// the one the agent is in. A harness that uses one of them for something
 /// else needs a narrower rule. Approval options that enter one are dropped
 /// too ([`enters_held_back`]).
-pub const NOT_OFFERED: [&str; 2] = [BYPASS, AUTO];
+pub const NOT_OFFERED: [&str; 4] = [BYPASS, AUTO, CODEX_AUTO_REVIEW, CODEX_FULL_ACCESS];
 
 /// What one `configOptions` list says.
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -307,6 +314,24 @@ mod tests {
         for (id, held_back) in ids {
             assert_eq!(enters_held_back(id), held_back, "{id}");
         }
+    }
+
+    #[test]
+    fn codex_offers_only_the_modes_that_ask() {
+        let choices = modes(&json!({
+            "currentModeId": "read-only",
+            "availableModes": [
+                {"id": "read-only", "name": "Read-only"},
+                {"id": "workspace-write", "name": "Workspace access"},
+                {"id": "agent", "name": "Auto review"},
+                {"id": "agent-full-access", "name": "Full access"}
+            ]
+        }))
+        .unwrap();
+        let ids: Vec<_> = allowed(choices).into_iter().map(|c| c.value).collect();
+        assert_eq!(ids, ["read-only", "workspace-write"]);
+        assert!(enters_held_back(CODEX_AUTO_REVIEW));
+        assert!(enters_held_back(CODEX_FULL_ACCESS));
     }
 
     #[test]
