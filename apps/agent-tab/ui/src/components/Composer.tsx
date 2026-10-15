@@ -4,7 +4,7 @@ import "./composer.css";
 
 /**
  * The prompt box: notices, then one rounded card holding the input and, under
- * it, a footer of controls and Send or Stop.
+ * it, a footer of the settings button, the meters, and Send or Stop.
  */
 export function Composer({
   ref,

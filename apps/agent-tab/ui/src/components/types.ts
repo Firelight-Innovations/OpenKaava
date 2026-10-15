@@ -212,7 +212,7 @@ export interface ComposerProps {
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   /** Notices to show above the input. */
   notices: ReactNode;
-  /** The footer's left side: mode, model, effort and harness pickers. */
+  /** The footer's left side: the settings button. */
   controls: ReactNode;
   /** Beside Send or Stop: the context meter and the usage ring. */
   meters: ReactNode;
