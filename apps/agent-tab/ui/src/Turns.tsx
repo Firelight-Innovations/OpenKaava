@@ -15,6 +15,8 @@ import { useSlots } from "./components/registry";
 interface Lookup {
   byId: ReadonlyMap<string, Item>;
   actions: ItemActions;
+  /** The agent is waiting on the user, not working, though the turn is open. */
+  waiting: boolean;
 }
 
 const LookupContext = createContext<Lookup | null>(null);
@@ -32,11 +34,12 @@ function ById({ id }: { id: string | undefined }) {
 /**
  * assistant-ui draws this in an empty agent turn, and after a turn's last
  * tool row, whether or not the turn is still running: it is left to us to
- * check.
+ * check. A turn waiting on an approval is open but not working.
  */
 function Empty({ status }: { status: { type: string } }) {
   const S = useSlots();
-  return status.type === "running" ? <S.Working /> : null;
+  const waiting = useContext(LookupContext)?.waiting ?? false;
+  return status.type === "running" && !waiting ? <S.Working /> : null;
 }
 
 const parts = {

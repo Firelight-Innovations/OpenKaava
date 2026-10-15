@@ -400,6 +400,30 @@ describe("the agent tab", () => {
     expect(screen.getByText("Working…")).toBeTruthy();
   });
 
+  it("does not say it is working while the agent waits on an approval", async () => {
+    backend({
+      status: { ...STATUS, state: "needsInput" },
+      seq: 2,
+      items: [
+        item("u1", { kind: "userMessage", text: "edit the file" }),
+        item("p1", {
+          kind: "approval",
+          title: "Edit a.ts",
+          toolCallId: "c1",
+          detail: null,
+          detailTruncated: false,
+          paths: [],
+          diffs: [],
+          options: [{ optionId: "ok", kind: "allow_once", name: "Allow" }],
+          answer: null,
+        }),
+      ],
+    });
+    render(<App />);
+    await screen.findByRole("button", { name: "Allow" });
+    expect(screen.queryByText("Working…")).toBeNull();
+  });
+
   it("puts Copy on every finished agent turn, where the keyboard can reach it", async () => {
     backend({
       status: STATUS,

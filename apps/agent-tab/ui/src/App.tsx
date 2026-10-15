@@ -139,6 +139,7 @@ export default function App() {
   // keep their identity, and `convertMessage` is one function for the tab's
   // life, so assistant-ui converts again only the turn the agent is writing.
   // The lookup changes only with the items, so typing a prompt redraws none.
+  // A new envelope still redraws every item: only the conversion is spared.
   const [turns, setTurns] = useState<{ items: TabState["items"]; turns: Turn[] }>({
     items: [],
     turns: [],
@@ -146,9 +147,10 @@ export default function App() {
   if (turns.items !== state.items) {
     setTurns({ items: state.items, turns: toTurns(state.items, turns.turns) });
   }
+  const waiting = state.status?.state === "needsInput";
   const lookup = useMemo(
-    () => ({ byId: new Map(state.items.map((item) => [item.id, item])), actions }),
-    [state.items, actions],
+    () => ({ byId: new Map(state.items.map((item) => [item.id, item])), actions, waiting }),
+    [state.items, actions, waiting],
   );
   const runtime = useExternalStoreRuntime({
     messages: turns.turns,

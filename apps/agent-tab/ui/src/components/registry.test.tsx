@@ -191,6 +191,24 @@ describe("the slot registry", () => {
     expect(container.querySelector(".at-hint")).toBeNull();
   });
 
+  it("draws Working through its slot while a turn runs", async () => {
+    backend(() =>
+      Promise.resolve({
+        seq: 1,
+        status: { ...EVERYTHING.status!, state: "working", hint: null, exitCode: null },
+        items: [item("u", { kind: "userMessage", text: "hi" })],
+      }),
+    );
+    const { container } = render(
+      <SlotsProvider slots={stubs(["Working"])}>
+        <App />
+      </SlotsProvider>,
+    );
+    await screen.findByText("hi");
+    expect(slotsShown(container)).toContain("Working");
+    expect(container.querySelector(".at-working")).toBeNull();
+  });
+
   it.each([
     ["StatusBadge", ".at-status"],
     ["Diff", ".at-diff"],

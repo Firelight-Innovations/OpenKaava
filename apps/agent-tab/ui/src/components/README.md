@@ -66,6 +66,7 @@ Our own state stays the source of truth, and assistant-ui draws the thread aroun
 - The default `Transcript`, `UserTurn`, `AssistantTurn` and `TurnActions` use assistant-ui's
   primitives for scrolling, turns and the copy action. A replacement may use them too. Everything is
   rendered inside `AssistantRuntimeProvider`. A replacement that draws plain DOM also works.
-- `Working` shows in an agent turn that has nothing in it yet.
+- `Working` shows in a running agent turn that is empty or ends on something other than text.
+  It does not show while the agent waits on an approval.
 
 assistant-ui ships no CSS, so the look is ours: the tokens above and each component's `.css`.
