@@ -730,7 +730,7 @@ export default function WindowRoot({
     function onKeyDown(e: KeyboardEvent) {
       if (isTextEntry(e.target)) return;
 
-      if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.key >= "1" && e.key <= "6") {
+      if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.key >= "1" && e.key <= "7") {
         const page = pages.find((p) => p.key === Number(e.key));
         if (page && !page.disabled) {
           e.preventDefault();
@@ -1684,11 +1684,15 @@ export default function WindowRoot({
       hideTakeover();
       void (async () => {
         if (clusterId === activeClusterId) {
-          await openInstance(
-            label,
-            AGENT_TAB_APP,
-            activePaneId ?? undefined,
-            splitDirOnOpen(activePaneId),
+          // Through `setOpenedInstance`, like every other opener, so the
+          // pane holding the new tab becomes the active one.
+          setOpenedInstance(
+            await openInstance(
+              label,
+              AGENT_TAB_APP,
+              activePaneId ?? undefined,
+              splitDirOnOpen(activePaneId),
+            ),
           );
           return;
         }
