@@ -31,7 +31,7 @@ use crate::event::{
     Attachment, Envelope, Event, Hint, Item, ItemKind, SessionState, SessionStatus,
 };
 use crate::guard::{outside, request_paths, Worktree};
-use crate::harness::{Harness, LaunchSpec};
+use crate::harness::LaunchSpec;
 use crate::host::HostError;
 use crate::job::{self, Job};
 use crate::mask::mask;
@@ -343,11 +343,6 @@ impl Session {
     /// Where it runs.
     pub(crate) fn worktree(&self) -> &Worktree {
         &self.shared.worktree
-    }
-
-    /// Which harness it runs.
-    pub(crate) fn harness(&self) -> Harness {
-        self.shared.lock().status.harness
     }
 
     /// Kill the process and everything it started. Returns at once; the
