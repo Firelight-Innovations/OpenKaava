@@ -31,7 +31,7 @@ use serde_json::{json, Value};
 
 use crate::config::{self, Settings};
 use crate::event::{
-    Attachment, Envelope, Event, Hint, Item, ItemKind, SessionState, SessionStatus,
+    Attachment, Envelope, Event, Hint, Item, ItemKind, SessionState, SessionStatus, SettingTrouble,
 };
 use crate::guard::{outside, request_paths, Worktree};
 use crate::harness::LaunchSpec;
@@ -235,6 +235,7 @@ impl Session {
             modes: Vec::new(),
             config: Vec::new(),
             answered: changes.load(Ordering::SeqCst),
+            setting_trouble: None,
             adapter_version: None,
             exit_code: None,
             hint: None,
@@ -908,11 +909,11 @@ impl Shared {
 
     /// Send each change and wait for its reply before the next, so two quick
     /// changes land in the order they were made. The reader takes the reply's
-    /// settings in; this draws a refusal as an error and ends in a status
-    /// whose `answered` counts the change, so the tab knows its choice was
-    /// answered. A change with no reply within the spec's `setting_timeout`
-    /// is drawn as not answered yet, and still waited for, so a late reply is
-    /// taken in and the next change never overtakes it.
+    /// settings in; this ends in a status whose `answered` counts the change,
+    /// so the tab knows its choice was answered, and whose `setting_trouble`
+    /// holds a refusal. A change with no reply within the spec's
+    /// `setting_timeout` is reported as unanswered, and still waited for, so
+    /// a late reply is taken in and the next change never overtakes it.
     fn change_settings(self: Arc<Self>, changes: &Receiver<Setting>) {
         for setting in changes {
             let Setting::Change(change) = setting else {
@@ -930,28 +931,32 @@ impl Shared {
             let deadline = Instant::now() + self.setting_timeout;
             let mut reply = self.await_reply(id, Some(deadline), |_| {});
             if reply.is_none() {
-                if !self.report(Err(not_answered_yet()), None) {
+                if !self.report(Some(SettingTrouble::Unanswered { ticket }), None) {
                     return;
                 }
                 reply = self.await_reply(id, None, |_| {});
             }
-            if !self.report(reply.unwrap_or_else(|| Err(closed())), Some(ticket)) {
+            let trouble = match reply.unwrap_or_else(|| Err(closed())) {
+                Ok(_) => None,
+                Err(e) => Some(SettingTrouble::Refused {
+                    ticket,
+                    message: mask(&e.message),
+                }),
+            };
+            if !self.report(trouble, Some(ticket)) {
                 return;
             }
         }
     }
 
-    /// Draw a refusal, if it is one, then the status, with the number of the
-    /// change it answers, if it does. False once the session has closed.
-    fn report(&self, reply: Result<Value, RemoteError>, answered: Option<u64>) -> bool {
+    /// Emit the status with `trouble`, and with the number of the change it
+    /// answers, if it does. False once the session has closed.
+    fn report(&self, trouble: Option<SettingTrouble>, answered: Option<u64>) -> bool {
         let mut inner = self.lock();
         if inner.closed {
             return false;
         }
-        if let Err(e) = reply {
-            let events = inner.normalizer.error(&e.message, None);
-            self.emit_all(&mut inner, events);
-        }
+        inner.status.setting_trouble = trouble;
         if let Some(ticket) = answered {
             inner.status.answered = ticket;
         }
@@ -1154,6 +1159,8 @@ impl Shared {
         let (dropped, noise, ready) = {
             let mut inner = self.lock();
             inner.closed = true;
+            // Nothing is left to answer a change, or to change.
+            inner.status.setting_trouble = None;
             for slot in inner.replies.values_mut() {
                 if slot.is_none() {
                     *slot = Some(Err(closed()));
@@ -1258,14 +1265,6 @@ fn timed_out(method: &str) -> RemoteError {
     RemoteError {
         code: TIMED_OUT,
         message: format!("{method} got no reply"),
-    }
-}
-
-fn not_answered_yet() -> RemoteError {
-    RemoteError {
-        code: TIMED_OUT,
-        message: "The agent has not answered that setting change yet. Later changes wait for it."
-            .to_string(),
     }
 }
 
@@ -1378,6 +1377,7 @@ mod tests {
                 modes: Vec::new(),
                 config: Vec::new(),
                 answered: 0,
+                setting_trouble: None,
                 adapter_version: None,
                 exit_code: None,
                 hint: None,

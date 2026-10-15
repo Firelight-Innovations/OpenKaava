@@ -100,6 +100,8 @@ export const strings = {
   modeSettings: {
     modeHint: "What the agent may do without asking you first (Shift+Tab switches)",
     later: "The mode appears once the session starts.",
+    unanswered: "The agent has not answered that change yet. Later changes wait for it.",
+    refused: (reason: string) => `The agent refused that change: ${reason}`,
   },
   you: "You",
   thinking: "Thinking",

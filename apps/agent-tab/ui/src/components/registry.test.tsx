@@ -44,6 +44,7 @@ const EVERYTHING: Attachment = {
     modes: [{ value: "default", name: "Manual", description: null }],
     config: [],
     answered: 0,
+    settingTrouble: null,
   },
   items: [
     item("u", { kind: "userMessage", text: "hi" }),

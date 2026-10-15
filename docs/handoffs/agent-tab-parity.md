@@ -47,8 +47,10 @@ cells of the rows it closes in section 2.
   the agent has answered, so the tab holds a choice until its own answer
   rather than until the next status of any kind. The tab draws the mode as
   a section of the composer's settings menu and cycles it on Shift+Tab. A
-  reply slower than `setting_timeout` (30s) is drawn as not answered yet,
-  and still taken in when it comes.
+  reply slower than `setting_timeout` (30s) is reported as not answered
+  yet, and still taken in when it comes. That wait, and a refusal, go in
+  `SessionStatus.settingTrouble` and are said above the prompt box, not
+  drawn as transcript errors, which would offer to retry the last prompt.
 
 Open questions:
 

@@ -16,7 +16,7 @@ use kaava_agent_host::harness::{Policy, CLAUDE};
 use kaava_agent_host::mask::looks_secret;
 use kaava_agent_host::{
     AgentHost, Envelope, Event, Harness, Hint, HostError, Item, ItemKind, LaunchSpec, SessionState,
-    Worktree,
+    SettingTrouble, Worktree,
 };
 use serde_json::{json, Value};
 
@@ -1343,7 +1343,7 @@ fn settings_wait_for_the_session() {
 }
 
 #[test]
-fn a_slow_setting_is_drawn_as_unanswered_and_still_taken_in() {
+fn a_slow_setting_is_reported_as_unanswered_and_still_taken_in() {
     let rig = rig();
     let mut spec = mock(&["--slow-setting"]);
     spec.setting_timeout = Duration::from_millis(100);
@@ -1352,26 +1352,34 @@ fn a_slow_setting_is_drawn_as_unanswered_and_still_taken_in() {
         .unwrap();
     rig.turns_done(1);
     let before = rig.events().len();
-    rig.host.set_mode(TAB, "plan").unwrap();
+    let first = rig.host.set_mode(TAB, "plan").unwrap();
     let last = rig.host.set_mode(TAB, "acceptEdits").unwrap();
     rig.status_where("both answered", |s| s.answered >= last);
-    let unanswered = rig.events()[before..]
+    let statuses = rig.statuses_since(before);
+    let waited = statuses
+        .iter()
+        .position(|s| s.setting_trouble == Some(SettingTrouble::Unanswered { ticket: first }))
+        .expect("the wait is reported");
+    let took = statuses
+        .iter()
+        .position(|s| s.answered == first)
+        .expect("the late reply is taken");
+    assert!(waited < took, "the wait is reported before the reply");
+    assert_eq!(statuses[took].mode.as_deref(), Some("plan"));
+    let done = statuses.last().unwrap();
+    assert_eq!(done.answered, last);
+    assert_eq!(done.mode.as_deref(), Some("acceptEdits"));
+    assert_eq!(done.setting_trouble, None, "an answer clears the wait");
+    // The wait is not a turn's failure: nothing in the transcript offers to
+    // retry it.
+    let drawn = rig.events()[before..]
         .iter()
         .filter(|e| {
             matches!(&e.event, Event::ItemCompleted { item }
-                if matches!(&item.kind, ItemKind::Error { message, .. }
-                    if message.contains("not answered")))
+                if matches!(item.kind, ItemKind::Error { .. }))
         })
         .count();
-    assert!(unanswered >= 1, "the wait is drawn");
-    let answered: Vec<(u64, String)> = rig
-        .statuses_since(before)
-        .iter()
-        .filter(|s| s.answered > 0)
-        .map(|s| (s.answered, s.mode.clone().unwrap_or_default()))
-        .collect();
-    assert_eq!(answered.first(), Some(&(1, "plan".to_string())));
-    assert_eq!(answered.last(), Some(&(2, "acceptEdits".to_string())));
+    assert_eq!(drawn, 0, "the wait is not drawn as an error");
 }
 
 #[test]

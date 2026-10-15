@@ -28,6 +28,7 @@ const status = (state: SessionStatus["state"]): SessionStatus => ({
   modes: [],
   config: [],
   answered: 0,
+  settingTrouble: null,
   adapterVersion: "0.90.0",
   exitCode: null,
   hint: null,

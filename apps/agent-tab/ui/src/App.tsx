@@ -22,7 +22,14 @@ import {
   type AppendMessage,
 } from "@assistant-ui/react";
 import { reportPainted } from "@openkaava/bridge";
-import type { Attachment, Envelope, HarnessInfo, Hint, SessionStatus } from "./protocol.generated";
+import type {
+  Attachment,
+  Envelope,
+  HarnessInfo,
+  Hint,
+  SessionStatus,
+  SettingTrouble,
+} from "./protocol.generated";
 import { harnessChoices } from "./harnesses";
 import { latestUsage } from "./meters";
 import {
@@ -215,6 +222,8 @@ export default function App() {
   });
 
   const hint = status?.hint ?? null;
+  // A session that has ended has nothing left to answer.
+  const trouble = settable(status) ? status.settingTrouble : null;
   const pendingPrompt = typeof status?.pendingPrompt === "string" ? status.pendingPrompt : null;
   const exited = status !== null && (status.state === "stopped" || status.state === "failed");
 
@@ -271,6 +280,7 @@ export default function App() {
                       action={{ label: strings.retry, onClick: () => void attach() }}
                     />
                   )}
+                  {trouble && <S.Notice text={troubleText(trouble)} hint={null} action={null} />}
                   {notice && (
                     <S.Notice
                       text={notice.text}
@@ -346,6 +356,17 @@ function modeSection(
       onChange: onMode,
     },
   ];
+}
+
+/**
+ * A refused change, or one the agent is slow to answer, in words. It is said
+ * above the prompt box rather than in the transcript, where an error would
+ * offer to retry the last prompt.
+ */
+function troubleText(trouble: SettingTrouble): string {
+  return trouble.kind === "refused"
+    ? strings.modeSettings.refused(trouble.message)
+    : strings.modeSettings.unanswered;
 }
 
 /** Module-level: a new function each render would make assistant-ui drop its

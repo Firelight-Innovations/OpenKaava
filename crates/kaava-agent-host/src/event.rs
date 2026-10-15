@@ -338,6 +338,10 @@ pub struct SessionStatus {
     /// knows which status answers the choice it is showing. A new session
     /// starts past every change made before it.
     pub answered: u64,
+    /// What went wrong with the last setting change, until the next one is
+    /// answered. Drawn beside the setting, never in the transcript, so
+    /// nothing offers to retry it as a prompt.
+    pub setting_trouble: Option<SettingTrouble>,
     /// The adapter's own version, as it reported it at `initialize`.
     pub adapter_version: Option<String>,
     /// The process's exit code, once it has exited. Never its output: what an
@@ -349,6 +353,30 @@ pub struct SessionStatus {
     /// still starting. The transcript draws a prompt only when its turn
     /// begins, so this is how the tab shows it meanwhile, and Stop withdraws it.
     pub pending_prompt: Option<String>,
+}
+
+/// A setting change the agent has not settled.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum SettingTrouble {
+    /// No reply within the harness's `setting_timeout`. The host still waits
+    /// for one, and later changes wait behind it.
+    Unanswered {
+        /// The change's number.
+        ticket: u64,
+    },
+    /// The agent refused the change.
+    Refused {
+        /// The change's number.
+        ticket: u64,
+        /// The agent's reason, masked.
+        message: String,
+    },
 }
 
 /// One session setting the agent offers: ACP's select config option. Every
@@ -407,6 +435,7 @@ mod tests {
             SessionState::decl(&cfg),
             Hint::decl(&cfg),
             SessionStatus::decl(&cfg),
+            SettingTrouble::decl(&cfg),
             ConfigOption::decl(&cfg),
             ConfigChoice::decl(&cfg),
             Attachment::decl(&cfg),

@@ -46,6 +46,7 @@ const STATUS: SessionStatus = {
   modes: [],
   config: [],
   answered: 0,
+  settingTrouble: null,
   adapterVersion: "0.90.0",
   exitCode: null,
   hint: null,
@@ -633,6 +634,46 @@ describe("the agent tab", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("The agent does not offer that choice.");
     expect(await shownMode()).toBe("Manual");
+  });
+
+  it("says a slow or refused change above the prompt, with nothing to retry", async () => {
+    backend({
+      status: SETTINGS,
+      seq: 1,
+      items: [item("u1", { kind: "userMessage", text: "list the files" })],
+    });
+    render(<App />);
+    const status = (seq: number, status: SessionStatus) =>
+      emit({ instanceId: "i", seq, event: { type: "status", status } });
+    const menu = await modeMenu();
+    await act(async () => {
+      fireEvent.click(menu.getByRole("menuitemradio", { name: "Plan" }));
+    });
+
+    status(2, { ...SETTINGS, settingTrouble: { kind: "unanswered", ticket: 1 } });
+    await screen.findByText(
+      "The agent has not answered that change yet. Later changes wait for it.",
+    );
+    expect(await shownMode()).toBe("Plan");
+
+    status(3, {
+      ...SETTINGS,
+      answered: 1,
+      settingTrouble: { kind: "refused", ticket: 1, message: "not in this session" },
+    });
+    await screen.findByText("The agent refused that change: not in this session");
+    expect(await shownMode()).toBe("Manual");
+    // A setting is not a prompt: a Retry here would resend "list the files".
+    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+
+    // Once the session ends there is nothing left to answer it.
+    status(4, {
+      ...SETTINGS,
+      state: "stopped",
+      answered: 1,
+      settingTrouble: { kind: "refused", ticket: 1, message: "not in this session" },
+    });
+    expect(screen.queryByText(/The agent refused that change/)).toBeNull();
   });
 
   it("does not promise a mode to a session that failed before reporting one", async () => {

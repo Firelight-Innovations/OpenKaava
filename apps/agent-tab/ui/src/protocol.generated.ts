@@ -294,6 +294,12 @@ config: Array<ConfigOption>,
  */
 answered: number, 
 /**
+ * What went wrong with the last setting change, until the next one is
+ * answered. Drawn beside the setting, never in the transcript, so
+ * nothing offers to retry it as a prompt.
+ */
+settingTrouble: SettingTrouble | null, 
+/**
  * The adapter's own version, as it reported it at `initialize`.
  */
 adapterVersion: string | null, 
@@ -312,6 +318,20 @@ hint: Hint | null,
  * begins, so this is how the tab shows it meanwhile, and Stop withdraws it.
  */
 pendingPrompt: string | null, };
+
+export type SettingTrouble = { "kind": "unanswered", 
+/**
+ * The change's number.
+ */
+ticket: number, } | { "kind": "refused", 
+/**
+ * The change's number.
+ */
+ticket: number, 
+/**
+ * The agent's reason, masked.
+ */
+message: string, };
 
 export type ConfigOption = { 
 /**
