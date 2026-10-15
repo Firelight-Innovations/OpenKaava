@@ -9,7 +9,7 @@
 //! once per launch in each worktree, since a project's own settings can
 //! narrow the list or change the default.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::{BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -133,7 +133,14 @@ fn answer(lines: &Receiver<Vec<u8>>, id: usize, deadline: Instant) -> Option<Val
 /// What each harness's agent answered in each worktree, asked once per launch.
 #[derive(Default, Clone)]
 pub struct Catalogue {
-    known: Arc<Mutex<HashMap<Key, Known>>>,
+    book: Arc<Mutex<Book>>,
+}
+
+#[derive(Default)]
+struct Book {
+    known: HashMap<Key, Known>,
+    /// The asks [`Catalogue::retry`] has forgotten once already.
+    retried: HashSet<Key>,
 }
 
 /// A harness, and the root of the worktree its agent was asked in.
@@ -146,13 +153,13 @@ enum Known {
 }
 
 impl Catalogue {
-    fn known(&self) -> MutexGuard<'_, HashMap<Key, Known>> {
-        self.known.lock().unwrap_or_else(|e| e.into_inner())
+    fn book(&self) -> MutexGuard<'_, Book> {
+        self.book.lock().unwrap_or_else(|e| e.into_inner())
     }
 
     /// What `harness`'s agent offers in `worktree`, once it has said.
     pub fn models(&self, harness: Harness, worktree: &Path) -> Option<Models> {
-        match self.known().get(&(harness, worktree.to_path_buf())) {
+        match self.book().known.get(&(harness, worktree.to_path_buf())) {
             Some(Known::Answered(models)) => models.clone(),
             _ => None,
         }
@@ -170,7 +177,7 @@ impl Catalogue {
     ) -> bool {
         let key = (harness, worktree.to_path_buf());
         {
-            let mut known = self.known();
+            let known = &mut self.book().known;
             if known.contains_key(&key) {
                 return false;
             }
@@ -183,25 +190,31 @@ impl Catalogue {
             .spawn(move || {
                 let models = question();
                 let answered = models.is_some();
-                catalogue.known().insert(asked, Known::Answered(models));
+                catalogue
+                    .book()
+                    .known
+                    .insert(asked, Known::Answered(models));
                 if answered {
                     then();
                 }
             });
         if started.is_err() {
-            self.known().remove(&key);
+            self.book().known.remove(&key);
         }
         started.is_ok()
     }
 
     /// Forget an ask that `harness`'s agent did not answer in `worktree`, so
     /// the next [`Catalogue::ask`] there asks again. For once a session of it
-    /// has started, which a signed-out Codex's never does.
+    /// has started, which a signed-out Codex's never does. Only the first
+    /// retry forgets: an agent that a running session shows is signed in, and
+    /// still does not answer, would otherwise be started again on every call.
     pub fn retry(&self, harness: Harness, worktree: &Path) {
         let key = (harness, worktree.to_path_buf());
-        let mut known = self.known();
-        if matches!(known.get(&key), Some(Known::Answered(None))) {
-            known.remove(&key);
+        let book = &mut *self.book();
+        let unanswered = matches!(book.known.get(&key), Some(Known::Answered(None)));
+        if unanswered && book.retried.insert(key.clone()) {
+            book.known.remove(&key);
         }
     }
 }
@@ -249,7 +262,7 @@ mod tests {
         let key = (harness, PathBuf::from(HERE));
         let deadline = Instant::now() + Duration::from_secs(10);
         while Instant::now() < deadline {
-            if matches!(catalogue.known().get(&key), Some(Known::Answered(_))) {
+            if matches!(catalogue.book().known.get(&key), Some(Known::Answered(_))) {
                 return true;
             }
             thread::sleep(Duration::from_millis(10));
@@ -308,6 +321,19 @@ mod tests {
         assert!(catalogue.ask(Harness::Codex, here(), some_models, || {}));
         assert!(answered(&catalogue, Harness::Codex));
         assert_eq!(catalogue.models(Harness::Codex, here()), some_models());
+    }
+
+    #[test]
+    fn an_ask_unanswered_twice_is_never_asked_again() {
+        let catalogue = Catalogue::default();
+        assert!(catalogue.ask(Harness::Codex, here(), || None, || {}));
+        assert!(answered(&catalogue, Harness::Codex));
+        catalogue.retry(Harness::Codex, here());
+        assert!(catalogue.ask(Harness::Codex, here(), || None, || {}));
+        assert!(answered(&catalogue, Harness::Codex));
+        catalogue.retry(Harness::Codex, here());
+        assert!(!catalogue.ask(Harness::Codex, here(), some_models, || {}));
+        assert_eq!(catalogue.models(Harness::Codex, here()), None);
     }
 
     #[test]

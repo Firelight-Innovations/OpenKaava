@@ -408,7 +408,7 @@ fn harnesses(app: &AppHandle, context: &CallContext, tab: Option<&str>) -> Value
     };
     let here = worktree(app, context).ok();
     // An agent that has reported its model is signed in, so its harness is
-    // asked again if its last ask here went unanswered.
+    // asked once more if its ask here went unanswered.
     if let (Some(harness), Some(_), Some(here)) = (running, &model, &here) {
         sessions.models.retry(harness, &here.path());
     }
