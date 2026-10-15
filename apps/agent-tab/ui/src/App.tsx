@@ -13,9 +13,8 @@ import type { Attachment, Envelope, Hint } from "./protocol.generated";
 import { attached, busy, initialState, promptBefore, received, type TabState } from "./model";
 import * as rpc from "./rpc";
 import { ItemView } from "./Items";
+import { useSlots } from "./components/registry";
 import { strings } from "./strings";
-import "./theme/vscode-map.css";
-import "./agent-tab.css";
 
 type Action =
   { type: "attached"; attachment: Attachment } | { type: "envelope"; envelope: Envelope };
@@ -42,6 +41,7 @@ function noticeOf(err: unknown, fallback: string): Notice {
 }
 
 export default function App() {
+  const S = useSlots();
   const [state, dispatch] = useReducer(reduce, initialState);
   const [draft, setDraft] = useState("");
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -138,164 +138,77 @@ export default function App() {
 
   const status = state.status;
   const hint = status?.hint ?? null;
-  const hasPending = typeof status?.pendingPrompt === "string";
+  const pending = typeof status?.pendingPrompt === "string" ? status.pendingPrompt : null;
   const exited = status !== null && (status.state === "stopped" || status.state === "failed");
 
   return (
-    <div className="at">
-      <header className="at-header">
-        <span className="at-header__title">{strings.title}</span>
-        <span className="at-chip">{strings.harness.claude}</span>
-        {status && (
-          <span className="at-chip at-mono" title={status.cwd}>
-            {strings.environment(baseName(status.cwd))}
-          </span>
-        )}
-        <span className={`at-status at-status--${status?.state ?? "idle"}`} role="status">
-          <span className="at-status__dot" aria-hidden="true" />
-          {status ? strings.state[status.state] : strings.idle}
-        </span>
-        <span className="at-header__spacer" />
-        <button
-          type="button"
-          className="k-btn k-btn--ghost k-btn--sm"
-          title={strings.newSessionHint}
-          onClick={() => {
+    <S.Layout
+      header={
+        <S.Header
+          cwd={status?.cwd ?? null}
+          harness={strings.harness.claude}
+          model={null}
+          state={status?.state ?? null}
+          onNewSession={() => {
             setNotice(null);
             void rpc.reset().catch(() => {});
           }}
-        >
-          {strings.newSession}
-        </button>
-      </header>
-
-      <div className="at-transcript" ref={transcript} onScroll={onScroll}>
-        {state.items.length === 0 && !hasPending ? (
-          <Empty
-            blocked={blocked}
-            setupHint={setupHint}
-            onExample={(text) => {
-              setDraft(text);
-              prompt.current?.focus();
-            }}
-          />
-        ) : (
-          state.items.map((item) => <ItemView key={item.id} item={item} actions={actions} />)
-        )}
-        {hasPending && status && (
-          <div className="at-item at-user at-user--pending">
-            <div className="at-item__label">{strings.you}</div>
-            <div className="at-user__text">{status.pendingPrompt}</div>
-            <div className="at-note">{strings.starting}</div>
-          </div>
-        )}
-        {hint && <div className="at-hint at-item">{strings.hint[hint]}</div>}
-        {exited && state.items.length > 0 && (
-          <div className="at-note at-item">{strings.exited(status.exitCode)}</div>
-        )}
-      </div>
-
-      <footer className="at-prompt">
-        {attachFailed && (
-          <div className="at-notice" role="alert">
-            {strings.failed.attach}{" "}
-            <button
-              type="button"
-              className="k-btn k-btn--secondary k-btn--sm"
-              onClick={() => void attach()}
-            >
-              {strings.retry}
-            </button>
-          </div>
-        )}
-        {notice && (
-          <div className="at-notice" role="alert">
-            {notice.text}
-            {notice.hint && <div className="at-hint">{strings.hint[notice.hint]}</div>}
-          </div>
-        )}
-        <textarea
-          ref={prompt}
-          className="at-prompt__input"
-          aria-label={strings.promptLabel}
-          placeholder={working ? strings.promptBusy : strings.promptPlaceholder}
-          value={draft}
-          rows={3}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={onKeyDown}
         />
-        <div className="at-prompt__footer">
-          <span className="at-prompt__mode">{status?.mode ?? ""}</span>
-          <span className="at-header__spacer" />
-          {working ? (
-            <button
-              type="button"
-              className="k-btn k-btn--secondary k-btn--sm"
-              title={strings.stopTurnHint}
-              onClick={stopTurn}
-            >
-              {strings.stopTurn}
-            </button>
+      }
+      transcript={
+        <S.Transcript ref={transcript} onScroll={onScroll}>
+          {state.items.length === 0 && pending === null ? (
+            <S.EmptyState
+              blocked={blocked}
+              setupHint={setupHint && strings.hint[setupHint]}
+              onExample={(text) => {
+                setDraft(text);
+                prompt.current?.focus();
+              }}
+            />
           ) : (
-            <button
-              type="button"
-              className="k-btn k-btn--primary k-btn--sm"
-              disabled={draft.trim() === ""}
-              onClick={() => submit(draft)}
-            >
-              {strings.send}
-            </button>
+            state.items.map((item) => <ItemView key={item.id} item={item} actions={actions} />)
           )}
-        </div>
-      </footer>
-    </div>
+          {pending !== null && <S.UserMessage text={pending} pending />}
+          {hint && <S.Hint text={strings.hint[hint]} />}
+          {exited && state.items.length > 0 && <S.Note text={strings.exited(status.exitCode)} />}
+        </S.Transcript>
+      }
+      composer={
+        <S.Composer
+          ref={prompt}
+          value={draft}
+          placeholder={working ? strings.promptBusy : strings.promptPlaceholder}
+          onChange={setDraft}
+          onKeyDown={onKeyDown}
+          notices={
+            <>
+              {attachFailed && (
+                <S.Notice
+                  text={strings.failed.attach}
+                  hint={null}
+                  action={{ label: strings.retry, onClick: () => void attach() }}
+                />
+              )}
+              {notice && (
+                <S.Notice
+                  text={notice.text}
+                  hint={notice.hint && strings.hint[notice.hint]}
+                  action={null}
+                />
+              )}
+            </>
+          }
+          controls={<S.ModePicker label={strings.mode} value={status?.mode ?? null} choices={[]} />}
+          action={
+            working ? (
+              <S.StopButton onClick={stopTurn} />
+            ) : (
+              <S.SendButton disabled={draft.trim() === ""} onClick={() => submit(draft)} />
+            )
+          }
+        />
+      }
+    />
   );
-}
-
-function Empty({
-  blocked,
-  setupHint,
-  onExample,
-}: {
-  blocked: string | null;
-  setupHint: Hint | null;
-  onExample: (text: string) => void;
-}) {
-  return (
-    <div className="at-empty">
-      <h2 className="at-empty__heading">{strings.empty.heading}</h2>
-      <p>{strings.empty.body}</p>
-      {blocked && <p className="at-hint">{strings.refusal[blocked] ?? blocked}</p>}
-      {setupHint && <p className="at-hint">{strings.hint[setupHint]}</p>}
-      <ul className="at-empty__examples">
-        {strings.empty.examples.map((text) => (
-          <li key={text}>
-            <button
-              type="button"
-              className="k-btn k-btn--ghost k-btn--sm"
-              onClick={() => onExample(text)}
-            >
-              {text}
-            </button>
-          </li>
-        ))}
-      </ul>
-      <h3 className="at-empty__keys">{strings.empty.keysHeading}</h3>
-      <dl className="at-keys">
-        {strings.empty.keys.map(([key, action]) => (
-          <div key={key}>
-            <dt>
-              <kbd>{key}</kbd>
-            </dt>
-            <dd>{action}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  );
-}
-
-function baseName(path: string): string {
-  const parts = path.split(/[\\/]/).filter(Boolean);
-  return parts[parts.length - 1] ?? path;
 }

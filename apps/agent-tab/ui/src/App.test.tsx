@@ -34,6 +34,7 @@ vi.mock("@openkaava/bridge", () => ({
 }));
 
 import App from "./App";
+import { strings } from "./strings";
 import type { Attachment, Envelope, Item } from "./protocol.generated";
 
 const STATUS = {
@@ -146,6 +147,30 @@ describe("the agent tab", () => {
     expect(alert.textContent).toContain("Claude is not ready to run.");
     expect(alert.textContent).toContain("claude-agent-acp@0.90.0");
     expect(prompt()).toHaveProperty("value", "go");
+  });
+
+  it("words the harness's setup hint in the empty state", async () => {
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        "agent-tab/harnesses": () =>
+          Promise.resolve({ harnesses: [{ harness: "claude", hint: "signedOut" }], blocked: null }),
+      },
+    );
+    render(<App />);
+    expect(await screen.findByText(strings.hint.signedOut)).toBeTruthy();
+  });
+
+  it("words an error item's hint inside the error", async () => {
+    backend({
+      status: STATUS,
+      seq: 2,
+      items: [item("e1", { kind: "error", message: "boom", hint: "harnessMissing" })],
+    });
+    render(<App />);
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("boom");
+    expect(alert.textContent).toContain(strings.hint.harnessMissing);
   });
 
   it("says a main checkout is why, when the shell refuses the write before the tab's own code", async () => {

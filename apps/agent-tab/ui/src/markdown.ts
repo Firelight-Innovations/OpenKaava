@@ -5,7 +5,8 @@
  * an agent's text is not a README, so raw HTML is off at the parser as well as
  * removed by DOMPurify afterwards. An image is drawn as its alt text, so an
  * agent's reply never makes the tab fetch a URL. Each fenced block gets a copy
- * button, which `Markdown` in `Items.tsx` answers by event delegation.
+ * button, which `AssistantItem` in `Items.tsx` answers by event delegation (the `AssistantText`
+ * slot only carries the handlers).
  */
 import MarkdownIt from "markdown-it";
 import DOMPurify from "dompurify";

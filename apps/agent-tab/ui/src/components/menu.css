@@ -1,0 +1,95 @@
+/*
+ * Popup menus (slash commands, @ mentions) and the session list. Menus are
+ * the one place with a shadow (handoff §2.1.3).
+ */
+
+.at-menu {
+  margin: 0;
+  padding: var(--k-space-1);
+  list-style: none;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-control);
+  background: var(--k-raised-bg);
+  box-shadow: var(--k-shadow-menu);
+}
+
+.at-menu__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--k-space-2);
+  min-height: var(--k-row);
+  padding: var(--k-space-0-5) var(--k-space-2);
+  border-radius: var(--k-radius-sm);
+  cursor: pointer;
+}
+
+.at-menu__item:hover {
+  background: var(--k-list-hover);
+}
+
+.at-menu__item--active {
+  background: var(--k-list-active);
+}
+
+.at-menu__label {
+  color: var(--k-editor-fg);
+}
+
+.at-menu__detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--k-fg-faint);
+  font-size: var(--k-size-small);
+}
+
+.at-sessions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.at-sessions__row {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-2);
+  width: 100%;
+  min-height: var(--k-row);
+  padding: var(--k-space-1) var(--k-space-2);
+  border: 0;
+  border-radius: var(--k-radius-sm);
+  background: none;
+  color: var(--k-fg-secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.at-sessions__row:hover {
+  background: var(--k-list-hover);
+}
+
+.at-sessions__row--active {
+  background: var(--k-list-active);
+  color: var(--k-editor-fg);
+}
+
+.at-sessions__row:focus-visible {
+  outline: var(--k-focus-ring);
+  outline-offset: 0;
+}
+
+.at-sessions__title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.at-sessions__when {
+  color: var(--k-fg-faint);
+  font-size: var(--k-size-small);
+}

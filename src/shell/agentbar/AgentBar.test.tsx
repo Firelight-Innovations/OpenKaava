@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { isValidElement } from "react";
 import AgentBar, { ClusterAgentBar } from "./AgentBar";
+import { BarSlotsProvider, defaultBarSlots, type BarSlots } from "./slots";
 
 afterEach(cleanup);
 
@@ -44,6 +46,24 @@ describe("AgentBar", () => {
     render(<AgentBar blocked="mainCheckout" hint={null} onSend={vi.fn()} />);
     expect(prompt()).toHaveProperty("disabled", true);
     expect(screen.getByRole("status").textContent).toContain("never run on main");
+  });
+
+  it("draws every piece through its slot map", () => {
+    const stub = (name: string) =>
+      function Stub(props: Record<string, unknown>) {
+        const passed = Object.values(props).filter(isValidElement);
+        return <div data-slot={name}>{passed}</div>;
+      };
+    const names = Object.keys(defaultBarSlots) as (keyof BarSlots)[];
+    const slots = Object.fromEntries(names.map((n) => [n, stub(n)])) as Partial<BarSlots>;
+    const { container } = render(
+      <BarSlotsProvider slots={slots}>
+        <AgentBar blocked="mainCheckout" hint={null} onSend={vi.fn()} />
+      </BarSlotsProvider>,
+    );
+    const all = [...container.querySelectorAll("*")];
+    expect(all.filter((el) => !el.hasAttribute("data-slot")).map((el) => el.outerHTML)).toEqual([]);
+    expect(new Set(all.map((el) => el.getAttribute("data-slot")))).toEqual(new Set(names));
   });
 
   it("shows the install line when the adapter is missing, and never says Claude Code", () => {

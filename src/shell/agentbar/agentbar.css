@@ -1,38 +1,39 @@
 /*
  * The agent bar. Renders into `.frame__agentbar`, which already insets it by
  * the region gutter (src/shell/frame/frame.css). A region card like the tool
- * window above it: surface background, region radius, no shadow.
+ * window above it: surface background, region radius, no shadow. Reads only
+ * the agent tokens (`src/agent-tokens.css`), the same ones the agent tab reads.
  */
 
 .agentbar {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1, 4px);
-  padding: var(--space-1-5, 6px) var(--space-2, 8px);
-  border-radius: var(--radius-region, 10px);
-  background: var(--bg-surface-1);
-  color: var(--txt-primary);
-  font: var(--type-body);
+  gap: var(--k-space-1);
+  padding: var(--k-space-1-5) var(--k-space-2);
+  border-radius: var(--k-radius-bar);
+  background: var(--k-editor-bg);
+  color: var(--k-editor-fg);
+  font: var(--k-text-body);
 }
 
 .agentbar__notice {
-  font: var(--type-caption);
-  color: var(--txt-warning);
+  font: var(--k-text-small);
+  color: var(--k-warning-fg);
 }
 
 .agentbar__row {
   display: flex;
   align-items: center;
-  gap: var(--space-2, 8px);
+  gap: var(--k-space-2);
 }
 
 .agentbar__harness {
   flex: none;
-  padding: 1px var(--space-1-5, 6px);
-  border-radius: var(--radius-sm, 4px);
-  background: var(--bg-layer-2);
-  color: var(--txt-secondary);
-  font: var(--type-caption);
+  padding: 1px var(--k-space-1-5);
+  border-radius: var(--k-radius-sm);
+  background: var(--k-badge-bg);
+  color: var(--k-badge-fg);
+  font: var(--k-text-small);
 }
 
 .agentbar__input {
@@ -40,27 +41,27 @@
   min-width: 0;
   /* AgentBar sets the height from what is typed, up to max-height. */
   height: auto;
-  min-height: var(--control-md, 28px);
+  min-height: var(--k-control-md);
   max-height: 120px;
   resize: none;
-  padding: 4px var(--space-2, 8px);
-  border: 1px solid var(--border-subtle-1);
-  border-radius: var(--radius-md, 6px);
-  background: var(--bg-layer-1);
-  color: var(--txt-primary);
+  padding: var(--k-space-1) var(--k-space-2);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-control);
+  background: var(--k-input-bg);
+  color: var(--k-editor-fg);
   font: inherit;
   line-height: 18px;
 }
 
 .agentbar__input::placeholder {
-  color: var(--txt-placeholder);
+  color: var(--k-fg-faint);
 }
 
 .agentbar__input:focus-visible {
-  outline: var(--focus-ring);
+  outline: var(--k-focus-ring);
   outline-offset: 0;
 }
 
 .agentbar__input:disabled {
-  color: var(--txt-disabled);
+  color: var(--k-fg-disabled);
 }
