@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { strings } from "../strings";
-import type { ModelMenuProps, PickerChoice, PickerProps } from "./types";
+import type { HarnessChoice, ModelMenuProps, PickerChoice, PickerProps } from "./types";
 import "./meters.css";
 
 /** A section's choices, with a value the agent reports but does not offer kept in. */
@@ -17,6 +17,38 @@ function nameOf(section: PickerProps): string | null {
   return choice?.name || section.value;
 }
 
+/** The model a harness runs, in words, or `null` for its default. */
+function modelOf({ model, models }: HarnessChoice): string | null {
+  if (model === null) return null;
+  return models.find((m) => m.value === model)?.name || model;
+}
+
+/**
+ * A harness as a section: its models, checked where it is the harness in use.
+ * With none known it lists its default, and an unavailable one lists why.
+ * The empty value stands for "its own default".
+ */
+function sectionOf(
+  harness: HarnessChoice,
+  current: string | null,
+  onChoose: ModelMenuProps["onChoose"],
+): PickerProps {
+  const choices: PickerChoice[] =
+    harness.unavailable !== null
+      ? [{ value: "", name: harness.unavailable }]
+      : harness.models.length > 0
+        ? harness.models
+        : [{ value: "", name: strings.defaultModel }];
+  const inUse = harness.id === current && harness.unavailable === null;
+  return {
+    label: harness.name,
+    value: inUse ? (harness.models.length > 0 ? harness.model : "") : null,
+    choices,
+    disabled: harness.unavailable !== null,
+    onChange: onChoose && ((value) => onChoose(harness.id, value === "" ? null : value)),
+  };
+}
+
 /** Every item, locked ones too: they stay focusable so a screen reader can read them. */
 function itemsIn(menu: HTMLElement | null): HTMLButtonElement[] {
   return [...(menu?.querySelectorAll<HTMLButtonElement>("[role=menuitemradio]") ?? [])];
@@ -24,10 +56,17 @@ function itemsIn(menu: HTMLElement | null): HTMLButtonElement[] {
 
 /**
  * The composer's one settings button: harness, model, effort and mode, read
- * as "Claude · Opus 5.5 · High". It opens a menu with a section per setting;
- * a section without `onChange` is shown but cannot be changed.
+ * as "Claude · Opus 5.5 · High". It opens a menu with a group per harness,
+ * its models under it, then a section per other setting. A section without
+ * `onChange` is shown but cannot be changed.
  */
-export function ModelMenu({ label, sections }: ModelMenuProps) {
+export function ModelMenu({
+  label,
+  harness = null,
+  harnesses = [],
+  onChoose,
+  sections: settings,
+}: ModelMenuProps) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLSpanElement>(null);
@@ -94,7 +133,12 @@ export function ModelMenu({ label, sections }: ModelMenuProps) {
     }
   };
 
-  const shown = sections.map(nameOf).filter((name) => name !== null);
+  const inUse = harnesses.find((h) => h.id === harness);
+  const shown = [...(inUse ? [inUse.name, modelOf(inUse)] : []), ...settings.map(nameOf)].filter(
+    (name) => name !== null,
+  );
+  // A harness's checked item is the model it runs, so only the one in use has one.
+  const sections = [...harnesses.map((h) => sectionOf(h, harness, onChoose)), ...settings];
   return (
     <span className="at-model" ref={root} onKeyDown={onKeyDown}>
       <button

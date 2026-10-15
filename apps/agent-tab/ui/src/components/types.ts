@@ -193,8 +193,32 @@ export interface RingProps {
 }
 
 /** The composer's settings button. Each section is one setting: harness, model, effort, mode. */
+/** A harness in the settings menu, with the models it offers. */
+export interface HarnessChoice {
+  /** `claude`, `codex`, `kaava`. */
+  id: string;
+  /** "Claude". */
+  name: string;
+  /** Its models, in the harness's order. Empty when they are not known yet. */
+  models: PickerChoice[];
+  /** The model it would run, or `null` for its own default. */
+  model: string | null;
+  /** Why it cannot be picked, in words ("Coming soon"), or `null`. */
+  unavailable: string | null;
+}
+
 export interface ModelMenuProps {
   label: string;
+  /** The harness in use, by id. */
+  harness?: string | null;
+  /**
+   * Listed first, one group each, with its models under it: picking a model
+   * picks its harness too. Leave out to list `sections` alone.
+   */
+  harnesses?: HarnessChoice[];
+  /** Picks a harness and one of its models, `null` for its default. Without it the harnesses are shown but locked. */
+  onChoose?: (harness: string, model: string | null) => void;
+  /** The other settings, such as effort and mode, after the harnesses. */
   sections: PickerProps[];
 }
 

@@ -62,6 +62,12 @@ export const strings = {
   /** The same, as a screen reader hears it. */
   settingsSpoken: ", ",
   agent: "Agent",
+  /** Every harness the settings menu lists, by id. */
+  harnessName: { claude: "Claude", codex: "Codex", kaava: "Kaava" } as Record<string, string>,
+  /** A harness that is listed but cannot run yet. */
+  harnessSoon: "Coming soon",
+  /** A harness whose models are not known: it runs its own default. */
+  defaultModel: "Default model",
   tokens,
   percent,
   context: {
