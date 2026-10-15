@@ -193,6 +193,20 @@ describe("AgentBar", () => {
     expect(screen.getByText("Opus")).toBeTruthy();
   });
 
+  it("cuts a long model name short, and keeps the whole of it in its title", () => {
+    const long = "claude-opus-5-5-with-a-very-long-agent-supplied-label[1m]";
+    render(
+      <AgentBar
+        status={status({ running: "claude", model: long })}
+        onChoose={vi.fn()}
+        onSend={vi.fn()}
+      />,
+    );
+    const model = screen.getByText(long);
+    expect(model.classList).toContain("agentbar__model");
+    expect(model.getAttribute("title")).toBe(long);
+  });
+
   it("has no picker while there is one harness to send to", () => {
     render(<AgentBar status={status()} onChoose={vi.fn()} onSend={vi.fn()} />);
     expect(screen.queryByRole("combobox", { name: "Harness" })).toBeNull();

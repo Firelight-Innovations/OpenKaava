@@ -79,7 +79,11 @@ export function BarHarness({ name, model, value, choices, disabled, onChange }: 
       ) : (
         name !== null && <span className="agentbar__harness">{name}</span>
       )}
-      {model !== null && <span className="agentbar__harness">{model}</span>}
+      {model !== null && (
+        <span className="agentbar__harness agentbar__model" title={model}>
+          {model}
+        </span>
+      )}
     </>
   );
 }
