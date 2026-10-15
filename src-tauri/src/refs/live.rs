@@ -55,7 +55,7 @@ pub fn resolve(
     }
 }
 
-fn root_of(ctx: &CallContext) -> Result<&Path, String> {
+pub(super) fn root_of(ctx: &CallContext) -> Result<&Path, String> {
     ctx.project
         .as_deref()
         .ok_or_else(|| "this cluster has no project open, so there is nothing to reference".into())

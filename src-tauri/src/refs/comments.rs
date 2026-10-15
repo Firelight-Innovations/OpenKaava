@@ -126,6 +126,8 @@ fn viewer_rows(all: Vec<crate::comments::Comment>, wanted: Wanted) -> Vec<Value>
 
 /// Every canvas's comments. A canvas lists the comments on its split frames'
 /// children too, so a child that is also listed on its own is not counted twice.
+/// A canvas, or a comment, whose file leads outside the project is skipped
+/// before the Canvas app is asked to read it.
 fn canvas_rows(
     app: &AppHandle,
     ctx: &CallContext,
@@ -139,20 +141,29 @@ fn canvas_rows(
             return Vec::new();
         }
     };
+    let inside = |canvas: &str, comment: Option<&str>| {
+        let part = comment.map(|c| CanvasPart::Comment(c.into()));
+        live::root_of(ctx)
+            .is_ok_and(|root| live::canvas_inside(root, canvas, part.as_ref()).is_ok())
+    };
     let ids = listed["canvases"].as_array().into_iter().flatten();
     let mut answers = Vec::new();
-    for id in ids.filter_map(|c| c["id"].as_str()) {
+    for id in ids
+        .filter_map(|c| c["id"].as_str())
+        .filter(|id| inside(id, None))
+    {
         let asked = json!({ "id": id, "status": wanted.name() });
         match live::canvas_call(app, ctx, Actor::Agent, "canvas/list-comments", asked) {
             Ok(answer) => answers.push(answer),
             Err(e) => problems.push(format!("canvas `{id}`: {e}")),
         }
     }
-    canvas_rows_from(&answers)
+    canvas_rows_from(&answers, &inside)
 }
 
-/// Rows from `canvas/list-comments` answers, each comment once.
-fn canvas_rows_from(answers: &[Value]) -> Vec<Value> {
+/// Rows from `canvas/list-comments` answers, each comment once, those
+/// `inside` allows.
+fn canvas_rows_from(answers: &[Value], inside: &dyn Fn(&str, Option<&str>) -> bool) -> Vec<Value> {
     let mut seen = HashSet::new();
     let comments = answers
         .iter()
@@ -160,6 +171,9 @@ fn canvas_rows_from(answers: &[Value]) -> Vec<Value> {
     comments
         .filter_map(|c| {
             let (canvas, id) = (c["canvas"].as_str()?, c["id"].as_str()?);
+            if !inside(canvas, Some(id)) {
+                return None;
+            }
             let r = Ref::Canvas {
                 id: canvas.into(),
                 part: Some(CanvasPart::Comment(id.into())),
@@ -194,11 +208,24 @@ fn design_rows(_app: &AppHandle, _wanted: Wanted) -> Vec<Value> {
     Vec::new()
 }
 
-/// Close the comment `r` names with the agent's `note`.
+/// Close the comment `r` names with the agent's `note`. One already resolved
+/// is left as it is, so a note the person wrote is never replaced, and a
+/// viewer comment on a read-only main is refused like any other write there.
 pub fn resolve(app: &AppHandle, ctx: &CallContext, r: &Ref, note: &str) -> Result<Value, String> {
     live::check(app, ctx, r)?;
+    let root = live::root_of(ctx)?;
+    let settled =
+        || format!("`{r}` is already resolved, so its note stands; `read` it to see what was said");
     match r {
         Ref::Comment { id } => {
+            if let Some(cluster) = ctx.cluster_id.as_deref() {
+                crate::environments::guard_cluster_write(app, cluster, "comments/resolve")
+                    .map_err(|e| e.to_string())?;
+            }
+            let record = super::resolve::viewer_record(root, id)?;
+            if record.status == crate::comments::Status::Resolved {
+                return Err(settled());
+            }
             let by = crate::comments::Author::Agent;
             crate::comments::resolve(ctx, id, note.to_string(), by).map_err(|e| e.message)?;
         }
@@ -206,10 +233,17 @@ pub fn resolve(app: &AppHandle, ctx: &CallContext, r: &Ref, note: &str) -> Resul
             id,
             part: Some(CanvasPart::Comment(c)),
         } => {
+            let now =
+                crate::apps::canvas::comments::load_one(root, id, c).map_err(|e| e.message)?;
+            if now.status == "resolved" {
+                return Err(settled());
+            }
             let asked = json!({ "id": id, "commentId": c, "note": note });
             live::canvas_call(app, ctx, Actor::Agent, "canvas/resolve-comment", asked)?;
         }
-        Ref::DesignComment { id } => resolve_design(app, id, note)?,
+        Ref::DesignComment { id } => {
+            resolve_design(app, id, note).map_err(|e| e.unwrap_or_else(settled))?
+        }
         _ => {
             return Err(format!(
                 "`{r}` is not a comment; `list_comments` has the ones to resolve"
@@ -219,20 +253,23 @@ pub fn resolve(app: &AppHandle, ctx: &CallContext, r: &Ref, note: &str) -> Resul
     Ok(json!({ "uri": r.to_string(), "status": "resolved", "note": note }))
 }
 
+/// Resolve a Design Mode comment. `Err(None)` means it was resolved already.
 #[cfg(feature = "design-mode")]
-fn resolve_design(app: &AppHandle, id: &str, note: &str) -> Result<(), String> {
+fn resolve_design(app: &AppHandle, id: &str, note: &str) -> Result<(), Option<String>> {
     use crate::design_comments::{Author, Comments, Status};
     use tauri::Manager;
-    let said = app
-        .state::<Comments>()
-        .say(app, id, Author::Agent, note, Status::Resolved);
-    said.map(drop)
-        .ok_or_else(|| format!("there is no Design Mode comment `{id}`"))
+    let comments = app.state::<Comments>();
+    let missing = || Some(format!("there is no Design Mode comment `{id}`"));
+    if !comments.get(id).ok_or_else(missing)?.status.active() {
+        return Err(None);
+    }
+    let said = comments.say(app, id, Author::Agent, note, Status::Resolved);
+    said.map(drop).ok_or_else(missing)
 }
 
 #[cfg(not(feature = "design-mode"))]
-fn resolve_design(_app: &AppHandle, _id: &str, _note: &str) -> Result<(), String> {
-    Err("this build has no Design Mode".into())
+fn resolve_design(_app: &AppHandle, _id: &str, _note: &str) -> Result<(), Option<String>> {
+    Err(Some("this build has no Design Mode".into()))
 }
 
 #[cfg(test)]
@@ -260,7 +297,14 @@ mod tests {
             { "id": "c-2", "canvas": "world/menu", "frameId": "f_9", "text": "Too dark",
               "status": "open" },
         ]});
-        let rows = canvas_rows_from(&[parent, child]);
+        let some = |canvas: &str, _: Option<&str>| canvas == "world";
+        let only_world = canvas_rows_from(&[parent.clone()], &some);
+        assert_eq!(
+            only_world.len(),
+            1,
+            "a comment on a canvas outside is skipped"
+        );
+        let rows = canvas_rows_from(&[parent, child], &|_, _| true);
         let uris: Vec<_> = rows.iter().map(|r| r["uri"].as_str().unwrap()).collect();
         assert_eq!(
             uris,

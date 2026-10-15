@@ -53,12 +53,9 @@ pub enum Anchor {
 
 /// Whose turn a comment reports, and who wrote a [`Resolution`].
 ///
-/// Only [`Author::User`] is reachable today — nothing yet reads
-/// `.kaava/comments/` into an agent's turn (see the open button in every
-/// viewer's comment panel), so every comment and every resolution this build
-/// writes is the user's. The variant is here anyway because the file format
-/// is the one thing that must not need to change shape the day that reading
-/// does exist, the same argument `design_comments::Author` was written under.
+/// Every comment this build writes is the user's. A resolution is the agent's
+/// when it comes through the context server's `resolve_comment`, which reads
+/// `.kaava/comments/` for an agent; every other resolution is the user's.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Author {

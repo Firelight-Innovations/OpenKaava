@@ -553,17 +553,7 @@ pub fn viewer_comment(root: &Path, r: &Ref) -> Result<Resolved, String> {
     let Ref::Comment { id } = r else {
         return Err("not a comment reference".into());
     };
-    let record = policy::contain(root, &format!(".kaava/comments/{id}.json"))
-        .map_err(|_| format!("there is no comment `{id}` in this project"))?;
-    let raw = read_prefix(&record.abs, MAX_COMMENT_BYTES + 1)?;
-    if raw.len() as u64 > MAX_COMMENT_BYTES {
-        return Err(format!(
-            "comment `{id}` is over {}, which is more than a comment holds",
-            human_size(MAX_COMMENT_BYTES)
-        ));
-    }
-    let comment: crate::comments::Comment =
-        serde_json::from_slice(&raw).map_err(|e| format!("comment `{id}` is unreadable: {e}"))?;
+    let comment = viewer_record(root, id)?;
     let mut out = Resolved::empty(r, "comment", first_line(&comment.body));
     out.detail = Some(anchor_line(&comment.anchor));
     out.meta.insert("status".into(), json!(comment.status));
@@ -584,6 +574,20 @@ pub fn viewer_comment(root: &Path, r: &Ref) -> Result<Resolved, String> {
             }));
     }
     Ok(out)
+}
+
+/// A viewer comment's record, read from inside the project and under the cap.
+pub(super) fn viewer_record(root: &Path, id: &str) -> Result<crate::comments::Comment, String> {
+    let record = policy::contain(root, &format!(".kaava/comments/{id}.json"))
+        .map_err(|_| format!("there is no comment `{id}` in this project"))?;
+    let raw = read_prefix(&record.abs, MAX_COMMENT_BYTES + 1)?;
+    if raw.len() as u64 > MAX_COMMENT_BYTES {
+        return Err(format!(
+            "comment `{id}` is over {}, which is more than a comment holds",
+            human_size(MAX_COMMENT_BYTES)
+        ));
+    }
+    serde_json::from_slice(&raw).map_err(|e| format!("comment `{id}` is unreadable: {e}"))
 }
 
 fn anchor_line(anchor: &crate::comments::Anchor) -> String {
