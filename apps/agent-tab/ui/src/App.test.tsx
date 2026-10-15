@@ -162,6 +162,15 @@ async function pickMode(name: string) {
   fireEvent.click(menu.getByRole("menuitemradio", { name }));
 }
 
+/** Choose `name` from the settings menu's `group` section. */
+async function pick(group: string, name: string) {
+  fireEvent.click(await settingsButton());
+  const section = within(await screen.findByRole("group", { name: group }));
+  await act(async () => {
+    fireEvent.click(section.getByRole("menuitemradio", { name }));
+  });
+}
+
 /** The settings menu's Mode group, opened. */
 async function modeMenu() {
   fireEvent.click(await settingsButton());
@@ -917,6 +926,55 @@ describe("the agent tab", () => {
     expect(await shown()).toEqual(["Claude", "Haiku", "Manual"]);
     fireEvent.click(await settingsButton());
     expect(screen.queryByRole("group", { name: "Effort" })).toBeNull();
+  });
+
+  it("holds each setting's choice until its own answer", async () => {
+    backend({ status: MODELS, seq: 1, items: [] });
+    render(<App />);
+    await untilMode("Manual");
+    const status = (seq: number, status: SessionStatus) =>
+      emit({ instanceId: "i", seq, event: { type: "status", status } });
+    await pick("Effort", "High");
+    await pick("Claude", "Opus");
+    expect(await shown()).toEqual(["Claude", "Opus", "High", "Manual"]);
+
+    // The agent refuses the effort and has yet to answer the model.
+    status(2, {
+      ...MODELS,
+      answered: 1,
+      settingTrouble: { kind: "refused", ticket: 1, message: "not for this model" },
+    });
+    await screen.findByText("The agent refused that change: not for this model");
+    expect(
+      await shown(),
+      "the refused effort is taken back, and the unanswered model still stands",
+    ).toEqual(["Claude", "Opus", "Default", "Manual"]);
+
+    status(3, { ...MODELS, answered: 2, config: [{ ...MODELS.config[0], value: "opus" }] });
+    expect(await shown()).toEqual(["Claude", "Opus", "Manual"]);
+  });
+
+  it("takes back only the choice the host refused", async () => {
+    backend(
+      { status: MODELS, seq: 1, items: [] },
+      {
+        "agent-tab/set-config": () =>
+          Promise.reject(
+            new bridge.KaavaRpcError(-32010, "x", { code: "unknownOption", hint: null }),
+          ),
+      },
+    );
+    render(<App />);
+    await untilMode("Manual");
+    await pickMode("Plan");
+    await pick("Effort", "High");
+    await screen.findByRole("alert");
+    expect(await shown(), "the mode change is still on its way").toEqual([
+      "Claude",
+      "Default (recommended)",
+      "Default",
+      "Plan",
+    ]);
   });
 
   it("never names the harness Claude Code", async () => {

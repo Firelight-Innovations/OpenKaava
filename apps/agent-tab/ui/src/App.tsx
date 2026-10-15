@@ -38,12 +38,15 @@ import {
   busy,
   initialState,
   nextMode,
+  place,
   unanswered,
   promptBefore,
   pickers,
   received,
   settable,
+  type Choice,
   type Pending,
+  type Setting,
   type TabState,
 } from "./model";
 import * as rpc from "./rpc";
@@ -137,35 +140,27 @@ export default function App() {
   const live = unanswered(pending, status);
 
   // Shown at once and held until the status that answers it; a refusal from
-  // the host takes it back.
-  const choose = (change: () => Promise<number>, apply: (p: Pending) => Pending) => {
+  // the host takes back that choice and no other. A later choice for the
+  // same setting replaces this one, which the answers to this one then leave
+  // alone.
+  const choose = (setting: Setting, value: string, change: () => Promise<number>) => {
     if (status === null || !settable(status)) return;
     setNotice(null);
-    setPending((p) => {
-      const base = unanswered(p, status) ?? { ticket: 0, unnumbered: 0 };
-      return apply({ ...base, unnumbered: base.unnumbered + 1 });
-    });
+    const sent: Choice = { value, ticket: null };
+    const settle = (next: Choice | undefined) =>
+      setPending((p) => place(p, setting, (c) => (c === sent ? next : c)));
+    setPending((p) => place(unanswered(p, status), setting, () => sent));
     change().then(
-      (ticket) =>
-        setPending(
-          (p) => p && { ...p, ticket: Math.max(p.ticket, ticket), unnumbered: p.unnumbered - 1 },
-        ),
+      (ticket) => settle({ ...sent, ticket }),
       (err: unknown) => {
-        setPending(null);
+        settle(undefined);
         setNotice(noticeOf(err, strings.failed.setting));
       },
     );
   };
-  const onMode = (modeId: string) =>
-    choose(
-      () => rpc.setMode(modeId),
-      (p) => ({ ...p, mode: modeId }),
-    );
+  const onMode = (modeId: string) => choose("mode", modeId, () => rpc.setMode(modeId));
   const onConfig = (configId: string, value: string) =>
-    choose(
-      () => rpc.setConfig(configId, value),
-      (p) => ({ ...p, config: { ...p.config, [configId]: value } }),
-    );
+    choose({ option: configId }, value, () => rpc.setConfig(configId, value));
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Escape" && working) {
@@ -175,7 +170,7 @@ export default function App() {
       // Only while there is a mode to switch to; otherwise Shift+Tab moves
       // focus back as usual. A held key keeps focus here but switches once,
       // not through every mode on the way round.
-      const current = live?.mode ?? status.mode;
+      const current = live?.mode?.value ?? status.mode;
       const next = nextMode(status.modes, current);
       if (next === null) return;
       event.preventDefault();
@@ -236,7 +231,7 @@ export default function App() {
   const model = modelOption(status);
   const running: RunningModel | null = model && {
     models: model.choices,
-    model: live?.config?.[model.id] ?? model.value,
+    model: live?.config[model.id]?.value ?? model.value,
   };
   // Only the harness in use can change model: picking another is not taken yet.
   const onChoose =
@@ -382,7 +377,7 @@ function settingSections(
     .map((option) => ({
       label: option.name || option.id,
       title: option.description,
-      value: live?.config?.[option.id] ?? option.value,
+      value: live?.config[option.id]?.value ?? option.value,
       choices: option.choices,
       disabled,
       onChange: (value: string) => onConfig(option.id, value),
@@ -393,7 +388,7 @@ function settingSections(
     {
       label: strings.mode,
       title: strings.modeSettings.modeHint,
-      value: live?.mode ?? status.mode,
+      value: live?.mode?.value ?? status.mode,
       choices: status.modes,
       disabled,
       onChange: onMode,

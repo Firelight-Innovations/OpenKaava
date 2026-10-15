@@ -7,7 +7,9 @@ import {
   promptBefore,
   received,
   settable,
+  place,
   unanswered,
+  type Pending,
   MAX_ITEMS,
 } from "./model";
 import type { Envelope, Event, Item, SessionStatus } from "./protocol.generated";
@@ -140,13 +142,34 @@ describe("the settings", () => {
     expect(nextMode([], "default")).toBeNull();
   });
 
-  it("stand until the status that answers the last of them", () => {
-    const pending = { mode: "plan", ticket: 3, unnumbered: 0 };
+  it("stand each until the status that answers its own change", () => {
+    const plan = { value: "plan", ticket: 3 };
+    const high = { value: "high", ticket: 2 };
+    const opus = { value: "opus", ticket: null };
+    const pending: Pending = { mode: plan, config: { effort: high, model: opus } };
     const at = (answered: number) => ({ ...status("ready"), answered });
-    expect(unanswered(pending, at(2))).toBe(pending);
-    expect(unanswered(pending, at(3))).toBeNull();
-    expect(unanswered({ ...pending, unnumbered: 1 }, at(3))).not.toBeNull();
+    expect(unanswered(pending, at(1))).toEqual(pending);
+    expect(unanswered(pending, at(2))).toEqual({ mode: plan, config: { model: opus } });
+    expect(unanswered(pending, at(3)), "not numbered yet").toEqual({ config: { model: opus } });
+    expect(unanswered({ mode: plan, config: {} }, at(3))).toBeNull();
     expect(unanswered(pending, { ...at(0), state: "stopped" })).toBeNull();
     expect(unanswered(null, at(0))).toBeNull();
+  });
+
+  it("places a choice for one setting and leaves the others", () => {
+    const plan = { value: "plan", ticket: 1 };
+    const opus = { value: "opus", ticket: null };
+    const both = place(
+      place(null, "mode", () => plan),
+      { option: "model" },
+      () => opus,
+    );
+    expect(both).toEqual({ mode: plan, config: { model: opus } });
+    expect(place(both, "mode", () => undefined)).toEqual({ config: { model: opus } });
+    expect(place(both, { option: "model" }, () => undefined)).toEqual({ mode: plan, config: {} });
+    expect(place(both, { option: "model" }, (c) => c && { ...c, ticket: 2 })).toEqual({
+      mode: plan,
+      config: { model: { value: "opus", ticket: 2 } },
+    });
   });
 });

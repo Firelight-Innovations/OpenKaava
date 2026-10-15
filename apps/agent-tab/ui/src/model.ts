@@ -121,27 +121,59 @@ export function settable(status: SessionStatus | null): boolean {
   return state !== undefined && state !== "starting" && state !== "stopped" && state !== "failed";
 }
 
-/**
- * Setting choices the agent has not answered yet, shown in place of what the
- * status says. Each change the host queues comes back with a number, and the
- * choices stand until a status's `answered` reaches the last of them, so a
- * status sent for anything else (a turn starting or ending) does not undo
- * them.
- */
-export interface Pending {
-  mode?: string;
-  /** Values chosen for the agent's other options, by option id. */
-  config?: Record<string, string>;
-  /** The highest number the host has given these changes so far. */
-  ticket: number;
-  /** Changes sent whose number has not come back yet. */
-  unnumbered: number;
+/** A value chosen for one setting, with the number the host gave its change. */
+export interface Choice {
+  value: string;
+  /** `null` until the host has numbered the change. */
+  ticket: number | null;
 }
 
-/** `pending` while the agent has yet to answer it, otherwise `null`. */
+/**
+ * Setting choices the agent has not answered yet, shown in place of what the
+ * status says. Each change the host queues comes back with a number, and a
+ * choice stands until a status's `answered` reaches its own, so a status sent
+ * for anything else (a turn starting or ending) does not undo it, and the
+ * answer to one setting, a refusal included, leaves the others standing.
+ */
+export interface Pending {
+  mode?: Choice;
+  /** Choices for the agent's other options, by option id. */
+  config: Record<string, Choice>;
+}
+
+/** Which setting a choice is for: the mode, or another option by its id. */
+export type Setting = "mode" | { option: string };
+
+/** The choices in `pending` the agent has yet to answer; `null` if none. */
 export function unanswered(pending: Pending | null, status: SessionStatus | null): Pending | null {
   if (!pending || status === null || !settable(status)) return null;
-  return pending.unnumbered > 0 || status.answered < pending.ticket ? pending : null;
+  const open = (c: Choice) => c.ticket === null || c.ticket > status.answered;
+  const config = Object.fromEntries(Object.entries(pending.config).filter(([, c]) => open(c)));
+  const mode = pending.mode && open(pending.mode) ? pending.mode : undefined;
+  if (mode === undefined && Object.keys(config).length === 0) return null;
+  return mode === undefined ? { config } : { mode, config };
+}
+
+/**
+ * `pending` with the choice for `setting` replaced by what `next` makes of
+ * it; `undefined` takes it out.
+ */
+export function place(
+  pending: Pending | null,
+  setting: Setting,
+  next: (current: Choice | undefined) => Choice | undefined,
+): Pending {
+  const base: Pending = pending ?? { config: {} };
+  if (setting === "mode") {
+    const mode = next(base.mode);
+    return mode === undefined ? { config: base.config } : { ...base, mode };
+  }
+  const { [setting.option]: current, ...others } = base.config;
+  const choice = next(current);
+  return {
+    ...base,
+    config: choice === undefined ? others : { ...others, [setting.option]: choice },
+  };
 }
 
 /**
