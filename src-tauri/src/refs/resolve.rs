@@ -38,6 +38,7 @@ const MAX_COMMENT_BYTES: u64 = 1024 * 1024;
 
 /// A reference, resolved.
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(optional_fields))]
 #[serde(rename_all = "camelCase")]
 pub struct Resolved {
     /// The canonical form of the reference that was resolved.
@@ -49,6 +50,7 @@ pub struct Resolved {
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub detail: Option<String>,
+    #[cfg_attr(test, ts(type = "Record<string, unknown>"))]
     pub meta: Map<String, Value>,
     pub parts: Vec<Part>,
     /// Why nothing (or less) was read. Set for secrets, gitignored files and
@@ -58,12 +60,14 @@ pub struct Resolved {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum Part {
     #[serde(rename_all = "camelCase")]
     Text {
         text: String,
         #[serde(skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(test, ts(optional))]
         language: Option<String>,
         /// The file line `text` starts at, 1-based.
         start_line: u32,
@@ -78,6 +82,7 @@ pub enum Part {
         height: u32,
     },
     Json {
+        #[cfg_attr(test, ts(type = "unknown"))]
         value: Value,
     },
     Note {

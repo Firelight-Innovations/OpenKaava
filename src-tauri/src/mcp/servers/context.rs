@@ -15,6 +15,7 @@
 use super::{workspace, McpResource};
 use crate::apps::CallContext;
 use crate::mcp::{McpServer, McpTool, ToolAnswer};
+use crate::refs::catalogue::{self, Component, KaavaShow, RefsProps};
 use crate::refs::comments::{self, Wanted};
 use crate::refs::fault::{Fault, Reason};
 use crate::refs::live::{self, Actor};
@@ -29,12 +30,6 @@ use tauri::{AppHandle, Manager};
 /// The server id: the route `/mcp/context` and the key `kaava-context`.
 pub const ID: &str = "context";
 
-/// Most references one `show` puts in front of the person.
-const MAX_SHOWN: usize = 8;
-/// Longest caption `show` accepts, in characters.
-const MAX_CAPTION: usize = 500;
-/// The version of the `refs` component's props that `show` writes.
-const REFS_VERSION: u32 = 1;
 /// Longest note `resolve_comment` writes, in characters: a sentence or two
 /// for the person, well under what a comment record may hold.
 const MAX_NOTE: usize = 4_000;
@@ -63,13 +58,26 @@ fn show_schema() -> Value {
     schema(
         json!({
             "refs": {
-                "type": "array", "minItems": 1, "maxItems": MAX_SHOWN,
+                "type": "array", "minItems": 1, "maxItems": catalogue::MAX_SHOWN,
                 "items": { "type": "string" },
                 "description": "kaava:// references, shown in this order.",
             },
             "caption": { "type": "string", "description": "One line above them." },
         }),
         &["refs"],
+    )
+}
+
+fn show_component_schema() -> Value {
+    schema(
+        json!({
+            "component": { "type": "string", "enum": catalogue::NAMES },
+            "props": {
+                "type": "object",
+                "description": "The component's props, as the tool's description lists them.",
+            },
+        }),
+        &["component", "props"],
     )
 }
 
@@ -147,6 +155,28 @@ const TOOLS: &[McpTool] = &[
                       screenshot. Use it when seeing the thing helps more than describing it. \
                       References look like kaava://file/src/main.gd#L10-L20.",
         schema: show_schema,
+    },
+    McpTool {
+        name: "show_component",
+        description: "Show the person a component beside your reply, when a structured view says \
+                      it better than prose. `body` and `detail` are markdown; refs are kaava:// \
+                      references, drawn as chips. `?` marks an optional prop.\n\
+                      - callout {tone: note|tip|warning|danger, title?, body, refs?: up to 8}\n\
+                      - steps {title?, steps: [{title, body?, status?: \
+                      todo|doing|done|skipped, refs?: up to 4}] 1-20}\n\
+                      - table {caption?, columns: [{label, align?: left|right|center}] 1-12, \
+                      rows: [[string|number|boolean|null, one per column]] 1-200}\n\
+                      - compare {title?, items: [{title, body?, pros?: up to 8, \
+                      cons?: up to 8, refs?: up to 4}] 2-4, recommended?: an item's index}\n\
+                      - diagram {format: \"mermaid\", source, title?}\n\
+                      - chart {type: bar|line|area, title?, xLabels: 1-100, \
+                      series: [{name, values: one per x label}] 1-8, yLabel?}\n\
+                      - choice {question, options: [{id, label, detail?}] 2-8, multiple?}: the \
+                      person's pick comes back as their next message\n\
+                      - refs {refs: 1-8, caption?}: the same as `show`\n\
+                      A title or label is at most 200 characters, a body 4,000, and the props \
+                      64 KB of JSON.",
+        schema: show_component_schema,
     },
     McpTool {
         name: "read",
@@ -261,7 +291,7 @@ pub fn read_only(tool: &str) -> Option<bool> {
         "resolve_comment" => Some(false),
         // `show` changes nothing on disk, but it puts something in front of
         // the person, which is not what a client means by read-only.
-        "show" => Some(false),
+        "show" | "show_component" => Some(false),
         _ => None,
     }
 }
@@ -332,6 +362,13 @@ fn call(app: &AppHandle, tool: &str, params: Option<Value>) -> Result<ToolAnswer
     let ctx = context_for(app, args.get("cluster").and_then(Value::as_str))?;
     match tool {
         "show" => show(app, &ctx, &args),
+        "show_component" => {
+            let props = args
+                .get("props")
+                .ok_or_else(|| bad("`props` is required"))?;
+            let shown = Component::parse(text(&args, "component")?, props).map_err(bad)?;
+            present(app, &ctx, shown)
+        }
         "read" => read(app, &ctx, &parse(text(&args, "uri")?)?),
         "search_context" => find(app, &ctx, &args),
         "list_comments" => {
@@ -409,67 +446,78 @@ fn find(
     Ok(json!({ "query": words, "hits": hits }).into())
 }
 
-/// Check every reference, then answer with the marker the agent tab draws
-/// from (see [`show_answer`]).
+/// `show` is the `refs` component, with its props as the tool's own arguments.
 fn show(
     app: &AppHandle,
     ctx: &CallContext,
     args: &Map<String, Value>,
 ) -> Result<ToolAnswer, RpcError> {
-    let raw = args
-        .get("refs")
-        .and_then(Value::as_array)
+    let refs = strings(args, "refs")?
         .filter(|refs| !refs.is_empty())
         .ok_or_else(|| bad("`refs` needs at least one kaava:// reference"))?;
-    if raw.len() > MAX_SHOWN {
-        return Err(bad(format!("show at most {MAX_SHOWN} references at once")));
-    }
-    let caption = args.get("caption").and_then(Value::as_str).map(str::trim);
-    if caption.is_some_and(|c| c.chars().count() > MAX_CAPTION) {
-        return Err(bad(format!(
-            "a caption is at most {MAX_CAPTION} characters"
-        )));
-    }
-    let checked = raw.iter().map(|item| {
-        let given = item.as_str().unwrap_or_default();
-        let r = uri::parse(given)
-            .map_err(|why| (given.to_string(), Fault::new(Reason::BadUri, why)))?;
-        live::check(app, ctx, &r).map_err(|why| (r.to_string(), why))?;
-        Ok(r)
+    let caption = maybe_text(args, "caption")?.map(str::trim);
+    let shown = Component::Refs(RefsProps {
+        refs,
+        caption: caption.filter(|c| !c.is_empty()).map(String::from),
     });
-    show_answer(checked.collect(), caption.filter(|c| !c.is_empty())).map(ToolAnswer::Json)
+    shown.check().map_err(bad)?;
+    present(app, ctx, shown)
 }
 
-/// The answer to `show`: `{kaavaShow: {component, version, props}}`, which the
-/// agent host lifts off this server's tool result for the tab to draw, and the
-/// references that could not be shown, each with its reason word and why.
-/// Refused when none could be.
-fn show_answer(
-    checked: Vec<Result<Ref, (String, Fault)>>,
-    caption: Option<&str>,
-) -> Result<Value, RpcError> {
-    let (shown, failed): (Vec<_>, Vec<_>) = checked.into_iter().partition(Result::is_ok);
-    let failed: Vec<(String, Fault)> = failed.into_iter().filter_map(Result::err).collect();
-    if shown.is_empty() {
+/// Check every reference in the props, then answer with the marker the agent
+/// tab draws from (see [`show_answer`]).
+fn present(
+    app: &AppHandle,
+    ctx: &CallContext,
+    mut shown: Component,
+) -> Result<ToolAnswer, RpcError> {
+    let mut failed = Vec::new();
+    for list in shown.refs_mut() {
+        list.retain_mut(|given| match checked(app, ctx, given) {
+            Ok(r) => {
+                *given = r.to_string();
+                true
+            }
+            Err(why) => {
+                failed.push(why);
+                false
+            }
+        });
+    }
+    show_answer(shown, failed).map(ToolAnswer::Json)
+}
+
+/// A reference that parses and can be shown, in its canonical form; else the
+/// reference as given and why not.
+fn checked(app: &AppHandle, ctx: &CallContext, given: &str) -> Result<Ref, (String, Fault)> {
+    let r =
+        uri::parse(given).map_err(|why| (given.to_string(), Fault::new(Reason::BadUri, why)))?;
+    live::check(app, ctx, &r).map_err(|why| (r.to_string(), why))?;
+    Ok(r)
+}
+
+/// The answer: `{kaavaShow: {version, component, props}}`, which the agent
+/// host lifts off this server's tool result for the tab to draw, and the
+/// references dropped from the props, each with its reason word and why.
+/// A `refs` component left with none is refused; any other is still shown.
+fn show_answer(shown: Component, failed: Vec<(String, Fault)>) -> Result<Value, RpcError> {
+    if matches!(&shown, Component::Refs(p) if p.refs.is_empty()) {
         let reasons: Vec<String> = failed
             .iter()
             .map(|(uri, why)| format!("{uri}: {why}"))
             .collect();
         return Err(bad(format!("nothing to show. {}", reasons.join("; "))));
     }
-    let failed: Vec<Value> = failed
-        .iter()
-        .map(|(uri, why)| json!({ "uri": uri, "reason": why.reason, "message": why.message }))
-        .collect();
-    let refs: Vec<String> = shown.into_iter().flatten().map(|r| r.to_string()).collect();
-    let mut props = json!({ "refs": refs });
-    if let Some(caption) = caption {
-        props["caption"] = json!(caption);
-    }
-    let mut answer = json!({
-        "kaavaShow": { "component": "refs", "version": REFS_VERSION, "props": props },
-    });
+    let marker = KaavaShow {
+        version: catalogue::VERSION,
+        shown,
+    };
+    let mut answer = json!({ "kaavaShow": marker });
     if !failed.is_empty() {
+        let failed: Vec<Value> = failed
+            .iter()
+            .map(|(uri, why)| json!({ "uri": uri, "reason": why.reason, "message": why.message }))
+            .collect();
         answer["failed"] = json!(failed);
     }
     Ok(answer)
@@ -479,13 +527,23 @@ fn show_answer(
 mod tests {
     use super::*;
 
-    fn file(path: &str) -> Ref {
-        uri::parse(&format!("kaava://file/{path}")).unwrap()
+    /// A `refs` component holding what survived its check.
+    fn refs(shown: &[&str], caption: Option<&str>) -> Component {
+        Component::Refs(RefsProps {
+            refs: shown.iter().map(|r| r.to_string()).collect(),
+            caption: caption.map(String::from),
+        })
+    }
+
+    fn missing() -> Vec<(String, Fault)> {
+        let why = Fault::new(Reason::Missing, "no such file");
+        vec![("kaava://file/gone.gd".to_string(), why)]
     }
 
     #[test]
     fn show_answers_with_the_marker_the_tab_draws_from() {
-        let answer = show_answer(vec![Ok(file("a.gd")), Ok(Ref::Selection)], Some("Here")).unwrap();
+        let shown = refs(&["kaava://file/a.gd", "kaava://selection"], Some("Here"));
+        let answer = show_answer(shown, Vec::new()).unwrap();
         assert_eq!(
             answer,
             json!({ "kaavaShow": {
@@ -498,11 +556,7 @@ mod tests {
 
     #[test]
     fn show_draws_what_it_can_and_names_what_it_cannot() {
-        let missing = Err((
-            "kaava://file/gone.gd".to_string(),
-            Fault::new(Reason::Missing, "no such file"),
-        ));
-        let answer = show_answer(vec![missing.clone(), Ok(file("a.gd"))], None).unwrap();
+        let answer = show_answer(refs(&["kaava://file/a.gd"], None), missing()).unwrap();
         assert_eq!(
             answer["kaavaShow"]["props"]["refs"],
             json!(["kaava://file/a.gd"])
@@ -510,11 +564,33 @@ mod tests {
         assert!(answer["kaavaShow"]["props"].get("caption").is_none());
         assert_eq!(answer["failed"][0]["reason"], "missing");
         assert_eq!(answer["failed"][0]["message"], "no such file");
-        let none = show_answer(vec![missing], None).unwrap_err();
+        let none = show_answer(refs(&[], None), missing()).unwrap_err();
         assert!(
             none.message.contains("gone.gd: no such file"),
             "{}",
             none.message
+        );
+    }
+
+    #[test]
+    fn any_other_component_is_shown_without_the_references_that_failed() {
+        let props = json!({ "tone": "warning", "body": "Check these.", "refs": [] });
+        let shown = Component::parse("callout", &props).unwrap();
+        let answer = show_answer(shown, missing()).unwrap();
+        assert_eq!(answer["kaavaShow"]["component"], "callout");
+        assert_eq!(answer["kaavaShow"]["props"]["refs"], json!([]));
+        assert_eq!(answer["failed"][0]["uri"], "kaava://file/gone.gd");
+    }
+
+    #[test]
+    fn show_component_lists_every_component_it_draws() {
+        let tool = TOOLS.iter().find(|t| t.name == "show_component").unwrap();
+        for name in catalogue::NAMES {
+            assert!(tool.description.contains(&format!("- {name} {{")), "{name}");
+        }
+        assert_eq!(
+            (tool.schema)()["properties"]["component"]["enum"],
+            json!(catalogue::NAMES)
         );
     }
 

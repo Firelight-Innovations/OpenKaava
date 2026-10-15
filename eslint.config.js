@@ -237,6 +237,8 @@ export default tseslint.config(
       "**/branding.generated.ts",
       // Generated from kaava-agent-host's event types by that crate's tests.
       "apps/agent-tab/ui/src/protocol.generated.ts",
+      // Generated from src-tauri's refs::catalogue by that module's tests.
+      "apps/agent-tab/ui/src/kaava-show.generated.ts",
     ],
   },
 
