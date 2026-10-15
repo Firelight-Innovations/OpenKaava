@@ -190,7 +190,7 @@ pub(super) fn describe(
             let bytes = read_prefix(abs, MAX_MODEL_HEAD)?;
             out.meta.extend(assets::model_facts(&ext, &bytes));
         }
-        Kind::Audio if ext == "wav" => out.meta.extend(assets::wav_facts(&head)),
+        Kind::Audio if ext == "wav" => out.meta.extend(assets::wav_facts(&head, size)),
         _ => {}
     }
     if class.textual && textual {
@@ -406,13 +406,14 @@ fn modified_ms(meta: &std::fs::Metadata) -> Option<u64> {
 /// `512 B`, `12.3 KB`, `4.6 MB`.
 pub fn human_size(bytes: u64) -> String {
     const KB: f64 = 1024.0;
-    let b = bytes as f64;
-    if b < KB {
+    let kb = bytes as f64 / KB;
+    if bytes < 1024 {
         format!("{bytes} B")
-    } else if b < KB * KB {
-        format!("{:.1} KB", b / KB)
+    } else if (kb * 10.0).round() < KB * 10.0 {
+        format!("{kb:.1} KB")
     } else {
-        format!("{:.1} MB", b / (KB * KB))
+        // Chosen after rounding, so 1,048,575 bytes reads 1.0 MB, not 1024.0 KB.
+        format!("{:.1} MB", kb / KB)
     }
 }
 
@@ -761,6 +762,14 @@ mod tests {
         assert!(huge.withheld.unwrap().contains("over the"));
         assert!(huge.parts.is_empty());
         assert_eq!(huge.meta["width"], 4000);
+    }
+
+    #[test]
+    fn a_size_reads_in_the_unit_its_rounded_value_fits() {
+        assert_eq!(human_size(512), "512 B");
+        assert_eq!(human_size(1536), "1.5 KB");
+        assert_eq!(human_size(1_048_575), "1.0 MB");
+        assert_eq!(human_size(3_500_000), "3.3 MB");
     }
 
     #[test]

@@ -178,8 +178,10 @@ fn glb_json(bytes: &[u8]) -> Option<Value> {
     serde_json::from_slice(chunk).ok()
 }
 
-/// A WAV file's format and length, from its `fmt ` and `data` chunks.
-pub fn wav_facts(bytes: &[u8]) -> Map<String, Value> {
+/// A WAV file's format and length, from its `fmt ` and `data` chunks. `len` is
+/// the whole file's size: a header can claim more data than the file holds,
+/// or 0 or `0xFFFFFFFF` while a recorder is still writing.
+pub fn wav_facts(bytes: &[u8], len: u64) -> Map<String, Value> {
     let mut out = Map::new();
     if bytes.len() < 12 || &bytes[0..4] != b"RIFF" || &bytes[8..12] != b"WAVE" {
         return out;
@@ -197,7 +199,12 @@ pub fn wav_facts(bytes: &[u8]) -> Map<String, Value> {
                 byte_rate = le32(i + 16);
             }
             b"data" if byte_rate > 0 => {
-                let seconds = size as f64 / f64::from(byte_rate);
+                let present = len.saturating_sub(i as u64 + 8);
+                let data = match le32(i + 4) {
+                    0 | u32::MAX => present,
+                    claimed => u64::from(claimed).min(present),
+                };
+                let seconds = data as f64 / f64::from(byte_rate);
                 out.insert("seconds".into(), json!((seconds * 100.0).round() / 100.0));
                 break;
             }
@@ -270,13 +277,13 @@ mod tests {
         assert!(model_facts("glb", b"not a model at all").is_empty());
     }
 
-    #[test]
-    fn a_wav_reports_its_format_and_length() {
+    /// A mono 16-bit 8 kHz WAV header whose `data` chunk claims `data_len`
+    /// bytes, and its byte rate.
+    fn wav(data_len: u32) -> (Vec<u8>, u64) {
         let (rate, channels, bits) = (8000u32, 1u16, 16u16);
         let byte_rate = rate * u32::from(channels) * u32::from(bits / 8);
-        let data_len = byte_rate * 2;
         let mut b = b"RIFF".to_vec();
-        b.extend_from_slice(&(36 + data_len).to_le_bytes());
+        b.extend_from_slice(&36u32.saturating_add(data_len).to_le_bytes());
         b.extend_from_slice(b"WAVEfmt ");
         b.extend_from_slice(&16u32.to_le_bytes());
         b.extend_from_slice(&1u16.to_le_bytes());
@@ -287,9 +294,35 @@ mod tests {
         b.extend_from_slice(&bits.to_le_bytes());
         b.extend_from_slice(b"data");
         b.extend_from_slice(&data_len.to_le_bytes());
-        let facts = wav_facts(&b);
+        (b, u64::from(byte_rate))
+    }
+
+    #[test]
+    fn a_wav_reports_its_format_and_length() {
+        let (b, rate) = wav(32_000);
+        let facts = wav_facts(&b, b.len() as u64 + 2 * rate);
         assert_eq!(facts["sampleRate"], 8000);
         assert_eq!(facts["channels"], 1);
         assert_eq!(facts["seconds"], 2.0);
+    }
+
+    #[test]
+    fn a_wav_length_counts_the_bytes_that_are_there() {
+        // 16,000 bytes a second, so the bytes present are what decide.
+        let seconds = |claimed: u32, present: u64| {
+            let (b, _) = wav(claimed);
+            wav_facts(&b, b.len() as u64 + present)["seconds"].clone()
+        };
+        assert_eq!(
+            seconds(32_000, 8_000),
+            0.5,
+            "a cut file is as long as what is left"
+        );
+        assert_eq!(
+            seconds(u32::MAX, 16_000),
+            1.0,
+            "a recorder's placeholder size"
+        );
+        assert_eq!(seconds(0, 32_000), 2.0, "a size never filled in");
     }
 }
