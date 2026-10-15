@@ -311,6 +311,12 @@ fn image(
         )));
     }
     let bytes = read_prefix(abs, MAX_IMAGE_BYTES)?;
+    // An SVG is text sent whole, so all of it is screened, not just the head.
+    if mime == "image/svg+xml" {
+        if let Some(rule) = policy::secret_content(&bytes) {
+            return Ok(out.withhold(secret_withheld(rule)));
+        }
+    }
     out.parts.push(Part::Image {
         mime: mime.into(),
         data_base64: BASE64.encode(bytes),
@@ -869,6 +875,18 @@ mod tests {
         let huge = resolve(&dir, "kaava://file/art/huge.svg").unwrap();
         assert!(huge.withheld.unwrap().contains("over the"));
         assert!(huge.parts.is_empty(), "{:?}", huge.parts);
+    }
+
+    #[test]
+    fn an_svg_holding_a_key_past_the_first_bytes_is_withheld() {
+        let dir = project();
+        let mut svg = b"<svg xmlns=\"http://www.w3.org/2000/svg\"><desc>".to_vec();
+        svg.resize(HEAD_BYTES as usize + 100, b' ');
+        svg.extend_from_slice(b"\n-----BEGIN RSA PRIVATE KEY-----\nMIIE\n</desc></svg>\n");
+        put(&dir, "art/logo.svg", &svg);
+        let logo = resolve(&dir, "kaava://file/art/logo.svg").unwrap();
+        assert!(logo.parts.is_empty(), "{:?}", logo.parts);
+        assert!(logo.withheld.unwrap().contains("private keys"));
     }
 
     #[test]
