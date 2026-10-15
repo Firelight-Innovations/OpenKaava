@@ -92,6 +92,11 @@ fn canvas(
     id: &str,
 ) -> Result<Resolved, String> {
     let listed = canvas_call(app, ctx, actor, "canvas/frames", json!({ "canvas": id }))?;
+    Ok(canvas_from(&listed, r, id))
+}
+
+/// A canvas from its `canvas/frames` answer: its frames, each with a reference.
+fn canvas_from(listed: &Value, r: &Ref, id: &str) -> Resolved {
     let title = listed
         .pointer("/canvases/0/title")
         .and_then(Value::as_str)
@@ -116,7 +121,7 @@ fn canvas(
     out.parts.push(Part::Json {
         value: json!({ "frames": rows }),
     });
-    Ok(out)
+    out
 }
 
 fn frame_of(
@@ -135,6 +140,21 @@ fn frame_of(
         "canvas/frame",
         json!({ "canvas": id, "frame": frame }),
     )?;
+    let mut out = frame_from(&detail, r, id, frame);
+    let fid = detail["id"].as_str().unwrap_or(frame);
+    let picture = canvas_call(
+        app,
+        ctx,
+        actor,
+        "canvas/frame-image",
+        json!({ "canvas": id, "frame": fid }),
+    );
+    out.parts.push(rendered(root, picture));
+    Ok(out)
+}
+
+/// A frame from its `canvas/frame` answer: its type, properties and text.
+fn frame_from(detail: &Value, r: &Ref, id: &str, frame: &str) -> Resolved {
     let name = detail["name"]
         .as_str()
         .filter(|n| !n.is_empty())
@@ -165,16 +185,7 @@ fn frame_of(
             "text": texts,
         }),
     });
-    let fid = detail["id"].as_str().unwrap_or(frame);
-    let picture = canvas_call(
-        app,
-        ctx,
-        actor,
-        "canvas/frame-image",
-        json!({ "canvas": id, "frame": fid }),
-    );
-    out.parts.push(rendered(root, picture));
-    Ok(out)
+    out
 }
 
 fn canvas_comment(
@@ -453,5 +464,79 @@ mod tests {
         assert!(link(&secret, &root.join("canvas/world.comments/c-2.json")));
         let err = canvas_inside(root, "world", comment("c-2").as_ref()).unwrap_err();
         assert!(err.contains("outside the project"), "{err}");
+    }
+
+    fn json_part(r: &Resolved) -> &Value {
+        match r.parts.first() {
+            Some(Part::Json { value }) => value,
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_canvas_lists_its_frames_each_with_a_reference_up_to_the_cap() {
+        let frame = |n: usize| json!({ "canvas": "levels/one", "id": format!("f{n}"), "name": format!("Room {n}"), "typeName": "Room" });
+        let listed = json!({
+            "canvases": [{ "id": "levels/one", "title": "Level one" }],
+            "frames": (0..MAX_LISTED + 5).map(frame).collect::<Vec<_>>(),
+        });
+        let r = Ref::Canvas {
+            id: "levels/one".into(),
+            part: None,
+        };
+        let out = canvas_from(&listed, &r, "levels/one");
+        assert_eq!(
+            (out.kind.as_str(), out.title.as_str()),
+            ("canvas", "Level one")
+        );
+        assert_eq!(
+            out.meta["frames"],
+            MAX_LISTED + 5,
+            "the count is the whole canvas"
+        );
+        let rows = json_part(&out)["frames"].as_array().unwrap();
+        assert_eq!(rows.len(), MAX_LISTED);
+        assert_eq!(
+            rows[0],
+            json!({ "name": "Room 0", "type": "Room", "ref": "kaava://canvas/levels/one#frame=f0" })
+        );
+        let untitled = canvas_from(&json!({ "canvases": [{ "title": "" }] }), &r, "levels/one");
+        assert_eq!(
+            untitled.title, "levels/one",
+            "an empty title falls back to the id"
+        );
+        assert!(json_part(&untitled)["frames"]
+            .as_array()
+            .unwrap()
+            .is_empty());
+    }
+
+    #[test]
+    fn a_frame_brings_its_type_props_and_nonblank_text() {
+        let detail = json!({
+            "id": "f1",
+            "name": "",
+            "typeName": "Room",
+            "props": { "light": "dim" },
+            "contents": [{ "text": "Ball" }, { "text": "  " }, { "id": "no-text" }, { "text": "Door" }],
+        });
+        let r = Ref::Canvas {
+            id: "world".into(),
+            part: Some(CanvasPart::Frame("Lobby".into())),
+        };
+        let out = frame_from(&detail, &r, "world", "Lobby");
+        assert_eq!(
+            out.title, "Lobby",
+            "an unnamed frame is called what it was asked as"
+        );
+        assert_eq!(out.detail.as_deref(), Some("Room on canvas world"));
+        assert_eq!(out.meta["frameId"], "f1");
+        assert_eq!(
+            json_part(&out),
+            &json!({ "type": "Room", "props": { "light": "dim" }, "text": ["Ball", "Door"] })
+        );
+        let untyped = frame_from(&json!({ "id": "f2", "name": "Hall" }), &r, "world", "f2");
+        assert_eq!(untyped.detail.as_deref(), Some("frame on canvas world"));
+        assert_eq!(json_part(&untyped)["text"], json!([]));
     }
 }
