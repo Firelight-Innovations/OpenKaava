@@ -1109,6 +1109,26 @@ describe("the harness", () => {
     expect(alert.textContent).not.toContain("Could not send that.");
   });
 
+  it("keeps a choice it heard of while its list of harnesses was on the way", async () => {
+    let reply: ((answer: unknown) => void) | undefined;
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        "agent-tab/harnesses": () =>
+          new Promise((resolve) => {
+            reply = resolve;
+          }),
+      },
+    );
+    const { container } = render(<App />);
+    await waitFor(() => expect(reply).toBeDefined());
+    act(() => bridge.listeners.get("agent-tab:chosen")?.({ instanceId: "i", harness: "pi" }));
+    // Asked before the choice, so its `current` is older than it.
+    await act(async () => reply?.({ harnesses: [CLAUDE, PI], current: "claude", blocked: null }));
+    expect(chips(container)).toContain("Pi");
+    expect(chips(container)).not.toContain("Claude");
+  });
+
   it("words an ended session's hint for its own harness, not the one chosen next", async () => {
     const pi = { ...PI, setup: { ...CLAUDE.setup, cli: "pi", signIn: "pi login" } };
     backend(

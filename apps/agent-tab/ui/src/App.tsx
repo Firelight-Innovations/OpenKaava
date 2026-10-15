@@ -95,6 +95,10 @@ export default function App() {
   const [chosen, setChosen] = useState<Harness | null>(null);
   const [attachFailed, setAttachFailed] = useState(false);
   const [pending, setPending] = useState<Pending | null>(null);
+  // Counts the choices this tab has heard of. A `harnesses` reply asked for
+  // before one is older than it, so it must not put back the harness it
+  // replaced.
+  const choices = useRef(0);
   const prompt = useRef<HTMLTextAreaElement | null>(null);
 
   // Envelopes are held until this answers, so a retry loses none of them.
@@ -110,23 +114,29 @@ export default function App() {
     [],
   );
 
+  const heardChoice = useCallback((harness: Harness) => {
+    choices.current += 1;
+    setChosen(harness);
+  }, []);
+
   useEffect(() => {
     const stop = rpc.onEnvelope((envelope) => dispatch({ type: "envelope", envelope }));
-    const stopChosen = rpc.onChosen(setChosen);
+    const stopChosen = rpc.onChosen(heardChoice);
     void attach().finally(() => reportPainted());
+    const asked = choices.current;
     rpc
       .harnesses()
       .then((answer) => {
         setBlocked(answer.blocked);
         setHarnesses(answer.harnesses);
-        setChosen(answer.current);
+        if (choices.current === asked) setChosen(answer.current);
       })
       .catch(() => {});
     return () => {
       stop();
       stopChosen();
     };
-  }, [attach]);
+  }, [attach, heardChoice]);
 
   const status = state.status;
   const working = busy(status);
@@ -157,7 +167,7 @@ export default function App() {
   const chooseHarness = (harness: string) => {
     setNotice(null);
     rpc.choose(harness as Harness).then(
-      () => setChosen(harness as Harness),
+      () => heardChoice(harness as Harness),
       (err: unknown) => setNotice(noticeOf(err, strings.failed.choose, current)),
     );
   };
