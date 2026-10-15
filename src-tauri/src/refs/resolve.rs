@@ -35,6 +35,8 @@ const MAX_MODEL_HEAD: u64 = 4 * 1024 * 1024;
 const HEAD_BYTES: u64 = 64 * 1024;
 /// Most entries a folder reference lists.
 const MAX_FOLDER_ENTRIES: usize = 200;
+/// Most entries a folder reference looks at. Past this its counts are partial.
+const MAX_FOLDER_SCAN: usize = 5_000;
 /// Largest viewer comment record read. A real one is a few hundred bytes.
 const MAX_COMMENT_BYTES: u64 = 1024 * 1024;
 
@@ -262,24 +264,44 @@ fn image(
 }
 
 /// A folder's entries, folders first, secrets and gitignored entries left out.
-fn folder(mut out: Resolved, root: &Path, abs: &Path) -> Result<Resolved, String> {
+fn folder(out: Resolved, root: &Path, abs: &Path) -> Result<Resolved, String> {
+    folder_within(out, root, abs, MAX_FOLDER_SCAN)
+}
+
+/// [`folder`], looking at no more than `scan` entries.
+fn folder_within(
+    mut out: Resolved,
+    root: &Path,
+    abs: &Path,
+    scan: usize,
+) -> Result<Resolved, String> {
     out.kind = "folder".into();
     let reader = std::fs::read_dir(abs).map_err(|e| format!("cannot list that folder: {e}"))?;
     let mut entries: Vec<(bool, String)> = Vec::new();
     let mut hidden = 0usize;
+    let mut partial = false;
     let rules = policy::Ignores::for_folder(root, abs);
-    for entry in reader.flatten() {
+    for (seen, entry) in reader.flatten().enumerate() {
+        if seen == scan {
+            partial = true;
+            break;
+        }
         let name = entry.file_name().to_string_lossy().into_owned();
         let path = entry.path();
+        // The entry's own type costs no stat; only a link is followed to see.
+        let is_dir = match entry.file_type() {
+            Ok(t) if !t.is_symlink() => t.is_dir(),
+            _ => path.is_dir(),
+        };
         let rel = path
             .strip_prefix(root)
             .map(|p| p.to_string_lossy().replace('\\', "/"))
             .unwrap_or_default();
-        if policy::secret_rule(&rel).is_some() || rules.ignored(&path, path.is_dir()) {
+        if policy::secret_rule(&rel).is_some() || rules.ignored(&path, is_dir) {
             hidden += 1;
             continue;
         }
-        entries.push((path.is_dir(), name));
+        entries.push((is_dir, name));
     }
     entries.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
     let total = entries.len();
@@ -296,8 +318,16 @@ fn folder(mut out: Resolved, root: &Path, abs: &Path) -> Result<Resolved, String
         text: names.join("\n"),
         language: None,
         start_line: 1,
-        truncated: total > MAX_FOLDER_ENTRIES,
+        truncated: partial || total > MAX_FOLDER_ENTRIES,
     });
+    if partial {
+        out.meta.insert("partial".into(), json!(true));
+        out.parts.push(Part::Note {
+            text: format!(
+                "Only the first {scan} entries were looked at, so the counts are partial."
+            ),
+        });
+    }
     Ok(out)
 }
 
@@ -893,6 +923,25 @@ mod tests {
         assert_eq!(r.kind, "folder");
         assert_eq!(text_of(&r).0, "props/\na.tscn");
         assert_eq!(r.meta["hidden"], 2);
+        assert!(r.meta.get("partial").is_none());
+    }
+
+    #[test]
+    fn a_folder_scan_stops_at_its_cap_and_says_the_counts_are_partial() {
+        let dir = project();
+        for n in 0..5 {
+            put(&dir, &format!("dump/{n}.bin"), b"x");
+        }
+        let r = Resolved::empty(&parse("kaava://file/dump").unwrap(), "folder", "dump");
+        let r = folder_within(r, dir.path(), &dir.path().join("dump"), 3).unwrap();
+        assert_eq!(r.meta["entries"], 3);
+        assert_eq!(r.meta["partial"], true);
+        assert!(matches!(&r.parts[0], Part::Text { truncated: true, .. }));
+        assert!(matches!(&r.parts[1], Part::Note { text } if text.contains("first 3 entries")));
+        let whole = Resolved::empty(&parse("kaava://file/dump").unwrap(), "folder", "dump");
+        let whole = folder_within(whole, dir.path(), &dir.path().join("dump"), 5).unwrap();
+        assert_eq!(whole.meta["entries"], 5);
+        assert!(whole.meta.get("partial").is_none(), "exactly at the cap");
     }
 
     #[test]
