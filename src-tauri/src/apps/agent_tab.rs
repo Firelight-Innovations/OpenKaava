@@ -27,6 +27,7 @@ use kaava_agent_host::{
     harness, spec, AgentHost, Harness, HarnessInfo, HostError, Level, McpServer, Worktree, REGISTRY,
 };
 use kaava_rpc::{RpcError, INVALID_PARAMS, METHOD_NOT_FOUND};
+use serde::Serialize;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -289,18 +290,14 @@ pub fn call_for(
         // The tab's next session runs this harness.
         "agent-tab/choose" => {
             let harness = harness_param(&params)?;
-            may_choose(host.running(instance), harness)?;
-            sessions.chosen().insert(instance.to_string(), harness);
-            // A tab that closed since this call began missed `sync`'s prune,
-            // and a page reopened under its id would inherit the choice.
-            if !is_agent_tab(app, instance) {
-                sessions.chosen().remove(instance);
-                return Err(unreached(method));
-            }
-            let _ = app.emit(
-                CHOSEN,
-                json!({ "instanceId": instance, "harness": harness }),
-            );
+            let event = choose(
+                &sessions.chosen,
+                instance,
+                host.running(instance),
+                harness,
+                || is_agent_tab(app, instance),
+            )?;
+            let _ = app.emit(CHOSEN, event);
             Ok(json!({}))
         }
         _ => Err(unreached(method)),
@@ -337,6 +334,31 @@ fn harnesses(app: &AppHandle, context: &CallContext, tab: Option<&str>) -> Value
         "model": model,
         "blocked": blocked,
     })
+}
+
+/// `agent-tab/choose` once its harness is read: `instance`'s next session
+/// runs `harness`, unless its agent runs another. Answers the
+/// [`CHOSEN`] event, which the tab's `rpc.ts` and the shell's
+/// `ToolWindow.tsx` read.
+///
+/// `open` is asked only once the choice is stored. A tab that closed since
+/// the call began has missed `sync`'s prune, so its choice is taken back here
+/// rather than left for a page reopened under its id.
+fn choose<H: Copy + PartialEq + Serialize>(
+    chosen: &Mutex<HashMap<String, H>>,
+    instance: &str,
+    running: Option<H>,
+    harness: H,
+    open: impl FnOnce() -> bool,
+) -> Result<Value, RpcError> {
+    may_choose(running, harness)?;
+    let lock = || chosen.lock().unwrap_or_else(|e| e.into_inner());
+    lock().insert(instance.to_string(), harness);
+    if !open() {
+        lock().remove(instance);
+        return Err(unreached("agent-tab/choose"));
+    }
+    Ok(json!({ "instanceId": instance, "harness": harness }))
 }
 
 /// The harness a tab's next prompt goes to: the one its agent runs, else the
@@ -846,6 +868,43 @@ mod tests {
         assert_eq!(next_of(None, Some("chosen"), "first"), "chosen");
         assert_eq!(next_of(Some("running"), None, "first"), "running");
         assert_eq!(next_of(Some("running"), Some("chosen"), "first"), "running");
+    }
+
+    fn chosen<H: Clone>(map: &Mutex<HashMap<String, H>>, id: &str) -> Option<H> {
+        map.lock().unwrap().get(id).cloned()
+    }
+
+    #[test]
+    fn a_choice_is_kept_and_told_to_every_view_of_the_tab() {
+        let map = Mutex::new(HashMap::new());
+        let event = choose(&map, "agent-tab-1", None, "pi", || true).unwrap();
+        assert_eq!(chosen(&map, "agent-tab-1"), Some("pi"));
+        // The keys the tab's `onChosen` and the shell's relay read.
+        assert_eq!(
+            event,
+            json!({ "instanceId": "agent-tab-1", "harness": "pi" })
+        );
+    }
+
+    #[test]
+    fn a_choice_for_a_tab_that_closed_meanwhile_is_taken_back() {
+        let map = Mutex::new(HashMap::new());
+        let err = choose(&map, "agent-tab-1", None, "pi", || {
+            // Checked after the store: a prune that ran first would miss it.
+            assert_eq!(chosen(&map, "agent-tab-1"), Some("pi"));
+            false
+        })
+        .unwrap_err();
+        assert_eq!(code_of(&err), Some("noInstance"));
+        assert_eq!(chosen(&map, "agent-tab-1"), None);
+    }
+
+    #[test]
+    fn a_choice_while_another_harness_runs_is_refused_and_not_kept() {
+        let map = Mutex::new(HashMap::from([("agent-tab-1".to_string(), "claude")]));
+        let err = choose(&map, "agent-tab-1", Some("claude"), "pi", || true).unwrap_err();
+        assert_eq!(code_of(&err), Some("running"));
+        assert_eq!(chosen(&map, "agent-tab-1"), Some("claude"));
     }
 
     #[test]
