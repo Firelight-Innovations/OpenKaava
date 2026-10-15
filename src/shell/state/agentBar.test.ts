@@ -1,20 +1,41 @@
+// @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, renderHook, waitFor } from "@testing-library/react";
 
-const calls = vi.hoisted(() => ({
-  open: vi.fn<(...args: unknown[]) => Promise<string>>(),
-  activate: vi.fn<(id: string) => Promise<void>>(),
-  appCall: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
-}));
+const calls = vi.hoisted(() => {
+  // The last listener each event was given, so a test can fire it.
+  const heard: Record<string, (payload: unknown) => void> = {};
+  const listen = (event: string) => (cb: (payload: unknown) => void) => {
+    heard[event] = cb;
+    return Promise.resolve(() => {});
+  };
+  return {
+    open: vi.fn<(...args: unknown[]) => Promise<string>>(),
+    activate: vi.fn<(id: string) => Promise<void>>(),
+    appCall: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+    heard,
+    listen,
+  };
+});
 
 vi.mock("../../bindings", () => ({
   openInstance: calls.open,
   activateInstance: calls.activate,
   appCall: calls.appCall,
-  onSettingsChanged: () => Promise.resolve(() => {}),
+  onSettingsChanged: calls.listen("settings"),
+  onAgentTabChosen: calls.listen("chosen"),
+  onAgentTabEvent: calls.listen("event"),
 }));
 
 import type { PaneNode } from "../contract";
-import { agentBarShown, agentTabIn, chooseHarness, refusalCode, sendToAgent } from "./agentBar";
+import {
+  agentBarShown,
+  agentTabIn,
+  chooseHarness,
+  refusalCode,
+  sendToAgent,
+  useAgentBarStatus,
+} from "./agentBar";
 
 const tree: PaneNode = {
   kind: "split",
@@ -116,6 +137,64 @@ describe("chooseHarness", () => {
   });
 });
 
+describe("useAgentBarStatus", () => {
+  const answer = (current: string, extra: object = {}) => ({
+    blocked: null,
+    harnesses: [],
+    current,
+    ...extra,
+  });
+
+  it("asks about the agent tab, and fills what an older host leaves out", async () => {
+    calls.appCall.mockResolvedValue(answer("claude"));
+    const { result } = renderHook(() => useAgentBarStatus("c1", "env", "agent-1"));
+    await waitFor(() => expect(result.current?.current).toBe("claude"));
+    expect(calls.appCall).toHaveBeenCalledWith("agent-tab", "agent-tab/harnesses", undefined, {
+      clusterId: "c1",
+      instanceId: "agent-1",
+    });
+    expect(result.current).toMatchObject({ running: null, model: null });
+  });
+
+  it("asks about the cluster alone while it has no agent tab", async () => {
+    calls.appCall.mockResolvedValue(answer("claude"));
+    renderHook(() => useAgentBarStatus("c1", "env", null));
+    await waitFor(() =>
+      expect(calls.appCall).toHaveBeenCalledWith("agent-tab", "agent-tab/harnesses", undefined, {
+        clusterId: "c1",
+      }),
+    );
+  });
+
+  it("asks again when its own tab chooses, and not for another tab", async () => {
+    calls.appCall.mockResolvedValue(answer("claude"));
+    const { result } = renderHook(() => useAgentBarStatus("c1", "env", "agent-1"));
+    await waitFor(() => expect(result.current?.current).toBe("claude"));
+    await waitFor(() => expect(calls.heard.chosen).toBeDefined());
+
+    calls.appCall.mockResolvedValue(answer("pi"));
+    act(() => calls.heard.chosen({ instanceId: "agent-2", harness: "pi" }));
+    expect(calls.appCall).toHaveBeenCalledTimes(1);
+
+    act(() => calls.heard.chosen({ instanceId: "agent-1", harness: "pi" }));
+    await waitFor(() => expect(result.current?.current).toBe("pi"));
+  });
+
+  it("asks again when its tab's session starts or resets, not on every event", async () => {
+    calls.appCall.mockResolvedValue(answer("claude"));
+    const { result } = renderHook(() => useAgentBarStatus("c1", "env", "agent-1"));
+    await waitFor(() => expect(result.current?.current).toBe("claude"));
+    await waitFor(() => expect(calls.heard.event).toBeDefined());
+
+    act(() => calls.heard.event({ instanceId: "agent-1", event: { type: "message" } }));
+    expect(calls.appCall).toHaveBeenCalledTimes(1);
+
+    calls.appCall.mockResolvedValue(answer("claude", { running: "claude", model: "Opus" }));
+    act(() => calls.heard.event({ instanceId: "agent-1", event: { type: "status" } }));
+    await waitFor(() => expect(result.current?.model).toBe("Opus"));
+  });
+});
+
 describe("refusalCode", () => {
   it("answers failed for anything that is not a refusal", () => {
     expect(refusalCode(new Error("boom"))).toBe("failed");
@@ -130,14 +209,22 @@ describe("refusalCode", () => {
 });
 
 describe("agentBarShown", () => {
+  const blocked = (code: string | null) => ({
+    blocked: code,
+    harnesses: [],
+    current: "claude",
+    running: null,
+    model: null,
+  });
+
   it("shows the bar for a cluster that may run an agent, or may once it is a worktree", () => {
-    expect(agentBarShown({ blocked: null, hint: null })).toBe(true);
-    expect(agentBarShown({ blocked: "mainCheckout", hint: null })).toBe(true);
-    expect(agentBarShown({ blocked: "notAWorktree", hint: "adapterMissing" })).toBe(true);
+    expect(agentBarShown(blocked(null))).toBe(true);
+    expect(agentBarShown(blocked("mainCheckout"))).toBe(true);
+    expect(agentBarShown(blocked("notAWorktree"))).toBe(true);
   });
 
   it("keeps it shut until the answer is known, and while developer mode is off", () => {
     expect(agentBarShown(null)).toBe(false);
-    expect(agentBarShown({ blocked: "developerMode", hint: null })).toBe(false);
+    expect(agentBarShown(blocked("developerMode"))).toBe(false);
   });
 });

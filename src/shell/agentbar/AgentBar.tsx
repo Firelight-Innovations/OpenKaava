@@ -3,20 +3,19 @@
  * cluster. Sending brings the cluster's agent tab forward, or opens one, and
  * the conversation continues there.
  *
- * This first slice has the harness label, the prompt and Send. The model
+ * This slice has the harness and its model, the prompt and Send. The model
  * picker, the mode indicator and the context chips come later.
  */
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import type { AgentBarStatus } from "../state/agentBar";
 import { useBarSlots } from "./slots";
-import { strings } from "./strings";
+import { strings, type HarnessWords } from "./strings";
 import "../../agent-tokens.css";
 import "./agentbar.css";
 
 export interface AgentBarProps {
-  /** Why this cluster cannot run an agent, as a refusal code; `null` if it can. */
-  blocked: string | null;
-  /** What Claude still needs before it can run, as a hint key; `null` if nothing. */
-  hint: string | null;
+  /** What `agent-tab/harnesses` said about this cluster and its agent tab. */
+  status: AgentBarStatus;
   /** Sends a prompt. Rejects with an `Error` whose message is a refusal code. */
   onSend: (text: string) => Promise<void>;
 }
@@ -30,12 +29,29 @@ export function ClusterAgentBar({ clusterId, ...props }: AgentBarProps & { clust
   return <AgentBar key={clusterId} {...props} />;
 }
 
-export default function AgentBar({ blocked, hint, onSend }: AgentBarProps) {
+/** `hint` as a sentence about `words`' harness; `null` for one the bar does not word. */
+function hintText(hint: string, words: HarnessWords): string | null {
+  const known = Object.prototype.hasOwnProperty.call(strings.hint, hint);
+  return known ? strings.hint[hint](words) : null;
+}
+
+export default function AgentBar({ status, onSend }: AgentBarProps) {
   const S = useBarSlots();
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const input = useRef<HTMLTextAreaElement>(null);
+
+  const harness = status.running ?? status.current;
+  const words = status.harnesses.find((h) => h.harness === harness);
+  const failed = (err: unknown) => {
+    const code = err instanceof Error ? err.message : "failed";
+    setFailure(
+      code === "harness" && words
+        ? strings.notReady(words.name)
+        : (strings.refusal[code] ?? strings.refusal.failed),
+    );
+  };
 
   // One line until there is more to show, then as tall as the text up to the
   // CSS max-height, past which it scrolls.
@@ -46,6 +62,7 @@ export default function AgentBar({ blocked, hint, onSend }: AgentBarProps) {
     el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`;
   }, [draft]);
 
+  const blocked = status.blocked;
   const disabled = blocked !== null;
   const send = () => {
     const text = draft.trim();
@@ -61,8 +78,7 @@ export default function AgentBar({ blocked, hint, onSend }: AgentBarProps) {
         setSending(false);
       },
       (err: unknown) => {
-        const code = err instanceof Error ? err.message : "failed";
-        setFailure(strings.refusal[code] ?? strings.refusal.failed);
+        failed(err);
         setSending(false);
       },
     );
@@ -79,12 +95,14 @@ export default function AgentBar({ blocked, hint, onSend }: AgentBarProps) {
   const notice =
     failure ??
     (blocked !== null ? (strings.refusal[blocked] ?? strings.refusal.failed) : null) ??
-    (hint !== null ? (strings.hint[hint] ?? null) : null);
+    (words?.hint ? hintText(words.hint, words) : null);
 
   return (
     <S.Frame
       notice={notice !== null && <S.Notice text={notice} />}
-      harness={<S.Harness name={strings.harness} />}
+      harness={
+        <S.Harness name={words?.name ?? null} model={status.running ? status.model : null} />
+      }
       input={
         <S.Input
           ref={input}

@@ -39,11 +39,20 @@ export function BarNotice({ text }: BarNoticeProps) {
 }
 
 export interface BarHarnessProps {
-  name: string;
+  /** The name of the harness the next prompt goes to, or `null` before the bar has heard. */
+  name: string | null;
+  /** The running model's name, or `null` when it is not known. */
+  model: string | null;
 }
 
-export function BarHarness({ name }: BarHarnessProps) {
-  return <span className="agentbar__harness">{name}</span>;
+/** The harness the bar sends to, and the model its agent runs. */
+export function BarHarness({ name, model }: BarHarnessProps) {
+  return (
+    <>
+      {name !== null && <span className="agentbar__harness">{name}</span>}
+      {model !== null && <span className="agentbar__harness">{model}</span>}
+    </>
+  );
 }
 
 export interface BarInputProps {

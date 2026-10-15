@@ -4,16 +4,21 @@
  * source, so the few strings both need are kept here as well (handoff §11).
  * The harness is "Claude", never "Claude Code".
  */
-export const ADAPTER_INSTALL =
-  "npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@0.90.0";
+import type { BarHarnessInfo } from "../state/agentBar";
+
+/**
+ * What a hint sentence names: the harness, and the commands that set it up.
+ * Both come from the registry in Rust (`agent-tab/harnesses`), so no sentence
+ * here names a harness, a program or a version of its own.
+ */
+export type HarnessWords = Pick<BarHarnessInfo, "name" | "setup">;
 
 export const strings = {
   label: "Agent bar",
-  harness: "Claude",
   // Not the tab's "Message the agent": both can be on screen at once, and a
   // field is found by its name.
   promptLabel: "Message the agent from the agent bar",
-  placeholder: "Ask Claude to do something in this worktree. Enter sends.",
+  placeholder: "Ask the agent to do something in this worktree. Enter sends.",
   send: "Send",
   sending: "Sending",
   // Only what `agent-tab/harnesses` can answer before anything has started:
@@ -21,15 +26,18 @@ export const strings = {
   // earns (signed out, another adapter version, a path outside the worktree)
   // are the agent tab's to show, from its own strings.
   hint: {
-    harnessMissing: "Claude is not installed. Install it, then run `claude` once to sign in.",
-    adapterMissing: `The Claude ACP adapter is not installed. Run \`${ADAPTER_INSTALL}\`.`,
-  } as Record<string, string>,
+    harnessMissing: ({ name, setup }: HarnessWords) =>
+      `${name} is not installed. Install it, then run \`${setup.signIn}\` once to sign in.`,
+    adapterMissing: ({ name, setup }: HarnessWords) =>
+      `The ${name} ACP adapter is not installed. Run \`${setup.adapterInstall}\`.`,
+  } as Record<string, (words: HarnessWords) => string>,
+  notReady: (name: string) => `${name} is not ready to run.`,
   refusal: {
     notAWorktree: "Agents run in a local worktree. Create a worktree cluster to start one.",
     mainCheckout: "This is a main checkout. Agents never run on main.",
     wrongWorktree: "That session belongs to another worktree. Start a new session in the tab.",
     busy: "The agent is still working. Stop it in the agent tab, or wait.",
-    harness: "Claude is not ready to run.",
+    harness: "The agent is not ready to run.",
     spawn: "The agent could not be started.",
     failed: "Could not send that.",
   } as Record<string, string>,

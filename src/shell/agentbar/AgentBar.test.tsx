@@ -2,30 +2,60 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { isValidElement } from "react";
+import type { AgentBarStatus, BarHarnessInfo } from "../state/agentBar";
 import AgentBar, { ClusterAgentBar } from "./AgentBar";
 import { BarSlotsProvider, defaultBarSlots, type BarSlots } from "./slots";
 
 afterEach(cleanup);
 
+const CLAUDE: BarHarnessInfo = {
+  harness: "claude",
+  name: "Claude",
+  hint: null,
+  setup: {
+    cli: "claude",
+    signIn: "claude",
+    adapterInstall: "npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@0.90.0",
+    adapterVersion: "0.90.0",
+  },
+};
+
+function status(over: Partial<AgentBarStatus> = {}): AgentBarStatus {
+  return {
+    blocked: null,
+    harnesses: [CLAUDE],
+    current: "claude",
+    running: null,
+    model: null,
+    ...over,
+  };
+}
+
+const resolved = () => vi.fn((..._args: unknown[]) => Promise.resolve());
+
 function prompt() {
   return screen.getByRole("textbox", { name: "Message the agent from the agent bar" });
 }
 
+async function sendDraft(text: string) {
+  fireEvent.change(prompt(), { target: { value: text } });
+  await act(async () => {
+    fireEvent.keyDown(prompt(), { key: "Enter" });
+  });
+}
+
 describe("AgentBar", () => {
   it("sends on Enter and clears the prompt once the send lands", async () => {
-    const onSend = vi.fn(() => Promise.resolve());
-    render(<AgentBar blocked={null} hint={null} onSend={onSend} />);
-    fireEvent.change(prompt(), { target: { value: "  fix the test " } });
-    await act(async () => {
-      fireEvent.keyDown(prompt(), { key: "Enter" });
-    });
+    const onSend = resolved();
+    render(<AgentBar status={status()} onSend={onSend} />);
+    await sendDraft("  fix the test ");
     expect(onSend).toHaveBeenCalledWith("fix the test");
     expect(prompt()).toHaveProperty("value", "");
   });
 
   it("keeps Shift+Enter for a new line", () => {
-    const onSend = vi.fn(() => Promise.resolve());
-    render(<AgentBar blocked={null} hint={null} onSend={onSend} />);
+    const onSend = resolved();
+    render(<AgentBar status={status()} onSend={onSend} />);
     fireEvent.change(prompt(), { target: { value: "one" } });
     fireEvent.keyDown(prompt(), { key: "Enter", shiftKey: true });
     expect(onSend).not.toHaveBeenCalled();
@@ -33,17 +63,14 @@ describe("AgentBar", () => {
 
   it("shows a refused send in its own words and keeps the draft", async () => {
     const onSend = vi.fn(() => Promise.reject(new Error("busy")));
-    render(<AgentBar blocked={null} hint={null} onSend={onSend} />);
-    fireEvent.change(prompt(), { target: { value: "again" } });
-    await act(async () => {
-      fireEvent.keyDown(prompt(), { key: "Enter" });
-    });
+    render(<AgentBar status={status()} onSend={onSend} />);
+    await sendDraft("again");
     expect(screen.getByRole("status").textContent).toContain("still working");
     expect(prompt()).toHaveProperty("value", "again");
   });
 
   it("is disabled, with the reason, on a cluster that cannot run an agent", () => {
-    render(<AgentBar blocked="mainCheckout" hint={null} onSend={vi.fn()} />);
+    render(<AgentBar status={status({ blocked: "mainCheckout" })} onSend={vi.fn()} />);
     expect(prompt()).toHaveProperty("disabled", true);
     expect(screen.getByRole("status").textContent).toContain("never run on main");
   });
@@ -58,7 +85,7 @@ describe("AgentBar", () => {
     const slots = Object.fromEntries(names.map((n) => [n, stub(n)])) as Partial<BarSlots>;
     const { container } = render(
       <BarSlotsProvider slots={slots}>
-        <AgentBar blocked="mainCheckout" hint={null} onSend={vi.fn()} />
+        <AgentBar status={status({ blocked: "mainCheckout" })} onSend={vi.fn()} />
       </BarSlotsProvider>,
     );
     const all = [...container.querySelectorAll("*")];
@@ -67,23 +94,31 @@ describe("AgentBar", () => {
   });
 
   it("shows the install line when the adapter is missing, and never says Claude Code", () => {
-    render(<AgentBar blocked={null} hint="adapterMissing" onSend={vi.fn()} />);
+    const missing = { ...CLAUDE, hint: "adapterMissing" };
+    render(<AgentBar status={status({ harnesses: [missing] })} onSend={vi.fn()} />);
     const text = screen.getByRole("status").textContent ?? "";
     expect(text).toContain("npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@0.90.0");
     expect(document.body.textContent).not.toContain("Claude Code");
   });
 
   it("tells a machine without claude to install it and sign in", () => {
-    render(<AgentBar blocked={null} hint="harnessMissing" onSend={vi.fn()} />);
+    const missing = { ...CLAUDE, hint: "harnessMissing" };
+    render(<AgentBar status={status({ harnesses: [missing] })} onSend={vi.fn()} />);
     const text = screen.getByRole("status").textContent ?? "";
     expect(text).toContain("Claude is not installed");
     expect(text).toContain("run `claude` once");
   });
 
+  it("leaves a hint a running session earns to the agent tab", () => {
+    const signedOut = { ...CLAUDE, hint: "signedOut" };
+    render(<AgentBar status={status({ harnesses: [signedOut] })} onSend={vi.fn()} />);
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
   it("keeps what was typed while the send was in flight", async () => {
     let land: () => void = () => {};
     const onSend = vi.fn(() => new Promise<void>((resolve) => (land = resolve)));
-    render(<AgentBar blocked={null} hint={null} onSend={onSend} />);
+    render(<AgentBar status={status()} onSend={onSend} />);
     fireEvent.change(prompt(), { target: { value: "first" } });
     fireEvent.keyDown(prompt(), { key: "Enter" });
     expect(onSend).toHaveBeenCalledWith("first");
@@ -96,8 +131,7 @@ describe("AgentBar", () => {
     let land: () => void = () => {};
     render(
       <AgentBar
-        blocked={null}
-        hint={null}
+        status={status()}
         onSend={() => new Promise<void>((resolve) => (land = resolve))}
       />,
     );
@@ -106,11 +140,26 @@ describe("AgentBar", () => {
     await act(async () => land());
     expect(prompt()).toHaveProperty("value", "");
   });
+
+  it("names the harness, and the model only while its agent runs", () => {
+    const { rerender } = render(<AgentBar status={status({ model: "Opus" })} onSend={vi.fn()} />);
+    expect(screen.getByText("Claude")).toBeTruthy();
+    expect(screen.queryByText("Opus")).toBeNull();
+    rerender(<AgentBar status={status({ running: "claude", model: "Opus" })} onSend={vi.fn()} />);
+    expect(screen.getByText("Opus")).toBeTruthy();
+  });
+
+  it("names the harness that is not ready when the host refuses it", async () => {
+    const onSend = vi.fn(() => Promise.reject(new Error("harness")));
+    render(<AgentBar status={status()} onSend={onSend} />);
+    await sendDraft("hello");
+    expect(screen.getByRole("status").textContent).toBe("Claude is not ready to run.");
+  });
 });
 
 describe("ClusterAgentBar", () => {
   it("starts a cluster of its own with an empty draft", () => {
-    const props = { blocked: null, hint: null, onSend: vi.fn() };
+    const props = { status: status(), onSend: vi.fn() };
     const { rerender } = render(<ClusterAgentBar clusterId="a" {...props} />);
     fireEvent.change(prompt(), { target: { value: "half typed" } });
     rerender(<ClusterAgentBar clusterId="a" {...props} />);

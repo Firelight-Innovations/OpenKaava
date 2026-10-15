@@ -68,7 +68,7 @@ import TerminalDeck, { type TerminalDeckHandle } from "./terminal/TerminalDeck";
 import { callApp, useApps, useOpenables, usePages } from "./state/apps";
 import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
-import { agentBarShown, sendToAgent, useAgentBarStatus } from "./state/agentBar";
+import { agentBarShown, agentTabIn, sendToAgent, useAgentBarStatus } from "./state/agentBar";
 import { agentClusters, agentsDot, useAgentSessions } from "./state/agentSessions";
 import { newAgent, openAgent, type AgentOpeners } from "./state/agentOpeners";
 import { ClusterAgentBar } from "./agentbar/AgentBar";
@@ -1646,10 +1646,13 @@ export default function WindowRoot({
 
   // The agent bar (handoff §4), shown only while Rust says this cluster may run an agent at
   // all: developer mode gates it until V6. A main checkout still shows the bar, disabled, with
-  // the reason, so the way to a worktree is on screen.
+  // the reason, so the way to a worktree is on screen. It asks about the cluster's agent tab
+  // when there is one, so it names the harness and model that tab runs.
+  const agentTab = useMemo(() => agentTabIn(tree, instances), [tree, instances]);
   const agentBarStatus = useAgentBarStatus(
     activeClusterId,
     environment ? environmentKey(environment) : null,
+    agentTab,
   );
   const onAgentSend = useCallback(
     (text: string) =>
@@ -2126,8 +2129,7 @@ export default function WindowRoot({
             activeCluster && agentBarShown(agentBarStatus) ? (
               <ClusterAgentBar
                 clusterId={activeCluster.id}
-                blocked={agentBarStatus.blocked}
-                hint={agentBarStatus.hint}
+                status={agentBarStatus}
                 onSend={onAgentSend}
               />
             ) : undefined,
