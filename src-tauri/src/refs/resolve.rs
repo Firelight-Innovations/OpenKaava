@@ -738,32 +738,33 @@ mod tests {
             .contains("nope.gd"));
     }
 
-    /// Symlinks need a privilege on Windows; where one cannot be made the
-    /// test has nothing to prove and says so.
-    fn link(target: &Path, at: &Path) -> bool {
-        #[cfg(unix)]
-        let made = std::os::unix::fs::symlink(target, at);
-        #[cfg(windows)]
-        let made = std::os::windows::fs::symlink_file(target, at);
-        made.is_ok()
-    }
-
     #[test]
     fn a_link_out_of_the_project_or_onto_a_secret_is_not_followed() {
+        use crate::refs::links;
         let outside = project();
         put(&outside, "private.txt", b"not yours\n");
         let dir = project();
         put(&dir, ".env", b"TOKEN=1\n");
-        if !link(
+        put(&dir, ".ssh/config", b"Host x\n");
+
+        links::folder(outside.path(), &dir.path().join("linkdir"));
+        let err = resolve(&dir, "kaava://file/linkdir/private.txt").unwrap_err();
+        assert!(err.contains("outside the project"), "through a folder: {err}");
+        let err = resolve(&dir, "kaava://file/linkdir").unwrap_err();
+        assert!(err.contains("outside the project"), "the folder: {err}");
+        links::folder(&dir.path().join(".ssh"), &dir.path().join("sshdir"));
+        let r = resolve(&dir, "kaava://file/sshdir/config").unwrap();
+        assert!(r.withheld.unwrap().contains(".ssh"), "named by its target");
+
+        if !links::file(
             &outside.path().join("private.txt"),
             &dir.path().join("away.txt"),
         ) {
-            eprintln!("skipped: cannot create symlinks here");
             return;
         }
         let err = resolve(&dir, "kaava://file/away.txt").unwrap_err();
         assert!(err.contains("outside the project"), "{err}");
-        assert!(link(
+        assert!(links::file(
             &dir.path().join(".env"),
             &dir.path().join("notes.txt")
         ));
