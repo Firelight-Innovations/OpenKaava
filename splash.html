@@ -1694,7 +1694,7 @@
         }
         if (!ctx) {
           var fallback = document.querySelector(".splash__mark");
-          if (fallback) fallback.hidden = false;
+          if (fallback) fallback.removeAttribute("hidden");
         }
         kick();
 

@@ -228,6 +228,11 @@
           // script sees it during parse — the same moment the real Tauri
           // init script would have put it there.
           w.__TAURI__ = {
+            app: {
+              getVersion: function () {
+                return Promise.resolve("0.0.0-preview");
+              },
+            },
             core: {
               invoke: function (cmd) {
                 if (cmd === "boot_status") return Promise.resolve(STATES[selected].payload);

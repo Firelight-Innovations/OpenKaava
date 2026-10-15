@@ -161,29 +161,142 @@ describe("splash.html art", () => {
     art.working(3, 3);
   });
 
+  // The fallback is the mark when the art cannot draw. `hidden` is an HTML
+  // attribute and the mark is an SVG element, so it has to be removed as an
+  // attribute: setting a `hidden` property on an SVG element does nothing.
+  describe("the SVG fallback mark", () => {
+    const fallbackMarkup =
+      '<canvas class="splash__art"></canvas><svg class="splash__mark" viewBox="0 0 24 24" hidden></svg>';
+
+    function mountWith(context: unknown) {
+      document.body.innerHTML = fallbackMarkup;
+      vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+        context as CanvasRenderingContext2D | null,
+      );
+      vi.stubGlobal("requestAnimationFrame", () => 0);
+      window.matchMedia = (() => ({ matches: false })) as unknown as typeof window.matchMedia;
+      new Function(`${artScript}; return splashArt;`)();
+      return document.querySelector(".splash__mark") as SVGElement;
+    }
+
+    it("stays hidden while the art draws", () => {
+      expect(mountWith(blankContext).hasAttribute("hidden")).toBe(true);
+    });
+
+    it("is shown when the canvas gives no 2D context", () => {
+      expect(mountWith(null).hasAttribute("hidden")).toBe(false);
+    });
+
+    it("is shown when building the picture throws", () => {
+      // build() allocates its tile mask; a typed array that cannot be had is
+      // one way for it to fail. The stub is lifted again in the finally.
+      vi.stubGlobal("Uint8Array", function () {
+        throw new Error("out of memory");
+      });
+      try {
+        expect(mountWith(blankContext).hasAttribute("hidden")).toBe(false);
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
+  });
+
   describe("the progress bar", () => {
     const barScript = /<script id="splash-bar">([\s\S]*?)<\/script>/.exec(splash)?.[1] ?? "";
 
-    function mountBar(): Art {
+    /** The frames the bar has asked for and not yet been given. */
+    let queue: FrameRequestCallback[] = [];
+    let clock = 0;
+
+    function mountBar(reduced = false, context: unknown = blankContext): Art {
       document.body.innerHTML = '<div class="splash__bar"><canvas></canvas></div>';
-      vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(blankContext);
-      vi.stubGlobal("requestAnimationFrame", () => 0);
-      window.matchMedia = (() => ({ matches: false })) as unknown as typeof window.matchMedia;
+      vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+        context as CanvasRenderingContext2D,
+      );
+      queue = [];
+      clock = 0;
+      vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => queue.push(cb));
+      window.matchMedia = (() => ({ matches: reduced })) as unknown as typeof window.matchMedia;
       return new Function(`${barScript}; return splashBar;`)() as Art;
+    }
+
+    /** Gives every requested frame a timestamp 16ms after the last, up to `frames` of them. */
+    function pump(frames: number): void {
+      for (let n = 0; n < frames && queue.length > 0; n++) {
+        const due = queue;
+        queue = [];
+        clock += 16;
+        for (const cb of due) cb(clock);
+      }
     }
 
     it("is present", () => {
       expect(barScript).not.toBe("");
     });
 
-    it("follows boot through every phase, and stops on failure", () => {
+    it("animates while boot works and settles once it is ready", () => {
+      const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
       const bar = mountBar();
-      for (let step = 0; step <= 5; step++) bar.working(step, 5);
+      for (let step = 0; step <= 5; step++) {
+        bar.working(step, 5);
+        pump(10);
+        expect(queue.length, `still animating at step ${step}`).toBeGreaterThan(0);
+      }
+      bar.finalizing();
+      pump(10);
+      expect(queue.length).toBeGreaterThan(0);
+      bar.ready();
+      pump(600);
+      expect(queue).toHaveLength(0);
+      expect(errors).not.toHaveBeenCalled();
+    });
+
+    it("settles after a failure, and ignores boot reports after it", () => {
+      const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const bar = mountBar();
+      bar.working(2, 3);
+      pump(10);
+      bar.fail();
+      pump(600);
+      expect(queue).toHaveLength(0);
+      bar.working(3, 3);
+      bar.ready();
+      expect(queue).toHaveLength(0);
+      expect(errors).not.toHaveBeenCalled();
+    });
+
+    it("draws one still per state, and runs no loop, under reduced motion", () => {
+      const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const bar = mountBar(true);
+      bar.working(2, 5);
       bar.finalizing();
       bar.ready();
-      const failing = mountBar();
-      failing.working(2, 3);
+      expect(queue).toHaveLength(0);
+      const failing = mountBar(true);
       failing.fail();
+      expect(queue).toHaveLength(0);
+      expect(errors).not.toHaveBeenCalled();
+    });
+
+    it("says so once and stops when a frame cannot be drawn", () => {
+      const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      let drawing = false;
+      const breaking = new Proxy(
+        {},
+        {
+          get: (_, name) => () => {
+            if (drawing && name === "fillRect") throw new Error("lost context");
+            return undefined;
+          },
+          set: () => true,
+        },
+      );
+      const bar = mountBar(false, breaking);
+      drawing = true;
+      bar.working(1, 5);
+      pump(600);
+      expect(queue).toHaveLength(0);
+      expect(errors).toHaveBeenCalledTimes(1);
     });
   });
 });
