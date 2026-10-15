@@ -38,6 +38,7 @@ use crate::harness::LaunchSpec;
 use crate::host::HostError;
 use crate::job::{self, Job};
 use crate::mask::mask;
+use crate::mcp::{self, McpServer};
 use crate::normalize::Normalizer;
 use crate::transcript::Transcript;
 use crate::wire::{self, Id, Incoming, RemoteError, AUTH_REQUIRED, METHOD_NOT_FOUND};
@@ -113,6 +114,9 @@ struct Shared {
     /// The mode the handshake puts the session in, from its harness's policy.
     ask_first: &'static str,
     setting_timeout: Duration,
+    /// OpenKaava's MCP servers, for `session/new`. Their bearers are also
+    /// scrubbed from the stderr tail.
+    mcp_servers: Vec<McpServer>,
     child: Mutex<Child>,
     /// What ends the child and everything it started at once.
     job: Option<Job>,
@@ -252,6 +256,7 @@ impl Session {
             expected_version: spec.expected_version,
             ask_first: spec.policy.ask_first,
             setting_timeout: spec.setting_timeout,
+            mcp_servers: spec.mcp_servers,
             child: Mutex::new(child),
             job,
             writer,
@@ -687,12 +692,28 @@ impl Shared {
                 &format!("agent-host: {} adapter {}", self.instance_id, mask(version)),
             );
         }
+        let http = init
+            .pointer("/agentCapabilities/mcpCapabilities/http")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        if !http && !self.mcp_servers.is_empty() {
+            let names: Vec<&str> = self.mcp_servers.iter().map(|s| s.name.as_str()).collect();
+            (self.log)(
+                Level::Info,
+                &format!(
+                    "agent-host: {} agent takes no HTTP MCP servers; not offered: {}",
+                    self.instance_id,
+                    names.join(", ")
+                ),
+            );
+        }
         let cwd = self.worktree.path().to_string_lossy().into_owned();
+        let servers = mcp::wire(&self.mcp_servers, http);
         // Its modes and settings are taken in by the reader.
         let new = self
             .send_request(
                 "session/new",
-                json!({ "cwd": cwd, "mcpServers": [] }),
+                json!({ "cwd": cwd, "mcpServers": servers }),
                 carries_settings(None),
             )
             .and_then(|id| self.finish(id, "session/new", Some(HANDSHAKE)))
@@ -1151,7 +1172,8 @@ impl Shared {
             match read_line_capped(&mut reader, &mut buf, STDERR_LINE) {
                 Ok(None) | Err(_) => break,
                 Ok(Some(_)) => {
-                    let line = mask(String::from_utf8_lossy(&buf).trim_end());
+                    let line = String::from_utf8_lossy(&buf);
+                    let line = mask(&mcp::scrub(line.trim_end(), &self.mcp_servers));
                     let mut tail = self.stderr.lock().unwrap_or_else(|e| e.into_inner());
                     if tail.len() == STDERR_TAIL {
                         tail.pop_front();

@@ -15,8 +15,8 @@ use std::time::{Duration, Instant};
 use kaava_agent_host::harness::{Policy, CLAUDE};
 use kaava_agent_host::mask::looks_secret;
 use kaava_agent_host::{
-    AgentHost, Envelope, Event, Harness, Hint, HostError, Item, ItemKind, LaunchSpec, SessionState,
-    SettingTrouble, Worktree,
+    AgentHost, Envelope, Event, Harness, Hint, HostError, Item, ItemKind, LaunchSpec, McpServer,
+    SessionState, SettingTrouble, Worktree,
 };
 use serde_json::{json, Value};
 
@@ -91,7 +91,11 @@ impl Rig {
     }
 
     fn send(&self, args: &[&str], text: &str) -> Result<(), HostError> {
-        self.host.send(TAB, mock(args), self.tree.clone(), text)
+        self.send_spec(mock(args), text)
+    }
+
+    fn send_spec(&self, spec: LaunchSpec, text: &str) -> Result<(), HostError> {
+        self.host.send(TAB, spec, self.tree.clone(), text)
     }
 
     /// Where a mock told `--init-gate` waits, as a string a flag can carry.
@@ -1596,4 +1600,92 @@ fn the_mode_changes_while_a_turn_runs() {
     assert_eq!(status.state, SessionState::Working, "the turn goes on");
     rig.host.cancel(TAB).unwrap();
     rig.turns_done(1);
+}
+
+/// Short, and shaped like nothing `mask` knows, so only the session's own
+/// scrub can keep it out of the log.
+const BEARER: &str = "kaava-test-bearer";
+
+fn kaava_server() -> McpServer {
+    McpServer {
+        name: "kaava-context".into(),
+        url: "http://127.0.0.1:4100/mcp/context".into(),
+        bearer: BEARER.into(),
+    }
+}
+
+/// What the mock was sent as `mcpServers`, once its handshake recorded it.
+fn recorded(path: &Path) -> Value {
+    serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
+}
+
+fn nowhere_holds_the_bearer(rig: &Rig) {
+    for line in rig.logs.lock().unwrap().iter() {
+        assert!(!line.contains(BEARER), "log line holds the bearer: {line}");
+    }
+    let events = serde_json::to_string(&rig.events()).unwrap();
+    assert!(!events.contains(BEARER), "an event holds the bearer");
+}
+
+#[test]
+fn the_tabs_mcp_servers_reach_the_agent_over_http() {
+    let rig = rig();
+    let record = rig.dir.path().join("mcp.json");
+    let mut spec = mock(&["--record-mcp", record.to_str().unwrap()]);
+    spec.mcp_servers = vec![kaava_server()];
+    rig.send_spec(spec, "stream").unwrap();
+    rig.turns_done(1);
+    assert_eq!(
+        recorded(&record),
+        json!([{
+            "type": "http",
+            "name": "kaava-context",
+            "url": "http://127.0.0.1:4100/mcp/context",
+            "headers": [{ "name": "Authorization", "value": format!("Bearer {BEARER}") }],
+        }])
+    );
+    nowhere_holds_the_bearer(&rig);
+}
+
+#[test]
+fn a_session_offers_no_mcp_servers_by_default() {
+    let rig = rig();
+    let record = rig.dir.path().join("mcp.json");
+    rig.send(&["--record-mcp", record.to_str().unwrap()], "stream")
+        .unwrap();
+    rig.turns_done(1);
+    assert_eq!(recorded(&record), json!([]));
+}
+
+#[test]
+fn an_agent_without_http_mcp_is_offered_none() {
+    let rig = rig();
+    let record = rig.dir.path().join("mcp.json");
+    let mut spec = mock(&["--no-mcp-http", "--record-mcp", record.to_str().unwrap()]);
+    spec.mcp_servers = vec![kaava_server()];
+    rig.send_spec(spec, "stream").unwrap();
+    rig.turns_done(1);
+    assert_eq!(recorded(&record), json!([]));
+    let logs = rig.logged("not offered");
+    assert!(
+        logs.iter()
+            .any(|l| l.contains("not offered: kaava-context")),
+        "{logs:?}"
+    );
+    nowhere_holds_the_bearer(&rig);
+}
+
+#[test]
+fn a_bearer_the_agent_prints_never_reaches_the_log() {
+    let rig = rig();
+    let mut spec = mock(&["--leak-mcp"]);
+    spec.mcp_servers = vec![kaava_server()];
+    rig.send_spec(spec, "hi").unwrap();
+    rig.state(SessionState::Failed);
+    let logs = rig.logged("mcp servers");
+    assert!(
+        logs.iter().any(|l| l.contains("Bearer <redacted>")),
+        "the line was kept, scrubbed: {logs:?}"
+    );
+    nowhere_holds_the_bearer(&rig);
 }

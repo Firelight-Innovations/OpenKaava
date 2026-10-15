@@ -332,7 +332,9 @@ impl Mock {
                     &id,
                     json!({
                         "protocolVersion": 1,
-                        "agentCapabilities": {},
+                        "agentCapabilities": {
+                            "mcpCapabilities": { "http": !self.has("--no-mcp-http"), "sse": true }
+                        },
                         "agentInfo": { "name": "mock-agent", "version": version },
                         "authMethods": []
                     }),
@@ -358,6 +360,15 @@ impl Mock {
                             "organization": "Example Org"
                         } }
                     }));
+                }
+                let servers = params.get("mcpServers").cloned().unwrap_or(Value::Null);
+                if let Some(path) = self.flag_value("--record-mcp") {
+                    let _ = std::fs::write(path, servers.to_string());
+                }
+                // An adapter that prints its config as it dies, bearer and all.
+                if self.has("--leak-mcp") {
+                    eprintln!("mock-agent: mcp servers {servers}");
+                    std::process::exit(4);
                 }
                 let mut result = json!({ "sessionId": "mock-1", "modes": self.modes() });
                 if self.has("--no-session-id") {
