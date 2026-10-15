@@ -404,7 +404,7 @@ fn excerpt(abs: &Path, lines: Option<Lines>) -> Result<Excerpt, Fault> {
 
 /// [`excerpt`], reading at most `scan` bytes of the file.
 fn excerpt_within(abs: &Path, lines: Option<Lines>, scan: u64) -> Result<Excerpt, Fault> {
-    let file = std::fs::File::open(abs).map_err(|e| format!("cannot open that file: {e}"))?;
+    let file = open(abs)?;
     let size = file.metadata().map(|m| m.len()).unwrap_or(0);
     let mut reader = BufReader::new(file).take(scan);
     let start = lines.map_or(1, |l| l.start);
@@ -483,8 +483,18 @@ fn cut(s: &str, max: usize) -> &str {
     &s[..end]
 }
 
+/// A regular file, opened to read. Anything else is refused before opening:
+/// opening a named pipe waits for a writer that may never come.
+fn open(abs: &Path) -> Result<std::fs::File, String> {
+    let meta = std::fs::metadata(abs).map_err(|e| format!("cannot open that file: {e}"))?;
+    if !meta.is_file() {
+        return Err("that is not a regular file, so it is not read".into());
+    }
+    std::fs::File::open(abs).map_err(|e| format!("cannot open that file: {e}"))
+}
+
 fn read_prefix(abs: &Path, max: u64) -> Result<Vec<u8>, String> {
-    let file = std::fs::File::open(abs).map_err(|e| format!("cannot open that file: {e}"))?;
+    let file = open(abs)?;
     let mut bytes = Vec::new();
     file.take(max)
         .read_to_end(&mut bytes)
@@ -889,6 +899,23 @@ mod tests {
         assert!(huge.withheld.unwrap().contains("over the"));
         assert!(huge.parts.is_empty());
         assert_eq!(huge.meta["width"], 4000);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_named_pipe_is_refused_without_waiting_for_a_writer() {
+        let dir = project();
+        let pipe = dir.path().join("pipe");
+        let made = std::process::Command::new("mkfifo").arg(&pipe).status();
+        if !made.is_ok_and(|s| s.success()) {
+            return;
+        }
+        let err = resolve(&dir, "kaava://file/pipe").unwrap_err();
+        assert!(
+            err.message.contains("not a regular file"),
+            "{}",
+            err.message
+        );
     }
 
     #[test]
