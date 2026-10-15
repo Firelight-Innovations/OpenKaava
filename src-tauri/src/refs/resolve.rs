@@ -1057,8 +1057,8 @@ mod tests {
     #[test]
     fn a_context_title_is_screened_only_when_it_is_spelt_as_a_file_name() {
         let dir = project();
-        let note = |title: &str, key: &str| {
-            let item = crate::context::put(
+        let store = |title: &str, key: &str| {
+            crate::context::put(
                 dir.path(),
                 crate::context::PutRequest {
                     key: Some(key.into()),
@@ -1072,20 +1072,27 @@ mod tests {
                     reference_in_place: true,
                 },
             )
-            .unwrap();
-            resolve(&dir, &format!("kaava://context/{}", item.id)).unwrap()
+            .unwrap()
         };
+        let read = |id: &str| resolve(&dir, &format!("kaava://context/{id}")).unwrap();
         for prose in [
             "Credentials rotation plan",
             "id_card layout",
             "secrets.md review",
         ] {
-            let r = note(prose, "notes/plan");
+            let r = read(&store(prose, "notes/plan").id);
             assert_eq!(r.title, prose);
             assert_eq!(r.withheld, None, "{prose}");
             assert_eq!(text_of(&r).0, format!("{prose}: on Monday."));
         }
-        let r = note("id_rsa", "notes/handoff");
+        // Ingest now refuses this title, so the item is one stored before it
+        // did: its sidecar given the title afterwards.
+        let item = store("handoff notes", "notes/handoff");
+        let sidecar = crate::context::store_dir(dir.path()).join(format!("{}.json", item.id));
+        let mut record: Value = serde_json::from_slice(&std::fs::read(&sidecar).unwrap()).unwrap();
+        record["title"] = json!("id_rsa");
+        std::fs::write(&sidecar, record.to_string()).unwrap();
+        let r = read(&item.id);
         assert!(r.withheld.unwrap().contains("SSH private keys"));
     }
 

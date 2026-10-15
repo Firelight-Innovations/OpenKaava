@@ -933,11 +933,12 @@ fn jpeg_dims(bytes: &[u8]) -> Option<(u32, u32)> {
 
 /// The secrets rule a copy would break, by the same lists the `kaava://`
 /// resolver withholds a stored copy with: the source path, the title and the
-/// first 64 KB. Screened here too so the bytes never reach the store.
+/// first 64 KB. Screened here too so the bytes never reach the store. The
+/// title is free text, so it counts only when it is spelt as a file name.
 fn secret_in(source: Option<&Path>, title: Option<&str>, bytes: &[u8]) -> Option<&'static str> {
     let by_name = source
         .and_then(|p| policy::secret_rule(&p.to_string_lossy()))
-        .or_else(|| title.and_then(policy::secret_rule));
+        .or_else(|| title.and_then(policy::title_rule));
     by_name.or_else(|| policy::secret_content(&bytes[..bytes.len().min(64 * 1024)]))
 }
 
@@ -1408,6 +1409,20 @@ mod tests {
             req(Payload::Path(write(".env.example", "TOKEN="))),
         )
         .unwrap();
+    }
+
+    #[test]
+    fn a_title_is_screened_only_when_it_is_spelt_as_a_file_name() {
+        let env = TempDir::new().unwrap();
+        let titled = |title: &str| PutRequest {
+            title: Some(title.into()),
+            ..req(Payload::Text(format!("{title}: on Monday.")))
+        };
+        for prose in ["Credentials rotation plan", "secrets.md review"] {
+            put(env.path(), titled(prose)).unwrap();
+        }
+        let err = put(env.path(), titled("id_rsa")).unwrap_err();
+        assert!(err.message.contains("SSH private keys"), "{}", err.message);
     }
 
     #[test]
