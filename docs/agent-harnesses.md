@@ -1,6 +1,6 @@
 # Agent harnesses
 
-A harness is a coding agent the agent tab can run: Claude today, with Codex and Pi next. This page
+A harness is a coding agent the agent tab can run: Claude and Codex today, with Pi next. This page
 describes the boundary between a harness and the rest of OpenKaava, and how to add a harness.
 
 `src-tauri/src/harness.rs` is a different thing. It recognises a harness that runs in a terminal, so
@@ -73,7 +73,8 @@ breaks one.
 
   The worktree guard checks each `session/request_permission`, and a mode like these skips that
   request, so the guard never sees what the agent does. Name those modes when you verify the
-  adapter (step 1).
+  adapter (step 1), and add their ids to `config::NOT_OFFERED`. The host drops those ids from
+  every option's choices, refuses to switch to them, and never starts a session in one.
 - `env` never carries a credential.
 - The UI calls a harness by its short name: "Claude", "Codex", "Pi".
 
@@ -96,7 +97,45 @@ also lists harnesses that are not registered yet, as "Coming soon", by names in 
   `src/shell/agentbar/strings.ts`, since the shell may not import an app's source. That copy is
   held to `BarHint`, and `src/shell/agentbar/strings.test.ts` checks each of its hints is still in
   `Hint`. A new `Hint` needs a sentence in the tab; the bar needs one only if `spec` can fail with
-  it.
+  it. An error item records the harness that raised it, so its hint names that harness after the
+  tab switches to another.
+
+## Codex
+
+`harness/codex.rs` runs the user's own `codex` through `@agentclientprotocol/codex-acp`, which
+starts `codex app-server` and speaks ACP for it. The user installs the adapter with
+`--omit=optional`, so npm skips the `codex` binary the package bundles. The host sets `CODEX_PATH`
+to the user's `codex`, and the adapter runs that one. The user signs in with `codex login` in a
+terminal. A signed-out `session/new` answers `auth_required`, and the tab shows the `signedOut`
+hint.
+
+**Modes.** Each Codex mode joins an approval policy and a sandbox:
+
+| Mode id | Name | Approval | Sandbox | In the tab |
+|---|---|---|---|---|
+| `read-only` | Read-only | the user, on request | read-only | the ask-first mode |
+| `workspace-write` | Workspace access | the user, on request | the workspace | offered |
+| `agent` | Auto review | a reviewer model | the workspace | never offered |
+| `agent-full-access` | Full access | never | none | never offered |
+
+`agent` is the adapter's default. A reviewer model approves requests in it, so those requests skip
+the guard, as in Claude's `auto`. `agent-full-access` is Codex's equivalent of Claude's
+`bypassPermissions`. Both ids are in `config::NOT_OFFERED`. The descriptor sets
+`INITIAL_AGENT_MODE=read-only`, so the session opens in `read-only` before the host's own
+`set_mode`, and never runs in `agent`.
+
+**Settings.** The adapter reports these select options, and the tab draws each one:
+
+- `model`: the model, which the header and the agent bar show
+- `reasoning_effort`: the effort, only for a model that has levels
+- `collaboration_mode`: `default` or `plan`
+- `fast-mode`: `on` or `off`, only for a model that supports it
+
+**The guard.** A command request carries its working directory as `rawInput.cwd`. A sandbox
+request carries the paths it grants under `permissions` or `additionalPermissions`, as
+`fileSystem.read`, `fileSystem.write` and `entries`. `guard::request_scope` checks all of them
+against the worktree. An entry of type `special` names no path, so the guard cannot check it, and
+the user decides.
 
 ## Adding a harness
 
@@ -116,8 +155,9 @@ also lists harnesses that are not registered yet, as "Coming soon", by names in 
    `harness/claude.rs`. Declare it in `harness.rs` with `mod <name>;` and
    `pub use <name>::<NAME>;`, and add it to `REGISTRY`. The struct documents each field.
 4. **Extend the guard if needed.** `guard::request_paths` reads the paths that a permission
-   request names. If the new adapter puts paths under keys that it does not read, add those keys,
-   with a test.
+   request names, which the approval card shows. `guard::request_scope` adds what only the guard
+   checks: where a command runs, and the paths a sandbox grant opens. If the new adapter puts
+   paths under keys that neither reads, add those keys, with a test.
 5. **Regenerate the TypeScript types.** Run
    `KAAVA_BLESS=1 cargo test -p kaava-agent-host generated_types`. The new id joins the `Harness`
    union. The pickers list the new harness, and no UI code changes.
