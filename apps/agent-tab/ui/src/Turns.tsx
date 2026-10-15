@@ -7,10 +7,18 @@
  * context: components made inside a render would remount on every envelope.
  */
 import { createContext, useContext, type ReactNode } from "react";
-import { MessagePrimitive, ThreadPrimitive } from "@assistant-ui/react";
+import {
+  MessagePrimitive,
+  ThreadPrimitive,
+  type PartState,
+  type ThreadMessage,
+} from "@assistant-ui/react";
 import type { Item } from "./protocol.generated";
 import { ItemView, type ItemActions } from "./Items";
 import { useSlots } from "./components/registry";
+import { summarize } from "./actions";
+import { strings } from "./strings";
+import { ACTION_TOOL } from "./thread";
 
 interface Lookup {
   byId: ReadonlyMap<string, Item>;
@@ -31,26 +39,82 @@ function ById({ id, live }: { id: string | undefined; live?: boolean }) {
   return item && lookup ? <ItemView item={item} actions={lookup.actions} live={live} /> : null;
 }
 
+/** A prompt has only text. */
+const userParts = {
+  Text: ({ id }: { id?: string }) => <ById id={id} />,
+};
+
+const ACTIONS = "group-actions";
+
 /**
- * assistant-ui draws this in an empty agent turn, and after a turn's last
- * tool row, whether or not the turn is still running: it is left to us to
- * check. A turn waiting on an approval is open but not working.
+ * Adjacent tool calls coalesce into one group. Every other item is a
+ * `tool-call` part too (`thread.ts`), under another tool name, so an approval
+ * or a plan breaks a run rather than hiding inside it. Module level, so the
+ * grouping is not redone on every draw.
  */
-function Empty({ status }: { status: { type: string } }) {
-  const S = useSlots();
-  const waiting = useContext(LookupContext)?.waiting ?? false;
-  return status.type === "running" && !waiting ? <S.Working /> : null;
+function groupBy(part: PartState): readonly (typeof ACTIONS)[] | null {
+  return part.type === "tool-call" && part.toolName === ACTION_TOOL ? [ACTIONS] : null;
 }
 
-const parts = {
-  Text: ({ id }: { id?: string }) => <ById id={id} />,
-  // assistant-ui marks the part still streaming in a running turn as running.
-  Reasoning: ({ id, status }: { id?: string; status: { type: string } }) => (
-    <ById id={id} live={status.type === "running"} />
-  ),
-  Empty,
-  tools: { Override: ({ toolCallId }: { toolCallId: string }) => <ById id={toolCallId} /> },
-};
+/** A run of tool calls: one call alone stays a plain row, two or more fold into a group. */
+function Actions({ ids, children }: { ids: readonly string[]; children: ReactNode }) {
+  const S = useSlots();
+  const lookup = useContext(LookupContext);
+  const items = ids.flatMap((id) => {
+    const item = lookup?.byId.get(id);
+    return item ? [item] : [];
+  });
+  if (items.length < 2) return <>{children}</>;
+  const { summary, running, failed } = summarize(items);
+  return (
+    <S.ActionGroup
+      summary={summary}
+      running={running}
+      failed={failed > 0 ? strings.actions.failed(failed) : null}
+    >
+      {children}
+    </S.ActionGroup>
+  );
+}
+
+/**
+ * An agent turn's parts. assistant-ui marks the part still streaming in a
+ * running turn as running, and adds an `indicator` while the turn runs and
+ * has not ended on text: that is where `Working` goes.
+ */
+function AgentParts({ message }: { message: ThreadMessage }) {
+  const S = useSlots();
+  // An approval holds the turn open, but the agent is waiting, not working.
+  const waiting = useContext(LookupContext)?.waiting ?? false;
+  return (
+    <MessagePrimitive.GroupedParts groupBy={groupBy}>
+      {({ part, children }) => {
+        switch (part.type) {
+          case ACTIONS:
+            return (
+              <Actions ids={part.indices.map((i) => toolCallIdAt(message, i))}>{children}</Actions>
+            );
+          case "text":
+            return <ById id={part.id} />;
+          case "reasoning":
+            return <ById id={part.id} live={part.status.type === "running"} />;
+          case "tool-call":
+            return <ById id={part.toolCallId} />;
+          case "indicator":
+            return waiting ? <></> : <S.Working />;
+          default:
+            // An empty fragment, not `null`: `null` would ask for a registered tool UI.
+            return <></>;
+        }
+      }}
+    </MessagePrimitive.GroupedParts>
+  );
+}
+
+function toolCallIdAt(message: ThreadMessage, index: number): string {
+  const part = message.content[index];
+  return part?.type === "tool-call" ? part.toolCallId : "";
+}
 
 export function Turns() {
   const S = useSlots();
@@ -59,11 +123,11 @@ export function Turns() {
       {({ message }) =>
         message.role === "user" ? (
           <S.UserTurn>
-            <MessagePrimitive.Parts components={parts} />
+            <MessagePrimitive.Parts components={userParts} />
           </S.UserTurn>
         ) : (
           <S.AssistantTurn>
-            <MessagePrimitive.Parts components={parts} />
+            <AgentParts message={message} />
           </S.AssistantTurn>
         )
       }

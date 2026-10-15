@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 /**
  * The transcript's live touches: the reasoning the agent is still writing
- * shimmers, and stops once the turn is over.
+ * shimmers, and stops once the turn is over. A run of tool calls folds into
+ * one line.
  */
 import "./jsdom-shims";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,7 +18,7 @@ vi.mock("@openkaava/bridge", () => ({
 }));
 
 import App from "./App";
-import type { Attachment, Item, SessionState } from "./protocol.generated";
+import type { Attachment, Item, SessionState, ToolStatus } from "./protocol.generated";
 
 function item(id: string, kind: Item["kind"]): Item {
   return { id, turnId: "t1", kind };
@@ -52,6 +53,19 @@ function backend(attachment: Attachment) {
 const PROMPT = item("u", { kind: "userMessage", text: "why" });
 const THOUGHT = item("r", { kind: "reasoning", text: "hmm" });
 
+function tool(id: string, toolKind: string, status: ToolStatus = "completed"): Item {
+  return item(id, {
+    kind: "toolCall",
+    title: `call ${id}`,
+    toolKind,
+    status,
+    output: "",
+    truncated: false,
+    paths: [],
+    diffs: [],
+  });
+}
+
 beforeEach(() => bridge.invoke.mockReset());
 afterEach(cleanup);
 
@@ -75,5 +89,47 @@ describe("the transcript", () => {
     render(<App />);
     const summary = (await screen.findByText("Thinking")).closest("summary");
     expect(summary?.className).toContain("at-disclosure");
+  });
+
+  it("folds adjacent tool calls into one line that names what they did", async () => {
+    backend(
+      session("ready", [PROMPT, tool("a", "execute"), tool("b", "execute"), tool("c", "read")]),
+    );
+    render(<App />);
+    const line = await screen.findByText("Ran 2 commands, read a file");
+    expect(line.hasAttribute("data-live")).toBe(false);
+    const group = line.closest("details");
+    expect(group?.textContent).toContain("call a");
+    expect(group?.textContent).toContain("call c");
+  });
+
+  it("shimmers the line while a call in it is still running", async () => {
+    backend(session("working", [PROMPT, tool("a", "execute"), tool("b", "read", "inProgress")]));
+    render(<App />);
+    const line = await screen.findByText("Ran a command, read a file");
+    expect(line.hasAttribute("data-live")).toBe(true);
+  });
+
+  it("leaves a lone tool call as its own row", async () => {
+    backend(session("ready", [PROMPT, tool("a", "execute"), THOUGHT]));
+    render(<App />);
+    expect(await screen.findByText("call a")).toBeTruthy();
+    expect(screen.queryByText("Ran a command")).toBeNull();
+  });
+
+  it("breaks the run at anything that is not a tool call", async () => {
+    const words = item("w", { kind: "assistantText", text: "between" });
+    backend(session("ready", [PROMPT, tool("a", "execute"), words, tool("b", "execute")]));
+    render(<App />);
+    expect(await screen.findByText("call a")).toBeTruthy();
+    expect(screen.getByText("call b")).toBeTruthy();
+    expect(screen.queryByText("Ran 2 commands")).toBeNull();
+  });
+
+  it("shows Working in an agent turn that has nothing in it yet", async () => {
+    backend(session("working", [PROMPT]));
+    render(<App />);
+    const label = await screen.findByText("Working…");
+    expect(label.hasAttribute("data-live")).toBe(true);
   });
 });
