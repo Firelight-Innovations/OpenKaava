@@ -1,0 +1,39 @@
+/*
+ * Kaava tokens under the VS Code-style names the agent tab's components read
+ * (handoff §2.1.1). Components use only the `--k-*` names below; this file is
+ * the one place that knows which Kaava token each one is. No hex values here
+ * either, so the shell's live theme and accent carry straight through.
+ */
+:root {
+  --k-editor-bg: var(--bg-surface-1);
+  --k-editor-fg: var(--txt-primary);
+  --k-sidebar-bg: var(--bg-layer-1);
+  --k-panel-border: var(--border-subtle);
+  --k-input-bg: var(--bg-layer-1);
+  --k-input-border: var(--border-subtle-1);
+  --k-focus-ring: var(--focus-ring);
+  --k-list-hover: var(--bg-layer-1-hover);
+  --k-list-active: var(--bg-layer-1-selected);
+  --k-badge-bg: var(--bg-layer-2);
+  --k-badge-fg: var(--txt-secondary);
+  --k-card-bg: var(--bg-layer-1);
+  --k-code-bg: var(--bg-layer-2);
+  --k-fg-muted: var(--txt-tertiary);
+  --k-fg-faint: var(--txt-placeholder);
+  --k-link: var(--txt-accent);
+  --k-diff-add: var(--success-subtle);
+  --k-diff-add-fg: var(--txt-success);
+  --k-diff-del: var(--danger-subtle);
+  --k-diff-del-fg: var(--txt-danger);
+  --k-warning-bg: var(--warning-subtle);
+  --k-warning-fg: var(--txt-warning);
+  --k-error-bg: var(--danger-subtle);
+  --k-error-fg: var(--txt-danger);
+  --k-state-idle: var(--state-idle);
+  --k-state-ready: var(--success);
+  --k-state-working: var(--info);
+  --k-state-attention: var(--warning);
+  --k-state-failed: var(--danger);
+  --k-font: var(--sans);
+  --k-mono: var(--mono);
+}

@@ -89,6 +89,15 @@
    makes reaching for the bottom of the window and pulling up work when there is
    nothing on screen to pull. It keeps `row-resize` for the same reason. */
 
+/* The agent bar: a fixed-height strip under the tool window, inset like it.
+   Padding rather than margin, so `Frame`'s band arithmetic reads its whole
+   footprint from one bounding box. */
+.frame__agentbar {
+  flex: none;
+  min-width: 0;
+  padding: 0 0 var(--space-1-5, 6px) var(--space-1-5, 6px);
+}
+
 .frame__bottomhandle {
   flex: none;
   height: var(--w-resize-handle);

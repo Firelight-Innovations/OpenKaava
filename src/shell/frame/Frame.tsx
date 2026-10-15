@@ -131,6 +131,9 @@ export default function Frame({
   const bottom = useMotionValue(bottomCollapsed ? 0 : bottomHeight);
   const mainRef = useRef<HTMLDivElement>(null);
   const bottomHandleRef = useRef<HTMLDivElement>(null);
+  // The agent bar keeps its height when the band takes the column, so the band's
+  // "whole column" is the column minus the bar as well as minus the handle.
+  const agentBarRef = useRef<HTMLDivElement>(null);
   const bottomDragging = useRef(false);
 
   // The project page's width, on the same motion-value terms as the band's
@@ -168,7 +171,8 @@ export default function Frame({
   const bottomFull = useCallback(
     () =>
       (mainRef.current?.getBoundingClientRect().height ?? 0) -
-      (bottomHandleRef.current?.getBoundingClientRect().height ?? 6),
+      (bottomHandleRef.current?.getBoundingClientRect().height ?? 6) -
+      (agentBarRef.current?.getBoundingClientRect().height ?? 0),
     [],
   );
 
@@ -185,7 +189,9 @@ export default function Frame({
   // A maximized band has to be re-derived when the window changes size, exactly
   // as the maximized panel's width does: a fixed pixel height taken at the
   // moment of the drag would leave a strip of tool window showing the next time
-  // the window grew. Guarded against a drag in flight for the same reason.
+  // the window grew. Guarded against a drag in flight for the same reason. The
+  // agent bar is watched too: its prompt grows with what is typed into it.
+  const hasAgentBar = slots.agentBar !== undefined;
   useEffect(() => {
     const col = mainRef.current;
     if (!col) return;
@@ -194,8 +200,9 @@ export default function Frame({
       bottom.set(bottomFull());
     });
     observer.observe(col);
+    if (agentBarRef.current) observer.observe(agentBarRef.current);
     return () => observer.disconnect();
-  }, [bottomCollapsed, bottomMaximized, bottom, bottomFull]);
+  }, [bottomCollapsed, bottomMaximized, bottom, bottomFull, hasAgentBar]);
 
   /**
    * Pull the band up, or shove it shut.
@@ -222,7 +229,8 @@ export default function Frame({
       const colRect = col.getBoundingClientRect();
       const colBottom = colRect.bottom;
       const handleH = bottomHandleRef.current?.getBoundingClientRect().height ?? 6;
-      const full = colRect.height - handleH;
+      const barH = agentBarRef.current?.getBoundingClientRect().height ?? 0;
+      const full = colRect.height - handleH - barH;
       // The tallest the band gets while still leaving the apps a usable strip.
       // Past this the drag stops resizing and starts minimizing them instead.
       const maxNormal = full - TOOLWINDOW_MIN_H;
@@ -372,6 +380,12 @@ export default function Frame({
             <div className="frame__toolwindow" data-region="toolwindow">
               {slots.toolWindow}
             </div>
+
+            {slots.agentBar !== undefined && (
+              <div className="frame__agentbar" data-region="agentbar" ref={agentBarRef}>
+                {slots.agentBar}
+              </div>
+            )}
 
             {slots.bottomPanel !== undefined && (
               <>

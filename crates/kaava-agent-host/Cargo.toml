@@ -1,0 +1,38 @@
+[package]
+name = "kaava-agent-host"
+description = "Runs coding agents over the Agent Client Protocol and turns what they say into one event model"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+publish = false
+
+# Lint levels come from [workspace.lints] in the root Cargo.toml.
+[lints]
+workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+# Job Objects, so an agent's whole process tree ends in one call (`job.rs`).
+# Already in the tree at this version through `src-tauri`; raw `extern`
+# declarations, nothing more.
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_System_JobObjects",
+    "Win32_System_Threading",
+] }
+
+[dev-dependencies]
+# Generates the agent tab's TypeScript from `event.rs`. A dev-dependency on
+# purpose: the derive is `cfg_attr(test, ...)`, so a release build carries none
+# of it, and the check that the checked-in file is current runs inside
+# `cargo test`, which is inside `pnpm verify`.
+ts-rs.workspace = true
+# The worktrees the tests run agents in.
+tempfile.workspace = true

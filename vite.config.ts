@@ -123,6 +123,7 @@ export default defineConfig(async ({ mode }) => ({
         canvas: resolve(__dirname, "apps/canvas/ui/index.html"),
         tutorial: resolve(__dirname, "apps/tutorial/ui/index.html"),
         agents: resolve(__dirname, "apps/agents/ui/index.html"),
+        "agent-tab": resolve(__dirname, "apps/agent-tab/ui/index.html"),
         costs: resolve(__dirname, "apps/costs/ui/index.html"),
         projects: resolve(__dirname, "apps/projects/ui/index.html"),
         // Design Mode is disabled and ships no bundle unless

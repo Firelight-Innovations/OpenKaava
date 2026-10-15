@@ -1,0 +1,428 @@
+/*
+ * The agent tab. Density per handoff §2.1.3: 13px text, 1px borders, 4px card
+ * radius, no shadows. Colours come only from the `--k-*` names in
+ * `theme/vscode-map.css`.
+ */
+
+.at {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--k-editor-bg);
+  color: var(--k-editor-fg);
+  font: 450 13px/1.5 var(--k-font);
+}
+
+.at-mono {
+  font-family: var(--k-mono);
+  font-size: 12px;
+}
+
+.at-header {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-height: 34px;
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--k-panel-border);
+  background: var(--k-sidebar-bg);
+}
+
+.at-header__title {
+  font-weight: 600;
+}
+
+.at-header__spacer {
+  flex: 1;
+}
+
+.at-chip {
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--k-badge-bg);
+  color: var(--k-badge-fg);
+  font-size: 12px;
+}
+
+.at-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--k-fg-muted);
+  font-size: 12px;
+}
+
+.at-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--k-state-idle);
+}
+
+.at-status--ready .at-status__dot {
+  background: var(--k-state-ready);
+}
+
+.at-status--working .at-status__dot,
+.at-status--starting .at-status__dot {
+  background: var(--k-state-working);
+}
+
+.at-status--needsInput .at-status__dot {
+  background: var(--k-state-attention);
+}
+
+.at-status--failed .at-status__dot {
+  background: var(--k-state-failed);
+}
+
+.at-transcript {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.at-item {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.at-item__label {
+  color: var(--k-fg-faint);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.at-user {
+  padding: 6px 10px;
+  border: 1px solid var(--k-panel-border);
+  border-radius: 4px;
+  background: var(--k-card-bg);
+}
+
+.at-user__text {
+  white-space: pre-wrap;
+}
+
+/* Accepted, but the agent is still starting: shown as not yet sent. */
+.at-user--pending {
+  opacity: 0.75;
+}
+
+.at-assistant p {
+  margin: 0 0 6px;
+}
+
+.at-assistant a {
+  color: var(--k-link);
+}
+
+.at-assistant code {
+  font-family: var(--k-mono);
+  font-size: 12px;
+  padding: 0 3px;
+  border-radius: 4px;
+  background: var(--k-code-bg);
+}
+
+.at-code {
+  position: relative;
+}
+
+.at-code pre,
+.at-pre {
+  margin: 4px 0;
+  padding: 6px 8px;
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--k-panel-border);
+  border-radius: 4px;
+  background: var(--k-code-bg);
+  font: 400 12px/1.45 var(--k-mono);
+  white-space: pre;
+}
+
+.at-code pre code {
+  padding: 0;
+  background: none;
+}
+
+.at-code__copy {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 0 6px;
+  border: 1px solid var(--k-input-border);
+  border-radius: 4px;
+  background: var(--k-badge-bg);
+  color: var(--k-badge-fg);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.at-reasoning summary,
+.at-tool summary {
+  cursor: pointer;
+  color: var(--k-fg-muted);
+}
+
+.at-reasoning__text {
+  white-space: pre-wrap;
+  color: var(--k-fg-muted);
+  padding-left: 12px;
+}
+
+.at-tool {
+  border-left: 1px solid var(--k-panel-border);
+  padding-left: 8px;
+}
+
+.at-tool__head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 22px;
+}
+
+details > .at-tool__head {
+  display: list-item;
+}
+
+.at-tool__glyph {
+  font-family: var(--k-mono);
+}
+
+.at-tool__glyph--completed {
+  color: var(--k-state-ready);
+}
+
+.at-tool__glyph--failed {
+  color: var(--k-state-failed);
+}
+
+.at-tool__title {
+  font-family: var(--k-mono);
+  font-size: 12px;
+}
+
+.at-tool__status {
+  color: var(--k-fg-faint);
+  font-size: 12px;
+}
+
+.at-paths {
+  margin: 4px 0;
+  padding-left: 18px;
+  color: var(--k-fg-muted);
+}
+
+.at-diff {
+  margin: 4px 0;
+}
+
+.at-diff__head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.at-diff__new {
+  color: var(--k-fg-faint);
+  font-size: 12px;
+}
+
+.at-diff__add {
+  color: var(--k-diff-add-fg);
+}
+
+.at-diff__del {
+  color: var(--k-diff-del-fg);
+}
+
+.at-diff__line--add {
+  background: var(--k-diff-add);
+}
+
+.at-diff__line--del {
+  background: var(--k-diff-del);
+}
+
+.at-approval {
+  padding: 8px 10px;
+  border: 1px solid var(--k-panel-border);
+  border-radius: 4px;
+  background: var(--k-warning-bg);
+}
+
+.at-approval__head {
+  font-weight: 600;
+  color: var(--k-warning-fg);
+}
+
+.at-approval__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.at-approval__answer {
+  margin-top: 6px;
+  color: var(--k-fg-muted);
+}
+
+.at-plan {
+  padding: 6px 10px;
+  border: 1px solid var(--k-panel-border);
+  border-radius: 4px;
+  background: var(--k-card-bg);
+}
+
+.at-plan ul {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.at-plan__entry--completed {
+  color: var(--k-fg-muted);
+  text-decoration: line-through;
+}
+
+.at-usage,
+.at-note {
+  color: var(--k-fg-faint);
+  font-size: 12px;
+}
+
+.at-error {
+  padding: 6px 10px;
+  border: 1px solid var(--k-panel-border);
+  border-radius: 4px;
+  background: var(--k-error-bg);
+}
+
+.at-error__message {
+  color: var(--k-error-fg);
+  margin-bottom: 4px;
+}
+
+.at-hint {
+  color: var(--k-warning-fg);
+  font-size: 12px;
+}
+
+.at-empty {
+  margin: auto 0;
+  padding: 12px 4px;
+  color: var(--k-fg-muted);
+}
+
+.at-empty__heading {
+  margin: 0 0 4px;
+  color: var(--k-editor-fg);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.at-empty__examples {
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.at-empty__keys {
+  margin: 12px 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--k-fg-faint);
+}
+
+.at-keys {
+  margin: 0;
+}
+
+.at-keys > div {
+  display: flex;
+  gap: 8px;
+}
+
+.at-keys dt {
+  min-width: 11ch;
+}
+
+.at-keys dd {
+  margin: 0;
+}
+
+.at-keys kbd {
+  font-family: var(--k-mono);
+  font-size: 12px;
+  padding: 0 4px;
+  border: 1px solid var(--k-input-border);
+  border-radius: 4px;
+}
+
+.at-prompt {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--k-panel-border);
+}
+
+.at-notice {
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--k-error-bg);
+  color: var(--k-error-fg);
+}
+
+.at-prompt__input {
+  resize: vertical;
+  min-height: 56px;
+  max-height: 40vh;
+  padding: 6px 8px;
+  border: 1px solid var(--k-input-border);
+  border-radius: 4px;
+  background: var(--k-input-bg);
+  color: var(--k-editor-fg);
+  font: inherit;
+}
+
+.at-prompt__input:focus-visible {
+  outline: var(--k-focus-ring);
+  outline-offset: 0;
+}
+
+.at-prompt__footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.at-prompt__mode {
+  color: var(--k-fg-faint);
+  font-size: 12px;
+}

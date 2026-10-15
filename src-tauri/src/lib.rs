@@ -204,6 +204,9 @@ pub fn run() {
         // project-status` to poll — the same shape as `WakeManager` above.
         // See `apps::home_create`.
         .manage(apps::home_create::CreateManager::default())
+        // One coding agent per agent tab; none runs until a tab sends a
+        // prompt, and `RunEvent::Exit` below stops them all.
+        .manage(apps::agent_tab::Sessions::default())
         // Which MCP servers this build hosts for whatever agent the user is
         // running in a terminal, and which of them are switched on. Empty until
         // something registers into it — see `mcp`'s module doc for why an app
@@ -638,6 +641,7 @@ pub fn run() {
                     // gcloud process remains after exit" true.
                     handle.state::<cloud::tunnel::Tunnel>().stop();
                     handle.state::<godot::Godot>().shutdown();
+                    handle.state::<apps::agent_tab::Sessions>().stop_all();
                 }
             });
         });

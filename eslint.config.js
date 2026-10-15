@@ -45,6 +45,7 @@ import globals from "globals";
  * `contract.ts`, `motion.ts` and `dropZones.ts`.
  */
 const REGIONS = [
+  "agentbar",
   "dialogs",
   "diff",
   "drag",
@@ -109,6 +110,7 @@ function baseRestrictions() {
  * is not an app with a source tree of its own to be isolated from.
  */
 const APPS = [
+  "agent-tab",
   "agents",
   "blender-viewer",
   "canvas",
@@ -233,6 +235,8 @@ export default tseslint.config(
       // Regenerated from branding.toml on every typecheck and build, once per
       // frontend bundle — hence the glob rather than three paths.
       "**/branding.generated.ts",
+      // Generated from kaava-agent-host's event types by that crate's tests.
+      "apps/agent-tab/ui/src/protocol.generated.ts",
     ],
   },
 

@@ -56,6 +56,11 @@ getrandom = "0.3"
 # Test-only. Every storage test writes into a directory it owns and drops.
 tempfile = "3"
 
+# Test-only too. Generates the agent tab's TypeScript from the event types in
+# `kaava-agent-host`, inside that crate's own tests, where a check also fails
+# when the checked-in file is stale. MIT.
+ts-rs = "12"
+
 # Lint levels are declared here and inherited by every member through
 # `lints.workspace = true`, for the same reason dependencies are: five copies of
 # a `#![warn(...)]` block in five lib.rs files drift apart, and the drift is

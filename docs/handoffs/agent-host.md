@@ -273,13 +273,18 @@ Agent C cannot sign in to Claude or ChatGPT. Prepare a script and a checklist. T
 
 | # | Item | Owner | Result |
 |---|---|---|---|
-| V1 | Claude, Codex, and Pi run natively on Windows as Tauri child processes without WSL | Owner | |
-| V2 | The Claude ACP adapter keeps the unmodified binary's sign-in and passes permission prompts through | C, then owner | |
-| V3 | Whether a maintained Pi ACP shim exists; if not, T1.4 writes one | C | |
-| V4 | Pi RPC covers steer, abort, fork, and extension UI requests as documented | C | |
-| V5 | `codex-acp` covers approval, diff, and plan items | C | |
+| V1 | Claude, Codex, and Pi run natively on Windows as Tauri child processes without WSL | Owner | Partly checked 2026-10-14 on the owner's machine: `claude` 2.1.296 is a native `claude.exe`, `codex` 0.153.0 a native exe, `pi` 0.84.1 an npm `.cmd` shim. All three run without WSL. The Tauri child-process run is still owner-run. |
+| V2 | The Claude ACP adapter keeps the unmodified binary's sign-in and passes permission prompts through | C, then owner | **Passes technically, with two conflicts raised in §11.6.** Adapter: `@agentclientprotocol/claude-agent-acp` 0.90.0 (Apache-2.0; the Zed packages `@zed-industries/claude-code-acp` and `claude-agent-acp` are deprecated renames of it). By default it runs the native `claude` that the Agent SDK bundles; with `CLAUDE_CODE_EXECUTABLE` set it runs the user's own unmodified `claude`. Sign-in stays in that binary: the adapter only runs `claude auth status --json` (no token in the output) and offers `claude auth login` as a terminal method, which Kaava never runs. Permission prompts arrive as ACP `session/request_permission`. The adapter reads no credential file. Owner still runs the real login (§9.2). |
+| V3 | Whether a maintained Pi ACP shim exists; if not, T1.4 writes one | C | Exists: `pi-acp` 0.0.34 (MIT, github.com/svkozak/pi-acp, in Zed's ACP registry, releases about monthly, last 2026-09-24). Self-described MVP. Gaps against §3.3: no steer (queue is client-side), no fork, no thought stream, client MCP servers not passed to Pi. T1.4 decides between extending it and owning a shim. |
+| V4 | Pi RPC covers steer, abort, fork, and extension UI requests as documented | C | Passes, from `docs/rpc.md` of the installed `@earendil-works/pi-coding-agent` 0.84.1 (the package moved from `@mariozechner/pi-coding-agent`): `steer`, `follow_up`, `abort`, `fork`, `clone`, `switch_session`, `agent_settled`, and `extension_ui_request` / `extension_ui_response` (select, confirm, input, editor). |
+| V5 | `codex-acp` covers approval, diff, and plan items | C | Passes: `@agentclientprotocol/codex-acp` 2.2.2 (Apache-2.0; replaces `@zed-industries/codex-acp`) emits permission requests, `diff` content and `plan` updates. It bundles `@openai/codex` ^0.160.1; `CODEX_PATH` selects the user's own binary. |
 | V6 | Anthropic written confirmation before any external release that includes Claude | Owner | |
-| V7 | Codex CLI license text confirmed (the adapter is Apache-2.0) | C | |
+| V7 | Codex CLI license text confirmed (the adapter is Apache-2.0) | C | Passes: `@openai/codex` 0.160.1 and 0.162.1 are Apache-2.0 (github.com/openai/codex). |
+
+**T0.1 transcripts.** The mock agent runs in `cargo test` as a real child process, and its
+scenarios are assertions in `crates/kaava-agent-host/tests/session.rs`, not recorded golden
+event files. Real Claude, Codex and Pi transcripts are not run. Kaava never
+signs in to Claude or ChatGPT, so those runs are owner-run (§9.2).
 
 ---
 
@@ -290,12 +295,123 @@ Agent C cannot sign in to Claude or ChatGPT. Prepare a script and a checklist. T
 3. Confirm the default harness for the first release: Pi (needs an API key) or Claude/Codex (user plan).
 4. Decide whether the worker VM later runs Pi by default.
 5. Decide on the optional full-editor tab.
+6. **Conflicts found by V2 (2026-10-14).** The Claude ACP adapter is built on the Claude Agent SDK.
+   - *License (§7.1).* `@anthropic-ai/claude-agent-sdk` is not MIT, Apache-2.0, BSD or ISC: its
+     `LICENSE.md` reads "© Anthropic PBC. All rights reserved", subject to Anthropic's legal
+     agreements. A pinned dependency in this repository would fail the license rule.
+   - *Sign-in policy (design §6).* Row 1 allows the unmodified binary with the user's own
+     subscription. Row 2 says a product built on the Agent SDK must use API keys and must not
+     route through Free, Pro or Max credentials. The adapter is such a product. It ships
+     `--hide-claude-auth`, which refuses every turn a subscription would pay for.
+   - Proposed handling: do not vendor the adapter. The user installs it once, pinned, with
+     `npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@0.90.0`. Kaava runs it with
+     `CLAUDE_CODE_EXECUTABLE` set to the user's own `claude`. Subscription use is limited to the
+     owner's single-user testing, the same gray area design §6 rule 4 accepts. V6 gates any
+     external release. Owner decision recorded in §12.
+7. **Codicons license (§2.1.4 against §7.1).** `@vscode/codicons` 0.0.46 is published under
+   CC-BY-4.0, not MIT. Decide whether to allow CC-BY-4.0 for the icon font (it needs attribution),
+   or keep the agent tab on text labels and the repository's existing icons.
+8. **Strings in one file (§0) against the shell's layering.** The agent bar is a shell region,
+   and the shell may not import an app's source (`eslint.config.js`, `appIsolation`). So the
+   agent tab's strings are in `apps/agent-tab/ui/src/strings.ts` and the bar's few strings are in
+   `src/shell/agentbar/strings.ts`. Decide whether two files is acceptable, or whether the shared
+   strings move to a package both may import.
 
 ---
 
 ## 12. Results log
 
-(Agent C fills this in: final paths, pinned versions, V-row results, owner checklist results, known gaps.)
+### 2026-10-14 — owner decisions
+
+- **Paths (§11.2).** The app is `apps/agent-tab`, not `apps/agent`. The crate is
+  `crates/kaava-agent-host`. The agent bar is the shell region `src/shell/agentbar`. Every
+  `apps/agent/...` path in this document reads as `apps/agent-tab/ui/...`.
+- **Cloud Agents app.** The owner asked for the cloud Agents app (`apps/agents/`) to be disabled
+  while the MVP focuses on core features. It is hidden from the app registry and the rail in its
+  own PR, not deleted.
+- **§11.6 (V2 conflicts).** Personal testing only. The adapter is not vendored. The user installs
+  it once, pinned, with `npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@0.90.0`.
+  Kaava runs it with `CLAUDE_CODE_EXECUTABLE` set to the user's own `claude` and the user's own
+  sign-in. `--hide-claude-auth` is not passed. V6 gates any external release that includes Claude.
+
+### Deviations from this document
+
+- **Mock agent location.** `packages/mock-agent/` (§3.3) would be a Node package. The mock is a
+  Rust binary inside the crate (`crates/kaava-agent-host/src/bin/mock-agent.rs`) so `cargo test`
+  needs no Node and the host's own tests spawn it as a real child process.
+- **Codicons (§2.1.4).** `@vscode/codicons` is published as CC-BY-4.0 (the font and SVGs), not
+  MIT, which fails §7.1. Not added. Raised in §11.7.
+- **ACP types.** `agent-client-protocol-schema` (Apache-2.0) is not used: it turns on
+  `serde_json/preserve_order`, and feature unification would change JSON key order for the whole
+  workspace. The host writes the subset of ACP v1 it uses by hand, with a tolerant parser.
+
+#### First slice (Claude only)
+
+- **Adapter trait (§3.2).** The trait has the subset the Claude path uses: start, prompt,
+  cancel, answer, stop. Steer, fork and model listing arrive with Codex and Pi.
+- **Developer mode gate.** `agent-tab/send` and `agent-tab/answer`, the calls that start or
+  advance a session, are refused unless `developer.mode` is on, and the agent bar is hidden
+  without it. Stop, cancel, reset and attach always work. This holds until V6.
+- **Call routing.** `apps::CallContext` is not widened. A new `apps::call_for_instance` passes
+  the instance id to `agent-tab/*` methods only, and checks that the id names an agent tab in the
+  layout. An MCP `app_call` has no instance, so it can reach `agent-tab/harnesses` and nothing else.
+- **Path guard.** The host refuses an approval that names a path outside the cluster's worktree,
+  and the tab shows it as refused (§3.4, applied early). Paths are resolved through symlinks
+  before `..` is folded. It sees only what the agent asks permission for, so `allow_always` is
+  never offered: a standing allow would make the agent stop asking, and the guard with it.
+  Tool calls the agent makes without asking are not checked.
+- **Where the agent starts.** The adapter's npm shim runs in the worktree, which is untrusted
+  repository content, so `NoDefaultCurrentDirectoryInExePath` is set and a `node.cmd` at the
+  repository root is not run in place of Node.
+- **A failed first handshake.** The prompt is drawn ahead of the error, so Retry finds it. While
+  the agent starts, the prompt shows as sent-but-pending, and Stop withdraws it.
+- **A session stays where it started.** A tab dragged to another cluster, or whose cluster is
+  pointed at another folder, loses its session and its conversation.
+- **Limits.** One agent message is read up to 32 MiB, and a longer one is dropped as noise. A
+  diff side over 256 KiB is shown as "too large". A stderr line is kept up to 4 KiB. A message
+  or thought is cut at 256 KiB with a visible note and takes nothing more. An approval's command
+  or input is shown up to 64 KiB, and the card says when it is cut. Titles and plan steps are
+  capped at 2 KiB, a plan at 100 steps, a path list at 50, open tool calls at 500 and waiting
+  approvals at 64. The transcript keeps 2000 items and 32 MiB of text. The queue between the
+  host and the window is still unbounded; a bounded one would stall the session while it holds
+  its lock, so a coalescing queue is a follow-up.
+- **Agent app visibility.** The Agent app is in the registry, so it is listed in the Apps menu
+  and can be opened with developer mode off. It then shows its empty state and refuses a prompt.
+  Only the agent bar and `agent-tab/send` and `agent-tab/answer` are gated.
+- **Job Object.** On Windows each agent starts suspended in a Job Object of its own, so a stop
+  is one `TerminateJobObject`. An agent and all it started also end with OpenKaava. `taskkill /T
+  /F` is the fallback only when no job can be made.
+- **No trace switch (§8).** The host logs lifecycle lines only, with tokens masked. A raw trace
+  switch is a follow-up.
+- **Questions from the agent.** ACP has no elicitation request yet, so a Claude question that is
+  not a permission prompt does not reach the tab.
+- **No docs link (§4.5).** Apps have no way to open a URL yet, so the one-line fix has no link.
+- **Icons.** Text and Unicode glyphs only, pending §11.7.
+- **Agent bar.** Harness label, prompt and Send. The model picker, mode indicator, context chips
+  and the `Ctrl+L` binding are later steps.
+
+##### Not done in this slice
+
+Acceptance rows above that this slice does not meet:
+
+- **T1.3.** The mock has a scenario for streaming text, a tool call, an approval, a diff (inside
+  and outside the worktree), a plan, an error and a slow turn, but there are no golden event
+  files; the tests assert on the events instead.
+- **T2.1 and §9.1.3.** No screenshot tests, in either theme. Component tests cover each item type.
+- **T2.2 and §9.1.4.** No end-to-end test of the tab against the mock agent. The host is tested
+  against the mock, and the tab against a scripted bridge, but not the two together.
+- **§9.1.6.** After a crash the tab shows "Stopped" and a new prompt starts a new session, with
+  Retry on an error. There is no Resume button.
+- **§0.10 and §9.1.** Every Rust job in CI runs on Windows, not Linux. The symlink tests in the
+  path guard are Unix-only, so they run on a developer's machine and not in CI; their junction
+  counterparts, the Windows path-shape test and the shim test run only on Windows.
+
+### Pinned versions (tested 2026-10-14, Windows 11)
+
+| Program | Version | Source |
+|---|---|---|
+| `claude` | 2.1.296 | the user's own install |
+| `@agentclientprotocol/claude-agent-acp` | 0.90.0 | the user's global npm install (§11.6) |
 
 ---
 

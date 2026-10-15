@@ -526,6 +526,15 @@ export function onFilesChanged(cb: (payload: unknown) => void): Promise<Unlisten
   return listen<unknown>(FILES_CHANGED_EVENT, (e) => cb(e.payload));
 }
 
+/** The event Rust emits for every agent tab session change (`apps::agent_tab::EVENT`).
+ *  Payload is an `Envelope` from `apps/agent-tab/ui/src/protocol.generated.ts`. */
+export const AGENT_TAB_EVENT = "agent-tab:event";
+
+/** Hear every agent tab's session events, to relay each one to its own tab. */
+export function onAgentTabEvent(cb: (payload: unknown) => void): Promise<UnlistenFn> {
+  return listen<unknown>(AGENT_TAB_EVENT, (e) => cb(e.payload));
+}
+
 /** A project's `.kaava/icon.*` as a `data:` URL, or `null` for "draw the
  *  letter tile". Mirrors `commands::project_icon`. */
 export function projectIcon(path: string): Promise<string | null> {

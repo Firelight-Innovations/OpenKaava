@@ -52,6 +52,7 @@ import {
 import { KaavaErrorCode } from "@openkaava/bridge/errors";
 import {
   appPainted,
+  onAgentTabEvent,
   onFilesChanged,
   onLaunchTarget,
   onProjectChanged,
@@ -1357,6 +1358,32 @@ const ToolWindow = forwardRef<
           if (!frame.isApp || frame.origin === null) continue;
           win.postMessage(
             { kaava: 1, kind: "event", event: "files:changed", payload } satisfies EventMessage,
+            frame.origin,
+          );
+        }
+      });
+      if (!live) return stop();
+      unlisten = stop;
+    })();
+    return () => {
+      live = false;
+      unlisten?.();
+    };
+  }, []);
+
+  // An agent tab's session events (`apps::agent_tab`), each to the one frame it names.
+  // Every other frame, an agent tab for another session included, never sees them.
+  useEffect(() => {
+    let live = true;
+    let unlisten: (() => void) | undefined;
+    void (async () => {
+      const stop = await onAgentTabEvent((payload) => {
+        if (!live) return;
+        const instanceId = (payload as { instanceId?: unknown } | null)?.instanceId;
+        for (const [win, frame] of frames.current) {
+          if (!frame.isApp || frame.origin === null || frame.id !== instanceId) continue;
+          win.postMessage(
+            { kaava: 1, kind: "event", event: "agent-tab:event", payload } satisfies EventMessage,
             frame.origin,
           );
         }

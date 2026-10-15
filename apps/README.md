@@ -37,6 +37,7 @@ apps/
   files/ui/               File Explorer's frontend
   viewer/ui/              File Viewer's frontend
   tutorial/ui/            Tutorials' frontend
+  agent-tab/ui/           Agent's frontend: one Claude session in this cluster's worktree
   agents/ui/              Agents' frontend: OpenKaava Cloud's agent machines and sessions
   costs/ui/               Cost Tracker's frontend: this month's Google Cloud spend and forecast
   projects/ui/            Projects' frontend: the project switcher and its embedded Plane workspace

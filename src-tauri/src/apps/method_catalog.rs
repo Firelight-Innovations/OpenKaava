@@ -50,6 +50,7 @@ const GROUPS: &[(&str, &str)] = &[
     ("godot", "Godot"),
     ("blender-viewer", "Blender Viewer"),
     ("play", "Play"),
+    ("agent-tab", "Agent"),
     ("agents", "Agents"),
     ("costs", "Cost Tracker"),
     ("projects", "Projects"),
@@ -70,6 +71,7 @@ fn sources() -> Vec<&'static str> {
         include_str!("trash.rs"),
         include_str!("canvas/mod.rs"),
         include_str!("blender_viewer.rs"),
+        include_str!("agent_tab.rs"),
         include_str!("agents.rs"),
         include_str!("costs.rs"),
         include_str!("projects.rs"),
@@ -239,6 +241,8 @@ mod tests {
             "blender-viewer/export-start",
             "comments/create",
             "context/put",
+            "agent-tab/harnesses",
+            "agent-tab/send",
         ] {
             assert!(found.iter().any(|m| m == expected), "{expected} missing");
         }
