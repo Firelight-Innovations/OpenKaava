@@ -79,7 +79,8 @@ right.
 - `ModelMenu` is the settings button. It reads the current settings as one line ("Claude · Opus 5.5
   · High") and opens a menu with one section per setting. Each section takes a picker's props, so
   the harness (Claude or Codex), model, effort and mode all arrive the same way. A section without
-  `onChange` is shown but cannot be changed, and a section with nothing to list is left out.
+  `onChange` is shown but cannot be changed. A section with no choices and no value is left out; a
+  value the agent reports but does not offer is listed first, checked.
 - `ContextMeter` is a short bar and a percentage. On hover or focus it opens a card with the
   window's size, a stacked bar, and a row per category plus the free space. Without `categories`
   the card has one "Used" row.

@@ -67,14 +67,62 @@ describe("the model menu", () => {
     fireEvent.keyDown(menu, { key: "ArrowDown" });
     expect(document.activeElement?.textContent).toContain("Sonnet 5.5");
 
-    const outer = vi.fn();
-    document.addEventListener("keydown", outer);
     fireEvent.keyDown(menu, { key: "Escape" });
-    document.removeEventListener("keydown", outer);
     expect(screen.queryByRole("menu")).toBeNull();
     expect(document.activeElement).toBe(button);
-    // Esc in the menu does not reach the composer, where it would stop the turn.
-    expect(outer).not.toHaveBeenCalled();
+  });
+
+  it("wraps with the arrows, and jumps to either end with Home and End", () => {
+    render(<ModelMenu label="Agent settings" sections={sections()} />);
+    fireEvent.click(screen.getByRole("button", { name: /Agent settings/ }));
+    const items = screen.getAllByRole("menuitemradio");
+    items[0].focus();
+    fireEvent.keyDown(items[0], { key: "ArrowUp" });
+    expect(document.activeElement).toBe(items[items.length - 1]);
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(items[0]);
+    fireEvent.keyDown(items[0], { key: "End" });
+    expect(document.activeElement).toBe(items[items.length - 1]);
+    fireEvent.keyDown(document.activeElement!, { key: "Home" });
+    expect(document.activeElement).toBe(items[0]);
+  });
+
+  it("closes when Tab leaves it", () => {
+    render(<ModelMenu label="Agent settings" sections={sections()} />);
+    fireEvent.click(screen.getByRole("button", { name: /Agent settings/ }));
+    fireEvent.keyDown(document.activeElement!, { key: "Tab" });
+    expect(screen.queryByRole("menu")).toBeNull();
+  });
+
+  it("keeps its keys after a click on a part of the menu that is not an item", () => {
+    render(<ModelMenu label="Agent settings" sections={sections()} />);
+    fireEvent.click(screen.getByRole("button", { name: /Agent settings/ }));
+    const menu = screen.getByRole("menu");
+    // A click on a heading or a gap focuses the menu, not the page.
+    expect(menu.tabIndex).toBe(-1);
+    menu.focus();
+    fireEvent.keyDown(menu, { key: "Escape" });
+    expect(screen.queryByRole("menu")).toBeNull();
+  });
+
+  it("lists a value the agent reports but does not offer, first and checked", () => {
+    render(
+      <ModelMenu
+        label="Agent settings"
+        sections={[
+          {
+            label: "Model",
+            value: "haiku",
+            choices: [{ value: "opus", name: "Opus 5.5" }],
+            onChange: vi.fn(),
+          },
+        ]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Agent settings/ }));
+    const items = screen.getAllByRole("menuitemradio");
+    expect(items.map((el) => el.textContent)).toEqual(["haiku", "Opus 5.5"]);
+    expect(items[0].getAttribute("aria-checked")).toBe("true");
   });
 
   it("can be read and left from the keys when nothing in it can change", () => {

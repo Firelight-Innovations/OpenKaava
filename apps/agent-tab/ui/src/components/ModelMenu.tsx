@@ -57,7 +57,8 @@ export function ModelMenu({ label, sections }: ModelMenuProps) {
     button.current?.focus();
   };
 
-  // On the root, not the menu, so the keys work wherever focus is while it is open.
+  // On the root, not the menu, so the keys work from the button as well as the
+  // items. The menu itself takes focus on a click that lands on no item.
   const onKeyDown = (event: KeyboardEvent<HTMLSpanElement>) => {
     if (!open) return;
     const items = itemsIn(menu.current);
@@ -66,7 +67,8 @@ export function ModelMenu({ label, sections }: ModelMenuProps) {
     switch (event.key) {
       case "Escape":
         event.preventDefault();
-        // Esc also stops the turn from the composer; here it only closes.
+        // Only the menu closes: no handler above it, on the page or the
+        // document, acts on this Esc too.
         event.stopPropagation();
         close();
         break;
@@ -110,7 +112,14 @@ export function ModelMenu({ label, sections }: ModelMenuProps) {
         <ChevronDown size={12} strokeWidth={2} aria-hidden="true" />
       </button>
       {open && (
-        <div id={id} ref={menu} role="menu" aria-label={label} className="at-model__menu">
+        <div
+          id={id}
+          ref={menu}
+          role="menu"
+          aria-label={label}
+          className="at-model__menu"
+          tabIndex={-1}
+        >
           {sections.map((section) => {
             const choices = choicesOf(section);
             if (choices.length === 0) return null;

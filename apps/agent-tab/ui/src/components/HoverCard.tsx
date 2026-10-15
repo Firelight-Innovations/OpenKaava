@@ -16,14 +16,19 @@ export function HoverCard({ label, trigger, align = "end", children }: HoverCard
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   // A card opened by hover leaves focus where it was, so Esc is heard on the
-  // whole document while it shows, not only on the button.
+  // whole document while it shows. It is heard first, in the capture phase,
+  // and goes no further: an Esc that puts the card away does not also reach
+  // the prompt box and stop the turn. The next Esc does.
   useEffect(() => {
     if (!open) return;
     const away = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(false);
     };
-    document.addEventListener("keydown", away);
-    return () => document.removeEventListener("keydown", away);
+    document.addEventListener("keydown", away, true);
+    return () => document.removeEventListener("keydown", away, true);
   }, [open]);
 
   const show = () => {
@@ -46,12 +51,6 @@ export function HoverCard({ label, trigger, align = "end", children }: HoverCard
         onFocus={show}
         onBlur={hide}
         onClick={show}
-        onKeyDown={(event) => {
-          if (event.key !== "Escape" || !open) return;
-          // Esc also stops the turn from the composer; here it only closes.
-          event.stopPropagation();
-          setOpen(false);
-        }}
       >
         {trigger}
       </button>
