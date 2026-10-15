@@ -184,6 +184,9 @@ pub enum ItemKind {
         message: String,
         /// A known cause the agent tab can explain, if there is one.
         hint: Option<Hint>,
+        /// The harness that failed. The hint is worded for it, even after the
+        /// tab's next session runs another.
+        harness: Harness,
     },
 }
 

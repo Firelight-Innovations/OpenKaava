@@ -26,6 +26,7 @@ use serde_json::Value;
 use crate::config::{enters_held_back, settings, Settings};
 use crate::event::{ApprovalOption, Event, FileDiff, Hint, Item, ItemKind, PlanEntry, ToolStatus};
 use crate::guard::request_paths;
+use crate::harness::Harness;
 use crate::kaava_call;
 use crate::mask::mask;
 
@@ -63,6 +64,7 @@ pub const CUT_NOTE: &str = "\n\n(message truncated)";
 #[derive(Debug)]
 pub struct Normalizer {
     prefix: String,
+    harness: Harness,
     next: u64,
     turn: Option<String>,
     open: Option<OpenText>,
@@ -88,10 +90,11 @@ struct OpenText {
 
 impl Normalizer {
     /// A normalizer whose item and turn ids all start with `prefix`, so two
-    /// sessions in one tab never mint the same id.
-    pub fn new(prefix: &str) -> Self {
+    /// sessions in one tab never mint the same id. Its errors name `harness`.
+    pub fn new(prefix: &str, harness: Harness) -> Self {
         Self {
             prefix: prefix.to_string(),
+            harness,
             next: 0,
             turn: None,
             open: None,
@@ -196,6 +199,7 @@ impl Normalizer {
         let item = self.item(ItemKind::Error {
             message: mask(message),
             hint,
+            harness: self.harness,
         });
         events.push(Event::ItemCompleted { item });
         events
@@ -586,7 +590,7 @@ mod tests {
     use serde_json::json;
 
     fn started() -> Normalizer {
-        let mut n = Normalizer::new("s1");
+        let mut n = Normalizer::new("s1", Harness::Claude);
         n.begin_turn("hi");
         n
     }
@@ -604,7 +608,7 @@ mod tests {
 
     #[test]
     fn a_turn_starts_with_the_users_message() {
-        let mut n = Normalizer::new("s1");
+        let mut n = Normalizer::new("s1", Harness::Claude);
         let events = n.begin_turn("hello");
         assert!(matches!(&events[0], Event::TurnStarted { turn_id } if turn_id == "s1-t1"));
         assert!(matches!(
@@ -645,7 +649,7 @@ mod tests {
 
     #[test]
     fn chunks_outside_a_turn_are_dropped() {
-        let mut n = Normalizer::new("s1");
+        let mut n = Normalizer::new("s1", Harness::Claude);
         assert!(n.update(&chunk("stray", None)).is_empty());
         assert_eq!(n.dropped(), 1);
     }
@@ -1079,5 +1083,24 @@ mod tests {
             matches!(&events[..], [Event::ItemCompleted { item: Item { kind: ItemKind::Error { message, .. }, .. } }]
             if message == "failed for <email>")
         );
+    }
+
+    #[test]
+    fn an_error_names_the_harness_that_raised_it() {
+        let mut n = Normalizer::new("s2", Harness::Codex);
+        let events = n.error("not signed in", Some(Hint::SignedOut));
+        assert!(matches!(
+            &events[..],
+            [Event::ItemCompleted {
+                item: Item {
+                    kind: ItemKind::Error {
+                        harness: Harness::Codex,
+                        hint: Some(Hint::SignedOut),
+                        ..
+                    },
+                    ..
+                }
+            }]
+        ));
     }
 }

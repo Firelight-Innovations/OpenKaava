@@ -86,7 +86,7 @@ const EVERYTHING: Attachment = {
       entries: [{ content: "step", status: "pending", priority: "high" }],
     }),
     item("g", { kind: "usage", used: 10, size: 100 }),
-    item("e", { kind: "error", message: "boom", hint: "harnessMissing" }),
+    item("e", { kind: "error", message: "boom", hint: "harnessMissing", harness: "claude" }),
   ],
 };
 

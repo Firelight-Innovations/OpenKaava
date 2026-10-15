@@ -273,7 +273,7 @@ impl Session {
                 replies: HashMap::new(),
                 prompt: None,
                 approvals: Vec::new(),
-                normalizer: Normalizer::new(&prefix),
+                normalizer: Normalizer::new(&prefix, spec.harness),
                 transcript: Transcript::from_items(prior),
                 status,
                 session_id: None,
@@ -1512,7 +1512,7 @@ mod tests {
             replies: HashMap::new(),
             prompt: None,
             approvals: Vec::new(),
-            normalizer: Normalizer::new("t"),
+            normalizer: Normalizer::new("t", crate::harness::Harness::Claude),
             transcript: Transcript::from_items(Vec::new()),
             status: SessionStatus {
                 state: SessionState::Starting,
