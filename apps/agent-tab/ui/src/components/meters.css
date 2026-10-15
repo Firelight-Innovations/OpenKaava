@@ -115,13 +115,13 @@
   cursor: pointer;
 }
 
-.at-model__item:hover:not(:disabled),
+.at-model__item:hover:not([aria-disabled="true"]),
 .at-model__item:focus-visible {
   outline: none;
   background: var(--k-list-hover);
 }
 
-.at-model__item:disabled {
+.at-model__item[aria-disabled="true"] {
   color: var(--k-fg-secondary);
   cursor: default;
 }

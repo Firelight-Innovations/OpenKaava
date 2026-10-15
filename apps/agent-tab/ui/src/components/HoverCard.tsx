@@ -15,6 +15,17 @@ export function HoverCard({ label, trigger, align = "end", children }: HoverCard
   const timer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
+  // A card opened by hover leaves focus where it was, so Esc is heard on the
+  // whole document while it shows, not only on the button.
+  useEffect(() => {
+    if (!open) return;
+    const away = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", away);
+    return () => document.removeEventListener("keydown", away);
+  }, [open]);
+
   const show = () => {
     window.clearTimeout(timer.current);
     setOpen(true);

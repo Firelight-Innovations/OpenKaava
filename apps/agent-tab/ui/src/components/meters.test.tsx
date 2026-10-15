@@ -46,8 +46,8 @@ describe("the model menu", () => {
     // A section with nothing to list (Mode, unset) is left out.
     expect(groups).toEqual(["Agent", "Model", "Effort"]);
     expect(
-      (screen.getByRole("menuitemradio", { name: "Claude" }) as HTMLButtonElement).disabled,
-    ).toBe(true);
+      screen.getByRole("menuitemradio", { name: "Claude" }).getAttribute("aria-disabled"),
+    ).toBe("true");
     expect(
       screen.getByRole("menuitemradio", { name: "Opus 5.5" }).getAttribute("aria-checked"),
     ).toBe("true");
@@ -75,6 +75,25 @@ describe("the model menu", () => {
     expect(document.activeElement).toBe(button);
     // Esc in the menu does not reach the composer, where it would stop the turn.
     expect(outer).not.toHaveBeenCalled();
+  });
+
+  it("can be read and left from the keys when nothing in it can change", () => {
+    const locked = sections().map(({ onChange: _, ...section }) => section);
+    render(<ModelMenu label="Agent settings" sections={locked} />);
+    const button = screen.getByRole("button", { name: /Agent settings/ });
+    fireEvent.click(button);
+    // A locked item still takes focus, so a screen reader can read the setting.
+    expect(document.activeElement).toBe(screen.getByRole("menuitemradio", { name: "Claude" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: /Sonnet 5.5/ }));
+    expect(screen.getByRole("menu")).toBeTruthy();
+
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    expect(screen.queryByRole("menu")).toBeNull();
+    // Esc on the button itself, before focus moves in, closes it too.
+    fireEvent.click(button);
+    button.focus();
+    fireEvent.keyDown(button, { key: "Escape" });
+    expect(screen.queryByRole("menu")).toBeNull();
   });
 
   it("closes when the pointer goes down outside it", () => {
@@ -129,6 +148,14 @@ describe("the usage ring", () => {
     fireEvent.focus(button);
     expect(screen.getByRole("tooltip", { hidden: true }).hasAttribute("data-open")).toBe(true);
     fireEvent.keyDown(button, { key: "Escape" });
+    expect(screen.getByRole("tooltip", { hidden: true }).hasAttribute("data-open")).toBe(false);
+  });
+
+  it("closes on Esc when hover opened it and focus is elsewhere", () => {
+    render(<UsageRing limits={limits} />);
+    fireEvent.pointerEnter(screen.getByRole("button").parentElement!);
+    expect(screen.getByRole("tooltip", { hidden: true }).hasAttribute("data-open")).toBe(true);
+    fireEvent.keyDown(document.body, { key: "Escape" });
     expect(screen.getByRole("tooltip", { hidden: true }).hasAttribute("data-open")).toBe(false);
   });
 });

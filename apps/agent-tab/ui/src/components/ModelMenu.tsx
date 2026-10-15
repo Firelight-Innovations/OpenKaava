@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { Check, ChevronDown } from "lucide-react";
+import { strings } from "../strings";
 import type { ModelMenuProps, PickerChoice, PickerProps } from "./types";
 import "./meters.css";
 
@@ -16,10 +17,9 @@ function nameOf(section: PickerProps): string | null {
   return choice?.name || section.value;
 }
 
+/** Every item, locked ones too: they stay focusable so a screen reader can read them. */
 function itemsIn(menu: HTMLElement | null): HTMLButtonElement[] {
-  return [
-    ...(menu?.querySelectorAll<HTMLButtonElement>("[role=menuitemradio]:not(:disabled)") ?? []),
-  ];
+  return [...(menu?.querySelectorAll<HTMLButtonElement>("[role=menuitemradio]") ?? [])];
 }
 
 /**
@@ -36,9 +36,15 @@ export function ModelMenu({ label, sections }: ModelMenuProps) {
 
   useEffect(() => {
     if (!open) return;
-    // Start on the checked item, so arrows move from where the setting is.
+    // Start on the first setting that can change, at its checked item, so the
+    // arrows move from where it is; failing that, anywhere that is checked.
     const items = itemsIn(menu.current);
-    (items.find((el) => el.getAttribute("aria-checked") === "true") ?? items[0])?.focus();
+    const checked = items.filter((el) => el.getAttribute("aria-checked") === "true");
+    (
+      checked.find((el) => el.getAttribute("aria-disabled") !== "true") ??
+      checked[0] ??
+      items[0]
+    )?.focus();
     const away = (event: PointerEvent) => {
       if (!root.current?.contains(event.target as Node)) setOpen(false);
     };
@@ -51,7 +57,9 @@ export function ModelMenu({ label, sections }: ModelMenuProps) {
     button.current?.focus();
   };
 
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+  // On the root, not the menu, so the keys work wherever focus is while it is open.
+  const onKeyDown = (event: KeyboardEvent<HTMLSpanElement>) => {
+    if (!open) return;
     const items = itemsIn(menu.current);
     const at = items.indexOf(document.activeElement as HTMLButtonElement);
     const go = (i: number) => items[(i + items.length) % items.length]?.focus();
@@ -86,7 +94,7 @@ export function ModelMenu({ label, sections }: ModelMenuProps) {
 
   const shown = sections.map(nameOf).filter((name) => name !== null);
   return (
-    <span className="at-model" ref={root}>
+    <span className="at-model" ref={root} onKeyDown={onKeyDown}>
       <button
         ref={button}
         type="button"
@@ -94,22 +102,15 @@ export function ModelMenu({ label, sections }: ModelMenuProps) {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? id : undefined}
-        aria-label={`${label}: ${shown.join(", ")}`}
+        aria-label={[label, ...shown].join(strings.settingsSpoken)}
         title={label}
         onClick={() => setOpen((was) => !was)}
       >
-        <span className="at-model__value">{shown.join(" · ")}</span>
+        <span className="at-model__value">{shown.join(strings.settingsJoin)}</span>
         <ChevronDown size={12} strokeWidth={2} aria-hidden="true" />
       </button>
       {open && (
-        <div
-          id={id}
-          ref={menu}
-          role="menu"
-          aria-label={label}
-          className="at-model__menu"
-          onKeyDown={onKeyDown}
-        >
+        <div id={id} ref={menu} role="menu" aria-label={label} className="at-model__menu">
           {sections.map((section) => {
             const choices = choicesOf(section);
             if (choices.length === 0) return null;
@@ -133,9 +134,10 @@ export function ModelMenu({ label, sections }: ModelMenuProps) {
                       type="button"
                       role="menuitemradio"
                       aria-checked={checked}
-                      disabled={locked}
+                      aria-disabled={locked}
                       className="at-model__item"
                       onClick={() => {
+                        if (locked) return;
                         if (!checked) section.onChange?.(choice.value);
                         close();
                       }}
