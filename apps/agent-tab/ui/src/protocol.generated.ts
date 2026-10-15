@@ -120,9 +120,15 @@ title: string,
  */
 toolCallId: string | null, 
 /**
- * The exact command, or what the agent says the call is for, in full.
+ * The exact command, or what the agent says the call is for. Cut at
+ * 64 KiB, and `detail_truncated` says so.
  */
 detail: string | null, 
+/**
+ * `detail` is not all of it. The card must say so, since the user
+ * decides on what they can read.
+ */
+detailTruncated: boolean, 
 /**
  * Every file the request names, resolved against the worktree.
  */
@@ -132,8 +138,9 @@ paths: Array<string>,
  */
 diffs: Array<FileDiff>, 
 /**
- * The choices the agent offered, in its order. `allow_always` is left
- * out of a request that names no file: there is nothing to scope it to.
+ * The choices the agent offered, in its order, without `allow_always`:
+ * a standing allow would make the agent stop asking, and the path guard
+ * only sees what it asks about.
  */
 options: Array<ApprovalOption>, 
 /**
@@ -246,7 +253,13 @@ exitCode: number | null,
 /**
  * A known cause, if there is one.
  */
-hint: Hint | null, };
+hint: Hint | null, 
+/**
+ * A prompt the host has accepted but not yet started, because the agent is
+ * still starting. The transcript draws a prompt only when its turn
+ * begins, so this is how the tab shows it meanwhile, and Stop withdraws it.
+ */
+pendingPrompt: string | null, };
 
 export type Attachment = { 
 /**

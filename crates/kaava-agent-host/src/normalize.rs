@@ -12,6 +12,7 @@
 //! - `tool_call` and `tool_call_update` become one tool item per `toolCallId`.
 //!   A field an update leaves out, or sends as `null`, is unchanged.
 //! - `plan` is one item for the whole session, replaced in place.
+//! - what the agent sends is capped before it is kept (see the limits below).
 //! - `usage_update` is remembered and drawn once, as the turn ends.
 //! - `current_mode_update` changes the status, not the transcript.
 //! - everything else is counted and dropped, `plan_update` and `_`-prefixed
@@ -32,9 +33,28 @@ pub const OUTPUT_LIMIT: usize = 16 * 1024;
 /// mislead, so past this the texts are dropped whole.
 pub const DIFF_LIMIT: usize = 256 * 1024;
 
-/// The most text kept per message or reasoning item, in bytes. Chunks past it
-/// are counted and dropped.
+/// The most text kept per message or reasoning item, in bytes. A message that
+/// reaches it is cut there, ends in [`CUT_NOTE`] and takes nothing more.
 pub const TEXT_LIMIT: usize = 256 * 1024;
+
+/// The most bytes of an approval's command, URL or raw input shown. Past it
+/// the card says so, since the user decides on what they can read.
+pub const DETAIL_LIMIT: usize = 64 * 1024;
+
+/// The most bytes of a title or a plan step.
+pub const TITLE_LIMIT: usize = 2 * 1024;
+
+/// The most plan steps kept.
+pub const MAX_PLAN_ENTRIES: usize = 100;
+
+/// The most paths listed on one approval or tool call.
+pub const MAX_PATHS: usize = 50;
+
+/// The most tool calls tracked as open at once. A call past it is dropped.
+pub const MAX_OPEN_TOOLS: usize = 500;
+
+/// Appended to a message that was cut at [`TEXT_LIMIT`].
+pub const CUT_NOTE: &str = "\n\n(message truncated)";
 
 /// One session's translation state.
 #[derive(Debug)]
@@ -54,6 +74,9 @@ pub struct Normalizer {
 struct OpenText {
     item: Item,
     message_id: Option<String>,
+    /// Set once the message hit [`TEXT_LIMIT`]: everything after it, from the
+    /// same message, is dropped, so a later short chunk cannot leave a hole.
+    cut: bool,
 }
 
 impl Normalizer {
@@ -90,6 +113,11 @@ impl Normalizer {
     /// [`TEXT_LIMIT`].
     pub fn dropped(&self) -> u64 {
         self.dropped
+    }
+
+    /// Count one request refused or update dropped by the session.
+    pub fn drop_one(&mut self) {
+        self.dropped += 1;
     }
 
     /// The mode the agent last reported, taken so it is reported once.
@@ -168,10 +196,13 @@ impl Normalizer {
     }
 
     /// The item for a `session/request_permission`. `paths` are the ones the
-    /// request names; with none, `allow_always` is not offered.
-    pub fn approval(&mut self, params: &Value, paths: Vec<String>) -> Item {
+    /// request names, listed on the card up to [`MAX_PATHS`].
+    pub fn approval(&mut self, params: &Value, mut paths: Vec<String>) -> Item {
         let call = params.get("toolCall").unwrap_or(&Value::Null);
-        let offer_always = !paths.is_empty();
+        paths.truncate(MAX_PATHS);
+        // `allow_always` is never offered. It would make the agent stop asking
+        // about later calls of that tool, and the path guard only sees what
+        // the agent asks about, so a standing allow would switch it off.
         let options = params
             .get("options")
             .and_then(Value::as_array)
@@ -181,10 +212,10 @@ impl Normalizer {
                 Some(ApprovalOption {
                     option_id: o.get("optionId")?.as_str()?.to_string(),
                     kind: text(o, "kind"),
-                    name: text(o, "name"),
+                    name: cut(&text(o, "name"), TITLE_LIMIT).0,
                 })
             })
-            .filter(|o| offer_always || o.kind != "allow_always")
+            .filter(|o| o.kind != "allow_always")
             .collect();
         let diffs = diffs(call);
         let input = call.get("rawInput");
@@ -196,18 +227,25 @@ impl Normalizer {
         // input the agent sent is the honest "exact change".
         let detail = command.or_else(|| match input {
             Some(input) if diffs.is_empty() && !input.is_null() => {
-                let pretty = serde_json::to_string_pretty(input).unwrap_or_default();
-                Some(cut(&pretty, OUTPUT_LIMIT).0)
+                Some(serde_json::to_string_pretty(input).unwrap_or_default())
             }
             _ => None,
         });
+        let (detail, detail_truncated) = match detail {
+            Some(detail) => {
+                let (shown, was_cut) = cut(&detail, DETAIL_LIMIT);
+                (Some(shown), was_cut)
+            }
+            None => (None, false),
+        };
         self.item(ItemKind::Approval {
-            title: text(call, "title"),
+            title: cut(&text(call, "title"), TITLE_LIMIT).0,
             tool_call_id: call
                 .get("toolCallId")
                 .and_then(Value::as_str)
                 .map(str::to_string),
             detail,
+            detail_truncated,
             paths,
             diffs,
             options,
@@ -268,21 +306,35 @@ impl Normalizer {
             let Some(open) = self.open.as_mut() else {
                 return Vec::new();
             };
-            let Some(text) = item_text(&mut open.item.kind) else {
-                return Vec::new();
-            };
-            if text.len() + chunk.len() > TEXT_LIMIT {
+            if open.cut {
                 self.dropped += 1;
                 return Vec::new();
             }
-            text.push_str(chunk);
+            let Some(text) = item_text(&mut open.item.kind) else {
+                return Vec::new();
+            };
+            let mut added = chunk.to_string();
+            if text.len() + chunk.len() > TEXT_LIMIT {
+                // Cut here and take nothing more from this message: dropping
+                // only the chunk that did not fit would let a later, shorter
+                // one through and leave a hole in the middle.
+                added = cut(chunk, TEXT_LIMIT.saturating_sub(text.len())).0;
+                added.push_str(CUT_NOTE);
+                open.cut = true;
+                self.dropped += 1;
+            }
+            text.push_str(&added);
             return vec![Event::ItemDelta {
                 item_id: open.item.id.clone(),
-                text: chunk.to_string(),
+                text: added,
             }];
         }
         let mut events = self.close_text();
-        let text = cut(chunk, TEXT_LIMIT).0;
+        let (mut text, was_cut) = cut(chunk, TEXT_LIMIT);
+        if was_cut {
+            text.push_str(CUT_NOTE);
+            self.dropped += 1;
+        }
         let kind = if reasoning {
             ItemKind::Reasoning { text }
         } else {
@@ -290,7 +342,11 @@ impl Normalizer {
         };
         let item = self.item(kind);
         events.push(Event::ItemStarted { item: item.clone() });
-        self.open = Some(OpenText { item, message_id });
+        self.open = Some(OpenText {
+            item,
+            message_id,
+            cut: was_cut,
+        });
         events
     }
 
@@ -300,6 +356,10 @@ impl Normalizer {
             return Vec::new();
         };
         if self.turn.is_none() {
+            self.dropped += 1;
+            return Vec::new();
+        }
+        if !self.tools.contains_key(id) && self.tools.len() >= MAX_OPEN_TOOLS {
             self.dropped += 1;
             return Vec::new();
         }
@@ -344,10 +404,11 @@ impl Normalizer {
             .and_then(Value::as_array)
             .into_iter()
             .flatten()
+            .take(MAX_PLAN_ENTRIES)
             .map(|e| PlanEntry {
-                content: text(e, "content"),
-                status: text(e, "status"),
-                priority: text(e, "priority"),
+                content: cut(&text(e, "content"), TITLE_LIMIT).0,
+                status: cut(&text(e, "status"), 64).0,
+                priority: cut(&text(e, "priority"), 64).0,
             })
             .collect();
         match self.plan.as_mut() {
@@ -380,10 +441,10 @@ fn merge_tool(kind: &mut ItemKind, update: &Value) {
         return;
     };
     if let Some(t) = update.get("title").and_then(Value::as_str) {
-        *title = t.to_string();
+        *title = cut(t, TITLE_LIMIT).0;
     }
     if let Some(k) = update.get("kind").and_then(Value::as_str) {
-        *tool_kind = k.to_string();
+        *tool_kind = cut(k, 64).0;
     }
     if let Some(s) = update.get("status").and_then(Value::as_str) {
         *status = match s {
@@ -406,8 +467,9 @@ fn merge_tool(kind: &mut ItemKind, update: &Value) {
         (*output, *truncated) = cut(&joined, OUTPUT_LIMIT);
         *tool_diffs = diffs(update);
     }
-    let named = request_paths(update);
+    let mut named = request_paths(update);
     if !named.is_empty() {
+        named.truncate(MAX_PATHS);
         *paths = named;
     }
 }
@@ -711,36 +773,159 @@ mod tests {
         assert_eq!(n.dropped(), 3);
     }
 
-    #[test]
-    fn an_approval_without_paths_offers_no_always() {
-        let mut n = started();
-        let params = json!({
-            "toolCall": {"toolCallId": "t9", "title": "Run ls", "rawInput": {"command": "ls -la"}},
+    fn ask(input: Value) -> Value {
+        json!({
+            "toolCall": {"toolCallId": "t9", "title": "Do it", "rawInput": input},
             "options": [
                 {"optionId": "a", "kind": "allow_once", "name": "Allow"},
                 {"optionId": "b", "kind": "allow_always", "name": "Always allow"},
                 {"optionId": "c", "kind": "reject_once", "name": "Reject"}
             ]
-        });
-        let item = n.approval(&params, Vec::new());
+        })
+    }
+
+    #[test]
+    fn allow_always_is_never_offered() {
+        let mut n = started();
+        let params = ask(json!({"command": "ls -la"}));
+        for paths in [Vec::new(), vec!["/w/a.rs".to_string()]] {
+            let item = n.approval(&params, paths);
+            let ItemKind::Approval {
+                options,
+                detail,
+                detail_truncated,
+                ..
+            } = &item.kind
+            else {
+                panic!()
+            };
+            assert_eq!(detail.as_deref(), Some("ls -la"));
+            assert!(!detail_truncated);
+            let ids: Vec<_> = options.iter().map(|o| o.option_id.as_str()).collect();
+            assert_eq!(
+                ids,
+                ["a", "c"],
+                "a standing allow would switch the path guard off"
+            );
+        }
+    }
+
+    #[test]
+    fn an_input_with_no_command_is_shown_whole_when_it_fits() {
+        let mut n = started();
+        let item = n.approval(&ask(json!({"content": "hello"})), Vec::new());
         let ItemKind::Approval {
-            options,
             detail,
-            title,
+            detail_truncated,
             ..
         } = &item.kind
         else {
             panic!()
         };
-        assert_eq!(title, "Run ls");
-        assert_eq!(detail.as_deref(), Some("ls -la"));
-        let ids: Vec<_> = options.iter().map(|o| o.option_id.as_str()).collect();
-        assert_eq!(ids, ["a", "c"]);
-        let item = n.approval(&params, vec!["/w/a.rs".into()]);
-        let ItemKind::Approval { options, .. } = &item.kind else {
+        assert!(detail
+            .as_deref()
+            .is_some_and(|d| d.contains("\"content\": \"hello\"")));
+        assert!(!detail_truncated);
+    }
+
+    #[test]
+    fn an_approval_detail_over_the_limit_says_it_was_cut() {
+        let mut n = started();
+        let long = "é".repeat(DETAIL_LIMIT);
+        for input in [json!({"command": long}), json!({"content": long})] {
+            let item = n.approval(&ask(input), Vec::new());
+            let ItemKind::Approval {
+                detail,
+                detail_truncated,
+                ..
+            } = &item.kind
+            else {
+                panic!()
+            };
+            assert!(*detail_truncated);
+            assert!(detail.as_ref().is_some_and(|d| d.len() <= DETAIL_LIMIT));
+        }
+    }
+
+    #[test]
+    fn titles_paths_and_plans_are_capped() {
+        let mut n = started();
+        let paths: Vec<String> = (0..MAX_PATHS + 10).map(|i| format!("/w/{i}")).collect();
+        let mut params = ask(json!({}));
+        params["toolCall"]["title"] = json!("t".repeat(TITLE_LIMIT * 2));
+        let item = n.approval(&params, paths);
+        let ItemKind::Approval { title, paths, .. } = &item.kind else {
             panic!()
         };
-        assert_eq!(options.len(), 3);
+        assert_eq!(title.len(), TITLE_LIMIT);
+        assert_eq!(paths.len(), MAX_PATHS);
+
+        let entries: Vec<Value> = (0..MAX_PLAN_ENTRIES + 5)
+            .map(|_| json!({"content": "s", "status": "pending", "priority": "low"}))
+            .collect();
+        let events = n.update(&json!({"sessionUpdate": "plan", "entries": entries}));
+        let [Event::ItemStarted { item }] = &events[..] else {
+            panic!("{events:?}")
+        };
+        assert!(
+            matches!(&item.kind, ItemKind::Plan { entries } if entries.len() == MAX_PLAN_ENTRIES)
+        );
+    }
+
+    #[test]
+    fn open_tool_calls_are_capped() {
+        let mut n = started();
+        for i in 0..MAX_OPEN_TOOLS + 3 {
+            n.update(&json!({
+                "sessionUpdate": "tool_call", "toolCallId": format!("t{i}"), "status": "pending"
+            }));
+        }
+        assert_eq!(n.dropped(), 3);
+        let known = n.update(&json!({
+            "sessionUpdate": "tool_call_update", "toolCallId": "t0", "status": "in_progress"
+        }));
+        assert!(matches!(&known[..], [Event::ItemUpdated { .. }]));
+    }
+
+    #[test]
+    fn a_message_past_the_limit_is_cut_once_and_takes_nothing_more() {
+        let mut n = started();
+        n.update(&chunk(&"a".repeat(TEXT_LIMIT - 4), Some("m1")));
+        let over = n.update(&chunk("bcdefgh", Some("m1")));
+        let [Event::ItemDelta { text, .. }] = &over[..] else {
+            panic!("{over:?}")
+        };
+        assert_eq!(text, &format!("bcde{CUT_NOTE}"));
+        assert!(
+            n.update(&chunk("x", Some("m1"))).is_empty(),
+            "a later short chunk must not leave a hole in the middle"
+        );
+        let closed = n.close_text();
+        let [Event::ItemCompleted { item }] = &closed[..] else {
+            panic!()
+        };
+        let ItemKind::AssistantText { text } = &item.kind else {
+            panic!()
+        };
+        assert!(text.ends_with(&format!("bcde{CUT_NOTE}")));
+        assert!(!text.contains('x'));
+        // The next message starts clean.
+        let next = n.update(&chunk("fresh", Some("m2")));
+        assert!(matches!(&next[..], [Event::ItemStarted { .. }]));
+    }
+
+    #[test]
+    fn a_first_chunk_over_the_limit_is_cut_and_marked() {
+        let mut n = started();
+        let events = n.update(&chunk(&"a".repeat(TEXT_LIMIT + 10), Some("m1")));
+        let [Event::ItemStarted { item }] = &events[..] else {
+            panic!()
+        };
+        let ItemKind::AssistantText { text } = &item.kind else {
+            panic!()
+        };
+        assert!(text.ends_with(CUT_NOTE));
+        assert!(n.update(&chunk("x", Some("m1"))).is_empty());
     }
 
     #[test]

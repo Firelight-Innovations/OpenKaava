@@ -69,6 +69,10 @@ const STDERR_LINE: usize = 4 * 1024;
 /// and counted as noise, so an agent cannot grow the host without bound.
 const MESSAGE_LIMIT: usize = 32 * 1024 * 1024;
 
+/// The most approvals that may wait on the user at once. Past it a request is
+/// refused unseen.
+const MAX_PENDING_APPROVALS: usize = 64;
+
 /// Local codes for a reply that never came. Negative and far from JSON-RPC's
 /// reserved range, so no agent sends them.
 const CLOSED: i64 = -1;
@@ -186,6 +190,7 @@ impl Session {
             adapter_version: None,
             exit_code: None,
             hint: None,
+            pending_prompt: None,
         };
         let shared = Arc::new(Shared {
             instance_id,
@@ -251,6 +256,11 @@ impl Session {
             return Err(HostError::Busy);
         }
         inner.prompt = Some(text.to_string());
+        if inner.status.state == SessionState::Starting {
+            inner.status.pending_prompt = Some(text.to_string());
+            let status = inner.status.clone();
+            self.shared.emit(&mut inner, Event::Status { status });
+        }
         self.shared.wake.notify_all();
         Ok(())
     }
@@ -259,7 +269,10 @@ impl Session {
     pub(crate) fn cancel(&self) {
         let shared = &self.shared;
         let mut inner = shared.lock();
-        inner.prompt = None;
+        if inner.prompt.take().is_some() && inner.status.pending_prompt.take().is_some() {
+            let status = inner.status.clone();
+            shared.emit(&mut inner, Event::Status { status });
+        }
         if inner.normalizer.turn().is_some() {
             if let Some(session_id) = inner.session_id.clone() {
                 shared.send(wire::notification(
@@ -415,6 +428,16 @@ impl Shared {
         }
     }
 
+    /// Drop a `SignedOut` hint once the agent reports someone signed in.
+    /// `AdapterVersion` stays: it holds for the life of the process.
+    fn clear_signed_out(&self, inner: &mut Inner) {
+        if inner.status.hint == Some(Hint::SignedOut) {
+            inner.status.hint = None;
+            let status = inner.status.clone();
+            self.emit(inner, Event::Status { status });
+        }
+    }
+
     /// Back to `Working` once nothing is waiting on the user.
     fn settle(&self, inner: &mut Inner) {
         if inner.approvals.is_empty() && inner.normalizer.turn().is_some() && !inner.closed {
@@ -549,7 +572,17 @@ impl Shared {
             if !inner.closed {
                 inner.status.state = SessionState::Failed;
             }
-            let events = inner.normalizer.error(&failure.message(), hint);
+            // The prompt was accepted and the tab cleared its draft, so it is
+            // drawn before the error: the text the user typed stays on screen,
+            // and Retry on the error finds it. A prompt a cancel withdrew is
+            // gone and draws nothing.
+            inner.status.pending_prompt = None;
+            let mut events = match inner.prompt.take() {
+                Some(text) => inner.normalizer.begin_turn(&text),
+                None => Vec::new(),
+            };
+            events.extend(inner.normalizer.error(&failure.message(), hint));
+            events.extend(inner.normalizer.end_turn("error"));
             self.emit_all(&mut inner, events);
             let status = inner.status.clone();
             self.emit(&mut inner, Event::Status { status });
@@ -577,6 +610,7 @@ impl Shared {
             let Some(text) = inner.prompt.take() else {
                 return;
             };
+            inner.status.pending_prompt = None;
             let events = inner.normalizer.begin_turn(&text);
             self.emit_all(&mut inner, events);
             self.set_state(&mut inner, SessionState::Working);
@@ -595,11 +629,18 @@ impl Shared {
             return;
         }
         let stop_reason = match reply {
-            Ok(result) => result
-                .get("stopReason")
-                .and_then(Value::as_str)
-                .unwrap_or("end_turn")
-                .to_string(),
+            Ok(result) => {
+                // A turn that ran means the user is signed in now, whatever an
+                // earlier one said.
+                if inner.status.hint == Some(Hint::SignedOut) {
+                    inner.status.hint = None;
+                }
+                result
+                    .get("stopReason")
+                    .and_then(Value::as_str)
+                    .unwrap_or("end_turn")
+                    .to_string()
+            }
             Err(e) => {
                 let hint = (e.code == AUTH_REQUIRED).then_some(Hint::SignedOut);
                 if let Some(hint) = hint {
@@ -738,9 +779,11 @@ impl Shared {
                 // the account's email and organization — is never read.
                 "_auth/status_update" => {
                     let kind = params.pointer("/authStatus/kind").and_then(Value::as_str);
-                    if kind == Some("none") {
-                        let mut inner = self.lock();
-                        self.set_hint(&mut inner, Hint::SignedOut);
+                    let mut inner = self.lock();
+                    match kind {
+                        Some("none") => self.set_hint(&mut inner, Hint::SignedOut),
+                        Some(_) => self.clear_signed_out(&mut inner),
+                        None => {}
                     }
                 }
                 _ => {}
@@ -755,6 +798,13 @@ impl Shared {
         let paths = named.iter().map(|p| self.worktree.display(p)).collect();
         let mut inner = self.lock();
         if inner.closed {
+            return;
+        }
+        if inner.approvals.len() >= MAX_PENDING_APPROVALS {
+            // A flood of requests nobody answered: refuse the extra ones
+            // rather than hold one more card and one more reply slot each.
+            inner.normalizer.drop_one();
+            self.send(wire::result(&rpc, cancelled()));
             return;
         }
         let events = inner.normalizer.close_text();

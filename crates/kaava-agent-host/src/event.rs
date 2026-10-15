@@ -143,14 +143,19 @@ pub enum ItemKind {
         title: String,
         /// The tool call this is about, when the agent named one.
         tool_call_id: Option<String>,
-        /// The exact command, or what the agent says the call is for, in full.
+        /// The exact command, or what the agent says the call is for. Cut at
+        /// 64 KiB, and `detail_truncated` says so.
         detail: Option<String>,
+        /// `detail` is not all of it. The card must say so, since the user
+        /// decides on what they can read.
+        detail_truncated: bool,
         /// Every file the request names, resolved against the worktree.
         paths: Vec<String>,
         /// The changes it would make, when it edits files.
         diffs: Vec<FileDiff>,
-        /// The choices the agent offered, in its order. `allow_always` is left
-        /// out of a request that names no file: there is nothing to scope it to.
+        /// The choices the agent offered, in its order, without `allow_always`:
+        /// a standing allow would make the agent stop asking, and the path guard
+        /// only sees what it asks about.
         options: Vec<ApprovalOption>,
         /// The chosen option's id, `cancelled`, `outside` (refused by the host
         /// because a path left the worktree), or `None` while waiting.
@@ -319,6 +324,10 @@ pub struct SessionStatus {
     pub exit_code: Option<i32>,
     /// A known cause, if there is one.
     pub hint: Option<Hint>,
+    /// A prompt the host has accepted but not yet started, because the agent is
+    /// still starting. The transcript draws a prompt only when its turn
+    /// begins, so this is how the tab shows it meanwhile, and Stop withdraws it.
+    pub pending_prompt: Option<String>,
 }
 
 #[cfg(test)]

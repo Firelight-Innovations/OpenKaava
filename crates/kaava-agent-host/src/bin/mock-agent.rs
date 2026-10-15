@@ -14,6 +14,10 @@ use serde_json::{json, Value};
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.first().map(String::as_str) == Some("--sleep") {
+        // The grandchild: say who it is, so a test can look for it, then wait.
+        if let Some(file) = args.get(1) {
+            let _ = std::fs::write(file, std::process::id().to_string());
+        }
         std::thread::sleep(Duration::from_secs(30));
         return;
     }
@@ -104,8 +108,15 @@ impl Mock {
                     eprintln!("mock-agent: refusing to start");
                     std::process::exit(3);
                 }
-                if self.has("--slow-init") {
-                    std::thread::sleep(Duration::from_millis(500));
+                // Hold the handshake until the test creates the file, so a
+                // test that needs the window open waits on a fact, not a clock.
+                if let Some(gate) = self.flag_value("--init-gate") {
+                    let give_up = std::time::Instant::now() + Duration::from_secs(30);
+                    while !std::path::Path::new(&gate).exists()
+                        && std::time::Instant::now() < give_up
+                    {
+                        std::thread::sleep(Duration::from_millis(10));
+                    }
                 }
                 let version = self
                     .flag_value("--version")
@@ -209,15 +220,48 @@ impl Mock {
                 "approve",
                 json!([{ "path": format!("{}/inside.txt", self.cwd) }]),
                 json!({}),
+                json!([]),
             ),
-            "bash" => self.ask("bash", json!([]), json!({ "command": "rm -rf build" })),
+            "bash" => self.ask(
+                "bash",
+                json!([]),
+                json!({ "command": "rm -rf build" }),
+                json!([]),
+            ),
             "outside" => self.ask(
                 "outside",
                 json!([{ "path": format!("{}/../escape.txt", self.cwd) }]),
                 json!({}),
+                json!([]),
             ),
+            // An edit: the card carries the change itself.
+            "diff" => {
+                let path = format!("{}/inside.txt", self.cwd);
+                self.ask(
+                    "diff",
+                    json!([{ "path": path }]),
+                    json!({}),
+                    json!([{ "type": "diff", "path": path, "oldText": "one\n", "newText": "two\n" }]),
+                );
+            }
+            // An edit whose only mention of the file is its diff, and the file
+            // is outside the worktree.
+            "diffout" => {
+                let path = format!("{}/../escape.txt", self.cwd);
+                self.ask(
+                    "diffout",
+                    json!([]),
+                    json!({}),
+                    json!([{ "type": "diff", "path": path, "oldText": null, "newText": "x" }]),
+                );
+            }
             "cancelreq" => {
-                self.ask("cancelreq", json!([]), json!({ "command": "ls" }));
+                self.ask(
+                    "cancelreq",
+                    json!([]),
+                    json!({ "command": "ls" }),
+                    json!([]),
+                );
                 self.send(&json!({
                     "jsonrpc": "2.0", "method": "$/cancel_request",
                     "params": { "requestId": "perm-cancelreq" }
@@ -256,6 +300,18 @@ impl Mock {
                     self.reply_error(&id, -32000, "Authentication required");
                 }
             }
+            // Someone signed in while the turn ran; the turn itself failed for
+            // another reason, so only the notification can clear the hint.
+            "relogin" => {
+                self.send(&json!({
+                    "jsonrpc": "2.0",
+                    "method": "_auth/status_update",
+                    "params": { "authStatus": { "kind": "oauth" } }
+                }));
+                if let Some(id) = self.prompt_id.take() {
+                    self.reply_error(&id, -32603, "upstream hiccup");
+                }
+            }
             "secret" => {
                 if let Some(id) = self.prompt_id.take() {
                     self.reply_error(
@@ -269,8 +325,12 @@ impl Mock {
                 // A process of our own that inherits stdout and outlives us
                 // unless the host takes the whole tree.
                 if let Ok(me) = std::env::current_exe() {
-                    let _ = Command::new(me)
-                        .arg("--sleep")
+                    let mut grandchild = Command::new(me);
+                    grandchild.arg("--sleep");
+                    if let Some(file) = self.flag_value("--grandchild-pid") {
+                        grandchild.arg(file);
+                    }
+                    let _ = grandchild
                         .stdin(Stdio::null())
                         .stdout(Stdio::inherit())
                         .spawn();
@@ -285,7 +345,7 @@ impl Mock {
     }
 
     /// Ask for permission, and wait for the answer in [`Mock::answered`].
-    fn ask(&mut self, scenario: &str, locations: Value, raw_input: Value) {
+    fn ask(&mut self, scenario: &str, locations: Value, raw_input: Value, content: Value) {
         self.update(json!({
             "sessionUpdate": "tool_call", "toolCallId": "t2", "title": format!("Do {scenario}"),
             "kind": "edit", "status": "pending", "locations": locations
@@ -299,7 +359,7 @@ impl Mock {
                 "sessionId": "mock-1",
                 "toolCall": {
                     "toolCallId": "t2", "title": format!("Do {scenario}"),
-                    "locations": locations, "rawInput": raw_input
+                    "locations": locations, "rawInput": raw_input, "content": content
                 },
                 "options": [
                     { "optionId": "o1", "kind": "allow_once", "name": "Allow" },
