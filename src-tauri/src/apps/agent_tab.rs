@@ -52,7 +52,8 @@ pub const CHOSEN: &str = "agent-tab:chosen";
 /// `agent-tab/harnesses` again. Mirrored in `src/bindings.ts`.
 pub const MODELS: &str = "agent-tab:models";
 
-/// How long an agent gets to say which models it offers.
+/// How long an agent gets to answer each request of a models ask, as long
+/// as a session's handshake gives it.
 const MODELS_WAIT: Duration = Duration::from_secs(60);
 
 /// The JSON-RPC code for a refusal this module or the host made. `data.code`

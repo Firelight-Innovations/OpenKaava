@@ -357,6 +357,11 @@ impl Mock {
                 let _ = writeln!(file, "{method}");
             }
         }
+        // `--slow <ms>`: the handshake's two requests each wait that long.
+        let slow = self.flag_value("--slow").and_then(|ms| ms.parse().ok());
+        if let (Some(ms), Some("initialize" | "session/new")) = (slow, method) {
+            std::thread::sleep(Duration::from_millis(ms));
+        }
         match (method, id) {
             (Some("initialize"), Some(id)) => {
                 if self.has("--fail-init") {

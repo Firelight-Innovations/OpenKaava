@@ -87,3 +87,14 @@ fn an_agent_that_never_answers_is_killed_when_the_wait_runs_out() {
     assert_eq!(ask(&mock(&["--sleep"]), &tree, wait), None);
     assert!(started.elapsed() < PATIENCE, "took {:?}", started.elapsed());
 }
+
+/// Each request waits 1.5 s, so the two together outlast the 2.25 s wait that
+/// either one alone fits in.
+#[test]
+fn each_request_has_the_whole_wait_to_be_answered() {
+    let dir = tempfile::tempdir().unwrap();
+    let tree = worktree(dir.path());
+    let wait = Duration::from_millis(2250);
+    let models = ask(&mock(&["--slow", "1500"]), &tree, wait);
+    assert_eq!(models.map(|m| m.default).as_deref(), Some("default"));
+}

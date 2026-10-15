@@ -49,9 +49,10 @@ pub fn of(list: &Value) -> Option<Models> {
     })
 }
 
-/// Ask the agent `spec` starts for its models, in `worktree`, giving up after
-/// `wait`. `None` if it would not say: it did not start, it refused
-/// `session/new` (a signed-out agent does), or it offers no model option.
+/// Ask the agent `spec` starts for its models, in `worktree`, giving each
+/// request `wait` to be answered, as a session's handshake does. `None` if it
+/// would not say: it did not start, it did not answer in time, it refused
+/// `session/new` (a signed-out Codex does), or it offers no model option.
 /// The agent is killed before this returns.
 pub fn ask(spec: &LaunchSpec, worktree: &Worktree, wait: Duration) -> Option<Models> {
     let mut command = Command::new(&spec.program);
@@ -72,11 +73,11 @@ pub fn ask(spec: &LaunchSpec, worktree: &Worktree, wait: Duration) -> Option<Mod
     models
 }
 
-/// `initialize`, then `session/new`, each answered before the next is sent.
+/// `initialize`, then `session/new`, each answered within `wait` before the
+/// next is sent.
 fn converse(child: &mut Child, worktree: &Worktree, wait: Duration) -> Option<Models> {
     let mut stdin = child.stdin.take()?;
     let lines = read_lines(child.stdout.take()?);
-    let deadline = Instant::now() + wait;
     let cwd = worktree.path().to_string_lossy().into_owned();
     let requests = [
         ("initialize", hello()),
@@ -87,7 +88,7 @@ fn converse(child: &mut Child, worktree: &Worktree, wait: Duration) -> Option<Mo
         let request = json!({ "jsonrpc": "2.0", "id": id, "method": method, "params": params });
         writeln!(stdin, "{request}").ok()?;
         stdin.flush().ok()?;
-        reply = answer(&lines, id, deadline)?;
+        reply = answer(&lines, id, Instant::now() + wait)?;
     }
     of(reply.get("configOptions")?)
 }
