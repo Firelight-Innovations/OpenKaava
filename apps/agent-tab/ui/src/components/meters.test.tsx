@@ -226,6 +226,7 @@ describe("the model menu's harnesses", () => {
     fireEvent.click(menu("claude", onChoose));
     const soon = screen.getByRole("menuitemradio", { name: "Coming soon" });
     expect(soon.getAttribute("aria-disabled")).toBe("true");
+    expect(soon.closest("[role=group]")?.hasAttribute("data-unavailable")).toBe(true);
     fireEvent.click(soon);
     expect(onChoose).not.toHaveBeenCalled();
   });

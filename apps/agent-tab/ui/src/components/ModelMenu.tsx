@@ -174,6 +174,7 @@ export function ModelMenu({
                 role="group"
                 aria-label={section.label}
                 className="at-model__group"
+                data-unavailable={section.disabled ? "" : undefined}
                 title={section.title ?? undefined}
               >
                 <div className="at-model__heading" aria-hidden="true">
