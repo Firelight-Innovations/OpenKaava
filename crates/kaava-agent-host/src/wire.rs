@@ -3,8 +3,10 @@
 //! Not `kaava-rpc`'s codec, though it is the same framing: that crate's request
 //! id is a `u64` and its reader and writer are crate-private, while an ACP agent
 //! may number its own requests with strings (the permission request is one the
-//! *agent* sends). What is shared is the error vocabulary — the orchestrator
-//! maps [`RemoteError`] onto `kaava_rpc::RpcError` at its edge.
+//! *agent* sends). What is shared is the error vocabulary: [`RemoteError`]
+//! never leaves this crate (the session turns it into an error item or a
+//! hint), and it is [`HostError`](crate::host::HostError) that
+//! `apps::agent_tab` maps onto `kaava_rpc::RpcError`, with code `-32010`.
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};

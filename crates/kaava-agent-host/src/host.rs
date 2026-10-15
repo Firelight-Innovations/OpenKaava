@@ -21,7 +21,8 @@ use crate::session::{Level, Log, Session, Sink, Start};
 /// waiting. It has already been killed; this only bounds the wait.
 const RETIRE_WAIT: Duration = Duration::from_secs(3);
 
-/// What an adapter can do beyond the basics. The tab hides what is `false`.
+/// What an adapter can do beyond the basics. Nothing reads these yet; the tab
+/// will hide what is `false` once they are sent to it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Capabilities {
     /// Add to a running turn without stopping it.
@@ -33,9 +34,9 @@ pub struct Capabilities {
 }
 
 /// One harness's session, as the host drives it — the part of handoff §3.2's
-/// adapter trait this slice uses. Claude implements it over ACP; so does the
-/// mock the tests run, through the same code with a different
-/// [`LaunchSpec`]. `resume`, `fork`, `steer`, `set_model` and
+/// adapter trait this slice uses. Claude implements it over ACP, and `Session` is
+/// the only implementor: the mock the tests run is a separate process driven
+/// through the same `Session` with a different [`LaunchSpec`]. `resume`, `fork`, `steer`, `set_model` and
 /// `list_commands` arrive with the features that need them.
 pub trait Adapter: Send + Sync {
     /// What it supports.
