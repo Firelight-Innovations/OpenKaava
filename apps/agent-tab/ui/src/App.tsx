@@ -23,6 +23,7 @@ import {
 } from "@assistant-ui/react";
 import { reportPainted } from "@openkaava/bridge";
 import type { Attachment, Envelope, Hint } from "./protocol.generated";
+import { latestUsage } from "./meters";
 import { attached, busy, initialState, promptBefore, received, type TabState } from "./model";
 import * as rpc from "./rpc";
 import { toTurns, type Turn } from "./thread";
@@ -228,7 +229,23 @@ export default function App() {
                 </>
               }
               controls={
-                <S.ModePicker label={strings.mode} value={status?.mode ?? null} choices={[]} />
+                <S.ModelMenu
+                  label={strings.settings}
+                  sections={[
+                    {
+                      label: strings.agent,
+                      value: status?.harness ?? "claude",
+                      choices: [{ value: "claude", name: strings.harness.claude }],
+                    },
+                    { label: strings.mode, value: status?.mode ?? null, choices: [] },
+                  ]}
+                />
+              }
+              meters={
+                <>
+                  <S.ContextMeter {...latestUsage(state.items)} />
+                  <S.UsageRing limits={[]} />
+                </>
               }
               action={
                 working ? (

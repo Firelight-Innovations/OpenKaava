@@ -146,7 +146,9 @@ describe("the slot registry", () => {
       "Hint",
       "Note",
       "Composer",
-      "ModePicker",
+      "ModelMenu",
+      "ContextMeter",
+      "UsageRing",
       "SendButton",
     ]) {
       expect(shown, name).toContain(name);

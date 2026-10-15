@@ -214,6 +214,8 @@ export interface ComposerProps {
   notices: ReactNode;
   /** The footer's left side: mode, model, effort and harness pickers. */
   controls: ReactNode;
+  /** Beside Send or Stop: the context meter and the usage ring. */
+  meters: ReactNode;
   /** The footer's right side: Send or Stop. */
   action: ReactNode;
 }

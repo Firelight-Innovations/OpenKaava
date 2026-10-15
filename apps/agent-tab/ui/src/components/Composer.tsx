@@ -14,6 +14,7 @@ export function Composer({
   onKeyDown,
   notices,
   controls,
+  meters,
   action,
 }: ComposerProps) {
   return (
@@ -33,6 +34,7 @@ export function Composer({
         <div className="at-prompt__footer">
           {controls}
           <span className="at-prompt__spacer" />
+          {meters}
           {action}
         </div>
       </div>
