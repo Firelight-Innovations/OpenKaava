@@ -62,7 +62,9 @@ const GATED_METHODS: &[&str] = &["agent-tab/send", "agent-tab/answer"];
 
 /// The instance methods developer mode never blocks, on purpose: they read, or
 /// they end what is running, and a person who turned developer mode off has to
-/// be able to stop an agent that is still going.
+/// be able to stop an agent that is still going. Only the test that holds
+/// [`gate`] to this list reads it.
+#[cfg(test)]
 const UNGATED_METHODS: &[&str] = &[
     "agent-tab/attach",
     "agent-tab/cancel",
