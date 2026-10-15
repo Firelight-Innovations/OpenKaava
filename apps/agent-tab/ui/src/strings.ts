@@ -53,7 +53,7 @@ export const strings = {
   thinking: "Thinking",
   copy: "Copy",
   copied: "Copied",
-  copyTurn: "Copy everything the agent wrote in this turn",
+  copyTurn: "Copy the agent's text from this turn",
   working: "Working…",
   tool: {
     pending: "Pending",

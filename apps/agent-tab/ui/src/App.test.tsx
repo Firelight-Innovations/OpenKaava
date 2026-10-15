@@ -440,6 +440,51 @@ describe("the agent tab", () => {
     expect(screen.getAllByRole("button", { name: "Copy" })).toHaveLength(2);
   });
 
+  it("keeps Copy on earlier turns while a turn runs, and leaves it off the one being written", async () => {
+    const items = [
+      item("u1", { kind: "userMessage", text: "one" }),
+      item("a1", { kind: "assistantText", text: "first answer" }),
+      item("u2", { kind: "userMessage", text: "two" }),
+      item("a2", { kind: "assistantText", text: "half an answ" }),
+    ];
+    backend({ status: { ...STATUS, state: "working" }, seq: 4, items });
+    const { container } = render(<App />);
+    await screen.findByText("half an answ");
+    const turns = container.querySelectorAll(".at-turn--agent");
+    expect(turns[0].querySelector(".at-turn__actions")).not.toBeNull();
+    expect(turns[1].querySelector(".at-turn__actions")).toBeNull();
+
+    emit({ instanceId: "i", seq: 5, event: { type: "status", status: STATUS } });
+    expect(screen.getAllByRole("button", { name: "Copy" })).toHaveLength(2);
+  });
+
+  it("leaves Copy off a turn with no text, and says when it has copied", async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    try {
+      backend({
+        status: STATUS,
+        seq: 4,
+        items: [
+          item("u1", { kind: "userMessage", text: "one" }),
+          item("e1", { kind: "error", message: "boom", hint: null }),
+          item("u2", { kind: "userMessage", text: "two" }),
+          item("a2", { kind: "assistantText", text: "an answer" }),
+        ],
+      });
+      render(<App />);
+      await screen.findByText("an answer");
+      const copy = screen.getByRole("button", { name: "Copy" });
+      await act(async () => {
+        fireEvent.click(copy);
+      });
+      expect(writeText).toHaveBeenCalledWith("an answer");
+      expect(copy.textContent).toBe("Copied");
+    } finally {
+      delete (navigator as { clipboard?: unknown }).clipboard;
+    }
+  });
+
   it("redraws no transcript item while a prompt is typed", async () => {
     const drawn = vi.fn();
     const { SlotsProvider } = await import("./components/registry");
