@@ -74,6 +74,17 @@ export interface AssistantTextProps {
   onAuxClick: (event: MouseEvent<HTMLDivElement>) => void;
 }
 
+/** A run of tool calls folded into one line; `children` are the calls' own rows. */
+export interface ActionGroupProps {
+  /** "Ran 2 commands, read a file". */
+  summary: string;
+  /** Some call has not finished: the line shimmers. */
+  running: boolean;
+  /** "1 failed", or `null` when none did. */
+  failed: string | null;
+  children: ReactNode;
+}
+
 export interface ThinkingProps {
   text: string;
   /** Still being written: the label shimmers. */

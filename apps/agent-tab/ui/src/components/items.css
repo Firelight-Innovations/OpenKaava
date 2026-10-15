@@ -165,6 +165,40 @@ details[open] > .at-disclosure::after {
   padding-left: var(--k-space-3);
 }
 
+/* A run of tool calls: one line, and open, one card with a row per call. */
+.at-actions__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--k-space-1-5);
+  min-height: var(--k-row);
+  cursor: pointer;
+  color: var(--k-fg-muted);
+}
+
+.at-actions__head::after {
+  margin-left: 0;
+}
+
+.at-actions__failed {
+  color: var(--k-tool-failed);
+  font-size: var(--k-size-small);
+}
+
+.at-actions__body {
+  margin-top: var(--k-space-1);
+  border: 1px solid var(--k-panel-border);
+  border-radius: var(--k-radius-turn);
+  overflow: hidden;
+}
+
+.at-actions__body > * {
+  padding: var(--k-space-1) var(--k-space-3);
+}
+
+.at-actions__body > * + * {
+  border-top: 1px solid var(--k-panel-border);
+}
+
 /* Tool calls are compact, muted rows; what they did opens beneath them. */
 .at-tool {
   color: var(--k-fg-muted);

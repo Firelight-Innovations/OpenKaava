@@ -32,6 +32,7 @@ import { SessionList } from "./SessionList";
 import { StatusBadge } from "./StatusBadge";
 import { StopButton } from "./StopButton";
 import { Thinking } from "./Thinking";
+import { ActionGroup } from "./ActionGroup";
 import { TodoList } from "./TodoList";
 import { ToolCall } from "./ToolCall";
 import { Transcript } from "./Transcript";
@@ -60,6 +61,7 @@ export interface Slots {
   UserMessage: ComponentType<P.UserMessageProps>;
   AssistantText: ComponentType<P.AssistantTextProps>;
   Thinking: ComponentType<P.ThinkingProps>;
+  ActionGroup: ComponentType<P.ActionGroupProps>;
   ToolCall: ComponentType<P.ToolCallProps>;
   Diff: ComponentType<P.DiffProps>;
   PathList: ComponentType<P.PathListProps>;
@@ -106,6 +108,7 @@ export const defaultSlots: Slots = {
   UserMessage,
   AssistantText,
   Thinking,
+  ActionGroup,
   ToolCall,
   Diff,
   PathList,
