@@ -250,6 +250,84 @@ mod tests {
         assert!(!tree.contains("link/../x.txt"));
     }
 
+    /// A directory junction, which needs no privilege to make and is how a
+    /// repository on Windows can point out of itself.
+    #[cfg(windows)]
+    fn junction(link: &Path, target: &Path) {
+        let made = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(link)
+            .arg(target)
+            .output()
+            .unwrap();
+        assert!(made.status.success(), "{made:?}");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_junction_out_of_the_worktree_is_outside() {
+        let (dir, tree) = layout();
+        junction(&tree.path().join("link"), &dir.path().join("main"));
+        assert!(!tree.contains("link/file.txt"));
+        assert!(!tree.contains("link\\file.txt"));
+    }
+
+    /// `link/..` is `main`'s parent to the kernel, not the worktree root.
+    #[cfg(windows)]
+    #[test]
+    fn dot_dot_after_a_junction_follows_the_junction() {
+        let (dir, tree) = layout();
+        std::fs::create_dir_all(dir.path().join("main/sub")).unwrap();
+        junction(
+            &tree.path().join("link"),
+            &dir.path().join("main").join("sub"),
+        );
+        assert!(!tree.contains("link/../x.txt"));
+        assert!(
+            tree.contains("src/../x.txt"),
+            "and a plain folder still folds"
+        );
+    }
+
+    /// The root is verbatim (`\\?\C:\...`) on Windows, where `/` is part of a
+    /// name rather than a separator, so each shape of absolute path has to
+    /// land where the kernel would put it.
+    #[cfg(windows)]
+    #[test]
+    fn windows_absolute_paths_resolve_as_the_kernel_would() {
+        let (_dir, tree) = layout();
+        let root = tree.root().to_string_lossy().into_owned();
+        let plain = root.trim_start_matches(r"\\?\").to_string();
+        assert!(
+            tree.contains(&format!("{plain}\\src\\lib.rs")),
+            "drive path"
+        );
+        assert!(tree.contains(&format!("{}/src/lib.rs", plain.replace('\\', "/"))));
+        assert!(
+            tree.contains(&format!("{root}\\src\\lib.rs")),
+            "verbatim path"
+        );
+        assert!(
+            !tree.contains("C:/Windows/System32/x.dll"),
+            "another folder"
+        );
+        assert!(!tree.contains(r"C:\Windows\System32\x.dll"));
+        assert!(
+            !tree.contains(r"\\?\C:\Windows\x.dll"),
+            "verbatim elsewhere"
+        );
+        // A loopback address, so checking it asks no name server anything.
+        assert!(!tree.contains(r"\\127.0.0.1\share\x.txt"), "a share");
+        assert!(
+            !tree.contains(r"\\?\UNC\127.0.0.1\share\x.txt"),
+            "a verbatim share"
+        );
+        assert!(
+            !tree.contains(&format!("{plain}\\..\\x.txt")),
+            "dot-dot out of a drive path"
+        );
+    }
+
     #[test]
     fn request_paths_come_from_locations_input_and_diffs() {
         let call = json!({
