@@ -44,6 +44,7 @@ const STATUS = {
   adapterVersion: "0.90.0",
   exitCode: null,
   hint: null,
+  pendingPrompt: null,
 } as const;
 
 function item(id: string, kind: Item["kind"]): Item {
@@ -147,6 +148,26 @@ describe("the agent tab", () => {
     expect(prompt()).toHaveProperty("value", "go");
   });
 
+  it("says a main checkout is why, when the shell refuses the write before the tab's own code", async () => {
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        "agent-tab/send": () =>
+          Promise.reject(new bridge.KaavaRpcError(-32003, "main is read-only")),
+      },
+    );
+    render(<App />);
+    await screen.findByText("Start a session");
+    fireEvent.change(prompt(), { target: { value: "go" } });
+    await act(async () => {
+      fireEvent.keyDown(prompt(), { key: "Enter" });
+    });
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("main checkout");
+    expect(alert.textContent).not.toContain("Could not send that.");
+    expect(prompt()).toHaveProperty("value", "go");
+  });
+
   it("answers an approval with the option clicked", async () => {
     backend({
       status: { ...STATUS, state: "needsInput" },
@@ -157,6 +178,7 @@ describe("the agent tab", () => {
           title: "Run npm test",
           toolCallId: "c1",
           detail: "npm test",
+          detailTruncated: false,
           paths: [],
           diffs: [],
           options: [
@@ -189,6 +211,7 @@ describe("the agent tab", () => {
             title: "Run npm test",
             toolCallId: "c1",
             detail: "npm test",
+            detailTruncated: false,
             paths: [],
             diffs: [],
             options: [{ optionId: "allow", kind: "allow_once", name: "Allow" }],
@@ -259,6 +282,45 @@ describe("the agent tab", () => {
     await screen.findByRole("button", { name: "Stop" });
     fireEvent.keyDown(prompt(), { key: "Escape" });
     expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/cancel");
+  });
+
+  it("shows the accepted prompt while the agent starts, and Stop and Esc withdraw it", async () => {
+    backend({
+      status: { ...STATUS, state: "starting", pendingPrompt: "fix the build" },
+      seq: 2,
+      items: [],
+    });
+    render(<App />);
+    await screen.findByText("fix the build");
+    expect(screen.getByText(/Your message is sent once it is ready/)).toBeTruthy();
+    expect(screen.queryByText("Start a session")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Stop" }));
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/cancel");
+    bridge.invoke.mockClear();
+    fireEvent.keyDown(prompt(), { key: "Escape" });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/cancel");
+  });
+
+  it("retries a prompt whose handshake failed, with that prompt and not an older one", async () => {
+    backend({
+      status: { ...STATUS, state: "failed", hint: "signedOut" },
+      seq: 9,
+      items: [
+        item("u1", { kind: "userMessage", text: "an older prompt" }),
+        item("u2", { kind: "userMessage", text: "the one that failed" }),
+        item("e2", { kind: "error", message: "authentication required", hint: "signedOut" }),
+      ],
+    });
+    render(<App />);
+    await screen.findByText("the one that failed");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
+      harness: "claude",
+      text: "the one that failed",
+    });
   });
 
   it("never names the harness Claude Code", async () => {

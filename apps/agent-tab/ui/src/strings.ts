@@ -63,6 +63,9 @@ export const strings = {
     failed: "✕",
   } satisfies Record<ToolStatus, string>,
   outputTruncated: "Output truncated. The full output is in the agent's own log.",
+  detailTruncated:
+    "Only the start of this is shown. Reject it unless you can see what you are allowing.",
+  starting: "Starting the agent. Your message is sent once it is ready.",
   files: "Files",
   approval: {
     heading: "Approval needed",

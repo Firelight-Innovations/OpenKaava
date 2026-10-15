@@ -111,8 +111,8 @@ function ToolRow({ tool }: { tool: Kind<"toolCall"> }) {
     <details className="at-item at-tool">
       <summary className="at-tool__head">{head}</summary>
       <Paths paths={tool.paths} />
-      {tool.diffs.map((diff) => (
-        <DiffView key={diff.path} diff={diff} />
+      {tool.diffs.map((diff, i) => (
+        <DiffView key={`${i}:${diff.path}`} diff={diff} />
       ))}
       {tool.output !== "" && <pre className="at-pre">{tool.output}</pre>}
       {tool.truncated && <div className="at-note">{strings.outputTruncated}</div>}
@@ -124,8 +124,8 @@ function Paths({ paths }: { paths: string[] }) {
   if (paths.length === 0) return null;
   return (
     <ul className="at-paths" aria-label={strings.files}>
-      {paths.map((path) => (
-        <li key={path} className="at-mono">
+      {paths.map((path, i) => (
+        <li key={`${i}:${path}`} className="at-mono">
           {path}
         </li>
       ))}
@@ -190,9 +190,10 @@ function ApprovalCard({
         {strings.approval.heading}: {approval.title}
       </div>
       {approval.detail && <pre className="at-pre">{approval.detail}</pre>}
+      {approval.detailTruncated && <div className="at-note">{strings.detailTruncated}</div>}
       <Paths paths={approval.paths} />
-      {approval.diffs.map((diff) => (
-        <DiffView key={diff.path} diff={diff} />
+      {approval.diffs.map((diff, i) => (
+        <DiffView key={`${i}:${diff.path}`} diff={diff} />
       ))}
       {answered ? (
         <div className="at-approval__answer">{answerText(approval)}</div>

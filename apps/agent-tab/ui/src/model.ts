@@ -91,9 +91,15 @@ function appendText(items: Item[], id: string, text: string): Item[] {
   return items.map((have, i) => (i === at ? grown : have));
 }
 
-/** Whether a turn is open: the prompt box sends nothing until it closes. */
+/**
+ * Whether a turn is open or about to be: the prompt box sends nothing until it
+ * closes. `starting` counts, because the host holds the first prompt through
+ * the handshake (up to a minute) and Stop is what withdraws it.
+ */
 export function busy(status: SessionStatus | null): boolean {
-  return status?.state === "working" || status?.state === "needsInput";
+  return (
+    status?.state === "starting" || status?.state === "working" || status?.state === "needsInput"
+  );
 }
 
 /**

@@ -138,6 +138,7 @@ export default function App() {
 
   const status = state.status;
   const hint = status?.hint ?? null;
+  const hasPending = typeof status?.pendingPrompt === "string";
   const exited = status !== null && (status.state === "stopped" || status.state === "failed");
 
   return (
@@ -169,7 +170,7 @@ export default function App() {
       </header>
 
       <div className="at-transcript" ref={transcript} onScroll={onScroll}>
-        {state.items.length === 0 ? (
+        {state.items.length === 0 && !hasPending ? (
           <Empty
             blocked={blocked}
             setupHint={setupHint}
@@ -180,6 +181,13 @@ export default function App() {
           />
         ) : (
           state.items.map((item) => <ItemView key={item.id} item={item} actions={actions} />)
+        )}
+        {hasPending && status && (
+          <div className="at-item at-user at-user--pending">
+            <div className="at-item__label">{strings.you}</div>
+            <div className="at-user__text">{status.pendingPrompt}</div>
+            <div className="at-note">{strings.starting}</div>
+          </div>
         )}
         {hint && <div className="at-hint at-item">{strings.hint[hint]}</div>}
         {exited && state.items.length > 0 && (

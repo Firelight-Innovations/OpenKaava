@@ -18,6 +18,7 @@ const status = (state: SessionStatus["state"]): SessionStatus => ({
   adapterVersion: "0.90.0",
   exitCode: null,
   hint: null,
+  pendingPrompt: null,
 });
 
 const texts = (items: Item[]) =>
@@ -72,6 +73,9 @@ describe("the transcript", () => {
   it("knows when a turn is open and what was last asked", () => {
     expect(busy(status("working"))).toBe(true);
     expect(busy(status("needsInput"))).toBe(true);
+    expect(busy(status("starting"))).toBe(true);
+    expect(busy(status("failed"))).toBe(false);
+    expect(busy(status("stopped"))).toBe(false);
     expect(busy(status("ready"))).toBe(false);
     expect(busy(null)).toBe(false);
     const items: Item[] = [
@@ -84,5 +88,15 @@ describe("the transcript", () => {
     expect(promptBefore(items, "i4")).toBe("second");
     expect(promptBefore(items, "u1")).toBeNull();
     expect(promptBefore(items, "gone")).toBeNull();
+  });
+
+  it("finds the prompt of a handshake that failed, which the host draws ahead of the error", () => {
+    const failed: Item[] = [
+      { id: "u1", turnId: "t1", kind: { kind: "userMessage", text: "older" } },
+      text("a1", "done"),
+      { id: "u2", turnId: "t2", kind: { kind: "userMessage", text: "the one that failed" } },
+      { id: "e2", turnId: "t2", kind: { kind: "error", message: "no sign-in", hint: "signedOut" } },
+    ];
+    expect(promptBefore(failed, "e2")).toBe("the one that failed");
   });
 });

@@ -35,7 +35,17 @@ export interface Refusal {
   hint: string | null;
 }
 
+/**
+ * Mirrors `apps::READ_ONLY`. The shell refuses a write on a main checkout
+ * before the agent tab's own code runs, with this code and no `data`, so the
+ * tab names it for what it is rather than "Could not send that."
+ */
+export const READ_ONLY = -32003;
+
 export function refusalOf(err: unknown): Refusal | null {
+  if (err instanceof KaavaRpcError && err.code === READ_ONLY) {
+    return { code: "mainCheckout", hint: null };
+  }
   if (!(err instanceof KaavaRpcError) || err.code !== REFUSED) return null;
   const data = err.data as Partial<Refusal> | undefined;
   return typeof data?.code === "string"
