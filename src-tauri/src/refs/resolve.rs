@@ -778,7 +778,10 @@ mod tests {
 
         links::folder(outside.path(), &dir.path().join("linkdir"));
         let err = resolve(&dir, "kaava://file/linkdir/private.txt").unwrap_err();
-        assert!(err.contains("outside the project"), "through a folder: {err}");
+        assert!(
+            err.contains("outside the project"),
+            "through a folder: {err}"
+        );
         let err = resolve(&dir, "kaava://file/linkdir").unwrap_err();
         assert!(err.contains("outside the project"), "the folder: {err}");
         links::folder(&dir.path().join(".ssh"), &dir.path().join("sshdir"));
@@ -834,7 +837,13 @@ mod tests {
         );
 
         let whole = prose_part("Move the door", Some("markdown"));
-        assert!(matches!(whole, Part::Text { truncated: false, .. }));
+        assert!(matches!(
+            whole,
+            Part::Text {
+                truncated: false,
+                ..
+            }
+        ));
         let long = format!("{}\u{e9}", "a".repeat(MAX_EXCERPT_BYTES - 1));
         match prose_part(&long, None) {
             Part::Text {
@@ -952,7 +961,13 @@ mod tests {
         let r = folder_within(r, dir.path(), &dir.path().join("dump"), 3).unwrap();
         assert_eq!(r.meta["entries"], 3);
         assert_eq!(r.meta["partial"], true);
-        assert!(matches!(&r.parts[0], Part::Text { truncated: true, .. }));
+        assert!(matches!(
+            &r.parts[0],
+            Part::Text {
+                truncated: true,
+                ..
+            }
+        ));
         assert!(matches!(&r.parts[1], Part::Note { text } if text.contains("first 3 entries")));
         let whole = Resolved::empty(&parse("kaava://file/dump").unwrap(), "folder", "dump");
         let whole = folder_within(whole, dir.path(), &dir.path().join("dump"), 5).unwrap();

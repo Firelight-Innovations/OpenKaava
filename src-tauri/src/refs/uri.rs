@@ -413,7 +413,11 @@ mod tests {
             let why = parse(spelt).unwrap_err();
             assert!(why.contains(own), "{spelt}: {why}");
         }
-        for bad in ["kaava://canvas/World", "kaava://canvas/a%20b", "kaava://canvas/-x"] {
+        for bad in [
+            "kaava://canvas/World",
+            "kaava://canvas/a%20b",
+            "kaava://canvas/-x",
+        ] {
             assert!(parse(bad).unwrap_err().contains("not a slug"), "{bad}");
         }
         assert!(parse("kaava://canvas/levels/ward-b_2").is_ok());
@@ -422,11 +426,23 @@ mod tests {
     #[test]
     fn a_comment_id_is_one_the_canvas_app_could_have_made() {
         let ok = parse("kaava://canvas/w#comment=c-18f2a-0a1b2c").unwrap();
-        assert!(matches!(ok, Ref::Canvas { part: Some(CanvasPart::Comment(_)), .. }));
+        assert!(matches!(
+            ok,
+            Ref::Canvas {
+                part: Some(CanvasPart::Comment(_)),
+                ..
+            }
+        ));
         for bad in ["..%2Fx", "a%2Fb", "C-1", "c_1", &"c".repeat(65)] {
             let uri = format!("kaava://canvas/w#comment={bad}");
-            assert!(parse(&uri).unwrap_err().contains("not a comment id"), "{uri}");
+            assert!(
+                parse(&uri).unwrap_err().contains("not a comment id"),
+                "{uri}"
+            );
         }
-        assert!(parse("kaava://canvas/w#frame=Ward%20B").is_ok(), "a frame may be a name");
+        assert!(
+            parse("kaava://canvas/w#frame=Ward%20B").is_ok(),
+            "a frame may be a name"
+        );
     }
 }

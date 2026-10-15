@@ -561,7 +561,11 @@ mod tests {
     fn a_reference_method_is_refused_and_the_panel_says_why() {
         let refusal = guard_refs(crate::refs::RESOLVE_METHOD).expect_err("should be refused");
         assert_eq!(refusal.code, INVALID_PARAMS);
-        assert!(refusal.message.contains("as the person"), "{}", refusal.message);
+        assert!(
+            refusal.message.contains("as the person"),
+            "{}",
+            refusal.message
+        );
         assert!(guard_refs("canvas/frames").is_ok());
         assert!(guard_refs("refs/sync").is_ok(), "a plugin's own method");
         assert_eq!(

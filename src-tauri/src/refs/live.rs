@@ -138,10 +138,12 @@ fn canvas(
 /// `problems`. That is an error here, so it never reads as an empty canvas.
 fn canvas_from(listed: &Value, r: &Ref, id: &str) -> Result<Resolved, String> {
     if listed["canvases"].as_array().is_none_or(Vec::is_empty) {
-        return Err(match listed.pointer("/problems/0").and_then(Value::as_str) {
-            Some(why) => format!("canvas `{id}` cannot be read: {why}"),
-            None => format!("canvas `{id}` cannot be read"),
-        });
+        return Err(
+            match listed.pointer("/problems/0").and_then(Value::as_str) {
+                Some(why) => format!("canvas `{id}` cannot be read: {why}"),
+                None => format!("canvas `{id}` cannot be read"),
+            },
+        );
     }
     let title = listed
         .pointer("/canvases/0/title")
@@ -164,7 +166,8 @@ fn canvas_from(listed: &Value, r: &Ref, id: &str) -> Result<Resolved, String> {
             json!({ "name": f["name"], "type": f["typeName"], "ref": link.to_string() })
         })
         .collect();
-    out.parts.push(resolve::json_part(json!({ "frames": rows })));
+    out.parts
+        .push(resolve::json_part(json!({ "frames": rows })));
     Ok(out)
 }
 
@@ -522,7 +525,10 @@ mod tests {
         let err = canvas_inside(root, "hub", None).unwrap_err();
         assert!(err.contains("outside the project"), "a linked child: {err}");
         let err = canvas_inside(root, "levels/inner", None).unwrap_err();
-        assert!(err.contains("outside the project"), "a linked folder: {err}");
+        assert!(
+            err.contains("outside the project"),
+            "a linked folder: {err}"
+        );
 
         if !links::file(&secret, &root.join("canvas/leak.canvas.json")) {
             return;

@@ -148,7 +148,8 @@ pub fn secret_rule(rel: &str) -> Option<&'static str> {
     if ssh_key && !name.ends_with(".pub") {
         return Some("SSH private keys");
     }
-    let service_account = name.starts_with("service-account") || name.starts_with("service_account");
+    let service_account =
+        name.starts_with("service-account") || name.starts_with("service_account");
     let credential = CREDENTIAL_NAMES.contains(&name)
         || (name == "hosts.yml" && segments.last() == Some(&"gh"))
         || (service_account && name.ends_with(".json"))
@@ -306,7 +307,12 @@ fn exclude_file(root: &Path) -> Option<PathBuf> {
         Some(text)
     };
     let pointer = read_small(&dot_git)?;
-    let git_dir = root.join(pointer.lines().find_map(|l| l.strip_prefix("gitdir:"))?.trim());
+    let git_dir = root.join(
+        pointer
+            .lines()
+            .find_map(|l| l.strip_prefix("gitdir:"))?
+            .trim(),
+    );
     let common = match read_small(&git_dir.join("commondir")) {
         Some(rel) => git_dir.join(rel.trim()),
         None => git_dir,
