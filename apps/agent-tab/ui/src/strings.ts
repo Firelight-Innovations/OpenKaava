@@ -10,6 +10,23 @@ import type { Harness, Hint, SessionState, ToolStatus } from "./protocol.generat
 export const ADAPTER_VERSION = "0.90.0";
 export const ADAPTER_INSTALL = `npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@${ADAPTER_VERSION}`;
 
+/** At most one decimal, and none when it is zero: 124.6, 300, 1.2. */
+function short(n: number): string {
+  return (Math.round(n * 10) / 10).toString();
+}
+
+/** A token count the way the meters show it: 812, 124.6k, 1.2M. */
+function tokens(n: number): string {
+  if (n < 1000) return `${n}`;
+  if (n < 1_000_000) return `${short(n / 1000)}k`;
+  return `${short(n / 1_000_000)}M`;
+}
+
+/** A share of 0..1 as a whole percentage. */
+function percent(share: number): string {
+  return `${Math.round(share * 100)}%`;
+}
+
 export const strings = {
   title: "Agent",
   harness: { claude: "Claude" } satisfies Record<Harness, string>,
@@ -30,6 +47,23 @@ export const strings = {
   sendGlyph: "↑",
   stopGlyph: "■",
   mode: "Mode",
+  settings: "Agent settings",
+  agent: "Agent",
+  tokens,
+  percent,
+  context: {
+    heading: "Context window",
+    summary: (used: number, size: number) =>
+      `${tokens(used)} / ${tokens(size)} (${percent(used / size)})`,
+    used: "Used",
+    free: "Free space",
+    meter: (share: number) => `Context window ${percent(share)} full`,
+  },
+  limits: {
+    heading: "Usage",
+    used: (share: number) => `${percent(share)} used`,
+    meter: (share: number) => `Usage: ${percent(share)} of the tightest limit used`,
+  },
   promptLabel: "Message the agent",
   promptPlaceholder: "Ask the agent to do something in this worktree",
   promptBusy: "The agent is working. Press Esc to stop it.",

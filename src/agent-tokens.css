@@ -69,6 +69,18 @@
   --k-tool-running: var(--k-state-working);
   --k-tool-done: var(--k-diff-add-fg);
   --k-tool-failed: var(--k-diff-del-fg);
+  /* Meters: the usage ring and bars by how full they are, and the context
+     window card's parts, one chart colour each. */
+  --k-meter-track: var(--k-input-border);
+  --k-meter-low: var(--info);
+  --k-meter-high: var(--warning);
+  --k-meter-full: var(--danger);
+  --k-context-1: var(--chart-1);
+  --k-context-2: var(--chart-2);
+  --k-context-3: var(--chart-3);
+  --k-context-4: var(--chart-4);
+  --k-context-5: var(--chart-5);
+  --k-context-6: var(--chart-6);
 
   /* Type */
   --k-font: var(--sans);
