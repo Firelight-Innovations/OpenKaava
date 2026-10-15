@@ -6,6 +6,7 @@
 use super::resolve::{self, Part, Resolved};
 use super::uri::{CanvasPart, Ref};
 use crate::apps::CallContext;
+use kaava_rpc::RpcError;
 use serde_json::{json, Value};
 use std::path::Path;
 use tauri::AppHandle;
@@ -93,15 +94,32 @@ fn canvas_inside(root: &Path, id: &str, part: Option<&CanvasPart>) -> Result<(),
     Ok(())
 }
 
-fn canvas_call(
+fn canvas_rpc(
     app: &AppHandle,
     ctx: &CallContext,
     actor: Actor,
     method: &str,
     mut params: Value,
-) -> Result<Value, String> {
+) -> Result<Value, RpcError> {
     params["actor"] = json!(actor.name());
-    crate::apps::call(app, ctx, "canvas", method, Some(params)).map_err(|e| e.message)
+    crate::apps::call(app, ctx, "canvas", method, Some(params))
+}
+
+fn canvas_call(
+    app: &AppHandle,
+    ctx: &CallContext,
+    actor: Actor,
+    method: &str,
+    params: Value,
+) -> Result<Value, String> {
+    canvas_rpc(app, ctx, actor, method, params).map_err(|e| e.message)
+}
+
+/// Whether the Canvas app failed only because no Canvas pane is open to draw.
+fn no_pane(e: &RpcError) -> bool {
+    e.data
+        .as_ref()
+        .is_some_and(|d| d["kind"] == "canvas-not-open")
 }
 
 fn canvas(
@@ -225,30 +243,46 @@ fn canvas_comment(
     id: &str,
     comment: &str,
 ) -> Result<Resolved, String> {
-    let viewed = canvas_call(
+    let viewed = canvas_rpc(
         app,
         ctx,
         actor,
         "canvas/view-comment",
         json!({ "id": id, "commentId": comment }),
     );
+    let list = || {
+        canvas_call(
+            app,
+            ctx,
+            actor,
+            "canvas/list-comments",
+            json!({ "id": id, "status": "all" }),
+        )
+    };
+    comment_from(root, r, id, comment, viewed, list)
+}
+
+/// A canvas comment from its `canvas/view-comment` answer. Only when no pane is
+/// open to draw it does the record come from `list` instead, without a
+/// picture; any other failure is the comment's own, and is passed on.
+fn comment_from(
+    root: &Path,
+    r: &Ref,
+    id: &str,
+    comment: &str,
+    viewed: Result<Value, RpcError>,
+    list: impl FnOnce() -> Result<Value, String>,
+) -> Result<Resolved, String> {
     let (record, picture) = match viewed {
         Ok(v) => (v["comment"].clone(), rendered(root, Ok(v))),
-        // No Canvas pane to draw it: the comment itself still reads from disk.
-        Err(why) => {
-            let all = canvas_call(
-                app,
-                ctx,
-                actor,
-                "canvas/list-comments",
-                json!({ "id": id, "status": "all" }),
-            )?;
-            let found = all["comments"]
+        Err(e) if no_pane(&e) => {
+            let found = list()?["comments"]
                 .as_array()
                 .and_then(|cs| cs.iter().find(|c| c["id"] == json!(comment)).cloned())
                 .ok_or_else(|| format!("canvas `{id}` has no comment `{comment}`"))?;
-            (found, rendered(root, Err(why)))
+            (found, rendered(root, Err(e.message)))
         }
+        Err(e) => return Err(e.message),
     };
     let text = record["text"].as_str().unwrap_or_default();
     let mut out = resolve::Resolved::empty(r, "comment", resolve::first_line(text));
@@ -273,11 +307,8 @@ fn rendered(root: &Path, answer: Result<Value, String>) -> Part {
     let note = |text: String| Part::Note { text };
     let path = match answer {
         Ok(v) => v["path"].as_str().map(str::to_owned),
-        Err(why) => {
-            return note(format!(
-                "No picture: {why}. Open the canvas in a Canvas pane to render one."
-            ))
-        }
+        // The app's own message says what would draw one, when anything would.
+        Err(why) => return note(format!("No picture: {why}")),
     };
     let found = path
         .and_then(|p| crate::context::relative_to(root, Path::new(&p)))
@@ -560,6 +591,51 @@ mod tests {
             .as_array()
             .unwrap()
             .is_empty());
+    }
+
+    #[test]
+    fn a_comment_falls_back_to_its_record_only_when_no_pane_can_draw_it() {
+        use kaava_rpc::INTERNAL_ERROR;
+        let dir = tempfile::TempDir::new().unwrap();
+        let shot = dir.path().join(".kaava/preview/canvas/world/c-1.png");
+        write_png(&shot);
+        let r = Ref::Canvas {
+            id: "world".into(),
+            part: Some(CanvasPart::Comment("c-1".into())),
+        };
+        let record = json!({ "id": "c-1", "text": "Move the door\nleft", "status": "open" });
+        let resolve = |viewed, list: &dyn Fn() -> Result<Value, String>| {
+            comment_from(dir.path(), &r, "world", "c-1", viewed, list)
+        };
+        let unused = || -> Result<Value, String> { panic!("drawn, so not listed") };
+
+        let drawn = resolve(Ok(json!({ "comment": record, "path": shot })), &unused).unwrap();
+        assert_eq!(drawn.title, "Move the door");
+        assert!(matches!(drawn.parts.last(), Some(Part::Image { .. })));
+
+        let closed = || {
+            Err(RpcError::with_data(
+                INTERNAL_ERROR,
+                "no Canvas app is open",
+                json!({ "kind": "canvas-not-open" }),
+            ))
+        };
+        let listed = || Ok(json!({ "comments": [record.clone()] }));
+        let undrawn = resolve(closed(), &listed).unwrap();
+        assert_eq!(undrawn.meta["status"], "open");
+        assert!(
+            matches!(undrawn.parts.last(), Some(Part::Note { text }) if text == "No picture: no Canvas app is open")
+        );
+        let empty = || Ok(json!({ "comments": [] }));
+        let err = resolve(closed(), &empty).unwrap_err();
+        assert_eq!(err, "canvas `world` has no comment `c-1`");
+
+        let gone = Err(RpcError::new(INTERNAL_ERROR, "the comment's frame is gone"));
+        let err = resolve(gone, &unused).unwrap_err();
+        assert_eq!(
+            err, "the comment's frame is gone",
+            "not a missing pane, so not listed"
+        );
     }
 
     #[test]
