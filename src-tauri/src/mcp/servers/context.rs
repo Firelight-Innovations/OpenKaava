@@ -34,6 +34,9 @@ const MAX_SHOWN: usize = 8;
 const MAX_CAPTION: usize = 500;
 /// The version of the `refs` component's props that `show` writes.
 const REFS_VERSION: u32 = 1;
+/// Longest note `resolve_comment` writes, in characters: a sentence or two
+/// for the person, well under what a comment record may hold.
+const MAX_NOTE: usize = 4_000;
 
 pub static SERVER: McpServer = McpServer {
     id: ID,
@@ -154,9 +157,10 @@ const TOOLS: &[McpTool] = &[
     McpTool {
         name: "search_context",
         description: "Find things in the person's project by name: files and folders, canvases \
-                      and frames, comments, Design Mode comments, context items and the \
+                      and frames, viewer and Design Mode comments, context items and the \
                       selection. Each hit is a kaava:// reference to `read` or `show`. Names, \
-                      not contents: search inside files with your own tools.",
+                      not file contents: search inside files with your own tools. A comment is \
+                      found by what it says.",
         schema: search_schema,
     },
     McpTool {
@@ -194,7 +198,8 @@ pub static RESOURCES: &[McpResource] = &[McpResource {
     uri: SELECTION_URI,
     name: "selection",
     description: "What the person has selected in the cluster they are working in. \
-                  Subscribe to hear when it changes.",
+                  Subscribe to hear when their focus moves; a selection made without moving \
+                  focus is not announced, so read it again before acting on it.",
     mime_type: "text/plain",
 }];
 
@@ -271,6 +276,37 @@ fn text<'a>(args: &'a Map<String, Value>, key: &str) -> Result<&'a str, RpcError
         .ok_or_else(|| bad(format!("`{key}` is required")))
 }
 
+/// An optional string, refused when it is there and is not one.
+fn maybe_text<'a>(args: &'a Map<String, Value>, key: &str) -> Result<Option<&'a str>, RpcError> {
+    match args.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::String(s)) => Ok(Some(s)),
+        Some(_) => Err(bad(format!("`{key}` is a string"))),
+    }
+}
+
+/// An optional count, refused when it is there and is not one.
+fn maybe_count(args: &Map<String, Value>, key: &str) -> Result<Option<usize>, RpcError> {
+    match args.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(v) => v
+            .as_u64()
+            .map(|n| Some(usize::try_from(n).unwrap_or(usize::MAX)))
+            .ok_or_else(|| bad(format!("`{key}` is a whole number"))),
+    }
+}
+
+/// The note `resolve_comment` writes, trimmed and held under [`MAX_NOTE`].
+fn note(args: &Map<String, Value>) -> Result<&str, RpcError> {
+    let note = text(args, "note")?.trim();
+    if note.chars().count() > MAX_NOTE {
+        return Err(bad(format!(
+            "a note is at most {MAX_NOTE} characters; say what you did in a sentence or two"
+        )));
+    }
+    Ok(note)
+}
+
 /// An optional list of strings.
 fn strings(args: &Map<String, Value>, key: &str) -> Result<Option<Vec<String>>, RpcError> {
     let not_a_list = || bad(format!("`{key}` is a list of strings"));
@@ -298,7 +334,7 @@ fn call(app: &AppHandle, tool: &str, params: Option<Value>) -> Result<ToolAnswer
         "read" => read(app, &ctx, &parse(text(&args, "uri")?)?),
         "search_context" => find(app, &ctx, &args),
         "list_comments" => {
-            let wanted = Wanted::parse(args.get("status").and_then(Value::as_str)).map_err(bad)?;
+            let wanted = Wanted::parse(maybe_text(&args, "status")?).map_err(bad)?;
             let sources = strings(&args, "sources")?;
             let known = |s: &&String| comments::SOURCES.contains(&s.as_str());
             if let Some(stray) = sources.iter().flatten().find(|s| !known(s)) {
@@ -308,8 +344,8 @@ fn call(app: &AppHandle, tool: &str, params: Option<Value>) -> Result<ToolAnswer
             Ok(comments::list(app, &ctx, wanted, sources.as_deref()).into())
         }
         "resolve_comment" => {
-            let (r, note) = (parse(text(&args, "uri")?)?, text(&args, "note")?);
-            let done = comments::resolve(app, &ctx, &r, note.trim()).map_err(bad)?;
+            let (r, note) = (parse(text(&args, "uri")?)?, note(&args)?);
+            let done = comments::resolve(app, &ctx, &r, note).map_err(bad)?;
             Ok(done.into())
         }
         "get_selection" => read(app, &ctx, &Ref::Selection),
@@ -364,12 +400,9 @@ fn find(
             "this cluster has no project open, so there is nothing to find",
         ));
     }
-    let words = args.get("query").and_then(Value::as_str).unwrap_or("");
+    let words = maybe_text(args, "query")?.unwrap_or("");
     let kinds = strings(args, "kinds")?;
-    let limit = args
-        .get("limit")
-        .and_then(Value::as_u64)
-        .map(|n| n as usize);
+    let limit = maybe_count(args, "limit")?;
     let q = Query::new(words, kinds, limit).map_err(bad)?;
     let hits = search::run(app, ctx, Actor::Agent, &q);
     Ok(json!({ "query": words, "hits": hits }).into())
@@ -585,5 +618,34 @@ mod tests {
                 "kaava://file/.env (text): .env\nwithheld: secrets".into()
             )]
         );
+    }
+
+    fn args(v: Value) -> Map<String, Value> {
+        v.as_object().cloned().unwrap()
+    }
+
+    #[test]
+    fn an_argument_of_the_wrong_type_is_refused_not_replaced() {
+        let given = args(json!({ "query": 7, "limit": "ten", "status": null, "n": 3 }));
+        assert!(maybe_text(&given, "query").is_err());
+        assert!(maybe_count(&given, "limit").is_err());
+        assert_eq!(maybe_text(&given, "status").unwrap(), None);
+        assert_eq!(maybe_text(&given, "absent").unwrap(), None);
+        assert_eq!(maybe_count(&given, "n").unwrap(), Some(3));
+        assert!(maybe_count(&args(json!({ "n": -1 })), "n").is_err());
+    }
+
+    #[test]
+    fn a_note_is_trimmed_and_held_under_the_cap() {
+        assert_eq!(note(&args(json!({ "note": "  done \n" }))).unwrap(), "done");
+        let longest = "é".repeat(MAX_NOTE);
+        assert!(
+            note(&args(json!({ "note": longest }))).is_ok(),
+            "counted in characters"
+        );
+        let over = "x".repeat(MAX_NOTE + 1);
+        let err = note(&args(json!({ "note": over }))).unwrap_err();
+        assert_eq!(err.code, kaava_rpc::INVALID_PARAMS);
+        assert!(note(&args(json!({ "note": "   " }))).is_err());
     }
 }
