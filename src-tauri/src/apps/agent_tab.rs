@@ -240,12 +240,8 @@ pub fn call_for(
     match method {
         "agent-tab/send" => {
             let text = text_param(&params, "text")?;
-            let asked = match params.get("harness") {
-                Some(_) => Some(harness_param(&params)?),
-                None => None,
-            };
             let worktree = worktree(app, context)?;
-            let harness = asked.unwrap_or_else(|| sessions.current(host, instance));
+            let harness = sessions.current(host, instance);
             let mut launch = spec(
                 harness,
                 std::env::var_os("PATH").as_deref(),
@@ -290,18 +286,17 @@ pub fn call_for(
             host.reset(instance);
             Ok(json!({}))
         }
-        // The tab's next session runs this harness. While an agent of another
-        // harness runs, its prompts would still go there, so that is refused.
+        // The tab's next session runs this harness.
         "agent-tab/choose" => {
             let harness = harness_param(&params)?;
-            if host.running(instance).is_some_and(|h| h != harness) {
-                return Err(refused(
-                    "running",
-                    "this tab's agent runs another harness; start a new session to switch",
-                    Value::Null,
-                ));
-            }
+            may_choose(host.running(instance), harness)?;
             sessions.chosen().insert(instance.to_string(), harness);
+            // A tab that closed since this call began missed `sync`'s prune,
+            // and a page reopened under its id would inherit the choice.
+            if !is_agent_tab(app, instance) {
+                sessions.chosen().remove(instance);
+                return Err(unreached(method));
+            }
             let _ = app.emit(
                 CHOSEN,
                 json!({ "instanceId": instance, "harness": harness }),
@@ -347,7 +342,26 @@ fn harnesses(app: &AppHandle, context: &CallContext, tab: Option<&str>) -> Value
 /// The harness a tab's next prompt goes to: the one its agent runs, else the
 /// one it chose, else the first registered.
 fn current(running: Option<Harness>, chosen: Option<Harness>) -> Harness {
-    running.or(chosen).unwrap_or_else(harness::first)
+    next_of(running, chosen, harness::first())
+}
+
+/// [`current`]'s rule over any ids, so it is tested with more harnesses than
+/// the registry has yet.
+fn next_of<H>(running: Option<H>, chosen: Option<H>, first: H) -> H {
+    running.or(chosen).unwrap_or(first)
+}
+
+/// Whether a tab may choose `harness`: not while its agent runs another,
+/// whose prompts would still go there until a new session.
+fn may_choose<H: PartialEq>(running: Option<H>, harness: H) -> Result<(), RpcError> {
+    if running.is_some_and(|h| h != harness) {
+        return Err(refused(
+            "running",
+            "this tab's agent runs another harness; start a new session to switch",
+            Value::Null,
+        ));
+    }
+    Ok(())
 }
 
 fn developer_mode(app: &AppHandle) -> bool {
@@ -803,7 +817,7 @@ mod tests {
     }
 
     #[test]
-    fn a_send_names_a_registered_harness_by_its_id() {
+    fn a_choice_names_a_registered_harness_by_its_id() {
         for d in REGISTRY {
             let params = json!({ "harness": d.harness });
             assert_eq!(harness_param(&params).unwrap(), d.harness);
@@ -824,5 +838,21 @@ mod tests {
             assert_eq!(current(None, Some(d.harness)), d.harness);
             assert_eq!(current(Some(d.harness), None), d.harness);
         }
+    }
+
+    #[test]
+    fn a_tabs_live_agent_beats_its_choice_which_beats_the_first() {
+        assert_eq!(next_of(None, None, "first"), "first");
+        assert_eq!(next_of(None, Some("chosen"), "first"), "chosen");
+        assert_eq!(next_of(Some("running"), None, "first"), "running");
+        assert_eq!(next_of(Some("running"), Some("chosen"), "first"), "running");
+    }
+
+    #[test]
+    fn a_tab_chooses_another_harness_only_once_its_agent_is_gone() {
+        assert!(may_choose(None, "pi").is_ok());
+        assert!(may_choose(Some("pi"), "pi").is_ok());
+        let err = may_choose(Some("claude"), "pi").unwrap_err();
+        assert_eq!(code_of(&err), Some("running"));
     }
 }
