@@ -272,17 +272,24 @@ mod tests {
         assert!(!tree.contains("link\\file.txt"));
     }
 
-    /// `link/..` is `main`'s parent to the kernel, not the worktree root.
+    /// Unlike a Unix kernel, Win32 folds `..` out of a path before it reaches
+    /// the file system, so `link/..` is the worktree again even when `link` is
+    /// a junction. The write below shows where Windows puts it; the guard must
+    /// agree.
     #[cfg(windows)]
     #[test]
-    fn dot_dot_after_a_junction_follows_the_junction() {
+    fn dot_dot_after_a_junction_folds_as_windows_folds_it() {
         let (dir, tree) = layout();
         std::fs::create_dir_all(dir.path().join("main/sub")).unwrap();
         junction(
             &tree.path().join("link"),
             &dir.path().join("main").join("sub"),
         );
-        assert!(!tree.contains("link/../x.txt"));
+        let through = format!("{}\\link\\..\\x.txt", dir.path().join("tree").display());
+        std::fs::write(&through, "x").unwrap();
+        assert!(dir.path().join("tree").join("x.txt").exists());
+        assert!(!dir.path().join("main").join("x.txt").exists());
+        assert!(tree.contains("link/../x.txt"), "the guard agrees");
         assert!(
             tree.contains("src/../x.txt"),
             "and a plain folder still folds"
