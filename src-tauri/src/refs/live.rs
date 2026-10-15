@@ -85,7 +85,7 @@ pub fn check(app: &AppHandle, ctx: &CallContext, r: &Ref) -> Result<(), Fault> {
             let item = resolve::stored_item(root, id)?;
             refuse(resolve::item_secret(root, &item))
         }
-        Ref::Comment { id } => resolve::viewer_record(root, id).map(drop),
+        Ref::Comment { id } => resolve::viewer_record_at(root, id).map(drop),
         Ref::Canvas { id, part } => {
             canvas_inside(root, id, part.as_ref())?;
             match part {

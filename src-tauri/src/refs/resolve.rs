@@ -602,13 +602,7 @@ pub fn viewer_comment(root: &Path, r: &Ref) -> Result<Resolved, Fault> {
 
 /// A viewer comment's record, read from inside the project and under the cap.
 pub(super) fn viewer_record(root: &Path, id: &str) -> Result<crate::comments::Comment, Fault> {
-    let record = policy::contain(root, &format!(".kaava/comments/{id}.json")).map_err(|f| {
-        let missing = format!("there is no comment `{id}` in this project");
-        match f.reason {
-            Reason::Missing => Fault::new(Reason::Missing, missing),
-            _ => f,
-        }
-    })?;
+    let record = viewer_record_at(root, id)?;
     let raw = read_prefix(&record.abs, MAX_COMMENT_BYTES + 1)?;
     if raw.len() as u64 > MAX_COMMENT_BYTES {
         return Err(Fault::from(format!(
@@ -618,6 +612,17 @@ pub(super) fn viewer_record(root: &Path, id: &str) -> Result<crate::comments::Co
     }
     serde_json::from_slice(&raw)
         .map_err(|e| Fault::from(format!("comment `{id}` is unreadable: {e}")))
+}
+
+/// Where a viewer comment's record is, unread: inside the project, or why not.
+pub(super) fn viewer_record_at(root: &Path, id: &str) -> Result<policy::Contained, Fault> {
+    policy::contain(root, &format!(".kaava/comments/{id}.json")).map_err(|f| {
+        let missing = format!("there is no comment `{id}` in this project");
+        match f.reason {
+            Reason::Missing => Fault::new(Reason::Missing, missing),
+            _ => f,
+        }
+    })
 }
 
 /// A context item's record. The store refuses an unknown id and a sidecar it
