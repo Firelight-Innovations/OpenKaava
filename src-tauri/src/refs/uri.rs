@@ -94,6 +94,7 @@ pub fn parse(raw: &str) -> Result<Ref, String> {
         "canvas" => {
             let id = decode_path(tail)?;
             policy::check_relative(&id)?;
+            own_canvas_id(&id)?;
             let part = fragment.map(parse_canvas_part).transpose()?;
             Ok(Ref::Canvas { id, part })
         }
@@ -180,6 +181,19 @@ fn parse_lines(fragment: &str) -> Result<Lines, String> {
     }
 }
 
+/// A canvas is named by the id the Canvas app makes of it, which drops a
+/// leading `canvas/` and a `.json`. Any other spelling would have `live` test
+/// one file and the app open another.
+fn own_canvas_id(id: &str) -> Result<(), String> {
+    match crate::apps::canvas::canvas_id(id) {
+        Ok(own) if own == id => Ok(()),
+        Ok(own) => Err(format!(
+            "`{id}` is spelt as a path; name the canvas `kaava://canvas/{own}`"
+        )),
+        Err(e) => Err(e.message),
+    }
+}
+
 /// `frame=<id or name>` or `comment=<id>`.
 fn parse_canvas_part(fragment: &str) -> Result<CanvasPart, String> {
     let (key, value) = fragment
@@ -191,7 +205,12 @@ fn parse_canvas_part(fragment: &str) -> Result<CanvasPart, String> {
     }
     match key {
         "frame" => Ok(CanvasPart::Frame(value)),
-        "comment" => Ok(CanvasPart::Comment(value)),
+        "comment" => match crate::apps::canvas::comments::validate_comment_id(&value) {
+            Ok(()) => Ok(CanvasPart::Comment(value)),
+            Err(_) => Err(format!(
+                "`{value}` is not a comment id: those are lowercase letters, digits and -"
+            )),
+        },
         _ => Err(format!(
             "`#{fragment}` should be `#frame=<id>` or `#comment=<id>`"
         )),
@@ -382,5 +401,32 @@ mod tests {
         assert!(parse("kaava://canvas/w#frame=").is_err());
         assert!(parse("kaava://canvas/w#shape=x").is_err());
         assert!(parse("kaava://canvas/w#L3").is_err());
+    }
+
+    #[test]
+    fn a_canvas_is_named_only_by_the_id_the_canvas_app_opens() {
+        for (spelt, own) in [
+            ("kaava://canvas/canvas/evil", "kaava://canvas/evil"),
+            ("kaava://canvas/world.json", "kaava://canvas/world"),
+            ("kaava://canvas/world.canvas.json", "kaava://canvas/world"),
+        ] {
+            let why = parse(spelt).unwrap_err();
+            assert!(why.contains(own), "{spelt}: {why}");
+        }
+        for bad in ["kaava://canvas/World", "kaava://canvas/a%20b", "kaava://canvas/-x"] {
+            assert!(parse(bad).unwrap_err().contains("not a slug"), "{bad}");
+        }
+        assert!(parse("kaava://canvas/levels/ward-b_2").is_ok());
+    }
+
+    #[test]
+    fn a_comment_id_is_one_the_canvas_app_could_have_made() {
+        let ok = parse("kaava://canvas/w#comment=c-18f2a-0a1b2c").unwrap();
+        assert!(matches!(ok, Ref::Canvas { part: Some(CanvasPart::Comment(_)), .. }));
+        for bad in ["..%2Fx", "a%2Fb", "C-1", "c_1", &"c".repeat(65)] {
+            let uri = format!("kaava://canvas/w#comment={bad}");
+            assert!(parse(&uri).unwrap_err().contains("not a comment id"), "{uri}");
+        }
+        assert!(parse("kaava://canvas/w#frame=Ward%20B").is_ok(), "a frame may be a name");
     }
 }
