@@ -24,7 +24,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
-use kaava_agent_host::models::{self, Catalogue};
+use kaava_agent_host::models::{self, Catalogue, Models};
 use kaava_agent_host::{
     harness, spec, AgentHost, Harness, HarnessInfo, HostError, LaunchSpec, Level, McpServer,
     Worktree, REGISTRY,
@@ -443,9 +443,8 @@ fn harnesses(app: &AppHandle, context: &CallContext, tab: Option<&str>) -> Value
             let known = here
                 .as_ref()
                 .and_then(|here| sessions.models.models(d.harness, &here.path()));
-            let default = known.as_ref().map(|m| m.default.clone());
             HarnessInfo {
-                model: next_model(choice.as_ref(), d.harness, default),
+                model: next_model(choice.as_ref(), d.harness, known.as_ref()),
                 models: known.map(|m| m.choices),
                 ..d.info(hint)
             }
@@ -460,13 +459,16 @@ fn harnesses(app: &AppHandle, context: &CallContext, tab: Option<&str>) -> Value
 }
 
 /// The model `harness`'s next session in a tab starts on: the one the tab
-/// chose for it, else the agent's `default`.
-fn next_model(
-    choice: Option<&Choice>,
-    harness: Harness,
-    default: Option<String>,
-) -> Option<String> {
-    choice.and_then(|c| c.model(harness)).or(default)
+/// chose for it, else the default of the models its agent offers. A session
+/// never asks for a model its agent does not offer, so such a choice is
+/// reported as the default too.
+fn next_model(choice: Option<&Choice>, harness: Harness, known: Option<&Models>) -> Option<String> {
+    let offered =
+        |model: &String| known.is_none_or(|k| k.choices.iter().any(|c| &c.value == model));
+    choice
+        .and_then(|c| c.model(harness))
+        .filter(offered)
+        .or_else(|| known.map(|k| k.default.clone()))
 }
 
 /// Tell every open agent tab that `harness`'s models are in. The shell relays
@@ -821,19 +823,20 @@ mod tests {
     #[test]
     fn a_harness_starts_on_the_tabs_model_for_it_else_the_agents_default() {
         let codex = on(Harness::Codex, &[(Harness::Codex, "gpt-5.2")]);
-        let default = || Some("default".to_string());
+        let known = offering(&["default", "gpt-5.2"]);
+        let next = |choice, harness| next_model(choice, harness, Some(&known));
         assert_eq!(
-            next_model(Some(&codex), Harness::Codex, default()).as_deref(),
+            next(Some(&codex), Harness::Codex).as_deref(),
             Some("gpt-5.2")
         );
         assert_eq!(
-            next_model(Some(&codex), Harness::Claude, default()),
-            default()
+            next(Some(&codex), Harness::Claude).as_deref(),
+            Some("default")
         );
         let unset = on(Harness::Codex, &[]);
         assert_eq!(
-            next_model(Some(&unset), Harness::Codex, default()),
-            default()
+            next(Some(&unset), Harness::Codex).as_deref(),
+            Some("default")
         );
         assert_eq!(next_model(None, Harness::Codex, None), None);
     }
@@ -849,6 +852,37 @@ mod tests {
         for bad in [json!({ "model": "" }), json!({ "model": 4 })] {
             assert_eq!(model_param(&bad).unwrap_err().code, INVALID_PARAMS);
         }
+    }
+
+    fn offering(values: &[&str]) -> Models {
+        Models {
+            choices: values
+                .iter()
+                .map(|v| kaava_agent_host::ConfigChoice {
+                    value: v.to_string(),
+                    name: v.to_string(),
+                    description: None,
+                })
+                .collect(),
+            default: values[0].to_string(),
+        }
+    }
+
+    /// A session skips a model its agent does not offer, so the harness
+    /// reports the default it will start on instead. Until the agent has said,
+    /// the choice stands.
+    #[test]
+    fn a_choice_the_agent_does_not_offer_reports_its_default() {
+        let codex = on(Harness::Codex, &[(Harness::Codex, "gone")]);
+        let known = offering(&["default", "gpt-5.2"]);
+        assert_eq!(
+            next_model(Some(&codex), Harness::Codex, Some(&known)).as_deref(),
+            Some("default")
+        );
+        assert_eq!(
+            next_model(Some(&codex), Harness::Codex, None).as_deref(),
+            Some("gone")
+        );
     }
 
     /// Handoff §0: never on main. Only a local worktree has a path to run in.
