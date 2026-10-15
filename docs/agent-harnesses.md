@@ -38,7 +38,9 @@ agent tab, agent bar ── agent-tab/* ── AgentHost ── Adapter ── h
   - its capabilities
   - `models`: the models its agent offers, or `null` until the agent has said (see
     [Models](#models))
-  - `model`: the model its next session starts on, as a value
+  - `model`: the model its next session starts on, as a value: the tab's choice for that harness,
+    else the agent's default. A choice that the agent does not offer is reported as the default,
+    since the session never asks for it.
 
   Asked as an agent tab, it also answers these:
   - `current`: the harness the tab's next prompt goes to
@@ -55,9 +57,10 @@ agent tab, agent bar ── agent-tab/* ── AgentHost ── Adapter ── h
   the agent bar show the same harness.
 
   `agent-tab/choose` also takes an optional `model`: a model's value, or `null` for the agent's
-  default. A call without `model` keeps the model that the tab chose for that harness before, so
-  the agent bar, which chooses a harness only, never drops it. `agent-tab:chosen` carries the
-  model too.
+  default. The tab keeps one model for each harness. A call without `model` leaves them all as
+  they are, so the agent bar, which chooses a harness only, never drops one. A model chosen while
+  the tab's agent runs applies to the tab's next session. `agent-tab:chosen` carries the chosen
+  harness's model.
 - **`agent-tab/send`.** It takes the prompt's `text`, sends it to the tab's harness, and starts
   that harness with `harness::spec` if no agent runs.
 
@@ -112,28 +115,41 @@ also lists harnesses that are not registered yet, as "Coming soon", by names in 
 
 ACP has no request that lists an agent's models outside a session. So the host asks for them:
 
-1. A tab calls `agent-tab/harnesses`, with developer mode on and a worktree to run in.
-2. For each installed harness that it has not asked this launch, the host starts the harness's
-   adapter in the tab's worktree. It sends `initialize` and `session/new`, and nothing else.
+1. A tab calls `agent-tab/harnesses`, with developer mode on and a worktree to run in. The tab
+   does this when it opens.
+2. For each installed harness that it has not asked in that worktree this launch, the host starts
+   the harness's adapter there. It sends `initialize` and `session/new`, and nothing else.
 3. It reads the option of category `model` from the reply to `session/new`, and kills the agent.
 4. It sends `agent-tab:models` to each open agent tab, and the tab calls `agent-tab/harnesses`
    again.
 
 The ask never sends a prompt, so it uses none of the user's quota. It starts the user's agent
-once per launch for each harness, as a session would. The agent therefore starts its own MCP
-servers and hooks too.
+once per launch for each harness and worktree, as a session would. The agent therefore starts its
+own MCP servers and hooks too, and Codex treats the worktree as trusted, as it does for every
+session Kaava starts. The host asks each worktree separately because a project's settings can
+narrow the list or change the default. Claude reads them from the worktree's
+`.claude/settings.json`, and Codex from its project config.
 
-A signed-out agent refuses `session/new`, and its harness lists no models. An agent that does not
-answer in 60 seconds is killed, and its harness lists no models either. The host asks again when a
-tab asks for the harnesses while a session of that harness has reported its model.
+The agent bar reads the answer for its cluster's worktree. It never starts an ask.
 
-While a session runs, the tab takes that session's models from `SessionStatus.config` instead.
+A harness lists no models in these cases:
+
+- **A signed-out Codex.** It refuses `session/new`. Claude's adapter opens a session while signed
+  out, so Claude lists its models; its first prompt then reports the sign-out.
+- **A slow agent.** The host kills an agent that does not answer a request within 60 seconds, the
+  time a session's handshake gives it.
+
+The host asks such a harness once more, when a tab asks for the harnesses while a session of that
+harness has reported its model. That report shows that the agent is signed in.
+
+While a session runs, its models are in `SessionStatus.config`.
 
 **The model a session starts on.** `agent-tab/send` puts the tab's model in `LaunchSpec.model`.
 After `session/set_mode`, the handshake sends `session/set_config_option` for the `model` option.
 The session reports that it is ready after this request. A model that the agent no longer offers is
 never sent. If the agent refuses the model, the session stays on the agent's default, and the host
-logs this. The status shows the model that the session actually runs.
+logs this. The status shows the model that the session actually runs. The exception is an agent that
+answers the switch only after the handshake's 60 seconds; the status then keeps the default.
 
 ## Codex
 
@@ -172,9 +188,9 @@ the guard, as in Claude's `auto`. `agent-full-access` is Codex's equivalent of C
 `set_mode`, and never runs in `agent`.
 
 **Settings.** The adapter reports these select options, and the host passes each one to the tab in
-`SessionStatus.config`. The tab lists the models before a session starts (see
+`SessionStatus.config`. `agent-tab/harnesses` lists the models before a session starts (see
 [Models](#models)). While an agent runs, the tab's header and the agent bar show the model. The
-other options have no control in the tab yet.
+tab has no control for the other options yet.
 
 - `model`: the model
 - `reasoning_effort`: the effort, only for a model that has levels
