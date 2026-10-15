@@ -223,6 +223,7 @@ pub fn run() {
         // `mcp::focus` and `mcp::subscriptions`.
         .manage(mcp::FocusState::default())
         .manage(mcp::Subscriptions::default())
+        .manage(mcp::Sessions::default())
         // What can be changed, and what has been. Empty until `settings::seed`
         // registers the shell's groups and every app's — a registry with no
         // groups answers every read with "no such setting", which is why the

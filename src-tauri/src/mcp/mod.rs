@@ -14,6 +14,7 @@ mod handoff;
 mod listener;
 mod registry;
 mod servers;
+mod session;
 mod store;
 mod subscriptions;
 
@@ -24,6 +25,9 @@ pub use registry::{
     config_key, route, Block, McpServer, McpTool, Registry, ServerInfo, ToolAnswer, ToolDescriptor,
 };
 pub use servers::workspace::selection_in;
+pub use session::Sessions;
+#[allow(unused_imports)] // See `session::SessionServer`.
+pub use session::{session_servers, SessionServer};
 use std::time::Duration;
 pub use subscriptions::Subscriptions;
 use tauri::{AppHandle, Manager};

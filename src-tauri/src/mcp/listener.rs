@@ -5,6 +5,7 @@
 //! bearer token, the routing table, and the adapter between `rmcp`'s handler
 //! trait and [`Registry`](super::Registry).
 
+use super::session::{self, Admission, SessionCluster, Sessions};
 use super::{route, Block, Registry, Subscriptions, ToolAnswer, ToolDescriptor};
 use axum::response::IntoResponse;
 use base64::Engine;
@@ -142,7 +143,7 @@ pub fn start(app: &AppHandle) -> Option<u16> {
 ///
 /// Not a uuid: a v4 uuid carries 122 bits and advertises its own shape. This is
 /// 256 bits of the same entropy source with nothing to recognise.
-fn mint_token() -> String {
+pub(super) fn mint_token() -> String {
     let mut bytes = [0u8; 32];
     rand::rng().fill_bytes(&mut bytes);
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
@@ -182,21 +183,33 @@ fn router(app: &AppHandle, token: String) -> axum::Router {
         router = router.nest_service(&path, service);
     }
 
+    let gate = Gate {
+        master: token,
+        app: app.clone(),
+    };
     router.layer(axum::middleware::from_fn_with_state(
-        Arc::new(token),
+        Arc::new(gate),
         require_token,
     ))
 }
 
-/// Reject anything that does not present the token.
+/// What [`require_token`] checks a request against.
+struct Gate {
+    master: String,
+    app: AppHandle,
+}
+
+/// Reject anything that does not present a token.
 ///
 /// Loopback already keeps this off the network, but not away from other
 /// processes on the same machine: a port is scannable, and these tools reach
 /// into the live application. The token is what makes "OpenKaava spawned this shell"
-/// the actual admission test.
+/// the actual admission test. An agent tab's session token passes too, on the
+/// context route only, and the cluster it was minted for rides along on the
+/// request (see [`session`]).
 async fn require_token(
-    axum::extract::State(expected): axum::extract::State<Arc<String>>,
-    request: axum::extract::Request,
+    axum::extract::State(gate): axum::extract::State<Arc<Gate>>,
+    mut request: axum::extract::Request,
     next: axum::middleware::Next,
 ) -> axum::response::Response {
     let presented = request
@@ -204,10 +217,16 @@ async fn require_token(
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.strip_prefix("Bearer "));
+    let sessions = gate.app.state::<Sessions>();
+    let path = request.uri().path();
 
-    match presented {
-        Some(token) if token == expected.as_str() => next.run(request).await,
-        _ => axum::http::StatusCode::UNAUTHORIZED.into_response(),
+    match session::admit(path, presented, &gate.master, &sessions) {
+        Admission::Master => next.run(request).await,
+        Admission::Session(cluster) => {
+            request.extensions_mut().insert(SessionCluster(cluster));
+            next.run(request).await
+        }
+        Admission::Refused => axum::http::StatusCode::UNAUTHORIZED.into_response(),
     }
 }
 
@@ -258,6 +277,24 @@ fn session_of(context: &RequestContext<RoleServer>) -> String {
         .and_then(|value| value.to_str().ok())
         .map(str::to_owned)
         .unwrap_or_else(|| format!("request-{}", context.id))
+}
+
+/// The cluster a session token binds this request to, if it came with one.
+fn cluster_of(context: &RequestContext<RoleServer>) -> Option<String> {
+    let parts = context.extensions.get::<axum::http::request::Parts>()?;
+    parts
+        .extensions
+        .get::<SessionCluster>()
+        .map(|c| c.0.clone())
+}
+
+/// Answer from `cluster` whatever the call named: a session token is its
+/// cluster's and no other's.
+fn pin_cluster(params: &mut Option<serde_json::Value>, cluster: String) {
+    let args = params.get_or_insert_with(|| serde_json::json!({}));
+    if let Some(map) = args.as_object_mut() {
+        map.insert("cluster".into(), serde_json::Value::String(cluster));
+    }
 }
 
 impl ServerHandler for Bridge {
@@ -487,9 +524,12 @@ impl ServerHandler for Bridge {
     async fn call_tool(
         &self,
         request: CallToolRequestParams,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, ErrorData> {
-        let params = request.arguments.map(serde_json::Value::Object);
+        let mut params = request.arguments.map(serde_json::Value::Object);
+        if let Some(cluster) = cluster_of(&context) {
+            pin_cluster(&mut params, cluster);
+        }
 
         let answered = self.app.state::<Registry>().call(
             &self.app,
@@ -679,6 +719,19 @@ mod tests {
 
     /// Blocks keep their order and their kinds: text stays text, a picture is
     /// an image a client draws, not base64 in a string.
+    #[test]
+    fn a_session_answers_from_its_own_cluster_whatever_the_call_names() {
+        let mut named = Some(serde_json::json!({ "uri": "kaava://selection", "cluster": "other" }));
+        pin_cluster(&mut named, "mine".into());
+        assert_eq!(
+            named,
+            Some(serde_json::json!({ "uri": "kaava://selection", "cluster": "mine" }))
+        );
+        let mut none = None;
+        pin_cluster(&mut none, "mine".into());
+        assert_eq!(none, Some(serde_json::json!({ "cluster": "mine" })));
+    }
+
     #[test]
     fn blocks_become_content_in_order() {
         let answer = ToolAnswer::Blocks(vec![
