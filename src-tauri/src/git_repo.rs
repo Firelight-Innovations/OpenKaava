@@ -315,7 +315,6 @@ fn same_folder(a: &Path, b: &Path) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::process::Command;
 
     const IDENTITY: &[(&str, &str)] = &[
         ("GIT_AUTHOR_NAME", "t"),
@@ -340,7 +339,7 @@ mod tests {
     }
 
     fn git(dir: &Path, args: &[&str]) {
-        let out = Command::new("git")
+        let out = crate::git::git_command()
             .current_dir(dir)
             .args(["-c", "user.name=t", "-c", "user.email=t@example.com"])
             .args(args)

@@ -514,19 +514,9 @@ mod tests {
     /// Spawn `git` in `repo` and collect it. Non-zero exits come back as `Ok`;
     /// only failing to run at all is an `Err`.
     fn git(repo: &Path, args: &[&str]) -> Result<std::process::Output, String> {
-        let mut command = std::process::Command::new("git");
-        command.current_dir(repo).args(args);
-
-        // Otherwise each spawn flashes a console window on Windows, the same
-        // reason `git::run_git` sets it.
-        #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt;
-            const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-            command.creation_flags(CREATE_NO_WINDOW);
-        }
-
-        command
+        crate::git::git_command()
+            .current_dir(repo)
+            .args(args)
             .output()
             .map_err(|e| format!("could not run git in {}: {e}", repo.display()))
     }

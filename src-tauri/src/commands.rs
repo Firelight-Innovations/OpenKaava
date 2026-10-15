@@ -2146,7 +2146,7 @@ mod tests {
     #[test]
     fn a_new_worktree_in_an_empty_repository_says_there_are_no_commits() {
         let dir = tempfile::tempdir().unwrap();
-        let out = std::process::Command::new("git")
+        let out = crate::git::git_command()
             .current_dir(dir.path())
             .args(["init", "-q"])
             .output()
@@ -2176,7 +2176,7 @@ mod tests {
                 "first",
             ],
         ] {
-            let out = std::process::Command::new("git")
+            let out = crate::git::git_command()
                 .current_dir(dir.path())
                 .args(&args)
                 .output()

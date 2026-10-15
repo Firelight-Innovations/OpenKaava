@@ -2110,7 +2110,7 @@ mod tests {
 
     /// Runs `git` in `dir` for a fixture, panicking with git's own message.
     fn fixture_git(dir: &Path, args: &[&str]) {
-        let out = std::process::Command::new("git")
+        let out = git_command()
             .current_dir(dir)
             .args(["-c", "user.name=t", "-c", "user.email=t@example.com"])
             .args(args)
@@ -2175,6 +2175,96 @@ body line",
             let first_git = body.find("cluster_checkout(").unwrap_or(body.len());
             assert!(guard < first_git, "{name} touches git before its guard");
         }
+    }
+
+    /// The bug: run under `git rebase --exec`, this crate's tests inherited
+    /// `GIT_DIR`, and a fixture's `git init` in a temp folder set `core.bare`
+    /// on the developer's own repository instead. A decoy stands in for that
+    /// repository here. `GIT_DIR` goes on the command rather than on this
+    /// process, which every other test shares.
+    #[test]
+    fn a_git_child_ignores_the_repository_its_parent_names() {
+        let decoy = tempfile::tempdir().unwrap();
+        fixture_git(decoy.path(), &["init", "-q"]);
+        let here = tempfile::tempdir().unwrap();
+
+        let mut init = git_command();
+        init.current_dir(here.path())
+            .args(["init", "-q", "-b", "trunk"])
+            .env("GIT_DIR", decoy.path().join(".git"));
+        let out = forget_parent_repository(&mut init).output().unwrap();
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+
+        assert!(here.path().join(".git").is_dir(), "git init went elsewhere");
+        let bare = git_command()
+            .current_dir(decoy.path())
+            .args(["config", "core.bare"])
+            .output()
+            .unwrap();
+        assert_eq!(String::from_utf8_lossy(&bare.stdout).trim(), "false");
+    }
+
+    /// [`REPOSITORY_ENV`] is copied from git, so a git that names a new one
+    /// fails here rather than quietly passing it on.
+    #[test]
+    fn git_command_clears_every_variable_git_names() {
+        let out = git_command()
+            .args(["rev-parse", "--local-env-vars"])
+            .output()
+            .expect("git runs");
+        assert!(out.status.success());
+        for name in String::from_utf8_lossy(&out.stdout).lines() {
+            assert!(
+                REPOSITORY_ENV.contains(&name),
+                "REPOSITORY_ENV lacks {name}"
+            );
+        }
+        let command = git_command();
+        let cleared: Vec<_> = command
+            .get_envs()
+            .filter(|(_, value)| value.is_none())
+            .map(|(key, _)| key.to_string_lossy().into_owned())
+            .collect();
+        for name in REPOSITORY_ENV {
+            assert!(
+                cleared.iter().any(|k| k == name),
+                "git_command keeps {name}"
+            );
+        }
+    }
+
+    /// Every `git` this crate spawns takes the cleared environment, so a new
+    /// spawn written the old way, in a test fixture or not, fails here.
+    #[test]
+    fn every_git_spawn_starts_from_git_command() {
+        let spawn = ["Command::new(", "\"git\")"].concat();
+        let manifest = std::env::var("CARGO_MANIFEST_DIR").expect("cargo sets it");
+        let mut dirs = vec![PathBuf::from(manifest).join("src")];
+        let mut found = Vec::new();
+        while let Some(dir) = dirs.pop() {
+            for entry in std::fs::read_dir(&dir).unwrap() {
+                let path = entry.unwrap().path();
+                if path.is_dir() {
+                    dirs.push(path);
+                } else if path.extension().is_some_and(|e| e == "rs") {
+                    let text = std::fs::read_to_string(&path).unwrap();
+                    let lines = text.lines().enumerate();
+                    for (n, _) in lines.filter(|(_, l)| l.contains(&spawn)) {
+                        found.push(format!("{}:{}", path.display(), n + 1));
+                    }
+                }
+            }
+        }
+        assert_eq!(
+            found.len(),
+            1,
+            "spawn git through git_command(): {found:#?}"
+        );
+        assert!(found[0].contains("git.rs:"), "{found:#?}");
     }
 
     /// A new `git_*` command has to be put in one of the two lists above, which
