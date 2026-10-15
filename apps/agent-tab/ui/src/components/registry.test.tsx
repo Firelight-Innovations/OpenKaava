@@ -158,10 +158,11 @@ describe("the slot registry", () => {
   it("puts the settings and the latest usage in the composer's footer", async () => {
     backend(() => Promise.resolve(EVERYTHING));
     render(<App />);
-    // EVERYTHING's usage item is 10 of 100 tokens; its session runs Claude in "default".
+    // EVERYTHING's usage item is 10 of 100 tokens; its session runs Claude in
+    // "default", which reads as what it means.
     expect(await screen.findByRole("button", { name: "Context window 10% full" })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Agent settings/ }).textContent).toBe(
-      "Claude · default",
+      "Claude · Ask before acting",
     );
   });
 

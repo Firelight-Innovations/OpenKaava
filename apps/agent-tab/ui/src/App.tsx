@@ -237,7 +237,13 @@ export default function App() {
                       value: status?.harness ?? "claude",
                       choices: [{ value: "claude", name: strings.harness.claude }],
                     },
-                    { label: strings.mode, value: status?.mode ?? null, choices: [] },
+                    {
+                      label: strings.mode,
+                      value: status?.mode ?? null,
+                      choices: status?.mode
+                        ? [{ value: status.mode, name: strings.modes[status.mode] ?? status.mode }]
+                        : [],
+                    },
                   ]}
                 />
               }

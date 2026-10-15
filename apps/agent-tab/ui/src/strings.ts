@@ -49,6 +49,13 @@ export const strings = {
   sendGlyph: "↑",
   stopGlyph: "■",
   mode: "Mode",
+  /** The agent's permission modes by id. An id not listed here is shown as it is. */
+  modes: {
+    default: "Ask before acting",
+    acceptEdits: "Accept edits",
+    plan: "Plan only",
+    bypassPermissions: "Bypass permissions",
+  } as Record<string, string | undefined>,
   settings: "Agent settings",
   /** Joins the settings on the button: "Claude · Opus 5.5 · High". */
   settingsJoin: " · ",
