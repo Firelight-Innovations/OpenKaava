@@ -114,7 +114,11 @@ fn design_comment_exists(app: &AppHandle, id: &str) -> Result<(), String> {
 /// Refuse a canvas, or a comment on one, whose file is not inside the project
 /// once links are followed. The Canvas app reads the files where it finds
 /// them, so the test a file reference passes runs here, before it is asked.
-fn canvas_inside(root: &Path, id: &str, part: Option<&CanvasPart>) -> Result<(), String> {
+pub(super) fn canvas_inside(
+    root: &Path,
+    id: &str,
+    part: Option<&CanvasPart>,
+) -> Result<(), String> {
     use crate::apps::canvas;
     let mut files = vec![canvas::file_for(root, id)];
     if let Some(CanvasPart::Comment(c)) = part {

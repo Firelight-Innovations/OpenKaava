@@ -6,14 +6,14 @@
 //! hit is a reference that resolves under the same rules as any other, and a
 //! path a reference would withhold as a secret is never listed.
 
-use super::live::Actor;
+use super::live::{self, Actor};
 use super::policy;
-use super::resolve::first_line;
+use super::resolve::{self, first_line};
 use super::uri::{CanvasPart, Ref};
 use crate::apps::CallContext;
 use serde::Serialize;
 use serde_json::{json, Value};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tauri::AppHandle;
 
 /// Hits returned when the caller names no limit, and the most it may ask for.
@@ -21,6 +21,9 @@ pub const DEFAULT_LIMIT: usize = 20;
 pub const MAX_LIMIT: usize = 50;
 /// Most entries the file walk visits before it stops looking.
 const MAX_WALKED: usize = 20_000;
+/// Longest query, in characters and in words.
+const MAX_QUERY_CHARS: usize = 256;
+const MAX_QUERY_WORDS: usize = 16;
 
 /// The kinds a search can be narrowed to.
 pub const KINDS: &[&str] = &[
@@ -44,6 +47,11 @@ pub struct Hit {
     pub detail: Option<String>,
     #[serde(skip)]
     score: u32,
+    /// A file whose first bytes are read before the hit is listed, to keep
+    /// out a secret its name does not give away. Read only for hits that
+    /// would be returned, so a broad query does not open every match.
+    #[serde(skip)]
+    screen: Option<PathBuf>,
 }
 
 /// What was asked: the words, the kinds and how many hits.
@@ -70,8 +78,18 @@ impl Query {
                 KINDS.join(", ")
             ));
         }
+        if kinds.as_ref().is_some_and(Vec::is_empty) {
+            return Err("`kinds` is empty; leave it out to search every kind".into());
+        }
+        let words: Vec<String> = text.split_whitespace().map(str::to_lowercase).collect();
+        if text.chars().count() > MAX_QUERY_CHARS || words.len() > MAX_QUERY_WORDS {
+            return Err(format!(
+                "a query is at most {MAX_QUERY_CHARS} characters and {MAX_QUERY_WORDS} words: \
+                 search by name, not by pasting text"
+            ));
+        }
         Ok(Query {
-            words: text.split_whitespace().map(str::to_lowercase).collect(),
+            words,
             kinds,
             limit: limit.unwrap_or(DEFAULT_LIMIT).clamp(1, MAX_LIMIT),
         })
@@ -118,16 +136,22 @@ pub fn run(app: &AppHandle, ctx: &CallContext, actor: Actor, q: &Query) -> Vec<H
     hits.extend(selection(q));
     hits.extend(context_items(root, q));
     hits.extend(viewer_comments(ctx, q));
-    hits.extend(canvases(app, ctx, actor, q));
+    hits.extend(canvases(app, ctx, actor, root, q));
     hits.extend(design_comments(app, q));
     hits.extend(files(root, q));
     rank(hits, q.limit)
 }
 
+/// Best first, at most `limit`, leaving out any hit whose file turns out to
+/// hold a secret.
 fn rank(mut hits: Vec<Hit>, limit: usize) -> Vec<Hit> {
     hits.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.title.cmp(&b.title)));
-    hits.truncate(limit);
-    hits
+    let shown = |h: &Hit| {
+        h.screen
+            .as_deref()
+            .is_none_or(|p| resolve::secret_head(p).is_none())
+    };
+    hits.into_iter().filter(shown).take(limit).collect()
 }
 
 fn hit(r: &Ref, kind: &'static str, title: String, detail: Option<String>, score: u32) -> Hit {
@@ -137,6 +161,7 @@ fn hit(r: &Ref, kind: &'static str, title: String, detail: Option<String>, score
         title,
         detail,
         score,
+        screen: None,
     }
 }
 
@@ -191,14 +216,16 @@ fn files(root: &Path, q: &Query) -> Vec<Hit> {
                 lines: None,
             };
             let kind = if is_dir { "folder" } else { "file" };
-            hits.push(hit(&r, kind, name, Some(rel), score));
+            let mut found = hit(&r, kind, name, Some(rel), score);
+            found.screen = (!is_dir).then(|| entry.path().to_path_buf());
+            hits.push(found);
         }
     }
     hits
 }
 
-/// Items in the context store, by title. One copied from a secrets file is
-/// left out, as the file itself would be.
+/// Items in the context store, by title. One that reading would withhold as
+/// a secret is left out, by any name it goes by or by what its file holds.
 fn context_items(root: &Path, q: &Query) -> Vec<Hit> {
     if !q.wants("context") {
         return Vec::new();
@@ -206,19 +233,16 @@ fn context_items(root: &Path, q: &Query) -> Vec<Hit> {
     crate::context::list(root)
         .into_iter()
         .filter(|i| !i.missing)
-        .filter(|i| policy::secret_rule(&i.rel_path).is_none())
-        .filter(|i| policy::secret_rule(&i.title).is_none())
+        .filter(|i| resolve::item_secret_name(root, i).is_none())
         .filter_map(|i| {
             let score = q.score(&i.title, &i.title)?;
             let from = i.source.label.clone().unwrap_or(i.source.app_id.clone());
+            let screen = policy::contain(root, &i.rel_path).ok().map(|f| f.abs);
             let r = Ref::Context { id: i.id };
-            Some(hit(
-                &r,
-                "context",
-                i.title,
-                Some(format!("context · {from}")),
-                score,
-            ))
+            let detail = Some(format!("context · {from}"));
+            let mut found = hit(&r, "context", i.title, detail, score);
+            found.screen = screen;
+            Some(found)
         })
         .collect()
 }
@@ -263,28 +287,31 @@ pub(super) fn anchor_label(anchor: &crate::comments::Anchor) -> String {
 }
 
 /// Canvases by title or id, and frames by what the Canvas app's own frame
-/// search finds. Comments on canvases are the server's `list_comments`.
-fn canvases(app: &AppHandle, ctx: &CallContext, actor: Actor, q: &Query) -> Vec<Hit> {
+/// search finds. Comments on canvases are the server's `list_comments`. A
+/// canvas whose file is outside the project once links are followed is not
+/// listed, nor are its frames, as resolving it would be refused.
+fn canvases(app: &AppHandle, ctx: &CallContext, actor: Actor, root: &Path, q: &Query) -> Vec<Hit> {
     let call = |method: &str, mut params: Value| {
         params["actor"] = json!(actor.name());
         crate::apps::call(app, ctx, "canvas", method, Some(params)).unwrap_or_default()
     };
+    let inside = |id: &str| live::canvas_inside(root, id, None).is_ok();
     let mut hits = Vec::new();
     if q.wants("canvas") {
-        hits.extend(canvas_hits(&call("canvas/frames", json!({})), q));
+        hits.extend(canvas_hits(&call("canvas/frames", json!({})), q, &inside));
     }
     if q.wants("frame") && !q.words.is_empty() {
         let asked = json!({ "query": q.words.join(" "), "limit": q.limit });
-        hits.extend(frame_hits(&call("canvas/search-frames", asked), q));
+        hits.extend(frame_hits(&call("canvas/search-frames", asked), q, &inside));
     }
     hits
 }
 
-/// Canvases from a `canvas/frames` answer's `canvases`.
-fn canvas_hits(listed: &Value, q: &Query) -> Vec<Hit> {
+/// Canvases from a `canvas/frames` answer's `canvases`, those `inside` allows.
+fn canvas_hits(listed: &Value, q: &Query, inside: &dyn Fn(&str) -> bool) -> Vec<Hit> {
     let rows = listed["canvases"].as_array().into_iter().flatten();
     rows.filter_map(|c| {
-        let id = c["id"].as_str()?;
+        let id = c["id"].as_str().filter(|id| inside(id))?;
         let title = c["title"].as_str().filter(|t| !t.is_empty()).unwrap_or(id);
         let score = q.score(title, id)?;
         let r = Ref::Canvas {
@@ -302,14 +329,16 @@ fn canvas_hits(listed: &Value, q: &Query) -> Vec<Hit> {
     .collect()
 }
 
-/// Frames from a `canvas/search-frames` answer's `matches`. One matched on a
-/// property rather than its name ranks with the weakest name match.
-fn frame_hits(found: &Value, q: &Query) -> Vec<Hit> {
+/// Frames from a `canvas/search-frames` answer's `matches`, on canvases
+/// `inside` allows. One matched on a property rather than its name ranks
+/// below every name or path match.
+fn frame_hits(found: &Value, q: &Query, inside: &dyn Fn(&str) -> bool) -> Vec<Hit> {
     let rows = found["matches"].as_array().into_iter().flatten();
     rows.filter_map(|f| {
-        let (canvas, id) = (f["canvas"].as_str()?, f["id"].as_str()?);
+        let canvas = f["canvas"].as_str().filter(|c| inside(c))?;
+        let id = f["id"].as_str()?;
         let name = f["name"].as_str().filter(|n| !n.is_empty()).unwrap_or(id);
-        let score = q.score(name, name).unwrap_or(1000);
+        let score = q.score(name, name).unwrap_or(0);
         let r = Ref::Canvas {
             id: canvas.into(),
             part: Some(CanvasPart::Frame(id.into())),
@@ -360,6 +389,16 @@ mod tests {
         assert_eq!(Query::new("x", None, Some(500)).unwrap().limit, MAX_LIMIT);
         assert_eq!(Query::new("x", None, Some(0)).unwrap().limit, 1);
         assert_eq!(q("x").limit, DEFAULT_LIMIT);
+        let err = Query::new("x", Some(Vec::new()), None).unwrap_err();
+        assert!(err.contains("`kinds` is empty"), "{err}");
+    }
+
+    #[test]
+    fn a_query_is_a_name_not_a_pasted_page() {
+        assert!(Query::new(&"a".repeat(MAX_QUERY_CHARS), None, None).is_ok());
+        assert!(Query::new(&"a".repeat(MAX_QUERY_CHARS + 1), None, None).is_err());
+        let many = vec!["w"; MAX_QUERY_WORDS + 1].join(" ");
+        assert!(Query::new(&many, None, None).is_err());
     }
 
     #[test]
@@ -387,6 +426,27 @@ mod tests {
         let out = rank(vec![mk("b", 1), mk("c", 3), mk("a", 3)], 2);
         let titles: Vec<_> = out.iter().map(|h| h.title.as_str()).collect();
         assert_eq!(titles, ["a", "c"]);
+    }
+
+    #[test]
+    fn a_file_whose_first_bytes_hold_a_key_is_never_listed() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir_all(root.join("notes")).unwrap();
+        let key = "-----BEGIN OPENSSH PRIVATE KEY-----\nb3Bl\n-----END OPENSSH PRIVATE KEY-----\n";
+        fs::write(root.join("notes/deploy.txt"), key).unwrap();
+        fs::write(
+            root.join("notes/deploy_steps.txt"),
+            "ssh in, pull, restart\n",
+        )
+        .unwrap();
+        let out = rank(files(root, &q("deploy")), 1);
+        let uris: Vec<_> = out.iter().map(|h| h.uri.as_str()).collect();
+        assert_eq!(
+            uris,
+            ["kaava://file/notes/deploy_steps.txt"],
+            "the key is left out and does not use up the limit"
+        );
     }
 
     #[test]
@@ -430,20 +490,62 @@ mod tests {
             { "id": "levels/hospital", "title": "Hospital" },
             { "id": "world", "title": "" },
         ]});
-        let hits = canvas_hits(&listed, &q("hosp"));
+        let all = |_: &str| true;
+        let hits = canvas_hits(&listed, &q("hosp"), &all);
         assert_eq!(hits.len(), 1);
         assert_eq!(hits[0].uri, "kaava://canvas/levels/hospital");
-        assert_eq!(canvas_hits(&listed, &q("world"))[0].title, "world");
+        assert_eq!(canvas_hits(&listed, &q("world"), &all)[0].title, "world");
 
         let found = json!({ "matches": [
             { "canvas": "world", "id": "f_1", "name": "Main Menu", "typeName": "Screen" },
             { "canvas": "world", "id": "f_2", "name": null },
         ]});
-        let hits = frame_hits(&found, &q("menu"));
+        let hits = frame_hits(&found, &q("menu"), &all);
         assert_eq!(hits[0].uri, "kaava://canvas/world#frame=f_1");
         assert_eq!(hits[0].detail.as_deref(), Some("Screen on canvas world"));
         assert_eq!(hits[1].title, "f_2");
-        assert_eq!(hits[1].score, 1000);
+        assert_eq!(
+            hits[1].score, 0,
+            "a property match ranks below any path match"
+        );
+        assert!(q("menu").score("main.gd", "menu/main.gd") > Some(0));
+    }
+
+    #[test]
+    fn a_context_copy_of_a_secret_is_not_listed_whatever_it_is_titled() {
+        let (dir, outside) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        let key = "-----BEGIN OPENSSH PRIVATE KEY-----\nb3Bl\n-----END OPENSSH PRIVATE KEY-----\n";
+        fs::write(outside.path().join("prod.env"), "A=1\n").unwrap();
+        fs::write(outside.path().join("handoff"), key).unwrap();
+        fs::write(outside.path().join("notes.txt"), "fine\n").unwrap();
+        let copy = |name: &str| {
+            let asked = crate::context::PutRequest {
+                key: None,
+                kind: None,
+                title: Some("Build notes".into()),
+                payload: crate::context::Payload::Path(outside.path().join(name)),
+                app_id: "terminal".into(),
+                label: None,
+                method: crate::context::Method::Drop,
+                reference_in_place: true,
+            };
+            crate::context::put(dir.path(), asked).unwrap()
+        };
+        copy("prod.env");
+        copy("handoff");
+        let fine = copy("notes.txt");
+        let out = rank(context_items(dir.path(), &q("build")), 10);
+        let uris: Vec<_> = out.iter().map(|h| h.uri.clone()).collect();
+        assert_eq!(uris, [format!("kaava://context/{}", fine.id)]);
+    }
+
+    #[test]
+    fn a_canvas_outside_the_project_is_not_listed_nor_are_its_frames() {
+        let not_world = |id: &str| id != "world";
+        let listed = json!({ "canvases": [{ "id": "world", "title": "World" }] });
+        assert!(canvas_hits(&listed, &q("world"), &not_world).is_empty());
+        let found = json!({ "matches": [{ "canvas": "world", "id": "f_1", "name": "World" }] });
+        assert!(frame_hits(&found, &q("world"), &not_world).is_empty());
     }
 
     #[test]
