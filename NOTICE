@@ -12,10 +12,11 @@ not, to carry this file along with it.
 
 WHAT THE LICENSE COVERS
 
-The source in this repository, and nothing else. Other Veistra software
-is licensed separately — including first-party tools that load into this shell
-through the tool protocol, some of which are commercial and will stay that way. Being able to build and run those tools does not put them under
-this license, and a repository that is not this one is not covered by it.
+The source in this repository, and nothing else. Other Veistra software is
+licensed separately — including first-party tools that load into this shell
+through the tool protocol, some of which are commercial and will stay that way.
+Being able to build and run those tools does not put them under this license,
+and a repository that is not this one is not covered by it.
 
 
 THIRD-PARTY CODE INCORPORATED HERE
