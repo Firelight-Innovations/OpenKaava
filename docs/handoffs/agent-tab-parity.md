@@ -36,9 +36,10 @@ cells of the rows it closes in section 2.
   `session/new` reply and from `config_option_update` into
   `SessionStatus.modes` and `SessionStatus.config`. The mode option is split
   out, so the mode is drawn once. Bypass and Auto are held back in every
-  option (`config::NOT_OFFERED`), and so are approval options that enter either. `agentCapabilities` and `authMethods` are
-  not stored yet: nothing reads them, so PR 7 (session list) and PR 24
-  (auth) read them when they need them.
+  option (`config::NOT_OFFERED`), and so are approval options that enter
+  either. `agentCapabilities` and `authMethods` are not stored yet: nothing
+  reads them, so PR 7 (session list) and PR 24 (auth) read them when they
+  need them.
 - **PR 2** (mode switcher): `agent-tab/set-mode` queues a mode change to
   the session's settings thread. It sends one change at a time, through
   `session/set_config_option` (or `session/set_mode` for an agent without
@@ -65,6 +66,17 @@ cells of the rows it closes in section 2.
   the SDK passes `mcpServers` as `--mcp-config`. The list stays empty until
   the context server's `session_servers` lands. Load and resume (PR 7) pass
   the same list.
+- **PR 3** (model and effort): the options of category `model` and
+  `thought_level` are drawn in the composer's settings menu, the model
+  under its harness and the effort beside the mode, with the agent's own
+  names and lists in its order; nothing is hardcoded. A choice goes
+  through `agent-tab/set-config`, gated with `send` and `set-mode`, to
+  `session/set_config_option`, numbered and queued as a mode change is.
+  The host takes only a value the status offers for that option. The
+  reply carries every option as it then stands, so a new model's effort
+  levels, or none, arrive with it. Fast mode (`model_config`) is left for
+  PR 4. Typed `/model` and `/effort` are not mapped to the menu, and
+  the keyboard shortcuts are not built.
 
 Open questions:
 
@@ -132,12 +144,12 @@ Constraints for later PRs, found while reading the adapter:
 |---|---|---|---|---|---|
 | Start a session in a worktree | CLI `--worktree`; Desktop worktree option | exposed: `session/new` `cwd` (acp-agent.js:1433-1442, 7687-7700) | done: worktree cwd, host-owned `mcpServers` (session.rs, `Shared::handshake`) | Shell | Only a local worktree may run an agent (agent_tab.rs, `worktree`). |
 | New conversation | `/clear`, `/new`, `/reset`; VS Code New Conversation; Desktop Cmd+N | partial: `/clear` filtered from the menu (acp-agent.js:9006); new conversation is `session/new` (acp-agent.js:1433) | done: New session kills the agent and clears the transcript (host.rs, `Host::reset`) | P0 | Map typed `/clear` and the button to `session/new`. Typed `/clear` behaviour is unknown (acp-agent.js:677 vs 2084). |
-| Model picker | `/model`; Option+P; Desktop Cmd+Shift+I | exposed: config option `model`, category model, set by `session/set_config_option` (session-model.js:2, 163-208; acp-agent.js:6273-6297) | partial since PR 1: the host reads the `model` option; no picker yet | P0 | PR 1 and PR 3. Show the list the adapter sends. Do not hardcode names. |
-| Model aliases and `[1m]` variants | default, best, fable, sonnet, opus, haiku, sonnet[1m], opus[1m], opusplan (model-config doc) | exposed through the model option values (session-model.js) | partial since PR 1: read with the option; no picker yet | P0 | Part of the picker. Aliases come from docs and may change. |
+| Model picker | `/model`; Option+P; Desktop Cmd+Shift+I | exposed: config option `model`, category model, set by `session/set_config_option` (session-model.js:2, 163-208; acp-agent.js:6273-6297) | done since PR 3: the adapter's own list, under Claude in the settings menu, set through `agent-tab/set-config` (App.tsx, `modelOption`; session.rs, `Session::set_config`). No Option+P | P0 | PR 1 and PR 3. Show the list the adapter sends. Do not hardcode names. |
+| Model aliases and `[1m]` variants | default, best, fable, sonnet, opus, haiku, sonnet[1m], opus[1m], opusplan (model-config doc) | exposed through the model option values (session-model.js) | done since PR 3: listed as the adapter sends them | P0 | Part of the picker. Aliases come from docs and may change. |
 | Session-only or saved default | Enter saves as default; `s` applies to this session (interactive-mode doc) | unknown: `set_config_option` changes the session; saving a default needs a settings write | not implemented | P1 | Owner decision on whether the picker saves defaults. A save writes settings, so it needs confirmation (Section 4 J). |
-| Model allowlist and denylist | `availableModels` in settings; managed `deniedModels` | partial: applied when the option list is built (session-model.js:241-253; settings.js:94-97) | partial since PR 1: the host takes the list as built; no picker yet | P0 | Comes free with PR 1. |
+| Model allowlist and denylist | `availableModels` in settings; managed `deniedModels` | partial: applied when the option list is built (session-model.js:241-253; settings.js:94-97) | done since PR 3: the picker shows the list as built | P0 | Comes free with PR 1. |
 | Model fallback notice | falls back when a model refuses or is unavailable (model-config doc) | exposed: notice or fallback text (acp-agent.js:4344, 4397, 4412; session-notices.js:1-69) | notices dropped (normalize.rs, the last arm of `Normalizer::update`) | P1 | Without notice support the adapter sends a bold agent message, so it already shows as text. PR 19. |
-| Effort level | `/effort` slider; Desktop Cmd+Shift+E; `--effort` | exposed: config option `effort`, category thought_level (session-effort.js:72-90; session-config-ids.js:4) | partial since PR 1: read; no picker yet | P0 | Levels depend on the model. No `xhigh` on Opus 4.6 or Sonnet 4.6 (model-config doc). PR 3. |
+| Effort level | `/effort` slider; Desktop Cmd+Shift+E; `--effort` | exposed: config option `effort`, category thought_level (session-effort.js:72-90; session-config-ids.js:4) | done since PR 3: a section of the settings menu with the levels the current model offers, replaced with each status. No Cmd+Shift+E | P0 | Levels depend on the model. No `xhigh` on Opus 4.6 or Sonnet 4.6 (model-config doc). PR 3. |
 | Ultracode tier | Tab in the effort slider; `/effort ultracode on` or `off` | partial: ultracode carried with effort (session-effort.js:11-16); no toggle option found | not implemented | P1 | Check whether the effort list includes ultracode (unknown). |
 | Extended thinking on or off | Option+T (Alt+T, Meta+T). Opus 5.5, Sonnet 5.5, Haiku 5.5 and Fable always think (keybindings doc) | not-exposed: no toggle option; only `MAX_THINKING_TOKENS` env (acp-agent.js:9933-9945) | not implemented; thinking blocks render (components/Thinking.tsx) | P1 | Needs a settings or env path (D12). Tab is not the toggle. |
 | Ultrathink keyword | prompt keyword for deeper reasoning | unknown: no adapter match, no doc line found | not implemented | P2 | Typed text reaches the CLI unchanged, so it may already work. Verify. |
@@ -217,8 +229,8 @@ Constraints for later PRs, found while reading the adapter:
 | `/compact [instructions]` | summarises the conversation | exposed: replay-hidden text (acp-agent.js:683); compaction updates (context-compaction.js) | sent as text; updates dropped | P1 | PR 18. Works now as text. |
 | `/context` | colored grid and suggestions | exposed: local-only text (acp-agent.js:677) | not implemented | P1 | Text panel first. |
 | `/cost`, `/stats`, `/usage` | session cost and plan limits | `/usage` exposed structured (acp-agent.js:1987-2003; usage-markdown.js:65-66); `/cost` filtered (acp-agent.js:9007) | not implemented | P1 | Only exact `/usage` is structured. PR 18. |
-| `/model` | model picker | exposed through config option; replay-hidden text | not implemented | P0 | Via the picker (PR 3). |
-| `/effort` | effort slider | exposed through config option | not implemented | P0 | PR 3. |
+| `/model` | model picker | exposed through config option; replay-hidden text | partial since PR 3: the picker sets the model; typed `/model` is not mapped to it | P0 | Via the picker (PR 3). |
+| `/effort` | effort slider | exposed through config option | partial since PR 3: the picker sets the effort; typed `/effort` is not mapped to it | P0 | PR 3. |
 | `/fast` | fast mode | exposed through config option | not implemented | P1 | PR 4. |
 | `/plan` | plan mode | exposed as mode `plan` (session-mode.js:247); typed `/plan` not checked | partial: Plan is selectable in the mode switcher (PR 2) | P0 | Via the mode switcher (PR 2). |
 | `/goal` | keep working until a condition is met | exposed as typed text (goal-extension.js:6; acp-agent.js:2318-2330); structured panel AIR-only (acp-agent.js:2301-2303) | not implemented | P1 | Typed `/goal` works now. Panel after D1 (Section 4 E). |

@@ -146,8 +146,8 @@ export function unanswered(pending: Pending | null, status: SessionStatus | null
 
 /**
  * The categories drawn as a select beside the mode: the model, and the
- * effort, which ACP calls a thought level. Fast mode (`model_config`) gets a
- * switch of its own.
+ * effort, which ACP calls a thought level. Fast mode (`model_config`) is not
+ * drawn here; PR 4 gives it a switch of its own.
  */
 const PICKED: readonly string[] = ["model", "thought_level"];
 

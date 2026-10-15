@@ -873,7 +873,7 @@ describe("the agent tab", () => {
     fireEvent.click(await settingsButton());
     const groups = screen.getAllByRole("group").map((g) => g.getAttribute("aria-label"));
     expect(groups.slice(-2), "the model is under its harness").toEqual(["Effort", "Mode"]);
-    expect(groups, "fast mode gets a switch of its own").not.toContain("Fast mode");
+    expect(groups, "fast mode is not drawn here").not.toContain("Fast mode");
     const status = (seq: number, status: SessionStatus) =>
       emit({ instanceId: "i", seq, event: { type: "status", status } });
 
