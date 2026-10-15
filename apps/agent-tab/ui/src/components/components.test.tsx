@@ -13,7 +13,8 @@ import { SessionList } from "./SessionList";
 afterEach(cleanup);
 
 describe("ContextMeter", () => {
-  const fill = (el: HTMLElement) => el.querySelector<HTMLElement>(".at-meter__fill")!.style.width;
+  const fill = (el: HTMLElement) =>
+    el.querySelector<HTMLElement>(".at-minibar .at-bar__fill")!.style.width;
 
   it("draws nothing until usage and a window size are known", () => {
     expect(render(<ContextMeter used={null} size={100} />).container.firstChild).toBeNull();
@@ -34,11 +35,9 @@ describe("ContextMeter", () => {
     expect(meter(-5)).toBe("0%");
   });
 
-  it("reports the raw numbers to assistive technology", () => {
+  it("names how full the window is for assistive technology, capped at full", () => {
     render(<ContextMeter used={250} size={100} />);
-    const meter = screen.getByRole("meter");
-    expect(meter.getAttribute("aria-valuenow")).toBe("250");
-    expect(meter.getAttribute("aria-valuemax")).toBe("100");
+    expect(screen.getByRole("button", { name: "Context window 100% full" })).toBeTruthy();
   });
 });
 

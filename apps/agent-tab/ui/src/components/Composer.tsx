@@ -4,7 +4,7 @@ import "./composer.css";
 
 /**
  * The prompt box: notices, then one rounded card holding the input and, under
- * it, a footer of controls and Send or Stop.
+ * it, a footer of the settings button, the meters, and Send or Stop.
  */
 export function Composer({
   ref,
@@ -14,6 +14,7 @@ export function Composer({
   onKeyDown,
   notices,
   controls,
+  meters,
   action,
 }: ComposerProps) {
   return (
@@ -33,6 +34,7 @@ export function Composer({
         <div className="at-prompt__footer">
           {controls}
           <span className="at-prompt__spacer" />
+          {meters}
           {action}
         </div>
       </div>

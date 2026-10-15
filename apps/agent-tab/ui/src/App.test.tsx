@@ -310,6 +310,30 @@ describe("the agent tab", () => {
     expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/cancel");
   });
 
+  it("puts a hover card away with Esc before Esc stops the turn", async () => {
+    backend({
+      status: { ...STATUS, state: "working" },
+      seq: 2,
+      items: [
+        item("u1", { kind: "userMessage", text: "go" }),
+        item("g1", { kind: "usage", used: 10, size: 100 }),
+      ],
+    });
+    render(<App />);
+    const meter = await screen.findByRole("button", { name: "Context window 10% full" });
+    fireEvent.pointerEnter(meter.parentElement!);
+    const card = screen.getByRole("tooltip", { hidden: true });
+    expect(card.hasAttribute("data-open")).toBe(true);
+
+    prompt().focus();
+    fireEvent.keyDown(prompt(), { key: "Escape" });
+    expect(card.hasAttribute("data-open")).toBe(false);
+    expect(bridge.invoke).not.toHaveBeenCalledWith("agent-tab/cancel");
+
+    fireEvent.keyDown(prompt(), { key: "Escape" });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/cancel");
+  });
+
   it("shows the accepted prompt while the agent starts, and Stop and Esc withdraw it", async () => {
     backend({
       status: { ...STATUS, state: "starting", pendingPrompt: "fix the build" },

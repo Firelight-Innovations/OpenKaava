@@ -7,6 +7,7 @@
 import type { KeyboardEvent, MouseEvent, ReactNode, Ref } from "react";
 import type { ApprovalOption, PlanEntry, SessionState, ToolStatus } from "../protocol.generated";
 import type { DiffLine } from "../diff";
+import type { Tone } from "../meters";
 
 /** The tab's frame: header on top, transcript in the middle, composer below. */
 export interface LayoutProps {
@@ -125,10 +126,58 @@ export interface UsageProps {
   size: number;
 }
 
+/** One part of what fills the context window: messages, tools, memory files. */
+export interface ContextCategory {
+  id: string;
+  label: string;
+  tokens: number;
+}
+
 /** The composer's context meter: the latest usage, or `null` before one arrives. */
 export interface ContextMeterProps {
   used: number | null;
   size: number | null;
+  /** What the used tokens are made of, when the agent says. Without it, one "Used" row. */
+  categories?: ContextCategory[];
+}
+
+/** One usage limit of the plan the agent runs on, such as the session or the week. */
+export interface UsageLimit {
+  id: string;
+  label: string;
+  /** How much of it is used, 0 to 1. */
+  share: number;
+  /** When it resets, already in words ("Resets in 22 min"), or `null`. */
+  resets: string | null;
+}
+
+/** The usage ring. With no limits it draws nothing. */
+export interface UsageRingProps {
+  limits: UsageLimit[];
+}
+
+/** A small button that shows a card while it is hovered or focused. */
+export interface HoverCardProps {
+  /** Names the button for assistive tech, with the figure it stands for. */
+  label: string;
+  /** What the button shows: a ring, a bar, a number. */
+  trigger: ReactNode;
+  /** Which edge of the button the card lines up with; `end` by default. */
+  align?: "start" | "end";
+  children: ReactNode;
+}
+
+/** A small progress ring. */
+export interface RingProps {
+  /** How full, 0 to 1. */
+  share: number;
+  tone: Tone;
+}
+
+/** The composer's settings button. Each section is one setting: harness, model, effort, mode. */
+export interface ModelMenuProps {
+  label: string;
+  sections: PickerProps[];
 }
 
 export interface ErrorItemProps {
@@ -163,8 +212,10 @@ export interface ComposerProps {
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   /** Notices to show above the input. */
   notices: ReactNode;
-  /** The footer's left side: mode, model, effort and harness pickers. */
+  /** The footer's left side: the settings button. */
   controls: ReactNode;
+  /** Beside Send or Stop: the context meter and the usage ring. */
+  meters: ReactNode;
   /** The footer's right side: Send or Stop. */
   action: ReactNode;
 }
