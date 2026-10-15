@@ -542,14 +542,11 @@ pub fn context_item(root: &Path, r: &Ref) -> Result<Resolved, String> {
     if item.missing {
         return Ok(out.withhold("the stored file has been deleted or moved"));
     }
-    // A copy's title is free text; the file it was copied from and the
-    // copy's own name say what it is.
-    let names = [
-        Some(item.title.as_str()),
-        item.key.strip_prefix("file/"),
-        Some(item.rel_path.as_str()),
-    ];
-    if let Some(rule) = names.into_iter().flatten().find_map(policy::secret_rule) {
+    // The file it was copied from and the copy's own name say what it is. The
+    // title is free text, and counts only when it is spelt as a file name.
+    let names = [item.key.strip_prefix("file/"), Some(item.rel_path.as_str())];
+    let rule = names.into_iter().flatten().find_map(policy::secret_rule);
+    if let Some(rule) = rule.or_else(|| policy::title_rule(&item.title)) {
         return Ok(out.withhold(secret_withheld(rule)));
     }
     // A hand-edited sidecar could point anywhere: only a file that really is
@@ -1019,6 +1016,41 @@ mod tests {
             assert!(r.withheld.unwrap().contains("private keys"), "{}", item.key);
             assert!(r.parts.is_empty());
         }
+    }
+
+    #[test]
+    fn a_context_title_is_screened_only_when_it_is_spelt_as_a_file_name() {
+        let dir = project();
+        let note = |title: &str, key: &str| {
+            let item = crate::context::put(
+                dir.path(),
+                crate::context::PutRequest {
+                    key: Some(key.into()),
+                    kind: None,
+                    title: Some(title.into()),
+                    // Each its own text: the store keeps one item per content.
+                    payload: crate::context::Payload::Text(format!("{title}: on Monday.")),
+                    app_id: "terminal".into(),
+                    label: None,
+                    method: crate::context::Method::Put,
+                    reference_in_place: true,
+                },
+            )
+            .unwrap();
+            resolve(&dir, &format!("kaava://context/{}", item.id)).unwrap()
+        };
+        for prose in [
+            "Credentials rotation plan",
+            "id_card layout",
+            "secrets.md review",
+        ] {
+            let r = note(prose, "notes/plan");
+            assert_eq!(r.title, prose);
+            assert_eq!(r.withheld, None, "{prose}");
+            assert_eq!(text_of(&r).0, format!("{prose}: on Monday."));
+        }
+        let r = note("id_rsa", "notes/handoff");
+        assert!(r.withheld.unwrap().contains("SSH private keys"));
     }
 
     #[test]

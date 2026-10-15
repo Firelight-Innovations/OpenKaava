@@ -161,6 +161,17 @@ pub fn secret_rule(rel: &str) -> Option<&'static str> {
     credential.then_some("credential files")
 }
 
+/// Which secrets rule a context item's title falls under. A title is free
+/// text, so only one spelt like a file name, without spaces, is read as one:
+/// `id_rsa` is a key's name, and "Credentials rotation plan" is prose.
+pub fn title_rule(title: &str) -> Option<&'static str> {
+    let title = title.trim();
+    if title.chars().any(char::is_whitespace) {
+        return None;
+    }
+    secret_rule(title)
+}
+
 /// Which secrets rule a file's first bytes fall under. A private key keeps
 /// its header whatever the file is called, so a renamed key is still caught,
 /// and so is one written into a JSON, YAML or env value.
