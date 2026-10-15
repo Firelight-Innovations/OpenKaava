@@ -7,6 +7,7 @@
 //! an image over [`MAX_IMAGE_BYTES`] is described rather than sent.
 
 use super::assets::{self, Kind};
+use super::fault::{Fault, Reason};
 use super::policy;
 use super::uri::{Lines, Ref};
 use crate::context::ContextItem;
@@ -107,9 +108,9 @@ impl Resolved {
 }
 
 /// Resolve a file or folder reference inside `root`.
-pub fn file(root: &Path, r: &Ref) -> Result<Resolved, String> {
+pub fn file(root: &Path, r: &Ref) -> Result<Resolved, Fault> {
     let Ref::File { path, lines } = r else {
-        return Err("not a file reference".into());
+        return Err(Fault::new(Reason::BadUri, "not a file reference"));
     };
     let found = policy::contain(root, path)?;
     let name = path.rsplit('/').next().unwrap_or(path);
@@ -124,9 +125,9 @@ pub fn file(root: &Path, r: &Ref) -> Result<Resolved, String> {
         ));
     }
     if found.abs.is_dir() {
-        return folder(out, &found.root, &found.abs);
+        return Ok(folder(out, &found.root, &found.abs)?);
     }
-    describe(out, &found.abs, *lines)
+    Ok(describe(out, &found.abs, *lines)?)
 }
 
 pub(super) fn secret_withheld(rule: &str) -> String {
@@ -513,11 +514,11 @@ pub fn png_part(path: &Path) -> Result<Part, String> {
 
 /// An item in the context store. One Kaava stored itself is read where it
 /// lies; one that references a project file goes through every file rule.
-pub fn context_item(root: &Path, r: &Ref) -> Result<Resolved, String> {
+pub fn context_item(root: &Path, r: &Ref) -> Result<Resolved, Fault> {
     let Ref::Context { id } = r else {
-        return Err("not a context reference".into());
+        return Err(Fault::new(Reason::BadUri, "not a context reference"));
     };
-    let item = crate::context::get(root, id).map_err(|e| e.message)?;
+    let item = stored_item(root, id)?;
     if stands_for_file(&item) {
         let inner = Ref::File {
             path: item.rel_path.clone(),
@@ -541,7 +542,12 @@ pub fn context_item(root: &Path, r: &Ref) -> Result<Resolved, String> {
     let found = policy::contain(root, &item.rel_path)
         .ok()
         .filter(|f| policy::inside_store(&f.rel))
-        .ok_or("that context item's file is not in this project's context store")?;
+        .ok_or_else(|| {
+            Fault::new(
+                Reason::Outside,
+                "that context item's file is not in this project's context store",
+            )
+        })?;
     let mut out = describe(out, &found.abs, None)?;
     out.detail = item.source.label.or(Some(item.source.app_id));
     out.meta.insert("context".into(), json!(item.id));
@@ -549,9 +555,9 @@ pub fn context_item(root: &Path, r: &Ref) -> Result<Resolved, String> {
 }
 
 /// A viewer comment, `.kaava/comments/<id>.json`, and its screenshot.
-pub fn viewer_comment(root: &Path, r: &Ref) -> Result<Resolved, String> {
+pub fn viewer_comment(root: &Path, r: &Ref) -> Result<Resolved, Fault> {
     let Ref::Comment { id } = r else {
-        return Err("not a comment reference".into());
+        return Err(Fault::new(Reason::BadUri, "not a comment reference"));
     };
     let comment = viewer_record(root, id)?;
     let mut out = Resolved::empty(r, "comment", first_line(&comment.body));
@@ -577,17 +583,32 @@ pub fn viewer_comment(root: &Path, r: &Ref) -> Result<Resolved, String> {
 }
 
 /// A viewer comment's record, read from inside the project and under the cap.
-pub(super) fn viewer_record(root: &Path, id: &str) -> Result<crate::comments::Comment, String> {
-    let record = policy::contain(root, &format!(".kaava/comments/{id}.json"))
-        .map_err(|_| format!("there is no comment `{id}` in this project"))?;
+pub(super) fn viewer_record(root: &Path, id: &str) -> Result<crate::comments::Comment, Fault> {
+    let record = policy::contain(root, &format!(".kaava/comments/{id}.json")).map_err(|f| {
+        let missing = format!("there is no comment `{id}` in this project");
+        match f.reason {
+            Reason::Missing => Fault::new(Reason::Missing, missing),
+            _ => f,
+        }
+    })?;
     let raw = read_prefix(&record.abs, MAX_COMMENT_BYTES + 1)?;
     if raw.len() as u64 > MAX_COMMENT_BYTES {
-        return Err(format!(
+        return Err(Fault::from(format!(
             "comment `{id}` is over {}, which is more than a comment holds",
             human_size(MAX_COMMENT_BYTES)
-        ));
+        )));
     }
-    serde_json::from_slice(&raw).map_err(|e| format!("comment `{id}` is unreadable: {e}"))
+    serde_json::from_slice(&raw)
+        .map_err(|e| Fault::from(format!("comment `{id}` is unreadable: {e}")))
+}
+
+/// A context item's record. The store refuses an unknown or malformed id as
+/// invalid params; anything else it refuses is a record it could not read.
+pub(super) fn stored_item(root: &Path, id: &str) -> Result<ContextItem, Fault> {
+    crate::context::get(root, id).map_err(|e| match e.code {
+        kaava_rpc::INVALID_PARAMS => Fault::new(Reason::Missing, e.message),
+        _ => Fault::from(e.message),
+    })
 }
 
 fn anchor_line(anchor: &crate::comments::Anchor) -> String {
@@ -615,7 +636,7 @@ mod tests {
         std::fs::write(path, bytes).unwrap();
     }
 
-    fn resolve(dir: &TempDir, uri: &str) -> Result<Resolved, String> {
+    fn resolve(dir: &TempDir, uri: &str) -> Result<Resolved, Fault> {
         let r = parse(uri)?;
         match r {
             Ref::Context { .. } => context_item(dir.path(), &r),
@@ -660,6 +681,7 @@ mod tests {
         assert_eq!(whole.meta["lines"], 50);
         assert!(resolve(&dir, "kaava://file/scripts/player.gd#L51")
             .unwrap_err()
+            .message
             .contains("50 lines"));
     }
 
@@ -758,9 +780,9 @@ mod tests {
     #[test]
     fn a_missing_file_is_an_error_that_names_it() {
         let dir = project();
-        assert!(resolve(&dir, "kaava://file/nope.gd")
-            .unwrap_err()
-            .contains("nope.gd"));
+        let err = resolve(&dir, "kaava://file/nope.gd").unwrap_err();
+        assert_eq!(err.reason, Reason::Missing);
+        assert!(err.message.contains("nope.gd"), "{err}");
     }
 
     /// Symlinks need a privilege on Windows; where one cannot be made the
@@ -787,7 +809,8 @@ mod tests {
             return;
         }
         let err = resolve(&dir, "kaava://file/away.txt").unwrap_err();
-        assert!(err.contains("outside the project"), "{err}");
+        assert_eq!(err.reason, Reason::Outside);
+        assert!(err.message.contains("outside the project"), "{err}");
         assert!(link(
             &dir.path().join(".env"),
             &dir.path().join("notes.txt")
@@ -994,7 +1017,8 @@ mod tests {
         assert_eq!(r.title, "The door clips through the wall");
         assert_eq!(r.detail.as_deref(), Some("Play · hospital.tscn at 12.5s"));
         assert!(r.parts.iter().any(|p| matches!(p, Part::Image { .. })));
-        assert!(resolve(&dir, "kaava://comment/nope").is_err());
+        let err = resolve(&dir, "kaava://comment/nope").unwrap_err();
+        assert_eq!(err.reason, Reason::Missing);
     }
 
     #[test]
@@ -1004,6 +1028,7 @@ mod tests {
         big.resize(MAX_COMMENT_BYTES as usize + 1, b'x');
         put(&dir, ".kaava/comments/c-big.json", &big);
         let err = resolve(&dir, "kaava://comment/c-big").unwrap_err();
-        assert!(err.contains("more than a comment holds"), "{err}");
+        assert_eq!(err.reason, Reason::Unreadable);
+        assert!(err.message.contains("more than a comment holds"), "{err}");
     }
 }

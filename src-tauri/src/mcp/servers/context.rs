@@ -16,6 +16,7 @@ use super::{workspace, McpResource};
 use crate::apps::CallContext;
 use crate::mcp::{Block, McpServer, McpTool, ToolAnswer};
 use crate::refs::comments::{self, Wanted};
+use crate::refs::fault::{Fault, Reason};
 use crate::refs::live::{self, Actor};
 use crate::refs::resolve::{Part, Resolved};
 use crate::refs::search::{self, Query};
@@ -431,7 +432,8 @@ fn show(
     }
     let checked = raw.iter().map(|item| {
         let given = item.as_str().unwrap_or_default();
-        let r = uri::parse(given).map_err(|why| (given.to_string(), why))?;
+        let r = uri::parse(given)
+            .map_err(|why| (given.to_string(), Fault::new(Reason::BadUri, why)))?;
         live::check(app, ctx, &r).map_err(|why| (r.to_string(), why))?;
         Ok(r)
     });
@@ -440,30 +442,25 @@ fn show(
 
 /// The answer to `show`: `{kaavaShow: {component, version, props}}`, which the
 /// agent host lifts off this server's tool result for the tab to draw, and the
-/// references that could not be shown and why. Refused when none could be.
+/// references that could not be shown, each with its reason word and why.
+/// Refused when none could be.
 fn show_answer(
-    checked: Vec<Result<Ref, (String, String)>>,
+    checked: Vec<Result<Ref, (String, Fault)>>,
     caption: Option<&str>,
 ) -> Result<Value, RpcError> {
     let (shown, failed): (Vec<_>, Vec<_>) = checked.into_iter().partition(Result::is_ok);
-    let failed: Vec<Value> = failed
-        .into_iter()
-        .filter_map(Result::err)
-        .map(|(uri, why)| json!({ "uri": uri, "reason": why }))
-        .collect();
+    let failed: Vec<(String, Fault)> = failed.into_iter().filter_map(Result::err).collect();
     if shown.is_empty() {
         let reasons: Vec<String> = failed
             .iter()
-            .map(|f| {
-                format!(
-                    "{}: {}",
-                    f["uri"].as_str().unwrap_or(""),
-                    f["reason"].as_str().unwrap_or("")
-                )
-            })
+            .map(|(uri, why)| format!("{uri}: {why}"))
             .collect();
         return Err(bad(format!("nothing to show. {}", reasons.join("; "))));
     }
+    let failed: Vec<Value> = failed
+        .iter()
+        .map(|(uri, why)| json!({ "uri": uri, "reason": why.reason, "message": why.message }))
+        .collect();
     let refs: Vec<String> = shown.into_iter().flatten().map(|r| r.to_string()).collect();
     let mut props = json!({ "refs": refs });
     if let Some(caption) = caption {
@@ -547,7 +544,7 @@ mod tests {
     fn show_draws_what_it_can_and_names_what_it_cannot() {
         let missing = Err((
             "kaava://file/gone.gd".to_string(),
-            "no such file".to_string(),
+            Fault::new(Reason::Missing, "no such file"),
         ));
         let answer = show_answer(vec![missing.clone(), Ok(file("a.gd"))], None).unwrap();
         assert_eq!(
@@ -555,7 +552,8 @@ mod tests {
             json!(["kaava://file/a.gd"])
         );
         assert!(answer["kaavaShow"]["props"].get("caption").is_none());
-        assert_eq!(answer["failed"][0]["reason"], "no such file");
+        assert_eq!(answer["failed"][0]["reason"], "missing");
+        assert_eq!(answer["failed"][0]["message"], "no such file");
         let none = show_answer(vec![missing], None).unwrap_err();
         assert!(
             none.message.contains("gone.gd: no such file"),

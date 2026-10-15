@@ -3,6 +3,7 @@
 //! selection (reported by the panes on screen). Files, context items and
 //! viewer comments are plain disk reads and go straight to [`super::resolve`].
 
+use super::fault::{Fault, Reason};
 use super::resolve::{self, Part, Resolved};
 use super::uri::{CanvasPart, Ref};
 use crate::apps::CallContext;
@@ -36,7 +37,7 @@ pub fn resolve(
     ctx: &CallContext,
     actor: Actor,
     r: &Ref,
-) -> Result<Resolved, String> {
+) -> Result<Resolved, Fault> {
     let root = root_of(ctx)?;
     match r {
         Ref::File { .. } => resolve::file(root, r),
@@ -55,32 +56,36 @@ pub fn resolve(
     }
 }
 
-pub(super) fn root_of(ctx: &CallContext) -> Result<&Path, String> {
-    ctx.project
-        .as_deref()
-        .ok_or_else(|| "this cluster has no project open, so there is nothing to reference".into())
+pub(super) fn root_of(ctx: &CallContext) -> Result<&Path, Fault> {
+    ctx.project.as_deref().ok_or_else(|| {
+        Fault::new(
+            Reason::NoProject,
+            "this cluster has no project open, so there is nothing to reference",
+        )
+    })
 }
 
 /// Whether a reference names something that is there and may be shown,
 /// reading no more than a file's first bytes: what `show` asks before the tab
 /// is told to draw it. A secret is refused with the rule it falls under. A
 /// gitignored file passes, because the tab draws it as withheld.
-pub fn check(app: &AppHandle, ctx: &CallContext, r: &Ref) -> Result<(), String> {
+pub fn check(app: &AppHandle, ctx: &CallContext, r: &Ref) -> Result<(), Fault> {
     let root = root_of(ctx)?;
-    let refuse =
-        |rule: Option<&str>| rule.map_or(Ok(()), |rule| Err(resolve::secret_withheld(rule)));
+    let refuse = |rule: Option<&str>| {
+        rule.map_or(Ok(()), |rule| {
+            Err(Fault::new(Reason::Secret, resolve::secret_withheld(rule)))
+        })
+    };
     match r {
         Ref::File { path, .. } => {
             let found = super::policy::contain(root, path)?;
             refuse(resolve::secret_file(path, &found))
         }
         Ref::Context { id } => {
-            let item = crate::context::get(root, id).map_err(|e| e.message)?;
+            let item = resolve::stored_item(root, id)?;
             refuse(resolve::item_secret(root, &item))
         }
-        Ref::Comment { id } => super::policy::contain(root, &format!(".kaava/comments/{id}.json"))
-            .map(drop)
-            .map_err(|_| format!("there is no comment `{id}` in this project")),
+        Ref::Comment { id } => resolve::viewer_record(root, id).map(drop),
         Ref::Canvas { id, part } => {
             canvas_inside(root, id, part.as_ref())?;
             match part {
@@ -97,50 +102,67 @@ pub fn check(app: &AppHandle, ctx: &CallContext, r: &Ref) -> Result<(), String> 
 }
 
 #[cfg(feature = "design-mode")]
-fn design_comment_exists(app: &AppHandle, id: &str) -> Result<(), String> {
+fn design_comment_exists(app: &AppHandle, id: &str) -> Result<(), Fault> {
     use tauri::Manager;
     let comments = app.state::<crate::design_comments::Comments>();
     comments
         .get(id)
         .map(drop)
-        .ok_or_else(|| format!("there is no Design Mode comment `{id}`"))
+        .ok_or_else(|| no_design_comment(id))
+}
+
+#[cfg(feature = "design-mode")]
+fn no_design_comment(id: &str) -> Fault {
+    Fault::new(
+        Reason::Missing,
+        format!("there is no Design Mode comment `{id}`"),
+    )
 }
 
 #[cfg(not(feature = "design-mode"))]
-fn design_comment_exists(app: &AppHandle, id: &str) -> Result<(), String> {
+fn design_comment_exists(app: &AppHandle, id: &str) -> Result<(), Fault> {
     design_comment(app, &Ref::DesignComment { id: id.into() }, id).map(drop)
 }
 
 /// Refuse a canvas, or a comment on one, whose file is not inside the project
 /// once links are followed. The Canvas app reads the files where it finds
 /// them, so the test a file reference passes runs here, before it is asked.
-pub(super) fn canvas_inside(
-    root: &Path,
-    id: &str,
-    part: Option<&CanvasPart>,
-) -> Result<(), String> {
+pub(super) fn canvas_inside(root: &Path, id: &str, part: Option<&CanvasPart>) -> Result<(), Fault> {
     use crate::apps::canvas;
     let mut files = vec![canvas::file_for(root, id)];
     if let Some(CanvasPart::Comment(c)) = part {
         files.push(canvas::comments::dir_for(root, id).join(format!("{c}.json")));
     }
     for file in files {
-        let rel = crate::context::relative_to(root, &file)
-            .ok_or_else(|| format!("canvas `{id}` is not in this project"))?;
+        let rel = crate::context::relative_to(root, &file).ok_or_else(|| {
+            Fault::new(
+                Reason::Outside,
+                format!("canvas `{id}` is not in this project"),
+            )
+        })?;
         super::policy::contain(root, &rel)?;
     }
     Ok(())
 }
 
+/// Ask the Canvas app. The parameters are built here, so the one thing it can
+/// call invalid in them is a canvas or frame it does not have; any other
+/// failure is the app's.
 pub(super) fn canvas_call(
     app: &AppHandle,
     ctx: &CallContext,
     actor: Actor,
     method: &str,
     mut params: Value,
-) -> Result<Value, String> {
+) -> Result<Value, Fault> {
     params["actor"] = json!(actor.name());
-    crate::apps::call(app, ctx, "canvas", method, Some(params)).map_err(|e| e.message)
+    crate::apps::call(app, ctx, "canvas", method, Some(params)).map_err(|e| {
+        let reason = match e.code {
+            kaava_rpc::INVALID_PARAMS => Reason::Missing,
+            _ => Reason::Unavailable,
+        };
+        Fault::new(reason, e.message)
+    })
 }
 
 fn canvas(
@@ -149,7 +171,7 @@ fn canvas(
     actor: Actor,
     r: &Ref,
     id: &str,
-) -> Result<Resolved, String> {
+) -> Result<Resolved, Fault> {
     let listed = canvas_call(app, ctx, actor, "canvas/frames", json!({ "canvas": id }))?;
     Ok(canvas_from(&listed, r, id))
 }
@@ -191,7 +213,7 @@ fn frame_of(
     r: &Ref,
     id: &str,
     frame: &str,
-) -> Result<Resolved, String> {
+) -> Result<Resolved, Fault> {
     let detail = canvas_call(
         app,
         ctx,
@@ -255,7 +277,7 @@ fn canvas_comment(
     r: &Ref,
     id: &str,
     comment: &str,
-) -> Result<Resolved, String> {
+) -> Result<Resolved, Fault> {
     let viewed = canvas_call(
         app,
         ctx,
@@ -277,7 +299,10 @@ fn canvas_comment(
             let found = all["comments"]
                 .as_array()
                 .and_then(|cs| cs.iter().find(|c| c["id"] == json!(comment)).cloned())
-                .ok_or_else(|| format!("canvas `{id}` has no comment `{comment}`"))?;
+                .ok_or_else(|| {
+                    let missing = format!("canvas `{id}` has no comment `{comment}`");
+                    Fault::new(Reason::Missing, missing)
+                })?;
             (found, rendered(root, Err(why)))
         }
     };
@@ -300,7 +325,7 @@ fn canvas_comment(
 /// A PNG the canvas rendered, as an image part, or a note saying why not.
 /// The path comes from the canvas, and is read only when it is inside the root
 /// once links are followed, the same test a file reference passes.
-fn rendered(root: &Path, answer: Result<Value, String>) -> Part {
+fn rendered(root: &Path, answer: Result<Value, Fault>) -> Part {
     let note = |text: String| Part::Note { text };
     let path = match answer {
         Ok(v) => v["path"].as_str().map(str::to_owned),
@@ -323,14 +348,14 @@ fn rendered(root: &Path, answer: Result<Value, String>) -> Part {
 }
 
 #[cfg(feature = "design-mode")]
-fn design_comment(app: &AppHandle, r: &Ref, id: &str) -> Result<Resolved, String> {
+fn design_comment(app: &AppHandle, r: &Ref, id: &str) -> Result<Resolved, Fault> {
     use base64::engine::general_purpose::STANDARD as BASE64;
     use base64::Engine as _;
     use tauri::Manager;
     let c = app
         .state::<crate::design_comments::Comments>()
         .get(id)
-        .ok_or_else(|| format!("there is no Design Mode comment `{id}`"))?;
+        .ok_or_else(|| no_design_comment(id))?;
     let mut out = resolve::Resolved::empty(r, "design-comment", resolve::first_line(&c.request));
     out.detail = Some(format!("{} on {}", c.element.tag, c.page.title));
     out.meta.insert("status".into(), json!(c.status));
@@ -357,16 +382,21 @@ fn design_comment(app: &AppHandle, r: &Ref, id: &str) -> Result<Resolved, String
 }
 
 #[cfg(not(feature = "design-mode"))]
-fn design_comment(_app: &AppHandle, _r: &Ref, _id: &str) -> Result<Resolved, String> {
-    Err("Design Mode is not part of this build, so it has no comments".into())
+fn design_comment(_app: &AppHandle, _r: &Ref, _id: &str) -> Result<Resolved, Fault> {
+    Err(Fault::new(
+        Reason::Unavailable,
+        "Design Mode is not part of this build, so it has no comments",
+    ))
 }
 
 /// What the person has selected, read from the panes in this cluster.
-fn selection(app: &AppHandle, ctx: &CallContext, root: &Path, r: &Ref) -> Result<Resolved, String> {
-    let cluster = ctx
-        .cluster_id
-        .as_deref()
-        .ok_or("this surface is not in a cluster, so it has no selection")?;
+fn selection(app: &AppHandle, ctx: &CallContext, root: &Path, r: &Ref) -> Result<Resolved, Fault> {
+    let cluster = ctx.cluster_id.as_deref().ok_or_else(|| {
+        Fault::new(
+            Reason::NoProject,
+            "this surface is not in a cluster, so it has no selection",
+        )
+    })?;
     Ok(selection_from(
         crate::mcp::selection_in(app, cluster),
         root,
@@ -513,16 +543,19 @@ mod tests {
         let comment = |c: &str| Some(CanvasPart::Comment(c.into()));
         assert!(canvas_inside(root, "world", None).is_ok());
         assert!(canvas_inside(root, "world", comment("c-1").as_ref()).is_ok());
-        assert!(canvas_inside(root, "nope", None).is_err());
+        let err = canvas_inside(root, "nope", None).unwrap_err();
+        assert_eq!(err.reason, Reason::Missing);
         if !link(&secret, &root.join("canvas/leak.canvas.json")) {
             eprintln!("skipped: cannot create symlinks here");
             return;
         }
         let err = canvas_inside(root, "leak", None).unwrap_err();
-        assert!(err.contains("outside the project"), "{err}");
+        assert_eq!(err.reason, Reason::Outside);
+        assert!(err.message.contains("outside the project"), "{err}");
         assert!(link(&secret, &root.join("canvas/world.comments/c-2.json")));
         let err = canvas_inside(root, "world", comment("c-2").as_ref()).unwrap_err();
-        assert!(err.contains("outside the project"), "{err}");
+        assert_eq!(err.reason, Reason::Outside);
+        assert!(err.message.contains("outside the project"), "{err}");
     }
 
     fn json_part(r: &Resolved) -> &Value {

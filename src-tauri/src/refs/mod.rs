@@ -18,13 +18,14 @@
 
 pub mod assets;
 pub mod comments;
+pub mod fault;
 pub mod live;
 pub mod policy;
 pub mod resolve;
 pub mod search;
 pub mod uri;
 
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
+use kaava_rpc::{RpcError, INTERNAL_ERROR, METHOD_NOT_FOUND};
 use serde_json::Value;
 use tauri::AppHandle;
 
@@ -50,8 +51,8 @@ pub fn call(
     match method {
         RESOLVE_METHOD => {
             let r = uri_param(params.as_ref())?;
-            let resolved = live::resolve(app, ctx, live::Actor::Human, &r)
-                .map_err(|e| RpcError::new(INVALID_PARAMS, e))?;
+            let resolved =
+                live::resolve(app, ctx, live::Actor::Human, &r).map_err(fault::Fault::rpc)?;
             serde_json::to_value(resolved).map_err(|e| RpcError::new(INTERNAL_ERROR, e.to_string()))
         }
         other => Err(RpcError::new(
@@ -73,18 +74,20 @@ fn admit(caller: &str) -> Result<(), RpcError> {
     ))
 }
 
-/// The `uri` parameter, parsed.
+/// The `uri` parameter, parsed. A failure carries `data.reason` `bad-uri`.
 fn uri_param(params: Option<&Value>) -> Result<uri::Ref, RpcError> {
+    let bad = |why: String| fault::Fault::new(fault::Reason::BadUri, why).rpc();
     let raw = params
         .and_then(|p| p.get("uri"))
         .and_then(Value::as_str)
-        .ok_or_else(|| RpcError::new(INVALID_PARAMS, "`uri` is required"))?;
-    uri::parse(raw).map_err(|e| RpcError::new(INVALID_PARAMS, e))
+        .ok_or_else(|| bad("`uri` is required".into()))?;
+    uri::parse(raw).map_err(bad)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use kaava_rpc::INVALID_PARAMS;
     use serde_json::json;
 
     #[test]
@@ -111,8 +114,9 @@ mod tests {
     fn a_resolve_call_needs_a_uri_that_parses() {
         assert!(uri_param(None).is_err());
         assert!(uri_param(Some(&json!({ "uri": 7 }))).is_err());
-        let escape = uri_param(Some(&json!({ "uri": "kaava://file/../secrets" })));
-        assert_eq!(escape.unwrap_err().code, INVALID_PARAMS);
+        let escape = uri_param(Some(&json!({ "uri": "kaava://file/../secrets" }))).unwrap_err();
+        assert_eq!(escape.code, INVALID_PARAMS);
+        assert_eq!(escape.data, Some(json!({ "reason": "bad-uri" })));
         let ok = uri_param(Some(&json!({ "uri": "kaava://selection" })));
         assert_eq!(ok.unwrap(), uri::Ref::Selection);
     }
