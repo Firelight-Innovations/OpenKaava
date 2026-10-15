@@ -131,8 +131,9 @@ impl Mock {
     }
 
     /// The settings, shaped as Claude's adapter shapes them: the mode again
-    /// as an option, effort only for a model that has it, and fast mode as an
-    /// on/off select.
+    /// as an option, effort, and fast mode as an on/off select. The model
+    /// option also lists `bypassPermissions`, a held-back value the host must
+    /// drop from every option.
     fn config_options(&self) -> Value {
         let select = |id: &str, category: &str, current: &str, choices: &[&str]| {
             let options: Vec<Value> = choices
@@ -149,17 +150,15 @@ impl Mock {
                 "model",
                 "model",
                 &self.model,
-                &["default", "opus", "haiku", "gone"],
+                &["default", "opus", "haiku", "bypassPermissions"],
             ),
         ];
-        if self.model != "haiku" {
-            options.push(select(
-                "effort",
-                "thought_level",
-                &self.effort,
-                &["low", "medium", "high"],
-            ));
-        }
+        options.push(select(
+            "effort",
+            "thought_level",
+            &self.effort,
+            &["low", "medium", "high"],
+        ));
         options.push(select("fast", "model_config", &self.fast, &["on", "off"]));
         Value::Array(options)
     }

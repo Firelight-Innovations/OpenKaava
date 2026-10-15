@@ -1127,7 +1127,16 @@ fn the_session_reports_its_modes_and_settings() {
         "the mode is not drawn twice"
     );
     assert_eq!(value_of(&status, "model"), Some("default"));
-    assert_eq!(status.config[0].choices.len(), 4);
+    let models: Vec<&str> = status.config[0]
+        .choices
+        .iter()
+        .map(|c| c.value.as_str())
+        .collect();
+    assert_eq!(
+        models,
+        ["default", "opus", "haiku"],
+        "the mock also offers bypassPermissions there, which is held back"
+    );
 }
 
 #[test]
@@ -1167,6 +1176,11 @@ fn a_handshake_that_fails_early_never_shows_the_users_own_mode() {
     rig.state(SessionState::Failed);
     let status = last_status(&rig.events()).unwrap();
     assert_eq!(status.mode, None);
+    // What the session/new reply carried is still there, as the status's
+    // docs say, though the handshake failed after it.
+    let modes: Vec<&str> = status.modes.iter().map(|m| m.value.as_str()).collect();
+    assert_eq!(modes, ["default", "acceptEdits", "plan"]);
+    assert!(!status.config.is_empty());
 }
 
 #[test]
