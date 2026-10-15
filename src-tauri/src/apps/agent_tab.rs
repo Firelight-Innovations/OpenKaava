@@ -327,6 +327,18 @@ fn harnesses(app: &AppHandle, context: &CallContext, tab: Option<&str>) -> Value
         .err()
         .and_then(|e| e.data)
         .and_then(|d| d.get("code").cloned());
+    harnesses_answer(&harnesses, current, running, model, blocked)
+}
+
+/// The answer to `agent-tab/harnesses`. The tab reads it as `Harnesses` in
+/// its `rpc.ts`, and the agent bar in `src/shell/state/agentBar.ts`.
+fn harnesses_answer<H: Serialize>(
+    harnesses: &[HarnessInfo],
+    current: H,
+    running: Option<H>,
+    model: Option<String>,
+    blocked: Option<Value>,
+) -> Value {
     json!({
         "harnesses": harnesses,
         "current": current,
@@ -905,6 +917,41 @@ mod tests {
         let err = choose(&map, "agent-tab-1", Some("claude"), "pi", || true).unwrap_err();
         assert_eq!(code_of(&err), Some("running"));
         assert_eq!(chosen(&map, "agent-tab-1"), Some("claude"));
+    }
+
+    /// The keys `rpc.ts`'s `Harnesses` and `agentBar.ts` read; a rename on
+    /// either side has to change this test as well.
+    #[test]
+    fn the_harnesses_answer_has_the_keys_the_tab_and_the_bar_read() {
+        let info = kaava_agent_host::harness::CLAUDE.info(None);
+        let answer = harnesses_answer(
+            std::slice::from_ref(&info),
+            Harness::Claude,
+            Some(Harness::Claude),
+            Some("Opus".to_string()),
+            Some(json!("notAWorktree")),
+        );
+        assert_eq!(
+            answer,
+            json!({
+                "harnesses": [info],
+                "current": "claude",
+                "running": "claude",
+                "model": "Opus",
+                "blocked": "notAWorktree",
+            })
+        );
+        let idle = harnesses_answer(&[], Harness::Claude, None, None, None);
+        assert_eq!(
+            idle,
+            json!({
+                "harnesses": [],
+                "current": "claude",
+                "running": null,
+                "model": null,
+                "blocked": null,
+            })
+        );
     }
 
     #[test]
