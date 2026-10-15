@@ -35,6 +35,10 @@ describe("meters", () => {
     expect(strings.tokens(124_600)).toBe("124.6k");
     expect(strings.tokens(300_000)).toBe("300k");
     expect(strings.tokens(1_200_000)).toBe("1.2M");
+    // Rounded first, then given a unit: never "1000k".
+    expect(strings.tokens(999_960)).toBe("1M");
     expect(strings.context.summary(124_600, 300_000)).toBe("124.6k / 300k (42%)");
+    // Past full (while the agent compacts) it says 100%, as the meter does.
+    expect(strings.context.summary(210_000, 200_000)).toBe("210k / 200k (100%)");
   });
 });

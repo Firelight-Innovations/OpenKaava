@@ -15,10 +15,12 @@ function short(n: number): string {
   return (Math.round(n * 10) / 10).toString();
 }
 
-/** A token count the way the meters show it: 812, 124.6k, 1.2M. */
+/** A token count the way the meters show it: 812, 124.6k, 1.2M. The unit is
+ *  chosen after rounding, so 999,960 reads 1M rather than 1000k. */
 function tokens(n: number): string {
   if (n < 1000) return `${n}`;
-  if (n < 1_000_000) return `${short(n / 1000)}k`;
+  const thousands = short(n / 1000);
+  if (Number(thousands) < 1000) return `${thousands}k`;
   return `${short(n / 1_000_000)}M`;
 }
 
@@ -48,13 +50,17 @@ export const strings = {
   stopGlyph: "■",
   mode: "Mode",
   settings: "Agent settings",
+  /** Joins the settings on the button: "Claude · Opus 5.5 · High". */
+  settingsJoin: " · ",
+  /** The same, as a screen reader hears it. */
+  settingsSpoken: ", ",
   agent: "Agent",
   tokens,
   percent,
   context: {
     heading: "Context window",
     summary: (used: number, size: number) =>
-      `${tokens(used)} / ${tokens(size)} (${percent(used / size)})`,
+      `${tokens(used)} / ${tokens(size)} (${percent(Math.min(1, used / size))})`,
     used: "Used",
     free: "Free space",
     meter: (share: number) => `Context window ${percent(share)} full`,
