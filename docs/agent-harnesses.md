@@ -36,8 +36,22 @@ agent tab, agent bar ── agent-tab/* ── AgentHost ── Adapter ── h
   - what stands in its way, as a `Hint`
   - the commands that set it up: sign in, install the pinned adapter
   - its capabilities
-- **`agent-tab/send`.** It takes the id of a harness in `REGISTRY`, refuses any other id, and
-  resolves the id with `harness::spec`.
+
+  Asked as an agent tab, it also answers these:
+  - `current`: the harness the tab's next prompt goes to
+  - `running`: the harness its agent runs, while that agent lives
+  - `model`: the name of the model that agent runs, once the agent reports one
+- **The harness a tab runs.** Each agent tab chooses its own harness, and the host resolves it in
+  this order:
+  1. the harness its live agent runs
+  2. the harness it chose with `agent-tab/choose`
+  3. the first harness in `REGISTRY`
+
+  `agent-tab/choose` refuses with the code `running` while the tab's agent runs another harness.
+  The user starts a new session to switch. Each choice emits `agent-tab:chosen`, so the tab and
+  the agent bar show the same harness.
+- **`agent-tab/send`.** It takes the prompt's `text`, sends it to the tab's harness, and starts
+  that harness with `harness::spec` if no agent runs.
 
 ## Rules every harness follows
 
@@ -63,6 +77,23 @@ breaks one.
 - `env` never carries a credential.
 - The UI calls a harness by its short name: "Claude", "Codex", "Pi".
 
+## What the UI shows
+
+The agent tab and the agent bar draw every registered harness from `agent-tab/harnesses`. Neither
+names a registered harness, a program or a version in its own strings. The tab's settings menu
+also lists harnesses that are not registered yet, as "Coming soon", by names in its own strings.
+
+- **The picker.** The tab's settings menu has a group per harness, and choosing one chooses that
+  harness. The agent bar shows a picker when more than one harness is registered. While the tab's
+  agent runs, both are locked.
+- **The model.** While an agent runs, the tab's header and the agent bar show its harness and its
+  model.
+- **Hints.** Each `Hint` is a sentence template in `strings.ts`. The template fills in the
+  harness's name and its setup commands from `HarnessInfo`. A new harness therefore gets correct
+  install and sign-in hints without a new string. The agent bar words only `harnessMissing` and
+  `adapterMissing`, the two that `agent-tab/harnesses` can report before a session starts; the
+  tab words the rest.
+
 ## Adding a harness
 
 1. **Verify first.** Install the adapter in a scratch directory. Run `initialize` and
@@ -85,12 +116,6 @@ breaks one.
    with a test.
 5. **Regenerate the TypeScript types.** Run
    `KAAVA_BLESS=1 cargo test -p kaava-agent-host generated_types`. The new id joins the `Harness`
-   union.
-6. **Name it in the UI.** For now the UI's own strings still name each harness and its setup:
-   - Add it to `harness` in `apps/agent-tab/ui/src/strings.ts`. `tsc` fails until you do.
-   - Reword the setup hints in that file and in `src/shell/agentbar/strings.ts`. Both are written
-     for Claude, and nothing checks the agent bar's.
-
-   The harness picker replaces these with `HarnessInfo`.
-7. **Record the version.** Add a row to `docs/agent-host-versions.md`.
-8. **Run `pnpm verify`.**
+   union. The pickers list the new harness, and no UI code changes.
+6. **Record the version.** Add a row to `docs/agent-host-versions.md`.
+7. **Run `pnpm verify`.**
