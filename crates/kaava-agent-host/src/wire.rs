@@ -94,9 +94,10 @@ pub fn parse(line: &str) -> Option<Incoming> {
     }
 }
 
-/// Read an error object. ACP's TypeScript SDK answers a thrown error with
-/// "Internal error" and puts the reason in `data.details`, so the reason is
-/// kept: "Internal error" alone tells the user nothing.
+/// Read an error object. ACP's TypeScript SDK answers a thrown `Error` with
+/// "Internal error" and puts its message in `data.details`, so that reason is
+/// kept: "Internal error" alone tells the user nothing. A thrown
+/// `RequestError` keeps its own code and message, with no `data`.
 fn remote_error(error: &Value) -> RemoteError {
     let code = error.get("code").and_then(Value::as_i64).unwrap_or(0);
     let message = error

@@ -208,13 +208,6 @@ pub fn call_for(
     let host = sessions.host(app);
     let params = params.unwrap_or(Value::Null);
     let done = |result: Result<(), HostError>| result.map(|()| json!({})).map_err(host_error);
-    // A setting change answers with its number; the tab waits for a status
-    // whose `answered` reaches it.
-    let queued = |result: Result<u64, HostError>| {
-        result
-            .map(|ticket| json!({ "ticket": ticket }))
-            .map_err(host_error)
-    };
     match method {
         "agent-tab/send" => {
             let text = text_param(&params, "text")?;
@@ -361,6 +354,14 @@ fn unreached(method: &str) -> RpcError {
     RpcError::new(METHOD_NOT_FOUND, format!("no such method: {method}"))
 }
 
+/// A setting change's answer: its number. The tab waits for a status whose
+/// `answered` reaches it.
+fn queued(result: Result<u64, HostError>) -> Result<Value, RpcError> {
+    result
+        .map(|ticket| json!({ "ticket": ticket }))
+        .map_err(host_error)
+}
+
 fn host_error(error: HostError) -> RpcError {
     let code = error.code();
     let hint = error.hint();
@@ -435,6 +436,15 @@ mod tests {
             let err = worktree_path(env).unwrap_err();
             assert_eq!(code_of(&err), Some("notAWorktree"), "{env:?}");
         }
+    }
+
+    /// rpc.ts reads the number from `ticket`.
+    #[test]
+    fn a_setting_change_answers_with_its_number() {
+        assert_eq!(queued(Ok(7)).unwrap(), json!({ "ticket": 7 }));
+        let err = queued(Err(HostError::UnknownOption)).unwrap_err();
+        assert_eq!(err.code, REFUSED);
+        assert_eq!(code_of(&err), Some("unknownOption"));
     }
 
     /// MCP `app_call` reaches the registry dispatch with no instance, so an

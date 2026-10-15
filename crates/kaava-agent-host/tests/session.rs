@@ -1412,10 +1412,14 @@ fn a_new_session_starts_past_every_earlier_change() {
     rig.send(&[], "stream").unwrap();
     rig.turns_done(2);
     let status = last_status(&rig.events()).unwrap();
-    assert!(
-        status.answered >= ticket,
+    assert_eq!(
+        status.answered, ticket,
         "nothing the old process left unanswered is waited for"
     );
+    let next = rig.host.set_mode(TAB, "acceptEdits").unwrap();
+    assert_eq!(next, ticket + 1, "numbers carry on across sessions");
+    let status = rig.status_where("the next change", |s| s.answered >= next);
+    assert_eq!(status.answered, next);
 }
 
 /// The setting methods `--record-settings` saw arrive, in order.
