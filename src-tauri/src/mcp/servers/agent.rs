@@ -87,6 +87,9 @@ pub fn blocked_reason(method: &str) -> Option<String> {
     if apps::agent_tab::needs_its_tab(method) {
         return Some("Acts on one agent tab's session, so only that tab may call it".to_string());
     }
+    if crate::refs::is_method(method) {
+        return Some(AS_THE_PERSON.to_string());
+    }
     NEEDS_A_PERSON
         .iter()
         .find(|(name, _)| *name == method)
@@ -254,6 +257,26 @@ fn required<'a>(params: Option<&'a Value>, name: &str) -> Result<&'a str, RpcErr
 /// which is the only thing standing between this rule and a test. An exact
 /// match rather than a prefix: `home/open-recent` opens a project too, takes a
 /// path, raises nothing, and is one of the methods the refusal points at.
+/// Why `app_call` refuses a `refs/*` method.
+const AS_THE_PERSON: &str = "Resolves a reference as the person looking at it, and every canvas \
+                             call it makes is recorded as theirs, so an agent may not call it";
+
+/// Refuse a reference method. `refs::call` answers as the person, since the
+/// shell asks it to draw a chip they see; through `app_call` the caller is an
+/// agent, which would be recorded as them.
+fn guard_refs(method: &str) -> Result<(), RpcError> {
+    if !crate::refs::is_method(method) {
+        return Ok(());
+    }
+    Err(RpcError::new(
+        INVALID_PARAMS,
+        format!(
+            "`{method}`: {AS_THE_PERSON}. `read` on the kaava-context server resolves a \
+             reference as the agent."
+        ),
+    ))
+}
+
 fn guard_dialog(method: &str) -> Result<(), RpcError> {
     let Some((_, instead)) = NEEDS_A_PERSON.iter().find(|(name, _)| *name == method) else {
         return Ok(());
@@ -316,6 +339,7 @@ fn app_call(app: &AppHandle, params: Option<&Value>) -> Result<Value, RpcError> 
     let method = required(params, "method")?;
 
     guard_dialog(method)?;
+    guard_refs(method)?;
 
     let cluster = params
         .and_then(|p| p.get("cluster"))
@@ -532,6 +556,30 @@ mod tests {
                 refusal.message
             );
         }
+    }
+
+    /// A reference resolves as the person, so an agent cannot reach one by
+    /// naming any app it likes. The panel says so too.
+    #[test]
+    fn a_reference_method_is_refused_and_the_panel_says_why() {
+        let refusal = guard_refs(crate::refs::RESOLVE_METHOD).expect_err("should be refused");
+        assert_eq!(refusal.code, INVALID_PARAMS);
+        assert!(
+            refusal.message.contains("as the person"),
+            "{}",
+            refusal.message
+        );
+        assert!(
+            refusal.message.contains("kaava-context"),
+            "names what to use instead: {}",
+            refusal.message
+        );
+        assert!(guard_refs("canvas/frames").is_ok());
+        assert!(guard_refs("refs/sync").is_ok(), "a plugin's own method");
+        assert_eq!(
+            blocked_reason(crate::refs::RESOLVE_METHOD).as_deref(),
+            Some(AS_THE_PERSON)
+        );
     }
 
     /// The list has to hold every method that actually raises one. This is the

@@ -19,6 +19,8 @@
 pub mod assets;
 pub mod comments;
 pub mod fault;
+#[cfg(test)]
+pub mod links;
 pub mod live;
 pub mod policy;
 pub mod prompt;
@@ -35,14 +37,14 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use tauri::AppHandle;
 
-/// `refs/resolve {uri}` → [`resolve::Resolved`]: what the agent tab draws for
+/// `refs/resolve` `{uri}` → [`resolve::Resolved`]: what the agent tab draws for
 /// a reference chip or a `show` card. Answered as the person, who is the one
 /// looking, as every `refs/*` method is.
 pub const RESOLVE_METHOD: &str = "refs/resolve";
-/// `refs/search {query?, kinds?, limit?}` → `{items}`: the @-mention picker's
-/// matches, as `search_context` finds them.
+/// `refs/search` `{query?, kinds?, limit?}` → `{items}`: the @-mention
+/// picker's matches, as `search_context` finds them.
 pub const SEARCH_METHOD: &str = "refs/search";
-/// `refs/prompt {uris, accepts?}` → `{blocks, failed?}`: a message's
+/// `refs/prompt` `{uris, accepts?}` → `{blocks, failed?}`: a message's
 /// references as the ACP content blocks to send after its text.
 pub const PROMPT_METHOD: &str = "refs/prompt";
 
@@ -60,9 +62,10 @@ struct PromptParams {
     accepts: Option<prompt::Accepts>,
 }
 
-/// Whether the host answers `method` here rather than an app.
+/// Whether the host answers `method` here rather than an app. Only the names
+/// it implements: any other `refs/` method is the calling plugin's own.
 pub fn is_method(method: &str) -> bool {
-    method.starts_with("refs/")
+    matches!(method, RESOLVE_METHOD | SEARCH_METHOD | PROMPT_METHOD)
 }
 
 /// Answer a `refs/*` method from app `caller` for the cluster in `ctx`.
@@ -74,13 +77,15 @@ pub fn call(
     params: Option<Value>,
 ) -> Result<Value, RpcError> {
     admit(caller)?;
+    // Spelt out, not the consts, so the MCP panel's method catalogue finds the
+    // arms.
     match method {
-        RESOLVE_METHOD => {
+        "refs/resolve" => {
             let r = uri_param(params.as_ref())?;
             let resolved = live::resolve(app, ctx, Actor::Human, &r).map_err(Fault::rpc)?;
             serde_json::to_value(resolved).map_err(|e| RpcError::new(INTERNAL_ERROR, e.to_string()))
         }
-        SEARCH_METHOD => {
+        "refs/search" => {
             let asked: SearchParams = parse_params(params)?;
             live::root_of(ctx).map_err(Fault::rpc)?;
             let query = asked.query.unwrap_or_default();
@@ -88,7 +93,7 @@ pub fn call(
                 .map_err(|why| Fault::new(Reason::BadParams, why).rpc())?;
             Ok(json!({ "items": search::run(app, ctx, Actor::Human, &q) }))
         }
-        PROMPT_METHOD => {
+        "refs/prompt" => {
             let asked: PromptParams = parse_params(params)?;
             check_count(asked.uris.len())?;
             live::root_of(ctx).map_err(Fault::rpc)?;
@@ -153,6 +158,10 @@ mod tests {
         assert!(is_method(PROMPT_METHOD));
         assert!(!is_method("context/get"));
         assert!(!is_method("refsx/resolve"));
+        assert!(
+            !is_method("refs/sync"),
+            "a plugin's own refs/ method is its own"
+        );
     }
 
     #[test]

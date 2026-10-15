@@ -7,9 +7,10 @@ This is the two-way context layer between a person and an agent. A person can po
 file, an asset, a canvas frame, a comment or a screenshot. An agent can point the person at the
 same things, and the agent tab draws them inline. Both sides use one reference scheme.
 
-It replaces the planned `kaava-show` server and widens the Kaava tool server of
-`docs/handoffs/agent-host.md` §3.6. It builds on `KAAVA-AGENT-CONTEXT.md` §7, which sketched
-`kaava-context` for terminal agents. Unlike the developer servers, it is served with developer
+It widens the Kaava tool server of `docs/handoffs/agent-host.md` §3.6. That server's reads
+(`get_selection`, `list_comments`, `get_canvas_node`) become references and the tools that resolve
+them. `show` adds the direction §3.6 has no tool for: the agent pointing the person at something.
+It builds on `KAAVA-AGENT-CONTEXT.md` §7, which sketched `kaava-context` for terminal agents. Unlike the developer servers, it is served with developer
 mode off, behind its own switch in Settings → MCP servers.
 
 Status of each part:
@@ -44,8 +45,12 @@ Rules:
    are `\`, `:`, drive letters, reserved device names, and trailing dots or spaces. The parser
    refuses them before anything touches the disk.
 4. Ids for comments, design comments and context items are a single segment of letters, digits,
-   `-` and `_`.
-5. `kaava://canvas/<id>` is already the link the canvas writes for a subcanvas, so canvas links
+   `-` and `_`. A canvas comment's id is one the Canvas app makes: lowercase letters, digits and
+   `-`.
+5. A canvas is named by the id the Canvas app opens it by: lowercase slug segments, without a
+   leading `canvas/` or a `.json`. `kaava://canvas/canvas/x.json` is refused and names
+   `kaava://canvas/x`, so the file that is checked is the file the app opens.
+6. `kaava://canvas/<id>` is already the link the canvas writes for a subcanvas, so canvas links
    are references as they stand. `kaava://workspace/focus` stays the workspace server's resource.
 
 ## 2. Resolving
@@ -82,14 +87,14 @@ ACP prompt blocks.
 | Kind           | What the parts carry                                                                     |
 | -------------- | ---------------------------------------------------------------------------------------- |
 | text, scene    | An excerpt: the asked range, else the file's start (a binary scene gets a note)          |
-| image          | The image if PNG, JPEG, GIF, WebP or SVG; over the cap it is withheld; others get a note |
+| image          | The image if PNG, JPEG, GIF or WebP, an SVG as its text; over the cap it is withheld     |
 | model          | Header facts (meshes, materials, animations, generator); `.gltf` excerpt, `.glb` note    |
 | audio          | WAV format and length; other formats a note                                              |
 | folder         | Its entries, folders first; secrets and gitignored entries are counted, not named        |
-| canvas         | Its frames, each with its own reference                                                  |
+| canvas         | Its frames, each with its own reference; a canvas that cannot be read is an error        |
 | frame          | The frame's type, properties and text, and its picture when a Canvas pane can render it  |
 | comment        | The comment's text, the comment as JSON, and its screenshot                              |
-| design-comment | The request, the page, selector and thread as JSON, and the screenshot under the cap     |
+| design-comment | The request, the page, selector and thread as JSON, and the screenshot or why it is not  |
 | context        | The stored item, read the same way as a file                                             |
 | selection      | The selected text, each visible app's report, and references to what the apps name       |
 
@@ -109,16 +114,21 @@ ACP prompt blocks.
      `.pgpass`, `.my.cnf`, `credentials*`, `secrets.*`, `client_secret*`, `*kubeconfig`,
      `keystore.properties`, Godot's `export_credentials.cfg`, and anything with `.tfvars` or
      `.tfstate` in its name (so `terraform.tfstate.backup` too).
+   - Token stores: OpenKaava's own `mcp-endpoint.json`, `.vault-token`,
+     `application_default_credentials.json`, `.terraformrc`, `terraform.rc`, `.s3cfg`, `.boto`,
+     `.dockercfg`, `gh/hosts.yml` and `service-account*.json`.
    - Anything under `.git/`, `.ssh/`, `.aws/`, `.gnupg/`, `.azure/`, `.kube/` or `.docker/`.
 
    A file is also withheld, whatever it is called, when its first 64 KB hold a private key: a
-   `-----BEGIN … PRIVATE KEY-----` line or a PuTTY key header. A line range can reach past those
-   64 KB, so every line read on the way to its end is checked too, and a key opened before the
-   range ends withholds it, even when the range starts on the key's body. An SVG is sent whole, so
-   all of it is checked. A context item copied in from outside the project is checked by its
-   title, the path it was copied from and the copy's name. The selection is withheld when it holds
-   a key, or when a pane beside it shows a secret file, since the page does not say which pane the
-   selected text came from.
+   `-----BEGIN … PRIVATE KEY-----` header that ends its line or has an escaped line break after
+   it (so a key inside a JSON, YAML or env value too), a PuTTY key header, or an age secret key. A
+   line range can reach past those 64 KB, so every line read on the way to its end is checked the
+   same way, and a key opened before the range ends withholds it, even when the range starts on
+   the key's body. An SVG is text, so it is screened as text is. A context item copied in from
+   outside the project is checked by the path it was copied from and the copy's name. Its title is
+   free text, so it counts only when it is spelt as a file name, with no spaces. The selection is
+   withheld when it holds a key, or when a pane beside it shows a secret file, since the page does
+   not say which pane the selected text came from.
 
    A withheld result says which rule matched. A folder counts these entries and does not name
    them, and search does not list them.
@@ -127,18 +137,23 @@ ACP prompt blocks.
    caches and local config, resolves to `withheld`. The rules follow git's: a folder that is
    excluded stays excluded, so a `!` line cannot re-include a file under it. A line that does not
    parse costs only that line. Patterns ignore case on Windows and macOS, where `core.ignorecase`
-   is on by default.
-4. **Caps.** An excerpt holds at most 1,000 lines and 64 KB. A file is scanned at most 16 MB deep
-   for a range. An image is sent inline only up to 3.5 MB, which is about 4.7 MB in base64, under
-   a provider's 5 MB per image.
+   is on by default. In a linked worktree, which a cluster usually is, `info/exclude` is read
+   from the shared git dir.
+4. **Caps.** An excerpt holds at most 1,000 lines and 64 KB, and so does an app's prose, such as
+   a comment's text. A JSON part is at most 64 KB written out; a larger one is a note giving its
+   size. A file is scanned at most 16 MB deep for a range, and a folder at most 5,000 entries
+   deep. An image is sent inline only up to 3.5 MB, which is about 4.7 MB in base64, under a
+   provider's 5 MB per image.
 5. **The token is per launch.** A tab session's server entry carries a token bound to that
    cluster. The token is accepted only on `/mcp/context`, and every call made with it answers from
    that cluster, whatever `cluster` it names. It is never the master token, which also reaches the
    developer servers. Tokens live in memory, so a restart mints new ones.
 6. **Canvases pass the same test.** Canvas, frame and canvas-comment references go through the
    Canvas app's methods, which read the canvas file where they find it. So before any of them is
-   called, the canvas file, and a comment's own file, must be inside the root once links are
-   followed. A rendered picture is read only when the path the canvas returns is inside the root.
+   called, these must be inside the root once links are followed: the canvas file, each child
+   canvas its split frames moved their elements into, and a comment's own file, which may have
+   moved into a child with its frame. A rendered picture is read only when the path the canvas
+   returns is inside the root.
 7. **Hard links are the same file.** A hard link is not a link to follow. It is a second name for
    one file, and git treats it that way too. A file hard-linked into the project resolves like any
    other file there; the secrets and gitignore rules still apply to its name.
@@ -146,8 +161,8 @@ ACP prompt blocks.
 ## 4. Host methods
 
 The shell answers these methods for Kaava's own apps, from the calling surface's cluster, the same
-way it answers `context/*`. A plugin surface is refused: it is someone else's code, and a reference
-reads the project.
+way it answers `context/*`. A plugin is not answered: it is someone else's code, and a reference
+reads the project. A plugin's own method of the same name goes to the plugin.
 
 | Method         | Params                       | Result                                       |
 | -------------- | ---------------------------- | -------------------------------------------- |
@@ -156,7 +171,8 @@ reads the project.
 | `refs/prompt`  | `{ uris, accepts? }`         | `{ blocks: AcpContentBlock[], failed? }`     |
 
 All three resolve as the person: the canvas records `human` as the actor on the calls they make.
-They sit before the write refusal in `apps::call`, so they work on a read-only main.
+So the agent server's `app_call`, whose caller is an agent, refuses them. They sit before the write
+refusal in `apps::call`, so they work on a read-only main.
 
 **Failures.** A failed call is invalid params, with a word in `data.reason` that the tab maps to its
 own sentence. A reference `show` or `refs/prompt` could not use carries the same word as `reason`.
