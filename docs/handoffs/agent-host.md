@@ -282,7 +282,8 @@ Agent C cannot sign in to Claude or ChatGPT. Prepare a script and a checklist. T
 | V7 | Codex CLI license text confirmed (the adapter is Apache-2.0) | C | Passes: `@openai/codex` 0.160.1 and 0.162.1 are Apache-2.0 (github.com/openai/codex). |
 
 **T0.1 transcripts.** The mock agent runs in `cargo test` as a real child process, and its
-scenarios are the golden files. Real Claude, Codex and Pi transcripts are not run. Kaava never
+scenarios are assertions in `crates/kaava-agent-host/tests/session.rs`, not recorded golden
+event files. Real Claude, Codex and Pi transcripts are not run. Kaava never
 signs in to Claude or ChatGPT, so those runs are owner-run (§9.2).
 
 ---
@@ -356,11 +357,27 @@ signs in to Claude or ChatGPT, so those runs are owner-run (§9.2).
   layout. An MCP `app_call` has no instance, so it can reach `agent-tab/harnesses` and nothing else.
 - **Path guard.** The host refuses an approval that names a path outside the cluster's worktree,
   and the tab shows it as refused (§3.4, applied early). Paths are resolved through symlinks
-  before `..` is folded.
+  before `..` is folded. It sees only what the agent asks permission for, so `allow_always` is
+  never offered: a standing allow would make the agent stop asking, and the guard with it.
+  Tool calls the agent makes without asking are not checked.
+- **Where the agent starts.** The adapter's npm shim runs in the worktree, which is untrusted
+  repository content, so `NoDefaultCurrentDirectoryInExePath` is set and a `node.cmd` at the
+  repository root is not run in place of Node.
+- **A failed first handshake.** The prompt is drawn ahead of the error, so Retry finds it. While
+  the agent starts, the prompt shows as sent-but-pending, and Stop withdraws it.
 - **A session stays where it started.** A tab dragged to another cluster, or whose cluster is
   pointed at another folder, loses its session and its conversation.
 - **Limits.** One agent message is read up to 32 MiB, and a longer one is dropped as noise. A
-  diff side over 256 KiB is shown as "too large". A stderr line is kept up to 4 KiB.
+  diff side over 256 KiB is shown as "too large". A stderr line is kept up to 4 KiB. A message
+  or thought is cut at 256 KiB with a visible note and takes nothing more. An approval's command
+  or input is shown up to 64 KiB, and the card says when it is cut. Titles and plan steps are
+  capped at 2 KiB, a plan at 100 steps, a path list at 50, open tool calls at 500 and waiting
+  approvals at 64. The transcript keeps 2000 items and 32 MiB of text. The queue between the
+  host and the window is still unbounded; a bounded one would stall the session while it holds
+  its lock, so a coalescing queue is a follow-up.
+- **Agent app visibility.** The Agent app is in the registry, so it is listed in the Apps menu
+  and can be opened with developer mode off. It then shows its empty state and refuses a prompt.
+  Only the agent bar and `agent-tab/send` and `agent-tab/answer` are gated.
 - **No Job Object.** Windows stops a session with `taskkill /T /F` on its process tree.
 - **No trace switch (§8).** The host logs lifecycle lines only, with tokens masked. A raw trace
   switch is a follow-up.
@@ -370,6 +387,22 @@ signs in to Claude or ChatGPT, so those runs are owner-run (§9.2).
 - **Icons.** Text and Unicode glyphs only, pending §11.7.
 - **Agent bar.** Harness label, prompt and Send. The model picker, mode indicator, context chips
   and the `Ctrl+L` binding are later steps.
+
+##### Not done in this slice
+
+Acceptance rows above that this slice does not meet:
+
+- **T1.3.** The mock has a scenario for streaming text, a tool call, an approval, a diff (inside
+  and outside the worktree), a plan, an error and a slow turn, but there are no golden event
+  files; the tests assert on the events instead.
+- **T2.1 and §9.1.3.** No screenshot tests, in either theme. Component tests cover each item type.
+- **T2.2 and §9.1.4.** No end-to-end test of the tab against the mock agent. The host is tested
+  against the mock, and the tab against a scripted bridge, but not the two together.
+- **§9.1.6.** After a crash the tab shows "Stopped" and a new prompt starts a new session, with
+  Retry on an error. There is no Resume button.
+- **§0.10 and §9.1.** Every Rust job in CI runs on Windows, not Linux. The symlink tests in the
+  path guard are Unix-only, so they run on a developer's machine and not in CI; their junction
+  counterparts, the Windows path-shape test and the shim test run only on Windows.
 
 ### Pinned versions (tested 2026-10-14, Windows 11)
 
