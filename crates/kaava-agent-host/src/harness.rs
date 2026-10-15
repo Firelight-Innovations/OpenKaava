@@ -318,6 +318,28 @@ mod tests {
         }
     }
 
+    /// Every variant of [`Harness`], read off the type itself rather than a
+    /// list kept by hand. ts-rs writes a unit enum as a union of its serde
+    /// names, and serde reads each name back.
+    fn every_variant() -> Vec<Harness> {
+        <Harness as ts_rs::TS>::inline(&ts_rs::Config::new())
+            .split('|')
+            .map(|name| serde_json::from_str(name.trim()).unwrap())
+            .collect()
+    }
+
+    #[test]
+    fn every_variant_has_a_row_in_the_registry() {
+        let variants = every_variant();
+        assert!(variants.contains(&Harness::Claude), "{variants:?}");
+        for harness in variants {
+            assert!(
+                REGISTRY.iter().any(|d| d.harness == harness),
+                "{harness:?} has a descriptor but no row in REGISTRY"
+            );
+        }
+    }
+
     #[test]
     fn a_name_is_the_short_one() {
         for d in REGISTRY {

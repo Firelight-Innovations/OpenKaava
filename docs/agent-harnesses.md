@@ -70,7 +70,8 @@ breaks one.
    Do not send a prompt that spends the user's quota without asking them.
 2. **Add the variant.** Add it to `Harness` in `harness.rs` and to the match in
    `Harness::descriptor`. The compiler then lists each match that must handle it. It cannot check
-   `REGISTRY`, which is a plain list, so step 3 adds the variant there.
+   `REGISTRY`, which is a plain list. The test `every_variant_has_a_row_in_the_registry` checks it
+   instead, and fails until step 3 adds the variant there.
 3. **Write the descriptor.** Create `harness/<name>.rs` with one `Descriptor`, modelled on
    `harness/claude.rs`. Declare it in `harness.rs` with `mod <name>;` and
    `pub use <name>::<NAME>;`, and add it to `REGISTRY`. The struct documents each field.
