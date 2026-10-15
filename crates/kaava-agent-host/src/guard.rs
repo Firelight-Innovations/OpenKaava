@@ -223,7 +223,11 @@ fn reach(tool_call: &Value) -> Vec<Reach> {
                         .and_then(Value::as_str)
                         .unwrap_or("unknown");
                     if kind == "project_roots" {
-                        let sub = scope.get("subpath").and_then(Value::as_str).unwrap_or(".");
+                        let sub = scope
+                            .get("subpath")
+                            .and_then(Value::as_str)
+                            .filter(|sub| !sub.is_empty())
+                            .unwrap_or(".");
                         push(sub.to_string(), Some(sub.to_string()), false);
                     } else {
                         push(format!("<{kind}>"), None, false);
@@ -573,6 +577,11 @@ mod tests {
         ]}}}});
         assert_eq!(request_scope(&tree, &grant), vec![tree.display(".")]);
         assert!(escapes(&tree, &grant).is_empty());
+        let empty = json!({"rawInput": {"permissions": {"fileSystem": {"entries": [
+            {"access": "write", "path": {"type": "special",
+                "value": {"kind": "project_roots", "subpath": ""}}}
+        ]}}}});
+        assert_eq!(request_scope(&tree, &empty), vec![tree.display(".")]);
     }
 
     #[test]
