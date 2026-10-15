@@ -174,7 +174,9 @@ impl Mock {
                 );
             }
             (Some("session/set_mode"), Some(id)) => {
-                if self.has("--no-mode") {
+                let only = self.flag_value("--only-mode");
+                let asked = params.get("modeId").and_then(Value::as_str);
+                if self.has("--no-mode") || only.is_some_and(|m| Some(m.as_str()) != asked) {
                     self.reply_error(&id, -32602, "unknown mode");
                 } else {
                     self.reply(&id, json!({}));

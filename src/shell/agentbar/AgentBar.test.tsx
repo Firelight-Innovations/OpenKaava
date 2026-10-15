@@ -54,7 +54,7 @@ describe("AgentBar", () => {
   });
 
   it("tells a machine without claude to install it and sign in", () => {
-    render(<AgentBar blocked={null} hint="claudeMissing" onSend={vi.fn()} />);
+    render(<AgentBar blocked={null} hint="harnessMissing" onSend={vi.fn()} />);
     const text = screen.getByRole("status").textContent ?? "";
     expect(text).toContain("Claude is not installed");
     expect(text).toContain("run `claude` once");

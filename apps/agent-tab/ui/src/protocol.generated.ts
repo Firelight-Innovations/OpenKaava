@@ -3,6 +3,38 @@
 
 export type Harness = "claude";
 
+export type Capabilities = { 
+/**
+ * Add to a running turn without stopping it.
+ */
+steer: boolean, 
+/**
+ * Branch a thread.
+ */
+fork: boolean, 
+/**
+ * Switch between the agent's modes.
+ */
+modes: boolean, };
+
+export type Setup = { 
+/**
+ * The harness's own program.
+ */
+cli: string, 
+/**
+ * The command that signs in.
+ */
+signIn: string, 
+/**
+ * The command that installs the tested adapter.
+ */
+adapterInstall: string, 
+/**
+ * The adapter version this build was tested with.
+ */
+adapterVersion: string, };
+
 export type Envelope = { 
 /**
  * The agent tab's instance id: which tab this belongs to.
@@ -222,7 +254,7 @@ priority: string, };
 
 export type SessionState = "starting" | "ready" | "working" | "needsInput" | "stopped" | "failed";
 
-export type Hint = "claudeMissing" | "adapterMissing" | "signedOut" | "adapterVersion" | "outsideWorktree";
+export type Hint = "harnessMissing" | "adapterMissing" | "signedOut" | "adapterVersion" | "outsideWorktree";
 
 export type SessionStatus = { 
 /**
@@ -282,6 +314,18 @@ export type HarnessInfo = {
  */
 harness: Harness, 
 /**
+ * Its name in the UI.
+ */
+name: string, 
+/**
  * Why it cannot start, or `None` when it can.
  */
-hint: Hint | null, };
+hint: Hint | null, 
+/**
+ * The commands a hint's sentence names.
+ */
+setup: Setup, 
+/**
+ * What the tab may offer for it.
+ */
+capabilities: Capabilities, };

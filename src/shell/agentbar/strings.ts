@@ -17,11 +17,11 @@ export const strings = {
   send: "Send",
   sending: "Sending",
   // Only what `agent-tab/harnesses` can answer before anything has started:
-  // `claude_spec` fails with one of these two. The hints a running session
+  // `spec` fails with one of these two. The hints a running session
   // earns (signed out, another adapter version, a path outside the worktree)
   // are the agent tab's to show, from its own strings.
   hint: {
-    claudeMissing: "Claude is not installed. Install it, then run `claude` once to sign in.",
+    harnessMissing: "Claude is not installed. Install it, then run `claude` once to sign in.",
     adapterMissing: `The Claude ACP adapter is not installed. Run \`${ADAPTER_INSTALL}\`.`,
   } as Record<string, string>,
   refusal: {

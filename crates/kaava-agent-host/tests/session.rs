@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Barrier, Mutex};
 use std::time::{Duration, Instant};
 
+use kaava_agent_host::harness::{Policy, CLAUDE};
 use kaava_agent_host::mask::looks_secret;
 use kaava_agent_host::{
     AgentHost, Envelope, Event, Harness, Hint, HostError, Item, ItemKind, LaunchSpec, SessionState,
@@ -69,6 +70,7 @@ fn mock(args: &[&str]) -> LaunchSpec {
         args: args.iter().map(|a| a.to_string()).collect(),
         env: Vec::new(),
         expected_version: Some("0.90.0"),
+        policy: CLAUDE.policy,
     }
 }
 
@@ -597,6 +599,28 @@ fn a_retry_after_a_failed_handshake_starts_a_new_session_and_runs() {
 }
 
 #[test]
+fn the_session_asks_for_its_harness_policy_mode() {
+    let asked = rig();
+    let spec = LaunchSpec {
+        policy: Policy {
+            ask_first: "read-only",
+        },
+        ..mock(&["--only-mode", "read-only"])
+    };
+    asked
+        .host
+        .send(TAB, spec, asked.tree.clone(), "hi")
+        .unwrap();
+    asked.turns_done(1);
+    let status = last_status(&asked.events()).unwrap();
+    assert_eq!(status.mode.as_deref(), Some("read-only"));
+
+    let refused = rig();
+    refused.send(&["--only-mode", "read-only"], "hi").unwrap();
+    refused.state(SessionState::Failed);
+}
+
+#[test]
 fn an_agent_that_dies_at_start_fails_and_logs_its_stderr() {
     let rig = rig();
     rig.send(&["--fail-init"], "hi").unwrap();
@@ -1037,7 +1061,7 @@ fn no_token_or_account_reaches_a_log_or_a_status() {
 
 /// The adapter is an npm shim, which `cmd.exe` runs with the worktree as its
 /// current directory, and the shim ends in a bare `node`. A repository can ship
-/// a `node.cmd`; `claude_spec` must keep it from running.
+/// a `node.cmd`; `spec` must keep it from running.
 #[cfg(windows)]
 #[test]
 fn a_node_cmd_in_the_worktree_is_not_run_by_the_npm_shim() {
@@ -1055,9 +1079,12 @@ fn a_node_cmd_in_the_worktree_is_not_run_by_the_npm_shim() {
         "@echo off\r\necho planted> planted.txt\r\n",
     )
     .unwrap();
-    let spec =
-        kaava_agent_host::claude_spec(Some(bin.as_os_str()), Some(std::ffi::OsStr::new(".CMD")))
-            .unwrap();
+    let spec = kaava_agent_host::spec(
+        Harness::Claude,
+        Some(bin.as_os_str()),
+        Some(std::ffi::OsStr::new(".CMD")),
+    )
+    .unwrap();
     rig.host.send(TAB, spec, rig.tree.clone(), "hi").unwrap();
     rig.logged("exited with code");
     assert!(
