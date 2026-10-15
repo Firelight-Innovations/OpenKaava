@@ -47,7 +47,12 @@ pub struct Sessions {
 
 impl Sessions {
     /// The token for `cluster`, minted on first use and kept for this launch.
+    /// An empty name gets none: the call would answer from whichever cluster
+    /// the person is in, which is not a pin.
     pub fn token_for(&self, cluster: &str) -> Option<String> {
+        if cluster.is_empty() {
+            return None;
+        }
         let mut tokens = self.by_token.lock().ok()?;
         if let Some((token, _)) = tokens.iter().find(|(_, c)| c.as_str() == cluster) {
             return Some(token.clone());
@@ -138,6 +143,7 @@ mod tests {
         assert_ne!(a, b);
         assert_eq!(sessions.cluster_of(&a).as_deref(), Some("cluster-a"));
         assert_eq!(sessions.cluster_of("made-up"), None);
+        assert_eq!(sessions.token_for(""), None, "no cluster, no token");
     }
 
     #[test]
