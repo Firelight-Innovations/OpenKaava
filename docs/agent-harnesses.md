@@ -125,6 +125,11 @@ means a sandboxed command reads any file on the disk without asking. In `workspa
 writes the worktree, `TMPDIR` and `/tmp` without asking. A request reaches the user, and the guard,
 only when a command needs more than its sandbox grants.
 
+The owner decided both points on 2026-10-15: `workspace-write` is allowed, and a sandboxed command
+may read without asking. Claude's `default` asks before every command, so Codex asks less. Making
+it match would need an approval policy of `untrusted` or a narrower sandbox, and codex-acp 2.2.2
+offers neither as a mode.
+
 `agent` is the adapter's default. A reviewer model approves requests in it, so those requests skip
 the guard, as in Claude's `auto`. `agent-full-access` is Codex's equivalent of Claude's
 `bypassPermissions`. Both ids are in `config::NOT_OFFERED`. The descriptor sets
