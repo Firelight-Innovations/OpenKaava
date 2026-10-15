@@ -172,7 +172,8 @@ fn blocks_for(r: &Resolved, accepts: Accepts, budget: &mut Budget) -> Vec<Value>
         } else {
             let spent = "Not embedded: this message has no room left for attached text. \
                          `read` it through kaava-context.";
-            link(r, &[spent])
+            let notes = [Some(spent), unseen.as_deref()];
+            link(r, &notes.into_iter().flatten().collect::<Vec<_>>())
         }
     };
     std::iter::once(head).chain(pictures).collect()
@@ -314,6 +315,23 @@ mod tests {
         let about = out[0]["description"].as_str().unwrap();
         assert!(about.contains("no room left"), "{about}");
         assert_eq!(out[1]["type"], "resource");
+    }
+
+    #[test]
+    fn a_link_for_text_past_the_budget_still_names_the_pictures_left_out() {
+        let big = "x".repeat(MAX_TEXT_BYTES);
+        let r = with_pictures(text_ref("kaava://file/big.svg", "big.svg", &big), 1, 8);
+        let text_only = Accepts {
+            image: false,
+            embedded_context: true,
+        };
+        let out = blocks(vec![r], text_only);
+        let about = out[0]["description"].as_str().unwrap();
+        assert!(about.contains("no room left"), "{about}");
+        assert!(
+            about.ends_with("`read` kaava://file/big.svg to see it."),
+            "{about}"
+        );
     }
 
     #[test]
