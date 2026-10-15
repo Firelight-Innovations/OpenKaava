@@ -72,6 +72,7 @@ pub struct Normalizer {
     /// The open tool calls the harness named as a context server show tool.
     /// An adapter may name the tool on one update only, so it is remembered.
     shows: HashSet<String>,
+    named: HashMap<String, Vec<String>>,
     plan: Option<Item>,
     usage: Option<(u64, u64)>,
     mode: Option<String>,
@@ -100,6 +101,7 @@ impl Normalizer {
             open: None,
             tools: HashMap::new(),
             shows: HashSet::new(),
+            named: HashMap::new(),
             plan: None,
             usage: None,
             mode: None,
@@ -170,6 +172,7 @@ impl Normalizer {
         let mut events = self.close_text();
         let mut tools: Vec<Item> = self.tools.drain().map(|(_, item)| item).collect();
         self.shows.clear();
+        self.named.clear();
         tools.sort_by(|a, b| a.id.cmp(&b.id));
         for mut item in tools {
             if let ItemKind::ToolCall { status, .. } = &mut item.kind {
@@ -214,17 +217,12 @@ impl Normalizer {
             .collect()
     }
 
-    /// Every file a live tool call has named so far: its paths, and the file
-    /// each of its diffs writes, which for a move is where the file goes.
+    /// Every file a live tool call has named in any update so far: its paths,
+    /// and the file each of its diffs writes, which for a move is where the
+    /// file goes. A later update that names others adds to these, where the
+    /// item drawn shows only the latest.
     pub fn tool_paths(&self, id: &str) -> Vec<String> {
-        match self.tools.get(id).map(|item| &item.kind) {
-            Some(ItemKind::ToolCall { paths, diffs, .. }) => paths
-                .iter()
-                .cloned()
-                .chain(diffs.iter().map(|d| d.path.clone()))
-                .collect(),
-            _ => Vec::new(),
-        }
+        self.named.get(id).cloned().unwrap_or_default()
     }
 
     /// The item for a `session/request_permission`. `paths` are the ones the
@@ -407,6 +405,12 @@ impl Normalizer {
             return Vec::new();
         }
         let mut events = self.close_text();
+        let named = self.named.entry(id.to_string()).or_default();
+        for path in request_paths(update) {
+            if !named.contains(&path) {
+                named.push(path);
+            }
+        }
         let known = self.tools.remove(id);
         let started = known.is_none();
         let mut item = match known {
@@ -444,6 +448,9 @@ impl Normalizer {
                 ..
             }
         );
+        if done {
+            self.named.remove(id);
+        }
         let event = match (started, done) {
             (_, true) => Event::ItemCompleted { item },
             (true, false) => Event::ItemStarted { item },
@@ -712,6 +719,26 @@ mod tests {
         assert_eq!(diffs.len(), 1);
         assert_eq!(diffs[0].old_text.as_deref(), Some("x"));
         assert!(!diffs[0].too_large);
+    }
+
+    #[test]
+    fn a_tool_call_remembers_every_file_it_named_until_it_completes() {
+        let mut n = started();
+        n.update(&json!({
+            "sessionUpdate": "tool_call", "toolCallId": "t1", "kind": "edit",
+            "content": [{"type": "diff", "path": "/x/moved.rs", "oldText": "a", "newText": "a"}]
+        }));
+        n.update(&json!({
+            "sessionUpdate": "tool_call_update", "toolCallId": "t1",
+            "locations": [{"path": "/w/a.rs"}],
+            "content": [{"type": "content", "content": {"type": "text", "text": "working"}}]
+        }));
+        assert_eq!(n.tool_paths("t1"), ["/x/moved.rs", "/w/a.rs"]);
+        assert!(n.tool_paths("t2").is_empty());
+        n.update(&json!({
+            "sessionUpdate": "tool_call_update", "toolCallId": "t1", "status": "completed"
+        }));
+        assert!(n.tool_paths("t1").is_empty());
     }
 
     #[test]
