@@ -1227,7 +1227,9 @@ fn an_agent_without_config_options_still_reports_its_modes() {
 #[test]
 fn a_mode_switch_round_trips_through_the_agent() {
     let rig = rig();
-    rig.send(&[], "stream").unwrap();
+    let record = rig.dir.path().join("settings.log");
+    rig.send(&["--record-settings", record.to_str().unwrap()], "stream")
+        .unwrap();
     rig.turns_done(1);
     let ticket = rig.host.set_mode(TAB, "plan").unwrap();
     let status = rig.status_where("plan mode answered", |s| s.answered >= ticket);
@@ -1236,6 +1238,11 @@ fn a_mode_switch_round_trips_through_the_agent() {
         value_of(&status, "model"),
         Some("default"),
         "the rest as it was"
+    );
+    assert_eq!(
+        settings_sent(&record),
+        ["session/set_mode", "session/set_config_option"],
+        "the handshake's ask-first, then the change through the mode option"
     );
     for refused in ["bypassPermissions", "auto", "dontAsk", "nonsense"] {
         assert!(
@@ -1290,7 +1297,12 @@ fn mode_changes_land_in_the_order_they_were_made() {
 #[test]
 fn without_a_mode_option_the_mode_is_set_directly() {
     let rig = rig();
-    rig.send(&["--no-config"], "stream").unwrap();
+    let record = rig.dir.path().join("settings.log");
+    rig.send(
+        &["--no-config", "--record-settings", record.to_str().unwrap()],
+        "stream",
+    )
+    .unwrap();
     rig.turns_done(1);
     let status = last_status(&rig.events()).unwrap();
     assert!(status.config.is_empty());
@@ -1298,6 +1310,8 @@ fn without_a_mode_option_the_mode_is_set_directly() {
     let ticket = rig.host.set_mode(TAB, "plan").unwrap();
     let status = rig.status_where("plan mode", |s| s.answered >= ticket);
     assert_eq!(status.mode.as_deref(), Some("plan"));
+    assert_eq!(status.setting_trouble, None);
+    assert_eq!(settings_sent(&record), ["session/set_mode"; 2]);
     for refused in ["bypassPermissions", "auto"] {
         assert!(
             matches!(
@@ -1401,5 +1415,44 @@ fn a_new_session_starts_past_every_earlier_change() {
     assert!(
         status.answered >= ticket,
         "nothing the old process left unanswered is waited for"
+    );
+}
+
+/// The setting methods `--record-settings` saw arrive, in order.
+fn settings_sent(record: &Path) -> Vec<String> {
+    std::fs::read_to_string(record)
+        .unwrap()
+        .lines()
+        .filter_map(|l| l.strip_prefix("sent "))
+        .map(str::to_string)
+        .collect()
+}
+
+#[test]
+fn a_change_is_not_sent_until_the_one_before_is_answered() {
+    let rig = rig();
+    let record = rig.dir.path().join("settings.log");
+    rig.send(
+        &[
+            "--slow-setting",
+            "--record-settings",
+            record.to_str().unwrap(),
+        ],
+        "stream",
+    )
+    .unwrap();
+    rig.turns_done(1);
+    rig.host.set_mode(TAB, "plan").unwrap();
+    let last = rig.host.set_mode(TAB, "acceptEdits").unwrap();
+    rig.status_where("both answered", |s| s.answered >= last);
+    // Each answer is noted before it is sent, so a second change sent while
+    // the first was still being answered (a second, here) shows up as two
+    // `sent` lines in a row.
+    let log = std::fs::read_to_string(&record).unwrap();
+    let order: Vec<&str> = log.lines().filter_map(|l| l.split(' ').next()).collect();
+    assert_eq!(
+        order,
+        ["sent", "answered", "sent", "answered", "sent", "answered"],
+        "{log}"
     );
 }

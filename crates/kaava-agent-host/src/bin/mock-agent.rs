@@ -5,8 +5,10 @@
 //! Flags shape the handshake; the prompt's text picks what a turn does (see
 //! [`Mock::prompt`]). It exits when its stdin closes.
 
+use std::fs::File;
 use std::io::{BufRead, Write};
 use std::process::{Command, Stdio};
+use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
 
 use serde_json::{json, Value};
@@ -43,8 +45,10 @@ fn main() {
         }
         return;
     }
+    let record = Record::open(flag_value(&args, "--record-settings"));
     let mut mock = Mock {
         flags: args,
+        record: record.clone(),
         cwd: String::new(),
         prompt_id: None,
         waiting: None,
@@ -57,18 +61,68 @@ fn main() {
     if mock.has("--secret") {
         eprintln!("debug: token sk-ant-oat01-AbCdEf0123456789xyzAbCd for someone@example.com");
     }
-    let stdin = std::io::stdin();
-    for line in stdin.lock().lines() {
-        let Ok(line) = line else { break };
-        let Ok(message) = serde_json::from_str::<Value>(&line) else {
-            continue;
-        };
+    // Lines are read on a thread of their own, so a request is noted when it
+    // arrives, even while the mock is still busy with the one before.
+    let (lines, messages) = mpsc::channel();
+    std::thread::spawn(move || {
+        for line in std::io::stdin().lock().lines() {
+            let Ok(line) = line else { break };
+            let Ok(message) = serde_json::from_str::<Value>(&line) else {
+                continue;
+            };
+            record.note("sent", &message);
+            if lines.send(message).is_err() {
+                break;
+            }
+        }
+    });
+    for message in messages {
         mock.handle(&message);
     }
 }
 
+fn flag_value(flags: &[String], flag: &str) -> Option<String> {
+    let at = flags.iter().position(|f| f == flag)?;
+    flags.get(at + 1).cloned()
+}
+
+/// With `--record-settings <path>`, one line per setting request, written as
+/// it arrives (`sent`) and just before its reply (`answered`), with the
+/// method, so a test sees which method the host chose and whether it waited
+/// for one answer before sending the next.
+#[derive(Clone)]
+struct Record(Option<Arc<Mutex<File>>>);
+
+impl Record {
+    fn open(path: Option<String>) -> Self {
+        Self(
+            path.and_then(|p| File::create(p).ok())
+                .map(|f| Arc::new(Mutex::new(f))),
+        )
+    }
+
+    fn note(&self, what: &str, request: &Value) {
+        let Some(file) = &self.0 else { return };
+        let method = request
+            .get("method")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        if method.starts_with("session/set_") {
+            if let Ok(mut file) = file.lock() {
+                let _ = writeln!(file, "{what} {method}");
+            }
+        }
+    }
+}
+
+/// Just enough of a request for [`Record::note`].
+fn request(method: &str) -> Value {
+    json!({ "method": method })
+}
+
 struct Mock {
     flags: Vec<String>,
+    record: Record,
     cwd: String,
     prompt_id: Option<Value>,
     /// The scenario waiting on our permission request's answer.
@@ -86,8 +140,7 @@ impl Mock {
     }
 
     fn flag_value(&self, flag: &str) -> Option<String> {
-        let at = self.flags.iter().position(|f| f == flag)?;
-        self.flags.get(at + 1).cloned()
+        flag_value(&self.flags, flag)
     }
 
     fn send(&self, message: &Value) {
@@ -194,6 +247,9 @@ impl Mock {
     /// agent that settles elsewhere more often. With `--slow-setting` the
     /// reply comes a second after the notification.
     fn set_config(&mut self, id: &Value, params: &Value) {
+        if self.has("--no-config") {
+            return self.reply_error(id, -32601, "method not found");
+        }
         let config = params
             .get("configId")
             .and_then(Value::as_str)
@@ -219,6 +275,8 @@ impl Mock {
         if self.has("--slow-setting") {
             std::thread::sleep(Duration::from_secs(1));
         }
+        self.record
+            .note("answered", &request("session/set_config_option"));
         self.reply(id, json!({ "configOptions": self.config_options() }));
     }
 
@@ -318,6 +376,7 @@ impl Mock {
                         }));
                     }
                     self.config_update();
+                    self.record.note("answered", &request("session/set_mode"));
                     self.reply(&id, json!({}));
                 }
             }
