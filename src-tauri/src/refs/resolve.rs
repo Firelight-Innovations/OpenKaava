@@ -254,6 +254,11 @@ pub(super) fn describe(
     }
     if class.textual && textual {
         let ex = excerpt(abs, lines)?;
+        // A line range reaches past the head checked above, so what it
+        // would send is checked as well.
+        if let Some(rule) = policy::secret_content(ex.text.as_bytes()) {
+            return Ok(out.withhold(secret_withheld(rule)));
+        }
         if let Some(total) = ex.total_lines {
             out.meta.insert("lines".into(), json!(total));
         }
@@ -954,6 +959,22 @@ mod tests {
         assert_eq!(secret("notes/plain.txt"), None);
         assert!(secret("config/.env").is_some());
         assert_eq!(secret("notes"), None, "a folder has no first bytes");
+    }
+
+    #[test]
+    fn a_key_past_the_first_bytes_is_withheld_from_a_range_that_reaches_it() {
+        let dir = project();
+        let mut text = format!("{}\n", "x".repeat(40)).repeat(2000);
+        text.push_str(
+            "-----BEGIN OPENSSH PRIVATE KEY-----\nb3Bl\n-----END OPENSSH PRIVATE KEY-----\n",
+        );
+        assert!(text.len() as u64 > HEAD_BYTES);
+        put(&dir, "notes/long.txt", text.as_bytes());
+        let early = resolve(&dir, "kaava://file/notes/long.txt#L1-L2").unwrap();
+        assert_eq!(early.withheld, None);
+        let late = resolve(&dir, "kaava://file/notes/long.txt#L2000-L2002").unwrap();
+        assert!(late.parts.is_empty());
+        assert!(late.withheld.unwrap().contains("private keys"));
     }
 
     #[test]
