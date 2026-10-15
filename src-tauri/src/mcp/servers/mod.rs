@@ -99,22 +99,44 @@ pub struct McpResource {
     pub mime_type: &'static str,
 }
 
-/// The resources a server publishes; empty for every server but `workspace`.
+/// The resources a server publishes; empty for every server but `workspace`
+/// and `context`.
 pub fn resources(id: &str) -> &'static [McpResource] {
     match id {
         "workspace" => workspace::RESOURCES,
+        context::ID => context::RESOURCES,
         _ => &[],
     }
 }
 
-/// Read one resource. `None` when the server has no resource at that uri.
+/// The URI templates a server reads beyond what it publishes, in
+/// [`McpResource`] form with the template as `uri`. Only `context` has any: it
+/// reads every `kaava://` reference.
+pub fn resource_templates(id: &str) -> &'static [McpResource] {
+    match id {
+        context::ID => context::TEMPLATES,
+        _ => &[],
+    }
+}
+
+/// Whether a server reads `uri` although it does not publish it.
+pub fn reads_unpublished(id: &str, uri: &str) -> bool {
+    let scheme = crate::refs::uri::SCHEME;
+    let head = uri.get(..scheme.len());
+    id == context::ID && head.is_some_and(|h| h.eq_ignore_ascii_case(scheme))
+}
+
+/// Read one resource, from `cluster` when a session token pinned one. `None`
+/// when the server has no resource at that uri.
 pub fn read_resource(
     app: &tauri::AppHandle,
     id: &str,
     uri: &str,
-) -> Option<Result<serde_json::Value, kaava_rpc::RpcError>> {
+    cluster: Option<&str>,
+) -> Option<Result<super::ToolAnswer, kaava_rpc::RpcError>> {
     match id {
-        "workspace" => workspace::read_resource(app, uri),
+        "workspace" => workspace::read_resource(app, uri).map(|read| read.map(Into::into)),
+        context::ID => Some(context::read_resource(app, uri, cluster)),
         _ => None,
     }
 }
@@ -177,6 +199,19 @@ mod tests {
             assert!(text.contains("browser"), "{id}: {text}");
         }
         assert!(instructions("echo").is_none());
+    }
+
+    #[test]
+    fn the_context_server_reads_every_reference_and_publishes_the_selection() {
+        assert_eq!(resources(context::ID)[0].uri, "kaava://selection");
+        assert!(reads_unpublished(context::ID, "kaava://file/a.gd"));
+        assert!(reads_unpublished(context::ID, "KAAVA://file/a.gd"));
+        assert!(!reads_unpublished(context::ID, "file:///etc/passwd"));
+        assert!(!reads_unpublished("workspace", "kaava://file/a.gd"));
+        assert!(resource_templates("workspace").is_empty());
+        for t in resource_templates(context::ID) {
+            assert!(t.uri.starts_with("kaava://"), "{}", t.uri);
+        }
     }
 
     /// Every declared tool has an entry in the hint table, so a new tool cannot

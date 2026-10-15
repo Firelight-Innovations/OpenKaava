@@ -65,7 +65,8 @@ pub fn dev_mode(app: &AppHandle) -> bool {
 /// leaving one window as it arrives in another) is one notification, not two.
 const FOCUS_COALESCE: Duration = Duration::from_millis(50);
 
-/// Tell every session subscribed to the focus resource that it changed.
+/// Tell every session subscribed to the focus or selection resource that it
+/// changed.
 ///
 /// Called after [`FocusState::update`] says a report was news. The notification
 /// carries no payload by design: MCP's `resources/updated` only names the uri,
@@ -80,7 +81,8 @@ pub fn notify_focus_changed(app: &AppHandle) {
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(FOCUS_COALESCE).await;
         app.state::<FocusState>().burst.fire();
-        app.state::<Subscriptions>()
-            .notify(servers::workspace::ID, servers::workspace::FOCUS_URI);
+        let subscriptions = app.state::<Subscriptions>();
+        subscriptions.notify(servers::workspace::ID, servers::workspace::FOCUS_URI);
+        subscriptions.notify(servers::context::ID, servers::context::SELECTION_URI);
     });
 }

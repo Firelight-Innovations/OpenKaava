@@ -12,7 +12,7 @@
 //! Every call answers from one cluster: the one named in `cluster`, else the
 //! one the person is working in.
 
-use super::workspace;
+use super::{workspace, McpResource};
 use crate::apps::CallContext;
 use crate::mcp::{Block, McpServer, McpTool, ToolAnswer};
 use crate::refs::comments::{self, Wanted};
@@ -186,6 +186,65 @@ const TOOLS: &[McpTool] = &[
         schema: node_schema,
     },
 ];
+
+/// The selection, published so a client can subscribe to it.
+pub const SELECTION_URI: &str = "kaava://selection";
+
+pub static RESOURCES: &[McpResource] = &[McpResource {
+    uri: SELECTION_URI,
+    name: "selection",
+    description: "What the person has selected in the cluster they are working in. \
+                  Subscribe to hear when it changes.",
+    mime_type: "text/plain",
+}];
+
+/// Every other reference reads as a resource too; these say how to write one.
+pub static TEMPLATES: &[McpResource] = &[
+    template(
+        "kaava://file/{+path}",
+        "file",
+        "A file or folder in the project. Add #L10-L20 for some lines.",
+    ),
+    template(
+        "kaava://canvas/{+id}",
+        "canvas",
+        "A canvas and its frames. Add #frame=<id> for one frame, #comment=<id> for a comment.",
+    ),
+    template(
+        "kaava://comment/{id}",
+        "comment",
+        "A comment left in a viewer, with its screenshot.",
+    ),
+    template(
+        "kaava://design-comment/{id}",
+        "design-comment",
+        "A Design Mode comment, with its screenshot.",
+    ),
+    template(
+        "kaava://context/{id}",
+        "context",
+        "An item in the context store.",
+    ),
+];
+
+const fn template(uri: &'static str, name: &'static str, about: &'static str) -> McpResource {
+    McpResource {
+        uri,
+        name,
+        description: about,
+        mime_type: "",
+    }
+}
+
+/// Read any reference as a resource, from `cluster` or the one in use.
+pub fn read_resource(
+    app: &AppHandle,
+    uri: &str,
+    cluster: Option<&str>,
+) -> Result<ToolAnswer, RpcError> {
+    let r = parse(uri)?;
+    read(app, &context_for(app, cluster)?, &r)
+}
 
 /// Whether a tool leaves the person's work alone, for MCP's `readOnlyHint`.
 pub fn read_only(tool: &str) -> Option<bool> {

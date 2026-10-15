@@ -13,10 +13,11 @@ use rand::RngCore;
 use rmcp::handler::server::ServerHandler;
 use rmcp::model::{
     CacheScope, CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, ErrorData,
-    Implementation, ListResourcesResult, ListToolsResult, PaginatedRequestParams,
-    ReadResourceRequestParams, ReadResourceResponse, ReadResourceResult, Resource,
-    ResourceContents, ResourceUpdatedNotificationParam, ResourcesCapability, ServerCapabilities,
-    ServerInfo, SubscribeRequestParams, SubscriptionFilter, Tool, UnsubscribeRequestParams,
+    Implementation, ListResourceTemplatesResult, ListResourcesResult, ListToolsResult,
+    PaginatedRequestParams, ReadResourceRequestParams, ReadResourceResponse, ReadResourceResult,
+    Resource, ResourceContents, ResourceTemplate, ResourceUpdatedNotificationParam,
+    ResourcesCapability, ServerCapabilities, ServerInfo, SubscribeRequestParams,
+    SubscriptionFilter, Tool, UnsubscribeRequestParams,
 };
 use rmcp::service::{RequestContext, SubscriptionContext};
 use rmcp::transport::streamable_http_server::{
@@ -249,7 +250,7 @@ impl Bridge {
     }
 
     /// Refuse a resource this server does not publish, or any while it is off.
-    fn require_resource(&self, uri: &str) -> Result<(), ErrorData> {
+    fn require_published(&self, uri: &str) -> Result<(), ErrorData> {
         let published = super::servers::resources(&self.id)
             .iter()
             .any(|r| r.uri == uri);
@@ -258,6 +259,15 @@ impl Bridge {
         } else {
             Err(not_found(uri))
         }
+    }
+
+    /// As [`Self::require_published`], but also passing the references the
+    /// context server reads without publishing.
+    fn require_readable(&self, uri: &str) -> Result<(), ErrorData> {
+        if super::servers::reads_unpublished(&self.id, uri) && self.reachable() {
+            return Ok(());
+        }
+        self.require_published(uri)
     }
 }
 
@@ -315,9 +325,11 @@ impl ServerHandler for Bridge {
             .enable_tool_list_changed()
             .build();
 
-        // Declared only for a server that publishes something. `subscribe` is the
-        // part an agent acts on: without it a client will not ask to be told.
-        if !super::servers::resources(&self.id).is_empty() {
+        // Declared only for a server that publishes or reads something.
+        // `subscribe` is the part an agent acts on: without it a client will not
+        // ask to be told.
+        let reads = !super::servers::resource_templates(&self.id).is_empty();
+        if reads || !super::servers::resources(&self.id).is_empty() {
             let mut resources = ResourcesCapability::default();
             resources.subscribe = Some(true);
             info.capabilities.resources = Some(resources);
@@ -377,38 +389,51 @@ impl ServerHandler for Bridge {
             .with_cache_scope(CacheScope::Private))
     }
 
+    /// How to write a reference this server reads, for a client that lets
+    /// the person pick one. Empty while the server is off.
+    async fn list_resource_templates(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListResourceTemplatesResult, ErrorData> {
+        let templates = super::servers::resource_templates(&self.id);
+        let listed = templates
+            .iter()
+            .filter(|_| self.reachable())
+            .map(|t| ResourceTemplate::new(t.uri, t.name).with_description(t.description))
+            .collect();
+        Ok(ListResourceTemplatesResult::with_all_items(listed))
+    }
+
     /// Reads run off the async worker: the workspace resource asks each webview
     /// a question and waits for the answer, which is blocking work.
     async fn read_resource(
         &self,
         request: ReadResourceRequestParams,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResponse, ErrorData> {
-        self.require_resource(&request.uri)?;
+        self.require_readable(&request.uri)?;
 
         let (app, id, uri) = (self.app.clone(), self.id.clone(), request.uri.clone());
+        let cluster = cluster_of(&context);
         let read = tauri::async_runtime::spawn_blocking(move || {
-            super::servers::read_resource(&app, &id, &uri)
+            super::servers::read_resource(&app, &id, &uri, cluster.as_deref())
         })
         .await
         .map_err(|e| ErrorData::internal_error(format!("the read did not finish: {e}"), None))?;
 
-        let value = match read {
-            Some(Ok(value)) => value,
+        let answer = match read {
+            Some(Ok(answer)) => answer,
             Some(Err(e)) => return Err(ErrorData::internal_error(e.message, None)),
             None => return Err(not_found(&request.uri)),
         };
 
-        let contents = ResourceContents::TextResourceContents {
-            uri: request.uri,
-            mime_type: Some("application/json".to_string()),
-            text: value.to_string(),
-            meta: None,
-        };
-        Ok(ReadResourceResult::new(vec![contents])
-            .with_ttl_ms(0)
-            .with_cache_scope(CacheScope::Private)
-            .into())
+        Ok(
+            ReadResourceResult::new(resource_contents(&request.uri, answer))
+                .with_ttl_ms(0)
+                .with_cache_scope(CacheScope::Private)
+                .into(),
+        )
     }
 
     /// `resources/subscribe`, the form of subscription clients on protocol
@@ -421,7 +446,7 @@ impl ServerHandler for Bridge {
         request: SubscribeRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<(), ErrorData> {
-        self.require_resource(&request.uri)?;
+        self.require_published(&request.uri)?;
 
         let session = session_of(&context);
         let mut queue =
@@ -450,7 +475,7 @@ impl ServerHandler for Bridge {
         request: UnsubscribeRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<(), ErrorData> {
-        self.require_resource(&request.uri)?;
+        self.require_published(&request.uri)?;
 
         self.app.state::<Subscriptions>().unsubscribe(
             &self.id,
@@ -545,6 +570,25 @@ impl ServerHandler for Bridge {
         };
 
         Ok(result.into())
+    }
+}
+
+/// An answer as the contents of the resource at `uri`: JSON as JSON, text as
+/// text, and each picture as a blob.
+fn resource_contents(uri: &str, answer: ToolAnswer) -> Vec<ResourceContents> {
+    let blob = |mime: String, data: String| ResourceContents::blob(data, uri).with_mime_type(mime);
+    match answer {
+        ToolAnswer::Json(value) => {
+            vec![ResourceContents::text(value.to_string(), uri).with_mime_type("application/json")]
+        }
+        ToolAnswer::Image { mime, data } => vec![blob(mime, data)],
+        ToolAnswer::Blocks(blocks) => blocks
+            .into_iter()
+            .map(|block| match block {
+                Block::Text(text) => ResourceContents::text(text, uri),
+                Block::Image { mime, data } => blob(mime, data),
+            })
+            .collect(),
     }
 }
 
@@ -730,6 +774,31 @@ mod tests {
         let mut none = None;
         pin_cluster(&mut none, "mine".into());
         assert_eq!(none, Some(serde_json::json!({ "cluster": "mine" })));
+    }
+
+    #[test]
+    fn a_resource_reads_as_text_and_blobs_in_order() {
+        let answer = ToolAnswer::Blocks(vec![
+            Block::Text("kaava://file/a.png (image): a.png".into()),
+            Block::Image {
+                mime: "image/png".into(),
+                data: "AA==".into(),
+            },
+        ]);
+        let out = serde_json::to_value(resource_contents("kaava://file/a.png", answer)).unwrap();
+        assert_eq!(out[0]["mimeType"], "text/plain");
+        assert_eq!(out[0]["text"], "kaava://file/a.png (image): a.png");
+        assert_eq!(out[1]["mimeType"], "image/png");
+        assert_eq!(out[1]["blob"], "AA==");
+        assert_eq!(out[1]["uri"], "kaava://file/a.png");
+
+        let json = resource_contents(
+            "kaava://workspace/focus",
+            serde_json::json!({"a": 1}).into(),
+        );
+        let json = serde_json::to_value(json).unwrap();
+        assert_eq!(json[0]["mimeType"], "application/json");
+        assert_eq!(json[0]["text"], r#"{"a":1}"#);
     }
 
     #[test]
