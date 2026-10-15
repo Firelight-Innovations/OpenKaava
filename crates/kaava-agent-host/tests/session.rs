@@ -1663,6 +1663,7 @@ fn only_a_value_the_status_offers_is_sent() {
         ("effort", "ultracode"),
         ("model", "claude-opus-4-6"),
         ("model", ""),
+        ("model", "bypassPermissions"),
         ("mode", "plan"),
         ("mode", "bypassPermissions"),
         ("nonesuch", "on"),
