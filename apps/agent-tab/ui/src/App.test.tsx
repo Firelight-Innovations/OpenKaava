@@ -106,6 +106,17 @@ async function shownMode() {
   return label.split(", ").at(-1);
 }
 
+/** Wait for the settings button to show `name` as the mode. */
+async function untilMode(name: string) {
+  await waitFor(async () => expect(await shownMode()).toBe(name));
+}
+
+/** Choose a mode by name from the settings menu. */
+async function pickMode(name: string) {
+  const menu = await modeMenu();
+  fireEvent.click(menu.getByRole("menuitemradio", { name }));
+}
+
 /** The settings menu's Mode group, opened. */
 async function modeMenu() {
   fireEvent.click(await settingsButton());
@@ -586,7 +597,7 @@ describe("the agent tab", () => {
   it("switches mode with Shift+Tab, showing the choice until the agent answers it", async () => {
     backend({ status: SETTINGS, seq: 1, items: [] });
     render(<App />);
-    expect(await shownMode()).toBe("Manual");
+    await untilMode("Manual");
     const menu = await modeMenu();
     const labels = menu.getAllByRole("menuitemradio").map((o) => o.textContent);
     expect(labels).toEqual(["Manual", "Accept edits", "Plan"]);
@@ -617,6 +628,99 @@ describe("the agent tab", () => {
     // The agent has the last word.
     status(4, { ...SETTINGS, mode: "acceptEdits", answered: 2 });
     expect(await shownMode()).toBe("Accept edits");
+  });
+
+  it("switches once for a held Shift+Tab, and keeps focus where it is", async () => {
+    backend({ status: SETTINGS, seq: 1, items: [] });
+    render(<App />);
+    await untilMode("Manual");
+    await act(async () => {
+      fireEvent.keyDown(prompt(), { key: "Tab", shiftKey: true });
+    });
+    let notPrevented = true;
+    await act(async () => {
+      for (let i = 0; i < 5; i++) {
+        notPrevented &&= fireEvent.keyDown(prompt(), { key: "Tab", shiftKey: true, repeat: true });
+      }
+    });
+    expect(notPrevented).toBe(false);
+    const sent = bridge.invoke.mock.calls.filter(([m]) => m === "agent-tab/set-mode");
+    expect(sent).toEqual([["agent-tab/set-mode", { modeId: "acceptEdits" }]]);
+    expect(await shownMode()).toBe("Accept edits");
+  });
+
+  it.each([
+    ["has no modes", { ...STATUS, modes: [] }],
+    ["has only the mode it is in", { ...STATUS, modes: [choice("default", "Manual")] }],
+    ["has ended", { ...SETTINGS, state: "stopped" as const }],
+    ["failed", { ...SETTINGS, state: "failed" as const }],
+  ])("leaves Shift+Tab to move focus when the session %s", async (_, status) => {
+    backend({ status, seq: 1, items: [] });
+    render(<App />);
+    await screen.findByRole("textbox", { name: "Message the agent" });
+    const notPrevented = fireEvent.keyDown(prompt(), { key: "Tab", shiftKey: true });
+    expect(notPrevented).toBe(true);
+    expect(bridge.invoke).not.toHaveBeenCalledWith("agent-tab/set-mode", expect.anything());
+  });
+
+  it("keeps a choice shown when its status comes before the call's number", async () => {
+    let number!: (answer: { ticket: number }) => void;
+    backend(
+      { status: SETTINGS, seq: 1, items: [] },
+      { "agent-tab/set-mode": () => new Promise((resolve) => (number = resolve)) },
+    );
+    render(<App />);
+    await act(async () => {
+      await pickMode("Plan");
+    });
+    expect(await shownMode()).toBe("Plan");
+
+    // The agent answered, settling elsewhere, before the call returned: the
+    // choice is not taken back to the old mode, nor given the new one yet.
+    emit({
+      instanceId: "i",
+      seq: 2,
+      event: { type: "status", status: { ...SETTINGS, mode: "acceptEdits", answered: 1 } },
+    });
+    expect(await shownMode()).toBe("Plan");
+
+    // Once the call is numbered, that status is the answer to it.
+    await act(async () => number({ ticket: 1 }));
+    expect(await shownMode()).toBe("Accept edits");
+  });
+
+  it("keeps the last choice shown when the calls return out of order", async () => {
+    const numbers: ((answer: { ticket: number }) => void)[] = [];
+    backend(
+      { status: SETTINGS, seq: 1, items: [] },
+      { "agent-tab/set-mode": () => new Promise((resolve) => numbers.push(resolve)) },
+    );
+    render(<App />);
+    const status = (seq: number, mode: string, answered: number) =>
+      emit({
+        instanceId: "i",
+        seq,
+        event: { type: "status", status: { ...SETTINGS, mode, answered } },
+      });
+    await act(async () => {
+      await pickMode("Accept edits");
+    });
+    await act(async () => {
+      await pickMode("Plan");
+    });
+
+    // The second call returns first, then the first.
+    await act(async () => numbers[1]({ ticket: 2 }));
+    await act(async () => numbers[0]({ ticket: 1 }));
+    expect(await shownMode()).toBe("Plan");
+
+    // The first answer is not the last: the second choice stands.
+    status(2, "acceptEdits", 1);
+    expect(await shownMode()).toBe("Plan");
+
+    // Both are answered, and the select follows the agent again.
+    status(3, "default", 2);
+    expect(await shownMode()).toBe("Manual");
   });
 
   it("changes the mode from the settings menu, and takes it back when refused", async () => {
@@ -670,8 +774,16 @@ describe("the agent tab", () => {
     // A setting is not a prompt: a Retry here would resend "list the files".
     expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
 
-    // Once the session ends there is nothing left to answer it.
+    // A refusal that gives no reason does not end on a colon.
     status(4, {
+      ...SETTINGS,
+      answered: 2,
+      settingTrouble: { kind: "refused", ticket: 2, message: "" },
+    });
+    await screen.findByText("The agent refused that change.");
+
+    // Once the session ends there is nothing left to answer it.
+    status(5, {
       ...SETTINGS,
       state: "stopped",
       answered: 1,
@@ -700,7 +812,7 @@ describe("the agent tab", () => {
   it("shows a mode the agent entered but the tab does not offer, as it is", async () => {
     backend({ status: { ...SETTINGS, mode: "auto" }, seq: 1, items: [] });
     render(<App />);
-    expect(await shownMode()).toBe("auto");
+    await untilMode("auto");
     await act(async () => {
       fireEvent.keyDown(prompt(), { key: "Tab", shiftKey: true });
     });
