@@ -467,6 +467,14 @@ fn a_command_that_would_run_outside_the_worktree_is_refused_without_asking() {
     let items = rig.items();
     let card = approval(&items).unwrap();
     assert!(matches!(&card.kind, ItemKind::Approval { answer: Some(a), .. } if a == "outside"));
+    let ItemKind::Approval { paths, .. } = &card.kind else {
+        unreachable!()
+    };
+    assert_eq!(
+        *paths,
+        [rig.tree.display("..")],
+        "the card names where it would run"
+    );
     assert_eq!(
         echoed_answer(&items),
         json!({ "outcome": { "outcome": "selected", "optionId": "o3" } })
