@@ -331,8 +331,12 @@ pub(crate) fn file_for(root: &Path, id: &str) -> PathBuf {
 /// The child canvases canvas `id`'s split frames moved their elements into,
 /// spelt as the file names them. Listing, reading a frame and viewing a
 /// comment on `id` open these too. Empty when `id` cannot be read.
+///
+/// The file is read where it is found, so check it is inside the root first,
+/// as `refs::live::canvas_files_inside` does.
 pub(crate) fn split_children(root: &Path, id: &str) -> Vec<String> {
-    let Ok(scene) = load(&file_for(root, id)) else {
+    let raw = std::fs::read_to_string(file_for(root, id)).unwrap_or_default();
+    let Ok(scene) = serde_json::from_str::<Value>(&raw) else {
         return Vec::new();
     };
     subcanvas::subcanvas_frames(&scene)
