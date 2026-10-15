@@ -78,10 +78,18 @@ impl Rig {
     /// Every log line so far, once one contains `needle` or the wait runs out.
     /// Each line starts with its level.
     fn logged(&self, needle: &str) -> Vec<String> {
+        self.logged_times(needle, 1)
+    }
+
+    /// Every log line so far, once `times` of them contain `needle` or the
+    /// wait runs out. A session logs its exit line only after it marks itself
+    /// closed, so a stop can return before that line is written.
+    fn logged_times(&self, needle: &str, times: usize) -> Vec<String> {
         let deadline = Instant::now() + PATIENCE;
         loop {
             let logs = self.logs.lock().unwrap().clone();
-            if Instant::now() > deadline || logs.iter().any(|l| l.contains(needle)) {
+            let seen = logs.iter().filter(|l| l.contains(needle)).count();
+            if Instant::now() > deadline || seen >= times {
                 return logs;
             }
             std::thread::sleep(Duration::from_millis(20));
@@ -965,7 +973,7 @@ fn stopping_several_agents_does_not_wait_on_each_in_turn() {
         took < Duration::from_secs(2),
         "stopping four agents took {took:?}"
     );
-    let logs = rig.logged("exited with code");
+    let logs = rig.logged_times("exited with code", tabs.len());
     let exits = logs
         .iter()
         .filter(|l| l.contains("exited with code"))
