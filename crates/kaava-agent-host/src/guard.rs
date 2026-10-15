@@ -219,15 +219,17 @@ fn reach(tool_call: &Value) -> Vec<Reach> {
 /// The folder a glob pattern's literal start names, with a trailing separator
 /// so that a bare drive (`C:`) is its root and not its current folder. `None`
 /// when no folder bounds the pattern: it starts with a wildcard, which could
-/// match anywhere, or climbs with `..` after one.
+/// match anywhere, or with `~`, which Codex may read as the home folder, or it
+/// could climb with `..` after a wildcard, as `{..,a}` does once expanded.
 fn glob_base(pattern: &str) -> Option<String> {
     let wild = |part: &str| part.contains(['*', '?', '[', '{']);
     let parts: Vec<&str> = pattern.split(['/', '\\']).collect();
     let literal = parts.iter().take_while(|part| !wild(part)).count();
     match literal {
+        _ if pattern.starts_with('~') => None,
         0 => None,
         n if n == parts.len() => Some(pattern.to_string()),
-        n if parts[n..].contains(&"..") => None,
+        n if parts[n..].iter().any(|part| part.contains("..")) => None,
         n => Some(format!("{}/", parts[..n].join("/"))),
     }
 }
@@ -538,7 +540,7 @@ mod tests {
             assert!(escapes(&tree, &glob(inside)).is_empty(), "{inside}");
         }
         let mut globs = vec!["/**", "../**", "**/x", "{/etc,src}/**", "?:/Windows/**"];
-        globs.push("src/*/../../x");
+        globs.extend(["src/*/../../x", "src/{..,a}/{..,b}/x", "~/**", "~/.ssh/*"]);
         if cfg!(windows) {
             globs.push("C:/**");
         }

@@ -146,8 +146,8 @@ request carries what it grants under `permissions` or `additionalPermissions`, a
 
 - A path is resolved against the worktree, as any other path is.
 - A glob pattern is checked by the folder its literal start names, so `src/**` is checked as
-  `src/`. A pattern that starts with a wildcard, or climbs with `..` after one, has no such folder
-  and is refused.
+  `src/`. A pattern has no such folder, and is refused, if it starts with a wildcard or with `~`,
+  or if a part after its first wildcard holds `..`.
 - An entry of type `special` is a named scope. The project, which is the worktree, is checked by
   its subpath. Every other scope is refused: the whole disk, the temp folders, and any kind Codex
   adds later.
