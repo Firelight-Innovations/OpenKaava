@@ -315,8 +315,6 @@ fn rendered(root: &Path, answer: Result<Value, String>) -> Part {
 
 #[cfg(feature = "design-mode")]
 fn design_comment(app: &AppHandle, r: &Ref, id: &str) -> Result<Resolved, String> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
-    use base64::Engine as _;
     use tauri::Manager;
     let c = app
         .state::<crate::design_comments::Comments>()
@@ -330,15 +328,13 @@ fn design_comment(app: &AppHandle, r: &Ref, id: &str) -> Result<Resolved, String
     out.parts.push(resolve::json_part(
         json!({ "page": c.page, "selector": c.element.selector, "thread": c.thread }),
     ));
-    if let Some(bytes) = crate::design_comments::read_shot(app, id) {
-        if bytes.len() as u64 <= resolve::MAX_IMAGE_BYTES {
-            out.parts.push(Part::Image {
-                mime: "image/png".into(),
-                data_base64: BASE64.encode(bytes),
-                width: None,
-                height: None,
-            });
-        }
+    // Read as a viewer comment's is: capped, sniffed, and a note when it fails.
+    let shot = crate::design_comments::shot_file(app, id).filter(|f| f.is_file());
+    if let Some(shot) = shot {
+        out.parts
+            .push(resolve::png_part(&shot).unwrap_or_else(|why| Part::Note {
+                text: format!("No screenshot: {why}"),
+            }));
     }
     Ok(out)
 }

@@ -859,6 +859,25 @@ mod tests {
         assert_eq!(human_size(3_500_000), "3.3 MB");
     }
 
+    /// A screenshot a comment keeps: a viewer comment's and a Design Mode one's.
+    #[test]
+    fn a_comment_screenshot_says_why_it_is_not_sent() {
+        let dir = project();
+        put(&dir, "shots/ok.png", &png(8, 8));
+        assert!(matches!(
+            png_part(&dir.path().join("shots/ok.png")),
+            Ok(Part::Image { .. })
+        ));
+        let mut big = png(4000, 4000);
+        big.resize(MAX_IMAGE_BYTES as usize + 1, 0);
+        put(&dir, "shots/big.png", &big);
+        let err = png_part(&dir.path().join("shots/big.png")).unwrap_err();
+        assert!(err.contains("over the 3.3 MB sent inline"), "{err}");
+        put(&dir, "shots/torn.png", b"not a picture");
+        let err = png_part(&dir.path().join("shots/torn.png")).unwrap_err();
+        assert_eq!(err, "the picture is not an image");
+    }
+
     #[test]
     fn an_svg_is_sent_once_as_its_text() {
         let dir = project();
