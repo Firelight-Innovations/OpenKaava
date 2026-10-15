@@ -37,8 +37,8 @@
       standing on a plate of small tiles under one raking lamp, which the
       pointer carries; a click sends a ring of light across the plate, and a
       failure turns the bar, the plate and the mark's edge red. The only colour
-      on the card is the mark and the bar, so the user's accent never touches
-      the art; it is kept for the focus ring.
+      on the card is the bar, so the user's accent never touches the art; it
+      is kept for the focus ring.
     -->
     <!--
       Theme and accent, read before first paint. The shell mirrors the two
@@ -73,8 +73,8 @@
        * after first paint, and the text would reflow into it). Regenerate with
        * `pyftsubset <fontsource woff2> --unicodes=<range> --flavor=woff2`:
        *
-       *   Inter 600          U+0041-005A, U+0061-007A, U+2122  the wordmark and the company line, 4kB
-       *   Inter 500          U+0020-007E, U+00A9, U+00B7, U+2026, U+2122  the status line, TIP label, button, 12kB
+       *   Inter 600          U+0041-005A, U+0061-007A, U+2122  the wordmark, the company line and the TIP label, 4kB
+       *   Inter 500          U+0020-007E, U+00A9, U+00B7, U+2026, U+2122  the status line, button, 12kB
        *   Inter 400          U+0020-007E, U+00A9, U+00B7, U+2026, U+2122  the tip, the legal line, the version, 11kB
        *   IBM Plex Mono 500  U+0020-007E, U+00A9, U+00B7, U+2014, U+2122  the error text, 9kB
        *
@@ -344,7 +344,7 @@
           0 0 6px var(--bg-surface-1);
       }
 
-      /* A track the art script fills. role="progressbar" lives here so the
+      /* A track the bar script fills. role="progressbar" lives here so the
          semantics belong to the thing that moves. */
       .splash__bar {
         position: absolute;
@@ -845,27 +845,17 @@
         // The lockup's box (see .splash__lockup).
         var LOCKUP = { x0: 149, x1: 449, y0: 184, y1: 218 };
 
-        // The mark in the 24x24 box of assets/kaava-mark-colour.svg: cubic
-        // segments [x0 y0 c1x c1y c2x c2y x1 y1] of the skin and flesh
-        // outlines, and the seed circle.
+        // The mark in the 24x24 box of assets/kaava-mark.svg: cubic segments
+        // [x0 y0 c1x c1y c2x c2y x1 y1] of the skin outline, and the seed circle.
         var SKIN = [
           [12, 2.4, 15.3, 2.4, 19, 6.6, 19, 12.5],
           [19, 12.5, 19, 17.3, 15.9, 21.6, 12, 21.6],
           [12, 21.6, 8.1, 21.6, 5, 17.3, 5, 12.5],
           [5, 12.5, 5, 6.6, 8.7, 2.4, 12, 2.4],
         ];
-        var FLESH = [
-          [12, 3.85, 14.85, 3.85, 17.9, 7.55, 17.9, 12.6],
-          [17.9, 12.6, 17.9, 16.75, 15.25, 20.35, 12, 20.35],
-          [12, 20.35, 8.75, 20.35, 6.1, 16.75, 6.1, 12.6],
-          [6.1, 12.6, 6.1, 7.55, 9.15, 3.85, 12, 3.85],
-        ];
         var SEED = { x: 12, y: 13.7, r: 2.9 };
 
         var TAU = Math.PI * 2;
-        var WHITE = [255, 255, 255];
-        var BLACK = [0, 0, 0];
-
         var root = document.documentElement;
         var light = root.dataset.theme === "light";
         var canvas = document.querySelector(".splash__art");
@@ -895,14 +885,7 @@
         // belongs to the shell, and this is the product's own mark.
         var INK = readColor("--txt-primary", light ? [15, 15, 16] : [228, 230, 230]);
         var BG = readColor("--bg-surface-1", light ? [255, 255, 255] : [20, 20, 21]);
-        var GREEN = readColor("--accent-green", light ? [35, 128, 59] : [76, 184, 99]);
         var DANGER = readColor("--danger", light ? [191, 44, 34] : [229, 83, 75]);
-        var DANGER_TXT = readColor("--txt-danger", light ? [156, 35, 27] : [244, 164, 156]);
-        // Skin, flesh and seed of assets/kaava-mark-colour.svg. On white the
-        // pale flesh would vanish, so the light theme takes each a step deeper.
-        var TONES = light
-          ? [null, [70, 116, 34], [182, 212, 78], [120, 70, 26]]
-          : [null, [92, 138, 47], [208, 232, 120], [138, 85, 36]];
 
         // ==== Helpers =======================================================
 
@@ -924,35 +907,7 @@
           return Math.abs(target - next) < eps ? target : next;
         }
 
-        // `hash` is an integer hash to [0,1). `ign` is interleaved gradient
-        // noise, whose thresholds spread like blue noise, which keeps a
-        // dithered density from clumping or lining up. `vnoise` is smooth value
-        // noise; pass time as part of a coordinate to make it drift.
-        function hash(i, j, s) {
-          var h = Math.imul(i, 374761393) + Math.imul(j, 668265263) + Math.imul(s, 1274126177);
-          h = Math.imul(h ^ (h >>> 13), 1103515245);
-          return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-        }
-        function ign(i, j) {
-          var f = 0.06711056 * i + 0.00583715 * j;
-          f = 52.9829189 * (f - Math.floor(f));
-          return f - Math.floor(f);
-        }
-        function vnoise(x, y, s) {
-          var xi = Math.floor(x);
-          var yi = Math.floor(y);
-          var xf = x - xi;
-          var yf = y - yi;
-          var u = xf * xf * (3 - 2 * xf);
-          var v = yf * yf * (3 - 2 * yf);
-          var a = hash(xi, yi, s);
-          var b = hash(xi + 1, yi, s);
-          var c = hash(xi, yi + 1, s);
-          var d = hash(xi + 1, yi + 1, s);
-          return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
-        }
-
-        // The outlines as polygons in canvas px, so classifying a point needs no canvas.
+        // The outline as a polygon in canvas px, so classifying a point needs no canvas.
         function flatten(segs) {
           var pts = [];
           for (var s = 0; s < segs.length; s++) {
@@ -968,7 +923,6 @@
           return pts;
         }
         var SKIN_POLY = flatten(SKIN);
-        var FLESH_POLY = flatten(FLESH);
         var SEED_X = MARK_CX;
         var SEED_Y = MARK_TOP + (SEED.y - 2.4) * MARK_S;
         var SEED_R = SEED.r * MARK_S;
@@ -984,39 +938,6 @@
           }
           return hit;
         }
-        function edgeDistance(poly, x, y) {
-          var best = Infinity;
-          for (var i = 0, j = poly.length - 2; i < poly.length; j = i, i += 2) {
-            var ax = poly[j];
-            var ay = poly[j + 1];
-            var dx = poly[i] - ax;
-            var dy = poly[i + 1] - ay;
-            var t = clamp(((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1), 0, 1);
-            var d = Math.hypot(x - ax - dx * t, y - ay - dy * t);
-            if (d < best) best = d;
-          }
-          return best;
-        }
-
-        // Which of the mark's tones a point carries: 1 skin, 2 flesh, 3 seed,
-        // 0 outside or in a groove. `groove` is the width of empty grid left
-        // between tones, standing in for the colour mark's two hairlines.
-        function toneAt(x, y, groove) {
-          if (!inside(SKIN_POLY, x, y)) return 0;
-          var ds = Math.hypot(x - SEED_X, y - SEED_Y);
-          if (ds <= SEED_R - groove / 2) return 3;
-          if (ds < SEED_R + groove / 2) return 0;
-          if (edgeDistance(FLESH_POLY, x, y) < groove / 2) return 0;
-          return inside(FLESH_POLY, x, y) ? 2 : 1;
-        }
-
-        // 1 inside the lockup's box, falling to 0 over `reach` px outside it.
-        function lockupClear(x, y, reach) {
-          var dx = Math.max(LOCKUP.x0 - x, 0, x - LOCKUP.x1);
-          var dy = Math.max(LOCKUP.y0 - y, 0, y - LOCKUP.y1);
-          return 1 - smooth(0, reach, Math.hypot(dx, dy));
-        }
-
         // ==== Batched tiles =================================================
         // A colour is quantised to 64 steps a channel and 64 of alpha, and each
         // distinct one gets a batch kept across frames: one path and one fill
@@ -1093,8 +1014,9 @@
         // ==== State the picture reads =======================================
 
         // Seconds a failure's colour takes to arrive, and how long afterwards
-        // the picture keeps moving on its own before it rests. A failed splash
-        // can stay up for minutes while somebody reads the error.
+        // the picture keeps moving on its own before it rests. The backend's
+        // watchdog hands off about 10s after a failure, so the rest only
+        // matters for the last few seconds of that.
         var FAIL_S = 0.9;
         var FAIL_ACTIVE_S = 6;
         var READY_S = 0.8;
@@ -2002,8 +1924,9 @@
           }, FINALIZE_HOLD_MS);
         }
 
-        // `failed` is deliberately never auto-finished: the user should get a
-        // chance to read why before being dropped into the main window.
+        // The frontend never auto-finishes `failed`, so the user gets a chance
+        // to read why; the backend's watchdog (boot.rs) still hands off about
+        // 10s after a failure.
         continueButton.addEventListener("click", finish);
 
         /*

@@ -283,9 +283,10 @@ prose because the list is also the trademark surface.
   the one asset with no path to declare, because they are not files; the
   comment above them gives the `pyftsubset` command that regenerates them.
 - the mark on the splash. `splash.html` cannot load `assets/`, so it carries its
-  own copy of the geometry: the fallback SVG, and the outline its art script
-  draws the mark's three tones from. Changing the mark means changing it there
-  too; nothing checks it.
+  own copy of the geometry: the skin outline and the seed its art script draws
+  the mark from, and the fallback SVG it shows when it cannot draw. Both are
+  monochrome, in the text colour. Changing the mark means changing both copies;
+  nothing checks it.
 
 **Not replaced:** everything in §2's frozen list.
 
