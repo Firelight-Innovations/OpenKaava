@@ -15,7 +15,7 @@
 //! and GitHub content, as two tabs (`rail/GitPage.tsx`), Hindsight shows whether
 //! the memory service answers (`cloud::hindsight`), and the Artifact registry
 //! is `disabled` — listed so the rail reads as the finished set of six, opened
-//! by nothing.
+//! by nothing. Cloud agents is `disabled` too, for the MVP; see its row below.
 
 use serde::Serialize;
 
@@ -61,10 +61,10 @@ pub struct Page {
     pub mode: PageMode,
     /// `Alt 1`...`Alt 6`, in rail order -- `docs/design/KAAVA-UX-SPEC.md` §1.7.
     pub key: u8,
-    /// Not openable yet. Drawn on the rail at reduced opacity, per
-    /// `KAAVA-UX-REWORK.md` §4's "(later)": the Artifact registry is the one
-    /// row today, listed so the six-button set reads as finished rather than
-    /// missing a button.
+    /// Not openable. Drawn on the rail at reduced opacity, per
+    /// `KAAVA-UX-REWORK.md` §4's "(later)": the Artifact registry is not built
+    /// yet, and Cloud agents is switched off for the MVP. `open_page` refuses
+    /// both, and a restored layout that had one open comes back without it.
     pub disabled: bool,
 }
 
@@ -96,7 +96,10 @@ pub const PAGES: &[Page] = &[
         icon: "bot",
         mode: PageMode::Expanded,
         key: 3,
-        disabled: false,
+        // Off by the owner's call on 2026-10-14: the MVP is the local core, and
+        // this page reads Google Cloud. The app stays registered, so turning it
+        // back on is this one flag.
+        disabled: true,
     },
     Page {
         id: "hindsight",
@@ -198,9 +201,10 @@ mod tests {
     }
 
     #[test]
-    fn only_the_registry_is_disabled() {
+    fn only_the_registry_and_cloud_agents_are_disabled() {
         for page in PAGES {
-            assert_eq!(page.disabled, page.id == "registry", "{}", page.id);
+            let expected = matches!(page.id, "registry" | "agents");
+            assert_eq!(page.disabled, expected, "{}", page.id);
         }
     }
 

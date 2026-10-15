@@ -178,7 +178,8 @@ U-GodotPlay).
 in fixed order — **Git, Plane, Cloud agents, Hindsight, Cost, Artifact registry (later)** — each
 `36×36`, `radius 8px`, `16px` Lucide-style icon at `stroke-width 1.4`. Active/selected page:
 `border 1px #2c2e30`, `background #1d1f20`, icon colour = `accent`. Inactive: transparent, icon
-`#afb3b6` (txt-tertiary). Disabled/future (Artifact registry): `opacity 0.45`. Unread/attention dot:
+`#afb3b6` (txt-tertiary). Disabled/future (Artifact registry, and Cloud agents while it is switched
+off for the MVP): `opacity 0.45`. Unread/attention dot:
 `7×7` circle, `position absolute right 5px top 5px`, `border 2px solid #0f0f10` (bg-canvas, creates
 the notch), colour per the written spec's rail-dot table (§4 of KAAVA-UX-REWORK.md). Alt 1–6 open
 the pages in that order (from U-Spec's key list).
