@@ -83,8 +83,9 @@ function Row({
 }
 
 /**
- * The Agents page: every cluster's agent sessions, live. A row brings its tab
- * forward, in its own cluster; a cluster's `+` opens a new agent tab there.
+ * The Agents page: the agent sessions in this window's clusters, live. Another
+ * window's clusters are on its own page. A row brings its tab forward, in its
+ * own cluster; a cluster's `+` opens a new agent tab there.
  * The shell draws it (`pages.rs`'s `app_id: None`), from `useAgentSessions`.
  */
 export default function AgentsPage({

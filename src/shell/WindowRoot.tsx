@@ -67,8 +67,9 @@ import TerminalDeck, { type TerminalDeckHandle } from "./terminal/TerminalDeck";
 import { callApp, useApps, useOpenables, usePages } from "./state/apps";
 import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
-import { AGENT_TAB_APP, agentBarShown, sendToAgent, useAgentBarStatus } from "./state/agentBar";
+import { agentBarShown, sendToAgent, useAgentBarStatus } from "./state/agentBar";
 import { agentClusters, agentsDot, useAgentSessions } from "./state/agentSessions";
+import { newAgent, openAgent, type AgentOpeners } from "./state/agentOpeners";
 import { ClusterAgentBar } from "./agentbar/AgentBar";
 import ReadOnlyBanner from "./git/ReadOnlyBanner";
 import { useProjectIcon } from "./state/projectIcon";
@@ -1657,8 +1658,9 @@ export default function WindowRoot({
     [label, tree, instances, activePaneId],
   );
 
-  // The Agents page and its rail dot: every cluster's agent tabs, and what
-  // each session is doing, kept live whether or not the page is open.
+  // The Agents page and its rail dot: the agent tabs in this window's
+  // clusters, and what each session is doing, kept live whether or not the
+  // page is open.
   const agentList = useMemo(
     () => agentClusters(orderedClusters, instances),
     [orderedClusters, instances],
@@ -1669,38 +1671,30 @@ export default function WindowRoot({
   );
   const agentSessions = useAgentSessions(agentIds);
   // Like choosing a tab from the cluster's strip: Home stops covering the
-  // window, and `activate_instance` brings the tab's own cluster forward.
+  // window, `activate_instance` brings the tab's own cluster forward, and the
+  // pane holding the tab takes focus once that cluster is drawn.
+  const openers = useMemo<AgentOpeners>(
+    () => ({
+      label,
+      activeClusterId,
+      activePaneId,
+      hideTakeover,
+      focusWhenShown: setOpenedInstance,
+      activateInstance,
+      setActiveCluster,
+      openInstance,
+      splitDirOnOpen,
+      report: (message, err) => console.error(message, err),
+    }),
+    [label, activeClusterId, activePaneId, hideTakeover],
+  );
   const onOpenAgent = useCallback(
-    (instanceId: string) => {
-      hideTakeover();
-      const pane = paneOfTab(tree, instanceId);
-      if (pane !== null) setActivePane(pane);
-      void activateInstance(instanceId);
-    },
-    [tree, hideTakeover],
+    (instanceId: string) => void openAgent(openers, instanceId),
+    [openers],
   );
   const onNewAgent = useCallback(
-    (clusterId: string) => {
-      hideTakeover();
-      void (async () => {
-        if (clusterId === activeClusterId) {
-          // Through `setOpenedInstance`, like every other opener, so the
-          // pane holding the new tab becomes the active one.
-          setOpenedInstance(
-            await openInstance(
-              label,
-              AGENT_TAB_APP,
-              activePaneId ?? undefined,
-              splitDirOnOpen(activePaneId),
-            ),
-          );
-          return;
-        }
-        await setActiveCluster(label, clusterId);
-        await openInstance(label, AGENT_TAB_APP);
-      })();
-    },
-    [label, activeClusterId, activePaneId, hideTakeover],
+    (clusterId: string) => void newAgent(openers, clusterId),
+    [openers],
   );
 
   // The dialog's own "Open folder…"/"New project" buttons close it and hand
