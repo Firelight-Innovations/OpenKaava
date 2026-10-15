@@ -208,6 +208,9 @@ pub struct LaunchSpec {
     /// OpenKaava's own MCP servers, offered to the agent in `session/new`.
     /// Empty unless the caller fills it in.
     pub mcp_servers: Vec<McpServer>,
+    /// The model the session switches to once it is open, by value: the
+    /// tab's choice. `None` leaves the agent on its own default.
+    pub model: Option<String>,
 }
 
 /// The spec for `harness`, or the reason there is none. `path` and `pathext`
@@ -235,6 +238,7 @@ pub fn spec(
         policy: descriptor.policy,
         setting_timeout: SETTING_TIMEOUT,
         mcp_servers: Vec::new(),
+        model: None,
     })
 }
 

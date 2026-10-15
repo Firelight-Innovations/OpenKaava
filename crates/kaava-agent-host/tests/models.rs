@@ -31,6 +31,7 @@ fn mock(args: &[&str]) -> LaunchSpec {
         policy: CLAUDE.policy,
         setting_timeout: PATIENCE,
         mcp_servers: Vec::new(),
+        model: None,
     }
 }
 

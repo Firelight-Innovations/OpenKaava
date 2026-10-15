@@ -39,6 +39,7 @@ use crate::host::HostError;
 use crate::job::{self, Job};
 use crate::mask::mask;
 use crate::mcp::{self, McpServer};
+use crate::models::MODEL_CATEGORY;
 use crate::normalize::Normalizer;
 use crate::transcript::Transcript;
 use crate::wire::{self, Id, Incoming, RemoteError, AUTH_REQUIRED, METHOD_NOT_FOUND};
@@ -117,6 +118,8 @@ struct Shared {
     /// OpenKaava's MCP servers, for `session/new`. Their bearers are also
     /// scrubbed from the stderr tail.
     mcp_servers: Vec<McpServer>,
+    /// The model the tab chose, which the handshake switches to.
+    model: Option<String>,
     child: Mutex<Child>,
     /// What ends the child and everything it started at once.
     job: Option<Job>,
@@ -258,6 +261,7 @@ impl Session {
             worktree,
             expected_version: spec.expected_version,
             ask_first: spec.policy.ask_first,
+            model: spec.model.clone(),
             setting_timeout: spec.setting_timeout,
             mcp_servers: spec.mcp_servers,
             child: Mutex::new(child),
@@ -767,6 +771,9 @@ impl Shared {
             Some(HANDSHAKE),
         )
         .map_err(|_| Failure::Protocol("the agent would not switch to ask-first mode"))?;
+        if let Some(model) = &self.model {
+            self.choose_model(&session_id, model);
+        }
         let mut inner = self.lock();
         inner.status.mode = Some(self.ask_first.to_string());
         if inner.closed {
@@ -776,6 +783,42 @@ impl Shared {
         let status = inner.status.clone();
         self.emit(&mut inner, Event::Status { status });
         Ok(())
+    }
+
+    /// Switch the session to `model`, the tab's choice, unless it is on it
+    /// already. A model the agent no longer offers, or a switch it refuses,
+    /// leaves the session on the agent's default, which its status shows: a
+    /// model is not worth failing a session over.
+    fn choose_model(&self, session_id: &str, model: &str) {
+        let option = self
+            .lock()
+            .status
+            .config
+            .iter()
+            .find(|o| o.category.as_deref() == Some(MODEL_CATEGORY))
+            .filter(|o| o.value != model)
+            .map(|o| (o.id.clone(), o.choices.iter().any(|c| c.value == model)));
+        let Some((config_id, offered)) = option else {
+            return;
+        };
+        let switched = offered
+            && self
+                .send_request(
+                    "session/set_config_option",
+                    json!({ "sessionId": session_id, "configId": config_id, "value": model }),
+                    carries_settings(None),
+                )
+                .and_then(|id| self.finish(id, "session/set_config_option", Some(HANDSHAKE)))
+                .is_ok();
+        if !switched {
+            (self.log)(
+                Level::Info,
+                &format!(
+                    "agent-host: {} runs the agent's default model, not the one chosen",
+                    self.instance_id
+                ),
+            );
+        }
     }
 
     /// The handshake did not finish. Drawn even when the process has already

@@ -74,6 +74,7 @@ fn mock(args: &[&str]) -> LaunchSpec {
         policy: CLAUDE.policy,
         setting_timeout: PATIENCE,
         mcp_servers: Vec::new(),
+        model: None,
     }
 }
 
@@ -748,6 +749,77 @@ fn the_session_asks_for_its_harness_policy_mode() {
     let refused = rig();
     refused.send(&["--only-mode", "read-only"], "hi").unwrap();
     refused.state(SessionState::Failed);
+}
+
+/// The first status that says the session is ready. The handshake sends it
+/// once it has finished, before the first prompt reaches the agent.
+fn first_ready(events: &[Envelope]) -> Option<kaava_agent_host::SessionStatus> {
+    events.iter().find_map(|e| match &e.event {
+        Event::Status { status } if status.state == SessionState::Ready => Some(status.clone()),
+        _ => None,
+    })
+}
+
+fn on_model(model: &str, args: &[&str]) -> LaunchSpec {
+    LaunchSpec {
+        model: Some(model.to_string()),
+        ..mock(args)
+    }
+}
+
+/// What the mock was sent, one method per line, by `--trace`.
+fn traced(rig: &Rig, model: &str) -> String {
+    let dir = tempfile::tempdir().unwrap();
+    let trace = dir.path().join("trace.txt");
+    let spec = on_model(model, &["--trace", trace.to_str().unwrap()]);
+    rig.host.send(TAB, spec, rig.tree.clone(), "hi").unwrap();
+    rig.turns_done(1);
+    std::fs::read_to_string(&trace).unwrap()
+}
+
+#[test]
+fn a_session_starts_on_the_model_the_tab_chose() {
+    let rig = rig();
+    let sent = traced(&rig, "haiku");
+    assert!(sent.contains("session/set_config_option"), "{sent}");
+    let ready = first_ready(&rig.events()).unwrap();
+    assert_eq!(value_of(&ready, "model"), Some("haiku"));
+}
+
+#[test]
+fn a_session_already_on_the_model_chosen_is_not_switched() {
+    let rig = rig();
+    let sent = traced(&rig, "default");
+    assert!(!sent.contains("session/set_config_option"), "{sent}");
+    assert!(!rig
+        .logs
+        .lock()
+        .unwrap()
+        .iter()
+        .any(|l| l.contains("default model")));
+}
+
+#[test]
+fn a_model_the_agent_does_not_offer_is_never_asked_for() {
+    let rig = rig();
+    let sent = traced(&rig, "retired");
+    assert!(!sent.contains("session/set_config_option"), "{sent}");
+    let ready = first_ready(&rig.events()).unwrap();
+    assert_eq!(value_of(&ready, "model"), Some("default"));
+    let logs = rig.logged("default model");
+    assert!(logs.iter().any(|l| l.contains("default model")), "{logs:?}");
+}
+
+#[test]
+fn a_model_the_agent_refuses_leaves_the_session_on_its_default() {
+    let rig = rig();
+    let spec = on_model("opus", &["--refuse-model"]);
+    rig.host.send(TAB, spec, rig.tree.clone(), "hi").unwrap();
+    rig.turns_done(1);
+    let ready = first_ready(&rig.events()).unwrap();
+    assert_eq!(value_of(&ready, "model"), Some("default"));
+    let logs = rig.logged("default model");
+    assert!(logs.iter().any(|l| l.contains("default model")), "{logs:?}");
 }
 
 /// Removed from what the agent inherits, as `DEFAULT_AUTH_REQUEST` is for

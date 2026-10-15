@@ -300,7 +300,9 @@ impl Mock {
                     "sessionUpdate": "current_mode_update", "currentModeId": self.mode
                 }));
             }
-            "model" if MODELS.iter().any(|(m, _)| *m == value) => {
+            // `--refuse-model` refuses any model, as an adapter refuses one it
+            // no longer has.
+            "model" if !self.has("--refuse-model") && MODELS.iter().any(|(m, _)| *m == value) => {
                 self.model = value;
                 if !self.levels().contains(&self.effort.as_str()) {
                     self.effort = "medium".into();
