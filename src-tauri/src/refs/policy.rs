@@ -160,12 +160,18 @@ pub fn secret_rule(rel: &str) -> Option<&'static str> {
 /// its header whatever the file is called, so a renamed key is still caught.
 pub fn secret_content(head: &[u8]) -> Option<&'static str> {
     let text = String::from_utf8_lossy(head);
-    let key = text.lines().map(str::trim).any(|line| {
-        let pem = line.starts_with("-----BEGIN ")
-            && (line.ends_with("PRIVATE KEY-----") || line.ends_with("PRIVATE KEY BLOCK-----"));
-        pem || line.starts_with("PuTTY-User-Key-File-")
-    });
-    key.then_some("private keys and key stores")
+    text.lines().any(key_line).then_some(KEYS)
+}
+
+/// The rule a private key falls under.
+pub const KEYS: &str = "private keys and key stores";
+
+/// Whether one line opens a private key: a PEM header or a PuTTY one.
+pub fn key_line(line: &str) -> bool {
+    let line = line.trim();
+    let pem = line.starts_with("-----BEGIN ")
+        && (line.ends_with("PRIVATE KEY-----") || line.ends_with("PRIVATE KEY BLOCK-----"));
+    pem || line.starts_with("PuTTY-User-Key-File-")
 }
 
 /// Whether gitignore patterns ignore case. Git's `core.ignorecase` is on by

@@ -254,10 +254,11 @@ pub(super) fn describe(
     }
     if class.textual && textual {
         let ex = excerpt(abs, lines)?;
-        // A line range reaches past the head checked above, so what it
-        // would send is checked as well.
-        if let Some(rule) = policy::secret_content(ex.text.as_bytes()) {
-            return Ok(out.withhold(secret_withheld(rule)));
+        // A line range reaches past the head checked above. A key opened
+        // anywhere before its last line withholds it, as one in the head
+        // withholds the file: a range can start on the key's body.
+        if ex.past_key {
+            return Ok(out.withhold(secret_withheld(policy::KEYS)));
         }
         if let Some(total) = ex.total_lines {
             out.meta.insert("lines".into(), json!(total));
@@ -365,6 +366,8 @@ struct Excerpt {
     truncated: bool,
     /// Known only when the whole file was read.
     total_lines: Option<u32>,
+    /// Whether a line read, skipped or kept, opens a private key.
+    past_key: bool,
 }
 
 /// Lines `lines` of a text file (or its start), within the caps.
@@ -381,7 +384,7 @@ fn excerpt_within(abs: &Path, lines: Option<Lines>, scan: u64) -> Result<Excerpt
     let last = lines.map(Lines::last);
     let (mut text, mut buf) = (String::new(), Vec::new());
     let (mut line_no, mut taken) = (0u32, 0u32);
-    let (mut truncated, mut eof) = (false, false);
+    let (mut truncated, mut eof, mut past_key) = (false, false, false);
     loop {
         buf.clear();
         let n = reader
@@ -392,13 +395,14 @@ fn excerpt_within(abs: &Path, lines: Option<Lines>, scan: u64) -> Result<Excerpt
             break;
         }
         line_no += 1;
-        if line_no < start {
-            continue;
-        }
         if last.is_some_and(|last| line_no > last) {
             break;
         }
         let line = String::from_utf8_lossy(&buf);
+        past_key = past_key || policy::key_line(&line);
+        if line_no < start {
+            continue;
+        }
         if taken >= MAX_EXCERPT_LINES || text.len() + line.len() > MAX_EXCERPT_BYTES {
             if text.is_empty() {
                 text.push_str(cut(&line, MAX_EXCERPT_BYTES));
@@ -437,6 +441,7 @@ fn excerpt_within(abs: &Path, lines: Option<Lines>, scan: u64) -> Result<Excerpt
         start,
         truncated,
         total_lines: complete.then_some(line_no),
+        past_key,
     })
 }
 
@@ -975,6 +980,10 @@ mod tests {
         let late = resolve(&dir, "kaava://file/notes/long.txt#L2000-L2002").unwrap();
         assert!(late.parts.is_empty());
         assert!(late.withheld.unwrap().contains("private keys"));
+        // The header is not in this range, only the key's body.
+        let body = resolve(&dir, "kaava://file/notes/long.txt#L2002-L2003").unwrap();
+        assert!(body.parts.is_empty());
+        assert!(body.withheld.unwrap().contains("private keys"));
     }
 
     #[test]
