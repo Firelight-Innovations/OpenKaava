@@ -217,7 +217,9 @@ pub(super) fn describe(
 }
 
 /// An image part when the bytes are a raster format a model accepts and the
-/// file is under the cap; an SVG is sent as itself; anything else is a note.
+/// file is under the cap; anything else is a note. An SVG under the cap gets no
+/// part here: it is text, which [`describe`] sends once as an excerpt, and no
+/// model provider takes one as an image.
 fn image(
     mut out: Resolved,
     abs: &Path,
@@ -232,16 +234,13 @@ fn image(
             out.meta.insert("height".into(), json!(h));
         }
     }
-    let mime = match (&sniffed, class.mime) {
-        (Some(s), _) => s.mime,
-        (None, "image/svg+xml") => "image/svg+xml",
-        _ => {
-            out.parts.push(Part::Note {
-                text: format!("image, {}; this format has no preview", human_size(size)),
-            });
-            return Ok(out);
-        }
-    };
+    let svg = class.mime == "image/svg+xml";
+    if sniffed.is_none() && !svg {
+        out.parts.push(Part::Note {
+            text: format!("image, {}; this format has no preview", human_size(size)),
+        });
+        return Ok(out);
+    }
     if size > MAX_IMAGE_BYTES {
         return Ok(out.withhold(format!(
             "withheld: the image is {}, over the {} that is sent inline",
@@ -249,6 +248,9 @@ fn image(
             human_size(MAX_IMAGE_BYTES)
         )));
     }
+    let Some(mime) = sniffed.as_ref().map(|s| s.mime) else {
+        return Ok(out);
+    };
     let bytes = read_prefix(abs, MAX_IMAGE_BYTES)?;
     out.parts.push(Part::Image {
         mime: mime.into(),
@@ -828,6 +830,23 @@ mod tests {
         assert_eq!(human_size(1536), "1.5 KB");
         assert_eq!(human_size(1_048_575), "1.0 MB");
         assert_eq!(human_size(3_500_000), "3.3 MB");
+    }
+
+    #[test]
+    fn an_svg_is_sent_once_as_its_text() {
+        let dir = project();
+        let svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"><circle r=\"4\"/></svg>\n";
+        put(&dir, "art/dot.svg", svg.as_bytes());
+        let r = resolve(&dir, "kaava://file/art/dot.svg").unwrap();
+        assert_eq!(r.kind, "image");
+        assert_eq!(r.meta["mime"], "image/svg+xml");
+        match r.parts.as_slice() {
+            [Part::Text { text, language, .. }] => {
+                assert_eq!(text, svg.trim_end());
+                assert_eq!(language.as_deref(), Some("xml"));
+            }
+            other => panic!("one text part, not {other:?}"),
+        }
     }
 
     #[test]
