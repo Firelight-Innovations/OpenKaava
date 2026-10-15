@@ -288,8 +288,9 @@ impl AgentHost {
             .set_mode(mode_id)
     }
 
-    /// Set one of the tab's session settings other than the mode: model,
-    /// effort. Returns the change's number, as [`AgentHost::set_mode`] does.
+    /// Set one of the tab's session settings other than the mode, such as
+    /// the model or effort: any option the status lists, to a value it
+    /// offers. Returns the change's number, as [`AgentHost::set_mode`] does.
     pub fn set_config(
         &self,
         instance_id: &str,

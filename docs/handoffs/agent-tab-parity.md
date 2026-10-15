@@ -67,16 +67,18 @@ cells of the rows it closes in section 2.
   the context server's `session_servers` lands. Load and resume (PR 7) pass
   the same list.
 - **PR 3** (model and effort): the options of category `model` and
-  `thought_level` are drawn in the composer's settings menu, the model
-  under its harness and the effort beside the mode, with the agent's own
-  names and lists in its order; nothing is hardcoded. A choice goes
-  through `agent-tab/set-config`, gated with `send` and `set-mode`, to
-  `session/set_config_option`, numbered and queued as a mode change is.
-  The host takes only a value the status offers for that option. The
-  reply carries every option as it then stands, so a new model's effort
-  levels, or none, arrive with it. Fast mode (`model_config`) is left for
-  PR 4. Typed `/model` and `/effort` are not mapped to the menu, and
-  the keyboard shortcuts are not built.
+  `thought_level` are drawn as selects beside the mode, with the agent's
+  own names and lists in its order; no name or list is hardcoded. A
+  choice goes through `agent-tab/set-config`, gated with `send` and
+  `set-mode`, to `session/set_config_option`, numbered and queued as a
+  mode change is. The host takes any option the status lists, but only a
+  value the status offers for it. The reply carries every option as it
+  then stands, so a new model's effort levels, or none, arrive with it.
+  Each choice stands until the answer to its own change, so a refusal
+  takes back that choice alone. Fast mode (`model_config`) is not drawn,
+  though the host would take it; PR 4 gives it a switch. Typed `/model`
+  and `/effort` are not mapped to the menu, and the keyboard shortcuts
+  are not built.
 
 Open questions:
 
