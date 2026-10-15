@@ -153,10 +153,11 @@ request carries what it grants under `permissions` or `additionalPermissions`, a
   its subpath. Every other scope is refused: the whole disk, the temp folders, and any kind Codex
   adds later.
 - An entry whose access is `deny` grants nothing, and is skipped.
-- A file change names only the file it edits. A move's destination is in the diff that the change
-  reported when it started, so the guard also checks every file the same tool call named before.
-  The adapter drops a diff over its size limit, path and all, so a move with a diff that large is
-  not checked.
+- A file change's request names the files it edits, and a moved file by its source only. A move's
+  destination is in the diff that the change reported when it started, so the guard also checks
+  every file the same tool call named before. A command's files count the same way, whether or not
+  it has started. The adapter drops a diff over 1 MiB, path and all, so a move with a diff that
+  large is not checked.
 
 ## Adding a harness
 
