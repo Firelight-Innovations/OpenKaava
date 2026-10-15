@@ -1129,6 +1129,27 @@ describe("the harness", () => {
     expect(chips(container)).not.toContain("Claude");
   });
 
+  it("offers to list the harnesses again when the list fails", async () => {
+    let attempts = 0;
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        "agent-tab/harnesses": () =>
+          ++attempts === 1
+            ? Promise.reject(new Error("not yet"))
+            : Promise.resolve({ harnesses: [CLAUDE], current: "claude", blocked: null }),
+      },
+    );
+    const { container } = render(<App />);
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Could not list the harnesses.");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    });
+    await waitFor(() => expect(chips(container)).toContain("Claude"));
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   it("words an ended session's hint for its own harness, not the one chosen next", async () => {
     const pi = { ...PI, setup: { ...CLAUDE.setup, cli: "pi", signIn: "pi login" } };
     backend(

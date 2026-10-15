@@ -95,6 +95,7 @@ export default function App() {
   const [chosen, setChosen] = useState<Harness | null>(null);
   const [attachFailed, setAttachFailed] = useState(false);
   const [pending, setPending] = useState<Pending | null>(null);
+  const [harnessesFailed, setHarnessesFailed] = useState(false);
   // Counts the choices this tab has heard of. A `harnesses` reply asked for
   // before one is older than it, so it must not put back the harness it
   // replaced.
@@ -119,24 +120,31 @@ export default function App() {
     setChosen(harness);
   }, []);
 
+  // Without this answer the tab has no harness to name or offer, so a failure
+  // says so and can be retried.
+  const listHarnesses = useCallback(() => {
+    const asked = choices.current;
+    return rpc.harnesses().then(
+      (answer) => {
+        setHarnessesFailed(false);
+        setBlocked(answer.blocked);
+        setHarnesses(answer.harnesses);
+        if (choices.current === asked) setChosen(answer.current);
+      },
+      () => setHarnessesFailed(true),
+    );
+  }, []);
+
   useEffect(() => {
     const stop = rpc.onEnvelope((envelope) => dispatch({ type: "envelope", envelope }));
     const stopChosen = rpc.onChosen(heardChoice);
     void attach().finally(() => reportPainted());
-    const asked = choices.current;
-    rpc
-      .harnesses()
-      .then((answer) => {
-        setBlocked(answer.blocked);
-        setHarnesses(answer.harnesses);
-        if (choices.current === asked) setChosen(answer.current);
-      })
-      .catch(() => {});
+    void listHarnesses();
     return () => {
       stop();
       stopChosen();
     };
-  }, [attach, heardChoice]);
+  }, [attach, heardChoice, listHarnesses]);
 
   const status = state.status;
   const working = busy(status);
@@ -334,6 +342,13 @@ export default function App() {
                       text={strings.failed.attach}
                       hint={null}
                       action={{ label: strings.retry, onClick: () => void attach() }}
+                    />
+                  )}
+                  {harnessesFailed && (
+                    <S.Notice
+                      text={strings.failed.harnesses}
+                      hint={null}
+                      action={{ label: strings.retry, onClick: () => void listHarnesses() }}
                     />
                   )}
                   {trouble && <S.Notice text={troubleText(trouble)} hint={null} action={null} />}

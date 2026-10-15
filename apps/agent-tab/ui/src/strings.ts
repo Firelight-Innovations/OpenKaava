@@ -160,6 +160,7 @@ export const strings = {
     send: "Could not send that.",
     setting: "Could not change that setting.",
     choose: "Could not switch the harness.",
+    harnesses: "Could not list the harnesses.",
   },
   exited: (code: number | null) =>
     code === null ? "The agent stopped." : `The agent stopped with exit code ${code}.`,
