@@ -20,7 +20,16 @@ export interface ItemActions {
   onRetry: (itemId: string) => void;
 }
 
-export function ItemView({ item, actions }: { item: Item; actions: ItemActions }) {
+/** `live`: the item is the part still streaming in a running turn. */
+export function ItemView({
+  item,
+  actions,
+  live = false,
+}: {
+  item: Item;
+  actions: ItemActions;
+  live?: boolean;
+}) {
   const S = useSlots();
   const kind = item.kind;
   switch (kind.kind) {
@@ -29,7 +38,7 @@ export function ItemView({ item, actions }: { item: Item; actions: ItemActions }
     case "assistantText":
       return <AssistantItem text={kind.text} />;
     case "reasoning":
-      return <S.Thinking text={kind.text} />;
+      return <S.Thinking text={kind.text} live={live} />;
     case "toolCall":
       return <ToolItem tool={kind} />;
     case "approval":

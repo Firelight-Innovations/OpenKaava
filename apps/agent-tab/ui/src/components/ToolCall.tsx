@@ -47,7 +47,7 @@ export function ToolCall({ title, status, output, truncated, paths, diffs }: Too
   if (!hasBody) return <div className="at-item at-tool at-tool__head">{head}</div>;
   return (
     <details className="at-item at-tool">
-      <summary className="at-tool__head">{head}</summary>
+      <summary className="at-tool__head at-disclosure">{head}</summary>
       <S.PathList paths={paths} />
       {diffs.map((diff, i) => (
         <S.Diff key={`${i}:${diff.path}`} {...diff} />

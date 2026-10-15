@@ -102,10 +102,120 @@
   color: var(--k-fg-muted);
 }
 
+/* Every fold: no triangle, a caret after the label that turns down when open. */
+.at-disclosure {
+  list-style: none;
+}
+
+.at-disclosure::-webkit-details-marker {
+  display: none;
+}
+
+.at-disclosure:hover {
+  color: var(--k-editor-fg);
+}
+
+.at-disclosure::after {
+  /* Empty alt text: the caret is decoration, not part of the label. */
+  content: "›" / "";
+  display: inline-block;
+  margin-left: var(--k-space-1-5);
+  color: var(--k-fg-faint);
+  transition: transform var(--k-motion-fast) var(--k-ease);
+}
+
+details[open] > .at-disclosure::after,
+.at-disclosure[aria-expanded="true"]::after {
+  transform: rotate(90deg);
+}
+
+/* A label still in progress: a light sweeps across it. */
+.at-shimmer[data-live] {
+  background: linear-gradient(
+      90deg,
+      var(--k-shimmer-base) 35%,
+      var(--k-shimmer-glint) 50%,
+      var(--k-shimmer-base) 65%
+    )
+    0 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: at-shimmer 2s linear infinite;
+}
+
+@keyframes at-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .at-shimmer[data-live] {
+    animation: none;
+    background: none;
+    color: var(--k-shimmer-glint);
+  }
+}
+
 .at-reasoning__text {
   white-space: pre-wrap;
   color: var(--k-fg-muted);
   padding-left: var(--k-space-3);
+}
+
+/* A run of tool calls: one line, and open, one card with a row per call. */
+/* A lone call keeps the wrapper, so it is not remounted when a second joins
+   it, but the wrapper draws nothing. */
+.at-actions:not([data-grouped]),
+.at-actions:not([data-grouped]) > .at-actions__body {
+  display: contents;
+}
+
+.at-actions__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--k-space-1-5);
+  width: 100%;
+  min-height: var(--k-row);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: var(--k-fg-muted);
+}
+
+.at-actions__head:focus-visible {
+  outline: var(--k-focus-ring);
+}
+
+.at-actions__head::after {
+  margin-left: 0;
+}
+
+.at-actions__failed {
+  color: var(--k-tool-failed);
+  font-size: var(--k-size-small);
+}
+
+.at-actions[data-grouped] > .at-actions__body {
+  margin-top: var(--k-space-1);
+  border: 1px solid var(--k-panel-border);
+  border-radius: var(--k-radius-turn);
+  overflow: hidden;
+}
+
+.at-actions[data-grouped] > .at-actions__body > * {
+  padding: var(--k-space-1) var(--k-space-3);
+}
+
+.at-actions[data-grouped] > .at-actions__body > * + * {
+  border-top: 1px solid var(--k-panel-border);
 }
 
 /* Tool calls are compact, muted rows; what they did opens beneath them. */
@@ -121,26 +231,9 @@
   border-radius: var(--k-radius-sm);
 }
 
-details > .at-tool__head {
-  list-style: none;
-}
-
-details > .at-tool__head::-webkit-details-marker {
-  display: none;
-}
-
-details > .at-tool__head:hover {
-  color: var(--k-editor-fg);
-}
-
-details > .at-tool__head::after {
-  content: "›";
-  color: var(--k-fg-faint);
-  transition: transform var(--k-motion-fast) var(--k-ease);
-}
-
-details[open] > .at-tool__head::after {
-  transform: rotate(90deg);
+/* The row's own gap already spaces its caret. */
+.at-tool__head::after {
+  margin-left: 0;
 }
 
 details.at-tool > :not(summary) {

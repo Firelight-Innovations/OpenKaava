@@ -74,8 +74,26 @@ export interface AssistantTextProps {
   onAuxClick: (event: MouseEvent<HTMLDivElement>) => void;
 }
 
+/** A run of tool calls folded into one line; `children` are the calls' own rows. */
+export interface ActionGroupProps {
+  /**
+   * Two or more calls, drawn as a line that opens. A lone call is passed with
+   * `false` and should be drawn as it is, at the same place in the tree.
+   */
+  grouped: boolean;
+  /** "Ran 2 commands, read a file". */
+  summary: string;
+  /** Some call has not finished: the line shimmers. */
+  running: boolean;
+  /** "1 failed", or `null` when none did. */
+  failed: string | null;
+  children: ReactNode;
+}
+
 export interface ThinkingProps {
   text: string;
+  /** Still being written: the label shimmers. */
+  live?: boolean;
 }
 
 /** One file's change, already diffed. `lines` is `null` when it is too large. */
