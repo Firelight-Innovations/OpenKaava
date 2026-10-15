@@ -551,6 +551,13 @@ impl Mock {
                     json!([{ "type": "diff", "path": path, "oldText": null, "newText": "x" }]),
                 );
             }
+            // A command that runs in the worktree's parent, as Codex words one.
+            "elsewhere" => self.ask(
+                "elsewhere",
+                json!([]),
+                json!({ "command": "ls", "cwd": format!("{}/..", self.cwd) }),
+                json!([]),
+            ),
             "cancelreq" => {
                 self.ask(
                     "cancelreq",

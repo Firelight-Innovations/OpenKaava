@@ -97,11 +97,7 @@ impl Worktree {
 /// in the order found.
 pub fn request_paths(tool_call: &Value) -> Vec<String> {
     let mut paths = Vec::new();
-    let mut push = |p: &str| {
-        if !p.is_empty() && !paths.iter().any(|seen: &String| seen == p) {
-            paths.push(p.to_string());
-        }
-    };
+    let mut push = |p: &str| add(&mut paths, p);
     for location in array(tool_call, "locations") {
         if let Some(p) = location.get("path").and_then(Value::as_str) {
             push(p);
@@ -124,6 +120,45 @@ pub fn request_paths(tool_call: &Value) -> Vec<String> {
     paths
 }
 
+/// Every path a `session/request_permission` reaches: [`request_paths`], the
+/// folder a command would run in, and each path and pattern of any extra
+/// sandbox access it asks for. This is what the guard checks, and more than
+/// the tab shows: a command's folder is almost always the worktree itself.
+///
+/// Codex asks for sandbox access as a permission profile, with a command
+/// (`additionalPermissions`) or on its own (`permissions`). A glob pattern is
+/// checked by its text, so one rooted outside the worktree is outside. A
+/// named scope, such as the whole disk, names no path; the user is asked.
+pub fn request_scope(tool_call: &Value) -> Vec<String> {
+    let mut paths = request_paths(tool_call);
+    let mut push = |p: &str| add(&mut paths, p);
+    let input = tool_call.get("rawInput").unwrap_or(&Value::Null);
+    if let Some(cwd) = input.get("cwd").and_then(Value::as_str) {
+        push(cwd);
+    }
+    for key in ["permissions", "additionalPermissions"] {
+        let Some(files) = input.get(key).and_then(|p| p.get("fileSystem")) else {
+            continue;
+        };
+        for access in ["read", "write"] {
+            for p in array(files, access).filter_map(Value::as_str) {
+                push(p);
+            }
+        }
+        for path in array(files, "entries").filter_map(|e| e.get("path")) {
+            let text = match path.get("type").and_then(Value::as_str) {
+                Some("path") => path.get("path"),
+                Some("glob_pattern") => path.get("pattern"),
+                _ => None,
+            };
+            if let Some(p) = text.and_then(Value::as_str) {
+                push(p);
+            }
+        }
+    }
+    paths
+}
+
 /// The paths among `paths` that resolve outside `worktree`.
 pub fn outside(worktree: &Worktree, paths: &[String]) -> Vec<String> {
     paths
@@ -131,6 +166,13 @@ pub fn outside(worktree: &Worktree, paths: &[String]) -> Vec<String> {
         .filter(|p| !worktree.contains(p))
         .cloned()
         .collect()
+}
+
+/// `p` added to `paths` unless it is empty or already there.
+fn add(paths: &mut Vec<String>, p: &str) {
+    if !p.is_empty() && !paths.iter().any(|seen| seen == p) {
+        paths.push(p.to_string());
+    }
 }
 
 fn array<'a>(value: &'a Value, key: &str) -> impl Iterator<Item = &'a Value> {
@@ -347,6 +389,45 @@ mod tests {
         });
         assert_eq!(request_paths(&call), vec!["/w/a.rs", "/w/b.rs", "/w/c.rs"]);
         assert!(request_paths(&json!({"rawInput": {"command": "ls"}})).is_empty());
+    }
+
+    #[test]
+    fn a_codex_command_is_checked_where_it_runs_and_for_what_it_asks() {
+        let call = json!({
+            "locations": [{"path": "/w/a.rs"}],
+            "rawInput": {
+                "command": "cargo build",
+                "cwd": "/elsewhere",
+                "additionalPermissions": {"fileSystem": {
+                    "write": ["/w/target"],
+                    "entries": [
+                        {"access": "write", "path": {"type": "path", "path": "/w/out"}},
+                        {"access": "read", "path": {"type": "glob_pattern", "pattern": "/etc/**"}},
+                        {"access": "write", "path": {"type": "special", "value": {"kind": "root"}}}
+                    ]
+                }}
+            }
+        });
+        assert_eq!(request_paths(&call), vec!["/w/a.rs"]);
+        assert_eq!(
+            request_scope(&call),
+            vec!["/w/a.rs", "/elsewhere", "/w/target", "/w/out", "/etc/**"]
+        );
+    }
+
+    #[test]
+    fn a_codex_sandbox_request_is_checked_for_each_path_it_grants() {
+        let (_dir, tree) = layout();
+        let call = json!({
+            "rawInput": {
+                "cwd": "src",
+                "permissions": {"fileSystem": {"read": ["src/lib.rs"], "entries": [
+                    {"access": "write", "path": {"type": "glob_pattern", "pattern": "../**"}}
+                ]}}
+            }
+        });
+        let scope = request_scope(&call);
+        assert_eq!(outside(&tree, &scope), vec!["../**".to_string()]);
     }
 
     #[test]

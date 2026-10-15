@@ -460,6 +460,20 @@ fn a_diff_to_a_file_outside_the_worktree_is_refused_without_asking() {
 }
 
 #[test]
+fn a_command_that_would_run_outside_the_worktree_is_refused_without_asking() {
+    let rig = rig();
+    rig.send(&[], "elsewhere").unwrap();
+    rig.turns_done(1);
+    let items = rig.items();
+    let card = approval(&items).unwrap();
+    assert!(matches!(&card.kind, ItemKind::Approval { answer: Some(a), .. } if a == "outside"));
+    assert_eq!(
+        echoed_answer(&items),
+        json!({ "outcome": { "outcome": "selected", "optionId": "o3" } })
+    );
+}
+
+#[test]
 fn the_agent_can_withdraw_its_request() {
     let rig = rig();
     rig.send(&[], "cancelreq").unwrap();

@@ -33,7 +33,7 @@ use crate::config::{self, Settings};
 use crate::event::{
     Attachment, Envelope, Event, Hint, Item, ItemKind, SessionState, SessionStatus, SettingTrouble,
 };
-use crate::guard::{outside, request_paths, Worktree};
+use crate::guard::{outside, request_paths, request_scope, Worktree};
 use crate::harness::{Harness, LaunchSpec};
 use crate::host::HostError;
 use crate::job::{self, Job};
@@ -1159,7 +1159,7 @@ impl Shared {
     fn permission(&self, rpc: Id, params: &Value) {
         let call = params.get("toolCall").unwrap_or(&Value::Null);
         let named = request_paths(call);
-        let escapes = outside(&self.worktree, &named);
+        let escapes = outside(&self.worktree, &request_scope(call));
         let paths = named.iter().map(|p| self.worktree.display(p)).collect();
         let mut inner = self.lock();
         if inner.closed {
