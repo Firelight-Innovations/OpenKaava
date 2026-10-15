@@ -33,6 +33,7 @@ use crate::event::{
 use crate::guard::{outside, request_paths, Worktree};
 use crate::harness::LaunchSpec;
 use crate::host::HostError;
+use crate::job::{self, Job};
 use crate::mask::mask;
 use crate::normalize::Normalizer;
 use crate::transcript::Transcript;
@@ -104,6 +105,8 @@ struct Shared {
     worktree: Worktree,
     expected_version: Option<&'static str>,
     child: Mutex<Child>,
+    /// What ends the child and everything it started at once.
+    job: Option<Job>,
     writer: Sender<Line>,
     seq: Arc<AtomicU64>,
     log: Log,
@@ -166,15 +169,14 @@ impl Session {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
-        no_window(&mut command);
-        let mut child = command.spawn().map_err(|e| HostError::Spawn {
+        let (mut child, job) = job::spawn(&mut command).map_err(|e| HostError::Spawn {
             hint: (e.kind() == std::io::ErrorKind::NotFound).then_some(Hint::AdapterMissing),
             message: mask(&e.to_string()),
         })?;
         let (Some(stdin), Some(stdout), Some(stderr)) =
             (child.stdin.take(), child.stdout.take(), child.stderr.take())
         else {
-            kill_tree(&mut child);
+            job::kill(&mut child, job.as_ref());
             return Err(HostError::Spawn {
                 hint: None,
                 message: "the agent's pipes could not be opened".to_string(),
@@ -197,6 +199,7 @@ impl Session {
             worktree,
             expected_version: spec.expected_version,
             child: Mutex::new(child),
+            job,
             writer,
             seq: Arc::clone(&seq),
             log,
@@ -349,7 +352,7 @@ impl Session {
         self.shared.stopped.store(true, Ordering::SeqCst);
         self.shared.send_close();
         let mut child = self.shared.child.lock().unwrap_or_else(|e| e.into_inner());
-        kill_tree(&mut child);
+        job::kill(&mut child, self.shared.job.as_ref());
     }
 
     /// Wait until the process has exited, or `deadline` passes.
@@ -597,7 +600,7 @@ impl Shared {
         );
         self.send_close();
         let mut child = self.child.lock().unwrap_or_else(|e| e.into_inner());
-        kill_tree(&mut child);
+        job::kill(&mut child, self.job.as_ref());
     }
 
     /// Run the queued prompt, if a cancel has not withdrawn it.
@@ -1034,35 +1037,6 @@ fn spawn(name: &str, work: impl FnOnce() + Send + 'static) {
     // A thread that cannot start leaves the session without that part; the
     // waiter or the reader still ends it, and the process is killed on drop.
     let _ = thread::Builder::new().name(name.to_string()).spawn(work);
-}
-
-/// The process and everything it started. On Windows an npm shim is
-/// `cmd.exe` running `node`, so killing the child alone would leave the agent
-/// running; `taskkill /T` takes the tree. Elsewhere, the child.
-fn kill_tree(child: &mut Child) {
-    #[cfg(windows)]
-    {
-        let mut command = Command::new("taskkill");
-        command
-            .args(["/T", "/F", "/PID", &child.id().to_string()])
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null());
-        no_window(&mut command);
-        let _ = command.status();
-    }
-    let _ = child.kill();
-}
-
-fn no_window(command: &mut Command) {
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        command.creation_flags(CREATE_NO_WINDOW);
-    }
-    #[cfg(not(windows))]
-    let _ = command;
 }
 
 #[cfg(test)]

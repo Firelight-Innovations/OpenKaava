@@ -378,7 +378,9 @@ signs in to Claude or ChatGPT, so those runs are owner-run (§9.2).
 - **Agent app visibility.** The Agent app is in the registry, so it is listed in the Apps menu
   and can be opened with developer mode off. It then shows its empty state and refuses a prompt.
   Only the agent bar and `agent-tab/send` and `agent-tab/answer` are gated.
-- **No Job Object.** Windows stops a session with `taskkill /T /F` on its process tree.
+- **Job Object.** On Windows each agent starts suspended in a Job Object of its own, so a stop
+  is one `TerminateJobObject`. An agent and all it started also end with OpenKaava. `taskkill /T
+  /F` is the fallback only when no job can be made.
 - **No trace switch (§8).** The host logs lifecycle lines only, with tokens masked. A raw trace
   switch is a follow-up.
 - **Questions from the agent.** ACP has no elicitation request yet, so a Claude question that is

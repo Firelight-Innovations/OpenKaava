@@ -865,8 +865,8 @@ fn a_grandchild_holding_stdout_does_not_keep_the_session_alive() {
         exit.is_some_and(|l| l.starts_with("Info ")),
         "a stop the host asked for is not a failure: {logs:?}"
     );
-    // The tree, not just the child: `taskkill /T` is Windows' answer to an
-    // npm shim leaving its `node` behind. Elsewhere `kill_tree` is the child
+    // The tree, not just the child: the agent's job is Windows' answer to an
+    // npm shim leaving its `node` behind. Elsewhere the child is killed
     // alone, so the grandchild is left to its own 30 second sleep.
     #[cfg(windows)]
     {
@@ -881,6 +881,72 @@ fn a_grandchild_holding_stdout_does_not_keep_the_session_alive() {
     }
     #[cfg(not(windows))]
     let _ = grandchild;
+}
+
+/// A process whose parent has exited is not in the tree `taskkill /T` walks,
+/// so only the agent's job could find it.
+#[cfg(windows)]
+#[test]
+fn a_grandchild_whose_parent_has_exited_is_stopped_with_the_agent() {
+    let rig = rig();
+    let pid_file = rig._dir.path().join("orphan.pid");
+    let pid_flag = pid_file.to_string_lossy().into_owned();
+    rig.send(&["--grandchild-pid", &pid_flag], "orphan")
+        .unwrap();
+    rig.turns_done(1);
+    let orphan = wait_for_pid(&pid_file);
+    assert!(
+        process_alive(orphan),
+        "the sleeper is running before the stop"
+    );
+    rig.host.stop(TAB);
+    rig.state(SessionState::Stopped);
+    let deadline = Instant::now() + PATIENCE;
+    while process_alive(orphan) && Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    assert!(!process_alive(orphan), "the orphan outlived the stop");
+}
+
+/// Stopping is one call per agent, not a walk of every process on the
+/// machine each, so closing several agents costs about what closing one does.
+/// With `taskkill /T` this took most of a second per agent idle, and the
+/// closed-tab test above timed out under load.
+#[test]
+fn stopping_several_agents_does_not_wait_on_each_in_turn() {
+    let rig = rig();
+    let tabs = ["agent-tab-a", "agent-tab-b", "agent-tab-c", "agent-tab-d"];
+    for tab in tabs {
+        rig.host
+            .send(tab, mock(&[]), rig.tree.clone(), "slow")
+            .unwrap();
+    }
+    rig.until("every agent working", |events| {
+        tabs.iter().all(|tab| {
+            events
+                .iter()
+                .rev()
+                .filter(|e| e.instance_id == *tab)
+                .find_map(|e| match &e.event {
+                    Event::Status { status } => Some(status.state),
+                    _ => None,
+                })
+                == Some(SessionState::Working)
+        })
+    });
+    let started = Instant::now();
+    rig.host.stop_all(PATIENCE);
+    let took = started.elapsed();
+    assert!(
+        took < Duration::from_secs(2),
+        "stopping four agents took {took:?}"
+    );
+    let logs = rig.logged("exited with code");
+    let exits = logs
+        .iter()
+        .filter(|l| l.contains("exited with code"))
+        .count();
+    assert_eq!(exits, tabs.len(), "{logs:?}");
 }
 
 /// The pid the mock's grandchild wrote, once it has.

@@ -21,6 +21,19 @@ fn main() {
         std::thread::sleep(Duration::from_secs(30));
         return;
     }
+    if args.first().map(String::as_str) == Some("--orphan") {
+        // Start a sleeper and go, so the sleeper's parent is gone.
+        if let Ok(me) = std::env::current_exe() {
+            let _ = Command::new(me)
+                .arg("--sleep")
+                .args(args.get(1))
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn();
+        }
+        return;
+    }
     let mut mock = Mock {
         flags: args,
         cwd: String::new(),
@@ -334,6 +347,22 @@ impl Mock {
                         .stdin(Stdio::null())
                         .stdout(Stdio::inherit())
                         .spawn();
+                }
+                self.end_turn("end_turn");
+            }
+            "orphan" => {
+                // A grandchild whose parent has exited by the time the turn ends.
+                if let Ok(me) = std::env::current_exe() {
+                    let mut middle = Command::new(me);
+                    middle.arg("--orphan");
+                    if let Some(file) = self.flag_value("--grandchild-pid") {
+                        middle.arg(file);
+                    }
+                    let _ = middle
+                        .stdin(Stdio::null())
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::null())
+                        .status();
                 }
                 self.end_turn("end_turn");
             }

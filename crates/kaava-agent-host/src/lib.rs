@@ -20,6 +20,7 @@ pub mod event;
 pub mod guard;
 pub mod harness;
 pub mod host;
+mod job;
 pub mod mask;
 pub mod normalize;
 pub mod session;
