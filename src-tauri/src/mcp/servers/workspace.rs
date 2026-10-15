@@ -122,15 +122,25 @@ for (const f of document.querySelectorAll('iframe')) {
 }
 let text = '';
 try { text = String(a.doc.getSelection ? a.doc.getSelection() : ''); } catch { text = ''; }
+const SELECTION_CAP = 100000;
+const cutSelection = (s) => {
+  if (s.length <= SELECTION_CAP) return s;
+  const splitsPair = /[\ud800-\udbff]/.test(s[SELECTION_CAP - 1]);
+  return s.slice(0, SELECTION_CAP - (splitsPair ? 1 : 0));
+};
 return JSON.stringify({
   focusIn: a.frame ? 'app' : (terminal(a.el) ? 'terminal' : (a.el ? 'shell' : 'nothing')),
   instance: instanceOf(a.frame || a.el),
   windowHasFocus: document.hasFocus(),
   apps,
-  selectedText: text.slice(0, 2000),
+  selectedText: cutSelection(text),
   selectedTextLength: text.length,
 });
 "#;
+
+/// How much of the selection is handed to an agent, in UTF-16 units: the unit
+/// the page's `text.length` and so `selectedTextLength` count in.
+const SELECTION_LIMIT: usize = 2000;
 
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -148,6 +158,19 @@ pub(super) struct PageContext {
 }
 
 impl PageContext {
+    /// Cut the selection to [`SELECTION_LIMIT`] without splitting a character.
+    ///
+    /// The page sends the selection whole (bar a transport cap that backs off
+    /// from a split pair), because a cut made there counts UTF-16 units and can
+    /// land between the halves of a surrogate pair: `JSON.stringify` writes the
+    /// lone half as `\ud83d`, which `serde_json` refuses, and the whole page
+    /// answer is lost. Here the text is already valid, so the cut falls on a
+    /// char boundary and counts in the same units as `selectedTextLength`.
+    fn with_clipped_selection(mut self) -> Self {
+        self.selected_text = clip_utf16(&self.selected_text, SELECTION_LIMIT).to_string();
+        self
+    }
+
     /// Make the stored report the answer for who has focus.
     ///
     /// The page's own probe still supplies what only the DOM knows at this
@@ -206,6 +229,7 @@ pub(super) fn page_contexts(app: &AppHandle) -> Pages {
         let parsed = asked.and_then(|v| {
             let text = v.as_str().unwrap_or_default().to_string();
             serde_json::from_str::<PageContext>(&text)
+                .map(PageContext::with_clipped_selection)
                 .map_err(|e| RpcError::new(INTERNAL_ERROR, format!("the page's answer: {e}")))
         });
         let report = reports.report_for(&label);
@@ -219,6 +243,19 @@ pub(super) fn page_contexts(app: &AppHandle) -> Pages {
         }
     }
     pages
+}
+
+/// The longest prefix of `text` that fits in `limit` UTF-16 units and ends on a
+/// char boundary. A character that would straddle the limit is left out whole.
+fn clip_utf16(text: &str, limit: usize) -> &str {
+    let mut units = 0;
+    for (at, c) in text.char_indices() {
+        units += c.len_utf16();
+        if units > limit {
+            return &text[..at];
+        }
+    }
+    text
 }
 
 /// One pane's tab, resolved against the flat instance and terminal lists.
@@ -678,6 +715,54 @@ mod tests {
             assert_eq!(schema["type"], "object");
             assert_eq!(schema["additionalProperties"], false);
         }
+    }
+
+    #[test]
+    fn a_selection_ending_in_an_emoji_at_the_cut_is_not_split() {
+        let text = format!("{}😀tail", "a".repeat(SELECTION_LIMIT - 1));
+        assert_eq!(
+            clip_utf16(&text, SELECTION_LIMIT).encode_utf16().count(),
+            SELECTION_LIMIT - 1
+        );
+        assert!(!clip_utf16(&text, SELECTION_LIMIT).contains('😀'));
+
+        let fits = format!("{}😀", "a".repeat(SELECTION_LIMIT - 2));
+        assert_eq!(clip_utf16(&fits, SELECTION_LIMIT), fits);
+    }
+
+    #[test]
+    fn the_cut_counts_utf16_units_and_survives_multibyte_text() {
+        let text = "é".repeat(SELECTION_LIMIT + 10);
+        assert_eq!(
+            clip_utf16(&text, SELECTION_LIMIT).chars().count(),
+            SELECTION_LIMIT
+        );
+        assert_eq!(clip_utf16("short", SELECTION_LIMIT), "short");
+        assert_eq!(clip_utf16("😀", 1), "");
+    }
+
+    #[test]
+    fn the_page_answer_is_clipped_and_keeps_the_full_length() {
+        let text = format!("{}😀tail", "a".repeat(SELECTION_LIMIT - 1));
+        let units = text.encode_utf16().count();
+        let answer = json!({ "selectedText": text, "selectedTextLength": units }).to_string();
+        let page = serde_json::from_str::<PageContext>(&answer)
+            .unwrap()
+            .with_clipped_selection();
+        assert_eq!(page.selected_text, "a".repeat(SELECTION_LIMIT - 1));
+        assert_eq!(page.selected_text_length, units);
+    }
+
+    /// The page half of the fix. `scripts/workspace-selection.test.mjs` runs the
+    /// `cutSelection` helper itself; this keeps the probe from drifting back to
+    /// a cut of its own that the helper no longer guards.
+    #[test]
+    fn the_probe_sends_the_selection_through_the_pair_safe_cut() {
+        assert!(FOCUS_BODY.contains("selectedText: cutSelection(text),"));
+        assert!(
+            !FOCUS_BODY.contains(&format!("slice(0, {SELECTION_LIMIT})")),
+            "a cut at the clip limit in the page counts UTF-16 units and can split a pair"
+        );
     }
 
     #[test]
