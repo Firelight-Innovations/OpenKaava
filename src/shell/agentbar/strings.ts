@@ -13,6 +13,14 @@ import type { BarHarnessInfo } from "../state/agentBar";
  */
 export type HarnessWords = Pick<BarHarnessInfo, "name" | "setup">;
 
+/**
+ * The hints the bar words: the two of the host's `Hint` union that
+ * `agent-tab/harnesses` can report. The union lives in the tab's
+ * `protocol.generated.ts`, which the shell may not import, so
+ * `strings.test.ts` checks that each of these is still in it.
+ */
+export type BarHint = "harnessMissing" | "adapterMissing";
+
 export const strings = {
   label: "Agent bar",
   harnessLabel: "Harness",
@@ -32,7 +40,7 @@ export const strings = {
       `${name} is not installed. Install it, then run \`${setup.signIn}\` once to sign in.`,
     adapterMissing: ({ name, setup }: HarnessWords) =>
       `The ${name} ACP adapter is not installed. Run \`${setup.adapterInstall}\`.`,
-  } as Record<string, (words: HarnessWords) => string>,
+  } satisfies Record<BarHint, (words: HarnessWords) => string>,
   notReady: (name: string) => `${name} is not ready to run.`,
   refusal: {
     notAWorktree: "Agents run in a local worktree. Create a worktree cluster to start one.",

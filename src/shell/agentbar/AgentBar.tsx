@@ -9,7 +9,7 @@
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { AgentBarStatus } from "../state/agentBar";
 import { useBarSlots } from "./slots";
-import { strings, type HarnessWords } from "./strings";
+import { strings, type BarHint, type HarnessWords } from "./strings";
 import "../../agent-tokens.css";
 import "./agentbar.css";
 
@@ -37,10 +37,14 @@ export function ClusterAgentBar({ clusterId, ...props }: AgentBarProps & { clust
   return <AgentBar key={clusterId} {...props} />;
 }
 
+/** Whether the bar has a sentence for `hint`; the agent tab words the rest. */
+function isBarHint(hint: string): hint is BarHint {
+  return Object.prototype.hasOwnProperty.call(strings.hint, hint);
+}
+
 /** `hint` as a sentence about `words`' harness; `null` for one the bar does not word. */
 function hintText(hint: string, words: HarnessWords): string | null {
-  const known = Object.prototype.hasOwnProperty.call(strings.hint, hint);
-  return known ? strings.hint[hint](words) : null;
+  return isBarHint(hint) ? strings.hint[hint](words) : null;
 }
 
 export default function AgentBar({ status, onChoose, onSend }: AgentBarProps) {
