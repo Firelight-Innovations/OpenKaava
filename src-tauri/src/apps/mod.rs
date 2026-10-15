@@ -596,8 +596,8 @@ pub fn call(
 
     // `kaava://` references, resolved by the host so the rules in
     // `refs::policy` sit in one place. Read-only, so before the write refusal.
-    // First-party apps only; `refs::call` refuses a plugin.
-    if crate::refs::is_method(method) {
+    // First-party apps only: a plugin's method of the same name is its own.
+    if crate::refs::is_method(method) && is_app(id) {
         return crate::refs::call(app, context, id, method, params);
     }
 

@@ -451,7 +451,7 @@ fn file(app: &AppHandle) -> Option<PathBuf> {
 /// One file per comment rather than base64 inside the JSON. A screenshot is
 /// hundreds of kilobytes and the JSON is rewritten on every reply, so inlining
 /// one would mean rewriting every picture in the store to record a sentence.
-fn shot_file(app: &AppHandle, id: &str) -> Option<PathBuf> {
+pub(crate) fn shot_file(app: &AppHandle, id: &str) -> Option<PathBuf> {
     app.path()
         .app_config_dir()
         .ok()

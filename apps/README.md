@@ -542,3 +542,27 @@ append was chosen over a hook binary posting to the local listener because it
 needs no shipped executable, port or token, and works with Kaava closed. The
 strip's "Stop tracking" removes exactly that hook. Codex and Gemini have no
 adapter yet.
+
+## References: `kaava://`
+
+A `kaava://` reference names a file, a canvas frame, a comment or a context item
+in a way a person and an agent read alike. The design is
+[`docs/design/KAAVA-CONTEXT-REFS.md`](../docs/design/KAAVA-CONTEXT-REFS.md).
+The host answers `refs/resolve` before any app is looked up, as it does
+`context/*`, but only for Kaava's own apps: a plugin is someone else's code, and
+a reference reads the project. A plugin's own `refs/` method still reaches the
+plugin.
+
+```ts
+import { invoke } from "@openkaava/bridge";
+
+// What a reference chip draws: a kind, a title, and parts to show.
+const r = await invoke("refs/resolve", { uri: "kaava://file/scripts/player.gd#L10-L20" });
+// { uri, kind, title, detail?, meta, parts: [{ type: "text" | "image" | "json" | "note", … }], withheld? }
+```
+
+It resolves inside the calling surface's cluster and as the person, who is the
+one looking. The agent server's `app_call` refuses it for that reason. Secrets
+and gitignored files come back with `withheld` set and no content. Links out of
+the project are refused. Excerpts, images and JSON are capped; the design doc
+gives the rules and the numbers.

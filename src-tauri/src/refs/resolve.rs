@@ -3,8 +3,10 @@
 //! note) plus the metadata a chip needs.
 //!
 //! Everything here is bounded. An excerpt stops at [`MAX_EXCERPT_LINES`] or
-//! [`MAX_EXCERPT_BYTES`], a file is never scanned past [`MAX_SCAN_BYTES`], and
-//! an image over [`MAX_IMAGE_BYTES`] is described rather than sent.
+//! [`MAX_EXCERPT_BYTES`], and so does any prose an app holds, such as a
+//! comment's text. A file is never scanned past [`MAX_SCAN_BYTES`]. An image
+//! over [`MAX_IMAGE_BYTES`], or a JSON part over [`MAX_JSON_BYTES`] once
+//! written out, is described rather than sent.
 
 use super::assets::{self, Kind};
 use super::policy;
@@ -25,12 +27,16 @@ pub const MAX_SCAN_BYTES: u64 = 16 * 1024 * 1024;
 /// Largest image sent inline. Base64 makes it about 4.7 MB, under the 5 MB a
 /// model provider accepts per image.
 pub const MAX_IMAGE_BYTES: u64 = 3_500_000;
+/// Largest JSON part sent, written out.
+pub const MAX_JSON_BYTES: usize = 64 * 1024;
 /// How much of a model file is read for its header facts.
 const MAX_MODEL_HEAD: u64 = 4 * 1024 * 1024;
 /// How much of any file is read to decide what it is.
 const HEAD_BYTES: u64 = 64 * 1024;
 /// Most entries a folder reference lists.
 const MAX_FOLDER_ENTRIES: usize = 200;
+/// Most entries a folder reference looks at. Past this its counts are partial.
+const MAX_FOLDER_SCAN: usize = 5_000;
 /// Largest viewer comment record read. A real one is a few hundred bytes.
 const MAX_COMMENT_BYTES: u64 = 1024 * 1024;
 
@@ -213,7 +219,9 @@ pub(super) fn describe(
 }
 
 /// An image part when the bytes are a raster format a model accepts and the
-/// file is under the cap; an SVG is sent as itself; anything else is a note.
+/// file is under the cap; anything else is a note. An SVG under the cap gets no
+/// part here: it is text, which [`describe`] sends once as an excerpt, and no
+/// model provider takes one as an image.
 fn image(
     mut out: Resolved,
     abs: &Path,
@@ -228,16 +236,13 @@ fn image(
             out.meta.insert("height".into(), json!(h));
         }
     }
-    let mime = match (&sniffed, class.mime) {
-        (Some(s), _) => s.mime,
-        (None, "image/svg+xml") => "image/svg+xml",
-        _ => {
-            out.parts.push(Part::Note {
-                text: format!("image, {}; this format has no preview", human_size(size)),
-            });
-            return Ok(out);
-        }
-    };
+    let svg = class.mime == "image/svg+xml";
+    if sniffed.is_none() && !svg {
+        out.parts.push(Part::Note {
+            text: format!("image, {}; this format has no preview", human_size(size)),
+        });
+        return Ok(out);
+    }
     if size > MAX_IMAGE_BYTES {
         return Ok(out.withhold(format!(
             "withheld: the image is {}, over the {} that is sent inline",
@@ -245,6 +250,9 @@ fn image(
             human_size(MAX_IMAGE_BYTES)
         )));
     }
+    let Some(mime) = sniffed.as_ref().map(|s| s.mime) else {
+        return Ok(out);
+    };
     let bytes = read_prefix(abs, MAX_IMAGE_BYTES)?;
     out.parts.push(Part::Image {
         mime: mime.into(),
@@ -256,24 +264,44 @@ fn image(
 }
 
 /// A folder's entries, folders first, secrets and gitignored entries left out.
-fn folder(mut out: Resolved, root: &Path, abs: &Path) -> Result<Resolved, String> {
+fn folder(out: Resolved, root: &Path, abs: &Path) -> Result<Resolved, String> {
+    folder_within(out, root, abs, MAX_FOLDER_SCAN)
+}
+
+/// [`folder`], looking at no more than `scan` entries.
+fn folder_within(
+    mut out: Resolved,
+    root: &Path,
+    abs: &Path,
+    scan: usize,
+) -> Result<Resolved, String> {
     out.kind = "folder".into();
     let reader = std::fs::read_dir(abs).map_err(|e| format!("cannot list that folder: {e}"))?;
     let mut entries: Vec<(bool, String)> = Vec::new();
     let mut hidden = 0usize;
+    let mut partial = false;
     let rules = policy::Ignores::for_folder(root, abs);
-    for entry in reader.flatten() {
+    for (seen, entry) in reader.flatten().enumerate() {
+        if seen == scan {
+            partial = true;
+            break;
+        }
         let name = entry.file_name().to_string_lossy().into_owned();
         let path = entry.path();
+        // The entry's own type costs no stat; only a link is followed to see.
+        let is_dir = match entry.file_type() {
+            Ok(t) if !t.is_symlink() => t.is_dir(),
+            _ => path.is_dir(),
+        };
         let rel = path
             .strip_prefix(root)
             .map(|p| p.to_string_lossy().replace('\\', "/"))
             .unwrap_or_default();
-        if policy::secret_rule(&rel).is_some() || rules.ignored(&path, path.is_dir()) {
+        if policy::secret_rule(&rel).is_some() || rules.ignored(&path, is_dir) {
             hidden += 1;
             continue;
         }
-        entries.push((path.is_dir(), name));
+        entries.push((is_dir, name));
     }
     entries.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
     let total = entries.len();
@@ -290,8 +318,16 @@ fn folder(mut out: Resolved, root: &Path, abs: &Path) -> Result<Resolved, String
         text: names.join("\n"),
         language: None,
         start_line: 1,
-        truncated: total > MAX_FOLDER_ENTRIES,
+        truncated: partial || total > MAX_FOLDER_ENTRIES,
     });
+    if partial {
+        out.meta.insert("partial".into(), json!(true));
+        out.parts.push(Part::Note {
+            text: format!(
+                "Only the first {scan} entries were looked at, so the counts are partial."
+            ),
+        });
+    }
     Ok(out)
 }
 
@@ -431,6 +467,37 @@ pub fn first_line(text: &str) -> String {
     out
 }
 
+/// Prose an app holds, such as a comment's text, as a text part. It is cut at
+/// [`MAX_EXCERPT_BYTES`], on a character boundary, as a file excerpt is.
+pub fn prose_part(text: &str, language: Option<&str>) -> Part {
+    let mut end = text.len().min(MAX_EXCERPT_BYTES);
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    Part::Text {
+        text: text[..end].to_string(),
+        language: language.map(str::to_owned),
+        start_line: 1,
+        truncated: end < text.len(),
+    }
+}
+
+/// `value` as a JSON part, or a note giving its size when it is over
+/// [`MAX_JSON_BYTES`] written out.
+pub fn json_part(value: Value) -> Part {
+    let size = serde_json::to_vec(&value).map_or(0, |b| b.len());
+    if size > MAX_JSON_BYTES {
+        return Part::Note {
+            text: format!(
+                "The structured detail is {}, over the {} cap, so it is not sent.",
+                human_size(size as u64),
+                human_size(MAX_JSON_BYTES as u64)
+            ),
+        };
+    }
+    Part::Json { value }
+}
+
 /// A PNG (or other sniffed raster) on disk as an image part, under the inline cap.
 pub fn png_part(path: &Path) -> Result<Part, String> {
     let size = std::fs::metadata(path)
@@ -475,14 +542,11 @@ pub fn context_item(root: &Path, r: &Ref) -> Result<Resolved, String> {
     if item.missing {
         return Ok(out.withhold("the stored file has been deleted or moved"));
     }
-    // A copy's title is free text; the file it was copied from and the
-    // copy's own name say what it is.
-    let names = [
-        Some(item.title.as_str()),
-        item.key.strip_prefix("file/"),
-        Some(item.rel_path.as_str()),
-    ];
-    if let Some(rule) = names.into_iter().flatten().find_map(policy::secret_rule) {
+    // The file it was copied from and the copy's own name say what it is. The
+    // title is free text, and counts only when it is spelt as a file name.
+    let names = [item.key.strip_prefix("file/"), Some(item.rel_path.as_str())];
+    let rule = names.into_iter().flatten().find_map(policy::secret_rule);
+    if let Some(rule) = rule.or_else(|| policy::title_rule(&item.title)) {
         return Ok(out.withhold(secret_withheld(rule)));
     }
     // A hand-edited sidecar could point anywhere: only a file that really is
@@ -517,15 +581,10 @@ pub fn viewer_comment(root: &Path, r: &Ref) -> Result<Resolved, String> {
     out.detail = Some(anchor_line(&comment.anchor));
     out.meta.insert("status".into(), json!(comment.status));
     out.meta.insert("author".into(), json!(comment.author));
-    out.parts.push(Part::Text {
-        text: comment.body.clone(),
-        language: Some("markdown".into()),
-        start_line: 1,
-        truncated: false,
-    });
-    out.parts.push(Part::Json {
-        value: serde_json::to_value(&comment).unwrap_or(Value::Null),
-    });
+    out.parts.push(prose_part(&comment.body, Some("markdown")));
+    out.parts.push(json_part(
+        serde_json::to_value(&comment).unwrap_or(Value::Null),
+    ));
     if let Ok(shot) = policy::contain(root, &format!(".kaava/comments/{id}.png")) {
         out.parts
             .push(png_part(&shot.abs).unwrap_or_else(|why| Part::Note {
@@ -708,32 +767,36 @@ mod tests {
             .contains("nope.gd"));
     }
 
-    /// Symlinks need a privilege on Windows; where one cannot be made the
-    /// test has nothing to prove and says so.
-    fn link(target: &Path, at: &Path) -> bool {
-        #[cfg(unix)]
-        let made = std::os::unix::fs::symlink(target, at);
-        #[cfg(windows)]
-        let made = std::os::windows::fs::symlink_file(target, at);
-        made.is_ok()
-    }
-
     #[test]
     fn a_link_out_of_the_project_or_onto_a_secret_is_not_followed() {
+        use crate::refs::links;
         let outside = project();
         put(&outside, "private.txt", b"not yours\n");
         let dir = project();
         put(&dir, ".env", b"TOKEN=1\n");
-        if !link(
+        put(&dir, ".ssh/config", b"Host x\n");
+
+        links::folder(outside.path(), &dir.path().join("linkdir"));
+        let err = resolve(&dir, "kaava://file/linkdir/private.txt").unwrap_err();
+        assert!(
+            err.contains("outside the project"),
+            "through a folder: {err}"
+        );
+        let err = resolve(&dir, "kaava://file/linkdir").unwrap_err();
+        assert!(err.contains("outside the project"), "the folder: {err}");
+        links::folder(&dir.path().join(".ssh"), &dir.path().join("sshdir"));
+        let r = resolve(&dir, "kaava://file/sshdir/config").unwrap();
+        assert!(r.withheld.unwrap().contains(".ssh"), "named by its target");
+
+        if !links::file(
             &outside.path().join("private.txt"),
             &dir.path().join("away.txt"),
         ) {
-            eprintln!("skipped: cannot create symlinks here");
             return;
         }
         let err = resolve(&dir, "kaava://file/away.txt").unwrap_err();
         assert!(err.contains("outside the project"), "{err}");
-        assert!(link(
+        assert!(links::file(
             &dir.path().join(".env"),
             &dir.path().join("notes.txt")
         ));
@@ -765,11 +828,80 @@ mod tests {
     }
 
     #[test]
+    fn an_apps_prose_and_json_stop_at_their_caps() {
+        let small = json!({ "status": "open" });
+        assert_eq!(json_part(small.clone()), Part::Json { value: small });
+        let big = json!({ "props": "x".repeat(MAX_JSON_BYTES) });
+        assert!(
+            matches!(json_part(big), Part::Note { text } if text.contains("over the 64.0 KB cap"))
+        );
+
+        let whole = prose_part("Move the door", Some("markdown"));
+        assert!(matches!(
+            whole,
+            Part::Text {
+                truncated: false,
+                ..
+            }
+        ));
+        let long = format!("{}\u{e9}", "a".repeat(MAX_EXCERPT_BYTES - 1));
+        match prose_part(&long, None) {
+            Part::Text {
+                text, truncated, ..
+            } => {
+                assert_eq!(
+                    text.len(),
+                    MAX_EXCERPT_BYTES - 1,
+                    "cut before the two-byte é"
+                );
+                assert!(truncated);
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
     fn a_size_reads_in_the_unit_its_rounded_value_fits() {
         assert_eq!(human_size(512), "512 B");
         assert_eq!(human_size(1536), "1.5 KB");
         assert_eq!(human_size(1_048_575), "1.0 MB");
         assert_eq!(human_size(3_500_000), "3.3 MB");
+    }
+
+    /// A screenshot a comment keeps: a viewer comment's and a Design Mode one's.
+    #[test]
+    fn a_comment_screenshot_says_why_it_is_not_sent() {
+        let dir = project();
+        put(&dir, "shots/ok.png", &png(8, 8));
+        assert!(matches!(
+            png_part(&dir.path().join("shots/ok.png")),
+            Ok(Part::Image { .. })
+        ));
+        let mut big = png(4000, 4000);
+        big.resize(MAX_IMAGE_BYTES as usize + 1, 0);
+        put(&dir, "shots/big.png", &big);
+        let err = png_part(&dir.path().join("shots/big.png")).unwrap_err();
+        assert!(err.contains("over the 3.3 MB sent inline"), "{err}");
+        put(&dir, "shots/torn.png", b"not a picture");
+        let err = png_part(&dir.path().join("shots/torn.png")).unwrap_err();
+        assert_eq!(err, "the picture is not an image");
+    }
+
+    #[test]
+    fn an_svg_is_sent_once_as_its_text() {
+        let dir = project();
+        let svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"><circle r=\"4\"/></svg>\n";
+        put(&dir, "art/dot.svg", svg.as_bytes());
+        let r = resolve(&dir, "kaava://file/art/dot.svg").unwrap();
+        assert_eq!(r.kind, "image");
+        assert_eq!(r.meta["mime"], "image/svg+xml");
+        match r.parts.as_slice() {
+            [Part::Text { text, language, .. }] => {
+                assert_eq!(text, svg.trim_end());
+                assert_eq!(language.as_deref(), Some("xml"));
+            }
+            other => panic!("one text part, not {other:?}"),
+        }
     }
 
     #[test]
@@ -816,6 +948,31 @@ mod tests {
         assert_eq!(r.kind, "folder");
         assert_eq!(text_of(&r).0, "props/\na.tscn");
         assert_eq!(r.meta["hidden"], 2);
+        assert!(r.meta.get("partial").is_none());
+    }
+
+    #[test]
+    fn a_folder_scan_stops_at_its_cap_and_says_the_counts_are_partial() {
+        let dir = project();
+        for n in 0..5 {
+            put(&dir, &format!("dump/{n}.bin"), b"x");
+        }
+        let r = Resolved::empty(&parse("kaava://file/dump").unwrap(), "folder", "dump");
+        let r = folder_within(r, dir.path(), &dir.path().join("dump"), 3).unwrap();
+        assert_eq!(r.meta["entries"], 3);
+        assert_eq!(r.meta["partial"], true);
+        assert!(matches!(
+            &r.parts[0],
+            Part::Text {
+                truncated: true,
+                ..
+            }
+        ));
+        assert!(matches!(&r.parts[1], Part::Note { text } if text.contains("first 3 entries")));
+        let whole = Resolved::empty(&parse("kaava://file/dump").unwrap(), "folder", "dump");
+        let whole = folder_within(whole, dir.path(), &dir.path().join("dump"), 5).unwrap();
+        assert_eq!(whole.meta["entries"], 5);
+        assert!(whole.meta.get("partial").is_none(), "exactly at the cap");
     }
 
     #[test]
@@ -895,6 +1052,41 @@ mod tests {
             assert!(r.withheld.unwrap().contains("private keys"), "{}", item.key);
             assert!(r.parts.is_empty());
         }
+    }
+
+    #[test]
+    fn a_context_title_is_screened_only_when_it_is_spelt_as_a_file_name() {
+        let dir = project();
+        let note = |title: &str, key: &str| {
+            let item = crate::context::put(
+                dir.path(),
+                crate::context::PutRequest {
+                    key: Some(key.into()),
+                    kind: None,
+                    title: Some(title.into()),
+                    // Each its own text: the store keeps one item per content.
+                    payload: crate::context::Payload::Text(format!("{title}: on Monday.")),
+                    app_id: "terminal".into(),
+                    label: None,
+                    method: crate::context::Method::Put,
+                    reference_in_place: true,
+                },
+            )
+            .unwrap();
+            resolve(&dir, &format!("kaava://context/{}", item.id)).unwrap()
+        };
+        for prose in [
+            "Credentials rotation plan",
+            "id_card layout",
+            "secrets.md review",
+        ] {
+            let r = note(prose, "notes/plan");
+            assert_eq!(r.title, prose);
+            assert_eq!(r.withheld, None, "{prose}");
+            assert_eq!(text_of(&r).0, format!("{prose}: on Monday."));
+        }
+        let r = note("id_rsa", "notes/handoff");
+        assert!(r.withheld.unwrap().contains("SSH private keys"));
     }
 
     #[test]
