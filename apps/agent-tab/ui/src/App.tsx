@@ -140,9 +140,13 @@ export default function App() {
     const stopChosen = rpc.onChosen(heardChoice);
     void attach().finally(() => reportPainted());
     void listHarnesses();
+    // The host asks each agent for its models after its first answer, and
+    // says when they are in.
+    const stopModels = rpc.onModels(() => void listHarnesses());
     return () => {
       stop();
       stopChosen();
+      stopModels();
     };
   }, [attach, heardChoice, listHarnesses]);
 

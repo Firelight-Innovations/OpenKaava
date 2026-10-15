@@ -54,9 +54,11 @@ import { KaavaErrorCode } from "@openkaava/bridge/errors";
 import {
   AGENT_TAB_CHOSEN,
   AGENT_TAB_EVENT,
+  AGENT_TAB_MODELS,
   appPainted,
   onAgentTabChosen,
   onAgentTabEvent,
+  onAgentTabModels,
   onFilesChanged,
   onLaunchTarget,
   onProjectChanged,
@@ -1375,8 +1377,8 @@ const ToolWindow = forwardRef<
     };
   }, []);
 
-  // An agent tab's session events and its choice of harness (`apps::agent_tab`), each to
-  // the one frame it names. Every other frame, an agent tab for another session included,
+  // An agent tab's session events, its choice of harness, and word that a harness's models
+  // are in (`apps::agent_tab`), each to the one frame it names. Every other frame, an agent tab for another session included,
   // never sees them.
   useEffect(() => {
     let live = true;
@@ -1391,6 +1393,7 @@ const ToolWindow = forwardRef<
       const listeners = [
         [onAgentTabEvent, AGENT_TAB_EVENT],
         [onAgentTabChosen, AGENT_TAB_CHOSEN],
+        [onAgentTabModels, AGENT_TAB_MODELS],
       ] as const;
       for (const [listen, event] of listeners) {
         const stop = await listen(relay(event));

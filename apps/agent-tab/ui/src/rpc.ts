@@ -62,6 +62,12 @@ export const onChosen = (cb: (harness: Harness, model: string | null) => void) =
     cb(harness, model ?? null);
   });
 
+/** Mirrors `apps::agent_tab::MODELS`. */
+export const MODELS = "agent-tab:models";
+
+/** A harness's agent has said which models it offers: `harnesses` now lists them. */
+export const onModels = (cb: () => void) => on(MODELS, () => cb());
+
 /** A refusal's `data`: which refusal, and the hint that explains it. */
 export interface Refusal {
   code: string;

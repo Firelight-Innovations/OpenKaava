@@ -1224,4 +1224,14 @@ describe("the harness", () => {
     await screen.findByText(/Claude is not signed in\. Run `claude` once/);
     expect(screen.queryByText(/codex login/)).toBeNull();
   });
+
+  it("asks for the harnesses again once an agent's models are in", async () => {
+    backend({ status: null, seq: 0, items: [] });
+    const asked = () =>
+      bridge.invoke.mock.calls.filter(([method]) => method === "agent-tab/harnesses").length;
+    render(<App />);
+    await waitFor(() => expect(asked()).toBe(1));
+    act(() => bridge.listeners.get("agent-tab:models")?.({ instanceId: "i", harness: "claude" }));
+    await waitFor(() => expect(asked()).toBe(2));
+  });
 });

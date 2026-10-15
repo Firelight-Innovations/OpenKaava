@@ -23,8 +23,10 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
+use kaava_agent_host::models::{self, Catalogue};
 use kaava_agent_host::{
-    harness, spec, AgentHost, Harness, HarnessInfo, HostError, Level, McpServer, Worktree, REGISTRY,
+    harness, spec, AgentHost, Harness, HarnessInfo, HostError, LaunchSpec, Level, McpServer,
+    Worktree, REGISTRY,
 };
 use kaava_rpc::{RpcError, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde::Serialize;
@@ -44,6 +46,14 @@ pub const EVENT: &str = "agent-tab:event";
 /// The event a tab's choice is emitted as, `{ instanceId, harness, model }`, so
 /// the tab and the agent bar show the same one. Mirrored in `src/bindings.ts`.
 pub const CHOSEN: &str = "agent-tab:chosen";
+
+/// The event each open agent tab is sent, `{ instanceId, harness }`, once
+/// `harness`'s agent has said which models it offers, so the tab asks
+/// `agent-tab/harnesses` again. Mirrored in `src/bindings.ts`.
+pub const MODELS: &str = "agent-tab:models";
+
+/// How long an agent gets to say which models it offers.
+const MODELS_WAIT: Duration = Duration::from_secs(60);
 
 /// The JSON-RPC code for a refusal this module or the host made. `data.code`
 /// says which; the tab draws the words for it from its own `strings.ts`.
@@ -98,6 +108,8 @@ pub struct Sessions {
     host: OnceLock<AgentHost>,
     homes: Mutex<HashMap<String, Home>>,
     chosen: Mutex<HashMap<String, Choice>>,
+    /// What each harness's agent offers, asked once per launch.
+    models: Catalogue,
     /// Held by a send from reading the tab's harness until its agent has
     /// started, and by a choice from its check until it is stored. Without
     /// it, a choice could land in between, and the tab would run one harness
@@ -196,6 +208,18 @@ impl Sessions {
             model,
             open,
         )
+    }
+
+    /// Ask `launch`'s agent for its models in `worktree`, unless it has been
+    /// asked this launch. Every open agent tab hears once it has answered.
+    fn ask_models(&self, app: &AppHandle, launch: LaunchSpec, worktree: Worktree) {
+        let harness = launch.harness;
+        let app = app.clone();
+        self.models.ask(
+            harness,
+            move || models::ask(&launch, &worktree, MODELS_WAIT),
+            move || tell_tabs(&app, harness),
+        );
     }
 
     fn host(&self, app: &AppHandle) -> &AgentHost {
@@ -362,29 +386,81 @@ pub fn call_for(
 }
 
 /// What the agent bar and the tab's empty state need before a first prompt:
-/// each harness and what stands in its way, the one `tab`'s next prompt goes
-/// to, the harness and model its agent runs while it lives, and whether this
-/// cluster can run one at all.
+/// each harness, what stands in its way and the models it offers, the one
+/// `tab`'s next prompt goes to, the harness and model its agent runs while it
+/// lives, and whether this cluster can run one at all.
+///
+/// Asked by a tab, it also starts asking each installed harness's agent for
+/// its models, once per launch; [`MODELS`] tells the tabs when they are in.
 fn harnesses(app: &AppHandle, context: &CallContext, tab: Option<&str>) -> Value {
-    let (path, pathext) = (std::env::var_os("PATH"), std::env::var_os("PATHEXT"));
-    let harnesses: Vec<HarnessInfo> = REGISTRY
-        .iter()
-        .map(|d| d.info(spec(d.harness, path.as_deref(), pathext.as_deref()).err()))
-        .collect();
+    let sessions = app.state::<Sessions>();
     let (current, running, model) = match tab {
         Some(id) => {
-            let sessions = app.state::<Sessions>();
             let host = sessions.host(app);
             (sessions.current(host, id), host.running(id), host.model(id))
         }
         None => (current(None, None), None, None),
     };
+    // An agent that has reported its model is signed in, so its harness is
+    // asked again if its last ask went unanswered.
+    if let (Some(harness), Some(_)) = (running, &model) {
+        sessions.models.retry(harness);
+    }
+    let ask_in = tab.and_then(|_| ask_in(app, context));
+    let choice = tab.and_then(|id| sessions.chosen().get(id).cloned());
+    let (path, pathext) = (std::env::var_os("PATH"), std::env::var_os("PATHEXT"));
+    let harnesses: Vec<HarnessInfo> = REGISTRY
+        .iter()
+        .map(|d| {
+            let launch = spec(d.harness, path.as_deref(), pathext.as_deref());
+            let hint = launch.as_ref().err().copied();
+            if let (Ok(launch), Some(worktree)) = (launch, &ask_in) {
+                sessions.ask_models(app, launch, worktree.clone());
+            }
+            let known = sessions.models.models(d.harness);
+            let default = known.as_ref().map(|m| m.default.clone());
+            HarnessInfo {
+                model: next_model(choice.as_ref(), d.harness, default),
+                models: known.map(|m| m.choices),
+                ..d.info(hint)
+            }
+        })
+        .collect();
     let blocked = refuse_unless_developer(app)
         .and_then(|()| worktree(app, context).map(|_| ()))
         .err()
         .and_then(|e| e.data)
         .and_then(|d| d.get("code").cloned());
     harnesses_answer(&harnesses, current, running, model, blocked)
+}
+
+/// The model `harness`'s next session in a tab starts on: the one the tab
+/// chose for it, else the agent's `default`.
+fn next_model(
+    choice: Option<&Choice>,
+    harness: Harness,
+    default: Option<String>,
+) -> Option<String> {
+    choice
+        .filter(|c| c.harness == harness)
+        .and_then(|c| c.model.clone())
+        .or(default)
+}
+
+/// Where the agents are asked for their models: the asking tab's worktree,
+/// and only with developer mode on, since asking starts each agent.
+fn ask_in(app: &AppHandle, context: &CallContext) -> Option<Worktree> {
+    refuse_unless_developer(app).ok()?;
+    worktree(app, context).ok()
+}
+
+/// Tell every open agent tab that `harness`'s models are in. The shell relays
+/// an event only to the frame its payload names, so each tab gets its own.
+fn tell_tabs(app: &AppHandle, harness: Harness) {
+    let snapshot = app.state::<ShellState>().snapshot();
+    for tab in snapshot.instances.iter().filter(|i| i.app_id == ID) {
+        let _ = app.emit(MODELS, json!({ "instanceId": tab.id, "harness": harness }));
+    }
 }
 
 /// The answer to `agent-tab/harnesses`. The tab reads it as `Harnesses` in
@@ -707,6 +783,32 @@ mod tests {
             next_choice(None, Harness::Claude, Some(Some("opus".into()))),
             on(Harness::Claude, Some("opus"))
         );
+    }
+
+    #[test]
+    fn a_harness_starts_on_the_tabs_model_for_it_else_the_agents_default() {
+        let codex = Choice {
+            harness: Harness::Codex,
+            model: Some("gpt-5.2".into()),
+        };
+        let default = || Some("default".to_string());
+        assert_eq!(
+            next_model(Some(&codex), Harness::Codex, default()).as_deref(),
+            Some("gpt-5.2")
+        );
+        assert_eq!(
+            next_model(Some(&codex), Harness::Claude, default()),
+            default()
+        );
+        let unset = Choice {
+            harness: Harness::Codex,
+            model: None,
+        };
+        assert_eq!(
+            next_model(Some(&unset), Harness::Codex, default()),
+            default()
+        );
+        assert_eq!(next_model(None, Harness::Codex, None), None);
     }
 
     #[test]
