@@ -123,17 +123,39 @@ export class AgentSendError extends Error {
 }
 
 /**
- * Bring the cluster's agent tab forward, or open one, then send `text` as it.
- * Rejects with an `AgentSendError` naming the refusal code from `agent_tab.rs`.
+ * Bring the cluster's agent tab forward, or open one, then send `text` as it,
+ * to whichever harness the tab runs. `harness`, picked in the bar, is chosen
+ * for the tab first. Rejects with an `AgentSendError` naming the refusal code
+ * from `agent_tab.rs`.
  */
-export async function sendToAgent(target: SendTarget, text: string): Promise<void> {
+export async function sendToAgent(
+  target: SendTarget,
+  text: string,
+  harness: string | null = null,
+): Promise<void> {
   const existing = agentTabIn(target.tree, target.instances);
   try {
     const instanceId =
       existing ??
       (await openInstance(target.label, AGENT_TAB_APP, target.paneId ?? undefined, target.dir));
     if (existing !== null) await activateInstance(existing);
-    await appCall(AGENT_TAB_APP, "agent-tab/send", { harness: "claude", text }, { instanceId });
+    if (harness !== null) {
+      await appCall(AGENT_TAB_APP, "agent-tab/choose", { harness }, { instanceId });
+    }
+    await appCall(AGENT_TAB_APP, "agent-tab/send", { text }, { instanceId });
+  } catch (err) {
+    throw new AgentSendError(refusalCode(err), { cause: err });
+  }
+}
+
+/**
+ * Choose the harness of the agent tab `instanceId`. Rejects with an
+ * `AgentSendError` naming the refusal code: `running` while its agent runs
+ * another.
+ */
+export async function chooseHarness(instanceId: string, harness: string): Promise<void> {
+  try {
+    await appCall(AGENT_TAB_APP, "agent-tab/choose", { harness }, { instanceId });
   } catch (err) {
     throw new AgentSendError(refusalCode(err), { cause: err });
   }

@@ -14,7 +14,7 @@ vi.mock("../../bindings", () => ({
 }));
 
 import type { PaneNode } from "../contract";
-import { agentBarShown, agentTabIn, refusalCode, sendToAgent } from "./agentBar";
+import { agentBarShown, agentTabIn, chooseHarness, refusalCode, sendToAgent } from "./agentBar";
 
 const tree: PaneNode = {
   kind: "split",
@@ -57,7 +57,7 @@ describe("sendToAgent", () => {
     expect(calls.appCall).toHaveBeenCalledWith(
       "agent-tab",
       "agent-tab/send",
-      { harness: "claude", text: "hi" },
+      { text: "hi" },
       { instanceId: "agent-1" },
     );
   });
@@ -69,9 +69,26 @@ describe("sendToAgent", () => {
     expect(calls.appCall).toHaveBeenCalledWith(
       "agent-tab",
       "agent-tab/send",
-      { harness: "claude", text: "hi" },
+      { text: "hi" },
       { instanceId: "agent-new" },
     );
+  });
+
+  it("chooses a harness picked in the bar before it sends", async () => {
+    const empty = new Map([["files-1", { appId: "files" }]]);
+    await sendToAgent({ label: "main", tree, instances: empty, paneId: "p1" }, "hi", "pi");
+    expect(calls.appCall.mock.calls.map((c) => [c[1], c[2], c[3]])).toEqual([
+      ["agent-tab/choose", { harness: "pi" }, { instanceId: "agent-new" }],
+      ["agent-tab/send", { text: "hi" }, { instanceId: "agent-new" }],
+    ]);
+  });
+
+  it("sends nothing when the tab refuses the harness", async () => {
+    calls.appCall.mockRejectedValueOnce({ code: -32010, data: { code: "running" } });
+    await expect(
+      sendToAgent({ label: "main", tree, instances, paneId: null }, "hi", "pi"),
+    ).rejects.toThrow("running");
+    expect(calls.appCall).toHaveBeenCalledTimes(1);
   });
 
   it("rejects with the refusal code Rust sent", async () => {
@@ -79,6 +96,23 @@ describe("sendToAgent", () => {
     await expect(
       sendToAgent({ label: "main", tree, instances, paneId: null }, "hi"),
     ).rejects.toThrow("busy");
+  });
+});
+
+describe("chooseHarness", () => {
+  it("chooses as the agent tab", async () => {
+    await chooseHarness("agent-1", "pi");
+    expect(calls.appCall).toHaveBeenCalledWith(
+      "agent-tab",
+      "agent-tab/choose",
+      { harness: "pi" },
+      { instanceId: "agent-1" },
+    );
+  });
+
+  it("rejects with the refusal code Rust sent", async () => {
+    calls.appCall.mockRejectedValue({ code: -32010, data: { code: "running" } });
+    await expect(chooseHarness("agent-1", "pi")).rejects.toThrow("running");
   });
 });
 
