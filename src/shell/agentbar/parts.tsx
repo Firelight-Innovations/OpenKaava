@@ -38,18 +38,47 @@ export function BarNotice({ text }: BarNoticeProps) {
   );
 }
 
+export interface BarHarnessChoice {
+  value: string;
+  name: string;
+  /** What this harness still needs, already in words, or `null`. */
+  description: string | null;
+}
+
 export interface BarHarnessProps {
   /** The name of the harness the next prompt goes to, or `null` before the bar has heard. */
   name: string | null;
   /** The running model's name, or `null` when it is not known. */
   model: string | null;
+  value: string | null;
+  choices: BarHarnessChoice[];
+  /** While the tab's agent runs: its prompts go there until a new session. */
+  disabled: boolean;
+  onChange: (harness: string) => void;
 }
 
-/** The harness the bar sends to, and the model its agent runs. */
-export function BarHarness({ name, model }: BarHarnessProps) {
+/** The harness the bar sends to: its name, or a picker once there is more than one. */
+export function BarHarness({ name, model, value, choices, disabled, onChange }: BarHarnessProps) {
   return (
     <>
-      {name !== null && <span className="agentbar__harness">{name}</span>}
+      {choices.length > 1 ? (
+        <select
+          className="agentbar__harness"
+          aria-label={strings.harnessLabel}
+          title={disabled ? strings.harnessLocked : undefined}
+          value={value ?? ""}
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.value)}
+        >
+          {choices.map((choice) => (
+            <option key={choice.value} value={choice.value} title={choice.description ?? undefined}>
+              {choice.name}
+            </option>
+          ))}
+        </select>
+      ) : (
+        name !== null && <span className="agentbar__harness">{name}</span>
+      )}
       {model !== null && <span className="agentbar__harness">{model}</span>}
     </>
   );

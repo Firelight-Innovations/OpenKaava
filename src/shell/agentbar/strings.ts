@@ -15,6 +15,8 @@ export type HarnessWords = Pick<BarHarnessInfo, "name" | "setup">;
 
 export const strings = {
   label: "Agent bar",
+  harnessLabel: "Harness",
+  harnessLocked: "Start a new session in the agent tab to switch harness",
   // Not the tab's "Message the agent": both can be on screen at once, and a
   // field is found by its name.
   promptLabel: "Message the agent from the agent bar",
@@ -38,6 +40,7 @@ export const strings = {
     wrongWorktree: "That session belongs to another worktree. Start a new session in the tab.",
     busy: "The agent is still working. Stop it in the agent tab, or wait.",
     harness: "The agent is not ready to run.",
+    running: "The agent tab runs another harness. Start a new session there to switch.",
     spawn: "The agent could not be started.",
     failed: "Could not send that.",
   } as Record<string, string>,

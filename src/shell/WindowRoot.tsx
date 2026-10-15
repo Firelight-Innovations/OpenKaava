@@ -68,7 +68,13 @@ import TerminalDeck, { type TerminalDeckHandle } from "./terminal/TerminalDeck";
 import { callApp, useApps, useOpenables, usePages } from "./state/apps";
 import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
-import { agentBarShown, agentTabIn, sendToAgent, useAgentBarStatus } from "./state/agentBar";
+import {
+  agentBarShown,
+  agentTabIn,
+  chooseHarness,
+  sendToAgent,
+  useAgentBarStatus,
+} from "./state/agentBar";
 import { agentClusters, agentsDot, useAgentSessions } from "./state/agentSessions";
 import { newAgent, openAgent, type AgentOpeners } from "./state/agentOpeners";
 import { ClusterAgentBar } from "./agentbar/AgentBar";
@@ -1655,12 +1661,18 @@ export default function WindowRoot({
     agentTab,
   );
   const onAgentSend = useCallback(
-    (text: string) =>
+    (text: string, harness: string | null) =>
       sendToAgent(
         { label, tree, instances, paneId: activePaneId, dir: splitDirOnOpen(activePaneId) },
         text,
+        harness,
       ),
     [label, tree, instances, activePaneId],
+  );
+  // With no agent tab there is nobody to tell yet: the bar keeps the pick and its send chooses it.
+  const onAgentChoose = useCallback(
+    (harness: string) => (agentTab === null ? Promise.resolve() : chooseHarness(agentTab, harness)),
+    [agentTab],
   );
 
   // The Agents page and its rail dot: the agent tabs in this window's
@@ -2130,6 +2142,7 @@ export default function WindowRoot({
               <ClusterAgentBar
                 clusterId={activeCluster.id}
                 status={agentBarStatus}
+                onChoose={onAgentChoose}
                 onSend={onAgentSend}
               />
             ) : undefined,

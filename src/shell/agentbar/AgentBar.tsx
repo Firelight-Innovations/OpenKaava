@@ -3,8 +3,8 @@
  * cluster. Sending brings the cluster's agent tab forward, or opens one, and
  * the conversation continues there.
  *
- * This slice has the harness and its model, the prompt and Send. The model
- * picker, the mode indicator and the context chips come later.
+ * This slice has the harness picker and the running model, the prompt and
+ * Send. The model picker, the mode indicator and the context chips come later.
  */
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { AgentBarStatus } from "../state/agentBar";
@@ -16,8 +16,16 @@ import "./agentbar.css";
 export interface AgentBarProps {
   /** What `agent-tab/harnesses` said about this cluster and its agent tab. */
   status: AgentBarStatus;
-  /** Sends a prompt. Rejects with an `Error` whose message is a refusal code. */
-  onSend: (text: string) => Promise<void>;
+  /**
+   * Chooses the agent tab's harness, or does nothing while the cluster has no
+   * tab. Rejects with an `Error` whose message is a refusal code.
+   */
+  onChoose: (harness: string) => Promise<void>;
+  /**
+   * Sends a prompt, choosing `harness` for the tab first when the bar picked
+   * one. Rejects with an `Error` whose message is a refusal code.
+   */
+  onSend: (text: string, harness: string | null) => Promise<void>;
 }
 
 /**
@@ -35,14 +43,19 @@ function hintText(hint: string, words: HarnessWords): string | null {
   return known ? strings.hint[hint](words) : null;
 }
 
-export default function AgentBar({ status, onSend }: AgentBarProps) {
+export default function AgentBar({ status, onChoose, onSend }: AgentBarProps) {
   const S = useBarSlots();
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  // A harness picked here, held against the answer it was picked over: with
+  // no agent tab there is nobody to tell yet, so the first send opens one and
+  // chooses it. A newer answer supersedes it, since the tab holds the choice.
+  const [pick, setPick] = useState<{ over: AgentBarStatus; harness: string } | null>(null);
+  const picked = pick?.over === status ? pick.harness : null;
   const input = useRef<HTMLTextAreaElement>(null);
 
-  const harness = status.running ?? status.current;
+  const harness = status.running ?? picked ?? status.current;
   const words = status.harnesses.find((h) => h.harness === harness);
   const failed = (err: unknown) => {
     const code = err instanceof Error ? err.message : "failed";
@@ -51,6 +64,11 @@ export default function AgentBar({ status, onSend }: AgentBarProps) {
         ? strings.notReady(words.name)
         : (strings.refusal[code] ?? strings.refusal.failed),
     );
+  };
+
+  const choose = (next: string) => {
+    setFailure(null);
+    onChoose(next).then(() => setPick({ over: status, harness: next }), failed);
   };
 
   // One line until there is more to show, then as tall as the text up to the
@@ -69,7 +87,7 @@ export default function AgentBar({ status, onSend }: AgentBarProps) {
     if (text === "" || sending || disabled) return;
     setSending(true);
     setFailure(null);
-    onSend(text).then(
+    onSend(text, status.running ? null : picked).then(
       () => {
         // Only if the box still holds what was sent: the textarea stays live
         // while the send is in flight, and what was typed meanwhile is the
@@ -101,7 +119,18 @@ export default function AgentBar({ status, onSend }: AgentBarProps) {
     <S.Frame
       notice={notice !== null && <S.Notice text={notice} />}
       harness={
-        <S.Harness name={words?.name ?? null} model={status.running ? status.model : null} />
+        <S.Harness
+          name={words?.name ?? null}
+          model={status.running ? status.model : null}
+          value={harness}
+          choices={status.harnesses.map((h) => ({
+            value: h.harness,
+            name: h.name,
+            description: h.hint && hintText(h.hint, h),
+          }))}
+          disabled={status.running !== null}
+          onChange={choose}
+        />
       }
       input={
         <S.Input

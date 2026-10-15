@@ -20,6 +20,19 @@ const CLAUDE: BarHarnessInfo = {
   },
 };
 
+// A second harness the registry does not have yet, so the bar has something to pick between.
+const PI: BarHarnessInfo = {
+  harness: "pi",
+  name: "Pi",
+  hint: "adapterMissing",
+  setup: {
+    cli: "pi",
+    signIn: "pi login",
+    adapterInstall: "npm i -g pi-acp",
+    adapterVersion: "1.0.0",
+  },
+};
+
 function status(over: Partial<AgentBarStatus> = {}): AgentBarStatus {
   return {
     blocked: null,
@@ -37,6 +50,10 @@ function prompt() {
   return screen.getByRole("textbox", { name: "Message the agent from the agent bar" });
 }
 
+function picker() {
+  return screen.getByRole("combobox", { name: "Harness" });
+}
+
 async function sendDraft(text: string) {
   fireEvent.change(prompt(), { target: { value: text } });
   await act(async () => {
@@ -44,18 +61,24 @@ async function sendDraft(text: string) {
   });
 }
 
+async function pick(harness: string) {
+  await act(async () => {
+    fireEvent.change(picker(), { target: { value: harness } });
+  });
+}
+
 describe("AgentBar", () => {
   it("sends on Enter and clears the prompt once the send lands", async () => {
     const onSend = resolved();
-    render(<AgentBar status={status()} onSend={onSend} />);
+    render(<AgentBar status={status()} onChoose={resolved()} onSend={onSend} />);
     await sendDraft("  fix the test ");
-    expect(onSend).toHaveBeenCalledWith("fix the test");
+    expect(onSend).toHaveBeenCalledWith("fix the test", null);
     expect(prompt()).toHaveProperty("value", "");
   });
 
   it("keeps Shift+Enter for a new line", () => {
     const onSend = resolved();
-    render(<AgentBar status={status()} onSend={onSend} />);
+    render(<AgentBar status={status()} onChoose={resolved()} onSend={onSend} />);
     fireEvent.change(prompt(), { target: { value: "one" } });
     fireEvent.keyDown(prompt(), { key: "Enter", shiftKey: true });
     expect(onSend).not.toHaveBeenCalled();
@@ -63,14 +86,16 @@ describe("AgentBar", () => {
 
   it("shows a refused send in its own words and keeps the draft", async () => {
     const onSend = vi.fn(() => Promise.reject(new Error("busy")));
-    render(<AgentBar status={status()} onSend={onSend} />);
+    render(<AgentBar status={status()} onChoose={resolved()} onSend={onSend} />);
     await sendDraft("again");
     expect(screen.getByRole("status").textContent).toContain("still working");
     expect(prompt()).toHaveProperty("value", "again");
   });
 
   it("is disabled, with the reason, on a cluster that cannot run an agent", () => {
-    render(<AgentBar status={status({ blocked: "mainCheckout" })} onSend={vi.fn()} />);
+    render(
+      <AgentBar status={status({ blocked: "mainCheckout" })} onChoose={vi.fn()} onSend={vi.fn()} />,
+    );
     expect(prompt()).toHaveProperty("disabled", true);
     expect(screen.getByRole("status").textContent).toContain("never run on main");
   });
@@ -85,7 +110,11 @@ describe("AgentBar", () => {
     const slots = Object.fromEntries(names.map((n) => [n, stub(n)])) as Partial<BarSlots>;
     const { container } = render(
       <BarSlotsProvider slots={slots}>
-        <AgentBar status={status({ blocked: "mainCheckout" })} onSend={vi.fn()} />
+        <AgentBar
+          status={status({ blocked: "mainCheckout", harnesses: [CLAUDE, PI] })}
+          onChoose={vi.fn()}
+          onSend={vi.fn()}
+        />
       </BarSlotsProvider>,
     );
     const all = [...container.querySelectorAll("*")];
@@ -95,7 +124,9 @@ describe("AgentBar", () => {
 
   it("shows the install line when the adapter is missing, and never says Claude Code", () => {
     const missing = { ...CLAUDE, hint: "adapterMissing" };
-    render(<AgentBar status={status({ harnesses: [missing] })} onSend={vi.fn()} />);
+    render(
+      <AgentBar status={status({ harnesses: [missing] })} onChoose={vi.fn()} onSend={vi.fn()} />,
+    );
     const text = screen.getByRole("status").textContent ?? "";
     expect(text).toContain("npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@0.90.0");
     expect(document.body.textContent).not.toContain("Claude Code");
@@ -103,7 +134,9 @@ describe("AgentBar", () => {
 
   it("tells a machine without claude to install it and sign in", () => {
     const missing = { ...CLAUDE, hint: "harnessMissing" };
-    render(<AgentBar status={status({ harnesses: [missing] })} onSend={vi.fn()} />);
+    render(
+      <AgentBar status={status({ harnesses: [missing] })} onChoose={vi.fn()} onSend={vi.fn()} />,
+    );
     const text = screen.getByRole("status").textContent ?? "";
     expect(text).toContain("Claude is not installed");
     expect(text).toContain("run `claude` once");
@@ -111,17 +144,19 @@ describe("AgentBar", () => {
 
   it("leaves a hint a running session earns to the agent tab", () => {
     const signedOut = { ...CLAUDE, hint: "signedOut" };
-    render(<AgentBar status={status({ harnesses: [signedOut] })} onSend={vi.fn()} />);
+    render(
+      <AgentBar status={status({ harnesses: [signedOut] })} onChoose={vi.fn()} onSend={vi.fn()} />,
+    );
     expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("keeps what was typed while the send was in flight", async () => {
     let land: () => void = () => {};
     const onSend = vi.fn(() => new Promise<void>((resolve) => (land = resolve)));
-    render(<AgentBar status={status()} onSend={onSend} />);
+    render(<AgentBar status={status()} onChoose={vi.fn()} onSend={onSend} />);
     fireEvent.change(prompt(), { target: { value: "first" } });
     fireEvent.keyDown(prompt(), { key: "Enter" });
-    expect(onSend).toHaveBeenCalledWith("first");
+    expect(onSend).toHaveBeenCalledWith("first", null);
     fireEvent.change(prompt(), { target: { value: "the start of the next" } });
     await act(async () => land());
     expect(prompt()).toHaveProperty("value", "the start of the next");
@@ -132,6 +167,7 @@ describe("AgentBar", () => {
     render(
       <AgentBar
         status={status()}
+        onChoose={vi.fn()}
         onSend={() => new Promise<void>((resolve) => (land = resolve))}
       />,
     );
@@ -142,16 +178,82 @@ describe("AgentBar", () => {
   });
 
   it("names the harness, and the model only while its agent runs", () => {
-    const { rerender } = render(<AgentBar status={status({ model: "Opus" })} onSend={vi.fn()} />);
+    const { rerender } = render(
+      <AgentBar status={status({ model: "Opus" })} onChoose={vi.fn()} onSend={vi.fn()} />,
+    );
     expect(screen.getByText("Claude")).toBeTruthy();
     expect(screen.queryByText("Opus")).toBeNull();
-    rerender(<AgentBar status={status({ running: "claude", model: "Opus" })} onSend={vi.fn()} />);
+    rerender(
+      <AgentBar
+        status={status({ running: "claude", model: "Opus" })}
+        onChoose={vi.fn()}
+        onSend={vi.fn()}
+      />,
+    );
     expect(screen.getByText("Opus")).toBeTruthy();
+  });
+
+  it("has no picker while there is one harness to send to", () => {
+    render(<AgentBar status={status()} onChoose={vi.fn()} onSend={vi.fn()} />);
+    expect(screen.queryByRole("combobox", { name: "Harness" })).toBeNull();
+  });
+
+  it("chooses a harness, then words its hint and sends to it", async () => {
+    const onChoose = resolved();
+    const onSend = resolved();
+    render(
+      <AgentBar status={status({ harnesses: [CLAUDE, PI] })} onChoose={onChoose} onSend={onSend} />,
+    );
+    await pick("pi");
+    expect(onChoose).toHaveBeenCalledWith("pi");
+    expect(picker()).toHaveProperty("value", "pi");
+    expect(screen.getByRole("status").textContent).toContain("Run `npm i -g pi-acp`");
+    await sendDraft("hello");
+    expect(onSend).toHaveBeenCalledWith("hello", "pi");
+  });
+
+  it("locks the picker while the tab's agent runs, and sends to that agent", async () => {
+    const onSend = resolved();
+    render(
+      <AgentBar
+        status={status({ harnesses: [CLAUDE, PI], current: "pi", running: "claude" })}
+        onChoose={vi.fn()}
+        onSend={onSend}
+      />,
+    );
+    expect(picker()).toHaveProperty("disabled", true);
+    expect(picker()).toHaveProperty("value", "claude");
+    await sendDraft("hello");
+    expect(onSend).toHaveBeenCalledWith("hello", null);
+  });
+
+  it("follows a new answer from the host over its own pick", async () => {
+    const harnesses = [CLAUDE, PI];
+    const { rerender } = render(
+      <AgentBar status={status({ harnesses })} onChoose={resolved()} onSend={vi.fn()} />,
+    );
+    await pick("pi");
+    rerender(<AgentBar status={status({ harnesses })} onChoose={resolved()} onSend={vi.fn()} />);
+    expect(picker()).toHaveProperty("value", "claude");
+  });
+
+  it("shows a refused choice and keeps the harness it had", async () => {
+    const onChoose = vi.fn(() => Promise.reject(new Error("running")));
+    render(
+      <AgentBar
+        status={status({ harnesses: [CLAUDE, PI] })}
+        onChoose={onChoose}
+        onSend={vi.fn()}
+      />,
+    );
+    await pick("pi");
+    expect(screen.getByRole("status").textContent).toContain("Start a new session there");
+    expect(picker()).toHaveProperty("value", "claude");
   });
 
   it("names the harness that is not ready when the host refuses it", async () => {
     const onSend = vi.fn(() => Promise.reject(new Error("harness")));
-    render(<AgentBar status={status()} onSend={onSend} />);
+    render(<AgentBar status={status()} onChoose={vi.fn()} onSend={onSend} />);
     await sendDraft("hello");
     expect(screen.getByRole("status").textContent).toBe("Claude is not ready to run.");
   });
@@ -159,7 +261,7 @@ describe("AgentBar", () => {
 
 describe("ClusterAgentBar", () => {
   it("starts a cluster of its own with an empty draft", () => {
-    const props = { status: status(), onSend: vi.fn() };
+    const props = { status: status(), onChoose: vi.fn(), onSend: vi.fn() };
     const { rerender } = render(<ClusterAgentBar clusterId="a" {...props} />);
     fireEvent.change(prompt(), { target: { value: "half typed" } });
     rerender(<ClusterAgentBar clusterId="a" {...props} />);
