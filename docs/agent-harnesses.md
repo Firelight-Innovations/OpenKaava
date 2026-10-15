@@ -14,12 +14,17 @@ agent tab, agent bar ── agent-tab/* ── AgentHost ── Adapter ── h
 ```
 
 - **The registry.** `crates/kaava-agent-host/src/harness.rs` holds one `Descriptor` per harness,
-  in `REGISTRY`. Only the registry knows these facts about a harness:
+  in `REGISTRY`. The host and `agent-tab/harnesses` read these facts about a harness from the
+  registry and nowhere else:
   - its name
   - its programs
   - how the user installs it and signs in to it
   - the mode it starts in
   - what it supports
+
+  The UI does not read them all yet. The agent tab's and the agent bar's own `strings.ts` still
+  spell Claude's name, its adapter's install command and its sign-in, so a new harness also needs
+  words there (step 6).
 - **The event model.** `apps/agent-tab/ui/src/protocol.generated.ts` is generated from the types
   in `event.rs`, and it is the only thing the UI reads. No harness's wire format reaches the UI.
 - **The `Adapter` trait.** `host.rs` drives every session through it. `Session` implements it over
@@ -81,8 +86,11 @@ breaks one.
 5. **Regenerate the TypeScript types.** Run
    `KAAVA_BLESS=1 cargo test -p kaava-agent-host generated_types`. The new id joins the `Harness`
    union.
-6. **Name it in the tab.** For now the tab's own strings still name each harness: add it to
-   `harness` in `apps/agent-tab/ui/src/strings.ts`. `tsc` fails until you do. The harness picker
-   replaces that list with `HarnessInfo.name`.
+6. **Name it in the UI.** For now the UI's own strings still name each harness and its setup:
+   - Add it to `harness` in `apps/agent-tab/ui/src/strings.ts`. `tsc` fails until you do.
+   - Reword the setup hints in that file and in `src/shell/agentbar/strings.ts`. Both are written
+     for Claude, and nothing checks the agent bar's.
+
+   The harness picker replaces these with `HarnessInfo`.
 7. **Record the version.** Add a row to `docs/agent-host-versions.md`.
 8. **Run `pnpm verify`.**

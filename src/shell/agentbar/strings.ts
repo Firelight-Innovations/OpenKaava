@@ -17,7 +17,7 @@ export const strings = {
   send: "Send",
   sending: "Sending",
   // Only what `agent-tab/harnesses` can answer before anything has started:
-  // `claude_spec` fails with one of these two. The hints a running session
+  // `spec` fails with one of these two. The hints a running session
   // earns (signed out, another adapter version, a path outside the worktree)
   // are the agent tab's to show, from its own strings.
   hint: {

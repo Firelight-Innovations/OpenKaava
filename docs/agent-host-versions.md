@@ -1,8 +1,9 @@
 # Agent host: pinned versions
 
-The versions each harness was tested with, on Windows 11. A descriptor in
-`crates/kaava-agent-host/src/harness/` pins each adapter version listed here. Another version still
-runs, and the tab shows the `adapterVersion` hint for it. See `docs/agent-harnesses.md`.
+The versions each harness was tested with, on Windows 11. Each harness's descriptor in
+`crates/kaava-agent-host/src/harness/` pins its adapter's version, and only that one. Another
+adapter version still runs, and the tab shows the `adapterVersion` hint for it. The program rows
+record the version that was tested; nothing pins or checks them. See `docs/agent-harnesses.md`.
 
 | Harness | Program | Version | Source | Tested |
 |---|---|---|---|---|
