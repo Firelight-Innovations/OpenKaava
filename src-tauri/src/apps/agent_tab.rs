@@ -487,6 +487,21 @@ mod tests {
         assert_eq!(unreached("agent-tab/nonesuch").code, METHOD_NOT_FOUND);
     }
 
+    /// Each method that advances an agent, by name: moved to
+    /// `UNGATED_METHODS`, it would still pass the list-wide tests below.
+    #[test]
+    fn prompting_approving_and_every_setting_need_developer_mode() {
+        for method in [
+            "agent-tab/send",
+            "agent-tab/answer",
+            "agent-tab/set-mode",
+            "agent-tab/set-config",
+        ] {
+            let err = gate(method, false).unwrap_err();
+            assert_eq!(code_of(&err), Some("developerMode"), "{method}");
+        }
+    }
+
     /// The gate is one decision in one place: what advances an agent needs
     /// developer mode, and what ends or reads one never does.
     #[test]
