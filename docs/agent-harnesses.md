@@ -104,9 +104,10 @@ also lists harnesses that are not registered yet, as "Coming soon", by names in 
 
 `harness/codex.rs` runs the user's own `codex` through `@agentclientprotocol/codex-acp`, which
 starts `codex app-server` and speaks ACP for it. The user installs the adapter with
-`--omit=optional`, so npm skips the `codex` binary the package bundles. The host sets `CODEX_PATH`
-to the user's `codex`, and the adapter runs that one. The user signs in with `codex login` in a
-terminal. A signed-out `session/new` answers `auth_required`, and the tab shows the `signedOut`
+`--omit=optional`. The adapter depends on `@openai/codex`, which carries its native `codex` binary
+in optional, per-platform packages, so npm installs the wrapper without that binary. The host
+sets `CODEX_PATH` to the user's `codex`, and the adapter runs that one. The user signs in with
+`codex login` in a terminal. A signed-out `session/new` answers `auth_required`, and the tab shows the `signedOut`
 hint. The adapter never inherits `DEFAULT_AUTH_REQUEST` (`Descriptor::env_remove`): with it set, a
 signed-out session would sign itself in, and `chat-gpt` opens a browser.
 
@@ -131,8 +132,8 @@ the guard, as in Claude's `auto`. `agent-full-access` is Codex's equivalent of C
 `set_mode`, and never runs in `agent`.
 
 **Settings.** The adapter reports these select options, and the host passes each one to the tab in
-`SessionStatus.config`. The tab's header and the agent bar show the model; the others have no
-control in the tab yet.
+`SessionStatus.config`. While an agent runs, the tab's header and the agent bar show the model; the
+others have no control in the tab yet.
 
 - `model`: the model
 - `reasoning_effort`: the effort, only for a model that has levels
@@ -152,6 +153,10 @@ request carries what it grants under `permissions` or `additionalPermissions`, a
   its subpath. Every other scope is refused: the whole disk, the temp folders, and any kind Codex
   adds later.
 - An entry whose access is `deny` grants nothing, and is skipped.
+- A file change names only the file it edits. A move's destination is in the diff that the change
+  reported when it started, so the guard also checks every file the same tool call named before.
+  The adapter drops a diff over its size limit, path and all, so a move with a diff that large is
+  not checked.
 
 ## Adding a harness
 
@@ -171,8 +176,9 @@ request carries what it grants under `permissions` or `additionalPermissions`, a
    `harness/claude.rs`. Declare it in `harness.rs` with `mod <name>;` and
    `pub use <name>::<NAME>;`, and add it to `REGISTRY`. The struct documents each field.
 4. **Extend the guard if needed.** `guard::request_paths` reads the paths that a permission
-   request names. `guard::request_scope` adds where a command runs and what a sandbox grant
-   opens, and the approval card shows it all. `guard::escapes` refuses any part of it outside the
+   request names, and the session adds the files its tool call named earlier.
+   `guard::request_scope` adds where a command runs and what a sandbox grant opens, and the
+   approval card shows it all. `guard::escapes` refuses any part of it outside the
    worktree, or that no path stands for. If the new adapter puts paths under keys that none of
    these reads, add those keys, with a test.
 5. **Regenerate the TypeScript types.** Run
