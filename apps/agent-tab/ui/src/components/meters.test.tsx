@@ -225,6 +225,20 @@ describe("the context meter", () => {
     expect(rows).toEqual(["Used124.6k42%", "Free space175.4k58%"]);
   });
 
+  it("fills its bar as far as the window is full, and no further", () => {
+    const fill = (used: number) => {
+      const { container } = render(<ContextMeter used={used} size={300_000} />);
+      const bar = container.querySelector<HTMLElement>(".at-minibar")!;
+      const width = bar.querySelector<HTMLElement>(".at-bar__fill")!.style.width;
+      cleanup();
+      return [width, bar.getAttribute("data-tone")];
+    };
+    expect(fill(124_600)).toEqual([`${(124_600 / 300_000) * 100}%`, "low"]);
+    expect(fill(255_000)).toEqual(["85%", "high"]);
+    expect(fill(288_000)).toEqual(["96%", "full"]);
+    expect(fill(400_000)).toEqual(["100%", "full"]);
+  });
+
   it("breaks the used tokens down when the agent says what they are", () => {
     render(
       <ContextMeter
@@ -242,6 +256,24 @@ describe("the context meter", () => {
       "System tools",
       "Free space",
     ]);
-    expect(card.querySelectorAll(".at-stack__part")).toHaveLength(2);
+    const parts = [...card.querySelectorAll<HTMLElement>(".at-stack__part")];
+    expect(parts.map((p) => p.style.width)).toEqual(["20%", "10%"]);
+  });
+});
+
+describe("the ring", () => {
+  const { Ring } = defaultSlots;
+  const AROUND = 2 * Math.PI * 6;
+  const dash = (share: number) => {
+    const { container } = render(<Ring share={share} tone="low" />);
+    const value = container.querySelector(".at-ring__fill")!.getAttribute("stroke-dasharray");
+    cleanup();
+    return value;
+  };
+
+  it("fills as far as its share, clamped to empty and full", () => {
+    expect(dash(0.5)).toBe(`${AROUND / 2} ${AROUND}`);
+    expect(dash(1.5)).toBe(`${AROUND} ${AROUND}`);
+    expect(dash(-0.5)).toBe(`0 ${AROUND}`);
   });
 });

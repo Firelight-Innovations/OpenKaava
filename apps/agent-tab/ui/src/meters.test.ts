@@ -12,7 +12,9 @@ const usage = (id: string, used: number, size: number): Item => ({
 describe("meters", () => {
   it("turns a meter yellow from 80% and red from 95%", () => {
     expect(toneOf(0.45)).toBe("low");
-    expect(toneOf(0.86)).toBe("high");
+    expect(toneOf(0.79)).toBe("low");
+    expect(toneOf(0.8)).toBe("high");
+    expect(toneOf(0.94)).toBe("high");
     expect(toneOf(0.95)).toBe("full");
   });
 
