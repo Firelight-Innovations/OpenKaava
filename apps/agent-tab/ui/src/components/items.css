@@ -116,7 +116,8 @@
 }
 
 .at-disclosure::after {
-  content: "›";
+  /* Empty alt text: the caret is decoration, not part of the label. */
+  content: "›" / "";
   display: inline-block;
   margin-left: var(--k-space-1-5);
   color: var(--k-fg-faint);
