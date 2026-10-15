@@ -127,7 +127,7 @@ pub fn file(root: &Path, r: &Ref) -> Result<Resolved, Fault> {
     if found.abs.is_dir() {
         return Ok(folder(out, &found.root, &found.abs)?);
     }
-    Ok(describe(out, &found.abs, *lines)?)
+    describe(out, &found.abs, *lines)
 }
 
 pub(super) fn secret_withheld(rule: &str) -> String {
