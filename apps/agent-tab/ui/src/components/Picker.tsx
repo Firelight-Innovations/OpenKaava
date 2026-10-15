@@ -10,7 +10,7 @@ export function Picker({ label, title, value, choices, disabled, onChange }: Pic
   const id = useId();
   if (!onChange) {
     return (
-      <span className="at-prompt__mode" title={title ?? undefined}>
+      <span className="at-prompt__mode" role="group" aria-label={label} title={title ?? undefined}>
         {value ?? ""}
       </span>
     );
