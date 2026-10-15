@@ -69,6 +69,7 @@ fn mock(args: &[&str]) -> LaunchSpec {
         program: PathBuf::from(env!("CARGO_BIN_EXE_mock-agent")),
         args: args.iter().map(|a| a.to_string()).collect(),
         env: Vec::new(),
+        env_remove: Vec::new(),
         expected_version: Some("0.90.0"),
         policy: CLAUDE.policy,
         setting_timeout: PATIENCE,
@@ -722,6 +723,31 @@ fn the_session_asks_for_its_harness_policy_mode() {
     let refused = rig();
     refused.send(&["--only-mode", "read-only"], "hi").unwrap();
     refused.state(SessionState::Failed);
+}
+
+/// Removed from what the agent inherits, as `DEFAULT_AUTH_REQUEST` is for
+/// Codex, while the rest of the environment still reaches it.
+#[test]
+fn a_variable_the_harness_must_not_inherit_never_reaches_it() {
+    let inherited = ["CARGO_MANIFEST_DIR", "CARGO_PKG_NAME"];
+    for name in inherited {
+        assert!(std::env::var_os(name).is_some(), "cargo sets {name}");
+    }
+    let rig = rig();
+    let spec = |text: &str| {
+        let spec = LaunchSpec {
+            env_remove: vec![inherited[0].to_string()],
+            ..mock(&[])
+        };
+        rig.host.send(TAB, spec, rig.tree.clone(), text).unwrap();
+    };
+    spec(&format!("env {}", inherited[0]));
+    rig.turns_done(1);
+    spec(&format!("env {}", inherited[1]));
+    rig.turns_done(2);
+    let texts = texts(&rig.items());
+    assert_eq!(texts[0], format!("{}=unset", inherited[0]));
+    assert_eq!(texts[1], format!("{}=kaava-agent-host", inherited[1]));
 }
 
 #[test]

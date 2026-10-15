@@ -687,6 +687,13 @@ impl Mock {
                 }
                 self.end_turn("end_turn");
             }
+            // `env NAME`: what this process inherited for NAME.
+            env if env.starts_with("env ") => {
+                let name = &env["env ".len()..];
+                let value = std::env::var(name).unwrap_or_else(|_| "unset".into());
+                self.chunk(&format!("{name}={value}"), "m1");
+                self.end_turn("end_turn");
+            }
             other => {
                 self.chunk(&format!("echo: {other}"), "m1");
                 self.end_turn("end_turn");

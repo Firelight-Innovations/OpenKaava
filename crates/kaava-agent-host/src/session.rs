@@ -220,6 +220,9 @@ impl Session {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
+        for key in &spec.env_remove {
+            command.env_remove(key);
+        }
         let (mut child, job) = job::spawn(&mut command).map_err(|e| HostError::Spawn {
             hint: (e.kind() == std::io::ErrorKind::NotFound).then_some(Hint::AdapterMissing),
             message: mask(&e.to_string()),

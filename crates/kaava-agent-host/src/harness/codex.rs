@@ -8,7 +8,8 @@
 //! first in `read-only`, and `INITIAL_AGENT_MODE` starts the session there, so
 //! it is never in the adapter's own default, auto review, even before the
 //! host's first `set_mode`. Auto review and full access are never offered
-//! (`config::NOT_OFFERED`). No token, config file or auth request is passed.
+//! (`config::NOT_OFFERED`). No token, config file or auth request is passed,
+//! and a `DEFAULT_AUTH_REQUEST` in Kaava's own environment is not inherited.
 
 use super::{AcpAdapter, Capabilities, Descriptor, Harness, Policy, Protocol};
 
@@ -25,6 +26,9 @@ pub static CODEX: Descriptor = Descriptor {
     },
     sign_in: "codex login",
     env: &[("INITIAL_AGENT_MODE", "read-only")],
+    // With this set, a signed-out session signs itself in: `chat-gpt` opens a
+    // browser. Kaava never starts a sign-in; the user runs `codex login`.
+    env_remove: &["DEFAULT_AUTH_REQUEST"],
     // `read-only` asks before editing a file or using the network.
     policy: Policy {
         ask_first: "read-only",

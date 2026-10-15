@@ -79,6 +79,9 @@ pub struct Descriptor {
     pub sign_in: &'static str,
     /// More variables for the adapter's environment. Never a credential.
     pub env: &'static [(&'static str, &'static str)],
+    /// Variables the adapter must not inherit from Kaava's environment, such
+    /// as one that would have it start a sign-in flow.
+    pub env_remove: &'static [&'static str],
     /// What Kaava holds every session of it to.
     pub policy: Policy,
     /// How the host talks to it, which picks the [`crate::Adapter`] that runs it.
@@ -191,6 +194,8 @@ pub struct LaunchSpec {
     pub args: Vec<String>,
     /// Variables added to the inherited environment.
     pub env: Vec<(String, String)>,
+    /// Variables removed from it, after `env` is added.
+    pub env_remove: Vec<String>,
     /// The adapter version this build expects, if it checks one.
     pub expected_version: Option<&'static str>,
     /// What the session is held to.
@@ -219,6 +224,11 @@ pub fn spec(
         program: adapter,
         args: Vec::new(),
         env: launch_env(descriptor.env, descriptor.cli_env, &cli),
+        env_remove: descriptor
+            .env_remove
+            .iter()
+            .map(|k| k.to_string())
+            .collect(),
         expected_version: Some(descriptor.adapter.version),
         policy: descriptor.policy,
         setting_timeout: SETTING_TIMEOUT,
@@ -353,16 +363,18 @@ mod tests {
         assert_eq!(seen("OTHER"), Some("kept"));
     }
 
-    /// A row that sets either would be silently ignored, so none may. Windows
-    /// reads variable names without regard to case, and so does the check.
+    /// A row that set either would be silently ignored, and one that removed
+    /// either would undo it, so none may. Windows reads variable names without
+    /// regard to case, and so does the check.
     #[test]
     fn no_descriptor_sets_a_variable_spec_relies_on() {
         for descriptor in REGISTRY {
-            for (key, _) in descriptor.env {
+            let keys = descriptor.env.iter().map(|(k, _)| k);
+            for key in keys.chain(descriptor.env_remove) {
                 for reserved in [NO_CWD_SEARCH, descriptor.cli_env] {
                     assert!(
                         !key.eq_ignore_ascii_case(reserved),
-                        "{:?} sets {key}, which spec sets itself",
+                        "{:?} sets or removes {key}, which spec sets itself",
                         descriptor.harness
                     );
                 }
@@ -396,6 +408,11 @@ mod tests {
                     "1".to_string()
                 ),
             ]
+        );
+        assert_eq!(
+            spec.env_remove,
+            ["DEFAULT_AUTH_REQUEST"],
+            "it would sign in"
         );
         assert_eq!(spec.expected_version, Some("2.2.2"));
         assert_eq!(spec.policy.ask_first, "read-only");
