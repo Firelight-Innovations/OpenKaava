@@ -43,14 +43,34 @@ pub fn resolve(
         Ref::File { .. } => resolve::file(root, r),
         Ref::Context { .. } => resolve::context_item(root, r),
         Ref::Comment { .. } => resolve::viewer_comment(root, r),
-        Ref::Canvas { id, part } => match part {
-            None => canvas(app, ctx, actor, r, id),
-            Some(CanvasPart::Frame(frame)) => frame_of(app, ctx, actor, root, r, id, frame),
-            Some(CanvasPart::Comment(c)) => canvas_comment(app, ctx, actor, root, r, id, c),
-        },
+        Ref::Canvas { id, part } => {
+            canvas_inside(root, id, part.as_ref())?;
+            match part {
+                None => canvas(app, ctx, actor, r, id),
+                Some(CanvasPart::Frame(frame)) => frame_of(app, ctx, actor, root, r, id, frame),
+                Some(CanvasPart::Comment(c)) => canvas_comment(app, ctx, actor, root, r, id, c),
+            }
+        }
         Ref::DesignComment { id } => design_comment(app, r, id),
         Ref::Selection => selection(app, ctx, root, r),
     }
+}
+
+/// Refuse a canvas, or a comment on one, whose file is not inside the project
+/// once links are followed. The Canvas app reads the files where it finds
+/// them, so the test a file reference passes runs here, before it is asked.
+fn canvas_inside(root: &Path, id: &str, part: Option<&CanvasPart>) -> Result<(), String> {
+    use crate::apps::canvas;
+    let mut files = vec![canvas::file_for(root, id)];
+    if let Some(CanvasPart::Comment(c)) = part {
+        files.push(canvas::comments::dir_for(root, id).join(format!("{c}.json")));
+    }
+    for file in files {
+        let rel = crate::context::relative_to(root, &file)
+            .ok_or_else(|| format!("canvas `{id}` is not in this project"))?;
+        super::policy::contain(root, &rel)?;
+    }
+    Ok(())
 }
 
 fn canvas_call(
@@ -350,5 +370,43 @@ mod tests {
         ));
         let missing = rendered(dir.path(), Err("no Canvas pane is open".into()));
         assert!(matches!(missing, Part::Note { text } if text.contains("no Canvas pane")));
+    }
+
+    fn write(path: &Path, text: &str) {
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, text).unwrap();
+    }
+
+    fn link(target: &Path, at: &Path) -> bool {
+        #[cfg(unix)]
+        let made = std::os::unix::fs::symlink(target, at);
+        #[cfg(windows)]
+        let made = std::os::windows::fs::symlink_file(target, at);
+        made.is_ok()
+    }
+
+    #[test]
+    fn a_canvas_or_its_comment_is_read_only_from_inside_the_project() {
+        let (dir, away) = (
+            tempfile::TempDir::new().unwrap(),
+            tempfile::TempDir::new().unwrap(),
+        );
+        let (root, secret) = (dir.path(), away.path().join("secret.json"));
+        write(&root.join("canvas/world.json"), "{}");
+        write(&root.join("canvas/world.comments/c-1.json"), "{}");
+        write(&secret, "{}");
+        let comment = |c: &str| Some(CanvasPart::Comment(c.into()));
+        assert!(canvas_inside(root, "world", None).is_ok());
+        assert!(canvas_inside(root, "world", comment("c-1").as_ref()).is_ok());
+        assert!(canvas_inside(root, "nope", None).is_err());
+        if !link(&secret, &root.join("canvas/leak.canvas.json")) {
+            eprintln!("skipped: cannot create symlinks here");
+            return;
+        }
+        let err = canvas_inside(root, "leak", None).unwrap_err();
+        assert!(err.contains("outside the project"), "{err}");
+        assert!(link(&secret, &root.join("canvas/world.comments/c-2.json")));
+        let err = canvas_inside(root, "world", comment("c-2").as_ref()).unwrap_err();
+        assert!(err.contains("outside the project"), "{err}");
     }
 }

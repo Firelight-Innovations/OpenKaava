@@ -126,9 +126,13 @@ ACP prompt blocks.
 5. **The token is per launch (PR 2).** A tab session's server entry carries a token bound to that
    cluster. The token is accepted only on `/mcp/context`. It is never the master token, which also
    reaches the developer servers.
-6. **The canvas does its own checks.** Canvas, frame and canvas-comment references go through the
-   Canvas app's methods, which resolve canvas ids inside the same root. A rendered picture is read
-   only when the path the canvas returns is inside the root.
+6. **Canvases pass the same test.** Canvas, frame and canvas-comment references go through the
+   Canvas app's methods, which read the canvas file where they find it. So before any of them is
+   called, the canvas file, and a comment's own file, must be inside the root once links are
+   followed. A rendered picture is read only when the path the canvas returns is inside the root.
+7. **Hard links are the same file.** A hard link is not a link to follow. It is a second name for
+   one file, and git treats it that way too. A file hard-linked into the project resolves like any
+   other file there; the secrets and gitignore rules still apply to its name.
 
 ## 4. Host methods
 

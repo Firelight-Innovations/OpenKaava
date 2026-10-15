@@ -19,7 +19,7 @@
 //! The methods that write are in `apps::WRITE_METHODS`, so a read-only main
 //! checkout is refused centrally before any handler here runs.
 
-mod comments;
+pub(crate) mod comments;
 pub(crate) mod diagrams;
 /// Frames as labelled objects: type, properties, migration, search.
 mod frames;
@@ -314,7 +314,7 @@ fn plain_file_for(root: &Path, id: &str) -> PathBuf {
 
 /// Where canvas `id` lives: `<id>.canvas.json` when that exists, since the
 /// suffix is an explicit claim, and `<id>.json` otherwise.
-fn file_for(root: &Path, id: &str) -> PathBuf {
+pub(crate) fn file_for(root: &Path, id: &str) -> PathBuf {
     let plain = plain_file_for(root, id);
     let mut name = plain.file_stem().unwrap_or_default().to_os_string();
     name.push(CANVAS_SUFFIX);
