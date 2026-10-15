@@ -198,6 +198,12 @@ the wordmark as written, with its ™ in a span of its own, and makes the trade
 for `product.company` instead: the markup holds "Veistra", the screen shows
 "VEISTRA". The company carries no ™; the product name does.
 
+The splash while boot works, settled and a moment after it opens (672x492, the
+window's size, rendered from `splash.html` in Chromium):
+
+![The splash, settled](images/splash-working.png)
+![The splash, just after it opens](images/splash-intro.png)
+
 **Not in the file, deliberately:**
 
 - **Colours and fonts.** They are `src/tokens.css` and they stay there. This is
