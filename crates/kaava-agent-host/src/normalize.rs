@@ -777,6 +777,12 @@ mod tests {
 
         n.update(&start("t2", "Bash"));
         assert_eq!(shown(&n.update(&result("t2", "completed"))), None);
+
+        // Two calls at once: the other one finishing leaves the show call named.
+        n.update(&start("t4", "mcp__kaava-context__show"));
+        n.update(&start("t5", "Read"));
+        assert_eq!(shown(&n.update(&result("t5", "completed"))), None);
+        assert!(shown(&n.update(&result("t4", "completed"))).is_some());
         n.update(&start("t3", "mcp__kaava-context__show"));
         assert_eq!(shown(&n.update(&result("t3", "failed"))), None);
         assert!(n.shows.is_empty(), "a finished call is forgotten");

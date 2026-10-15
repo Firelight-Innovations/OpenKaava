@@ -210,20 +210,40 @@ mod tests {
     }
 
     #[test]
-    fn a_marker_inside_a_prop_or_past_the_limit_stays_text() {
+    fn a_marker_inside_a_prop_or_any_other_value_stays_text() {
         let inner = json!({"kaavaShow": {"version": 1, "component": "choice", "props": {}}});
         let echoed = json!({"rawOutput": {"arguments": {"body": inner.to_string()}}});
         assert_eq!(lift(&echoed), None, "only a result's own texts are read");
+        for nested in [
+            json!({"rawOutput": inner.clone()}),
+            json!({"rawOutput": {"arguments": inner.clone()}}),
+            json!({"rawOutput": {"result": {"structuredContent": inner.clone()}}}),
+        ] {
+            assert_eq!(
+                lift(&nested),
+                None,
+                "a marker object is not a text: {nested}"
+            );
+        }
         let quoted = json!({"rawOutput": format!("here: {inner}")});
         assert_eq!(
             lift(&quoted),
             None,
             "a text that is not the answer whole is not one"
         );
-        let big = "x".repeat(MARKER_LIMIT);
-        let over = json!({"kaavaShow": {"version": 1, "component": "callout",
-            "props": {"tone": "note", "body": big}}});
-        assert_eq!(lift(&json!({"rawOutput": over.to_string()})), None);
+    }
+
+    #[test]
+    fn an_answer_of_exactly_the_limit_is_lifted_and_one_byte_more_is_not() {
+        let sized = |body: usize| {
+            json!({"kaavaShow": {"version": 1, "component": "callout",
+                "props": {"tone": "note", "body": "x".repeat(body)}}})
+            .to_string()
+        };
+        let room = MARKER_LIMIT - sized(0).len();
+        assert_eq!(sized(room).len(), MARKER_LIMIT);
+        assert!(lift(&json!({ "rawOutput": sized(room) })).is_some());
+        assert_eq!(lift(&json!({ "rawOutput": sized(room + 1) })), None);
     }
 
     #[test]
