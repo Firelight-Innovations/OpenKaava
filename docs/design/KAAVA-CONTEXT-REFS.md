@@ -19,7 +19,7 @@ Status of each part:
 | Scheme, policy, resolver, `refs/resolve`          | `src-tauri/src/refs/`          | PR 1    |
 | `kaava-context` server: `show`, search, resources | `src-tauri/src/mcp/servers/`   | PR 2    |
 | `refs/search`, `refs/prompt`, failure reasons     | `src-tauri/src/refs/`          | PR 3    |
-| Component catalogue and `show_component`          | server and the tab's renderers | PR 4    |
+| Component catalogue and `show_component`          | server; the tab's renderers    | PR 4    |
 
 ## 1. The scheme
 
@@ -130,7 +130,9 @@ ACP prompt blocks.
    is on by default.
 4. **Caps.** An excerpt holds at most 1,000 lines and 64 KB. A file is scanned at most 16 MB deep
    for a range. An image is sent inline only up to 3.5 MB, which is about 4.7 MB in base64, under
-   a provider's 5 MB per image.
+   a provider's 5 MB per image. A resolved reference carries at most one picture. Every picture
+   has a width and height, so the tab can hold its place: a raster's from its header, an SVG's
+   from its `width` and `height` in pixels or else its `viewBox`, and 300×150 when neither says.
 5. **The token is per launch.** A tab session's server entry carries a token bound to that
    cluster. The token is accepted only on `/mcp/context`, and every call made with it answers from
    that cluster, whatever `cluster` it names. It is never the master token, which also reaches the
@@ -209,6 +211,7 @@ the canvas records `agent` as the actor.
 | Tool              | Params                         | Answers                                                        |
 | ----------------- | ------------------------------ | -------------------------------------------------------------- |
 | `show`            | `{ refs, caption? }`           | The marker below, for one to eight references                  |
+| `show_component`  | `{ component, props }`         | The marker below, for any component in §6                      |
 | `read`            | `{ uri }`                      | The `Resolved` as content: a header, then each part            |
 | `search_context`  | `{ query?, kinds?, limit? }`   | `{ query, hits: [{ uri, kind, title, detail? }] }`, best first |
 | `list_comments`   | `{ status?, sources? }`        | `{ comments, total, covers, problems? }`, open ones by default |
@@ -261,6 +264,8 @@ rest are still shown. If none pass, the call fails and gives each sentence. A ca
 `kaavaShow` off the tool result for the tab to draw. That is agent-host work still to land, so for
 now the marker reaches the agent and nothing draws it.
 
+`show` is the `refs` component of §6, built from the tool's own arguments.
+
 **Resources.** `kaava://selection` is published, so a client can subscribe to it. Subscribers are
 told when focus moves, at the same moment as for `kaava://workspace/focus`. A selection made inside
 a pane without moving focus is not announced, so read it again before acting on it. A server that is
@@ -275,3 +280,45 @@ for one cluster: `kaava-context`, its URL and a session token (§3.5). It is emp
 listener is down or the server is switched off, and the agent then runs without it. Its `Debug`
 output never shows the token. Nothing launches an agent with it yet: the agent host's
 `claude/agent-tab-mcp-servers` branch adds it to the ACP `mcpServers` list.
+
+## 6. The component catalogue
+
+`show_component` puts a component in front of the person, beside the agent's reply. The catalogue is
+`src-tauri/src/refs/catalogue.rs`, one typed props struct per component, and it is the only
+definition. ts-rs generates the tab's types from it into
+`apps/agent-tab/ui/src/kaava-show.generated.ts`, with `Resolved` and `Part` for the chips. A test
+fails when the checked-in file is stale; `KAAVA_BLESS=1 cargo test --lib refs::catalogue`
+regenerates it.
+
+| Component | Props                                                                                      |
+| --------- | ------------------------------------------------------------------------------------------ |
+| `refs`    | `{ refs: 1–8, caption? }`, the chips `show` draws                                          |
+| `callout` | `{ tone: note \| tip \| warning \| danger, title?, body, refs?: up to 8 }`                  |
+| `steps`   | `{ title?, steps: 1–20 of { title, body?, status?, refs?: up to 4 } }`                     |
+| `table`   | `{ caption?, columns: 1–12 of { label, align? }, rows: 1–200 }`, one cell per column       |
+| `compare` | `{ title?, items: 2–4 of { title, body?, pros?, cons?, refs?: up to 4 }, recommended? }`   |
+| `diagram` | `{ format: "mermaid", source, title? }`: a diagram drawn from text                         |
+| `chart`   | `{ type: bar \| line \| area, title?, xLabels: 1–100, series: 1–8 of { name, values }, yLabel? }` |
+| `choice`  | `{ question, options: 2–8 of { id, label, detail? }, multiple? }`                          |
+
+`body` and `detail` are markdown; every other string is plain text. A step's `status` is `todo`,
+`doing`, `done` or `skipped`. A table cell is a string, a number, a boolean or null. A series has one
+value per x label, and a chart holds at most 800 points. A choice's ids are 1 to 64 letters, digits,
+`_` or `-`, and unique. The person's pick comes back as their next message, so the server keeps no
+state for it. A canvas frame is a `refs` chip, not a diagram.
+
+**Limits.** A title, label or name is at most 200 characters, a caption or question 500, a body or
+detail 4,000, a pro or con 300, a table cell 500, and a diagram's source 20,000. The props are at
+most 64 KB of JSON as sent, and hold at most 24 references across every list. Props that pass fit
+the tab's layouts, so it need not check them again.
+
+**Refusals.** The call is refused when the component is unknown, a field is missing, unknown or of
+the wrong type, a text is blank, or a limit is broken. The error names the field, such as
+`steps[2].status`. Every reference in the props is checked as `show` checks them. One that fails is
+dropped from the props and listed in `failed`, and the component is still shown. Only a `refs`
+component left with no references is refused.
+
+**The marker.** Every component answers as `show` does, `{ kaavaShow: { version, component, props },
+failed? }`. Every component is at version 1. An optional prop that was not given is left out, never
+null, and a list prop is always present. The tab still falls back to plain text for a component it
+does not know, because a newer server can meet an older tab.
