@@ -1489,3 +1489,34 @@ fn a_change_the_agent_refuses_is_answered_and_said_beside_the_mode() {
     assert_eq!(status.mode.as_deref(), Some("acceptEdits"));
     assert_eq!(status.setting_trouble, None);
 }
+
+#[test]
+fn a_mode_reported_after_the_reply_is_the_one_shown() {
+    let rig = rig();
+    rig.send(&["--then-mode", "acceptEdits"], "stream").unwrap();
+    rig.turns_done(1);
+    let ticket = rig.host.set_mode(TAB, "plan").unwrap();
+    rig.status_where("the answer", |s| s.answered >= ticket);
+    // A turn after it, so every status from the change has been sent.
+    rig.send(&[], "stream").unwrap();
+    rig.turns_done(2);
+    let status = last_status(&rig.events()).unwrap();
+    assert_eq!(
+        status.mode.as_deref(),
+        Some("acceptEdits"),
+        "the reply's settings never overwrite a later report"
+    );
+}
+
+#[test]
+fn the_mode_changes_while_a_turn_runs() {
+    let rig = rig();
+    rig.send(&[], "slow").unwrap();
+    rig.state(SessionState::Working);
+    let ticket = rig.host.set_mode(TAB, "plan").unwrap();
+    let status = rig.status_where("plan mode mid-turn", |s| s.answered >= ticket);
+    assert_eq!(status.mode.as_deref(), Some("plan"));
+    assert_eq!(status.state, SessionState::Working, "the turn goes on");
+    rig.host.cancel(TAB).unwrap();
+    rig.turns_done(1);
+}

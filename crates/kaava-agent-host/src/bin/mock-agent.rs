@@ -289,6 +289,14 @@ impl Mock {
         self.record
             .note("answered", &request("session/set_config_option"));
         self.reply(id, json!({ "configOptions": self.config_options() }));
+        // The agent moving on its own just after answering, as the adapter
+        // does when plan mode ends.
+        if let Some(mode) = self.flag_value("--then-mode") {
+            self.mode = mode;
+            self.update(json!({
+                "sessionUpdate": "current_mode_update", "currentModeId": self.mode
+            }));
+        }
     }
 
     fn end_turn(&mut self, stop_reason: &str) {
