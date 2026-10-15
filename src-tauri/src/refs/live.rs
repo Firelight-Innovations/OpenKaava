@@ -56,19 +56,39 @@ pub fn resolve(
     }
 }
 
-/// Refuse a canvas, or a comment on one, whose file is not inside the project
-/// once links are followed. The Canvas app reads the files where it finds
-/// them, so the test a file reference passes runs here, before it is asked.
+/// Refuse a canvas, or a comment on one, when a file the Canvas app reads for
+/// it is not inside the project once links are followed. The app reads files
+/// where it finds them, so the test a file reference passes runs here, before
+/// it is asked. That covers the canvas, each child its split frames name, and
+/// the comment, which may have moved into a child with its frame.
 fn canvas_inside(root: &Path, id: &str, part: Option<&CanvasPart>) -> Result<(), String> {
     use crate::apps::canvas;
-    let mut files = vec![canvas::file_for(root, id)];
-    if let Some(CanvasPart::Comment(c)) = part {
-        files.push(canvas::comments::dir_for(root, id).join(format!("{c}.json")));
-    }
-    for file in files {
-        let rel = crate::context::relative_to(root, &file)
+    let inside = |file: &Path| -> Result<(), String> {
+        let rel = crate::context::relative_to(root, file)
             .ok_or_else(|| format!("canvas `{id}` is not in this project"))?;
-        super::policy::contain(root, &rel)?;
+        super::policy::contain(root, &rel).map(drop)
+    };
+    inside(&canvas::file_for(root, id))?;
+    let children = canvas::split_children(root, id);
+    // A child that is not there is not opened, so it is not checked.
+    for child in &children {
+        let file = canvas::file_for(root, child);
+        if file.exists() {
+            inside(&file)?;
+        }
+    }
+    if let Some(CanvasPart::Comment(c)) = part {
+        let homes = std::iter::once(id).chain(children.iter().map(String::as_str));
+        let files: Vec<_> = homes
+            .map(|home| canvas::comments::dir_for(root, home).join(format!("{c}.json")))
+            .filter(|f| f.exists())
+            .collect();
+        if files.is_empty() {
+            return Err(format!("canvas `{id}` has no comment `{c}`"));
+        }
+        for file in &files {
+            inside(file)?;
+        }
     }
     Ok(())
 }
@@ -433,35 +453,57 @@ mod tests {
         std::fs::write(path, text).unwrap();
     }
 
-    fn link(target: &Path, at: &Path) -> bool {
-        #[cfg(unix)]
-        let made = std::os::unix::fs::symlink(target, at);
-        #[cfg(windows)]
-        let made = std::os::windows::fs::symlink_file(target, at);
-        made.is_ok()
+    /// A canvas whose one frame was split, its elements moved to canvas `child`.
+    fn split_into(child: &str) -> String {
+        json!({ "type": "excalidraw", "elements": [{
+            "id": "f1",
+            "type": "frame",
+            "customData": { "kaava": { "subcanvas": true, "child": child } },
+        }] })
+        .to_string()
     }
 
     #[test]
-    fn a_canvas_or_its_comment_is_read_only_from_inside_the_project() {
+    fn a_canvas_its_children_and_its_comments_are_read_only_from_inside_the_project() {
+        use crate::refs::links;
         let (dir, away) = (
             tempfile::TempDir::new().unwrap(),
             tempfile::TempDir::new().unwrap(),
         );
         let (root, secret) = (dir.path(), away.path().join("secret.json"));
-        write(&root.join("canvas/world.json"), "{}");
+        write(&root.join("canvas/world.json"), &split_into("world-f1"));
+        write(&root.join("canvas/world-f1.json"), "{}");
         write(&root.join("canvas/world.comments/c-1.json"), "{}");
+        write(&root.join("canvas/world-f1.comments/c-3.json"), "{}");
         write(&secret, "{}");
         let comment = |c: &str| Some(CanvasPart::Comment(c.into()));
         assert!(canvas_inside(root, "world", None).is_ok());
         assert!(canvas_inside(root, "world", comment("c-1").as_ref()).is_ok());
+        assert!(
+            canvas_inside(root, "world", comment("c-3").as_ref()).is_ok(),
+            "a comment that moved into the child with its frame"
+        );
+        let err = canvas_inside(root, "world", comment("c-9").as_ref()).unwrap_err();
+        assert!(err.contains("has no comment `c-9`"), "{err}");
         assert!(canvas_inside(root, "nope", None).is_err());
-        if !link(&secret, &root.join("canvas/leak.canvas.json")) {
-            eprintln!("skipped: cannot create symlinks here");
+
+        write(&away.path().join("levels/inner.json"), "{}");
+        links::folder(&away.path().join("levels"), &root.join("canvas/levels"));
+        write(&root.join("canvas/hub.json"), &split_into("levels/inner"));
+        let err = canvas_inside(root, "hub", None).unwrap_err();
+        assert!(err.contains("outside the project"), "a linked child: {err}");
+        let err = canvas_inside(root, "levels/inner", None).unwrap_err();
+        assert!(err.contains("outside the project"), "a linked folder: {err}");
+
+        if !links::file(&secret, &root.join("canvas/leak.canvas.json")) {
             return;
         }
         let err = canvas_inside(root, "leak", None).unwrap_err();
         assert!(err.contains("outside the project"), "{err}");
-        assert!(link(&secret, &root.join("canvas/world.comments/c-2.json")));
+        assert!(links::file(
+            &secret,
+            &root.join("canvas/world.comments/c-2.json")
+        ));
         let err = canvas_inside(root, "world", comment("c-2").as_ref()).unwrap_err();
         assert!(err.contains("outside the project"), "{err}");
     }

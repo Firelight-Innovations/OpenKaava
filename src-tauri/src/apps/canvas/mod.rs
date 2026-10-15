@@ -328,6 +328,19 @@ pub(crate) fn file_for(root: &Path, id: &str) -> PathBuf {
     }
 }
 
+/// The child canvases canvas `id`'s split frames moved their elements into,
+/// spelt as the file names them. Listing, reading a frame and viewing a
+/// comment on `id` open these too. Empty when `id` cannot be read.
+pub(crate) fn split_children(root: &Path, id: &str) -> Vec<String> {
+    let Ok(scene) = load(&file_for(root, id)) else {
+        return Vec::new();
+    };
+    subcanvas::subcanvas_frames(&scene)
+        .into_iter()
+        .map(|(_, child)| child)
+        .collect()
+}
+
 /// Whether a plain `.json` under `canvas/` is meant as a canvas. Spec cards and
 /// other project JSON live beside canvases and are not drawings, so listing
 /// them as broken canvases is noise. A file that does not parse, or that has any
