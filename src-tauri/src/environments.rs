@@ -608,7 +608,7 @@ mod tests {
 
     /// Runs `git` in `dir` for a fixture, panicking with git's own message.
     fn fixture_git(dir: &Path, args: &[&str]) {
-        let out = std::process::Command::new("git")
+        let out = crate::git::git_command()
             .current_dir(dir)
             .args(["-c", "user.name=t", "-c", "user.email=t@example.com"])
             .args(args)

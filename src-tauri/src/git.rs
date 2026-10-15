@@ -674,20 +674,11 @@ pub(crate) fn run_git_env(
     args: &[&str],
     env: &[(&str, &str)],
 ) -> Result<String> {
-    let mut command = Command::new("git");
+    let mut command = git_command();
     command
         .current_dir(cwd)
         .args(args)
         .envs(env.iter().copied());
-
-    // Without this, every one of these spawns flashes a console window on
-    // Windows — and the panel re-runs `status` after every single mutation.
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        command.creation_flags(CREATE_NO_WINDOW);
-    }
 
     let output = command.output().map_err(|err| AppError::Git {
         op: op.to_string(),
@@ -705,6 +696,61 @@ pub(crate) fn run_git_env(
     // bytes, and a diff of a mostly-text file is worth showing with a few
     // replacement characters in it rather than refusing outright.
     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+/// What `git rev-parse --local-env-vars` lists, plus one name older gits add,
+/// less the two that carry `-c` settings. Each ties git to one repository:
+/// which one, or its index, object store, config file or replacement refs,
+/// ahead of the working directory. A parent running under git exports them (a
+/// hook, or `git rebase --exec`), and a child that keeps them acts on the
+/// parent's repository. One test run under `rebase --exec` did exactly that: a
+/// fixture's `git init` in a temp folder set `core.bare` on the developer's
+/// own repository, and every checkout of it stopped working.
+///
+/// `GIT_CONFIG_PARAMETERS` and `GIT_CONFIG_COUNT` stay, as git keeps them when
+/// it runs a command in another repository, such as a submodule. They name no
+/// repository, and a user may set one to pass a setting such as a CA bundle.
+pub(crate) const REPOSITORY_ENV: [&str; 14] = [
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_CONFIG",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_IMPLICIT_WORK_TREE",
+    "GIT_GRAFT_FILE",
+    "GIT_INDEX_FILE",
+    "GIT_NO_REPLACE_OBJECTS",
+    "GIT_REPLACE_REF_BASE",
+    "GIT_PREFIX",
+    "GIT_SHALLOW_FILE",
+    "GIT_COMMON_DIR",
+    "GIT_INTERNAL_SUPER_PREFIX",
+];
+
+/// A `git` that finds its repository from its working directory alone.
+///
+/// Every `git` this crate spawns starts here, test fixtures included, and a
+/// test reads the source to hold it to that. It also keeps each spawn from
+/// flashing a console window on Windows, which matters because the panel
+/// re-runs `status` after every single mutation.
+pub(crate) fn git_command() -> Command {
+    let mut command = Command::new("git");
+    forget_parent_repository(&mut command);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+    command
+}
+
+/// Removes each of [`REPOSITORY_ENV`] from what `command` would inherit.
+fn forget_parent_repository(command: &mut Command) -> &mut Command {
+    for name in REPOSITORY_ENV {
+        command.env_remove(name);
+    }
+    command
 }
 
 /// One blob out of the object database, or `None` if that revision has no such
@@ -2067,7 +2113,7 @@ mod tests {
 
     /// Runs `git` in `dir` for a fixture, panicking with git's own message.
     fn fixture_git(dir: &Path, args: &[&str]) {
-        let out = std::process::Command::new("git")
+        let out = git_command()
             .current_dir(dir)
             .args(["-c", "user.name=t", "-c", "user.email=t@example.com"])
             .args(args)
@@ -2132,6 +2178,121 @@ body line",
             let first_git = body.find("cluster_checkout(").unwrap_or(body.len());
             assert!(guard < first_git, "{name} touches git before its guard");
         }
+    }
+
+    /// Where [`git_init_where_it_was_asked`] runs `git init`, set by the test
+    /// that starts it.
+    const INIT_HERE: &str = "KAAVA_TEST_GIT_INIT_HERE";
+
+    /// The bug: run under `git rebase --exec`, this crate's tests inherited
+    /// `GIT_DIR`, and a fixture's `git init` in a temp folder set `core.bare`
+    /// on the developer's own repository instead. Here a copy of this test
+    /// binary inherits `GIT_DIR` naming a decoy, as those tests did, and runs
+    /// `git init` through [`git_command`]. `GIT_DIR` goes on that copy rather
+    /// than on this process, which every other test running beside it shares.
+    #[test]
+    fn a_git_child_ignores_the_repository_its_parent_names() {
+        let decoy = tempfile::tempdir().unwrap();
+        fixture_git(decoy.path(), &["init", "-q"]);
+        let here = tempfile::tempdir().unwrap();
+
+        let test = "git::tests::git_init_where_it_was_asked";
+        let out = Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", test, "--ignored", "--test-threads=1"])
+            .env("GIT_DIR", decoy.path().join(".git"))
+            .env(INIT_HERE, here.path())
+            .output()
+            .unwrap();
+        let report = String::from_utf8_lossy(&out.stdout);
+        assert!(out.status.success(), "{report}");
+        assert!(report.contains("1 passed"), "{report}");
+
+        assert!(here.path().join(".git").is_dir(), "git init went elsewhere");
+        let bare = git_command()
+            .current_dir(decoy.path())
+            .args(["config", "core.bare"])
+            .output()
+            .unwrap();
+        assert_eq!(String::from_utf8_lossy(&bare.stdout).trim(), "false");
+    }
+
+    /// Run only by [`a_git_child_ignores_the_repository_its_parent_names`], in
+    /// a process of its own; on its own it does nothing.
+    #[test]
+    #[ignore = "started by a_git_child_ignores_the_repository_its_parent_names"]
+    fn git_init_where_it_was_asked() {
+        let Some(here) = std::env::var_os(INIT_HERE) else {
+            return;
+        };
+        let out = git_command()
+            .current_dir(here)
+            .args(["init", "-q"])
+            .output()
+            .unwrap();
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        assert!(out.status.success(), "{stderr}");
+    }
+
+    /// [`REPOSITORY_ENV`] is copied from git, so a git that names a new one
+    /// fails here rather than quietly passing it on. The two `-c` names are
+    /// kept on purpose; see [`REPOSITORY_ENV`].
+    #[test]
+    fn git_command_clears_every_variable_git_names() {
+        let out = git_command()
+            .args(["rev-parse", "--local-env-vars"])
+            .output()
+            .expect("git runs");
+        assert!(out.status.success());
+        let kept = ["GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT"];
+        for name in String::from_utf8_lossy(&out.stdout).lines() {
+            assert!(
+                REPOSITORY_ENV.contains(&name) || kept.contains(&name),
+                "REPOSITORY_ENV lacks {name}"
+            );
+        }
+        let command = git_command();
+        let cleared: Vec<_> = command
+            .get_envs()
+            .filter(|(_, value)| value.is_none())
+            .map(|(key, _)| key.to_string_lossy().into_owned())
+            .collect();
+        for name in REPOSITORY_ENV {
+            assert!(
+                cleared.iter().any(|k| k == name),
+                "git_command keeps {name}"
+            );
+        }
+    }
+
+    /// Every `git` this crate spawns takes the cleared environment, so a new
+    /// spawn written the old way, in a test fixture or not, fails here.
+    #[test]
+    fn every_git_spawn_starts_from_git_command() {
+        let spawn = ["Command::new(", "\"git\")"].concat();
+        let manifest = std::env::var("CARGO_MANIFEST_DIR").expect("cargo sets it");
+        let src = PathBuf::from(manifest).join("src");
+        let mut dirs = vec![src.clone()];
+        let mut found = Vec::new();
+        while let Some(dir) = dirs.pop() {
+            for entry in std::fs::read_dir(&dir).unwrap() {
+                let path = entry.unwrap().path();
+                if path.is_dir() {
+                    dirs.push(path);
+                } else if path.extension().is_some_and(|e| e == "rs") {
+                    let text = std::fs::read_to_string(&path).unwrap();
+                    let lines = text.lines().enumerate();
+                    for (n, _) in lines.filter(|(_, l)| l.contains(&spawn)) {
+                        found.push((path.clone(), n + 1));
+                    }
+                }
+            }
+        }
+        assert_eq!(
+            found.len(),
+            1,
+            "spawn git through git_command(): {found:#?}"
+        );
+        assert_eq!(found[0].0, src.join("git.rs"), "{found:#?}");
     }
 
     /// A new `git_*` command has to be put in one of the two lists above, which
