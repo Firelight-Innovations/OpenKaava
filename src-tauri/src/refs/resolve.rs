@@ -31,6 +31,8 @@ const MAX_MODEL_HEAD: u64 = 4 * 1024 * 1024;
 const HEAD_BYTES: u64 = 64 * 1024;
 /// Most entries a folder reference lists.
 const MAX_FOLDER_ENTRIES: usize = 200;
+/// Largest viewer comment record read. A real one is a few hundred bytes.
+const MAX_COMMENT_BYTES: u64 = 1024 * 1024;
 
 /// A reference, resolved.
 #[derive(Debug, Clone, Serialize)]
@@ -501,10 +503,15 @@ pub fn viewer_comment(root: &Path, r: &Ref) -> Result<Resolved, String> {
     };
     let record = policy::contain(root, &format!(".kaava/comments/{id}.json"))
         .map_err(|_| format!("there is no comment `{id}` in this project"))?;
-    let raw = std::fs::read_to_string(&record.abs)
-        .map_err(|e| format!("cannot read comment `{id}`: {e}"))?;
+    let raw = read_prefix(&record.abs, MAX_COMMENT_BYTES + 1)?;
+    if raw.len() as u64 > MAX_COMMENT_BYTES {
+        return Err(format!(
+            "comment `{id}` is over {}, which is more than a comment holds",
+            human_size(MAX_COMMENT_BYTES)
+        ));
+    }
     let comment: crate::comments::Comment =
-        serde_json::from_str(&raw).map_err(|e| format!("comment `{id}` is unreadable: {e}"))?;
+        serde_json::from_slice(&raw).map_err(|e| format!("comment `{id}` is unreadable: {e}"))?;
     let mut out = Resolved::empty(r, "comment", first_line(&comment.body));
     out.detail = Some(anchor_line(&comment.anchor));
     out.meta.insert("status".into(), json!(comment.status));
@@ -904,5 +911,15 @@ mod tests {
         assert_eq!(r.detail.as_deref(), Some("Play · hospital.tscn at 12.5s"));
         assert!(r.parts.iter().any(|p| matches!(p, Part::Image { .. })));
         assert!(resolve(&dir, "kaava://comment/nope").is_err());
+    }
+
+    #[test]
+    fn an_oversized_comment_record_is_refused_unread() {
+        let dir = project();
+        let mut big = br#"{"body":""#.to_vec();
+        big.resize(MAX_COMMENT_BYTES as usize + 1, b'x');
+        put(&dir, ".kaava/comments/c-big.json", &big);
+        let err = resolve(&dir, "kaava://comment/c-big").unwrap_err();
+        assert!(err.contains("more than a comment holds"), "{err}");
     }
 }
