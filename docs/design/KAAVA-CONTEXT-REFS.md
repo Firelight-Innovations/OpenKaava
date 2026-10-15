@@ -106,6 +106,10 @@ ACP prompt blocks.
      `export_credentials.cfg`, `*.tfvars` and `*.tfstate`.
    - Anything under `.git/`, `.ssh/`, `.aws/`, `.gnupg/`, `.azure/`, `.kube/` or `.docker/`.
 
+   A file is also withheld, whatever it is called, when its first 64 KB hold a private key: a
+   `-----BEGIN … PRIVATE KEY-----` line or a PuTTY key header. A context item copied in from
+   outside the project is checked by its title, the path it was copied from and the copy's name.
+
    A withheld result says which rule matched. A folder counts these entries and does not name
    them, and search (PR 3) does not list them.
 3. **Gitignored files are named, not read.** Kaava's own stores have their own reference kinds,

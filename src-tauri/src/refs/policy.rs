@@ -142,6 +142,18 @@ pub fn secret_rule(rel: &str) -> Option<&'static str> {
     credential.then_some("credential files")
 }
 
+/// Which secrets rule a file's first bytes fall under. A private key keeps
+/// its header whatever the file is called, so a renamed key is still caught.
+pub fn secret_content(head: &[u8]) -> Option<&'static str> {
+    let text = String::from_utf8_lossy(head);
+    let key = text.lines().map(str::trim).any(|line| {
+        let pem = line.starts_with("-----BEGIN ")
+            && (line.ends_with("PRIVATE KEY-----") || line.ends_with("PRIVATE KEY BLOCK-----"));
+        pem || line.starts_with("PuTTY-User-Key-File-")
+    });
+    key.then_some("private keys and key stores")
+}
+
 /// Whether `abs` (canonical, under the canonical `root`) is excluded by a
 /// `.gitignore` between it and the root. The deepest file that has an
 /// opinion wins, as in git; `.git/info/exclude` is read at the root.
@@ -249,6 +261,31 @@ mod tests {
         ];
         for (path, rule) in cases {
             assert_eq!(secret_rule(path), rule, "{path}");
+        }
+    }
+
+    #[test]
+    fn a_private_key_is_known_by_its_header() {
+        for key in [
+            "-----BEGIN RSA PRIVATE KEY-----\nMIIE\n",
+            "-----BEGIN CERTIFICATE-----\nx\n-----END CERTIFICATE-----\n  -----BEGIN EC PRIVATE KEY-----\n",
+            "-----BEGIN OPENSSH PRIVATE KEY-----\r\nb3Bl\r\n",
+            "-----BEGIN PGP PRIVATE KEY BLOCK-----\n",
+            "PuTTY-User-Key-File-3: ssh-ed25519\n",
+        ] {
+            assert_eq!(
+                secret_content(key.as_bytes()),
+                Some("private keys and key stores"),
+                "{key}"
+            );
+        }
+        for plain in [
+            "-----BEGIN CERTIFICATE-----\nMIIB\n",
+            "-----BEGIN PUBLIC KEY-----\n",
+            "A key file starts with `-----BEGIN RSA PRIVATE KEY-----`.\n",
+            "",
+        ] {
+            assert_eq!(secret_content(plain.as_bytes()), None, "{plain}");
         }
     }
 

@@ -115,9 +115,7 @@ pub fn file(root: &Path, r: &Ref) -> Result<Resolved, String> {
     // A link inside the project that lands on a secret is still a secret.
     let rule = policy::secret_rule(path).or_else(|| policy::secret_rule(&found.rel));
     if let Some(rule) = rule {
-        return Ok(out.withhold(format!(
-            "withheld: {rule} are never read or shown through a reference"
-        )));
+        return Ok(out.withhold(secret_withheld(rule)));
     }
     if policy::ignored(&found.root, &found.abs) {
         return Ok(out.withhold(
@@ -128,6 +126,10 @@ pub fn file(root: &Path, r: &Ref) -> Result<Resolved, String> {
         return folder(out, &found.root, &found.abs);
     }
     describe(out, &found.abs, *lines)
+}
+
+fn secret_withheld(rule: &str) -> String {
+    format!("withheld: {rule} are never read or shown through a reference")
 }
 
 fn detail_for(path: &str, lines: Option<Lines>) -> String {
@@ -169,6 +171,9 @@ pub(super) fn describe(
     out.meta.insert("mime".into(), json!(class.mime));
     if let Some(ms) = modified_ms(&meta) {
         out.meta.insert("modified".into(), json!(ms));
+    }
+    if let Some(rule) = policy::secret_content(&head) {
+        return Ok(out.withhold(secret_withheld(rule)));
     }
 
     if class.kind == Kind::Image {
@@ -466,10 +471,15 @@ pub fn context_item(root: &Path, r: &Ref) -> Result<Resolved, String> {
     if item.missing {
         return Ok(out.withhold("the stored file has been deleted or moved"));
     }
-    if let Some(rule) = policy::secret_rule(&item.title) {
-        return Ok(out.withhold(format!(
-            "withheld: {rule} are never read or shown through a reference"
-        )));
+    // A copy's title is free text; the file it was copied from and the
+    // copy's own name say what it is.
+    let names = [
+        Some(item.title.as_str()),
+        item.key.strip_prefix("file/"),
+        Some(item.rel_path.as_str()),
+    ];
+    if let Some(rule) = names.into_iter().flatten().find_map(policy::secret_rule) {
+        return Ok(out.withhold(secret_withheld(rule)));
     }
     // A hand-edited sidecar could point anywhere: only a file that really is
     // inside this project's store is read.
@@ -830,6 +840,42 @@ mod tests {
         .unwrap();
         let r = resolve(&dir, &format!("kaava://context/{}", env.id)).unwrap();
         assert!(r.withheld.unwrap().contains(".env"));
+    }
+
+    #[test]
+    fn a_copied_secret_is_withheld_by_where_it_came_from_or_what_it_holds() {
+        let (dir, outside) = (project(), project());
+        put(&outside, "deploy.pem", b"not a key, but named like one\n");
+        put(
+            &outside,
+            "handoff",
+            b"-----BEGIN OPENSSH PRIVATE KEY-----\nb3Bl\n-----END OPENSSH PRIVATE KEY-----\n",
+        );
+        let copy = |name: &str, key: Option<&str>| {
+            crate::context::put(
+                dir.path(),
+                crate::context::PutRequest {
+                    key: key.map(Into::into),
+                    kind: None,
+                    title: Some("deploy notes".into()),
+                    payload: crate::context::Payload::Path(outside.path().join(name)),
+                    app_id: "terminal".into(),
+                    label: None,
+                    method: crate::context::Method::Drop,
+                    reference_in_place: true,
+                },
+            )
+            .unwrap()
+        };
+        for item in [
+            copy("deploy.pem", None),
+            copy("handoff", Some("notes/handoff")),
+        ] {
+            assert!(item.owned, "a file from outside is copied in");
+            let r = resolve(&dir, &format!("kaava://context/{}", item.id)).unwrap();
+            assert!(r.withheld.unwrap().contains("private keys"), "{}", item.key);
+            assert!(r.parts.is_empty());
+        }
     }
 
     #[test]
