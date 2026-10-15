@@ -411,7 +411,7 @@ impl Inner {
     /// Take in a reply that carries the settings: `session/new`'s modes and
     /// list.
     fn answered(&mut self, result: &Value) {
-        if let Some((_, choices)) = result.get("modes").and_then(config::modes) {
+        if let Some(choices) = result.get("modes").and_then(config::modes) {
             self.status.modes = config::allowed(choices);
         }
         if let Some(list) = result.get("configOptions").filter(|l| l.is_array()) {

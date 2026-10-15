@@ -23,7 +23,7 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
-use crate::config::{settings, Settings};
+use crate::config::{enters_held_back, settings, Settings};
 use crate::event::{ApprovalOption, Event, FileDiff, Hint, Item, ItemKind, PlanEntry, ToolStatus};
 use crate::guard::request_paths;
 use crate::mask::mask;
@@ -205,7 +205,9 @@ impl Normalizer {
     }
 
     /// The item for a `session/request_permission`. `paths` are the ones the
-    /// request names, listed on the card up to [`MAX_PATHS`].
+    /// request names, listed on the card up to [`MAX_PATHS`]. An option
+    /// that would enter a mode the tab holds back is never offered,
+    /// whatever its kind.
     pub fn approval(&mut self, params: &Value, mut paths: Vec<String>) -> Item {
         let call = params.get("toolCall").unwrap_or(&Value::Null);
         paths.truncate(MAX_PATHS);
@@ -225,6 +227,7 @@ impl Normalizer {
                 })
             })
             .filter(|o| o.kind != "allow_always")
+            .filter(|o| !enters_held_back(&o.option_id))
             .collect();
         let diffs = diffs(call);
         let input = call.get("rawInput");
@@ -963,6 +966,27 @@ mod tests {
         };
         assert!(text.ends_with(CUT_NOTE));
         assert!(n.update(&chunk("x", Some("m1"))).is_empty());
+    }
+
+    #[test]
+    fn an_approval_never_offers_a_way_into_auto_or_bypass() {
+        let mut n = started();
+        let params = json!({
+            "toolCall": {"toolCallId": "t9", "title": "Ready to code?"},
+            "options": [
+                {"optionId": "exit-plan-auto", "kind": "allow_once", "name": "Yes, and use auto mode"},
+                {"optionId": "exit-plan-bypass", "kind": "allow_always", "name": "Yes, and bypass"},
+                {"optionId": "exit-plan-clear-auto", "kind": "allow_once", "name": "Clear, then auto"},
+                {"optionId": "exit-plan-default", "kind": "allow_once", "name": "Yes, manually approve edits"},
+                {"optionId": "reject", "kind": "reject_once", "name": "No, keep planning"}
+            ]
+        });
+        let item = n.approval(&params, vec!["/w/plan.md".into()]);
+        let ItemKind::Approval { options, .. } = &item.kind else {
+            panic!()
+        };
+        let ids: Vec<_> = options.iter().map(|o| o.option_id.as_str()).collect();
+        assert_eq!(ids, ["exit-plan-default", "reject"]);
     }
 
     #[test]

@@ -31,7 +31,8 @@ pub const AUTO: &str = "auto";
 /// through another option from an ordinary value. A value the agent reports
 /// as current is shown as it is, so the tab never claims another mode than
 /// the one the agent is in. A harness that uses one of them for something
-/// else needs a narrower rule.
+/// else needs a narrower rule. Approval options that enter one are dropped
+/// too ([`enters_held_back`]).
 pub const NOT_OFFERED: [&str; 2] = [BYPASS, AUTO];
 
 /// What one `configOptions` list says.
@@ -60,32 +61,43 @@ pub fn settings(list: &Value) -> Settings {
     out
 }
 
-/// Read ACP's `modes` (a `SessionModeState`): the current mode and the modes
-/// on offer.
-pub fn modes(state: &Value) -> Option<(String, Vec<ConfigChoice>)> {
-    let current = state.get("currentModeId")?.as_str()?.to_string();
-    let choices = state
-        .get("availableModes")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(|m| {
-            Some(ConfigChoice {
-                value: m.get("id")?.as_str()?.to_string(),
-                name: text(m, "name"),
-                description: optional(m, "description"),
+/// Read ACP's `modes` (a `SessionModeState`): the modes on offer. The
+/// current mode is not read here: the status takes it from the mode option
+/// or from `current_mode_update`. `None` when the state lists no
+/// `availableModes` at all, so a reply without them clears nothing.
+pub fn modes(state: &Value) -> Option<Vec<ConfigChoice>> {
+    let list = state.get("availableModes")?.as_array()?;
+    Some(
+        list.iter()
+            .filter_map(|m| {
+                Some(ConfigChoice {
+                    value: m.get("id")?.as_str()?.to_string(),
+                    name: text(m, "name"),
+                    description: optional(m, "description"),
+                })
             })
-        })
-        .collect();
-    Some((current, choices))
+            .collect(),
+    )
 }
 
-/// The modes the tab may offer: all but [`NOT_OFFERED`].
+/// The choices the tab may offer, in any option: all but [`NOT_OFFERED`].
 pub fn allowed(choices: Vec<ConfigChoice>) -> Vec<ConfigChoice> {
     choices
         .into_iter()
         .filter(|c| !NOT_OFFERED.contains(&c.value.as_str()))
         .collect()
+}
+
+/// Whether an approval option would put the agent in a mode the tab holds
+/// back: the mode's own id, or one of the plan card's `exit-plan-*` ids or
+/// the "switch to auto mode" button's, which name it as a word of the id.
+/// Choosing one would enter Auto or Bypass without the mode switcher, where
+/// the outside-worktree guard cannot apply.
+pub fn enters_held_back(option_id: &str) -> bool {
+    NOT_OFFERED.contains(&option_id)
+        || option_id
+            .split(|c: char| !c.is_ascii_alphanumeric())
+            .any(|word| matches!(word, "auto" | "bypass"))
 }
 
 fn option(value: &Value) -> Option<ConfigOption> {
@@ -187,7 +199,7 @@ mod tests {
 
     #[test]
     fn bypass_and_auto_are_never_offered() {
-        let (current, choices) = modes(&json!({
+        let choices = modes(&json!({
             "currentModeId": "default",
             "availableModes": [
                 {"id": "default", "name": "Manual"},
@@ -197,14 +209,53 @@ mod tests {
             ]
         }))
         .unwrap();
-        assert_eq!(current, "default");
         let ids: Vec<_> = allowed(choices).into_iter().map(|c| c.value).collect();
         assert_eq!(ids, ["default", "plan"]);
     }
 
     #[test]
-    fn a_mode_list_without_modes_is_none() {
-        assert!(modes(&json!({"availableModes": []})).is_none());
+    fn a_mode_state_without_a_current_mode_still_lists_its_modes() {
+        let choices = modes(&json!({
+            "availableModes": [{"id": "default", "name": "Manual"}]
+        }))
+        .unwrap();
+        assert_eq!(choices.len(), 1);
+        assert_eq!(choices[0].value, "default");
+    }
+
+    #[test]
+    fn a_mode_state_with_an_empty_list_has_no_modes_and_one_without_a_list_is_none() {
+        assert_eq!(modes(&json!({"availableModes": []})), Some(Vec::new()));
+        assert!(modes(&json!({"currentModeId": "default"})).is_none());
+        assert!(modes(&json!({"availableModes": "plan"})).is_none());
+    }
+
+    #[test]
+    fn approval_options_that_enter_a_held_back_mode_are_recognised() {
+        for id in [
+            "auto",
+            "bypassPermissions",
+            "exit-plan-auto",
+            "exit-plan-bypass",
+            "exit-plan-clear-auto",
+            "exit-plan-clear-bypass",
+            "switch-to-auto",
+        ] {
+            assert!(enters_held_back(id), "{id}");
+        }
+        for id in [
+            "allow",
+            "allow_once",
+            "reject",
+            "default",
+            "acceptEdits",
+            "exit-plan-default",
+            "exit-plan-accept-edits",
+            "exit-plan-clear-default",
+            "author",
+        ] {
+            assert!(!enters_held_back(id), "{id}");
+        }
     }
 
     #[test]
