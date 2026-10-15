@@ -145,9 +145,7 @@ pub(super) fn canvas_inside(root: &Path, id: &str, part: Option<&CanvasPart>) ->
     Ok(())
 }
 
-/// Ask the Canvas app. The parameters are built here, so the one thing it can
-/// call invalid in them is a canvas or frame it does not have; any other
-/// failure is the app's.
+/// Ask the Canvas app.
 pub(super) fn canvas_call(
     app: &AppHandle,
     ctx: &CallContext,
@@ -156,13 +154,20 @@ pub(super) fn canvas_call(
     mut params: Value,
 ) -> Result<Value, Fault> {
     params["actor"] = json!(actor.name());
-    crate::apps::call(app, ctx, "canvas", method, Some(params)).map_err(|e| {
-        let reason = match e.code {
-            kaava_rpc::INVALID_PARAMS => Reason::Missing,
-            _ => Reason::Unavailable,
-        };
-        Fault::new(reason, e.message)
-    })
+    crate::apps::call(app, ctx, "canvas", method, Some(params)).map_err(canvas_fault)
+}
+
+/// The parameters are built here, so the one thing the Canvas app can call
+/// invalid in them is a canvas or frame it does not have. A canvas file it
+/// cannot parse is unreadable; any other failure is the app's.
+fn canvas_fault(e: kaava_rpc::RpcError) -> Fault {
+    let kind = e.data.as_ref().and_then(|d| d.get("kind"));
+    let reason = match e.code {
+        kaava_rpc::INVALID_PARAMS => Reason::Missing,
+        _ if kind.and_then(Value::as_str) == Some("corrupt") => Reason::Unreadable,
+        _ => Reason::Unavailable,
+    };
+    Fault::new(reason, e.message)
 }
 
 fn canvas(
@@ -220,7 +225,13 @@ fn frame_of(
         actor,
         "canvas/frame",
         json!({ "canvas": id, "frame": frame }),
-    )?;
+    )
+    .map_err(|f| match f.reason {
+        Reason::Missing if shared_name(app, ctx, actor, id, frame) => {
+            Fault::new(Reason::Ambiguous, f.message)
+        }
+        _ => f,
+    })?;
     let mut out = frame_from(&detail, r, id, frame);
     let fid = detail["id"].as_str().unwrap_or(frame);
     let picture = canvas_call(
@@ -232,6 +243,28 @@ fn frame_of(
     );
     out.parts.push(rendered(root, picture));
     Ok(out)
+}
+
+/// Whether two or more frames on the canvas are called `name`. The Canvas app
+/// refuses a shared name as it refuses one no frame has, so its listing is
+/// asked, and only once a lookup has already failed.
+fn shared_name(app: &AppHandle, ctx: &CallContext, actor: Actor, id: &str, name: &str) -> bool {
+    let listed = canvas_call(app, ctx, actor, "canvas/frames", json!({ "canvas": id }));
+    listed.is_ok_and(|l| frames_named(&l, name) > 1)
+}
+
+/// How many frames in a `canvas/frames` answer have this name, ignoring case
+/// as the Canvas app does.
+fn frames_named(listed: &Value, name: &str) -> usize {
+    let frames = listed["frames"].as_array().map_or(&[][..], Vec::as_slice);
+    frames
+        .iter()
+        .filter(|f| {
+            f["name"]
+                .as_str()
+                .is_some_and(|n| n.eq_ignore_ascii_case(name))
+        })
+        .count()
 }
 
 /// A frame from its `canvas/frame` answer: its type, properties and text.
@@ -457,6 +490,30 @@ mod tests {
         b.extend_from_slice(&[0, 0, 0, 2, 0, 0, 0, 2, 8, 6, 0, 0, 0]);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(path, b).unwrap();
+    }
+
+    #[test]
+    fn a_canvas_failure_says_whether_it_is_missing_broken_or_the_apps() {
+        use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
+        let reason = |e| canvas_fault(e).reason;
+        let corrupt = json!({ "kind": "corrupt" });
+        assert_eq!(reason(RpcError::new(INVALID_PARAMS, "no")), Reason::Missing);
+        let broken = RpcError::with_data(INTERNAL_ERROR, "not JSON", corrupt);
+        assert_eq!(reason(broken), Reason::Unreadable);
+        let down = RpcError::new(INTERNAL_ERROR, "timed out");
+        assert_eq!(reason(down), Reason::Unavailable);
+    }
+
+    #[test]
+    fn a_frame_name_is_counted_ignoring_case() {
+        let listed = json!({ "frames": [
+            { "id": "a", "name": "Intro" },
+            { "id": "b", "name": "intro" },
+            { "id": "c", "name": "Outro" },
+        ] });
+        assert_eq!(frames_named(&listed, "INTRO"), 2);
+        assert_eq!(frames_named(&listed, "Outro"), 1);
+        assert_eq!(frames_named(&json!({}), "Intro"), 0);
     }
 
     #[test]

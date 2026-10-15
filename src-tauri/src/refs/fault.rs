@@ -20,6 +20,8 @@ pub enum Reason {
     NoProject,
     /// Nothing is there by that name.
     Missing,
+    /// The name fits more than one thing, such as a frame name two share.
+    Ambiguous,
     /// It leads outside the project, through a link or otherwise.
     Outside,
     /// A secret, refused where reading it would show it.
@@ -37,6 +39,7 @@ impl Reason {
             Reason::BadUri => "bad-uri",
             Reason::NoProject => "no-project",
             Reason::Missing => "missing",
+            Reason::Ambiguous => "ambiguous",
             Reason::Outside => "outside",
             Reason::Secret => "secret",
             Reason::Unavailable => "unavailable",
@@ -111,6 +114,7 @@ mod tests {
             Reason::BadUri,
             Reason::NoProject,
             Reason::Missing,
+            Reason::Ambiguous,
             Reason::Outside,
             Reason::Secret,
             Reason::Unavailable,
