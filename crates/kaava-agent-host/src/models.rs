@@ -6,10 +6,12 @@
 //! worktree, sends `initialize` and `session/new`, reads the option of
 //! category `model` from the reply, and kills the agent. It never sends a
 //! prompt, so asking spends none of the user's quota. Each harness is asked
-//! once per launch.
+//! once per launch in each worktree, since a project's own settings can
+//! narrow the list or change the default.
 
 use std::collections::HashMap;
 use std::io::{BufReader, Write};
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc::{self, Receiver};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -128,11 +130,14 @@ fn answer(lines: &Receiver<Vec<u8>>, id: usize, deadline: Instant) -> Option<Val
     }
 }
 
-/// What each harness's agent answered, asked once per launch.
+/// What each harness's agent answered in each worktree, asked once per launch.
 #[derive(Default, Clone)]
 pub struct Catalogue {
-    known: Arc<Mutex<HashMap<Harness, Known>>>,
+    known: Arc<Mutex<HashMap<Key, Known>>>,
 }
+
+/// A harness, and the root of the worktree its agent was asked in.
+type Key = (Harness, PathBuf);
 
 #[derive(Debug, Clone)]
 enum Known {
@@ -141,58 +146,62 @@ enum Known {
 }
 
 impl Catalogue {
-    fn known(&self) -> MutexGuard<'_, HashMap<Harness, Known>> {
+    fn known(&self) -> MutexGuard<'_, HashMap<Key, Known>> {
         self.known.lock().unwrap_or_else(|e| e.into_inner())
     }
 
-    /// What `harness`'s agent offers, once it has said.
-    pub fn models(&self, harness: Harness) -> Option<Models> {
-        match self.known().get(&harness) {
+    /// What `harness`'s agent offers in `worktree`, once it has said.
+    pub fn models(&self, harness: Harness, worktree: &Path) -> Option<Models> {
+        match self.known().get(&(harness, worktree.to_path_buf())) {
             Some(Known::Answered(models)) => models.clone(),
             _ => None,
         }
     }
 
-    /// Ask `harness`'s agent, on a thread of its own, unless it has been
-    /// asked already; `then` runs once an answer with models is in. Whether
-    /// this started an ask.
+    /// Ask `harness`'s agent in `worktree`, on a thread of its own, unless it
+    /// has been asked there already; `then` runs once an answer with models
+    /// is in. Whether this started an ask.
     pub fn ask(
         &self,
         harness: Harness,
+        worktree: &Path,
         question: impl FnOnce() -> Option<Models> + Send + 'static,
         then: impl FnOnce() + Send + 'static,
     ) -> bool {
+        let key = (harness, worktree.to_path_buf());
         {
             let mut known = self.known();
-            if known.contains_key(&harness) {
+            if known.contains_key(&key) {
                 return false;
             }
-            known.insert(harness, Known::Asking);
+            known.insert(key.clone(), Known::Asking);
         }
         let catalogue = self.clone();
+        let asked = key.clone();
         let started = thread::Builder::new()
             .name("agent-models-ask".to_string())
             .spawn(move || {
                 let models = question();
                 let answered = models.is_some();
-                catalogue.known().insert(harness, Known::Answered(models));
+                catalogue.known().insert(asked, Known::Answered(models));
                 if answered {
                     then();
                 }
             });
         if started.is_err() {
-            self.known().remove(&harness);
+            self.known().remove(&key);
         }
         started.is_ok()
     }
 
-    /// Forget an ask that `harness`'s agent did not answer, so the next
-    /// [`Catalogue::ask`] asks again. For once a session of it has started,
-    /// which a signed-out agent's never does.
-    pub fn retry(&self, harness: Harness) {
+    /// Forget an ask that `harness`'s agent did not answer in `worktree`, so
+    /// the next [`Catalogue::ask`] there asks again. For once a session of it
+    /// has started, which a signed-out Codex's never does.
+    pub fn retry(&self, harness: Harness, worktree: &Path) {
+        let key = (harness, worktree.to_path_buf());
         let mut known = self.known();
-        if matches!(known.get(&harness), Some(Known::Answered(None))) {
-            known.remove(&harness);
+        if matches!(known.get(&key), Some(Known::Answered(None))) {
+            known.remove(&key);
         }
     }
 }
@@ -234,10 +243,13 @@ mod tests {
         assert_eq!(of(&Value::Null), None);
     }
 
+    const HERE: &str = "C:/wt/a";
+
     fn answered(catalogue: &Catalogue, harness: Harness) -> bool {
+        let key = (harness, PathBuf::from(HERE));
         let deadline = Instant::now() + Duration::from_secs(10);
         while Instant::now() < deadline {
-            if matches!(catalogue.known().get(&harness), Some(Known::Answered(_))) {
+            if matches!(catalogue.known().get(&key), Some(Known::Answered(_))) {
                 return true;
             }
             thread::sleep(Duration::from_millis(10));
@@ -252,41 +264,59 @@ mod tests {
         })
     }
 
+    fn here() -> &'static Path {
+        Path::new(HERE)
+    }
+
     #[test]
     fn each_harness_is_asked_once_and_its_answer_kept() {
         let catalogue = Catalogue::default();
         let (told, heard) = mpsc::channel();
-        assert!(catalogue.ask(Harness::Claude, some_models, move || {
-            told.send(()).unwrap();
-        }));
+        assert!(
+            catalogue.ask(Harness::Claude, here(), some_models, move || {
+                told.send(()).unwrap();
+            })
+        );
         heard.recv_timeout(Duration::from_secs(10)).unwrap();
-        assert_eq!(catalogue.models(Harness::Claude), some_models());
-        assert!(!catalogue.ask(Harness::Claude, some_models, || {}));
-        assert_eq!(catalogue.models(Harness::Codex), None);
+        assert_eq!(catalogue.models(Harness::Claude, here()), some_models());
+        assert!(!catalogue.ask(Harness::Claude, here(), some_models, || {}));
+        assert_eq!(catalogue.models(Harness::Codex, here()), None);
+    }
+
+    /// A project's own settings can narrow an agent's models, so another
+    /// worktree's answer is not this one's.
+    #[test]
+    fn each_worktree_is_asked_on_its_own() {
+        let catalogue = Catalogue::default();
+        let there = Path::new("C:/wt/b");
+        assert!(catalogue.ask(Harness::Claude, here(), some_models, || {}));
+        assert!(answered(&catalogue, Harness::Claude));
+        assert_eq!(catalogue.models(Harness::Claude, there), None);
+        assert!(catalogue.ask(Harness::Claude, there, || None, || {}));
     }
 
     #[test]
     fn an_unanswered_ask_is_asked_again_only_after_a_retry() {
         let catalogue = Catalogue::default();
         let (told, heard) = mpsc::channel::<()>();
-        assert!(catalogue.ask(Harness::Codex, || None, move || drop(told)));
+        assert!(catalogue.ask(Harness::Codex, here(), || None, move || drop(told)));
         assert!(answered(&catalogue, Harness::Codex));
         // `then` never ran, so it never sent; its sender is gone with it.
         assert!(heard.recv_timeout(Duration::from_secs(1)).is_err());
-        assert!(!catalogue.ask(Harness::Codex, some_models, || {}));
-        catalogue.retry(Harness::Codex);
-        assert!(catalogue.ask(Harness::Codex, some_models, || {}));
+        assert!(!catalogue.ask(Harness::Codex, here(), some_models, || {}));
+        catalogue.retry(Harness::Codex, here());
+        assert!(catalogue.ask(Harness::Codex, here(), some_models, || {}));
         assert!(answered(&catalogue, Harness::Codex));
-        assert_eq!(catalogue.models(Harness::Codex), some_models());
+        assert_eq!(catalogue.models(Harness::Codex, here()), some_models());
     }
 
     #[test]
     fn a_retry_keeps_an_answer_with_models() {
         let catalogue = Catalogue::default();
-        assert!(catalogue.ask(Harness::Claude, some_models, || {}));
+        assert!(catalogue.ask(Harness::Claude, here(), some_models, || {}));
         assert!(answered(&catalogue, Harness::Claude));
-        catalogue.retry(Harness::Claude);
-        assert!(!catalogue.ask(Harness::Claude, || None, || {}));
-        assert_eq!(catalogue.models(Harness::Claude), some_models());
+        catalogue.retry(Harness::Claude, here());
+        assert!(!catalogue.ask(Harness::Claude, here(), || None, || {}));
+        assert_eq!(catalogue.models(Harness::Claude, here()), some_models());
     }
 }

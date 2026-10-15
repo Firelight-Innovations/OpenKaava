@@ -109,7 +109,8 @@ pub struct Sessions {
     host: OnceLock<AgentHost>,
     homes: Mutex<HashMap<String, Home>>,
     chosen: Mutex<HashMap<String, Choice>>,
-    /// What each harness's agent offers, asked once per launch.
+    /// What each harness's agent offers in each worktree, asked once per
+    /// launch.
     models: Catalogue,
     /// Held by a send from reading the tab's harness until its agent has
     /// started, and by a choice from its check until it is stored. Without
@@ -212,12 +213,14 @@ impl Sessions {
     }
 
     /// Ask `launch`'s agent for its models in `worktree`, unless it has been
-    /// asked this launch. Every open agent tab hears once it has answered.
+    /// asked there this launch. Every open agent tab hears once it has
+    /// answered.
     fn ask_models(&self, app: &AppHandle, launch: LaunchSpec, worktree: Worktree) {
         let harness = launch.harness;
         let app = app.clone();
         self.models.ask(
             harness,
+            &worktree.path(),
             move || models::ask(&launch, &worktree, MODELS_WAIT),
             move || tell_tabs(&app, harness),
         );
@@ -391,8 +394,9 @@ pub fn call_for(
 /// `tab`'s next prompt goes to, the harness and model its agent runs while it
 /// lives, and whether this cluster can run one at all.
 ///
-/// Asked by a tab, it also starts asking each installed harness's agent for
-/// its models, once per launch; [`MODELS`] tells the tabs when they are in.
+/// Asked by a tab, with developer mode on, it also starts asking each
+/// installed harness's agent for its models in the tab's worktree, once per
+/// launch; [`MODELS`] tells the tabs when they are in.
 fn harnesses(app: &AppHandle, context: &CallContext, tab: Option<&str>) -> Value {
     let sessions = app.state::<Sessions>();
     let (current, running, model) = match tab {
@@ -402,12 +406,14 @@ fn harnesses(app: &AppHandle, context: &CallContext, tab: Option<&str>) -> Value
         }
         None => (current(None, None), None, None),
     };
+    let here = worktree(app, context).ok();
     // An agent that has reported its model is signed in, so its harness is
-    // asked again if its last ask went unanswered.
-    if let (Some(harness), Some(_)) = (running, &model) {
-        sessions.models.retry(harness);
+    // asked again if its last ask here went unanswered.
+    if let (Some(harness), Some(_), Some(here)) = (running, &model, &here) {
+        sessions.models.retry(harness, &here.path());
     }
-    let ask_in = tab.and_then(|_| ask_in(app, context));
+    // Asking starts each agent, so only a tab asks, and only in testing.
+    let asks = tab.is_some() && refuse_unless_developer(app).is_ok();
     let choice = tab.and_then(|id| sessions.chosen().get(id).cloned());
     let (path, pathext) = (std::env::var_os("PATH"), std::env::var_os("PATHEXT"));
     let harnesses: Vec<HarnessInfo> = REGISTRY
@@ -415,10 +421,12 @@ fn harnesses(app: &AppHandle, context: &CallContext, tab: Option<&str>) -> Value
         .map(|d| {
             let launch = spec(d.harness, path.as_deref(), pathext.as_deref());
             let hint = launch.as_ref().err().copied();
-            if let (Ok(launch), Some(worktree)) = (launch, &ask_in) {
-                sessions.ask_models(app, launch, worktree.clone());
+            if let (Ok(launch), Some(here), true) = (launch, &here, asks) {
+                sessions.ask_models(app, launch, here.clone());
             }
-            let known = sessions.models.models(d.harness);
+            let known = here
+                .as_ref()
+                .and_then(|here| sessions.models.models(d.harness, &here.path()));
             let default = known.as_ref().map(|m| m.default.clone());
             HarnessInfo {
                 model: next_model(choice.as_ref(), d.harness, default),
@@ -446,13 +454,6 @@ fn next_model(
         .filter(|c| c.harness == harness)
         .and_then(|c| c.model.clone())
         .or(default)
-}
-
-/// Where the agents are asked for their models: the asking tab's worktree,
-/// and only with developer mode on, since asking starts each agent.
-fn ask_in(app: &AppHandle, context: &CallContext) -> Option<Worktree> {
-    refuse_unless_developer(app).ok()?;
-    worktree(app, context).ok()
 }
 
 /// Tell every open agent tab that `harness`'s models are in. The shell relays
