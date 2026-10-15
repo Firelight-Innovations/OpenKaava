@@ -743,9 +743,11 @@ impl Shared {
         Ok(id)
     }
 
-    /// Wait for the reply to `id`; past `timeout`, give up on it. A reply
-    /// that lands as the wait ends is still the answer: the reader has taken
-    /// in whatever it carries, so calling it timed out would contradict that.
+    /// Wait for the reply to `id`; past `timeout`, give up on it. The slot
+    /// is checked and, once the time is up, dropped under one hold of the
+    /// lock, so a reply cannot land between the two: it was either taken in
+    /// by the reader before, and is the answer, or comes after and is
+    /// ignored.
     fn finish(
         &self,
         id: i64,
@@ -753,36 +755,20 @@ impl Shared {
         timeout: Option<Duration>,
     ) -> Result<Value, RemoteError> {
         let deadline = timeout.map(|t| Instant::now() + t);
-        if let Some(reply) = self.await_reply(id, deadline) {
-            return reply;
-        }
-        let mut inner = self.lock();
-        inner.changing.remove(&id);
-        match inner.replies.remove(&id) {
-            Some(Some(reply)) => reply,
-            _ => Err(timed_out(method)),
-        }
-    }
-
-    /// Wait for the reply to `id` until `deadline`. `None` if it passes
-    /// first, with the slot kept, so the reply can still be waited for.
-    fn await_reply(
-        &self,
-        id: i64,
-        deadline: Option<Instant>,
-    ) -> Option<Result<Value, RemoteError>> {
         let mut inner = self.lock();
         loop {
             if let Some(Some(_)) = inner.replies.get(&id) {
                 let reply = inner.replies.remove(&id).flatten();
-                return Some(reply.unwrap_or_else(|| Err(closed())));
+                return reply.unwrap_or_else(|| Err(closed()));
             }
             inner = match deadline {
                 None => self.wake.wait(inner).unwrap_or_else(|e| e.into_inner()),
                 Some(deadline) => {
                     let left = deadline.saturating_duration_since(Instant::now());
                     if left.is_zero() {
-                        return None;
+                        inner.changing.remove(&id);
+                        inner.replies.remove(&id);
+                        return Err(timed_out(method));
                     }
                     self.wake
                         .wait_timeout(inner, left)
