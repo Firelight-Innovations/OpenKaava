@@ -61,16 +61,23 @@ fn root_of(ctx: &CallContext) -> Result<&Path, String> {
         .ok_or_else(|| "this cluster has no project open, so there is nothing to reference".into())
 }
 
-/// Whether a reference names something that is there, without reading it:
-/// what `show` asks before the tab is told to draw it. A secret or gitignored
-/// file passes, because the tab draws it as withheld, which is still an answer.
+/// Whether a reference names something that is there and may be shown,
+/// reading no more than a file's first bytes: what `show` asks before the tab
+/// is told to draw it. A secret is refused with the rule it falls under. A
+/// gitignored file passes, because the tab draws it as withheld.
 pub fn check(app: &AppHandle, ctx: &CallContext, r: &Ref) -> Result<(), String> {
     let root = root_of(ctx)?;
+    let refuse =
+        |rule: Option<&str>| rule.map_or(Ok(()), |rule| Err(resolve::secret_withheld(rule)));
     match r {
-        Ref::File { path, .. } => super::policy::contain(root, path).map(drop),
-        Ref::Context { id } => crate::context::get(root, id)
-            .map(drop)
-            .map_err(|e| e.message),
+        Ref::File { path, .. } => {
+            let found = super::policy::contain(root, path)?;
+            refuse(resolve::secret_file(path, &found))
+        }
+        Ref::Context { id } => {
+            let item = crate::context::get(root, id).map_err(|e| e.message)?;
+            refuse(resolve::item_secret(root, &item))
+        }
         Ref::Comment { id } => super::policy::contain(root, &format!(".kaava/comments/{id}.json"))
             .map(drop)
             .map_err(|_| format!("there is no comment `{id}` in this project")),
@@ -84,9 +91,24 @@ pub fn check(app: &AppHandle, ctx: &CallContext, r: &Ref) -> Result<(), String> 
                 _ => Ok(()),
             }
         }
-        Ref::DesignComment { id } => design_comment(app, r, id).map(drop),
+        Ref::DesignComment { id } => design_comment_exists(app, id),
         Ref::Selection => Ok(()),
     }
+}
+
+#[cfg(feature = "design-mode")]
+fn design_comment_exists(app: &AppHandle, id: &str) -> Result<(), String> {
+    use tauri::Manager;
+    let comments = app.state::<crate::design_comments::Comments>();
+    comments
+        .get(id)
+        .map(drop)
+        .ok_or_else(|| format!("there is no Design Mode comment `{id}`"))
+}
+
+#[cfg(not(feature = "design-mode"))]
+fn design_comment_exists(app: &AppHandle, id: &str) -> Result<(), String> {
+    design_comment(app, &Ref::DesignComment { id: id.into() }, id).map(drop)
 }
 
 /// Refuse a canvas, or a comment on one, whose file is not inside the project

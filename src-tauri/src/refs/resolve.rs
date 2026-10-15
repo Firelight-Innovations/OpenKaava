@@ -9,6 +9,7 @@
 use super::assets::{self, Kind};
 use super::policy;
 use super::uri::{Lines, Ref};
+use crate::context::ContextItem;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine as _;
 use serde::Serialize;
@@ -114,9 +115,7 @@ pub fn file(root: &Path, r: &Ref) -> Result<Resolved, String> {
     let name = path.rsplit('/').next().unwrap_or(path);
     let mut out = Resolved::empty(r, "binary", name);
     out.detail = Some(detail_for(path, *lines));
-    // A link inside the project that lands on a secret is still a secret.
-    let rule = policy::secret_rule(path).or_else(|| policy::secret_rule(&found.rel));
-    if let Some(rule) = rule {
+    if let Some(rule) = secret_name(path, &found) {
         return Ok(out.withhold(secret_withheld(rule)));
     }
     if policy::ignored(&found.root, &found.abs) {
@@ -130,8 +129,67 @@ pub fn file(root: &Path, r: &Ref) -> Result<Resolved, String> {
     describe(out, &found.abs, *lines)
 }
 
-fn secret_withheld(rule: &str) -> String {
+pub(super) fn secret_withheld(rule: &str) -> String {
     format!("withheld: {rule} are never read or shown through a reference")
+}
+
+/// Which secrets rule a file falls under: by the name it was asked for, the
+/// name it has once links are followed, or what its first bytes hold.
+pub(super) fn secret_file(asked: &str, found: &policy::Contained) -> Option<&'static str> {
+    secret_name(asked, found).or_else(|| secret_head(&found.abs))
+}
+
+/// [`secret_file`] by name alone. A link inside the project that lands on a
+/// secret is still a secret.
+fn secret_name(asked: &str, found: &policy::Contained) -> Option<&'static str> {
+    policy::secret_rule(asked).or_else(|| policy::secret_rule(&found.rel))
+}
+
+/// Which secrets rule a file's first bytes fall under. A folder, or a file
+/// that cannot be opened, has none: reading it fails on its own.
+pub(super) fn secret_head(abs: &Path) -> Option<&'static str> {
+    if abs.is_dir() {
+        return None;
+    }
+    let head = read_prefix(abs, HEAD_BYTES).ok()?;
+    policy::secret_content(&head)
+}
+
+/// Whether a context item stands for a project file rather than a copy that
+/// Kaava keeps in its store.
+fn stands_for_file(item: &ContextItem) -> bool {
+    !item.owned && !item.rel_path.is_empty()
+}
+
+/// The names a copy in the store goes by. Its title is free text, so the file
+/// it was copied from and the copy's own name say what it is too.
+fn copy_names(item: &ContextItem) -> impl Iterator<Item = &str> {
+    [
+        Some(item.title.as_str()),
+        item.key.strip_prefix("file/"),
+        Some(item.rel_path.as_str()),
+    ]
+    .into_iter()
+    .flatten()
+}
+
+/// Which secrets rule a context item falls under by name. One that stands for
+/// a project file goes by that file's names, as resolving it does.
+pub(super) fn item_secret_name(root: &Path, item: &ContextItem) -> Option<&'static str> {
+    if !stands_for_file(item) {
+        return copy_names(item).find_map(policy::secret_rule);
+    }
+    let found = policy::contain(root, &item.rel_path).ok();
+    policy::secret_rule(&item.rel_path).or_else(|| found.and_then(|f| policy::secret_rule(&f.rel)))
+}
+
+/// Which secrets rule a context item falls under, by name or by what the file
+/// it reads holds.
+pub(super) fn item_secret(root: &Path, item: &ContextItem) -> Option<&'static str> {
+    item_secret_name(root, item).or_else(|| {
+        let found = policy::contain(root, &item.rel_path).ok()?;
+        secret_head(&found.abs)
+    })
 }
 
 fn detail_for(path: &str, lines: Option<Lines>) -> String {
@@ -460,7 +518,7 @@ pub fn context_item(root: &Path, r: &Ref) -> Result<Resolved, String> {
         return Err("not a context reference".into());
     };
     let item = crate::context::get(root, id).map_err(|e| e.message)?;
-    if !item.owned && !item.rel_path.is_empty() {
+    if stands_for_file(&item) {
         let inner = Ref::File {
             path: item.rel_path.clone(),
             lines: None,
@@ -475,14 +533,7 @@ pub fn context_item(root: &Path, r: &Ref) -> Result<Resolved, String> {
     if item.missing {
         return Ok(out.withhold("the stored file has been deleted or moved"));
     }
-    // A copy's title is free text; the file it was copied from and the
-    // copy's own name say what it is.
-    let names = [
-        Some(item.title.as_str()),
-        item.key.strip_prefix("file/"),
-        Some(item.rel_path.as_str()),
-    ];
-    if let Some(rule) = names.into_iter().flatten().find_map(policy::secret_rule) {
+    if let Some(rule) = copy_names(&item).find_map(policy::secret_rule) {
         return Ok(out.withhold(secret_withheld(rule)));
     }
     // A hand-edited sidecar could point anywhere: only a file that really is
@@ -857,6 +908,25 @@ mod tests {
         .unwrap();
         let r = resolve(&dir, &format!("kaava://context/{}", env.id)).unwrap();
         assert!(r.withheld.unwrap().contains(".env"));
+        assert!(item_secret(dir.path(), &env).is_some());
+        assert_eq!(item_secret(dir.path(), &shot), None);
+    }
+
+    #[test]
+    fn a_file_is_a_secret_by_its_name_its_target_or_its_first_bytes() {
+        let dir = project();
+        let key = b"-----BEGIN OPENSSH PRIVATE KEY-----\nb3Bl\n-----END OPENSSH PRIVATE KEY-----\n";
+        put(&dir, "notes/deploy.txt", key);
+        put(&dir, "notes/plain.txt", b"hello\n");
+        put(&dir, "config/.env", b"A=1\n");
+        let secret = |rel: &str| secret_file(rel, &policy::contain(dir.path(), rel).unwrap());
+        assert_eq!(
+            secret("notes/deploy.txt"),
+            Some("private keys and key stores")
+        );
+        assert_eq!(secret("notes/plain.txt"), None);
+        assert!(secret("config/.env").is_some());
+        assert_eq!(secret("notes"), None, "a folder has no first bytes");
     }
 
     #[test]
@@ -892,6 +962,7 @@ mod tests {
             let r = resolve(&dir, &format!("kaava://context/{}", item.id)).unwrap();
             assert!(r.withheld.unwrap().contains("private keys"), "{}", item.key);
             assert!(r.parts.is_empty());
+            assert!(item_secret(dir.path(), &item).is_some(), "{}", item.key);
         }
     }
 
