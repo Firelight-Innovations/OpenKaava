@@ -303,7 +303,9 @@ fn gate(method: &str, developer_mode: bool) -> Result<(), RpcError> {
 
 /// OpenKaava's MCP servers for a session in `cluster_id`, each with a token
 /// scoped to it. None yet: the context server's `mcp::session_servers`
-/// takes this one's place when it lands.
+/// takes this one's place when it lands. Called on every send, though only a
+/// send that starts a session uses the spec, so it must hand back the
+/// cluster's bearer, never mint one per call.
 fn session_servers(_app: &AppHandle, _cluster_id: Option<&str>) -> Vec<McpServer> {
     Vec::new()
 }
