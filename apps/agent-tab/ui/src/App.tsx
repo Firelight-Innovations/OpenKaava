@@ -22,7 +22,8 @@ import {
   type AppendMessage,
 } from "@assistant-ui/react";
 import { reportPainted } from "@openkaava/bridge";
-import type { Attachment, Envelope, Hint } from "./protocol.generated";
+import type { Attachment, Envelope, HarnessInfo, Hint } from "./protocol.generated";
+import { harnessChoices } from "./harnesses";
 import { latestUsage } from "./meters";
 import { attached, busy, initialState, promptBefore, received, type TabState } from "./model";
 import * as rpc from "./rpc";
@@ -62,6 +63,7 @@ export default function App() {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [blocked, setBlocked] = useState<string | null>(null);
   const [setupHint, setSetupHint] = useState<Hint | null>(null);
+  const [reported, setReported] = useState<HarnessInfo[]>([]);
   const [attachFailed, setAttachFailed] = useState(false);
   const prompt = useRef<HTMLTextAreaElement | null>(null);
 
@@ -86,6 +88,7 @@ export default function App() {
       .then((answer) => {
         setBlocked(answer.blocked);
         setSetupHint(answer.harnesses[0]?.hint ?? null);
+        setReported(answer.harnesses);
       })
       .catch(() => {});
     return stop;
@@ -231,12 +234,12 @@ export default function App() {
               controls={
                 <S.ModelMenu
                   label={strings.settings}
+                  harness={status?.harness ?? "claude"}
+                  // No running model and no `onChoose` yet: the host does not
+                  // report a session's models or take a harness choice on this
+                  // branch, so the menu shows the harnesses and stays locked.
+                  harnesses={harnessChoices(reported, status?.harness ?? "claude", null)}
                   sections={[
-                    {
-                      label: strings.agent,
-                      value: status?.harness ?? "claude",
-                      choices: [{ value: "claude", name: strings.harness.claude }],
-                    },
                     {
                       label: strings.mode,
                       value: status?.mode ?? null,

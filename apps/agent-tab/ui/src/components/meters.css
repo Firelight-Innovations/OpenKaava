@@ -126,6 +126,11 @@
   cursor: default;
 }
 
+/* A harness that cannot run yet reads quieter than one that is only locked. */
+.at-model__group[data-unavailable] .at-model__item {
+  color: var(--k-fg-faint);
+}
+
 .at-model__check {
   display: inline-flex;
   color: var(--k-accent);

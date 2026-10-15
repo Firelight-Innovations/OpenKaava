@@ -85,10 +85,17 @@ The footer reads like a coding agent's: one settings button on the left, the met
 right.
 
 - `ModelMenu` is the settings button. It reads the current settings as one line ("Claude · Opus 5.5
-  · High") and opens a menu with one section per setting. Each section takes a picker's props, so
-  the harness (Claude or Codex), model, effort and mode all arrive the same way. A section without
-  `onChange` is shown but cannot be changed. A section with no choices and no value is left out; a
-  value the agent reports but does not offer is listed first, checked.
+  · High") and opens a menu.
+  - First come the harnesses, one group each, with its models under it: Claude, Codex, then Kaava.
+    Picking a model picks its harness too (`onChoose(harness, model)`). A harness whose models are
+    not known lists "Default model", and one that cannot run yet lists why, locked.
+  - Then one section per other setting, such as effort and mode. Each takes a picker's props. A
+    section without `onChange` is shown but cannot be changed. A section with no choices and no
+    value is left out; a value the agent reports but does not offer is listed first, checked.
+  - `harnesses.ts` builds the harness list. The one in use takes its models from the running
+    session. The rest take what the host scanned, read from optional fields until the host sends
+    them. A harness the host does not report reads "Coming soon", and one it cannot start reads
+    "Not set up". The harness in use is never locked.
 - `ContextMeter` is a short bar and a percentage. On hover or focus it opens a card with the
   window's size, a stacked bar, and a row per category plus the free space. Without `categories`
   the card has one "Used" row.

@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { defaultSlots } from "./registry";
-import type { PickerProps } from "./types";
+import type { HarnessChoice, PickerProps } from "./types";
 
 const { ModelMenu, UsageRing, ContextMeter } = defaultSlots;
 
@@ -149,6 +149,93 @@ describe("the model menu", () => {
     fireEvent.click(screen.getByRole("button", { name: /Agent settings/ }));
     fireEvent.pointerDown(document.body);
     expect(screen.queryByRole("menu")).toBeNull();
+  });
+});
+
+describe("the model menu's harnesses", () => {
+  const HARNESSES: HarnessChoice[] = [
+    {
+      id: "claude",
+      name: "Claude",
+      models: [
+        { value: "opus", name: "Opus 5.5" },
+        { value: "sonnet", name: "Sonnet 5.5" },
+      ],
+      model: "opus",
+      unavailable: null,
+    },
+    {
+      id: "codex",
+      name: "Codex",
+      models: [{ value: "gpt-6-astra", name: "GPT-6 Astra" }],
+      model: "gpt-6-astra",
+      unavailable: null,
+    },
+    { id: "pi", name: "Pi", models: [], model: null, unavailable: null },
+    { id: "kaava", name: "Kaava", models: [], model: null, unavailable: "Coming soon" },
+  ];
+  const EFFORT: PickerProps = { label: "Effort", value: "high", choices: [] };
+
+  function menu(harness: string, onChoose?: (harness: string, model: string | null) => void) {
+    render(
+      <ModelMenu
+        label="Agent settings"
+        harness={harness}
+        harnesses={HARNESSES}
+        onChoose={onChoose}
+        sections={[EFFORT]}
+      />,
+    );
+    const button = screen.getByRole("button", { name: /Agent settings/ });
+    return button;
+  }
+
+  it("reads the harness in use and its model first", () => {
+    expect(menu("codex").textContent).toBe("Codex · GPT-6 Astra · high");
+  });
+
+  it("groups each harness's models under it, and checks only the one in use", () => {
+    fireEvent.click(menu("claude", vi.fn()));
+    const groups = screen.getAllByRole("group").map((g) => g.getAttribute("aria-label"));
+    expect(groups).toEqual(["Claude", "Codex", "Pi", "Kaava", "Effort"]);
+    const checked = screen
+      .getAllByRole("menuitemradio")
+      .filter((el) => el.getAttribute("aria-checked") === "true")
+      .map((el) => el.textContent);
+    // Codex's own model is not checked: Codex is not the harness in use.
+    expect(checked).toEqual(["Opus 5.5", "high"]);
+    expect(document.activeElement?.textContent).toBe("Opus 5.5");
+  });
+
+  it("picks a harness and a model in one choice", () => {
+    const onChoose = vi.fn();
+    fireEvent.click(menu("claude", onChoose));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "GPT-6 Astra" }));
+    expect(onChoose).toHaveBeenCalledWith("codex", "gpt-6-astra");
+  });
+
+  it("offers a harness with no known models at its default", () => {
+    const onChoose = vi.fn();
+    fireEvent.click(menu("claude", onChoose));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Default model" }));
+    expect(onChoose).toHaveBeenCalledWith("pi", null);
+  });
+
+  it("shows a harness that cannot run yet, locked, with why", () => {
+    const onChoose = vi.fn();
+    fireEvent.click(menu("claude", onChoose));
+    const soon = screen.getByRole("menuitemradio", { name: "Coming soon" });
+    expect(soon.getAttribute("aria-disabled")).toBe("true");
+    expect(soon.closest("[role=group]")?.hasAttribute("data-unavailable")).toBe(true);
+    fireEvent.click(soon);
+    expect(onChoose).not.toHaveBeenCalled();
+  });
+
+  it("locks every harness without onChoose", () => {
+    fireEvent.click(menu("claude"));
+    expect(
+      screen.getByRole("menuitemradio", { name: "GPT-6 Astra" }).getAttribute("aria-disabled"),
+    ).toBe("true");
   });
 });
 
