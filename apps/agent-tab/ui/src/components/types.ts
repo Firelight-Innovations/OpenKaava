@@ -18,7 +18,7 @@ export interface LayoutProps {
 export interface HeaderProps {
   /** The worktree the session runs in, or `null` before there is a session. */
   cwd: string | null;
-  /** The harness's display name ("Claude"), or `null` before the tab has heard. */
+  /** The harness's display name ("Claude"), or `null` until the harness picker supplies one. */
   harness: string | null;
   /** The running model's name, or `null` when it is not known. */
   model: string | null;
@@ -38,7 +38,10 @@ export interface TranscriptProps {
 }
 
 export interface EmptyStateProps {
-  /** A refusal code for the whole cluster, or `null`. */
+  /**
+   * A refusal code for the whole cluster, or `null`. Unlike `setupHint` it stays
+   * a code: the component words it itself, from `strings.refusal`.
+   */
   blocked: string | null;
   /** What the harness still needs, already in words, or `null`. */
   setupHint: string | null;

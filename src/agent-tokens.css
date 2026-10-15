@@ -10,6 +10,10 @@
  * `src/kaava-ui.css` does: the shell and an app both import it, and neither may
  * import the other's source.
  *
+ * A few tokens (`--k-accent`, `--k-accent-subtle`, `--k-on-accent`, `--k-border-strong`,
+ * `--k-space-4`, `--k-motion-fast`, `--k-shadow-card`) are not read by a component yet. They are
+ * the rest of the palette, kept for the components that are still being built.
+ *
  * The colour names are the VS Code-style ones from handoff §2.1.1
  * (`docs/handoffs/agent-host.md`), kept so nothing that reads them moves.
  */
@@ -92,10 +96,11 @@
   --k-control-md: var(--control-md);
   --k-row: 22px;
 
-  /* Motion: one tween, the shell's `instant` (src/shell/motion.ts) */
+  /* Motion: `fast` and the curve are the shell's `instant` (src/shell/motion.ts).
+     `base` is twice that, for larger moves. */
   --k-motion-fast: 90ms;
   --k-motion-base: 180ms;
-  --k-ease: cubic-bezier(0.2, 0, 0, 1);
+  --k-ease: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Elevation: none on cards (handoff §2.1.3); menus only */
   --k-shadow-card: none;
