@@ -21,6 +21,7 @@ pub mod comments;
 pub mod fault;
 pub mod live;
 pub mod policy;
+pub mod prompt;
 pub mod read;
 pub mod resolve;
 pub mod search;
@@ -41,6 +42,9 @@ pub const RESOLVE_METHOD: &str = "refs/resolve";
 /// `refs/search {query?, kinds?, limit?}` → `{items}`: the @-mention picker's
 /// matches, as `search_context` finds them.
 pub const SEARCH_METHOD: &str = "refs/search";
+/// `refs/prompt {uris, accepts?}` → `{blocks, failed?}`: a message's
+/// references as the ACP content blocks to send after its text.
+pub const PROMPT_METHOD: &str = "refs/prompt";
 
 #[derive(Debug, Deserialize)]
 struct SearchParams {
@@ -48,6 +52,13 @@ struct SearchParams {
     query: String,
     kinds: Option<Vec<String>>,
     limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PromptParams {
+    uris: Vec<String>,
+    #[serde(default)]
+    accepts: prompt::Accepts,
 }
 
 /// Whether the host answers `method` here rather than an app.
@@ -76,6 +87,12 @@ pub fn call(
             let q = search::Query::new(&asked.query, asked.kinds, asked.limit)
                 .map_err(|why| Fault::new(Reason::BadParams, why).rpc())?;
             Ok(json!({ "items": search::run(app, ctx, Actor::Human, &q) }))
+        }
+        PROMPT_METHOD => {
+            let asked: PromptParams = parse_params(params)?;
+            check_count(asked.uris.len())?;
+            live::root_of(ctx).map_err(Fault::rpc)?;
+            Ok(prompt::run(app, ctx, &asked.uris, asked.accepts))
         }
         other => Err(RpcError::new(
             METHOD_NOT_FOUND,
@@ -106,6 +123,15 @@ fn uri_param(params: Option<&Value>) -> Result<uri::Ref, RpcError> {
     uri::parse(raw).map_err(|why| Fault::new(Reason::BadUri, why).rpc())
 }
 
+/// One to [`prompt::MAX_URIS`] references in a message.
+fn check_count(n: usize) -> Result<(), RpcError> {
+    if (1..=prompt::MAX_URIS).contains(&n) {
+        return Ok(());
+    }
+    let why = format!("`uris` holds 1 to {} references, not {n}", prompt::MAX_URIS);
+    Err(Fault::new(Reason::BadParams, why).rpc())
+}
+
 /// A method's parameters, an absent one read as `{}`. A missing or mistyped
 /// field is `bad-params`, with serde's account of which.
 fn parse_params<T: DeserializeOwned>(params: Option<Value>) -> Result<T, RpcError> {
@@ -123,6 +149,7 @@ mod tests {
     fn only_refs_methods_are_answered_here() {
         assert!(is_method(RESOLVE_METHOD));
         assert!(is_method(SEARCH_METHOD));
+        assert!(is_method(PROMPT_METHOD));
         assert!(!is_method("context/get"));
         assert!(!is_method("refsx/resolve"));
     }
@@ -177,6 +204,28 @@ mod tests {
             let e = parse_params::<SearchParams>(Some(bad.clone())).unwrap_err();
             assert_eq!(e.code, INVALID_PARAMS, "{bad}");
             assert_eq!(e.data, Some(json!({ "reason": "bad-params" })), "{bad}");
+        }
+    }
+
+    #[test]
+    fn a_prompt_carries_one_to_sixteen_references_and_says_what_the_agent_takes() {
+        assert!(
+            parse_params::<PromptParams>(None).is_err(),
+            "`uris` is required"
+        );
+        let asked: PromptParams =
+            parse_params(Some(json!({ "uris": ["kaava://selection"] }))).unwrap();
+        assert_eq!(asked.accepts, prompt::Accepts::default());
+        let asked: PromptParams = parse_params(Some(json!({
+            "uris": [],
+            "accepts": { "image": true, "embeddedContext": true },
+        })))
+        .unwrap();
+        assert!(asked.accepts.image && asked.accepts.embedded_context);
+        assert!(check_count(1).is_ok() && check_count(prompt::MAX_URIS).is_ok());
+        for n in [0, prompt::MAX_URIS + 1] {
+            let e = check_count(n).unwrap_err();
+            assert_eq!(e.data, Some(json!({ "reason": "bad-params" })), "{n}");
         }
     }
 }
