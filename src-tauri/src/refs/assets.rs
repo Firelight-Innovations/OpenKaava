@@ -243,21 +243,34 @@ const SVG_HEAD: usize = 8 * 1024;
 
 /// The value of attribute `name` in one start tag, quoted either way.
 fn attr<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
-    let mut at = 0;
-    while let Some(i) = tag[at..].find(name).map(|i| at + i) {
-        at = i + name.len();
-        if !tag[..i].ends_with(char::is_whitespace) {
-            continue;
+    // Walked attribute by attribute, so a name inside another's value is
+    // never taken for the attribute itself.
+    let mut rest = tag.strip_prefix("<svg")?;
+    loop {
+        rest = rest.trim_start();
+        let end = rest.find(|c: char| c == '=' || c.is_whitespace());
+        let (key, after) = rest.split_at(end.unwrap_or(rest.len()));
+        if key.is_empty() {
+            return None;
         }
-        let Some(value) = tag[at..].trim_start().strip_prefix('=') else {
+        let Some(value) = after.trim_start().strip_prefix('=') else {
+            rest = after;
             continue;
         };
         let value = value.trim_start();
-        let quote = value.chars().next().filter(|c| *c == '"' || *c == '\'')?;
-        let body = &value[1..];
-        return body.find(quote).map(|end| &body[..end]);
+        let (found, next) = match value.chars().next()? {
+            quote @ ('"' | '\'') => {
+                let body = &value[1..];
+                let close = body.find(quote)?;
+                (&body[..close], &body[close + 1..])
+            }
+            _ => value.split_at(value.find(char::is_whitespace).unwrap_or(value.len())),
+        };
+        if key == name {
+            return Some(found);
+        }
+        rest = next;
     }
-    None
 }
 
 /// A length in pixels, written bare or with `px`.
@@ -281,6 +294,19 @@ fn whole(n: f64) -> Option<u32> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_svg_is_sized_by_its_own_attributes_not_words_inside_another() {
+        let svg = |attrs: &str| svg_size(format!("<svg {attrs}>").as_bytes());
+        let inside = r#"aria-label="icon width=10" class='a height="5"' width="48" height="16""#;
+        assert_eq!(svg(inside), Some((48, 16)));
+        assert_eq!(
+            svg(r#"desc="a viewBox=x" viewBox="0 0 40 20""#),
+            Some((40, 20))
+        );
+        assert_eq!(svg("data-w width=64 height=32 /"), Some((64, 32)));
+        assert_eq!(svg(r#"width="5"#), None);
+    }
 
     #[test]
     fn an_svg_is_sized_by_its_pixels_else_its_view_box() {
