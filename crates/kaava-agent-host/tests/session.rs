@@ -1534,6 +1534,39 @@ fn a_change_the_agent_refuses_is_answered_and_said_beside_the_mode() {
 }
 
 #[test]
+fn ending_the_session_clears_a_refusal() {
+    let rig = rig();
+    rig.send(&["--refuse-mode", "plan"], "stream").unwrap();
+    rig.turns_done(1);
+    rig.host.set_mode(TAB, "plan").unwrap();
+    rig.status_where("the refusal", |s| s.setting_trouble.is_some());
+    rig.host.stop(TAB);
+    rig.state(SessionState::Stopped);
+    let stopped = last_status(&rig.events()).unwrap();
+    assert_eq!(stopped.setting_trouble, None);
+    let attached = rig.host.attach(TAB).status.unwrap();
+    assert_eq!(attached.state, SessionState::Stopped);
+    assert_eq!(attached.setting_trouble, None);
+}
+
+#[test]
+fn ending_the_session_clears_a_change_still_unanswered() {
+    let rig = rig();
+    let mut spec = mock(&["--slow-setting"]);
+    spec.setting_timeout = Duration::from_millis(100);
+    rig.host
+        .send(TAB, spec, rig.tree.clone(), "stream")
+        .unwrap();
+    rig.turns_done(1);
+    rig.host.set_mode(TAB, "plan").unwrap();
+    rig.status_where("the wait", |s| s.setting_trouble.is_some());
+    rig.host.stop(TAB);
+    rig.state(SessionState::Stopped);
+    assert_eq!(last_status(&rig.events()).unwrap().setting_trouble, None);
+    assert_eq!(rig.host.attach(TAB).status.unwrap().setting_trouble, None);
+}
+
+#[test]
 fn a_mode_reported_after_the_reply_is_the_one_shown() {
     let rig = rig();
     rig.send(&["--then-mode", "acceptEdits"], "stream").unwrap();
