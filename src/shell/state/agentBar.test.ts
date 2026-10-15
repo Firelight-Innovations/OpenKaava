@@ -193,6 +193,23 @@ describe("useAgentBarStatus", () => {
     act(() => calls.heard.event({ instanceId: "agent-1", event: { type: "status" } }));
     await waitFor(() => expect(result.current?.model).toBe("Opus"));
   });
+
+  it("keeps the newest question's answer when an older one lands after it", async () => {
+    calls.appCall.mockResolvedValue(answer("claude"));
+    const { result } = renderHook(() => useAgentBarStatus("c1", "env", "agent-1"));
+    await waitFor(() => expect(result.current?.current).toBe("claude"));
+    await waitFor(() => expect(calls.heard.event).toBeDefined());
+
+    let older: (value: unknown) => void = () => {};
+    calls.appCall.mockImplementationOnce(() => new Promise((resolve) => (older = resolve)));
+    act(() => calls.heard.event({ instanceId: "agent-1", event: { type: "status" } }));
+    calls.appCall.mockResolvedValueOnce(answer("claude", { running: null }));
+    act(() => calls.heard.event({ instanceId: "agent-1", event: { type: "status" } }));
+    await waitFor(() => expect(calls.appCall).toHaveBeenCalledTimes(3));
+
+    await act(async () => older(answer("claude", { running: "claude", model: "Opus" })));
+    expect(result.current).toMatchObject({ running: null, model: null });
+  });
 });
 
 describe("refusalCode", () => {

@@ -87,11 +87,16 @@ export function useAgentBarStatus(
     let live = true;
     const unlisten: (() => void)[] = [];
     const scope = agentTab === null ? { clusterId } : { clusterId, instanceId: agentTab };
-    const load = () =>
-      appCall(AGENT_TAB_APP, "agent-tab/harnesses", undefined, scope).then(
-        (answer) => live && setStatus(statusOf(answer as AgentBarStatus)),
-        () => live && setStatus(null),
+    // Answers can land out of order, and only the newest question's counts.
+    let asked = 0;
+    const load = () => {
+      const question = ++asked;
+      const newest = () => live && question === asked;
+      return appCall(AGENT_TAB_APP, "agent-tab/harnesses", undefined, scope).then(
+        (answer) => newest() && setStatus(statusOf(answer as AgentBarStatus)),
+        () => newest() && setStatus(null),
       );
+    };
     const mine = (payload: unknown) =>
       agentTab !== null && (payload as { instanceId?: unknown } | null)?.instanceId === agentTab;
     void load();
