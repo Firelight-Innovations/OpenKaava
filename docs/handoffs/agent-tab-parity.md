@@ -48,9 +48,12 @@ cells of the rows it closes in section 2.
   rather than until the next status of any kind. The tab draws the mode as
   a section of the composer's settings menu and cycles it on Shift+Tab. A
   reply slower than `setting_timeout` (30s) is reported as not answered
-  yet, and still taken in when it comes. That wait, and a refusal, go in
+  yet, and still taken in when it comes. That wait, and a refusal (its
+  reason cut to the first line, 300 characters), go in
   `SessionStatus.settingTrouble` and are said above the prompt box, not
   drawn as transcript errors, which would offer to retry the last prompt.
+  Of several changes to one setting made while one is out, only the last
+  is sent, so a held Shift+Tab does not step the agent through every mode.
 
 Open questions:
 
