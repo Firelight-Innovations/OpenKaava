@@ -210,7 +210,7 @@ pub(super) fn describe(
     mut out: Resolved,
     abs: &Path,
     lines: Option<Lines>,
-) -> Result<Resolved, String> {
+) -> Result<Resolved, Fault> {
     let meta = std::fs::metadata(abs).map_err(|e| format!("cannot read that file: {e}"))?;
     let size = meta.len();
     let name = abs
@@ -377,12 +377,12 @@ struct Excerpt {
 }
 
 /// Lines `lines` of a text file (or its start), within the caps.
-fn excerpt(abs: &Path, lines: Option<Lines>) -> Result<Excerpt, String> {
+fn excerpt(abs: &Path, lines: Option<Lines>) -> Result<Excerpt, Fault> {
     excerpt_within(abs, lines, MAX_SCAN_BYTES)
 }
 
 /// [`excerpt`], reading at most `scan` bytes of the file.
-fn excerpt_within(abs: &Path, lines: Option<Lines>, scan: u64) -> Result<Excerpt, String> {
+fn excerpt_within(abs: &Path, lines: Option<Lines>, scan: u64) -> Result<Excerpt, Fault> {
     let file = std::fs::File::open(abs).map_err(|e| format!("cannot open that file: {e}"))?;
     let size = file.metadata().map(|m| m.len()).unwrap_or(0);
     let mut reader = BufReader::new(file).take(scan);
@@ -424,12 +424,14 @@ fn excerpt_within(abs: &Path, lines: Option<Lines>, scan: u64) -> Result<Excerpt
     let capped = eof && reader.limit() == 0 && size > scan;
     if lines.is_some() && line_no < start && eof {
         return Err(if capped {
-            format!(
+            let why = format!(
                 "line {start} is past the first {} of the file, which is as far as a reference reads",
                 human_size(scan)
-            )
+            );
+            Fault::new(Reason::Unreadable, why)
         } else {
-            format!("the file has {line_no} lines, so line {start} does not exist")
+            let why = format!("the file has {line_no} lines, so line {start} does not exist");
+            Fault::new(Reason::Missing, why)
         });
     }
     let complete = eof && !capped;
@@ -748,7 +750,11 @@ mod tests {
         assert!(cut.truncated, "lines 21-30 lie past the limit");
         assert_eq!(cut.total_lines, None);
         let err = excerpt_within(&abs, range(50, 50), 80).err().unwrap();
-        assert!(err.contains("past the first"), "{err}");
+        assert!(err.message.contains("past the first"), "{err}");
+        assert_eq!(err.reason, Reason::Unreadable);
+        let past = excerpt_within(&abs, range(101, 101), 4096).err().unwrap();
+        assert!(past.message.contains("has 100 lines"), "{past}");
+        assert_eq!(past.reason, Reason::Missing);
         let whole = excerpt_within(&abs, None, body.len() as u64).unwrap();
         assert!(!whole.truncated);
         assert_eq!(whole.total_lines, Some(100));
