@@ -66,11 +66,13 @@ Our own state stays the source of truth, and assistant-ui draws the thread aroun
 - The default `Transcript`, `UserTurn`, `AssistantTurn` and `TurnActions` use assistant-ui's
   primitives for scrolling, turns and the copy action. A replacement may use them too. Everything is
   rendered inside `AssistantRuntimeProvider`. A replacement that draws plain DOM also works.
-- `Working` shows in a running agent turn that is empty or ends on something other than text.
-  It does not show while the agent waits on an approval.
+- `Working` shows while the turn runs and has not ended on text: before anything arrives, and after
+  a tool call or a thought. It does not show while the agent waits on an approval.
 - Two or more tool calls in a row fold into one `ActionGroup`: a line such as "Ran 2 commands, read
   a file", with the calls in a card below it. `actions.ts` writes the line. Anything else in
-  between, such as text or an approval, breaks the run. A lone call stays its own `ToolCall` row.
+  between, such as text or an approval, breaks the run. A lone call goes through `ActionGroup` too,
+  with `grouped` false, and is drawn as a plain `ToolCall` row. Keeping one wrapper means a row the
+  user opened stays open when a second call joins it.
 - `Thinking`, `ToolCall` and `ActionGroup` fold behind a caret (`.at-disclosure`). Their label and
   `Working` shimmer (`.at-shimmer[data-live]`) while the agent is still at it, between
   `--k-shimmer-base` and `--k-shimmer-glint`. Under reduced motion the label holds still.

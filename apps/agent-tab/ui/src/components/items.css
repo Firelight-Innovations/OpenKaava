@@ -123,7 +123,8 @@
   transition: transform var(--k-motion-fast) var(--k-ease);
 }
 
-details[open] > .at-disclosure::after {
+details[open] > .at-disclosure::after,
+.at-disclosure[aria-expanded="true"]::after {
   transform: rotate(90deg);
 }
 
@@ -166,13 +167,30 @@ details[open] > .at-disclosure::after {
 }
 
 /* A run of tool calls: one line, and open, one card with a row per call. */
+/* A lone call keeps the wrapper, so it is not remounted when a second joins
+   it, but the wrapper draws nothing. */
+.at-actions:not([data-grouped]),
+.at-actions:not([data-grouped]) > .at-actions__body {
+  display: contents;
+}
+
 .at-actions__head {
   display: flex;
   align-items: baseline;
   gap: var(--k-space-1-5);
+  width: 100%;
   min-height: var(--k-row);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
   color: var(--k-fg-muted);
+}
+
+.at-actions__head:focus-visible {
+  outline: var(--k-focus-ring);
 }
 
 .at-actions__head::after {
@@ -184,18 +202,18 @@ details[open] > .at-disclosure::after {
   font-size: var(--k-size-small);
 }
 
-.at-actions__body {
+.at-actions[data-grouped] > .at-actions__body {
   margin-top: var(--k-space-1);
   border: 1px solid var(--k-panel-border);
   border-radius: var(--k-radius-turn);
   overflow: hidden;
 }
 
-.at-actions__body > * {
+.at-actions[data-grouped] > .at-actions__body > * {
   padding: var(--k-space-1) var(--k-space-3);
 }
 
-.at-actions__body > * + * {
+.at-actions[data-grouped] > .at-actions__body > * + * {
   border-top: 1px solid var(--k-panel-border);
 }
 

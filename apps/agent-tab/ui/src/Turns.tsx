@@ -56,7 +56,11 @@ function groupBy(part: PartState): readonly (typeof ACTIONS)[] | null {
   return part.type === "tool-call" && part.toolName === ACTION_TOOL ? [ACTIONS] : null;
 }
 
-/** A run of tool calls: one call alone stays a plain row, two or more fold into a group. */
+/**
+ * A run of tool calls: one call alone stays a plain row, two or more fold into
+ * a group. Both go through `ActionGroup`, so the rows are not remounted when
+ * the second call arrives.
+ */
 function Actions({ ids, children }: { ids: readonly string[]; children: ReactNode }) {
   const S = useSlots();
   const lookup = useContext(LookupContext);
@@ -64,10 +68,10 @@ function Actions({ ids, children }: { ids: readonly string[]; children: ReactNod
     const item = lookup?.byId.get(id);
     return item ? [item] : [];
   });
-  if (items.length < 2) return <>{children}</>;
   const { summary, running, failed } = summarize(items);
   return (
     <S.ActionGroup
+      grouped={items.length > 1}
       summary={summary}
       running={running}
       failed={failed > 0 ? strings.actions.failed(failed) : null}
