@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import AgentBar from "./AgentBar";
+import AgentBar, { ClusterAgentBar } from "./AgentBar";
 
 afterEach(cleanup);
 
@@ -46,10 +46,56 @@ describe("AgentBar", () => {
     expect(screen.getByRole("status").textContent).toContain("never run on main");
   });
 
-  it("shows the one-line fix for a harness that is not ready, and never says Claude Code", () => {
-    render(<AgentBar blocked={null} hint="signedOut" onSend={vi.fn()} />);
+  it("shows the install line when the adapter is missing, and never says Claude Code", () => {
+    render(<AgentBar blocked={null} hint="adapterMissing" onSend={vi.fn()} />);
     const text = screen.getByRole("status").textContent ?? "";
-    expect(text).toContain("Run `claude` once");
+    expect(text).toContain("npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@0.90.0");
     expect(document.body.textContent).not.toContain("Claude Code");
+  });
+
+  it("tells a machine without claude to install it and sign in", () => {
+    render(<AgentBar blocked={null} hint="claudeMissing" onSend={vi.fn()} />);
+    const text = screen.getByRole("status").textContent ?? "";
+    expect(text).toContain("Claude is not installed");
+    expect(text).toContain("run `claude` once");
+  });
+
+  it("keeps what was typed while the send was in flight", async () => {
+    let land: () => void = () => {};
+    const onSend = vi.fn(() => new Promise<void>((resolve) => (land = resolve)));
+    render(<AgentBar blocked={null} hint={null} onSend={onSend} />);
+    fireEvent.change(prompt(), { target: { value: "first" } });
+    fireEvent.keyDown(prompt(), { key: "Enter" });
+    expect(onSend).toHaveBeenCalledWith("first");
+    fireEvent.change(prompt(), { target: { value: "the start of the next" } });
+    await act(async () => land());
+    expect(prompt()).toHaveProperty("value", "the start of the next");
+  });
+
+  it("clears the box when it still holds what was sent, trimmed or not", async () => {
+    let land: () => void = () => {};
+    render(
+      <AgentBar
+        blocked={null}
+        hint={null}
+        onSend={() => new Promise<void>((resolve) => (land = resolve))}
+      />,
+    );
+    fireEvent.change(prompt(), { target: { value: "  first  " } });
+    fireEvent.keyDown(prompt(), { key: "Enter" });
+    await act(async () => land());
+    expect(prompt()).toHaveProperty("value", "");
+  });
+});
+
+describe("ClusterAgentBar", () => {
+  it("starts a cluster of its own with an empty draft", () => {
+    const props = { blocked: null, hint: null, onSend: vi.fn() };
+    const { rerender } = render(<ClusterAgentBar clusterId="a" {...props} />);
+    fireEvent.change(prompt(), { target: { value: "half typed" } });
+    rerender(<ClusterAgentBar clusterId="a" {...props} />);
+    expect(prompt()).toHaveProperty("value", "half typed");
+    rerender(<ClusterAgentBar clusterId="b" {...props} />);
+    expect(prompt()).toHaveProperty("value", "");
   });
 });

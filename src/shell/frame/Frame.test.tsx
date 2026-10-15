@@ -113,6 +113,44 @@ describe("Frame's docked page handle", () => {
 });
 
 describe("Frame's agent bar", () => {
+  // jsdom does no layout, so what the observer does with a size cannot be run.
+  // The fix is that the bar is one of the things observed, so a maximized
+  // band re-fits when the bar grows with its text; this asserts that.
+  it("watches the bar's size as well as the column's, so a maximized band re-fits", () => {
+    const watched: Element[][] = [];
+    const real = globalThis.ResizeObserver;
+    globalThis.ResizeObserver = class {
+      readonly seen: Element[] = [];
+      constructor() {
+        watched.push(this.seen);
+      }
+      observe(el: Element) {
+        this.seen.push(el);
+      }
+      unobserve() {}
+      disconnect() {}
+    };
+    try {
+      const { container, unmount } = render(
+        <Frame kind="main" slots={slots({ agentBar: <div>bar</div>, bottomPanel: <div /> })} />,
+      );
+      const bar = container.querySelector('[data-region="agentbar"]');
+      const column = container.querySelector(".frame__main");
+      expect(bar).not.toBeNull();
+      const last = watched[watched.length - 1];
+      expect(last).toContain(bar);
+      expect(last).toContain(column);
+      unmount();
+
+      watched.length = 0;
+      const without = render(<Frame kind="main" slots={slots({ bottomPanel: <div /> })} />);
+      const seen = watched[watched.length - 1];
+      expect(seen).toEqual([without.container.querySelector(".frame__main")]);
+    } finally {
+      globalThis.ResizeObserver = real;
+    }
+  });
+
   it("draws the bar under the tool window only when the slot is given", () => {
     const { container, rerender } = render(<Frame kind="main" slots={slots()} />);
     expect(container.querySelector('[data-region="agentbar"]')).toBeNull();

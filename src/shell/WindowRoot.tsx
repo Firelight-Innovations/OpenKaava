@@ -67,8 +67,8 @@ import TerminalDeck, { type TerminalDeckHandle } from "./terminal/TerminalDeck";
 import { callApp, useApps, useOpenables, usePages } from "./state/apps";
 import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
-import { sendToAgent, useAgentBarStatus } from "./state/agentBar";
-import AgentBar from "./agentbar/AgentBar";
+import { agentBarShown, sendToAgent, useAgentBarStatus } from "./state/agentBar";
+import { ClusterAgentBar } from "./agentbar/AgentBar";
 import ReadOnlyBanner from "./git/ReadOnlyBanner";
 import { useProjectIcon } from "./state/projectIcon";
 import { useUpdates } from "./state/updates";
@@ -2071,9 +2071,9 @@ export default function WindowRoot({
               />
             ) : undefined,
           agentBar:
-            activeCluster && agentBarStatus && agentBarStatus.blocked !== "developerMode" ? (
-              <AgentBar
-                key={activeCluster.id}
+            activeCluster && agentBarShown(agentBarStatus) ? (
+              <ClusterAgentBar
+                clusterId={activeCluster.id}
                 blocked={agentBarStatus.blocked}
                 hint={agentBarStatus.hint}
                 onSend={onAgentSend}

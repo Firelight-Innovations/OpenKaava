@@ -14,7 +14,7 @@ vi.mock("../../bindings", () => ({
 }));
 
 import type { PaneNode } from "../contract";
-import { agentTabIn, refusalCode, sendToAgent } from "./agentBar";
+import { agentBarShown, agentTabIn, refusalCode, sendToAgent } from "./agentBar";
 
 const tree: PaneNode = {
   kind: "split",
@@ -87,5 +87,23 @@ describe("refusalCode", () => {
     expect(refusalCode(new Error("boom"))).toBe("failed");
     expect(refusalCode({ code: -32601, data: { code: "busy" } })).toBe("failed");
     expect(refusalCode(null)).toBe("failed");
+  });
+
+  it("names the shell's read-only refusal for what it is", () => {
+    expect(refusalCode({ code: -32003, message: "main is read-only" })).toBe("mainCheckout");
+    expect(refusalCode({ code: -32010, data: { code: "busy" } })).toBe("busy");
+  });
+});
+
+describe("agentBarShown", () => {
+  it("shows the bar for a cluster that may run an agent, or may once it is a worktree", () => {
+    expect(agentBarShown({ blocked: null, hint: null })).toBe(true);
+    expect(agentBarShown({ blocked: "mainCheckout", hint: null })).toBe(true);
+    expect(agentBarShown({ blocked: "notAWorktree", hint: "adapterMissing" })).toBe(true);
+  });
+
+  it("keeps it shut until the answer is known, and while developer mode is off", () => {
+    expect(agentBarShown(null)).toBe(false);
+    expect(agentBarShown({ blocked: "developerMode", hint: null })).toBe(false);
   });
 });

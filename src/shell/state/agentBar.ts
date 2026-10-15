@@ -22,12 +22,24 @@ export const AGENT_TAB_APP = "agent-tab";
 /** Mirrors `apps::agent_tab::REFUSED`. */
 const REFUSED = -32010;
 
+/** Mirrors `apps::READ_ONLY`: the shell's refusal of a write on a main checkout. */
+const READ_ONLY = -32003;
+
 /** What `agent-tab/harnesses` says about one cluster. */
 export interface AgentBarStatus {
   /** Why this cluster cannot run an agent, as a refusal code; `null` if it can. */
   blocked: string | null;
   /** What Claude still needs before it can run, as a hint key; `null` if nothing. */
   hint: string | null;
+}
+
+/**
+ * Whether the bar is drawn. Not while the answer is unknown, and not while
+ * developer mode is off: the bar is the feature's front door, and it stays
+ * shut until then. A main checkout still shows it, disabled, with the reason.
+ */
+export function agentBarShown(status: AgentBarStatus | null): status is AgentBarStatus {
+  return status !== null && status.blocked !== "developerMode";
 }
 
 interface HarnessesAnswer {
@@ -130,6 +142,7 @@ export async function sendToAgent(target: SendTarget, text: string): Promise<voi
 /** A rejection's refusal code, or `"failed"` for anything that is not one. */
 export function refusalCode(err: unknown): string {
   const rpc = err as { code?: unknown; data?: { code?: unknown } } | null;
+  if (rpc?.code === READ_ONLY) return "mainCheckout";
   if (rpc?.code === REFUSED && typeof rpc.data?.code === "string") return rpc.data.code;
   return "failed";
 }

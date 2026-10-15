@@ -19,6 +19,15 @@ export interface AgentBarProps {
   onSend: (text: string) => Promise<void>;
 }
 
+/**
+ * The bar for one cluster. A cluster of its own gets a bar of its own, so a
+ * half-typed prompt, a failed send's notice and a send in flight never follow
+ * the user to another cluster's worktree.
+ */
+export function ClusterAgentBar({ clusterId, ...props }: AgentBarProps & { clusterId: string }) {
+  return <AgentBar key={clusterId} {...props} />;
+}
+
 export default function AgentBar({ blocked, hint, onSend }: AgentBarProps) {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -42,7 +51,10 @@ export default function AgentBar({ blocked, hint, onSend }: AgentBarProps) {
     setFailure(null);
     onSend(text).then(
       () => {
-        setDraft("");
+        // Only if the box still holds what was sent: the textarea stays live
+        // while the send is in flight, and what was typed meanwhile is the
+        // start of the next prompt. The agent tab guards its draft the same way.
+        setDraft((now) => (now.trim() === text ? "" : now));
         setSending(false);
       },
       (err: unknown) => {

@@ -16,12 +16,13 @@ export const strings = {
   placeholder: "Ask Claude to do something in this worktree. Enter sends.",
   send: "Send",
   sending: "Sending",
+  // Only what `agent-tab/harnesses` can answer before anything has started:
+  // `claude_spec` fails with one of these two. The hints a running session
+  // earns (signed out, another adapter version, a path outside the worktree)
+  // are the agent tab's to show, from its own strings.
   hint: {
     claudeMissing: "Claude is not installed. Install it, then run `claude` once to sign in.",
     adapterMissing: `The Claude ACP adapter is not installed. Run \`${ADAPTER_INSTALL}\`.`,
-    signedOut: "Run `claude` once in a terminal to sign in. Kaava never signs you in.",
-    adapterVersion: `Tested with adapter 0.90.0. Run \`${ADAPTER_INSTALL}\` to match.`,
-    outsideWorktree: "The agent asked to touch a file outside this worktree.",
   } as Record<string, string>,
   refusal: {
     notAWorktree: "Agents run in a local worktree. Create a worktree cluster to start one.",
