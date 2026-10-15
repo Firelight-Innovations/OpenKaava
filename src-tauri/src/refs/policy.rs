@@ -254,7 +254,7 @@ fn matcher(root: &Path, dir: &Path) -> Option<Gitignore> {
     // Later files win a tie, so `.gitignore` goes after `info/exclude`.
     let mut files = Vec::new();
     if dir == root {
-        files.push(dir.join(".git").join("info").join("exclude"));
+        files.extend(exclude_file(root));
     }
     files.push(dir.join(".gitignore"));
     let mut any = false;
@@ -263,6 +263,32 @@ fn matcher(root: &Path, dir: &Path) -> Option<Gitignore> {
         any = true;
     }
     any.then(|| builder.build().ok()).flatten()
+}
+
+/// The repository's `info/exclude` for the work tree at `root`. In a linked
+/// worktree, which is what a cluster usually is, `.git` is a file naming the
+/// worktree's own git dir. That dir's `commondir` names the shared one, which
+/// holds `info/exclude`.
+fn exclude_file(root: &Path) -> Option<PathBuf> {
+    use std::io::Read as _;
+    let dot_git = root.join(".git");
+    if dot_git.is_dir() {
+        return Some(dot_git.join("info").join("exclude"));
+    }
+    // A pointer is one short line; a big file called `.git` is not one.
+    let read_small = |path: &Path| -> Option<String> {
+        let mut text = String::new();
+        let file = std::fs::File::open(path).ok()?;
+        file.take(4096).read_to_string(&mut text).ok()?;
+        Some(text)
+    };
+    let pointer = read_small(&dot_git)?;
+    let git_dir = root.join(pointer.lines().find_map(|l| l.strip_prefix("gitdir:"))?.trim());
+    let common = match read_small(&git_dir.join("commondir")) {
+        Some(rel) => git_dir.join(rel.trim()),
+        None => git_dir,
+    };
+    Some(common.join("info").join("exclude"))
 }
 
 /// Whether `abs` (canonical, under the canonical `root`) is gitignored.
@@ -431,6 +457,26 @@ mod tests {
             write(&root, rel, "x");
             assert_eq!(ignored(&root, &root.join(rel)), expected, "{rel}");
         }
+    }
+
+    #[test]
+    fn a_linked_worktree_reads_the_shared_info_exclude() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let base = std::fs::canonicalize(dir.path()).unwrap();
+        let (main, root) = (base.join("main"), base.join("main/.kaava/worktrees/wt"));
+        write(&main, ".git/info/exclude", "local.cfg\n");
+        write(&main, ".git/worktrees/wt/commondir", "../..\n");
+        let git_dir = main.join(".git/worktrees/wt");
+        write(&root, ".git", &format!("gitdir: {}\n", git_dir.display()));
+        for (rel, expected) in [("local.cfg", true), ("src/main.gd", false)] {
+            write(&root, rel, "x");
+            assert_eq!(ignored(&root, &root.join(rel)), expected, "{rel}");
+        }
+        write(&root, ".git", "gitdir: ../../../.git/worktrees/wt\n");
+        assert!(
+            ignored(&root, &root.join("local.cfg")),
+            "a relative gitdir is read from the work tree"
+        );
     }
 
     #[test]
