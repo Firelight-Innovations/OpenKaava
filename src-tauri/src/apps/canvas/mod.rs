@@ -39,6 +39,8 @@ mod types;
 /// The frontend work only a webview can do.
 mod webview;
 
+/// A canvas id as every method here reads one, for `kaava://` references.
+pub(crate) use objects::canvas_id;
 /// The icon names and field kinds a type may use, for the MCP schema that lists
 /// them up front.
 pub use types::{ICONS as TYPE_ICONS, KINDS as FIELD_KINDS};
@@ -324,6 +326,19 @@ pub(crate) fn file_for(root: &Path, id: &str) -> PathBuf {
     } else {
         plain
     }
+}
+
+/// The child canvases canvas `id`'s split frames moved their elements into,
+/// spelt as the file names them. Listing, reading a frame and viewing a
+/// comment on `id` open these too. Empty when `id` cannot be read.
+pub(crate) fn split_children(root: &Path, id: &str) -> Vec<String> {
+    let Ok(scene) = load(&file_for(root, id)) else {
+        return Vec::new();
+    };
+    subcanvas::subcanvas_frames(&scene)
+        .into_iter()
+        .map(|(_, child)| child)
+        .collect()
 }
 
 /// Whether a plain `.json` under `canvas/` is meant as a canvas. Spec cards and

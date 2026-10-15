@@ -76,7 +76,9 @@ pub fn dir_for(root: &Path, canvas: &str) -> PathBuf {
     file.with_file_name(name)
 }
 
-fn validate_comment_id(id: &str) -> Result<(), RpcError> {
+/// An id this app could have made with [`new_id`]: lowercase letters, digits
+/// and `-`, up to 64 of them.
+pub(crate) fn validate_comment_id(id: &str) -> Result<(), RpcError> {
     let ok = !id.is_empty()
         && id.len() <= 64
         && id

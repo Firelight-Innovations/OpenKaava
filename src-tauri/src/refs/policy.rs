@@ -110,6 +110,15 @@ const CREDENTIAL_NAMES: &[&str] = &[
     ".my.cnf",
     "keystore.properties",
     "export_credentials.cfg",
+    // OpenKaava's own: the bearer token for every MCP server it hosts.
+    "mcp-endpoint.json",
+    ".vault-token",
+    "application_default_credentials.json",
+    ".terraformrc",
+    "terraform.rc",
+    ".s3cfg",
+    ".boto",
+    ".dockercfg",
 ];
 
 /// Which secrets rule, if any, a root-relative path falls under. The answer
@@ -139,7 +148,11 @@ pub fn secret_rule(rel: &str) -> Option<&'static str> {
     if ssh_key && !name.ends_with(".pub") {
         return Some("SSH private keys");
     }
+    let service_account =
+        name.starts_with("service-account") || name.starts_with("service_account");
     let credential = CREDENTIAL_NAMES.contains(&name)
+        || (name == "hosts.yml" && segments.last() == Some(&"gh"))
+        || (service_account && name.ends_with(".json"))
         || name.starts_with("credentials")
         || name.starts_with("secrets.")
         || name.starts_with("client_secret")
@@ -149,16 +162,54 @@ pub fn secret_rule(rel: &str) -> Option<&'static str> {
     credential.then_some("credential files")
 }
 
+/// Which secrets rule a context item's title falls under. A title is free
+/// text, so only one spelt like a file name, without spaces, is read as one:
+/// `id_rsa` is a key's name, and "Credentials rotation plan" is prose.
+pub fn title_rule(title: &str) -> Option<&'static str> {
+    let title = title.trim();
+    if title.chars().any(char::is_whitespace) {
+        return None;
+    }
+    secret_rule(title)
+}
+
 /// Which secrets rule a file's first bytes fall under. A private key keeps
-/// its header whatever the file is called, so a renamed key is still caught.
+/// its header whatever the file is called, so a renamed key is still caught,
+/// and so is one written into a JSON, YAML or env value.
 pub fn secret_content(head: &[u8]) -> Option<&'static str> {
     let text = String::from_utf8_lossy(head);
     let key = text.lines().map(str::trim).any(|line| {
-        let pem = line.starts_with("-----BEGIN ")
-            && (line.ends_with("PRIVATE KEY-----") || line.ends_with("PRIVATE KEY BLOCK-----"));
-        pem || line.starts_with("PuTTY-User-Key-File-")
+        line.starts_with("PuTTY-User-Key-File-") || pem_key_in(line) || age_key_in(line)
     });
     key.then_some("private keys and key stores")
+}
+
+/// Whether `line` holds a private key's PEM header with the key after it: the
+/// header ends the line, or an escaped line break follows it, as in a JSON
+/// string. A header quoted in a sentence has prose after it instead.
+fn pem_key_in(line: &str) -> bool {
+    line.match_indices("-----BEGIN ").any(|(at, open)| {
+        let rest = &line[at + open.len()..];
+        let Some(end) = rest.find("-----") else {
+            return false;
+        };
+        let label = &rest[..end];
+        let after = &rest[end + "-----".len()..];
+        (label.ends_with("PRIVATE KEY") || label.ends_with("PRIVATE KEY BLOCK"))
+            && (after.is_empty() || after.starts_with("\\n") || after.starts_with("\\r\\n"))
+    })
+}
+
+/// Whether `line` holds an age secret key, which is its prefix and then 58
+/// characters of upper-case Bech32.
+fn age_key_in(line: &str) -> bool {
+    const PREFIX: &str = "AGE-SECRET-KEY-1";
+    line.match_indices(PREFIX).any(|(at, _)| {
+        let body = line[at + PREFIX.len()..].bytes();
+        body.take_while(|b| b.is_ascii_uppercase() || b.is_ascii_digit())
+            .count()
+            >= 58
+    })
 }
 
 /// Whether gitignore patterns ignore case. Git's `core.ignorecase` is on by
@@ -227,7 +278,7 @@ fn matcher(root: &Path, dir: &Path) -> Option<Gitignore> {
     // Later files win a tie, so `.gitignore` goes after `info/exclude`.
     let mut files = Vec::new();
     if dir == root {
-        files.push(dir.join(".git").join("info").join("exclude"));
+        files.extend(exclude_file(root));
     }
     files.push(dir.join(".gitignore"));
     let mut any = false;
@@ -236,6 +287,37 @@ fn matcher(root: &Path, dir: &Path) -> Option<Gitignore> {
         any = true;
     }
     any.then(|| builder.build().ok()).flatten()
+}
+
+/// The repository's `info/exclude` for the work tree at `root`. In a linked
+/// worktree, which is what a cluster usually is, `.git` is a file naming the
+/// worktree's own git dir. That dir's `commondir` names the shared one, which
+/// holds `info/exclude`.
+fn exclude_file(root: &Path) -> Option<PathBuf> {
+    use std::io::Read as _;
+    let dot_git = root.join(".git");
+    if dot_git.is_dir() {
+        return Some(dot_git.join("info").join("exclude"));
+    }
+    // A pointer is one short line; a big file called `.git` is not one.
+    let read_small = |path: &Path| -> Option<String> {
+        let mut text = String::new();
+        let file = std::fs::File::open(path).ok()?;
+        file.take(4096).read_to_string(&mut text).ok()?;
+        Some(text)
+    };
+    let pointer = read_small(&dot_git)?;
+    let git_dir = root.join(
+        pointer
+            .lines()
+            .find_map(|l| l.strip_prefix("gitdir:"))?
+            .trim(),
+    );
+    let common = match read_small(&git_dir.join("commondir")) {
+        Some(rel) => git_dir.join(rel.trim()),
+        None => git_dir,
+    };
+    Some(common.join("info").join("exclude"))
 }
 
 /// Whether `abs` (canonical, under the canonical `root`) is gitignored.
@@ -323,23 +405,72 @@ mod tests {
             ("client_secret_123.json", Some("credential files")),
             ("infra/prod.tfvars", Some("credential files")),
             (".npmrc", Some("credential files")),
+            ("keys/id_rsa", Some("SSH private keys")),
+            ("keys/id_dsa", Some("SSH private keys")),
+            ("keys/id_ecdsa", Some("SSH private keys")),
+            ("aws/credentials", Some("credential files")),
+            ("config/credentials.yml.enc", Some("credential files")),
+            ("config/secrets.toml", Some("credential files")),
+            ("home/.config/gh/hosts.yml", Some("credential files")),
+            ("ops/service-account-prod.json", Some("credential files")),
+            ("ops/service_account.json", Some("credential files")),
             (".gitignore", None),
             ("scripts/environment.gd", None),
             ("docs/keys.md", None),
+            ("docs/service-account-setup.md", None),
+            ("ci/hosts.yml", None),
         ];
         for (path, rule) in cases {
             assert_eq!(secret_rule(path), rule, "{path}");
         }
     }
 
+    /// Every entry in the rule tables, so a typo or a lost line in one of them
+    /// turns the suite red.
+    #[test]
+    fn every_entry_in_the_secret_tables_is_withheld() {
+        for dir in SECRET_DIRS {
+            assert!(secret_rule(dir).is_some(), "{dir}");
+            assert!(
+                secret_rule(&format!("home/{dir}/config")).is_some(),
+                "{dir}/config"
+            );
+        }
+        for ext in KEY_EXTENSIONS {
+            assert_eq!(
+                secret_rule(&format!("certs/release.{ext}")),
+                Some("private keys and key stores"),
+                "{ext}"
+            );
+        }
+        for name in CREDENTIAL_NAMES {
+            assert_eq!(
+                secret_rule(&format!("home/{name}")),
+                Some("credential files"),
+                "{name}"
+            );
+        }
+        for template in ENV_TEMPLATES {
+            assert_eq!(secret_rule(&format!(".env{template}")), None, "{template}");
+        }
+    }
+
     #[test]
     fn a_private_key_is_known_by_its_header() {
+        let age = format!("AGE-SECRET-KEY-1{}\n", "QZ7".repeat(20));
         for key in [
             "-----BEGIN RSA PRIVATE KEY-----\nMIIE\n",
             "-----BEGIN CERTIFICATE-----\nx\n-----END CERTIFICATE-----\n  -----BEGIN EC PRIVATE KEY-----\n",
             "-----BEGIN OPENSSH PRIVATE KEY-----\r\nb3Bl\r\n",
             "-----BEGIN PGP PRIVATE KEY BLOCK-----\n",
             "PuTTY-User-Key-File-3: ssh-ed25519\n",
+            // A service-account file: the key is one JSON string, escapes and all.
+            r#"  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBg\n-----END PRIVATE KEY-----\n","#,
+            r#"{"cert": "-----BEGIN CERTIFICATE-----\nMIIB", "key": "-----BEGIN EC PRIVATE KEY-----\r\nMHc"}"#,
+            "DEPLOY_KEY=\"-----BEGIN OPENSSH PRIVATE KEY-----\nb3Bl\n-----END OPENSSH PRIVATE KEY-----\"\n",
+            r#"SSH_KEY="-----BEGIN RSA PRIVATE KEY-----\nMIIE""#,
+            "tls:\n  key: |\n    -----BEGIN ENCRYPTED PRIVATE KEY-----\n    MIIF\n",
+            &age,
         ] {
             assert_eq!(
                 secret_content(key.as_bytes()),
@@ -350,7 +481,9 @@ mod tests {
         for plain in [
             "-----BEGIN CERTIFICATE-----\nMIIB\n",
             "-----BEGIN PUBLIC KEY-----\n",
+            r#"{"cert": "-----BEGIN CERTIFICATE-----\nMIIB"}"#,
             "A key file starts with `-----BEGIN RSA PRIVATE KEY-----`.\n",
+            "An age key starts AGE-SECRET-KEY-1 and is all capitals.\n",
             "",
         ] {
             assert_eq!(secret_content(plain.as_bytes()), None, "{plain}");
@@ -394,6 +527,26 @@ mod tests {
             write(&root, rel, "x");
             assert_eq!(ignored(&root, &root.join(rel)), expected, "{rel}");
         }
+    }
+
+    #[test]
+    fn a_linked_worktree_reads_the_shared_info_exclude() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let base = std::fs::canonicalize(dir.path()).unwrap();
+        let (main, root) = (base.join("main"), base.join("main/.kaava/worktrees/wt"));
+        write(&main, ".git/info/exclude", "local.cfg\n");
+        write(&main, ".git/worktrees/wt/commondir", "../..\n");
+        let git_dir = main.join(".git/worktrees/wt");
+        write(&root, ".git", &format!("gitdir: {}\n", git_dir.display()));
+        for (rel, expected) in [("local.cfg", true), ("src/main.gd", false)] {
+            write(&root, rel, "x");
+            assert_eq!(ignored(&root, &root.join(rel)), expected, "{rel}");
+        }
+        write(&root, ".git", "gitdir: ../../../.git/worktrees/wt\n");
+        assert!(
+            ignored(&root, &root.join("local.cfg")),
+            "a relative gitdir is read from the work tree"
+        );
     }
 
     #[test]

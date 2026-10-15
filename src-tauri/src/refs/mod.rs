@@ -18,6 +18,8 @@
 
 pub mod assets;
 pub mod comments;
+#[cfg(test)]
+pub mod links;
 pub mod live;
 pub mod policy;
 pub mod resolve;
@@ -28,14 +30,15 @@ use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde_json::Value;
 use tauri::AppHandle;
 
-/// `refs/resolve {uri}` → [`resolve::Resolved`]: what the agent tab draws for
+/// `refs/resolve` `{uri}` → [`resolve::Resolved`]: what the agent tab draws for
 /// a reference chip or a `show` card. Answered as the person, who is the one
 /// looking.
 pub const RESOLVE_METHOD: &str = "refs/resolve";
 
-/// Whether the host answers `method` here rather than an app.
+/// Whether the host answers `method` here rather than an app. Only the names
+/// it implements: any other `refs/` method is the calling plugin's own.
 pub fn is_method(method: &str) -> bool {
-    method.starts_with("refs/")
+    method == RESOLVE_METHOD
 }
 
 /// Answer a `refs/*` method from app `caller` for the cluster in `ctx`.
@@ -47,8 +50,10 @@ pub fn call(
     params: Option<Value>,
 ) -> Result<Value, RpcError> {
     admit(caller)?;
+    // Spelt out, not [`RESOLVE_METHOD`], so the MCP panel's method catalogue
+    // finds the arm.
     match method {
-        RESOLVE_METHOD => {
+        "refs/resolve" => {
             let r = uri_param(params.as_ref())?;
             let resolved = live::resolve(app, ctx, live::Actor::Human, &r)
                 .map_err(|e| RpcError::new(INVALID_PARAMS, e))?;
@@ -92,6 +97,10 @@ mod tests {
         assert!(is_method(RESOLVE_METHOD));
         assert!(!is_method("context/get"));
         assert!(!is_method("refsx/resolve"));
+        assert!(
+            !is_method("refs/sync"),
+            "a plugin's own refs/ method is its own"
+        );
     }
 
     #[test]

@@ -6,6 +6,7 @@
 use super::resolve::{self, Part, Resolved};
 use super::uri::{CanvasPart, Ref};
 use crate::apps::CallContext;
+use kaava_rpc::RpcError;
 use serde_json::{json, Value};
 use std::path::Path;
 use tauri::AppHandle;
@@ -111,25 +112,56 @@ fn design_comment_exists(app: &AppHandle, id: &str) -> Result<(), String> {
     design_comment(app, &Ref::DesignComment { id: id.into() }, id).map(drop)
 }
 
-/// Refuse a canvas, or a comment on one, whose file is not inside the project
-/// once links are followed. The Canvas app reads the files where it finds
-/// them, so the test a file reference passes runs here, before it is asked.
+/// Refuse a canvas, or a comment on one, when a file the Canvas app reads for
+/// it is not inside the project once links are followed. The app reads files
+/// where it finds them, so the test a file reference passes runs here, before
+/// it is asked. That covers the canvas, each child its split frames name, and
+/// the comment, which may have moved into a child with its frame.
 pub(super) fn canvas_inside(
     root: &Path,
     id: &str,
     part: Option<&CanvasPart>,
 ) -> Result<(), String> {
     use crate::apps::canvas;
-    let mut files = vec![canvas::file_for(root, id)];
-    if let Some(CanvasPart::Comment(c)) = part {
-        files.push(canvas::comments::dir_for(root, id).join(format!("{c}.json")));
-    }
-    for file in files {
-        let rel = crate::context::relative_to(root, &file)
+    let inside = |file: &Path| -> Result<(), String> {
+        let rel = crate::context::relative_to(root, file)
             .ok_or_else(|| format!("canvas `{id}` is not in this project"))?;
-        super::policy::contain(root, &rel)?;
+        super::policy::contain(root, &rel).map(drop)
+    };
+    inside(&canvas::file_for(root, id))?;
+    let children = canvas::split_children(root, id);
+    // A child that is not there is not opened, so it is not checked.
+    for child in &children {
+        let file = canvas::file_for(root, child);
+        if file.exists() {
+            inside(&file)?;
+        }
+    }
+    if let Some(CanvasPart::Comment(c)) = part {
+        let homes = std::iter::once(id).chain(children.iter().map(String::as_str));
+        let files: Vec<_> = homes
+            .map(|home| canvas::comments::dir_for(root, home).join(format!("{c}.json")))
+            .filter(|f| f.exists())
+            .collect();
+        if files.is_empty() {
+            return Err(format!("canvas `{id}` has no comment `{c}`"));
+        }
+        for file in &files {
+            inside(file)?;
+        }
     }
     Ok(())
+}
+
+fn canvas_rpc(
+    app: &AppHandle,
+    ctx: &CallContext,
+    actor: Actor,
+    method: &str,
+    mut params: Value,
+) -> Result<Value, RpcError> {
+    params["actor"] = json!(actor.name());
+    crate::apps::call(app, ctx, "canvas", method, Some(params))
 }
 
 pub(super) fn canvas_call(
@@ -137,10 +169,16 @@ pub(super) fn canvas_call(
     ctx: &CallContext,
     actor: Actor,
     method: &str,
-    mut params: Value,
+    params: Value,
 ) -> Result<Value, String> {
-    params["actor"] = json!(actor.name());
-    crate::apps::call(app, ctx, "canvas", method, Some(params)).map_err(|e| e.message)
+    canvas_rpc(app, ctx, actor, method, params).map_err(|e| e.message)
+}
+
+/// Whether the Canvas app failed only because no Canvas pane is open to draw.
+fn no_pane(e: &RpcError) -> bool {
+    e.data
+        .as_ref()
+        .is_some_and(|d| d["kind"] == "canvas-not-open")
 }
 
 fn canvas(
@@ -151,11 +189,21 @@ fn canvas(
     id: &str,
 ) -> Result<Resolved, String> {
     let listed = canvas_call(app, ctx, actor, "canvas/frames", json!({ "canvas": id }))?;
-    Ok(canvas_from(&listed, r, id))
+    canvas_from(&listed, r, id)
 }
 
 /// A canvas from its `canvas/frames` answer: its frames, each with a reference.
-fn canvas_from(listed: &Value, r: &Ref, id: &str) -> Resolved {
+/// The app answers for a damaged canvas with no canvases and the reason in
+/// `problems`. That is an error here, so it never reads as an empty canvas.
+fn canvas_from(listed: &Value, r: &Ref, id: &str) -> Result<Resolved, String> {
+    if listed["canvases"].as_array().is_none_or(Vec::is_empty) {
+        return Err(
+            match listed.pointer("/problems/0").and_then(Value::as_str) {
+                Some(why) => format!("canvas `{id}` cannot be read: {why}"),
+                None => format!("canvas `{id}` cannot be read"),
+            },
+        );
+    }
     let title = listed
         .pointer("/canvases/0/title")
         .and_then(Value::as_str)
@@ -177,10 +225,9 @@ fn canvas_from(listed: &Value, r: &Ref, id: &str) -> Resolved {
             json!({ "name": f["name"], "type": f["typeName"], "ref": link.to_string() })
         })
         .collect();
-    out.parts.push(Part::Json {
-        value: json!({ "frames": rows }),
-    });
-    out
+    out.parts
+        .push(resolve::json_part(json!({ "frames": rows })));
+    Ok(out)
 }
 
 fn frame_of(
@@ -237,13 +284,11 @@ fn frame_from(detail: &Value, r: &Ref, id: &str, frame: &str) -> Resolved {
                 .collect()
         })
         .unwrap_or_default();
-    out.parts.push(Part::Json {
-        value: json!({
-            "type": detail["typeName"],
-            "props": detail["props"],
-            "text": texts,
-        }),
-    });
+    out.parts.push(resolve::json_part(json!({
+        "type": detail["typeName"],
+        "props": detail["props"],
+        "text": texts,
+    })));
     out
 }
 
@@ -256,43 +301,54 @@ fn canvas_comment(
     id: &str,
     comment: &str,
 ) -> Result<Resolved, String> {
-    let viewed = canvas_call(
+    let viewed = canvas_rpc(
         app,
         ctx,
         actor,
         "canvas/view-comment",
         json!({ "id": id, "commentId": comment }),
     );
+    let list = || {
+        canvas_call(
+            app,
+            ctx,
+            actor,
+            "canvas/list-comments",
+            json!({ "id": id, "status": "all" }),
+        )
+    };
+    comment_from(root, r, id, comment, viewed, list)
+}
+
+/// A canvas comment from its `canvas/view-comment` answer. Only when no pane is
+/// open to draw it does the record come from `list` instead, without a
+/// picture; any other failure is the comment's own, and is passed on.
+fn comment_from(
+    root: &Path,
+    r: &Ref,
+    id: &str,
+    comment: &str,
+    viewed: Result<Value, RpcError>,
+    list: impl FnOnce() -> Result<Value, String>,
+) -> Result<Resolved, String> {
     let (record, picture) = match viewed {
         Ok(v) => (v["comment"].clone(), rendered(root, Ok(v))),
-        // No Canvas pane to draw it: the comment itself still reads from disk.
-        Err(why) => {
-            let all = canvas_call(
-                app,
-                ctx,
-                actor,
-                "canvas/list-comments",
-                json!({ "id": id, "status": "all" }),
-            )?;
-            let found = all["comments"]
+        Err(e) if no_pane(&e) => {
+            let found = list()?["comments"]
                 .as_array()
                 .and_then(|cs| cs.iter().find(|c| c["id"] == json!(comment)).cloned())
                 .ok_or_else(|| format!("canvas `{id}` has no comment `{comment}`"))?;
-            (found, rendered(root, Err(why)))
+            (found, rendered(root, Err(e.message)))
         }
+        Err(e) => return Err(e.message),
     };
     let text = record["text"].as_str().unwrap_or_default();
     let mut out = resolve::Resolved::empty(r, "comment", resolve::first_line(text));
     out.detail = Some(format!("comment on canvas {id}"));
     out.meta.insert("status".into(), record["status"].clone());
     out.meta.insert("author".into(), record["author"].clone());
-    out.parts.push(Part::Text {
-        text: text.to_string(),
-        language: Some("markdown".into()),
-        start_line: 1,
-        truncated: false,
-    });
-    out.parts.push(Part::Json { value: record });
+    out.parts.push(resolve::prose_part(text, Some("markdown")));
+    out.parts.push(resolve::json_part(record));
     out.parts.push(picture);
     Ok(out)
 }
@@ -304,11 +360,8 @@ fn rendered(root: &Path, answer: Result<Value, String>) -> Part {
     let note = |text: String| Part::Note { text };
     let path = match answer {
         Ok(v) => v["path"].as_str().map(str::to_owned),
-        Err(why) => {
-            return note(format!(
-                "No picture: {why}. Open the canvas in a Canvas pane to render one."
-            ))
-        }
+        // The app's own message says what would draw one, when anything would.
+        Err(why) => return note(format!("No picture: {why}")),
     };
     let found = path
         .and_then(|p| crate::context::relative_to(root, Path::new(&p)))
@@ -324,8 +377,6 @@ fn rendered(root: &Path, answer: Result<Value, String>) -> Part {
 
 #[cfg(feature = "design-mode")]
 fn design_comment(app: &AppHandle, r: &Ref, id: &str) -> Result<Resolved, String> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
-    use base64::Engine as _;
     use tauri::Manager;
     let c = app
         .state::<crate::design_comments::Comments>()
@@ -334,24 +385,18 @@ fn design_comment(app: &AppHandle, r: &Ref, id: &str) -> Result<Resolved, String
     let mut out = resolve::Resolved::empty(r, "design-comment", resolve::first_line(&c.request));
     out.detail = Some(format!("{} on {}", c.element.tag, c.page.title));
     out.meta.insert("status".into(), json!(c.status));
-    out.parts.push(Part::Text {
-        text: c.request.clone(),
-        language: Some("markdown".into()),
-        start_line: 1,
-        truncated: false,
-    });
-    out.parts.push(Part::Json {
-        value: json!({ "page": c.page, "selector": c.element.selector, "thread": c.thread }),
-    });
-    if let Some(bytes) = crate::design_comments::read_shot(app, id) {
-        if bytes.len() as u64 <= resolve::MAX_IMAGE_BYTES {
-            out.parts.push(Part::Image {
-                mime: "image/png".into(),
-                data_base64: BASE64.encode(bytes),
-                width: None,
-                height: None,
-            });
-        }
+    out.parts
+        .push(resolve::prose_part(&c.request, Some("markdown")));
+    out.parts.push(resolve::json_part(
+        json!({ "page": c.page, "selector": c.element.selector, "thread": c.thread }),
+    ));
+    // Read as a viewer comment's is: capped, sniffed, and a note when it fails.
+    let shot = crate::design_comments::shot_file(app, id).filter(|f| f.is_file());
+    if let Some(shot) = shot {
+        out.parts
+            .push(resolve::png_part(&shot).unwrap_or_else(|why| Part::Note {
+                text: format!("No screenshot: {why}"),
+            }));
     }
     Ok(out)
 }
@@ -374,8 +419,9 @@ fn selection(app: &AppHandle, ctx: &CallContext, root: &Path, r: &Ref) -> Result
     ))
 }
 
-/// [`selection`] from what the panes reported.
-fn selection_from(seen: Value, root: &Path, r: &Ref) -> Resolved {
+/// [`selection`] from what the panes reported. The selected text is sent once,
+/// as text; the panes' reports follow it as JSON.
+fn selection_from(mut seen: Value, root: &Path, r: &Ref) -> Resolved {
     let mut out = resolve::Resolved::empty(r, "selection", "Selection");
     let mut related = Vec::new();
     for surface in seen["surfaces"].as_array().into_iter().flatten() {
@@ -405,14 +451,16 @@ fn selection_from(seen: Value, root: &Path, r: &Ref) -> Resolved {
     if let Some(text) = seen["selectedText"].as_str().filter(|t| !t.is_empty()) {
         // The page counts in UTF-16 units, as JavaScript does, not in bytes.
         let units = text.encode_utf16().count() as u64;
-        out.parts.push(Part::Text {
-            text: text.to_string(),
-            language: None,
-            start_line: 1,
-            truncated: seen["selectedTextLength"].as_u64() > Some(units),
-        });
+        let mut part = resolve::prose_part(text, None);
+        if let Part::Text { truncated, .. } = &mut part {
+            *truncated |= seen["selectedTextLength"].as_u64() > Some(units);
+        }
+        out.parts.push(part);
     }
-    out.parts.push(Part::Json { value: seen });
+    if let Some(fields) = seen.as_object_mut() {
+        fields.remove("selectedText");
+    }
+    out.parts.push(resolve::json_part(seen));
     out
 }
 
@@ -483,6 +531,10 @@ mod tests {
         assert_eq!(out.detail.as_deref(), Some("World"));
         let cut = |o: &Resolved| matches!(o.parts[0], Part::Text { truncated, .. } if truncated);
         assert!(!cut(&out), "eight UTF-16 units, all of them sent");
+        assert!(
+            matches!(&out.parts[1], Part::Json { value } if value.get("selectedText").is_none()),
+            "the text is sent once, not again inside the reports"
+        );
         let longer = selection_from(seen("\u{e9}\u{e9}\u{e9}", 5), dir.path(), &Ref::Selection);
         assert!(cut(&longer), "five units selected, three sent");
     }
@@ -492,35 +544,60 @@ mod tests {
         std::fs::write(path, text).unwrap();
     }
 
-    fn link(target: &Path, at: &Path) -> bool {
-        #[cfg(unix)]
-        let made = std::os::unix::fs::symlink(target, at);
-        #[cfg(windows)]
-        let made = std::os::windows::fs::symlink_file(target, at);
-        made.is_ok()
+    /// A canvas whose one frame was split, its elements moved to canvas `child`.
+    fn split_into(child: &str) -> String {
+        json!({ "type": "excalidraw", "elements": [{
+            "id": "f1",
+            "type": "frame",
+            "customData": { "kaava": { "subcanvas": true, "child": child } },
+        }] })
+        .to_string()
     }
 
     #[test]
-    fn a_canvas_or_its_comment_is_read_only_from_inside_the_project() {
+    fn a_canvas_its_children_and_its_comments_are_read_only_from_inside_the_project() {
+        use crate::refs::links;
         let (dir, away) = (
             tempfile::TempDir::new().unwrap(),
             tempfile::TempDir::new().unwrap(),
         );
         let (root, secret) = (dir.path(), away.path().join("secret.json"));
-        write(&root.join("canvas/world.json"), "{}");
+        write(&root.join("canvas/world.json"), &split_into("world-f1"));
+        write(&root.join("canvas/world-f1.json"), "{}");
         write(&root.join("canvas/world.comments/c-1.json"), "{}");
+        write(&root.join("canvas/world-f1.comments/c-3.json"), "{}");
         write(&secret, "{}");
         let comment = |c: &str| Some(CanvasPart::Comment(c.into()));
         assert!(canvas_inside(root, "world", None).is_ok());
         assert!(canvas_inside(root, "world", comment("c-1").as_ref()).is_ok());
+        assert!(
+            canvas_inside(root, "world", comment("c-3").as_ref()).is_ok(),
+            "a comment that moved into the child with its frame"
+        );
+        let err = canvas_inside(root, "world", comment("c-9").as_ref()).unwrap_err();
+        assert!(err.contains("has no comment `c-9`"), "{err}");
         assert!(canvas_inside(root, "nope", None).is_err());
-        if !link(&secret, &root.join("canvas/leak.canvas.json")) {
-            eprintln!("skipped: cannot create symlinks here");
+
+        write(&away.path().join("levels/inner.json"), "{}");
+        links::folder(&away.path().join("levels"), &root.join("canvas/levels"));
+        write(&root.join("canvas/hub.json"), &split_into("levels/inner"));
+        let err = canvas_inside(root, "hub", None).unwrap_err();
+        assert!(err.contains("outside the project"), "a linked child: {err}");
+        let err = canvas_inside(root, "levels/inner", None).unwrap_err();
+        assert!(
+            err.contains("outside the project"),
+            "a linked folder: {err}"
+        );
+
+        if !links::file(&secret, &root.join("canvas/leak.canvas.json")) {
             return;
         }
         let err = canvas_inside(root, "leak", None).unwrap_err();
         assert!(err.contains("outside the project"), "{err}");
-        assert!(link(&secret, &root.join("canvas/world.comments/c-2.json")));
+        assert!(links::file(
+            &secret,
+            &root.join("canvas/world.comments/c-2.json")
+        ));
         let err = canvas_inside(root, "world", comment("c-2").as_ref()).unwrap_err();
         assert!(err.contains("outside the project"), "{err}");
     }
@@ -543,7 +620,7 @@ mod tests {
             id: "levels/one".into(),
             part: None,
         };
-        let out = canvas_from(&listed, &r, "levels/one");
+        let out = canvas_from(&listed, &r, "levels/one").unwrap();
         assert_eq!(
             (out.kind.as_str(), out.title.as_str()),
             ("canvas", "Level one")
@@ -559,7 +636,8 @@ mod tests {
             rows[0],
             json!({ "name": "Room 0", "type": "Room", "ref": "kaava://canvas/levels/one#frame=f0" })
         );
-        let untitled = canvas_from(&json!({ "canvases": [{ "title": "" }] }), &r, "levels/one");
+        let untitled =
+            canvas_from(&json!({ "canvases": [{ "title": "" }] }), &r, "levels/one").unwrap();
         assert_eq!(
             untitled.title, "levels/one",
             "an empty title falls back to the id"
@@ -568,6 +646,72 @@ mod tests {
             .as_array()
             .unwrap()
             .is_empty());
+    }
+
+    #[test]
+    fn a_comment_falls_back_to_its_record_only_when_no_pane_can_draw_it() {
+        use kaava_rpc::INTERNAL_ERROR;
+        let dir = tempfile::TempDir::new().unwrap();
+        let shot = dir.path().join(".kaava/preview/canvas/world/c-1.png");
+        write_png(&shot);
+        let r = Ref::Canvas {
+            id: "world".into(),
+            part: Some(CanvasPart::Comment("c-1".into())),
+        };
+        let record = json!({ "id": "c-1", "text": "Move the door\nleft", "status": "open" });
+        let resolve = |viewed, list: &dyn Fn() -> Result<Value, String>| {
+            comment_from(dir.path(), &r, "world", "c-1", viewed, list)
+        };
+        let unused = || -> Result<Value, String> { panic!("drawn, so not listed") };
+
+        let drawn = resolve(Ok(json!({ "comment": record, "path": shot })), &unused).unwrap();
+        assert_eq!(drawn.title, "Move the door");
+        assert!(matches!(drawn.parts.last(), Some(Part::Image { .. })));
+
+        let closed = || {
+            Err(RpcError::with_data(
+                INTERNAL_ERROR,
+                "no Canvas app is open",
+                json!({ "kind": "canvas-not-open" }),
+            ))
+        };
+        let listed = || Ok(json!({ "comments": [record.clone()] }));
+        let undrawn = resolve(closed(), &listed).unwrap();
+        assert_eq!(undrawn.meta["status"], "open");
+        assert!(
+            matches!(undrawn.parts.last(), Some(Part::Note { text }) if text == "No picture: no Canvas app is open")
+        );
+        let empty = || Ok(json!({ "comments": [] }));
+        let err = resolve(closed(), &empty).unwrap_err();
+        assert_eq!(err, "canvas `world` has no comment `c-1`");
+
+        let gone = Err(RpcError::new(INTERNAL_ERROR, "the comment's frame is gone"));
+        let err = resolve(gone, &unused).unwrap_err();
+        assert_eq!(
+            err, "the comment's frame is gone",
+            "not a missing pane, so not listed"
+        );
+    }
+
+    #[test]
+    fn a_damaged_canvas_is_an_error_not_an_empty_canvas() {
+        let r = Ref::Canvas {
+            id: "broken".into(),
+            part: None,
+        };
+        let listed = json!({
+            "canvases": [],
+            "frames": [],
+            "unreadable": ["broken"],
+            "problems": ["canvas/broken.json is not valid JSON: EOF"],
+        });
+        let err = canvas_from(&listed, &r, "broken").unwrap_err();
+        assert_eq!(
+            err,
+            "canvas `broken` cannot be read: canvas/broken.json is not valid JSON: EOF"
+        );
+        let silent = canvas_from(&json!({ "canvases": [] }), &r, "broken").unwrap_err();
+        assert_eq!(silent, "canvas `broken` cannot be read");
     }
 
     #[test]
