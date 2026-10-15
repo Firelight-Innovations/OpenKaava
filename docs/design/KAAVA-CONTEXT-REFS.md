@@ -262,9 +262,13 @@ file passes, because the tab draws it as withheld. It answers with this marker:
 ```
 
 A reference that fails its check goes in `failed`, with a §4 reason word and the sentence, and the
-rest are still shown. If none pass, the call fails and gives each sentence. A caption is at most 500 characters. The agent host is to lift
-`kaavaShow` off the tool result for the tab to draw. That is agent-host work still to land, so for
-now the marker reaches the agent and nothing draws it.
+rest are still shown. If none pass, the call fails and gives each sentence. A caption is at most
+500 characters.
+
+The agent host lifts the marker off the result and gives it to the tab as `ToolCall.kaava`
+(`crates/kaava-agent-host/src/kaava_call.rs`, #288). It does so only for a call the harness itself
+names as `show` or `show_component` on this server, never for one the agent's title names. A marker
+printed by any other tool stays text, and so does an answer over 256 KB.
 
 `show` is the `refs` component of §6, built from the tool's own arguments.
 
