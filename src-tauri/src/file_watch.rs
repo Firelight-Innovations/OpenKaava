@@ -24,7 +24,7 @@ use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher};
 use serde_json::json;
 use std::collections::HashMap;
 use std::path::{Component, Path, PathBuf};
-use std::sync::mpsc::{self, RecvTimeoutError};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
 use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
@@ -157,41 +157,51 @@ pub(crate) fn spawn_watch(
     }
 
     let root = root.to_path_buf();
+    let counts = move |p: &Path| {
+        is_relevant(&root, p) || git_dir.as_deref().is_some_and(|g| is_git_signal(g, p))
+    };
     std::thread::Builder::new()
         .name("files-watch".to_string())
-        .spawn(move || loop {
-            // Block for the first relevant event, then keep absorbing until quiet.
-            let mut pending = false;
-            loop {
-                let timeout = if pending {
-                    QUIET
-                } else {
-                    Duration::from_secs(3600)
-                };
-                match rx.recv_timeout(timeout) {
-                    Ok(Ok(event)) => {
-                        let counts = |p: &PathBuf| {
-                            is_relevant(&root, p)
-                                || git_dir.as_deref().is_some_and(|g| is_git_signal(g, p))
-                        };
-                        if event.paths.iter().any(counts) {
-                            pending = true;
-                        }
-                    }
-                    Ok(Err(_)) => {}
-                    Err(RecvTimeoutError::Timeout) => {
-                        if pending {
-                            break;
-                        }
-                    }
-                    Err(RecvTimeoutError::Disconnected) => return,
-                }
-            }
-            on_change();
-        })
+        .spawn(move || settle(&rx, QUIET, counts, on_change))
         .ok()?;
 
     Some(watcher)
+}
+
+/// Call `on_change` once per burst of events that `counts`, after `quiet` passes with
+/// no event at all. Returns when the channel closes, dropping a burst still settling.
+fn settle(
+    rx: &Receiver<notify::Result<Event>>,
+    quiet: Duration,
+    counts: impl Fn(&Path) -> bool,
+    on_change: impl Fn(),
+) {
+    loop {
+        // Block for the first relevant event, then keep absorbing until quiet.
+        let mut pending = false;
+        loop {
+            let timeout = if pending {
+                quiet
+            } else {
+                Duration::from_secs(3600)
+            };
+            match rx.recv_timeout(timeout) {
+                Ok(Ok(event)) => {
+                    if event.paths.iter().any(|p| counts(p)) {
+                        pending = true;
+                    }
+                }
+                Ok(Err(_)) => {}
+                Err(RecvTimeoutError::Timeout) => {
+                    if pending {
+                        break;
+                    }
+                }
+                Err(RecvTimeoutError::Disconnected) => return,
+            }
+        }
+        on_change();
+    }
 }
 
 #[cfg(test)]
@@ -240,8 +250,74 @@ mod tests {
         false
     }
 
+    fn created(path: &str) -> notify::Result<Event> {
+        let kind = notify::EventKind::Create(notify::event::CreateKind::File);
+        Ok(Event::new(kind).add_path(PathBuf::from(path)))
+    }
+
+    /// [`settle`] on a thread of its own, over `events` all queued before it starts, so
+    /// how they group does not depend on how fast anything runs. Anything under `ignored`
+    /// does not count.
+    fn settling(
+        events: Vec<notify::Result<Event>>,
+    ) -> (
+        mpsc::Sender<notify::Result<Event>>,
+        Arc<AtomicUsize>,
+        std::thread::JoinHandle<()>,
+    ) {
+        let (tx, rx) = mpsc::channel();
+        for event in events {
+            tx.send(event).unwrap();
+        }
+        let count = Arc::new(AtomicUsize::new(0));
+        let seen = Arc::clone(&count);
+        let thread = std::thread::spawn(move || {
+            let counts = |p: &Path| !p.starts_with("ignored");
+            settle(&rx, Duration::from_millis(100), counts, move || {
+                seen.fetch_add(1, Ordering::SeqCst);
+            });
+        });
+        (tx, count, thread)
+    }
+
     #[test]
-    fn a_created_file_is_announced_once_and_ignored_folders_stay_quiet() {
+    fn a_burst_is_announced_once_after_it_settles() {
+        let mut burst: Vec<_> = (0..5).map(|i| created(&format!("f{i}.txt"))).collect();
+        burst.push(created("ignored/a.js"));
+        burst.push(Err(notify::Error::generic("lost")));
+        let (tx, count, thread) = settling(burst);
+        assert!(wait_for(&count, 1, Duration::from_secs(5)));
+        drop(tx);
+        thread.join().unwrap();
+        assert_eq!(count.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn events_that_do_not_count_announce_nothing() {
+        let noise = vec![created("ignored/a.js"), Err(notify::Error::generic("lost"))];
+        let (tx, count, thread) = settling(noise);
+        drop(tx);
+        thread.join().unwrap();
+        assert_eq!(count.load(Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn a_change_after_the_folder_settled_is_announced_again() {
+        let (tx, count, thread) = settling(vec![created("f0.txt")]);
+        assert!(wait_for(&count, 1, Duration::from_secs(5)));
+        tx.send(created("f1.txt")).unwrap();
+        assert!(wait_for(&count, 2, Duration::from_secs(5)));
+        drop(tx);
+        thread.join().unwrap();
+        assert_eq!(count.load(Ordering::SeqCst), 2);
+    }
+
+    /// The real watcher, end to end. How a burst of writes groups is up to the machine:
+    /// a loaded runner can stall between two of them for longer than [`QUIET`], and the
+    /// burst is then announced twice. So this checks that changes are announced and noise
+    /// is not, and [`settle`]'s own tests pin the grouping.
+    #[test]
+    fn created_and_deleted_files_are_announced_and_ignored_folders_stay_quiet() {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path().canonicalize().unwrap();
         std::fs::create_dir_all(root.join("node_modules")).unwrap();
@@ -261,17 +337,17 @@ mod tests {
         std::thread::sleep(Duration::from_millis(1200));
         assert_eq!(count.load(Ordering::SeqCst), 0);
 
-        // A burst of real files announces once, after it settles.
+        // A burst of real files announces.
         for i in 0..5 {
             std::fs::write(root.join(format!("f{i}.txt")), "x").unwrap();
         }
         assert!(wait_for(&count, 1, Duration::from_secs(5)));
-        std::thread::sleep(Duration::from_millis(1000));
-        assert_eq!(count.load(Ordering::SeqCst), 1);
 
-        // And a delete announces too.
+        // And once that has settled, a delete announces too.
+        std::thread::sleep(Duration::from_millis(1000));
+        let settled = count.load(Ordering::SeqCst);
         std::fs::remove_file(root.join("f0.txt")).unwrap();
-        assert!(wait_for(&count, 2, Duration::from_secs(5)));
+        assert!(wait_for(&count, settled + 1, Duration::from_secs(5)));
     }
 
     #[test]
