@@ -122,35 +122,56 @@ pub(super) fn canvas_inside(
     id: &str,
     part: Option<&CanvasPart>,
 ) -> Result<(), String> {
+    let children = canvas_files_inside(root, id)?;
+    match part {
+        Some(CanvasPart::Comment(c)) => comment_inside(root, id, &children, c),
+        _ => Ok(()),
+    }
+}
+
+/// The first half of [`canvas_inside`]: the canvas file and its children's.
+/// Answers the children, so a caller checking many comments on one canvas
+/// reads the canvas once.
+pub(super) fn canvas_files_inside(root: &Path, id: &str) -> Result<Vec<String>, String> {
     use crate::apps::canvas;
-    let inside = |file: &Path| -> Result<(), String> {
-        let rel = crate::context::relative_to(root, file)
-            .ok_or_else(|| format!("canvas `{id}` is not in this project"))?;
-        super::policy::contain(root, &rel).map(drop)
-    };
-    inside(&canvas::file_for(root, id))?;
+    file_inside(root, id, &canvas::file_for(root, id))?;
     let children = canvas::split_children(root, id);
     // A child that is not there is not opened, so it is not checked.
     for child in &children {
         let file = canvas::file_for(root, child);
         if file.exists() {
-            inside(&file)?;
+            file_inside(root, id, &file)?;
         }
     }
-    if let Some(CanvasPart::Comment(c)) = part {
-        let homes = std::iter::once(id).chain(children.iter().map(String::as_str));
-        let files: Vec<_> = homes
-            .map(|home| canvas::comments::dir_for(root, home).join(format!("{c}.json")))
-            .filter(|f| f.exists())
-            .collect();
-        if files.is_empty() {
-            return Err(format!("canvas `{id}` has no comment `{c}`"));
-        }
-        for file in &files {
-            inside(file)?;
-        }
+    Ok(children)
+}
+
+/// The second half of [`canvas_inside`]: comment `c`'s file, on canvas `id`
+/// or on one of its `children`.
+pub(super) fn comment_inside(
+    root: &Path,
+    id: &str,
+    children: &[String],
+    c: &str,
+) -> Result<(), String> {
+    use crate::apps::canvas;
+    let homes = std::iter::once(id).chain(children.iter().map(String::as_str));
+    let files: Vec<_> = homes
+        .map(|home| canvas::comments::dir_for(root, home).join(format!("{c}.json")))
+        .filter(|f| f.exists())
+        .collect();
+    if files.is_empty() {
+        return Err(format!("canvas `{id}` has no comment `{c}`"));
     }
-    Ok(())
+    files.iter().try_for_each(|f| file_inside(root, id, f))
+}
+
+/// Whether `file`, read for canvas `id`, is inside the root once links are
+/// followed.
+fn file_inside(root: &Path, id: &str, file: &Path) -> Result<(), String> {
+    let rel = crate::context::relative_to(root, file)
+        .ok_or_else(|| format!("canvas `{id}` is not in this project"))?;
+    super::policy::contain(root, &rel).map(drop)
 }
 
 fn canvas_rpc(
@@ -576,6 +597,13 @@ mod tests {
         );
         let err = canvas_inside(root, "world", comment("c-9").as_ref()).unwrap_err();
         assert!(err.contains("has no comment `c-9`"), "{err}");
+        let children = canvas_files_inside(root, "world").unwrap();
+        assert_eq!(children, ["world-f1"]);
+        assert!(comment_inside(root, "world", &children, "c-3").is_ok());
+        assert!(
+            comment_inside(root, "world", &[], "c-3").is_err(),
+            "a moved comment is found only through the children it moved to"
+        );
         assert!(canvas_inside(root, "nope", None).is_err());
 
         write(&away.path().join("levels/inner.json"), "{}");

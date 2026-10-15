@@ -9,7 +9,8 @@ use super::search::anchor_label;
 use super::uri::{CanvasPart, Ref};
 use crate::apps::CallContext;
 use serde_json::{json, Value};
-use std::collections::HashSet;
+use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
 use tauri::AppHandle;
 
 /// Most rows one listing returns; `total` says how many there were.
@@ -141,10 +142,22 @@ fn canvas_rows(
             return Vec::new();
         }
     };
+    // Each canvas is checked, and its scene read for its children, once; then
+    // each comment on it is a few file checks.
+    let checked = RefCell::new(HashMap::<String, Option<Vec<String>>>::new());
     let inside = |canvas: &str, comment: Option<&str>| {
-        let part = comment.map(|c| CanvasPart::Comment(c.into()));
-        live::root_of(ctx)
-            .is_ok_and(|root| live::canvas_inside(root, canvas, part.as_ref()).is_ok())
+        let Ok(root) = live::root_of(ctx) else {
+            return false;
+        };
+        let mut checked = checked.borrow_mut();
+        let children = checked
+            .entry(canvas.to_string())
+            .or_insert_with(|| live::canvas_files_inside(root, canvas).ok());
+        match (children, comment) {
+            (None, _) => false,
+            (Some(_), None) => true,
+            (Some(children), Some(c)) => live::comment_inside(root, canvas, children, c).is_ok(),
+        }
     };
     let ids = listed["canvases"].as_array().into_iter().flatten();
     let mut answers = Vec::new();
