@@ -104,8 +104,9 @@ fn new_id() -> String {
     format!("c-{millis:x}-{:06x}", tail & 0x00ff_ffff)
 }
 
-/// Every comment on `canvas`, oldest first. A file that does not parse is
-/// named in `unreadable`, not dropped in silence.
+/// Every comment on `canvas`, oldest first. A file that cannot be read, does
+/// not parse, or resolves outside the project is named in `unreadable`, not
+/// dropped in silence.
 pub fn load_all(root: &Path, canvas: &str) -> (Vec<Comment>, Vec<String>) {
     let mut out = Vec::new();
     let mut unreadable = Vec::new();
