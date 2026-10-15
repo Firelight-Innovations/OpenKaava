@@ -33,25 +33,35 @@ const TOOLS: [&str; 2] = ["show", "show_component"];
 pub const MARKER_LIMIT: usize = 256 * 1024;
 
 /// Whether a `tool_call` or `tool_call_update` names one of the show tools.
+///
+/// An update from the Claude adapter is judged by its tool name alone. Its
+/// `rawInput` is the agent's own arguments, and some of its clients get
+/// `is_mcp_tool_call` too, so the Codex rule would let any MCP tool given a
+/// `server` and `tool` argument pass for a show call.
 pub fn is_show(update: &Value) -> bool {
     let meta = update.get("_meta");
-    let claude = meta
-        .and_then(|m| m.get("claudeCode"))
-        .and_then(|c| c.get("toolName"))
-        .and_then(Value::as_str)
-        .and_then(|name| name.strip_prefix("mcp__"))
-        .and_then(|name| name.strip_prefix(SERVER))
-        .and_then(|name| name.strip_prefix("__"))
-        .is_some_and(|tool| TOOLS.contains(&tool));
-    let codex = meta.and_then(|m| m.get("is_mcp_tool_call")) == Some(&Value::Bool(true))
+    if let Some(claude) = meta.and_then(|m| m.get("claudeCode")) {
+        return claude
+            .get("toolName")
+            .and_then(Value::as_str)
+            .is_some_and(names_show);
+    }
+    meta.and_then(|m| m.get("is_mcp_tool_call")) == Some(&Value::Bool(true))
         && update.get("rawInput").is_some_and(|input| {
             input.get("server").and_then(Value::as_str) == Some(SERVER)
                 && input
                     .get("tool")
                     .and_then(Value::as_str)
                     .is_some_and(|tool| TOOLS.contains(&tool))
-        });
-    claude || codex
+        })
+}
+
+/// Whether a Claude tool name, `mcp__<server>__<tool>`, is a show tool.
+fn names_show(name: &str) -> bool {
+    name.strip_prefix("mcp__")
+        .and_then(|name| name.strip_prefix(SERVER))
+        .and_then(|name| name.strip_prefix("__"))
+        .is_some_and(|tool| TOOLS.contains(&tool))
 }
 
 /// The marker in a show call's result, or `None` when it holds none: the
@@ -175,6 +185,10 @@ mod tests {
         assert!(!is_show(&codex(true, "kaava-context", "search_context")));
         // A title is the agent's own words, so it names nothing.
         assert!(!is_show(&json!({"title": "mcp__kaava-context__show"})));
+        // Nor do a Claude call's arguments, even with the MCP flag set.
+        let mut spoof = codex(true, "kaava-context", "show");
+        spoof["_meta"]["claudeCode"] = json!({"toolName": "mcp__other__echo"});
+        assert!(!is_show(&spoof));
     }
 
     #[test]
