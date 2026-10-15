@@ -72,6 +72,7 @@ fn mock(args: &[&str]) -> LaunchSpec {
         expected_version: Some("0.90.0"),
         policy: CLAUDE.policy,
         setting_timeout: PATIENCE,
+        mcp_servers: Vec::new(),
     }
 }
 
