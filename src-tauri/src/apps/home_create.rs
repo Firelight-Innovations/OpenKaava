@@ -249,16 +249,8 @@ fn git_clone(url: &str, dest: &Path) -> Result<(), String> {
         .file_name()
         .ok_or_else(|| format!("{} has no name", dest.display()))?;
 
-    let mut command = std::process::Command::new("git");
+    let mut command = crate::git::git_command();
     command.current_dir(parent).arg("clone").arg(url).arg(name);
-    // Matches `git.rs`'s `run_git`: without this every clone flashes a
-    // console window on Windows.
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        command.creation_flags(CREATE_NO_WINDOW);
-    }
 
     let output = command.output().map_err(|e| format!("git clone: {e}"))?;
     if !output.status.success() {

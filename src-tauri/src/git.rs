@@ -674,20 +674,11 @@ pub(crate) fn run_git_env(
     args: &[&str],
     env: &[(&str, &str)],
 ) -> Result<String> {
-    let mut command = Command::new("git");
+    let mut command = git_command();
     command
         .current_dir(cwd)
         .args(args)
         .envs(env.iter().copied());
-
-    // Without this, every one of these spawns flashes a console window on
-    // Windows — and the panel re-runs `status` after every single mutation.
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        command.creation_flags(CREATE_NO_WINDOW);
-    }
 
     let output = command.output().map_err(|err| AppError::Git {
         op: op.to_string(),
@@ -705,6 +696,58 @@ pub(crate) fn run_git_env(
     // bytes, and a diff of a mostly-text file is worth showing with a few
     // replacement characters in it rather than refusing outright.
     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+/// What `git rev-parse --local-env-vars` lists, plus one name older gits add.
+/// Each tells git which repository, index or object store to use, ahead of the
+/// working directory. A parent running under git exports them (a hook, or
+/// `git rebase --exec`), and a child that keeps them acts on the parent's
+/// repository. One test run under `rebase --exec` did exactly that: a fixture's
+/// `git init` in a temp folder set `core.bare` on the developer's own
+/// repository, and every checkout of it stopped working.
+pub(crate) const REPOSITORY_ENV: [&str; 16] = [
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_CONFIG",
+    "GIT_CONFIG_PARAMETERS",
+    "GIT_CONFIG_COUNT",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_IMPLICIT_WORK_TREE",
+    "GIT_GRAFT_FILE",
+    "GIT_INDEX_FILE",
+    "GIT_NO_REPLACE_OBJECTS",
+    "GIT_REPLACE_REF_BASE",
+    "GIT_PREFIX",
+    "GIT_SHALLOW_FILE",
+    "GIT_COMMON_DIR",
+    "GIT_INTERNAL_SUPER_PREFIX",
+];
+
+/// A `git` that finds its repository from its working directory alone.
+///
+/// Every `git` this crate spawns starts here, test fixtures included, and a
+/// test reads the source to hold it to that. It also keeps each spawn from
+/// flashing a console window on Windows, which matters because the panel
+/// re-runs `status` after every single mutation.
+pub(crate) fn git_command() -> Command {
+    let mut command = Command::new("git");
+    forget_parent_repository(&mut command);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+    command
+}
+
+/// Removes each of [`REPOSITORY_ENV`] from what `command` would inherit.
+fn forget_parent_repository(command: &mut Command) -> &mut Command {
+    for name in REPOSITORY_ENV {
+        command.env_remove(name);
+    }
+    command
 }
 
 /// One blob out of the object database, or `None` if that revision has no such
