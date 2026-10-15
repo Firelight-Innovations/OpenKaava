@@ -213,6 +213,19 @@ export async function chooseHarness(instanceId: string, harness: string): Promis
   }
 }
 
+/**
+ * The bar's two verbs for one cluster. Sending carries the bar's pick through
+ * to `sendToAgent`. Choosing tells the agent tab, or does nothing while the
+ * cluster has none: there is nobody to tell yet, and the first send chooses.
+ */
+export function barActions(target: SendTarget, agentTab: string | null) {
+  return {
+    onSend: (text: string, harness: string | null) => sendToAgent(target, text, harness),
+    onChoose: (harness: string) =>
+      agentTab === null ? Promise.resolve() : chooseHarness(agentTab, harness),
+  };
+}
+
 /** A rejection's refusal code, or `"failed"` for anything that is not one. */
 export function refusalCode(err: unknown): string {
   const rpc = err as { code?: unknown; data?: { code?: unknown } } | null;

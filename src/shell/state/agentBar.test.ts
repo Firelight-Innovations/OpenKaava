@@ -31,6 +31,7 @@ import type { PaneNode } from "../contract";
 import {
   agentBarShown,
   agentTabIn,
+  barActions,
   chooseHarness,
   refusalCode,
   sendToAgent,
@@ -134,6 +135,33 @@ describe("chooseHarness", () => {
   it("rejects with the refusal code Rust sent", async () => {
     calls.appCall.mockRejectedValue({ code: -32010, data: { code: "running" } });
     await expect(chooseHarness("agent-1", "pi")).rejects.toThrow("running");
+  });
+});
+
+describe("barActions", () => {
+  const target = { label: "main", tree, instances, paneId: "p1" };
+
+  it("sends the bar's pick through, so the tab chooses it first", async () => {
+    await barActions(target, "agent-1").onSend("hi", "pi");
+    expect(calls.appCall.mock.calls.map((c) => [c[1], c[2], c[3]])).toEqual([
+      ["agent-tab/choose", { harness: "pi" }, { instanceId: "agent-1" }],
+      ["agent-tab/send", { text: "hi" }, { instanceId: "agent-1" }],
+    ]);
+  });
+
+  it("chooses as the cluster's agent tab", async () => {
+    await barActions(target, "agent-1").onChoose("pi");
+    expect(calls.appCall).toHaveBeenCalledWith(
+      "agent-tab",
+      "agent-tab/choose",
+      { harness: "pi" },
+      { instanceId: "agent-1" },
+    );
+  });
+
+  it("tells nobody of a choice while the cluster has no agent tab", async () => {
+    await barActions(target, null).onChoose("pi");
+    expect(calls.appCall).not.toHaveBeenCalled();
   });
 });
 
