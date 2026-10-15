@@ -47,6 +47,7 @@ import ToolWindow, { type ToolWindowHandle } from "./toolwindow/ToolWindow";
 import PaneTree from "./panes/PaneTree";
 import PaneTerminal from "./terminal/PaneTerminal";
 import { splitDirOnOpen } from "./panes/splitOnOpen";
+import { railKeyOf } from "./rail/railKey";
 import { toggleMaximize } from "./panes/paneMaximize";
 import BottomPanel from "./panel/BottomPanel";
 import StatusBar from "./statusbar/StatusBar";
@@ -68,6 +69,8 @@ import { callApp, useApps, useOpenables, usePages } from "./state/apps";
 import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
 import { agentBarShown, sendToAgent, useAgentBarStatus } from "./state/agentBar";
+import { agentClusters, agentsDot, useAgentSessions } from "./state/agentSessions";
+import { newAgent, openAgent, type AgentOpeners } from "./state/agentOpeners";
 import { ClusterAgentBar } from "./agentbar/AgentBar";
 import ReadOnlyBanner from "./git/ReadOnlyBanner";
 import { useProjectIcon } from "./state/projectIcon";
@@ -102,6 +105,7 @@ import Rail from "./rail/Rail";
 import PageShell from "./rail/PageShell";
 import AppPage from "./rail/AppPage";
 import HindsightPage from "./rail/HindsightPage";
+import AgentsPage from "./rail/AgentsPage";
 import GitPage, { type GitPageView } from "./rail/GitPage";
 
 /**
@@ -680,7 +684,7 @@ export default function WindowRoot({
 
   // --- the project-page rail --------------------------------------------
   //
-  // One door in: `Rail`'s click and Alt+1…6 both call this, and Rust's
+  // One door in: `Rail`'s click and Alt+1…7 both call this, and Rust's
   // `open_page` toggles a second click of the *same* page shut again
   // (`shell_state.rs`'s `open_page_pure`) — so this never has to know
   // whether a given call is an open or a close, only which button fired.
@@ -711,7 +715,7 @@ export default function WindowRoot({
     [label],
   );
 
-  // Alt+1…6 (open/switch the rail's page), Esc (leave an expanded page) and
+  // Alt+1…7 (open/switch the rail's page), Esc (leave an expanded page) and
   // Ctrl+Shift+E (dock/expand whichever one is open) — kept out of
   // `useKeyboard` below rather than added to it: none of the three fit its
   // Ctrl-chord table, Alt is a different modifier, and Escape is
@@ -728,8 +732,9 @@ export default function WindowRoot({
     function onKeyDown(e: KeyboardEvent) {
       if (isTextEntry(e.target)) return;
 
-      if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.key >= "1" && e.key <= "6") {
-        const page = pages.find((p) => p.key === Number(e.key));
+      const railKey = railKeyOf(e);
+      if (railKey !== null) {
+        const page = pages.find((p) => p.key === railKey);
         if (page && !page.disabled) {
           e.preventDefault();
           onSelectPage(page.id);
@@ -1655,6 +1660,45 @@ export default function WindowRoot({
     [label, tree, instances, activePaneId],
   );
 
+  // The Agents page and its rail dot: the agent tabs in this window's
+  // clusters, and what each session is doing, kept live whether or not the
+  // page is open.
+  const agentList = useMemo(
+    () => agentClusters(orderedClusters, instances),
+    [orderedClusters, instances],
+  );
+  const agentIds = useMemo(
+    () => agentList.flatMap((cluster) => cluster.tabs.map((tab) => tab.id)),
+    [agentList],
+  );
+  const agentSessions = useAgentSessions(agentIds);
+  // Like choosing a tab from the cluster's strip: Home stops covering the
+  // window, `activate_instance` brings the tab's own cluster forward, and the
+  // pane holding the tab takes focus once that cluster is drawn.
+  const openers = useMemo<AgentOpeners>(
+    () => ({
+      label,
+      activeClusterId,
+      activePaneId,
+      hideTakeover,
+      focusWhenShown: setOpenedInstance,
+      activateInstance,
+      setActiveCluster,
+      openInstance,
+      splitDirOnOpen,
+      report: (message, err) => console.error(message, err),
+    }),
+    [label, activeClusterId, activePaneId, hideTakeover],
+  );
+  const onOpenAgent = useCallback(
+    (instanceId: string) => void openAgent(openers, instanceId),
+    [openers],
+  );
+  const onNewAgent = useCallback(
+    (clusterId: string) => void newAgent(openers, clusterId),
+    [openers],
+  );
+
   // The dialog's own "Open folder…"/"New project" buttons close it and hand
   // off to Home's pickers — the same two `home/*` methods the File menu and
   // Home's own cards already call, scoped to this window's active cluster
@@ -1882,7 +1926,7 @@ export default function WindowRoot({
     accelerator: "Ctrl+Shift+A",
   });
 
-  // The open page's body, by id. Git and Hindsight are drawn by the shell
+  // The open page's body, by id. Git, Hindsight and Agents are drawn by the shell
   // itself (`pages.rs`'s `app_id: None`). Git is the window's one source
   // control and GitHub sidebar: `GitPage` holds both as tabs, where a separate
   // secondary panel used to hold them beside this column. Plane, Cloud agents
@@ -1928,6 +1972,14 @@ export default function WindowRoot({
       />
     ) : rightPage.id === "hindsight" ? (
       <HindsightPage />
+    ) : rightPage.id === "sessions" ? (
+      <AgentsPage
+        clusters={agentList}
+        sessions={agentSessions}
+        activeClusterId={activeClusterId}
+        onOpen={onOpenAgent}
+        onNew={onNewAgent}
+      />
     ) : (
       <AppPage page={activePage} instanceId={rightPage.instanceId} onHost={setPageHost} />
     )
@@ -2218,10 +2270,10 @@ export default function WindowRoot({
           ),
           // The project-page rail and, when a page is open, its body — the
           // **rail** workstream's three slots (`docs/KAAVA-UX-REWORK.md` §4).
-          // `dots` is left empty for now: a rail dot's colour comes from each
-          // page's own live data (Plane asleep/running, Cost's burn against
-          // budget), and none of that is read anywhere yet — a TODO here
-          // rather than an invented colour.
+          // Only Agents has a dot so far: a session that needs you, or one at
+          // work. The others' colours come from live data (Plane asleep or
+          // running, Cost's burn against budget) that nothing reads yet — a
+          // TODO here rather than an invented colour.
           //
           // The cluster strip sits at the top of it, above the page icons —
           // the cluster tab bar's replacement, with the title bar's pill
@@ -2247,7 +2299,12 @@ export default function WindowRoot({
                   drag.tabHandle({ what: "cluster", clusterId: cluster.id, name: cluster.name })
                 }
               />
-              <Rail pages={pages} activePageId={rightPage?.id ?? null} onSelect={onSelectPage} />
+              <Rail
+                pages={pages}
+                activePageId={rightPage?.id ?? null}
+                dots={{ sessions: agentsDot(agentSessions) }}
+                onSelect={onSelectPage}
+              />
             </>
           ),
           // Both slots are the same component type on purpose: `Frame` draws

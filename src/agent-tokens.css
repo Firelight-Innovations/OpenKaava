@@ -69,6 +69,9 @@
   --k-tool-running: var(--k-state-working);
   --k-tool-done: var(--k-diff-add-fg);
   --k-tool-failed: var(--k-diff-del-fg);
+  /* The sweep across a label still in progress ("Thinking", "Working…"). */
+  --k-shimmer-base: var(--k-fg-muted);
+  --k-shimmer-glint: var(--k-editor-fg);
   /* Meters: the usage ring and bars by how full they are, and the context
      window card's parts, one chart colour each. */
   --k-meter-track: var(--k-input-border);

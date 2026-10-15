@@ -61,7 +61,14 @@ export const strings = {
   settingsJoin: " · ",
   /** The same, as a screen reader hears it. */
   settingsSpoken: ", ",
-  agent: "Agent",
+  /** Every harness the settings menu lists, by id. */
+  harnessName: { claude: "Claude", codex: "Codex", kaava: "Kaava" } as Record<string, string>,
+  /** A harness that is listed but cannot run yet. */
+  harnessSoon: "Coming soon",
+  /** A harness the host reports but cannot start, such as one not installed or signed out. */
+  harnessNotReady: "Not set up",
+  /** A harness whose models are not known: it runs its own default. */
+  defaultModel: "Default model",
   tokens,
   percent,
   context: {
@@ -108,6 +115,19 @@ export const strings = {
     completed: "Done",
     failed: "Failed",
   } satisfies Record<ToolStatus, string>,
+  /** A run of tool calls, folded into one line: "Ran 2 commands, read a file". */
+  actions: {
+    verb: {
+      execute: (n: number) => (n === 1 ? "ran a command" : `ran ${n} commands`),
+      read: (n: number) => (n === 1 ? "read a file" : `read ${n} files`),
+      edit: (n: number) => (n === 1 ? "edited a file" : `edited ${n} files`),
+      search: (n: number) => (n === 1 ? "ran a search" : `ran ${n} searches`),
+      fetch: (n: number) => (n === 1 ? "fetched a page" : `fetched ${n} pages`),
+      other: (n: number) => (n === 1 ? "used a tool" : `used ${n} tools`),
+    },
+    join: ", ",
+    failed: (n: number) => `${n} failed`,
+  },
   outputTruncated: "Output truncated. The full output is in the agent's own log.",
   detailTruncated:
     "Only the start of this is shown. Reject it unless you can see what you are allowing.",

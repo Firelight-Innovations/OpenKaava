@@ -2,10 +2,15 @@ import { strings } from "../strings";
 import type { ThinkingProps } from "./types";
 import "./items.css";
 
-export function Thinking({ text }: ThinkingProps) {
+/** The agent's reasoning, folded. Its label shimmers while the agent is still thinking. */
+export function Thinking({ text, live = false }: ThinkingProps) {
   return (
     <details className="at-item at-reasoning">
-      <summary>{strings.thinking}</summary>
+      <summary className="at-disclosure">
+        <span className="at-shimmer" data-live={live ? "" : undefined}>
+          {strings.thinking}
+        </span>
+      </summary>
       <div className="at-reasoning__text">{text}</div>
     </details>
   );

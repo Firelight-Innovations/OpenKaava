@@ -1,11 +1,20 @@
-import { Bot, Brain, GitBranch, Kanban, Package, Receipt, type LucideIcon } from "lucide-react";
+import {
+  Bot,
+  Brain,
+  GitBranch,
+  Kanban,
+  Package,
+  Receipt,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import type { PageInfo } from "../../bindings";
 import "./rail.css";
 
 /**
  * `pages::Page::icon` keys to their Lucide component. `KAAVA-UX-SPEC.md`
  * §1.7: 16px, `stroke-width 1.4`. Kept in step with `pages.rs`'s `PAGES`
- * table by hand — six rows, so a `find`-and-fall-through would buy nothing a
+ * table by hand — seven rows, so a `find`-and-fall-through would buy nothing a
  * missing-icon console warning below does not already catch.
  */
 const PAGE_ICONS: Record<string, LucideIcon> = {
@@ -15,6 +24,7 @@ const PAGE_ICONS: Record<string, LucideIcon> = {
   brain: Brain,
   receipt: Receipt,
   package: Package,
+  sparkles: Sparkles,
 };
 
 /**

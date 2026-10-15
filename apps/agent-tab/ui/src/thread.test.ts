@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import type { Item } from "./protocol.generated";
-import { ITEM_TOOL, toTurns } from "./thread";
+import { ACTION_TOOL, ITEM_TOOL, toTurns } from "./thread";
 
 function item(id: string, kind: Item["kind"]): Item {
   return { id, turnId: "t1", kind };
@@ -27,6 +27,24 @@ describe("toTurns", () => {
     expect(turns[1].message.content).toEqual([
       { type: "text", id: "a1", text: "ok" },
       { type: "reasoning", id: "r1", text: "hmm" },
+      { type: "tool-call", toolCallId: "g1", toolName: ITEM_TOOL, args: {}, result: null },
+    ]);
+  });
+
+  it("names tool calls apart from every other item, so only they group", () => {
+    const tool = item("t1", {
+      kind: "toolCall",
+      title: "ls",
+      toolKind: "execute",
+      status: "completed",
+      output: "",
+      truncated: false,
+      paths: [],
+      diffs: [],
+    });
+    const [, agent] = toTurns([U1, tool, G1]);
+    expect(agent.message.content).toEqual([
+      { type: "tool-call", toolCallId: "t1", toolName: ACTION_TOOL, args: {}, result: null },
       { type: "tool-call", toolCallId: "g1", toolName: ITEM_TOOL, args: {}, result: null },
     ]);
   });
