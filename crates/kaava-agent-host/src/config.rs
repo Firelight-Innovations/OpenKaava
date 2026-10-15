@@ -91,13 +91,35 @@ pub fn allowed(choices: Vec<ConfigChoice>) -> Vec<ConfigChoice> {
 /// Whether an approval option would put the agent in a mode the tab holds
 /// back: the mode's own id, or one of the plan card's `exit-plan-*` ids or
 /// the "switch to auto mode" button's, which name it as a word of the id.
-/// Choosing one would enter Auto or Bypass without the mode switcher, where
-/// the outside-worktree guard cannot apply.
+/// Words split at punctuation and at a camelCase capital, in any case, so
+/// `yesSwitchToAuto` counts as well as `exit-plan-auto`. Choosing one would
+/// enter Auto or Bypass without the mode switcher, where the
+/// outside-worktree guard cannot apply. The match is on the id alone: the
+/// labels say "auto-accept edits" for Accept edits, which is offered.
 pub fn enters_held_back(option_id: &str) -> bool {
     NOT_OFFERED.contains(&option_id)
-        || option_id
-            .split(|c: char| !c.is_ascii_alphanumeric())
-            .any(|word| matches!(word, "auto" | "bypass"))
+        || words(option_id).any(|word| matches!(word.as_str(), "auto" | "bypass"))
+}
+
+/// An id's words, lowercased: split at anything but a letter or digit, and
+/// before a capital that follows a lowercase letter or a digit.
+fn words(id: &str) -> impl Iterator<Item = String> {
+    let mut out = Vec::new();
+    let mut word = String::new();
+    let mut prev: Option<char> = None;
+    for c in id.chars() {
+        let starts = c.is_ascii_uppercase()
+            && prev.is_some_and(|p| p.is_ascii_lowercase() || p.is_ascii_digit());
+        if !c.is_ascii_alphanumeric() || starts {
+            out.push(std::mem::take(&mut word));
+        }
+        if c.is_ascii_alphanumeric() {
+            word.push(c.to_ascii_lowercase());
+        }
+        prev = Some(c);
+    }
+    out.push(word);
+    out.into_iter().filter(|w| !w.is_empty())
 }
 
 fn option(value: &Value) -> Option<ConfigOption> {
@@ -240,6 +262,10 @@ mod tests {
             "exit-plan-clear-auto",
             "exit-plan-clear-bypass",
             "switch-to-auto",
+            "yesSwitchToAuto",
+            "switch_to_AUTO",
+            "useAutoMode",
+            "BypassPermissions",
         ] {
             assert!(enters_held_back(id), "{id}");
         }
@@ -253,8 +279,33 @@ mod tests {
             "exit-plan-accept-edits",
             "exit-plan-clear-default",
             "author",
+            "autonomous",
         ] {
             assert!(!enters_held_back(id), "{id}");
+        }
+    }
+
+    /// Every `optionId` claude-agent-acp 0.90.0 sends
+    /// (`permissions/options/shared.js`, `PERMISSION_OPTION_ID`), and
+    /// whether the card drops it. A new id in a later adapter goes here.
+    #[test]
+    fn every_option_id_the_claude_adapter_sends_is_sorted() {
+        let ids = [
+            ("allow-once", false),
+            ("allow-with-updates", false),
+            ("allow-skill-exact", false),
+            ("allow-skill-prefix", false),
+            ("exit-plan-bypass", true),
+            ("exit-plan-auto", true),
+            ("exit-plan-accept-edits", false),
+            ("exit-plan-default", false),
+            ("exit-plan-clear-auto", true),
+            ("exit-plan-clear-bypass", true),
+            ("exit-plan-clear-accept-edits", false),
+            ("reject", false),
+        ];
+        for (id, held_back) in ids {
+            assert_eq!(enters_held_back(id), held_back, "{id}");
         }
     }
 
