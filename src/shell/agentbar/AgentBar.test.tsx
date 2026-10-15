@@ -227,14 +227,42 @@ describe("AgentBar", () => {
     expect(onSend).toHaveBeenCalledWith("hello", null);
   });
 
-  it("follows a new answer from the host over its own pick", async () => {
+  it("keeps its pick across an answer that names the same harness, such as a settings change", async () => {
     const harnesses = [CLAUDE, PI];
+    const onSend = resolved();
     const { rerender } = render(
-      <AgentBar status={status({ harnesses })} onChoose={resolved()} onSend={vi.fn()} />,
+      <AgentBar status={status({ harnesses })} onChoose={resolved()} onSend={onSend} />,
     );
     await pick("pi");
-    rerender(<AgentBar status={status({ harnesses })} onChoose={resolved()} onSend={vi.fn()} />);
+    rerender(<AgentBar status={status({ harnesses })} onChoose={resolved()} onSend={onSend} />);
+    expect(picker()).toHaveProperty("value", "pi");
+    await sendDraft("hello");
+    expect(onSend).toHaveBeenCalledWith("hello", "pi");
+  });
+
+  it("follows the host once it names another harness, the tab's own choice", async () => {
+    const harnesses = [CLAUDE, PI];
+    const bar = (current: string) => (
+      <AgentBar status={status({ harnesses, current })} onChoose={resolved()} onSend={vi.fn()} />
+    );
+    const { rerender } = render(bar("claude"));
+    await pick("pi");
+    rerender(bar("pi"));
+    rerender(bar("claude"));
     expect(picker()).toHaveProperty("value", "claude");
+  });
+
+  it("says a switch failed, not a send", async () => {
+    const onChoose = vi.fn(() => Promise.reject(new Error("failed")));
+    render(
+      <AgentBar
+        status={status({ harnesses: [CLAUDE, PI] })}
+        onChoose={onChoose}
+        onSend={vi.fn()}
+      />,
+    );
+    await pick("pi");
+    expect(screen.getByRole("status").textContent).toBe("Could not switch the harness.");
   });
 
   it("shows a refused choice and keeps the harness it had", async () => {
@@ -256,6 +284,17 @@ describe("AgentBar", () => {
     render(<AgentBar status={status()} onChoose={vi.fn()} onSend={onSend} />);
     await sendDraft("hello");
     expect(screen.getByRole("status").textContent).toBe("Claude is not ready to run.");
+  });
+
+  it("keeps the one-line fix beside a harness refusal", async () => {
+    const onSend = vi.fn(() => Promise.reject(new Error("harness")));
+    const missing = { ...CLAUDE, hint: "harnessMissing" };
+    render(
+      <AgentBar status={status({ harnesses: [missing] })} onChoose={vi.fn()} onSend={onSend} />,
+    );
+    await sendDraft("hello");
+    const text = screen.getByRole("status").textContent ?? "";
+    expect(text).toMatch(/^Claude is not ready to run\. Claude is not installed\./);
   });
 });
 

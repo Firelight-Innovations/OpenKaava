@@ -48,27 +48,33 @@ export default function AgentBar({ status, onChoose, onSend }: AgentBarProps) {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
-  // A harness picked here, held against the answer it was picked over: with
-  // no agent tab there is nobody to tell yet, so the first send opens one and
-  // chooses it. A newer answer supersedes it, since the tab holds the choice.
-  const [pick, setPick] = useState<{ over: AgentBarStatus; harness: string } | null>(null);
-  const picked = pick?.over === status ? pick.harness : null;
+  // A harness picked here, held while the host still names the harness it was
+  // picked over: with no agent tab there is nobody to tell yet, so the first
+  // send opens one and chooses it. Once the host names another, the tab holds
+  // a choice of its own, and the pick is dropped for good.
+  const [pick, setPick] = useState<{ over: string; harness: string } | null>(null);
+  const stale = pick !== null && (pick.over !== status.current || status.running !== null);
+  if (stale) setPick(null);
+  const picked = stale ? null : (pick?.harness ?? null);
   const input = useRef<HTMLTextAreaElement>(null);
 
   const harness = status.running ?? picked ?? status.current;
   const words = status.harnesses.find((h) => h.harness === harness);
-  const failed = (err: unknown) => {
+  // A harness that is not ready says which, and what would make it ready.
+  const failed = (fallback: string) => (err: unknown) => {
     const code = err instanceof Error ? err.message : "failed";
-    setFailure(
-      code === "harness" && words
-        ? strings.notReady(words.name)
-        : (strings.refusal[code] ?? strings.refusal.failed),
-    );
+    if (code === "harness" && words) {
+      const hint = words.hint ? ` ${hintText(words.hint, words)}` : "";
+      setFailure(strings.notReady(words.name) + hint);
+    } else {
+      setFailure(strings.refusal[code] ?? fallback);
+    }
   };
 
   const choose = (next: string) => {
     setFailure(null);
-    onChoose(next).then(() => setPick({ over: status, harness: next }), failed);
+    const over = status.current;
+    onChoose(next).then(() => setPick({ over, harness: next }), failed(strings.failed.choose));
   };
 
   // One line until there is more to show, then as tall as the text up to the
@@ -96,7 +102,7 @@ export default function AgentBar({ status, onChoose, onSend }: AgentBarProps) {
         setSending(false);
       },
       (err: unknown) => {
-        failed(err);
+        failed(strings.failed.send)(err);
         setSending(false);
       },
     );
@@ -112,7 +118,7 @@ export default function AgentBar({ status, onChoose, onSend }: AgentBarProps) {
   // A refusal for the whole cluster beats a setup hint, and a failed send beats both.
   const notice =
     failure ??
-    (blocked !== null ? (strings.refusal[blocked] ?? strings.refusal.failed) : null) ??
+    (blocked !== null ? (strings.refusal[blocked] ?? strings.failed.send) : null) ??
     (words?.hint ? hintText(words.hint, words) : null);
 
   return (

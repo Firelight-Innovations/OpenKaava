@@ -42,6 +42,10 @@ export const strings = {
     harness: "The agent is not ready to run.",
     running: "The agent tab runs another harness. Start a new session there to switch.",
     spawn: "The agent could not be started.",
-    failed: "Could not send that.",
   } as Record<string, string>,
+  /** A call that failed for a reason that is not a refusal, by what it was doing. */
+  failed: {
+    send: "Could not send that.",
+    choose: "Could not switch the harness.",
+  },
 };
