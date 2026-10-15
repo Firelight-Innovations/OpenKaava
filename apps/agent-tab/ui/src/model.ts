@@ -112,8 +112,10 @@ export function busy(status: SessionStatus | null): boolean {
 /**
  * Whether a mode or setting can change now: past the handshake and still
  * running. A turn in progress does not block it, as in Claude's own terminal.
+ * A plain boolean, not a type guard: a stopped session is a status too, and
+ * narrowing it away as `null` would mislead whatever reads it next.
  */
-export function settable(status: SessionStatus | null): status is SessionStatus {
+export function settable(status: SessionStatus | null): boolean {
   const state = status?.state;
   return state !== undefined && state !== "starting" && state !== "stopped" && state !== "failed";
 }
@@ -135,7 +137,7 @@ export interface Pending {
 
 /** `pending` while the agent has yet to answer it, otherwise `null`. */
 export function unanswered(pending: Pending | null, status: SessionStatus | null): Pending | null {
-  if (!pending || !settable(status)) return null;
+  if (!pending || status === null || !settable(status)) return null;
   return pending.unnumbered > 0 || status.answered < pending.ticket ? pending : null;
 }
 

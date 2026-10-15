@@ -137,7 +137,7 @@ export default function App() {
   // Shown at once and held until the status that answers it; a refusal from
   // the host takes it back.
   const choose = (change: () => Promise<number>, apply: (p: Pending) => Pending) => {
-    if (!settable(status)) return;
+    if (status === null || !settable(status)) return;
     setNotice(null);
     setPending((p) => {
       const base = unanswered(p, status) ?? { ticket: 0, unnumbered: 0 };
@@ -164,14 +164,15 @@ export default function App() {
     if (event.key === "Escape" && working) {
       event.preventDefault();
       stopTurn();
-    } else if (event.key === "Tab" && event.shiftKey && settable(status)) {
+    } else if (event.key === "Tab" && event.shiftKey && status !== null && settable(status)) {
       // Only while there is a mode to switch to; otherwise Shift+Tab moves
-      // focus back as usual.
+      // focus back as usual. A held key keeps focus here but switches once,
+      // not through every mode on the way round.
       const current = live?.mode ?? status.mode;
       const next = nextMode(status.modes, current);
       if (next === null) return;
       event.preventDefault();
-      onMode(next);
+      if (!event.repeat) onMode(next);
     } else if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       if (!working) submit(draft);
@@ -223,7 +224,7 @@ export default function App() {
 
   const hint = status?.hint ?? null;
   // A session that has ended has nothing left to answer.
-  const trouble = settable(status) ? status.settingTrouble : null;
+  const trouble = status && settable(status) ? status.settingTrouble : null;
   const pendingPrompt = typeof status?.pendingPrompt === "string" ? status.pendingPrompt : null;
   const exited = status !== null && (status.state === "stopped" || status.state === "failed");
 
