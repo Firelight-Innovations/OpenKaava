@@ -31,7 +31,11 @@ export type TableProps = { caption?: string, columns: Array<Column>,
  */
 rows: Array<Array<Cell | null>>, };
 
-export type Column = { label: string, align?: Align, };
+export type Column = { label: string, align?: Align, 
+/**
+ * Set in monospace, for paths, hashes and numbers.
+ */
+mono?: boolean, };
 
 export type Align = "left" | "right" | "center";
 
@@ -53,7 +57,15 @@ export type ChartProps = { type: ChartKind, title?: string, xLabels: Array<strin
 /**
  * Each with one value per x label.
  */
-series: Array<Series>, yLabel?: string, };
+series: Array<Series>, yLabel?: string, 
+/**
+ * What the values count, such as `ms` or `%`, for the axis and tooltips.
+ */
+unit?: string, 
+/**
+ * Series stacked on each other. A line chart ignores it.
+ */
+stacked?: boolean, };
 
 export type ChartKind = "bar" | "line" | "area";
 

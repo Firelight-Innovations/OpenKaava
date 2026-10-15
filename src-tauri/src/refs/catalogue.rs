@@ -45,6 +45,7 @@ const MAX_SERIES: usize = 8;
 const MAX_POINTS: usize = 800;
 const MAX_OPTIONS: usize = 8;
 const MAX_ID: usize = 64;
+const MAX_UNIT: usize = 16;
 
 /// The marker on a tool result, which the agent host lifts off for the tab:
 /// `{version, component, props}`.
@@ -155,6 +156,9 @@ pub struct Column {
     pub label: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub align: Option<Align>,
+    /// Set in monospace, for paths, hashes and numbers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mono: Option<bool>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -234,6 +238,12 @@ pub struct ChartProps {
     pub series: Vec<Series>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub y_label: Option<String>,
+    /// What the values count, such as `ms` or `%`, for the axis and tooltips.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unit: Option<String>,
+    /// Series stacked on each other. A line chart ignores it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stacked: Option<bool>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -411,6 +421,7 @@ fn check_compare(p: &CompareProps) -> Result<(), String> {
 fn check_chart(p: &ChartProps) -> Result<(), String> {
     maybe_words("title", &p.title, MAX_TITLE)?;
     maybe_words("yLabel", &p.y_label, MAX_TITLE)?;
+    maybe_words("unit", &p.unit, MAX_UNIT)?;
     count("xLabels", p.x_labels.len(), 1, MAX_X)?;
     for (i, label) in p.x_labels.iter().enumerate() {
         length(&format!("xLabels[{i}]"), label, MAX_TITLE)?;
@@ -658,6 +669,15 @@ mod tests {
             .unwrap()
             .push(json!({ "name": "n", "values": vec![1.0; 100] }));
         assert_eq!(refused("chart", many), "`series` holds 9; at most 8");
+        let mut unit = chart(1, 1, 1);
+        unit["unit"] = json!("ms");
+        unit["stacked"] = json!(true);
+        assert!(parse("chart", unit.clone()).is_ok());
+        unit["unit"] = json!("x".repeat(MAX_UNIT + 1));
+        assert_eq!(
+            refused("chart", unit),
+            "`unit` is 17 characters; at most 16"
+        );
     }
 
     #[test]

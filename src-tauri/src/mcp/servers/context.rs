@@ -164,15 +164,18 @@ const TOOLS: &[McpTool] = &[
                       - callout {tone: note|tip|warning|danger, title?, body, refs?: up to 8}\n\
                       - steps {title?, steps: [{title, body?, status?: \
                       todo|doing|done|skipped, refs?: up to 4}] 1-20}\n\
-                      - table {caption?, columns: [{label, align?: left|right|center}] 1-12, \
+                      - table {caption?, columns: [{label, align?: left|right|center, \
+                      mono?}] 1-12, \
                       rows: [[string|number|boolean|null, one per column]] 1-200}\n\
                       - compare {title?, items: [{title, body?, pros?: up to 8, \
                       cons?: up to 8, refs?: up to 4}] 2-4, recommended?: an item's index}\n\
                       - diagram {format: \"mermaid\", source, title?}\n\
                       - chart {type: bar|line|area, title?, xLabels: 1-100, \
-                      series: [{name, values: one per x label}] 1-8, yLabel?}\n\
+                      series: [{name, values: one per x label}] 1-8, yLabel?, unit?: up to \
+                      16 characters, stacked?}\n\
                       - choice {question, options: [{id, label, detail?}] 2-8, multiple?}: the \
-                      person's pick comes back as their next message\n\
+                      person's pick comes back as their next message, \"Chose: <label> (<id>)\", \
+                      several joined by \"; \"\n\
                       - refs {refs: 1-8, caption?}: the same as `show`\n\
                       A title or label is at most 200 characters, a body 4,000, and the props \
                       64 KB of JSON.",

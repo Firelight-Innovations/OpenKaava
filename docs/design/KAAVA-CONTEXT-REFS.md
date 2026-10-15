@@ -295,17 +295,20 @@ regenerates it.
 | `refs`    | `{ refs: 1–8, caption? }`, the chips `show` draws                                          |
 | `callout` | `{ tone: note \| tip \| warning \| danger, title?, body, refs?: up to 8 }`                  |
 | `steps`   | `{ title?, steps: 1–20 of { title, body?, status?, refs?: up to 4 } }`                     |
-| `table`   | `{ caption?, columns: 1–12 of { label, align? }, rows: 1–200 }`, one cell per column       |
+| `table`   | `{ caption?, columns: 1–12 of { label, align?, mono? }, rows: 1–200 }`, one cell per column |
 | `compare` | `{ title?, items: 2–4 of { title, body?, pros?, cons?, refs?: up to 4 }, recommended? }`   |
 | `diagram` | `{ format: "mermaid", source, title? }`: a diagram drawn from text                         |
-| `chart`   | `{ type: bar \| line \| area, title?, xLabels: 1–100, series: 1–8 of { name, values }, yLabel? }` |
+| `chart`   | `{ type: bar \| line \| area, title?, xLabels: 1–100, series: 1–8 of { name, values }, yLabel?, unit?, stacked? }` |
 | `choice`  | `{ question, options: 2–8 of { id, label, detail? }, multiple? }`                          |
 
 `body` and `detail` are markdown; every other string is plain text. A step's `status` is `todo`,
 `doing`, `done` or `skipped`. A table cell is a string, a number, a boolean or null. A series has one
 value per x label, and a chart holds at most 800 points. A choice's ids are 1 to 64 letters, digits,
-`_` or `-`, and unique. The person's pick comes back as their next message, so the server keeps no
-state for it. A canvas frame is a `refs` chip, not a diagram.
+`_` or `-`, and unique. The person's pick comes back as their next message, `Chose: <label> (<id>)`,
+with several picks joined by `; `, so the server keeps no state for it. A column marked `mono` is set
+in monospace. A chart's `unit` is at most 16 characters, and `stacked` applies to bars and areas.
+The tab loads mermaid only when a diagram arrives, in strict mode, and shows the source as code
+until it loads or when it fails to parse. A canvas frame is a `refs` chip, not a diagram.
 
 **Limits.** A title, label or name is at most 200 characters, a caption or question 500, a body or
 detail 4,000, a pro or con 300, a table cell 500, and a diagram's source 20,000. The props are at
