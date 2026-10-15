@@ -21,6 +21,7 @@ pub mod comments;
 pub mod fault;
 pub mod live;
 pub mod policy;
+pub mod read;
 pub mod resolve;
 pub mod search;
 pub mod uri;
