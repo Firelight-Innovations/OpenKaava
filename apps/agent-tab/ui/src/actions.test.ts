@@ -46,4 +46,9 @@ describe("summarize", () => {
       failed: 1,
     });
   });
+
+  it("reads a kind named after an Object member as a tool, not a crash", () => {
+    const run = [tool("a", "constructor"), tool("b", "toString"), tool("c", "__proto__")];
+    expect(summarize(run).summary).toBe("Used 3 tools");
+  });
 });

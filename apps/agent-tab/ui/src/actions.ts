@@ -8,16 +8,20 @@ import { strings } from "./strings";
 
 type Verb = keyof typeof strings.actions.verb;
 
-/** ACP's tool kinds, by the verb that says what they did. */
-const VERB: Record<string, Verb> = {
-  execute: "execute",
-  read: "read",
-  edit: "edit",
-  delete: "edit",
-  move: "edit",
-  search: "search",
-  fetch: "fetch",
-};
+/**
+ * ACP's tool kinds, by the verb that says what they did. A Map, not an object:
+ * the kind is the agent's own string, and "constructor" must not find
+ * `Object.prototype`.
+ */
+const VERB = new Map<string, Verb>([
+  ["execute", "execute"],
+  ["read", "read"],
+  ["edit", "edit"],
+  ["delete", "edit"],
+  ["move", "edit"],
+  ["search", "search"],
+  ["fetch", "fetch"],
+]);
 
 export interface ActionSummary {
   summary: string;
@@ -35,7 +39,7 @@ export function summarize(items: readonly Item[]): ActionSummary {
   for (const item of items) {
     const kind = item.kind;
     if (kind.kind !== "toolCall") continue;
-    const verb = VERB[kind.toolKind] ?? "other";
+    const verb = VERB.get(kind.toolKind) ?? "other";
     tally.set(verb, (tally.get(verb) ?? 0) + 1);
     if (kind.status === "pending" || kind.status === "inProgress") running = true;
     if (kind.status === "failed") failed += 1;
