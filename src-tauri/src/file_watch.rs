@@ -255,6 +255,15 @@ mod tests {
         Ok(Event::new(kind).add_path(PathBuf::from(path)))
     }
 
+    /// The quiet window the [`settle`] tests use.
+    const TEST_QUIET: Duration = Duration::from_millis(100);
+
+    /// Long enough for a burst that counts to have been announced. A correct [`settle`]
+    /// announces nothing new here whatever the timing, so waiting cannot flake.
+    fn idle() {
+        std::thread::sleep(TEST_QUIET * 3);
+    }
+
     /// [`settle`] on a thread of its own, over `events` all queued before it starts, so
     /// how they group does not depend on how fast anything runs. Anything under `ignored`
     /// does not count.
@@ -273,7 +282,7 @@ mod tests {
         let seen = Arc::clone(&count);
         let thread = std::thread::spawn(move || {
             let counts = |p: &Path| !p.starts_with("ignored");
-            settle(&rx, Duration::from_millis(100), counts, move || {
+            settle(&rx, TEST_QUIET, counts, move || {
                 seen.fetch_add(1, Ordering::SeqCst);
             });
         });
@@ -287,6 +296,9 @@ mod tests {
         burst.push(Err(notify::Error::generic("lost")));
         let (tx, count, thread) = settling(burst);
         assert!(wait_for(&count, 1, Duration::from_secs(5)));
+        // Once settled, it stays quiet until something changes.
+        idle();
+        assert_eq!(count.load(Ordering::SeqCst), 1);
         drop(tx);
         thread.join().unwrap();
         assert_eq!(count.load(Ordering::SeqCst), 1);
@@ -296,6 +308,9 @@ mod tests {
     fn events_that_do_not_count_announce_nothing() {
         let noise = vec![created("ignored/a.js"), Err(notify::Error::generic("lost"))];
         let (tx, count, thread) = settling(noise);
+        // Held open, so noise that counted would be announced before the close.
+        idle();
+        assert_eq!(count.load(Ordering::SeqCst), 0);
         drop(tx);
         thread.join().unwrap();
         assert_eq!(count.load(Ordering::SeqCst), 0);
@@ -314,8 +329,9 @@ mod tests {
 
     /// The real watcher, end to end. How a burst of writes groups is up to the machine:
     /// a loaded runner can stall between two of them for longer than [`QUIET`], and the
-    /// burst is then announced twice. So this checks that changes are announced and noise
-    /// is not, and [`settle`]'s own tests pin the grouping.
+    /// burst is then announced twice. So this checks that changes are announced, that a
+    /// burst is announced fewer times than it has writes, and that noise is not.
+    /// [`settle`]'s own tests pin the exact grouping.
     #[test]
     fn created_and_deleted_files_are_announced_and_ignored_folders_stay_quiet() {
         let dir = tempfile::tempdir().unwrap();
@@ -337,8 +353,10 @@ mod tests {
         std::thread::sleep(Duration::from_millis(1200));
         assert_eq!(count.load(Ordering::SeqCst), 0);
 
-        // A burst of real files announces.
-        for i in 0..5 {
+        // A burst of real files announces, and not once a write. Splitting it once
+        // per write would take a stall longer than QUIET between every two of them.
+        let writes = 10;
+        for i in 0..writes {
             std::fs::write(root.join(format!("f{i}.txt")), "x").unwrap();
         }
         assert!(wait_for(&count, 1, Duration::from_secs(5)));
@@ -346,6 +364,10 @@ mod tests {
         // And once that has settled, a delete announces too.
         std::thread::sleep(Duration::from_millis(1000));
         let settled = count.load(Ordering::SeqCst);
+        assert!(
+            settled < writes,
+            "{settled} announcements for {writes} writes"
+        );
         std::fs::remove_file(root.join("f0.txt")).unwrap();
         assert!(wait_for(&count, settled + 1, Duration::from_secs(5)));
     }
