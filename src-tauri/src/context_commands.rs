@@ -565,6 +565,19 @@ mod tests {
     }
 
     #[test]
+    fn a_secret_drop_is_refused_with_the_rule_and_nothing_is_copied() {
+        let env = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let f = outside.path().join(".env");
+        std::fs::write(&f, "TOKEN=abc").unwrap();
+        let (out, items, refused) = ingest_drop(Some(env.path()), Harness::Claude, &strings(&f));
+        assert!(out.is_empty() && items.is_empty());
+        assert_eq!(refused.len(), 1);
+        assert!(refused[0].starts_with(".env:") && refused[0].contains(".env files"));
+        assert!(context::list(env.path()).is_empty());
+    }
+
+    #[test]
     fn a_directory_is_referenced_as_itself_and_never_copied() {
         let env = TempDir::new().unwrap();
         let outside = TempDir::new().unwrap();

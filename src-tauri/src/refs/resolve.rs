@@ -861,21 +861,19 @@ mod tests {
 
     #[test]
     fn a_copied_secret_is_withheld_by_where_it_came_from_or_what_it_holds() {
+        // Ingest now refuses these, so the stores this guards are ones written
+        // before it did: a clean copy made under a secret's key, and one whose
+        // stored bytes were swapped for a private key.
         let (dir, outside) = (project(), project());
-        put(&outside, "deploy.pem", b"not a key, but named like one\n");
-        put(
-            &outside,
-            "handoff",
-            b"-----BEGIN OPENSSH PRIVATE KEY-----\nb3Bl\n-----END OPENSSH PRIVATE KEY-----\n",
-        );
-        let copy = |name: &str, key: Option<&str>| {
+        put(&outside, "notes.txt", b"just notes\n");
+        let copy = |key: &str| {
             crate::context::put(
                 dir.path(),
                 crate::context::PutRequest {
-                    key: key.map(Into::into),
+                    key: Some(key.into()),
                     kind: None,
                     title: Some("deploy notes".into()),
-                    payload: crate::context::Payload::Path(outside.path().join(name)),
+                    payload: crate::context::Payload::Path(outside.path().join("notes.txt")),
                     app_id: "terminal".into(),
                     label: None,
                     method: crate::context::Method::Drop,
@@ -884,10 +882,14 @@ mod tests {
             )
             .unwrap()
         };
-        for item in [
-            copy("deploy.pem", None),
-            copy("handoff", Some("notes/handoff")),
-        ] {
+        let by_name = copy("file/deploy.pem");
+        let by_content = copy("notes/handoff");
+        std::fs::write(
+            &by_content.path,
+            b"-----BEGIN OPENSSH PRIVATE KEY-----\nb3Bl\n-----END OPENSSH PRIVATE KEY-----\n",
+        )
+        .unwrap();
+        for item in [by_name, by_content] {
             assert!(item.owned, "a file from outside is copied in");
             let r = resolve(&dir, &format!("kaava://context/{}", item.id)).unwrap();
             assert!(r.withheld.unwrap().contains("private keys"), "{}", item.key);

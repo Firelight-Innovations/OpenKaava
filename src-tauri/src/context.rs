@@ -19,6 +19,7 @@
 //! status`. `apps::write_refusal` therefore does not list any `context/*`
 //! method, and the shell commands here never call `guard_cluster_write`.
 
+use crate::refs::policy;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine as _;
 use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
@@ -445,6 +446,12 @@ fn put_with(
             return Err(invalid(
                 "that looks like an executable, which the context store refuses",
             ));
+        }
+        if let Some(rule) = secret_in(source_path.as_deref(), title.as_deref(), bytes) {
+            return Err(invalid(format!(
+                "not copied into the context store: it matches the secrets rule for {rule}. \
+                 Remove the secrets, or share the file by another route"
+            )));
         }
     }
 
@@ -924,6 +931,16 @@ fn jpeg_dims(bytes: &[u8]) -> Option<(u32, u32)> {
     None
 }
 
+/// The secrets rule a copy would break, by the same lists the `kaava://`
+/// resolver withholds a stored copy with: the source path, the title and the
+/// first 64 KB. Screened here too so the bytes never reach the store.
+fn secret_in(source: Option<&Path>, title: Option<&str>, bytes: &[u8]) -> Option<&'static str> {
+    let by_name = source
+        .and_then(|p| policy::secret_rule(&p.to_string_lossy()))
+        .or_else(|| title.and_then(policy::secret_rule));
+    by_name.or_else(|| policy::secret_content(&bytes[..bytes.len().min(64 * 1024)]))
+}
+
 fn looks_executable(bytes: &[u8]) -> bool {
     bytes.starts_with(b"MZ")
         || bytes.starts_with(&[0x7F, b'E', b'L', b'F'])
@@ -1355,6 +1372,42 @@ mod tests {
         assert!(shot.exists(), "the original is never moved");
         remove(env.path(), &item.id).unwrap();
         assert!(!Path::new(&item.path).exists());
+    }
+
+    #[test]
+    fn secret_files_are_refused_by_name_and_by_content_and_templates_pass() {
+        let env = TempDir::new().unwrap();
+        let elsewhere = TempDir::new().unwrap();
+        let write = |name: &str, body: &str| {
+            let p = elsewhere.path().join(name);
+            std::fs::write(&p, body).unwrap();
+            p
+        };
+        for (name, body, rule) in [
+            (".env", "TOKEN=abc", ".env files"),
+            ("id_rsa", "not even a key", "SSH private keys"),
+            (
+                "notes.txt",
+                "-----BEGIN OPENSSH PRIVATE KEY-----\nb3Blbn\n",
+                "private keys and key stores",
+            ),
+        ] {
+            let err = put(env.path(), req(Payload::Path(write(name, body)))).unwrap_err();
+            assert!(err.message.contains(rule), "{name}: {}", err.message);
+        }
+        assert!(list(env.path()).is_empty());
+        assert!(
+            std::fs::read_dir(store_dir(env.path()))
+                .map(|d| d.count())
+                .unwrap_or(0)
+                <= 1,
+            "no secret bytes reach the store, only its own bookkeeping"
+        );
+        put(
+            env.path(),
+            req(Payload::Path(write(".env.example", "TOKEN="))),
+        )
+        .unwrap();
     }
 
     #[test]
