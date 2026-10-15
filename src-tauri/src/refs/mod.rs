@@ -13,7 +13,8 @@
 //! kaava://selection                    what is selected in the cluster's panes
 //! ```
 //!
-//! A reference only ever resolves inside the cluster it is resolved for.
+//! A reference resolves inside the cluster it is resolved for. Design Mode
+//! comments are the one exception: they belong to the running app.
 
 pub mod assets;
 pub mod live;

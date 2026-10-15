@@ -50,8 +50,9 @@ Rules:
 
 ## 2. Resolving
 
-A reference resolves inside one cluster, the cluster of whoever is asking. The result is a
-`Resolved`:
+A reference resolves inside one cluster, the cluster of whoever is asking. Design Mode comments
+are the one exception. They belong to the running app, not to a cluster, so any cluster with a
+project open resolves the same ones. The result is a `Resolved`:
 
 ```json
 {
@@ -60,10 +61,12 @@ A reference resolves inside one cluster, the cluster of whoever is asking. The r
   "title": "player.gd",
   "detail": "scripts/player.gd · lines 10–20",
   "meta": { "size": 4210, "mime": "text/plain", "modified": 1760400000000 },
-  "parts": [{ "type": "text", "text": "…", "language": "gdscript", "startLine": 10, "truncated": false }],
-  "withheld": null
+  "parts": [{ "type": "text", "text": "…", "language": "gdscript", "startLine": 10, "truncated": false }]
 }
 ```
+
+`detail` and `withheld` are left out when they are not set. `withheld` says why nothing, or less,
+was read: a secret, a gitignored file, or a file over a cap.
 
 `kind` is one of `text`, `image`, `model`, `scene`, `audio`, `video`, `binary`, `folder`, `canvas`,
 `frame`, `comment`, `design-comment`, `context` or `selection`. A part is one of these:
@@ -79,14 +82,14 @@ ACP prompt blocks.
 | Kind           | What the parts carry                                                                     |
 | -------------- | ---------------------------------------------------------------------------------------- |
 | text, scene    | An excerpt: the asked range, else the file's start (a binary scene gets a note)          |
-| image          | The image, if PNG, JPEG, GIF, WebP or SVG and under the cap; otherwise a note            |
-| model          | Header facts (`.glb`, `.gltf`: meshes, materials, animations, generator) and a note      |
+| image          | The image if PNG, JPEG, GIF, WebP or SVG; over the cap it is withheld; others get a note |
+| model          | Header facts (meshes, materials, animations, generator); `.gltf` excerpt, `.glb` note    |
 | audio          | WAV format and length; other formats a note                                              |
 | folder         | Its entries, folders first; secrets and gitignored entries are counted, not named        |
 | canvas         | Its frames, each with its own reference                                                  |
 | frame          | The frame's type, properties and text, and its picture when a Canvas pane can render it  |
 | comment        | The comment's text, the comment as JSON, and its screenshot                              |
-| design-comment | The request, the page and element as JSON, and the screenshot                            |
+| design-comment | The request, the page, selector and thread as JSON, and the screenshot under the cap     |
 | context        | The stored item, read the same way as a file                                             |
 | selection      | The selected text, each visible app's report, and references to what the apps name       |
 
