@@ -4,6 +4,7 @@
  * comes from a slot, and a slot replaced through `SlotsProvider` is the one
  * that shows, at the top level and inside other components alike.
  */
+import "../jsdom-shims";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { isValidElement, type ComponentType, type ReactNode } from "react";
@@ -132,6 +133,8 @@ describe("the slot registry", () => {
       "Layout",
       "Header",
       "Transcript",
+      "UserTurn",
+      "AssistantTurn",
       "UserMessage",
       "AssistantText",
       "Thinking",
@@ -169,13 +172,15 @@ describe("the slot registry", () => {
   it("reaches the pieces other components draw, through the same map", async () => {
     backend(() => Promise.resolve(EVERYTHING));
     const { container } = render(
-      <SlotsProvider slots={stubs(["StatusBadge", "Diff", "PathList", "Note", "Hint"])}>
+      <SlotsProvider
+        slots={stubs(["StatusBadge", "Diff", "PathList", "Note", "Hint", "TurnActions"])}
+      >
         <App />
       </SlotsProvider>,
     );
     await screen.findByText("hi");
     const shown = slotsShown(container);
-    for (const name of ["StatusBadge", "Diff", "PathList", "Note", "Hint"]) {
+    for (const name of ["StatusBadge", "Diff", "PathList", "Note", "Hint", "TurnActions"]) {
       expect(shown, name).toContain(name);
     }
     // The defaults are gone wherever a stub stands in.
@@ -184,6 +189,24 @@ describe("the slot registry", () => {
     expect(container.querySelector(".at-paths")).toBeNull();
     expect(container.querySelector(".at-note")).toBeNull();
     expect(container.querySelector(".at-hint")).toBeNull();
+  });
+
+  it("draws Working through its slot while a turn runs", async () => {
+    backend(() =>
+      Promise.resolve({
+        seq: 1,
+        status: { ...EVERYTHING.status!, state: "working", hint: null, exitCode: null },
+        items: [item("u", { kind: "userMessage", text: "hi" })],
+      }),
+    );
+    const { container } = render(
+      <SlotsProvider slots={stubs(["Working"])}>
+        <App />
+      </SlotsProvider>,
+    );
+    await screen.findByText("hi");
+    expect(slotsShown(container)).toContain("Working");
+    expect(container.querySelector(".at-working")).toBeNull();
   });
 
   it.each([
@@ -222,6 +245,34 @@ describe("the slot registry", () => {
     );
     await waitFor(() => expect(container.querySelectorAll("[data-slot='Hint']")).toHaveLength(2));
     expect(container.querySelector(".at-hint")).toBeNull();
+  });
+
+  it("sums a tool call's diffs into its row, and names its status only until it is done", () => {
+    const { ToolCall } = defaultSlots;
+    const diff = (path: string, added: number, removed: number) => ({
+      path,
+      isNew: false,
+      lines: [],
+      added,
+      removed,
+    });
+    const row = (status: "inProgress" | "completed") =>
+      render(
+        <ToolCall
+          title="Edit a.ts"
+          toolKind="edit"
+          status={status}
+          output=""
+          truncated={false}
+          paths={[]}
+          diffs={[diff("a.ts", 3, 1), diff("b.ts", 2, 0)]}
+        />,
+      ).container.querySelector(".at-tool__head")!;
+    expect(row("completed").querySelector(".at-tool__counts")?.textContent).toBe("+5 −1");
+    expect(row("completed").querySelector(".at-tool__status")).toBeNull();
+    expect(row("completed").querySelector("svg.at-tool__glyph--completed")).not.toBeNull();
+    cleanup();
+    expect(row("inProgress").querySelector(".at-tool__status")?.textContent).toBe("Running");
   });
 
   it("names the harness and model it is given, and leaves out the unknown ones", () => {

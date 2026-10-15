@@ -9,6 +9,7 @@
  */
 import { createContext, useContext, useMemo, type ComponentType, type ReactNode } from "react";
 import { Approval } from "./Approval";
+import { AssistantTurn } from "./AssistantTurn";
 import { AssistantText } from "./AssistantText";
 import { Composer } from "./Composer";
 import { ContextMeter } from "./ContextMeter";
@@ -31,8 +32,11 @@ import { Thinking } from "./Thinking";
 import { TodoList } from "./TodoList";
 import { ToolCall } from "./ToolCall";
 import { Transcript } from "./Transcript";
+import { TurnActions } from "./TurnActions";
 import { Usage } from "./Usage";
 import { UserMessage } from "./UserMessage";
+import { UserTurn } from "./UserTurn";
+import { Working } from "./Working";
 import type * as P from "./types";
 
 export interface Slots {
@@ -43,6 +47,11 @@ export interface Slots {
   Transcript: ComponentType<P.TranscriptProps>;
   EmptyState: ComponentType<P.EmptyStateProps>;
   SessionList: ComponentType<P.SessionListProps>;
+  // Turns
+  UserTurn: ComponentType<P.TurnProps>;
+  AssistantTurn: ComponentType<P.TurnProps>;
+  TurnActions: ComponentType<P.TurnActionsProps>;
+  Working: ComponentType<P.WorkingProps>;
   // Transcript items
   UserMessage: ComponentType<P.UserMessageProps>;
   AssistantText: ComponentType<P.AssistantTextProps>;
@@ -81,6 +90,10 @@ export const defaultSlots: Slots = {
   Transcript,
   EmptyState,
   SessionList,
+  UserTurn,
+  AssistantTurn,
+  TurnActions,
+  Working,
   UserMessage,
   AssistantText,
   Thinking,

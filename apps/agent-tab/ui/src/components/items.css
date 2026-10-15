@@ -16,11 +16,23 @@
   text-transform: uppercase;
 }
 
+/* Read by a screen reader, not drawn. */
+.at-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The prompt: a quiet card on the right, the agent's answer full width below. */
 .at-user {
-  padding: var(--k-space-1-5) var(--k-space-2-5);
-  border: 1px solid var(--k-panel-border);
-  border-radius: var(--k-radius-card);
-  background: var(--k-card-bg);
+  align-self: flex-end;
+  max-width: 85%;
+  padding: var(--k-space-2) var(--k-space-3);
+  border-radius: var(--k-radius-turn);
+  background: var(--k-user-bg);
 }
 
 /* Accepted, but the agent is still starting: shown as not yet sent. */
@@ -96,9 +108,9 @@
   padding-left: var(--k-space-3);
 }
 
+/* Tool calls are compact, muted rows; what they did opens beneath them. */
 .at-tool {
-  border-left: 1px solid var(--k-panel-border);
-  padding-left: var(--k-space-2);
+  color: var(--k-fg-muted);
 }
 
 .at-tool__head {
@@ -106,25 +118,81 @@
   align-items: baseline;
   gap: var(--k-space-1-5);
   min-height: var(--k-row);
+  border-radius: var(--k-radius-sm);
 }
 
 details > .at-tool__head {
-  display: list-item;
+  list-style: none;
+}
+
+details > .at-tool__head::-webkit-details-marker {
+  display: none;
+}
+
+details > .at-tool__head:hover {
+  color: var(--k-editor-fg);
+}
+
+details > .at-tool__head::after {
+  content: "›";
+  color: var(--k-fg-faint);
+  transition: transform var(--k-motion-fast) var(--k-ease);
+}
+
+details[open] > .at-tool__head::after {
+  transform: rotate(90deg);
+}
+
+details.at-tool > :not(summary) {
+  margin-left: var(--k-space-4);
 }
 
 .at-tool__glyph {
-  font-family: var(--k-mono);
+  flex-shrink: 0;
+  align-self: center;
+  color: var(--k-tool-pending);
+}
+
+.at-tool__glyph--inProgress {
+  color: var(--k-tool-running);
+  animation: at-spin 1s linear infinite;
 }
 
 .at-tool__glyph--completed {
-  color: var(--k-state-ready);
+  color: var(--k-tool-done);
 }
 
 .at-tool__glyph--failed {
-  color: var(--k-state-failed);
+  color: var(--k-tool-failed);
+}
+
+@keyframes at-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .at-tool__glyph--inProgress {
+    animation: none;
+  }
 }
 
 .at-tool__title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--k-mono);
+  font-size: var(--k-size-small);
+}
+
+/* A closed row keeps to one line; opening it shows the whole title. */
+details:not([open]) > .at-tool__head .at-tool__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.at-tool__counts {
   font-family: var(--k-mono);
   font-size: var(--k-size-small);
 }
@@ -140,14 +208,29 @@ details > .at-tool__head {
   color: var(--k-fg-muted);
 }
 
+/* A diff is a card: the file and its counts on a bar, the lines below. */
 .at-diff {
-  margin: var(--k-space-1) 0;
+  margin: var(--k-space-1-5) 0;
+  overflow: hidden;
+  border: 1px solid var(--k-panel-border);
+  border-radius: var(--k-radius-control);
+  background: var(--k-code-bg);
 }
 
 .at-diff__head {
   display: flex;
   gap: var(--k-space-2);
   align-items: baseline;
+  padding: var(--k-space-1) var(--k-space-2);
+  border-bottom: 1px solid var(--k-panel-border);
+  background: var(--k-raised-bg);
+  color: var(--k-editor-fg);
+}
+
+.at-diff > .at-diff__body {
+  margin: 0;
+  border: none;
+  border-radius: 0;
 }
 
 .at-diff__new {

@@ -53,5 +53,20 @@ These slots are defined but not rendered yet. Their features are still being bui
 `ContextMeter`, `ModelPicker`, `EffortPicker`, `HarnessPicker`, `OptionPicker`, `SlashMenu`,
 `MentionMenu` and `SessionList`. Every picker defaults to `Picker`, and both menus default to `Menu`.
 
-The default slots will next be rebuilt on `@assistant-ui/react` primitives. The slot names and
-props stay the same.
+## The thread and assistant-ui
+
+The tab runs on `@assistant-ui/react` (pinned in `package.json`) with its external-store runtime.
+Our own state stays the source of truth, and assistant-ui draws the thread around it:
+
+- `thread.ts` groups the items into turns. Each prompt is a user turn. Everything the agent does
+  until the next prompt is one agent turn, with one part per item.
+- `Turns.tsx` draws each turn through the `UserTurn` or `AssistantTurn` slot. It draws each part by
+  looking its item up and handing it to the item's own slot, so `ToolCall`, `Diff` and the rest are
+  unchanged.
+- The default `Transcript`, `UserTurn`, `AssistantTurn` and `TurnActions` use assistant-ui's
+  primitives for scrolling, turns and the copy action. A replacement may use them too. Everything is
+  rendered inside `AssistantRuntimeProvider`. A replacement that draws plain DOM also works.
+- `Working` shows in a running agent turn that is empty or ends on something other than text.
+  It does not show while the agent waits on an approval.
+
+assistant-ui ships no CSS, so the look is ours: the tokens above and each component's `.css`.

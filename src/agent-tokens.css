@@ -24,6 +24,9 @@
   --k-card-bg: var(--bg-layer-1);
   --k-raised-bg: var(--bg-layer-2);
   --k-input-bg: var(--bg-layer-1);
+  /* Set off from the transcript in both themes: layer-2 is white in light. */
+  --k-user-bg: var(--bg-layer-1-hover);
+  --k-composer-bg: var(--bg-layer-1);
   --k-code-bg: var(--bg-layer-2);
   --k-badge-bg: var(--bg-layer-2);
   --k-list-hover: var(--bg-layer-1-hover);
@@ -61,6 +64,11 @@
   --k-state-working: var(--info);
   --k-state-attention: var(--warning);
   --k-state-failed: var(--danger);
+  /* Tool call status icons: done and failed match the diff colours. */
+  --k-tool-pending: var(--k-fg-faint);
+  --k-tool-running: var(--k-state-working);
+  --k-tool-done: var(--k-diff-add-fg);
+  --k-tool-failed: var(--k-diff-del-fg);
 
   /* Type */
   --k-font: var(--sans);
@@ -83,6 +91,7 @@
   --k-space-3: var(--space-3);
   --k-space-4: var(--space-4);
   --k-item-gap: var(--space-2);
+  --k-turn-gap: var(--space-4);
 
   /* Radius */
   --k-radius-sm: var(--radius-sm);
@@ -91,10 +100,14 @@
   --k-radius-control: var(--radius-md);
   --k-radius-bar: var(--radius-region);
   --k-radius-pill: 999px;
+  --k-radius-turn: 12px;
+  --k-radius-composer: 14px;
 
   /* Size */
   --k-control-md: var(--control-md);
   --k-row: 22px;
+  /* The conversation's column: turns and the composer centre in it. */
+  --k-thread-width: 760px;
 
   /* Motion: `fast` and the curve are the shell's `instant` (src/shell/motion.ts).
      `base` is twice that, for larger moves. */

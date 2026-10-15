@@ -30,12 +30,24 @@ export interface StatusBadgeProps {
   state: SessionState | null;
 }
 
-/** The scrolling list. `ref` and `onScroll` drive follow-the-bottom. */
+/**
+ * The scrolling list. Rendered inside assistant-ui's runtime, so a default may
+ * use its thread primitives; it keeps the bottom in view while the agent works.
+ */
 export interface TranscriptProps {
-  ref: Ref<HTMLDivElement>;
-  onScroll: () => void;
   children: ReactNode;
 }
+
+/** One turn of the conversation; `children` is its items, already drawn. */
+export interface TurnProps {
+  children: ReactNode;
+}
+
+/** Shown in an agent turn that has nothing to show yet. */
+export type WorkingProps = Record<string, never>;
+
+/** Actions on a whole agent turn, such as copying it. */
+export type TurnActionsProps = Record<string, never>;
 
 export interface EmptyStateProps {
   /**

@@ -1,10 +1,11 @@
+import { ThreadPrimitive } from "@assistant-ui/react";
 import type { TranscriptProps } from "./types";
 import "./frame.css";
 
-export function Transcript({ ref, onScroll, children }: TranscriptProps) {
+export function Transcript({ children }: TranscriptProps) {
   return (
-    <div className="at-transcript" ref={ref} onScroll={onScroll}>
+    <ThreadPrimitive.Viewport className="at-transcript" turnAnchor="bottom">
       {children}
-    </div>
+    </ThreadPrimitive.Viewport>
   );
 }

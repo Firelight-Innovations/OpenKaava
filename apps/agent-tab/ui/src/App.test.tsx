@@ -3,6 +3,7 @@
  * The agent tab end to end against a scripted bridge: attach, live envelopes,
  * sending, approvals and refusals.
  */
+import "./jsdom-shims";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
@@ -346,6 +347,168 @@ describe("the agent tab", () => {
       harness: "claude",
       text: "the one that failed",
     });
+  });
+
+  it("groups the transcript into turns, and says it is working before the first reply", async () => {
+    backend({
+      status: { ...STATUS, state: "working" },
+      seq: 2,
+      items: [item("u1", { kind: "userMessage", text: "list the files" })],
+    });
+    const { container } = render(<App />);
+    await screen.findByText("list the files");
+    expect(screen.getByText("Working…")).toBeTruthy();
+
+    emit({
+      instanceId: "i",
+      seq: 3,
+      event: { type: "itemStarted", item: item("a1", { kind: "assistantText", text: "Here" }) },
+    });
+    emit({
+      instanceId: "i",
+      seq: 4,
+      event: { type: "itemStarted", item: item("r1", { kind: "reasoning", text: "hmm" }) },
+    });
+    expect(screen.queryByText("Working…")).toBeNull();
+    expect(container.querySelectorAll(".at-turn--user")).toHaveLength(1);
+    const agent = container.querySelectorAll(".at-turn--agent");
+    expect(agent).toHaveLength(1);
+    expect(agent[0].textContent).toContain("Here");
+  });
+
+  it("says it is working after a tool row only while the turn runs", async () => {
+    const tool = item("c1", {
+      kind: "toolCall",
+      title: "pnpm test",
+      toolKind: "execute",
+      status: "completed",
+      output: "",
+      truncated: false,
+      paths: [],
+      diffs: [],
+    });
+    const items = [item("u1", { kind: "userMessage", text: "run the tests" }), tool];
+    backend({ status: STATUS, seq: 2, items });
+    render(<App />);
+    await screen.findByText("pnpm test");
+    expect(screen.queryByText("Working…")).toBeNull();
+    cleanup();
+
+    backend({ status: { ...STATUS, state: "working" }, seq: 2, items });
+    render(<App />);
+    await screen.findByText("pnpm test");
+    expect(screen.getByText("Working…")).toBeTruthy();
+  });
+
+  it("does not say it is working while the agent waits on an approval", async () => {
+    backend({
+      status: { ...STATUS, state: "needsInput" },
+      seq: 2,
+      items: [
+        item("u1", { kind: "userMessage", text: "edit the file" }),
+        item("p1", {
+          kind: "approval",
+          title: "Edit a.ts",
+          toolCallId: "c1",
+          detail: null,
+          detailTruncated: false,
+          paths: [],
+          diffs: [],
+          options: [{ optionId: "ok", kind: "allow_once", name: "Allow" }],
+          answer: null,
+        }),
+      ],
+    });
+    render(<App />);
+    await screen.findByRole("button", { name: "Allow" });
+    expect(screen.queryByText("Working…")).toBeNull();
+  });
+
+  it("puts Copy on every finished agent turn, where the keyboard can reach it", async () => {
+    backend({
+      status: STATUS,
+      seq: 4,
+      items: [
+        item("u1", { kind: "userMessage", text: "one" }),
+        item("a1", { kind: "assistantText", text: "first answer" }),
+        item("u2", { kind: "userMessage", text: "two" }),
+        item("a2", { kind: "assistantText", text: "second answer" }),
+      ],
+    });
+    render(<App />);
+    await screen.findByText("first answer");
+    expect(screen.getAllByRole("button", { name: "Copy" })).toHaveLength(2);
+  });
+
+  it("keeps Copy on earlier turns while a turn runs, and leaves it off the one being written", async () => {
+    const items = [
+      item("u1", { kind: "userMessage", text: "one" }),
+      item("a1", { kind: "assistantText", text: "first answer" }),
+      item("u2", { kind: "userMessage", text: "two" }),
+      item("a2", { kind: "assistantText", text: "half an answ" }),
+    ];
+    backend({ status: { ...STATUS, state: "working" }, seq: 4, items });
+    const { container } = render(<App />);
+    await screen.findByText("half an answ");
+    const turns = container.querySelectorAll(".at-turn--agent");
+    expect(turns[0].querySelector(".at-turn__actions")).not.toBeNull();
+    expect(turns[1].querySelector(".at-turn__actions")).toBeNull();
+
+    emit({ instanceId: "i", seq: 5, event: { type: "status", status: STATUS } });
+    expect(screen.getAllByRole("button", { name: "Copy" })).toHaveLength(2);
+  });
+
+  it("leaves Copy off a turn with no text, and says when it has copied", async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    try {
+      backend({
+        status: STATUS,
+        seq: 4,
+        items: [
+          item("u1", { kind: "userMessage", text: "one" }),
+          item("e1", { kind: "error", message: "boom", hint: null }),
+          item("u2", { kind: "userMessage", text: "two" }),
+          item("a2", { kind: "assistantText", text: "an answer" }),
+        ],
+      });
+      render(<App />);
+      await screen.findByText("an answer");
+      const copy = screen.getByRole("button", { name: "Copy" });
+      await act(async () => {
+        fireEvent.click(copy);
+      });
+      expect(writeText).toHaveBeenCalledWith("an answer");
+      expect(copy.textContent).toBe("Copied");
+    } finally {
+      delete (navigator as { clipboard?: unknown }).clipboard;
+    }
+  });
+
+  it("redraws no transcript item while a prompt is typed", async () => {
+    const drawn = vi.fn();
+    const { SlotsProvider } = await import("./components/registry");
+    function CountingUserMessage({ text }: { text: string }) {
+      drawn(text);
+      return <p>{text}</p>;
+    }
+    backend({
+      status: STATUS,
+      seq: 2,
+      items: [
+        item("u1", { kind: "userMessage", text: "list the files" }),
+        item("a1", { kind: "assistantText", text: "Here" }),
+      ],
+    });
+    render(
+      <SlotsProvider slots={{ UserMessage: CountingUserMessage }}>
+        <App />
+      </SlotsProvider>,
+    );
+    await screen.findByText("list the files");
+    const before = drawn.mock.calls.length;
+    for (const value of ["a", "ab", "abc"]) fireEvent.change(prompt(), { target: { value } });
+    expect(drawn.mock.calls.length).toBe(before);
   });
 
   it("never names the harness Claude Code", async () => {

@@ -27,6 +27,8 @@ export const strings = {
   stopTurn: "Stop",
   stopTurnHint: "Stop the current turn (Esc)",
   send: "Send",
+  sendGlyph: "↑",
+  stopGlyph: "■",
   mode: "Mode",
   promptLabel: "Message the agent",
   promptPlaceholder: "Ask the agent to do something in this worktree",
@@ -51,17 +53,13 @@ export const strings = {
   thinking: "Thinking",
   copy: "Copy",
   copied: "Copied",
+  copyTurn: "Copy the agent's text from this turn",
+  working: "Working…",
   tool: {
     pending: "Pending",
     inProgress: "Running",
     completed: "Done",
     failed: "Failed",
-  } satisfies Record<ToolStatus, string>,
-  toolGlyph: {
-    pending: "○",
-    inProgress: "◌",
-    completed: "✓",
-    failed: "✕",
   } satisfies Record<ToolStatus, string>,
   outputTruncated: "Output truncated. The full output is in the agent's own log.",
   detailTruncated:
