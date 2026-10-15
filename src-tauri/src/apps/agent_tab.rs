@@ -19,6 +19,7 @@
 //! Events leave as `agent-tab:event`; `ToolWindow` relays each to its frame.
 
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
@@ -121,11 +122,27 @@ pub struct Sessions {
 
 /// What a tab chose for its next session. Generic, as [`choose`] is, so it
 /// is tested with more harnesses than the registry has yet.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 struct Choice<H = Harness> {
     harness: H,
-    /// The model's value, or `None` for the agent's default.
-    model: Option<String>,
+    /// The model chosen for each harness, by value. A harness with none
+    /// starts on its agent's default.
+    models: HashMap<H, String>,
+}
+
+impl<H: Copy + Eq + Hash> Choice<H> {
+    /// The model chosen for `harness`, or `None` for its agent's default.
+    fn model(&self, harness: H) -> Option<String> {
+        self.models.get(&harness).cloned()
+    }
+}
+
+// By hand: a derive would ask only `H: PartialEq`, and comparing the maps
+// needs `H: Eq + Hash`.
+impl<H: Eq + Hash> PartialEq for Choice<H> {
+    fn eq(&self, other: &Self) -> bool {
+        self.harness == other.harness && self.models == other.models
+    }
 }
 
 /// The cluster a tab's session started in, and what that cluster pointed at
@@ -186,8 +203,7 @@ impl Sessions {
         let model = self
             .chosen()
             .get(instance_id)
-            .filter(|c| c.harness == harness)
-            .and_then(|c| c.model.clone());
+            .and_then(|c| c.model(harness));
         start(harness, model)
     }
 
@@ -450,10 +466,7 @@ fn next_model(
     harness: Harness,
     default: Option<String>,
 ) -> Option<String> {
-    choice
-        .filter(|c| c.harness == harness)
-        .and_then(|c| c.model.clone())
-        .or(default)
+    choice.and_then(|c| c.model(harness)).or(default)
 }
 
 /// Tell every open agent tab that `harness`'s models are in. The shell relays
@@ -492,7 +505,7 @@ fn harnesses_answer<H: Serialize>(
 /// `open` is asked only once the choice is stored. A tab that closed since
 /// the call began has missed `sync`'s prune, so its choice is taken back here
 /// rather than left for a page reopened under its id.
-fn choose<H: Copy + PartialEq + Serialize>(
+fn choose<H: Copy + Eq + Hash + Serialize>(
     chosen: &Mutex<HashMap<String, Choice<H>>>,
     instance: &str,
     running: Option<H>,
@@ -512,7 +525,11 @@ fn choose<H: Copy + PartialEq + Serialize>(
         lock().remove(instance);
         return Err(unreached("agent-tab/choose"));
     }
-    Ok(json!({ "instanceId": instance, "harness": choice.harness, "model": choice.model }))
+    Ok(json!({
+        "instanceId": instance,
+        "harness": choice.harness,
+        "model": choice.model(choice.harness),
+    }))
 }
 
 /// The harness a tab's next prompt goes to: the one its agent runs, else the
@@ -527,21 +544,26 @@ fn next_of<H>(running: Option<H>, chosen: Option<H>, first: H) -> H {
     running.or(chosen).unwrap_or(first)
 }
 
-/// A choice of `harness`, and of `model` when the call named one: `Some(None)`
-/// is the agent's default. A call that names none keeps the model chosen
-/// before for the same harness, so choosing a harness alone, as the agent bar
-/// does, never drops the tab's model.
-fn next_choice<H: Copy + PartialEq>(
+/// A choice of `harness`, and of `model` for it when the call named one:
+/// `Some(None)` is the agent's default. Every model chosen before is kept, each
+/// for its own harness, so choosing a harness alone, as the agent bar does,
+/// never drops one.
+fn next_choice<H: Copy + Eq + Hash>(
     before: Option<&Choice<H>>,
     harness: H,
     model: Option<Option<String>>,
 ) -> Choice<H> {
-    let model = model.unwrap_or_else(|| {
-        before
-            .filter(|c| c.harness == harness)
-            .and_then(|c| c.model.clone())
-    });
-    Choice { harness, model }
+    let mut models = before.map(|c| c.models.clone()).unwrap_or_default();
+    match model {
+        Some(Some(model)) => {
+            models.insert(harness, model);
+        }
+        Some(None) => {
+            models.remove(&harness);
+        }
+        None => {}
+    }
+    Choice { harness, models }
 }
 
 /// Whether a tab may choose `harness`: not while its agent runs another,
@@ -765,34 +787,40 @@ mod tests {
         assert_eq!(next(), (Harness::Codex, None));
     }
 
-    #[test]
-    fn a_harness_chosen_alone_keeps_only_its_own_model() {
-        let on = |harness, model: Option<&str>| Choice {
+    /// `harness`, with `models` chosen for each harness they name.
+    fn on(harness: Harness, models: &[(Harness, &str)]) -> Choice {
+        Choice {
             harness,
-            model: model.map(str::to_string),
-        };
-        let codex = on(Harness::Codex, Some("gpt-5.2"));
+            models: models.iter().map(|(h, m)| (*h, m.to_string())).collect(),
+        }
+    }
+
+    /// The agent bar chooses a harness alone, so switching away from a
+    /// harness and back must find its model where the tab left it.
+    #[test]
+    fn each_harness_keeps_the_model_chosen_for_it() {
+        let gpt = (Harness::Codex, "gpt-5.2");
+        let opus = (Harness::Claude, "opus");
+        let codex = on(Harness::Codex, &[gpt]);
         assert_eq!(next_choice(Some(&codex), Harness::Codex, None), codex);
+        let claude = next_choice(Some(&codex), Harness::Claude, Some(Some("opus".into())));
+        assert_eq!(claude, on(Harness::Claude, &[gpt, opus]));
+        let back = next_choice(Some(&claude), Harness::Codex, None);
+        assert_eq!(back, on(Harness::Codex, &[gpt, opus]));
+        assert_eq!(back.model(Harness::Codex).as_deref(), Some("gpt-5.2"));
         assert_eq!(
-            next_choice(Some(&codex), Harness::Claude, None),
-            on(Harness::Claude, None)
+            next_choice(Some(&back), Harness::Codex, Some(None)),
+            on(Harness::Codex, &[opus])
         );
         assert_eq!(
-            next_choice(Some(&codex), Harness::Codex, Some(None)),
-            on(Harness::Codex, None)
-        );
-        assert_eq!(
-            next_choice(None, Harness::Claude, Some(Some("opus".into()))),
-            on(Harness::Claude, Some("opus"))
+            next_choice(None, Harness::Claude, None),
+            on(Harness::Claude, &[])
         );
     }
 
     #[test]
     fn a_harness_starts_on_the_tabs_model_for_it_else_the_agents_default() {
-        let codex = Choice {
-            harness: Harness::Codex,
-            model: Some("gpt-5.2".into()),
-        };
+        let codex = on(Harness::Codex, &[(Harness::Codex, "gpt-5.2")]);
         let default = || Some("default".to_string());
         assert_eq!(
             next_model(Some(&codex), Harness::Codex, default()).as_deref(),
@@ -802,10 +830,7 @@ mod tests {
             next_model(Some(&codex), Harness::Claude, default()),
             default()
         );
-        let unset = Choice {
-            harness: Harness::Codex,
-            model: None,
-        };
+        let unset = on(Harness::Codex, &[]);
         assert_eq!(
             next_model(Some(&unset), Harness::Codex, default()),
             default()
@@ -1193,7 +1218,7 @@ mod tests {
     fn a_choice_while_another_harness_runs_is_refused_and_not_kept() {
         let claude = Choice {
             harness: "claude",
-            model: None,
+            models: HashMap::new(),
         };
         let map = Mutex::new(HashMap::from([("agent-tab-1".to_string(), claude)]));
         let err = choose(&map, "agent-tab-1", Some("claude"), "pi", None, || true).unwrap_err();
