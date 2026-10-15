@@ -3,8 +3,10 @@
 //! note) plus the metadata a chip needs.
 //!
 //! Everything here is bounded. An excerpt stops at [`MAX_EXCERPT_LINES`] or
-//! [`MAX_EXCERPT_BYTES`], a file is never scanned past [`MAX_SCAN_BYTES`], and
-//! an image over [`MAX_IMAGE_BYTES`] is described rather than sent.
+//! [`MAX_EXCERPT_BYTES`], and so does any prose an app holds, such as a
+//! comment's text. A file is never scanned past [`MAX_SCAN_BYTES`]. An image
+//! over [`MAX_IMAGE_BYTES`], or a JSON part over [`MAX_JSON_BYTES`] once
+//! written out, is described rather than sent.
 
 use super::assets::{self, Kind};
 use super::policy;
@@ -25,6 +27,8 @@ pub const MAX_SCAN_BYTES: u64 = 16 * 1024 * 1024;
 /// Largest image sent inline. Base64 makes it about 4.7 MB, under the 5 MB a
 /// model provider accepts per image.
 pub const MAX_IMAGE_BYTES: u64 = 3_500_000;
+/// Largest JSON part sent, written out.
+pub const MAX_JSON_BYTES: usize = 64 * 1024;
 /// How much of a model file is read for its header facts.
 const MAX_MODEL_HEAD: u64 = 4 * 1024 * 1024;
 /// How much of any file is read to decide what it is.
@@ -431,6 +435,37 @@ pub fn first_line(text: &str) -> String {
     out
 }
 
+/// Prose an app holds, such as a comment's text, as a text part. It is cut at
+/// [`MAX_EXCERPT_BYTES`], on a character boundary, as a file excerpt is.
+pub fn prose_part(text: &str, language: Option<&str>) -> Part {
+    let mut end = text.len().min(MAX_EXCERPT_BYTES);
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    Part::Text {
+        text: text[..end].to_string(),
+        language: language.map(str::to_owned),
+        start_line: 1,
+        truncated: end < text.len(),
+    }
+}
+
+/// `value` as a JSON part, or a note giving its size when it is over
+/// [`MAX_JSON_BYTES`] written out.
+pub fn json_part(value: Value) -> Part {
+    let size = serde_json::to_vec(&value).map_or(0, |b| b.len());
+    if size > MAX_JSON_BYTES {
+        return Part::Note {
+            text: format!(
+                "The structured detail is {}, over the {} cap, so it is not sent.",
+                human_size(size as u64),
+                human_size(MAX_JSON_BYTES as u64)
+            ),
+        };
+    }
+    Part::Json { value }
+}
+
 /// A PNG (or other sniffed raster) on disk as an image part, under the inline cap.
 pub fn png_part(path: &Path) -> Result<Part, String> {
     let size = std::fs::metadata(path)
@@ -517,15 +552,10 @@ pub fn viewer_comment(root: &Path, r: &Ref) -> Result<Resolved, String> {
     out.detail = Some(anchor_line(&comment.anchor));
     out.meta.insert("status".into(), json!(comment.status));
     out.meta.insert("author".into(), json!(comment.author));
-    out.parts.push(Part::Text {
-        text: comment.body.clone(),
-        language: Some("markdown".into()),
-        start_line: 1,
-        truncated: false,
-    });
-    out.parts.push(Part::Json {
-        value: serde_json::to_value(&comment).unwrap_or(Value::Null),
-    });
+    out.parts.push(prose_part(&comment.body, Some("markdown")));
+    out.parts.push(json_part(
+        serde_json::to_value(&comment).unwrap_or(Value::Null),
+    ));
     if let Ok(shot) = policy::contain(root, &format!(".kaava/comments/{id}.png")) {
         out.parts
             .push(png_part(&shot.abs).unwrap_or_else(|why| Part::Note {
@@ -762,6 +792,33 @@ mod tests {
         assert!(huge.withheld.unwrap().contains("over the"));
         assert!(huge.parts.is_empty());
         assert_eq!(huge.meta["width"], 4000);
+    }
+
+    #[test]
+    fn an_apps_prose_and_json_stop_at_their_caps() {
+        let small = json!({ "status": "open" });
+        assert_eq!(json_part(small.clone()), Part::Json { value: small });
+        let big = json!({ "props": "x".repeat(MAX_JSON_BYTES) });
+        assert!(
+            matches!(json_part(big), Part::Note { text } if text.contains("over the 64.0 KB cap"))
+        );
+
+        let whole = prose_part("Move the door", Some("markdown"));
+        assert!(matches!(whole, Part::Text { truncated: false, .. }));
+        let long = format!("{}\u{e9}", "a".repeat(MAX_EXCERPT_BYTES - 1));
+        match prose_part(&long, None) {
+            Part::Text {
+                text, truncated, ..
+            } => {
+                assert_eq!(
+                    text.len(),
+                    MAX_EXCERPT_BYTES - 1,
+                    "cut before the two-byte é"
+                );
+                assert!(truncated);
+            }
+            other => panic!("{other:?}"),
+        }
     }
 
     #[test]

@@ -164,9 +164,7 @@ fn canvas_from(listed: &Value, r: &Ref, id: &str) -> Result<Resolved, String> {
             json!({ "name": f["name"], "type": f["typeName"], "ref": link.to_string() })
         })
         .collect();
-    out.parts.push(Part::Json {
-        value: json!({ "frames": rows }),
-    });
+    out.parts.push(resolve::json_part(json!({ "frames": rows })));
     Ok(out)
 }
 
@@ -224,13 +222,11 @@ fn frame_from(detail: &Value, r: &Ref, id: &str, frame: &str) -> Resolved {
                 .collect()
         })
         .unwrap_or_default();
-    out.parts.push(Part::Json {
-        value: json!({
-            "type": detail["typeName"],
-            "props": detail["props"],
-            "text": texts,
-        }),
-    });
+    out.parts.push(resolve::json_part(json!({
+        "type": detail["typeName"],
+        "props": detail["props"],
+        "text": texts,
+    })));
     out
 }
 
@@ -289,13 +285,8 @@ fn comment_from(
     out.detail = Some(format!("comment on canvas {id}"));
     out.meta.insert("status".into(), record["status"].clone());
     out.meta.insert("author".into(), record["author"].clone());
-    out.parts.push(Part::Text {
-        text: text.to_string(),
-        language: Some("markdown".into()),
-        start_line: 1,
-        truncated: false,
-    });
-    out.parts.push(Part::Json { value: record });
+    out.parts.push(resolve::prose_part(text, Some("markdown")));
+    out.parts.push(resolve::json_part(record));
     out.parts.push(picture);
     Ok(out)
 }
@@ -334,15 +325,11 @@ fn design_comment(app: &AppHandle, r: &Ref, id: &str) -> Result<Resolved, String
     let mut out = resolve::Resolved::empty(r, "design-comment", resolve::first_line(&c.request));
     out.detail = Some(format!("{} on {}", c.element.tag, c.page.title));
     out.meta.insert("status".into(), json!(c.status));
-    out.parts.push(Part::Text {
-        text: c.request.clone(),
-        language: Some("markdown".into()),
-        start_line: 1,
-        truncated: false,
-    });
-    out.parts.push(Part::Json {
-        value: json!({ "page": c.page, "selector": c.element.selector, "thread": c.thread }),
-    });
+    out.parts
+        .push(resolve::prose_part(&c.request, Some("markdown")));
+    out.parts.push(resolve::json_part(
+        json!({ "page": c.page, "selector": c.element.selector, "thread": c.thread }),
+    ));
     if let Some(bytes) = crate::design_comments::read_shot(app, id) {
         if bytes.len() as u64 <= resolve::MAX_IMAGE_BYTES {
             out.parts.push(Part::Image {
@@ -374,8 +361,9 @@ fn selection(app: &AppHandle, ctx: &CallContext, root: &Path, r: &Ref) -> Result
     ))
 }
 
-/// [`selection`] from what the panes reported.
-fn selection_from(seen: Value, root: &Path, r: &Ref) -> Resolved {
+/// [`selection`] from what the panes reported. The selected text is sent once,
+/// as text; the panes' reports follow it as JSON.
+fn selection_from(mut seen: Value, root: &Path, r: &Ref) -> Resolved {
     let mut out = resolve::Resolved::empty(r, "selection", "Selection");
     let mut related = Vec::new();
     for surface in seen["surfaces"].as_array().into_iter().flatten() {
@@ -405,14 +393,16 @@ fn selection_from(seen: Value, root: &Path, r: &Ref) -> Resolved {
     if let Some(text) = seen["selectedText"].as_str().filter(|t| !t.is_empty()) {
         // The page counts in UTF-16 units, as JavaScript does, not in bytes.
         let units = text.encode_utf16().count() as u64;
-        out.parts.push(Part::Text {
-            text: text.to_string(),
-            language: None,
-            start_line: 1,
-            truncated: seen["selectedTextLength"].as_u64() > Some(units),
-        });
+        let mut part = resolve::prose_part(text, None);
+        if let Part::Text { truncated, .. } = &mut part {
+            *truncated |= seen["selectedTextLength"].as_u64() > Some(units);
+        }
+        out.parts.push(part);
     }
-    out.parts.push(Part::Json { value: seen });
+    if let Some(fields) = seen.as_object_mut() {
+        fields.remove("selectedText");
+    }
+    out.parts.push(resolve::json_part(seen));
     out
 }
 
@@ -483,6 +473,10 @@ mod tests {
         assert_eq!(out.detail.as_deref(), Some("World"));
         let cut = |o: &Resolved| matches!(o.parts[0], Part::Text { truncated, .. } if truncated);
         assert!(!cut(&out), "eight UTF-16 units, all of them sent");
+        assert!(
+            matches!(&out.parts[1], Part::Json { value } if value.get("selectedText").is_none()),
+            "the text is sent once, not again inside the reports"
+        );
         let longer = selection_from(seen("\u{e9}\u{e9}\u{e9}", 5), dir.path(), &Ref::Selection);
         assert!(cut(&longer), "five units selected, three sent");
     }
