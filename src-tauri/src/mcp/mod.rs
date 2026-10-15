@@ -21,7 +21,7 @@ pub use config::sync_all;
 pub use focus::{FocusReport, FocusState};
 pub use listener::{start, Endpoint};
 pub use registry::{
-    config_key, route, McpServer, McpTool, Registry, ServerInfo, ToolAnswer, ToolDescriptor,
+    config_key, route, Block, McpServer, McpTool, Registry, ServerInfo, ToolAnswer, ToolDescriptor,
 };
 pub use servers::workspace::selection_in;
 use std::time::Duration;

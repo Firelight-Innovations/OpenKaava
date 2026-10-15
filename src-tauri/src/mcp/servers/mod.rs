@@ -21,6 +21,7 @@
 
 pub mod agent;
 pub mod canvas;
+pub mod context;
 pub mod debug;
 #[cfg(feature = "design-mode")]
 pub mod design;
@@ -50,6 +51,7 @@ pub fn seed(registry: &Registry) {
     registry.register(&design::SERVER);
     registry.register(&canvas::SERVER);
     registry.register(&workspace::SERVER);
+    registry.register(&context::SERVER);
     registry.register(&ui::SERVER);
     registry.register(&agent::SERVER);
 }
@@ -79,6 +81,7 @@ pub fn read_only_hint(server: &str, tool: &str) -> Option<bool> {
         ("agent", "app_call" | "open_app" | "set_project") => false,
         ("workspace", "focus" | "layout" | "project") => true,
         ("canvas", tool) => return canvas::read_only(tool),
+        (context::ID, tool) => return context::read_only(tool),
         _ => return None,
     };
     Some(read)
@@ -146,6 +149,13 @@ pub fn instructions(id: &str) -> Option<&'static str> {
              `view_diagram` renders to a PNG file: read the path it returns. Call `drawing_guide` \
              before your first `add_shapes`: it is the manual (palette, spacing, every option) and \
              ends with the detail level and style the person chose in Settings, which you follow.",
+        ),
+        context::ID => Some(
+            "kaava:// references to what is in the person's project: kaava://file/<path>#L10-L20, \
+             kaava://canvas/<id>#frame=<frame>, kaava://comment/<id>, kaava://design-comment/<id>, \
+             kaava://context/<id> and kaava://selection. `read` one to see it; `show` up to eight \
+             to put them in front of the person beside your reply. Call `get_selection` when they \
+             say \"this\". Secrets and gitignored files are withheld and say so.",
         ),
         "debug" => Some(
             "Read-only views of a running OpenKaava: its shell layout, recent errors and boot \
@@ -254,6 +264,7 @@ mod tests {
                 "design",
                 "canvas",
                 "workspace",
+                "context",
                 "ui",
                 "agent"
             ]
@@ -261,7 +272,15 @@ mod tests {
         #[cfg(not(feature = "design-mode"))]
         assert_eq!(
             ids,
-            vec!["echo", "debug", "canvas", "workspace", "ui", "agent"]
+            vec![
+                "echo",
+                "debug",
+                "canvas",
+                "workspace",
+                "context",
+                "ui",
+                "agent"
+            ]
         );
     }
 
@@ -284,8 +303,8 @@ mod tests {
 
     /// With developer mode off, the ordinary user sees only what is for them.
     /// `design` is meant to be here: it is the one write surface an ordinary
-    /// user is supposed to have, for the reasons in its module doc. `canvas` and
-    /// `workspace` are the ones agents use in a release build. `echo`, `debug`,
+    /// user is supposed to have, for the reasons in its module doc. `canvas`,
+    /// `workspace` and `context` are the ones agents use in a release build. `echo`, `debug`,
     /// `ui` and `agent` are all developer-only.
     #[test]
     fn a_default_install_sees_only_the_servers_that_are_not_developer_only() {
@@ -293,9 +312,9 @@ mod tests {
         seed(&registry);
 
         #[cfg(feature = "design-mode")]
-        let expected: Vec<&str> = vec!["design", "canvas", "workspace"];
+        let expected: Vec<&str> = vec!["design", "canvas", "workspace", "context"];
         #[cfg(not(feature = "design-mode"))]
-        let expected: Vec<&str> = vec!["canvas", "workspace"];
+        let expected: Vec<&str> = vec!["canvas", "workspace", "context"];
 
         let ids: Vec<String> = registry.list(false).into_iter().map(|s| s.id).collect();
         assert_eq!(ids, expected);

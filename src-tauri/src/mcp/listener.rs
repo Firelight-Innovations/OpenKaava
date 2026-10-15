@@ -5,7 +5,7 @@
 //! bearer token, the routing table, and the adapter between `rmcp`'s handler
 //! trait and [`Registry`](super::Registry).
 
-use super::{route, Registry, Subscriptions, ToolAnswer, ToolDescriptor};
+use super::{route, Block, Registry, Subscriptions, ToolAnswer, ToolDescriptor};
 use axum::response::IntoResponse;
 use base64::Engine;
 use rand::RngCore;
@@ -500,21 +500,37 @@ impl ServerHandler for Bridge {
         );
 
         let result = match answered {
-            Ok(ToolAnswer::Json(value)) => match ContentBlock::json(value) {
-                Ok(content) => CallToolResult::success(vec![content]),
-                Err(e) => CallToolResult::error(vec![ContentBlock::text(format!(
-                    "the tool answered, but its answer could not be serialised: {e}"
-                ))]),
-            },
-            // Straight through: the base64 is already what the wire carries, so
-            // there is nothing here to serialise and nothing that can fail.
-            Ok(ToolAnswer::Image { mime, data }) => {
-                CallToolResult::success(vec![ContentBlock::image(data, mime)])
-            }
+            Ok(answer) => tool_result(answer),
             Err(e) => CallToolResult::error(vec![ContentBlock::text(e.message)]),
         };
 
         Ok(result.into())
+    }
+}
+
+/// A tool's answer as MCP content.
+fn tool_result(answer: ToolAnswer) -> CallToolResult {
+    match answer {
+        ToolAnswer::Json(value) => match ContentBlock::json(value) {
+            Ok(content) => CallToolResult::success(vec![content]),
+            Err(e) => CallToolResult::error(vec![ContentBlock::text(format!(
+                "the tool answered, but its answer could not be serialised: {e}"
+            ))]),
+        },
+        // Straight through: the base64 is already what the wire carries, so
+        // there is nothing here to serialise and nothing that can fail.
+        ToolAnswer::Image { mime, data } => {
+            CallToolResult::success(vec![ContentBlock::image(data, mime)])
+        }
+        ToolAnswer::Blocks(blocks) => CallToolResult::success(
+            blocks
+                .into_iter()
+                .map(|block| match block {
+                    Block::Text(text) => ContentBlock::text(text),
+                    Block::Image { mime, data } => ContentBlock::image(data, mime),
+                })
+                .collect(),
+        ),
     }
 }
 
@@ -659,6 +675,27 @@ mod tests {
         let listed = uncacheable(ListToolsResult::with_all_items(Vec::new()));
         assert_eq!(listed.ttl_ms, Some(0));
         assert_eq!(listed.cache_scope, Some(CacheScope::Private));
+    }
+
+    /// Blocks keep their order and their kinds: text stays text, a picture is
+    /// an image a client draws, not base64 in a string.
+    #[test]
+    fn blocks_become_content_in_order() {
+        let answer = ToolAnswer::Blocks(vec![
+            Block::Text("lines 10-20".into()),
+            Block::Image {
+                mime: "image/png".into(),
+                data: "iVBORw0KGgo=".into(),
+            },
+        ]);
+        let json = serde_json::to_value(tool_result(answer)).unwrap();
+        let content = json["content"].as_array().unwrap();
+        assert_eq!(content.len(), 2);
+        assert_eq!(content[0]["type"], "text");
+        assert_eq!(content[0]["text"], "lines 10-20");
+        assert_eq!(content[1]["type"], "image");
+        assert_eq!(content[1]["mimeType"], "image/png");
+        assert_ne!(json["isError"], true);
     }
 
     /// A schema that is not an object costs that one tool its arguments. It must

@@ -13,17 +13,19 @@ use tauri::AppHandle;
 /// Most frames a canvas reference lists, and most text items a frame lists.
 const MAX_LISTED: usize = 100;
 
-/// Who is asking. The canvas records it on every call it answers. Only the
-/// person resolves references so far; the context server adds the agent.
+/// Who is asking. The canvas records it on every call it answers: the person
+/// through `refs/resolve`, the agent through the context server.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Actor {
     Human,
+    Agent,
 }
 
 impl Actor {
-    fn name(self) -> &'static str {
+    pub fn name(self) -> &'static str {
         match self {
             Actor::Human => "human",
+            Actor::Agent => "agent",
         }
     }
 }
@@ -35,10 +37,7 @@ pub fn resolve(
     actor: Actor,
     r: &Ref,
 ) -> Result<Resolved, String> {
-    let root = ctx
-        .project
-        .as_deref()
-        .ok_or("this cluster has no project open, so there is nothing to reference")?;
+    let root = root_of(ctx)?;
     match r {
         Ref::File { .. } => resolve::file(root, r),
         Ref::Context { .. } => resolve::context_item(root, r),
@@ -53,6 +52,40 @@ pub fn resolve(
         }
         Ref::DesignComment { id } => design_comment(app, r, id),
         Ref::Selection => selection(app, ctx, root, r),
+    }
+}
+
+fn root_of(ctx: &CallContext) -> Result<&Path, String> {
+    ctx.project
+        .as_deref()
+        .ok_or_else(|| "this cluster has no project open, so there is nothing to reference".into())
+}
+
+/// Whether a reference names something that is there, without reading it:
+/// what `show` asks before the tab is told to draw it. A secret or gitignored
+/// file passes, because the tab draws it as withheld, which is still an answer.
+pub fn check(app: &AppHandle, ctx: &CallContext, r: &Ref) -> Result<(), String> {
+    let root = root_of(ctx)?;
+    match r {
+        Ref::File { path, .. } => super::policy::contain(root, path).map(drop),
+        Ref::Context { id } => crate::context::get(root, id)
+            .map(drop)
+            .map_err(|e| e.message),
+        Ref::Comment { id } => super::policy::contain(root, &format!(".kaava/comments/{id}.json"))
+            .map(drop)
+            .map_err(|_| format!("there is no comment `{id}` in this project")),
+        Ref::Canvas { id, part } => {
+            canvas_inside(root, id, part.as_ref())?;
+            match part {
+                Some(CanvasPart::Frame(frame)) => {
+                    let asked = json!({ "canvas": id, "frame": frame });
+                    canvas_call(app, ctx, Actor::Agent, "canvas/frame", asked).map(drop)
+                }
+                _ => Ok(()),
+            }
+        }
+        Ref::DesignComment { id } => design_comment(app, r, id).map(drop),
+        Ref::Selection => Ok(()),
     }
 }
 
