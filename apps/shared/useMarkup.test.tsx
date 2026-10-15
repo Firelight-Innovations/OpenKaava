@@ -4,6 +4,7 @@
  * when the setting says so, offer the automatic setting once after a manual
  * send, and bring an earlier markup of the same subject back.
  */
+import { useLayoutEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 
@@ -135,6 +136,64 @@ describe("useMarkup", () => {
     await waitFor(() => expect(result.current.markup?.fresh).toBe(false));
     expect(load).toHaveBeenCalledWith("bed.blend");
     expect(result.current.markup?.savedAt).toBe(5);
+  });
+
+  it("keeps a drawing that lands before the effects of the render that showed its subject", async () => {
+    settings();
+    // A click can land between a commit and its passive effects, which is what a
+    // loaded CI runner did. A layout effect of the commit that brings the subject
+    // in runs in that gap every time, so the drawing arrives there.
+    const load = vi.fn().mockResolvedValue(null);
+    const save = vi.fn().mockResolvedValue({});
+    const send = vi.fn();
+    const onProblem = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ subject }: { subject: string | null }) => {
+        const markup = useMarkup({
+          target: BLENDER_TARGET,
+          subject,
+          enabled: subject !== null,
+          load,
+          save,
+          send,
+          onProblem,
+          describeError: String,
+        });
+        const { onMarkup } = markup;
+        useLayoutEffect(() => {
+          if (subject) onMarkup(exported as never);
+        }, [subject, onMarkup]);
+        return markup;
+      },
+      { initialProps: { subject: null as string | null } },
+    );
+    rerender({ subject: "bed.blend" });
+    await waitFor(() => expect(load).toHaveBeenCalledWith("bed.blend"));
+    await act(() => Promise.resolve());
+    expect(save).toHaveBeenCalledWith("bed.blend", exported.png, drawn);
+    expect(result.current.markup?.fresh).toBe(true);
+  });
+
+  it("shows no markup of the last subject once another is chosen", async () => {
+    settings();
+    const { result, rerender } = renderHook(
+      ({ subject }: { subject: string }) =>
+        useMarkup({
+          target: BLENDER_TARGET,
+          subject,
+          enabled: true,
+          load: () => Promise.resolve(null),
+          save: () => Promise.resolve(),
+          send: vi.fn(),
+          onProblem: vi.fn(),
+          describeError: String,
+        }),
+      { initialProps: { subject: "bed.blend" } },
+    );
+    act(() => result.current.onMarkup(exported as never));
+    expect(result.current.markup).not.toBeNull();
+    rerender({ subject: "chair.blend" });
+    expect(result.current.markup).toBeNull();
   });
 
   it("ignores a kept file that is not a markup, and loads nothing when disabled", async () => {

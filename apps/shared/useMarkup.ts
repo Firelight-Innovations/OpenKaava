@@ -56,7 +56,11 @@ export interface UseMarkupOptions {
 
 export function useMarkup(opts: UseMarkupOptions) {
   const { target, subject, enabled, load, save, send, onProblem, describeError } = opts;
-  const [markup, setMarkup] = useState<KeptMarkup | null>(null);
+  // Held with the subject it was drawn on or loaded for, and shown only while
+  // that subject is. A drawing can land between the commit that shows a subject
+  // and that commit's effects, so the effect below must not wipe it.
+  const [kept, setKept] = useState<{ of: string | null; markup: KeptMarkup } | null>(null);
+  const markup = enabled && kept?.of === subject ? kept.markup : null;
   const [barOpen, setBarOpen] = useState(true);
   const [previousOpen, setPreviousOpen] = useState(false);
   const [tip, setTip] = useState(false);
@@ -64,17 +68,17 @@ export function useMarkup(opts: UseMarkupOptions) {
   const tipShown = useRef(false);
 
   // The thumbnail's URL is released when it is replaced or the pane goes.
+  const keptUrl = kept?.markup.url;
   useEffect(() => {
-    const url = markup?.url;
     return () => {
-      if (url) URL.revokeObjectURL(url);
+      if (keptUrl) URL.revokeObjectURL(keptUrl);
     };
-  }, [markup?.url]);
+  }, [keptUrl]);
 
   // Each subject has its own last markup, kept on disk; bring it back when the
   // subject is shown so it can be looked at or sent without drawing it again.
   useEffect(() => {
-    setMarkup(null);
+    setKept((now) => (enabled && subject && now?.of === subject ? now : null));
     setPreviousOpen(false);
     if (!subject || !enabled) return;
     let live = true;
@@ -84,15 +88,19 @@ export function useMarkup(opts: UseMarkupOptions) {
         const json: unknown = JSON.parse(saved.json);
         if (!isMarkupJson(json)) return;
         const png = base64Blob(saved.png);
-        setMarkup(
-          (now) =>
-            now ?? {
-              png,
-              json,
-              url: URL.createObjectURL(png),
-              savedAt: saved.savedAt,
-              fresh: false,
-            },
+        setKept((now) =>
+          now?.of === subject
+            ? now
+            : {
+                of: subject,
+                markup: {
+                  png,
+                  json,
+                  url: URL.createObjectURL(png),
+                  savedAt: saved.savedAt,
+                  fresh: false,
+                },
+              },
         );
       })
       .catch(() => undefined);
@@ -105,12 +113,15 @@ export function useMarkup(opts: UseMarkupOptions) {
 
   const onMarkup = useCallback(
     (result: MarkupExport) => {
-      setMarkup({
-        png: result.png,
-        json: result.json,
-        url: URL.createObjectURL(result.png),
-        savedAt: Date.now(),
-        fresh: true,
+      setKept({
+        of: subject,
+        markup: {
+          png: result.png,
+          json: result.json,
+          url: URL.createObjectURL(result.png),
+          savedAt: Date.now(),
+          fresh: true,
+        },
       });
       setBarOpen(true);
       if (subject) {

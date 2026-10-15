@@ -162,9 +162,7 @@ describe("Blender Viewer markup", () => {
       pngBase64: "QUJD",
       json: JSON.stringify(drawn),
     });
-    // The footer mounts after the save settles; under a loaded CI runner that
-    // has taken ~1.5s, past findBy's 1s default.
-    await screen.findByRole("button", { name: "Send markup" }, { timeout: 3000 });
+    await screen.findByRole("button", { name: "Send markup" });
     expect(calls("context/insert")).toHaveLength(0);
   });
 
