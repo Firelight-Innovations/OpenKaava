@@ -33,9 +33,10 @@ use tauri::AppHandle;
 /// looking.
 pub const RESOLVE_METHOD: &str = "refs/resolve";
 
-/// Whether the host answers `method` here rather than an app.
+/// Whether the host answers `method` here rather than an app. Only the names
+/// it implements: any other `refs/` method is the calling plugin's own.
 pub fn is_method(method: &str) -> bool {
-    method.starts_with("refs/")
+    method == RESOLVE_METHOD
 }
 
 /// Answer a `refs/*` method from app `caller` for the cluster in `ctx`.
@@ -92,6 +93,10 @@ mod tests {
         assert!(is_method(RESOLVE_METHOD));
         assert!(!is_method("context/get"));
         assert!(!is_method("refsx/resolve"));
+        assert!(
+            !is_method("refs/sync"),
+            "a plugin's own refs/ method is its own"
+        );
     }
 
     #[test]
