@@ -192,7 +192,6 @@ export interface RingProps {
   tone: Tone;
 }
 
-/** The composer's settings button. Each section is one setting: harness, model, effort, mode. */
 /** A harness in the settings menu, with the models it offers. */
 export interface HarnessChoice {
   /** `claude`, `codex`, `kaava`. */
@@ -207,6 +206,7 @@ export interface HarnessChoice {
   unavailable: string | null;
 }
 
+/** The composer's settings button: the harnesses and their models, then effort, mode and the rest. */
 export interface ModelMenuProps {
   label: string;
   /** The harness in use, by id. */
