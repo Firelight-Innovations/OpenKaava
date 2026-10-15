@@ -402,7 +402,7 @@ impl ServerHandler for Bridge {
             .filter(|_| self.reachable())
             .map(|t| ResourceTemplate::new(t.uri, t.name).with_description(t.description))
             .collect();
-        Ok(ListResourceTemplatesResult::with_all_items(listed))
+        Ok(templates_result(listed))
     }
 
     /// Reads run off the async worker: the workspace resource asks each webview
@@ -424,7 +424,7 @@ impl ServerHandler for Bridge {
 
         let answer = match read {
             Some(Ok(answer)) => answer,
-            Some(Err(e)) => return Err(ErrorData::internal_error(e.message, None)),
+            Some(Err(e)) => return Err(read_error(e)),
             None => return Err(not_found(&request.uri)),
         };
 
@@ -475,8 +475,8 @@ impl ServerHandler for Bridge {
         request: UnsubscribeRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<(), ErrorData> {
-        self.require_published(&request.uri)?;
-
+        // Not held to the switch: it only forgets, and a client must be able
+        // to stop what it started before the server was switched off.
         self.app.state::<Subscriptions>().unsubscribe(
             &self.id,
             &request.uri,
@@ -487,11 +487,15 @@ impl ServerHandler for Bridge {
 
     /// The 2026-07-28 form: one `subscriptions/listen` request that stays open
     /// and carries the notifications. We accept the uris we publish and ignore
-    /// the rest, and `listen` below holds the request open until it ends.
+    /// the rest, none while the server is off, and `listen` below holds the
+    /// request open until it ends.
     fn accepted_subscription_filter(
         &self,
         requested: &SubscriptionFilter,
     ) -> Option<SubscriptionFilter> {
+        if !self.reachable() {
+            return None;
+        }
         let published = super::servers::resources(&self.id);
         let uris: Vec<String> = requested
             .resource_subscriptions
@@ -589,6 +593,23 @@ fn resource_contents(uri: &str, answer: ToolAnswer) -> Vec<ResourceContents> {
                 Block::Image { mime, data } => blob(mime, data),
             })
             .collect(),
+    }
+}
+
+/// A template list as [`uncacheable`] says a tool list must be.
+fn templates_result(listed: Vec<ResourceTemplate>) -> ListResourceTemplatesResult {
+    ListResourceTemplatesResult::with_all_items(listed)
+        .with_ttl_ms(0)
+        .with_cache_scope(CacheScope::Private)
+}
+
+/// A failed read as a protocol error: a reference that is malformed, missing
+/// or refused is the caller's to fix, and anything else is ours.
+fn read_error(e: kaava_rpc::RpcError) -> ErrorData {
+    if e.code == kaava_rpc::INVALID_PARAMS {
+        ErrorData::invalid_params(e.message, None)
+    } else {
+        ErrorData::internal_error(e.message, None)
     }
 }
 
@@ -761,8 +782,6 @@ mod tests {
         assert_eq!(listed.cache_scope, Some(CacheScope::Private));
     }
 
-    /// Blocks keep their order and their kinds: text stays text, a picture is
-    /// an image a client draws, not base64 in a string.
     #[test]
     fn a_session_answers_from_its_own_cluster_whatever_the_call_names() {
         let mut named = Some(serde_json::json!({ "uri": "kaava://selection", "cluster": "other" }));
@@ -801,6 +820,29 @@ mod tests {
         assert_eq!(json[0]["text"], r#"{"a":1}"#);
     }
 
+    #[test]
+    fn a_template_list_carries_the_caching_fields_too() {
+        let json = serde_json::to_value(templates_result(Vec::new())).unwrap();
+        assert_eq!(json["ttlMs"], 0);
+        assert_eq!(json["cacheScope"], "private");
+    }
+
+    #[test]
+    fn a_bad_reference_is_the_callers_mistake_and_anything_else_is_ours() {
+        let bad = kaava_rpc::RpcError::new(kaava_rpc::INVALID_PARAMS, "no such file".to_string());
+        assert_eq!(
+            read_error(bad).code,
+            ErrorData::invalid_params("", None).code
+        );
+        let broke = kaava_rpc::RpcError::new(kaava_rpc::INTERNAL_ERROR, "boom".to_string());
+        assert_eq!(
+            read_error(broke).code,
+            ErrorData::internal_error("", None).code
+        );
+    }
+
+    /// Blocks keep their order and their kinds: text stays text, a picture is
+    /// an image a client draws, not base64 in a string.
     #[test]
     fn blocks_become_content_in_order() {
         let answer = ToolAnswer::Blocks(vec![

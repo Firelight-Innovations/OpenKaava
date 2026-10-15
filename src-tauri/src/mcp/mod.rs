@@ -71,7 +71,8 @@ const FOCUS_COALESCE: Duration = Duration::from_millis(50);
 /// Called after [`FocusState::update`] says a report was news. The notification
 /// carries no payload by design: MCP's `resources/updated` only names the uri,
 /// and the client re-reads it, so what it sees is always the state at read time
-/// rather than a snapshot that could arrive out of order.
+/// rather than a snapshot that could arrive out of order. A server switched off
+/// tells no one, as it reads nothing.
 pub fn notify_focus_changed(app: &AppHandle) {
     if !app.state::<FocusState>().burst.arm() {
         return;
@@ -81,8 +82,15 @@ pub fn notify_focus_changed(app: &AppHandle) {
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(FOCUS_COALESCE).await;
         app.state::<FocusState>().burst.fire();
-        let subscriptions = app.state::<Subscriptions>();
-        subscriptions.notify(servers::workspace::ID, servers::workspace::FOCUS_URI);
-        subscriptions.notify(servers::context::ID, servers::context::SELECTION_URI);
+        let (registry, subscriptions) = (app.state::<Registry>(), app.state::<Subscriptions>());
+        let dev = dev_mode(&app);
+        for (id, uri) in [
+            (servers::workspace::ID, servers::workspace::FOCUS_URI),
+            (servers::context::ID, servers::context::SELECTION_URI),
+        ] {
+            if registry.is_reachable(id, dev) {
+                subscriptions.notify(id, uri);
+            }
+        }
     });
 }
