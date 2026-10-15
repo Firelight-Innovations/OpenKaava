@@ -20,6 +20,7 @@ pub mod assets;
 pub mod live;
 pub mod policy;
 pub mod resolve;
+pub mod search;
 pub mod uri;
 
 use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};

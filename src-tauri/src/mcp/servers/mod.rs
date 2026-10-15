@@ -153,8 +153,9 @@ pub fn instructions(id: &str) -> Option<&'static str> {
         context::ID => Some(
             "kaava:// references to what is in the person's project: kaava://file/<path>#L10-L20, \
              kaava://canvas/<id>#frame=<frame>, kaava://comment/<id>, kaava://design-comment/<id>, \
-             kaava://context/<id> and kaava://selection. `read` one to see it; `show` up to eight \
-             to put them in front of the person beside your reply. Call `get_selection` when they \
+             kaava://context/<id> and kaava://selection. `search_context` finds them by name, \
+             `read` reads one, and `show` puts up to eight in front of the person beside your \
+             reply. Call `get_selection` when they \
              say \"this\". Secrets and gitignored files are withheld and say so.",
         ),
         "debug" => Some(

@@ -17,6 +17,7 @@ use crate::apps::CallContext;
 use crate::mcp::{Block, McpServer, McpTool, ToolAnswer};
 use crate::refs::live::{self, Actor};
 use crate::refs::resolve::{Part, Resolved};
+use crate::refs::search::{self, Query};
 use crate::refs::uri::{self, CanvasPart, Ref};
 use crate::shell_state::ShellState;
 use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
@@ -74,6 +75,24 @@ fn read_schema() -> Value {
     )
 }
 
+fn search_schema() -> Value {
+    schema(
+        json!({
+            "query": {
+                "type": "string",
+                "description": "Words in the name. Empty lists everything but files and frames.",
+            },
+            "kinds": {
+                "type": "array",
+                "items": { "type": "string", "enum": search::KINDS },
+                "description": "Only these kinds. Omit for all of them.",
+            },
+            "limit": { "type": "integer", "minimum": 1, "maximum": search::MAX_LIMIT },
+        }),
+        &[],
+    )
+}
+
 fn selection_schema() -> Value {
     schema(json!({}), &[])
 }
@@ -105,6 +124,14 @@ const TOOLS: &[McpTool] = &[
         schema: read_schema,
     },
     McpTool {
+        name: "search_context",
+        description: "Find things in the person's project by name: files and folders, canvases \
+                      and frames, comments, Design Mode comments, context items and the \
+                      selection. Each hit is a kaava:// reference to `read` or `show`. Names, \
+                      not contents: search inside files with your own tools.",
+        schema: search_schema,
+    },
+    McpTool {
         name: "get_selection",
         description: "What the person has selected right now: selected text, the frame or node \
                       each open app reports, and references to them. Call it when they say \
@@ -122,7 +149,7 @@ const TOOLS: &[McpTool] = &[
 /// Whether a tool leaves the person's work alone, for MCP's `readOnlyHint`.
 pub fn read_only(tool: &str) -> Option<bool> {
     match tool {
-        "read" | "get_selection" | "get_canvas_node" => Some(true),
+        "read" | "search_context" | "get_selection" | "get_canvas_node" => Some(true),
         // `show` changes nothing on disk, but it puts something in front of
         // the person, which is not what a client means by read-only.
         "show" => Some(false),
@@ -151,6 +178,7 @@ fn call(app: &AppHandle, tool: &str, params: Option<Value>) -> Result<ToolAnswer
     match tool {
         "show" => show(app, &ctx, &args),
         "read" => read(app, &ctx, &parse(text(&args, "uri")?)?),
+        "search_context" => find(app, &ctx, &args),
         "get_selection" => read(app, &ctx, &Ref::Selection),
         "get_canvas_node" => {
             let r = Ref::Canvas {
@@ -191,6 +219,36 @@ fn context_for(app: &AppHandle, cluster: Option<&str>) -> Result<CallContext, Rp
 fn read(app: &AppHandle, ctx: &CallContext, r: &Ref) -> Result<ToolAnswer, RpcError> {
     let resolved = live::resolve(app, ctx, Actor::Agent, r).map_err(bad)?;
     Ok(ToolAnswer::Blocks(blocks(&resolved)))
+}
+
+fn find(
+    app: &AppHandle,
+    ctx: &CallContext,
+    args: &Map<String, Value>,
+) -> Result<ToolAnswer, RpcError> {
+    if ctx.project.is_none() {
+        return Err(bad(
+            "this cluster has no project open, so there is nothing to find",
+        ));
+    }
+    let words = args.get("query").and_then(Value::as_str).unwrap_or("");
+    let kinds = match args.get("kinds") {
+        None | Some(Value::Null) => None,
+        Some(Value::Array(list)) => Some(
+            list.iter()
+                .map(|k| k.as_str().map(String::from))
+                .collect::<Option<Vec<_>>>()
+                .ok_or_else(|| bad("`kinds` is a list of strings"))?,
+        ),
+        Some(_) => return Err(bad("`kinds` is a list of strings")),
+    };
+    let limit = args
+        .get("limit")
+        .and_then(Value::as_u64)
+        .map(|n| n as usize);
+    let q = Query::new(words, kinds, limit).map_err(bad)?;
+    let hits = search::run(app, ctx, Actor::Agent, &q);
+    Ok(json!({ "query": words, "hits": hits }).into())
 }
 
 /// Check every reference, then answer with the marker the agent tab draws
