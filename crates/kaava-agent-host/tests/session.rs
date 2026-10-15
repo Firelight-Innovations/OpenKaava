@@ -1661,20 +1661,51 @@ fn a_session_offers_no_mcp_servers_by_default() {
 
 #[test]
 fn an_agent_without_http_mcp_is_offered_none() {
+    // One says it takes no HTTP servers; the other says nothing of MCP.
+    for flag in ["--no-mcp-http", "--no-mcp-caps"] {
+        let rig = rig();
+        let record = rig.dir.path().join("mcp.json");
+        let mut spec = mock(&[flag, "--record-mcp", record.to_str().unwrap()]);
+        spec.mcp_servers = vec![kaava_server()];
+        rig.send_spec(spec, "stream").unwrap();
+        rig.turns_done(1);
+        assert_eq!(recorded(&record), json!([]), "{flag}");
+        let logs = rig.logged("not offered");
+        assert!(
+            logs.iter()
+                .any(|l| l.contains("no HTTP MCP servers; not offered: kaava-context")),
+            "{flag}: {logs:?}"
+        );
+        nowhere_holds_the_bearer(&rig);
+    }
+}
+
+#[test]
+fn a_server_off_this_machine_is_not_offered() {
     let rig = rig();
     let record = rig.dir.path().join("mcp.json");
-    let mut spec = mock(&["--no-mcp-http", "--record-mcp", record.to_str().unwrap()]);
-    spec.mcp_servers = vec![kaava_server()];
+    let mut spec = mock(&["--record-mcp", record.to_str().unwrap()]);
+    let away = McpServer {
+        name: "kaava-away".into(),
+        url: "http://example.com/mcp".into(),
+        ..kaava_server()
+    };
+    spec.mcp_servers = vec![away, kaava_server()];
     rig.send_spec(spec, "stream").unwrap();
     rig.turns_done(1);
-    assert_eq!(recorded(&record), json!([]));
+    let names: Vec<Value> = recorded(&record)
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|s| s["name"].clone())
+        .collect();
+    assert_eq!(names, [json!("kaava-context")]);
     let logs = rig.logged("not offered");
     assert!(
         logs.iter()
-            .any(|l| l.contains("not offered: kaava-context")),
+            .any(|l| l.contains("not on this machine; not offered: kaava-away")),
         "{logs:?}"
     );
-    nowhere_holds_the_bearer(&rig);
 }
 
 #[test]

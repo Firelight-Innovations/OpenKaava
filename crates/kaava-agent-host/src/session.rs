@@ -696,14 +696,22 @@ impl Shared {
             .pointer("/agentCapabilities/mcpCapabilities/http")
             .and_then(Value::as_bool)
             .unwrap_or(false);
-        if !http && !self.mcp_servers.is_empty() {
-            let names: Vec<&str> = self.mcp_servers.iter().map(|s| s.name.as_str()).collect();
+        let left_out: Vec<&str> = (self.mcp_servers.iter())
+            .filter(|s| !mcp::offered(s, http))
+            .map(|s| s.name.as_str())
+            .collect();
+        if !left_out.is_empty() {
+            let why = if http {
+                "MCP server not on this machine"
+            } else {
+                "agent takes no HTTP MCP servers"
+            };
             (self.log)(
                 Level::Info,
                 &format!(
-                    "agent-host: {} agent takes no HTTP MCP servers; not offered: {}",
+                    "agent-host: {} {why}; not offered: {}",
                     self.instance_id,
-                    names.join(", ")
+                    left_out.join(", ")
                 ),
             );
         }

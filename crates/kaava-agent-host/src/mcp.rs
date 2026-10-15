@@ -38,15 +38,37 @@ impl fmt::Debug for McpServer {
     }
 }
 
-/// The `mcpServers` list for `session/new`, in ACP's HTTP form. Empty unless
-/// the agent said it takes HTTP servers: ACP requires only stdio of every
-/// agent, and these servers are HTTP only.
+/// Whether `server` goes to the agent. Not unless the agent said it takes
+/// HTTP servers: ACP requires only stdio of every agent, and these servers
+/// are HTTP only. Nor unless its URL is on this machine, since the bearer goes
+/// wherever the URL points.
+pub fn offered(server: &McpServer, http: bool) -> bool {
+    http && on_this_machine(&server.url)
+}
+
+/// An `http` or `https` URL whose host is the loopback interface. Anything
+/// else is refused, user info included.
+fn on_this_machine(url: &str) -> bool {
+    let Some(rest) = url
+        .strip_prefix("http://")
+        .or_else(|| url.strip_prefix("https://"))
+    else {
+        return false;
+    };
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    let host = match authority.strip_prefix('[') {
+        Some(v6) => v6.split(']').next().unwrap_or_default(),
+        None => authority.split(':').next().unwrap_or_default(),
+    };
+    matches!(host, "127.0.0.1" | "localhost" | "::1")
+}
+
+/// The `mcpServers` list for `session/new`, in ACP's HTTP form: the servers
+/// [`offered`] to the agent.
 pub fn wire(servers: &[McpServer], http: bool) -> Value {
-    if !http {
-        return json!([]);
-    }
     servers
         .iter()
+        .filter(|s| offered(s, http))
         .map(|s| {
             json!({
                 "type": "http",
@@ -115,6 +137,39 @@ mod tests {
     fn an_agent_without_http_gets_none() {
         assert_eq!(wire(&[show()], false), json!([]));
         assert_eq!(wire(&[], true), json!([]));
+    }
+
+    #[test]
+    fn only_a_server_on_this_machine_is_offered() {
+        for url in [
+            "http://127.0.0.1:4100/mcp/context",
+            "http://localhost:4100",
+            "https://[::1]:4100/mcp",
+        ] {
+            let s = McpServer {
+                url: url.into(),
+                ..show()
+            };
+            assert!(offered(&s, true), "{url}");
+            assert!(!offered(&s, false), "{url} without HTTP");
+        }
+        for url in [
+            "http://example.com/mcp",
+            "http://127.0.0.1.example.com/mcp",
+            "http://localhost.example.com",
+            "http://127.0.0.1@example.com/mcp",
+            "http://user@127.0.0.1:4100",
+            "ftp://127.0.0.1/mcp",
+            "127.0.0.1:4100",
+            "",
+        ] {
+            let s = McpServer {
+                url: url.into(),
+                ..show()
+            };
+            assert!(!offered(&s, true), "{url}");
+            assert_eq!(wire(&[s], true), json!([]), "{url}");
+        }
     }
 
     #[test]

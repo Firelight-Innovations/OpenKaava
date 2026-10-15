@@ -331,13 +331,17 @@ impl Mock {
                 let version = self
                     .flag_value("--version")
                     .unwrap_or_else(|| "0.90.0".into());
+                // `--no-mcp-caps` leaves the MCP capabilities out altogether.
+                let caps = if self.has("--no-mcp-caps") {
+                    json!({})
+                } else {
+                    json!({ "mcpCapabilities": { "http": !self.has("--no-mcp-http"), "sse": true } })
+                };
                 self.reply(
                     &id,
                     json!({
                         "protocolVersion": 1,
-                        "agentCapabilities": {
-                            "mcpCapabilities": { "http": !self.has("--no-mcp-http"), "sse": true }
-                        },
+                        "agentCapabilities": caps,
                         "agentInfo": { "name": "mock-agent", "version": version },
                         "authMethods": []
                     }),
