@@ -99,6 +99,10 @@
   color: var(--k-fg-muted);
 }
 
+.at-empty .at-hint {
+  margin: 1em 0;
+}
+
 .at-empty__heading {
   margin: 0 0 var(--k-space-1);
   color: var(--k-editor-fg);

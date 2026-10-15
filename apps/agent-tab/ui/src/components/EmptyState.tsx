@@ -1,15 +1,17 @@
 import { strings } from "../strings";
+import { useSlots } from "./registry";
 import type { EmptyStateProps } from "./types";
 import "./frame.css";
 
 /** A short prompt, three example tasks and the keys (handoff §2.1.6). */
 export function EmptyState({ blocked, setupHint, onExample }: EmptyStateProps) {
+  const S = useSlots();
   return (
     <div className="at-empty">
       <h2 className="at-empty__heading">{strings.empty.heading}</h2>
       <p>{strings.empty.body}</p>
-      {blocked && <p className="at-hint">{strings.refusal[blocked] ?? blocked}</p>}
-      {setupHint !== null && <p className="at-hint">{setupHint}</p>}
+      {blocked && <S.Hint text={strings.refusal[blocked] ?? blocked} />}
+      {setupHint !== null && <S.Hint text={setupHint} />}
       <ul className="at-empty__examples">
         {strings.empty.examples.map((text) => (
           <li key={text}>

@@ -5,7 +5,7 @@
  * that shows, at the top level and inside other components alike.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { isValidElement, type ComponentType, type ReactNode } from "react";
 
 const bridge = vi.hoisted(() => ({ invoke: vi.fn() }));
@@ -181,8 +181,47 @@ describe("the slot registry", () => {
     // The defaults are gone wherever a stub stands in.
     expect(container.querySelector(".at-status")).toBeNull();
     expect(container.querySelector(".at-diff")).toBeNull();
-    // The truncated detail and the waiting prompt say so through Note, not beside it.
+    expect(container.querySelector(".at-paths")).toBeNull();
     expect(container.querySelector(".at-note")).toBeNull();
+    expect(container.querySelector(".at-hint")).toBeNull();
+  });
+
+  it.each([
+    ["StatusBadge", ".at-status"],
+    ["Diff", ".at-diff"],
+    ["PathList", ".at-paths"],
+    ["Note", ".at-note"],
+    ["Hint", ".at-hint"],
+  ] as const)("leaves no default %s anywhere once it is replaced", async (name, selector) => {
+    backend(() => Promise.resolve(EVERYTHING));
+    const { container } = render(
+      <SlotsProvider slots={stubs([name])}>
+        <App />
+      </SlotsProvider>,
+    );
+    await screen.findByText("hi");
+    expect(slotsShown(container)).toContain(name);
+    expect(container.querySelector(selector)).toBeNull();
+  });
+
+  it("draws the empty state's hints through the Hint slot", async () => {
+    bridge.invoke.mockImplementation((method: string) => {
+      if (method === "agent-tab/attach")
+        return Promise.resolve({ seq: 0, status: null, items: [] });
+      if (method === "agent-tab/harnesses")
+        return Promise.resolve({
+          harnesses: [{ harness: "claude", hint: "signedOut" }],
+          blocked: "developerMode",
+        });
+      return Promise.resolve({});
+    });
+    const { container } = render(
+      <SlotsProvider slots={stubs(["Hint"])}>
+        <App />
+      </SlotsProvider>,
+    );
+    await waitFor(() => expect(container.querySelectorAll("[data-slot='Hint']")).toHaveLength(2));
+    expect(container.querySelector(".at-hint")).toBeNull();
   });
 
   it("names the harness and model it is given, and leaves out the unknown ones", () => {
