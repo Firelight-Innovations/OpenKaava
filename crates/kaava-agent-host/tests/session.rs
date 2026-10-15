@@ -1142,6 +1142,12 @@ fn the_session_reports_its_modes_and_settings() {
         ["default", "acceptEdits", "plan"],
         "bypass (D4) and auto are never offered"
     );
+    let names: Vec<&str> = status.modes.iter().map(|m| m.name.as_str()).collect();
+    assert_eq!(
+        names,
+        ["Manual", "Accept edits", "Plan"],
+        "the agent's own names"
+    );
     let ids: Vec<&str> = status.config.iter().map(|o| o.id.as_str()).collect();
     assert_eq!(
         ids,
@@ -1247,8 +1253,7 @@ fn the_agent_has_the_last_word_on_the_mode() {
     let rig = rig();
     rig.send(&["--settles-elsewhere"], "stream").unwrap();
     rig.turns_done(1);
-    // Only the reply says where the mode went, so this also shows the reply
-    // was taken in.
+    // The agent says where the mode went before it answers.
     let ticket = rig.host.set_mode(TAB, "plan").unwrap();
     let status = rig.status_where("the answer to the switch", |s| s.answered >= ticket);
     assert_eq!(

@@ -587,6 +587,10 @@ describe("the agent tab", () => {
     backend({ status: SETTINGS, seq: 1, items: [] });
     render(<App />);
     expect(await shownMode()).toBe("Manual");
+    const menu = await modeMenu();
+    const labels = menu.getAllByRole("menuitemradio").map((o) => o.textContent);
+    expect(labels).toEqual(["Manual", "Accept edits", "Plan"]);
+    fireEvent.click(await settingsButton());
     const status = (seq: number, status: SessionStatus) =>
       emit({ instanceId: "i", seq, event: { type: "status", status } });
 

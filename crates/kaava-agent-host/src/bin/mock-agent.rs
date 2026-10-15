@@ -131,35 +131,48 @@ impl Mock {
     }
 
     /// The settings, shaped as Claude's adapter shapes them: the mode again
-    /// as an option, effort, and fast mode as an on/off select. The model
-    /// option also lists `bypassPermissions`, a held-back value the host must
-    /// drop from every option.
+    /// as an option with the adapter's names, effort only for a model that
+    /// has it, and fast mode as an on/off select. The model option also lists
+    /// `bypassPermissions`, a held-back value the host must drop from every
+    /// option. The other options' names are their values in upper case, so a
+    /// test can tell a name from a value.
     fn config_options(&self) -> Value {
-        let select = |id: &str, category: &str, current: &str, choices: &[&str]| {
-            let options: Vec<Value> = choices
-                .iter()
-                .map(|c| json!({ "value": c, "name": c.to_uppercase() }))
-                .collect();
-            json!({ "id": id, "name": id.to_uppercase(), "category": category,
+        let select =
+            |id: &str, name: &str, category: &str, current: &str, choices: &[(&str, &str)]| {
+                let options: Vec<Value> = choices
+                    .iter()
+                    .map(|(value, name)| json!({ "value": value, "name": name }))
+                    .collect();
+                json!({ "id": id, "name": name, "category": category,
                     "type": "select", "currentValue": current, "options": options })
+            };
+        let shouted = |id: &str, category: &str, current: &str, values: &[&str]| {
+            let upper: Vec<String> = values.iter().map(|v| v.to_uppercase()).collect();
+            let choices: Vec<(&str, &str)> = values
+                .iter()
+                .zip(&upper)
+                .map(|(v, u)| (*v, u.as_str()))
+                .collect();
+            select(id, &id.to_uppercase(), category, current, &choices)
         };
-        let mode_ids: Vec<&str> = MODES.iter().map(|(id, _)| *id).collect();
         let mut options = vec![
-            select("mode", "mode", &self.mode, &mode_ids),
-            select(
+            select("mode", "Mode", "mode", &self.mode, &MODES),
+            shouted(
                 "model",
                 "model",
                 &self.model,
                 &["default", "opus", "haiku", "bypassPermissions"],
             ),
         ];
-        options.push(select(
-            "effort",
-            "thought_level",
-            &self.effort,
-            &["low", "medium", "high"],
-        ));
-        options.push(select("fast", "model_config", &self.fast, &["on", "off"]));
+        if self.model != "haiku" {
+            options.push(shouted(
+                "effort",
+                "thought_level",
+                &self.effort,
+                &["low", "medium", "high"],
+            ));
+        }
+        options.push(shouted("fast", "model_config", &self.fast, &["on", "off"]));
         Value::Array(options)
     }
 
@@ -173,11 +186,13 @@ impl Mock {
     }
 
     /// `session/set_config_option`, as Claude's adapter answers it: every
-    /// option as it now stands, after a `current_mode_update` for a mode.
-    /// With `--settles-elsewhere` a mode change settles on `acceptEdits`
-    /// instead, and only the reply says so; the adapter does settle elsewhere
-    /// when it falls back from `auto`. With `--slow-setting` every reply comes
-    /// a second late.
+    /// option as it now stands, after a `current_mode_update` for a mode, sent
+    /// whether or not the mode settled where it was asked to.
+    /// With `--settles-elsewhere` every change but to `default` settles on
+    /// `acceptEdits` instead. Claude's adapter settles elsewhere only when it
+    /// cannot run Auto, which the tab never asks for; this stands in for an
+    /// agent that settles elsewhere more often. With `--slow-setting` the
+    /// reply comes a second after the notification.
     fn set_config(&mut self, id: &Value, params: &Value) {
         let config = params
             .get("configId")
@@ -190,14 +205,14 @@ impl Mock {
             .to_string();
         match config {
             "mode" if MODES.iter().any(|(m, _)| *m == value) => {
-                if self.has("--settles-elsewhere") {
-                    self.mode = "acceptEdits".into();
+                self.mode = if self.has("--settles-elsewhere") && value != "default" {
+                    "acceptEdits".into()
                 } else {
-                    self.mode = value;
-                    self.update(json!({
-                        "sessionUpdate": "current_mode_update", "currentModeId": self.mode
-                    }));
-                }
+                    value
+                };
+                self.update(json!({
+                    "sessionUpdate": "current_mode_update", "currentModeId": self.mode
+                }));
             }
             _ => return self.reply_error(id, -32602, "Unknown config option"),
         }
