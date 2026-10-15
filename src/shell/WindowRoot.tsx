@@ -67,7 +67,8 @@ import TerminalDeck, { type TerminalDeckHandle } from "./terminal/TerminalDeck";
 import { callApp, useApps, useOpenables, usePages } from "./state/apps";
 import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
-import { agentBarShown, sendToAgent, useAgentBarStatus } from "./state/agentBar";
+import { AGENT_TAB_APP, agentBarShown, sendToAgent, useAgentBarStatus } from "./state/agentBar";
+import { agentClusters, agentsDot, useAgentSessions } from "./state/agentSessions";
 import { ClusterAgentBar } from "./agentbar/AgentBar";
 import ReadOnlyBanner from "./git/ReadOnlyBanner";
 import { useProjectIcon } from "./state/projectIcon";
@@ -102,6 +103,7 @@ import Rail from "./rail/Rail";
 import PageShell from "./rail/PageShell";
 import AppPage from "./rail/AppPage";
 import HindsightPage from "./rail/HindsightPage";
+import AgentsPage from "./rail/AgentsPage";
 import GitPage, { type GitPageView } from "./rail/GitPage";
 
 /**
@@ -1655,6 +1657,48 @@ export default function WindowRoot({
     [label, tree, instances, activePaneId],
   );
 
+  // The Agents page and its rail dot: every cluster's agent tabs, and what
+  // each session is doing, kept live whether or not the page is open.
+  const agentList = useMemo(
+    () => agentClusters(orderedClusters, instances),
+    [orderedClusters, instances],
+  );
+  const agentIds = useMemo(
+    () => agentList.flatMap((cluster) => cluster.tabs.map((tab) => tab.id)),
+    [agentList],
+  );
+  const agentSessions = useAgentSessions(agentIds);
+  // Like choosing a tab from the cluster's strip: Home stops covering the
+  // window, and `activate_instance` brings the tab's own cluster forward.
+  const onOpenAgent = useCallback(
+    (instanceId: string) => {
+      hideTakeover();
+      const pane = paneOfTab(tree, instanceId);
+      if (pane !== null) setActivePane(pane);
+      void activateInstance(instanceId);
+    },
+    [tree, hideTakeover],
+  );
+  const onNewAgent = useCallback(
+    (clusterId: string) => {
+      hideTakeover();
+      void (async () => {
+        if (clusterId === activeClusterId) {
+          await openInstance(
+            label,
+            AGENT_TAB_APP,
+            activePaneId ?? undefined,
+            splitDirOnOpen(activePaneId),
+          );
+          return;
+        }
+        await setActiveCluster(label, clusterId);
+        await openInstance(label, AGENT_TAB_APP);
+      })();
+    },
+    [label, activeClusterId, activePaneId, hideTakeover],
+  );
+
   // The dialog's own "Open folder…"/"New project" buttons close it and hand
   // off to Home's pickers — the same two `home/*` methods the File menu and
   // Home's own cards already call, scoped to this window's active cluster
@@ -1882,7 +1926,7 @@ export default function WindowRoot({
     accelerator: "Ctrl+Shift+A",
   });
 
-  // The open page's body, by id. Git and Hindsight are drawn by the shell
+  // The open page's body, by id. Git, Hindsight and Agents are drawn by the shell
   // itself (`pages.rs`'s `app_id: None`). Git is the window's one source
   // control and GitHub sidebar: `GitPage` holds both as tabs, where a separate
   // secondary panel used to hold them beside this column. Plane, Cloud agents
@@ -1928,6 +1972,14 @@ export default function WindowRoot({
       />
     ) : rightPage.id === "hindsight" ? (
       <HindsightPage />
+    ) : rightPage.id === "sessions" ? (
+      <AgentsPage
+        clusters={agentList}
+        sessions={agentSessions}
+        activeClusterId={activeClusterId}
+        onOpen={onOpenAgent}
+        onNew={onNewAgent}
+      />
     ) : (
       <AppPage page={activePage} instanceId={rightPage.instanceId} onHost={setPageHost} />
     )
@@ -2218,10 +2270,10 @@ export default function WindowRoot({
           ),
           // The project-page rail and, when a page is open, its body — the
           // **rail** workstream's three slots (`docs/KAAVA-UX-REWORK.md` §4).
-          // `dots` is left empty for now: a rail dot's colour comes from each
-          // page's own live data (Plane asleep/running, Cost's burn against
-          // budget), and none of that is read anywhere yet — a TODO here
-          // rather than an invented colour.
+          // Only Agents has a dot so far: a session that needs you, or one at
+          // work. The others' colours come from live data (Plane asleep or
+          // running, Cost's burn against budget) that nothing reads yet — a
+          // TODO here rather than an invented colour.
           //
           // The cluster strip sits at the top of it, above the page icons —
           // the cluster tab bar's replacement, with the title bar's pill
@@ -2247,7 +2299,12 @@ export default function WindowRoot({
                   drag.tabHandle({ what: "cluster", clusterId: cluster.id, name: cluster.name })
                 }
               />
-              <Rail pages={pages} activePageId={rightPage?.id ?? null} onSelect={onSelectPage} />
+              <Rail
+                pages={pages}
+                activePageId={rightPage?.id ?? null}
+                dots={{ sessions: agentsDot(agentSessions) }}
+                onSelect={onSelectPage}
+              />
             </>
           ),
           // Both slots are the same component type on purpose: `Frame` draws

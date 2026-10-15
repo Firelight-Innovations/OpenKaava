@@ -9,13 +9,15 @@
 //! written by the old build on its way in; this module only says which pages
 //! exist, in what order, and how each opens.
 //!
-//! Three of the six rows still draw an app — Plane, Cloud agents and Cost keep
+//! Three of the seven rows still draw an app — Plane, Cloud agents and Cost keep
 //! the iframe they always had, hosted the same way any other app surface is.
-//! The other three have no app at all: Git is the shell's own source-control
+//! The other four have no app at all: Git is the shell's own source-control
 //! and GitHub content, as two tabs (`rail/GitPage.tsx`), Hindsight shows whether
-//! the memory service answers (`cloud::hindsight`), and the Artifact registry
-//! is `disabled` — listed so the rail reads as the finished set of six, opened
-//! by nothing. Cloud agents is `disabled` too, for the MVP; see its row below.
+//! the memory service answers (`cloud::hindsight`), Agents lists the agent
+//! tabs in this window's clusters and what each is doing (`rail/AgentsPage.tsx`),
+//! and the Artifact registry is `disabled` — listed so the rail reads as the
+//! finished set, opened by nothing. Cloud agents is `disabled` too, for the MVP;
+//! see its row below.
 
 use serde::Serialize;
 
@@ -50,7 +52,8 @@ pub struct Page {
     pub name: &'static str,
     /// Which app draws it, or `None` for a page the shell draws itself — Git
     /// (the source-control and GitHub tabs), Hindsight (its connection
-    /// status; see `cloud::hindsight`) and the Artifact registry (disabled).
+    /// status; see `cloud::hindsight`), Agents (the agent tabs in this window)
+    /// and the Artifact registry (disabled).
     /// Excluded from every list of things you can open as an ordinary
     /// surface — see [`is_page_app`].
     pub app_id: Option<&'static str>,
@@ -59,7 +62,8 @@ pub struct Page {
     /// Where this page opens the first time a window shows it. See
     /// [`PageMode`] for why this is only the default.
     pub mode: PageMode,
-    /// `Alt 1`...`Alt 6`, in rail order -- `docs/design/KAAVA-UX-SPEC.md` §1.7.
+    /// `Alt 1`...`Alt 7`, in rail order -- `docs/design/KAAVA-UX-SPEC.md` §1.7,
+    /// plus Agents before the registry.
     pub key: u8,
     /// Not openable. Drawn on the rail at reduced opacity, per
     /// `KAAVA-UX-REWORK.md` §4's "(later)": the Artifact registry is not built
@@ -69,7 +73,8 @@ pub struct Page {
 }
 
 /// Every page, in rail order. `KAAVA-UX-REWORK.md` §4 and
-/// `docs/design/KAAVA-UX-SPEC.md` §1.7 are both this exact order and key set.
+/// `docs/design/KAAVA-UX-SPEC.md` §1.7 are both this exact order and key set,
+/// with Agents added before the registry.
 pub const PAGES: &[Page] = &[
     Page {
         id: "git",
@@ -119,13 +124,23 @@ pub const PAGES: &[Page] = &[
         key: 5,
         disabled: false,
     },
+    // Not "agents": that id is Cloud agents, and is written to `layout.json`.
+    Page {
+        id: "sessions",
+        name: "Agents",
+        app_id: None,
+        icon: "sparkles",
+        mode: PageMode::Docked,
+        key: 6,
+        disabled: false,
+    },
     Page {
         id: "registry",
         name: "Artifact registry",
         app_id: None,
         icon: "package",
         mode: PageMode::Docked,
-        key: 6,
+        key: 7,
         disabled: true,
     },
 ];
@@ -149,8 +164,8 @@ pub struct PageInfo {
 /// Every page, in rail order -- including the disabled one. Unlike the old
 /// `pages::available`, this is not filtered by app registration: three rows
 /// have no app to register in the first place, and the three that do
-/// (`projects`, `agents`, `costs`) ship in every build. The rail draws all
-/// six every time; [`Page::disabled`] is what greys one out.
+/// (`projects`, `agents`, `costs`) ship in every build. The rail draws every
+/// row every time; [`Page::disabled`] is what greys one out.
 pub fn rail() -> Vec<PageInfo> {
     PAGES
         .iter()
@@ -186,18 +201,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn six_pages_in_the_written_rail_order() {
+    fn seven_pages_in_the_written_rail_order() {
         let ids: Vec<&str> = PAGES.iter().map(|p| p.id).collect();
         assert_eq!(
             ids,
-            ["git", "plane", "agents", "hindsight", "costs", "registry"]
+            [
+                "git",
+                "plane",
+                "agents",
+                "hindsight",
+                "costs",
+                "sessions",
+                "registry"
+            ]
         );
     }
 
     #[test]
-    fn keys_are_alt_one_through_six_in_order() {
+    fn keys_are_alt_one_through_seven_in_order() {
         let keys: Vec<u8> = PAGES.iter().map(|p| p.key).collect();
-        assert_eq!(keys, [1, 2, 3, 4, 5, 6]);
+        assert_eq!(keys, [1, 2, 3, 4, 5, 6, 7]);
     }
 
     #[test]
@@ -209,10 +232,13 @@ mod tests {
     }
 
     #[test]
-    fn three_pages_host_an_app_and_three_do_not() {
+    fn three_pages_host_an_app_and_four_do_not() {
         let with_app = PAGES.iter().filter(|p| p.app_id.is_some()).count();
         assert_eq!(with_app, 3);
         assert!(PAGES.iter().any(|p| p.id == "git" && p.app_id.is_none()));
+        assert!(PAGES
+            .iter()
+            .any(|p| p.id == "sessions" && p.app_id.is_none()));
         assert!(PAGES
             .iter()
             .any(|p| p.id == "hindsight" && p.app_id.is_none()));
@@ -230,6 +256,7 @@ mod tests {
         assert_eq!(app("costs"), Some("costs"));
         assert_eq!(app("git"), None);
         assert_eq!(app("hindsight"), None);
+        assert_eq!(app("sessions"), None);
     }
 
     #[test]
@@ -241,9 +268,9 @@ mod tests {
     }
 
     #[test]
-    fn rail_lists_all_six_including_the_disabled_one() {
+    fn rail_lists_all_seven_including_the_disabled_one() {
         let ids: Vec<&str> = rail().into_iter().map(|p| p.id).collect();
-        assert_eq!(ids.len(), 6);
+        assert_eq!(ids.len(), 7);
         assert!(ids.contains(&"registry"));
     }
 

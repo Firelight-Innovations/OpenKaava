@@ -3,7 +3,7 @@
  * The rail's resting, active, disabled and dotted states.
  *
  * `Rail` is purely presentational -- everything it draws comes in as props --
- * so these tests never touch `pages.rs` or the backend; a fixed six-page
+ * so these tests never touch `pages.rs` or the backend; a fixed seven-page
  * fixture stands in for `pages::rail()`.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -26,12 +26,13 @@ const PAGES: PageInfo[] = [
   },
   { id: "hindsight", name: "Hindsight", icon: "brain", mode: "docked", key: 4, disabled: false },
   { id: "costs", name: "Cost", icon: "receipt", mode: "docked", key: 5, disabled: false },
+  { id: "sessions", name: "Agents", icon: "sparkles", mode: "docked", key: 6, disabled: false },
   {
     id: "registry",
     name: "Artifact registry",
     icon: "package",
     mode: "docked",
-    key: 6,
+    key: 7,
     disabled: true,
   },
 ];
@@ -41,8 +42,13 @@ describe("Rail", () => {
     render(<Rail pages={PAGES} activePageId={null} onSelect={() => {}} />);
 
     expect(screen.getAllByRole("button")).toHaveLength(PAGES.length);
-    const git = screen.getByRole("button", { name: "Git" });
-    expect(git.querySelector("svg"), "the icon").not.toBeNull();
+    for (const page of PAGES) {
+      const button = screen.getByRole("button", { name: page.name });
+      expect(button.querySelector("svg"), `${page.name}'s icon`).not.toBeNull();
+    }
+    // Agents is sparkles, not a second robot beside Cloud agents.
+    const agents = screen.getByRole("button", { name: "Agents" });
+    expect(agents.querySelector("svg")?.getAttribute("class")).toContain("sparkles");
   });
 
   it("marks the open page active and nothing else", () => {
