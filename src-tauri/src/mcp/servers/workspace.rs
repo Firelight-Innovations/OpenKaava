@@ -122,12 +122,18 @@ for (const f of document.querySelectorAll('iframe')) {
 }
 let text = '';
 try { text = String(a.doc.getSelection ? a.doc.getSelection() : ''); } catch { text = ''; }
+const SELECTION_CAP = 100000;
+const cutSelection = (s) => {
+  if (s.length <= SELECTION_CAP) return s;
+  const splitsPair = /[\ud800-\udbff]/.test(s[SELECTION_CAP - 1]);
+  return s.slice(0, SELECTION_CAP - (splitsPair ? 1 : 0));
+};
 return JSON.stringify({
   focusIn: a.frame ? 'app' : (terminal(a.el) ? 'terminal' : (a.el ? 'shell' : 'nothing')),
   instance: instanceOf(a.frame || a.el),
   windowHasFocus: document.hasFocus(),
   apps,
-  selectedText: text.length > 100000 ? text.slice(0, 100000 - (/[\ud800-\udbff]/.test(text[99999]) ? 1 : 0)) : text,
+  selectedText: cutSelection(text),
   selectedTextLength: text.length,
 });
 "#;
@@ -747,10 +753,16 @@ mod tests {
         assert_eq!(page.selected_text_length, units);
     }
 
+    /// The page half of the fix. `scripts/workspace-selection.test.mjs` runs the
+    /// `cutSelection` helper itself; this keeps the probe from drifting back to
+    /// a cut of its own that the helper no longer guards.
     #[test]
-    fn a_lone_surrogate_in_the_page_answer_is_what_the_old_cut_produced() {
-        let answer = r#"{"selectedText":"a\ud83d","selectedTextLength":3}"#;
-        assert!(serde_json::from_str::<PageContext>(answer).is_err());
+    fn the_probe_sends_the_selection_through_the_pair_safe_cut() {
+        assert!(FOCUS_BODY.contains("selectedText: cutSelection(text),"));
+        assert!(
+            !FOCUS_BODY.contains(&format!("slice(0, {SELECTION_LIMIT})")),
+            "a cut at the clip limit in the page counts UTF-16 units and can split a pair"
+        );
     }
 
     #[test]
