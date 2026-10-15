@@ -106,6 +106,8 @@ const CREDENTIAL_NAMES: &[&str] = &[
     "_netrc",
     ".git-credentials",
     ".htpasswd",
+    ".pgpass",
+    ".my.cnf",
     "keystore.properties",
     "export_credentials.cfg",
 ];
@@ -128,9 +130,12 @@ pub fn secret_rule(rel: &str) -> Option<&'static str> {
     if KEY_EXTENSIONS.contains(&ext) {
         return Some("private keys and key stores");
     }
+    // `ssh-keygen -f` names keys anything; an `id_` name with no extension is
+    // the usual shape of one.
     let ssh_key = ["id_rsa", "id_dsa", "id_ecdsa", "id_ed25519"]
         .iter()
-        .any(|k| name.starts_with(k));
+        .any(|k| name.starts_with(k))
+        || (name.starts_with("id_") && !name.contains('.'));
     if ssh_key && !name.ends_with(".pub") {
         return Some("SSH private keys");
     }
@@ -138,7 +143,9 @@ pub fn secret_rule(rel: &str) -> Option<&'static str> {
         || name.starts_with("credentials")
         || name.starts_with("secrets.")
         || name.starts_with("client_secret")
-        || matches!(ext, "tfvars" | "tfstate");
+        || name.ends_with("kubeconfig")
+        || name.contains(".tfvars")
+        || name.contains(".tfstate");
     credential.then_some("credential files")
 }
 
@@ -251,6 +258,16 @@ mod tests {
             ),
             ("keys/id_ed25519", Some("SSH private keys")),
             ("keys/id_ed25519.pub", None),
+            ("keys/id_work", Some("SSH private keys")),
+            ("keys/id_ecdsa_sk", Some("SSH private keys")),
+            ("keys/id_work.pub", None),
+            ("scripts/id_card.gd", None),
+            ("ops/kubeconfig", Some("credential files")),
+            ("ops/prod.kubeconfig", Some("credential files")),
+            (".pgpass", Some("credential files")),
+            ("home/.my.cnf", Some("credential files")),
+            ("infra/terraform.tfstate.backup", Some("credential files")),
+            ("infra/prod.tfvars.json", Some("credential files")),
             (".godot/export_credentials.cfg", Some("credential files")),
             ("client_secret_123.json", Some("credential files")),
             ("infra/prod.tfvars", Some("credential files")),

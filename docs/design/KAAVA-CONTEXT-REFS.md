@@ -100,10 +100,12 @@ ACP prompt blocks.
    - `.env`, `.envrc`, `.env.*` and `*.env`. The templates `.env.example`, `.env.sample`,
      `.env.template`, `.env.dist` and `.env.defaults` are allowed.
    - Private keys and key stores: `*.pem`, `*.key`, `*.p12`, `*.pfx`, `*.jks`, `*.keystore`, `*.p8`,
-     `*.ppk`, `*.kdbx`, and SSH keys `id_*` (except `.pub`).
+     `*.ppk`, `*.kdbx`, and SSH keys: `id_rsa*`, `id_dsa*`, `id_ecdsa*`, `id_ed25519*`, and any
+     other `id_*` with no extension (`.pub` is allowed).
    - Credential files: `.npmrc`, `.pypirc`, `.netrc`, `_netrc`, `.git-credentials`, `.htpasswd`,
-     `credentials*`, `secrets.*`, `client_secret*`, `keystore.properties`, Godot's
-     `export_credentials.cfg`, `*.tfvars` and `*.tfstate`.
+     `.pgpass`, `.my.cnf`, `credentials*`, `secrets.*`, `client_secret*`, `*kubeconfig`,
+     `keystore.properties`, Godot's `export_credentials.cfg`, and anything with `.tfvars` or
+     `.tfstate` in its name (so `terraform.tfstate.backup` too).
    - Anything under `.git/`, `.ssh/`, `.aws/`, `.gnupg/`, `.azure/`, `.kube/` or `.docker/`.
 
    A file is also withheld, whatever it is called, when its first 64 KB hold a private key: a
