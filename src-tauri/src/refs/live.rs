@@ -297,7 +297,15 @@ fn selection(app: &AppHandle, ctx: &CallContext, root: &Path, r: &Ref) -> Result
         .cluster_id
         .as_deref()
         .ok_or("this surface is not in a cluster, so it has no selection")?;
-    let seen = crate::mcp::selection_in(app, cluster);
+    Ok(selection_from(
+        crate::mcp::selection_in(app, cluster),
+        root,
+        r,
+    ))
+}
+
+/// [`selection`] from what the panes reported.
+fn selection_from(seen: Value, root: &Path, r: &Ref) -> Resolved {
     let mut out = resolve::Resolved::empty(r, "selection", "Selection");
     let mut related = Vec::new();
     for surface in seen["surfaces"].as_array().into_iter().flatten() {
@@ -325,15 +333,17 @@ fn selection(app: &AppHandle, ctx: &CallContext, root: &Path, r: &Ref) -> Result
     out.detail = seen["focused"]["title"].as_str().map(str::to_owned);
     out.meta.insert("refs".into(), json!(related));
     if let Some(text) = seen["selectedText"].as_str().filter(|t| !t.is_empty()) {
+        // The page counts in UTF-16 units, as JavaScript does, not in bytes.
+        let units = text.encode_utf16().count() as u64;
         out.parts.push(Part::Text {
             text: text.to_string(),
             language: None,
             start_line: 1,
-            truncated: seen["selectedTextLength"].as_u64() > Some(text.len() as u64),
+            truncated: seen["selectedTextLength"].as_u64() > Some(units),
         });
     }
     out.parts.push(Part::Json { value: seen });
-    Ok(out)
+    out
 }
 
 #[cfg(test)]
@@ -370,6 +380,41 @@ mod tests {
         ));
         let missing = rendered(dir.path(), Err("no Canvas pane is open".into()));
         assert!(matches!(missing, Part::Note { text } if text.contains("no Canvas pane")));
+    }
+
+    #[test]
+    fn a_selection_links_what_the_panes_name_and_counts_text_as_the_page_does() {
+        let (dir, away) = (
+            tempfile::TempDir::new().unwrap(),
+            tempfile::TempDir::new().unwrap(),
+        );
+        write(&dir.path().join("src/main.gd"), "x");
+        let seen = |text: &str, length: usize| {
+            json!({
+                "focused": { "title": "World" },
+                "surfaces": [
+                    { "report": { "canvas": "world", "diagram": "f1" } },
+                    { "report": { "file": dir.path().join("src/main.gd") } },
+                    { "report": { "path": away.path().join("x.gd") } },
+                ],
+                "selectedText": text,
+                "selectedTextLength": length,
+            })
+        };
+        let out = selection_from(seen("h\u{e9}llo \u{1F44B}", 8), dir.path(), &Ref::Selection);
+        let frame = Ref::Canvas {
+            id: "world".into(),
+            part: Some(CanvasPart::Frame("f1".into())),
+        };
+        assert_eq!(
+            out.meta["refs"],
+            json!([frame.to_string(), "kaava://file/src/main.gd"])
+        );
+        assert_eq!(out.detail.as_deref(), Some("World"));
+        let cut = |o: &Resolved| matches!(o.parts[0], Part::Text { truncated, .. } if truncated);
+        assert!(!cut(&out), "eight UTF-16 units, all of them sent");
+        let longer = selection_from(seen("\u{e9}\u{e9}\u{e9}", 5), dir.path(), &Ref::Selection);
+        assert!(cut(&longer), "five units selected, three sent");
     }
 
     fn write(path: &Path, text: &str) {
