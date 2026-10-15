@@ -298,7 +298,7 @@ mod tests {
               "status": "open" },
         ]});
         let some = |canvas: &str, _: Option<&str>| canvas == "world";
-        let only_world = canvas_rows_from(&[parent.clone()], &some);
+        let only_world = canvas_rows_from(std::slice::from_ref(&parent), &some);
         assert_eq!(
             only_world.len(),
             1,
