@@ -61,7 +61,6 @@ export const strings = {
   settingsJoin: " · ",
   /** The same, as a screen reader hears it. */
   settingsSpoken: ", ",
-  agent: "Agent",
   /** Every harness the settings menu lists, by id. */
   harnessName: { claude: "Claude", codex: "Codex", kaava: "Kaava" } as Record<string, string>,
   /** A harness that is listed but cannot run yet. */
