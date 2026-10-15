@@ -88,11 +88,15 @@ also lists harnesses that are not registered yet, as "Coming soon", by names in 
   agent runs, both are locked.
 - **The model.** While an agent runs, the tab's header and the agent bar show its harness and its
   model.
-- **Hints.** Each `Hint` is a sentence template in `strings.ts`. The template fills in the
-  harness's name and its setup commands from `HarnessInfo`. A new harness therefore gets correct
-  install and sign-in hints without a new string. The agent bar words only `harnessMissing` and
-  `adapterMissing`, the two that `agent-tab/harnesses` can report before a session starts; the
-  tab words the rest.
+- **Hints.** Each `Hint` is a sentence template in the tab's `apps/agent-tab/ui/src/strings.ts`.
+  A template fills in the harness's name and its setup commands from `HarnessInfo`, so a new
+  harness gets correct install and sign-in hints without a new string. `tsc` holds the tab's table
+  to `Hint`. The agent bar words only `harnessMissing` and `adapterMissing`, the two that
+  `agent-tab/harnesses` can report before a session starts, from its own copy in
+  `src/shell/agentbar/strings.ts`, since the shell may not import an app's source. That copy is
+  held to `BarHint`, and `src/shell/agentbar/strings.test.ts` checks each of its hints is still in
+  `Hint`. A new `Hint` needs a sentence in the tab; the bar needs one only if `spec` can fail with
+  it.
 
 ## Adding a harness
 
