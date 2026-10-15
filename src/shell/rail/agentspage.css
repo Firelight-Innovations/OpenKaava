@@ -1,0 +1,150 @@
+/* Agents page: each cluster's agent sessions, live. */
+
+.k-agents {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0 12px;
+}
+
+.k-agents__cluster {
+  padding: 6px 8px;
+}
+
+.k-agents__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 4px;
+}
+
+.k-agents__name {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--txt-secondary);
+}
+
+.k-agents__current {
+  font-size: 11px;
+  color: var(--txt-tertiary);
+}
+
+.k-agents__new {
+  margin-left: auto;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--txt-tertiary);
+  cursor: pointer;
+}
+
+.k-agents__new:hover {
+  background: var(--bg-layer-1-hover);
+  color: var(--txt-primary);
+}
+
+.k-agents__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.k-agents__row {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--txt-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.k-agents__row:hover {
+  background: var(--bg-layer-1-hover);
+}
+
+.k-agents__new:focus-visible,
+.k-agents__row:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.k-agents__glyph {
+  flex: none;
+  margin-top: 2px;
+  color: var(--txt-tertiary);
+}
+
+.k-agents__row[data-state="ready"] .k-agents__glyph {
+  color: var(--success);
+}
+
+.k-agents__row[data-state="working"] .k-agents__glyph,
+.k-agents__row[data-state="starting"] .k-agents__glyph {
+  color: var(--info);
+  animation: k-agents-spin 1s linear infinite;
+}
+
+.k-agents__row[data-state="needsInput"] .k-agents__glyph {
+  color: var(--warning);
+}
+
+.k-agents__row[data-state="failed"] .k-agents__glyph {
+  color: var(--danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .k-agents__row .k-agents__glyph {
+    animation: none;
+  }
+}
+
+@keyframes k-agents-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.k-agents__text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.k-agents__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+
+.k-agents__meta {
+  font-size: 11.5px;
+  color: var(--txt-tertiary);
+}
+
+.k-agents__empty {
+  margin: 0;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--txt-tertiary);
+}
