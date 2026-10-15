@@ -24,13 +24,14 @@ import {
 import { reportPainted } from "@openkaava/bridge";
 import type {
   Attachment,
+  ConfigOption,
   Envelope,
   HarnessInfo,
   Hint,
   SessionStatus,
   SettingTrouble,
 } from "./protocol.generated";
-import { harnessChoices } from "./harnesses";
+import { harnessChoices, type RunningModel } from "./harnesses";
 import { latestUsage } from "./meters";
 import {
   attached,
@@ -39,6 +40,7 @@ import {
   nextMode,
   unanswered,
   promptBefore,
+  pickers,
   received,
   settable,
   type Pending,
@@ -159,6 +161,11 @@ export default function App() {
       () => rpc.setMode(modeId),
       (p) => ({ ...p, mode: modeId }),
     );
+  const onConfig = (configId: string, value: string) =>
+    choose(
+      () => rpc.setConfig(configId, value),
+      (p) => ({ ...p, config: { ...p.config, [configId]: value } }),
+    );
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Escape" && working) {
@@ -225,6 +232,19 @@ export default function App() {
   const hint = status?.hint ?? null;
   // A session that has ended has nothing left to answer.
   const trouble = status && settable(status) ? status.settingTrouble : null;
+  const harness = status?.harness ?? "claude";
+  const model = modelOption(status);
+  const running: RunningModel | null = model && {
+    models: model.choices,
+    model: live?.config?.[model.id] ?? model.value,
+  };
+  // Only the harness in use can change model: picking another is not taken yet.
+  const onChoose =
+    model && settable(status)
+      ? (picked: string, value: string | null) => {
+          if (picked === harness && value !== null) onConfig(model.id, value);
+        }
+      : undefined;
   const pendingPrompt = typeof status?.pendingPrompt === "string" ? status.pendingPrompt : null;
   const exited = status !== null && (status.state === "stopped" || status.state === "failed");
 
@@ -294,12 +314,12 @@ export default function App() {
               controls={
                 <S.ModelMenu
                   label={strings.settings}
-                  harness={status?.harness ?? "claude"}
-                  // No running model and no `onChoose` yet: the host does not
-                  // report a session's models or take a harness choice on this
-                  // branch, so the menu shows the harnesses and stays locked.
-                  harnesses={harnessChoices(reported, status?.harness ?? "claude", null)}
-                  sections={modeSection(status, live, onMode)}
+                  harness={harness}
+                  // The model is the running session's own option, so it is
+                  // listed under the harness in use, with the agent's names.
+                  harnesses={harnessChoices(reported, harness, running)}
+                  onChoose={onChoose}
+                  sections={settingSections(status, live, onMode, onConfig)}
                 />
               }
               meters={
@@ -323,19 +343,28 @@ export default function App() {
   );
 }
 
+/** The session's model option, if the agent lists one. */
+function modelOption(status: SessionStatus | null): ConfigOption | null {
+  return (status && pickers(status).find((o) => o.category === "model")) ?? null;
+}
+
 /**
- * The session's mode, as the settings menu's section: the agent's own names,
- * in its order. The agent reports its modes only once its session exists, and
- * owner decision D2 starts that on the first send, so until then the section
- * says when they will appear. A choice is shown at once (`live`, see
- * `unanswered` in model.ts) and stands until the status that answers it.
+ * The settings menu's sections after the harnesses: the effort, then the
+ * mode, with the agent's own names, in its order. The agent reports them only
+ * once its session exists, and owner decision D2 starts that on the first
+ * send, so until then the menu says when they will appear. A new model can
+ * bring other effort levels, or none, so those come from each status as the
+ * agent lists them. A choice is shown at once (`live`, see `unanswered` in
+ * model.ts) and stands until the status that answers it.
  */
-function modeSection(
+function settingSections(
   status: SessionStatus | null,
   live: Pending | null,
   onMode: (modeId: string) => void,
+  onConfig: (configId: string, value: string) => void,
 ): PickerProps[] {
-  if (!status || status.modes.length === 0) {
+  const options = status ? pickers(status) : [];
+  if (!status || (status.modes.length === 0 && options.length === 0)) {
     // A session that ended before reporting any is not going to.
     const coming = !status || status.state === "starting";
     if (!coming) return [];
@@ -347,13 +376,26 @@ function modeSection(
       },
     ];
   }
+  const disabled = !settable(status);
+  const others: PickerProps[] = options
+    .filter((option) => option.category !== "model")
+    .map((option) => ({
+      label: option.name || option.id,
+      title: option.description,
+      value: live?.config?.[option.id] ?? option.value,
+      choices: option.choices,
+      disabled,
+      onChange: (value: string) => onConfig(option.id, value),
+    }));
+  if (status.modes.length === 0) return others;
   return [
+    ...others,
     {
       label: strings.mode,
       title: strings.modeSettings.modeHint,
       value: live?.mode ?? status.mode,
       choices: status.modes,
-      disabled: !settable(status),
+      disabled,
       onChange: onMode,
     },
   ];

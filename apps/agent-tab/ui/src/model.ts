@@ -15,6 +15,7 @@
 import type {
   Attachment,
   ConfigChoice,
+  ConfigOption,
   Envelope,
   Event,
   Item,
@@ -129,6 +130,8 @@ export function settable(status: SessionStatus | null): boolean {
  */
 export interface Pending {
   mode?: string;
+  /** Values chosen for the agent's other options, by option id. */
+  config?: Record<string, string>;
   /** The highest number the host has given these changes so far. */
   ticket: number;
   /** Changes sent whose number has not come back yet. */
@@ -139,6 +142,18 @@ export interface Pending {
 export function unanswered(pending: Pending | null, status: SessionStatus | null): Pending | null {
   if (!pending || status === null || !settable(status)) return null;
   return pending.unnumbered > 0 || status.answered < pending.ticket ? pending : null;
+}
+
+/**
+ * The categories drawn as a select beside the mode: the model, and the
+ * effort, which ACP calls a thought level. Fast mode (`model_config`) gets a
+ * switch of its own.
+ */
+const PICKED: readonly string[] = ["model", "thought_level"];
+
+/** The options drawn beside the mode, in the agent's order, as it lists them. */
+export function pickers(status: SessionStatus): ConfigOption[] {
+  return status.config.filter((o) => o.category !== null && PICKED.includes(o.category));
 }
 
 /**

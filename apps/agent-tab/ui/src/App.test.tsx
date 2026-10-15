@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * The agent tab end to end against a scripted bridge: attach, live envelopes,
- * sending, approvals, refusals, and the mode.
+ * sending, approvals, refusals, the mode, the model and the effort.
  */
 import "./jsdom-shims";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -36,7 +36,7 @@ vi.mock("@openkaava/bridge", () => ({
 
 import App from "./App";
 import { strings } from "./strings";
-import type { Attachment, Envelope, Item, SessionStatus } from "./protocol.generated";
+import type { Attachment, ConfigOption, Envelope, Item, SessionStatus } from "./protocol.generated";
 
 const STATUS: SessionStatus = {
   state: "ready",
@@ -65,6 +65,44 @@ const SETTINGS: SessionStatus = {
   ],
 };
 
+const option = (
+  id: string,
+  name: string,
+  category: string,
+  value: string,
+  choices: [string, string][],
+): ConfigOption => ({
+  id,
+  name,
+  description: null,
+  category,
+  value,
+  choices: choices.map(([v, n]) => choice(v, n)),
+});
+
+const LEVELS: [string, string][] = [
+  ["default", "Default"],
+  ["low", "Low"],
+  ["high", "High"],
+];
+
+/** Claude's options as the adapter lists them for its default model. */
+const MODELS: SessionStatus = {
+  ...SETTINGS,
+  config: [
+    option("model", "Model", "model", "default", [
+      ["default", "Default (recommended)"],
+      ["opus", "Opus"],
+      ["haiku", "Haiku"],
+    ]),
+    option("effort", "Effort", "thought_level", "default", LEVELS),
+    option("fast", "Fast mode", "model_config", "off", [
+      ["off", "Off"],
+      ["on", "On"],
+    ]),
+  ],
+};
+
 function item(id: string, kind: Item["kind"]): Item {
   return { id, turnId: "t1", kind };
 }
@@ -80,6 +118,7 @@ function backend(attachment: Attachment, overrides: Record<string, () => Promise
       case "agent-tab/harnesses":
         return Promise.resolve({ harnesses: [{ harness: "claude", hint: null }], blocked: null });
       case "agent-tab/set-mode":
+      case "agent-tab/set-config":
         return Promise.resolve({ ticket: ++ticket });
       default:
         return Promise.resolve({});
@@ -98,6 +137,12 @@ function prompt() {
 /** The settings button, which reads out every setting it shows. */
 async function settingsButton() {
   return screen.findByRole("button", { name: /^Agent settings/ });
+}
+
+/** What the settings button shows, in order: harness, model, effort, mode. */
+async function shown() {
+  const label = (await settingsButton()).getAttribute("aria-label") ?? "";
+  return label.split(", ").slice(1);
 }
 
 /** The mode the settings button shows, by name. */
@@ -587,7 +632,7 @@ describe("the agent tab", () => {
     render(<App />);
     const menu = await modeMenu();
     const later = menu.getByRole("menuitemradio", {
-      name: "The mode appears once the session starts.",
+      name: "The mode and model appear once the session starts.",
     });
     expect(later.getAttribute("aria-disabled")).toBe("true");
     fireEvent.keyDown(prompt(), { key: "Tab", shiftKey: true });
@@ -797,7 +842,7 @@ describe("the agent tab", () => {
     render(<App />);
     fireEvent.click(await settingsButton());
     expect(screen.queryByRole("group", { name: "Mode" })).toBeNull();
-    expect(screen.queryByText("The mode appears once the session starts.")).toBeNull();
+    expect(screen.queryByText("The mode and model appear once the session starts.")).toBeNull();
   });
 
   it("offers no mode while the session is stopped", async () => {
@@ -817,6 +862,61 @@ describe("the agent tab", () => {
       fireEvent.keyDown(prompt(), { key: "Tab", shiftKey: true });
     });
     expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/set-mode", { modeId: "default" });
+  });
+
+  it("picks the model and effort from the agent's own lists", async () => {
+    backend({ status: MODELS, seq: 1, items: [] });
+    render(<App />);
+    await waitFor(async () =>
+      expect(await shown()).toEqual(["Claude", "Default (recommended)", "Default", "Manual"]),
+    );
+    fireEvent.click(await settingsButton());
+    const groups = screen.getAllByRole("group").map((g) => g.getAttribute("aria-label"));
+    expect(groups.slice(-2), "the model is under its harness").toEqual(["Effort", "Mode"]);
+    expect(groups, "fast mode gets a switch of its own").not.toContain("Fast mode");
+    const status = (seq: number, status: SessionStatus) =>
+      emit({ instanceId: "i", seq, event: { type: "status", status } });
+
+    await act(async () => {
+      const claude = within(screen.getByRole("group", { name: "Claude" }));
+      fireEvent.click(claude.getByRole("menuitemradio", { name: "Opus" }));
+    });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/set-config", {
+      configId: "model",
+      value: "opus",
+    });
+    expect(await shown()).toEqual(["Claude", "Opus", "Default", "Manual"]);
+
+    // The answer lists the new model's own levels.
+    const opus: SessionStatus = {
+      ...MODELS,
+      answered: 1,
+      config: [
+        { ...MODELS.config[0], value: "opus" },
+        option("effort", "Effort", "thought_level", "default", [...LEVELS, ["xhigh", "Xhigh"]]),
+      ],
+    };
+    status(2, opus);
+    expect(await shown()).toEqual(["Claude", "Opus", "Default", "Manual"]);
+    fireEvent.click(await settingsButton());
+    const effort = within(screen.getByRole("group", { name: "Effort" }));
+    const levels = effort.getAllByRole("menuitemradio").map((o) => o.textContent);
+    expect(levels).toEqual(["Default", "Low", "High", "Xhigh"]);
+
+    await act(async () => {
+      fireEvent.click(effort.getByRole("menuitemradio", { name: "Xhigh" }));
+    });
+    expect(bridge.invoke).toHaveBeenLastCalledWith("agent-tab/set-config", {
+      configId: "effort",
+      value: "xhigh",
+    });
+    expect(await shown()).toEqual(["Claude", "Opus", "Xhigh", "Manual"]);
+
+    // A model with no effort has no effort section.
+    status(3, { ...MODELS, answered: 2, config: [{ ...MODELS.config[0], value: "haiku" }] });
+    expect(await shown()).toEqual(["Claude", "Haiku", "Manual"]);
+    fireEvent.click(await settingsButton());
+    expect(screen.queryByRole("group", { name: "Effort" })).toBeNull();
   });
 
   it("never names the harness Claude Code", async () => {
