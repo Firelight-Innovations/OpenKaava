@@ -58,7 +58,7 @@ function same(a: readonly Item[], b: readonly Item[]): boolean {
 
 /**
  * Groups items into turns. A turn whose items are the same objects as last
- * time is returned as the same object, so assistant-ui redraws only the turn
+ * time is returned as the same object, so assistant-ui converts again only the turn
  * that changed.
  */
 export function toTurns(items: readonly Item[], previous: readonly Turn[] = []): Turn[] {

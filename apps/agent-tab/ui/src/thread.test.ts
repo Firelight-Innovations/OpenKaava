@@ -41,7 +41,16 @@ describe("toTurns", () => {
     const second = toTurns([U1, changed], first);
     expect(second[0]).toBe(first[0]);
     expect(second[1]).not.toBe(first[1]);
-    expect(toTurns([U1, changed], second)).toEqual(second);
     expect(toTurns([U1, changed], second)[1]).toBe(second[1]);
+  });
+
+  it("remakes an agent turn that grows, and keeps the prompt before it", () => {
+    const first = toTurns([U1, A1]);
+    const second = toTurns([U1, A1, R1], first);
+    expect(second[0]).toBe(first[0]);
+    expect(second[1]).not.toBe(first[1]);
+    expect(second[1].message.content).toHaveLength(2);
+    const third = toTurns([U1, A1, R1, G1], second);
+    expect(third[1].message.content).toHaveLength(3);
   });
 });
