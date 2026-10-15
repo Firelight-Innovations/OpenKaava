@@ -183,16 +183,26 @@ changed it and watched nothing happen.
 | `product.name` | the generated modules, `branding.rs`, and five checked files |
 | `product.wordmark` | the generated modules, and `splash.html`'s check |
 | `product.tagline` | Home's hero, and nothing else |
+| `product.company` | `splash.html`'s check, beside the wordmark |
+| `product.copyright` | `splash.html`'s check, the notice in its band |
 | `assets.mark` | the generator, which lifts its path data into the modules |
 | `assets.mark-colour` | `Mark` in `apps/home/ui/src/icons.tsx`, by hand |
 | `assets.icon-source` | `pnpm tauri icon <path>`, run by a person |
 | `assets.bundle-icons` | the check on `tauri.conf.json`'s `bundle.icon` |
 
 `product.wordmark` is a separate field from `product.name` and is set in mixed
-case, because both stylesheets that draw the wordmark uppercase it. The markup
+case, because a stylesheet that draws the wordmark may uppercase it. The markup
 holds "OpenKaava" so a screen reader is handed a word; the screen shows "OPENKAAVA".
-`apps/home/ui/src/home.css` already made that trade for the lockup, and
-`splash.html` and `src/splash/splash.css` now make it too.
+`apps/home/ui/src/home.css` makes that trade for the lockup. `splash.html` sets
+the wordmark as written, with its ™ in a span of its own, and makes the trade
+for `product.company` instead: the markup holds "Veistra", the screen shows
+"VEISTRA". The company carries no ™; the product name does.
+
+The splash while boot works, settled and a moment after it opens (672x492, the
+window's size, rendered from `splash.html` in Chromium):
+
+![The splash, settled](images/splash-working.png)
+![The splash, just after it opens](images/splash-intro.png)
 
 **Not in the file, deliberately:**
 
@@ -239,7 +249,7 @@ prose because the list is also the trademark surface.
 | `src-tauri/tauri.conf.json` | `productName` — also the installer's filename |
 | `src-tauri/tauri.conf.json` | the main window's `title` |
 | `kaava.toml` | `[stack] name` |
-| `splash.html` | the wordmark text node |
+| `splash.html` | the wordmark text node, the company beside it, and the copyright notice |
 | the title bar | the centred title, and the About item |
 | Home | the lockup word and the tagline |
 | Files | the purge confirmation, which names the product |
@@ -275,9 +285,14 @@ prose because the list is also the trademark surface.
   the edge it is there to make.
 - `src-tauri/icons/` — the generated icon set. Every path in `bundle.icon` is
   checked to sit inside this directory and to exist.
-- the wordmark face, inlined as a base64 woff2 subset in `splash.html`. It is
-  the one asset with no path to declare, because it is not a file; the comment
-  above it gives the `pyftsubset` command that regenerates it.
+- the typefaces, inlined as base64 woff2 subsets in `splash.html`. They are
+  the one asset with no path to declare, because they are not files; the
+  comment above them gives the `pyftsubset` command that regenerates them.
+- the mark on the splash. `splash.html` cannot load `assets/`, so it carries its
+  own copy of the geometry: the skin outline and the seed its art script draws
+  the mark from, and the fallback SVG it shows when it cannot draw. Both are
+  monochrome, in the text colour. Changing the mark means changing both copies;
+  nothing checks it.
 
 **Not replaced:** everything in §2's frozen list.
 

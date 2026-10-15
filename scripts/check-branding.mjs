@@ -65,7 +65,24 @@ const SURFACES = [
     field: ".splash__wordmark",
     expects: "the wordmark, set as written",
     expected: product.wordmark,
-    pattern: /(<p class="splash__wordmark">)([^<]*)(<\/p>)/,
+    // The trademark sign follows in a span of its own; the value is what precedes it.
+    pattern: /(<p class="splash__wordmark">)([^<]*)(<span class="splash__tm">|<\/p>)/,
+  }),
+
+  surface({
+    file: "splash.html",
+    field: ".splash__company",
+    expects: "the company, written as a word (the stylesheet capitalises it)",
+    expected: product.company,
+    pattern: /(<span class="splash__company">)([^<]*)(<\/span>)/,
+  }),
+
+  surface({
+    file: "splash.html",
+    field: ".splash__legal",
+    expects: "the copyright notice, as printed",
+    expected: product.copyright,
+    pattern: /(<p class="splash__legal">)([^<]*)(<\/p>)/,
   }),
 
   surface({
