@@ -918,11 +918,17 @@ impl Shared {
     /// so the tab knows its choice was answered, and whose `setting_trouble`
     /// holds a refusal. A change with no reply within the spec's
     /// `setting_timeout` is reported as unanswered, and still waited for, so
-    /// a late reply is taken in and the next change never overtakes it.
+    /// a late reply is taken in and the next change never overtakes it. Of
+    /// several waiting changes to one setting in a row, only the last is sent.
     fn change_settings(self: Arc<Self>, changes: &Receiver<Setting>) {
-        for setting in changes {
-            let Setting::Change(change) = setting else {
-                return;
+        let mut backlog: VecDeque<Change> = VecDeque::new();
+        loop {
+            let change = match backlog.pop_front() {
+                Some(change) => change,
+                None => match changes.recv() {
+                    Ok(Setting::Change(change)) => change,
+                    Ok(Setting::Close) | Err(_) => return,
+                },
             };
             let Change {
                 method,
@@ -950,6 +956,15 @@ impl Shared {
             };
             if !self.report(trouble, Some(ticket)) {
                 return;
+            }
+            // Changes made while that one was out: of several to one setting
+            // in a row, only the last is sent, so a user who stepped through
+            // modes to reach one never puts the agent in the ones between.
+            for setting in changes.try_iter() {
+                match setting {
+                    Setting::Change(change) => queue_behind(&mut backlog, change),
+                    Setting::Close => return,
+                }
             }
         }
     }
@@ -1270,6 +1285,19 @@ fn timed_out(method: &str) -> RemoteError {
     RemoteError {
         code: TIMED_OUT,
         message: format!("{method} got no reply"),
+    }
+}
+
+/// Add `change` to the changes still to send. It takes the place of the last
+/// one if that sets the same thing: a later choice answers an earlier one that
+/// was never sent, and its number covers the earlier number.
+fn queue_behind(backlog: &mut VecDeque<Change>, change: Change) {
+    let same = |a: &Change| {
+        a.method == change.method && a.params.get("configId") == change.params.get("configId")
+    };
+    match backlog.back_mut() {
+        Some(last) if same(last) => *last = change,
+        _ => backlog.push_back(change),
     }
 }
 

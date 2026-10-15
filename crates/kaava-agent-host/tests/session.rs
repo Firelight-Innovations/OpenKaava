@@ -1283,15 +1283,23 @@ fn mode_changes_land_in_the_order_they_were_made() {
     assert_eq!(tickets, [1, 2, 3, 4]);
     rig.status_where("all four answered", |s| s.answered == 4);
     // The first status to carry each answer shows the mode that change set.
+    // Changes made while one is out may be folded into the last of them, so
+    // some middle ones can go unsent; the ones that are sent keep their order.
     let mut seen: Vec<(u64, String)> = Vec::new();
     for s in rig.statuses_since(before) {
         if s.answered > seen.last().map_or(0, |(n, _)| *n) {
             seen.push((s.answered, s.mode.unwrap_or_default()));
         }
     }
-    let want = [(1, "plan"), (2, "acceptEdits"), (3, "default"), (4, "plan")]
+    let made = [(1, "plan"), (2, "acceptEdits"), (3, "default"), (4, "plan")]
         .map(|(n, mode)| (n, mode.to_string()));
-    assert_eq!(seen, want, "each answer in turn");
+    assert_eq!(seen.first(), Some(&made[0]), "the first goes out alone");
+    assert_eq!(seen.last(), Some(&made[3]), "the last is always sent");
+    let mut rest = made.iter();
+    assert!(
+        seen.iter().all(|s| rest.any(|m| m == s)),
+        "each answer in turn: {seen:?}"
+    );
 }
 
 #[test]
@@ -1458,6 +1466,37 @@ fn a_change_is_not_sent_until_the_one_before_is_answered() {
         order,
         ["sent", "answered", "sent", "answered", "sent", "answered"],
         "{log}"
+    );
+}
+
+#[test]
+fn changes_made_while_one_is_out_send_only_the_last_to_the_same_setting() {
+    let rig = rig();
+    let record = rig.dir.path().join("settings.log");
+    rig.send(
+        &[
+            "--slow-setting",
+            "--record-settings",
+            record.to_str().unwrap(),
+        ],
+        "stream",
+    )
+    .unwrap();
+    rig.turns_done(1);
+    // Stepping through the modes, as a held Shift+Tab does: the first goes
+    // out and the rest wait behind its reply.
+    rig.host.set_mode(TAB, "plan").unwrap();
+    rig.host.set_mode(TAB, "acceptEdits").unwrap();
+    rig.host.set_mode(TAB, "default").unwrap();
+    let last = rig.host.set_mode(TAB, "acceptEdits").unwrap();
+    let status = rig.status_where("the last answered", |s| s.answered >= last);
+    assert_eq!(status.mode.as_deref(), Some("acceptEdits"));
+    // The session's own first mode, the one that went out, and the last.
+    assert_eq!(
+        settings_sent(&record).len(),
+        3,
+        "{:?}",
+        settings_sent(&record)
     );
 }
 
