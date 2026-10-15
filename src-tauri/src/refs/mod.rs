@@ -46,10 +46,10 @@ pub const SEARCH_METHOD: &str = "refs/search";
 /// references as the ACP content blocks to send after its text.
 pub const PROMPT_METHOD: &str = "refs/prompt";
 
+/// Every optional field is an `Option`, so `null` reads as absent.
 #[derive(Debug, Deserialize)]
 struct SearchParams {
-    #[serde(default)]
-    query: String,
+    query: Option<String>,
     kinds: Option<Vec<String>>,
     limit: Option<usize>,
 }
@@ -57,8 +57,7 @@ struct SearchParams {
 #[derive(Debug, Deserialize)]
 struct PromptParams {
     uris: Vec<String>,
-    #[serde(default)]
-    accepts: prompt::Accepts,
+    accepts: Option<prompt::Accepts>,
 }
 
 /// Whether the host answers `method` here rather than an app.
@@ -84,7 +83,8 @@ pub fn call(
         SEARCH_METHOD => {
             let asked: SearchParams = parse_params(params)?;
             live::root_of(ctx).map_err(Fault::rpc)?;
-            let q = search::Query::new(&asked.query, asked.kinds, asked.limit)
+            let query = asked.query.unwrap_or_default();
+            let q = search::Query::new(&query, asked.kinds, asked.limit)
                 .map_err(|why| Fault::new(Reason::BadParams, why).rpc())?;
             Ok(json!({ "items": search::run(app, ctx, Actor::Human, &q) }))
         }
@@ -92,7 +92,8 @@ pub fn call(
             let asked: PromptParams = parse_params(params)?;
             check_count(asked.uris.len())?;
             live::root_of(ctx).map_err(Fault::rpc)?;
-            Ok(prompt::run(app, ctx, &asked.uris, asked.accepts))
+            let accepts = asked.accepts.unwrap_or_default();
+            Ok(prompt::run(app, ctx, &asked.uris, accepts))
         }
         other => Err(RpcError::new(
             METHOD_NOT_FOUND,
@@ -185,15 +186,15 @@ mod tests {
     #[test]
     fn search_params_are_typed_and_default_to_everything() {
         let asked: SearchParams = parse_params(None).unwrap();
-        assert_eq!(
-            (asked.query.as_str(), asked.kinds, asked.limit),
-            ("", None, None)
-        );
+        assert_eq!((asked.query, asked.kinds, asked.limit), (None, None, None));
+        let nulls = json!({ "query": null, "kinds": null, "limit": null });
+        let asked: SearchParams = parse_params(Some(nulls)).unwrap();
+        assert_eq!((asked.query, asked.kinds, asked.limit), (None, None, None));
         let asked: SearchParams = parse_params(Some(
             json!({ "query": "player", "kinds": ["file"], "limit": 5 }),
         ))
         .unwrap();
-        assert_eq!(asked.query, "player");
+        assert_eq!(asked.query.as_deref(), Some("player"));
         assert_eq!(asked.kinds, Some(vec!["file".to_string()]));
         assert_eq!(asked.limit, Some(5));
         for bad in [
@@ -215,13 +216,19 @@ mod tests {
         );
         let asked: PromptParams =
             parse_params(Some(json!({ "uris": ["kaava://selection"] }))).unwrap();
-        assert_eq!(asked.accepts, prompt::Accepts::default());
+        assert_eq!(asked.accepts, None);
+        let asked: PromptParams = parse_params(Some(
+            json!({ "uris": ["kaava://selection"], "accepts": null }),
+        ))
+        .unwrap();
+        assert_eq!(asked.accepts, None);
         let asked: PromptParams = parse_params(Some(json!({
             "uris": [],
             "accepts": { "image": true, "embeddedContext": true },
         })))
         .unwrap();
-        assert!(asked.accepts.image && asked.accepts.embedded_context);
+        let accepts = asked.accepts.unwrap();
+        assert!(accepts.image && accepts.embedded_context);
         assert!(check_count(1).is_ok() && check_count(prompt::MAX_URIS).is_ok());
         for n in [0, prompt::MAX_URIS + 1] {
             let e = check_count(n).unwrap_err();
