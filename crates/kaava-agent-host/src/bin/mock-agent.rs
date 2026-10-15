@@ -380,8 +380,8 @@ impl Mock {
                 if self.has("--no-mode") || !known {
                     self.reply_error(&id, -32602, "unknown mode");
                 } else {
-                    // Under `--settles-elsewhere` every switch but the
-                    // handshake's settles on `acceptEdits`, and says so in a
+                    // Under `--settles-elsewhere` every switch to a mode other
+                    // than `default` settles on `acceptEdits`, and says so in a
                     // notification, since this reply cannot.
                     let settled = if self.has("--settles-elsewhere") && mode != "default" {
                         "acceptEdits"
