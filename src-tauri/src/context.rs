@@ -882,15 +882,10 @@ pub(crate) fn sniff(bytes: &[u8]) -> Option<Sniffed> {
         });
     }
     if bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && &bytes[8..12] == b"WEBP" {
-        let dims = (bytes.len() >= 30 && &bytes[12..16] == b"VP8X").then(|| {
-            let w = 1 + u32::from_le_bytes([bytes[24], bytes[25], bytes[26], 0]);
-            let h = 1 + u32::from_le_bytes([bytes[27], bytes[28], bytes[29], 0]);
-            (w, h)
-        });
         return Some(Sniffed {
             mime: "image/webp",
             ext: "webp",
-            dims,
+            dims: webp_dims(bytes),
         });
     }
     None
@@ -898,6 +893,26 @@ pub(crate) fn sniff(bytes: &[u8]) -> Option<Sniffed> {
 
 fn be32(b: &[u8]) -> u32 {
     u32::from_be_bytes([b[0], b[1], b[2], b[3]])
+}
+
+/// A WebP's size, from whichever of its three headers it opens with.
+fn webp_dims(bytes: &[u8]) -> Option<(u32, u32)> {
+    let le24 = |at: usize| u32::from_le_bytes([bytes[at], bytes[at + 1], bytes[at + 2], 0]);
+    match bytes.get(12..16)? {
+        b"VP8X" if bytes.len() >= 30 => Some((1 + le24(24), 1 + le24(27))),
+        // Lossy: after the start code, 14-bit sizes with two scaling bits above.
+        b"VP8 " if bytes.len() >= 30 && bytes[23..26] == [0x9D, 0x01, 0x2A] => {
+            let size =
+                |at: usize| u32::from(u16::from_le_bytes([bytes[at], bytes[at + 1]]) & 0x3FFF);
+            Some((size(26), size(28)))
+        }
+        // Lossless: after the signature byte, each size less one in 14 bits.
+        b"VP8L" if bytes.len() >= 25 && bytes[20] == 0x2F => {
+            let bits = u32::from_le_bytes([bytes[21], bytes[22], bytes[23], bytes[24]]);
+            Some((1 + (bits & 0x3FFF), 1 + ((bits >> 14) & 0x3FFF)))
+        }
+        _ => None,
+    }
 }
 
 /// Walk JPEG segments to the first start-of-frame marker.
@@ -1429,6 +1444,14 @@ mod tests {
         let mut webp = b"RIFF\0\0\0\0WEBPVP8X\x0a\0\0\0\0\0\0\0".to_vec();
         webp.extend_from_slice(&[0x1F, 0x00, 0x00, 0x0F, 0x00, 0x00]);
         assert_eq!(sniff(&webp).unwrap().dims, Some((32, 16)));
+        // The simple forms most encoders write: lossy, with its scaling bits
+        // set, and lossless.
+        let mut lossy = b"RIFF\0\0\0\0WEBPVP8 \0\0\0\0\0\0\0".to_vec();
+        lossy.extend_from_slice(&[0x9D, 0x01, 0x2A, 0x20, 0x40, 0x10, 0x00]);
+        assert_eq!(sniff(&lossy).unwrap().dims, Some((32, 16)));
+        let mut lossless = b"RIFF\0\0\0\0WEBPVP8L\0\0\0\0".to_vec();
+        lossless.extend_from_slice(&[0x2F, 0x1F, 0xC0, 0x03, 0x00]);
+        assert_eq!(sniff(&lossless).unwrap().dims, Some((32, 16)));
     }
 
     #[test]
