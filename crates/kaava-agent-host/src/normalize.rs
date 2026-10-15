@@ -214,6 +214,19 @@ impl Normalizer {
             .collect()
     }
 
+    /// Every file a live tool call has named so far: its paths, and the file
+    /// each of its diffs writes, which for a move is where the file goes.
+    pub fn tool_paths(&self, id: &str) -> Vec<String> {
+        match self.tools.get(id).map(|item| &item.kind) {
+            Some(ItemKind::ToolCall { paths, diffs, .. }) => paths
+                .iter()
+                .cloned()
+                .chain(diffs.iter().map(|d| d.path.clone()))
+                .collect(),
+            _ => Vec::new(),
+        }
+    }
+
     /// The item for a `session/request_permission`. `paths` are the ones the
     /// request names, listed on the card up to [`MAX_PATHS`]. An option
     /// that would enter a mode the tab holds back is never offered,

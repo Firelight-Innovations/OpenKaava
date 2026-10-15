@@ -1161,8 +1161,11 @@ impl Shared {
 
     fn permission(&self, rpc: Id, params: &Value) {
         let call = params.get("toolCall").unwrap_or(&Value::Null);
-        let paths = request_scope(&self.worktree, call);
-        let escapes = escapes(&self.worktree, call);
+        let id = call.get("toolCallId").and_then(Value::as_str);
+        let reported = self.lock().normalizer.tool_paths(id.unwrap_or_default());
+        let call = with_reported(call, reported);
+        let paths = request_scope(&self.worktree, &call);
+        let escapes = escapes(&self.worktree, &call);
         let mut inner = self.lock();
         if inner.closed {
             return;
@@ -1339,6 +1342,23 @@ impl Failure {
             Failure::Protocol(m) => (*m).to_string(),
         }
     }
+}
+
+/// A permission request's tool call, with the files that call named earlier
+/// added to its locations. Codex's file-change request names only the file a
+/// change edits; where a move puts it is in the diff the change started with.
+fn with_reported(call: &Value, reported: Vec<String>) -> Value {
+    let mut call = call.clone();
+    if let Some(fields) = call.as_object_mut().filter(|_| !reported.is_empty()) {
+        let mut locations = fields
+            .get("locations")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        locations.extend(reported.into_iter().map(|path| json!({ "path": path })));
+        fields.insert("locations".to_string(), Value::Array(locations));
+    }
+    call
 }
 
 fn selected(option_id: &str) -> Value {

@@ -558,6 +558,23 @@ impl Mock {
                 json!({ "command": "ls", "cwd": format!("{}/..", self.cwd) }),
                 json!([]),
             ),
+            // A change that moves a file out of the worktree, as Codex words
+            // one: the destination is only in the diff the change started with.
+            "moved" => {
+                self.update(json!({
+                    "sessionUpdate": "tool_call", "toolCallId": "t2", "kind": "edit",
+                    "status": "pending", "content": [{
+                        "type": "diff", "path": format!("{}/../moved.rs", self.cwd),
+                        "oldText": "a", "newText": "a"
+                    }]
+                }));
+                self.ask(
+                    "moved",
+                    json!([{ "path": "src/a.rs" }]),
+                    Value::Null,
+                    json!([]),
+                );
+            }
             "cancelreq" => {
                 self.ask(
                     "cancelreq",
