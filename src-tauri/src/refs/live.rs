@@ -106,7 +106,7 @@ fn canvas_inside(root: &Path, id: &str, part: Option<&CanvasPart>) -> Result<(),
     Ok(())
 }
 
-fn canvas_call(
+pub(super) fn canvas_call(
     app: &AppHandle,
     ctx: &CallContext,
     actor: Actor,

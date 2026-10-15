@@ -193,10 +193,15 @@ pub fn create(context: &CallContext, draft: Draft) -> Result<Comment, RpcError> 
     Ok(comment)
 }
 
-/// Close a comment with a note. `INVALID_PARAMS` when `id` names nothing in
-/// this environment, which is the caller's mistake to see and fix rather than
-/// a server error.
-pub fn resolve(context: &CallContext, id: &str, note: String) -> Result<Comment, RpcError> {
+/// Close a comment with a note, recorded as `by`'s. `INVALID_PARAMS` when `id`
+/// names nothing in this environment, which is the caller's mistake to see and
+/// fix rather than a server error.
+pub fn resolve(
+    context: &CallContext,
+    id: &str,
+    note: String,
+    by: Author,
+) -> Result<Comment, RpcError> {
     let dir = comments_dir(context)?;
     let path = comment_file(&dir, id);
     let mut comment = read_comment_file(&path).map_err(|_| {
@@ -208,11 +213,7 @@ pub fn resolve(context: &CallContext, id: &str, note: String) -> Result<Comment,
 
     let at = monotonic_ms();
     comment.status = Status::Resolved;
-    comment.resolution = Some(Resolution {
-        note,
-        by: Author::User,
-        at,
-    });
+    comment.resolution = Some(Resolution { note, by, at });
     comment.updated = at;
 
     write_comment_file(&path, &comment)?;
@@ -285,7 +286,7 @@ struct ResolveParams {
 
 fn resolve_from_params(context: &CallContext, params: Option<&Value>) -> Result<Comment, RpcError> {
     let params: ResolveParams = parse_params(params)?;
-    resolve(context, &params.id, params.note)
+    resolve(context, &params.id, params.note, Author::User)
 }
 
 fn parse_params<T: serde::de::DeserializeOwned>(params: Option<&Value>) -> Result<T, RpcError> {
@@ -499,12 +500,17 @@ mod tests {
             &context(env.path()),
             &comment.id,
             "done — tightened".to_string(),
+            Author::Agent,
         )
         .expect("resolve");
         assert_eq!(resolved.status, Status::Resolved);
         assert_eq!(
             resolved.resolution.as_ref().map(|r| r.note.as_str()),
             Some("done — tightened")
+        );
+        assert_eq!(
+            resolved.resolution.as_ref().map(|r| r.by),
+            Some(Author::Agent)
         );
 
         let reread = list(&context(env.path())).expect("list");
@@ -514,8 +520,13 @@ mod tests {
     #[test]
     fn resolving_an_unknown_id_says_so_rather_than_creating_one() {
         let env = TempDir::new().expect("tempdir");
-        let err =
-            resolve(&context(env.path()), "nonesuch", "note".to_string()).expect_err("unknown id");
+        let err = resolve(
+            &context(env.path()),
+            "nonesuch",
+            "note".into(),
+            Author::User,
+        )
+        .expect_err("unknown id");
         assert_eq!(err.code, INVALID_PARAMS);
     }
 

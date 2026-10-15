@@ -155,7 +155,7 @@ pub fn instructions(id: &str) -> Option<&'static str> {
              kaava://canvas/<id>#frame=<frame>, kaava://comment/<id>, kaava://design-comment/<id>, \
              kaava://context/<id> and kaava://selection. `search_context` finds them by name, \
              `read` reads one, and `show` puts up to eight in front of the person beside your \
-             reply. Call `get_selection` when they \
+             reply. `list_comments` has what they asked of you; `resolve_comment` closes one. Call `get_selection` when they \
              say \"this\". Secrets and gitignored files are withheld and say so.",
         ),
         "debug" => Some(

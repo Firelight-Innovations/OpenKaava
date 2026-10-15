@@ -17,6 +17,7 @@
 //! comments are the one exception: they belong to the running app.
 
 pub mod assets;
+pub mod comments;
 pub mod live;
 pub mod policy;
 pub mod resolve;

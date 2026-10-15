@@ -15,6 +15,7 @@
 use super::workspace;
 use crate::apps::CallContext;
 use crate::mcp::{Block, McpServer, McpTool, ToolAnswer};
+use crate::refs::comments::{self, Wanted};
 use crate::refs::live::{self, Actor};
 use crate::refs::resolve::{Part, Resolved};
 use crate::refs::search::{self, Query};
@@ -93,6 +94,33 @@ fn search_schema() -> Value {
     )
 }
 
+fn comments_schema() -> Value {
+    schema(
+        json!({
+            "status": {
+                "type": "string", "enum": ["open", "resolved", "all"],
+                "description": "Which comments. Open ones unless you say.",
+            },
+            "sources": {
+                "type": "array",
+                "items": { "type": "string", "enum": comments::SOURCES },
+                "description": "Only comments left here. Omit for all of them.",
+            },
+        }),
+        &[],
+    )
+}
+
+fn resolve_schema() -> Value {
+    schema(
+        json!({
+            "uri": { "type": "string", "description": "The comment's kaava:// reference." },
+            "note": { "type": "string", "description": "What you did about it, for the person." },
+        }),
+        &["uri", "note"],
+    )
+}
+
 fn selection_schema() -> Value {
     schema(json!({}), &[])
 }
@@ -132,6 +160,19 @@ const TOOLS: &[McpTool] = &[
         schema: search_schema,
     },
     McpTool {
+        name: "list_comments",
+        description: "The comments the person left for you in the 3D and scene viewers, on \
+                      canvases and in Design Mode, open ones unless you ask. Each has a \
+                      kaava:// reference: `read` it for the whole comment and its screenshot.",
+        schema: comments_schema,
+    },
+    McpTool {
+        name: "resolve_comment",
+        description: "Close a comment with a note saying what you did, once the work is done. \
+                      Takes the comment's kaava:// reference from `list_comments`.",
+        schema: resolve_schema,
+    },
+    McpTool {
         name: "get_selection",
         description: "What the person has selected right now: selected text, the frame or node \
                       each open app reports, and references to them. Call it when they say \
@@ -149,7 +190,10 @@ const TOOLS: &[McpTool] = &[
 /// Whether a tool leaves the person's work alone, for MCP's `readOnlyHint`.
 pub fn read_only(tool: &str) -> Option<bool> {
     match tool {
-        "read" | "search_context" | "get_selection" | "get_canvas_node" => Some(true),
+        "read" | "search_context" | "list_comments" | "get_selection" | "get_canvas_node" => {
+            Some(true)
+        }
+        "resolve_comment" => Some(false),
         // `show` changes nothing on disk, but it puts something in front of
         // the person, which is not what a client means by read-only.
         "show" => Some(false),
@@ -168,6 +212,21 @@ fn text<'a>(args: &'a Map<String, Value>, key: &str) -> Result<&'a str, RpcError
         .ok_or_else(|| bad(format!("`{key}` is required")))
 }
 
+/// An optional list of strings.
+fn strings(args: &Map<String, Value>, key: &str) -> Result<Option<Vec<String>>, RpcError> {
+    let not_a_list = || bad(format!("`{key}` is a list of strings"));
+    match args.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::Array(list)) => list
+            .iter()
+            .map(|k| k.as_str().map(String::from))
+            .collect::<Option<Vec<_>>>()
+            .map(Some)
+            .ok_or_else(not_a_list),
+        Some(_) => Err(not_a_list()),
+    }
+}
+
 fn call(app: &AppHandle, tool: &str, params: Option<Value>) -> Result<ToolAnswer, RpcError> {
     let args = match params {
         Some(Value::Object(map)) => map,
@@ -179,6 +238,21 @@ fn call(app: &AppHandle, tool: &str, params: Option<Value>) -> Result<ToolAnswer
         "show" => show(app, &ctx, &args),
         "read" => read(app, &ctx, &parse(text(&args, "uri")?)?),
         "search_context" => find(app, &ctx, &args),
+        "list_comments" => {
+            let wanted = Wanted::parse(args.get("status").and_then(Value::as_str)).map_err(bad)?;
+            let sources = strings(&args, "sources")?;
+            let known = |s: &&String| comments::SOURCES.contains(&s.as_str());
+            if let Some(stray) = sources.iter().flatten().find(|s| !known(s)) {
+                let all = comments::SOURCES.join(", ");
+                return Err(bad(format!("`{stray}` is not a source; use {all}")));
+            }
+            Ok(comments::list(app, &ctx, wanted, sources.as_deref()).into())
+        }
+        "resolve_comment" => {
+            let (r, note) = (parse(text(&args, "uri")?)?, text(&args, "note")?);
+            let done = comments::resolve(app, &ctx, &r, note.trim()).map_err(bad)?;
+            Ok(done.into())
+        }
         "get_selection" => read(app, &ctx, &Ref::Selection),
         "get_canvas_node" => {
             let r = Ref::Canvas {
@@ -232,16 +306,7 @@ fn find(
         ));
     }
     let words = args.get("query").and_then(Value::as_str).unwrap_or("");
-    let kinds = match args.get("kinds") {
-        None | Some(Value::Null) => None,
-        Some(Value::Array(list)) => Some(
-            list.iter()
-                .map(|k| k.as_str().map(String::from))
-                .collect::<Option<Vec<_>>>()
-                .ok_or_else(|| bad("`kinds` is a list of strings"))?,
-        ),
-        Some(_) => return Err(bad("`kinds` is a list of strings")),
-    };
+    let kinds = strings(args, "kinds")?;
     let limit = args
         .get("limit")
         .and_then(Value::as_u64)

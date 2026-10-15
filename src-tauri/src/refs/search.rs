@@ -253,7 +253,7 @@ fn viewer_comments(ctx: &CallContext, q: &Query) -> Vec<Hit> {
         .collect()
 }
 
-fn anchor_label(anchor: &crate::comments::Anchor) -> String {
+pub(super) fn anchor_label(anchor: &crate::comments::Anchor) -> String {
     use crate::comments::Anchor;
     match anchor {
         Anchor::Node { path } => format!("node {path}"),
