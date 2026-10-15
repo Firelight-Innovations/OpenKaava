@@ -513,17 +513,19 @@ mod tests {
 
     #[test]
     fn a_context_copy_of_a_secret_is_not_listed_whatever_it_is_titled() {
+        // Stored past ingest's own screen, as a store written before it would
+        // hold them: a clean copy under a secret's key, and one whose stored
+        // bytes were swapped for a private key afterwards.
         let (dir, outside) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
-        let key = "-----BEGIN OPENSSH PRIVATE KEY-----\nb3Bl\n-----END OPENSSH PRIVATE KEY-----\n";
-        fs::write(outside.path().join("prod.env"), "A=1\n").unwrap();
-        fs::write(outside.path().join("handoff"), key).unwrap();
-        fs::write(outside.path().join("notes.txt"), "fine\n").unwrap();
-        let copy = |name: &str| {
+        // Each from its own file: copies of one file share what is stored.
+        let copy = |key: &str, name: &str| {
+            let from = outside.path().join(name);
+            fs::write(&from, format!("{name}\n")).unwrap();
             let asked = crate::context::PutRequest {
-                key: None,
+                key: Some(key.into()),
                 kind: None,
                 title: Some("Build notes".into()),
-                payload: crate::context::Payload::Path(outside.path().join(name)),
+                payload: crate::context::Payload::Path(from),
                 app_id: "terminal".into(),
                 label: None,
                 method: crate::context::Method::Drop,
@@ -531,9 +533,11 @@ mod tests {
             };
             crate::context::put(dir.path(), asked).unwrap()
         };
-        copy("prod.env");
-        copy("handoff");
-        let fine = copy("notes.txt");
+        copy("file/prod.env", "a.txt");
+        let by_content = copy("notes/handoff", "b.txt");
+        let key = "-----BEGIN OPENSSH PRIVATE KEY-----\nb3Bl\n-----END OPENSSH PRIVATE KEY-----\n";
+        fs::write(&by_content.path, key).unwrap();
+        let fine = copy("notes/build", "c.txt");
         let out = rank(context_items(dir.path(), &q("build")), 10);
         let uris: Vec<_> = out.iter().map(|h| h.uri.clone()).collect();
         assert_eq!(uris, [format!("kaava://context/{}", fine.id)]);
