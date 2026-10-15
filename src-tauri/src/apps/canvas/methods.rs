@@ -76,7 +76,7 @@ pub(super) fn open(root: &Path, params: &Value) -> Result<(String, Value, Option
         ));
     }
     let mtime = mtime_at(&path);
-    Ok((id, load(&path)?, mtime))
+    Ok((id, load(root, &path)?, mtime))
 }
 
 /// The diagram `wanted` names, or an error listing the ones there are.

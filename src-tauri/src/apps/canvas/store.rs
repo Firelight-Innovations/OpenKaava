@@ -15,7 +15,7 @@
 //! [`CHECKPOINTS`] per canvas; a view is overwritten in place per diagram, so
 //! an agent looking a hundred times leaves one file, not a hundred.
 
-use super::{bad, file_for, relative, DIR};
+use super::{bad, file_for, is_inside, relative, DIR};
 use base64::Engine;
 use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
 use serde_json::{json, Map, Value};
@@ -160,7 +160,8 @@ pub fn externalize(root: &Path, canvas: &str, scene: &mut Value) -> Result<Vec<S
 }
 
 /// Put each `kaavaRef` image back as a `dataURL`. Returns the refs that are
-/// missing from disk, which the editor then shows as a broken image.
+/// missing from disk, which the editor then shows as a broken image. A ref that
+/// a link leads out of the project is reported as missing and never read.
 pub fn inflate(root: &Path, canvas: &str, scene: &mut Value) -> Vec<String> {
     let mut missing = Vec::new();
     let base = nest(root.join(DIR), canvas);
@@ -180,6 +181,10 @@ pub fn inflate(root: &Path, canvas: &str, scene: &mut Value) -> Vec<String> {
             continue;
         }
         let path = base.join("refs").join(name);
+        if !is_inside(root, &path) {
+            missing.push(rel.to_string());
+            continue;
+        }
         match std::fs::read(&path) {
             Ok(bytes) => {
                 let mime = entry

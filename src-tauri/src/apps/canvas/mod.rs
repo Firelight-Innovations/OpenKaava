@@ -332,7 +332,10 @@ fn file_for(root: &Path, id: &str) -> PathBuf {
 /// of a scene's top-level keys, still counts: a damaged canvas must be reported,
 /// not hidden. Rejected: listing every `.json` and labelling the strangers,
 /// which leaves every caller to filter them out again.
-fn looks_like_canvas(path: &Path) -> bool {
+fn looks_like_canvas(root: &Path, path: &Path) -> bool {
+    if !is_inside(root, path) {
+        return true;
+    }
     let Ok(raw) = std::fs::read_to_string(path) else {
         return true;
     };
@@ -410,10 +413,42 @@ fn empty_scene(id: &str, title: &str, parent: Option<&str>, actor: &str) -> Valu
     })
 }
 
+/// Whether `path` resolves, links followed, to somewhere under `root`. A path
+/// that does not resolve at all (missing, or a link to nothing) is not outside:
+/// the read that follows reports it as the missing file it is.
+fn is_inside(root: &Path, path: &Path) -> bool {
+    match (root.canonicalize(), path.canonicalize()) {
+        (Ok(root), Ok(real)) => real.starts_with(root),
+        (Err(_), _) => false,
+        (Ok(_), Err(_)) => true,
+    }
+}
+
+/// Refuse a canvas or comment file that a symlink or junction leads out of the
+/// project, before anything reads it. Every read of a canvas, comment or image
+/// file under `canvas/` goes through this or [`is_inside`], so the app's
+/// methods, and the MCP tools that reach them through `app_call`, cannot be
+/// pointed at a file elsewhere on the disk.
+fn inside(root: &Path, path: &Path) -> Result<(), RpcError> {
+    if is_inside(root, path) {
+        return Ok(());
+    }
+    Err(RpcError::with_data(
+        INVALID_PARAMS,
+        format!(
+            "{} resolves outside the project, so it is not read",
+            relative(root, path)
+        ),
+        json!({ "kind": "outside" }),
+    ))
+}
+
 /// Read and parse one canvas file. A file that is not valid JSON or not a
 /// scene is an error naming the file: the caller must not fall back to an empty
-/// canvas, because the next autosave would then overwrite what is there.
-fn load(path: &Path) -> Result<Value, RpcError> {
+/// canvas, because the next autosave would then overwrite what is there. A file
+/// that resolves outside `root` is refused unread.
+fn load(root: &Path, path: &Path) -> Result<Value, RpcError> {
+    inside(root, path)?;
     let raw = std::fs::read_to_string(path).map_err(|e| {
         RpcError::new(
             INTERNAL_ERROR,
@@ -440,7 +475,7 @@ fn load(path: &Path) -> Result<Value, RpcError> {
 /// One row of `canvas/list`.
 fn summary(root: &Path, id: &str, path: &Path) -> Value {
     let mtime = mtime_at(path);
-    match load(path) {
+    match load(root, path) {
         Ok(scene) => {
             let kaava = scene.get("kaava");
             let title = kaava
@@ -482,7 +517,7 @@ fn relative(root: &Path, path: &Path) -> String {
 /// by this app and are not canvases it can address. When both forms exist for
 /// one id, the `.canvas.json` is the one listed, as [`file_for`] reads it.
 pub fn files(root: &Path) -> Vec<(String, PathBuf)> {
-    fn walk(dir: &Path, prefix: &str, depth: usize, out: &mut Vec<(String, PathBuf)>) {
+    fn walk(root: &Path, dir: &Path, prefix: &str, depth: usize, out: &mut Vec<(String, PathBuf)>) {
         let Ok(reader) = std::fs::read_dir(dir) else {
             return;
         };
@@ -494,7 +529,7 @@ pub fn files(root: &Path) -> Vec<(String, PathBuf)> {
             };
             if kind.is_dir() {
                 if depth + 1 < MAX_DEPTH && !(depth > 0 && name == "refs") {
-                    walk(&path, &format!("{prefix}{name}/"), depth + 1, out);
+                    walk(root, &path, &format!("{prefix}{name}/"), depth + 1, out);
                 }
             } else if let Some(stem) = name.strip_suffix(CANVAS_SUFFIX) {
                 let id = format!("{prefix}{stem}");
@@ -503,14 +538,14 @@ pub fn files(root: &Path) -> Vec<(String, PathBuf)> {
                 }
             } else if let Some(stem) = name.strip_suffix(".json") {
                 let id = format!("{prefix}{stem}");
-                if validate_id(&id).is_ok() && looks_like_canvas(&path) {
+                if validate_id(&id).is_ok() && looks_like_canvas(root, &path) {
                     out.push((id, path));
                 }
             }
         }
     }
     let mut out = Vec::new();
-    walk(&root.join(DIR), "", 0, &mut out);
+    walk(root, &root.join(DIR), "", 0, &mut out);
     let plain = |p: &Path| !p.to_string_lossy().ends_with(CANVAS_SUFFIX);
     out.sort_by(|a, b| a.0.cmp(&b.0).then(plain(&a.1).cmp(&plain(&b.1))));
     out.dedup_by(|later, first| later.0 == first.0);
@@ -541,7 +576,7 @@ fn assets(root: &Path) -> Result<Value, RpcError> {
     let mut unreadable = Vec::new();
     let mut canvases = 0usize;
     for (id, path) in files(root) {
-        let Ok(mut scene) = load(&path) else {
+        let Ok(mut scene) = load(root, &path) else {
             unreadable.push(id);
             continue;
         };
@@ -599,7 +634,7 @@ fn read(root: &Path, id: &str) -> Result<Value, RpcError> {
             json!({ "kind": "missing" }),
         ));
     }
-    let mut scene = load(&path)?;
+    let mut scene = load(root, &path)?;
     let migration = frames::migrate(&mut scene);
     let missing = store::inflate(root, id, &mut scene);
     Ok(json!({
@@ -766,6 +801,213 @@ mod tests {
 
     fn run(root: &Path, method: &str, params: Value) -> Result<Value, RpcError> {
         call(&ctx(root), false, method, Some(params))
+    }
+
+    fn link(target: &Path, at: &Path) -> bool {
+        #[cfg(unix)]
+        let made = std::os::unix::fs::symlink(target, at);
+        #[cfg(windows)]
+        let made = std::os::windows::fs::symlink_file(target, at);
+        made.is_ok()
+    }
+
+    /// A directory link. On Windows a junction, which needs no special rights,
+    /// so the tests that use it always run; elsewhere a symlink.
+    #[cfg(unix)]
+    fn link_dir(target: &Path, at: &Path) -> bool {
+        std::os::unix::fs::symlink(target, at).is_ok()
+    }
+
+    #[cfg(windows)]
+    fn link_dir(target: &Path, at: &Path) -> bool {
+        std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(at)
+            .arg(target)
+            .output()
+            .is_ok_and(|o| o.status.success())
+    }
+
+    fn refused_as_outside(result: Result<Value, RpcError>) {
+        let err = result.unwrap_err();
+        assert!(
+            err.message.contains("outside the project"),
+            "{}",
+            err.message
+        );
+    }
+
+    fn comment_text(canvas: &str, id: &str) -> String {
+        serde_json::to_string(&comments::Comment {
+            schema: 1,
+            id: id.into(),
+            canvas: canvas.into(),
+            frame_id: "f".into(),
+            element_ids: vec![],
+            region: None,
+            text: "t".into(),
+            author: "a".into(),
+            created_at: "2026-01-01T00:00:00Z".into(),
+            status: "open".into(),
+            resolution: None,
+        })
+        .unwrap()
+    }
+
+    #[test]
+    fn a_canvas_or_comment_file_that_leads_out_of_the_project_is_not_read() {
+        let (dir, away) = (TempDir::new().unwrap(), TempDir::new().unwrap());
+        let root = dir.path();
+        let secret = away.path().join("secret.json");
+        std::fs::write(&secret, serde_json::to_string(&rect_scene()).unwrap()).unwrap();
+        put(root, "world", vec![]);
+        let at = |id: &str| json!({ "id": id, "actor": "agent" });
+        if !link(&secret, &file_for(root, "leak")) {
+            eprintln!("skipped: cannot create symlinks here");
+            return;
+        }
+        refused_as_outside(run(root, "canvas/read", at("leak")));
+        // The tagged form is the one `file_for` prefers, and it is a link too.
+        assert!(link(
+            &secret,
+            &root.join(DIR).join(format!("tagged{CANVAS_SUFFIX}"))
+        ));
+        refused_as_outside(run(root, "canvas/read", at("tagged")));
+        // The frames listing reports an unreadable canvas as a problem, not an error.
+        let frames = run(
+            root,
+            "canvas/frames",
+            json!({ "canvas": "leak", "actor": "agent" }),
+        );
+        let frames = frames.unwrap();
+        assert!(frames["frames"].as_array().unwrap().is_empty());
+        assert!(frames["problems"][0]
+            .as_str()
+            .unwrap()
+            .contains("outside the project"));
+        refused_as_outside(run(root, "canvas/list-comments", at("leak")));
+        // A stranger is filtered out of the listing only after a sniff of its
+        // content; the sniff must not open an outside file, so a link to a file
+        // that is no scene is listed as refused, not hidden.
+        let notes = away.path().join("notes.json");
+        std::fs::write(&notes, r#"{"unrelated":1}"#).unwrap();
+        assert!(link(&notes, &root.join(DIR).join("notes.json")));
+        let listed = run(root, "canvas/list", json!({})).unwrap();
+        let row = |id: &str| {
+            listed
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|r| r["id"] == id)
+                .unwrap_or_else(|| panic!("no row for {id}"))
+                .clone()
+        };
+        for id in ["leak", "tagged", "notes"] {
+            assert!(
+                row(id)["error"]
+                    .as_str()
+                    .unwrap()
+                    .contains("outside the project"),
+                "{id}"
+            );
+        }
+        assert!(
+            run(root, "canvas/read", at("world")).is_ok(),
+            "an ordinary canvas still reads"
+        );
+
+        // A comment file, valid on its own, so only the outside check keeps it
+        // out of the listing.
+        let outside = away.path().join("comment.json");
+        std::fs::write(&outside, comment_text("world", "c-1")).unwrap();
+        let folder = comments::dir_for(root, "world");
+        std::fs::create_dir_all(&folder).unwrap();
+        std::fs::write(folder.join("c-2.json"), comment_text("world", "c-2")).unwrap();
+        assert!(link(&outside, &folder.join("c-1.json")));
+        refused_as_outside(run(
+            root,
+            "canvas/resolve-comment",
+            json!({ "id": "world", "commentId": "c-1", "actor": "agent", "note": "x" }),
+        ));
+        let (all, unreadable) = comments::load_all(root, "world");
+        assert_eq!(all.len(), 1, "the in-project comment still loads");
+        assert_eq!(all[0].id, "c-2");
+        assert_eq!(unreadable, vec!["canvas/world.comments/c-1.json"]);
+    }
+
+    #[test]
+    fn a_folder_that_leads_out_of_the_project_is_not_read() {
+        let (dir, away) = (TempDir::new().unwrap(), TempDir::new().unwrap());
+        let root = dir.path();
+        let at = |id: &str| json!({ "id": id, "actor": "agent" });
+        put(root, "world", vec![]);
+
+        // A link in place of a canvas's comments folder.
+        std::fs::write(away.path().join("c-1.json"), comment_text("world", "c-1")).unwrap();
+        assert!(link_dir(away.path(), &comments::dir_for(root, "world")));
+        let (all, unreadable) = comments::load_all(root, "world");
+        assert!(all.is_empty());
+        assert_eq!(unreadable, vec!["canvas/world.comments/c-1.json"]);
+        refused_as_outside(run(
+            root,
+            "canvas/resolve-comment",
+            json!({ "id": "world", "commentId": "c-1", "actor": "agent", "note": "x" }),
+        ));
+
+        // A link in place of a folder that holds canvases.
+        let elsewhere = away.path().join("scenes");
+        std::fs::create_dir_all(&elsewhere).unwrap();
+        std::fs::write(
+            elsewhere.join("x.json"),
+            serde_json::to_string(&rect_scene()).unwrap(),
+        )
+        .unwrap();
+        assert!(link_dir(&elsewhere, &root.join(DIR).join("dir")));
+        refused_as_outside(run(root, "canvas/read", at("dir/x")));
+    }
+
+    #[test]
+    fn a_reference_image_that_leads_out_of_the_project_is_not_returned() {
+        let (dir, away) = (TempDir::new().unwrap(), TempDir::new().unwrap());
+        let root = dir.path();
+        put(root, "world", vec![]);
+        let png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+        let mut scene = rect_scene();
+        scene["files"] = json!({ "abc": {
+            "id": "abc", "mimeType": "image/png", "created": 1,
+            "dataURL": format!("data:image/png;base64,{png}"),
+        } });
+        run(
+            root,
+            "canvas/write",
+            json!({
+                "id": "world", "scene": scene, "actor": "agent",
+                "baseMtime": mtime_at(&file_for(root, "world")),
+            }),
+        )
+        .unwrap();
+        let read = |root: &Path| {
+            run(
+                root,
+                "canvas/read",
+                json!({ "id": "world", "actor": "agent" }),
+            )
+            .unwrap()
+        };
+        let before = read(root);
+        assert!(before["scene"]["files"]["abc"]["dataURL"].is_string());
+
+        let secret = away.path().join("secret.png");
+        std::fs::write(&secret, b"not for you").unwrap();
+        let image = root.join(DIR).join("world/refs/abc.png");
+        std::fs::remove_file(&image).unwrap();
+        if !link(&secret, &image) {
+            eprintln!("skipped: cannot create symlinks here");
+            return;
+        }
+        let after = read(root);
+        assert!(after["scene"]["files"]["abc"].get("dataURL").is_none());
+        assert_eq!(after["missingRefs"], json!(["refs/abc.png"]));
     }
 
     fn rect_scene() -> Value {
@@ -1212,7 +1454,7 @@ mod tests {
         let at = |name: &str, body: &str| {
             let path = dir.path().join(name);
             std::fs::write(&path, body).unwrap();
-            looks_like_canvas(&path)
+            looks_like_canvas(dir.path(), &path)
         };
         assert!(at("a.json", r#"{"type":"excalidraw","elements":[]}"#));
         assert!(at("b.json", r#"{"elements":[]}"#), "damaged but a scene");

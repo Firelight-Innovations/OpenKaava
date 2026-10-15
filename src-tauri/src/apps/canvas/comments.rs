@@ -17,7 +17,7 @@
 //! `targets`) or a frame-relative box (markup's `bounds`), plus text, author,
 //! status and a resolution note. It does not depend on either.
 
-use super::{bad, file_for, now_rfc3339, plain_file_for, relative, DIR};
+use super::{bad, file_for, inside, now_rfc3339, plain_file_for, relative, DIR};
 use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -104,8 +104,9 @@ fn new_id() -> String {
     format!("c-{millis:x}-{:06x}", tail & 0x00ff_ffff)
 }
 
-/// Every comment on `canvas`, oldest first. A file that does not parse is
-/// named in `unreadable`, not dropped in silence.
+/// Every comment on `canvas`, oldest first. A file that cannot be read, does
+/// not parse, or resolves outside the project is named in `unreadable`, not
+/// dropped in silence.
 pub fn load_all(root: &Path, canvas: &str) -> (Vec<Comment>, Vec<String>) {
     let mut out = Vec::new();
     let mut unreadable = Vec::new();
@@ -117,10 +118,10 @@ pub fn load_all(root: &Path, canvas: &str) -> (Vec<Comment>, Vec<String>) {
         if path.extension().and_then(|e| e.to_str()) != Some("json") {
             continue;
         }
-        match std::fs::read_to_string(&path)
+        let read = inside(root, &path)
             .ok()
-            .and_then(|t| serde_json::from_str::<Comment>(&t).ok())
-        {
+            .and_then(|()| std::fs::read_to_string(&path).ok());
+        match read.and_then(|t| serde_json::from_str::<Comment>(&t).ok()) {
             Some(c) => out.push(c),
             None => unreadable.push(relative(root, &path)),
         }
@@ -132,6 +133,7 @@ pub fn load_all(root: &Path, canvas: &str) -> (Vec<Comment>, Vec<String>) {
 pub fn load_one(root: &Path, canvas: &str, id: &str) -> Result<Comment, RpcError> {
     validate_comment_id(id)?;
     let path = path_of(root, canvas, id);
+    inside(root, &path)?;
     let text = std::fs::read_to_string(&path).map_err(|_| {
         RpcError::with_data(
             INVALID_PARAMS,
@@ -250,8 +252,9 @@ pub fn set_status(
 
 /// The folder a sidecar belongs in exists only once the canvas does.
 pub fn require_canvas(root: &Path, canvas: &str) -> Result<(), RpcError> {
-    if file_for(root, canvas).is_file() {
-        Ok(())
+    let file = file_for(root, canvas);
+    if file.is_file() {
+        inside(root, &file)
     } else {
         Err(RpcError::with_data(
             INVALID_PARAMS,
