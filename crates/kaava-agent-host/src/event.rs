@@ -135,6 +135,11 @@ pub enum ItemKind {
         paths: Vec<String>,
         /// The changes it makes, when it edits files.
         diffs: Vec<FileDiff>,
+        /// What the `kaava-context` server asked the tab to draw, when this is
+        /// one of its show tools and it completed (see `kaava_call.rs`).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(test, ts(optional))]
+        kaava: Option<ShowMarker>,
     },
     /// The agent is waiting for the user to allow or deny something. The turn
     /// is paused until this completes.
@@ -211,6 +216,37 @@ pub struct FileDiff {
     /// One side was over [`crate::normalize::DIFF_LIMIT`] bytes, so both
     /// texts were dropped and only the path is kept.
     pub too_large: bool,
+}
+
+/// A component the `kaava-context` server asked the tab to draw: its show
+/// answer, lifted off the tool result. Checked here for shape only; the tab
+/// checks `props` against the catalogue `version` it draws.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct ShowMarker {
+    /// The catalogue version the props follow.
+    pub version: u32,
+    /// Which component: `refs`, `callout`, `table`, ...
+    pub component: String,
+    /// The component's props, as the server answered them: an object.
+    #[cfg_attr(test, ts(type = "unknown"))]
+    pub props: serde_json::Value,
+    /// The references the server dropped from `props`, and why.
+    pub failed: Vec<ShowFailure>,
+}
+
+/// A reference the server could not show.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct ShowFailure {
+    /// The reference, as the agent gave it.
+    pub uri: String,
+    /// A reason word: `missing`, `outside`, `secret`, ...
+    pub reason: String,
+    /// What went wrong, in a sentence.
+    pub message: String,
 }
 
 /// One choice on an approval card.
@@ -397,6 +433,8 @@ mod tests {
             ItemKind::decl(&cfg),
             ToolStatus::decl(&cfg),
             FileDiff::decl(&cfg),
+            ShowMarker::decl(&cfg),
+            ShowFailure::decl(&cfg),
             ApprovalOption::decl(&cfg),
             PlanEntry::decl(&cfg),
             SessionState::decl(&cfg),
