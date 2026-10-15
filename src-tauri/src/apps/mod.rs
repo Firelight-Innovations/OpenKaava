@@ -596,8 +596,9 @@ pub fn call(
 
     // `kaava://` references, resolved by the host so the rules in
     // `refs::policy` sit in one place. Read-only, so before the write refusal.
+    // First-party apps only; `refs::call` refuses a plugin.
     if crate::refs::is_method(method) {
-        return crate::refs::call(app, context, method, params);
+        return crate::refs::call(app, context, id, method, params);
     }
 
     if let Some(registered) = REGISTRY.iter().find(|a| a.id == id) {

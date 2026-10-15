@@ -35,13 +35,15 @@ pub fn is_method(method: &str) -> bool {
     method.starts_with("refs/")
 }
 
-/// Answer a `refs/*` method for the cluster in `ctx`.
+/// Answer a `refs/*` method from app `caller` for the cluster in `ctx`.
 pub fn call(
     app: &AppHandle,
     ctx: &crate::apps::CallContext,
+    caller: &str,
     method: &str,
     params: Option<Value>,
 ) -> Result<Value, RpcError> {
+    admit(caller)?;
     match method {
         RESOLVE_METHOD => {
             let r = uri_param(params.as_ref())?;
@@ -54,6 +56,18 @@ pub fn call(
             format!("there is no reference method `{other}`"),
         )),
     }
+}
+
+/// Only Kaava's own apps resolve references. A plugin is someone else's code,
+/// and a reference reads the project.
+fn admit(caller: &str) -> Result<(), RpcError> {
+    if crate::apps::is_app(caller) {
+        return Ok(());
+    }
+    Err(RpcError::new(
+        METHOD_NOT_FOUND,
+        format!("`refs/*` answers Kaava's own apps only, not `{caller}`"),
+    ))
 }
 
 /// The `uri` parameter, parsed.
@@ -75,6 +89,19 @@ mod tests {
         assert!(is_method(RESOLVE_METHOD));
         assert!(!is_method("context/get"));
         assert!(!is_method("refsx/resolve"));
+    }
+
+    #[test]
+    fn only_kaavas_own_apps_are_answered() {
+        assert!(admit("agent-tab").is_ok());
+        assert!(admit("canvas").is_ok());
+        for stranger in ["acme.tools/panel", "", "agent-tab "] {
+            assert_eq!(
+                admit(stranger).unwrap_err().code,
+                METHOD_NOT_FOUND,
+                "{stranger:?}"
+            );
+        }
     }
 
     #[test]

@@ -136,8 +136,9 @@ ACP prompt blocks.
 
 ## 4. Host methods
 
-The shell answers these methods for any app, from the calling surface's cluster, the same way it
-answers `context/*`:
+The shell answers these methods for Kaava's own apps, from the calling surface's cluster, the same
+way it answers `context/*`. A plugin surface is refused: it is someone else's code, and a reference
+reads the project.
 
 | Method         | Params                      | Result                                       | State |
 | -------------- | --------------------------- | -------------------------------------------- | ----- |
