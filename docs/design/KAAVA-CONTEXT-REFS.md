@@ -174,17 +174,23 @@ the canvas records `agent` as the actor.
 past line 1 says so. A cut-short excerpt says how to read further. JSON parts are pretty-printed and
 images stay images. The header carries the reference, kind, title, `detail`, `withheld` and `meta`.
 
-`search_context` matches names, not contents. Hits are ranked by exact name, then prefix, then a
-match inside the name, then a match in the path only. Files come from a walk that does not follow
-links, stops after 20,000 entries and skips the §3 secrets. An empty query lists everything except
-files and frames. `limit` is 20 unless given, and at most 50.
+`search_context` matches names, not file contents. A comment is the exception: it is found by what
+it says. Hits are ranked by exact name, then prefix, then a match inside the name, then a match in
+the path only. A frame found only by a property ranks last. Files come from a walk that does not
+follow links and stops after 20,000 entries. Search never lists a §3 secret, by name or by its
+first 64 KB, and never lists a canvas whose file is outside the root. An empty query lists
+everything except files and frames. A query is at most 256 characters and 16 words. `limit` is 20
+unless given, and at most 50. An empty `kinds` list is refused.
 
 `list_comments` reads from three sources, `viewer`, `canvas` and `design`. It lists at most 100,
 and `total` counts all of them. A source that fails to answer adds a line to `problems` and the
-others still answer. `resolve_comment` records the agent as the author of the note.
+others still answer. `resolve_comment` records the agent as the author of the note. It refuses a
+comment that is already resolved, so a note the person wrote is never replaced. It refuses a note
+over 4,000 characters, and a viewer comment on a read-only main.
 
 `show` changes nothing on disk. It checks each reference against §3, the same way resolving does,
-but does not read it. It answers with this marker:
+but reads no more than a file's first 64 KB. A secret fails with the rule it matched. A gitignored
+file passes, because the tab draws it as withheld. It answers with this marker:
 
 ```json
 {
@@ -193,17 +199,20 @@ but does not read it. It answers with this marker:
     "version": 1,
     "props": { "refs": ["kaava://file/scripts/player.gd#L10-L20"], "caption": "The jump" }
   },
-  "failed": [{ "uri": "kaava://file/gone.gd", "reason": "no such file" }]
+  "failed": [{ "uri": "kaava://file/gone.gd", "reason": "there is no `gone.gd` in this project" }]
 }
 ```
 
-The agent host lifts `kaavaShow` off the tool result, and the tab draws it. A reference that fails
-its check goes in `failed`, and the rest are still shown. If none pass, the call fails and gives
-each reason. A caption is at most 500 characters.
+A reference that fails its check goes in `failed`, and the rest are still shown. If none pass, the
+call fails and gives each reason. A caption is at most 500 characters. The agent host is to lift
+`kaavaShow` off the tool result for the tab to draw. That is agent-host work still to land, so for
+now the marker reaches the agent and nothing draws it.
 
-**Resources.** `kaava://selection` is published, so a client can subscribe to it. It changes
-whenever focus does, the same moment `kaava://workspace/focus` changes. Every other reference also
-reads as a resource, without being listed. These templates say how to write one:
+**Resources.** `kaava://selection` is published, so a client can subscribe to it. Subscribers are
+told when focus moves, at the same moment as for `kaava://workspace/focus`. A selection made inside
+a pane without moving focus is not announced, so read it again before acting on it. A server that is
+switched off sends no notices and accepts no new subscriptions. Every other reference also reads as
+a resource, without being listed. These templates say how to write one:
 `kaava://file/{+path}`, `kaava://canvas/{+id}`, `kaava://comment/{id}`,
 `kaava://design-comment/{id}` and `kaava://context/{id}`. A resource read answers the same way as
 `read`, as text and blob contents in order.
@@ -211,4 +220,5 @@ reads as a resource, without being listed. These templates say how to write one:
 **Sessions.** `mcp::session_servers(app, cluster)` gives the entry for an agent the host launches
 for one cluster: `kaava-context`, its URL and a session token (§3.5). It is empty while the
 listener is down or the server is switched off, and the agent then runs without it. Its `Debug`
-output never shows the token.
+output never shows the token. Nothing launches an agent with it yet: the agent host's
+`claude/agent-tab-mcp-servers` branch adds it to the ACP `mcpServers` list.
