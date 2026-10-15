@@ -345,6 +345,16 @@ impl Mock {
         let method = message.get("method").and_then(Value::as_str);
         let id = message.get("id").cloned();
         let params = message.get("params").cloned().unwrap_or(Value::Null);
+        // `--trace <file>`: every method the host sent, one per line.
+        if let (Some(path), Some(method)) = (self.flag_value("--trace"), method) {
+            let file = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(path);
+            if let Ok(mut file) = file {
+                let _ = writeln!(file, "{method}");
+            }
+        }
         match (method, id) {
             (Some("initialize"), Some(id)) => {
                 if self.has("--fail-init") {
