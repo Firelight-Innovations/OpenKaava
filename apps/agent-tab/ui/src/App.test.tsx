@@ -1091,6 +1091,24 @@ describe("the harness", () => {
     expect(chips(container)).not.toContain("Pi");
   });
 
+  it("says a switch failed, not a send, when choosing fails", async () => {
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        "agent-tab/harnesses": both,
+        "agent-tab/choose": () => Promise.reject(new Error("gone")),
+      },
+    );
+    render(<App />);
+    const pi = await harnessItem("Pi");
+    await act(async () => {
+      fireEvent.click(pi);
+    });
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Could not switch the harness.");
+    expect(alert.textContent).not.toContain("Could not send that.");
+  });
+
   it("says what the chosen harness still needs, in its own commands", async () => {
     backend(
       { status: null, seq: 0, items: [] },
