@@ -72,7 +72,7 @@ const STDERR_LINE: usize = 4 * 1024;
 
 /// The longest stdout line read as a message. A longer one is dropped whole
 /// and counted as noise, so an agent cannot grow the host without bound.
-const MESSAGE_LIMIT: usize = 32 * 1024 * 1024;
+pub(crate) const MESSAGE_LIMIT: usize = 32 * 1024 * 1024;
 
 /// The most approvals that may wait on the user at once. Past it a request is
 /// refused unseen.
@@ -698,18 +698,7 @@ impl Shared {
 
     fn handshake(&self) -> Result<(), Failure> {
         let init = self
-            .request(
-                "initialize",
-                json!({
-                    "protocolVersion": 1,
-                    "clientCapabilities": {
-                        "fs": { "readTextFile": false, "writeTextFile": false },
-                        "terminal": false
-                    },
-                    "clientInfo": { "name": "kaava", "version": env!("CARGO_PKG_VERSION") }
-                }),
-                Some(HANDSHAKE),
-            )
+            .request("initialize", hello(), Some(HANDSHAKE))
             .map_err(Failure::from)?;
         let version = init
             .pointer("/agentInfo/version")
@@ -1412,6 +1401,20 @@ fn refusal_reason(message: &str) -> String {
     }
 }
 
+/// `initialize`'s params, which every agent the host starts is sent. They
+/// declare no capability, so the agent never asks Kaava to read or write a
+/// file, run a command, or open a URL.
+pub(crate) fn hello() -> Value {
+    json!({
+        "protocolVersion": 1,
+        "clientCapabilities": {
+            "fs": { "readTextFile": false, "writeTextFile": false },
+            "terminal": false
+        },
+        "clientInfo": { "name": "kaava", "version": env!("CARGO_PKG_VERSION") }
+    })
+}
+
 /// Mark a request as one whose reply carries the settings, for the reader to
 /// take in. `mode` is the mode a `session/set_mode` sets.
 fn carries_settings(mode: Option<String>) -> impl FnOnce(&mut Inner, i64) {
@@ -1424,7 +1427,7 @@ fn carries_settings(mode: Option<String>) -> impl FnOnce(&mut Inner, i64) {
 /// Read one line into `buf`, keeping at most `limit` bytes of it and reading
 /// past the rest. `None` at the end of the stream; otherwise whether the line
 /// was cut.
-fn read_line_capped(
+pub(crate) fn read_line_capped(
     reader: &mut impl BufRead,
     buf: &mut Vec<u8>,
     limit: usize,
