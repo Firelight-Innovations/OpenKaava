@@ -80,7 +80,7 @@ pub fn session_servers(app: &AppHandle, cluster: &str) -> Vec<SessionServer> {
 
 fn serve(port: u16, on: bool, bearer: Option<String>) -> Vec<SessionServer> {
     match bearer {
-        Some(bearer) if on => vec![SessionServer {
+        Some(bearer) if on && !bearer.is_empty() => vec![SessionServer {
             name: super::config_key(SERVER_ID),
             url: format!("http://127.0.0.1:{port}{}", route(SERVER_ID)),
             bearer,
@@ -100,9 +100,10 @@ pub enum Admission {
 }
 
 /// Admit a request to `path` that presented `token`. A session token opens the
-/// context server's route and nothing else.
+/// context server's route and nothing else. An empty token, a bare `Bearer `,
+/// is refused whatever else is empty.
 pub fn admit(path: &str, token: Option<&str>, master: &str, sessions: &Sessions) -> Admission {
-    let Some(token) = token else {
+    let Some(token) = token.filter(|t| !t.is_empty()) else {
         return Admission::Refused;
     };
     if token == master {
@@ -175,6 +176,10 @@ mod tests {
             Admission::Refused
         );
         assert_eq!(
+            admit("/mcp/context", Some(""), "", &sessions),
+            Admission::Refused
+        );
+        assert_eq!(
             admit("/mcp/context", Some("guess"), "m", &sessions),
             Admission::Refused
         );
@@ -184,6 +189,7 @@ mod tests {
     fn a_session_is_offered_only_while_the_server_is_on_and_never_logs_its_bearer() {
         assert!(serve(4000, false, Some("t".into())).is_empty());
         assert!(serve(4000, true, None).is_empty());
+        assert!(serve(4000, true, Some(String::new())).is_empty());
         let offered = serve(4000, true, Some("secret-bearer".into()));
         assert_eq!(offered[0].name, "kaava-context");
         assert_eq!(offered[0].url, "http://127.0.0.1:4000/mcp/context");
