@@ -112,11 +112,19 @@ fn canvas(
     id: &str,
 ) -> Result<Resolved, String> {
     let listed = canvas_call(app, ctx, actor, "canvas/frames", json!({ "canvas": id }))?;
-    Ok(canvas_from(&listed, r, id))
+    canvas_from(&listed, r, id)
 }
 
 /// A canvas from its `canvas/frames` answer: its frames, each with a reference.
-fn canvas_from(listed: &Value, r: &Ref, id: &str) -> Resolved {
+/// The app answers for a damaged canvas with no canvases and the reason in
+/// `problems`. That is an error here, so it never reads as an empty canvas.
+fn canvas_from(listed: &Value, r: &Ref, id: &str) -> Result<Resolved, String> {
+    if listed["canvases"].as_array().is_none_or(Vec::is_empty) {
+        return Err(match listed.pointer("/problems/0").and_then(Value::as_str) {
+            Some(why) => format!("canvas `{id}` cannot be read: {why}"),
+            None => format!("canvas `{id}` cannot be read"),
+        });
+    }
     let title = listed
         .pointer("/canvases/0/title")
         .and_then(Value::as_str)
@@ -141,7 +149,7 @@ fn canvas_from(listed: &Value, r: &Ref, id: &str) -> Resolved {
     out.parts.push(Part::Json {
         value: json!({ "frames": rows }),
     });
-    out
+    Ok(out)
 }
 
 fn frame_of(
@@ -526,7 +534,7 @@ mod tests {
             id: "levels/one".into(),
             part: None,
         };
-        let out = canvas_from(&listed, &r, "levels/one");
+        let out = canvas_from(&listed, &r, "levels/one").unwrap();
         assert_eq!(
             (out.kind.as_str(), out.title.as_str()),
             ("canvas", "Level one")
@@ -542,7 +550,8 @@ mod tests {
             rows[0],
             json!({ "name": "Room 0", "type": "Room", "ref": "kaava://canvas/levels/one#frame=f0" })
         );
-        let untitled = canvas_from(&json!({ "canvases": [{ "title": "" }] }), &r, "levels/one");
+        let untitled =
+            canvas_from(&json!({ "canvases": [{ "title": "" }] }), &r, "levels/one").unwrap();
         assert_eq!(
             untitled.title, "levels/one",
             "an empty title falls back to the id"
@@ -551,6 +560,27 @@ mod tests {
             .as_array()
             .unwrap()
             .is_empty());
+    }
+
+    #[test]
+    fn a_damaged_canvas_is_an_error_not_an_empty_canvas() {
+        let r = Ref::Canvas {
+            id: "broken".into(),
+            part: None,
+        };
+        let listed = json!({
+            "canvases": [],
+            "frames": [],
+            "unreadable": ["broken"],
+            "problems": ["canvas/broken.json is not valid JSON: EOF"],
+        });
+        let err = canvas_from(&listed, &r, "broken").unwrap_err();
+        assert_eq!(
+            err,
+            "canvas `broken` cannot be read: canvas/broken.json is not valid JSON: EOF"
+        );
+        let silent = canvas_from(&json!({ "canvases": [] }), &r, "broken").unwrap_err();
+        assert_eq!(silent, "canvas `broken` cannot be read");
     }
 
     #[test]
