@@ -69,14 +69,13 @@ pub enum Part {
         start_line: u32,
         truncated: bool,
     },
+    /// Always sized, so the tab can hold its place before it decodes.
     #[serde(rename_all = "camelCase")]
     Image {
         mime: String,
         data_base64: String,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        width: Option<u32>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        height: Option<u32>,
+        width: u32,
+        height: u32,
     },
     Json {
         value: Value,
@@ -317,13 +316,30 @@ fn image(
             return Ok(out.withhold(secret_withheld(rule)));
         }
     }
-    out.parts.push(Part::Image {
+    out.parts.push(image_part(mime, &bytes));
+    Ok(out)
+}
+
+/// The size a picture takes when its bytes do not say: the CSS default for
+/// a replaced element.
+const UNSIZED: (u32, u32) = (300, 150);
+
+/// An image part, sized from a raster's header or an SVG's own size.
+pub(super) fn image_part(mime: &str, bytes: &[u8]) -> Part {
+    let svg = || match mime {
+        "image/svg+xml" => assets::svg_size(bytes),
+        _ => None,
+    };
+    let (width, height) = crate::context::sniff(bytes)
+        .and_then(|s| s.dims)
+        .or_else(svg)
+        .unwrap_or(UNSIZED);
+    Part::Image {
         mime: mime.into(),
         data_base64: BASE64.encode(bytes),
-        width: sniffed.as_ref().and_then(|s| s.dims).map(|d| d.0),
-        height: sniffed.as_ref().and_then(|s| s.dims).map(|d| d.1),
-    });
-    Ok(out)
+        width,
+        height,
+    }
 }
 
 /// A folder's entries, folders first, secrets and gitignored entries left out.
@@ -522,12 +538,7 @@ pub fn png_part(path: &Path) -> Result<Part, String> {
     }
     let bytes = read_prefix(path, MAX_IMAGE_BYTES)?;
     let sniffed = crate::context::sniff(&bytes).ok_or("the picture is not an image")?;
-    Ok(Part::Image {
-        mime: sniffed.mime.into(),
-        data_base64: BASE64.encode(&bytes),
-        width: sniffed.dims.map(|d| d.0),
-        height: sniffed.dims.map(|d| d.1),
-    })
+    Ok(image_part(sniffed.mime, &bytes))
 }
 
 /// An item in the context store. One Kaava stored itself is read where it
@@ -862,7 +873,7 @@ mod tests {
         match &r.parts[0] {
             Part::Image { mime, height, .. } => {
                 assert_eq!(mime, "image/png");
-                assert_eq!(*height, Some(32));
+                assert_eq!(*height, 32);
             }
             other => panic!("{other:?}"),
         }
@@ -873,6 +884,20 @@ mod tests {
         assert!(huge.withheld.unwrap().contains("over the"));
         assert!(huge.parts.is_empty());
         assert_eq!(huge.meta["width"], 4000);
+    }
+
+    #[test]
+    fn every_picture_is_sized_even_an_svg_that_does_not_say() {
+        let dir = project();
+        let svg = |size: &str| format!("<svg xmlns=\"http://www.w3.org/2000/svg\" {size}></svg>");
+        put(&dir, "art/box.svg", svg("viewBox=\"0 0 40 20\"").as_bytes());
+        put(&dir, "art/bare.svg", svg("").as_bytes());
+        let size = |uri| match &resolve(&dir, uri).unwrap().parts[0] {
+            Part::Image { width, height, .. } => (*width, *height),
+            other => panic!("{other:?}"),
+        };
+        assert_eq!(size("kaava://file/art/box.svg"), (40, 20));
+        assert_eq!(size("kaava://file/art/bare.svg"), UNSIZED);
     }
 
     #[test]

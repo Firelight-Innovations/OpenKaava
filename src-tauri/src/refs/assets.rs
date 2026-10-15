@@ -215,9 +215,90 @@ pub fn wav_facts(bytes: &[u8], len: u64) -> Map<String, Value> {
     out
 }
 
+/// An SVG's own size: its root element's `width` and `height` when both are
+/// plain pixel lengths, else its `viewBox`. A percentage or an `em` is a size
+/// only the page it sits in can settle, so it is no answer here.
+pub fn svg_size(bytes: &[u8]) -> Option<(u32, u32)> {
+    let text = String::from_utf8_lossy(&bytes[..bytes.len().min(SVG_HEAD)]);
+    let tag = &text[text.find("<svg")?..];
+    let tag = &tag[..tag.find('>')?];
+    let px = |name| attr(tag, name).and_then(pixels);
+    if let (Some(w), Some(h)) = (px("width"), px("height")) {
+        return Some((w, h));
+    }
+    let view: Vec<f64> = attr(tag, "viewBox")?
+        .split(|c: char| c.is_whitespace() || c == ',')
+        .filter(|s| !s.is_empty())
+        .map(str::parse)
+        .collect::<Result<_, _>>()
+        .ok()?;
+    match view[..] {
+        [_, _, w, h] => Some((whole(w)?, whole(h)?)),
+        _ => None,
+    }
+}
+
+/// How far into an SVG its root element is looked for.
+const SVG_HEAD: usize = 8 * 1024;
+
+/// The value of attribute `name` in one start tag, quoted either way.
+fn attr<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
+    let mut at = 0;
+    while let Some(i) = tag[at..].find(name).map(|i| at + i) {
+        at = i + name.len();
+        if !tag[..i].ends_with(char::is_whitespace) {
+            continue;
+        }
+        let Some(value) = tag[at..].trim_start().strip_prefix('=') else {
+            continue;
+        };
+        let value = value.trim_start();
+        let quote = value.chars().next().filter(|c| *c == '"' || *c == '\'')?;
+        let body = &value[1..];
+        return body.find(quote).map(|end| &body[..end]);
+    }
+    None
+}
+
+/// A length in pixels, written bare or with `px`.
+fn pixels(value: &str) -> Option<u32> {
+    let value = value.trim();
+    whole(
+        value
+            .strip_suffix("px")
+            .unwrap_or(value)
+            .trim()
+            .parse()
+            .ok()?,
+    )
+}
+
+/// A size in whole pixels, if it is one a picture could have.
+fn whole(n: f64) -> Option<u32> {
+    (n.is_finite() && (1.0..=100_000.0).contains(&n)).then(|| n.round() as u32)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_svg_is_sized_by_its_pixels_else_its_view_box() {
+        let size = |s: &str| svg_size(s.as_bytes());
+        assert_eq!(size(r#"<svg width="64" height="32px">"#), Some((64, 32)));
+        assert_eq!(
+            size(r#"<?xml?><svg stroke-width="9" width='10' height="20" viewBox="0 0 1 1">"#),
+            Some((10, 20))
+        );
+        assert_eq!(
+            size(r#"<svg width="100%" viewBox="0,0 120.4 80">"#),
+            Some((120, 80))
+        );
+        assert_eq!(size(r#"<svg width="2em" height="2em">"#), None);
+        assert_eq!(size(r#"<svg viewBox="0 0 0 10">"#), None);
+        assert_eq!(size("<svg>"), None);
+        assert_eq!(size("not an svg"), None);
+    }
 
     #[test]
     fn game_assets_classify_by_extension() {

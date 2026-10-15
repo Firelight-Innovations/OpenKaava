@@ -403,12 +403,7 @@ fn design_comment(app: &AppHandle, r: &Ref, id: &str) -> Result<Resolved, Fault>
     });
     if let Some(bytes) = crate::design_comments::read_shot(app, id) {
         if bytes.len() as u64 <= resolve::MAX_IMAGE_BYTES {
-            out.parts.push(Part::Image {
-                mime: "image/png".into(),
-                data_base64: BASE64.encode(bytes),
-                width: None,
-                height: None,
-            });
+            out.parts.push(resolve::image_part("image/png", &bytes));
         }
     }
     Ok(out)
