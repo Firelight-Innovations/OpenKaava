@@ -1015,7 +1015,10 @@ impl Shared {
             match read_line_capped(&mut reader, &mut buf, MESSAGE_LIMIT) {
                 Ok(None) | Err(_) => return,
                 Ok(Some(true)) => self.lock().noise += 1,
-                Ok(Some(false)) => self.on_line(&String::from_utf8_lossy(&buf)),
+                Ok(Some(false)) => {
+                    let line = String::from_utf8_lossy(&buf);
+                    self.on_line(&mcp::scrub(&line, &self.mcp_servers));
+                }
             }
         }
     }
@@ -1171,9 +1174,14 @@ impl Shared {
         loop {
             match read_line_capped(&mut reader, &mut buf, STDERR_LINE) {
                 Ok(None) | Err(_) => break,
-                Ok(Some(_)) => {
+                Ok(Some(cut)) => {
                     let line = String::from_utf8_lossy(&buf);
-                    let line = mask(&mcp::scrub(line.trim_end(), &self.mcp_servers));
+                    let line = line.trim_end();
+                    let line = if cut {
+                        mask(&mcp::scrub_cut(line, &self.mcp_servers))
+                    } else {
+                        mask(&mcp::scrub(line, &self.mcp_servers))
+                    };
                     let mut tail = self.stderr.lock().unwrap_or_else(|e| e.into_inner());
                     if tail.len() == STDERR_TAIL {
                         tail.pop_front();

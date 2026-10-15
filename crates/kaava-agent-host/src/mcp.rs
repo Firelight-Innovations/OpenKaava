@@ -4,8 +4,15 @@
 //! hands them to the agent in `session/new`. Each carries a bearer token of
 //! its own, scoped to that server, which the agent sends back on every call.
 //! The host never logs one: `Debug` leaves it out, and the session scrubs
-//! each from the stderr tail it keeps.
+//! each from everything the agent's process writes: every line it reads from
+//! stdout, before parsing, so no transcript item, approval or error holds
+//! one, and the stderr tail it keeps.
+//!
+//! The agent's own process does hold it. Claude's SDK hands `mcpServers` to
+//! the `claude` CLI as `--mcp-config` JSON, so the bearer is on that process's
+//! command line, where other processes of the same user can read it.
 
+use std::borrow::Cow;
 use std::fmt;
 
 use serde_json::{json, Value};
@@ -52,12 +59,30 @@ pub fn wire(servers: &[McpServer], http: bool) -> Value {
 }
 
 /// `text` with every server's bearer replaced, for anything the host keeps
-/// that the agent's process wrote.
-pub fn scrub(text: &str, servers: &[McpServer]) -> String {
-    servers
-        .iter()
-        .filter(|s| !s.bearer.is_empty())
-        .fold(text.to_string(), |t, s| t.replace(&s.bearer, "<redacted>"))
+/// that the agent's process wrote. A bearer is URL-safe, which JSON never
+/// escapes, so a raw JSON line can be scrubbed before it is parsed.
+pub fn scrub<'a>(text: &'a str, servers: &[McpServer]) -> Cow<'a, str> {
+    let mut out = Cow::Borrowed(text);
+    for bearer in servers.iter().map(|s| s.bearer.as_str()) {
+        if !bearer.is_empty() && out.contains(bearer) {
+            out = Cow::Owned(out.replace(bearer, "<redacted>"));
+        }
+    }
+    out
+}
+
+/// [`scrub`] for a line cut short. A bearer that ran past the cut left only
+/// its start, which `scrub` cannot know, so the end of the line goes too:
+/// one byte short of the longest bearer.
+pub fn scrub_cut(text: &str, servers: &[McpServer]) -> String {
+    let mut out = scrub(text, servers).into_owned();
+    let longest = servers.iter().map(|s| s.bearer.len()).max().unwrap_or(0);
+    let mut end = out.len().saturating_sub(longest.saturating_sub(1));
+    while !out.is_char_boundary(end) {
+        end -= 1;
+    }
+    out.truncate(end);
+    out
 }
 
 #[cfg(test)]
@@ -90,6 +115,51 @@ mod tests {
     fn an_agent_without_http_gets_none() {
         assert_eq!(wire(&[show()], false), json!([]));
         assert_eq!(wire(&[], true), json!([]));
+    }
+
+    #[test]
+    fn each_server_keeps_its_own_bearer_and_an_empty_one_scrubs_nothing() {
+        let other = McpServer {
+            name: "kaava-other".into(),
+            bearer: "other-token".into(),
+            ..show()
+        };
+        let blank = McpServer {
+            name: "kaava-blank".into(),
+            bearer: String::new(),
+            ..show()
+        };
+        let servers = [show(), other, blank];
+        let wired = wire(&servers, true);
+        let names: Vec<&str> = wired
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|s| s["name"].as_str().unwrap())
+            .collect();
+        assert_eq!(names, ["kaava-context", "kaava-other", "kaava-blank"]);
+        assert_eq!(wired[1]["headers"][0]["value"], json!("Bearer other-token"));
+        let line = "s3cret-token then other-token, and nothing else";
+        assert_eq!(
+            scrub(line, &servers),
+            "<redacted> then <redacted>, and nothing else"
+        );
+        assert!(matches!(scrub("plain", &servers), Cow::Borrowed("plain")));
+    }
+
+    #[test]
+    fn a_cut_line_loses_any_bearer_it_cut() {
+        let servers = [show()];
+        // The cut left "s3cret-t" of "s3cret-token".
+        let cut = "a long line ending in s3cret-t";
+        let kept = scrub_cut(cut, &servers);
+        assert!(!kept.contains("s3cret"), "{kept}");
+        assert!(kept.starts_with("a long line"), "{kept}");
+        // A bearer whole before the cut is scrubbed as usual.
+        let whole = format!("s3cret-token {}", "x".repeat(20));
+        assert_eq!(scrub_cut(&whole, &servers), "<redacted> xxxxxxxxx");
+        assert_eq!(scrub_cut("ab", &servers), "");
+        assert_eq!(scrub_cut("é…", &[]), "é…", "nothing to hold back");
     }
 
     #[test]

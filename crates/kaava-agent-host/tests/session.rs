@@ -1625,6 +1625,8 @@ fn nowhere_holds_the_bearer(rig: &Rig) {
     }
     let events = serde_json::to_string(&rig.events()).unwrap();
     assert!(!events.contains(BEARER), "an event holds the bearer");
+    let attached = serde_json::to_string(&rig.host.attach(TAB)).unwrap();
+    assert!(!attached.contains(BEARER), "the attach holds the bearer");
 }
 
 #[test]
@@ -1676,6 +1678,21 @@ fn an_agent_without_http_mcp_is_offered_none() {
 }
 
 #[test]
+fn a_bearer_the_agent_repeats_never_reaches_the_transcript() {
+    let rig = rig();
+    let mut spec = mock(&[]);
+    spec.mcp_servers = vec![kaava_server()];
+    rig.send_spec(spec, "echo").unwrap();
+    rig.turns_done(1);
+    let items = rig.items();
+    let texts = serde_json::to_string(&items).unwrap();
+    assert!(texts.contains("your token is <redacted>"), "{texts}");
+    assert!(texts.contains("token=<redacted>"), "{texts}");
+    assert!(texts.contains("bad token <redacted>"), "{texts}");
+    nowhere_holds_the_bearer(&rig);
+}
+
+#[test]
 fn a_bearer_the_agent_prints_never_reaches_the_log() {
     let rig = rig();
     let mut spec = mock(&["--leak-mcp"]);
@@ -1688,4 +1705,22 @@ fn a_bearer_the_agent_prints_never_reaches_the_log() {
         "the line was kept, scrubbed: {logs:?}"
     );
     nowhere_holds_the_bearer(&rig);
+}
+
+#[test]
+fn a_bearer_cut_off_a_long_stderr_line_leaves_no_trace() {
+    let rig = rig();
+    let mut spec = mock(&["--leak-mcp-long"]);
+    spec.mcp_servers = vec![kaava_server()];
+    rig.send_spec(spec, "hi").unwrap();
+    rig.state(SessionState::Failed);
+    let logs = rig.logged("xxxxxxxx");
+    assert!(
+        logs.iter().any(|l| l.contains("xxxxxxxx")),
+        "the line was kept: {logs:?}"
+    );
+    // The cut kept "kaava-test-b" of the bearer; none of it may stay.
+    for line in &logs {
+        assert!(!line.contains("kaava-test"), "{line}");
+    }
 }
