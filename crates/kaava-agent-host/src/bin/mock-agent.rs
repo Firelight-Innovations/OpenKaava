@@ -259,6 +259,17 @@ impl Mock {
             .and_then(Value::as_str)
             .unwrap_or_default()
             .to_string();
+        // As the adapter answers when the SDK will not take the mode: a thrown
+        // Error, which ACP's SDK sends as "Internal error" with the reason in
+        // `data.details`.
+        if config == "mode" && self.flag_value("--refuse-mode").as_deref() == Some(value.as_str()) {
+            return self.send(&json!({
+                "jsonrpc": "2.0", "id": id, "error": {
+                    "code": -32603, "message": "Internal error",
+                    "data": { "details": format!("Invalid Mode: {value}") }
+                }
+            }));
+        }
         match config {
             "mode" if MODES.iter().any(|(m, _)| *m == value) => {
                 self.mode = if self.has("--settles-elsewhere") && value != "default" {

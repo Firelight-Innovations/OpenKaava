@@ -1456,3 +1456,36 @@ fn a_change_is_not_sent_until_the_one_before_is_answered() {
         "{log}"
     );
 }
+
+#[test]
+fn a_change_the_agent_refuses_is_answered_and_said_beside_the_mode() {
+    let rig = rig();
+    rig.send(&["--refuse-mode", "plan"], "stream").unwrap();
+    rig.turns_done(1);
+    let before = rig.events().len();
+    let ticket = rig.host.set_mode(TAB, "plan").unwrap();
+    let status = rig.status_where("the refusal", |s| s.answered >= ticket);
+    assert_eq!(status.answered, ticket);
+    assert_eq!(status.mode.as_deref(), Some("default"), "the mode stays");
+    assert_eq!(
+        status.setting_trouble,
+        Some(SettingTrouble::Refused {
+            ticket,
+            message: "Internal error: Invalid Mode: plan".into()
+        })
+    );
+    let drawn = rig.events()[before..]
+        .iter()
+        .filter(|e| {
+            matches!(&e.event, Event::ItemCompleted { item }
+                if matches!(item.kind, ItemKind::Error { .. }))
+        })
+        .count();
+    assert_eq!(drawn, 0, "a refusal is not a turn's failure");
+
+    // The next change that goes through clears it.
+    let next = rig.host.set_mode(TAB, "acceptEdits").unwrap();
+    let status = rig.status_where("the next change", |s| s.answered >= next);
+    assert_eq!(status.mode.as_deref(), Some("acceptEdits"));
+    assert_eq!(status.setting_trouble, None);
+}
