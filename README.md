@@ -262,8 +262,7 @@ would give someone a real argument that private tools mounting into OpenKaava ar
 derivative works.
 
 The license covers the code. It does not cover the names. OpenKaava and
-the marks that go with it are trademarks of Firelight
-Innovations.
+the marks that go with it are trademarks of Veistra.
 
 You can fork OpenKaava. You can sell what you build on it. State plainly that your
 work is based on OpenKaava. All of that is fine.

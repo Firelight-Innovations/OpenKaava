@@ -106,7 +106,7 @@ Still open from this item:
 
 - **`[permissions]` has no schema.** The broker shipped first on the grounds
   that the plugin population is one and in-repo. That expires the moment
-  somebody outside Firelight writes an app.
+  somebody outside Veistra writes an app.
 - **Layout presets cannot hold a plugin surface.** `presets::normalized` filters
   slots through `is_app`. Not a regression — presets never held a tool either —
   but it bites the first time somebody saves a preset with an installed plugin

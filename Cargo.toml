@@ -21,7 +21,7 @@ members = [
 [workspace.package]
 version = "0.6.1"
 edition = "2021"
-authors = ["Firelight Innovations"]
+authors = ["Veistra"]
 
 # Apache-2.0, and the deciding factor was the patent grant rather than a
 # preference between permissive licenses: a commercial tool loads into this
