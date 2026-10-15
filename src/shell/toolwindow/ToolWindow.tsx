@@ -42,6 +42,7 @@ import type {
 } from "@openkaava/bridge/protocol";
 import { relayPageEscape } from "./pageEscape";
 import { relayChord } from "./relayChord";
+import { agentTabFrames } from "./agentTabFrames";
 import { createFrameSearch } from "./frameSearch";
 import {
   OPENED_EVENT,
@@ -1382,13 +1383,8 @@ const ToolWindow = forwardRef<
     const unlisten: (() => void)[] = [];
     const relay = (event: string) => (payload: unknown) => {
       if (!live) return;
-      const instanceId = (payload as { instanceId?: unknown } | null)?.instanceId;
-      for (const [win, frame] of frames.current) {
-        if (!frame.isApp || frame.origin === null || frame.id !== instanceId) continue;
-        win.postMessage(
-          { kaava: 1, kind: "event", event, payload } satisfies EventMessage,
-          frame.origin,
-        );
+      for (const [win, origin] of agentTabFrames(frames.current, payload)) {
+        win.postMessage({ kaava: 1, kind: "event", event, payload } satisfies EventMessage, origin);
       }
     };
     void (async () => {
