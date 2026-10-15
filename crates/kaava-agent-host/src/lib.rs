@@ -23,6 +23,7 @@ pub mod harness;
 pub mod host;
 mod job;
 pub mod mask;
+pub mod mcp;
 pub mod normalize;
 pub mod session;
 pub mod transcript;
@@ -35,4 +36,5 @@ pub use event::{
 pub use guard::{NotAWorktree, Worktree};
 pub use harness::{spec, Capabilities, Descriptor, Harness, LaunchSpec, Setup, REGISTRY};
 pub use host::{Adapter, AgentHost, HostError};
+pub use mcp::McpServer;
 pub use session::{Level, Log, Sink};
