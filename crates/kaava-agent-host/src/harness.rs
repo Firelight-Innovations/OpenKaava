@@ -30,9 +30,13 @@ pub enum Harness {
 /// The ACP adapter for Claude, as npm installs it on PATH.
 pub const CLAUDE_ADAPTER: &str = "claude-agent-acp";
 
+/// The variable that stops `cmd.exe` and the Windows loader from searching the
+/// current directory for a bare command name.
+pub const NO_CWD_SEARCH: &str = "NoDefaultCurrentDirectoryInExePath";
+
 /// The adapter version this build was tested against. Recorded with the
-/// `claude` version in `docs/agent-host-versions.md`; another version still
-/// runs, with [`Hint::AdapterVersion`] on its status.
+/// `claude` version in `docs/handoffs/agent-host.md` §12, "Pinned versions";
+/// another version still runs, with [`Hint::AdapterVersion`] on its status.
 pub const CLAUDE_ADAPTER_VERSION: &str = "0.90.0";
 
 /// How to start one agent process.
@@ -61,10 +65,19 @@ pub fn claude_spec(path: Option<&OsStr>, pathext: Option<&OsStr>) -> Result<Laun
         harness: Harness::Claude,
         program: adapter,
         args: Vec::new(),
-        env: vec![(
-            "CLAUDE_CODE_EXECUTABLE".to_string(),
-            claude.to_string_lossy().into_owned(),
-        )],
+        env: vec![
+            (
+                "CLAUDE_CODE_EXECUTABLE".to_string(),
+                claude.to_string_lossy().into_owned(),
+            ),
+            // The adapter runs in the user's worktree, which is untrusted
+            // repository content. An npm shim ends in a bare `node`, and
+            // `cmd.exe` looks in the current directory before PATH for a bare
+            // name unless this is set, so a `node.cmd` at a repository's root
+            // would run the moment the user pressed Send, before any
+            // permission request could stop it.
+            (NO_CWD_SEARCH.to_string(), "1".to_string()),
+        ],
         expected_version: Some(CLAUDE_ADAPTER_VERSION),
     })
 }
@@ -137,10 +150,17 @@ mod tests {
         assert!(spec.args.is_empty(), "a .cmd shim must get no arguments");
         assert_eq!(
             spec.env,
-            vec![(
-                "CLAUDE_CODE_EXECUTABLE".to_string(),
-                claude.to_string_lossy().into_owned()
-            )]
+            vec![
+                (
+                    "CLAUDE_CODE_EXECUTABLE".to_string(),
+                    claude.to_string_lossy().into_owned()
+                ),
+                (
+                    "NoDefaultCurrentDirectoryInExePath".to_string(),
+                    "1".to_string()
+                ),
+            ],
+            "the worktree is never searched for the `node` a shim runs"
         );
     }
 
