@@ -620,12 +620,18 @@ pub(super) fn viewer_record(root: &Path, id: &str) -> Result<crate::comments::Co
         .map_err(|e| Fault::from(format!("comment `{id}` is unreadable: {e}")))
 }
 
-/// A context item's record. The store refuses an unknown or malformed id as
-/// invalid params; anything else it refuses is a record it could not read.
+/// A context item's record. The store refuses an unknown id and a sidecar it
+/// could not open alike, as invalid params, so whether the sidecar is there
+/// tells the two apart.
 pub(super) fn stored_item(root: &Path, id: &str) -> Result<ContextItem, Fault> {
-    crate::context::get(root, id).map_err(|e| match e.code {
-        kaava_rpc::INVALID_PARAMS => Fault::new(Reason::Missing, e.message),
-        _ => Fault::from(e.message),
+    crate::context::get(root, id).map_err(|e| {
+        let sidecar = format!(".kaava/context/{id}.json");
+        match e.code {
+            kaava_rpc::INVALID_PARAMS if policy::contain(root, &sidecar).is_err() => {
+                Fault::new(Reason::Missing, e.message)
+            }
+            _ => Fault::from(e.message),
+        }
     })
 }
 
@@ -971,6 +977,20 @@ mod tests {
         assert!(r.withheld.unwrap().contains(".env"));
         assert!(item_secret(dir.path(), &env).is_some());
         assert_eq!(item_secret(dir.path(), &shot), None);
+    }
+
+    #[test]
+    fn a_context_record_that_cannot_be_read_is_unreadable_not_missing() {
+        let dir = project();
+        let gone = resolve(&dir, "kaava://context/ctx_0a1b").unwrap_err();
+        assert_eq!(gone.reason, Reason::Missing);
+        put(
+            &dir,
+            ".kaava/context/ctx_0a1b.json",
+            b"{\"title\":\"\xff\"}",
+        );
+        let broken = resolve(&dir, "kaava://context/ctx_0a1b").unwrap_err();
+        assert_eq!(broken.reason, Reason::Unreadable, "{broken}");
     }
 
     #[test]
