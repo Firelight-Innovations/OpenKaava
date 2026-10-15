@@ -92,7 +92,7 @@ pub struct Descriptor {
 
 impl Descriptor {
     /// What `agent-tab/harnesses` answers for it, with `hint` saying what
-    /// stands in its way.
+    /// stands in its way. Its models are the caller's to fill in.
     pub fn info(&self, hint: Option<Hint>) -> HarnessInfo {
         HarnessInfo {
             harness: self.harness,
@@ -105,6 +105,8 @@ impl Descriptor {
                 adapter_version: self.adapter.version.to_string(),
             },
             capabilities: self.capabilities,
+            models: None,
+            model: None,
         }
     }
 }

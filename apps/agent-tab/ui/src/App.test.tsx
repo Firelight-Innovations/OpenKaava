@@ -57,6 +57,8 @@ const CLAUDE: HarnessInfo = {
     adapterVersion: "0.90.0",
   },
   capabilities: { steer: false, fork: false, modes: false },
+  models: null,
+  model: null,
 };
 
 /** Codex as `agent-tab/harnesses` describes it, from `harness/codex.rs`. */
@@ -71,6 +73,8 @@ const CODEX: HarnessInfo = {
     adapterVersion: "2.2.2",
   },
   capabilities: { steer: false, fork: false, modes: false },
+  models: null,
+  model: null,
 };
 
 const STATUS: SessionStatus = {

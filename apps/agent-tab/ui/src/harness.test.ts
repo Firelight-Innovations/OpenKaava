@@ -17,6 +17,8 @@ const PI: HarnessInfo = {
     adapterVersion: "1.2.3",
   },
   capabilities: { steer: false, fork: false, modes: true },
+  models: null,
+  model: null,
 };
 
 const status = (config: SessionStatus["config"]): SessionStatus => ({
