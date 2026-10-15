@@ -173,7 +173,8 @@ pub(super) fn describe(
 
     if class.kind == Kind::Image {
         out = image(out, abs, size, &head, &class)?;
-        if !class.textual {
+        // An SVG is also text, but one withheld as too big stays withheld.
+        if !class.textual || out.withheld.is_some() {
             return Ok(out);
         }
     }
@@ -742,6 +743,17 @@ mod tests {
         assert!(huge.withheld.unwrap().contains("over the"));
         assert!(huge.parts.is_empty());
         assert_eq!(huge.meta["width"], 4000);
+    }
+
+    #[test]
+    fn an_svg_over_the_cap_is_withheld_and_not_sent_as_text() {
+        let dir = project();
+        let mut svg = b"<svg xmlns=\"http://www.w3.org/2000/svg\">".to_vec();
+        svg.resize(MAX_IMAGE_BYTES as usize + 1, b' ');
+        put(&dir, "art/huge.svg", &svg);
+        let huge = resolve(&dir, "kaava://file/art/huge.svg").unwrap();
+        assert!(huge.withheld.unwrap().contains("over the"));
+        assert!(huge.parts.is_empty(), "{:?}", huge.parts);
     }
 
     #[test]
