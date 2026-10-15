@@ -100,7 +100,7 @@ impl Resolved {
         }
     }
 
-    fn withhold(mut self, why: impl Into<String>) -> Self {
+    pub(super) fn withhold(mut self, why: impl Into<String>) -> Self {
         self.parts.clear();
         self.withheld = Some(why.into());
         self

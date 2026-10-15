@@ -441,6 +441,7 @@ fn selection(app: &AppHandle, ctx: &CallContext, root: &Path, r: &Ref) -> Result
 fn selection_from(seen: Value, root: &Path, r: &Ref) -> Resolved {
     let mut out = resolve::Resolved::empty(r, "selection", "Selection");
     let mut related = Vec::new();
+    let mut secret = None;
     for surface in seen["surfaces"].as_array().into_iter().flatten() {
         let report = &surface["report"];
         if let (Some(canvas), Some(diagram)) =
@@ -454,6 +455,7 @@ fn selection_from(seen: Value, root: &Path, r: &Ref) -> Resolved {
         }
         let file = report["file"].as_str().or(report["path"].as_str());
         if let Some(rel) = file.and_then(|f| crate::context::relative_to(root, Path::new(f))) {
+            secret = secret.or_else(|| super::policy::secret_rule(&rel));
             if super::policy::check_relative(&rel).is_ok() {
                 let link = Ref::File {
                     path: rel,
@@ -465,6 +467,12 @@ fn selection_from(seen: Value, root: &Path, r: &Ref) -> Resolved {
     }
     out.detail = seen["focused"]["title"].as_str().map(str::to_owned);
     out.meta.insert("refs".into(), json!(related));
+    // What is selected is screened as a file is: nothing from a secret, and
+    // nothing that holds a key.
+    let selected = seen["selectedText"].as_str().unwrap_or_default();
+    if let Some(rule) = secret.or_else(|| super::policy::secret_content(selected.as_bytes())) {
+        return out.withhold(resolve::secret_withheld(rule));
+    }
     if let Some(text) = seen["selectedText"].as_str().filter(|t| !t.is_empty()) {
         // The page counts in UTF-16 units, as JavaScript does, not in bytes.
         let units = text.encode_utf16().count() as u64;
@@ -572,6 +580,25 @@ mod tests {
         assert!(!cut(&out), "eight UTF-16 units, all of them sent");
         let longer = selection_from(seen("\u{e9}\u{e9}\u{e9}", 5), dir.path(), &Ref::Selection);
         assert!(cut(&longer), "five units selected, three sent");
+    }
+
+    #[test]
+    fn a_selection_holding_a_key_or_beside_a_secret_is_withheld() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let key = "-----BEGIN OPENSSH PRIVATE KEY-----\nb3Bl";
+        let seen = json!({ "surfaces": [], "selectedText": key, "selectedTextLength": 40 });
+        let out = selection_from(seen, dir.path(), &Ref::Selection);
+        assert!(out.parts.is_empty(), "{:?}", out.parts);
+        assert!(out.withheld.unwrap().contains("private keys"));
+        let env = dir.path().join(".env");
+        let seen = json!({
+            "surfaces": [{ "report": { "file": env } }],
+            "selectedText": "API_KEY=hunter2",
+            "selectedTextLength": 15,
+        });
+        let out = selection_from(seen, dir.path(), &Ref::Selection);
+        assert!(out.parts.is_empty(), "{:?}", out.parts);
+        assert!(out.withheld.unwrap().contains(".env"));
     }
 
     fn write(path: &Path, text: &str) {
