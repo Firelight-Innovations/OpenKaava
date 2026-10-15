@@ -64,14 +64,17 @@ describe("sessionOf and applyEvent", () => {
     expect(sessionOf({ status: null, items: [], seq: 0 })).toEqual(NO_SESSION);
   });
 
-  it("moves on with a status or a new prompt, and ignores the rest", () => {
+  it("moves on with a status or a new prompt, clears on reset, and ignores the rest", () => {
     const working = applyEvent(NO_SESSION, {
       type: "status",
       status: { state: "working", harness: "codex" },
     });
     expect(working).toEqual({ state: "working", harness: "codex", prompt: null });
-    expect(applyEvent(working, { type: "itemStarted", item: user("go") }).prompt).toBe("go");
+    // The host sends a prompt as a completed item (normalize.rs `begin_turn`).
+    expect(applyEvent(working, { type: "itemCompleted", item: user("go") }).prompt).toBe("go");
     expect(applyEvent(working, { type: "turnStarted" })).toBe(working);
+    // A reset retires the session with no last status: only the reset clears it.
+    expect(applyEvent(working, { type: "reset" })).toEqual(NO_SESSION);
   });
 });
 
@@ -144,7 +147,7 @@ describe("useAgentSessions", () => {
     await waitFor(() => expect(listen).toHaveBeenCalled());
 
     act(() => {
-      emit({ instanceId: "a1", seq: 3, event: { type: "itemStarted", item: user("early") } });
+      emit({ instanceId: "a1", seq: 3, event: { type: "itemCompleted", item: user("early") } });
     });
     await act(async () => answer({ status: null, items: [], seq: 2 }));
 

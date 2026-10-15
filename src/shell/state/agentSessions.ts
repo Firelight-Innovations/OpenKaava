@@ -43,7 +43,10 @@ interface Envelope {
   seq: number;
   event:
     | { type: "status"; status: { state: AgentSessionState; harness: string } }
-    | { type: "itemStarted"; item: { kind: { kind: string; text?: string } } }
+    | {
+        type: "itemStarted" | "itemUpdated" | "itemCompleted";
+        item: { kind: { kind: string; text?: string } };
+      }
     | { type: string };
 }
 
@@ -78,12 +81,17 @@ export function sessionOf(attachment: Attachment): AgentSession {
   return { state: attachment.status.state, harness: attachment.status.harness, prompt };
 }
 
-/** A session moved on by one event, or the same object when the event changes nothing. */
+/**
+ * A session moved on by one event, or the same object when the event changes
+ * nothing. The host sends a prompt as `itemCompleted`; any item event counts.
+ * A reset retires the session without a last status, so it clears the row here.
+ */
 export function applyEvent(session: AgentSession, event: Envelope["event"]): AgentSession {
   if (event.type === "status" && "status" in event) {
     return { ...session, state: event.status.state, harness: event.status.harness };
   }
-  if (event.type === "itemStarted" && "item" in event) {
+  if (event.type === "reset") return NO_SESSION;
+  if ("item" in event) {
     const kind = event.item.kind;
     if (kind.kind === "userMessage" && typeof kind.text === "string") {
       return { ...session, prompt: kind.text };
