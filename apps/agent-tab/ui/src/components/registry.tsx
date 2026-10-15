@@ -18,12 +18,15 @@ import { EmptyState } from "./EmptyState";
 import { ErrorItem } from "./ErrorItem";
 import { Header } from "./Header";
 import { Hint } from "./Hint";
+import { HoverCard } from "./HoverCard";
 import { Layout } from "./Layout";
 import { Menu } from "./Menu";
+import { ModelMenu } from "./ModelMenu";
 import { Note } from "./Note";
 import { Notice } from "./Notice";
 import { PathList } from "./PathList";
 import { Picker } from "./Picker";
+import { Ring } from "./Ring";
 import { SendButton } from "./SendButton";
 import { SessionList } from "./SessionList";
 import { StatusBadge } from "./StatusBadge";
@@ -34,6 +37,7 @@ import { ToolCall } from "./ToolCall";
 import { Transcript } from "./Transcript";
 import { TurnActions } from "./TurnActions";
 import { Usage } from "./Usage";
+import { UsageRing } from "./UsageRing";
 import { UserMessage } from "./UserMessage";
 import { UserTurn } from "./UserTurn";
 import { Working } from "./Working";
@@ -71,6 +75,11 @@ export interface Slots {
   SendButton: ComponentType<P.SendButtonProps>;
   StopButton: ComponentType<P.StopButtonProps>;
   ContextMeter: ComponentType<P.ContextMeterProps>;
+  UsageRing: ComponentType<P.UsageRingProps>;
+  HoverCard: ComponentType<P.HoverCardProps>;
+  Ring: ComponentType<P.RingProps>;
+  /** The one settings button; its sections are pickers' props. */
+  ModelMenu: ComponentType<P.ModelMenuProps>;
   ModePicker: ComponentType<P.PickerProps>;
   ModelPicker: ComponentType<P.PickerProps>;
   EffortPicker: ComponentType<P.PickerProps>;
@@ -111,6 +120,10 @@ export const defaultSlots: Slots = {
   SendButton,
   StopButton,
   ContextMeter,
+  UsageRing,
+  HoverCard,
+  Ring,
+  ModelMenu,
   ModePicker: Picker,
   ModelPicker: Picker,
   EffortPicker: Picker,

@@ -1,0 +1,336 @@
+/*
+ * The composer footer's settings and meters: the model menu, the hover card,
+ * the usage ring and the context window card. Reads only `--k-*` tokens
+ * (src/agent-tokens.css). Both popups open upwards, since the composer sits
+ * at the bottom of the tab.
+ */
+
+/* Tones: a meter's colour says how close to full it is (`meters.ts`). */
+[data-tone="low"] {
+  color: var(--k-meter-low);
+}
+
+[data-tone="high"] {
+  color: var(--k-meter-high);
+}
+
+[data-tone="full"] {
+  color: var(--k-meter-full);
+}
+
+/* The model menu */
+
+.at-model {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.at-model__button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--k-space-1);
+  min-width: 0;
+  height: 24px;
+  padding: 0 var(--k-space-1-5);
+  border: 0;
+  border-radius: var(--k-radius-sm);
+  background: none;
+  color: var(--k-fg-secondary);
+  font: inherit;
+  font-size: var(--k-size-small);
+  cursor: pointer;
+}
+
+.at-model__button:hover,
+.at-model__button[aria-expanded="true"] {
+  background: var(--k-list-hover);
+  color: var(--k-editor-fg);
+}
+
+.at-model__button:focus-visible,
+.at-hover__trigger:focus-visible {
+  outline: var(--k-focus-ring);
+  outline-offset: 0;
+}
+
+.at-model__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.at-model__menu,
+.at-hover__card {
+  position: absolute;
+  bottom: calc(100% + var(--k-space-1));
+  z-index: 10;
+  min-width: 220px;
+  max-width: min(320px, 90vw);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-control);
+  background: var(--k-raised-bg);
+  box-shadow: var(--k-shadow-menu);
+  color: var(--k-editor-fg);
+  font-size: var(--k-size-small);
+  text-align: left;
+}
+
+.at-model__menu {
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: var(--k-space-1);
+}
+
+.at-model__group + .at-model__group {
+  margin-top: var(--k-space-1);
+  padding-top: var(--k-space-1);
+  border-top: 1px solid var(--k-panel-border);
+}
+
+.at-model__heading {
+  padding: var(--k-space-1) var(--k-space-2) var(--k-space-0-5);
+  color: var(--k-fg-faint);
+  font-size: var(--k-text-label-size);
+  letter-spacing: var(--k-text-label-tracking);
+}
+
+.at-model__item {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  column-gap: var(--k-space-1-5);
+  align-items: center;
+  width: 100%;
+  min-height: var(--k-row);
+  padding: var(--k-space-1) var(--k-space-2);
+  border: 0;
+  border-radius: var(--k-radius-sm);
+  background: none;
+  color: var(--k-editor-fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.at-model__item:hover:not(:disabled),
+.at-model__item:focus-visible {
+  outline: none;
+  background: var(--k-list-hover);
+}
+
+.at-model__item:disabled {
+  color: var(--k-fg-secondary);
+  cursor: default;
+}
+
+.at-model__check {
+  display: inline-flex;
+  color: var(--k-accent);
+}
+
+.at-model__detail {
+  grid-column: 2;
+  color: var(--k-fg-faint);
+}
+
+/* The hover card, and the small buttons that open it */
+
+.at-hover {
+  position: relative;
+  display: inline-flex;
+}
+
+.at-hover__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--k-space-1);
+  height: 24px;
+  padding: 0 var(--k-space-1);
+  border: 0;
+  border-radius: var(--k-radius-sm);
+  background: none;
+  color: var(--k-fg-muted);
+  font: inherit;
+  font-size: var(--k-size-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.at-hover__trigger:hover {
+  background: var(--k-list-hover);
+}
+
+.at-hover__card {
+  display: none;
+  width: max-content;
+  padding: var(--k-space-3);
+}
+
+.at-hover__card[data-open] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-2-5);
+}
+
+.at-hover__card--end {
+  right: 0;
+}
+
+.at-hover__card--start {
+  left: 0;
+}
+
+.at-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--k-space-4);
+  font-weight: var(--k-weight-strong);
+}
+
+.at-card__figure {
+  color: var(--k-fg-muted);
+  font-weight: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The usage ring and its card */
+
+.at-ring {
+  flex-shrink: 0;
+}
+
+.at-ring__track,
+.at-ring__fill {
+  fill: none;
+  stroke-width: 2.5;
+}
+
+.at-ring__track {
+  stroke: var(--k-meter-track);
+}
+
+.at-ring__fill {
+  stroke: currentColor;
+  transition: stroke-dasharray var(--k-motion-base) var(--k-ease);
+}
+
+.at-limit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-1);
+}
+
+.at-limit__line {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--k-space-4);
+}
+
+.at-limit__used,
+.at-limit__resets {
+  color: var(--k-fg-muted);
+}
+
+.at-bar,
+.at-minibar {
+  display: block;
+  overflow: hidden;
+  border-radius: var(--k-radius-pill);
+  background: var(--k-meter-track);
+}
+
+.at-bar {
+  height: 4px;
+}
+
+.at-bar__fill {
+  display: block;
+  height: 100%;
+  background: currentColor;
+  transition: width var(--k-motion-base) var(--k-ease);
+}
+
+/* The context meter and its card */
+
+.at-minibar {
+  width: 28px;
+  height: 4px;
+}
+
+.at-stack {
+  display: flex;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--k-radius-pill);
+  background: var(--k-meter-track);
+}
+
+.at-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-1);
+  margin: 0;
+}
+
+.at-rows__row {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-4);
+}
+
+.at-rows__row dt {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--k-space-1-5);
+  color: var(--k-fg-secondary);
+}
+
+.at-rows__row dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.at-rows__share {
+  display: inline-block;
+  min-width: 4ch;
+  color: var(--k-fg-faint);
+  text-align: right;
+}
+
+.at-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.at-swatch--free {
+  box-shadow: inset 0 0 0 1px var(--k-input-border);
+}
+
+.at-hue-1 {
+  background: var(--k-context-1);
+}
+
+.at-hue-2 {
+  background: var(--k-context-2);
+}
+
+.at-hue-3 {
+  background: var(--k-context-3);
+}
+
+.at-hue-4 {
+  background: var(--k-context-4);
+}
+
+.at-hue-5 {
+  background: var(--k-context-5);
+}
+
+.at-hue-6 {
+  background: var(--k-context-6);
+}
