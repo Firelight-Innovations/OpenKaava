@@ -94,7 +94,8 @@ right.
     value is left out; a value the agent reports but does not offer is listed first, checked.
   - `harnesses.ts` builds the harness list. The one in use takes its models from the running
     session. The rest take what the host scanned, read from optional fields until the host sends
-    them. A harness the host does not report reads "Coming soon".
+    them. A harness the host does not report reads "Coming soon", and one it cannot start reads
+    "Not set up". The harness in use is never locked.
 - `ContextMeter` is a short bar and a percentage. On hover or focus it opens a card with the
   window's size, a stacked bar, and a row per category plus the free space. Without `categories`
   the card has one "Used" row.

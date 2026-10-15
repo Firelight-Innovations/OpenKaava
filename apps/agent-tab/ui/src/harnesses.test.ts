@@ -41,4 +41,31 @@ describe("harnessChoices", () => {
     const ids = harnessChoices([CLAUDE, other], "claude", null).map((h) => h.id);
     expect(ids).toEqual(["claude", "codex", "kaava", "pi"]);
   });
+
+  it("never locks the harness in use, even before the host has answered", () => {
+    const running = { models: [OPUS], model: "opus" };
+    expect(harnessChoices([], "claude", running)[0]).toEqual({
+      id: "claude",
+      name: "Claude",
+      models: [OPUS],
+      model: "opus",
+      unavailable: null,
+    });
+  });
+
+  it("locks a harness the host says cannot start, unless it is the one in use", () => {
+    const codex = { harness: "codex", hint: "signedOut" } as unknown as HarnessInfo;
+    const signedOut = { ...CLAUDE, hint: "signedOut" } as HarnessInfo;
+    const listed = harnessChoices([signedOut, codex], "claude", null);
+    expect(listed.map((h) => [h.id, h.unavailable])).toEqual([
+      ["claude", null],
+      ["codex", "Not set up"],
+      ["kaava", "Coming soon"],
+    ]);
+  });
+
+  it("reads a scan that has not run yet as no models", () => {
+    const unscanned = { ...CLAUDE, models: null, model: null };
+    expect(harnessChoices([unscanned], "claude", null)[0].models).toEqual([]);
+  });
 });

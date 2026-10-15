@@ -2,7 +2,8 @@
  * The harnesses the settings menu lists, each with the models it offers.
  * The menu shows Claude, Codex and Kaava in that order. One the host does
  * not report reads "Coming soon": Kaava is our own harness and still being
- * built, and Codex arrives with harness-bridge.
+ * built, and Codex arrives with harness-bridge. The harness in use is never
+ * locked, even before the host's answer arrives.
  */
 import type { HarnessInfo } from "./protocol.generated";
 import type { HarnessChoice, PickerChoice } from "./components/types";
@@ -12,12 +13,13 @@ import { strings } from "./strings";
 export const HARNESSES = ["claude", "codex", "kaava"];
 
 /**
- * What the host may add to a harness once it scans the harness for its
- * models. Not in the protocol yet: read when present, so the menu fills in
- * as soon as the host sends it.
+ * What the host adds to a harness once it scans it for its models, as
+ * harness-bridge proposed it. Not in the protocol yet: read when present, so
+ * the menu fills in as soon as the host sends it. `models` is `null` until a
+ * scan has run; `model` is the value the next session starts with.
  */
 interface Scanned {
-  models?: PickerChoice[];
+  models?: PickerChoice[] | null;
   model?: string | null;
 }
 
@@ -43,14 +45,22 @@ export function harnessChoices(
   return ids.map((id) => {
     const name = strings.harnessName[id] ?? id;
     const info = reported.find((h) => h.harness === id) as (HarnessInfo & Scanned) | undefined;
-    if (!info) return { id, name, models: [], model: null, unavailable: strings.harnessSoon };
-    const live = id === current ? running : null;
+    const inUse = id === current;
+    const live = inUse ? running : null;
+    // The one in use is running, or about to: whatever the host has said so far.
+    const unavailable = inUse
+      ? null
+      : !info
+        ? strings.harnessSoon
+        : info.hint !== null
+          ? strings.harnessNotReady
+          : null;
     return {
       id,
       name,
-      models: live?.models ?? info.models ?? [],
-      model: live ? live.model : (info.model ?? null),
-      unavailable: null,
+      models: unavailable === null ? (live?.models ?? info?.models ?? []) : [],
+      model: live ? live.model : (info?.model ?? null),
+      unavailable,
     };
   });
 }
