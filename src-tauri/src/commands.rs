@@ -230,7 +230,7 @@ pub fn open_instance(
         .ok_or_else(|| AppError::UnknownTool(app_id))
 }
 
-/// The pages this build offers, in rail order — including the disabled one.
+/// The pages this build offers, in rail order — including the disabled ones.
 /// See `pages::rail`.
 #[tauri::command]
 pub fn list_pages() -> Vec<pages::PageInfo> {

@@ -63,6 +63,8 @@ Project
 | Cost | Docked | Amber at 50% of budget, red at 90% | Alt 5 |
 | Artifact registry (later) | Docked | Amber: versions await review | Alt 6 |
 
+Cloud agents is switched off for the MVP (owner's call, 2026-10-14): the MVP is the local core, and the page reads Google Cloud. It shows disabled on the rail like the Artifact registry, and Alt 3 opens nothing. The row above is the design for when it returns, which is one flag in `src-tauri/src/pages.rs`.
+
 - One page is open at a time. Docked pages are 320–640 px wide. Expanded pages cover the workspace only (Esc returns), and panes never unmount.
 - **Plane** runs unmodified in a webview. The native panel beside it runs `ai:*` labels, or **Start in a new worktree** from the selected work item.
 - **Cost** follows plan UI-7:
@@ -134,5 +136,5 @@ A full page opened from Home → New Project. It runs `kaava-project create` beh
 2. **How Play runs.** One option is a Godot web export in a webview pane: simplest, but some features differ. The other is a native debug run whose frames stream into the pane: faithful, but more work. Cloud environments need a pulled or downloaded build either way.
 3. **Standing worktree for the design canvas** (`wt/design`) versus storing canvases outside git. The canvas plan (P7-2) keeps them in the repo, which is why it is a worktree here.
 4. **Comment storage** in `.kaava/comments/` (it travels with the branch and is visible to agents as files) versus the Hindsight or Plane comments. Files are proposed.
-5. Confirm that Plane and Cloud agents open **Expanded** by default.
+5. Confirm that Plane and Cloud agents open **Expanded** by default. Cloud agents is off for the MVP (§4), so only Plane can be checked until it returns.
 6. The **handoff-spec conflict** from the v0.2 token migration still needs its decision row.
