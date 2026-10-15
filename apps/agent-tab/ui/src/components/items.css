@@ -102,6 +102,63 @@
   color: var(--k-fg-muted);
 }
 
+/* Every fold: no triangle, a caret after the label that turns down when open. */
+.at-disclosure {
+  list-style: none;
+}
+
+.at-disclosure::-webkit-details-marker {
+  display: none;
+}
+
+.at-disclosure:hover {
+  color: var(--k-editor-fg);
+}
+
+.at-disclosure::after {
+  content: "›";
+  display: inline-block;
+  margin-left: var(--k-space-1-5);
+  color: var(--k-fg-faint);
+  transition: transform var(--k-motion-fast) var(--k-ease);
+}
+
+details[open] > .at-disclosure::after {
+  transform: rotate(90deg);
+}
+
+/* A label still in progress: a light sweeps across it. */
+.at-shimmer[data-live] {
+  background: linear-gradient(
+      90deg,
+      var(--k-shimmer-base) 35%,
+      var(--k-shimmer-glint) 50%,
+      var(--k-shimmer-base) 65%
+    )
+    0 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: at-shimmer 2s linear infinite;
+}
+
+@keyframes at-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .at-shimmer[data-live] {
+    animation: none;
+    background: none;
+    color: var(--k-shimmer-glint);
+  }
+}
+
 .at-reasoning__text {
   white-space: pre-wrap;
   color: var(--k-fg-muted);
@@ -121,26 +178,9 @@
   border-radius: var(--k-radius-sm);
 }
 
-details > .at-tool__head {
-  list-style: none;
-}
-
-details > .at-tool__head::-webkit-details-marker {
-  display: none;
-}
-
-details > .at-tool__head:hover {
-  color: var(--k-editor-fg);
-}
-
-details > .at-tool__head::after {
-  content: "›";
-  color: var(--k-fg-faint);
-  transition: transform var(--k-motion-fast) var(--k-ease);
-}
-
-details[open] > .at-tool__head::after {
-  transform: rotate(90deg);
+/* The row's own gap already spaces its caret. */
+.at-tool__head::after {
+  margin-left: 0;
 }
 
 details.at-tool > :not(summary) {

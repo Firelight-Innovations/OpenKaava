@@ -76,6 +76,8 @@ export interface AssistantTextProps {
 
 export interface ThinkingProps {
   text: string;
+  /** Still being written: the label shimmers. */
+  live?: boolean;
 }
 
 /** One file's change, already diffed. `lines` is `null` when it is too large. */

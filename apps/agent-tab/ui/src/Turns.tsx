@@ -25,10 +25,10 @@ export function TurnsProvider({ value, children }: { value: Lookup; children: Re
   return <LookupContext.Provider value={value}>{children}</LookupContext.Provider>;
 }
 
-function ById({ id }: { id: string | undefined }) {
+function ById({ id, live }: { id: string | undefined; live?: boolean }) {
   const lookup = useContext(LookupContext);
   const item = id === undefined ? undefined : lookup?.byId.get(id);
-  return item && lookup ? <ItemView item={item} actions={lookup.actions} /> : null;
+  return item && lookup ? <ItemView item={item} actions={lookup.actions} live={live} /> : null;
 }
 
 /**
@@ -44,7 +44,10 @@ function Empty({ status }: { status: { type: string } }) {
 
 const parts = {
   Text: ({ id }: { id?: string }) => <ById id={id} />,
-  Reasoning: ({ id }: { id?: string }) => <ById id={id} />,
+  // assistant-ui marks the part still streaming in a running turn as running.
+  Reasoning: ({ id, status }: { id?: string; status: { type: string } }) => (
+    <ById id={id} live={status.type === "running"} />
+  ),
   Empty,
   tools: { Override: ({ toolCallId }: { toolCallId: string }) => <ById id={toolCallId} /> },
 };
