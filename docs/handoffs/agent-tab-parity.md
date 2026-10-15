@@ -66,7 +66,7 @@ Constraints for later PRs, found while reading the adapter:
 
 **Legend.** ACP status: `exposed`, `partial`, `not-exposed`, `unknown`, `n/a` (same meaning as the sweep). Priority: P0 parity-critical; P1 needed after P0; P2 later; Skip (reason given); Shell (covered by OpenKaava's shell, wiring noted).
 
-**Sources.** `acp-agent.js`, `session-*.js`, `normalize.rs` and similar names are in the claude-agent-acp `dist/` folder or the OpenKaava crates and UI folders (`crates/kaava-agent-host/src`, `apps/agent-tab/ui/src`). Doc pages are under `https://code.claude.com/docs/en/`, named in each row.
+**Sources.** `acp-agent.js`, `session-*.js`, `normalize.rs` and similar names are in the claude-agent-acp `dist/` folder or the OpenKaava crates and UI folders (`crates/kaava-agent-host/src`, `apps/agent-tab/ui/src`). Doc pages are under `https://code.claude.com/docs/en/`, named in each row. A cite into OpenKaava's own code names the file and the function, not a line: the parity PRs keep moving those lines. A `.js` cite is a line in claude-agent-acp 0.90.0.
 
 **Sweep conflicts resolved in this revision.**
 
@@ -89,37 +89,37 @@ Constraints for later PRs, found while reading the adapter:
 
 | Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
 |---|---|---|---|---|---|
-| Start a session in a worktree | CLI `--worktree`; Desktop worktree option | exposed: `session/new` `cwd` (acp-agent.js:441-451) | done: worktree cwd, `mcpServers: []` (session.rs:551-558) | Shell | Only a local worktree may run an agent (agent_tab.rs:272-291). |
-| New conversation | `/clear`, `/new`, `/reset`; VS Code New Conversation; Desktop Cmd+N | partial: `/clear` filtered from the menu (acp-agent.js:9006); new conversation is `session/new` (acp-agent.js:1433) | done: New session kills the agent and clears the transcript (host.rs:292-307) | P0 | Map typed `/clear` and the button to `session/new`. Typed `/clear` behaviour is unknown (acp-agent.js:677 vs 2084). |
+| Start a session in a worktree | CLI `--worktree`; Desktop worktree option | exposed: `session/new` `cwd` (acp-agent.js:441-451) | done: worktree cwd, `mcpServers: []` (session.rs, `Shared::handshake`) | Shell | Only a local worktree may run an agent (agent_tab.rs, `worktree`). |
+| New conversation | `/clear`, `/new`, `/reset`; VS Code New Conversation; Desktop Cmd+N | partial: `/clear` filtered from the menu (acp-agent.js:9006); new conversation is `session/new` (acp-agent.js:1433) | done: New session kills the agent and clears the transcript (host.rs, `Host::reset`) | P0 | Map typed `/clear` and the button to `session/new`. Typed `/clear` behaviour is unknown (acp-agent.js:677 vs 2084). |
 | Model picker | `/model`; Option+P; Desktop Cmd+Shift+I | exposed: config option `model`, category model, set by `session/set_config_option` (session-model.js:2, 163-208; acp-agent.js:6273-6297) | partial since PR 1: the host reads the `model` option; no picker yet | P0 | PR 1 and PR 3. Show the list the adapter sends. Do not hardcode names. |
 | Model aliases and `[1m]` variants | default, best, fable, sonnet, opus, haiku, sonnet[1m], opus[1m], opusplan (model-config doc) | exposed through the model option values (session-model.js) | partial since PR 1: read with the option; no picker yet | P0 | Part of the picker. Aliases come from docs and may change. |
 | Session-only or saved default | Enter saves as default; `s` applies to this session (interactive-mode doc) | unknown: `set_config_option` changes the session; saving a default needs a settings write | not implemented | P1 | Owner decision on whether the picker saves defaults. A save writes settings, so it needs confirmation (Section 4 J). |
 | Model allowlist and denylist | `availableModels` in settings; managed `deniedModels` | partial: applied when the option list is built (session-model.js:241-253; settings.js:94-97) | partial since PR 1: the host takes the list as built; no picker yet | P0 | Comes free with PR 1. |
-| Model fallback notice | falls back when a model refuses or is unavailable (model-config doc) | exposed: notice or fallback text (acp-agent.js:4344, 4397, 4412; session-notices.js:1-69) | notices dropped (normalize.rs:262-265) | P1 | Without notice support the adapter sends a bold agent message, so it already shows as text. PR 19. |
+| Model fallback notice | falls back when a model refuses or is unavailable (model-config doc) | exposed: notice or fallback text (acp-agent.js:4344, 4397, 4412; session-notices.js:1-69) | notices dropped (normalize.rs, the last arm of `Normalizer::update`) | P1 | Without notice support the adapter sends a bold agent message, so it already shows as text. PR 19. |
 | Effort level | `/effort` slider; Desktop Cmd+Shift+E; `--effort` | exposed: config option `effort`, category thought_level (session-effort.js:72-90; session-config-ids.js:4) | partial since PR 1: read; no picker yet | P0 | Levels depend on the model. No `xhigh` on Opus 4.6 or Sonnet 4.6 (model-config doc). PR 3. |
 | Ultracode tier | Tab in the effort slider; `/effort ultracode on` or `off` | partial: ultracode carried with effort (session-effort.js:11-16); no toggle option found | not implemented | P1 | Check whether the effort list includes ultracode (unknown). |
-| Extended thinking on or off | Option+T (Alt+T, Meta+T). Opus 5.5, Sonnet 5.5, Haiku 5.5 and Fable always think (keybindings doc) | not-exposed: no toggle option; only `MAX_THINKING_TOKENS` env (acp-agent.js:9933-9945) | not implemented; thinking blocks render (Items.tsx:32-38) | P1 | Needs a settings or env path (D12). Tab is not the toggle. |
+| Extended thinking on or off | Option+T (Alt+T, Meta+T). Opus 5.5, Sonnet 5.5, Haiku 5.5 and Fable always think (keybindings doc) | not-exposed: no toggle option; only `MAX_THINKING_TOKENS` env (acp-agent.js:9933-9945) | not implemented; thinking blocks render (components/Thinking.tsx) | P1 | Needs a settings or env path (D12). Tab is not the toggle. |
 | Ultrathink keyword | prompt keyword for deeper reasoning | unknown: no adapter match, no doc line found | not implemented | P2 | Typed text reaches the CLI unchanged, so it may already work. Verify. |
 | Fast mode | `/fast`; Option+O; VS Code toggle (fast-mode doc) | exposed: config option `fast` (acp-agent.js:8849; applied at 6242, 7552-7620) | partial since PR 1: read; no switch yet | P1 | Show disabled reasons: free, extra_usage_disabled, model_not_allowed, not_first_party, disabled_by_env, network_error (acp-agent.js:8872-8879). |
 | Third-party providers | CLI env and settings; VS Code provider switch (vs-code doc) | exposed: `providers/list`, `providers/set`, `providers/disable`; advertised unconditionally (acp-agent.js:1398-1400; handlers 1848-1904) | not implemented | P2 | Corrected. Owner decision on which provider UI to show. A provider change alters billing. |
-| Sign in and sign out | `/login`, `/logout`; VS Code Sign out | partial: `authenticate` takes gateway methods only (acp-agent.js:1610-1629); logout runs `claude auth logout` (acp-agent.js:1937-1970); authStatus pushed (auth-status.js) | hint text only (strings.ts:93-94) | P1 | Never enter credentials in the tab. Sign-in opens a terminal pane for `claude auth login`. Sign-out is a confirmed button (PR 24). |
-| Add working directory | `--add-dir`; `/add-dir`; `permissions.additionalDirectories` | partial: `additionalDirectories` on `session/new` (acp-agent.js:7832-7834); advertised (acp-agent.js:1365-1373) | not implemented; guard refuses outside paths (guard.rs:9-11) | P1 | Owner decision D5. |
-| Session title shown | name on prompt bar; terminal title; Desktop title | exposed: `session_info_update` title, capped at 256 (session-titles.js:7-8, 217) | dropped (normalize.rs:262-265); header fixed as "Agent" (App.tsx:146) | P1 | One normaliser change (PR 8). |
+| Sign in and sign out | `/login`, `/logout`; VS Code Sign out | partial: `authenticate` takes gateway methods only (acp-agent.js:1610-1629); logout runs `claude auth logout` (acp-agent.js:1937-1970); authStatus pushed (auth-status.js) | hint text only (strings.ts, `harnessMissing`) | P1 | Never enter credentials in the tab. Sign-in opens a terminal pane for `claude auth login`. Sign-out is a confirmed button (PR 24). |
+| Add working directory | `--add-dir`; `/add-dir`; `permissions.additionalDirectories` | partial: `additionalDirectories` on `session/new` (acp-agent.js:7832-7834); advertised (acp-agent.js:1365-1373) | not implemented; guard refuses outside paths (guard.rs, its module comment) | P1 | Owner decision D5. |
+| Session title shown | name on prompt bar; terminal title; Desktop title | exposed: `session_info_update` title, capped at 256 (session-titles.js:7-8, 217) | dropped (normalize.rs, the last arm of `Normalizer::update`); header fixed as "Agent" (App.tsx, `at-header`) | P1 | One normaliser change (PR 8). |
 | Rename session | `/rename`; Ctrl+R in picker; VS Code Rename Session Tab | partial: `_session/rename` needs the sessionIndex capability, AIR-gated (session-index/connection.js:43-45) | not implemented | P1 | Local label until D1 is decided. |
 
 ### 2.2 Permission modes
 
 | Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
 |---|---|---|---|---|---|
-| Manual (default) | Mode dropdown "Manual"; Shift+Tab; `--permission-mode default` (permission-modes doc) | exposed: id `default` (session-mode.js:226-261) | partial: forced to `default` at handshake and fails closed (session.rs:565-574; ASK_FIRST session.rs:80) | P0 | Show the label "Manual", not the id. |
+| Manual (default) | Mode dropdown "Manual"; Shift+Tab; `--permission-mode default` (permission-modes doc) | exposed: id `default` (session-mode.js:226-261) | partial: forced to `default` at handshake and fails closed (session.rs, `Shared::handshake`, with harness.rs `Policy::ask_first`) | P0 | Show the label "Manual", not the id. |
 | Accept edits | "Edit automatically" (VS Code); `acceptEdits` | exposed: id `acceptEdits` (session-mode.js:226-261) | partial since PR 1: the host reads `modes` into `SessionStatus.modes`; no switcher yet | P0 | PR 2. |
 | Plan | "Plan"; `/plan` | exposed: id `plan` (session-mode.js:247); EnterPlanMode switches to plan (acp-agent.js:7962-7963) | partial since PR 1: the host reads `modes` into `SessionStatus.modes`; no switcher yet | P0 | PR 2 and PR 13. |
 | Auto | "Auto"; classifier approves calls | exposed: id `auto`; falls back to acceptEdits with a warning on unsupported models (session-mode.js:6-14, 46-54) | not implemented | P1 | Show "Auto mode unavailable" as a notice (PR 19). |
 | Bypass permissions | "Bypass permissions"; needs a settings gate (permission-modes doc) | partial: offered only when allowed (permissions/modes.js:3; session-mode.js:261); root or IS_SANDBOX gate (modes.js:18-20) | not implemented | P2 | Owner decision D4. Keep off until the guard is checked in this mode. |
 | dontAsk | CLI only; not in Desktop or VS Code selectors (permission-modes doc) | not-exposed: parser accepts it; catalog omits it; `set_mode` throws (session-mode.js:213-225) | not implemented | Skip | CLI-only per docs. |
-| Mode switcher | mode dropdown (VS Code); Desktop Cmd+Shift+M | exposed: `session/set_mode` and config option `mode` (session-mode.js:5, 66-81, 135-166) | partial since PR 1: the host reads `modes` into `SessionStatus.modes`; no switcher yet, `modes` capability false (host.rs:66-72) | P0 | PR 2. |
+| Mode switcher | mode dropdown (VS Code); Desktop Cmd+Shift+M | exposed: `session/set_mode` and config option `mode` (session-mode.js:5, 66-81, 135-166) | partial since PR 1: the host reads `modes` into `SessionStatus.modes`; no switcher yet, `modes` capability false (harness/claude.rs, `CLAUDE.capabilities`) | P0 | PR 2. |
 | Shift+Tab cycle | cycles default, acceptEdits, plan, bypass (if offered), auto; Alt+M on Windows without VT (interactive-mode doc) | exposed as the mode option; the key is client-owned | not implemented | P0 | Cycle order is the adapter's. |
-| Mode label in footer | label, not raw id | exposed: `current_mode_update` (normalize.rs:247-253) | partial since PR 1: the host reads `modes` into `SessionStatus.modes`; the footer shows the raw id (App.tsx:220) | P0 | Labels: Manual, Accept edits, Plan, Auto, Bypass permissions. |
+| Mode label in footer | label, not raw id | exposed: `current_mode_update` (normalize.rs, the `current_mode_update` arm of `Normalizer::update`) | partial since PR 1: the host reads `modes` into `SessionStatus.modes`; the footer shows the raw id (App.tsx, `at-prompt__mode`) | P0 | Labels: Manual, Accept edits, Plan, Auto, Bypass permissions. |
 | Auto-mode classifier rules | `autoMode` settings; `claude auto-mode config`, `defaults`, `reset` | partial: `autoMode` settings read (acp-agent.js, autoMode references) | not implemented | P2 | Read-only view first. |
 | Permission rules editor | `/permissions`; allow, ask, deny rules (permissions doc) | partial: rules honored in the SDK (acp-agent.js:7042); no editor method | not implemented | P1 | PR 20. See Section 4 J. |
 
@@ -127,20 +127,20 @@ Constraints for later PRs, found while reading the adapter:
 
 | Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
 |---|---|---|---|---|---|
-| Send text prompt | type and send | exposed: `session/prompt` text block (session.rs:632-639) | done | P0 | Done. |
-| Enter sends; Shift+Enter newline | chat:submit; Shift+Enter (interactive-mode doc) | n/a: client key | done (App.tsx:98-122) | P0 | Done. |
+| Send text prompt | type and send | exposed: `session/prompt` text block (session.rs, `Shared::turn`) | done | P0 | Done. |
+| Enter sends; Shift+Enter newline | chat:submit; Shift+Enter (interactive-mode doc) | n/a: client key | done (App.tsx, `submit`) | P0 | Done. |
 | Ctrl+J or backslash+Enter newline | chat:newline; backslash then Enter | n/a | not implemented | P2 | Shift+Enter covers most cases. |
-| Escape stops a turn | chat:cancel | exposed: `session/cancel` (acp-agent.js:5778-5800) | done (App.tsx:115-118) | P0 | Done. |
-| Enter while busy queues | Enter during a turn queues the message | partial: adapter queues prompts (acp-agent.js:2032-2126; promptQueueing at 1376-1380) | refused as busy (session.rs:253-264) | P0 | PR 9. Host-side queue lets Up take messages back. |
+| Escape stops a turn | chat:cancel | exposed: `session/cancel` (acp-agent.js:5778-5800) | done (App.tsx, `onKeyDown`) | P0 | Done. |
+| Enter while busy queues | Enter during a turn queues the message | partial: adapter queues prompts (acp-agent.js:2032-2126; promptQueueing at 1376-1380) | refused as busy (session.rs, `Session::prompt`) | P0 | PR 9. Host-side queue lets Up take messages back. |
 | Take back queued messages | Up on first line | not-exposed: no take-back request among registered methods (acp-agent.js:9790-9809) | not implemented | P1 | Possible with a host queue. |
-| Send queued now | Ctrl+Enter; Ctrl+X Ctrl+S (chat:sendNow) | partial: steering (acp-agent.js:2380-2452) | not implemented; `steer` false (host.rs:66-72) | P1 | PR 10. Owner decides interrupt or background. |
+| Send queued now | Ctrl+Enter; Ctrl+X Ctrl+S (chat:sendNow) | partial: steering (acp-agent.js:2380-2452) | not implemented; `steer` false (harness/claude.rs, `CLAUDE.capabilities`) | P1 | PR 10. Owner decides interrupt or background. |
 | Queue without sending | Ctrl+X Enter (chat:queueSubmit) | partial: adapter queue | not implemented | P2 | — |
 | Steering a running turn | follow-up injected into the turn | partial: vendor extension `_session/steering`, advertised to all clients (acp-agent.js:1415-1427; handler 2380-2452); v1 only (README:90) | not implemented | P1 | Core ACP has no steer method. |
 | @ file mention | @ opens fuzzy search; Option+K inserts `@file#L-L` (vs-code doc) | exposed: resource_link text (formatUriAsLink); text resource as context (acp-agent.js:9067-9148) | not implemented | P0 | PR 6. Needs a file picker over the worktree. |
 | @ session mention | live sessions on the machine (v2.1.232+) | unknown | not implemented | P2 | — |
 | @terminal:name | terminal output as context (vs-code doc) | unknown | not implemented | P2 | — |
 | @browser | browser context via Chrome (vs-code doc) | unknown | not implemented | P2 | Depends on D9. |
-| Image paste | Ctrl+V chip `[Image #N]` (chat:imagePaste) | exposed: image blocks (acp-agent.js:9106-9122); promptCapabilities image (acp-agent.js:1387-1390) | not implemented: text only (session.rs:632-639) | P0 | PR 6. Chip is client UI; send base64. |
+| Image paste | Ctrl+V chip `[Image #N]` (chat:imagePaste) | exposed: image blocks (acp-agent.js:9106-9122); promptCapabilities image (acp-agent.js:1387-1390) | not implemented: text only (session.rs, `Shared::turn`) | P0 | PR 6. Chip is client UI; send base64. |
 | Image drag and drop | Desktop and VS Code drop | unknown for CLI; image blocks can carry it | not implemented | P1 | — |
 | File attach (+ button, drag, PDF) | Desktop attach; VS Code Shift+drag | partial: resource_link and text resource (acp-agent.js:9067-9148); audio and blob dropped (same range) | not implemented | P1 | PDF handling unknown. |
 | Open file and selection context | selection sent automatically; attachOpenFile setting | n/a: host adds it inside the prompt | not implemented | P1 | Use the shell's open file. Chip with remove. |
@@ -158,7 +158,7 @@ Constraints for later PRs, found while reading the adapter:
 | Large paste collapse | `[Pasted text #N]` | n/a | native textarea shows all | P2 | — |
 | Voice dictation | hold Space or tap; needs claude.ai (voice-dictation doc) | not-exposed; no voice handling in adapter | not implemented | P2 | Audio is client-side. Owner decision D9-style scope. |
 | Prompt suggestions (ghost text) | Tab or Right to accept | not-exposed: `prompt_suggestion` dropped (acp-agent.js:5653-5654) | not implemented | P2 | Upstream change (U) or skip. |
-| Busy placeholder | placeholder changes while busy | n/a | done (App.tsx:213) | P0 | Done. |
+| Busy placeholder | placeholder changes while busy | n/a | done (App.tsx, the prompt's `placeholder`) | P0 | Done. |
 | Help with `?` | `?` on empty prompt shows shortcuts | n/a | not implemented | P1 | PR 22. |
 | Enter-to-send setting | `useCtrlEnterToSend` (vs-code settings) | n/a | not implemented | P2 | — |
 | Focus last message | VS Code command | n/a | not implemented | P2 | — |
@@ -167,9 +167,9 @@ Constraints for later PRs, found while reading the adapter:
 
 | Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
 |---|---|---|---|---|---|
-| Command menu from advertised list | `/` menu, filters as you type | exposed: `available_commands_update` (acp-agent.js:7262-7291; list built 8987-9048) | dropped (normalize.rs:262-265) | P0 | PR 5. Commands run only at message start. |
+| Command menu from advertised list | `/` menu, filters as you type | exposed: `available_commands_update` (acp-agent.js:7262-7291; list built 8987-9048) | dropped (normalize.rs, the last arm of `Normalizer::update`) | P0 | PR 5. Commands run only at message start. |
 | Argument hints | argument hint shown | exposed: `input.hint` from argumentHint (acp-agent.js:9005-9046) | not implemented | P1 | — |
-| Typed command sent as text | any typed `/name` | exposed: promptToClaude passes text through (acp-agent.js:9067) | works: sent as text (session.rs:632-639) | P0 | Done for typed text. Each command still needs checking. |
+| Typed command sent as text | any typed `/name` | exposed: promptToClaude passes text through (acp-agent.js:9067) | works: sent as text (session.rs, `Shared::turn`) | P0 | Done for typed text. Each command still needs checking. |
 | Aliases | `/cost`, `/stats`, `/review`, `/reset`, `/new`, `/quit`, `/tp`, `/rc`, `/bg`, `/settings`, `/continue`, `/undo`, `/checkpoint`, `/bashes` | not-exposed in menu: adapter drops aliases (sdk.d.ts:9431+); typed aliases still run | not implemented | P2 | Map the common ones in the GUI. |
 | Skill chains | `/skill-a /skill-b text` (up to six) | unknown | not implemented | P2 | — |
 | Filtered built-ins | — | filtered: clear, cost, keybindings-help, login, logout, output-style:new, release-notes, todos (acp-agent.js:9005-9014, applied 9046) | — | P0 | Each filtered command maps to a native control or row below. Terminal-tagged commands are also dropped (acp-agent.js:9017-9018). |
@@ -194,10 +194,10 @@ Constraints for later PRs, found while reading the adapter:
 | `/reload-plugins` | activate plugin changes | not-exposed: terminal-tagged; SDK `reloadPlugins` (sdk.d.ts:3115) | not implemented | P1 | Restart the agent with `session/resume` to pick up changes (PR 21). |
 | `/plugin`, `/plugins`, `/marketplace` | plugin and marketplace manager | not-exposed (local-jsx) | not implemented | P1 | Native panel with CLI actions (PR 21). Section 4 L. |
 | `/export` | export conversation to a file | not-exposed (local-jsx) | not implemented | P1 | Native export with a save dialog (PR 22). |
-| `/copy [N]` | copy the Nth response | not-exposed (local-jsx) | code block copy only (markdown.ts:19-25) | P1 | Add message copy (PR 22). |
+| `/copy [N]` | copy the Nth response | not-exposed (local-jsx) | code block copy only (markdown.ts, the `fence` rule) | P1 | Add message copy (PR 22). |
 | `/diff` | uncommitted and per-turn diffs | not-exposed (interactive) | shell diff views exist (src/shell/diff) | Shell | Link the tab to the shell diff view. |
 | `/btw` | side question, no history | not-exposed; no ACP method | not implemented | P2 | Needs a separate side query. Section 4 AE. |
-| `/branch` | branch the conversation | partial: `unstable_forkSession` (acp-agent.js:1500; fork-session.js) | not implemented; `fork` false (host.rs:66-72) | P1 | PR 25. |
+| `/branch` | branch the conversation | partial: `unstable_forkSession` (acp-agent.js:1500; fork-session.js) | not implemented; `fork` false (harness/claude.rs, `CLAUDE.capabilities`) | P1 | PR 25. |
 | `/fork [prompt]` | copy into a background session | partial: fork as above; background part has no ACP method | not implemented | P1 | PR 25. |
 | `/subtask` | forked subagent with full context | not-exposed | not implemented | P2 | — |
 | `/resume`, `/continue` | pick a past session | not text; `session/list` and `session/resume` exposed | not implemented | P0 | PR 7. |
@@ -244,7 +244,7 @@ Constraints for later PRs, found while reading the adapter:
 |---|---|---|---|---|---|
 | Skill invocation `/skill args` | skills from user, project, plugin and managed folders | exposed: advertised with `input.hint` (acp-agent.js:8995-9000) | not implemented | P0 | Via the menu (PR 5). |
 | Skill frontmatter runtime | `$ARGUMENTS`, `` !`cmd` ``, `context: fork`, `allowed-tools` | partial: runs in the SDK | — | Works automatically | See Section 3. |
-| Skill tool row | "Load skill: name" | exposed: tool_call kind other (interaction.js:91-96) | generic row (normalize.rs:317-359) | P2 | Already renders. |
+| Skill tool row | "Load skill: name" | exposed: tool_call kind other (interaction.js:91-96) | generic row (normalize.rs, `Normalizer::tool`) | P2 | Already renders. |
 | Skills dialog (visibility) | On, or Name only; token sort | not-exposed (control-request); `skillOverrides` settings | not implemented | P1 | PR 21. |
 | Custom commands | `.claude/commands` Markdown | exposed as advertised commands (acp-agent.js:9005-9046) | not implemented | P0 | Via the menu. |
 | Plugin commands | `/plugin:skill` | exposed (acp-agent.js:9005-9046) | not implemented | P1 | — |
@@ -271,43 +271,43 @@ Constraints for later PRs, found while reading the adapter:
 
 | Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
 |---|---|---|---|---|---|
-| Tool rows (title, kind, status) | Read, Edit, Bash, Grep and others | exposed: `tool_call` and `tool_call_update` by toolCallId (tool-calls/reporters) | done (normalize.rs:317-433) | P0 | Done. |
-| Failed Bash output | command output in tool row | partial: success output arrives via toolResult (bash.js:18-40); failed-command output needs `_meta.terminal_output` (client-capabilities.js:41-42; renderer.js:228, 291-296; bash.js:29-31) | text only; terminal blocks dropped (normalize.rs:416-428) | P0 | Corrected. Verify on a failing command. Declare only if needed (PR 17). |
+| Tool rows (title, kind, status) | Read, Edit, Bash, Grep and others | exposed: `tool_call` and `tool_call_update` by toolCallId (tool-calls/reporters) | done (normalize.rs, `Normalizer::tool` and `merge_tool`) | P0 | Done. |
+| Failed Bash output | command output in tool row | partial: success output arrives via toolResult (bash.js:18-40); failed-command output needs `_meta.terminal_output` (client-capabilities.js:41-42; renderer.js:228, 291-296; bash.js:29-31) | text only; terminal blocks dropped (normalize.rs, `merge_tool`) | P0 | Corrected. Verify on a failing command. Declare only if needed (PR 17). |
 | Live terminal view | streaming terminal | exposed for display only: terminal content; v2 `terminal_update` (v2/terminal.js:8-51) | dropped | P1 | Needs the terminal capability. |
 | Read, Glob, Grep, WebFetch rows | kinds read, search, fetch, with locations (reporters/read.js:16; search.js:12; web.js:10) | exposed | done (generic) | P0 | Done. |
-| File edit diffs | diff with path, oldText, newText; null oldText for new files (file-edit.js:13-80) | exposed | done with a 256 KiB cap (normalize.rs:35, 415-439) | P0 | Done. |
+| File edit diffs | diff with path, oldText, newText; null oldText for new files (file-edit.js:13-80) | exposed | done with a 256 KiB cap (normalize.rs, `DIFF_LIMIT` and `diffs`) | P0 | Done. |
 | Diff review panel | Changes pane; `/diff`; diff stats | partial: diff content; file-change reports (file-change-audit.js:1-25) | shell diff views exist (src/shell/diff) | Shell | Link the tab to the shell diff view. |
 | Per-change Accept and Reject | VS Code buttons; over 100 changes they disappear; Accept and Reject Change at Cursor (vs-code doc) | unknown over ACP | not implemented | P1 | Verify what reject does to the file. |
 | Hunk-level accept or reject | per hunk | unknown | not implemented | P2 | — |
 | Line comments on diffs | Desktop Changes pane: Enter adds, Cmd+Enter submits (desktop doc) | unknown | not implemented | P2 | Would send as a prompt. |
 | Code review card | Walk through, Fix this one, Apply fixes (desktop doc) | not-exposed | not implemented | P2 | Shows after `/code-review`. |
-| Allow once | "Yes" | exposed: `allow_once` (permissions/options/shared.js:16-22) | done (session.rs:284-306) | P0 | Done. |
-| Yes and don't ask again | "Always allow" for a matching rule | exposed: `allow_always` with `updatedPermissions` to localSettings (permissions/effects.js:10-40; options/tools.js:6-8, 28-31) | partial: dropped when the request names no file (normalize.rs:183-200) | P0 | Corrected. The adapter writes the rule. OpenKaava's filter is the blocker (Section 4 I). |
-| Yes and switch to auto mode | option on some prompts | exposed: option passes through (options/tools.js:77) | dropped: an option that enters a held-back mode is filtered; the rest are shown with the agent's label (normalize.rs:183-228) | P1 | Not offered: the host drops options that enter Auto or Bypass (`config::enters_held_back`) until the guard is checked in those modes. |
+| Allow once | "Yes" | exposed: `allow_once` (permissions/options/shared.js:16-22) | done (session.rs, `Session::answer`) | P0 | Done. |
+| Yes and don't ask again | "Always allow" for a matching rule | exposed: `allow_always` with `updatedPermissions` to localSettings (permissions/effects.js:10-40; options/tools.js:6-8, 28-31) | partial: dropped when the request names no file (normalize.rs, `Normalizer::approval`) | P0 | Corrected. The adapter writes the rule. OpenKaava's filter is the blocker (Section 4 I). |
+| Yes and switch to auto mode | option on some prompts | exposed: option passes through (options/tools.js:77) | dropped: an option that enters a held-back mode is filtered; the rest are shown with the agent's label (normalize.rs, `Normalizer::approval`) | P1 | Not offered: the host drops options that enter Auto or Bypass (`config::enters_held_back`) until the guard is checked in those modes. |
 | Reject | "No" | exposed: `reject_once` (shared.js:16-22) | done | P0 | Done. |
 | Comment on an answer | Tab adds a comment (permissions doc) | unknown: no comment path found | not implemented | P2 | Verify whether the comment reaches ACP. |
-| Outside-worktree refusal | not in Claude Code | OpenKaava policy (guard.rs:9-11; session.rs:837-876) | done | P0 | Keep. OpenKaava rule. |
-| AskUserQuestion | multiple-choice card with Other and notes | exposed when `clientCapabilities.elicitation.form` is declared (acp-agent.js:7030-7040; elicitation.js:170-256); tool disallowed without it (acp-agent.js:7818, 7941) | not implemented; no elicitation declared (session.rs:515-529); -32601 reply (session.rs:773-780) | P0 | The model cannot ask questions today. PR 12. |
+| Outside-worktree refusal | not in Claude Code | OpenKaava policy (guard.rs, its module comment; session.rs, `Shared::permission`) | done | P0 | Keep. OpenKaava rule. |
+| AskUserQuestion | multiple-choice card with Other and notes | exposed when `clientCapabilities.elicitation.form` is declared (acp-agent.js:7030-7040; elicitation.js:170-256); tool disallowed without it (acp-agent.js:7818, 7941) | not implemented; no elicitation declared (session.rs, `Shared::handshake`); -32601 reply (session.rs, `METHOD_NOT_FOUND` in `Shared::on_line`) | P0 | The model cannot ask questions today. PR 12. |
 | MCP elicitation | form or URL prompts from servers | exposed: `elicitation/create` form or url (elicitation.js:9-60) | not implemented | P1 | PR 15. |
 | Refusal fallback consent | consent dialog on refusal | exposed: form kind `refusal_fallback_prompt` (elicitation.js:276-347) | not implemented | P1 | Needs the form declaration (PR 12). |
-| Paths in tool rows | file paths shown | exposed: locations and rawInput paths (guard.rs:95-125) | plain text, not links (Items.tsx:123-134) | P1 | Open in the shell file viewer (PR 22). |
+| Paths in tool rows | file paths shown | exposed: locations and rawInput paths (guard.rs, `request_paths`) | plain text, not links (components/PathList.tsx) | P1 | Open in the shell file viewer (PR 22). |
 | Open a changed file | open in editor | n/a: client action | not implemented | P1 | Shell file viewer. |
 | Monitor tool | streams long command output | partial: Monitor tasks not treated as subagents (async-tasks.js isMonitorTask) | think row (reporters/index.js:33) | P2 | — |
-| Tool output cap | full output in transcript | OpenKaava policy: 16 KiB (normalize.rs:31) | capped | P2 | Add a "show all" action. |
+| Tool output cap | full output in transcript | OpenKaava policy: 16 KiB (normalize.rs, `OUTPUT_LIMIT`) | capped | P2 | Add a "show all" action. |
 
 ### 2.7 Plans and todos
 
 | Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
 |---|---|---|---|---|---|
 | Plan mode | `/plan`; Shift+Tab | exposed: mode `plan` (session-mode.js:247) | not implemented | P0 | Via the mode switcher (PR 2). |
-| Plan approval card | Yes, auto mode; Yes, manual edits; No, keep planning (permission-modes doc) | exposed: ExitPlanMode options (acp-agent.js:4781, 4855) | generic approval card (normalize.rs:183-228) | P0 | Works as buttons now, except the options that enter Auto or Bypass, which the host drops. PR 13 adds plan text. |
+| Plan approval card | Yes, auto mode; Yes, manual edits; No, keep planning (permission-modes doc) | exposed: ExitPlanMode options (acp-agent.js:4781, 4855) | generic approval card (normalize.rs, `Normalizer::approval`) | P0 | Works as buttons now, except the options that enter Auto or Bypass, which the host drops. PR 13 adds plan text. |
 | Plan document text | Markdown plan; VS Code document with comments | exposed: `plan_update` markdown with planId `plan-mode` (exit-plan.js:85-110); needs `clientCapabilities.plan` (acp-agent.js:1216) | not declared; no handler | P0 | Declare `plan` in PR 13. |
 | Plan file path | plan file opened in VS Code | AIR-only: `rawInput.planFilePath` (air-extension.js) | n/a | Skip | Use plan text instead (D1). |
 | Clear context and implement | fresh context carrying only the plan | partial: restart on approval (exit-plan.js:121-160; clear-context-coordinator.js) | not implemented | P1 | PR 13. |
-| Task tools | TaskCreate, TaskUpdate, TaskList, TaskGet; up to five shown | exposed as plan entries (tools.js:78-220; acp-agent.js:2312-2321) | partial: one plan card (normalize.rs:361-386) | P0 | Done as the plan card. |
+| Task tools | TaskCreate, TaskUpdate, TaskList, TaskGet; up to five shown | exposed as plan entries (tools.js:78-220; acp-agent.js:2312-2321) | partial: one plan card (normalize.rs, `Normalizer::plan`) | P0 | Done as the plan card. |
 | TodoWrite | to-do list | exposed as plan (tools.js:22-29) | partial: plan card | P0 | Done. TodoWrite is off on models the docs do not list; Haiku 5.5 is not named. Verify. |
 | Show or hide task list | Ctrl+T (app:toggleTodos) | client-owned | not implemented | P1 | PR 23. |
-| Plan entry priority | stored, not drawn in CLI | exposed field (normalize.rs:367-371) | stored, not drawn | P2 | — |
+| Plan entry priority | stored, not drawn in CLI | exposed field (normalize.rs, `Normalizer::plan`) | stored, not drawn | P2 | — |
 | Enter and exit plan-mode rows | `switch_mode` tool rows (reporters/interaction.js:22; renderer.js:342-344) | exposed | generic row | P1 | — |
 | Task list persistence | `CLAUDE_CODE_TASK_LIST_ID` | env, automatic | nothing | P2 | Works automatically. |
 
@@ -315,8 +315,8 @@ Constraints for later PRs, found while reading the adapter:
 
 | Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
 |---|---|---|---|---|---|
-| Context meter | ring beside model; VS Code indicator; CLI token count | exposed: `usage_update` used and size, after each turn (acp-agent.js:4677-4690; 8413-8436) | partial: drawn once at end of turn (Items.tsx:45-46) | P1 | Not live during a turn. Verify whether mid-turn updates arrive. |
-| Session cost | cost in `/usage` and header | exposed: `usage_update` cost (acp-agent.js:4677-4690) | ignored (normalize.rs:241-246) | P1 | PR 18. |
+| Context meter | ring beside model; VS Code indicator; CLI token count | exposed: `usage_update` used and size, after each turn (acp-agent.js:4677-4690; 8413-8436) | partial: drawn once at end of turn (components/Usage.tsx) | P1 | Not live during a turn. Verify whether mid-turn updates arrive. |
+| Session cost | cost in `/usage` and header | exposed: `usage_update` cost (acp-agent.js:4677-4690) | ignored (normalize.rs, the `usage_update` arm of `Normalizer::update`) | P1 | PR 18. |
 | `/usage` panel | cost, limits, activity; Day and Week (VS Code) | exposed: structured `/usage` (acp-agent.js:1987-2003; usage-markdown.js:65-66) | not implemented | P1 | Render the structured data, not only text. |
 | `/cost`, `/stats` | aliases of `/usage` | `/cost` filtered (acp-agent.js:9007); typed text gets plain CLI text | not implemented | P2 | Map to the `/usage` panel. |
 | Per-model usage | per model in `/usage` | partial: per-model increments in turn outcome (acp-agent.js:2710, 8612-8618) | not implemented | P2 | — |
@@ -339,21 +339,21 @@ Constraints for later PRs, found while reading the adapter:
 | Resume by id or picker | `/resume`; `claude --resume` | exposed: `session/resume` (acp-agent.js:1433-1555) | not implemented | P0 | PR 7. |
 | Load transcript on open | replay in the session | exposed: `session/load` replay (acp-agent.js:1433-1555; 6696-6704) | not implemented | P0 | PR 7. |
 | Continue most recent | `-c`, `--continue` | partial: `session/list` then `session/resume` | not implemented | P1 | — |
-| Carry-over after restart | restarted sessions keep their context | not used: fresh `session/new` plus new prompt text only (session.rs:632-639; host.rs:227; session.rs:215) | display only; the new agent sees no earlier turns | P0 | Fixed by PR 7. |
+| Carry-over after restart | restarted sessions keep their context | not used: fresh `session/new` plus new prompt text only (session.rs, `Shared::turn`; host.rs, `Host::send`; session.rs, `Session::start`) | display only; the new agent sees no earlier turns | P0 | Fixed by PR 7. |
 | Continue after reload | sends or replies within 10 minutes continue after a reload (VS Code continueAfterReload) | partial: resume path (acp-agent.js:1518) | not implemented | P1 | — |
-| Branch or fork | `/branch`; `/fork`; `--fork-session`; VS Code | partial: `unstable_forkSession` (acp-agent.js:1500; fork-session.js); stable `session/fork` not in schema | not implemented; `fork` false (host.rs:66-72) | P1 | PR 25. |
+| Branch or fork | `/branch`; `/fork`; `--fork-session`; VS Code | partial: `unstable_forkSession` (acp-agent.js:1500; fork-session.js); stable `session/fork` not in schema | not implemented; `fork` false (harness/claude.rs, `CLAUDE.capabilities`) | P1 | PR 25. |
 | Fork at a message | VS Code hover "Fork conversation from here" | AIR-only: `_meta.jetbrains.air.fork` (fork-session.js:1-20) | not implemented | P2 | D1. Also needed for edit-and-resend. |
 | Rewind code or conversation | `/rewind`; Esc Esc; VS Code hover | partial: checkpoints only for AIR (acp-agent.js:7837, 7903; file-change-audit.js:27-28); rewind keyed by prompt uuid (acp-agent.js:5257) | not implemented | P1 | Section 4 A. D6. |
 | Summarise from here | rewind menu option | not-exposed | not implemented | P2 | — |
 | Archive and unarchive | VS Code archive; `archiveInactiveSessions` (1, 2, 7, 14 days or never) | AIR-only for index (session-index); `session/close` exposed (acp-agent.js:6209) | not implemented | P1 | D1. Section 4 D. |
 | Delete session | agent view; CLI | exposed: `session/delete` for non-AIR clients (session-index/connection.js:229) | not implemented | P2 | Destructive. Confirm first. |
-| Close session | tab close | exposed: `session/close` (acp-agent.js:1365-1373) | kill only (session.rs:343-348) | P1 | Close gracefully, then kill. |
+| Close session | tab close | exposed: `session/close` (acp-agent.js:1365-1373) | kill only (session.rs, `Session::kill`) | P1 | Close gracefully, then kill. |
 | Session groups and filters | VS Code groups; status and Open or Closed filters; Desktop groups | not-exposed | not implemented | Shell | D11. |
 | Reopen closed session; mark unread | VS Code commands | not-exposed | not implemented | P2 | — |
 | Edit and resend | fork and resend | Section 4 B | not implemented | P2 | — |
 | Conversation search | find in transcript | n/a: client | not implemented | P2 | Filter the transcript. |
 | Export conversation | `/export` writes text | not-exposed (local-jsx) | not implemented | P1 | Save dialog (PR 22). |
-| Copy message | `/copy N`; Copy response (vs-code) | not-exposed; client | code block copy only (markdown.ts:19-25) | P1 | Add message copy (PR 22). |
+| Copy message | `/copy N`; Copy response (vs-code) | not-exposed; client | code block copy only (markdown.ts, the `fence` rule) | P1 | Add message copy (PR 22). |
 | Transcript view | Ctrl+O: Normal, Thinking, Verbose | n/a: presentation | tool details inline | P1 | PR 22. |
 | Bookmarks | bookmark response; panel (v2.1.286) | n/a: client | not implemented | P2 | — |
 | `/btw` side question | overlay in CLI; panel in VS Code | not-exposed; no ACP method | not implemented | P2 | Section 4 AE. |
@@ -366,8 +366,8 @@ Constraints for later PRs, found while reading the adapter:
 | MCP status list | `/mcp`: failed, needs auth, connecting, connected, disabled | exposed: `/mcp` adapter command (mcp-command.js:263-326; SDK `mcpServerStatus`) | not implemented | P1 | PR 14. Status calls time out at 5 s (mcp-command.js). |
 | Reconnect, enable, disable | `/mcp reconnect`, enable, disable | exposed (mcp-command.js; SDK `reconnectMcpServer`, `toggleMcpServer`) | not implemented | P1 | PR 14. |
 | Add or remove MCP server | `claude mcp add`, `remove`; `.mcp.json` | not-exposed (CLI or file) | not implemented | P1 | Section 4 M. |
-| MCP OAuth | sign in from `/mcp` | exposed: URL elicitation (acp-agent.js:1022-1127; elicitation.js:49-60); needs `clientCapabilities.elicitation.url` (acp-agent.js:1031) | not declared (session.rs:515-529) | P1 | PR 15. |
-| Host-supplied MCP servers | — | exposed: `mcpServers` on `session/new` (acp-agent.js:441, 1469) | sends `[]` (session.rs:554) | P1 | Pass only host-owned servers (Section 4 M). |
+| MCP OAuth | sign in from `/mcp` | exposed: URL elicitation (acp-agent.js:1022-1127; elicitation.js:49-60); needs `clientCapabilities.elicitation.url` (acp-agent.js:1031) | not declared (session.rs, `Shared::handshake`) | P1 | PR 15. |
+| Host-supplied MCP servers | — | exposed: `mcpServers` on `session/new` (acp-agent.js:441, 1469) | sends `[]` (session.rs, `Shared::handshake`) | P1 | Pass only host-owned servers (Section 4 M). |
 | Project `.mcp.json` | project servers need approval | partial: loaded via settingSources (acp-agent.js:7897); approval in ACP unknown | not implemented | P1 | Verify approval behaviour. |
 | claude.ai connectors | account connectors | partial: loaded automatically; authorised in claude.ai | not implemented | P2 | Shows in the MCP list. |
 | Deferred MCP tools (ToolSearch) | tools loaded on demand | partial, automatic | — | Works automatically | — |
@@ -387,7 +387,7 @@ Constraints for later PRs, found while reading the adapter:
 | Settings view and edit | `/config`; settings files | not-exposed; SDK methods exist (sdk.d.ts:2970-2985) but need the adapter | not implemented | P1 | PR 20. Write files with a schema check. Show "applies next session" until live apply is verified. |
 | Settings precedence and reload | managed, flag, local, project, user | partial: adapter watches files and re-resolves (settings.js:37-160; unverified live) | — | Works automatically | — |
 | Settings source selection | `--setting-sources`, `--settings` | partial: hard-coded user, project, local (acp-agent.js:7897); `--settings` option (acp-agent.js:7904) | — | P2 | — |
-| Environment block | `env` in settings | partial: depends on what the host passes; OpenKaava sets only `CLAUDE_CODE_EXECUTABLE` (harness.rs:64-68) | — | P2 | Verify env reaches the SDK. |
+| Environment block | `env` in settings | partial: depends on what the host passes; OpenKaava sets only `CLAUDE_CODE_EXECUTABLE` (harness.rs, `spec`) | — | P2 | Verify env reaches the SDK. |
 | Output styles | `/output-style`; `outputStyle` setting | partial: listed command; no outputStyle wiring (acp-agent.js:9011) | not implemented | P2 | Section 4 X. |
 | Custom output styles | `.md` files in `~/.claude/output-styles` | partial: via settingSources; not verified | — | Works automatically | — |
 | Status line | `statusLine` command; `/statusline` | not-exposed: no statusLine handling (grep) | not implemented | P2 | Section 4 AD. |
@@ -396,7 +396,7 @@ Constraints for later PRs, found while reading the adapter:
 | System prompt flags | `--append-system-prompt` and similar | partial: `_meta.systemPrompt` (acp-agent.js:450-451; 7768-7781) | not implemented | P2 | Owner may want worktree context here. |
 | Managed settings | admin policy | partial: managed-policy.js:1-31 | — | Works automatically | Show a managed tag in the settings panel (P2). |
 | Auth via ACP | authMethods; authStatus | partial (see Session and models) | hint only | P1 | PR 24. |
-| Launch-only flags | `--bare`, `--safe-mode`, `--restricted` | not-exposed: adapter starts with no arguments (harness.rs:57-70) | — | Skip | Use env equivalents if needed. |
+| Launch-only flags | `--bare`, `--safe-mode`, `--restricted` | not-exposed: adapter starts with no arguments (harness.rs, `spec`) | — | Skip | Use env equivalents if needed. |
 
 ### 2.11 Keyboard shortcuts
 
@@ -404,8 +404,8 @@ Ctrl+C is copy in a webview, so the tab keeps Escape as the stop key. Tab is not
 
 | Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
 |---|---|---|---|---|---|
-| Enter sends; Shift+Enter newline | chat:submit | n/a | done (App.tsx:98-122) | P0 | Done. |
-| Escape stops a turn | chat:cancel | exposed: `session/cancel` (acp-agent.js:5778-5800) | done (App.tsx:115-118) | P0 | Done. |
+| Enter sends; Shift+Enter newline | chat:submit | n/a | done (App.tsx, `submit`) | P0 | Done. |
+| Escape stops a turn | chat:cancel | exposed: `session/cancel` (acp-agent.js:5778-5800) | done (App.tsx, `onKeyDown`) | P0 | Done. |
 | Ctrl+C | interrupts; twice exits | partial: cancel only | not handled | Skip | Ctrl+C is copy in a webview. |
 | Ctrl+D | exit confirmation | n/a | — | Skip | Tab close covers it. |
 | Shift+Tab mode cycle | chat:cycleMode | exposed as mode option | not implemented | P0 | See Permission modes. |
@@ -488,10 +488,10 @@ These need no new OpenKaava work. The UI still shows what is listed in the last 
 | Plugins enabled in settings | Cache, precedence and dependency install | Plugin list (PR 21); reload by resume | plugins/loading doc |
 | Managed policy | Env and settings applied at adapter start | Managed tag in settings (P2) | managed-policy.js:1-31 |
 | Permission rules | allow, ask and deny checked in the SDK before prompts | Rule list (PR 20) | permissions doc |
-| Tool rows, text and diffs | Sent as tool_call and tool_call_update | Already rendered (normalize.rs:317-459). Failed Bash output is the gap (Section 4 Q) | reporters/ |
-| Usage line | `usage_update` after each turn | Already drawn (Items.tsx:45-46). PR 18 adds cost and rate limit | acp-agent.js:4677-4690 |
-| Plan card | Plan updates for TodoWrite and Task tools | Already drawn (Items.tsx:234-248). PR 13 adds plan text and clear-context | tools.js:22-29, 78-220 |
-| Retry on error | Kaava-side | Already done (Items.tsx:55-61) | — |
+| Tool rows, text and diffs | Sent as tool_call and tool_call_update | Already rendered (normalize.rs, `Normalizer::tool` and `merge_tool`). Failed Bash output is the gap (Section 4 Q) | reporters/ |
+| Usage line | `usage_update` after each turn | Already drawn (components/Usage.tsx). PR 18 adds cost and rate limit | acp-agent.js:4677-4690 |
+| Plan card | Plan updates for TodoWrite and Task tools | Already drawn (components/TodoList.tsx). PR 13 adds plan text and clear-context | tools.js:22-29, 78-220 |
+| Retry on error | Kaava-side | Already done (components/ErrorItem.tsx) | — |
 | Auto-mode fallback | Mode drops to acceptEdits with a warning | Warning arrives as text today; PR 19 shows a notice | session-mode.js:6-14, 46-54 |
 | Session titles | Generated after first prompt | Show the title (PR 8) | session-titles.js:217 |
 | Background Bash | Backgrounded calls tagged | Background state (PR 26) | tool-calls/background.js |
@@ -500,8 +500,8 @@ These need no new OpenKaava work. The UI still shows what is listed in the last 
 | Fast mode auto-off | Switching to an unsupported model turns fast off | Show fast state after each model change | fast-mode doc |
 | Adapter queue | Prompts queue in the turn queue | Only if the host sends while busy (PR 9 decides) | acp-agent.js:2032-2126 |
 | Cancel | `session/cancel` ends the turn | Done | acp-agent.js:5778-5800 |
-| Auth status | `authStatus` pushed when it changes | The kind is read; the account label is not | auth-status.js; session.rs:823-831 |
-| Process tree cleanup | Host kills the tree on stop, reset and exit | Done | session.rs:1091-1104 |
+| Auth status | `authStatus` pushed when it changes | The kind is read; the account label is not | auth-status.js; session.rs, the `_auth/status_update` arm of `Shared::on_line` |
+| Process tree cleanup | Host kills the tree on stop, reset and exit | Done | job.rs; session.rs, `Session::kill` |
 | Usage-limit wait | CLI-side wait in interactive sessions | Not verified over ACP. Show the limit message (PR 18) | interactive-mode doc |
 | Prompt cache | Automatic | Cache clock unknown (P2) | prompt-caching doc |
 | Transcript persistence | SDK saves transcripts on disk | Needed for the PR 7 list and resume | sessions doc |
@@ -520,7 +520,7 @@ Options: **R** read or write files directly; **C** run a `claude` CLI subcommand
 | F. Async tasks and `/tasks` view | AIR-gated (async-tasks.js; acp-agent.js:204-205). `/tasks` status unknown | D (D1); show tool-level state now | Show background state on tool rows only. |
 | G. File-change audit | AIR-only report (file-change-audit.js:1-25) | Derive locally from diff content | Derive changed files from tool diffs. |
 | H. Plan file path | AIR-only `planFilePath` (air-extension.js). Plan text works without AIR (exit-plan.js:85-110, with `clientCapabilities.plan`) | D (plan) | Use plan text. Skip the file path. |
-| I. "Don't ask again" scope and storage | Adapter writes `localSettings` for `allow_always` (permissions/effects.js:10-40; options/shared.js:19). OpenKaava drops `allow_always` when the request names no file (normalize.rs:183-200) | Stop the filter (D3); R (read `settings.local.json` to list rules) | Owner sets the scope first (D3). Then stop the filter. Test: a second identical request is not prompted. |
+| I. "Don't ask again" scope and storage | Adapter writes `localSettings` for `allow_always` (permissions/effects.js:10-40; options/shared.js:19). OpenKaava drops `allow_always` when the request names no file (normalize.rs, `Normalizer::approval`) | Stop the filter (D3); R (read `settings.local.json` to list rules) | Owner sets the scope first (D3). Then stop the filter. Test: a second identical request is not prompted. |
 | J. Settings editor | No ACP settings method. SDK `updateSettings` and `applyFlagSettings` exist (sdk.d.ts:2970-2985) but only the adapter holds the SDK | R (write settings files with a schema check); C only if a subcommand is confirmed (none checked) | R with a schema check. Show "applies next session" until live apply is verified. |
 | K. Hooks | No method. `includeHookEvents` exists (acp-agent.js:356); output unverified | R (read hook config); verify the option | Read-only list from settings and plugin files. Enable the events option after a check. |
 | L. Plugins | No ACP plugin method | C (`claude plugin` subcommands, after confirmation); R (read `installed_plugins.json`) | Run plugin actions through the CLI after explicit confirmation. Plugin install runs code, so confirm each time. Reload by restarting with session/resume. |
@@ -529,11 +529,11 @@ Options: **R** read or write files directly; **C** run a `claude` CLI subcommand
 | O. Subagent child sessions | Needs `clientCapabilities.subagents` (acp-subagents.js:9-13). RFD form for non-AIR (native-subagents.js:635-661). Child cannot be prompted or cancelled (README:65) | D (`subagents`) | Declare and render. No child controls. Stop all background tasks only if the adapter stops them (verify). |
 | P. Compaction presentation | Not a gap. Without `session.compaction` the adapter sends a tool_call (acp-agent.js:2584-2592) | D (`session.compaction`) | Declare in PR 18 for a native row. Not required. |
 | Q. Failed Bash output | Terminal output needs `clientCapabilities._meta.terminal_output` or `terminal_output_delta` (client-capabilities.js:41-42; renderer.js:228, 291-296). Success output already arrives (bash.js:18-40). Failed command returns nothing without it (bash.js:29-31) | D (`_meta.terminal_output`) after verify | Verify on a failing command. Declare only if output is missing. |
-| R. Steering and queued sends | Steering is advertised to all clients (acp-agent.js:1415-1427; handler 2380-2452). OpenKaava blocks it: `steer` false (host.rs:66-72) and busy refusal (session.rs:253-264) | Host change (no upstream); P (queue locally) | Host-side queue for take-back (PR 9). Enable steer for send-now in PR 10. |
+| R. Steering and queued sends | Steering is advertised to all clients (acp-agent.js:1415-1427; handler 2380-2452). OpenKaava blocks it: `steer` false (harness/claude.rs, `CLAUDE.capabilities`) and busy refusal (session.rs, `Session::prompt`) | Host change (no upstream); P (queue locally) | Host-side queue for take-back (PR 9). Enable steer for send-now in PR 10. |
 | S. Prompt suggestions | Dropped (acp-agent.js:5653-5654) | U | Skip until forwarded. |
 | T. Rate-limit notice | Adapter sends `_meta['_claude/rateLimit']` on usage_update (acp-agent.js:5619-5627). OpenKaava drops the `_meta` | Read the `_meta` (OpenKaava change) | Read in PR 18. Not an adapter gap. |
 | U. Thinking budget | Only `MAX_THINKING_TOKENS` env (acp-agent.js:9933-9945) | R (settings env); effort option | Effort option only. Budget via settings after D12. |
-| V. Additional directories and guard | Accepted on session/new (acp-agent.js:7832-7834). Guard is worktree-only (guard.rs:9-11) | Owner decision (D5) | Keep the guard strict. Show extra dirs read-only until decided. |
+| V. Additional directories and guard | Accepted on session/new (acp-agent.js:7832-7834). Guard is worktree-only (guard.rs, its module comment) | Owner decision (D5) | Keep the guard strict. Show extra dirs read-only until decided. |
 | W. Bypass mode | Reachable when allowed (session-mode.js:261). Guard coverage in bypass unverified | Owner decision (D4) | Off until verified. |
 | X. Output style live switch | Listed command only; no outputStyle wiring (acp-agent.js:9011). SDK `updateSettings` can set it (sdk.d.ts:2985) but only the adapter holds the SDK | R (write setting); restart with session/resume | Write the setting and restart with resume. Verify. |
 | Y. Remote Control, cloud routines, teleport, agent teams | No ACP evidence. Remote Control has a settings route (`remoteControlAtStartup`, vs-code doc) | D7 (owner); R for the setting | Default skip. Settings toggle later if D7 says yes. |
@@ -556,7 +556,7 @@ Options: **R** read or write files directly; **C** run a `claude` CLI subcommand
 | ID | Decision | Needed before | Notes |
 |---|---|---|---|
 | D1 | Declare AIR client keys or not | PR 8, PR 26, and items E, F, G, H, AB | Unlocks rename, archive, goal panel, async tasks, file-change audit, plan file path, fork at message. Check the adapter's README and terms first. Not checked. |
-| D2 | Start the agent on tab open, or on first send | Cost only | Today the first send starts it (harness.rs:57-70; session.rs:162-173). Early start costs a process per open tab. |
+| D2 | Start the agent on tab open, or on first send | Cost only | Today the first send starts it (harness.rs, `spec`; session.rs, `Session::start`). Early start costs a process per open tab. |
 | D3 | Offer "don't ask again" on requests with no file, and where it is stored | PR 11 | Adapter writes `localSettings`. A scope rule is needed. |
 | D4 | Bypass permissions in the tab | PR 2 | Off until the guard is checked in bypass mode. |
 | D5 | Additional directories and the guard | Later | Guard is worktree-only today. |
@@ -572,17 +572,17 @@ Options: **R** read or write files directly; **C** run a `claude` CLI subcommand
 
 Rules for every PR: run `pnpm verify` before commit (`pnpm verify:fast` while iterating). Put user-facing strings in `strings.ts`. Each bug fix ships with its test. Use `mock-agent` (crates/kaava-agent-host/src/bin/mock-agent.rs) where it covers the message. Check acceptance on `pnpm ui launch` with `pnpm probe --agent --server agent`. Never run `pnpm app` or `pnpm dev`.
 
-1. **Read agent capabilities and config options at setup.** Scope: store `modes` and `configOptions` from the `session/new` reply and from `config_option_update`; `agentCapabilities` and `authMethods` are not stored yet (PR 7 and PR 24 read them when they need them) (session.rs:515-563). ACP: `initialize` result, `session/new` result. Acceptance: the mock-agent session tests show `modes` and `config` in the status, kept when the handshake fails and updated by `config_option_update`. Done, narrowed (see Done so far); the adapter version log line is unchanged and has no test.
-2. **Mode switcher.** Scope: flip `modes` (host.rs:66-72). Mode dropdown and Shift+Tab. Initial mode stays `default` (ASK_FIRST, session.rs:80). Bypass only if allowed (D4). ACP: `session/set_mode` or config option `mode`; `current_mode_update`. Acceptance: each allowed mode round-trips; unknown id rejected; label shown.
+1. **Read agent capabilities and config options at setup.** Scope: store `modes` and `configOptions` from the `session/new` reply and from `config_option_update`; `agentCapabilities` and `authMethods` are not stored yet (PR 7 and PR 24 read them when they need them) (session.rs, `Shared::handshake`). ACP: `initialize` result, `session/new` result. Acceptance: the mock-agent session tests show `modes` and `config` in the status, kept when the handshake fails and updated by `config_option_update`. Done, narrowed (see Done so far); the adapter version log line is unchanged and has no test.
+2. **Mode switcher.** Scope: flip `modes` (harness/claude.rs, `CLAUDE.capabilities`). Mode dropdown and Shift+Tab. Initial mode stays `default` (`Policy::ask_first` in harness.rs). Bypass only if allowed (D4). ACP: `session/set_mode` or config option `mode`; `current_mode_update`. Acceptance: each allowed mode round-trips; unknown id rejected; label shown.
 3. **Model and effort.** Scope: picker from the model option; effort option; allowlist applied by the adapter. ACP: `session/set_config_option` (`model`, `effort`); `config_option_update`. Acceptance: next turn uses the chosen model; `config_option_update` reflected. D12 has a default (section 0); its toggle is built in the P1 pass.
 4. **Fast mode.** Scope: `fast` option with disabled reasons. ACP: config option `fast`. Acceptance: toggle reflects after the next turn; reason text shown when unavailable.
-5. **Slash command menu.** Scope: consume `available_commands_update` (normalize.rs:262-265 today); filter as you type; argument hints; MCP prompts shown as `mcp:`. ACP: `available_commands_update`. Acceptance: menu lists only advertised commands; typed commands still send as text. Resolve the sweep conflicts.
+5. **Slash command menu.** Scope: consume `available_commands_update` (the last arm of `Normalizer::update` in normalize.rs today); filter as you type; argument hints; MCP prompts shown as `mcp:`. ACP: `available_commands_update`. Acceptance: menu lists only advertised commands; typed commands still send as text. Resolve the sweep conflicts.
 6. **@ mentions, files and images.** Scope: file picker over the worktree; `resource_link` and text `resource` blocks; image chip. ACP: `session/prompt` content blocks (acp-agent.js:9067-9122). Acceptance: mentioned file and image reach the child. No audio block sent.
 7. **Session list, load and resume.** Scope: picker (D11); `session/list`, `session/load`, `session/resume`; `/clear` and New session map to `session/new`; carry-over fixed. ACP: `session/list`, `session/resume`, `session/load`. Acceptance: after app restart a session loads its transcript and resumes with prior context.
 8. **Titles and rename (local).** Scope: show `session_info_update` title; rename stays local until D1. ACP: `session_info_update`. Acceptance: title appears after first prompt.
-9. **Queue while busy.** Scope: host queue replaces the busy refusal (session.rs:253-264). Take back with Up; Stop clears the queue (session.rs:267-280 already clears). ACP: `session/prompt` at turn end. Acceptance: Enter during a turn queues; Up takes it back; cancel empties the queue.
+9. **Queue while busy.** Scope: host queue replaces the busy refusal (session.rs, `Session::prompt`). Take back with Up; Stop clears the queue (session.rs, `Session::cancel` already clears). ACP: `session/prompt` at turn end. Acceptance: Enter during a turn queues; Up takes it back; cancel empties the queue.
 10. **Send now (steering).** Scope: flip `steer` after PR 9; interrupt or background choice. ACP: `_session/steering`. Acceptance: message reaches the running turn (mock-agent). Live check needed.
-11. **Permission scope.** Depends on D3. Scope: stop the `allow_always` filter (normalize.rs:183-200) for requests with no file, per the owner's scope. ACP: `session/request_permission` option `allow_always`. Acceptance: a second identical request is not prompted; `settings.local.json` gets the rule (verified once). Outside-worktree refusal still works in every mode.
+11. **Permission scope.** Depends on D3. Scope: stop the `allow_always` filter (normalize.rs, `Normalizer::approval`) for requests with no file, per the owner's scope. ACP: `session/request_permission` option `allow_always`. Acceptance: a second identical request is not prompted; `settings.local.json` gets the rule (verified once). Outside-worktree refusal still works in every mode.
 12. **AskUserQuestion form.** Scope: declare `elicitation.form`; render form; fold answers into tool input. ACP: `elicitation/create` form; response folded into `updatedInput` (elicitation.js:170-256). Acceptance: answer reaches the tool; undeclared path tested.
 13. **Plan card with plan text.** Scope: declare `plan`; show `plan_update` text; approve and reject options; clear-context option. ACP: `plan_update` (exit-plan.js:85-110); ExitPlanMode options. Acceptance: each option sends the right response; plan text shows.
 14. **MCP status and actions.** Scope: native MCP panel and `/mcp` route; host-owned `mcpServers` only (Section 4 M). ACP: `/mcp` adapter command; SDK-backed status. Acceptance: panel matches status; reconnect, enable and disable work.
