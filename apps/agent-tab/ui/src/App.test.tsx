@@ -1109,6 +1109,21 @@ describe("the harness", () => {
     expect(alert.textContent).not.toContain("Could not send that.");
   });
 
+  it("words an ended session's hint for its own harness, not the one chosen next", async () => {
+    const pi = { ...PI, setup: { ...CLAUDE.setup, cli: "pi", signIn: "pi login" } };
+    backend(
+      { status: { ...STATUS, state: "stopped", hint: "signedOut" }, seq: 1, items: [] },
+      {
+        "agent-tab/harnesses": () =>
+          Promise.resolve({ harnesses: [CLAUDE, pi], current: "pi", blocked: null }),
+      },
+    );
+    const { container } = render(<App />);
+    await waitFor(() => expect(chips(container)).toContain("Pi"));
+    await screen.findByText(/Claude is not signed in\. Run `claude` once/);
+    expect(document.body.textContent).not.toContain("pi login");
+  });
+
   it("says what the chosen harness still needs, in its own commands", async () => {
     backend(
       { status: null, seq: 0, items: [] },
