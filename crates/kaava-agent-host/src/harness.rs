@@ -21,8 +21,10 @@ use crate::event::{HarnessInfo, Hint};
 use crate::mcp::McpServer;
 
 mod claude;
+mod codex;
 
 pub use claude::CLAUDE;
+pub use codex::CODEX;
 
 /// An agent the tab can run. Each has one [`Descriptor`] in [`REGISTRY`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -31,6 +33,8 @@ pub use claude::CLAUDE;
 pub enum Harness {
     /// Claude, through `claude-agent-acp`.
     Claude,
+    /// Codex, through `codex-acp`.
+    Codex,
 }
 
 impl Harness {
@@ -38,6 +42,7 @@ impl Harness {
     pub fn descriptor(self) -> &'static Descriptor {
         match self {
             Harness::Claude => &CLAUDE,
+            Harness::Codex => &CODEX,
         }
     }
 }
@@ -48,7 +53,7 @@ pub const NO_CWD_SEARCH: &str = "NoDefaultCurrentDirectoryInExePath";
 
 /// Every harness, in the order the tab lists them. The first is the one a tab
 /// runs until it chooses another.
-pub static REGISTRY: &[&Descriptor] = &[&CLAUDE];
+pub static REGISTRY: &[&Descriptor] = &[&CLAUDE, &CODEX];
 
 /// The harness a tab runs until it chooses another.
 pub fn first() -> Harness {
@@ -361,6 +366,57 @@ mod tests {
                         descriptor.harness
                     );
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn codex_runs_the_users_own_binary_and_starts_read_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = Some(dir.path().as_os_str());
+        let ext = Some(OsStr::new(".EXE;.CMD"));
+        let codex = touch(dir.path(), &exe("codex"));
+        assert_eq!(spec(Harness::Codex, path, ext), Err(Hint::AdapterMissing));
+
+        let adapter = touch(dir.path(), &exe("codex-acp"));
+        let spec = spec(Harness::Codex, path, ext).unwrap();
+        assert_eq!(spec.harness, Harness::Codex);
+        assert_eq!(spec.program, adapter);
+        assert!(spec.args.is_empty(), "a .cmd shim must get no arguments");
+        assert_eq!(
+            spec.env,
+            vec![
+                ("INITIAL_AGENT_MODE".to_string(), "read-only".to_string()),
+                (
+                    "CODEX_PATH".to_string(),
+                    codex.to_string_lossy().into_owned()
+                ),
+                (
+                    "NoDefaultCurrentDirectoryInExePath".to_string(),
+                    "1".to_string()
+                ),
+            ]
+        );
+        assert_eq!(spec.expected_version, Some("2.2.2"));
+        assert_eq!(spec.policy.ask_first, "read-only");
+        assert_eq!(
+            CODEX.adapter.install(),
+            "npm i -g --omit=optional @agentclientprotocol/codex-acp@2.2.2"
+        );
+        assert_eq!(CODEX.info(None).setup.sign_in, "codex login");
+    }
+
+    #[test]
+    fn no_harness_starts_in_a_mode_kaava_holds_back() {
+        for d in REGISTRY {
+            let held = |m: &str| crate::config::NOT_OFFERED.contains(&m);
+            assert!(
+                !held(d.policy.ask_first),
+                "{} asks first in a held-back mode",
+                d.name
+            );
+            for &(key, value) in d.env {
+                assert!(!held(value), "{} sets {key} to a held-back mode", d.name);
             }
         }
     }

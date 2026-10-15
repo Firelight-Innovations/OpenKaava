@@ -1,7 +1,7 @@
 // Generated from crates/kaava-agent-host/src/event.rs by ts-rs. Do not edit.
 // Regenerate: KAAVA_BLESS=1 cargo test -p kaava-agent-host generated_types
 
-export type Harness = "claude";
+export type Harness = "claude" | "codex";
 
 export type Capabilities = { 
 /**
