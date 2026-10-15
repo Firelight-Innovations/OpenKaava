@@ -10,8 +10,11 @@
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import type { Item } from "./protocol.generated";
 
-/** The tool name for every item that is not text or reasoning. */
+/** The tool name for every item that is not text, reasoning or a tool call. */
 export const ITEM_TOOL = "kaava.item";
+
+/** The tool name for the agent's tool calls: the only parts that group (`Turns.tsx`). */
+export const ACTION_TOOL = "kaava.action";
 
 /** One turn: a run of items that becomes one message. */
 export interface Turn {
@@ -35,7 +38,7 @@ function part(item: Item): Exclude<ThreadMessageLike["content"], string>[number]
       return {
         type: "tool-call",
         toolCallId: item.id,
-        toolName: ITEM_TOOL,
+        toolName: kind.kind === "toolCall" ? ACTION_TOOL : ITEM_TOOL,
         args: {},
         result: null,
       };
