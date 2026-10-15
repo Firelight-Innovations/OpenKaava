@@ -18,7 +18,7 @@ Status of each part:
 | ------------------------------------------------- | ------------------------------ | ------- |
 | Scheme, policy, resolver, `refs/resolve`          | `src-tauri/src/refs/`          | PR 1    |
 | `kaava-context` server: `show`, search, resources | `src-tauri/src/mcp/servers/`   | PR 2    |
-| `refs/search` and `refs/prompt` for the @ picker  | `src-tauri/src/refs/`          | PR 3    |
+| `refs/search`, `refs/prompt`, failure reasons     | `src-tauri/src/refs/`          | PR 3    |
 | Component catalogue and `show_component`          | server and the tab's renderers | PR 4    |
 
 ## 1. The scheme
@@ -112,7 +112,8 @@ ACP prompt blocks.
    - Anything under `.git/`, `.ssh/`, `.aws/`, `.gnupg/`, `.azure/`, `.kube/` or `.docker/`.
 
    A file is also withheld, whatever it is called, when its first 64 KB hold a private key: a
-   `-----BEGIN … PRIVATE KEY-----` line or a PuTTY key header. A context item copied in from
+   `-----BEGIN … PRIVATE KEY-----` line or a PuTTY key header. So is an excerpt that holds one,
+   since a line range can reach past those 64 KB. A context item copied in from
    outside the project is checked by its title, the path it was copied from and the copy's name.
 
    A withheld result says which rule matched. A folder counts these entries and does not name
@@ -144,14 +145,52 @@ The shell answers these methods for Kaava's own apps, from the calling surface's
 way it answers `context/*`. A plugin surface is refused: it is someone else's code, and a reference
 reads the project.
 
-| Method         | Params                      | Result                                       | State |
-| -------------- | --------------------------- | -------------------------------------------- | ----- |
-| `refs/resolve` | `{ uri }`                   | `Resolved`                                   | PR 1  |
-| `refs/search`  | `{ query, kinds?, limit? }` | `{ items: [{ uri, kind, title, detail }] }`  | PR 3  |
-| `refs/prompt`  | `{ uris }`                  | `{ blocks: AcpContentBlock[] }`              | PR 3  |
+| Method         | Params                       | Result                                       |
+| -------------- | ---------------------------- | -------------------------------------------- |
+| `refs/resolve` | `{ uri }`                    | `Resolved`                                   |
+| `refs/search`  | `{ query?, kinds?, limit? }` | `{ items: [{ uri, kind, title, detail? }] }` |
+| `refs/prompt`  | `{ uris, accepts? }`         | `{ blocks: AcpContentBlock[], failed? }`     |
 
-`refs/resolve` resolves as the person: the canvas records `human` as the actor on the calls it
-makes. It sits before the write refusal in `apps::call`, so it works on a read-only main.
+All three resolve as the person: the canvas records `human` as the actor on the calls they make.
+They sit before the write refusal in `apps::call`, so they work on a read-only main.
+
+**Failures.** A failed call is invalid params, with a word in `data.reason` that the tab maps to its
+own sentence. The message is for logs and for anyone without that mapping. Branch on the word, never
+on the message.
+
+| `reason`      | Means                                                              |
+| ------------- | ------------------------------------------------------------------ |
+| `bad-params`  | The call is malformed: a parameter is missing, mistyped or too big |
+| `bad-uri`     | Not a `kaava://` reference, or a path no reference may name        |
+| `no-project`  | No project is open, or the surface is in no cluster                |
+| `missing`     | Nothing is there by that name                                      |
+| `outside`     | It leads outside the project, through a link or otherwise          |
+| `secret`      | A §3 secret, refused where it would be shown                       |
+| `unavailable` | What answers it, the Canvas app or Design Mode, could not          |
+| `unreadable`  | It is there but could not be read                                  |
+
+`refs/search` is `search_context` (§5) for the @-mention picker, with the same ranking, caps and
+screens.
+
+`refs/prompt` turns the references a person put in a message into ACP content blocks, which the tab
+sends after the text. `accepts` is the agent's `promptCapabilities` from `initialize`, passed as it
+came. Each reference appears once, in the order given:
+
+- **Linked**, as a `resource_link` with its name, `detail`, MIME type and size. Every ACP agent
+  accepts one, and the agent reads it through `kaava-context`. This is all a reference gets when the
+  agent takes no embedded context.
+- **Embedded**, as a `resource` holding the text `read` would give, when `accepts.embeddedContext`.
+- **Pictures**, as `image` blocks after it, when `accepts.image`. A picture not sent is named in the
+  text or the link's description, so the agent knows to `read` for it.
+
+Anything resolving withholds, a secret or a gitignored file, is only ever linked. One message embeds
+at most 256 KB of text and four pictures holding at most 10 MB of base64. A reference past either
+is linked, and its description says why. At most 16 references go in one call. A reference that
+does not resolve goes in `failed` as `{ uri, reason, message }`, and the rest still go.
+
+The agent host has still to carry these: `agent-tab/send { text, blocks? }` sends the blocks after
+the text, and `SessionStatus.promptCapabilities` gives the tab what to pass as `accepts`. Both land
+with the agent host's parity PR 6.
 
 ## 5. The `kaava-context` server
 
@@ -199,12 +238,18 @@ file passes, because the tab draws it as withheld. It answers with this marker:
     "version": 1,
     "props": { "refs": ["kaava://file/scripts/player.gd#L10-L20"], "caption": "The jump" }
   },
-  "failed": [{ "uri": "kaava://file/gone.gd", "reason": "there is no `gone.gd` in this project" }]
+  "failed": [
+    {
+      "uri": "kaava://file/gone.gd",
+      "reason": "missing",
+      "message": "there is no `gone.gd` in this project"
+    }
+  ]
 }
 ```
 
-A reference that fails its check goes in `failed`, and the rest are still shown. If none pass, the
-call fails and gives each reason. A caption is at most 500 characters. The agent host is to lift
+A reference that fails its check goes in `failed`, with a §4 reason word and the sentence, and the
+rest are still shown. If none pass, the call fails and gives each sentence. A caption is at most 500 characters. The agent host is to lift
 `kaavaShow` off the tool result for the tab to draw. That is agent-host work still to land, so for
 now the marker reaches the agent and nothing draws it.
 
