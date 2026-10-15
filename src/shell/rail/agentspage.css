@@ -83,8 +83,8 @@
 
 .k-agents__new:focus-visible,
 .k-agents__row:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: -2px;
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
 }
 
 .k-agents__glyph {
@@ -112,7 +112,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .k-agents__row .k-agents__glyph {
+  .k-agents__row[data-state] .k-agents__glyph {
     animation: none;
   }
 }
