@@ -47,6 +47,7 @@ import ToolWindow, { type ToolWindowHandle } from "./toolwindow/ToolWindow";
 import PaneTree from "./panes/PaneTree";
 import PaneTerminal from "./terminal/PaneTerminal";
 import { splitDirOnOpen } from "./panes/splitOnOpen";
+import { railKeyOf } from "./rail/railKey";
 import { toggleMaximize } from "./panes/paneMaximize";
 import BottomPanel from "./panel/BottomPanel";
 import StatusBar from "./statusbar/StatusBar";
@@ -683,7 +684,7 @@ export default function WindowRoot({
 
   // --- the project-page rail --------------------------------------------
   //
-  // One door in: `Rail`'s click and Alt+1…6 both call this, and Rust's
+  // One door in: `Rail`'s click and Alt+1…7 both call this, and Rust's
   // `open_page` toggles a second click of the *same* page shut again
   // (`shell_state.rs`'s `open_page_pure`) — so this never has to know
   // whether a given call is an open or a close, only which button fired.
@@ -714,7 +715,7 @@ export default function WindowRoot({
     [label],
   );
 
-  // Alt+1…6 (open/switch the rail's page), Esc (leave an expanded page) and
+  // Alt+1…7 (open/switch the rail's page), Esc (leave an expanded page) and
   // Ctrl+Shift+E (dock/expand whichever one is open) — kept out of
   // `useKeyboard` below rather than added to it: none of the three fit its
   // Ctrl-chord table, Alt is a different modifier, and Escape is
@@ -731,8 +732,9 @@ export default function WindowRoot({
     function onKeyDown(e: KeyboardEvent) {
       if (isTextEntry(e.target)) return;
 
-      if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.key >= "1" && e.key <= "7") {
-        const page = pages.find((p) => p.key === Number(e.key));
+      const railKey = railKeyOf(e);
+      if (railKey !== null) {
+        const page = pages.find((p) => p.key === railKey);
         if (page && !page.disabled) {
           e.preventDefault();
           onSelectPage(page.id);
