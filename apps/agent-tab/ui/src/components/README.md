@@ -50,7 +50,7 @@ shared by a group of components:
 ## Reserved slots
 
 These slots are defined but not rendered yet. Their features are still being built:
-`ContextMeter`, `ModelPicker`, `EffortPicker`, `HarnessPicker`, `OptionPicker`, `SlashMenu`,
+`ModePicker`, `ModelPicker`, `EffortPicker`, `HarnessPicker`, `OptionPicker`, `SlashMenu`,
 `MentionMenu` and `SessionList`. Every picker defaults to `Picker`, and both menus default to `Menu`.
 
 ## The thread and assistant-ui
@@ -70,3 +70,22 @@ Our own state stays the source of truth, and assistant-ui draws the thread aroun
   It does not show while the agent waits on an approval.
 
 assistant-ui ships no CSS, so the look is ours: the tokens above and each component's `.css`.
+
+## The composer's footer
+
+The footer reads like a coding agent's: one settings button on the left, the meters and Send on the
+right.
+
+- `ModelMenu` is the settings button. It reads the current settings as one line ("Claude · Opus 5.5
+  · High") and opens a menu with one section per setting. Each section takes a picker's props, so
+  the harness (Claude or Codex), model, effort and mode all arrive the same way. A section without
+  `onChange` is shown but cannot be changed, and a section with nothing to list is left out.
+- `ContextMeter` is a short bar and a percentage. On hover or focus it opens a card with the
+  window's size, a stacked bar, and a row per category plus the free space. Without `categories`
+  the card has one "Used" row.
+- `UsageRing` is a ring as full as the tightest usage limit. On hover or focus it opens a card with
+  a bar per limit and when it resets. With no limits it draws nothing, which is the case until the
+  agent host reports them.
+- Both meters open their cards through the `HoverCard` slot and draw rings through `Ring`, so one
+  replacement changes both. `meters.ts` holds the thresholds: a meter turns `high` at 80% and
+  `full` at 95%, read from `--k-meter-*`. The context categories take `--k-context-1` to `-6`.
