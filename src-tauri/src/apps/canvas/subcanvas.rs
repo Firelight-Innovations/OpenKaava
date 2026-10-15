@@ -587,7 +587,7 @@ pub fn merge_children(
         .collect();
     let mut merged = Vec::new();
     for (frame_id, child) in gone {
-        let Ok(mut cscene) = super::load(&file_for(root, &child)) else {
+        let Ok(mut cscene) = super::load(root, &file_for(root, &child)) else {
             continue;
         };
         if cscene.pointer("/kaava/parent").and_then(Value::as_str) != Some(parent) {
@@ -681,7 +681,7 @@ pub fn unsplit(
             moved += 1;
         }
         let path = file_for(root, &child);
-        let ours = super::load(&path)
+        let ours = super::load(root, &path)
             .ok()
             .is_some_and(|s| s.pointer("/kaava/parent").and_then(Value::as_str) == Some(parent));
         if ours && store::checkpoint(root, &child, "unsplit")?.is_some() {

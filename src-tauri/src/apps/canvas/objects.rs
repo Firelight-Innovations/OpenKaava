@@ -50,7 +50,7 @@ fn flag(p: &Value, key: &str) -> bool {
 /// The parent a canvas file names, if it can be read.
 pub fn parent_of(root: &Path, id: &str) -> Option<String> {
     let path = file_for(root, id);
-    let scene = load(&path).ok()?;
+    let scene = load(root, &path).ok()?;
     scene
         .get("kaava")?
         .get("parent")?
@@ -161,7 +161,7 @@ fn must_exist(root: &Path, id: &str) -> Result<(), RpcError> {
 fn read_canvas(root: &Path, id: &str) -> Result<Read, RpcError> {
     must_exist(root, id)?;
     let path = file_for(root, id);
-    let mut scene = load(&path)?;
+    let mut scene = load(root, &path)?;
     let migration = frames::migrate(&mut scene);
     let title = scene
         .pointer("/kaava/title")
@@ -176,7 +176,7 @@ fn read_canvas(root: &Path, id: &str) -> Result<Read, RpcError> {
         let Some(f) = listed.iter_mut().find(|f| f.id == fid) else {
             continue;
         };
-        if let Ok(cscene) = load(&file_for(root, &child)) {
+        if let Ok(cscene) = load(root, &file_for(root, &child)) {
             f.elements = diagrams::members_of(diagrams::elements_of(&cscene), fid).len();
         }
     }
