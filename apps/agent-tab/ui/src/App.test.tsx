@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 /**
  * The agent tab end to end against a scripted bridge: attach, live envelopes,
- * sending, approvals and refusals.
+ * sending, approvals, refusals, and the mode.
  */
 import "./jsdom-shims";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
 const bridge = vi.hoisted(() => {
   class KaavaRpcError extends Error {
@@ -52,11 +52,24 @@ const STATUS: SessionStatus = {
   pendingPrompt: null,
 };
 
+const choice = (value: string, name: string) => ({ value, name, description: null });
+
+/** A session with Claude's three modes. */
+const SETTINGS: SessionStatus = {
+  ...STATUS,
+  modes: [
+    choice("default", "Manual"),
+    choice("acceptEdits", "Accept edits"),
+    choice("plan", "Plan"),
+  ],
+};
+
 function item(id: string, kind: Item["kind"]): Item {
   return { id, turnId: "t1", kind };
 }
 
 function backend(attachment: Attachment, overrides: Record<string, () => Promise<unknown>> = {}) {
+  let ticket = 0;
   bridge.invoke.mockImplementation((method: string) => {
     const override = overrides[method];
     if (override) return override();
@@ -65,6 +78,8 @@ function backend(attachment: Attachment, overrides: Record<string, () => Promise
         return Promise.resolve(attachment);
       case "agent-tab/harnesses":
         return Promise.resolve({ harnesses: [{ harness: "claude", hint: null }], blocked: null });
+      case "agent-tab/set-mode":
+        return Promise.resolve({ ticket: ++ticket });
       default:
         return Promise.resolve({});
     }
@@ -77,6 +92,23 @@ function emit(envelope: Envelope) {
 
 function prompt() {
   return screen.getByRole("textbox", { name: "Message the agent" });
+}
+
+/** The settings button, which reads out every setting it shows. */
+async function settingsButton() {
+  return screen.findByRole("button", { name: /^Agent settings/ });
+}
+
+/** The mode the settings button shows, by name. */
+async function shownMode() {
+  const label = (await settingsButton()).getAttribute("aria-label") ?? "";
+  return label.split(", ").at(-1);
+}
+
+/** The settings menu's Mode group, opened. */
+async function modeMenu() {
+  fireEvent.click(await settingsButton());
+  return within(await screen.findByRole("group", { name: "Mode" }));
 }
 
 beforeEach(() => {
@@ -538,10 +570,102 @@ describe("the agent tab", () => {
     expect(drawn.mock.calls.length).toBe(before);
   });
 
+  it("says when the mode will appear, and leaves Shift+Tab alone till then", async () => {
+    backend({ status: null, seq: 0, items: [] });
+    render(<App />);
+    const menu = await modeMenu();
+    const later = menu.getByRole("menuitemradio", {
+      name: "The mode appears once the session starts.",
+    });
+    expect(later.getAttribute("aria-disabled")).toBe("true");
+    fireEvent.keyDown(prompt(), { key: "Tab", shiftKey: true });
+    expect(bridge.invoke).not.toHaveBeenCalledWith("agent-tab/set-mode", expect.anything());
+  });
+
+  it("switches mode with Shift+Tab, showing the choice until the agent answers it", async () => {
+    backend({ status: SETTINGS, seq: 1, items: [] });
+    render(<App />);
+    expect(await shownMode()).toBe("Manual");
+    const status = (seq: number, status: SessionStatus) =>
+      emit({ instanceId: "i", seq, event: { type: "status", status } });
+
+    await act(async () => {
+      fireEvent.keyDown(prompt(), { key: "Tab", shiftKey: true });
+    });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/set-mode", { modeId: "acceptEdits" });
+    expect(await shownMode()).toBe("Accept edits");
+
+    // A status about something else, such as a turn starting, answers
+    // nothing: the choice stands, and the next press moves on from it.
+    status(2, { ...SETTINGS, state: "working" });
+    expect(await shownMode()).toBe("Accept edits");
+    await act(async () => {
+      fireEvent.keyDown(prompt(), { key: "Tab", shiftKey: true });
+    });
+    expect(bridge.invoke).toHaveBeenLastCalledWith("agent-tab/set-mode", { modeId: "plan" });
+    expect(await shownMode()).toBe("Plan");
+
+    // The first answer leaves the second choice standing.
+    status(3, { ...SETTINGS, mode: "acceptEdits", answered: 1 });
+    expect(await shownMode()).toBe("Plan");
+
+    // The agent has the last word.
+    status(4, { ...SETTINGS, mode: "acceptEdits", answered: 2 });
+    expect(await shownMode()).toBe("Accept edits");
+  });
+
+  it("changes the mode from the settings menu, and takes it back when refused", async () => {
+    backend(
+      { status: SETTINGS, seq: 1, items: [] },
+      {
+        "agent-tab/set-mode": () =>
+          Promise.reject(
+            new bridge.KaavaRpcError(-32010, "x", { code: "unknownOption", hint: null }),
+          ),
+      },
+    );
+    render(<App />);
+    const menu = await modeMenu();
+    await act(async () => {
+      fireEvent.click(menu.getByRole("menuitemradio", { name: "Plan" }));
+    });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/set-mode", { modeId: "plan" });
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("The agent does not offer that choice.");
+    expect(await shownMode()).toBe("Manual");
+  });
+
+  it("does not promise a mode to a session that failed before reporting one", async () => {
+    backend({ status: { ...STATUS, state: "failed" }, seq: 1, items: [] });
+    render(<App />);
+    fireEvent.click(await settingsButton());
+    expect(screen.queryByRole("group", { name: "Mode" })).toBeNull();
+    expect(screen.queryByText("The mode appears once the session starts.")).toBeNull();
+  });
+
+  it("offers no mode while the session is stopped", async () => {
+    backend({ status: { ...SETTINGS, state: "stopped" }, seq: 1, items: [] });
+    render(<App />);
+    const menu = await modeMenu();
+    for (const item of menu.getAllByRole("menuitemradio")) {
+      expect(item.getAttribute("aria-disabled")).toBe("true");
+    }
+  });
+
+  it("shows a mode the agent entered but the tab does not offer, as it is", async () => {
+    backend({ status: { ...SETTINGS, mode: "auto" }, seq: 1, items: [] });
+    render(<App />);
+    expect(await shownMode()).toBe("auto");
+    await act(async () => {
+      fireEvent.keyDown(prompt(), { key: "Tab", shiftKey: true });
+    });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/set-mode", { modeId: "default" });
+  });
+
   it("never names the harness Claude Code", async () => {
     backend({ status: STATUS, seq: 1, items: [] });
     render(<App />);
-    await screen.findByText("Claude");
+    expect((await screen.findAllByText("Claude")).length).toBeGreaterThan(0);
     expect(document.body.textContent).not.toContain("Claude Code");
   });
 });
