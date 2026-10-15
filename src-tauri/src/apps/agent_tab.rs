@@ -600,7 +600,9 @@ mod tests {
                     .unwrap();
                 order.lock().unwrap().push("chose");
             });
-            sessions.send_as(host, "tab", |harness| {
+            // `move`, so a failed assertion drops `started` and the chooser's
+            // `recv` fails rather than waiting for ever.
+            sessions.send_as(host, "tab", move |harness| {
                 assert_eq!(harness, harness::first());
                 started.send(()).unwrap();
                 std::thread::sleep(Duration::from_millis(200));
