@@ -110,6 +110,15 @@ const CREDENTIAL_NAMES: &[&str] = &[
     ".my.cnf",
     "keystore.properties",
     "export_credentials.cfg",
+    // OpenKaava's own: the bearer token for every MCP server it hosts.
+    "mcp-endpoint.json",
+    ".vault-token",
+    "application_default_credentials.json",
+    ".terraformrc",
+    "terraform.rc",
+    ".s3cfg",
+    ".boto",
+    ".dockercfg",
 ];
 
 /// Which secrets rule, if any, a root-relative path falls under. The answer
@@ -139,7 +148,10 @@ pub fn secret_rule(rel: &str) -> Option<&'static str> {
     if ssh_key && !name.ends_with(".pub") {
         return Some("SSH private keys");
     }
+    let service_account = name.starts_with("service-account") || name.starts_with("service_account");
     let credential = CREDENTIAL_NAMES.contains(&name)
+        || (name == "hosts.yml" && segments.last() == Some(&"gh"))
+        || (service_account && name.ends_with(".json"))
         || name.starts_with("credentials")
         || name.starts_with("secrets.")
         || name.starts_with("client_secret")
@@ -376,12 +388,53 @@ mod tests {
             ("client_secret_123.json", Some("credential files")),
             ("infra/prod.tfvars", Some("credential files")),
             (".npmrc", Some("credential files")),
+            ("keys/id_rsa", Some("SSH private keys")),
+            ("keys/id_dsa", Some("SSH private keys")),
+            ("keys/id_ecdsa", Some("SSH private keys")),
+            ("aws/credentials", Some("credential files")),
+            ("config/credentials.yml.enc", Some("credential files")),
+            ("config/secrets.toml", Some("credential files")),
+            ("home/.config/gh/hosts.yml", Some("credential files")),
+            ("ops/service-account-prod.json", Some("credential files")),
+            ("ops/service_account.json", Some("credential files")),
             (".gitignore", None),
             ("scripts/environment.gd", None),
             ("docs/keys.md", None),
+            ("docs/service-account-setup.md", None),
+            ("ci/hosts.yml", None),
         ];
         for (path, rule) in cases {
             assert_eq!(secret_rule(path), rule, "{path}");
+        }
+    }
+
+    /// Every entry in the rule tables, so a typo or a lost line in one of them
+    /// turns the suite red.
+    #[test]
+    fn every_entry_in_the_secret_tables_is_withheld() {
+        for dir in SECRET_DIRS {
+            assert!(secret_rule(dir).is_some(), "{dir}");
+            assert!(
+                secret_rule(&format!("home/{dir}/config")).is_some(),
+                "{dir}/config"
+            );
+        }
+        for ext in KEY_EXTENSIONS {
+            assert_eq!(
+                secret_rule(&format!("certs/release.{ext}")),
+                Some("private keys and key stores"),
+                "{ext}"
+            );
+        }
+        for name in CREDENTIAL_NAMES {
+            assert_eq!(
+                secret_rule(&format!("home/{name}")),
+                Some("credential files"),
+                "{name}"
+            );
+        }
+        for template in ENV_TEMPLATES {
+            assert_eq!(secret_rule(&format!(".env{template}")), None, "{template}");
         }
     }
 
