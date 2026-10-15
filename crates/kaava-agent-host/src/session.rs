@@ -404,6 +404,31 @@ impl Session {
         Ok(self.shared.queue(&inner, change))
     }
 
+    /// Set the option `config_id` to `value`, one of the choices the status
+    /// offers for it. The mode is not among those options; it goes through
+    /// [`Session::set_mode`]. Returns the change's number, as that does. The
+    /// agent's reply carries every option as it then stands, which can differ
+    /// in more than this one: a new model brings its own effort levels.
+    pub(crate) fn set_config(&self, config_id: &str, value: &str) -> Result<u64, HostError> {
+        let inner = self.shared.lock();
+        let session_id = open(&inner)?;
+        let offered = inner
+            .status
+            .config
+            .iter()
+            .find(|o| o.id == config_id)
+            .is_some_and(|o| o.choices.iter().any(|c| c.value == value));
+        if !offered {
+            return Err(HostError::UnknownOption);
+        }
+        let change = (
+            "session/set_config_option",
+            json!({ "sessionId": session_id, "configId": config_id, "value": value }),
+            None,
+        );
+        Ok(self.shared.queue(&inner, change))
+    }
+
     /// Everything drawn so far.
     pub(crate) fn attach(&self) -> Attachment {
         let inner = self.shared.lock();
