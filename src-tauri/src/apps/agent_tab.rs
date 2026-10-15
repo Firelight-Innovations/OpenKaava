@@ -55,6 +55,21 @@ const INSTANCE_METHODS: &[&str] = &[
     "agent-tab/reset",
 ];
 
+/// The methods that advance an agent, and so run only with developer mode on.
+/// An approval advances it as much as a prompt does. Every one is also a
+/// write to the cluster's checkout, so it is in `apps::WRITE_METHODS` too.
+const GATED_METHODS: &[&str] = &["agent-tab/send", "agent-tab/answer"];
+
+/// The instance methods developer mode never blocks, on purpose: they read, or
+/// they end what is running, and a person who turned developer mode off has to
+/// be able to stop an agent that is still going.
+const UNGATED_METHODS: &[&str] = &[
+    "agent-tab/attach",
+    "agent-tab/cancel",
+    "agent-tab/stop",
+    "agent-tab/reset",
+];
+
 /// The host, built on first use so it can hold the `AppHandle` it emits on,
 /// and where each tab's session started.
 #[derive(Default)]
@@ -180,6 +195,9 @@ pub fn call_for(
         Some(id) if is_agent_tab(app, id) => id,
         _ => return Err(unreached(method)),
     };
+    // One check for every method, before any of them runs, so a method added
+    // to `GATED_METHODS` cannot be missed by the arm that handles it.
+    gate(method, developer_mode(app))?;
     let sessions = app.state::<Sessions>();
     let host = sessions.host(app);
     let params = params.unwrap_or(Value::Null);
@@ -193,7 +211,6 @@ pub fn call_for(
                     "the only harness is `claude`",
                 ));
             }
-            refuse_unless_developer(app)?;
             let worktree = worktree(app, context)?;
             let spec = claude_spec(
                 std::env::var_os("PATH").as_deref(),
@@ -214,16 +231,12 @@ pub fn call_for(
         "agent-tab/attach" => serde_json::to_value(host.attach(instance))
             .map_err(|e| RpcError::new(kaava_rpc::INTERNAL_ERROR, e.to_string())),
         "agent-tab/cancel" => done(host.cancel(instance)),
-        // An approval advances the agent as much as a prompt does, so it is
-        // gated the same way. Stopping one never is.
-        "agent-tab/answer" => {
-            refuse_unless_developer(app)?;
-            done(host.answer(
-                instance,
-                &text_param(&params, "itemId")?,
-                &text_param(&params, "optionId")?,
-            ))
-        }
+        // Gated with `send` above, in `GATED_METHODS`.
+        "agent-tab/answer" => done(host.answer(
+            instance,
+            &text_param(&params, "itemId")?,
+            &text_param(&params, "optionId")?,
+        )),
         "agent-tab/stop" => {
             host.stop(instance);
             Ok(json!({}))
@@ -257,8 +270,16 @@ fn harnesses(app: &AppHandle, context: &CallContext) -> Value {
     json!({ "harnesses": harnesses, "blocked": blocked })
 }
 
+fn developer_mode(app: &AppHandle) -> bool {
+    crate::settings::flag(app, crate::settings::keys::DEVELOPER_MODE)
+}
+
 fn refuse_unless_developer(app: &AppHandle) -> Result<(), RpcError> {
-    if crate::settings::flag(app, crate::settings::keys::DEVELOPER_MODE) {
+    developer_gate(developer_mode(app))
+}
+
+fn developer_gate(developer_mode: bool) -> Result<(), RpcError> {
+    if developer_mode {
         return Ok(());
     }
     Err(refused(
@@ -266,6 +287,15 @@ fn refuse_unless_developer(app: &AppHandle) -> Result<(), RpcError> {
         "the agent tab is in testing, and runs only with developer mode on",
         Value::Null,
     ))
+}
+
+/// Whether `method` may run with developer mode as given. Pure, so the rule
+/// is tested without an app handle.
+fn gate(method: &str, developer_mode: bool) -> Result<(), RpcError> {
+    if GATED_METHODS.contains(&method) {
+        return developer_gate(developer_mode);
+    }
+    Ok(())
 }
 
 /// The worktree the calling cluster writes to, or why it has none.
@@ -293,8 +323,12 @@ fn worktree_path(env: Option<&Environment>) -> Result<PathBuf, RpcError> {
 /// Whether `id` is an open agent tab. `commands::app_call` takes the instance
 /// id from whichever webview called, so this is checked, not assumed.
 fn is_agent_tab(app: &AppHandle, id: &str) -> bool {
-    app.state::<ShellState>()
-        .snapshot()
+    has_agent_tab(&app.state::<ShellState>().snapshot(), id)
+}
+
+/// Whether `id` is an agent-tab instance in `snapshot`. Pure, so it is tested.
+fn has_agent_tab(snapshot: &ShellSnapshot, id: &str) -> bool {
+    snapshot
         .instances
         .iter()
         .any(|i| i.id == id && i.app_id == ID)
@@ -386,6 +420,66 @@ mod tests {
         assert_eq!(unreached("agent-tab/nonesuch").code, METHOD_NOT_FOUND);
     }
 
+    /// The gate is one decision in one place: what advances an agent needs
+    /// developer mode, and what ends or reads one never does.
+    #[test]
+    fn developer_mode_gates_what_advances_an_agent_and_nothing_that_ends_one() {
+        for method in GATED_METHODS {
+            let err = gate(method, false).unwrap_err();
+            assert_eq!(err.code, REFUSED, "{method}");
+            assert_eq!(code_of(&err), Some("developerMode"), "{method}");
+            assert!(gate(method, true).is_ok(), "{method}");
+        }
+        for method in UNGATED_METHODS {
+            assert!(gate(method, false).is_ok(), "{method} is never gated");
+        }
+        assert!(gate("agent-tab/harnesses", false).is_ok());
+    }
+
+    /// A new instance method has to be decided one way or the other, and a
+    /// gated one is a write to the checkout like any other.
+    #[test]
+    fn every_instance_method_is_gated_or_deliberately_not() {
+        for method in INSTANCE_METHODS {
+            let gated = GATED_METHODS.contains(method);
+            let ungated = UNGATED_METHODS.contains(method);
+            assert!(gated != ungated, "{method} must be in exactly one list");
+        }
+        for method in GATED_METHODS.iter().chain(UNGATED_METHODS) {
+            assert!(INSTANCE_METHODS.contains(method), "{method} is not routed");
+        }
+        for method in GATED_METHODS {
+            assert!(
+                crate::apps::is_write_method(method),
+                "{method} advances an agent that edits the checkout"
+            );
+        }
+    }
+
+    #[test]
+    fn only_an_open_agent_tab_is_one() {
+        let mut shot = snapshot(vec![cluster("c1", &["agent-tab-1", "files-1"], "C:/wt/a")]);
+        shot.instances = ["agent-tab-1", "files-1"]
+            .into_iter()
+            .map(|id| instance(id, id.rsplit_once('-').map_or(id, |(app, _)| app)))
+            .collect();
+        assert!(has_agent_tab(&shot, "agent-tab-1"));
+        assert!(!has_agent_tab(&shot, "files-1"), "another app's instance");
+        assert!(
+            !has_agent_tab(&shot, "agent-tab-9"),
+            "a tab that is not open"
+        );
+    }
+
+    fn instance(id: &str, app_id: &str) -> crate::shell_state::SurfaceInstance {
+        crate::shell_state::SurfaceInstance {
+            id: id.into(),
+            app_id: app_id.into(),
+            kind: crate::shell_state::SurfaceKind::App,
+            title: app_id.into(),
+        }
+    }
+
     fn cluster(id: &str, tabs: &[&str], path: &str) -> crate::shell_state::Cluster {
         let mut tree = crate::layout::PaneNode::leaf(format!("pane-{id}"));
         for tab in tabs {
@@ -449,6 +543,99 @@ mod tests {
         let unchanged = snapshot(vec![cluster("c1", &["x", "agent-tab-1"], "C:/wt/a")]);
         assert_eq!(home_of(&unchanged, "agent-tab-1").as_ref(), Some(&home));
         assert!(home_of(&unchanged, "agent-tab-2").is_none());
+    }
+
+    /// A host that records what it emits, in a `Sessions` nothing has started.
+    fn recording_sessions() -> (Sessions, Arc<Mutex<Vec<kaava_agent_host::Envelope>>>) {
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let sink = Arc::clone(&seen);
+        let host = AgentHost::new(
+            Arc::new(move |envelope| sink.lock().unwrap().push(envelope)),
+            Arc::new(|_, _| {}),
+        );
+        let sessions = Sessions::default();
+        assert!(sessions.host.set(host).is_ok());
+        (sessions, seen)
+    }
+
+    /// The tabs that were sent a reset, once the host has said so. A reset for
+    /// a tab no one else is named for goes last and marks the end: the host
+    /// emits from one thread, in order, so nothing earlier can still be on its
+    /// way when the marker is here.
+    fn reset_tabs(
+        sessions: &Sessions,
+        seen: &Mutex<Vec<kaava_agent_host::Envelope>>,
+    ) -> Vec<String> {
+        const MARKER: &str = "marker";
+        sessions.host.get().unwrap().reset(MARKER);
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        loop {
+            let got = seen.lock().unwrap().clone();
+            if got.iter().any(|e| e.instance_id == MARKER) || std::time::Instant::now() > deadline {
+                let mut tabs: Vec<String> = got
+                    .into_iter()
+                    .filter(|e| matches!(e.event, kaava_agent_host::Event::Reset))
+                    .map(|e| e.instance_id)
+                    .filter(|id| id != MARKER)
+                    .collect();
+                tabs.sort();
+                return tabs;
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+
+    /// The layout changed under three running agents: one tab was dragged to
+    /// another cluster, one cluster was pointed at another worktree, and one
+    /// tab was closed. Each loses its session; the tab that did not move keeps
+    /// its own, and every tab that is gone is forgotten.
+    #[test]
+    fn sync_resets_a_moved_or_repointed_tab_and_forgets_a_closed_one() {
+        let (sessions, seen) = recording_sessions();
+        let before = snapshot(vec![
+            cluster("c1", &["stays", "dragged", "closed"], "C:/wt/a"),
+            cluster("c2", &["repointed"], "C:/wt/b"),
+        ]);
+        for id in ["stays", "dragged", "closed", "repointed"] {
+            sessions
+                .homes()
+                .insert(id.to_string(), home_of(&before, id).unwrap());
+        }
+
+        let mut after = snapshot(vec![
+            cluster("c1", &["stays"], "C:/wt/a"),
+            cluster("c2", &["repointed", "dragged"], "C:/wt/elsewhere"),
+        ]);
+        after.instances = ["stays", "dragged", "repointed"]
+            .into_iter()
+            .map(|id| instance(id, ID))
+            .collect();
+        sessions.sync(&after);
+
+        assert_eq!(reset_tabs(&sessions, &seen), ["dragged", "repointed"]);
+        let mut homed: Vec<String> = sessions.homes().keys().cloned().collect();
+        homed.sort();
+        assert_eq!(
+            homed,
+            ["stays"],
+            "moved tabs lose their home, closed ones too"
+        );
+    }
+
+    #[test]
+    fn sync_leaves_a_tab_alone_while_it_is_where_it_started() {
+        let (sessions, seen) = recording_sessions();
+        let shot = snapshot(vec![cluster("c1", &["a", "b"], "C:/wt/a")]);
+        for id in ["a", "b"] {
+            sessions
+                .homes()
+                .insert(id.to_string(), home_of(&shot, id).unwrap());
+        }
+        let mut same = shot.clone();
+        same.instances = ["a", "b"].into_iter().map(|id| instance(id, ID)).collect();
+        sessions.sync(&same);
+        assert!(reset_tabs(&sessions, &seen).is_empty());
+        assert_eq!(sessions.homes().len(), 2);
     }
 
     #[test]
