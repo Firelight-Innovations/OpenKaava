@@ -150,15 +150,42 @@ pub fn secret_rule(rel: &str) -> Option<&'static str> {
 }
 
 /// Which secrets rule a file's first bytes fall under. A private key keeps
-/// its header whatever the file is called, so a renamed key is still caught.
+/// its header whatever the file is called, so a renamed key is still caught,
+/// and so is one written into a JSON, YAML or env value.
 pub fn secret_content(head: &[u8]) -> Option<&'static str> {
     let text = String::from_utf8_lossy(head);
     let key = text.lines().map(str::trim).any(|line| {
-        let pem = line.starts_with("-----BEGIN ")
-            && (line.ends_with("PRIVATE KEY-----") || line.ends_with("PRIVATE KEY BLOCK-----"));
-        pem || line.starts_with("PuTTY-User-Key-File-")
+        line.starts_with("PuTTY-User-Key-File-") || pem_key_in(line) || age_key_in(line)
     });
     key.then_some("private keys and key stores")
+}
+
+/// Whether `line` holds a private key's PEM header with the key after it: the
+/// header ends the line, or an escaped line break follows it, as in a JSON
+/// string. A header quoted in a sentence has prose after it instead.
+fn pem_key_in(line: &str) -> bool {
+    line.match_indices("-----BEGIN ").any(|(at, open)| {
+        let rest = &line[at + open.len()..];
+        let Some(end) = rest.find("-----") else {
+            return false;
+        };
+        let label = &rest[..end];
+        let after = &rest[end + "-----".len()..];
+        (label.ends_with("PRIVATE KEY") || label.ends_with("PRIVATE KEY BLOCK"))
+            && (after.is_empty() || after.starts_with("\\n") || after.starts_with("\\r\\n"))
+    })
+}
+
+/// Whether `line` holds an age secret key, which is its prefix and then 58
+/// characters of upper-case Bech32.
+fn age_key_in(line: &str) -> bool {
+    const PREFIX: &str = "AGE-SECRET-KEY-1";
+    line.match_indices(PREFIX).any(|(at, _)| {
+        let body = line[at + PREFIX.len()..].bytes();
+        body.take_while(|b| b.is_ascii_uppercase() || b.is_ascii_digit())
+            .count()
+            >= 58
+    })
 }
 
 /// Whether gitignore patterns ignore case. Git's `core.ignorecase` is on by
@@ -334,12 +361,20 @@ mod tests {
 
     #[test]
     fn a_private_key_is_known_by_its_header() {
+        let age = format!("AGE-SECRET-KEY-1{}\n", "QZ7".repeat(20));
         for key in [
             "-----BEGIN RSA PRIVATE KEY-----\nMIIE\n",
             "-----BEGIN CERTIFICATE-----\nx\n-----END CERTIFICATE-----\n  -----BEGIN EC PRIVATE KEY-----\n",
             "-----BEGIN OPENSSH PRIVATE KEY-----\r\nb3Bl\r\n",
             "-----BEGIN PGP PRIVATE KEY BLOCK-----\n",
             "PuTTY-User-Key-File-3: ssh-ed25519\n",
+            // A service-account file: the key is one JSON string, escapes and all.
+            r#"  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBg\n-----END PRIVATE KEY-----\n","#,
+            r#"{"cert": "-----BEGIN CERTIFICATE-----\nMIIB", "key": "-----BEGIN EC PRIVATE KEY-----\r\nMHc"}"#,
+            "DEPLOY_KEY=\"-----BEGIN OPENSSH PRIVATE KEY-----\nb3Bl\n-----END OPENSSH PRIVATE KEY-----\"\n",
+            r#"SSH_KEY="-----BEGIN RSA PRIVATE KEY-----\nMIIE""#,
+            "tls:\n  key: |\n    -----BEGIN ENCRYPTED PRIVATE KEY-----\n    MIIF\n",
+            &age,
         ] {
             assert_eq!(
                 secret_content(key.as_bytes()),
@@ -350,7 +385,9 @@ mod tests {
         for plain in [
             "-----BEGIN CERTIFICATE-----\nMIIB\n",
             "-----BEGIN PUBLIC KEY-----\n",
+            r#"{"cert": "-----BEGIN CERTIFICATE-----\nMIIB"}"#,
             "A key file starts with `-----BEGIN RSA PRIVATE KEY-----`.\n",
+            "An age key starts AGE-SECRET-KEY-1 and is all capitals.\n",
             "",
         ] {
             assert_eq!(secret_content(plain.as_bytes()), None, "{plain}");
