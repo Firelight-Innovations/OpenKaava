@@ -398,12 +398,16 @@ impl Inner {
         self.status.config = settings.options;
     }
 
-    /// Record the mode the agent reports, except during the handshake:
-    /// whatever the user's own default is, it is not this session's mode
-    /// until the switch to ask-first is confirmed, so neither a status sent
-    /// meanwhile nor a failed handshake ever shows it.
+    /// Record the mode the agent reports, but only once the handshake has
+    /// confirmed ask-first: whatever the user's own default is, it is not
+    /// this session's mode until then, so neither a status sent meanwhile
+    /// nor a failed handshake ever shows it. A session that has failed, or
+    /// whose process has exited, never had that confirmation.
     fn show_mode(&mut self, mode: String) {
-        if self.status.state != SessionState::Starting {
+        if matches!(
+            self.status.state,
+            SessionState::Ready | SessionState::Working | SessionState::NeedsInput
+        ) {
             self.status.mode = Some(mode);
         }
     }
@@ -1171,5 +1175,57 @@ mod tests {
         );
         assert_eq!(buf, b"z");
         assert_eq!(read_line_capped(&mut reader, &mut buf, 5).unwrap(), None);
+    }
+
+    fn inner() -> Inner {
+        let (events, _) = mpsc::channel();
+        Inner {
+            closed: false,
+            next_id: 0,
+            replies: HashMap::new(),
+            prompt: None,
+            approvals: Vec::new(),
+            normalizer: Normalizer::new("t"),
+            transcript: Transcript::from_items(Vec::new()),
+            status: SessionStatus {
+                state: SessionState::Starting,
+                harness: crate::harness::Harness::Claude,
+                cwd: String::new(),
+                mode: None,
+                modes: Vec::new(),
+                config: Vec::new(),
+                adapter_version: None,
+                exit_code: None,
+                hint: None,
+                pending_prompt: None,
+            },
+            session_id: None,
+            changing: HashSet::new(),
+            events,
+            last_seq: 0,
+            noise: 0,
+            silenced: false,
+        }
+    }
+
+    #[test]
+    fn a_mode_is_shown_only_once_ask_first_is_confirmed() {
+        for (state, shown) in [
+            (SessionState::Starting, false),
+            (SessionState::Failed, false),
+            (SessionState::Stopped, false),
+            (SessionState::Ready, true),
+            (SessionState::Working, true),
+            (SessionState::NeedsInput, true),
+        ] {
+            let mut inner = inner();
+            inner.status.state = state;
+            inner.show_mode("auto".to_string());
+            assert_eq!(
+                inner.status.mode.is_some(),
+                shown,
+                "the user's own mode, in {state:?}"
+            );
+        }
     }
 }
