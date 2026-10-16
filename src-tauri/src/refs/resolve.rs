@@ -9,6 +9,7 @@
 //! written out, is described rather than sent.
 
 use super::assets::{self, Kind};
+use super::fault::{Fault, Reason};
 use super::policy;
 use super::uri::{Lines, Ref};
 use crate::context::ContextItem;
@@ -105,7 +106,7 @@ impl Resolved {
         }
     }
 
-    fn withhold(mut self, why: impl Into<String>) -> Self {
+    pub(super) fn withhold(mut self, why: impl Into<String>) -> Self {
         self.parts.clear();
         self.withheld = Some(why.into());
         self
@@ -113,9 +114,9 @@ impl Resolved {
 }
 
 /// Resolve a file or folder reference inside `root`.
-pub fn file(root: &Path, r: &Ref) -> Result<Resolved, String> {
+pub fn file(root: &Path, r: &Ref) -> Result<Resolved, Fault> {
     let Ref::File { path, lines } = r else {
-        return Err("not a file reference".into());
+        return Err(Fault::new(Reason::BadUri, "not a file reference"));
     };
     let found = policy::contain(root, path)?;
     let name = path.rsplit('/').next().unwrap_or(path);
@@ -130,7 +131,7 @@ pub fn file(root: &Path, r: &Ref) -> Result<Resolved, String> {
         ));
     }
     if found.abs.is_dir() {
-        return folder(out, &found.root, &found.abs);
+        return Ok(folder(out, &found.root, &found.abs)?);
     }
     describe(out, &found.abs, *lines)
 }
@@ -212,7 +213,7 @@ pub(super) fn describe(
     mut out: Resolved,
     abs: &Path,
     lines: Option<Lines>,
-) -> Result<Resolved, String> {
+) -> Result<Resolved, Fault> {
     let meta = std::fs::metadata(abs).map_err(|e| format!("cannot read that file: {e}"))?;
     let size = meta.len();
     let name = abs
@@ -256,6 +257,12 @@ pub(super) fn describe(
     }
     if class.textual && textual {
         let ex = excerpt(abs, lines)?;
+        // A line range reaches past the head checked above. A key opened
+        // anywhere before its last line withholds it, as one in the head
+        // withholds the file: a range can start on the key's body.
+        if ex.past_key {
+            return Ok(out.withhold(secret_withheld(policy::KEYS)));
+        }
         if let Some(total) = ex.total_lines {
             out.meta.insert("lines".into(), json!(total));
         }
@@ -392,15 +399,17 @@ struct Excerpt {
     truncated: bool,
     /// Known only when the whole file was read.
     total_lines: Option<u32>,
+    /// Whether a line read, skipped or kept, opens a private key.
+    past_key: bool,
 }
 
 /// Lines `lines` of a text file (or its start), within the caps.
-fn excerpt(abs: &Path, lines: Option<Lines>) -> Result<Excerpt, String> {
+fn excerpt(abs: &Path, lines: Option<Lines>) -> Result<Excerpt, Fault> {
     excerpt_within(abs, lines, MAX_SCAN_BYTES)
 }
 
 /// [`excerpt`], reading at most `scan` bytes of the file.
-fn excerpt_within(abs: &Path, lines: Option<Lines>, scan: u64) -> Result<Excerpt, String> {
+fn excerpt_within(abs: &Path, lines: Option<Lines>, scan: u64) -> Result<Excerpt, Fault> {
     let file = std::fs::File::open(abs).map_err(|e| format!("cannot open that file: {e}"))?;
     let size = file.metadata().map(|m| m.len()).unwrap_or(0);
     let mut reader = BufReader::new(file).take(scan);
@@ -408,7 +417,7 @@ fn excerpt_within(abs: &Path, lines: Option<Lines>, scan: u64) -> Result<Excerpt
     let last = lines.map(Lines::last);
     let (mut text, mut buf) = (String::new(), Vec::new());
     let (mut line_no, mut taken) = (0u32, 0u32);
-    let (mut truncated, mut eof) = (false, false);
+    let (mut truncated, mut eof, mut past_key) = (false, false, false);
     loop {
         buf.clear();
         let n = reader
@@ -419,13 +428,14 @@ fn excerpt_within(abs: &Path, lines: Option<Lines>, scan: u64) -> Result<Excerpt
             break;
         }
         line_no += 1;
-        if line_no < start {
-            continue;
-        }
         if last.is_some_and(|last| line_no > last) {
             break;
         }
         let line = String::from_utf8_lossy(&buf);
+        past_key = past_key || policy::key_line(&line);
+        if line_no < start {
+            continue;
+        }
         if taken >= MAX_EXCERPT_LINES || text.len() + line.len() > MAX_EXCERPT_BYTES {
             if text.is_empty() {
                 text.push_str(cut(&line, MAX_EXCERPT_BYTES));
@@ -441,12 +451,14 @@ fn excerpt_within(abs: &Path, lines: Option<Lines>, scan: u64) -> Result<Excerpt
     let capped = eof && reader.limit() == 0 && size > scan;
     if lines.is_some() && line_no < start && eof {
         return Err(if capped {
-            format!(
+            let why = format!(
                 "line {start} is past the first {} of the file, which is as far as a reference reads",
                 human_size(scan)
-            )
+            );
+            Fault::new(Reason::Unreadable, why)
         } else {
-            format!("the file has {line_no} lines, so line {start} does not exist")
+            let why = format!("the file has {line_no} lines, so line {start} does not exist");
+            Fault::new(Reason::Missing, why)
         });
     }
     let complete = eof && !capped;
@@ -464,6 +476,7 @@ fn excerpt_within(abs: &Path, lines: Option<Lines>, scan: u64) -> Result<Excerpt
         start,
         truncated,
         total_lines: complete.then_some(line_no),
+        past_key,
     })
 }
 
@@ -577,11 +590,11 @@ pub fn png_part(path: &Path) -> Result<Part, String> {
 
 /// An item in the context store. One Kaava stored itself is read where it
 /// lies; one that references a project file goes through every file rule.
-pub fn context_item(root: &Path, r: &Ref) -> Result<Resolved, String> {
+pub fn context_item(root: &Path, r: &Ref) -> Result<Resolved, Fault> {
     let Ref::Context { id } = r else {
-        return Err("not a context reference".into());
+        return Err(Fault::new(Reason::BadUri, "not a context reference"));
     };
-    let item = crate::context::get(root, id).map_err(|e| e.message)?;
+    let item = stored_item(root, id)?;
     if stands_for_file(&item) {
         let inner = Ref::File {
             path: item.rel_path.clone(),
@@ -605,7 +618,12 @@ pub fn context_item(root: &Path, r: &Ref) -> Result<Resolved, String> {
     let found = policy::contain(root, &item.rel_path)
         .ok()
         .filter(|f| policy::inside_store(&f.rel))
-        .ok_or("that context item's file is not in this project's context store")?;
+        .ok_or_else(|| {
+            Fault::new(
+                Reason::Outside,
+                "that context item's file is not in this project's context store",
+            )
+        })?;
     let mut out = describe(out, &found.abs, None)?;
     out.detail = item.source.label.or(Some(item.source.app_id));
     out.meta.insert("context".into(), json!(item.id));
@@ -613,9 +631,9 @@ pub fn context_item(root: &Path, r: &Ref) -> Result<Resolved, String> {
 }
 
 /// A viewer comment, `.kaava/comments/<id>.json`, and its screenshot.
-pub fn viewer_comment(root: &Path, r: &Ref) -> Result<Resolved, String> {
+pub fn viewer_comment(root: &Path, r: &Ref) -> Result<Resolved, Fault> {
     let Ref::Comment { id } = r else {
-        return Err("not a comment reference".into());
+        return Err(Fault::new(Reason::BadUri, "not a comment reference"));
     };
     let comment = viewer_record(root, id)?;
     let mut out = Resolved::empty(r, "comment", first_line(&comment.body));
@@ -636,17 +654,43 @@ pub fn viewer_comment(root: &Path, r: &Ref) -> Result<Resolved, String> {
 }
 
 /// A viewer comment's record, read from inside the project and under the cap.
-pub(super) fn viewer_record(root: &Path, id: &str) -> Result<crate::comments::Comment, String> {
-    let record = policy::contain(root, &format!(".kaava/comments/{id}.json"))
-        .map_err(|_| format!("there is no comment `{id}` in this project"))?;
+pub(super) fn viewer_record(root: &Path, id: &str) -> Result<crate::comments::Comment, Fault> {
+    let record = viewer_record_at(root, id)?;
     let raw = read_prefix(&record.abs, MAX_COMMENT_BYTES + 1)?;
     if raw.len() as u64 > MAX_COMMENT_BYTES {
-        return Err(format!(
+        return Err(Fault::from(format!(
             "comment `{id}` is over {}, which is more than a comment holds",
             human_size(MAX_COMMENT_BYTES)
-        ));
+        )));
     }
-    serde_json::from_slice(&raw).map_err(|e| format!("comment `{id}` is unreadable: {e}"))
+    serde_json::from_slice(&raw)
+        .map_err(|e| Fault::from(format!("comment `{id}` is unreadable: {e}")))
+}
+
+/// Where a viewer comment's record is, unread: inside the project, or why not.
+pub(super) fn viewer_record_at(root: &Path, id: &str) -> Result<policy::Contained, Fault> {
+    policy::contain(root, &format!(".kaava/comments/{id}.json")).map_err(|f| {
+        let missing = format!("there is no comment `{id}` in this project");
+        match f.reason {
+            Reason::Missing => Fault::new(Reason::Missing, missing),
+            _ => f,
+        }
+    })
+}
+
+/// A context item's record. The store refuses an unknown id and a sidecar it
+/// could not open alike, as invalid params, so whether the sidecar is there
+/// tells the two apart.
+pub(super) fn stored_item(root: &Path, id: &str) -> Result<ContextItem, Fault> {
+    crate::context::get(root, id).map_err(|e| {
+        let sidecar = format!(".kaava/context/{id}.json");
+        match e.code {
+            kaava_rpc::INVALID_PARAMS if policy::contain(root, &sidecar).is_err() => {
+                Fault::new(Reason::Missing, e.message)
+            }
+            _ => Fault::from(e.message),
+        }
+    })
 }
 
 fn anchor_line(anchor: &crate::comments::Anchor) -> String {
@@ -674,7 +718,7 @@ mod tests {
         std::fs::write(path, bytes).unwrap();
     }
 
-    fn resolve(dir: &TempDir, uri: &str) -> Result<Resolved, String> {
+    fn resolve(dir: &TempDir, uri: &str) -> Result<Resolved, Fault> {
         let r = parse(uri)?;
         match r {
             Ref::Context { .. } => context_item(dir.path(), &r),
@@ -719,6 +763,7 @@ mod tests {
         assert_eq!(whole.meta["lines"], 50);
         assert!(resolve(&dir, "kaava://file/scripts/player.gd#L51")
             .unwrap_err()
+            .message
             .contains("50 lines"));
     }
 
@@ -769,7 +814,11 @@ mod tests {
         assert!(cut.truncated, "lines 21-30 lie past the limit");
         assert_eq!(cut.total_lines, None);
         let err = excerpt_within(&abs, range(50, 50), 80).err().unwrap();
-        assert!(err.contains("past the first"), "{err}");
+        assert!(err.message.contains("past the first"), "{err}");
+        assert_eq!(err.reason, Reason::Unreadable);
+        let past = excerpt_within(&abs, range(101, 101), 4096).err().unwrap();
+        assert!(past.message.contains("has 100 lines"), "{past}");
+        assert_eq!(past.reason, Reason::Missing);
         let whole = excerpt_within(&abs, None, body.len() as u64).unwrap();
         assert!(!whole.truncated);
         assert_eq!(whole.total_lines, Some(100));
@@ -817,9 +866,9 @@ mod tests {
     #[test]
     fn a_missing_file_is_an_error_that_names_it() {
         let dir = project();
-        assert!(resolve(&dir, "kaava://file/nope.gd")
-            .unwrap_err()
-            .contains("nope.gd"));
+        let err = resolve(&dir, "kaava://file/nope.gd").unwrap_err();
+        assert_eq!(err.reason, Reason::Missing);
+        assert!(err.message.contains("nope.gd"), "{err}");
     }
 
     #[test]
@@ -833,12 +882,9 @@ mod tests {
 
         links::folder(outside.path(), &dir.path().join("linkdir"));
         let err = resolve(&dir, "kaava://file/linkdir/private.txt").unwrap_err();
-        assert!(
-            err.contains("outside the project"),
-            "through a folder: {err}"
-        );
+        assert_eq!(err.reason, Reason::Outside, "through a folder: {err}");
         let err = resolve(&dir, "kaava://file/linkdir").unwrap_err();
-        assert!(err.contains("outside the project"), "the folder: {err}");
+        assert_eq!(err.reason, Reason::Outside, "the folder: {err}");
         links::folder(&dir.path().join(".ssh"), &dir.path().join("sshdir"));
         let r = resolve(&dir, "kaava://file/sshdir/config").unwrap();
         assert!(r.withheld.unwrap().contains(".ssh"), "named by its target");
@@ -850,7 +896,8 @@ mod tests {
             return;
         }
         let err = resolve(&dir, "kaava://file/away.txt").unwrap_err();
-        assert!(err.contains("outside the project"), "{err}");
+        assert_eq!(err.reason, Reason::Outside);
+        assert!(err.message.contains("outside the project"), "{err}");
         assert!(links::file(
             &dir.path().join(".env"),
             &dir.path().join("notes.txt")
@@ -971,6 +1018,23 @@ mod tests {
     }
 
     #[test]
+    fn an_svg_holding_a_key_past_the_first_bytes_is_screened_as_text_is() {
+        let dir = project();
+        let mut svg = b"<svg xmlns=\"http://www.w3.org/2000/svg\"><desc>".to_vec();
+        svg.resize(HEAD_BYTES as usize + 100, b' ');
+        svg.extend_from_slice(b"\n-----BEGIN RSA PRIVATE KEY-----\nMIIE\n</desc></svg>\n");
+        put(&dir, "art/logo.svg", &svg);
+        // Sent as its text, so only the excerpt goes, and it stops short of
+        // the key; a range that reaches the key is withheld.
+        let logo = resolve(&dir, "kaava://file/art/logo.svg").unwrap();
+        let (text, _, cut) = text_of(&logo);
+        assert!(cut && !text.contains("PRIVATE KEY"), "{text:.80}");
+        let ranged = resolve(&dir, "kaava://file/art/logo.svg#L2-L3").unwrap();
+        assert!(ranged.parts.is_empty(), "{:?}", ranged.parts);
+        assert!(ranged.withheld.unwrap().contains("private keys"));
+    }
+
+    #[test]
     fn a_model_reports_its_header_and_an_unknown_binary_a_note() {
         let dir = project();
         let json = br#"{"asset":{"version":"2.0"},"meshes":[{}],"animations":[{},{}]}  "#;
@@ -1074,6 +1138,20 @@ mod tests {
     }
 
     #[test]
+    fn a_context_record_that_cannot_be_read_is_unreadable_not_missing() {
+        let dir = project();
+        let gone = resolve(&dir, "kaava://context/ctx_0a1b").unwrap_err();
+        assert_eq!(gone.reason, Reason::Missing);
+        put(
+            &dir,
+            ".kaava/context/ctx_0a1b.json",
+            b"{\"title\":\"\xff\"}",
+        );
+        let broken = resolve(&dir, "kaava://context/ctx_0a1b").unwrap_err();
+        assert_eq!(broken.reason, Reason::Unreadable, "{broken}");
+    }
+
+    #[test]
     fn a_file_is_a_secret_by_its_name_its_target_or_its_first_bytes() {
         let dir = project();
         let key = b"-----BEGIN OPENSSH PRIVATE KEY-----\nb3Bl\n-----END OPENSSH PRIVATE KEY-----\n";
@@ -1088,6 +1166,26 @@ mod tests {
         assert_eq!(secret("notes/plain.txt"), None);
         assert!(secret("config/.env").is_some());
         assert_eq!(secret("notes"), None, "a folder has no first bytes");
+    }
+
+    #[test]
+    fn a_key_past_the_first_bytes_is_withheld_from_a_range_that_reaches_it() {
+        let dir = project();
+        let mut text = format!("{}\n", "x".repeat(40)).repeat(2000);
+        text.push_str(
+            "-----BEGIN OPENSSH PRIVATE KEY-----\nb3Bl\n-----END OPENSSH PRIVATE KEY-----\n",
+        );
+        assert!(text.len() as u64 > HEAD_BYTES);
+        put(&dir, "notes/long.txt", text.as_bytes());
+        let early = resolve(&dir, "kaava://file/notes/long.txt#L1-L2").unwrap();
+        assert_eq!(early.withheld, None);
+        let late = resolve(&dir, "kaava://file/notes/long.txt#L2000-L2002").unwrap();
+        assert!(late.parts.is_empty());
+        assert!(late.withheld.unwrap().contains("private keys"));
+        // The header is not in this range, only the key's body.
+        let body = resolve(&dir, "kaava://file/notes/long.txt#L2002-L2003").unwrap();
+        assert!(body.parts.is_empty());
+        assert!(body.withheld.unwrap().contains("private keys"));
     }
 
     #[test]
@@ -1195,7 +1293,8 @@ mod tests {
         assert_eq!(r.title, "The door clips through the wall");
         assert_eq!(r.detail.as_deref(), Some("Play · hospital.tscn at 12.5s"));
         assert!(r.parts.iter().any(|p| matches!(p, Part::Image { .. })));
-        assert!(resolve(&dir, "kaava://comment/nope").is_err());
+        let err = resolve(&dir, "kaava://comment/nope").unwrap_err();
+        assert_eq!(err.reason, Reason::Missing);
     }
 
     #[test]
@@ -1205,6 +1304,7 @@ mod tests {
         big.resize(MAX_COMMENT_BYTES as usize + 1, b'x');
         put(&dir, ".kaava/comments/c-big.json", &big);
         let err = resolve(&dir, "kaava://comment/c-big").unwrap_err();
-        assert!(err.contains("more than a comment holds"), "{err}");
+        assert_eq!(err.reason, Reason::Unreadable);
+        assert!(err.message.contains("more than a comment holds"), "{err}");
     }
 }

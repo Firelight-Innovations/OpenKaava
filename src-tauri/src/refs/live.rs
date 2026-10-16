@@ -3,6 +3,7 @@
 //! selection (reported by the panes on screen). Files, context items and
 //! viewer comments are plain disk reads and go straight to [`super::resolve`].
 
+use super::fault::{Fault, Reason};
 use super::resolve::{self, Part, Resolved};
 use super::uri::{CanvasPart, Ref};
 use crate::apps::CallContext;
@@ -37,7 +38,7 @@ pub fn resolve(
     ctx: &CallContext,
     actor: Actor,
     r: &Ref,
-) -> Result<Resolved, String> {
+) -> Result<Resolved, Fault> {
     let root = root_of(ctx)?;
     match r {
         Ref::File { .. } => resolve::file(root, r),
@@ -56,32 +57,36 @@ pub fn resolve(
     }
 }
 
-pub(super) fn root_of(ctx: &CallContext) -> Result<&Path, String> {
-    ctx.project
-        .as_deref()
-        .ok_or_else(|| "this cluster has no project open, so there is nothing to reference".into())
+pub(super) fn root_of(ctx: &CallContext) -> Result<&Path, Fault> {
+    ctx.project.as_deref().ok_or_else(|| {
+        Fault::new(
+            Reason::NoProject,
+            "this cluster has no project open, so there is nothing to reference",
+        )
+    })
 }
 
 /// Whether a reference names something that is there and may be shown,
 /// reading no more than a file's first bytes: what `show` asks before the tab
 /// is told to draw it. A secret is refused with the rule it falls under. A
 /// gitignored file passes, because the tab draws it as withheld.
-pub fn check(app: &AppHandle, ctx: &CallContext, r: &Ref) -> Result<(), String> {
+pub fn check(app: &AppHandle, ctx: &CallContext, r: &Ref) -> Result<(), Fault> {
     let root = root_of(ctx)?;
-    let refuse =
-        |rule: Option<&str>| rule.map_or(Ok(()), |rule| Err(resolve::secret_withheld(rule)));
+    let refuse = |rule: Option<&str>| {
+        rule.map_or(Ok(()), |rule| {
+            Err(Fault::new(Reason::Secret, resolve::secret_withheld(rule)))
+        })
+    };
     match r {
         Ref::File { path, .. } => {
             let found = super::policy::contain(root, path)?;
             refuse(resolve::secret_file(path, &found))
         }
         Ref::Context { id } => {
-            let item = crate::context::get(root, id).map_err(|e| e.message)?;
+            let item = resolve::stored_item(root, id)?;
             refuse(resolve::item_secret(root, &item))
         }
-        Ref::Comment { id } => super::policy::contain(root, &format!(".kaava/comments/{id}.json"))
-            .map(drop)
-            .map_err(|_| format!("there is no comment `{id}` in this project")),
+        Ref::Comment { id } => resolve::viewer_record_at(root, id).map(drop),
         Ref::Canvas { id, part } => {
             canvas_inside(root, id, part.as_ref())?;
             match part {
@@ -98,17 +103,25 @@ pub fn check(app: &AppHandle, ctx: &CallContext, r: &Ref) -> Result<(), String> 
 }
 
 #[cfg(feature = "design-mode")]
-fn design_comment_exists(app: &AppHandle, id: &str) -> Result<(), String> {
+fn design_comment_exists(app: &AppHandle, id: &str) -> Result<(), Fault> {
     use tauri::Manager;
     let comments = app.state::<crate::design_comments::Comments>();
     comments
         .get(id)
         .map(drop)
-        .ok_or_else(|| format!("there is no Design Mode comment `{id}`"))
+        .ok_or_else(|| no_design_comment(id))
+}
+
+#[cfg(feature = "design-mode")]
+fn no_design_comment(id: &str) -> Fault {
+    Fault::new(
+        Reason::Missing,
+        format!("there is no Design Mode comment `{id}`"),
+    )
 }
 
 #[cfg(not(feature = "design-mode"))]
-fn design_comment_exists(app: &AppHandle, id: &str) -> Result<(), String> {
+fn design_comment_exists(app: &AppHandle, id: &str) -> Result<(), Fault> {
     design_comment(app, &Ref::DesignComment { id: id.into() }, id).map(drop)
 }
 
@@ -117,11 +130,7 @@ fn design_comment_exists(app: &AppHandle, id: &str) -> Result<(), String> {
 /// where it finds them, so the test a file reference passes runs here, before
 /// it is asked. That covers the canvas, each child its split frames name, and
 /// the comment, which may have moved into a child with its frame.
-pub(super) fn canvas_inside(
-    root: &Path,
-    id: &str,
-    part: Option<&CanvasPart>,
-) -> Result<(), String> {
+pub(super) fn canvas_inside(root: &Path, id: &str, part: Option<&CanvasPart>) -> Result<(), Fault> {
     let children = canvas_files_inside(root, id)?;
     match part {
         Some(CanvasPart::Comment(c)) => comment_inside(root, id, &children, c),
@@ -132,7 +141,7 @@ pub(super) fn canvas_inside(
 /// The first half of [`canvas_inside`]: the canvas file and its children's.
 /// Answers the children, so a caller checking many comments on one canvas
 /// reads the canvas once.
-pub(super) fn canvas_files_inside(root: &Path, id: &str) -> Result<Vec<String>, String> {
+pub(super) fn canvas_files_inside(root: &Path, id: &str) -> Result<Vec<String>, Fault> {
     use crate::apps::canvas;
     file_inside(root, id, &canvas::file_for(root, id))?;
     let children = canvas::split_children(root, id);
@@ -153,7 +162,7 @@ pub(super) fn comment_inside(
     id: &str,
     children: &[String],
     c: &str,
-) -> Result<(), String> {
+) -> Result<(), Fault> {
     use crate::apps::canvas;
     let homes = std::iter::once(id).chain(children.iter().map(String::as_str));
     let files: Vec<_> = homes
@@ -161,16 +170,21 @@ pub(super) fn comment_inside(
         .filter(|f| f.exists())
         .collect();
     if files.is_empty() {
-        return Err(format!("canvas `{id}` has no comment `{c}`"));
+        let missing = format!("canvas `{id}` has no comment `{c}`");
+        return Err(Fault::new(Reason::Missing, missing));
     }
     files.iter().try_for_each(|f| file_inside(root, id, f))
 }
 
 /// Whether `file`, read for canvas `id`, is inside the root once links are
 /// followed.
-fn file_inside(root: &Path, id: &str, file: &Path) -> Result<(), String> {
-    let rel = crate::context::relative_to(root, file)
-        .ok_or_else(|| format!("canvas `{id}` is not in this project"))?;
+fn file_inside(root: &Path, id: &str, file: &Path) -> Result<(), Fault> {
+    let rel = crate::context::relative_to(root, file).ok_or_else(|| {
+        Fault::new(
+            Reason::Outside,
+            format!("canvas `{id}` is not in this project"),
+        )
+    })?;
     super::policy::contain(root, &rel).map(drop)
 }
 
@@ -185,14 +199,28 @@ fn canvas_rpc(
     crate::apps::call(app, ctx, "canvas", method, Some(params))
 }
 
+/// Ask the Canvas app.
 pub(super) fn canvas_call(
     app: &AppHandle,
     ctx: &CallContext,
     actor: Actor,
     method: &str,
     params: Value,
-) -> Result<Value, String> {
-    canvas_rpc(app, ctx, actor, method, params).map_err(|e| e.message)
+) -> Result<Value, Fault> {
+    canvas_rpc(app, ctx, actor, method, params).map_err(canvas_fault)
+}
+
+/// The parameters are built here, so the one thing the Canvas app can call
+/// invalid in them is a canvas or frame it does not have. A canvas file it
+/// cannot parse is unreadable; any other failure is the app's.
+fn canvas_fault(e: RpcError) -> Fault {
+    let kind = e.data.as_ref().and_then(|d| d.get("kind"));
+    let reason = match e.code {
+        kaava_rpc::INVALID_PARAMS => Reason::Missing,
+        _ if kind.and_then(Value::as_str) == Some("corrupt") => Reason::Unreadable,
+        _ => Reason::Unavailable,
+    };
+    Fault::new(reason, e.message)
 }
 
 /// Whether the Canvas app failed only because no Canvas pane is open to draw.
@@ -208,7 +236,7 @@ fn canvas(
     actor: Actor,
     r: &Ref,
     id: &str,
-) -> Result<Resolved, String> {
+) -> Result<Resolved, Fault> {
     let listed = canvas_call(app, ctx, actor, "canvas/frames", json!({ "canvas": id }))?;
     canvas_from(&listed, r, id)
 }
@@ -216,14 +244,13 @@ fn canvas(
 /// A canvas from its `canvas/frames` answer: its frames, each with a reference.
 /// The app answers for a damaged canvas with no canvases and the reason in
 /// `problems`. That is an error here, so it never reads as an empty canvas.
-fn canvas_from(listed: &Value, r: &Ref, id: &str) -> Result<Resolved, String> {
+fn canvas_from(listed: &Value, r: &Ref, id: &str) -> Result<Resolved, Fault> {
     if listed["canvases"].as_array().is_none_or(Vec::is_empty) {
-        return Err(
-            match listed.pointer("/problems/0").and_then(Value::as_str) {
-                Some(why) => format!("canvas `{id}` cannot be read: {why}"),
-                None => format!("canvas `{id}` cannot be read"),
-            },
-        );
+        let why = match listed.pointer("/problems/0").and_then(Value::as_str) {
+            Some(why) => format!("canvas `{id}` cannot be read: {why}"),
+            None => format!("canvas `{id}` cannot be read"),
+        };
+        return Err(Fault::new(Reason::Unreadable, why));
     }
     let title = listed
         .pointer("/canvases/0/title")
@@ -259,14 +286,20 @@ fn frame_of(
     r: &Ref,
     id: &str,
     frame: &str,
-) -> Result<Resolved, String> {
+) -> Result<Resolved, Fault> {
     let detail = canvas_call(
         app,
         ctx,
         actor,
         "canvas/frame",
         json!({ "canvas": id, "frame": frame }),
-    )?;
+    )
+    .map_err(|f| match f.reason {
+        Reason::Missing if shared_name(app, ctx, actor, id, frame) => {
+            Fault::new(Reason::Ambiguous, f.message)
+        }
+        _ => f,
+    })?;
     let mut out = frame_from(&detail, r, id, frame);
     let fid = detail["id"].as_str().unwrap_or(frame);
     let picture = canvas_call(
@@ -278,6 +311,28 @@ fn frame_of(
     );
     out.parts.push(rendered(root, picture));
     Ok(out)
+}
+
+/// Whether two or more frames on the canvas are called `name`. The Canvas app
+/// refuses a shared name as it refuses one no frame has, so its listing is
+/// asked, and only once a lookup has already failed.
+fn shared_name(app: &AppHandle, ctx: &CallContext, actor: Actor, id: &str, name: &str) -> bool {
+    let listed = canvas_call(app, ctx, actor, "canvas/frames", json!({ "canvas": id }));
+    listed.is_ok_and(|l| frames_named(&l, name) > 1)
+}
+
+/// How many frames in a `canvas/frames` answer have this name, ignoring case
+/// as the Canvas app does.
+fn frames_named(listed: &Value, name: &str) -> usize {
+    let frames = listed["frames"].as_array().map_or(&[][..], Vec::as_slice);
+    frames
+        .iter()
+        .filter(|f| {
+            f["name"]
+                .as_str()
+                .is_some_and(|n| n.eq_ignore_ascii_case(name))
+        })
+        .count()
 }
 
 /// A frame from its `canvas/frame` answer: its type, properties and text.
@@ -321,7 +376,7 @@ fn canvas_comment(
     r: &Ref,
     id: &str,
     comment: &str,
-) -> Result<Resolved, String> {
+) -> Result<Resolved, Fault> {
     let viewed = canvas_rpc(
         app,
         ctx,
@@ -350,18 +405,21 @@ fn comment_from(
     id: &str,
     comment: &str,
     viewed: Result<Value, RpcError>,
-    list: impl FnOnce() -> Result<Value, String>,
-) -> Result<Resolved, String> {
+    list: impl FnOnce() -> Result<Value, Fault>,
+) -> Result<Resolved, Fault> {
     let (record, picture) = match viewed {
         Ok(v) => (v["comment"].clone(), rendered(root, Ok(v))),
         Err(e) if no_pane(&e) => {
             let found = list()?["comments"]
                 .as_array()
                 .and_then(|cs| cs.iter().find(|c| c["id"] == json!(comment)).cloned())
-                .ok_or_else(|| format!("canvas `{id}` has no comment `{comment}`"))?;
-            (found, rendered(root, Err(e.message)))
+                .ok_or_else(|| {
+                    let missing = format!("canvas `{id}` has no comment `{comment}`");
+                    Fault::new(Reason::Missing, missing)
+                })?;
+            (found, rendered(root, Err(canvas_fault(e))))
         }
-        Err(e) => return Err(e.message),
+        Err(e) => return Err(canvas_fault(e)),
     };
     let text = record["text"].as_str().unwrap_or_default();
     let mut out = resolve::Resolved::empty(r, "comment", resolve::first_line(text));
@@ -377,7 +435,7 @@ fn comment_from(
 /// A PNG the canvas rendered, as an image part, or a note saying why not.
 /// The path comes from the canvas, and is read only when it is inside the root
 /// once links are followed, the same test a file reference passes.
-fn rendered(root: &Path, answer: Result<Value, String>) -> Part {
+fn rendered(root: &Path, answer: Result<Value, Fault>) -> Part {
     let note = |text: String| Part::Note { text };
     let path = match answer {
         Ok(v) => v["path"].as_str().map(str::to_owned),
@@ -397,12 +455,12 @@ fn rendered(root: &Path, answer: Result<Value, String>) -> Part {
 }
 
 #[cfg(feature = "design-mode")]
-fn design_comment(app: &AppHandle, r: &Ref, id: &str) -> Result<Resolved, String> {
+fn design_comment(app: &AppHandle, r: &Ref, id: &str) -> Result<Resolved, Fault> {
     use tauri::Manager;
     let c = app
         .state::<crate::design_comments::Comments>()
         .get(id)
-        .ok_or_else(|| format!("there is no Design Mode comment `{id}`"))?;
+        .ok_or_else(|| no_design_comment(id))?;
     let mut out = resolve::Resolved::empty(r, "design-comment", resolve::first_line(&c.request));
     out.detail = Some(format!("{} on {}", c.element.tag, c.page.title));
     out.meta.insert("status".into(), json!(c.status));
@@ -423,16 +481,21 @@ fn design_comment(app: &AppHandle, r: &Ref, id: &str) -> Result<Resolved, String
 }
 
 #[cfg(not(feature = "design-mode"))]
-fn design_comment(_app: &AppHandle, _r: &Ref, _id: &str) -> Result<Resolved, String> {
-    Err("Design Mode is not part of this build, so it has no comments".into())
+fn design_comment(_app: &AppHandle, _r: &Ref, _id: &str) -> Result<Resolved, Fault> {
+    Err(Fault::new(
+        Reason::Unavailable,
+        "Design Mode is not part of this build, so it has no comments",
+    ))
 }
 
 /// What the person has selected, read from the panes in this cluster.
-fn selection(app: &AppHandle, ctx: &CallContext, root: &Path, r: &Ref) -> Result<Resolved, String> {
-    let cluster = ctx
-        .cluster_id
-        .as_deref()
-        .ok_or("this surface is not in a cluster, so it has no selection")?;
+fn selection(app: &AppHandle, ctx: &CallContext, root: &Path, r: &Ref) -> Result<Resolved, Fault> {
+    let cluster = ctx.cluster_id.as_deref().ok_or_else(|| {
+        Fault::new(
+            Reason::NoProject,
+            "this surface is not in a cluster, so it has no selection",
+        )
+    })?;
     Ok(selection_from(
         crate::mcp::selection_in(app, cluster),
         root,
@@ -445,6 +508,7 @@ fn selection(app: &AppHandle, ctx: &CallContext, root: &Path, r: &Ref) -> Result
 fn selection_from(mut seen: Value, root: &Path, r: &Ref) -> Resolved {
     let mut out = resolve::Resolved::empty(r, "selection", "Selection");
     let mut related = Vec::new();
+    let mut secret = None;
     for surface in seen["surfaces"].as_array().into_iter().flatten() {
         let report = &surface["report"];
         if let (Some(canvas), Some(diagram)) =
@@ -458,6 +522,7 @@ fn selection_from(mut seen: Value, root: &Path, r: &Ref) -> Resolved {
         }
         let file = report["file"].as_str().or(report["path"].as_str());
         if let Some(rel) = file.and_then(|f| crate::context::relative_to(root, Path::new(f))) {
+            secret = secret.or_else(|| super::policy::secret_rule(&rel));
             if super::policy::check_relative(&rel).is_ok() {
                 let link = Ref::File {
                     path: rel,
@@ -469,6 +534,12 @@ fn selection_from(mut seen: Value, root: &Path, r: &Ref) -> Resolved {
     }
     out.detail = seen["focused"]["title"].as_str().map(str::to_owned);
     out.meta.insert("refs".into(), json!(related));
+    // What is selected is screened as a file is: nothing from a secret, and
+    // nothing that holds a key.
+    let selected = seen["selectedText"].as_str().unwrap_or_default();
+    if let Some(rule) = secret.or_else(|| super::policy::secret_content(selected.as_bytes())) {
+        return out.withhold(resolve::secret_withheld(rule));
+    }
     if let Some(text) = seen["selectedText"].as_str().filter(|t| !t.is_empty()) {
         // The page counts in UTF-16 units, as JavaScript does, not in bytes.
         let units = text.encode_utf16().count() as u64;
@@ -496,6 +567,30 @@ mod tests {
         b.extend_from_slice(&[0, 0, 0, 2, 0, 0, 0, 2, 8, 6, 0, 0, 0]);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(path, b).unwrap();
+    }
+
+    #[test]
+    fn a_canvas_failure_says_whether_it_is_missing_broken_or_the_apps() {
+        use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
+        let reason = |e| canvas_fault(e).reason;
+        let corrupt = json!({ "kind": "corrupt" });
+        assert_eq!(reason(RpcError::new(INVALID_PARAMS, "no")), Reason::Missing);
+        let broken = RpcError::with_data(INTERNAL_ERROR, "not JSON", corrupt);
+        assert_eq!(reason(broken), Reason::Unreadable);
+        let down = RpcError::new(INTERNAL_ERROR, "timed out");
+        assert_eq!(reason(down), Reason::Unavailable);
+    }
+
+    #[test]
+    fn a_frame_name_is_counted_ignoring_case() {
+        let listed = json!({ "frames": [
+            { "id": "a", "name": "Intro" },
+            { "id": "b", "name": "intro" },
+            { "id": "c", "name": "Outro" },
+        ] });
+        assert_eq!(frames_named(&listed, "INTRO"), 2);
+        assert_eq!(frames_named(&listed, "Outro"), 1);
+        assert_eq!(frames_named(&json!({}), "Intro"), 0);
     }
 
     #[test]
@@ -560,6 +655,25 @@ mod tests {
         assert!(cut(&longer), "five units selected, three sent");
     }
 
+    #[test]
+    fn a_selection_holding_a_key_or_beside_a_secret_is_withheld() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let key = "-----BEGIN OPENSSH PRIVATE KEY-----\nb3Bl";
+        let seen = json!({ "surfaces": [], "selectedText": key, "selectedTextLength": 40 });
+        let out = selection_from(seen, dir.path(), &Ref::Selection);
+        assert!(out.parts.is_empty(), "{:?}", out.parts);
+        assert!(out.withheld.unwrap().contains("private keys"));
+        let env = dir.path().join(".env");
+        let seen = json!({
+            "surfaces": [{ "report": { "file": env } }],
+            "selectedText": "API_KEY=hunter2",
+            "selectedTextLength": 15,
+        });
+        let out = selection_from(seen, dir.path(), &Ref::Selection);
+        assert!(out.parts.is_empty(), "{:?}", out.parts);
+        assert!(out.withheld.unwrap().contains(".env"));
+    }
+
     fn write(path: &Path, text: &str) {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(path, text).unwrap();
@@ -596,7 +710,8 @@ mod tests {
             "a comment that moved into the child with its frame"
         );
         let err = canvas_inside(root, "world", comment("c-9").as_ref()).unwrap_err();
-        assert!(err.contains("has no comment `c-9`"), "{err}");
+        assert_eq!(err.reason, Reason::Missing);
+        assert!(err.message.contains("has no comment `c-9`"), "{err}");
         let children = canvas_files_inside(root, "world").unwrap();
         assert_eq!(children, ["world-f1"]);
         assert!(comment_inside(root, "world", &children, "c-3").is_ok());
@@ -604,30 +719,30 @@ mod tests {
             comment_inside(root, "world", &[], "c-3").is_err(),
             "a moved comment is found only through the children it moved to"
         );
-        assert!(canvas_inside(root, "nope", None).is_err());
+        let err = canvas_inside(root, "nope", None).unwrap_err();
+        assert_eq!(err.reason, Reason::Missing);
 
         write(&away.path().join("levels/inner.json"), "{}");
         links::folder(&away.path().join("levels"), &root.join("canvas/levels"));
         write(&root.join("canvas/hub.json"), &split_into("levels/inner"));
         let err = canvas_inside(root, "hub", None).unwrap_err();
-        assert!(err.contains("outside the project"), "a linked child: {err}");
+        assert_eq!(err.reason, Reason::Outside, "a linked child: {err}");
         let err = canvas_inside(root, "levels/inner", None).unwrap_err();
-        assert!(
-            err.contains("outside the project"),
-            "a linked folder: {err}"
-        );
+        assert_eq!(err.reason, Reason::Outside, "a linked folder: {err}");
 
         if !links::file(&secret, &root.join("canvas/leak.canvas.json")) {
             return;
         }
         let err = canvas_inside(root, "leak", None).unwrap_err();
-        assert!(err.contains("outside the project"), "{err}");
+        assert_eq!(err.reason, Reason::Outside);
+        assert!(err.message.contains("outside the project"), "{err}");
         assert!(links::file(
             &secret,
             &root.join("canvas/world.comments/c-2.json")
         ));
         let err = canvas_inside(root, "world", comment("c-2").as_ref()).unwrap_err();
-        assert!(err.contains("outside the project"), "{err}");
+        assert_eq!(err.reason, Reason::Outside);
+        assert!(err.message.contains("outside the project"), "{err}");
     }
 
     fn json_part(r: &Resolved) -> &Value {
@@ -687,10 +802,10 @@ mod tests {
             part: Some(CanvasPart::Comment("c-1".into())),
         };
         let record = json!({ "id": "c-1", "text": "Move the door\nleft", "status": "open" });
-        let resolve = |viewed, list: &dyn Fn() -> Result<Value, String>| {
+        let resolve = |viewed, list: &dyn Fn() -> Result<Value, Fault>| {
             comment_from(dir.path(), &r, "world", "c-1", viewed, list)
         };
-        let unused = || -> Result<Value, String> { panic!("drawn, so not listed") };
+        let unused = || -> Result<Value, Fault> { panic!("drawn, so not listed") };
 
         let drawn = resolve(Ok(json!({ "comment": record, "path": shot })), &unused).unwrap();
         assert_eq!(drawn.title, "Move the door");
@@ -711,12 +826,14 @@ mod tests {
         );
         let empty = || Ok(json!({ "comments": [] }));
         let err = resolve(closed(), &empty).unwrap_err();
-        assert_eq!(err, "canvas `world` has no comment `c-1`");
+        assert_eq!(err.reason, Reason::Missing);
+        assert_eq!(err.message, "canvas `world` has no comment `c-1`");
 
         let gone = Err(RpcError::new(INTERNAL_ERROR, "the comment's frame is gone"));
         let err = resolve(gone, &unused).unwrap_err();
+        assert_eq!(err.reason, Reason::Unavailable);
         assert_eq!(
-            err, "the comment's frame is gone",
+            err.message, "the comment's frame is gone",
             "not a missing pane, so not listed"
         );
     }
@@ -734,12 +851,13 @@ mod tests {
             "problems": ["canvas/broken.json is not valid JSON: EOF"],
         });
         let err = canvas_from(&listed, &r, "broken").unwrap_err();
+        assert_eq!(err.reason, Reason::Unreadable);
         assert_eq!(
-            err,
+            err.message,
             "canvas `broken` cannot be read: canvas/broken.json is not valid JSON: EOF"
         );
         let silent = canvas_from(&json!({ "canvases": [] }), &r, "broken").unwrap_err();
-        assert_eq!(silent, "canvas `broken` cannot be read");
+        assert_eq!(silent.message, "canvas `broken` cannot be read");
     }
 
     #[test]

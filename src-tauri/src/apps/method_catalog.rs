@@ -244,6 +244,8 @@ mod tests {
             "comments/create",
             "context/put",
             "refs/resolve",
+            "refs/search",
+            "refs/prompt",
             "agent-tab/harnesses",
             "agent-tab/send",
         ] {
@@ -251,11 +253,13 @@ mod tests {
         }
         // A mime type in a `match` is not a method.
         assert!(!found.iter().any(|m| m.starts_with("image/")));
-        let resolve = all().into_iter().find(|m| m.method == "refs/resolve");
-        assert!(
-            resolve.and_then(|m| m.doc).is_some(),
-            "the host's own methods are documented too"
-        );
+        for host in ["refs/resolve", "refs/search", "refs/prompt"] {
+            let method = all().into_iter().find(|m| m.method == host);
+            assert!(
+                method.and_then(|m| m.doc).is_some(),
+                "the host's own methods are documented too: {host}"
+            );
+        }
     }
 
     #[test]

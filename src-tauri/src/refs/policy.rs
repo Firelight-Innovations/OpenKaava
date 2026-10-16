@@ -5,6 +5,7 @@
 //! really lands once symlinks and junctions are followed, and what kind of file
 //! it is (secrets are never served, gitignored files are named but not read).
 
+use super::fault::{Fault, Reason};
 use ignore::gitignore::{Gitignore, GitignoreBuilder};
 use ignore::Match;
 use std::path::{Path, PathBuf};
@@ -64,16 +65,22 @@ pub struct Contained {
 /// Find `rel` under `root` and prove it is still there once links are
 /// followed. Both sides are canonicalised, so a junction or symlink that
 /// leads out of the project is refused, not followed.
-pub fn contain(root: &Path, rel: &str) -> Result<Contained, String> {
-    check_relative(rel)?;
+pub fn contain(root: &Path, rel: &str) -> Result<Contained, Fault> {
+    check_relative(rel).map_err(|e| Fault::new(Reason::BadUri, e))?;
     let root = std::fs::canonicalize(root)
         .map_err(|e| format!("the project folder cannot be read: {e}"))?;
     let abs = std::fs::canonicalize(root.join(rel)).map_err(|e| match e.kind() {
-        std::io::ErrorKind::NotFound => format!("there is no `{rel}` in this project"),
-        _ => format!("`{rel}` cannot be read: {e}"),
+        std::io::ErrorKind::NotFound => Fault::new(
+            Reason::Missing,
+            format!("there is no `{rel}` in this project"),
+        ),
+        _ => format!("`{rel}` cannot be read: {e}").into(),
     })?;
     let inner = abs.strip_prefix(&root).map_err(|_| {
-        format!("`{rel}` is a link that leads outside the project, so it is not followed")
+        Fault::new(
+            Reason::Outside,
+            format!("`{rel}` is a link that leads outside the project, so it is not followed"),
+        )
     })?;
     let rel = inner
         .components()
@@ -178,10 +185,17 @@ pub fn title_rule(title: &str) -> Option<&'static str> {
 /// and so is one written into a JSON, YAML or env value.
 pub fn secret_content(head: &[u8]) -> Option<&'static str> {
     let text = String::from_utf8_lossy(head);
-    let key = text.lines().map(str::trim).any(|line| {
-        line.starts_with("PuTTY-User-Key-File-") || pem_key_in(line) || age_key_in(line)
-    });
-    key.then_some("private keys and key stores")
+    text.lines().any(key_line).then_some(KEYS)
+}
+
+/// The rule a private key falls under.
+pub const KEYS: &str = "private keys and key stores";
+
+/// Whether one line holds a private key: a PEM header, written alone or into
+/// a value, a PuTTY header, or an age secret key.
+pub fn key_line(line: &str) -> bool {
+    let line = line.trim();
+    line.starts_with("PuTTY-User-Key-File-") || pem_key_in(line) || age_key_in(line)
 }
 
 /// Whether `line` holds a private key's PEM header with the key after it: the
@@ -503,10 +517,11 @@ mod tests {
         let found = contain(dir.path(), "a/b.txt").unwrap();
         assert_eq!(found.rel, "a/b.txt");
         assert!(found.abs.starts_with(&found.root));
-        assert!(contain(dir.path(), "a/missing.txt")
-            .unwrap_err()
-            .contains("no `a/missing.txt`"));
-        assert!(contain(dir.path(), "../outside").is_err());
+        let missing = contain(dir.path(), "a/missing.txt").unwrap_err();
+        assert_eq!(missing.reason, Reason::Missing);
+        assert!(missing.message.contains("no `a/missing.txt`"));
+        let escape = contain(dir.path(), "../outside").unwrap_err();
+        assert_eq!(escape.reason, Reason::BadUri);
     }
 
     #[test]
