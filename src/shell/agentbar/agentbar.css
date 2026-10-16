@@ -36,6 +36,17 @@
   font: var(--k-text-small);
 }
 
+/* The model's name is the agent's own, of any length. It gives way to the
+   field and is cut short, and its title holds the whole of it. */
+.agentbar__model {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .agentbar__input {
   flex: 1;
   min-width: 0;

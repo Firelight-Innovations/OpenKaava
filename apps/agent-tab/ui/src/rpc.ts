@@ -3,7 +3,7 @@
  * comes from `protocol.generated.ts`, which the Rust crate writes.
  */
 import { invoke, on, KaavaRpcError } from "@openkaava/bridge";
-import type { Attachment, Envelope, HarnessInfo } from "./protocol.generated";
+import type { Attachment, Envelope, Harness, HarnessInfo } from "./protocol.generated";
 
 /** Mirrors `apps::agent_tab::EVENT`. */
 export const EVENT = "agent-tab:event";
@@ -13,13 +13,22 @@ export const REFUSED = -32010;
 
 export interface Harnesses {
   harnesses: HarnessInfo[];
+  /** The harness this tab's next prompt goes to. */
+  current: Harness;
+  /** The harness this tab's agent runs, while it lives. */
+  running: Harness | null;
+  /** The name of the model that agent runs, once it has said. */
+  model: string | null;
   /** Why this cluster cannot run an agent: a key of `strings.refusal`. */
   blocked: string | null;
 }
 
 export const harnesses = () => invoke<Harnesses>("agent-tab/harnesses");
 export const attach = () => invoke<Attachment>("agent-tab/attach");
-export const send = (text: string) => invoke<object>("agent-tab/send", { harness: "claude", text });
+/** Sends to the tab's current harness: the running agent's, else the one chosen. */
+export const send = (text: string) => invoke<object>("agent-tab/send", { text });
+/** Picks the harness for the tab's next session. */
+export const choose = (harness: Harness) => invoke<object>("agent-tab/choose", { harness });
 export const cancel = () => invoke<object>("agent-tab/cancel");
 export const answer = (itemId: string, optionId: string) =>
   invoke<object>("agent-tab/answer", { itemId, optionId });
@@ -37,6 +46,13 @@ export const setConfig = (configId: string, value: string) =>
 /** Every envelope the shell relays to this frame. */
 export const onEnvelope = (cb: (envelope: Envelope) => void) =>
   on(EVENT, (payload) => cb(payload as Envelope));
+
+/** Mirrors `apps::agent_tab::CHOSEN`. */
+export const CHOSEN = "agent-tab:chosen";
+
+/** This tab's choice of harness, whether made here or in the agent bar. */
+export const onChosen = (cb: (harness: Harness) => void) =>
+  on(CHOSEN, (payload) => cb((payload as { harness: Harness }).harness));
 
 /** A refusal's `data`: which refusal, and the hint that explains it. */
 export interface Refusal {

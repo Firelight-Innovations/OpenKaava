@@ -5,10 +5,14 @@
  * The agent bar in the shell has its own `src/shell/agentbar/strings.ts`,
  * because the shell may not import an app's source; see handoff §11.
  */
-import type { Harness, Hint, SessionState, ToolStatus } from "./protocol.generated";
+import type { HarnessInfo, Hint, SessionState, ToolStatus } from "./protocol.generated";
 
-export const ADAPTER_VERSION = "0.90.0";
-export const ADAPTER_INSTALL = `npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@${ADAPTER_VERSION}`;
+/**
+ * What a hint sentence names: the harness, and the commands that set it up.
+ * Both come from the registry in Rust (`agent-tab/harnesses`), so no sentence
+ * here names a harness, a program or a version of its own.
+ */
+export type HarnessWords = Pick<HarnessInfo, "name" | "setup">;
 
 /** At most one decimal, and none when it is zero: 124.6, 300, 1.2. */
 function short(n: number): string {
@@ -31,7 +35,6 @@ function percent(share: number): string {
 
 export const strings = {
   title: "Agent",
-  harness: { claude: "Claude" } satisfies Record<Harness, string>,
   state: {
     starting: "Starting",
     ready: "Ready",
@@ -156,19 +159,26 @@ export const strings = {
     attach: "Could not reach the agent host.",
     send: "Could not send that.",
     setting: "Could not change that setting.",
+    choose: "Could not switch the harness.",
+    harnesses: "Could not list the harnesses.",
   },
   exited: (code: number | null) =>
     code === null ? "The agent stopped." : `The agent stopped with exit code ${code}.`,
   hint: {
-    harnessMissing:
-      "Claude is not installed, or not on PATH. Install it, then run `claude` once in a terminal to sign in.",
-    adapterMissing: `The Claude ACP adapter is not installed. Run \`${ADAPTER_INSTALL}\` in a terminal.`,
-    signedOut:
-      "Claude is not signed in. Run `claude` once in a terminal and sign in there. Kaava never signs you in.",
-    adapterVersion: `This build was tested with adapter ${ADAPTER_VERSION}. Another version may behave differently: \`${ADAPTER_INSTALL}\`.`,
-    outsideWorktree:
+    harnessMissing: ({ name, setup }: HarnessWords) =>
+      `${name} is not installed, or not on PATH. Install it, then run \`${setup.signIn}\` once in a terminal to sign in.`,
+    adapterMissing: ({ name, setup }: HarnessWords) =>
+      `The ${name} ACP adapter is not installed. Run \`${setup.adapterInstall}\` in a terminal.`,
+    signedOut: ({ name, setup }: HarnessWords) =>
+      `${name} is not signed in. Run \`${setup.signIn}\` once in a terminal and sign in there. Kaava never signs you in.`,
+    adapterVersion: ({ setup }: HarnessWords) =>
+      `This build was tested with adapter ${setup.adapterVersion}. Another version may behave differently: \`${setup.adapterInstall}\`.`,
+    outsideWorktree: () =>
       "The agent asked to touch a file outside this worktree, so Kaava refused the request.",
-  } satisfies Record<Hint, string>,
+  } satisfies Record<Hint, (words: HarnessWords) => string>,
+  /** A hint before the tab knows which harness it is about. */
+  hintUnknown: "The agent is not ready to run.",
+  notReady: (name: string) => `${name} is not ready to run.`,
   refusal: {
     developerMode: "The agent tab is in testing. Turn on developer mode in Settings to use it.",
     notAWorktree: "Agents run in a local worktree. Create a worktree cluster to start one.",
@@ -179,7 +189,8 @@ export const strings = {
     closed: "The agent has stopped. Send again to start a new session.",
     noSession: "There is no session yet.",
     unknownOption: "The agent does not offer that choice.",
-    harness: "Claude is not ready to run.",
+    harness: "The agent is not ready to run.",
+    running: "This tab's agent runs another harness. Start a new session to switch.",
     spawn: "The agent could not be started.",
   } as Record<string, string>,
 };

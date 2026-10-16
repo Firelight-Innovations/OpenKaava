@@ -3,22 +3,29 @@
  * cluster. Sending brings the cluster's agent tab forward, or opens one, and
  * the conversation continues there.
  *
- * This first slice has the harness label, the prompt and Send. The model
- * picker, the mode indicator and the context chips come later.
+ * This slice has the harness picker and the running model, the prompt and
+ * Send. The model picker, the mode indicator and the context chips come later.
  */
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import type { AgentBarStatus } from "../state/agentBar";
 import { useBarSlots } from "./slots";
-import { strings } from "./strings";
+import { strings, type BarHint, type HarnessWords } from "./strings";
 import "../../agent-tokens.css";
 import "./agentbar.css";
 
 export interface AgentBarProps {
-  /** Why this cluster cannot run an agent, as a refusal code; `null` if it can. */
-  blocked: string | null;
-  /** What Claude still needs before it can run, as a hint key; `null` if nothing. */
-  hint: string | null;
-  /** Sends a prompt. Rejects with an `Error` whose message is a refusal code. */
-  onSend: (text: string) => Promise<void>;
+  /** What `agent-tab/harnesses` said about this cluster and its agent tab. */
+  status: AgentBarStatus;
+  /**
+   * Chooses the agent tab's harness, or does nothing while the cluster has no
+   * tab. Rejects with an `Error` whose message is a refusal code.
+   */
+  onChoose: (harness: string) => Promise<void>;
+  /**
+   * Sends a prompt, choosing `harness` for the tab first when the bar picked
+   * one. Rejects with an `Error` whose message is a refusal code.
+   */
+  onSend: (text: string, harness: string | null) => Promise<void>;
 }
 
 /**
@@ -30,12 +37,49 @@ export function ClusterAgentBar({ clusterId, ...props }: AgentBarProps & { clust
   return <AgentBar key={clusterId} {...props} />;
 }
 
-export default function AgentBar({ blocked, hint, onSend }: AgentBarProps) {
+/** Whether the bar has a sentence for `hint`; the agent tab words the rest. */
+function isBarHint(hint: string): hint is BarHint {
+  return Object.prototype.hasOwnProperty.call(strings.hint, hint);
+}
+
+/** `hint` as a sentence about `words`' harness; `null` for one the bar does not word. */
+function hintText(hint: string, words: HarnessWords): string | null {
+  return isBarHint(hint) ? strings.hint[hint](words) : null;
+}
+
+export default function AgentBar({ status, onChoose, onSend }: AgentBarProps) {
   const S = useBarSlots();
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  // A harness picked here, held while the host still names the harness it was
+  // picked over: with no agent tab there is nobody to tell yet, so the first
+  // send opens one and chooses it. Once the host names another, the tab holds
+  // a choice of its own, and the pick is dropped for good.
+  const [pick, setPick] = useState<{ over: string; harness: string } | null>(null);
+  const stale = pick !== null && (pick.over !== status.current || status.running !== null);
+  if (stale) setPick(null);
+  const picked = stale ? null : (pick?.harness ?? null);
   const input = useRef<HTMLTextAreaElement>(null);
+
+  const harness = status.running ?? picked ?? status.current;
+  const words = status.harnesses.find((h) => h.harness === harness);
+  // A harness that is not ready says which, and what would make it ready.
+  const failed = (fallback: string) => (err: unknown) => {
+    const code = err instanceof Error ? err.message : "failed";
+    if (code === "harness" && words) {
+      const hint = words.hint ? ` ${hintText(words.hint, words)}` : "";
+      setFailure(strings.notReady(words.name) + hint);
+    } else {
+      setFailure(strings.refusal[code] ?? fallback);
+    }
+  };
+
+  const choose = (next: string) => {
+    setFailure(null);
+    const over = status.current;
+    onChoose(next).then(() => setPick({ over, harness: next }), failed(strings.failed.choose));
+  };
 
   // One line until there is more to show, then as tall as the text up to the
   // CSS max-height, past which it scrolls.
@@ -46,13 +90,14 @@ export default function AgentBar({ blocked, hint, onSend }: AgentBarProps) {
     el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`;
   }, [draft]);
 
+  const blocked = status.blocked;
   const disabled = blocked !== null;
   const send = () => {
     const text = draft.trim();
     if (text === "" || sending || disabled) return;
     setSending(true);
     setFailure(null);
-    onSend(text).then(
+    onSend(text, status.running ? null : picked).then(
       () => {
         // Only if the box still holds what was sent: the textarea stays live
         // while the send is in flight, and what was typed meanwhile is the
@@ -61,8 +106,7 @@ export default function AgentBar({ blocked, hint, onSend }: AgentBarProps) {
         setSending(false);
       },
       (err: unknown) => {
-        const code = err instanceof Error ? err.message : "failed";
-        setFailure(strings.refusal[code] ?? strings.refusal.failed);
+        failed(strings.failed.send)(err);
         setSending(false);
       },
     );
@@ -78,13 +122,26 @@ export default function AgentBar({ blocked, hint, onSend }: AgentBarProps) {
   // A refusal for the whole cluster beats a setup hint, and a failed send beats both.
   const notice =
     failure ??
-    (blocked !== null ? (strings.refusal[blocked] ?? strings.refusal.failed) : null) ??
-    (hint !== null ? (strings.hint[hint] ?? null) : null);
+    (blocked !== null ? (strings.refusal[blocked] ?? strings.failed.send) : null) ??
+    (words?.hint ? hintText(words.hint, words) : null);
 
   return (
     <S.Frame
       notice={notice !== null && <S.Notice text={notice} />}
-      harness={<S.Harness name={strings.harness} />}
+      harness={
+        <S.Harness
+          name={words?.name ?? null}
+          model={status.running ? status.model : null}
+          value={harness}
+          choices={status.harnesses.map((h) => ({
+            value: h.harness,
+            name: h.name,
+            description: h.hint && hintText(h.hint, h),
+          }))}
+          disabled={status.running !== null}
+          onChange={choose}
+        />
+      }
       input={
         <S.Input
           ref={input}

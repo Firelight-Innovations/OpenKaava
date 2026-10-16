@@ -42,6 +42,7 @@ import type {
 } from "@openkaava/bridge/protocol";
 import { relayPageEscape } from "./pageEscape";
 import { relayChord } from "./relayChord";
+import { agentTabFrames } from "./agentTabFrames";
 import { createFrameSearch } from "./frameSearch";
 import {
   OPENED_EVENT,
@@ -51,7 +52,10 @@ import {
 } from "@openkaava/bridge/protocol";
 import { KaavaErrorCode } from "@openkaava/bridge/errors";
 import {
+  AGENT_TAB_CHOSEN,
+  AGENT_TAB_EVENT,
   appPainted,
+  onAgentTabChosen,
   onAgentTabEvent,
   onFilesChanged,
   onLaunchTarget,
@@ -1371,29 +1375,32 @@ const ToolWindow = forwardRef<
     };
   }, []);
 
-  // An agent tab's session events (`apps::agent_tab`), each to the one frame it names.
-  // Every other frame, an agent tab for another session included, never sees them.
+  // An agent tab's session events and its choice of harness (`apps::agent_tab`), each to
+  // the one frame it names. Every other frame, an agent tab for another session included,
+  // never sees them.
   useEffect(() => {
     let live = true;
-    let unlisten: (() => void) | undefined;
+    const unlisten: (() => void)[] = [];
+    const relay = (event: string) => (payload: unknown) => {
+      if (!live) return;
+      for (const [win, origin] of agentTabFrames(frames.current, payload)) {
+        win.postMessage({ kaava: 1, kind: "event", event, payload } satisfies EventMessage, origin);
+      }
+    };
     void (async () => {
-      const stop = await onAgentTabEvent((payload) => {
-        if (!live) return;
-        const instanceId = (payload as { instanceId?: unknown } | null)?.instanceId;
-        for (const [win, frame] of frames.current) {
-          if (!frame.isApp || frame.origin === null || frame.id !== instanceId) continue;
-          win.postMessage(
-            { kaava: 1, kind: "event", event: "agent-tab:event", payload } satisfies EventMessage,
-            frame.origin,
-          );
-        }
-      });
-      if (!live) return stop();
-      unlisten = stop;
+      const listeners = [
+        [onAgentTabEvent, AGENT_TAB_EVENT],
+        [onAgentTabChosen, AGENT_TAB_CHOSEN],
+      ] as const;
+      for (const [listen, event] of listeners) {
+        const stop = await listen(relay(event));
+        if (!live) return stop();
+        unlisten.push(stop);
+      }
     })();
     return () => {
       live = false;
-      unlisten?.();
+      unlisten.forEach((stop) => stop());
     };
   }, []);
 

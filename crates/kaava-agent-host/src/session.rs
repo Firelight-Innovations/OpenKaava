@@ -34,7 +34,7 @@ use crate::event::{
     Attachment, Envelope, Event, Hint, Item, ItemKind, SessionState, SessionStatus, SettingTrouble,
 };
 use crate::guard::{outside, request_paths, Worktree};
-use crate::harness::LaunchSpec;
+use crate::harness::{Harness, LaunchSpec};
 use crate::host::HostError;
 use crate::job::{self, Job};
 use crate::mask::mask;
@@ -457,9 +457,19 @@ impl Session {
         self.shared.lock().silenced = true;
     }
 
+    /// Which harness it runs.
+    pub(crate) fn harness(&self) -> Harness {
+        self.shared.lock().status.harness
+    }
+
     /// Where it runs.
     pub(crate) fn worktree(&self) -> &Worktree {
         &self.shared.worktree
+    }
+
+    /// Where it is, without the transcript `attach` copies.
+    pub(crate) fn status(&self) -> SessionStatus {
+        self.shared.lock().status.clone()
     }
 
     /// Kill the process and everything it started. Returns at once; the

@@ -36,7 +36,28 @@ vi.mock("@openkaava/bridge", () => ({
 
 import App from "./App";
 import { strings } from "./strings";
-import type { Attachment, ConfigOption, Envelope, Item, SessionStatus } from "./protocol.generated";
+import type {
+  Attachment,
+  ConfigOption,
+  Envelope,
+  HarnessInfo,
+  Item,
+  SessionStatus,
+} from "./protocol.generated";
+
+/** Claude as `agent-tab/harnesses` describes it, from `harness/claude.rs`. */
+const CLAUDE: HarnessInfo = {
+  harness: "claude",
+  name: "Claude",
+  hint: null,
+  setup: {
+    cli: "claude",
+    signIn: "claude",
+    adapterInstall: "npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@0.90.0",
+    adapterVersion: "0.90.0",
+  },
+  capabilities: { steer: false, fork: false, modes: false },
+};
 
 const STATUS: SessionStatus = {
   state: "ready",
@@ -116,7 +137,7 @@ function backend(attachment: Attachment, overrides: Record<string, () => Promise
       case "agent-tab/attach":
         return Promise.resolve(attachment);
       case "agent-tab/harnesses":
-        return Promise.resolve({ harnesses: [{ harness: "claude", hint: null }], blocked: null });
+        return Promise.resolve({ harnesses: [CLAUDE], current: "claude", blocked: null });
       case "agent-tab/set-mode":
       case "agent-tab/set-config":
         return Promise.resolve({ ticket: ++ticket });
@@ -214,7 +235,7 @@ describe("the agent tab", () => {
     expect(screen.getByRole("status").textContent).toContain("Ready");
   });
 
-  it("sends on Enter as Claude and clears the prompt", async () => {
+  it("sends on Enter to the tab's harness and clears the prompt", async () => {
     backend({ status: null, seq: 0, items: [] });
     render(<App />);
     await screen.findByText("Start a session");
@@ -222,10 +243,8 @@ describe("the agent tab", () => {
     await act(async () => {
       fireEvent.keyDown(prompt(), { key: "Enter" });
     });
-    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
-      harness: "claude",
-      text: "fix the test",
-    });
+    // The host picks the harness: the live agent's, else the tab's choice.
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", { text: "fix the test" });
     expect(prompt()).toHaveProperty("value", "");
   });
 
@@ -256,11 +275,15 @@ describe("the agent tab", () => {
       { status: null, seq: 0, items: [] },
       {
         "agent-tab/harnesses": () =>
-          Promise.resolve({ harnesses: [{ harness: "claude", hint: "signedOut" }], blocked: null }),
+          Promise.resolve({
+            harnesses: [{ ...CLAUDE, hint: "signedOut" }],
+            current: "claude",
+            blocked: null,
+          }),
       },
     );
     render(<App />);
-    expect(await screen.findByText(strings.hint.signedOut)).toBeTruthy();
+    expect(await screen.findByText(strings.hint.signedOut(CLAUDE))).toBeTruthy();
   });
 
   it("words an error item's hint inside the error", async () => {
@@ -272,7 +295,7 @@ describe("the agent tab", () => {
     render(<App />);
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("boom");
-    expect(alert.textContent).toContain(strings.hint.harnessMissing);
+    expect(alert.textContent).toContain(strings.hint.harnessMissing(CLAUDE));
   });
 
   it("says a main checkout is why, when the shell refuses the write before the tab's own code", async () => {
@@ -371,10 +394,7 @@ describe("the agent tab", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     });
-    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
-      harness: "claude",
-      text: "fix the build",
-    });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", { text: "fix the build" });
     expect(prompt()).toHaveProperty("value", "half typed");
   });
 
@@ -468,10 +488,7 @@ describe("the agent tab", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     });
-    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
-      harness: "claude",
-      text: "the one that failed",
-    });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", { text: "the one that failed" });
   });
 
   it("groups the transcript into turns, and says it is working before the first reply", async () => {
@@ -982,5 +999,185 @@ describe("the agent tab", () => {
     render(<App />);
     expect((await screen.findAllByText("Claude")).length).toBeGreaterThan(0);
     expect(document.body.textContent).not.toContain("Claude Code");
+  });
+});
+
+describe("the harness", () => {
+  const MODEL = {
+    id: "model",
+    name: "Model",
+    description: null,
+    category: "model",
+    value: "opus",
+    choices: [{ value: "opus", name: "Opus", description: null }],
+  };
+
+  function chips(container: HTMLElement) {
+    return [...container.querySelectorAll(".at-header .at-chip")].map((c) => c.textContent);
+  }
+
+  it("names the running harness and its model in the header", async () => {
+    backend({ status: { ...STATUS, config: [MODEL] }, seq: 1, items: [] });
+    const { container } = render(<App />);
+    await screen.findByText("Opus");
+    expect(chips(container)).toEqual(expect.arrayContaining(["Claude", "Opus"]));
+  });
+
+  it("drops an ended session's model, which the next prompt does not run", async () => {
+    backend({ status: { ...STATUS, state: "stopped", config: [MODEL] }, seq: 1, items: [] });
+    const { container } = render(<App />);
+    await waitFor(() => expect(chips(container)).toContain("Claude"));
+    expect(chips(container)).not.toContain("Opus");
+  });
+
+  /** A second harness, fictional: the registry lists only Claude so far. */
+  const PI = { ...CLAUDE, harness: "pi", name: "Pi" } as unknown as HarnessInfo;
+  const both = () => Promise.resolve({ harnesses: [CLAUDE, PI], current: "claude", blocked: null });
+
+  /** The one item under harness `name` in the settings menu: its default model. */
+  async function harnessItem(name: string) {
+    fireEvent.click(await settingsButton());
+    const group = await screen.findByRole("group", { name });
+    return within(group).getByRole("menuitemradio");
+  }
+
+  it("is chosen in the settings menu, and the host is told", async () => {
+    backend({ status: null, seq: 0, items: [] }, { "agent-tab/harnesses": both });
+    render(<App />);
+    const pi = await harnessItem("Pi");
+    expect(pi.getAttribute("aria-disabled")).toBe("false");
+    await act(async () => {
+      fireEvent.click(pi);
+    });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/choose", { harness: "pi" });
+  });
+
+  it("cannot be switched while its agent runs", async () => {
+    backend({ status: STATUS, seq: 1, items: [] }, { "agent-tab/harnesses": both });
+    render(<App />);
+    expect((await harnessItem("Pi")).getAttribute("aria-disabled")).toBe("true");
+  });
+
+  it("shows a choice the host refused", async () => {
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        "agent-tab/harnesses": both,
+        "agent-tab/choose": () =>
+          Promise.reject(new bridge.KaavaRpcError(-32010, "x", { code: "running", hint: null })),
+      },
+    );
+    render(<App />);
+    const pi = await harnessItem("Pi");
+    await act(async () => {
+      fireEvent.click(pi);
+    });
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Start a new session to switch.");
+  });
+
+  it("follows a choice made in the agent bar", async () => {
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        "agent-tab/harnesses": () =>
+          Promise.resolve({ harnesses: [CLAUDE, PI], current: "pi", blocked: null }),
+      },
+    );
+    const { container } = render(<App />);
+    await waitFor(() => expect(chips(container)).toContain("Pi"));
+    act(() => bridge.listeners.get("agent-tab:chosen")?.({ instanceId: "i", harness: "claude" }));
+    expect(chips(container)).toContain("Claude");
+    expect(chips(container)).not.toContain("Pi");
+  });
+
+  it("says a switch failed, not a send, when choosing fails", async () => {
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        "agent-tab/harnesses": both,
+        "agent-tab/choose": () => Promise.reject(new Error("gone")),
+      },
+    );
+    render(<App />);
+    const pi = await harnessItem("Pi");
+    await act(async () => {
+      fireEvent.click(pi);
+    });
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Could not switch the harness.");
+    expect(alert.textContent).not.toContain("Could not send that.");
+  });
+
+  it("keeps a choice it heard of while its list of harnesses was on the way", async () => {
+    let reply: ((answer: unknown) => void) | undefined;
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        "agent-tab/harnesses": () =>
+          new Promise((resolve) => {
+            reply = resolve;
+          }),
+      },
+    );
+    const { container } = render(<App />);
+    await waitFor(() => expect(reply).toBeDefined());
+    act(() => bridge.listeners.get("agent-tab:chosen")?.({ instanceId: "i", harness: "pi" }));
+    // Asked before the choice, so its `current` is older than it.
+    await act(async () => reply?.({ harnesses: [CLAUDE, PI], current: "claude", blocked: null }));
+    expect(chips(container)).toContain("Pi");
+    expect(chips(container)).not.toContain("Claude");
+  });
+
+  it("offers to list the harnesses again when the list fails", async () => {
+    let attempts = 0;
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        "agent-tab/harnesses": () =>
+          ++attempts === 1
+            ? Promise.reject(new Error("not yet"))
+            : Promise.resolve({ harnesses: [CLAUDE], current: "claude", blocked: null }),
+      },
+    );
+    const { container } = render(<App />);
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Could not list the harnesses.");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    });
+    await waitFor(() => expect(chips(container)).toContain("Claude"));
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("words an ended session's hint for its own harness, not the one chosen next", async () => {
+    const pi = { ...PI, setup: { ...CLAUDE.setup, cli: "pi", signIn: "pi login" } };
+    backend(
+      { status: { ...STATUS, state: "stopped", hint: "signedOut" }, seq: 1, items: [] },
+      {
+        "agent-tab/harnesses": () =>
+          Promise.resolve({ harnesses: [CLAUDE, pi], current: "pi", blocked: null }),
+      },
+    );
+    const { container } = render(<App />);
+    await waitFor(() => expect(chips(container)).toContain("Pi"));
+    await screen.findByText(/Claude is not signed in\. Run `claude` once/);
+    expect(document.body.textContent).not.toContain("pi login");
+  });
+
+  it("says what the chosen harness still needs, in its own commands", async () => {
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        "agent-tab/harnesses": () =>
+          Promise.resolve({
+            harnesses: [{ ...CLAUDE, hint: "signedOut" }],
+            current: "claude",
+            blocked: null,
+          }),
+      },
+    );
+    render(<App />);
+    await screen.findByText(/Claude is not signed in\. Run `claude` once/);
   });
 });

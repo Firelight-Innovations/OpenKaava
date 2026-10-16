@@ -535,6 +535,15 @@ export function onAgentTabEvent(cb: (payload: unknown) => void): Promise<Unliste
   return listen<unknown>(AGENT_TAB_EVENT, (e) => cb(e.payload));
 }
 
+/** The event Rust emits when an agent tab chooses its next harness
+ *  (`apps::agent_tab::CHOSEN`). Payload is `{ instanceId, harness }`. */
+export const AGENT_TAB_CHOSEN = "agent-tab:chosen";
+
+/** Hear every agent tab's choice of harness, for the tab and the agent bar alike. */
+export function onAgentTabChosen(cb: (payload: unknown) => void): Promise<UnlistenFn> {
+  return listen<unknown>(AGENT_TAB_CHOSEN, (e) => cb(e.payload));
+}
+
 /** A project's `.kaava/icon.*` as a `data:` URL, or `null` for "draw the
  *  letter tile". Mirrors `commands::project_icon`. */
 export function projectIcon(path: string): Promise<string | null> {

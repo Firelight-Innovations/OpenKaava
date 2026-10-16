@@ -1,6 +1,6 @@
 /**
- * The agent bar's verbs: whether this cluster can run an agent, and sending a
- * prompt to the cluster's agent tab (handoff §4).
+ * The agent bar's verbs: whether this cluster can run an agent, which harness
+ * its agent tab runs, choosing one, and sending a prompt to that tab (handoff §4).
  *
  * The session itself lives in `src-tauri/src/apps/agent_tab.rs` and is keyed by
  * the agent tab's instance id, so sending means "find or open that tab, then
@@ -10,6 +10,8 @@ import { useEffect, useState } from "react";
 import {
   activateInstance,
   appCall,
+  onAgentTabChosen,
+  onAgentTabEvent,
   onSettingsChanged,
   openInstance,
   type SplitDir,
@@ -25,12 +27,33 @@ const REFUSED = -32010;
 /** Mirrors `apps::READ_ONLY`: the shell's refusal of a write on a main checkout. */
 const READ_ONLY = -32003;
 
-/** What `agent-tab/harnesses` says about one cluster. */
+/**
+ * One harness as `agent-tab/harnesses` describes it. Mirrors `HarnessInfo` in
+ * the tab's `protocol.generated.ts`, which the shell may not import.
+ */
+export interface BarHarnessInfo {
+  /** Its id: `claude`, ... */
+  harness: string;
+  /** Its name in the UI. */
+  name: string;
+  /** What it still needs before it can run, as a hint key; `null` if nothing. */
+  hint: string | null;
+  /** The commands a hint's sentence names. */
+  setup: { cli: string; signIn: string; adapterInstall: string; adapterVersion: string };
+}
+
+/** What `agent-tab/harnesses` says about one cluster and its agent tab. */
 export interface AgentBarStatus {
   /** Why this cluster cannot run an agent, as a refusal code; `null` if it can. */
   blocked: string | null;
-  /** What Claude still needs before it can run, as a hint key; `null` if nothing. */
-  hint: string | null;
+  /** Every registered harness, in the registry's order. */
+  harnesses: BarHarnessInfo[];
+  /** The harness the agent tab's next prompt goes to: its live agent's, else its choice. */
+  current: string;
+  /** The harness the tab's agent runs, while it lives. Another waits for a new session. */
+  running: string | null;
+  /** The name of the model that agent runs, once it has said. */
+  model: string | null;
 }
 
 /**
@@ -42,19 +65,17 @@ export function agentBarShown(status: AgentBarStatus | null): status is AgentBar
   return status !== null && status.blocked !== "developerMode";
 }
 
-interface HarnessesAnswer {
-  harnesses: { harness: string; hint: string | null }[];
-  blocked: string | null;
-}
-
 /**
- * Asks once per cluster or environment change, and again whenever a setting
- * changes, since developer mode decides whether the bar shows at all. `null`
- * until the first answer, and after a failed one.
+ * Asks once per cluster, environment or agent tab change, and again whenever a
+ * setting changes, since developer mode decides whether the bar shows at all.
+ * With an agent tab, also whenever it chooses a harness or its session moves,
+ * so the bar shows what the tab shows. `null` until the first answer, and
+ * after a failed one.
  */
 export function useAgentBarStatus(
   clusterId: string | null,
   environmentKey: string | null,
+  agentTab: string | null,
 ): AgentBarStatus | null {
   const [status, setStatus] = useState<AgentBarStatus | null>(null);
 
@@ -64,29 +85,60 @@ export function useAgentBarStatus(
       return;
     }
     let live = true;
-    let unlisten: (() => void) | undefined;
-    const load = () =>
-      appCall(AGENT_TAB_APP, "agent-tab/harnesses", undefined, { clusterId }).then(
-        (answer) => live && setStatus(statusOf(answer as HarnessesAnswer)),
-        () => live && setStatus(null),
+    const unlisten: (() => void)[] = [];
+    const scope = agentTab === null ? { clusterId } : { clusterId, instanceId: agentTab };
+    // Answers can land out of order, and only the newest question's counts.
+    let asked = 0;
+    const load = () => {
+      const question = ++asked;
+      const newest = () => live && question === asked;
+      return appCall(AGENT_TAB_APP, "agent-tab/harnesses", undefined, scope).then(
+        (answer) => newest() && setStatus(statusOf(answer as AgentBarStatus)),
+        () => newest() && setStatus(null),
       );
+    };
+    const mine = (payload: unknown) =>
+      agentTab !== null && (payload as { instanceId?: unknown } | null)?.instanceId === agentTab;
     void load();
     void (async () => {
-      const stop = await onSettingsChanged(() => void load());
-      if (!live) return stop();
-      unlisten = stop;
+      const listeners = [
+        onSettingsChanged(() => void load()),
+        onAgentTabChosen((payload) => {
+          if (mine(payload)) void load();
+        }),
+        onAgentTabEvent((payload) => {
+          if (mine(payload) && movesTheSession(payload)) void load();
+        }),
+      ];
+      for (const listening of listeners) {
+        const stop = await listening;
+        if (live) unlisten.push(stop);
+        else stop();
+      }
     })();
     return () => {
       live = false;
-      unlisten?.();
+      unlisten.forEach((stop) => stop());
     };
-  }, [clusterId, environmentKey]);
+  }, [clusterId, environmentKey, agentTab]);
 
   return status;
 }
 
-function statusOf(answer: HarnessesAnswer): AgentBarStatus {
-  return { blocked: answer.blocked, hint: answer.harnesses[0]?.hint ?? null };
+function statusOf(answer: AgentBarStatus): AgentBarStatus {
+  return {
+    blocked: answer.blocked,
+    harnesses: answer.harnesses,
+    current: answer.current,
+    running: answer.running ?? null,
+    model: answer.model ?? null,
+  };
+}
+
+/** Whether an envelope can change what the bar shows: a new status, or a reset. */
+function movesTheSession(payload: unknown): boolean {
+  const type = (payload as { event?: { type?: unknown } } | null)?.event?.type;
+  return type === "status" || type === "reset";
 }
 
 /** The first agent tab in a cluster's tree, in layout order, or `null`. */
@@ -123,20 +175,55 @@ export class AgentSendError extends Error {
 }
 
 /**
- * Bring the cluster's agent tab forward, or open one, then send `text` as it.
- * Rejects with an `AgentSendError` naming the refusal code from `agent_tab.rs`.
+ * Bring the cluster's agent tab forward, or open one, then send `text` as it,
+ * to whichever harness the tab runs. `harness`, picked in the bar, is chosen
+ * for the tab first. Rejects with an `AgentSendError` naming the refusal code
+ * from `agent_tab.rs`.
  */
-export async function sendToAgent(target: SendTarget, text: string): Promise<void> {
+export async function sendToAgent(
+  target: SendTarget,
+  text: string,
+  harness: string | null = null,
+): Promise<void> {
   const existing = agentTabIn(target.tree, target.instances);
   try {
     const instanceId =
       existing ??
       (await openInstance(target.label, AGENT_TAB_APP, target.paneId ?? undefined, target.dir));
     if (existing !== null) await activateInstance(existing);
-    await appCall(AGENT_TAB_APP, "agent-tab/send", { harness: "claude", text }, { instanceId });
+    if (harness !== null) {
+      await appCall(AGENT_TAB_APP, "agent-tab/choose", { harness }, { instanceId });
+    }
+    await appCall(AGENT_TAB_APP, "agent-tab/send", { text }, { instanceId });
   } catch (err) {
     throw new AgentSendError(refusalCode(err), { cause: err });
   }
+}
+
+/**
+ * Choose the harness of the agent tab `instanceId`. Rejects with an
+ * `AgentSendError` naming the refusal code: `running` while its agent runs
+ * another.
+ */
+export async function chooseHarness(instanceId: string, harness: string): Promise<void> {
+  try {
+    await appCall(AGENT_TAB_APP, "agent-tab/choose", { harness }, { instanceId });
+  } catch (err) {
+    throw new AgentSendError(refusalCode(err), { cause: err });
+  }
+}
+
+/**
+ * The bar's two verbs for one cluster. Sending carries the bar's pick through
+ * to `sendToAgent`. Choosing tells the agent tab, or does nothing while the
+ * cluster has none: there is nobody to tell yet, and the first send chooses.
+ */
+export function barActions(target: SendTarget, agentTab: string | null) {
+  return {
+    onSend: (text: string, harness: string | null) => sendToAgent(target, text, harness),
+    onChoose: (harness: string) =>
+      agentTab === null ? Promise.resolve() : chooseHarness(agentTab, harness),
+  };
 }
 
 /** A rejection's refusal code, or `"failed"` for anything that is not one. */

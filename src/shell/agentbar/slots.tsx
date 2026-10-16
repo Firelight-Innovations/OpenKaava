@@ -21,7 +21,7 @@ import {
 export interface BarSlots {
   Frame: ComponentType<BarFrameProps>;
   Notice: ComponentType<BarNoticeProps>;
-  /** The harness label today; a picker once there is more than one harness. */
+  /** The harness label and the running model; a picker once there is more than one harness. */
   Harness: ComponentType<BarHarnessProps>;
   Input: ComponentType<BarInputProps>;
   Send: ComponentType<BarSendProps>;

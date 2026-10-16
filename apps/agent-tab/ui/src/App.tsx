@@ -26,6 +26,7 @@ import type {
   Attachment,
   ConfigOption,
   Envelope,
+  Harness,
   HarnessInfo,
   Hint,
   SessionStatus,
@@ -54,7 +55,8 @@ import { toTurns, type Turn } from "./thread";
 import { Turns, TurnsProvider } from "./Turns";
 import { useSlots } from "./components/registry";
 import type { PickerProps } from "./components/types";
-import { strings } from "./strings";
+import { hintText, infoOf, modelName } from "./harness";
+import { strings, type HarnessWords } from "./strings";
 
 type Action =
   { type: "attached"; attachment: Attachment } | { type: "envelope"; envelope: Envelope };
@@ -68,16 +70,18 @@ function reduce(state: TabState, action: Action): TabState {
 /** A refusal or failure to show above the prompt box, in the tab's words. */
 interface Notice {
   text: string;
-  hint: Hint | null;
+  hint: string | null;
 }
 
-function noticeOf(err: unknown, fallback: string): Notice {
+/** `words` is the harness the call went to, which a refusal's sentences name. */
+function noticeOf(err: unknown, fallback: string, words: HarnessWords | undefined): Notice {
   const refusal = rpc.refusalOf(err);
   if (!refusal) return { text: fallback, hint: null };
-  return {
-    text: strings.refusal[refusal.code] ?? fallback,
-    hint: (refusal.hint as Hint | null) ?? null,
-  };
+  const text =
+    refusal.code === "harness" && words
+      ? strings.notReady(words.name)
+      : (strings.refusal[refusal.code] ?? fallback);
+  return { text, hint: refusal.hint && hintText(refusal.hint as Hint, words) };
 }
 
 export default function App() {
@@ -86,10 +90,16 @@ export default function App() {
   const [draft, setDraft] = useState("");
   const [notice, setNotice] = useState<Notice | null>(null);
   const [blocked, setBlocked] = useState<string | null>(null);
-  const [setupHint, setSetupHint] = useState<Hint | null>(null);
-  const [reported, setReported] = useState<HarnessInfo[]>([]);
+  const [harnesses, setHarnesses] = useState<HarnessInfo[]>([]);
+  // The harness the next session starts in, as `agent-tab/harnesses` last said.
+  const [chosen, setChosen] = useState<Harness | null>(null);
   const [attachFailed, setAttachFailed] = useState(false);
   const [pending, setPending] = useState<Pending | null>(null);
+  const [harnessesFailed, setHarnessesFailed] = useState(false);
+  // Counts the choices this tab has heard of. A `harnesses` reply asked for
+  // before one is older than it, so it must not put back the harness it
+  // replaced.
+  const choices = useRef(0);
   const prompt = useRef<HTMLTextAreaElement | null>(null);
 
   // Envelopes are held until this answers, so a retry loses none of them.
@@ -105,33 +115,70 @@ export default function App() {
     [],
   );
 
+  const heardChoice = useCallback((harness: Harness) => {
+    choices.current += 1;
+    setChosen(harness);
+  }, []);
+
+  // Without this answer the tab has no harness to name or offer, so a failure
+  // says so and can be retried.
+  const listHarnesses = useCallback(() => {
+    const asked = choices.current;
+    return rpc.harnesses().then(
+      (answer) => {
+        setHarnessesFailed(false);
+        setBlocked(answer.blocked);
+        setHarnesses(answer.harnesses);
+        if (choices.current === asked) setChosen(answer.current);
+      },
+      () => setHarnessesFailed(true),
+    );
+  }, []);
+
   useEffect(() => {
     const stop = rpc.onEnvelope((envelope) => dispatch({ type: "envelope", envelope }));
+    const stopChosen = rpc.onChosen(heardChoice);
     void attach().finally(() => reportPainted());
-    rpc
-      .harnesses()
-      .then((answer) => {
-        setBlocked(answer.blocked);
-        setSetupHint(answer.harnesses[0]?.hint ?? null);
-        setReported(answer.harnesses);
-      })
-      .catch(() => {});
-    return stop;
-  }, [attach]);
+    void listHarnesses();
+    return () => {
+      stop();
+      stopChosen();
+    };
+  }, [attach, heardChoice, listHarnesses]);
 
   const status = state.status;
   const working = busy(status);
+  const exited = status !== null && (status.state === "stopped" || status.state === "failed");
+  // A tab runs its live agent's harness, and otherwise the one it chose; the
+  // host resolves `agent-tab/send` the same way.
+  const running = status && !exited ? status.harness : null;
+  const current = infoOf(harnesses, running ?? chosen);
+  // What the session's own hints and errors are about, even once it has ended.
+  const session = infoOf(harnesses, status?.harness ?? null);
 
-  const submit = useCallback((text: string) => {
-    if (text.trim() === "") return;
+  const submit = useCallback(
+    (text: string) => {
+      if (text.trim() === "") return;
+      setNotice(null);
+      rpc.send(text).then(
+        // Only if the box still holds what was sent: the user may have typed
+        // on while it was in flight, and a Retry sends an older prompt.
+        () => setDraft((now) => (now === text ? "" : now)),
+        (err: unknown) => setNotice(noticeOf(err, strings.failed.send, current)),
+      );
+    },
+    [current],
+  );
+
+  // The menu lists each harness's models, but the host takes only the harness
+  // for now, and its default model with it.
+  const chooseHarness = (harness: string) => {
     setNotice(null);
-    rpc.send(text).then(
-      // Only if the box still holds what was sent: the user may have typed
-      // on while it was in flight, and a Retry sends an older prompt.
-      () => setDraft((now) => (now === text ? "" : now)),
-      (err: unknown) => setNotice(noticeOf(err, strings.failed.send)),
+    rpc.choose(harness as Harness).then(
+      () => heardChoice(harness as Harness),
+      (err: unknown) => setNotice(noticeOf(err, strings.failed.choose, current)),
     );
-  }, []);
+  };
 
   const stopTurn = useCallback(() => {
     void rpc.cancel().catch(() => {});
@@ -154,7 +201,7 @@ export default function App() {
       (ticket) => settle({ ...sent, ticket }),
       (err: unknown) => {
         settle(undefined);
-        setNotice(noticeOf(err, strings.failed.setting));
+        setNotice(noticeOf(err, strings.failed.setting, session));
       },
     );
   };
@@ -187,7 +234,7 @@ export default function App() {
         rpc.answer(itemId, optionId).then(
           () => undefined,
           (err: unknown) => {
-            setNotice(noticeOf(err, strings.failed.send));
+            setNotice(noticeOf(err, strings.failed.send, session));
             throw err;
           },
         ),
@@ -195,8 +242,9 @@ export default function App() {
         const text = promptBefore(state.items, itemId);
         if (text !== null) submit(text);
       },
+      hintText: (hint: Hint) => hintText(hint, session),
     }),
-    [state.items, submit],
+    [state.items, submit, session],
   );
 
   // The transcript as assistant-ui's thread. Turns whose items did not change
@@ -227,21 +275,20 @@ export default function App() {
   const hint = status?.hint ?? null;
   // A session that has ended has nothing left to answer.
   const trouble = status && settable(status) ? status.settingTrouble : null;
-  const harness = status?.harness ?? "claude";
   const model = modelOption(status);
-  const running: RunningModel | null = model && {
-    models: model.choices,
-    model: live?.config[model.id]?.value ?? model.value,
-  };
+  // An ended session's model is not what the next prompt runs.
+  const runningModel: RunningModel | null =
+    running !== null && model
+      ? { models: model.choices, model: live?.config[model.id]?.value ?? model.value }
+      : null;
   // Only the harness in use can change model: picking another is not taken yet.
-  const onChoose =
+  const onModel =
     model && settable(status)
       ? (picked: string, value: string | null) => {
-          if (picked === harness && value !== null) onConfig(model.id, value);
+          if (picked === running && value !== null) onConfig(model.id, value);
         }
       : undefined;
   const pendingPrompt = typeof status?.pendingPrompt === "string" ? status.pendingPrompt : null;
-  const exited = status !== null && (status.state === "stopped" || status.state === "failed");
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
@@ -250,8 +297,9 @@ export default function App() {
           header={
             <S.Header
               cwd={status?.cwd ?? null}
-              harness={strings.harness.claude}
-              model={null}
+              harness={current?.name ?? null}
+              // An ended session's model is not what the next prompt runs.
+              model={running ? modelName(status) : null}
               state={status?.state ?? null}
               onNewSession={() => {
                 setNotice(null);
@@ -264,7 +312,7 @@ export default function App() {
               {state.items.length === 0 && pendingPrompt === null ? (
                 <S.EmptyState
                   blocked={blocked}
-                  setupHint={setupHint && strings.hint[setupHint]}
+                  setupHint={current?.hint ? hintText(current.hint, current) : null}
                   onExample={(text) => {
                     setDraft(text);
                     prompt.current?.focus();
@@ -274,7 +322,7 @@ export default function App() {
                 <Turns />
               )}
               {pendingPrompt !== null && <S.UserMessage text={pendingPrompt} pending />}
-              {hint && <S.Hint text={strings.hint[hint]} />}
+              {hint && <S.Hint text={hintText(hint, session)} />}
               {exited && state.items.length > 0 && (
                 <S.Note text={strings.exited(status.exitCode)} />
               )}
@@ -296,24 +344,28 @@ export default function App() {
                       action={{ label: strings.retry, onClick: () => void attach() }}
                     />
                   )}
-                  {trouble && <S.Notice text={troubleText(trouble)} hint={null} action={null} />}
-                  {notice && (
+                  {harnessesFailed && (
                     <S.Notice
-                      text={notice.text}
-                      hint={notice.hint && strings.hint[notice.hint]}
-                      action={null}
+                      text={strings.failed.harnesses}
+                      hint={null}
+                      action={{ label: strings.retry, onClick: () => void listHarnesses() }}
                     />
                   )}
+                  {trouble && <S.Notice text={troubleText(trouble)} hint={null} action={null} />}
+                  {notice && <S.Notice text={notice.text} hint={notice.hint} action={null} />}
                 </>
               }
               controls={
                 <S.ModelMenu
                   label={strings.settings}
-                  harness={harness}
+                  harness={running ?? chosen}
                   // The model is the running session's own option, so it is
                   // listed under the harness in use, with the agent's names.
-                  harnesses={harnessChoices(reported, harness, running)}
-                  onChoose={onChoose}
+                  harnesses={harnessChoices(harnesses, running ?? chosen, runningModel)}
+                  // With no agent running, a pick chooses the next session's
+                  // harness. While one runs, its prompts go to that agent until
+                  // a new session starts, so only its model can change.
+                  onChoose={running === null ? (harness) => chooseHarness(harness) : onModel}
                   sections={settingSections(status, live, onMode, onConfig)}
                 />
               }

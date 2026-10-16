@@ -10,7 +10,7 @@ import type { FileDiff, Item } from "./protocol.generated";
 
 afterEach(cleanup);
 
-const actions = { onAnswer: () => Promise.resolve(), onRetry: () => {} };
+const actions = { onAnswer: () => Promise.resolve(), onRetry: () => {}, hintText: () => "" };
 
 function view(item: Item) {
   return render(<ItemView item={item} actions={actions} />);

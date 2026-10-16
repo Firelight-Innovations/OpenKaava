@@ -46,8 +46,14 @@ impl Harness {
 /// current directory for a bare command name.
 pub const NO_CWD_SEARCH: &str = "NoDefaultCurrentDirectoryInExePath";
 
-/// Every harness, in the order the tab lists them.
+/// Every harness, in the order the tab lists them. The first is the one a tab
+/// runs until it chooses another.
 pub static REGISTRY: &[&Descriptor] = &[&CLAUDE];
+
+/// The harness a tab runs until it chooses another.
+pub fn first() -> Harness {
+    REGISTRY[0].harness
+}
 
 /// One harness: what the UI calls it, how to find and start it, and how the
 /// user sets it up. Kaava runs the user's own binary, signed in by the user.
@@ -203,35 +209,36 @@ pub fn spec(
     let descriptor = harness.descriptor();
     let cli = which(descriptor.cli, path, pathext).ok_or(Hint::HarnessMissing)?;
     let adapter = which(descriptor.adapter.program, path, pathext).ok_or(Hint::AdapterMissing)?;
-    let mut env = vec![
-        (
-            descriptor.cli_env.to_string(),
-            cli.to_string_lossy().into_owned(),
-        ),
-        // The adapter runs in the user's worktree, which is untrusted
-        // repository content. An npm shim ends in a bare `node`, and
-        // `cmd.exe` looks in the current directory before PATH for a bare
-        // name unless this is set, so a `node.cmd` at a repository's root
-        // would run the moment the user pressed Send, before any permission
-        // request could stop it. Every harness's adapter is an npm shim.
-        (NO_CWD_SEARCH.to_string(), "1".to_string()),
-    ];
-    env.extend(
-        descriptor
-            .env
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_string())),
-    );
     Ok(LaunchSpec {
         harness,
         program: adapter,
         args: Vec::new(),
-        env,
+        env: launch_env(descriptor.env, descriptor.cli_env, &cli),
         expected_version: Some(descriptor.adapter.version),
         policy: descriptor.policy,
         setting_timeout: SETTING_TIMEOUT,
         mcp_servers: Vec::new(),
     })
+}
+
+/// The variables added to the adapter's environment: the descriptor's own
+/// `env` first, then `cli_env` naming `cli`, then [`NO_CWD_SEARCH`].
+/// `Command::envs` lets a later entry win, so no registry row can undo the
+/// two that come last.
+fn launch_env(env: &[(&str, &str)], cli_env: &str, cli: &Path) -> Vec<(String, String)> {
+    let mut all: Vec<(String, String)> = env
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect();
+    all.push((cli_env.to_string(), cli.to_string_lossy().into_owned()));
+    // The adapter runs in the user's worktree, which is untrusted repository
+    // content. An npm shim ends in a bare `node`, and `cmd.exe` looks in the
+    // current directory before PATH for a bare name unless this is set, so a
+    // `node.cmd` at a repository's root would run the moment the user pressed
+    // Send, before any permission request could stop it. Every harness's
+    // adapter is an npm shim.
+    all.push((NO_CWD_SEARCH.to_string(), "1".to_string()));
+    all
 }
 
 /// The first file named `name` on `path`, trying each `pathext` extension on
@@ -319,7 +326,48 @@ mod tests {
     }
 
     #[test]
+    fn a_descriptor_cannot_undo_the_variables_spec_relies_on() {
+        let env = launch_env(
+            &[
+                (NO_CWD_SEARCH, "0"),
+                ("CLAUDE_CODE_EXECUTABLE", "C:/elsewhere/claude.cmd"),
+                ("OTHER", "kept"),
+            ],
+            "CLAUDE_CODE_EXECUTABLE",
+            Path::new("C:/bin/claude.cmd"),
+        );
+        // The child sees the last entry for each name.
+        let seen = |name: &str| {
+            env.iter()
+                .rev()
+                .find(|(k, _)| k == name)
+                .map(|(_, v)| v.as_str())
+        };
+        assert_eq!(seen(NO_CWD_SEARCH), Some("1"));
+        assert_eq!(seen("CLAUDE_CODE_EXECUTABLE"), Some("C:/bin/claude.cmd"));
+        assert_eq!(seen("OTHER"), Some("kept"));
+    }
+
+    /// A row that sets either would be silently ignored, so none may. Windows
+    /// reads variable names without regard to case, and so does the check.
+    #[test]
+    fn no_descriptor_sets_a_variable_spec_relies_on() {
+        for descriptor in REGISTRY {
+            for (key, _) in descriptor.env {
+                for reserved in [NO_CWD_SEARCH, descriptor.cli_env] {
+                    assert!(
+                        !key.eq_ignore_ascii_case(reserved),
+                        "{:?} sets {key}, which spec sets itself",
+                        descriptor.harness
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
     fn every_harness_has_one_descriptor_that_names_it() {
+        assert_eq!(first(), Harness::Claude);
         for descriptor in REGISTRY {
             assert_eq!(descriptor.harness.descriptor(), *descriptor);
             let same = REGISTRY.iter().filter(|d| d.harness == descriptor.harness);

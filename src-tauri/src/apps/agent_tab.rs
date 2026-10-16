@@ -24,9 +24,10 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
 use kaava_agent_host::{
-    spec, AgentHost, Harness, HarnessInfo, HostError, Level, McpServer, Worktree, REGISTRY,
+    harness, spec, AgentHost, Harness, HarnessInfo, HostError, Level, McpServer, Worktree, REGISTRY,
 };
 use kaava_rpc::{RpcError, INVALID_PARAMS, METHOD_NOT_FOUND};
+use serde::Serialize;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -39,6 +40,10 @@ pub const ID: &str = "agent-tab";
 
 /// The event every envelope is emitted as. Mirrored in `src/bindings.ts`.
 pub const EVENT: &str = "agent-tab:event";
+
+/// The event a tab's choice of harness is emitted as, `{ instanceId, harness }`,
+/// so the tab and the agent bar show the same one. Mirrored in `src/bindings.ts`.
+pub const CHOSEN: &str = "agent-tab:chosen";
 
 /// The JSON-RPC code for a refusal this module or the host made. `data.code`
 /// says which; the tab draws the words for it from its own `strings.ts`.
@@ -57,6 +62,7 @@ const INSTANCE_METHODS: &[&str] = &[
     "agent-tab/set-config",
     "agent-tab/stop",
     "agent-tab/reset",
+    "agent-tab/choose",
 ];
 
 /// The methods that advance an agent, and so run only with developer mode on.
@@ -71,9 +77,10 @@ const GATED_METHODS: &[&str] = &[
     "agent-tab/set-config",
 ];
 
-/// The instance methods developer mode never blocks, on purpose: they read, or
-/// they end what is running, and a person who turned developer mode off has to
-/// be able to stop an agent that is still going. Only the test that holds
+/// The instance methods developer mode never blocks, on purpose: they read,
+/// they end what is running, or, as `choose` does, they only name the harness
+/// the next session runs. A person who turned developer mode off has to be
+/// able to stop an agent that is still going. Only the test that holds
 /// [`gate`] to this list reads it.
 #[cfg(test)]
 const UNGATED_METHODS: &[&str] = &[
@@ -81,14 +88,16 @@ const UNGATED_METHODS: &[&str] = &[
     "agent-tab/cancel",
     "agent-tab/stop",
     "agent-tab/reset",
+    "agent-tab/choose",
 ];
 
 /// The host, built on first use so it can hold the `AppHandle` it emits on,
-/// and where each tab's session started.
+/// where each tab's session started, and the harness each tab has chosen.
 #[derive(Default)]
 pub struct Sessions {
     host: OnceLock<AgentHost>,
     homes: Mutex<HashMap<String, Home>>,
+    chosen: Mutex<HashMap<String, Harness>>,
 }
 
 /// The cluster a tab's session started in, and what that cluster pointed at
@@ -119,6 +128,18 @@ impl Sessions {
         self.homes.lock().unwrap_or_else(|e| e.into_inner())
     }
 
+    fn chosen(&self) -> std::sync::MutexGuard<'_, HashMap<String, Harness>> {
+        self.chosen.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// The harness the tab's next prompt goes to.
+    fn current(&self, host: &AgentHost, instance_id: &str) -> Harness {
+        current(
+            host.running(instance_id),
+            self.chosen().get(instance_id).copied(),
+        )
+    }
+
     fn host(&self, app: &AppHandle) -> &AgentHost {
         self.host.get_or_init(|| {
             let emitter = app.clone();
@@ -142,6 +163,7 @@ impl Sessions {
         let mut homes = self.homes();
         host.retain(|id| open(id));
         homes.retain(|id, _| open(id));
+        self.chosen().retain(|id, _| open(id));
         let moved: Vec<String> = homes
             .iter()
             .filter(|(id, home)| home_of(snapshot, id).as_ref() != Some(*home))
@@ -202,7 +224,8 @@ pub fn call_for(
     params: Option<Value>,
 ) -> Result<Value, RpcError> {
     if method == "agent-tab/harnesses" {
-        return Ok(harnesses(app, context));
+        let tab = instance.filter(|id| is_agent_tab(app, id));
+        return Ok(harnesses(app, context, tab));
     }
     let instance = match instance {
         Some(id) if is_agent_tab(app, id) => id,
@@ -218,8 +241,8 @@ pub fn call_for(
     match method {
         "agent-tab/send" => {
             let text = text_param(&params, "text")?;
-            let harness = harness_param(&params)?;
             let worktree = worktree(app, context)?;
+            let harness = sessions.current(host, instance);
             let mut launch = spec(
                 harness,
                 std::env::var_os("PATH").as_deref(),
@@ -264,25 +287,115 @@ pub fn call_for(
             host.reset(instance);
             Ok(json!({}))
         }
+        // The tab's next session runs this harness.
+        "agent-tab/choose" => {
+            let harness = harness_param(&params)?;
+            let event = choose(
+                &sessions.chosen,
+                instance,
+                host.running(instance),
+                harness,
+                || is_agent_tab(app, instance),
+            )?;
+            let _ = app.emit(CHOSEN, event);
+            Ok(json!({}))
+        }
         _ => Err(unreached(method)),
     }
 }
 
 /// What the agent bar and the tab's empty state need before a first prompt:
-/// each harness and what stands in its way, and whether this cluster can run
-/// one at all.
-fn harnesses(app: &AppHandle, context: &CallContext) -> Value {
+/// each harness and what stands in its way, the one `tab`'s next prompt goes
+/// to, the harness and model its agent runs while it lives, and whether this
+/// cluster can run one at all.
+fn harnesses(app: &AppHandle, context: &CallContext, tab: Option<&str>) -> Value {
     let (path, pathext) = (std::env::var_os("PATH"), std::env::var_os("PATHEXT"));
     let harnesses: Vec<HarnessInfo> = REGISTRY
         .iter()
         .map(|d| d.info(spec(d.harness, path.as_deref(), pathext.as_deref()).err()))
         .collect();
+    let (current, running, model) = match tab {
+        Some(id) => {
+            let sessions = app.state::<Sessions>();
+            let host = sessions.host(app);
+            (sessions.current(host, id), host.running(id), host.model(id))
+        }
+        None => (current(None, None), None, None),
+    };
     let blocked = refuse_unless_developer(app)
         .and_then(|()| worktree(app, context).map(|_| ()))
         .err()
         .and_then(|e| e.data)
         .and_then(|d| d.get("code").cloned());
-    json!({ "harnesses": harnesses, "blocked": blocked })
+    harnesses_answer(&harnesses, current, running, model, blocked)
+}
+
+/// The answer to `agent-tab/harnesses`. The tab reads it as `Harnesses` in
+/// its `rpc.ts`, and the agent bar in `src/shell/state/agentBar.ts`.
+fn harnesses_answer<H: Serialize>(
+    harnesses: &[HarnessInfo],
+    current: H,
+    running: Option<H>,
+    model: Option<String>,
+    blocked: Option<Value>,
+) -> Value {
+    json!({
+        "harnesses": harnesses,
+        "current": current,
+        "running": running,
+        "model": model,
+        "blocked": blocked,
+    })
+}
+
+/// `agent-tab/choose` once its harness is read: `instance`'s next session
+/// runs `harness`, unless its agent runs another. Answers the
+/// [`CHOSEN`] event, which the tab's `rpc.ts` and the shell's
+/// `ToolWindow.tsx` read.
+///
+/// `open` is asked only once the choice is stored. A tab that closed since
+/// the call began has missed `sync`'s prune, so its choice is taken back here
+/// rather than left for a page reopened under its id.
+fn choose<H: Copy + PartialEq + Serialize>(
+    chosen: &Mutex<HashMap<String, H>>,
+    instance: &str,
+    running: Option<H>,
+    harness: H,
+    open: impl FnOnce() -> bool,
+) -> Result<Value, RpcError> {
+    may_choose(running, harness)?;
+    let lock = || chosen.lock().unwrap_or_else(|e| e.into_inner());
+    lock().insert(instance.to_string(), harness);
+    if !open() {
+        lock().remove(instance);
+        return Err(unreached("agent-tab/choose"));
+    }
+    Ok(json!({ "instanceId": instance, "harness": harness }))
+}
+
+/// The harness a tab's next prompt goes to: the one its agent runs, else the
+/// one it chose, else the first registered.
+fn current(running: Option<Harness>, chosen: Option<Harness>) -> Harness {
+    next_of(running, chosen, harness::first())
+}
+
+/// [`current`]'s rule over any ids, so it is tested with more harnesses than
+/// the registry has yet.
+fn next_of<H>(running: Option<H>, chosen: Option<H>, first: H) -> H {
+    running.or(chosen).unwrap_or(first)
+}
+
+/// Whether a tab may choose `harness`: not while its agent runs another,
+/// whose prompts would still go there until a new session.
+fn may_choose<H: PartialEq>(running: Option<H>, harness: H) -> Result<(), RpcError> {
+    if running.is_some_and(|h| h != harness) {
+        return Err(refused(
+            "running",
+            "this tab's agent runs another harness; start a new session to switch",
+            Value::Null,
+        ));
+    }
+    Ok(())
 }
 
 fn developer_mode(app: &AppHandle) -> bool {
@@ -478,6 +591,7 @@ mod tests {
             "agent-tab/answer",
             "agent-tab/set-mode",
             "agent-tab/set-config",
+            "agent-tab/choose",
         ] {
             assert!(INSTANCE_METHODS.contains(&method));
             let err = unreached(method);
@@ -737,7 +851,7 @@ mod tests {
     }
 
     #[test]
-    fn a_send_names_a_registered_harness_by_its_id() {
+    fn a_choice_names_a_registered_harness_by_its_id() {
         for d in REGISTRY {
             let params = json!({ "harness": d.harness });
             assert_eq!(harness_param(&params).unwrap(), d.harness);
@@ -749,5 +863,102 @@ mod tests {
         }
         let missing = harness_param(&json!({})).unwrap_err();
         assert_eq!(missing.code, INVALID_PARAMS);
+    }
+
+    #[test]
+    fn a_tab_runs_the_first_harness_until_it_chooses_one() {
+        assert_eq!(current(None, None), harness::first());
+        for d in REGISTRY {
+            assert_eq!(current(None, Some(d.harness)), d.harness);
+            assert_eq!(current(Some(d.harness), None), d.harness);
+        }
+    }
+
+    #[test]
+    fn a_tabs_live_agent_beats_its_choice_which_beats_the_first() {
+        assert_eq!(next_of(None, None, "first"), "first");
+        assert_eq!(next_of(None, Some("chosen"), "first"), "chosen");
+        assert_eq!(next_of(Some("running"), None, "first"), "running");
+        assert_eq!(next_of(Some("running"), Some("chosen"), "first"), "running");
+    }
+
+    fn chosen<H: Clone>(map: &Mutex<HashMap<String, H>>, id: &str) -> Option<H> {
+        map.lock().unwrap().get(id).cloned()
+    }
+
+    #[test]
+    fn a_choice_is_kept_and_told_to_every_view_of_the_tab() {
+        let map = Mutex::new(HashMap::new());
+        let event = choose(&map, "agent-tab-1", None, "pi", || true).unwrap();
+        assert_eq!(chosen(&map, "agent-tab-1"), Some("pi"));
+        // The keys the tab's `onChosen` and the shell's relay read.
+        assert_eq!(
+            event,
+            json!({ "instanceId": "agent-tab-1", "harness": "pi" })
+        );
+    }
+
+    #[test]
+    fn a_choice_for_a_tab_that_closed_meanwhile_is_taken_back() {
+        let map = Mutex::new(HashMap::new());
+        let err = choose(&map, "agent-tab-1", None, "pi", || {
+            // Checked after the store: a prune that ran first would miss it.
+            assert_eq!(chosen(&map, "agent-tab-1"), Some("pi"));
+            false
+        })
+        .unwrap_err();
+        assert_eq!(code_of(&err), Some("noInstance"));
+        assert_eq!(chosen(&map, "agent-tab-1"), None);
+    }
+
+    #[test]
+    fn a_choice_while_another_harness_runs_is_refused_and_not_kept() {
+        let map = Mutex::new(HashMap::from([("agent-tab-1".to_string(), "claude")]));
+        let err = choose(&map, "agent-tab-1", Some("claude"), "pi", || true).unwrap_err();
+        assert_eq!(code_of(&err), Some("running"));
+        assert_eq!(chosen(&map, "agent-tab-1"), Some("claude"));
+    }
+
+    /// The keys `rpc.ts`'s `Harnesses` and `agentBar.ts` read; a rename on
+    /// either side has to change this test as well.
+    #[test]
+    fn the_harnesses_answer_has_the_keys_the_tab_and_the_bar_read() {
+        let info = kaava_agent_host::harness::CLAUDE.info(None);
+        let answer = harnesses_answer(
+            std::slice::from_ref(&info),
+            Harness::Claude,
+            Some(Harness::Claude),
+            Some("Opus".to_string()),
+            Some(json!("notAWorktree")),
+        );
+        assert_eq!(
+            answer,
+            json!({
+                "harnesses": [info],
+                "current": "claude",
+                "running": "claude",
+                "model": "Opus",
+                "blocked": "notAWorktree",
+            })
+        );
+        let idle = harnesses_answer(&[], Harness::Claude, None, None, None);
+        assert_eq!(
+            idle,
+            json!({
+                "harnesses": [],
+                "current": "claude",
+                "running": null,
+                "model": null,
+                "blocked": null,
+            })
+        );
+    }
+
+    #[test]
+    fn a_tab_chooses_another_harness_only_once_its_agent_is_gone() {
+        assert!(may_choose(None, "pi").is_ok());
+        assert!(may_choose(Some("pi"), "pi").is_ok());
+        let err = may_choose(Some("claude"), "pi").unwrap_err();
+        assert_eq!(code_of(&err), Some("running"));
     }
 }

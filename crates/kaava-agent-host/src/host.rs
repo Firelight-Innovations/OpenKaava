@@ -12,9 +12,9 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crate::event::{Attachment, Envelope, Event, Hint, Item};
+use crate::event::{Attachment, Envelope, Event, Hint, Item, SessionStatus};
 use crate::guard::{NotAWorktree, Worktree};
-use crate::harness::{LaunchSpec, Protocol};
+use crate::harness::{Harness, LaunchSpec, Protocol};
 use crate::session::{Level, Log, Session, Sink, Start};
 
 /// How long a retired session gets to exit before its thread gives up
@@ -24,10 +24,12 @@ const RETIRE_WAIT: Duration = Duration::from_secs(3);
 /// One harness's session, as the host drives it — the part of handoff §3.2's
 /// adapter trait this slice uses. [`Session`] implements it over ACP, for
 /// every harness whose descriptor says [`Protocol::Acp`]; a harness that
-/// speaks something else gets a type of its own that translates. `harness`,
+/// speaks something else gets a type of its own that translates.
 /// `capabilities`, `resume`, `fork`, `steer`, `set_model` and `list_commands`
 /// arrive with the features that need them.
 pub trait Adapter: Send + Sync {
+    /// Which harness it runs.
+    fn harness(&self) -> Harness;
     /// Start a turn with `text`.
     fn prompt(&self, text: &str) -> Result<(), HostError>;
     /// Stop the running turn.
@@ -46,6 +48,8 @@ pub trait Adapter: Send + Sync {
     fn wait_closed(&self, deadline: Instant) -> bool;
     /// Everything drawn so far.
     fn attach(&self) -> Attachment;
+    /// Where it is: `attach`'s status, without the items.
+    fn status(&self) -> SessionStatus;
     /// The items, for a session that continues this one.
     fn items(&self) -> Vec<Item>;
     /// Whether the process is still running.
@@ -57,6 +61,9 @@ pub trait Adapter: Send + Sync {
 }
 
 impl Adapter for Session {
+    fn harness(&self) -> Harness {
+        Session::harness(self)
+    }
     fn prompt(&self, text: &str) -> Result<(), HostError> {
         Session::prompt(self, text)
     }
@@ -80,6 +87,9 @@ impl Adapter for Session {
     }
     fn attach(&self) -> Attachment {
         Session::attach(self)
+    }
+    fn status(&self) -> SessionStatus {
+        Session::status(self)
     }
     fn items(&self) -> Vec<Item> {
         Session::items(self)
@@ -333,6 +343,19 @@ impl AgentHost {
         self.get(instance_id).map(|s| s.worktree().clone())
     }
 
+    /// The harness the tab's agent runs, while its process lives. A prompt
+    /// goes to that agent, whatever harness the tab has chosen since.
+    pub fn running(&self, instance_id: &str) -> Option<Harness> {
+        self.get(instance_id)
+            .filter(|s| s.is_alive())
+            .map(|s| s.harness())
+    }
+
+    /// The name of the model the tab's agent runs, while its process lives.
+    pub fn model(&self, instance_id: &str) -> Option<String> {
+        model_name(self.get(instance_id).filter(|s| s.is_alive())?.status())
+    }
+
     /// Kill every session whose tab `keep` does not name. Returns at once.
     pub fn retain(&self, keep: impl Fn(&str) -> bool) {
         let gone: Vec<Arc<dyn Adapter>> = {
@@ -376,4 +399,70 @@ fn retire(session: Arc<dyn Adapter>) {
             session.shutdown();
             session.wait_closed(Instant::now() + RETIRE_WAIT);
         });
+}
+
+/// The agent's label for the value of its option in ACP's `model` category,
+/// or the bare value when it offers none. `None` before the agent reports one.
+fn model_name(status: SessionStatus) -> Option<String> {
+    let option = status
+        .config
+        .into_iter()
+        .find(|o| o.category.as_deref() == Some("model"))?;
+    let label = option.choices.into_iter().find(|c| c.value == option.value);
+    Some(label.map_or(option.value, |c| c.name))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::event::{ConfigChoice, ConfigOption, SessionState};
+
+    fn status(config: Vec<ConfigOption>) -> SessionStatus {
+        SessionStatus {
+            state: SessionState::Ready,
+            harness: Harness::Claude,
+            cwd: "C:/wt/x".into(),
+            mode: None,
+            modes: Vec::new(),
+            config,
+            answered: 0,
+            setting_trouble: None,
+            adapter_version: None,
+            exit_code: None,
+            hint: None,
+            pending_prompt: None,
+        }
+    }
+
+    fn option(category: &str, value: &str) -> ConfigOption {
+        ConfigOption {
+            id: "model".into(),
+            name: "Model".into(),
+            description: None,
+            category: Some(category.into()),
+            value: value.into(),
+            choices: vec![ConfigChoice {
+                value: "opus".into(),
+                name: "Opus".into(),
+                description: None,
+            }],
+        }
+    }
+
+    #[test]
+    fn a_model_is_named_by_the_agents_label_else_its_value() {
+        assert_eq!(
+            model_name(status(vec![option("model", "opus")])).as_deref(),
+            Some("Opus")
+        );
+        assert_eq!(
+            model_name(status(vec![option("model", "haiku")])).as_deref(),
+            Some("haiku")
+        );
+        assert_eq!(
+            model_name(status(vec![option("thought_level", "opus")])),
+            None
+        );
+        assert_eq!(model_name(status(Vec::new())), None);
+    }
 }

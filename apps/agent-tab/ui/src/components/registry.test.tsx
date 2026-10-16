@@ -19,7 +19,7 @@ vi.mock("@openkaava/bridge", () => ({
 }));
 
 import App from "../App";
-import type { Attachment, Item } from "../protocol.generated";
+import type { Attachment, HarnessInfo, Item } from "../protocol.generated";
 import { defaultSlots, SlotsProvider, type Slots } from "./registry";
 
 function item(id: string, kind: Item["kind"]): Item {
@@ -90,11 +90,25 @@ const EVERYTHING: Attachment = {
   ],
 };
 
+/** Claude as `agent-tab/harnesses` describes it. */
+const CLAUDE: HarnessInfo = {
+  harness: "claude",
+  name: "Claude",
+  hint: null,
+  setup: {
+    cli: "claude",
+    signIn: "claude",
+    adapterInstall: "npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@0.90.0",
+    adapterVersion: "0.90.0",
+  },
+  capabilities: { steer: false, fork: false, modes: false },
+};
+
 function backend(attach: () => Promise<unknown>) {
   bridge.invoke.mockImplementation((method: string) => {
     if (method === "agent-tab/attach") return attach();
     if (method === "agent-tab/harnesses")
-      return Promise.resolve({ harnesses: [{ harness: "claude", hint: null }], blocked: null });
+      return Promise.resolve({ harnesses: [CLAUDE], current: "claude", blocked: null });
     return Promise.resolve({});
   });
 }
@@ -261,7 +275,8 @@ describe("the slot registry", () => {
         return Promise.resolve({ seq: 0, status: null, items: [] });
       if (method === "agent-tab/harnesses")
         return Promise.resolve({
-          harnesses: [{ harness: "claude", hint: "signedOut" }],
+          harnesses: [{ ...CLAUDE, hint: "signedOut" }],
+          current: "claude",
           blocked: "developerMode",
         });
       return Promise.resolve({});
