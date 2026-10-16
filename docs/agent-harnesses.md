@@ -95,9 +95,10 @@ The agent tab and the agent bar draw every registered harness from `agent-tab/ha
 names a registered harness, a program or a version in its own strings. The tab's settings menu
 also lists harnesses that are not registered yet, as "Coming soon", by names in its own strings.
 
-- **The picker.** The tab's settings menu has a group per harness, and choosing one chooses that
-  harness. The agent bar shows a picker when more than one harness is registered. While the tab's
-  agent runs, both are locked.
+- **The picker.** The tab's settings menu has a group per harness, listing its models, or only
+  its default until its agent has said (see [Models](#models)). Choosing a model chooses that
+  harness and that model. The agent bar shows a picker when more than one harness is registered,
+  and it chooses a harness only. While the tab's agent runs, both are locked.
 - **The model.** While an agent runs, the tab's header and the agent bar show its harness and its
   model.
 - **Hints.** Each `Hint` is a sentence template in the tab's `apps/agent-tab/ui/src/strings.ts`.
