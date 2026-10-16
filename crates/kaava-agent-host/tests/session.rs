@@ -1610,6 +1610,109 @@ fn the_mode_changes_while_a_turn_runs() {
     rig.turns_done(1);
 }
 
+fn choices_of<'a>(status: &'a kaava_agent_host::SessionStatus, id: &str) -> Vec<&'a str> {
+    status
+        .config
+        .iter()
+        .find(|o| o.id == id)
+        .map(|o| o.choices.iter().map(|c| c.value.as_str()).collect())
+        .unwrap_or_default()
+}
+
+#[test]
+fn a_new_model_brings_its_own_effort_levels() {
+    let rig = rig();
+    rig.send(&[], "stream").unwrap();
+    rig.turns_done(1);
+    let ticket = rig.host.set_config(TAB, "model", "opus").unwrap();
+    let status = rig.status_where("the model", |s| s.answered >= ticket);
+    assert_eq!(value_of(&status, "model"), Some("opus"));
+    assert_eq!(
+        choices_of(&status, "effort"),
+        ["low", "medium", "high", "xhigh"],
+        "the levels the agent lists for it, not a list the host keeps"
+    );
+    let ticket = rig.host.set_config(TAB, "effort", "xhigh").unwrap();
+    let status = rig.status_where("the effort", |s| s.answered >= ticket);
+    assert_eq!(value_of(&status, "effort"), Some("xhigh"));
+    assert_eq!(status.mode.as_deref(), Some("default"), "the mode stays");
+
+    // A model without effort takes the option away.
+    let ticket = rig.host.set_config(TAB, "model", "haiku").unwrap();
+    let status = rig.status_where("haiku", |s| s.answered >= ticket);
+    assert_eq!(value_of(&status, "effort"), None);
+    assert!(
+        matches!(
+            rig.host.set_config(TAB, "effort", "low"),
+            Err(HostError::UnknownOption)
+        ),
+        "no effort to set"
+    );
+    // And one with it brings it back, at a level it has.
+    let ticket = rig.host.set_config(TAB, "model", "default").unwrap();
+    let status = rig.status_where("the default model", |s| s.answered >= ticket);
+    assert_eq!(value_of(&status, "effort"), Some("medium"));
+    assert_eq!(status.setting_trouble, None);
+}
+
+#[test]
+fn only_a_value_the_status_offers_is_sent() {
+    let rig = rig();
+    assert!(matches!(
+        rig.host.set_config(TAB, "model", "opus"),
+        Err(HostError::NoSession)
+    ));
+    let record = rig.dir.path().join("settings.log");
+    rig.send(&["--record-settings", record.to_str().unwrap()], "stream")
+        .unwrap();
+    rig.turns_done(1);
+    for (id, value) in [
+        ("effort", "xhigh"),
+        ("effort", "ultracode"),
+        ("model", "claude-opus-4-6"),
+        ("model", ""),
+        ("model", "bypassPermissions"),
+        ("mode", "plan"),
+        ("mode", "bypassPermissions"),
+        ("nonesuch", "on"),
+    ] {
+        assert!(
+            matches!(
+                rig.host.set_config(TAB, id, value),
+                Err(HostError::UnknownOption)
+            ),
+            "{id} = {value}"
+        );
+    }
+    assert_eq!(
+        settings_sent(&record),
+        ["session/set_mode"],
+        "nothing but the handshake's ask-first"
+    );
+}
+
+#[test]
+fn a_value_the_agent_no_longer_has_is_refused_beside_the_setting() {
+    let rig = rig();
+    rig.send(&["--slow-setting"], "stream").unwrap();
+    rig.turns_done(1);
+    // Effort is chosen from the old model's levels while the agent is still
+    // switching to a model that has none.
+    let model = rig.host.set_config(TAB, "model", "haiku").unwrap();
+    let effort = rig.host.set_config(TAB, "effort", "high").unwrap();
+    assert!(model < effort);
+    let status = rig.status_where("both answered", |s| s.answered >= effort);
+    assert_eq!(value_of(&status, "model"), Some("haiku"));
+    assert_eq!(value_of(&status, "effort"), None);
+    assert_eq!(
+        status.setting_trouble,
+        Some(SettingTrouble::Refused {
+            ticket: effort,
+            message: "Internal error: Invalid value for config option effort: high".into()
+        })
+    );
+}
+
 /// Short, and shaped like nothing `mask` knows, so only the session's own
 /// scrub can keep it out of the log.
 const BEARER: &str = "kaava-test-bearer";

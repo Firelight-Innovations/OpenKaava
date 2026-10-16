@@ -30,6 +30,9 @@ export const reset = () => invoke<object>("agent-tab/reset");
  */
 export const setMode = (modeId: string) =>
   invoke<{ ticket: number }>("agent-tab/set-mode", { modeId }).then((r) => r.ticket);
+/** Sets one of the agent's other options, such as its model; numbered as `setMode` is. */
+export const setConfig = (configId: string, value: string) =>
+  invoke<{ ticket: number }>("agent-tab/set-config", { configId, value }).then((r) => r.ticket);
 
 /** Every envelope the shell relays to this frame. */
 export const onEnvelope = (cb: (envelope: Envelope) => void) =>

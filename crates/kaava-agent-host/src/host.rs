@@ -37,6 +37,9 @@ pub trait Adapter: Send + Sync {
     /// Switch to one of the modes the status offers. Returns the change's
     /// number, which the status's `answered` reaches once it is answered.
     fn set_mode(&self, mode_id: &str) -> Result<u64, HostError>;
+    /// Set one of the status's other options to one of its choices. Returns
+    /// the change's number, as `set_mode` does.
+    fn set_config(&self, config_id: &str, value: &str) -> Result<u64, HostError>;
     /// Kill the process. Returns at once.
     fn shutdown(&self);
     /// Wait for the process to have exited, up to `deadline`.
@@ -65,6 +68,9 @@ impl Adapter for Session {
     }
     fn set_mode(&self, mode_id: &str) -> Result<u64, HostError> {
         Session::set_mode(self, mode_id)
+    }
+    fn set_config(&self, config_id: &str, value: &str) -> Result<u64, HostError> {
+        Session::set_config(self, config_id, value)
     }
     fn shutdown(&self) {
         self.kill();
@@ -280,6 +286,20 @@ impl AgentHost {
         self.get(instance_id)
             .ok_or(HostError::NoSession)?
             .set_mode(mode_id)
+    }
+
+    /// Set one of the tab's session settings other than the mode, such as
+    /// the model or effort: any option the status lists, to a value it
+    /// offers. Returns the change's number, as [`AgentHost::set_mode`] does.
+    pub fn set_config(
+        &self,
+        instance_id: &str,
+        config_id: &str,
+        value: &str,
+    ) -> Result<u64, HostError> {
+        self.get(instance_id)
+            .ok_or(HostError::NoSession)?
+            .set_config(config_id, value)
     }
 
     /// Kill the tab's agent, keeping its conversation: the next prompt starts

@@ -22,6 +22,16 @@ const MODES: [(&str, &str); 5] = [
     ("bypassPermissions", "Bypass permissions"),
 ];
 
+/// The models on offer, and the effort levels each has. Haiku has none, so
+/// its options have no effort, as the adapter leaves effort out for a model
+/// that does not support it.
+const MODELS: [(&str, &[&str]); 4] = [
+    ("default", &["low", "medium", "high"]),
+    ("opus", &["low", "medium", "high", "xhigh"]),
+    ("haiku", &[]),
+    ("bypassPermissions", &["low", "medium", "high"]),
+];
+
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.first().map(String::as_str) == Some("--sleep") {
@@ -217,19 +227,23 @@ impl Mock {
                 "model",
                 "model",
                 &self.model,
-                &["default", "opus", "haiku", "bypassPermissions"],
+                &MODELS.map(|(model, _)| model),
             ),
         ];
-        if self.model != "haiku" {
-            options.push(shouted(
-                "effort",
-                "thought_level",
-                &self.effort,
-                &["low", "medium", "high"],
-            ));
+        let levels = self.levels();
+        if !levels.is_empty() {
+            options.push(shouted("effort", "thought_level", &self.effort, levels));
         }
         options.push(shouted("fast", "model_config", &self.fast, &["on", "off"]));
         Value::Array(options)
+    }
+
+    /// The current model's effort levels.
+    fn levels(&self) -> &'static [&'static str] {
+        MODELS
+            .iter()
+            .find(|(model, _)| *model == self.model)
+            .map_or(&[], |(_, levels)| levels)
     }
 
     fn config_update(&self) {
@@ -247,8 +261,10 @@ impl Mock {
     /// With `--settles-elsewhere` every change but to `default` settles on
     /// `acceptEdits` instead. Claude's adapter settles elsewhere only when it
     /// cannot run Auto, which the tab never asks for; this stands in for an
-    /// agent that settles elsewhere more often. With `--slow-setting` the
-    /// reply comes a second after the notification.
+    /// agent that settles elsewhere more often. A new model brings its own
+    /// effort levels, and the effort drops to `medium` where it has no level
+    /// of the old one's. With `--slow-setting` the reply comes a second after
+    /// the notification.
     fn set_config(&mut self, id: &Value, params: &Value) {
         if self.has("--no-config") {
             return self.reply_error(id, -32601, "method not found");
@@ -284,7 +300,24 @@ impl Mock {
                     "sessionUpdate": "current_mode_update", "currentModeId": self.mode
                 }));
             }
-            _ => return self.reply_error(id, -32602, "Unknown config option"),
+            "model" if MODELS.iter().any(|(m, _)| *m == value) => {
+                self.model = value;
+                if !self.levels().contains(&self.effort.as_str()) {
+                    self.effort = "medium".into();
+                }
+            }
+            "effort" if self.levels().contains(&value.as_str()) => self.effort = value,
+            "fast" if ["on", "off"].contains(&value.as_str()) => self.fast = value,
+            // As the adapter refuses a value its option does not list.
+            _ => {
+                return self.send(&json!({
+                    "jsonrpc": "2.0", "id": id, "error": {
+                        "code": -32603, "message": "Internal error",
+                        "data": { "details":
+                            format!("Invalid value for config option {config}: {value}") }
+                    }
+                }))
+            }
         }
         if self.has("--slow-setting") {
             std::thread::sleep(Duration::from_secs(1));

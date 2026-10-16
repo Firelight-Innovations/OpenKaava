@@ -54,15 +54,22 @@ const INSTANCE_METHODS: &[&str] = &[
     "agent-tab/cancel",
     "agent-tab/answer",
     "agent-tab/set-mode",
+    "agent-tab/set-config",
     "agent-tab/stop",
     "agent-tab/reset",
 ];
 
 /// The methods that advance an agent, and so run only with developer mode on.
 /// An approval advances it as much as a prompt does, and a mode decides what
-/// it may do unasked. Every one is also a write to the cluster's checkout, so
-/// it is in `apps::WRITE_METHODS` too.
-const GATED_METHODS: &[&str] = &["agent-tab/send", "agent-tab/answer", "agent-tab/set-mode"];
+/// it may do unasked; the model and effort are set with the mode. Every one is
+/// also a write to the cluster's checkout, so it is in `apps::WRITE_METHODS`
+/// too.
+const GATED_METHODS: &[&str] = &[
+    "agent-tab/send",
+    "agent-tab/answer",
+    "agent-tab/set-mode",
+    "agent-tab/set-config",
+];
 
 /// The instance methods developer mode never blocks, on purpose: they read, or
 /// they end what is running, and a person who turned developer mode off has to
@@ -243,6 +250,11 @@ pub fn call_for(
         )),
         // Gated with `send` above. Bypassing permissions is never on offer.
         "agent-tab/set-mode" => queued(host.set_mode(instance, &text_param(&params, "modeId")?)),
+        // Gated with `send` above, as the mode is.
+        "agent-tab/set-config" => {
+            let config_id = text_param(&params, "configId")?;
+            queued(host.set_config(instance, &config_id, &text_param(&params, "value")?))
+        }
         "agent-tab/stop" => {
             host.stop(instance);
             Ok(json!({}))
@@ -461,13 +473,33 @@ mod tests {
     /// agent can neither prompt another agent nor approve its requests.
     #[test]
     fn a_call_without_its_tab_is_refused() {
-        for method in ["agent-tab/send", "agent-tab/answer", "agent-tab/set-mode"] {
+        for method in [
+            "agent-tab/send",
+            "agent-tab/answer",
+            "agent-tab/set-mode",
+            "agent-tab/set-config",
+        ] {
             assert!(INSTANCE_METHODS.contains(&method));
             let err = unreached(method);
             assert_eq!(err.code, REFUSED, "{method}");
             assert_eq!(code_of(&err), Some("noInstance"), "{method}");
         }
         assert_eq!(unreached("agent-tab/nonesuch").code, METHOD_NOT_FOUND);
+    }
+
+    /// Each method that advances an agent, by name: moved to
+    /// `UNGATED_METHODS`, it would still pass the list-wide tests below.
+    #[test]
+    fn prompting_approving_and_every_setting_need_developer_mode() {
+        for method in [
+            "agent-tab/send",
+            "agent-tab/answer",
+            "agent-tab/set-mode",
+            "agent-tab/set-config",
+        ] {
+            let err = gate(method, false).unwrap_err();
+            assert_eq!(code_of(&err), Some("developerMode"), "{method}");
+        }
     }
 
     /// The gate is one decision in one place: what advances an agent needs
