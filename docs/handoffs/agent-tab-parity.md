@@ -54,6 +54,17 @@ cells of the rows it closes in section 2.
   drawn as transcript errors, which would offer to retry the last prompt.
   Of several changes to one setting made while one is out, only the last
   is sent, so a held Shift+Tab does not step the agent through every mode.
+- **Host-supplied MCP servers** (not a numbered PR; the host half of the
+  context server's generative UI): `LaunchSpec.mcp_servers` holds
+  OpenKaava's own servers, each a name, a URL and a bearer scoped to one
+  cluster. `session/new` offers them in ACP's HTTP form, with the bearer
+  in an `Authorization` header, only to an agent that advertised
+  `mcpCapabilities.http`, and only for a URL on this machine. Every line the
+  agent writes, stdout and stderr, is scrubbed of each bearer before the host
+  reads or keeps it. The bearer does reach the `claude` CLI's command line:
+  the SDK passes `mcpServers` as `--mcp-config`. The list stays empty until
+  the context server's `session_servers` lands. Load and resume (PR 7) pass
+  the same list.
 
 Open questions:
 
@@ -119,7 +130,7 @@ Constraints for later PRs, found while reading the adapter:
 
 | Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
 |---|---|---|---|---|---|
-| Start a session in a worktree | CLI `--worktree`; Desktop worktree option | exposed: `session/new` `cwd` (acp-agent.js:441-451) | done: worktree cwd, `mcpServers: []` (session.rs, `Shared::handshake`) | Shell | Only a local worktree may run an agent (agent_tab.rs, `worktree`). |
+| Start a session in a worktree | CLI `--worktree`; Desktop worktree option | exposed: `session/new` `cwd` (acp-agent.js:1433-1442, 7687-7700) | done: worktree cwd, host-owned `mcpServers` (session.rs, `Shared::handshake`) | Shell | Only a local worktree may run an agent (agent_tab.rs, `worktree`). |
 | New conversation | `/clear`, `/new`, `/reset`; VS Code New Conversation; Desktop Cmd+N | partial: `/clear` filtered from the menu (acp-agent.js:9006); new conversation is `session/new` (acp-agent.js:1433) | done: New session kills the agent and clears the transcript (host.rs, `Host::reset`) | P0 | Map typed `/clear` and the button to `session/new`. Typed `/clear` behaviour is unknown (acp-agent.js:677 vs 2084). |
 | Model picker | `/model`; Option+P; Desktop Cmd+Shift+I | exposed: config option `model`, category model, set by `session/set_config_option` (session-model.js:2, 163-208; acp-agent.js:6273-6297) | partial since PR 1: the host reads the `model` option; no picker yet | P0 | PR 1 and PR 3. Show the list the adapter sends. Do not hardcode names. |
 | Model aliases and `[1m]` variants | default, best, fable, sonnet, opus, haiku, sonnet[1m], opus[1m], opusplan (model-config doc) | exposed through the model option values (session-model.js) | partial since PR 1: read with the option; no picker yet | P0 | Part of the picker. Aliases come from docs and may change. |
@@ -397,7 +408,7 @@ Constraints for later PRs, found while reading the adapter:
 | Reconnect, enable, disable | `/mcp reconnect`, enable, disable | exposed (mcp-command.js; SDK `reconnectMcpServer`, `toggleMcpServer`) | not implemented | P1 | PR 14. |
 | Add or remove MCP server | `claude mcp add`, `remove`; `.mcp.json` | not-exposed (CLI or file) | not implemented | P1 | Section 4 M. |
 | MCP OAuth | sign in from `/mcp` | exposed: URL elicitation (acp-agent.js:1022-1127; elicitation.js:49-60); needs `clientCapabilities.elicitation.url` (acp-agent.js:1031) | not declared (session.rs, `Shared::handshake`) | P1 | PR 15. |
-| Host-supplied MCP servers | — | exposed: `mcpServers` on `session/new` (acp-agent.js:441, 1469) | sends `[]` (session.rs, `Shared::handshake`) | P1 | Pass only host-owned servers (Section 4 M). |
+| Host-supplied MCP servers | — | exposed: `mcpServers` on `session/new` (acp-agent.js:1433-1442; converted 7741-7760, merged 7910-7912) | done on `session/new`, empty until the context server lands (session.rs, `Shared::handshake`) | P1 | Pass only host-owned servers (Section 4 M). |
 | Project `.mcp.json` | project servers need approval | partial: loaded via settingSources (acp-agent.js:7897); approval in ACP unknown | not implemented | P1 | Verify approval behaviour. |
 | claude.ai connectors | account connectors | partial: loaded automatically; authorised in claude.ai | not implemented | P2 | Shows in the MCP list. |
 | Deferred MCP tools (ToolSearch) | tools loaded on demand | partial, automatic | — | Works automatically | — |

@@ -24,7 +24,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
 use kaava_agent_host::{
-    spec, AgentHost, Harness, HarnessInfo, HostError, Level, Worktree, REGISTRY,
+    spec, AgentHost, Harness, HarnessInfo, HostError, Level, McpServer, Worktree, REGISTRY,
 };
 use kaava_rpc::{RpcError, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde_json::{json, Value};
@@ -213,7 +213,7 @@ pub fn call_for(
             let text = text_param(&params, "text")?;
             let harness = harness_param(&params)?;
             let worktree = worktree(app, context)?;
-            let launch = spec(
+            let mut launch = spec(
                 harness,
                 std::env::var_os("PATH").as_deref(),
                 std::env::var_os("PATHEXT").as_deref(),
@@ -226,6 +226,7 @@ pub fn call_for(
                     json!(hint),
                 )
             })?;
+            launch.mcp_servers = session_servers(app, context.cluster_id.as_deref());
             host.send(instance, launch, worktree, &text)
                 .map_err(host_error)?;
             sessions.record(app, host, instance);
@@ -298,6 +299,15 @@ fn gate(method: &str, developer_mode: bool) -> Result<(), RpcError> {
         return developer_gate(developer_mode);
     }
     Ok(())
+}
+
+/// OpenKaava's MCP servers for a session in `cluster_id`, each with a token
+/// scoped to it. None yet: the context server's `mcp::session_servers`
+/// takes this one's place when it lands. Called on every send, though only a
+/// send that starts a session uses the spec, so it must hand back the
+/// cluster's bearer, never mint one per call.
+fn session_servers(_app: &AppHandle, _cluster_id: Option<&str>) -> Vec<McpServer> {
+    Vec::new()
 }
 
 /// The worktree the calling cluster writes to, or why it has none.

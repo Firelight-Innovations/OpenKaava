@@ -18,6 +18,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 
 use crate::event::{HarnessInfo, Hint};
+use crate::mcp::McpServer;
 
 mod claude;
 
@@ -186,6 +187,9 @@ pub struct LaunchSpec {
     /// How long the agent may take to answer a setting change before the tab
     /// is told it has not. The change keeps its place in the queue either way.
     pub setting_timeout: Duration,
+    /// OpenKaava's own MCP servers, offered to the agent in `session/new`.
+    /// Empty unless the caller fills it in.
+    pub mcp_servers: Vec<McpServer>,
 }
 
 /// The spec for `harness`, or the reason there is none. `path` and `pathext`
@@ -226,6 +230,7 @@ pub fn spec(
         expected_version: Some(descriptor.adapter.version),
         policy: descriptor.policy,
         setting_timeout: SETTING_TIMEOUT,
+        mcp_servers: Vec::new(),
     })
 }
 

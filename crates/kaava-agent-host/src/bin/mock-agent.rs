@@ -57,6 +57,7 @@ fn main() {
         model: "default".into(),
         effort: "medium".into(),
         fast: "off".into(),
+        bearer: String::new(),
     };
     if mock.has("--secret") {
         eprintln!("debug: token sk-ant-oat01-AbCdEf0123456789xyzAbCd for someone@example.com");
@@ -132,6 +133,8 @@ struct Mock {
     model: String,
     effort: String,
     fast: String,
+    /// The first MCP server's bearer, as `session/new` gave it.
+    bearer: String,
 }
 
 impl Mock {
@@ -328,11 +331,17 @@ impl Mock {
                 let version = self
                     .flag_value("--version")
                     .unwrap_or_else(|| "0.90.0".into());
+                // `--no-mcp-caps` leaves the MCP capabilities out altogether.
+                let caps = if self.has("--no-mcp-caps") {
+                    json!({})
+                } else {
+                    json!({ "mcpCapabilities": { "http": !self.has("--no-mcp-http"), "sse": true } })
+                };
                 self.reply(
                     &id,
                     json!({
                         "protocolVersion": 1,
-                        "agentCapabilities": {},
+                        "agentCapabilities": caps,
                         "agentInfo": { "name": "mock-agent", "version": version },
                         "authMethods": []
                     }),
@@ -358,6 +367,27 @@ impl Mock {
                             "organization": "Example Org"
                         } }
                     }));
+                }
+                let servers = params.get("mcpServers").cloned().unwrap_or(Value::Null);
+                if let Some(path) = self.flag_value("--record-mcp") {
+                    let _ = std::fs::write(path, servers.to_string());
+                }
+                self.bearer = servers
+                    .pointer("/0/headers/0/value")
+                    .and_then(Value::as_str)
+                    .and_then(|v| v.strip_prefix("Bearer "))
+                    .unwrap_or_default()
+                    .to_string();
+                // An adapter that prints its config as it dies, bearer and all.
+                if self.has("--leak-mcp") {
+                    eprintln!("mock-agent: mcp servers {servers}");
+                    std::process::exit(4);
+                }
+                // The same in a line longer than the host keeps (4 KiB), with
+                // the bearer's first twelve bytes before the cut.
+                if self.has("--leak-mcp-long") {
+                    eprintln!("{}{}", "x".repeat(4096 - 12), self.bearer);
+                    std::process::exit(4);
                 }
                 let mut result = json!({ "sessionId": "mock-1", "modes": self.modes() });
                 if self.has("--no-session-id") {
@@ -539,6 +569,25 @@ impl Mock {
             "crash" => {
                 self.chunk("bye", "m1");
                 std::process::exit(7);
+            }
+            // An agent that repeats its MCP bearer everywhere it can: in its
+            // text, a tool call's title and output, and the turn's error.
+            "echo" => {
+                let bearer = self.bearer.clone();
+                self.chunk(&format!("your token is {bearer}"), "m1");
+                self.update(json!({
+                    "sessionUpdate": "tool_call", "toolCallId": "t1",
+                    "title": format!("curl -H 'Authorization: Bearer {bearer}'"),
+                    "kind": "execute", "status": "pending"
+                }));
+                self.update(json!({
+                    "sessionUpdate": "tool_call_update", "toolCallId": "t1", "status": "completed",
+                    "content": [{ "type": "content",
+                        "content": { "type": "text", "text": format!("token={bearer}") } }]
+                }));
+                if let Some(id) = self.prompt_id.take() {
+                    self.reply_error(&id, -32603, &format!("bad token {bearer}"));
+                }
             }
             "auth" => {
                 if let Some(id) = self.prompt_id.take() {
