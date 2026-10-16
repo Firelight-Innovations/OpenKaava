@@ -27,8 +27,13 @@ export const harnesses = () => invoke<Harnesses>("agent-tab/harnesses");
 export const attach = () => invoke<Attachment>("agent-tab/attach");
 /** Sends to the tab's current harness: the running agent's, else the one chosen. */
 export const send = (text: string) => invoke<object>("agent-tab/send", { text });
-/** Picks the harness for the tab's next session. */
-export const choose = (harness: Harness) => invoke<object>("agent-tab/choose", { harness });
+/**
+ * Picks the harness for the tab's next session, and its model: a model's
+ * value, `null` for the agent's default, or left out to keep the model this
+ * tab chose for that harness before.
+ */
+export const choose = (harness: Harness, model?: string | null) =>
+  invoke<object>("agent-tab/choose", model === undefined ? { harness } : { harness, model });
 export const cancel = () => invoke<object>("agent-tab/cancel");
 export const answer = (itemId: string, optionId: string) =>
   invoke<object>("agent-tab/answer", { itemId, optionId });
@@ -50,9 +55,18 @@ export const onEnvelope = (cb: (envelope: Envelope) => void) =>
 /** Mirrors `apps::agent_tab::CHOSEN`. */
 export const CHOSEN = "agent-tab:chosen";
 
-/** This tab's choice of harness, whether made here or in the agent bar. */
-export const onChosen = (cb: (harness: Harness) => void) =>
-  on(CHOSEN, (payload) => cb((payload as { harness: Harness }).harness));
+/** This tab's choice of harness and model, whether made here or in the agent bar. */
+export const onChosen = (cb: (harness: Harness, model: string | null) => void) =>
+  on(CHOSEN, (payload) => {
+    const { harness, model } = payload as { harness: Harness; model?: string | null };
+    cb(harness, model ?? null);
+  });
+
+/** Mirrors `apps::agent_tab::MODELS`. */
+export const MODELS = "agent-tab:models";
+
+/** A harness's agent has said which models it offers: `harnesses` now lists them. */
+export const onModels = (cb: () => void) => on(MODELS, () => cb());
 
 /** A refusal's `data`: which refusal, and the hint that explains it. */
 export interface Refusal {

@@ -102,6 +102,8 @@ const CLAUDE: HarnessInfo = {
     adapterVersion: "0.90.0",
   },
   capabilities: { steer: false, fork: false, modes: false },
+  models: null,
+  model: null,
 };
 
 function backend(attach: () => Promise<unknown>) {

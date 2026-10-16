@@ -300,7 +300,9 @@ impl Mock {
                     "sessionUpdate": "current_mode_update", "currentModeId": self.mode
                 }));
             }
-            "model" if MODELS.iter().any(|(m, _)| *m == value) => {
+            // `--refuse-model` refuses any model, as an adapter refuses one it
+            // no longer has.
+            "model" if !self.has("--refuse-model") && MODELS.iter().any(|(m, _)| *m == value) => {
                 self.model = value;
                 if !self.levels().contains(&self.effort.as_str()) {
                     self.effort = "medium".into();
@@ -345,6 +347,21 @@ impl Mock {
         let method = message.get("method").and_then(Value::as_str);
         let id = message.get("id").cloned();
         let params = message.get("params").cloned().unwrap_or(Value::Null);
+        // `--trace <file>`: every method the host sent, one per line.
+        if let (Some(path), Some(method)) = (self.flag_value("--trace"), method) {
+            let file = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(path);
+            if let Ok(mut file) = file {
+                let _ = writeln!(file, "{method}");
+            }
+        }
+        // `--slow <ms>`: the handshake's two requests each wait that long.
+        let slow = self.flag_value("--slow").and_then(|ms| ms.parse().ok());
+        if let (Some(ms), Some("initialize" | "session/new")) = (slow, method) {
+            std::thread::sleep(Duration::from_millis(ms));
+        }
         match (method, id) {
             (Some("initialize"), Some(id)) => {
                 if self.has("--fail-init") {

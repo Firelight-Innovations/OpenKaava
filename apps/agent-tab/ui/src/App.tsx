@@ -140,9 +140,13 @@ export default function App() {
     const stopChosen = rpc.onChosen(heardChoice);
     void attach().finally(() => reportPainted());
     void listHarnesses();
+    // The host asks each agent for its models after its first answer, and
+    // says when they are in.
+    const stopModels = rpc.onModels(() => void listHarnesses());
     return () => {
       stop();
       stopChosen();
+      stopModels();
     };
   }, [attach, heardChoice, listHarnesses]);
 
@@ -171,12 +175,16 @@ export default function App() {
     [current],
   );
 
-  // The menu lists each harness's models, but the host takes only the harness
-  // for now, and its default model with it.
-  const chooseHarness = (harness: string) => {
+  // A harness and one of its models, `null` for the agent's default. The host
+  // keeps the model for that harness's next session, and the menu checks it
+  // once the harnesses are listed again.
+  const chooseHarness = (harness: string, model: string | null) => {
     setNotice(null);
-    rpc.choose(harness as Harness).then(
-      () => heardChoice(harness as Harness),
+    rpc.choose(harness as Harness, model).then(
+      () => {
+        heardChoice(harness as Harness);
+        void listHarnesses();
+      },
       (err: unknown) => setNotice(noticeOf(err, strings.failed.choose, current)),
     );
   };
@@ -366,7 +374,7 @@ export default function App() {
                   // With no agent running, a pick chooses the next session's
                   // harness. While one runs, its prompts go to that agent until
                   // a new session starts, so only its model can change.
-                  onChoose={running === null ? (harness) => chooseHarness(harness) : onModel}
+                  onChoose={running === null ? chooseHarness : onModel}
                   sections={settingSections(status, live, onMode, onConfig)}
                 />
               }

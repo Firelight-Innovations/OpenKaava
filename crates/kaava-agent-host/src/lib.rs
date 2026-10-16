@@ -25,6 +25,7 @@ mod job;
 pub mod kaava_call;
 pub mod mask;
 pub mod mcp;
+pub mod models;
 pub mod normalize;
 pub mod session;
 pub mod transcript;

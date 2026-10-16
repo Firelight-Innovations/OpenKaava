@@ -8,9 +8,11 @@ const CLAUDE: HarnessInfo = {
   hint: null,
   setup: { cli: "claude", signIn: "claude", adapterInstall: "", adapterVersion: "0.90.0" },
   capabilities: { steer: false, fork: false, modes: true },
+  models: null,
+  model: null,
 };
-const OPUS = { value: "opus", name: "Opus 5.5" };
-const SONNET = { value: "sonnet", name: "Sonnet 5.5" };
+const OPUS = { value: "opus", name: "Opus 5.5", description: null };
+const SONNET = { value: "sonnet", name: "Sonnet 5.5", description: null };
 
 describe("harnessChoices", () => {
   it("lists Claude, Codex and Kaava, and the ones the host does not run are coming soon", () => {

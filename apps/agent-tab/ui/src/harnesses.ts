@@ -12,17 +12,6 @@ import { strings } from "./strings";
 /** The menu's order. A harness the host reports beyond these follows them. */
 export const HARNESSES = ["claude", "codex", "kaava"];
 
-/**
- * What the host adds to a harness once it scans it for its models, as
- * harness-bridge proposed it. Not in the protocol yet: read when present, so
- * the menu fills in as soon as the host sends it. `models` is `null` until a
- * scan has run; `model` is the value the next session starts with.
- */
-interface Scanned {
-  models?: PickerChoice[] | null;
-  model?: string | null;
-}
-
 /** The running session's model setting: what it offers and what it runs. */
 export interface RunningModel {
   models: PickerChoice[];
@@ -43,7 +32,7 @@ export function harnessChoices(
     (id, i, all) => all.indexOf(id) === i,
   );
   return ids.map((id) => {
-    const info = reported.find((h) => h.harness === id) as (HarnessInfo & Scanned) | undefined;
+    const info = reported.find((h) => h.harness === id);
     // The registry's own name for a harness it reports; the menu's for the rest.
     const name = info?.name ?? strings.harnessName[id] ?? id;
     const inUse = id === current;

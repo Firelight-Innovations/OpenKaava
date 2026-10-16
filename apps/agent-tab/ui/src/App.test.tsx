@@ -57,6 +57,8 @@ const CLAUDE: HarnessInfo = {
     adapterVersion: "0.90.0",
   },
   capabilities: { steer: false, fork: false, modes: false },
+  models: null,
+  model: null,
 };
 
 /** Codex as `agent-tab/harnesses` describes it, from `harness/codex.rs`. */
@@ -71,6 +73,8 @@ const CODEX: HarnessInfo = {
     adapterVersion: "2.2.2",
   },
   capabilities: { steer: false, fork: false, modes: false },
+  models: null,
+  model: null,
 };
 
 const STATUS: SessionStatus = {
@@ -1070,7 +1074,36 @@ describe("the harness", () => {
     await act(async () => {
       fireEvent.click(pi);
     });
-    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/choose", { harness: "pi" });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/choose", { harness: "pi", model: null });
+  });
+
+  it("sends the model picked under a harness, and lists the harnesses again", async () => {
+    const offered = [
+      { value: "default", name: "Default", description: null },
+      { value: "opus", name: "Opus", description: null },
+    ];
+    const claude = { ...CLAUDE, models: offered, model: "default" };
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        "agent-tab/harnesses": () =>
+          Promise.resolve({ harnesses: [claude], current: "claude", blocked: null }),
+      },
+    );
+    const asked = () =>
+      bridge.invoke.mock.calls.filter(([method]) => method === "agent-tab/harnesses").length;
+    render(<App />);
+    await waitFor(() => expect(asked()).toBe(1));
+    fireEvent.click(await settingsButton());
+    const group = await screen.findByRole("group", { name: "Claude" });
+    await act(async () => {
+      fireEvent.click(within(group).getByRole("menuitemradio", { name: /Opus/ }));
+    });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/choose", {
+      harness: "claude",
+      model: "opus",
+    });
+    await waitFor(() => expect(asked()).toBe(2));
   });
 
   it("cannot be switched while its agent runs", async () => {
@@ -1219,5 +1252,15 @@ describe("the harness", () => {
     render(<App />);
     await screen.findByText(/Claude is not signed in\. Run `claude` once/);
     expect(screen.queryByText(/codex login/)).toBeNull();
+  });
+
+  it("asks for the harnesses again once an agent's models are in", async () => {
+    backend({ status: null, seq: 0, items: [] });
+    const asked = () =>
+      bridge.invoke.mock.calls.filter(([method]) => method === "agent-tab/harnesses").length;
+    render(<App />);
+    await waitFor(() => expect(asked()).toBe(1));
+    act(() => bridge.listeners.get("agent-tab:models")?.({ instanceId: "i", harness: "claude" }));
+    await waitFor(() => expect(asked()).toBe(2));
   });
 });

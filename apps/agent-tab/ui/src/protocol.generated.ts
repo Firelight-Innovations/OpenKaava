@@ -450,4 +450,14 @@ setup: Setup,
 /**
  * What the tab may offer for it.
  */
-capabilities: Capabilities, };
+capabilities: Capabilities, 
+/**
+ * The models its agent offers, as its `model` option lists them, or
+ * `None` until the host has asked it.
+ */
+models: Array<ConfigChoice> | null, 
+/**
+ * The value of the model its next session starts on: the tab's choice,
+ * else the agent's default. `None` when neither is known.
+ */
+model: string | null, };

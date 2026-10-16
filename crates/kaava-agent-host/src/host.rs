@@ -15,6 +15,7 @@ use std::time::{Duration, Instant};
 use crate::event::{Attachment, Envelope, Event, Hint, Item, SessionStatus};
 use crate::guard::{NotAWorktree, Worktree};
 use crate::harness::{Harness, LaunchSpec, Protocol};
+use crate::models::MODEL_CATEGORY;
 use crate::session::{Level, Log, Session, Sink, Start};
 
 /// How long a retired session gets to exit before its thread gives up
@@ -407,7 +408,7 @@ fn model_name(status: SessionStatus) -> Option<String> {
     let option = status
         .config
         .into_iter()
-        .find(|o| o.category.as_deref() == Some("model"))?;
+        .find(|o| o.category.as_deref() == Some(MODEL_CATEGORY))?;
     let label = option.choices.into_iter().find(|c| c.value == option.value);
     Some(label.map_or(option.value, |c| c.name))
 }
