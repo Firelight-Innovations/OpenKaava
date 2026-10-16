@@ -53,14 +53,16 @@ const INSTANCE_METHODS: &[&str] = &[
     "agent-tab/attach",
     "agent-tab/cancel",
     "agent-tab/answer",
+    "agent-tab/set-mode",
     "agent-tab/stop",
     "agent-tab/reset",
 ];
 
 /// The methods that advance an agent, and so run only with developer mode on.
-/// An approval advances it as much as a prompt does. Every one is also a
-/// write to the cluster's checkout, so it is in `apps::WRITE_METHODS` too.
-const GATED_METHODS: &[&str] = &["agent-tab/send", "agent-tab/answer"];
+/// An approval advances it as much as a prompt does, and a mode decides what
+/// it may do unasked. Every one is also a write to the cluster's checkout, so
+/// it is in `apps::WRITE_METHODS` too.
+const GATED_METHODS: &[&str] = &["agent-tab/send", "agent-tab/answer", "agent-tab/set-mode"];
 
 /// The instance methods developer mode never blocks, on purpose: they read, or
 /// they end what is running, and a person who turned developer mode off has to
@@ -238,6 +240,8 @@ pub fn call_for(
             &text_param(&params, "itemId")?,
             &text_param(&params, "optionId")?,
         )),
+        // Gated with `send` above. Bypassing permissions is never on offer.
+        "agent-tab/set-mode" => queued(host.set_mode(instance, &text_param(&params, "modeId")?)),
         "agent-tab/stop" => {
             host.stop(instance);
             Ok(json!({}))
@@ -350,6 +354,14 @@ fn unreached(method: &str) -> RpcError {
     RpcError::new(METHOD_NOT_FOUND, format!("no such method: {method}"))
 }
 
+/// A setting change's answer: its number. The tab waits for a status whose
+/// `answered` reaches it.
+fn queued(result: Result<u64, HostError>) -> Result<Value, RpcError> {
+    result
+        .map(|ticket| json!({ "ticket": ticket }))
+        .map_err(host_error)
+}
+
 fn host_error(error: HostError) -> RpcError {
     let code = error.code();
     let hint = error.hint();
@@ -426,11 +438,20 @@ mod tests {
         }
     }
 
+    /// rpc.ts reads the number from `ticket`.
+    #[test]
+    fn a_setting_change_answers_with_its_number() {
+        assert_eq!(queued(Ok(7)).unwrap(), json!({ "ticket": 7 }));
+        let err = queued(Err(HostError::UnknownOption)).unwrap_err();
+        assert_eq!(err.code, REFUSED);
+        assert_eq!(code_of(&err), Some("unknownOption"));
+    }
+
     /// MCP `app_call` reaches the registry dispatch with no instance, so an
     /// agent can neither prompt another agent nor approve its requests.
     #[test]
     fn a_call_without_its_tab_is_refused() {
-        for method in ["agent-tab/send", "agent-tab/answer"] {
+        for method in ["agent-tab/send", "agent-tab/answer", "agent-tab/set-mode"] {
             assert!(INSTANCE_METHODS.contains(&method));
             let err = unreached(method);
             assert_eq!(err.code, REFUSED, "{method}");

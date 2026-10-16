@@ -41,8 +41,10 @@ const EVERYTHING: Attachment = {
     exitCode: 1,
     hint: "signedOut",
     pendingPrompt: "and then",
-    modes: [],
+    modes: [{ value: "default", name: "Manual", description: null }],
     config: [],
+    answered: 0,
+    settingTrouble: null,
   },
   items: [
     item("u", { kind: "userMessage", text: "hi" }),
@@ -172,10 +174,10 @@ describe("the slot registry", () => {
     backend(() => Promise.resolve(EVERYTHING));
     render(<App />);
     // EVERYTHING's usage item is 10 of 100 tokens; its session runs Claude in
-    // "default", which reads as what it means.
+    // "default", shown by the name the agent gives it.
     expect(await screen.findByRole("button", { name: "Context window 10% full" })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Agent settings/ }).textContent).toBe(
-      "Claude · Ask before acting",
+      "Claude · Manual",
     );
   });
 

@@ -30,7 +30,7 @@ pub mod wire;
 
 pub use event::{
     Attachment, ConfigChoice, ConfigOption, Envelope, Event, HarnessInfo, Hint, Item, ItemKind,
-    SessionState, SessionStatus,
+    SessionState, SessionStatus, SettingTrouble,
 };
 pub use guard::{NotAWorktree, Worktree};
 pub use harness::{spec, Capabilities, Descriptor, Harness, LaunchSpec, Setup, REGISTRY};

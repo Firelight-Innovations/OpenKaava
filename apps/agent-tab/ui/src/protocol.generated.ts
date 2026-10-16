@@ -287,6 +287,19 @@ modes: Array<ConfigChoice>,
  */
 config: Array<ConfigOption>, 
 /**
+ * The number of the last setting change the agent answered. Changing a
+ * setting returns the change's number, and numbers only grow, so the tab
+ * knows which status answers the choice it is showing. A new session
+ * starts past every change made before it.
+ */
+answered: number, 
+/**
+ * What went wrong with the last setting change, until the next one is
+ * answered. Drawn beside the setting, never in the transcript, so
+ * nothing offers to retry it as a prompt.
+ */
+settingTrouble: SettingTrouble | null, 
+/**
  * The adapter's own version, as it reported it at `initialize`.
  */
 adapterVersion: string | null, 
@@ -305,6 +318,20 @@ hint: Hint | null,
  * begins, so this is how the tab shows it meanwhile, and Stop withdraws it.
  */
 pendingPrompt: string | null, };
+
+export type SettingTrouble = { "kind": "unanswered", 
+/**
+ * The change's number.
+ */
+ticket: number, } | { "kind": "refused", 
+/**
+ * The change's number.
+ */
+ticket: number, 
+/**
+ * The agent's reason, masked.
+ */
+message: string, };
 
 export type ConfigOption = { 
 /**

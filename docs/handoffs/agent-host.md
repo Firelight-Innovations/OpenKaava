@@ -348,10 +348,13 @@ signs in to Claude or ChatGPT, so those runs are owner-run (§9.2).
 #### First slice (Claude only)
 
 - **Adapter trait (§3.2).** The trait has the subset the Claude path uses: start, prompt,
-  cancel, answer, stop. Steer, fork and model listing arrive with Codex and Pi.
+  cancel, answer, stop, and since the parity work set-mode. Steer, fork and model listing
+  arrive with Codex and Pi.
 - **Developer mode gate.** `agent-tab/send` and `agent-tab/answer`, the calls that start or
   advance a session, are refused unless `developer.mode` is on, and the agent bar is hidden
-  without it. Stop, cancel, reset and attach always work. This holds until V6.
+  without it. So is `agent-tab/set-mode`, since a mode decides what the agent may do unasked;
+  it is a write method too, refused on a main checkout. Stop, cancel, reset and attach always
+  work. This holds until V6.
 - **Call routing.** `apps::CallContext` is not widened. A new `apps::call_for_instance` passes
   the instance id to `agent-tab/*` methods only, and checks that the id names an agent tab in the
   layout. An MCP `app_call` has no instance, so it can reach `agent-tab/harnesses` and nothing else.
@@ -387,8 +390,9 @@ signs in to Claude or ChatGPT, so those runs are owner-run (§9.2).
   not a permission prompt does not reach the tab.
 - **No docs link (§4.5).** Apps have no way to open a URL yet, so the one-line fix has no link.
 - **Icons.** Text and Unicode glyphs only, pending §11.7.
-- **Agent bar.** Harness label, prompt and Send. The model picker, mode indicator, context chips
-  and the `Ctrl+L` binding are later steps.
+- **Agent bar.** Harness label, prompt and Send. The agent tab's own footer has the mode picker
+  (parity PR 2); the bar has none yet, nor a model picker, context chips or the `Ctrl+L`
+  binding. Those are later steps.
 
 ##### Not done in this slice
 

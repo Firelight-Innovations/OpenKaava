@@ -1,6 +1,6 @@
 //! One agent process and the ACP session inside it.
 //!
-//! Five threads, each owning one thing, so that nothing that can block — a
+//! Six threads, each owning one thing, so that nothing that can block — a
 //! pipe write, a read, a wait — ever runs while another thread needs the
 //! session's lock:
 //!
@@ -12,11 +12,13 @@
 //!   end, is what ends the session: a grandchild can hold stdout open long
 //!   after the agent is gone.
 //! - the **driver** runs the handshake and then one prompt at a time.
+//! - the **settings** thread asks the agent for one setting change at a time
+//!   — a mode, a model — in the order the user made them.
 //!
 //! None of them is joined. Each holds the shared state, and goes when its own
 //! work ends.
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 use std::io::{BufRead, BufReader, ErrorKind, Read, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -29,7 +31,7 @@ use serde_json::{json, Value};
 
 use crate::config::{self, Settings};
 use crate::event::{
-    Attachment, Envelope, Event, Hint, Item, ItemKind, SessionState, SessionStatus,
+    Attachment, Envelope, Event, Hint, Item, ItemKind, SessionState, SessionStatus, SettingTrouble,
 };
 use crate::guard::{outside, request_paths, Worktree};
 use crate::harness::LaunchSpec;
@@ -75,6 +77,11 @@ const MESSAGE_LIMIT: usize = 32 * 1024 * 1024;
 /// refused unseen.
 const MAX_PENDING_APPROVALS: usize = 64;
 
+/// The most characters of an agent's reason for refusing a change that are
+/// kept. It rides on every status event until the next change is answered
+/// and is drawn inline, so a stack or a dumped option list stops short.
+const REFUSAL_REASON: usize = 300;
+
 /// Local codes for a reply that never came. Negative and far from JSON-RPC's
 /// reserved range, so no agent sends them.
 const CLOSED: i64 = -1;
@@ -88,6 +95,8 @@ pub(crate) struct Start {
     pub(crate) prefix: String,
     pub(crate) prior: Vec<Item>,
     pub(crate) seq: Arc<AtomicU64>,
+    /// The host's count of setting changes, which numbers this session's.
+    pub(crate) changes: Arc<AtomicU64>,
     pub(crate) events: Sender<Envelope>,
     pub(crate) log: Log,
 }
@@ -103,11 +112,14 @@ struct Shared {
     expected_version: Option<&'static str>,
     /// The mode the handshake puts the session in, from its harness's policy.
     ask_first: &'static str,
+    setting_timeout: Duration,
     child: Mutex<Child>,
     /// What ends the child and everything it started at once.
     job: Option<Job>,
     writer: Sender<Line>,
+    settings: Sender<Setting>,
     seq: Arc<AtomicU64>,
+    changes: Arc<AtomicU64>,
     log: Log,
     stderr: Mutex<VecDeque<String>>,
     stderr_done: AtomicBool,
@@ -127,10 +139,17 @@ struct Inner {
     transcript: Transcript,
     status: SessionStatus,
     session_id: Option<String>,
-    /// Requests whose replies carry the session's settings. The reader takes
-    /// each reply in as it arrives, so a notification sent after it is never
-    /// overwritten by it.
-    changing: HashSet<i64>,
+    /// The id of the agent's config option for the mode, when it has one.
+    /// Claude's does, and a change through it answers with every setting as
+    /// it now stands, which `session/set_mode` does not.
+    mode_option: Option<String>,
+    /// Requests whose replies carry the session's settings, by id. The reader
+    /// takes each reply in as it arrives, so a notification sent after it is
+    /// never overwritten by it.
+    changing: HashMap<i64, Asked>,
+    /// How many times the agent has reported its mode, so a reply to
+    /// `session/set_mode`, which does not say, knows whether one came first.
+    mode_reports: u64,
     events: Sender<Envelope>,
     last_seq: u64,
     noise: u64,
@@ -150,6 +169,30 @@ enum Line {
     Close,
 }
 
+/// Work for the settings thread.
+enum Setting {
+    Change(Change),
+    Close,
+}
+
+/// One request that changes a setting.
+struct Change {
+    method: &'static str,
+    params: Value,
+    /// The mode it sets, for `session/set_mode`, whose reply does not say.
+    mode: Option<String>,
+    /// Its number, which `status.answered` takes once it is answered.
+    ticket: u64,
+}
+
+/// A request in flight whose reply carries the session's settings.
+struct Asked {
+    /// The mode it sets, for `session/set_mode`, whose reply does not say.
+    mode: Option<String>,
+    /// `mode_reports` when it was sent.
+    reports: u64,
+}
+
 impl Session {
     /// Spawn the process and its threads. The handshake waits for the first
     /// prompt.
@@ -161,6 +204,7 @@ impl Session {
             prefix,
             prior,
             seq,
+            changes,
             events,
             log,
         } = start;
@@ -187,6 +231,7 @@ impl Session {
         };
         let pid = child.id();
         let (writer, lines) = mpsc::channel();
+        let (settings, queued) = mpsc::channel();
         let status = SessionStatus {
             state: SessionState::Starting,
             harness: spec.harness,
@@ -194,6 +239,8 @@ impl Session {
             mode: None,
             modes: Vec::new(),
             config: Vec::new(),
+            answered: changes.load(Ordering::SeqCst),
+            setting_trouble: None,
             adapter_version: None,
             exit_code: None,
             hint: None,
@@ -204,10 +251,13 @@ impl Session {
             worktree,
             expected_version: spec.expected_version,
             ask_first: spec.policy.ask_first,
+            setting_timeout: spec.setting_timeout,
             child: Mutex::new(child),
             job,
             writer,
+            settings,
             seq: Arc::clone(&seq),
+            changes,
             log,
             stderr: Mutex::new(VecDeque::new()),
             stderr_done: AtomicBool::new(false),
@@ -222,7 +272,9 @@ impl Session {
                 transcript: Transcript::from_items(prior),
                 status,
                 session_id: None,
-                changing: HashSet::new(),
+                mode_option: None,
+                changing: HashMap::new(),
+                mode_reports: 0,
                 events,
                 last_seq: seq.load(Ordering::SeqCst),
                 noise: 0,
@@ -251,6 +303,8 @@ impl Session {
         spawn("agent-waiter", move || s.wait_for_exit());
         let s = Arc::clone(&shared);
         spawn("agent-driver", move || s.drive());
+        let s = Arc::clone(&shared);
+        spawn("agent-settings", move || s.change_settings(&queued));
         Ok(Self { shared })
     }
 
@@ -318,6 +372,31 @@ impl Session {
         shared.complete_approval(&mut inner, item_id, option_id);
         shared.settle(&mut inner);
         Ok(())
+    }
+
+    /// Switch the agent to `mode_id`, one of the modes its status offers.
+    /// Returns the change's number once it is queued. The first status whose
+    /// `answered` reaches that number shows the mode the agent settled on,
+    /// which can differ from the one asked for.
+    pub(crate) fn set_mode(&self, mode_id: &str) -> Result<u64, HostError> {
+        let inner = self.shared.lock();
+        let session_id = open(&inner)?;
+        if !inner.status.modes.iter().any(|m| m.value == mode_id) {
+            return Err(HostError::UnknownOption);
+        }
+        let change = match &inner.mode_option {
+            Some(config_id) => (
+                "session/set_config_option",
+                json!({ "sessionId": session_id, "configId": config_id, "value": mode_id }),
+                None,
+            ),
+            None => (
+                "session/set_mode",
+                json!({ "sessionId": session_id, "modeId": mode_id }),
+                Some(mode_id.to_string()),
+            ),
+        };
+        Ok(self.shared.queue(&inner, change))
     }
 
     /// Everything drawn so far.
@@ -394,6 +473,7 @@ impl Inner {
         if let Some(mode) = settings.mode {
             self.show_mode(mode.value);
             self.status.modes = config::allowed(mode.choices);
+            self.mode_option = Some(mode.id);
         }
         self.status.config = settings.options;
     }
@@ -413,15 +493,32 @@ impl Inner {
     }
 
     /// Take in a reply that carries the settings: `session/new`'s modes and
-    /// list.
-    fn answered(&mut self, result: &Value) {
+    /// list, or a change's list. `session/set_mode` answers `{}`, so the mode
+    /// it asked for is taken as set, unless the agent has reported one since.
+    fn answered(&mut self, result: &Value, asked: Asked) {
         if let Some(choices) = result.get("modes").and_then(config::modes) {
             self.status.modes = config::allowed(choices);
         }
         if let Some(list) = result.get("configOptions").filter(|l| l.is_array()) {
             self.apply(config::settings(list));
         }
+        if let Some(mode) = asked.mode {
+            if self.mode_reports == asked.reports {
+                self.status.mode = Some(mode);
+            }
+        }
     }
+}
+
+/// The ACP session id, for a session that is open and past its handshake.
+fn open(inner: &Inner) -> Result<String, HostError> {
+    if inner.closed || inner.status.state == SessionState::Failed {
+        return Err(HostError::Closed);
+    }
+    if inner.status.state == SessionState::Starting {
+        return Err(HostError::NoSession);
+    }
+    inner.session_id.clone().ok_or(HostError::NoSession)
 }
 
 impl Shared {
@@ -431,6 +528,25 @@ impl Shared {
 
     fn send(&self, line: String) {
         let _ = self.writer.send(Line::Send(line));
+    }
+
+    /// Number a change and hand it to the settings thread, which sends them
+    /// in the order they were numbered. Taking the lock's guard keeps two
+    /// callers from numbering in one order and queueing in the other.
+    fn queue(
+        &self,
+        _held: &Inner,
+        (method, params, mode): (&'static str, Value, Option<String>),
+    ) -> u64 {
+        let ticket = self.changes.fetch_add(1, Ordering::SeqCst) + 1;
+        let change = Change {
+            method,
+            params,
+            mode,
+            ticket,
+        };
+        let _ = self.settings.send(Setting::Change(change));
+        ticket
     }
 
     fn send_close(&self) {
@@ -577,7 +693,7 @@ impl Shared {
             .send_request(
                 "session/new",
                 json!({ "cwd": cwd, "mcpServers": [] }),
-                carries_settings,
+                carries_settings(None),
             )
             .and_then(|id| self.finish(id, "session/new", Some(HANDSHAKE)))
             .map_err(Failure::from)?;
@@ -755,20 +871,35 @@ impl Shared {
         timeout: Option<Duration>,
     ) -> Result<Value, RemoteError> {
         let deadline = timeout.map(|t| Instant::now() + t);
+        self.await_reply(id, deadline, |inner| {
+            inner.changing.remove(&id);
+            inner.replies.remove(&id);
+        })
+        .unwrap_or_else(|| Err(timed_out(method)))
+    }
+
+    /// Wait for the reply to `id` until `deadline`. `None` if it passes
+    /// first, after `give_up` has run under the hold of the lock that found
+    /// no reply; without one the slot stays, and can still be waited for.
+    fn await_reply(
+        &self,
+        id: i64,
+        deadline: Option<Instant>,
+        give_up: impl FnOnce(&mut Inner),
+    ) -> Option<Result<Value, RemoteError>> {
         let mut inner = self.lock();
         loop {
             if let Some(Some(_)) = inner.replies.get(&id) {
                 let reply = inner.replies.remove(&id).flatten();
-                return reply.unwrap_or_else(|| Err(closed()));
+                return Some(reply.unwrap_or_else(|| Err(closed())));
             }
             inner = match deadline {
                 None => self.wake.wait(inner).unwrap_or_else(|e| e.into_inner()),
                 Some(deadline) => {
                     let left = deadline.saturating_duration_since(Instant::now());
                     if left.is_zero() {
-                        inner.changing.remove(&id);
-                        inner.replies.remove(&id);
-                        return Err(timed_out(method));
+                        give_up(&mut inner);
+                        return None;
                     }
                     self.wake
                         .wait_timeout(inner, left)
@@ -777,6 +908,81 @@ impl Shared {
                 }
             };
         }
+    }
+
+    // --- the settings thread ---------------------------------------------
+
+    /// Send each change and wait for its reply before the next, so two quick
+    /// changes land in the order they were made. The reader takes the reply's
+    /// settings in; this ends in a status whose `answered` counts the change,
+    /// so the tab knows its choice was answered, and whose `setting_trouble`
+    /// holds a refusal. A change with no reply within the spec's
+    /// `setting_timeout` is reported as unanswered, and still waited for, so
+    /// a late reply is taken in and the next change never overtakes it. Of
+    /// several waiting changes to one setting in a row, only the last is sent.
+    fn change_settings(self: Arc<Self>, changes: &Receiver<Setting>) {
+        let mut backlog: VecDeque<Change> = VecDeque::new();
+        loop {
+            let change = match backlog.pop_front() {
+                Some(change) => change,
+                None => match changes.recv() {
+                    Ok(Setting::Change(change)) => change,
+                    Ok(Setting::Close) | Err(_) => return,
+                },
+            };
+            let Change {
+                method,
+                params,
+                mode,
+                ticket,
+            } = change;
+            let Ok(id) = self.send_request(method, params, carries_settings(mode)) else {
+                return;
+            };
+            let deadline = Instant::now() + self.setting_timeout;
+            let mut reply = self.await_reply(id, Some(deadline), |_| {});
+            if reply.is_none() {
+                if !self.report(Some(SettingTrouble::Unanswered { ticket }), None) {
+                    return;
+                }
+                reply = self.await_reply(id, None, |_| {});
+            }
+            let trouble = match reply.unwrap_or_else(|| Err(closed())) {
+                Ok(_) => None,
+                Err(e) => Some(SettingTrouble::Refused {
+                    ticket,
+                    message: refusal_reason(&e.message),
+                }),
+            };
+            if !self.report(trouble, Some(ticket)) {
+                return;
+            }
+            // Changes made while that one was out: of several to one setting
+            // in a row, only the last is sent, so a user who stepped through
+            // modes to reach one never puts the agent in the ones between.
+            for setting in changes.try_iter() {
+                match setting {
+                    Setting::Change(change) => queue_behind(&mut backlog, change),
+                    Setting::Close => return,
+                }
+            }
+        }
+    }
+
+    /// Emit the status with `trouble`, and with the number of the change it
+    /// answers, if it does. False once the session has closed.
+    fn report(&self, trouble: Option<SettingTrouble>, answered: Option<u64>) -> bool {
+        let mut inner = self.lock();
+        if inner.closed {
+            return false;
+        }
+        inner.status.setting_trouble = trouble;
+        if let Some(ticket) = answered {
+            inner.status.answered = ticket;
+        }
+        let status = inner.status.clone();
+        self.emit(&mut inner, Event::Status { status });
+        true
     }
 
     // --- the reader ------------------------------------------------------
@@ -799,9 +1005,9 @@ impl Shared {
             Some(Incoming::Response { id, outcome }) => {
                 let Id::Number(n) = id else { return };
                 let mut inner = self.lock();
-                if inner.changing.remove(&n) {
+                if let Some(asked) = inner.changing.remove(&n) {
                     if let Ok(result) = &outcome {
-                        inner.answered(result);
+                        inner.answered(result, asked);
                     }
                 }
                 if let Some(slot) = inner.replies.get_mut(&n) {
@@ -838,8 +1044,12 @@ impl Shared {
                     }
                     if let Some(mode) = mode {
                         inner.show_mode(mode);
+                        inner.mode_reports += 1;
                     }
                     if let Some(settings) = settings {
+                        if settings.mode.is_some() {
+                            inner.mode_reports += 1;
+                        }
                         inner.apply(settings);
                     }
                     // During the handshake, the status it ends with carries
@@ -969,6 +1179,8 @@ impl Shared {
         let (dropped, noise, ready) = {
             let mut inner = self.lock();
             inner.closed = true;
+            // Nothing is left to answer a change, or to change.
+            inner.status.setting_trouble = None;
             for slot in inner.replies.values_mut() {
                 if slot.is_none() {
                     *slot = Some(Err(closed()));
@@ -992,6 +1204,7 @@ impl Shared {
             let status = inner.status.clone();
             self.emit(&mut inner, Event::Status { status });
             self.wake.notify_all();
+            let _ = self.settings.send(Setting::Close);
             (inner.normalizer.dropped(), inner.noise, ready)
         };
         let code_text = code.map_or("none".to_string(), |c| c.to_string());
@@ -1075,10 +1288,42 @@ fn timed_out(method: &str) -> RemoteError {
     }
 }
 
+/// Add `change` to the changes still to send. It takes the place of the last
+/// one if that sets the same thing: a later choice answers an earlier one that
+/// was never sent, and its number covers the earlier number.
+fn queue_behind(backlog: &mut VecDeque<Change>, change: Change) {
+    let same = |a: &Change| {
+        a.method == change.method && a.params.get("configId") == change.params.get("configId")
+    };
+    match backlog.back_mut() {
+        Some(last) if same(last) => *last = change,
+        _ => backlog.push_back(change),
+    }
+}
+
+/// An agent's reason for refusing a change, as it is stored and sent with
+/// every status: its first line, masked, and cut to [`REFUSAL_REASON`]
+/// characters with an ellipsis.
+fn refusal_reason(message: &str) -> String {
+    let line = message
+        .lines()
+        .map(str::trim)
+        .find(|l| !l.is_empty())
+        .unwrap_or_default();
+    let line = mask(line);
+    match line.char_indices().nth(REFUSAL_REASON) {
+        Some((end, _)) => format!("{}…", line[..end].trim_end()),
+        None => line,
+    }
+}
+
 /// Mark a request as one whose reply carries the settings, for the reader to
-/// take in.
-fn carries_settings(inner: &mut Inner, id: i64) {
-    inner.changing.insert(id);
+/// take in. `mode` is the mode a `session/set_mode` sets.
+fn carries_settings(mode: Option<String>) -> impl FnOnce(&mut Inner, i64) {
+    move |inner, id| {
+        let reports = inner.mode_reports;
+        inner.changing.insert(id, Asked { mode, reports });
+    }
 }
 
 /// Read one line into `buf`, keeping at most `limit` bytes of it and reading
@@ -1142,6 +1387,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn a_refusal_reason_is_one_masked_line_of_bounded_length() {
+        assert_eq!(refusal_reason("Internal error: no"), "Internal error: no");
+        assert_eq!(refusal_reason(""), "");
+        // The first line only, so a stack stays out of every status.
+        assert_eq!(
+            refusal_reason("\n  Invalid Mode: plan\n    at run (agent.js:1)\n"),
+            "Invalid Mode: plan"
+        );
+        assert_eq!(
+            refusal_reason("bad key sk-abcdefghijklmnopqrstuvwxyz"),
+            "bad key <redacted>"
+        );
+        // Cut on a character boundary, however wide the characters are.
+        let long = "é".repeat(REFUSAL_REASON + 50);
+        let cut = refusal_reason(&long);
+        assert_eq!(cut.chars().count(), REFUSAL_REASON + 1);
+        assert!(cut.ends_with('…'));
+        // Exactly the limit is kept whole.
+        let exact = "x".repeat(REFUSAL_REASON);
+        assert_eq!(refusal_reason(&exact), exact);
+    }
+
+    #[test]
     fn a_long_line_is_cut_and_the_next_one_is_whole() {
         let mut reader = BufReader::with_capacity(4, "abcdefgh\nxy\nz".as_bytes());
         let mut buf = Vec::new();
@@ -1180,13 +1448,17 @@ mod tests {
                 mode: None,
                 modes: Vec::new(),
                 config: Vec::new(),
+                answered: 0,
+                setting_trouble: None,
                 adapter_version: None,
                 exit_code: None,
                 hint: None,
                 pending_prompt: None,
             },
             session_id: None,
-            changing: HashSet::new(),
+            mode_option: None,
+            changing: HashMap::new(),
+            mode_reports: 0,
             events,
             last_seq: 0,
             noise: 0,

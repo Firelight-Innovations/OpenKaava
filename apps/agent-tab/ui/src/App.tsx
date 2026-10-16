@@ -22,14 +22,33 @@ import {
   type AppendMessage,
 } from "@assistant-ui/react";
 import { reportPainted } from "@openkaava/bridge";
-import type { Attachment, Envelope, HarnessInfo, Hint } from "./protocol.generated";
+import type {
+  Attachment,
+  Envelope,
+  HarnessInfo,
+  Hint,
+  SessionStatus,
+  SettingTrouble,
+} from "./protocol.generated";
 import { harnessChoices } from "./harnesses";
 import { latestUsage } from "./meters";
-import { attached, busy, initialState, promptBefore, received, type TabState } from "./model";
+import {
+  attached,
+  busy,
+  initialState,
+  nextMode,
+  unanswered,
+  promptBefore,
+  received,
+  settable,
+  type Pending,
+  type TabState,
+} from "./model";
 import * as rpc from "./rpc";
 import { toTurns, type Turn } from "./thread";
 import { Turns, TurnsProvider } from "./Turns";
 import { useSlots } from "./components/registry";
+import type { PickerProps } from "./components/types";
 import { strings } from "./strings";
 
 type Action =
@@ -65,6 +84,7 @@ export default function App() {
   const [setupHint, setSetupHint] = useState<Hint | null>(null);
   const [reported, setReported] = useState<HarnessInfo[]>([]);
   const [attachFailed, setAttachFailed] = useState(false);
+  const [pending, setPending] = useState<Pending | null>(null);
   const prompt = useRef<HTMLTextAreaElement | null>(null);
 
   // Envelopes are held until this answers, so a retry loses none of them.
@@ -94,7 +114,8 @@ export default function App() {
     return stop;
   }, [attach]);
 
-  const working = busy(state.status);
+  const status = state.status;
+  const working = busy(status);
 
   const submit = useCallback((text: string) => {
     if (text.trim() === "") return;
@@ -111,10 +132,47 @@ export default function App() {
     void rpc.cancel().catch(() => {});
   }, []);
 
+  const live = unanswered(pending, status);
+
+  // Shown at once and held until the status that answers it; a refusal from
+  // the host takes it back.
+  const choose = (change: () => Promise<number>, apply: (p: Pending) => Pending) => {
+    if (status === null || !settable(status)) return;
+    setNotice(null);
+    setPending((p) => {
+      const base = unanswered(p, status) ?? { ticket: 0, unnumbered: 0 };
+      return apply({ ...base, unnumbered: base.unnumbered + 1 });
+    });
+    change().then(
+      (ticket) =>
+        setPending(
+          (p) => p && { ...p, ticket: Math.max(p.ticket, ticket), unnumbered: p.unnumbered - 1 },
+        ),
+      (err: unknown) => {
+        setPending(null);
+        setNotice(noticeOf(err, strings.failed.setting));
+      },
+    );
+  };
+  const onMode = (modeId: string) =>
+    choose(
+      () => rpc.setMode(modeId),
+      (p) => ({ ...p, mode: modeId }),
+    );
+
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Escape" && working) {
       event.preventDefault();
       stopTurn();
+    } else if (event.key === "Tab" && event.shiftKey && status !== null && settable(status)) {
+      // Only while there is a mode to switch to; otherwise Shift+Tab moves
+      // focus back as usual. A held key keeps focus here but switches once,
+      // not through every mode on the way round.
+      const current = live?.mode ?? status.mode;
+      const next = nextMode(status.modes, current);
+      if (next === null) return;
+      event.preventDefault();
+      if (!event.repeat) onMode(next);
     } else if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       if (!working) submit(draft);
@@ -164,9 +222,10 @@ export default function App() {
     onCancel: async () => stopTurn(),
   });
 
-  const status = state.status;
   const hint = status?.hint ?? null;
-  const pending = typeof status?.pendingPrompt === "string" ? status.pendingPrompt : null;
+  // A session that has ended has nothing left to answer.
+  const trouble = status && settable(status) ? status.settingTrouble : null;
+  const pendingPrompt = typeof status?.pendingPrompt === "string" ? status.pendingPrompt : null;
   const exited = status !== null && (status.state === "stopped" || status.state === "failed");
 
   return (
@@ -187,7 +246,7 @@ export default function App() {
           }
           transcript={
             <S.Transcript>
-              {state.items.length === 0 && pending === null ? (
+              {state.items.length === 0 && pendingPrompt === null ? (
                 <S.EmptyState
                   blocked={blocked}
                   setupHint={setupHint && strings.hint[setupHint]}
@@ -199,7 +258,7 @@ export default function App() {
               ) : (
                 <Turns />
               )}
-              {pending !== null && <S.UserMessage text={pending} pending />}
+              {pendingPrompt !== null && <S.UserMessage text={pendingPrompt} pending />}
               {hint && <S.Hint text={strings.hint[hint]} />}
               {exited && state.items.length > 0 && (
                 <S.Note text={strings.exited(status.exitCode)} />
@@ -222,6 +281,7 @@ export default function App() {
                       action={{ label: strings.retry, onClick: () => void attach() }}
                     />
                   )}
+                  {trouble && <S.Notice text={troubleText(trouble)} hint={null} action={null} />}
                   {notice && (
                     <S.Notice
                       text={notice.text}
@@ -239,15 +299,7 @@ export default function App() {
                   // report a session's models or take a harness choice on this
                   // branch, so the menu shows the harnesses and stays locked.
                   harnesses={harnessChoices(reported, status?.harness ?? "claude", null)}
-                  sections={[
-                    {
-                      label: strings.mode,
-                      value: status?.mode ?? null,
-                      choices: status?.mode
-                        ? [{ value: status.mode, name: strings.modes[status.mode] ?? status.mode }]
-                        : [],
-                    },
-                  ]}
+                  sections={modeSection(status, live, onMode)}
                 />
               }
               meters={
@@ -269,6 +321,53 @@ export default function App() {
       </TurnsProvider>
     </AssistantRuntimeProvider>
   );
+}
+
+/**
+ * The session's mode, as the settings menu's section: the agent's own names,
+ * in its order. The agent reports its modes only once its session exists, and
+ * owner decision D2 starts that on the first send, so until then the section
+ * says when they will appear. A choice is shown at once (`live`, see
+ * `unanswered` in model.ts) and stands until the status that answers it.
+ */
+function modeSection(
+  status: SessionStatus | null,
+  live: Pending | null,
+  onMode: (modeId: string) => void,
+): PickerProps[] {
+  if (!status || status.modes.length === 0) {
+    // A session that ended before reporting any is not going to.
+    const coming = !status || status.state === "starting";
+    if (!coming) return [];
+    return [
+      {
+        label: strings.mode,
+        value: null,
+        choices: [{ value: "", name: strings.modeSettings.later }],
+      },
+    ];
+  }
+  return [
+    {
+      label: strings.mode,
+      title: strings.modeSettings.modeHint,
+      value: live?.mode ?? status.mode,
+      choices: status.modes,
+      disabled: !settable(status),
+      onChange: onMode,
+    },
+  ];
+}
+
+/**
+ * A refused change, or one the agent is slow to answer, in words. It is said
+ * above the prompt box rather than in the transcript, where an error would
+ * offer to retry the last prompt.
+ */
+function troubleText(trouble: SettingTrouble): string {
+  return trouble.kind === "refused"
+    ? strings.modeSettings.refused(trouble.message)
+    : strings.modeSettings.unanswered;
 }
 
 /** Module-level: a new function each render would make assistant-ui drop its

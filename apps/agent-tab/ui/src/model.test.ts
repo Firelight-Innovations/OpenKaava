@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { attached, busy, initialState, promptBefore, received, MAX_ITEMS } from "./model";
+import {
+  attached,
+  busy,
+  initialState,
+  nextMode,
+  promptBefore,
+  received,
+  settable,
+  unanswered,
+  MAX_ITEMS,
+} from "./model";
 import type { Envelope, Event, Item, SessionStatus } from "./protocol.generated";
 
 const text = (id: string, body: string): Item => ({
@@ -17,6 +27,8 @@ const status = (state: SessionStatus["state"]): SessionStatus => ({
   mode: "default",
   modes: [],
   config: [],
+  answered: 0,
+  settingTrouble: null,
   adapterVersion: "0.90.0",
   exitCode: null,
   hint: null,
@@ -100,5 +112,41 @@ describe("the transcript", () => {
       { id: "e2", turnId: "t2", kind: { kind: "error", message: "no sign-in", hint: "signedOut" } },
     ];
     expect(promptBefore(failed, "e2")).toBe("the one that failed");
+  });
+});
+
+describe("the settings", () => {
+  it("change only between the handshake and the exit", () => {
+    expect(settable(status("ready"))).toBe(true);
+    expect(settable(status("working"))).toBe(true);
+    expect(settable(status("needsInput"))).toBe(true);
+    expect(settable(status("starting"))).toBe(false);
+    expect(settable(status("stopped"))).toBe(false);
+    expect(settable(status("failed"))).toBe(false);
+    expect(settable(null)).toBe(false);
+  });
+
+  it("cycle through the modes in the agent's order", () => {
+    const modes = ["default", "acceptEdits", "plan"].map((value) => ({
+      value,
+      name: value,
+      description: null,
+    }));
+    expect(nextMode(modes, "default")).toBe("acceptEdits");
+    expect(nextMode(modes, "plan")).toBe("default");
+    expect(nextMode(modes, "bypassPermissions")).toBe("default");
+    expect(nextMode(modes, null)).toBe("default");
+    expect(nextMode(modes.slice(0, 1), "default")).toBeNull();
+    expect(nextMode([], "default")).toBeNull();
+  });
+
+  it("stand until the status that answers the last of them", () => {
+    const pending = { mode: "plan", ticket: 3, unnumbered: 0 };
+    const at = (answered: number) => ({ ...status("ready"), answered });
+    expect(unanswered(pending, at(2))).toBe(pending);
+    expect(unanswered(pending, at(3))).toBeNull();
+    expect(unanswered({ ...pending, unnumbered: 1 }, at(3))).not.toBeNull();
+    expect(unanswered(pending, { ...at(0), state: "stopped" })).toBeNull();
+    expect(unanswered(null, at(0))).toBeNull();
   });
 });

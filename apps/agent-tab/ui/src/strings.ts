@@ -49,13 +49,6 @@ export const strings = {
   sendGlyph: "↑",
   stopGlyph: "■",
   mode: "Mode",
-  /** The agent's permission modes by id. An id not listed here is shown as it is. */
-  modes: {
-    default: "Ask before acting",
-    acceptEdits: "Accept edits",
-    plan: "Plan only",
-    bypassPermissions: "Bypass permissions",
-  } as Record<string, string | undefined>,
   settings: "Agent settings",
   /** Joins the settings on the button: "Claude · Opus 5.5 · High". */
   settingsJoin: " · ",
@@ -101,7 +94,17 @@ export const strings = {
       ["Enter", "Send"],
       ["Shift+Enter", "New line"],
       ["Esc", "Stop the current turn"],
+      ["Shift+Tab", "Switch mode, once the session starts"],
     ] as const,
+  },
+  modeSettings: {
+    modeHint: "What the agent may do without asking you first (Shift+Tab switches)",
+    later: "The mode appears once the session starts.",
+    unanswered: "The agent has not answered that change yet. Later changes wait for it.",
+    refused: (reason: string) =>
+      reason.trim() === ""
+        ? "The agent refused that change."
+        : `The agent refused that change: ${reason}`,
   },
   you: "You",
   thinking: "Thinking",
@@ -152,6 +155,7 @@ export const strings = {
   failed: {
     attach: "Could not reach the agent host.",
     send: "Could not send that.",
+    setting: "Could not change that setting.",
   },
   exited: (code: number | null) =>
     code === null ? "The agent stopped." : `The agent stopped with exit code ${code}.`,
@@ -174,6 +178,7 @@ export const strings = {
     busy: "The agent is still working. Wait for it, or press Esc to stop it.",
     closed: "The agent has stopped. Send again to start a new session.",
     noSession: "There is no session yet.",
+    unknownOption: "The agent does not offer that choice.",
     harness: "Claude is not ready to run.",
     spawn: "The agent could not be started.",
   } as Record<string, string>,

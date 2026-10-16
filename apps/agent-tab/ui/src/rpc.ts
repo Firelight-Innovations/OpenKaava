@@ -24,6 +24,12 @@ export const cancel = () => invoke<object>("agent-tab/cancel");
 export const answer = (itemId: string, optionId: string) =>
   invoke<object>("agent-tab/answer", { itemId, optionId });
 export const reset = () => invoke<object>("agent-tab/reset");
+/**
+ * Queues the change and answers with its number. The first status whose
+ * `answered` reaches that number shows what the agent chose.
+ */
+export const setMode = (modeId: string) =>
+  invoke<{ ticket: number }>("agent-tab/set-mode", { modeId }).then((r) => r.ticket);
 
 /** Every envelope the shell relays to this frame. */
 export const onEnvelope = (cb: (envelope: Envelope) => void) =>

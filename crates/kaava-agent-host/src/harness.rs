@@ -13,6 +13,7 @@
 
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
@@ -161,6 +162,10 @@ impl AcpAdapter {
     }
 }
 
+/// How long an agent may take to answer a setting change. A model switch is
+/// a round trip to the harness's CLI, so this is not short.
+const SETTING_TIMEOUT: Duration = Duration::from_secs(30);
+
 /// How to start one agent process.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LaunchSpec {
@@ -178,6 +183,9 @@ pub struct LaunchSpec {
     pub expected_version: Option<&'static str>,
     /// What the session is held to.
     pub policy: Policy,
+    /// How long the agent may take to answer a setting change before the tab
+    /// is told it has not. The change keeps its place in the queue either way.
+    pub setting_timeout: Duration,
 }
 
 /// The spec for `harness`, or the reason there is none. `path` and `pathext`
@@ -217,6 +225,7 @@ pub fn spec(
         env,
         expected_version: Some(descriptor.adapter.version),
         policy: descriptor.policy,
+        setting_timeout: SETTING_TIMEOUT,
     })
 }
 

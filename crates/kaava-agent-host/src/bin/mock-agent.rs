@@ -5,8 +5,10 @@
 //! Flags shape the handshake; the prompt's text picks what a turn does (see
 //! [`Mock::prompt`]). It exits when its stdin closes.
 
+use std::fs::File;
 use std::io::{BufRead, Write};
 use std::process::{Command, Stdio};
+use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
 
 use serde_json::{json, Value};
@@ -43,8 +45,10 @@ fn main() {
         }
         return;
     }
+    let record = Record::open(flag_value(&args, "--record-settings"));
     let mut mock = Mock {
         flags: args,
+        record: record.clone(),
         cwd: String::new(),
         prompt_id: None,
         waiting: None,
@@ -57,18 +61,68 @@ fn main() {
     if mock.has("--secret") {
         eprintln!("debug: token sk-ant-oat01-AbCdEf0123456789xyzAbCd for someone@example.com");
     }
-    let stdin = std::io::stdin();
-    for line in stdin.lock().lines() {
-        let Ok(line) = line else { break };
-        let Ok(message) = serde_json::from_str::<Value>(&line) else {
-            continue;
-        };
+    // Lines are read on a thread of their own, so a request is noted when it
+    // arrives, even while the mock is still busy with the one before.
+    let (lines, messages) = mpsc::channel();
+    std::thread::spawn(move || {
+        for line in std::io::stdin().lock().lines() {
+            let Ok(line) = line else { break };
+            let Ok(message) = serde_json::from_str::<Value>(&line) else {
+                continue;
+            };
+            record.note("sent", &message);
+            if lines.send(message).is_err() {
+                break;
+            }
+        }
+    });
+    for message in messages {
         mock.handle(&message);
     }
 }
 
+fn flag_value(flags: &[String], flag: &str) -> Option<String> {
+    let at = flags.iter().position(|f| f == flag)?;
+    flags.get(at + 1).cloned()
+}
+
+/// With `--record-settings <path>`, one line per setting request, written as
+/// it arrives (`sent`) and just before its reply (`answered`), with the
+/// method, so a test sees which method the host chose and whether it waited
+/// for one answer before sending the next.
+#[derive(Clone)]
+struct Record(Option<Arc<Mutex<File>>>);
+
+impl Record {
+    fn open(path: Option<String>) -> Self {
+        Self(
+            path.and_then(|p| File::create(p).ok())
+                .map(|f| Arc::new(Mutex::new(f))),
+        )
+    }
+
+    fn note(&self, what: &str, request: &Value) {
+        let Some(file) = &self.0 else { return };
+        let method = request
+            .get("method")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        if method.starts_with("session/set_") {
+            if let Ok(mut file) = file.lock() {
+                let _ = writeln!(file, "{what} {method}");
+            }
+        }
+    }
+}
+
+/// Just enough of a request for [`Record::note`].
+fn request(method: &str) -> Value {
+    json!({ "method": method })
+}
+
 struct Mock {
     flags: Vec<String>,
+    record: Record,
     cwd: String,
     prompt_id: Option<Value>,
     /// The scenario waiting on our permission request's answer.
@@ -86,8 +140,7 @@ impl Mock {
     }
 
     fn flag_value(&self, flag: &str) -> Option<String> {
-        let at = self.flags.iter().position(|f| f == flag)?;
-        self.flags.get(at + 1).cloned()
+        flag_value(&self.flags, flag)
     }
 
     fn send(&self, message: &Value) {
@@ -131,35 +184,48 @@ impl Mock {
     }
 
     /// The settings, shaped as Claude's adapter shapes them: the mode again
-    /// as an option, effort, and fast mode as an on/off select. The model
-    /// option also lists `bypassPermissions`, a held-back value the host must
-    /// drop from every option.
+    /// as an option with the adapter's names, effort only for a model that
+    /// has it, and fast mode as an on/off select. The model option also lists
+    /// `bypassPermissions`, a held-back value the host must drop from every
+    /// option. The other options' names are their values in upper case, so a
+    /// test can tell a name from a value.
     fn config_options(&self) -> Value {
-        let select = |id: &str, category: &str, current: &str, choices: &[&str]| {
-            let options: Vec<Value> = choices
-                .iter()
-                .map(|c| json!({ "value": c, "name": c.to_uppercase() }))
-                .collect();
-            json!({ "id": id, "name": id.to_uppercase(), "category": category,
+        let select =
+            |id: &str, name: &str, category: &str, current: &str, choices: &[(&str, &str)]| {
+                let options: Vec<Value> = choices
+                    .iter()
+                    .map(|(value, name)| json!({ "value": value, "name": name }))
+                    .collect();
+                json!({ "id": id, "name": name, "category": category,
                     "type": "select", "currentValue": current, "options": options })
+            };
+        let shouted = |id: &str, category: &str, current: &str, values: &[&str]| {
+            let upper: Vec<String> = values.iter().map(|v| v.to_uppercase()).collect();
+            let choices: Vec<(&str, &str)> = values
+                .iter()
+                .zip(&upper)
+                .map(|(v, u)| (*v, u.as_str()))
+                .collect();
+            select(id, &id.to_uppercase(), category, current, &choices)
         };
-        let mode_ids: Vec<&str> = MODES.iter().map(|(id, _)| *id).collect();
         let mut options = vec![
-            select("mode", "mode", &self.mode, &mode_ids),
-            select(
+            select("mode", "Mode", "mode", &self.mode, &MODES),
+            shouted(
                 "model",
                 "model",
                 &self.model,
                 &["default", "opus", "haiku", "bypassPermissions"],
             ),
         ];
-        options.push(select(
-            "effort",
-            "thought_level",
-            &self.effort,
-            &["low", "medium", "high"],
-        ));
-        options.push(select("fast", "model_config", &self.fast, &["on", "off"]));
+        if self.model != "haiku" {
+            options.push(shouted(
+                "effort",
+                "thought_level",
+                &self.effort,
+                &["low", "medium", "high"],
+            ));
+        }
+        options.push(shouted("fast", "model_config", &self.fast, &["on", "off"]));
         Value::Array(options)
     }
 
@@ -168,6 +234,67 @@ impl Mock {
             self.update(json!({
                 "sessionUpdate": "config_option_update",
                 "configOptions": self.config_options()
+            }));
+        }
+    }
+
+    /// `session/set_config_option`, as Claude's adapter answers it: every
+    /// option as it now stands, after a `current_mode_update` for a mode, sent
+    /// whether or not the mode settled where it was asked to.
+    /// With `--settles-elsewhere` every change but to `default` settles on
+    /// `acceptEdits` instead. Claude's adapter settles elsewhere only when it
+    /// cannot run Auto, which the tab never asks for; this stands in for an
+    /// agent that settles elsewhere more often. With `--slow-setting` the
+    /// reply comes a second after the notification.
+    fn set_config(&mut self, id: &Value, params: &Value) {
+        if self.has("--no-config") {
+            return self.reply_error(id, -32601, "method not found");
+        }
+        let config = params
+            .get("configId")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        let value = params
+            .get("value")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+        // As the adapter answers when the SDK will not take the mode: a thrown
+        // Error, which ACP's SDK sends as "Internal error" with the reason in
+        // `data.details`.
+        if config == "mode" && self.flag_value("--refuse-mode").as_deref() == Some(value.as_str()) {
+            return self.send(&json!({
+                "jsonrpc": "2.0", "id": id, "error": {
+                    "code": -32603, "message": "Internal error",
+                    "data": { "details": format!("Invalid Mode: {value}") }
+                }
+            }));
+        }
+        match config {
+            "mode" if MODES.iter().any(|(m, _)| *m == value) => {
+                self.mode = if self.has("--settles-elsewhere") && value != "default" {
+                    "acceptEdits".into()
+                } else {
+                    value
+                };
+                self.update(json!({
+                    "sessionUpdate": "current_mode_update", "currentModeId": self.mode
+                }));
+            }
+            _ => return self.reply_error(id, -32602, "Unknown config option"),
+        }
+        if self.has("--slow-setting") {
+            std::thread::sleep(Duration::from_secs(1));
+        }
+        self.record
+            .note("answered", &request("session/set_config_option"));
+        self.reply(id, json!({ "configOptions": self.config_options() }));
+        // The agent moving on its own just after answering, as the adapter
+        // does when plan mode ends.
+        if let Some(mode) = self.flag_value("--then-mode") {
+            self.mode = mode;
+            self.update(json!({
+                "sessionUpdate": "current_mode_update", "currentModeId": self.mode
             }));
         }
     }
@@ -242,20 +369,37 @@ impl Mock {
                 self.reply(&id, result);
             }
             (Some("session/set_mode"), Some(id)) => {
-                let only = self.flag_value("--only-mode");
-                let asked = params.get("modeId").and_then(Value::as_str);
-                if self.has("--no-mode") || only.is_some_and(|m| Some(m.as_str()) != asked) {
+                let mode = params
+                    .get("modeId")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
+                let known = match self.flag_value("--only-mode") {
+                    Some(only) => only == mode,
+                    None => MODES.iter().any(|(m, _)| *m == mode),
+                };
+                if self.has("--no-mode") || !known {
                     self.reply_error(&id, -32602, "unknown mode");
                 } else {
-                    self.mode = params
-                        .get("modeId")
-                        .and_then(Value::as_str)
-                        .unwrap_or_default()
-                        .to_string();
+                    // Under `--settles-elsewhere` every switch to a mode other
+                    // than `default` settles on `acceptEdits`, and says so in a
+                    // notification, since this reply cannot.
+                    let settled = if self.has("--settles-elsewhere") && mode != "default" {
+                        "acceptEdits"
+                    } else {
+                        mode
+                    };
+                    self.mode = settled.to_string();
+                    if settled != mode {
+                        self.update(json!({
+                            "sessionUpdate": "current_mode_update", "currentModeId": settled
+                        }));
+                    }
                     self.config_update();
+                    self.record.note("answered", &request("session/set_mode"));
                     self.reply(&id, json!({}));
                 }
             }
+            (Some("session/set_config_option"), Some(id)) => self.set_config(&id, &params),
             (Some("session/prompt"), Some(id)) => {
                 let text = params
                     .pointer("/prompt/0/text")

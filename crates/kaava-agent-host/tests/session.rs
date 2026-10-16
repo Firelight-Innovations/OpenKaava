@@ -16,7 +16,7 @@ use kaava_agent_host::harness::{Policy, CLAUDE};
 use kaava_agent_host::mask::looks_secret;
 use kaava_agent_host::{
     AgentHost, Envelope, Event, Harness, Hint, HostError, Item, ItemKind, LaunchSpec, SessionState,
-    Worktree,
+    SettingTrouble, Worktree,
 };
 use serde_json::{json, Value};
 
@@ -27,7 +27,7 @@ struct Rig {
     host: AgentHost,
     got: Arc<Mutex<Vec<Envelope>>>,
     logs: Arc<Mutex<Vec<String>>>,
-    _dir: tempfile::TempDir,
+    dir: tempfile::TempDir,
     tree: Worktree,
     other: Worktree,
 }
@@ -57,7 +57,7 @@ fn rig() -> Rig {
         host,
         got,
         logs,
-        _dir: dir,
+        dir,
         tree,
         other,
     }
@@ -71,6 +71,7 @@ fn mock(args: &[&str]) -> LaunchSpec {
         env: Vec::new(),
         expected_version: Some("0.90.0"),
         policy: CLAUDE.policy,
+        setting_timeout: PATIENCE,
     }
 }
 
@@ -102,7 +103,7 @@ impl Rig {
 
     /// Where a mock told `--init-gate` waits, as a string a flag can carry.
     fn gate(&self) -> String {
-        self._dir
+        self.dir
             .path()
             .join("init-gate")
             .to_string_lossy()
@@ -112,6 +113,17 @@ impl Rig {
     /// Let a mock held by [`Rig::gate`] finish its handshake.
     fn open_gate(&self) {
         std::fs::write(self.gate(), b"").unwrap();
+    }
+
+    /// Every status after the first `from` events.
+    fn statuses_since(&self, from: usize) -> Vec<kaava_agent_host::SessionStatus> {
+        self.events()[from..]
+            .iter()
+            .filter_map(|e| match &e.event {
+                Event::Status { status } => Some(status.clone()),
+                _ => None,
+            })
+            .collect()
     }
 
     fn events(&self) -> Vec<Envelope> {
@@ -147,6 +159,16 @@ impl Rig {
 
     fn items(&self) -> Vec<Item> {
         self.host.attach(TAB).items
+    }
+
+    /// Wait until the latest status satisfies `test`, and return it.
+    fn status_where(
+        &self,
+        what: &str,
+        test: impl Fn(&kaava_agent_host::SessionStatus) -> bool,
+    ) -> kaava_agent_host::SessionStatus {
+        self.until(what, |e| last_status(e).is_some_and(|s| test(&s)));
+        last_status(&self.events()).unwrap()
     }
 }
 
@@ -893,7 +915,7 @@ fn a_closed_tab_stops_its_agent_without_waiting() {
 #[test]
 fn a_grandchild_holding_stdout_does_not_keep_the_session_alive() {
     let rig = rig();
-    let pid_file = rig._dir.path().join("grandchild.pid");
+    let pid_file = rig.dir.path().join("grandchild.pid");
     let pid_flag = pid_file.to_string_lossy().into_owned();
     rig.send(&["--grandchild-pid", &pid_flag], "grandchild")
         .unwrap();
@@ -931,7 +953,7 @@ fn a_grandchild_holding_stdout_does_not_keep_the_session_alive() {
 #[test]
 fn a_grandchild_whose_parent_has_exited_is_stopped_with_the_agent() {
     let rig = rig();
-    let pid_file = rig._dir.path().join("orphan.pid");
+    let pid_file = rig.dir.path().join("orphan.pid");
     let pid_flag = pid_file.to_string_lossy().into_owned();
     rig.send(&["--grandchild-pid", &pid_flag], "orphan")
         .unwrap();
@@ -1084,7 +1106,7 @@ fn no_token_or_account_reaches_a_log_or_a_status() {
 #[test]
 fn a_node_cmd_in_the_worktree_is_not_run_by_the_npm_shim() {
     let rig = rig();
-    let bin = rig._dir.path().join("bin");
+    let bin = rig.dir.path().join("bin");
     std::fs::create_dir_all(&bin).unwrap();
     std::fs::write(bin.join("claude.cmd"), "@echo off\r\n").unwrap();
     std::fs::write(
@@ -1128,6 +1150,12 @@ fn the_session_reports_its_modes_and_settings() {
         ["default", "acceptEdits", "plan"],
         "bypass (D4) and auto are never offered"
     );
+    let names: Vec<&str> = status.modes.iter().map(|m| m.name.as_str()).collect();
+    assert_eq!(
+        names,
+        ["Manual", "Accept edits", "Plan"],
+        "the agent's own names"
+    );
     let ids: Vec<&str> = status.config.iter().map(|o| o.id.as_str()).collect();
     assert_eq!(
         ids,
@@ -1168,6 +1196,7 @@ fn the_agent_can_change_its_settings_on_its_own() {
     });
     let status = drawn.expect("drawn as it happened, not only at the end of the turn");
     assert_eq!(status.mode.as_deref(), Some("acceptEdits"));
+    assert_eq!(status.answered, 0, "nothing was asked for");
     let last = last_status(&events).unwrap();
     assert_eq!(
         last.config.len(),
@@ -1201,4 +1230,377 @@ fn an_agent_without_config_options_still_reports_its_modes() {
     let modes: Vec<_> = status.modes.iter().map(|m| m.value.as_str()).collect();
     assert_eq!(modes, ["default", "acceptEdits", "plan"]);
     assert_eq!(status.mode.as_deref(), Some("default"));
+}
+
+#[test]
+fn a_mode_switch_round_trips_through_the_agent() {
+    let rig = rig();
+    let record = rig.dir.path().join("settings.log");
+    rig.send(&["--record-settings", record.to_str().unwrap()], "stream")
+        .unwrap();
+    rig.turns_done(1);
+    let ticket = rig.host.set_mode(TAB, "plan").unwrap();
+    let status = rig.status_where("plan mode answered", |s| s.answered >= ticket);
+    assert_eq!(status.mode.as_deref(), Some("plan"));
+    assert_eq!(
+        value_of(&status, "model"),
+        Some("default"),
+        "the rest as it was"
+    );
+    assert_eq!(
+        settings_sent(&record),
+        ["session/set_mode", "session/set_config_option"],
+        "the handshake's ask-first, then the change through the mode option"
+    );
+    for refused in ["bypassPermissions", "auto", "dontAsk", "nonsense"] {
+        assert!(
+            matches!(
+                rig.host.set_mode(TAB, refused),
+                Err(HostError::UnknownOption)
+            ),
+            "{refused}"
+        );
+    }
+}
+
+#[test]
+fn the_agent_has_the_last_word_on_the_mode() {
+    let rig = rig();
+    rig.send(&["--settles-elsewhere"], "stream").unwrap();
+    rig.turns_done(1);
+    // The agent says where the mode went before it answers.
+    let ticket = rig.host.set_mode(TAB, "plan").unwrap();
+    let status = rig.status_where("the answer to the switch", |s| s.answered >= ticket);
+    assert_eq!(
+        status.mode.as_deref(),
+        Some("acceptEdits"),
+        "not the plan asked for"
+    );
+}
+
+#[test]
+fn mode_changes_land_in_the_order_they_were_made() {
+    let rig = rig();
+    rig.send(&[], "stream").unwrap();
+    rig.turns_done(1);
+    let before = rig.events().len();
+    let mut tickets = Vec::new();
+    for mode in ["plan", "acceptEdits", "default", "plan"] {
+        tickets.push(rig.host.set_mode(TAB, mode).unwrap());
+    }
+    assert_eq!(tickets, [1, 2, 3, 4]);
+    rig.status_where("all four answered", |s| s.answered == 4);
+    // The first status to carry each answer shows the mode that change set.
+    // Changes made while one is out may be folded into the last of them, so
+    // some middle ones can go unsent; the ones that are sent keep their order.
+    let mut seen: Vec<(u64, String)> = Vec::new();
+    for s in rig.statuses_since(before) {
+        if s.answered > seen.last().map_or(0, |(n, _)| *n) {
+            seen.push((s.answered, s.mode.unwrap_or_default()));
+        }
+    }
+    let made = [(1, "plan"), (2, "acceptEdits"), (3, "default"), (4, "plan")]
+        .map(|(n, mode)| (n, mode.to_string()));
+    assert_eq!(seen.first(), Some(&made[0]), "the first goes out alone");
+    assert_eq!(seen.last(), Some(&made[3]), "the last is always sent");
+    let mut rest = made.iter();
+    assert!(
+        seen.iter().all(|s| rest.any(|m| m == s)),
+        "each answer in turn: {seen:?}"
+    );
+}
+
+#[test]
+fn without_a_mode_option_the_mode_is_set_directly() {
+    let rig = rig();
+    let record = rig.dir.path().join("settings.log");
+    rig.send(
+        &["--no-config", "--record-settings", record.to_str().unwrap()],
+        "stream",
+    )
+    .unwrap();
+    rig.turns_done(1);
+    let status = last_status(&rig.events()).unwrap();
+    assert!(status.config.is_empty());
+    assert_eq!(status.modes.len(), 3, "from `modes`, less bypass and auto");
+    let ticket = rig.host.set_mode(TAB, "plan").unwrap();
+    let status = rig.status_where("plan mode", |s| s.answered >= ticket);
+    assert_eq!(status.mode.as_deref(), Some("plan"));
+    assert_eq!(status.setting_trouble, None);
+    assert_eq!(settings_sent(&record), ["session/set_mode"; 2]);
+    for refused in ["bypassPermissions", "auto"] {
+        assert!(
+            matches!(
+                rig.host.set_mode(TAB, refused),
+                Err(HostError::UnknownOption)
+            ),
+            "{refused}"
+        );
+    }
+}
+
+#[test]
+fn without_a_mode_option_the_mode_the_agent_reports_wins() {
+    let rig = rig();
+    rig.send(&["--no-config", "--settles-elsewhere"], "stream")
+        .unwrap();
+    rig.turns_done(1);
+    let ticket = rig.host.set_mode(TAB, "plan").unwrap();
+    let status = rig.status_where("the answer to the switch", |s| s.answered >= ticket);
+    assert_eq!(
+        status.mode.as_deref(),
+        Some("acceptEdits"),
+        "its own report, not the plan asked for"
+    );
+}
+
+#[test]
+fn settings_wait_for_the_session() {
+    let rig = rig();
+    assert!(matches!(
+        rig.host.set_mode(TAB, "plan"),
+        Err(HostError::NoSession)
+    ));
+    let gate = rig.gate();
+    rig.send(&["--init-gate", &gate], "stream").unwrap();
+    assert!(matches!(
+        rig.host.set_mode(TAB, "acceptEdits"),
+        Err(HostError::NoSession)
+    ));
+    rig.open_gate();
+    rig.turns_done(1);
+    rig.host.stop(TAB);
+    rig.state(SessionState::Stopped);
+    assert!(matches!(
+        rig.host.set_mode(TAB, "plan"),
+        Err(HostError::Closed)
+    ));
+}
+
+#[test]
+fn a_slow_setting_is_reported_as_unanswered_and_still_taken_in() {
+    let rig = rig();
+    let mut spec = mock(&["--slow-setting"]);
+    spec.setting_timeout = Duration::from_millis(100);
+    rig.host
+        .send(TAB, spec, rig.tree.clone(), "stream")
+        .unwrap();
+    rig.turns_done(1);
+    let before = rig.events().len();
+    let first = rig.host.set_mode(TAB, "plan").unwrap();
+    let last = rig.host.set_mode(TAB, "acceptEdits").unwrap();
+    rig.status_where("both answered", |s| s.answered >= last);
+    let statuses = rig.statuses_since(before);
+    let waited = statuses
+        .iter()
+        .position(|s| s.setting_trouble == Some(SettingTrouble::Unanswered { ticket: first }))
+        .expect("the wait is reported");
+    let took = statuses
+        .iter()
+        .position(|s| s.answered == first)
+        .expect("the late reply is taken");
+    assert!(waited < took, "the wait is reported before the reply");
+    assert_eq!(statuses[took].mode.as_deref(), Some("plan"));
+    let done = statuses.last().unwrap();
+    assert_eq!(done.answered, last);
+    assert_eq!(done.mode.as_deref(), Some("acceptEdits"));
+    assert_eq!(done.setting_trouble, None, "an answer clears the wait");
+    // The wait is not a turn's failure: nothing in the transcript offers to
+    // retry it.
+    let drawn = rig.events()[before..]
+        .iter()
+        .filter(|e| {
+            matches!(&e.event, Event::ItemCompleted { item }
+                if matches!(item.kind, ItemKind::Error { .. }))
+        })
+        .count();
+    assert_eq!(drawn, 0, "the wait is not drawn as an error");
+}
+
+#[test]
+fn a_new_session_starts_past_every_earlier_change() {
+    let rig = rig();
+    rig.send(&["--slow-setting"], "stream").unwrap();
+    rig.turns_done(1);
+    let ticket = rig.host.set_mode(TAB, "plan").unwrap();
+    rig.host.stop(TAB);
+    rig.state(SessionState::Stopped);
+    rig.send(&[], "stream").unwrap();
+    rig.turns_done(2);
+    let status = last_status(&rig.events()).unwrap();
+    assert_eq!(
+        status.answered, ticket,
+        "nothing the old process left unanswered is waited for"
+    );
+    let next = rig.host.set_mode(TAB, "acceptEdits").unwrap();
+    assert_eq!(next, ticket + 1, "numbers carry on across sessions");
+    let status = rig.status_where("the next change", |s| s.answered >= next);
+    assert_eq!(status.answered, next);
+}
+
+/// The setting methods `--record-settings` saw arrive, in order.
+fn settings_sent(record: &Path) -> Vec<String> {
+    std::fs::read_to_string(record)
+        .unwrap()
+        .lines()
+        .filter_map(|l| l.strip_prefix("sent "))
+        .map(str::to_string)
+        .collect()
+}
+
+#[test]
+fn a_change_is_not_sent_until_the_one_before_is_answered() {
+    let rig = rig();
+    let record = rig.dir.path().join("settings.log");
+    rig.send(
+        &[
+            "--slow-setting",
+            "--record-settings",
+            record.to_str().unwrap(),
+        ],
+        "stream",
+    )
+    .unwrap();
+    rig.turns_done(1);
+    rig.host.set_mode(TAB, "plan").unwrap();
+    let last = rig.host.set_mode(TAB, "acceptEdits").unwrap();
+    rig.status_where("both answered", |s| s.answered >= last);
+    // Each answer is noted before it is sent, so a second change sent while
+    // the first was still being answered (a second, here) shows up as two
+    // `sent` lines in a row.
+    let log = std::fs::read_to_string(&record).unwrap();
+    let order: Vec<&str> = log.lines().filter_map(|l| l.split(' ').next()).collect();
+    assert_eq!(
+        order,
+        ["sent", "answered", "sent", "answered", "sent", "answered"],
+        "{log}"
+    );
+}
+
+#[test]
+fn changes_made_while_one_is_out_send_only_the_last_to_the_same_setting() {
+    let rig = rig();
+    let record = rig.dir.path().join("settings.log");
+    rig.send(
+        &[
+            "--slow-setting",
+            "--record-settings",
+            record.to_str().unwrap(),
+        ],
+        "stream",
+    )
+    .unwrap();
+    rig.turns_done(1);
+    // Stepping through the modes, as a held Shift+Tab does: the first goes
+    // out and the rest wait behind its reply.
+    rig.host.set_mode(TAB, "plan").unwrap();
+    rig.host.set_mode(TAB, "acceptEdits").unwrap();
+    rig.host.set_mode(TAB, "default").unwrap();
+    let last = rig.host.set_mode(TAB, "acceptEdits").unwrap();
+    let status = rig.status_where("the last answered", |s| s.answered >= last);
+    assert_eq!(status.mode.as_deref(), Some("acceptEdits"));
+    // The session's own first mode, the one that went out, and the last.
+    assert_eq!(
+        settings_sent(&record).len(),
+        3,
+        "{:?}",
+        settings_sent(&record)
+    );
+}
+
+#[test]
+fn a_change_the_agent_refuses_is_answered_and_said_beside_the_mode() {
+    let rig = rig();
+    rig.send(&["--refuse-mode", "plan"], "stream").unwrap();
+    rig.turns_done(1);
+    let before = rig.events().len();
+    let ticket = rig.host.set_mode(TAB, "plan").unwrap();
+    let status = rig.status_where("the refusal", |s| s.answered >= ticket);
+    assert_eq!(status.answered, ticket);
+    assert_eq!(status.mode.as_deref(), Some("default"), "the mode stays");
+    assert_eq!(
+        status.setting_trouble,
+        Some(SettingTrouble::Refused {
+            ticket,
+            message: "Internal error: Invalid Mode: plan".into()
+        })
+    );
+    let drawn = rig.events()[before..]
+        .iter()
+        .filter(|e| {
+            matches!(&e.event, Event::ItemCompleted { item }
+                if matches!(item.kind, ItemKind::Error { .. }))
+        })
+        .count();
+    assert_eq!(drawn, 0, "a refusal is not a turn's failure");
+
+    // The next change that goes through clears it.
+    let next = rig.host.set_mode(TAB, "acceptEdits").unwrap();
+    let status = rig.status_where("the next change", |s| s.answered >= next);
+    assert_eq!(status.mode.as_deref(), Some("acceptEdits"));
+    assert_eq!(status.setting_trouble, None);
+}
+
+#[test]
+fn ending_the_session_clears_a_refusal() {
+    let rig = rig();
+    rig.send(&["--refuse-mode", "plan"], "stream").unwrap();
+    rig.turns_done(1);
+    rig.host.set_mode(TAB, "plan").unwrap();
+    rig.status_where("the refusal", |s| s.setting_trouble.is_some());
+    rig.host.stop(TAB);
+    rig.state(SessionState::Stopped);
+    let stopped = last_status(&rig.events()).unwrap();
+    assert_eq!(stopped.setting_trouble, None);
+    let attached = rig.host.attach(TAB).status.unwrap();
+    assert_eq!(attached.state, SessionState::Stopped);
+    assert_eq!(attached.setting_trouble, None);
+}
+
+#[test]
+fn ending_the_session_clears_a_change_still_unanswered() {
+    let rig = rig();
+    let mut spec = mock(&["--slow-setting"]);
+    spec.setting_timeout = Duration::from_millis(100);
+    rig.host
+        .send(TAB, spec, rig.tree.clone(), "stream")
+        .unwrap();
+    rig.turns_done(1);
+    rig.host.set_mode(TAB, "plan").unwrap();
+    rig.status_where("the wait", |s| s.setting_trouble.is_some());
+    rig.host.stop(TAB);
+    rig.state(SessionState::Stopped);
+    assert_eq!(last_status(&rig.events()).unwrap().setting_trouble, None);
+    assert_eq!(rig.host.attach(TAB).status.unwrap().setting_trouble, None);
+}
+
+#[test]
+fn a_mode_reported_after_the_reply_is_the_one_shown() {
+    let rig = rig();
+    rig.send(&["--then-mode", "acceptEdits"], "stream").unwrap();
+    rig.turns_done(1);
+    let ticket = rig.host.set_mode(TAB, "plan").unwrap();
+    rig.status_where("the answer", |s| s.answered >= ticket);
+    // A turn after it, so every status from the change has been sent.
+    rig.send(&[], "stream").unwrap();
+    rig.turns_done(2);
+    let status = last_status(&rig.events()).unwrap();
+    assert_eq!(
+        status.mode.as_deref(),
+        Some("acceptEdits"),
+        "the reply's settings never overwrite a later report"
+    );
+}
+
+#[test]
+fn the_mode_changes_while_a_turn_runs() {
+    let rig = rig();
+    rig.send(&[], "slow").unwrap();
+    rig.state(SessionState::Working);
+    let ticket = rig.host.set_mode(TAB, "plan").unwrap();
+    let status = rig.status_where("plan mode mid-turn", |s| s.answered >= ticket);
+    assert_eq!(status.mode.as_deref(), Some("plan"));
+    assert_eq!(status.state, SessionState::Working, "the turn goes on");
+    rig.host.cancel(TAB).unwrap();
+    rig.turns_done(1);
 }

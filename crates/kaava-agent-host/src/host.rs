@@ -34,6 +34,9 @@ pub trait Adapter: Send + Sync {
     fn abort(&self);
     /// Answer an approval with one of the options it offered.
     fn answer_approval(&self, item_id: &str, option_id: &str) -> Result<(), HostError>;
+    /// Switch to one of the modes the status offers. Returns the change's
+    /// number, which the status's `answered` reaches once it is answered.
+    fn set_mode(&self, mode_id: &str) -> Result<u64, HostError>;
     /// Kill the process. Returns at once.
     fn shutdown(&self);
     /// Wait for the process to have exited, up to `deadline`.
@@ -59,6 +62,9 @@ impl Adapter for Session {
     }
     fn answer_approval(&self, item_id: &str, option_id: &str) -> Result<(), HostError> {
         self.answer(item_id, option_id)
+    }
+    fn set_mode(&self, mode_id: &str) -> Result<u64, HostError> {
+        Session::set_mode(self, mode_id)
     }
     fn shutdown(&self) {
         self.kill();
@@ -102,7 +108,7 @@ pub enum HostError {
     /// No approval with that id is waiting.
     #[error("no such approval is waiting")]
     UnknownApproval,
-    /// The option is not one the approval offered.
+    /// The option is not one the approval or the mode list offered.
     #[error("that is not one of the offered choices")]
     UnknownOption,
     /// The process could not be started.
@@ -150,6 +156,8 @@ pub struct AgentHost {
     /// one between them rather than one each.
     sending: Mutex<()>,
     seq: Arc<AtomicU64>,
+    /// The last number given to a setting change, across every session.
+    changes: Arc<AtomicU64>,
     generation: AtomicU64,
     events: Mutex<mpsc::Sender<Envelope>>,
     log: Log,
@@ -171,6 +179,7 @@ impl AgentHost {
             sessions: Mutex::new(HashMap::new()),
             sending: Mutex::new(()),
             seq: Arc::new(AtomicU64::new(0)),
+            changes: Arc::new(AtomicU64::new(0)),
             generation: AtomicU64::new(0),
             events: Mutex::new(events),
             log,
@@ -219,6 +228,7 @@ impl AgentHost {
             worktree,
             prior,
             seq: Arc::clone(&self.seq),
+            changes: Arc::clone(&self.changes),
             events,
             log: Arc::clone(&self.log),
         };
@@ -262,6 +272,14 @@ impl AgentHost {
         self.get(instance_id)
             .ok_or(HostError::NoSession)?
             .answer_approval(item_id, option_id)
+    }
+
+    /// Switch the tab's session to another of its modes. Returns the
+    /// change's number (see [`crate::SessionStatus::answered`]).
+    pub fn set_mode(&self, instance_id: &str, mode_id: &str) -> Result<u64, HostError> {
+        self.get(instance_id)
+            .ok_or(HostError::NoSession)?
+            .set_mode(mode_id)
     }
 
     /// Kill the tab's agent, keeping its conversation: the next prompt starts

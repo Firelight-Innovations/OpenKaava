@@ -39,6 +39,33 @@ cells of the rows it closes in section 2.
   option (`config::NOT_OFFERED`), and so are approval options that enter either. `agentCapabilities` and `authMethods` are
   not stored yet: nothing reads them, so PR 7 (session list) and PR 24
   (auth) read them when they need them.
+- **PR 2** (mode switcher): `agent-tab/set-mode` queues a mode change to
+  the session's settings thread. It sends one change at a time, through
+  `session/set_config_option` (or `session/set_mode` for an agent without
+  a mode option), and emits a status after every reply. Each change
+  answers with a number, and `SessionStatus.answered` says which changes
+  the agent has answered, so the tab holds a choice until its own answer
+  rather than until the next status of any kind. The tab draws the mode as
+  a section of the composer's settings menu and cycles it on Shift+Tab. A
+  reply slower than `setting_timeout` (30s) is reported as not answered
+  yet, and still taken in when it comes. That wait, and a refusal (its
+  reason cut to the first line, 300 characters), go in
+  `SessionStatus.settingTrouble` and are said above the prompt box, not
+  drawn as transcript errors, which would offer to retry the last prompt.
+  Of several changes to one setting made while one is out, only the last
+  is sent, so a held Shift+Tab does not step the agent through every mode.
+
+Open questions:
+
+- **Auto is held back with Bypass** (`config::NOT_OFFERED`). In Auto a
+  classifier approves calls in the user's place; those never reach
+  `session/request_permission`, so the outside-worktree guard cannot apply
+  as D3 requires. Accept edits stays: Claude allows writes inside the
+  working directory unasked, and still asks for any write outside it, so the
+  guard sees those. Some shell commands are also allowed unasked in Accept
+  edits; which ones was not decoded from the CLI.
+- A new process after a stop or a crash starts in Manual again; nothing
+  carries the earlier choice over.
 
 Constraints for later PRs, found while reading the adapter:
 
@@ -53,6 +80,9 @@ Constraints for later PRs, found while reading the adapter:
 - An Edit or Write "allow all edits during this session" answer switches
   the CLI to Accept edits without any `current_mode_update`, so the status
   would show the old mode. PR 11 must account for that.
+- The adapter reports a refused `session/set_config_option` as JSON-RPC
+  `-32603 "Internal error"` with the reason in `data.details`; the host now
+  folds `details` into the message it draws.
 
 ## 1. Summary
 
@@ -111,15 +141,15 @@ Constraints for later PRs, found while reading the adapter:
 
 | Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
 |---|---|---|---|---|---|
-| Manual (default) | Mode dropdown "Manual"; Shift+Tab; `--permission-mode default` (permission-modes doc) | exposed: id `default` (session-mode.js:226-261) | partial: forced to `default` at handshake and fails closed (session.rs, `Shared::handshake`, with harness.rs `Policy::ask_first`) | P0 | Show the label "Manual", not the id. |
-| Accept edits | "Edit automatically" (VS Code); `acceptEdits` | exposed: id `acceptEdits` (session-mode.js:226-261) | partial since PR 1: the host reads `modes` into `SessionStatus.modes`; no switcher yet | P0 | PR 2. |
-| Plan | "Plan"; `/plan` | exposed: id `plan` (session-mode.js:247); EnterPlanMode switches to plan (acp-agent.js:7962-7963) | partial since PR 1: the host reads `modes` into `SessionStatus.modes`; no switcher yet | P0 | PR 2 and PR 13. |
-| Auto | "Auto"; classifier approves calls | exposed: id `auto`; falls back to acceptEdits with a warning on unsupported models (session-mode.js:6-14, 46-54) | not implemented | P1 | Show "Auto mode unavailable" as a notice (PR 19). |
+| Manual (default) | Mode dropdown "Manual"; Shift+Tab; `--permission-mode default` (permission-modes doc) | exposed: id `default` (session-mode.js:226-261) | done in PR 2: forced to `default` at handshake and fails closed (session.rs, `Shared::handshake`, with harness.rs `Policy::ask_first`); shown as "Manual" and selectable | P0 | PR 2. |
+| Accept edits | "Edit automatically" (VS Code); `acceptEdits` | exposed: id `acceptEdits` (session-mode.js:226-261) | done in PR 2 | P0 | PR 2. |
+| Plan | "Plan"; `/plan` | exposed: id `plan` (session-mode.js:247); EnterPlanMode switches to plan (acp-agent.js:7962-7963) | done in PR 2: selectable; the plan card is PR 13 | P0 | PR 2 and PR 13. |
+| Auto | "Auto"; classifier approves calls | exposed: id `auto`; falls back to acceptEdits with a warning on unsupported models (session-mode.js:6-14, 46-54) | held back with Bypass (`config::NOT_OFFERED`); see section 0 | P1 | Show "Auto mode unavailable" as a notice (PR 19). |
 | Bypass permissions | "Bypass permissions"; needs a settings gate (permission-modes doc) | partial: offered only when allowed (permissions/modes.js:3; session-mode.js:261); root or IS_SANDBOX gate (modes.js:18-20) | not implemented | P2 | Owner decision D4. Keep off until the guard is checked in this mode. |
 | dontAsk | CLI only; not in Desktop or VS Code selectors (permission-modes doc) | not-exposed: parser accepts it; catalog omits it; `set_mode` throws (session-mode.js:213-225) | not implemented | Skip | CLI-only per docs. |
-| Mode switcher | mode dropdown (VS Code); Desktop Cmd+Shift+M | exposed: `session/set_mode` and config option `mode` (session-mode.js:5, 66-81, 135-166) | partial since PR 1: the host reads `modes` into `SessionStatus.modes`; no switcher yet, `modes` capability false (harness/claude.rs, `CLAUDE.capabilities`) | P0 | PR 2. |
-| Shift+Tab cycle | cycles default, acceptEdits, plan, bypass (if offered), auto; Alt+M on Windows without VT (interactive-mode doc) | exposed as the mode option; the key is client-owned | not implemented | P0 | Cycle order is the adapter's. |
-| Mode label in footer | label, not raw id | exposed: `current_mode_update` (normalize.rs, the `current_mode_update` arm of `Normalizer::update`) | partial since PR 1: the host reads `modes` into `SessionStatus.modes`; the footer shows the raw id (App.tsx, `at-prompt__mode`) | P0 | Labels: Manual, Accept edits, Plan, Auto, Bypass permissions. |
+| Mode switcher | mode dropdown (VS Code); Desktop Cmd+Shift+M | exposed: `session/set_mode` and config option `mode` (session-mode.js:5, 66-81, 135-166) | done in PR 2: a section of the composer's settings menu | P0 | PR 2. |
+| Shift+Tab cycle | cycles default, acceptEdits, plan, bypass (if offered), auto; Alt+M on Windows without VT (interactive-mode doc) | exposed as the mode option; the key is client-owned | done in PR 2, in the prompt box | P0 | Cycle order is the adapter's. |
+| Mode label in footer | label, not raw id | exposed: `current_mode_update` (normalize.rs, the `current_mode_update` arm of `Normalizer::update`) | done in PR 2: the adapter's own names | P0 | Labels: Manual, Accept edits, Plan, Auto, Bypass permissions. |
 | Auto-mode classifier rules | `autoMode` settings; `claude auto-mode config`, `defaults`, `reset` | partial: `autoMode` settings read (acp-agent.js, autoMode references) | not implemented | P2 | Read-only view first. |
 | Permission rules editor | `/permissions`; allow, ask, deny rules (permissions doc) | partial: rules honored in the SDK (acp-agent.js:7042); no editor method | not implemented | P1 | PR 20. See Section 4 J. |
 
@@ -179,7 +209,7 @@ Constraints for later PRs, found while reading the adapter:
 | `/model` | model picker | exposed through config option; replay-hidden text | not implemented | P0 | Via the picker (PR 3). |
 | `/effort` | effort slider | exposed through config option | not implemented | P0 | PR 3. |
 | `/fast` | fast mode | exposed through config option | not implemented | P1 | PR 4. |
-| `/plan` | plan mode | exposed as mode `plan` (session-mode.js:247); typed `/plan` not checked | not implemented | P0 | Via the mode switcher. |
+| `/plan` | plan mode | exposed as mode `plan` (session-mode.js:247); typed `/plan` not checked | partial: Plan is selectable in the mode switcher (PR 2) | P0 | Via the mode switcher (PR 2). |
 | `/goal` | keep working until a condition is met | exposed as typed text (goal-extension.js:6; acp-agent.js:2318-2330); structured panel AIR-only (acp-agent.js:2301-2303) | not implemented | P1 | Typed `/goal` works now. Panel after D1 (Section 4 E). |
 | `/config`, `/settings` | settings dialog | partial: no ACP dialog; SDK `updateSettings` and `applyFlagSettings` exist (sdk.d.ts:2970-2985) but only the adapter holds the SDK | not implemented | P1 | Native settings panel (PR 20). Section 4 J. |
 | `/permissions`, `/allowed-tools` | rule editor | partial (see Permission modes) | not implemented | P1 | PR 20. |
@@ -299,7 +329,7 @@ Constraints for later PRs, found while reading the adapter:
 
 | Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
 |---|---|---|---|---|---|
-| Plan mode | `/plan`; Shift+Tab | exposed: mode `plan` (session-mode.js:247) | not implemented | P0 | Via the mode switcher (PR 2). |
+| Plan mode | `/plan`; Shift+Tab | exposed: mode `plan` (session-mode.js:247) | done in PR 2: selectable in the mode switcher and by Shift+Tab | P0 | The plan card is PR 13. |
 | Plan approval card | Yes, auto mode; Yes, manual edits; No, keep planning (permission-modes doc) | exposed: ExitPlanMode options (acp-agent.js:4781, 4855) | generic approval card (normalize.rs, `Normalizer::approval`) | P0 | Works as buttons now, except the options that enter Auto or Bypass, which the host drops. PR 13 adds plan text. |
 | Plan document text | Markdown plan; VS Code document with comments | exposed: `plan_update` markdown with planId `plan-mode` (exit-plan.js:85-110); needs `clientCapabilities.plan` (acp-agent.js:1216) | not declared; no handler | P0 | Declare `plan` in PR 13. |
 | Plan file path | plan file opened in VS Code | AIR-only: `rawInput.planFilePath` (air-extension.js) | n/a | Skip | Use plan text instead (D1). |
@@ -408,7 +438,7 @@ Ctrl+C is copy in a webview, so the tab keeps Escape as the stop key. Tab is not
 | Escape stops a turn | chat:cancel | exposed: `session/cancel` (acp-agent.js:5778-5800) | done (App.tsx, `onKeyDown`) | P0 | Done. |
 | Ctrl+C | interrupts; twice exits | partial: cancel only | not handled | Skip | Ctrl+C is copy in a webview. |
 | Ctrl+D | exit confirmation | n/a | — | Skip | Tab close covers it. |
-| Shift+Tab mode cycle | chat:cycleMode | exposed as mode option | not implemented | P0 | See Permission modes. |
+| Shift+Tab mode cycle | chat:cycleMode | exposed as mode option | done in PR 2, in the prompt box | P0 | See Permission modes. |
 | Option+P model picker | chat:modelPicker | partial: model option; key client-owned | not implemented | P1 | — |
 | Option+T thinking toggle | chat:thinkingToggle | not-exposed | not implemented | P1 | D12. |
 | Option+O fast mode | chat:fastMode | exposed: fast option; key client-owned | not implemented | P1 | — |

@@ -12,7 +12,14 @@
  * `seq` is greater than the last one applied, so a duplicate or a stale
  * envelope changes nothing.
  */
-import type { Attachment, Envelope, Event, Item, SessionStatus } from "./protocol.generated";
+import type {
+  Attachment,
+  ConfigChoice,
+  Envelope,
+  Event,
+  Item,
+  SessionStatus,
+} from "./protocol.generated";
 
 /** Mirrors `transcript::MAX_ITEMS`. */
 export const MAX_ITEMS = 2000;
@@ -100,6 +107,48 @@ export function busy(status: SessionStatus | null): boolean {
   return (
     status?.state === "starting" || status?.state === "working" || status?.state === "needsInput"
   );
+}
+
+/**
+ * Whether a mode or setting can change now: past the handshake and still
+ * running. A turn in progress does not block it, as in Claude's own terminal.
+ * A plain boolean, not a type guard: a stopped session is a status too, and
+ * narrowing it away as `null` would mislead whatever reads it next.
+ */
+export function settable(status: SessionStatus | null): boolean {
+  const state = status?.state;
+  return state !== undefined && state !== "starting" && state !== "stopped" && state !== "failed";
+}
+
+/**
+ * Setting choices the agent has not answered yet, shown in place of what the
+ * status says. Each change the host queues comes back with a number, and the
+ * choices stand until a status's `answered` reaches the last of them, so a
+ * status sent for anything else (a turn starting or ending) does not undo
+ * them.
+ */
+export interface Pending {
+  mode?: string;
+  /** The highest number the host has given these changes so far. */
+  ticket: number;
+  /** Changes sent whose number has not come back yet. */
+  unnumbered: number;
+}
+
+/** `pending` while the agent has yet to answer it, otherwise `null`. */
+export function unanswered(pending: Pending | null, status: SessionStatus | null): Pending | null {
+  if (!pending || status === null || !settable(status)) return null;
+  return pending.unnumbered > 0 || status.answered < pending.ticket ? pending : null;
+}
+
+/**
+ * The mode after `current` in the agent's own order, wrapping round, for
+ * Shift+Tab. `null` when there is nothing else to switch to.
+ */
+export function nextMode(modes: ConfigChoice[], current: string | null): string | null {
+  if (modes.length === 0) return null;
+  const next = modes[(modes.findIndex((m) => m.value === current) + 1) % modes.length];
+  return next.value === current ? null : next.value;
 }
 
 /**
