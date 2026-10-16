@@ -148,7 +148,7 @@ async function shown() {
 /** The mode the settings button shows, by name. */
 async function shownMode() {
   const label = (await settingsButton()).getAttribute("aria-label") ?? "";
-  return label.split(", ").at(-1);
+  return label.split(", ").pop();
 }
 
 /** Wait for the settings button to show `name` as the mode. */
