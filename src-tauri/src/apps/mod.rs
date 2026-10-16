@@ -594,6 +594,13 @@ pub fn call(
         return result;
     }
 
+    // `kaava://` references, resolved by the host so the rules in
+    // `refs::policy` sit in one place. Read-only, so before the write refusal.
+    // First-party apps only: a plugin's method of the same name is its own.
+    if crate::refs::is_method(method) && is_app(id) {
+        return crate::refs::call(app, context, id, method, params);
+    }
+
     if let Some(registered) = REGISTRY.iter().find(|a| a.id == id) {
         // One choke point for every first-party write, whoever is calling: the
         // app's own frontend, the shell's menu, or an agent over MCP `app_call`

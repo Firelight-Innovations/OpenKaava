@@ -19,7 +19,7 @@
 //! The methods that write are in `apps::WRITE_METHODS`, so a read-only main
 //! checkout is refused centrally before any handler here runs.
 
-mod comments;
+pub(crate) mod comments;
 pub(crate) mod diagrams;
 /// Frames as labelled objects: type, properties, migration, search.
 mod frames;
@@ -39,6 +39,8 @@ mod types;
 /// The frontend work only a webview can do.
 mod webview;
 
+/// A canvas id as every method here reads one, for `kaava://` references.
+pub(crate) use objects::canvas_id;
 /// The icon names and field kinds a type may use, for the MCP schema that lists
 /// them up front.
 pub use types::{ICONS as TYPE_ICONS, KINDS as FIELD_KINDS};
@@ -314,7 +316,7 @@ fn plain_file_for(root: &Path, id: &str) -> PathBuf {
 
 /// Where canvas `id` lives: `<id>.canvas.json` when that exists, since the
 /// suffix is an explicit claim, and `<id>.json` otherwise.
-fn file_for(root: &Path, id: &str) -> PathBuf {
+pub(crate) fn file_for(root: &Path, id: &str) -> PathBuf {
     let plain = plain_file_for(root, id);
     let mut name = plain.file_stem().unwrap_or_default().to_os_string();
     name.push(CANVAS_SUFFIX);
@@ -324,6 +326,23 @@ fn file_for(root: &Path, id: &str) -> PathBuf {
     } else {
         plain
     }
+}
+
+/// The child canvases canvas `id`'s split frames moved their elements into,
+/// spelt as the file names them. Listing, reading a frame and viewing a
+/// comment on `id` open these too. Empty when `id` cannot be read.
+///
+/// The file is read where it is found, so check it is inside the root first,
+/// as `refs::live::canvas_files_inside` does.
+pub(crate) fn split_children(root: &Path, id: &str) -> Vec<String> {
+    let raw = std::fs::read_to_string(file_for(root, id)).unwrap_or_default();
+    let Ok(scene) = serde_json::from_str::<Value>(&raw) else {
+        return Vec::new();
+    };
+    subcanvas::subcanvas_frames(&scene)
+        .into_iter()
+        .map(|(_, child)| child)
+        .collect()
 }
 
 /// Whether a plain `.json` under `canvas/` is meant as a canvas. Spec cards and

@@ -843,15 +843,16 @@ fn prune_to(root: &Path, max_items: usize, max_bytes: u64) {
 // --- content sniffing --------------------------------------------------------
 
 #[derive(Debug, Clone)]
-struct Sniffed {
-    mime: &'static str,
+pub(crate) struct Sniffed {
+    pub(crate) mime: &'static str,
     ext: &'static str,
-    dims: Option<(u32, u32)>,
+    pub(crate) dims: Option<(u32, u32)>,
 }
 
 /// What image, if any, these bytes are. Trusts the bytes and nothing else: a
-/// declared mime or a file extension never decides this.
-fn sniff(bytes: &[u8]) -> Option<Sniffed> {
+/// declared mime or a file extension never decides this. `refs` uses it too,
+/// so a referenced image is judged the same way as a stored one.
+pub(crate) fn sniff(bytes: &[u8]) -> Option<Sniffed> {
     if bytes.starts_with(&[0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A]) {
         let dims = (bytes.len() >= 24).then(|| (be32(&bytes[16..20]), be32(&bytes[20..24])));
         return Some(Sniffed {

@@ -42,6 +42,7 @@ mod presets;
 mod project;
 mod pty;
 mod quoting;
+mod refs;
 mod review;
 mod runnable;
 mod search;
