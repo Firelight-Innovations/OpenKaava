@@ -270,9 +270,22 @@ harness: Harness,
  */
 cwd: string, 
 /**
- * The agent's current mode id (Claude: `default` is ask-before-acting).
+ * The agent's current mode id (Claude: `default` is ask-before-acting),
+ * as the agent reports it, even one the tab does not offer. Empty until
+ * the handshake has switched the agent to ask-first.
  */
 mode: string | null, 
+/**
+ * The modes the tab may switch to, in the agent's order. Bypass and auto
+ * are never among them (`config::NOT_OFFERED`).
+ */
+modes: Array<ConfigChoice>, 
+/**
+ * The agent's other session settings — model, effort, fast mode — as it
+ * last reported them. Filled from the `session/new` reply, so a session
+ * that fails later in its handshake still carries them.
+ */
+config: Array<ConfigOption>, 
 /**
  * The adapter's own version, as it reported it at `initialize`.
  */
@@ -292,6 +305,46 @@ hint: Hint | null,
  * begins, so this is how the tab shows it meanwhile, and Stop withdraws it.
  */
 pendingPrompt: string | null, };
+
+export type ConfigOption = { 
+/**
+ * What to send back to change it: `model`, `effort`, `fast`, ...
+ */
+id: string, 
+/**
+ * The agent's label for it.
+ */
+name: string, 
+/**
+ * The agent's longer description, if it gave one.
+ */
+description: string | null, 
+/**
+ * ACP's category (`model`, `thought_level`, `model_config`, ...), if any.
+ */
+category: string | null, 
+/**
+ * The value in use.
+ */
+value: string, 
+/**
+ * The values on offer, in the agent's order, groups flattened.
+ */
+choices: Array<ConfigChoice>, };
+
+export type ConfigChoice = { 
+/**
+ * What to send back to choose it.
+ */
+value: string, 
+/**
+ * The agent's label for it.
+ */
+name: string, 
+/**
+ * The agent's longer description, if it gave one.
+ */
+description: string | null, };
 
 export type Attachment = { 
 /**

@@ -16,7 +16,7 @@
 //! None of them is joined. Each holds the shared state, and goes when its own
 //! work ends.
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::io::{BufRead, BufReader, ErrorKind, Read, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -27,6 +27,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 
+use crate::config::{self, Settings};
 use crate::event::{
     Attachment, Envelope, Event, Hint, Item, ItemKind, SessionState, SessionStatus,
 };
@@ -126,6 +127,10 @@ struct Inner {
     transcript: Transcript,
     status: SessionStatus,
     session_id: Option<String>,
+    /// Requests whose replies carry the session's settings. The reader takes
+    /// each reply in as it arrives, so a notification sent after it is never
+    /// overwritten by it.
+    changing: HashSet<i64>,
     events: Sender<Envelope>,
     last_seq: u64,
     noise: u64,
@@ -187,6 +192,8 @@ impl Session {
             harness: spec.harness,
             cwd: worktree.path().to_string_lossy().into_owned(),
             mode: None,
+            modes: Vec::new(),
+            config: Vec::new(),
             adapter_version: None,
             exit_code: None,
             hint: None,
@@ -215,6 +222,7 @@ impl Session {
                 transcript: Transcript::from_items(prior),
                 status,
                 session_id: None,
+                changing: HashSet::new(),
                 events,
                 last_seq: seq.load(Ordering::SeqCst),
                 noise: 0,
@@ -379,6 +387,43 @@ impl Drop for Session {
     }
 }
 
+impl Inner {
+    /// Take in a `configOptions` list: the mode option, if there is one, and
+    /// every other option as the agent now reports it.
+    fn apply(&mut self, settings: Settings) {
+        if let Some(mode) = settings.mode {
+            self.show_mode(mode.value);
+            self.status.modes = config::allowed(mode.choices);
+        }
+        self.status.config = settings.options;
+    }
+
+    /// Record the mode the agent reports, but only once the handshake has
+    /// confirmed ask-first: whatever the user's own default is, it is not
+    /// this session's mode until then, so neither a status sent meanwhile
+    /// nor a failed handshake ever shows it. A session that has failed, or
+    /// whose process has exited, never had that confirmation.
+    fn show_mode(&mut self, mode: String) {
+        if matches!(
+            self.status.state,
+            SessionState::Ready | SessionState::Working | SessionState::NeedsInput
+        ) {
+            self.status.mode = Some(mode);
+        }
+    }
+
+    /// Take in a reply that carries the settings: `session/new`'s modes and
+    /// list.
+    fn answered(&mut self, result: &Value) {
+        if let Some(choices) = result.get("modes").and_then(config::modes) {
+            self.status.modes = config::allowed(choices);
+        }
+        if let Some(list) = result.get("configOptions").filter(|l| l.is_array()) {
+            self.apply(config::settings(list));
+        }
+    }
+}
+
 impl Shared {
     fn lock(&self) -> MutexGuard<'_, Inner> {
         self.state.lock().unwrap_or_else(|e| e.into_inner())
@@ -527,12 +572,14 @@ impl Shared {
             );
         }
         let cwd = self.worktree.path().to_string_lossy().into_owned();
+        // Its modes and settings are taken in by the reader.
         let new = self
-            .request(
+            .send_request(
                 "session/new",
                 json!({ "cwd": cwd, "mcpServers": [] }),
-                Some(HANDSHAKE),
+                carries_settings,
             )
+            .and_then(|id| self.finish(id, "session/new", Some(HANDSHAKE)))
             .map_err(Failure::from)?;
         let session_id = new
             .get("sessionId")
@@ -669,6 +716,18 @@ impl Shared {
         params: Value,
         timeout: Option<Duration>,
     ) -> Result<Value, RemoteError> {
+        let id = self.send_request(method, params, |_, _| {})?;
+        self.finish(id, method, timeout)
+    }
+
+    /// Send a request with a slot for its reply. `track` notes anything else
+    /// about it under the same lock, before the reply can arrive.
+    fn send_request(
+        &self,
+        method: &str,
+        params: Value,
+        track: impl FnOnce(&mut Inner, i64),
+    ) -> Result<i64, RemoteError> {
         let id = {
             let mut inner = self.lock();
             if inner.closed {
@@ -677,29 +736,39 @@ impl Shared {
             inner.next_id += 1;
             let id = inner.next_id;
             inner.replies.insert(id, None);
+            track(&mut inner, id);
             id
         };
         self.send(wire::request(&Id::Number(id), method, params));
+        Ok(id)
+    }
+
+    /// Wait for the reply to `id`; past `timeout`, give up on it. The slot
+    /// is checked and, once the time is up, dropped under one hold of the
+    /// lock, so a reply cannot land between the two: it was either taken in
+    /// by the reader before, and is the answer, or comes after and is
+    /// ignored.
+    fn finish(
+        &self,
+        id: i64,
+        method: &str,
+        timeout: Option<Duration>,
+    ) -> Result<Value, RemoteError> {
         let deadline = timeout.map(|t| Instant::now() + t);
         let mut inner = self.lock();
         loop {
             if let Some(Some(_)) = inner.replies.get(&id) {
-                return inner
-                    .replies
-                    .remove(&id)
-                    .flatten()
-                    .unwrap_or_else(|| Err(closed()));
+                let reply = inner.replies.remove(&id).flatten();
+                return reply.unwrap_or_else(|| Err(closed()));
             }
             inner = match deadline {
                 None => self.wake.wait(inner).unwrap_or_else(|e| e.into_inner()),
                 Some(deadline) => {
                     let left = deadline.saturating_duration_since(Instant::now());
                     if left.is_zero() {
+                        inner.changing.remove(&id);
                         inner.replies.remove(&id);
-                        return Err(RemoteError {
-                            code: TIMED_OUT,
-                            message: format!("{method} got no reply"),
-                        });
+                        return Err(timed_out(method));
                     }
                     self.wake
                         .wait_timeout(inner, left)
@@ -730,6 +799,11 @@ impl Shared {
             Some(Incoming::Response { id, outcome }) => {
                 let Id::Number(n) = id else { return };
                 let mut inner = self.lock();
+                if inner.changing.remove(&n) {
+                    if let Ok(result) = &outcome {
+                        inner.answered(result);
+                    }
+                }
                 if let Some(slot) = inner.replies.get_mut(&n) {
                     *slot = Some(outcome);
                     self.wake.notify_all();
@@ -757,8 +831,20 @@ impl Shared {
                     let update = params.get("update").unwrap_or(&Value::Null);
                     let events = inner.normalizer.update(update);
                     self.emit_all(&mut inner, events);
-                    if let Some(mode) = inner.normalizer.take_mode() {
-                        inner.status.mode = Some(mode);
+                    let mode = inner.normalizer.take_mode();
+                    let settings = inner.normalizer.take_settings();
+                    if mode.is_none() && settings.is_none() {
+                        return;
+                    }
+                    if let Some(mode) = mode {
+                        inner.show_mode(mode);
+                    }
+                    if let Some(settings) = settings {
+                        inner.apply(settings);
+                    }
+                    // During the handshake, the status it ends with carries
+                    // these; one per update would only flicker.
+                    if inner.status.state != SessionState::Starting {
                         let status = inner.status.clone();
                         self.emit(&mut inner, Event::Status { status });
                     }
@@ -982,6 +1068,19 @@ fn closed() -> RemoteError {
     }
 }
 
+fn timed_out(method: &str) -> RemoteError {
+    RemoteError {
+        code: TIMED_OUT,
+        message: format!("{method} got no reply"),
+    }
+}
+
+/// Mark a request as one whose reply carries the settings, for the reader to
+/// take in.
+fn carries_settings(inner: &mut Inner, id: i64) {
+    inner.changing.insert(id);
+}
+
 /// Read one line into `buf`, keeping at most `limit` bytes of it and reading
 /// past the rest. `None` at the end of the stream; otherwise whether the line
 /// was cut.
@@ -1062,5 +1161,57 @@ mod tests {
         );
         assert_eq!(buf, b"z");
         assert_eq!(read_line_capped(&mut reader, &mut buf, 5).unwrap(), None);
+    }
+
+    fn inner() -> Inner {
+        let (events, _) = mpsc::channel();
+        Inner {
+            closed: false,
+            next_id: 0,
+            replies: HashMap::new(),
+            prompt: None,
+            approvals: Vec::new(),
+            normalizer: Normalizer::new("t"),
+            transcript: Transcript::from_items(Vec::new()),
+            status: SessionStatus {
+                state: SessionState::Starting,
+                harness: crate::harness::Harness::Claude,
+                cwd: String::new(),
+                mode: None,
+                modes: Vec::new(),
+                config: Vec::new(),
+                adapter_version: None,
+                exit_code: None,
+                hint: None,
+                pending_prompt: None,
+            },
+            session_id: None,
+            changing: HashSet::new(),
+            events,
+            last_seq: 0,
+            noise: 0,
+            silenced: false,
+        }
+    }
+
+    #[test]
+    fn a_mode_is_shown_only_once_ask_first_is_confirmed() {
+        for (state, shown) in [
+            (SessionState::Starting, false),
+            (SessionState::Failed, false),
+            (SessionState::Stopped, false),
+            (SessionState::Ready, true),
+            (SessionState::Working, true),
+            (SessionState::NeedsInput, true),
+        ] {
+            let mut inner = inner();
+            inner.status.state = state;
+            inner.show_mode("auto".to_string());
+            assert_eq!(
+                inner.status.mode.is_some(),
+                shown,
+                "the user's own mode, in {state:?}"
+            );
+        }
     }
 }

@@ -150,6 +150,14 @@ impl Rig {
     }
 }
 
+fn value_of<'a>(status: &'a kaava_agent_host::SessionStatus, id: &str) -> Option<&'a str> {
+    status
+        .config
+        .iter()
+        .find(|o| o.id == id)
+        .map(|o| o.value.as_str())
+}
+
 fn last_status(events: &[Envelope]) -> Option<kaava_agent_host::SessionStatus> {
     events.iter().rev().find_map(|e| match &e.event {
         Event::Status { status } => Some(status.clone()),
@@ -559,6 +567,8 @@ fn an_agent_that_will_not_ask_first_does_not_run() {
         texts(&rig.items()).is_empty(),
         "the prompt never reached the agent, so it never answered"
     );
+    let status = last_status(&rig.events()).unwrap();
+    assert_eq!(status.mode, None, "not the user's own default");
 }
 
 /// The tab clears its draft when a prompt is accepted, so a handshake that
@@ -1099,4 +1109,96 @@ fn a_node_cmd_in_the_worktree_is_not_run_by_the_npm_shim() {
         !rig.tree.root().join("planted.txt").exists(),
         "the worktree's node.cmd ran"
     );
+}
+
+#[test]
+fn the_session_reports_its_modes_and_settings() {
+    let rig = rig();
+    rig.send(&[], "stream").unwrap();
+    rig.turns_done(1);
+    let status = last_status(&rig.events()).unwrap();
+    assert_eq!(
+        status.mode.as_deref(),
+        Some("default"),
+        "forced to ask first"
+    );
+    let modes: Vec<&str> = status.modes.iter().map(|m| m.value.as_str()).collect();
+    assert_eq!(
+        modes,
+        ["default", "acceptEdits", "plan"],
+        "bypass (D4) and auto are never offered"
+    );
+    let ids: Vec<&str> = status.config.iter().map(|o| o.id.as_str()).collect();
+    assert_eq!(
+        ids,
+        ["model", "effort", "fast"],
+        "the mode is not drawn twice"
+    );
+    assert_eq!(value_of(&status, "model"), Some("default"));
+    let models: Vec<&str> = status.config[0]
+        .choices
+        .iter()
+        .map(|c| c.value.as_str())
+        .collect();
+    assert_eq!(
+        models,
+        ["default", "opus", "haiku"],
+        "the mock also offers bypassPermissions there, which is held back"
+    );
+}
+
+#[test]
+fn the_agent_can_change_its_settings_on_its_own() {
+    let rig = rig();
+    rig.send(&[], "stream").unwrap();
+    rig.turns_done(1);
+    rig.send(&[], "drift").unwrap();
+    rig.turns_done(2);
+    let events = rig.events();
+    let said = events
+        .iter()
+        .position(|e| {
+            matches!(&e.event, Event::ItemStarted { item }
+                if matches!(&item.kind, ItemKind::AssistantText { text } if text == "drifted"))
+        })
+        .expect("the agent went on talking");
+    let drawn = events[..said].iter().find_map(|e| match &e.event {
+        Event::Status { status } if value_of(status, "fast") == Some("on") => Some(status),
+        _ => None,
+    });
+    let status = drawn.expect("drawn as it happened, not only at the end of the turn");
+    assert_eq!(status.mode.as_deref(), Some("acceptEdits"));
+    let last = last_status(&events).unwrap();
+    assert_eq!(
+        last.config.len(),
+        3,
+        "the update with no list cleared nothing"
+    );
+}
+
+#[test]
+fn a_handshake_that_fails_early_never_shows_the_users_own_mode() {
+    let rig = rig();
+    // The mock's own default mode is `auto`, which the tab holds back.
+    rig.send(&["--no-session-id"], "hi").unwrap();
+    rig.state(SessionState::Failed);
+    let status = last_status(&rig.events()).unwrap();
+    assert_eq!(status.mode, None);
+    // What the session/new reply carried is still there, as the status's
+    // docs say, though the handshake failed after it.
+    let modes: Vec<&str> = status.modes.iter().map(|m| m.value.as_str()).collect();
+    assert_eq!(modes, ["default", "acceptEdits", "plan"]);
+    assert!(!status.config.is_empty());
+}
+
+#[test]
+fn an_agent_without_config_options_still_reports_its_modes() {
+    let rig = rig();
+    rig.send(&["--no-config"], "stream").unwrap();
+    rig.turns_done(1);
+    let status = last_status(&rig.events()).unwrap();
+    assert!(status.config.is_empty());
+    let modes: Vec<_> = status.modes.iter().map(|m| m.value.as_str()).collect();
+    assert_eq!(modes, ["default", "acceptEdits", "plan"]);
+    assert_eq!(status.mode.as_deref(), Some("default"));
 }

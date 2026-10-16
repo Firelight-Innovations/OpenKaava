@@ -36,18 +36,20 @@ vi.mock("@openkaava/bridge", () => ({
 
 import App from "./App";
 import { strings } from "./strings";
-import type { Attachment, Envelope, Item } from "./protocol.generated";
+import type { Attachment, Envelope, Item, SessionStatus } from "./protocol.generated";
 
-const STATUS = {
+const STATUS: SessionStatus = {
   state: "ready",
   harness: "claude",
   cwd: "C:/work/feature-x",
   mode: "default",
+  modes: [],
+  config: [],
   adapterVersion: "0.90.0",
   exitCode: null,
   hint: null,
   pendingPrompt: null,
-} as const;
+};
 
 function item(id: string, kind: Item["kind"]): Item {
   return { id, turnId: "t1", kind };

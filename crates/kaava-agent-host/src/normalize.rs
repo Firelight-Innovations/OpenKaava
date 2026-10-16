@@ -14,7 +14,8 @@
 //! - `plan` is one item for the whole session, replaced in place.
 //! - what the agent sends is capped before it is kept (see the limits below).
 //! - `usage_update` is remembered and drawn once, as the turn ends.
-//! - `current_mode_update` changes the status, not the transcript.
+//! - `current_mode_update` and `config_option_update` change the status, not
+//!   the transcript.
 //! - everything else is counted and dropped, `plan_update` and `_`-prefixed
 //!   kinds among them.
 
@@ -22,6 +23,7 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
+use crate::config::{enters_held_back, settings, Settings};
 use crate::event::{ApprovalOption, Event, FileDiff, Hint, Item, ItemKind, PlanEntry, ToolStatus};
 use crate::guard::request_paths;
 use crate::mask::mask;
@@ -67,6 +69,7 @@ pub struct Normalizer {
     plan: Option<Item>,
     usage: Option<(u64, u64)>,
     mode: Option<String>,
+    settings: Option<Settings>,
     dropped: u64,
 }
 
@@ -92,6 +95,7 @@ impl Normalizer {
             plan: None,
             usage: None,
             mode: None,
+            settings: None,
             dropped: 0,
         }
     }
@@ -123,6 +127,11 @@ impl Normalizer {
     /// The mode the agent last reported, taken so it is reported once.
     pub fn take_mode(&mut self) -> Option<String> {
         self.mode.take()
+    }
+
+    /// The settings the agent last reported, taken so they are applied once.
+    pub fn take_settings(&mut self) -> Option<Settings> {
+        self.settings.take()
     }
 
     /// The open turn, if any.
@@ -196,7 +205,9 @@ impl Normalizer {
     }
 
     /// The item for a `session/request_permission`. `paths` are the ones the
-    /// request names, listed on the card up to [`MAX_PATHS`].
+    /// request names, listed on the card up to [`MAX_PATHS`]. An option
+    /// that would enter a mode the tab holds back is never offered,
+    /// whatever its kind.
     pub fn approval(&mut self, params: &Value, mut paths: Vec<String>) -> Item {
         let call = params.get("toolCall").unwrap_or(&Value::Null);
         paths.truncate(MAX_PATHS);
@@ -216,6 +227,7 @@ impl Normalizer {
                 })
             })
             .filter(|o| o.kind != "allow_always")
+            .filter(|o| !enters_held_back(&o.option_id))
             .collect();
         let diffs = diffs(call);
         let input = call.get("rawInput");
@@ -275,6 +287,14 @@ impl Normalizer {
                     .get("currentModeId")
                     .and_then(Value::as_str)
                     .map(str::to_string);
+                Vec::new()
+            }
+            // An update without a list says nothing, rather than that the
+            // agent has no settings left.
+            "config_option_update" => {
+                if let Some(list) = update.get("configOptions").filter(|l| l.is_array()) {
+                    self.settings = Some(settings(list));
+                }
                 Vec::new()
             }
             _ => {
@@ -773,6 +793,26 @@ mod tests {
         assert_eq!(n.dropped(), 3);
     }
 
+    #[test]
+    fn a_settings_change_is_reported_once() {
+        let mut n = started();
+        let events = n.update(&json!({
+            "sessionUpdate": "config_option_update",
+            "configOptions": [{"id": "model", "name": "Model", "type": "select",
+                "currentValue": "opus", "options": [{"value": "opus", "name": "Opus"}]}]
+        }));
+        assert!(events.is_empty(), "nothing is drawn in the transcript");
+        let got = n.take_settings().unwrap();
+        assert_eq!(got.options[0].value, "opus");
+        assert!(n.take_settings().is_none());
+        assert_eq!(n.dropped(), 0);
+        n.update(&json!({"sessionUpdate": "config_option_update"}));
+        assert!(
+            n.take_settings().is_none(),
+            "an update without a list clears nothing"
+        );
+    }
+
     fn ask(input: Value) -> Value {
         json!({
             "toolCall": {"toolCallId": "t9", "title": "Do it", "rawInput": input},
@@ -926,6 +966,27 @@ mod tests {
         };
         assert!(text.ends_with(CUT_NOTE));
         assert!(n.update(&chunk("x", Some("m1"))).is_empty());
+    }
+
+    #[test]
+    fn an_approval_never_offers_a_way_into_auto_or_bypass() {
+        let mut n = started();
+        let params = json!({
+            "toolCall": {"toolCallId": "t9", "title": "Ready to code?"},
+            "options": [
+                {"optionId": "exit-plan-auto", "kind": "allow_once", "name": "Yes, and use auto mode"},
+                {"optionId": "exit-plan-bypass", "kind": "allow_always", "name": "Yes, and bypass"},
+                {"optionId": "exit-plan-clear-auto", "kind": "allow_once", "name": "Clear, then auto"},
+                {"optionId": "exit-plan-default", "kind": "allow_once", "name": "Yes, manually approve edits"},
+                {"optionId": "reject", "kind": "reject_once", "name": "No, keep planning"}
+            ]
+        });
+        let item = n.approval(&params, vec!["/w/plan.md".into()]);
+        let ItemKind::Approval { options, .. } = &item.kind else {
+            panic!()
+        };
+        let ids: Vec<_> = options.iter().map(|o| o.option_id.as_str()).collect();
+        assert_eq!(ids, ["exit-plan-default", "reject"]);
     }
 
     #[test]

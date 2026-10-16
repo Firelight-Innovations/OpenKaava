@@ -41,6 +41,8 @@ const EVERYTHING: Attachment = {
     exitCode: 1,
     hint: "signedOut",
     pendingPrompt: "and then",
+    modes: [],
+    config: [],
   },
   items: [
     item("u", { kind: "userMessage", text: "hi" }),

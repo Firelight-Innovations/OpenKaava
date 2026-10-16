@@ -322,8 +322,17 @@ pub struct SessionStatus {
     pub harness: Harness,
     /// The working directory: the cluster's worktree.
     pub cwd: String,
-    /// The agent's current mode id (Claude: `default` is ask-before-acting).
+    /// The agent's current mode id (Claude: `default` is ask-before-acting),
+    /// as the agent reports it, even one the tab does not offer. Empty until
+    /// the handshake has switched the agent to ask-first.
     pub mode: Option<String>,
+    /// The modes the tab may switch to, in the agent's order. Bypass and auto
+    /// are never among them (`config::NOT_OFFERED`).
+    pub modes: Vec<ConfigChoice>,
+    /// The agent's other session settings — model, effort, fast mode — as it
+    /// last reported them. Filled from the `session/new` reply, so a session
+    /// that fails later in its handshake still carries them.
+    pub config: Vec<ConfigOption>,
     /// The adapter's own version, as it reported it at `initialize`.
     pub adapter_version: Option<String>,
     /// The process's exit code, once it has exited. Never its output: what an
@@ -335,6 +344,39 @@ pub struct SessionStatus {
     /// still starting. The transcript draws a prompt only when its turn
     /// begins, so this is how the tab shows it meanwhile, and Stop withdraws it.
     pub pending_prompt: Option<String>,
+}
+
+/// One session setting the agent offers: ACP's select config option. Every
+/// name and value is the agent's own; the tab hardcodes none of them.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct ConfigOption {
+    /// What to send back to change it: `model`, `effort`, `fast`, ...
+    pub id: String,
+    /// The agent's label for it.
+    pub name: String,
+    /// The agent's longer description, if it gave one.
+    pub description: Option<String>,
+    /// ACP's category (`model`, `thought_level`, `model_config`, ...), if any.
+    pub category: Option<String>,
+    /// The value in use.
+    pub value: String,
+    /// The values on offer, in the agent's order, groups flattened.
+    pub choices: Vec<ConfigChoice>,
+}
+
+/// One value a [`ConfigOption`] or the mode can take.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct ConfigChoice {
+    /// What to send back to choose it.
+    pub value: String,
+    /// The agent's label for it.
+    pub name: String,
+    /// The agent's longer description, if it gave one.
+    pub description: Option<String>,
 }
 
 #[cfg(test)]
@@ -360,6 +402,8 @@ mod tests {
             SessionState::decl(&cfg),
             Hint::decl(&cfg),
             SessionStatus::decl(&cfg),
+            ConfigOption::decl(&cfg),
+            ConfigChoice::decl(&cfg),
             Attachment::decl(&cfg),
             HarnessInfo::decl(&cfg),
         ];
