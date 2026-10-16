@@ -121,6 +121,9 @@ base64 = "0.22"
 # Serialization. `derive` is the feature that enables `#[derive(Serialize)]`.
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Names the field a bad `show_component` prop is in (`steps[2].status`), which
+# serde's own errors leave out. Already in the tree under axum.
+serde_path_to_error = "0.1"
 toml = "0.9"
 
 # Ergonomic error enums — see src/error.rs.
@@ -303,6 +306,10 @@ windows-sys = { version = "0.61", features = [
 ] }
 
 [dev-dependencies]
+# Generates the agent tab's `kaava-show.generated.ts` from `refs::catalogue`,
+# inside a test that also fails when the checked-in file is stale. Test-only, as
+# in `kaava-agent-host`: the derives are `cfg_attr(test, ...)`.
+ts-rs.workspace = true
 # A throwaway git repository for `mcp::config`'s drift tests. Those read the
 # *committed* `.mcp.json` rather than the working copy, and proving that they do
 # needs a repository whose two halves can be made to disagree — not this one,

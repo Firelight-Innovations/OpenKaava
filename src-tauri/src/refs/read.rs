@@ -80,8 +80,8 @@ mod tests {
         r.parts.push(Part::Image {
             mime: "image/png".into(),
             data_base64: "AA==".into(),
-            width: None,
-            height: None,
+            width: 1,
+            height: 1,
         });
         let out = blocks(&r);
         assert_eq!(

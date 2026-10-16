@@ -232,8 +232,8 @@ mod tests {
             r.parts.push(Part::Image {
                 mime: "image/png".into(),
                 data_base64: "A".repeat(bytes),
-                width: Some(1),
-                height: Some(1),
+                width: 1,
+                height: 1,
             });
         }
         r

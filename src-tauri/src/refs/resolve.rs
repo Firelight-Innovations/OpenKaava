@@ -44,6 +44,7 @@ const MAX_COMMENT_BYTES: u64 = 1024 * 1024;
 
 /// A reference, resolved.
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(optional_fields))]
 #[serde(rename_all = "camelCase")]
 pub struct Resolved {
     /// The canonical form of the reference that was resolved.
@@ -55,6 +56,7 @@ pub struct Resolved {
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub detail: Option<String>,
+    #[cfg_attr(test, ts(type = "Record<string, unknown>"))]
     pub meta: Map<String, Value>,
     pub parts: Vec<Part>,
     /// Why nothing (or less) was read. Set for secrets, gitignored files and
@@ -64,27 +66,29 @@ pub struct Resolved {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum Part {
     #[serde(rename_all = "camelCase")]
     Text {
         text: String,
         #[serde(skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(test, ts(optional))]
         language: Option<String>,
         /// The file line `text` starts at, 1-based.
         start_line: u32,
         truncated: bool,
     },
+    /// Always sized, so the tab can hold its place before it decodes.
     #[serde(rename_all = "camelCase")]
     Image {
         mime: String,
         data_base64: String,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        width: Option<u32>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        height: Option<u32>,
+        width: u32,
+        height: u32,
     },
     Json {
+        #[cfg_attr(test, ts(type = "unknown"))]
         value: Value,
     },
     Note {
@@ -292,13 +296,16 @@ fn image(
     class: &assets::Class,
 ) -> Result<Resolved, String> {
     let sniffed = crate::context::sniff(head);
-    if let Some(s) = &sniffed {
-        if let Some((w, h)) = s.dims {
-            out.meta.insert("width".into(), json!(w));
-            out.meta.insert("height".into(), json!(h));
-        }
-    }
     let svg = class.mime == "image/svg+xml";
+    let dims = match &sniffed {
+        Some(s) => s.dims,
+        None if svg => assets::svg_size(head),
+        None => None,
+    };
+    if let Some((w, h)) = dims {
+        out.meta.insert("width".into(), json!(w));
+        out.meta.insert("height".into(), json!(h));
+    }
     if sniffed.is_none() && !svg {
         out.parts.push(Part::Note {
             text: format!("image, {}; this format has no preview", human_size(size)),
@@ -316,13 +323,26 @@ fn image(
         return Ok(out);
     };
     let bytes = read_prefix(abs, MAX_IMAGE_BYTES)?;
-    out.parts.push(Part::Image {
+    out.parts.push(image_part(mime, &bytes));
+    Ok(out)
+}
+
+/// The size a picture takes when its header does not say: the CSS default for
+/// a replaced element.
+const UNSIZED: (u32, u32) = (300, 150);
+
+/// An image part, sized from the picture's header. Only rasters are sent as
+/// pictures; an SVG's own size goes in its `meta`.
+pub(super) fn image_part(mime: &str, bytes: &[u8]) -> Part {
+    let (width, height) = crate::context::sniff(bytes)
+        .and_then(|s| s.dims)
+        .unwrap_or(UNSIZED);
+    Part::Image {
         mime: mime.into(),
         data_base64: BASE64.encode(bytes),
-        width: sniffed.as_ref().and_then(|s| s.dims).map(|d| d.0),
-        height: sniffed.as_ref().and_then(|s| s.dims).map(|d| d.1),
-    });
-    Ok(out)
+        width,
+        height,
+    }
 }
 
 /// A folder's entries, folders first, secrets and gitignored entries left out.
@@ -410,7 +430,7 @@ fn excerpt(abs: &Path, lines: Option<Lines>) -> Result<Excerpt, Fault> {
 
 /// [`excerpt`], reading at most `scan` bytes of the file.
 fn excerpt_within(abs: &Path, lines: Option<Lines>, scan: u64) -> Result<Excerpt, Fault> {
-    let file = std::fs::File::open(abs).map_err(|e| format!("cannot open that file: {e}"))?;
+    let file = open(abs)?;
     let size = file.metadata().map(|m| m.len()).unwrap_or(0);
     let mut reader = BufReader::new(file).take(scan);
     let start = lines.map_or(1, |l| l.start);
@@ -489,8 +509,18 @@ fn cut(s: &str, max: usize) -> &str {
     &s[..end]
 }
 
+/// A regular file, opened to read. Anything else is refused before opening:
+/// opening a named pipe waits for a writer that may never come.
+fn open(abs: &Path) -> Result<std::fs::File, String> {
+    let meta = std::fs::metadata(abs).map_err(|e| format!("cannot open that file: {e}"))?;
+    if !meta.is_file() {
+        return Err("that is not a regular file, so it is not read".into());
+    }
+    std::fs::File::open(abs).map_err(|e| format!("cannot open that file: {e}"))
+}
+
 fn read_prefix(abs: &Path, max: u64) -> Result<Vec<u8>, String> {
-    let file = std::fs::File::open(abs).map_err(|e| format!("cannot open that file: {e}"))?;
+    let file = open(abs)?;
     let mut bytes = Vec::new();
     file.take(max)
         .read_to_end(&mut bytes)
@@ -580,12 +610,7 @@ pub fn png_part(path: &Path) -> Result<Part, String> {
     }
     let bytes = read_prefix(path, MAX_IMAGE_BYTES)?;
     let sniffed = crate::context::sniff(&bytes).ok_or("the picture is not an image")?;
-    Ok(Part::Image {
-        mime: sniffed.mime.into(),
-        data_base64: BASE64.encode(&bytes),
-        width: sniffed.dims.map(|d| d.0),
-        height: sniffed.dims.map(|d| d.1),
-    })
+    Ok(image_part(sniffed.mime, &bytes))
 }
 
 /// An item in the context store. One Kaava stored itself is read where it
@@ -916,7 +941,7 @@ mod tests {
         match &r.parts[0] {
             Part::Image { mime, height, .. } => {
                 assert_eq!(mime, "image/png");
-                assert_eq!(*height, Some(32));
+                assert_eq!(*height, 32);
             }
             other => panic!("{other:?}"),
         }
@@ -927,6 +952,45 @@ mod tests {
         assert!(huge.withheld.unwrap().contains("over the"));
         assert!(huge.parts.is_empty());
         assert_eq!(huge.meta["width"], 4000);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_named_pipe_is_refused_without_waiting_for_a_writer() {
+        let dir = project();
+        let pipe = dir.path().join("pipe");
+        let made = std::process::Command::new("mkfifo").arg(&pipe).status();
+        if !made.is_ok_and(|s| s.success()) {
+            return;
+        }
+        let err = resolve(&dir, "kaava://file/pipe").unwrap_err();
+        assert!(
+            err.message.contains("not a regular file"),
+            "{}",
+            err.message
+        );
+    }
+
+    #[test]
+    fn every_picture_is_sized_and_an_svg_says_its_own_size() {
+        let dir = project();
+        // A WebP that opens with none of the three chunks it is sized from.
+        put(&dir, "art/odd.webp", b"RIFF\0\0\0\0WEBPXYZW\0\0\0\0");
+        match &resolve(&dir, "kaava://file/art/odd.webp").unwrap().parts[0] {
+            Part::Image { width, height, .. } => assert_eq!((*width, *height), UNSIZED),
+            other => panic!("{other:?}"),
+        }
+        // An SVG is sent as its text, not as a picture, so its size is meta.
+        let svg = |size: &str| format!("<svg xmlns=\"http://www.w3.org/2000/svg\" {size}></svg>");
+        put(&dir, "art/box.svg", svg("viewBox=\"0 0 40 20\"").as_bytes());
+        put(&dir, "art/bare.svg", svg("").as_bytes());
+        let boxed = resolve(&dir, "kaava://file/art/box.svg").unwrap();
+        assert_eq!(
+            (&boxed.meta["width"], &boxed.meta["height"]),
+            (&json!(40), &json!(20))
+        );
+        let bare = resolve(&dir, "kaava://file/art/bare.svg").unwrap();
+        assert!(bare.meta.get("width").is_none(), "{:?}", bare.meta);
     }
 
     #[test]
