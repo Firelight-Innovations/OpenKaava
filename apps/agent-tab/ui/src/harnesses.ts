@@ -2,8 +2,8 @@
  * The harnesses the settings menu lists, each with the models it offers.
  * The menu shows Claude, Codex and Kaava in that order. One the host does
  * not report reads "Coming soon": Kaava is our own harness and still being
- * built, and Codex arrives with harness-bridge. The harness in use is never
- * locked, even before the host's answer arrives.
+ * built. The harness in use is never locked, even before the host's answer
+ * arrives.
  */
 import type { HarnessInfo } from "./protocol.generated";
 import type { HarnessChoice, PickerChoice } from "./components/types";

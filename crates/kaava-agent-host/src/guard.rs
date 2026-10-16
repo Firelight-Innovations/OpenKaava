@@ -6,9 +6,10 @@
 //! - [`Worktree`] is the only way to name a working directory, and it can only
 //!   be built from a linked git worktree — a directory whose `.git` is a file.
 //!   A main checkout's `.git` is a directory, so no session can start there.
-//! - [`outside`] answers a permission request: every path it names is resolved
-//!   against the worktree, symlinks followed, and any that lands outside is
-//!   grounds to refuse it without asking the user.
+//! - [`escapes`] answers a permission request: every path it reaches is
+//!   resolved against the worktree, symlinks followed, and any that lands
+//!   outside, or that names no path at all, is grounds to refuse it without
+//!   asking the user.
 
 use std::path::{Component, Path, PathBuf};
 
@@ -97,11 +98,7 @@ impl Worktree {
 /// in the order found.
 pub fn request_paths(tool_call: &Value) -> Vec<String> {
     let mut paths = Vec::new();
-    let mut push = |p: &str| {
-        if !p.is_empty() && !paths.iter().any(|seen: &String| seen == p) {
-            paths.push(p.to_string());
-        }
-    };
+    let mut push = |p: &str| add(&mut paths, p);
     for location in array(tool_call, "locations") {
         if let Some(p) = location.get("path").and_then(Value::as_str) {
             push(p);
@@ -124,13 +121,150 @@ pub fn request_paths(tool_call: &Value) -> Vec<String> {
     paths
 }
 
-/// The paths among `paths` that resolve outside `worktree`.
-pub fn outside(worktree: &Worktree, paths: &[String]) -> Vec<String> {
-    paths
-        .iter()
-        .filter(|p| !worktree.contains(p))
-        .cloned()
-        .collect()
+/// Everything a `session/request_permission` reaches, as the approval card
+/// shows it: [`request_paths`], the folder a command would run in, and each
+/// path, pattern and named scope of any extra sandbox access it asks for.
+/// Paths and patterns are written as [`Worktree::display`] writes them. A
+/// command that runs in the worktree itself, as one almost always does, adds
+/// nothing; a grant of the whole worktree is still shown.
+pub fn request_scope(worktree: &Worktree, tool_call: &Value) -> Vec<String> {
+    let root = worktree.path().to_string_lossy().into_owned();
+    let mut shown = Vec::new();
+    for r in reach(tool_call) {
+        let text = match r.checked {
+            Some(_) => worktree.display(&r.shown),
+            None => r.shown,
+        };
+        if !(r.cwd && text == root) {
+            add(&mut shown, &text);
+        }
+    }
+    shown
+}
+
+/// What the guard refuses in a `session/request_permission`: each part of
+/// [`request_scope`] that resolves outside `worktree`, and each part it
+/// cannot check at all.
+pub fn escapes(worktree: &Worktree, tool_call: &Value) -> Vec<String> {
+    let mut refused = Vec::new();
+    for r in reach(tool_call) {
+        if !r.checked.as_deref().is_some_and(|p| worktree.contains(p)) {
+            add(&mut refused, &r.shown);
+        }
+    }
+    refused
+}
+
+/// One part of what a request reaches: as the card shows it, the path the
+/// guard checks for it, `None` when no path inside a worktree can stand for
+/// it, and whether it is only the folder a command runs in.
+struct Reach {
+    shown: String,
+    checked: Option<String>,
+    cwd: bool,
+}
+
+/// Codex asks for sandbox access as a permission profile, with a command
+/// (`additionalPermissions`) or on its own (`permissions`). An entry that
+/// denies access grants nothing and is skipped. A glob pattern is checked by
+/// the folder its literal start names. A named scope is checked only when it
+/// is the project, which is the worktree a session runs in; the whole disk,
+/// the temp folders, and any scope Codex adds later are refused.
+///
+/// Two parts are one only when both what is shown and what is checked match:
+/// a named scope shown as `<root>` is never hidden behind a path of that name.
+/// The command's folder comes last, so a grant of the same folder is kept.
+fn reach(tool_call: &Value) -> Vec<Reach> {
+    let mut out: Vec<Reach> = Vec::new();
+    let mut push = |shown: String, checked: Option<String>, cwd: bool| {
+        let seen = out.iter().any(|r| r.shown == shown && r.checked == checked);
+        if !shown.is_empty() && !seen {
+            out.push(Reach {
+                shown,
+                checked,
+                cwd,
+            });
+        }
+    };
+    let input = tool_call.get("rawInput").unwrap_or(&Value::Null);
+    for p in request_paths(tool_call) {
+        push(p.clone(), Some(p), false);
+    }
+    for key in ["permissions", "additionalPermissions"] {
+        let Some(files) = input.get(key).and_then(|p| p.get("fileSystem")) else {
+            continue;
+        };
+        for access in ["read", "write"] {
+            for p in array(files, access).filter_map(Value::as_str) {
+                push(p.to_string(), Some(p.to_string()), false);
+            }
+        }
+        for entry in array(files, "entries") {
+            if entry.get("access").and_then(Value::as_str) == Some("deny") {
+                continue;
+            }
+            let path = entry.get("path").unwrap_or(&Value::Null);
+            let text = |key: &str| path.get(key).and_then(Value::as_str).unwrap_or_default();
+            match path.get("type").and_then(Value::as_str) {
+                Some("path") => push(
+                    text("path").to_string(),
+                    Some(text("path").to_string()),
+                    false,
+                ),
+                Some("glob_pattern") => push(
+                    text("pattern").to_string(),
+                    glob_base(text("pattern")),
+                    false,
+                ),
+                _ => {
+                    let scope = path.get("value").unwrap_or(&Value::Null);
+                    let kind = scope
+                        .get("kind")
+                        .and_then(Value::as_str)
+                        .unwrap_or("unknown");
+                    if kind == "project_roots" {
+                        let sub = scope
+                            .get("subpath")
+                            .and_then(Value::as_str)
+                            .filter(|sub| !sub.is_empty())
+                            .unwrap_or(".");
+                        push(sub.to_string(), Some(sub.to_string()), false);
+                    } else {
+                        push(format!("<{kind}>"), None, false);
+                    }
+                }
+            }
+        }
+    }
+    if let Some(cwd) = input.get("cwd").and_then(Value::as_str) {
+        push(cwd.to_string(), Some(cwd.to_string()), true);
+    }
+    out
+}
+
+/// The folder a glob pattern's literal start names, with a trailing separator
+/// so that a bare drive (`C:`) is its root and not its current folder. `None`
+/// when no folder bounds the pattern: it starts with a wildcard, which could
+/// match anywhere, or with `~`, which Codex may read as the home folder, or it
+/// could climb with `..` after a wildcard, as `{..,a}` does once expanded.
+fn glob_base(pattern: &str) -> Option<String> {
+    let wild = |part: &str| part.contains(['*', '?', '[', '{']);
+    let parts: Vec<&str> = pattern.split(['/', '\\']).collect();
+    let literal = parts.iter().take_while(|part| !wild(part)).count();
+    match literal {
+        _ if pattern.starts_with('~') => None,
+        0 => None,
+        n if n == parts.len() => Some(pattern.to_string()),
+        n if parts[n..].iter().any(|part| part.contains("..")) => None,
+        n => Some(format!("{}/", parts[..n].join("/"))),
+    }
+}
+
+/// `p` added to `paths` unless it is empty or already there.
+fn add(paths: &mut Vec<String>, p: &str) {
+    if !p.is_empty() && !paths.iter().any(|seen| seen == p) {
+        paths.push(p.to_string());
+    }
 }
 
 fn array<'a>(value: &'a Value, key: &str) -> impl Iterator<Item = &'a Value> {
@@ -350,9 +484,143 @@ mod tests {
     }
 
     #[test]
-    fn outside_lists_only_the_escapes() {
+    fn a_codex_command_is_checked_where_it_runs_and_for_what_it_asks() {
         let (_dir, tree) = layout();
-        let paths = vec!["src/ok.rs".to_string(), "../escape.rs".to_string()];
-        assert_eq!(outside(&tree, &paths), vec!["../escape.rs".to_string()]);
+        let call = json!({
+            "locations": [{"path": "src/a.rs"}],
+            "rawInput": {
+                "command": "cargo build",
+                "cwd": tree.path(),
+                "additionalPermissions": {"fileSystem": {
+                    "write": ["target"],
+                    "entries": [
+                        {"access": "write", "path": {"type": "path", "path": "out"}},
+                        {"access": "read", "path": {"type": "glob_pattern", "pattern": "../**"}},
+                        {"access": "write", "path": {"type": "special", "value": {"kind": "root"}}}
+                    ]
+                }}
+            }
+        });
+        assert_eq!(request_paths(&call), vec!["src/a.rs"]);
+        let shown = ["src/a.rs", "target", "out", "../**"].map(|p| tree.display(p));
+        let mut shown = shown.to_vec();
+        shown.push("<root>".to_string());
+        assert_eq!(
+            request_scope(&tree, &call),
+            shown,
+            "the worktree itself is left out"
+        );
+        assert_eq!(escapes(&tree, &call), vec!["../**", "<root>"]);
+    }
+
+    #[test]
+    fn a_codex_sandbox_request_is_checked_for_each_path_it_grants() {
+        let (_dir, tree) = layout();
+        let call = json!({
+            "rawInput": {
+                "cwd": "src",
+                "permissions": {"fileSystem": {"read": ["src/lib.rs"], "entries": [
+                    {"access": "write", "path": {"type": "glob_pattern", "pattern": "../**"}}
+                ]}}
+            }
+        });
+        assert_eq!(escapes(&tree, &call), vec!["../**".to_string()]);
+    }
+
+    #[test]
+    fn a_named_scope_is_refused_unless_it_is_the_project() {
+        let (_dir, tree) = layout();
+        let scope = |value: Value| {
+            json!({"rawInput": {"permissions": {"fileSystem": {"entries": [
+                {"access": "write", "path": {"type": "special", "value": value}}
+            ]}}}})
+        };
+        for kind in [
+            "root",
+            "minimal",
+            "tmpdir",
+            "slash_tmp",
+            "unknown",
+            "added_later",
+        ] {
+            let call = scope(json!({"kind": kind}));
+            assert_eq!(escapes(&tree, &call), vec![format!("<{kind}>")], "{kind}");
+        }
+        assert_eq!(escapes(&tree, &scope(json!(null))), vec!["<unknown>"]);
+        let project = scope(json!({"kind": "project_roots", "subpath": null}));
+        assert!(escapes(&tree, &project).is_empty());
+        let sub = scope(json!({"kind": "project_roots", "subpath": "src"}));
+        assert!(escapes(&tree, &sub).is_empty());
+    }
+
+    #[test]
+    fn a_named_scope_is_not_hidden_behind_a_path_of_the_same_name() {
+        let (_dir, tree) = layout();
+        let call = json!({"rawInput": {"permissions": {"fileSystem": {"entries": [
+            {"access": "write", "path": {"type": "special",
+                "value": {"kind": "project_roots", "subpath": "<root>"}}},
+            {"access": "write", "path": {"type": "path", "path": "<root>"}},
+            {"access": "write", "path": {"type": "special", "value": {"kind": "root"}}}
+        ]}}}});
+        assert_eq!(escapes(&tree, &call), vec!["<root>"]);
+    }
+
+    #[test]
+    fn a_grant_of_the_whole_worktree_is_shown_but_where_a_command_runs_is_not() {
+        let (_dir, tree) = layout();
+        let run = json!({"rawInput": {"command": "cargo build", "cwd": tree.path()}});
+        assert!(request_scope(&tree, &run).is_empty());
+        let grant = json!({"rawInput": {"command": "cargo build", "cwd": tree.path(),
+        "additionalPermissions": {"fileSystem": {"entries": [
+            {"access": "write", "path": {"type": "special",
+                "value": {"kind": "project_roots"}}}
+        ]}}}});
+        assert_eq!(request_scope(&tree, &grant), vec![tree.display(".")]);
+        assert!(escapes(&tree, &grant).is_empty());
+        let empty = json!({"rawInput": {"permissions": {"fileSystem": {"entries": [
+            {"access": "write", "path": {"type": "special",
+                "value": {"kind": "project_roots", "subpath": ""}}}
+        ]}}}});
+        assert_eq!(request_scope(&tree, &empty), vec![tree.display(".")]);
+    }
+
+    #[test]
+    fn a_glob_is_checked_by_the_folder_its_literal_start_names() {
+        let (_dir, tree) = layout();
+        let root = tree.path().to_string_lossy().replace('\\', "/");
+        let glob = |pattern: &str| {
+            json!({"rawInput": {"permissions": {"fileSystem": {"entries": [
+                {"access": "write", "path": {"type": "glob_pattern", "pattern": pattern}}
+            ]}}}})
+        };
+        for inside in ["src/**", "src/*/x.rs", &format!("{root}/**")] {
+            assert!(escapes(&tree, &glob(inside)).is_empty(), "{inside}");
+        }
+        let mut globs = vec!["/**", "../**", "**/x", "{/etc,src}/**", "?:/Windows/**"];
+        globs.extend(["src/*/../../x", "src/{..,a}/{..,b}/x", "~/**", "~/.ssh/*"]);
+        if cfg!(windows) {
+            globs.push("C:/**");
+        }
+        for outside in globs {
+            assert_eq!(escapes(&tree, &glob(outside)), vec![outside], "{outside}");
+        }
+    }
+
+    #[test]
+    fn an_entry_that_denies_access_grants_nothing() {
+        let (_dir, tree) = layout();
+        let call = json!({"rawInput": {"permissions": {"fileSystem": {"entries": [
+            {"access": "deny", "path": {"type": "glob_pattern", "pattern": "/**/.env"}},
+            {"access": "deny", "path": {"type": "special", "value": {"kind": "root"}}}
+        ]}}}});
+        assert!(escapes(&tree, &call).is_empty());
+        assert!(request_scope(&tree, &call).is_empty());
+    }
+
+    #[test]
+    fn escapes_lists_only_what_is_outside() {
+        let (_dir, tree) = layout();
+        let call = json!({"locations": [{"path": "src/ok.rs"}, {"path": "../escape.rs"}]});
+        assert_eq!(escapes(&tree, &call), vec!["../escape.rs".to_string()]);
     }
 }

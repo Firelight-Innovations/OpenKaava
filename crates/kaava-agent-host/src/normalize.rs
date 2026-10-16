@@ -26,6 +26,7 @@ use serde_json::Value;
 use crate::config::{enters_held_back, settings, Settings};
 use crate::event::{ApprovalOption, Event, FileDiff, Hint, Item, ItemKind, PlanEntry, ToolStatus};
 use crate::guard::request_paths;
+use crate::harness::Harness;
 use crate::kaava_call;
 use crate::mask::mask;
 
@@ -63,6 +64,7 @@ pub const CUT_NOTE: &str = "\n\n(message truncated)";
 #[derive(Debug)]
 pub struct Normalizer {
     prefix: String,
+    harness: Harness,
     next: u64,
     turn: Option<String>,
     open: Option<OpenText>,
@@ -70,6 +72,7 @@ pub struct Normalizer {
     /// The open tool calls the harness named as a context server show tool.
     /// An adapter may name the tool on one update only, so it is remembered.
     shows: HashSet<String>,
+    named: HashMap<String, Vec<String>>,
     plan: Option<Item>,
     usage: Option<(u64, u64)>,
     mode: Option<String>,
@@ -88,15 +91,17 @@ struct OpenText {
 
 impl Normalizer {
     /// A normalizer whose item and turn ids all start with `prefix`, so two
-    /// sessions in one tab never mint the same id.
-    pub fn new(prefix: &str) -> Self {
+    /// sessions in one tab never mint the same id. Its errors name `harness`.
+    pub fn new(prefix: &str, harness: Harness) -> Self {
         Self {
             prefix: prefix.to_string(),
+            harness,
             next: 0,
             turn: None,
             open: None,
             tools: HashMap::new(),
             shows: HashSet::new(),
+            named: HashMap::new(),
             plan: None,
             usage: None,
             mode: None,
@@ -167,6 +172,7 @@ impl Normalizer {
         let mut events = self.close_text();
         let mut tools: Vec<Item> = self.tools.drain().map(|(_, item)| item).collect();
         self.shows.clear();
+        self.named.clear();
         tools.sort_by(|a, b| a.id.cmp(&b.id));
         for mut item in tools {
             if let ItemKind::ToolCall { status, .. } = &mut item.kind {
@@ -196,6 +202,7 @@ impl Normalizer {
         let item = self.item(ItemKind::Error {
             message: mask(message),
             hint,
+            harness: self.harness,
         });
         events.push(Event::ItemCompleted { item });
         events
@@ -208,6 +215,14 @@ impl Normalizer {
             .map(|open| Event::ItemCompleted { item: open.item })
             .into_iter()
             .collect()
+    }
+
+    /// Every file a live tool call has named in any update so far: its paths,
+    /// and the file each of its diffs writes, which for a move is where the
+    /// file goes. A later update that names others adds to these, where the
+    /// item drawn shows only the latest.
+    pub fn tool_paths(&self, id: &str) -> Vec<String> {
+        self.named.get(id).cloned().unwrap_or_default()
     }
 
     /// The item for a `session/request_permission`. `paths` are the ones the
@@ -390,6 +405,12 @@ impl Normalizer {
             return Vec::new();
         }
         let mut events = self.close_text();
+        let named = self.named.entry(id.to_string()).or_default();
+        for path in request_paths(update) {
+            if !named.contains(&path) {
+                named.push(path);
+            }
+        }
         let known = self.tools.remove(id);
         let started = known.is_none();
         let mut item = match known {
@@ -427,6 +448,9 @@ impl Normalizer {
                 ..
             }
         );
+        if done {
+            self.named.remove(id);
+        }
         let event = match (started, done) {
             (_, true) => Event::ItemCompleted { item },
             (true, false) => Event::ItemStarted { item },
@@ -586,7 +610,7 @@ mod tests {
     use serde_json::json;
 
     fn started() -> Normalizer {
-        let mut n = Normalizer::new("s1");
+        let mut n = Normalizer::new("s1", Harness::Claude);
         n.begin_turn("hi");
         n
     }
@@ -604,7 +628,7 @@ mod tests {
 
     #[test]
     fn a_turn_starts_with_the_users_message() {
-        let mut n = Normalizer::new("s1");
+        let mut n = Normalizer::new("s1", Harness::Claude);
         let events = n.begin_turn("hello");
         assert!(matches!(&events[0], Event::TurnStarted { turn_id } if turn_id == "s1-t1"));
         assert!(matches!(
@@ -645,7 +669,7 @@ mod tests {
 
     #[test]
     fn chunks_outside_a_turn_are_dropped() {
-        let mut n = Normalizer::new("s1");
+        let mut n = Normalizer::new("s1", Harness::Claude);
         assert!(n.update(&chunk("stray", None)).is_empty());
         assert_eq!(n.dropped(), 1);
     }
@@ -695,6 +719,26 @@ mod tests {
         assert_eq!(diffs.len(), 1);
         assert_eq!(diffs[0].old_text.as_deref(), Some("x"));
         assert!(!diffs[0].too_large);
+    }
+
+    #[test]
+    fn a_tool_call_remembers_every_file_it_named_until_it_completes() {
+        let mut n = started();
+        n.update(&json!({
+            "sessionUpdate": "tool_call", "toolCallId": "t1", "kind": "edit",
+            "content": [{"type": "diff", "path": "/x/moved.rs", "oldText": "a", "newText": "a"}]
+        }));
+        n.update(&json!({
+            "sessionUpdate": "tool_call_update", "toolCallId": "t1",
+            "locations": [{"path": "/w/a.rs"}],
+            "content": [{"type": "content", "content": {"type": "text", "text": "working"}}]
+        }));
+        assert_eq!(n.tool_paths("t1"), ["/x/moved.rs", "/w/a.rs"]);
+        assert!(n.tool_paths("t2").is_empty());
+        n.update(&json!({
+            "sessionUpdate": "tool_call_update", "toolCallId": "t1", "status": "completed"
+        }));
+        assert!(n.tool_paths("t1").is_empty());
     }
 
     #[test]
@@ -1079,5 +1123,24 @@ mod tests {
             matches!(&events[..], [Event::ItemCompleted { item: Item { kind: ItemKind::Error { message, .. }, .. } }]
             if message == "failed for <email>")
         );
+    }
+
+    #[test]
+    fn an_error_names_the_harness_that_raised_it() {
+        let mut n = Normalizer::new("s2", Harness::Codex);
+        let events = n.error("not signed in", Some(Hint::SignedOut));
+        assert!(matches!(
+            &events[..],
+            [Event::ItemCompleted {
+                item: Item {
+                    kind: ItemKind::Error {
+                        harness: Harness::Codex,
+                        hint: Some(Hint::SignedOut),
+                        ..
+                    },
+                    ..
+                }
+            }]
+        ));
     }
 }

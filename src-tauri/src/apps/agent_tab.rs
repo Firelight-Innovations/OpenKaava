@@ -98,6 +98,11 @@ pub struct Sessions {
     host: OnceLock<AgentHost>,
     homes: Mutex<HashMap<String, Home>>,
     chosen: Mutex<HashMap<String, Harness>>,
+    /// Held by a send from reading the tab's harness until its agent has
+    /// started, and by a choice from its check until it is stored. Without
+    /// it, a choice could land in between, and the tab would run one harness
+    /// while holding another as its choice.
+    turn: Mutex<()>,
 }
 
 /// The cluster a tab's session started in, and what that cluster pointed at
@@ -137,6 +142,41 @@ impl Sessions {
         current(
             host.running(instance_id),
             self.chosen().get(instance_id).copied(),
+        )
+    }
+
+    fn turn(&self) -> std::sync::MutexGuard<'_, ()> {
+        self.turn.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// `start` handed the harness the tab's next prompt goes to. No choice
+    /// lands until it returns, so it starts the harness the tab still holds.
+    fn send_as<T>(
+        &self,
+        host: &AgentHost,
+        instance_id: &str,
+        start: impl FnOnce(Harness) -> T,
+    ) -> T {
+        let _turn = self.turn();
+        start(self.current(host, instance_id))
+    }
+
+    /// [`choose`], holding the tab's turn from its check until the choice is
+    /// stored.
+    fn choose(
+        &self,
+        host: &AgentHost,
+        instance_id: &str,
+        harness: Harness,
+        open: impl FnOnce() -> bool,
+    ) -> Result<Value, RpcError> {
+        let _turn = self.turn();
+        choose(
+            &self.chosen,
+            instance_id,
+            host.running(instance_id),
+            harness,
+            open,
         )
     }
 
@@ -242,23 +282,24 @@ pub fn call_for(
         "agent-tab/send" => {
             let text = text_param(&params, "text")?;
             let worktree = worktree(app, context)?;
-            let harness = sessions.current(host, instance);
-            let mut launch = spec(
-                harness,
-                std::env::var_os("PATH").as_deref(),
-                std::env::var_os("PATHEXT").as_deref(),
-            )
-            .map_err(|hint| {
-                let name = harness.descriptor().name;
-                refused(
-                    "harness",
-                    &format!("{name} or its ACP adapter is not on PATH"),
-                    json!(hint),
+            sessions.send_as(host, instance, |harness| {
+                let mut launch = spec(
+                    harness,
+                    std::env::var_os("PATH").as_deref(),
+                    std::env::var_os("PATHEXT").as_deref(),
                 )
+                .map_err(|hint| {
+                    let name = harness.descriptor().name;
+                    refused(
+                        "harness",
+                        &format!("{name} or its ACP adapter is not on PATH"),
+                        json!(hint),
+                    )
+                })?;
+                launch.mcp_servers = session_servers(app, context.cluster_id.as_deref());
+                host.send(instance, launch, worktree, &text)
+                    .map_err(host_error)
             })?;
-            launch.mcp_servers = session_servers(app, context.cluster_id.as_deref());
-            host.send(instance, launch, worktree, &text)
-                .map_err(host_error)?;
             sessions.record(app, host, instance);
             Ok(json!({}))
         }
@@ -290,13 +331,7 @@ pub fn call_for(
         // The tab's next session runs this harness.
         "agent-tab/choose" => {
             let harness = harness_param(&params)?;
-            let event = choose(
-                &sessions.chosen,
-                instance,
-                host.running(instance),
-                harness,
-                || is_agent_tab(app, instance),
-            )?;
+            let event = sessions.choose(host, instance, harness, || is_agent_tab(app, instance))?;
             let _ = app.emit(CHOSEN, event);
             Ok(json!({}))
         }
@@ -548,6 +583,34 @@ mod tests {
 
     fn code_of(error: &RpcError) -> Option<&str> {
         error.data.as_ref()?.get("code")?.as_str()
+    }
+
+    #[test]
+    fn a_choice_waits_for_a_send_that_is_starting_its_agent() {
+        let sessions = Sessions::default();
+        let host = AgentHost::new(Arc::new(|_| {}), Arc::new(|_, _| {}));
+        let order = Mutex::new(Vec::new());
+        let (started, starting) = std::sync::mpsc::channel();
+        let (sessions, host, order) = (&sessions, &host, &order);
+        std::thread::scope(|s| {
+            s.spawn(move || {
+                starting.recv().unwrap();
+                sessions
+                    .choose(host, "tab", Harness::Codex, || true)
+                    .unwrap();
+                order.lock().unwrap().push("chose");
+            });
+            // `move`, so a failed assertion drops `started` and the chooser's
+            // `recv` fails rather than waiting for ever.
+            sessions.send_as(host, "tab", move |harness| {
+                assert_eq!(harness, harness::first());
+                started.send(()).unwrap();
+                std::thread::sleep(Duration::from_millis(200));
+                order.lock().unwrap().push("started");
+            });
+        });
+        assert_eq!(*order.lock().unwrap(), ["started", "chose"]);
+        assert_eq!(sessions.current(host, "tab"), Harness::Codex);
     }
 
     /// Handoff §0: never on main. Only a local worktree has a path to run in.

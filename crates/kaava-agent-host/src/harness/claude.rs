@@ -19,6 +19,7 @@ pub static CLAUDE: Descriptor = Descriptor {
     },
     sign_in: "claude",
     env: &[],
+    env_remove: &[],
     // `default` asks before acting. A user whose own default is to act
     // without asking still gets asked here.
     policy: Policy {

@@ -33,7 +33,7 @@ use crate::config::{self, Settings};
 use crate::event::{
     Attachment, Envelope, Event, Hint, Item, ItemKind, SessionState, SessionStatus, SettingTrouble,
 };
-use crate::guard::{outside, request_paths, Worktree};
+use crate::guard::{escapes, request_scope, Worktree};
 use crate::harness::{Harness, LaunchSpec};
 use crate::host::HostError;
 use crate::job::{self, Job};
@@ -220,6 +220,9 @@ impl Session {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
+        for key in &spec.env_remove {
+            command.env_remove(key);
+        }
         let (mut child, job) = job::spawn(&mut command).map_err(|e| HostError::Spawn {
             hint: (e.kind() == std::io::ErrorKind::NotFound).then_some(Hint::AdapterMissing),
             message: mask(&e.to_string()),
@@ -273,7 +276,7 @@ impl Session {
                 replies: HashMap::new(),
                 prompt: None,
                 approvals: Vec::new(),
-                normalizer: Normalizer::new(&prefix),
+                normalizer: Normalizer::new(&prefix, spec.harness),
                 transcript: Transcript::from_items(prior),
                 status,
                 session_id: None,
@@ -1158,9 +1161,11 @@ impl Shared {
 
     fn permission(&self, rpc: Id, params: &Value) {
         let call = params.get("toolCall").unwrap_or(&Value::Null);
-        let named = request_paths(call);
-        let escapes = outside(&self.worktree, &named);
-        let paths = named.iter().map(|p| self.worktree.display(p)).collect();
+        let id = call.get("toolCallId").and_then(Value::as_str);
+        let reported = self.lock().normalizer.tool_paths(id.unwrap_or_default());
+        let call = with_reported(call, reported);
+        let paths = request_scope(&self.worktree, &call);
+        let escapes = escapes(&self.worktree, &call);
         let mut inner = self.lock();
         if inner.closed {
             return;
@@ -1339,6 +1344,23 @@ impl Failure {
     }
 }
 
+/// A permission request's tool call, with the files that call named earlier
+/// added to its locations. Codex's file-change request names only the file a
+/// change edits; where a move puts it is in the diff the change started with.
+fn with_reported(call: &Value, reported: Vec<String>) -> Value {
+    let mut call = call.clone();
+    if let Some(fields) = call.as_object_mut().filter(|_| !reported.is_empty()) {
+        let mut locations = fields
+            .get("locations")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        locations.extend(reported.into_iter().map(|path| json!({ "path": path })));
+        fields.insert("locations".to_string(), Value::Array(locations));
+    }
+    call
+}
+
 fn selected(option_id: &str) -> Value {
     json!({ "outcome": { "outcome": "selected", "optionId": option_id } })
 }
@@ -1512,7 +1534,7 @@ mod tests {
             replies: HashMap::new(),
             prompt: None,
             approvals: Vec::new(),
-            normalizer: Normalizer::new("t"),
+            normalizer: Normalizer::new("t", crate::harness::Harness::Claude),
             transcript: Transcript::from_items(Vec::new()),
             status: SessionStatus {
                 state: SessionState::Starting,

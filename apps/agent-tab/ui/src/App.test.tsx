@@ -59,6 +59,20 @@ const CLAUDE: HarnessInfo = {
   capabilities: { steer: false, fork: false, modes: false },
 };
 
+/** Codex as `agent-tab/harnesses` describes it, from `harness/codex.rs`. */
+const CODEX: HarnessInfo = {
+  harness: "codex",
+  name: "Codex",
+  hint: null,
+  setup: {
+    cli: "codex",
+    signIn: "codex login",
+    adapterInstall: "npm i -g --omit=optional @agentclientprotocol/codex-acp@2.2.2",
+    adapterVersion: "2.2.2",
+  },
+  capabilities: { steer: false, fork: false, modes: false },
+};
+
 const STATUS: SessionStatus = {
   state: "ready",
   harness: "claude",
@@ -290,7 +304,9 @@ describe("the agent tab", () => {
     backend({
       status: STATUS,
       seq: 2,
-      items: [item("e1", { kind: "error", message: "boom", hint: "harnessMissing" })],
+      items: [
+        item("e1", { kind: "error", message: "boom", hint: "harnessMissing", harness: "claude" }),
+      ],
     });
     render(<App />);
     const alert = await screen.findByRole("alert");
@@ -385,7 +401,7 @@ describe("the agent tab", () => {
       seq: 4,
       items: [
         item("u1", { kind: "userMessage", text: "fix the build" }),
-        item("e2", { kind: "error", message: "overloaded", hint: null }),
+        item("e2", { kind: "error", message: "overloaded", hint: null, harness: "claude" }),
       ],
     });
     render(<App />);
@@ -480,7 +496,12 @@ describe("the agent tab", () => {
       items: [
         item("u1", { kind: "userMessage", text: "an older prompt" }),
         item("u2", { kind: "userMessage", text: "the one that failed" }),
-        item("e2", { kind: "error", message: "authentication required", hint: "signedOut" }),
+        item("e2", {
+          kind: "error",
+          message: "authentication required",
+          hint: "signedOut",
+          harness: "claude",
+        }),
       ],
     });
     render(<App />);
@@ -609,7 +630,7 @@ describe("the agent tab", () => {
         seq: 4,
         items: [
           item("u1", { kind: "userMessage", text: "one" }),
-          item("e1", { kind: "error", message: "boom", hint: null }),
+          item("e1", { kind: "error", message: "boom", hint: null, harness: "claude" }),
           item("u2", { kind: "userMessage", text: "two" }),
           item("a2", { kind: "assistantText", text: "an answer" }),
         ],
@@ -1081,14 +1102,14 @@ describe("the harness", () => {
       { status: null, seq: 0, items: [] },
       {
         "agent-tab/harnesses": () =>
-          Promise.resolve({ harnesses: [CLAUDE, PI], current: "pi", blocked: null }),
+          Promise.resolve({ harnesses: [CLAUDE, CODEX], current: "codex", blocked: null }),
       },
     );
     const { container } = render(<App />);
-    await waitFor(() => expect(chips(container)).toContain("Pi"));
+    await waitFor(() => expect(chips(container)).toContain("Codex"));
     act(() => bridge.listeners.get("agent-tab:chosen")?.({ instanceId: "i", harness: "claude" }));
     expect(chips(container)).toContain("Claude");
-    expect(chips(container)).not.toContain("Pi");
+    expect(chips(container)).not.toContain("Codex");
   });
 
   it("says a switch failed, not a send, when choosing fails", async () => {
@@ -1179,5 +1200,24 @@ describe("the harness", () => {
     );
     render(<App />);
     await screen.findByText(/Claude is not signed in\. Run `claude` once/);
+  });
+
+  it("words an earlier session's error for the harness that raised it", async () => {
+    const signedOut = item("e1", {
+      kind: "error",
+      message: "auth required",
+      hint: "signedOut",
+      harness: "claude",
+    });
+    backend(
+      { status: { ...STATUS, harness: "codex" }, seq: 3, items: [signedOut] },
+      {
+        "agent-tab/harnesses": () =>
+          Promise.resolve({ harnesses: [CLAUDE, CODEX], current: "codex", blocked: null }),
+      },
+    );
+    render(<App />);
+    await screen.findByText(/Claude is not signed in\. Run `claude` once/);
+    expect(screen.queryByText(/codex login/)).toBeNull();
   });
 });

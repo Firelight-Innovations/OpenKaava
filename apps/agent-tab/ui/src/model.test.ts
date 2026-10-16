@@ -111,7 +111,11 @@ describe("the transcript", () => {
       { id: "u1", turnId: "t1", kind: { kind: "userMessage", text: "older" } },
       text("a1", "done"),
       { id: "u2", turnId: "t2", kind: { kind: "userMessage", text: "the one that failed" } },
-      { id: "e2", turnId: "t2", kind: { kind: "error", message: "no sign-in", hint: "signedOut" } },
+      {
+        id: "e2",
+        turnId: "t2",
+        kind: { kind: "error", message: "no sign-in", hint: "signedOut", harness: "claude" },
+      },
     ];
     expect(promptBefore(failed, "e2")).toBe("the one that failed");
   });

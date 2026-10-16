@@ -153,7 +153,8 @@ export default function App() {
   // host resolves `agent-tab/send` the same way.
   const running = status && !exited ? status.harness : null;
   const current = infoOf(harnesses, running ?? chosen);
-  // What the session's own hints and errors are about, even once it has ended.
+  // What the session's own hints are about, even once it has ended. An error
+  // item names its own harness, which an earlier session may have run.
   const session = infoOf(harnesses, status?.harness ?? null);
 
   const submit = useCallback(
@@ -242,9 +243,9 @@ export default function App() {
         const text = promptBefore(state.items, itemId);
         if (text !== null) submit(text);
       },
-      hintText: (hint: Hint) => hintText(hint, session),
+      hintText: (hint: Hint, harness: Harness) => hintText(hint, infoOf(harnesses, harness)),
     }),
-    [state.items, submit, session],
+    [state.items, submit, session, harnesses],
   );
 
   // The transcript as assistant-ui's thread. Turns whose items did not change

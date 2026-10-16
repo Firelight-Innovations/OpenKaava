@@ -1,7 +1,7 @@
 // Generated from crates/kaava-agent-host/src/event.rs by ts-rs. Do not edit.
 // Regenerate: KAAVA_BLESS=1 cargo test -p kaava-agent-host generated_types
 
-export type Harness = "claude";
+export type Harness = "claude" | "codex";
 
 export type Capabilities = { 
 /**
@@ -204,7 +204,12 @@ message: string,
 /**
  * A known cause the agent tab can explain, if there is one.
  */
-hint: Hint | null, };
+hint: Hint | null, 
+/**
+ * The harness that failed. The hint is worded for it, even after the
+ * tab's next session runs another.
+ */
+harness: Harness, };
 
 export type ToolStatus = "pending" | "inProgress" | "completed" | "failed";
 
