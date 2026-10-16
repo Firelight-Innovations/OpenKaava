@@ -142,7 +142,12 @@ paths: Array<string>,
 /**
  * The changes it makes, when it edits files.
  */
-diffs: Array<FileDiff>, } | { "kind": "approval", 
+diffs: Array<FileDiff>, 
+/**
+ * What the `kaava-context` server asked the tab to draw, when this is
+ * one of its show tools and it completed (see `kaava_call.rs`).
+ */
+kaava?: ShowMarker, } | { "kind": "approval", 
 /**
  * What the agent wants to do.
  */
@@ -221,6 +226,38 @@ newText: string,
  * texts were dropped and only the path is kept.
  */
 tooLarge: boolean, };
+
+export type ShowMarker = { 
+/**
+ * The catalogue version the props follow.
+ */
+version: number, 
+/**
+ * Which component: `refs`, `callout`, `table`, ...
+ */
+component: string, 
+/**
+ * The component's props, as the server answered them: an object.
+ */
+props: unknown, 
+/**
+ * The references the server dropped from `props`, and why.
+ */
+failed: Array<ShowFailure>, };
+
+export type ShowFailure = { 
+/**
+ * The reference, as the agent gave it.
+ */
+uri: string, 
+/**
+ * A reason word: `missing`, `outside`, `secret`, ...
+ */
+reason: string, 
+/**
+ * What went wrong, in a sentence.
+ */
+message: string, };
 
 export type ApprovalOption = { 
 /**

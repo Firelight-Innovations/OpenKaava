@@ -19,13 +19,14 @@
 //! - everything else is counted and dropped, `plan_update` and `_`-prefixed
 //!   kinds among them.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use serde_json::Value;
 
 use crate::config::{enters_held_back, settings, Settings};
 use crate::event::{ApprovalOption, Event, FileDiff, Hint, Item, ItemKind, PlanEntry, ToolStatus};
 use crate::guard::request_paths;
+use crate::kaava_call;
 use crate::mask::mask;
 
 /// The most tool output kept per tool item, in bytes.
@@ -66,6 +67,9 @@ pub struct Normalizer {
     turn: Option<String>,
     open: Option<OpenText>,
     tools: HashMap<String, Item>,
+    /// The open tool calls the harness named as a context server show tool.
+    /// An adapter may name the tool on one update only, so it is remembered.
+    shows: HashSet<String>,
     plan: Option<Item>,
     usage: Option<(u64, u64)>,
     mode: Option<String>,
@@ -92,6 +96,7 @@ impl Normalizer {
             turn: None,
             open: None,
             tools: HashMap::new(),
+            shows: HashSet::new(),
             plan: None,
             usage: None,
             mode: None,
@@ -161,6 +166,7 @@ impl Normalizer {
         };
         let mut events = self.close_text();
         let mut tools: Vec<Item> = self.tools.drain().map(|(_, item)| item).collect();
+        self.shows.clear();
         tools.sort_by(|a, b| a.id.cmp(&b.id));
         for mut item in tools {
             if let ItemKind::ToolCall { status, .. } = &mut item.kind {
@@ -396,9 +402,24 @@ impl Normalizer {
                 truncated: false,
                 paths: Vec::new(),
                 diffs: Vec::new(),
+                kaava: None,
             }),
         };
         merge_tool(&mut item.kind, update);
+        // A show call to the context server also carries its component.
+        if kaava_call::is_show(update) {
+            self.shows.insert(id.to_string());
+        }
+        if let ItemKind::ToolCall {
+            status: ToolStatus::Completed,
+            kaava: kaava @ None,
+            ..
+        } = &mut item.kind
+        {
+            if self.shows.contains(id) {
+                *kaava = kaava_call::lift(update);
+            }
+        }
         let done = matches!(
             item.kind,
             ItemKind::ToolCall {
@@ -413,6 +434,8 @@ impl Normalizer {
         };
         if let Event::ItemStarted { item } | Event::ItemUpdated { item } = &event {
             self.tools.insert(id.to_string(), item.clone());
+        } else {
+            self.shows.remove(id);
         }
         events.push(event);
         events
@@ -456,6 +479,7 @@ fn merge_tool(kind: &mut ItemKind, update: &Value) {
         truncated,
         paths,
         diffs: tool_diffs,
+        ..
     } = kind
     else {
         return;
@@ -704,6 +728,64 @@ mod tests {
         };
         assert!(*truncated);
         assert!(output.len() <= OUTPUT_LIMIT);
+    }
+
+    fn shown(events: &[Event]) -> Option<crate::event::ShowMarker> {
+        match events {
+            [Event::ItemCompleted { item }] => match &item.kind {
+                ItemKind::ToolCall { kaava, .. } => kaava.clone(),
+                _ => panic!("{item:?}"),
+            },
+            _ => panic!("{events:?}"),
+        }
+    }
+
+    #[test]
+    fn a_show_call_carries_its_marker_and_any_other_tool_only_text() {
+        let props = json!({"tone": "note", "body": "x".repeat(OUTPUT_LIMIT)});
+        let answer = json!({"kaavaShow": {"version": 1, "component": "callout", "props": props}});
+        let result = |id: &str, status: &str| {
+            json!({
+                "sessionUpdate": "tool_call_update", "toolCallId": id, "status": status,
+                "rawOutput": [{"type": "text", "text": answer.to_string()}],
+                "content": [{"type": "content", "content": {"type": "text", "text": answer.to_string()}}]
+            })
+        };
+        let start = |id: &str, tool: &str| {
+            json!({"sessionUpdate": "tool_call", "toolCallId": id, "status": "pending",
+                "title": "mcp__kaava-context__show", "_meta": {"claudeCode": {"toolName": tool}}})
+        };
+        let mut n = started();
+        // Named on the call only, as an adapter may: the result is still lifted.
+        n.update(&start("t1", "mcp__kaava-context__show_component"));
+        let events = n.update(&result("t1", "completed"));
+        let marker = shown(&events).expect("the show call's marker");
+        assert_eq!(
+            marker.props["body"].as_str().map(str::len),
+            Some(OUTPUT_LIMIT)
+        );
+        let [Event::ItemCompleted { item }] = &events[..] else {
+            panic!()
+        };
+        assert!(matches!(
+            &item.kind,
+            ItemKind::ToolCall {
+                truncated: true,
+                ..
+            }
+        ));
+
+        n.update(&start("t2", "Bash"));
+        assert_eq!(shown(&n.update(&result("t2", "completed"))), None);
+
+        // Two calls at once: the other one finishing leaves the show call named.
+        n.update(&start("t4", "mcp__kaava-context__show"));
+        n.update(&start("t5", "Read"));
+        assert_eq!(shown(&n.update(&result("t5", "completed"))), None);
+        assert!(shown(&n.update(&result("t4", "completed"))).is_some());
+        n.update(&start("t3", "mcp__kaava-context__show"));
+        assert_eq!(shown(&n.update(&result("t3", "failed"))), None);
+        assert!(n.shows.is_empty(), "a finished call is forgotten");
     }
 
     #[test]

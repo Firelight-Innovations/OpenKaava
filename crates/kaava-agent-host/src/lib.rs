@@ -22,6 +22,7 @@ pub mod guard;
 pub mod harness;
 pub mod host;
 mod job;
+pub mod kaava_call;
 pub mod mask;
 pub mod normalize;
 pub mod session;
