@@ -51,6 +51,20 @@ pub enum ToolAnswer {
         mime: String,
         data: String,
     },
+    /// Several pieces in order, such as a file's lines followed by a picture
+    /// of the frame they describe.
+    Blocks(Vec<Block>),
+}
+
+/// One piece of a [`ToolAnswer::Blocks`] answer.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Block {
+    Text(String),
+    /// Base64, with its MIME type, as in [`ToolAnswer::Image`].
+    Image {
+        mime: String,
+        data: String,
+    },
 }
 
 impl From<Value> for ToolAnswer {
@@ -756,7 +770,7 @@ mod tests {
 
         match answer {
             ToolAnswer::Json(value) => assert_eq!(value["ok"], true),
-            ToolAnswer::Image { .. } => panic!("a JSON value must not become an image"),
+            _ => panic!("a JSON value must become a JSON answer"),
         }
     }
 

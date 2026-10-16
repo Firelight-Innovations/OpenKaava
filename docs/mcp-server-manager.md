@@ -381,16 +381,16 @@ a signal that something is being modelled wrong — either it is really a list, 
 belongs somewhere other than a settings screen, or it is really settings, and
 should be written as some.
 
-## 13. The two servers every build ships: `canvas` and `workspace`
+## 13. The servers every build ships: `canvas`, `workspace` and `context`
 
-Everything above `dev_only` is for whoever works on OpenKaava. These two are for the
-agent working *in* it, so neither is gated: both start on, both appear with
-developer mode off, and both are written into `.mcp.json` as `kaava-canvas` and
-`kaava-workspace` (the committed `.mcp.json` carries them, and a test holds it to
-what a fresh sync writes). Harness terminals reach them through the same
-`KAAVA_MCP_PORT` and `KAAVA_MCP_TOKEN` as every other route; `mcp-endpoint.json`
-serves the same endpoint to an agent outside OpenKaava, at `/mcp/canvas` and
-`/mcp/workspace`.
+Everything above `dev_only` is for whoever works on OpenKaava. These three are for
+the agent working *in* it, so none is gated: all start on, all appear with
+developer mode off, and all are written into `.mcp.json` as `kaava-canvas`,
+`kaava-workspace` and `kaava-context` (the committed `.mcp.json` carries them, and a
+test holds it to what a fresh sync writes). Harness terminals reach them through the
+same `KAAVA_MCP_PORT` and `KAAVA_MCP_TOKEN` as every other route; `mcp-endpoint.json`
+serves the same endpoint to an agent outside OpenKaava, at `/mcp/canvas`,
+`/mcp/workspace` and `/mcp/context`.
 
 ### `workspace` (read-only)
 
@@ -497,7 +497,7 @@ object); see `docs/canvas-objects.md`. Twelve tools expose it:
 The intended order is `list_frames` or `search_frames` first, then `get_frame` and
 `frame_image` for detail, and `create_frame` to group elements into a labelled typed
 object. `frame_image` returns the PNG's path and size and does not attach the image:
-`ToolAnswer` is either JSON or an image, and the path is what the caller needs.
+the path is what the caller needs. `kaava-context`'s `get_canvas_node` attaches it.
 
 Scope differs per tool. The project-wide ones (`list_types`, `list_frames`,
 `search_frames`, `canvas_tree`, `save_type`, `delete_type`) use `Scope::Project`: they
@@ -533,5 +533,18 @@ canvas and some pane's canvas is unknown, it is refused (`canvas-unknown` when n
 canvas is known at all, otherwise an ambiguity listing every pane, including the ones
 with no file) rather than guessed. Name `canvas` or `instance` to be certain.
 
-**Transport.** The streamable-HTTP endpoint requires an `initialize` call and the
-returned `mcp-session-id` header on later requests; a bare `tools/call` returns 422.
+### `context`
+
+References, both ways: the agent finds, reads and shows the person files, frames,
+comments, screenshots and assets by `kaava://` reference, and reads the selection.
+Tools: `show`, `read`, `search_context`, `list_comments`, `resolve_comment`,
+`get_selection` and `get_canvas_node`. It publishes `kaava://selection`, which
+notifies alongside `kaava://workspace/focus`, and reads every other reference as an
+unlisted resource, with templates that say how to write one. An agent the host
+launches for one cluster gets a token that opens `/mcp/context` only and answers
+from that cluster. The scheme, the security rules and each tool are in
+`docs/design/KAAVA-CONTEXT-REFS.md`.
+
+**Transport.** Every route here, `context` included, is streamable HTTP. It requires
+an `initialize` call and the returned `mcp-session-id` header on later requests; a
+bare `tools/call` returns 422.

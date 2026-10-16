@@ -270,7 +270,10 @@ fn guard_refs(method: &str) -> Result<(), RpcError> {
     }
     Err(RpcError::new(
         INVALID_PARAMS,
-        format!("`{method}`: {AS_THE_PERSON}."),
+        format!(
+            "`{method}`: {AS_THE_PERSON}. `read` on the kaava-context server resolves a \
+             reference as the agent."
+        ),
     ))
 }
 
@@ -564,6 +567,11 @@ mod tests {
         assert!(
             refusal.message.contains("as the person"),
             "{}",
+            refusal.message
+        );
+        assert!(
+            refusal.message.contains("kaava-context"),
+            "names what to use instead: {}",
             refusal.message
         );
         assert!(guard_refs("canvas/frames").is_ok());

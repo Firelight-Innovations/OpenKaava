@@ -14,6 +14,7 @@ mod handoff;
 mod listener;
 mod registry;
 mod servers;
+mod session;
 mod store;
 mod subscriptions;
 
@@ -21,9 +22,12 @@ pub use config::sync_all;
 pub use focus::{FocusReport, FocusState};
 pub use listener::{start, Endpoint};
 pub use registry::{
-    config_key, route, McpServer, McpTool, Registry, ServerInfo, ToolAnswer, ToolDescriptor,
+    config_key, route, Block, McpServer, McpTool, Registry, ServerInfo, ToolAnswer, ToolDescriptor,
 };
 pub use servers::workspace::selection_in;
+pub use session::Sessions;
+#[allow(unused_imports)] // See `session::SessionServer`.
+pub use session::{session_servers, SessionServer};
 use std::time::Duration;
 pub use subscriptions::Subscriptions;
 use tauri::{AppHandle, Manager};
@@ -61,12 +65,14 @@ pub fn dev_mode(app: &AppHandle) -> bool {
 /// leaving one window as it arrives in another) is one notification, not two.
 const FOCUS_COALESCE: Duration = Duration::from_millis(50);
 
-/// Tell every session subscribed to the focus resource that it changed.
+/// Tell every session subscribed to the focus or selection resource that it
+/// changed.
 ///
 /// Called after [`FocusState::update`] says a report was news. The notification
 /// carries no payload by design: MCP's `resources/updated` only names the uri,
 /// and the client re-reads it, so what it sees is always the state at read time
-/// rather than a snapshot that could arrive out of order.
+/// rather than a snapshot that could arrive out of order. A server switched off
+/// tells no one, as it reads nothing.
 pub fn notify_focus_changed(app: &AppHandle) {
     if !app.state::<FocusState>().burst.arm() {
         return;
@@ -76,7 +82,15 @@ pub fn notify_focus_changed(app: &AppHandle) {
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(FOCUS_COALESCE).await;
         app.state::<FocusState>().burst.fire();
-        app.state::<Subscriptions>()
-            .notify(servers::workspace::ID, servers::workspace::FOCUS_URI);
+        let (registry, subscriptions) = (app.state::<Registry>(), app.state::<Subscriptions>());
+        let dev = dev_mode(&app);
+        for (id, uri) in [
+            (servers::workspace::ID, servers::workspace::FOCUS_URI),
+            (servers::context::ID, servers::context::SELECTION_URI),
+        ] {
+            if registry.is_reachable(id, dev) {
+                subscriptions.notify(id, uri);
+            }
+        }
     });
 }

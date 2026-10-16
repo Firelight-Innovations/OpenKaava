@@ -17,11 +17,13 @@
 //! comments are the one exception: they belong to the running app.
 
 pub mod assets;
+pub mod comments;
 #[cfg(test)]
 pub mod links;
 pub mod live;
 pub mod policy;
 pub mod resolve;
+pub mod search;
 pub mod uri;
 
 use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};

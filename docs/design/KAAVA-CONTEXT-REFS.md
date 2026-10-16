@@ -127,7 +127,7 @@ ACP prompt blocks.
    with no spaces.
 
    A withheld result says which rule matched. A folder counts these entries and does not name
-   them, and search (PR 3) does not list them.
+   them, and search does not list them.
 3. **Gitignored files are named, not read.** Kaava's own stores have their own reference kinds,
    which do not apply this rule. Everything else that `.gitignore` excludes, such as build output,
    caches and local config, resolves to `withheld`. The rules follow git's: a folder that is
@@ -140,9 +140,10 @@ ACP prompt blocks.
    size. A file is scanned at most 16 MB deep for a range, and a folder at most 5,000 entries
    deep. An image is sent inline only up to 3.5 MB, which is about 4.7 MB in base64, under a
    provider's 5 MB per image.
-5. **The token is per launch (PR 2).** A tab session's server entry carries a token bound to that
-   cluster. The token is accepted only on `/mcp/context`. It is never the master token, which also
-   reaches the developer servers.
+5. **The token is per launch.** A tab session's server entry carries a token bound to that
+   cluster. The token is accepted only on `/mcp/context`, and every call made with it answers from
+   that cluster, whatever `cluster` it names. It is never the master token, which also reaches the
+   developer servers. Tokens live in memory, so a restart mints new ones.
 6. **Canvases pass the same test.** Canvas, frame and canvas-comment references go through the
    Canvas app's methods, which read the canvas file where they find it. So before any of them is
    called, these must be inside the root once links are followed: the canvas file, each child
@@ -168,3 +169,73 @@ reads the project. A plugin's own method of the same name goes to the plugin.
 `refs/resolve` resolves as the person: the canvas records `human` as the actor on the calls it
 makes. So the agent server's `app_call`, whose caller is an agent, refuses it. It sits before the
 write refusal in `apps::call`, so it works on a read-only main.
+
+## 5. The `kaava-context` server
+
+The server is at `/mcp/context`, and `.mcp.json` names it `kaava-context`. It is not `dev_only`, so
+it starts on and is listed with developer mode off. Every tool takes an optional `cluster`. Without
+one, the call answers from the cluster the person is working in. The server resolves as the agent:
+the canvas records `agent` as the actor.
+
+| Tool              | Params                         | Answers                                                        |
+| ----------------- | ------------------------------ | -------------------------------------------------------------- |
+| `show`            | `{ refs, caption? }`           | The marker below, for one to eight references                  |
+| `read`            | `{ uri }`                      | The `Resolved` as content: a header, then each part            |
+| `search_context`  | `{ query?, kinds?, limit? }`   | `{ query, hits: [{ uri, kind, title, detail? }] }`, best first |
+| `list_comments`   | `{ status?, sources? }`        | `{ comments, total, covers, problems? }`, open ones by default |
+| `resolve_comment` | `{ uri, note }`                | `{ uri, status: "resolved", note }`                            |
+| `get_selection`   | `{}`                           | `kaava://selection`, read when asked                           |
+| `get_canvas_node` | `{ canvas, node }`             | `kaava://canvas/<canvas>#frame=<node>`, read                   |
+
+`read` turns each part into one content block. Text parts become text, and a text part that starts
+past line 1 says so. A cut-short excerpt says how to read further. JSON parts are pretty-printed and
+images stay images. The header carries the reference, kind, title, `detail`, `withheld` and `meta`.
+
+`search_context` matches names, not file contents. A comment is the exception: it is found by what
+it says. Hits are ranked by exact name, then prefix, then a match inside the name, then a match in
+the path only. A frame found only by a property ranks last. Files come from a walk that does not
+follow links and stops after 20,000 entries. Search never lists a §3 secret, by name or by its
+first 64 KB, and never lists a canvas whose file is outside the root. An empty query lists
+everything except files and frames. A query is at most 256 characters and 16 words. `limit` is 20
+unless given, and at most 50. An empty `kinds` list is refused.
+
+`list_comments` reads from three sources, `viewer`, `canvas` and `design`. It lists at most 100,
+and `total` counts all of them. A source that fails to answer adds a line to `problems` and the
+others still answer. `resolve_comment` records the agent as the author of the note. It refuses a
+comment that is already resolved, so a note the person wrote is never replaced. It refuses a note
+over 4,000 characters, and a viewer comment on a read-only main.
+
+`show` changes nothing on disk. It checks each reference against §3, the same way resolving does,
+but reads no more than a file's first 64 KB. A secret fails with the rule it matched. A gitignored
+file passes, because the tab draws it as withheld. It answers with this marker:
+
+```json
+{
+  "kaavaShow": {
+    "component": "refs",
+    "version": 1,
+    "props": { "refs": ["kaava://file/scripts/player.gd#L10-L20"], "caption": "The jump" }
+  },
+  "failed": [{ "uri": "kaava://file/gone.gd", "reason": "there is no `gone.gd` in this project" }]
+}
+```
+
+A reference that fails its check goes in `failed`, and the rest are still shown. If none pass, the
+call fails and gives each reason. A caption is at most 500 characters. The agent host is to lift
+`kaavaShow` off the tool result for the tab to draw. That is agent-host work still to land, so for
+now the marker reaches the agent and nothing draws it.
+
+**Resources.** `kaava://selection` is published, so a client can subscribe to it. Subscribers are
+told when focus moves, at the same moment as for `kaava://workspace/focus`. A selection made inside
+a pane without moving focus is not announced, so read it again before acting on it. A server that is
+switched off sends no notices and accepts no new subscriptions. Every other reference also reads as
+a resource, without being listed. These templates say how to write one:
+`kaava://file/{+path}`, `kaava://canvas/{+id}`, `kaava://comment/{id}`,
+`kaava://design-comment/{id}` and `kaava://context/{id}`. A resource read answers the same way as
+`read`, as text and blob contents in order.
+
+**Sessions.** `mcp::session_servers(app, cluster)` gives the entry for an agent the host launches
+for one cluster: `kaava-context`, its URL and a session token (§3.5). It is empty while the
+listener is down or the server is switched off, and the agent then runs without it. Its `Debug`
+output never shows the token. Nothing launches an agent with it yet: the agent host's
+`claude/agent-tab-mcp-servers` branch adds it to the ACP `mcpServers` list.

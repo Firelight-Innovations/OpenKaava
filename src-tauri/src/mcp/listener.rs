@@ -5,17 +5,19 @@
 //! bearer token, the routing table, and the adapter between `rmcp`'s handler
 //! trait and [`Registry`](super::Registry).
 
-use super::{route, Registry, Subscriptions, ToolAnswer, ToolDescriptor};
+use super::session::{self, Admission, SessionCluster, Sessions};
+use super::{route, Block, Registry, Subscriptions, ToolAnswer, ToolDescriptor};
 use axum::response::IntoResponse;
 use base64::Engine;
 use rand::RngCore;
 use rmcp::handler::server::ServerHandler;
 use rmcp::model::{
     CacheScope, CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, ErrorData,
-    Implementation, ListResourcesResult, ListToolsResult, PaginatedRequestParams,
-    ReadResourceRequestParams, ReadResourceResponse, ReadResourceResult, Resource,
-    ResourceContents, ResourceUpdatedNotificationParam, ResourcesCapability, ServerCapabilities,
-    ServerInfo, SubscribeRequestParams, SubscriptionFilter, Tool, UnsubscribeRequestParams,
+    Implementation, ListResourceTemplatesResult, ListResourcesResult, ListToolsResult,
+    PaginatedRequestParams, ReadResourceRequestParams, ReadResourceResponse, ReadResourceResult,
+    Resource, ResourceContents, ResourceTemplate, ResourceUpdatedNotificationParam,
+    ResourcesCapability, ServerCapabilities, ServerInfo, SubscribeRequestParams,
+    SubscriptionFilter, Tool, UnsubscribeRequestParams,
 };
 use rmcp::service::{RequestContext, SubscriptionContext};
 use rmcp::transport::streamable_http_server::{
@@ -142,7 +144,7 @@ pub fn start(app: &AppHandle) -> Option<u16> {
 ///
 /// Not a uuid: a v4 uuid carries 122 bits and advertises its own shape. This is
 /// 256 bits of the same entropy source with nothing to recognise.
-fn mint_token() -> String {
+pub(super) fn mint_token() -> String {
     let mut bytes = [0u8; 32];
     rand::rng().fill_bytes(&mut bytes);
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
@@ -182,21 +184,33 @@ fn router(app: &AppHandle, token: String) -> axum::Router {
         router = router.nest_service(&path, service);
     }
 
+    let gate = Gate {
+        master: token,
+        app: app.clone(),
+    };
     router.layer(axum::middleware::from_fn_with_state(
-        Arc::new(token),
+        Arc::new(gate),
         require_token,
     ))
 }
 
-/// Reject anything that does not present the token.
+/// What [`require_token`] checks a request against.
+struct Gate {
+    master: String,
+    app: AppHandle,
+}
+
+/// Reject anything that does not present a token.
 ///
 /// Loopback already keeps this off the network, but not away from other
 /// processes on the same machine: a port is scannable, and these tools reach
 /// into the live application. The token is what makes "OpenKaava spawned this shell"
-/// the actual admission test.
+/// the actual admission test. An agent tab's session token passes too, on the
+/// context route only, and the cluster it was minted for rides along on the
+/// request (see [`session`]).
 async fn require_token(
-    axum::extract::State(expected): axum::extract::State<Arc<String>>,
-    request: axum::extract::Request,
+    axum::extract::State(gate): axum::extract::State<Arc<Gate>>,
+    mut request: axum::extract::Request,
     next: axum::middleware::Next,
 ) -> axum::response::Response {
     let presented = request
@@ -204,10 +218,16 @@ async fn require_token(
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.strip_prefix("Bearer "));
+    let sessions = gate.app.state::<Sessions>();
+    let path = request.uri().path();
 
-    match presented {
-        Some(token) if token == expected.as_str() => next.run(request).await,
-        _ => axum::http::StatusCode::UNAUTHORIZED.into_response(),
+    match session::admit(path, presented, &gate.master, &sessions) {
+        Admission::Master => next.run(request).await,
+        Admission::Session(cluster) => {
+            request.extensions_mut().insert(SessionCluster(cluster));
+            next.run(request).await
+        }
+        Admission::Refused => axum::http::StatusCode::UNAUTHORIZED.into_response(),
     }
 }
 
@@ -230,7 +250,7 @@ impl Bridge {
     }
 
     /// Refuse a resource this server does not publish, or any while it is off.
-    fn require_resource(&self, uri: &str) -> Result<(), ErrorData> {
+    fn require_published(&self, uri: &str) -> Result<(), ErrorData> {
         let published = super::servers::resources(&self.id)
             .iter()
             .any(|r| r.uri == uri);
@@ -239,6 +259,15 @@ impl Bridge {
         } else {
             Err(not_found(uri))
         }
+    }
+
+    /// As [`Self::require_published`], but also passing the references the
+    /// context server reads without publishing.
+    fn require_readable(&self, uri: &str) -> Result<(), ErrorData> {
+        if super::servers::reads_unpublished(&self.id, uri) && self.reachable() {
+            return Ok(());
+        }
+        self.require_published(uri)
     }
 }
 
@@ -260,6 +289,24 @@ fn session_of(context: &RequestContext<RoleServer>) -> String {
         .unwrap_or_else(|| format!("request-{}", context.id))
 }
 
+/// The cluster a session token binds this request to, if it came with one.
+fn cluster_of(context: &RequestContext<RoleServer>) -> Option<String> {
+    let parts = context.extensions.get::<axum::http::request::Parts>()?;
+    parts
+        .extensions
+        .get::<SessionCluster>()
+        .map(|c| c.0.clone())
+}
+
+/// Answer from `cluster` whatever the call named: a session token is its
+/// cluster's and no other's.
+fn pin_cluster(params: &mut Option<serde_json::Value>, cluster: String) {
+    let args = params.get_or_insert_with(|| serde_json::json!({}));
+    if let Some(map) = args.as_object_mut() {
+        map.insert("cluster".into(), serde_json::Value::String(cluster));
+    }
+}
+
 impl ServerHandler for Bridge {
     /// Built by mutating a default rather than with a struct literal, because
     /// both of these types are `#[non_exhaustive]` — `rmcp` reserves the right
@@ -278,9 +325,11 @@ impl ServerHandler for Bridge {
             .enable_tool_list_changed()
             .build();
 
-        // Declared only for a server that publishes something. `subscribe` is the
-        // part an agent acts on: without it a client will not ask to be told.
-        if !super::servers::resources(&self.id).is_empty() {
+        // Declared only for a server that publishes or reads something.
+        // `subscribe` is the part an agent acts on: without it a client will not
+        // ask to be told.
+        let reads = !super::servers::resource_templates(&self.id).is_empty();
+        if reads || !super::servers::resources(&self.id).is_empty() {
             let mut resources = ResourcesCapability::default();
             resources.subscribe = Some(true);
             info.capabilities.resources = Some(resources);
@@ -340,38 +389,51 @@ impl ServerHandler for Bridge {
             .with_cache_scope(CacheScope::Private))
     }
 
+    /// How to write a reference this server reads, for a client that lets
+    /// the person pick one. Empty while the server is off.
+    async fn list_resource_templates(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListResourceTemplatesResult, ErrorData> {
+        let templates = super::servers::resource_templates(&self.id);
+        let listed = templates
+            .iter()
+            .filter(|_| self.reachable())
+            .map(|t| ResourceTemplate::new(t.uri, t.name).with_description(t.description))
+            .collect();
+        Ok(templates_result(listed))
+    }
+
     /// Reads run off the async worker: the workspace resource asks each webview
     /// a question and waits for the answer, which is blocking work.
     async fn read_resource(
         &self,
         request: ReadResourceRequestParams,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResponse, ErrorData> {
-        self.require_resource(&request.uri)?;
+        self.require_readable(&request.uri)?;
 
         let (app, id, uri) = (self.app.clone(), self.id.clone(), request.uri.clone());
+        let cluster = cluster_of(&context);
         let read = tauri::async_runtime::spawn_blocking(move || {
-            super::servers::read_resource(&app, &id, &uri)
+            super::servers::read_resource(&app, &id, &uri, cluster.as_deref())
         })
         .await
         .map_err(|e| ErrorData::internal_error(format!("the read did not finish: {e}"), None))?;
 
-        let value = match read {
-            Some(Ok(value)) => value,
-            Some(Err(e)) => return Err(ErrorData::internal_error(e.message, None)),
+        let answer = match read {
+            Some(Ok(answer)) => answer,
+            Some(Err(e)) => return Err(read_error(e)),
             None => return Err(not_found(&request.uri)),
         };
 
-        let contents = ResourceContents::TextResourceContents {
-            uri: request.uri,
-            mime_type: Some("application/json".to_string()),
-            text: value.to_string(),
-            meta: None,
-        };
-        Ok(ReadResourceResult::new(vec![contents])
-            .with_ttl_ms(0)
-            .with_cache_scope(CacheScope::Private)
-            .into())
+        Ok(
+            ReadResourceResult::new(resource_contents(&request.uri, answer))
+                .with_ttl_ms(0)
+                .with_cache_scope(CacheScope::Private)
+                .into(),
+        )
     }
 
     /// `resources/subscribe`, the form of subscription clients on protocol
@@ -384,7 +446,7 @@ impl ServerHandler for Bridge {
         request: SubscribeRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<(), ErrorData> {
-        self.require_resource(&request.uri)?;
+        self.require_published(&request.uri)?;
 
         let session = session_of(&context);
         let mut queue =
@@ -413,8 +475,8 @@ impl ServerHandler for Bridge {
         request: UnsubscribeRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<(), ErrorData> {
-        self.require_resource(&request.uri)?;
-
+        // Not held to the switch: it only forgets, and a client must be able
+        // to stop what it started before the server was switched off.
         self.app.state::<Subscriptions>().unsubscribe(
             &self.id,
             &request.uri,
@@ -425,11 +487,15 @@ impl ServerHandler for Bridge {
 
     /// The 2026-07-28 form: one `subscriptions/listen` request that stays open
     /// and carries the notifications. We accept the uris we publish and ignore
-    /// the rest, and `listen` below holds the request open until it ends.
+    /// the rest, none while the server is off, and `listen` below holds the
+    /// request open until it ends.
     fn accepted_subscription_filter(
         &self,
         requested: &SubscriptionFilter,
     ) -> Option<SubscriptionFilter> {
+        if !self.reachable() {
+            return None;
+        }
         let published = super::servers::resources(&self.id);
         let uris: Vec<String> = requested
             .resource_subscriptions
@@ -487,9 +553,12 @@ impl ServerHandler for Bridge {
     async fn call_tool(
         &self,
         request: CallToolRequestParams,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, ErrorData> {
-        let params = request.arguments.map(serde_json::Value::Object);
+        let mut params = request.arguments.map(serde_json::Value::Object);
+        if let Some(cluster) = cluster_of(&context) {
+            pin_cluster(&mut params, cluster);
+        }
 
         let answered = self.app.state::<Registry>().call(
             &self.app,
@@ -500,21 +569,73 @@ impl ServerHandler for Bridge {
         );
 
         let result = match answered {
-            Ok(ToolAnswer::Json(value)) => match ContentBlock::json(value) {
-                Ok(content) => CallToolResult::success(vec![content]),
-                Err(e) => CallToolResult::error(vec![ContentBlock::text(format!(
-                    "the tool answered, but its answer could not be serialised: {e}"
-                ))]),
-            },
-            // Straight through: the base64 is already what the wire carries, so
-            // there is nothing here to serialise and nothing that can fail.
-            Ok(ToolAnswer::Image { mime, data }) => {
-                CallToolResult::success(vec![ContentBlock::image(data, mime)])
-            }
+            Ok(answer) => tool_result(answer),
             Err(e) => CallToolResult::error(vec![ContentBlock::text(e.message)]),
         };
 
         Ok(result.into())
+    }
+}
+
+/// An answer as the contents of the resource at `uri`: JSON as JSON, text as
+/// text, and each picture as a blob.
+fn resource_contents(uri: &str, answer: ToolAnswer) -> Vec<ResourceContents> {
+    let blob = |mime: String, data: String| ResourceContents::blob(data, uri).with_mime_type(mime);
+    match answer {
+        ToolAnswer::Json(value) => {
+            vec![ResourceContents::text(value.to_string(), uri).with_mime_type("application/json")]
+        }
+        ToolAnswer::Image { mime, data } => vec![blob(mime, data)],
+        ToolAnswer::Blocks(blocks) => blocks
+            .into_iter()
+            .map(|block| match block {
+                Block::Text(text) => ResourceContents::text(text, uri),
+                Block::Image { mime, data } => blob(mime, data),
+            })
+            .collect(),
+    }
+}
+
+/// A template list as [`uncacheable`] says a tool list must be.
+fn templates_result(listed: Vec<ResourceTemplate>) -> ListResourceTemplatesResult {
+    ListResourceTemplatesResult::with_all_items(listed)
+        .with_ttl_ms(0)
+        .with_cache_scope(CacheScope::Private)
+}
+
+/// A failed read as a protocol error: a reference that is malformed, missing
+/// or refused is the caller's to fix, and anything else is ours.
+fn read_error(e: kaava_rpc::RpcError) -> ErrorData {
+    if e.code == kaava_rpc::INVALID_PARAMS {
+        ErrorData::invalid_params(e.message, None)
+    } else {
+        ErrorData::internal_error(e.message, None)
+    }
+}
+
+/// A tool's answer as MCP content.
+fn tool_result(answer: ToolAnswer) -> CallToolResult {
+    match answer {
+        ToolAnswer::Json(value) => match ContentBlock::json(value) {
+            Ok(content) => CallToolResult::success(vec![content]),
+            Err(e) => CallToolResult::error(vec![ContentBlock::text(format!(
+                "the tool answered, but its answer could not be serialised: {e}"
+            ))]),
+        },
+        // Straight through: the base64 is already what the wire carries, so
+        // there is nothing here to serialise and nothing that can fail.
+        ToolAnswer::Image { mime, data } => {
+            CallToolResult::success(vec![ContentBlock::image(data, mime)])
+        }
+        ToolAnswer::Blocks(blocks) => CallToolResult::success(
+            blocks
+                .into_iter()
+                .map(|block| match block {
+                    Block::Text(text) => ContentBlock::text(text),
+                    Block::Image { mime, data } => ContentBlock::image(data, mime),
+                })
+                .collect(),
+        ),
     }
 }
 
@@ -659,6 +780,86 @@ mod tests {
         let listed = uncacheable(ListToolsResult::with_all_items(Vec::new()));
         assert_eq!(listed.ttl_ms, Some(0));
         assert_eq!(listed.cache_scope, Some(CacheScope::Private));
+    }
+
+    #[test]
+    fn a_session_answers_from_its_own_cluster_whatever_the_call_names() {
+        let mut named = Some(serde_json::json!({ "uri": "kaava://selection", "cluster": "other" }));
+        pin_cluster(&mut named, "mine".into());
+        assert_eq!(
+            named,
+            Some(serde_json::json!({ "uri": "kaava://selection", "cluster": "mine" }))
+        );
+        let mut none = None;
+        pin_cluster(&mut none, "mine".into());
+        assert_eq!(none, Some(serde_json::json!({ "cluster": "mine" })));
+    }
+
+    #[test]
+    fn a_resource_reads_as_text_and_blobs_in_order() {
+        let answer = ToolAnswer::Blocks(vec![
+            Block::Text("kaava://file/a.png (image): a.png".into()),
+            Block::Image {
+                mime: "image/png".into(),
+                data: "AA==".into(),
+            },
+        ]);
+        let out = serde_json::to_value(resource_contents("kaava://file/a.png", answer)).unwrap();
+        assert_eq!(out[0]["mimeType"], "text/plain");
+        assert_eq!(out[0]["text"], "kaava://file/a.png (image): a.png");
+        assert_eq!(out[1]["mimeType"], "image/png");
+        assert_eq!(out[1]["blob"], "AA==");
+        assert_eq!(out[1]["uri"], "kaava://file/a.png");
+
+        let json = resource_contents(
+            "kaava://workspace/focus",
+            serde_json::json!({"a": 1}).into(),
+        );
+        let json = serde_json::to_value(json).unwrap();
+        assert_eq!(json[0]["mimeType"], "application/json");
+        assert_eq!(json[0]["text"], r#"{"a":1}"#);
+    }
+
+    #[test]
+    fn a_template_list_carries_the_caching_fields_too() {
+        let json = serde_json::to_value(templates_result(Vec::new())).unwrap();
+        assert_eq!(json["ttlMs"], 0);
+        assert_eq!(json["cacheScope"], "private");
+    }
+
+    #[test]
+    fn a_bad_reference_is_the_callers_mistake_and_anything_else_is_ours() {
+        let bad = kaava_rpc::RpcError::new(kaava_rpc::INVALID_PARAMS, "no such file".to_string());
+        assert_eq!(
+            read_error(bad).code,
+            ErrorData::invalid_params("", None).code
+        );
+        let broke = kaava_rpc::RpcError::new(kaava_rpc::INTERNAL_ERROR, "boom".to_string());
+        assert_eq!(
+            read_error(broke).code,
+            ErrorData::internal_error("", None).code
+        );
+    }
+
+    /// Blocks keep their order and their kinds: text stays text, a picture is
+    /// an image a client draws, not base64 in a string.
+    #[test]
+    fn blocks_become_content_in_order() {
+        let answer = ToolAnswer::Blocks(vec![
+            Block::Text("lines 10-20".into()),
+            Block::Image {
+                mime: "image/png".into(),
+                data: "iVBORw0KGgo=".into(),
+            },
+        ]);
+        let json = serde_json::to_value(tool_result(answer)).unwrap();
+        let content = json["content"].as_array().unwrap();
+        assert_eq!(content.len(), 2);
+        assert_eq!(content[0]["type"], "text");
+        assert_eq!(content[0]["text"], "lines 10-20");
+        assert_eq!(content[1]["type"], "image");
+        assert_eq!(content[1]["mimeType"], "image/png");
+        assert_ne!(json["isError"], true);
     }
 
     /// A schema that is not an object costs that one tool its arguments. It must

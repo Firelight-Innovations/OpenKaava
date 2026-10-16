@@ -14,17 +14,19 @@ use tauri::AppHandle;
 /// Most frames a canvas reference lists, and most text items a frame lists.
 const MAX_LISTED: usize = 100;
 
-/// Who is asking. The canvas records it on every call it answers. Only the
-/// person resolves references so far; the context server adds the agent.
+/// Who is asking. The canvas records it on every call it answers: the person
+/// through `refs/resolve`, the agent through the context server.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Actor {
     Human,
+    Agent,
 }
 
 impl Actor {
-    fn name(self) -> &'static str {
+    pub fn name(self) -> &'static str {
         match self {
             Actor::Human => "human",
+            Actor::Agent => "agent",
         }
     }
 }
@@ -36,10 +38,7 @@ pub fn resolve(
     actor: Actor,
     r: &Ref,
 ) -> Result<Resolved, String> {
-    let root = ctx
-        .project
-        .as_deref()
-        .ok_or("this cluster has no project open, so there is nothing to reference")?;
+    let root = root_of(ctx)?;
     match r {
         Ref::File { .. } => resolve::file(root, r),
         Ref::Context { .. } => resolve::context_item(root, r),
@@ -57,41 +56,122 @@ pub fn resolve(
     }
 }
 
+pub(super) fn root_of(ctx: &CallContext) -> Result<&Path, String> {
+    ctx.project
+        .as_deref()
+        .ok_or_else(|| "this cluster has no project open, so there is nothing to reference".into())
+}
+
+/// Whether a reference names something that is there and may be shown,
+/// reading no more than a file's first bytes: what `show` asks before the tab
+/// is told to draw it. A secret is refused with the rule it falls under. A
+/// gitignored file passes, because the tab draws it as withheld.
+pub fn check(app: &AppHandle, ctx: &CallContext, r: &Ref) -> Result<(), String> {
+    let root = root_of(ctx)?;
+    let refuse =
+        |rule: Option<&str>| rule.map_or(Ok(()), |rule| Err(resolve::secret_withheld(rule)));
+    match r {
+        Ref::File { path, .. } => {
+            let found = super::policy::contain(root, path)?;
+            refuse(resolve::secret_file(path, &found))
+        }
+        Ref::Context { id } => {
+            let item = crate::context::get(root, id).map_err(|e| e.message)?;
+            refuse(resolve::item_secret(root, &item))
+        }
+        Ref::Comment { id } => super::policy::contain(root, &format!(".kaava/comments/{id}.json"))
+            .map(drop)
+            .map_err(|_| format!("there is no comment `{id}` in this project")),
+        Ref::Canvas { id, part } => {
+            canvas_inside(root, id, part.as_ref())?;
+            match part {
+                Some(CanvasPart::Frame(frame)) => {
+                    let asked = json!({ "canvas": id, "frame": frame });
+                    canvas_call(app, ctx, Actor::Agent, "canvas/frame", asked).map(drop)
+                }
+                _ => Ok(()),
+            }
+        }
+        Ref::DesignComment { id } => design_comment_exists(app, id),
+        Ref::Selection => Ok(()),
+    }
+}
+
+#[cfg(feature = "design-mode")]
+fn design_comment_exists(app: &AppHandle, id: &str) -> Result<(), String> {
+    use tauri::Manager;
+    let comments = app.state::<crate::design_comments::Comments>();
+    comments
+        .get(id)
+        .map(drop)
+        .ok_or_else(|| format!("there is no Design Mode comment `{id}`"))
+}
+
+#[cfg(not(feature = "design-mode"))]
+fn design_comment_exists(app: &AppHandle, id: &str) -> Result<(), String> {
+    design_comment(app, &Ref::DesignComment { id: id.into() }, id).map(drop)
+}
+
 /// Refuse a canvas, or a comment on one, when a file the Canvas app reads for
 /// it is not inside the project once links are followed. The app reads files
 /// where it finds them, so the test a file reference passes runs here, before
 /// it is asked. That covers the canvas, each child its split frames name, and
 /// the comment, which may have moved into a child with its frame.
-fn canvas_inside(root: &Path, id: &str, part: Option<&CanvasPart>) -> Result<(), String> {
+pub(super) fn canvas_inside(
+    root: &Path,
+    id: &str,
+    part: Option<&CanvasPart>,
+) -> Result<(), String> {
+    let children = canvas_files_inside(root, id)?;
+    match part {
+        Some(CanvasPart::Comment(c)) => comment_inside(root, id, &children, c),
+        _ => Ok(()),
+    }
+}
+
+/// The first half of [`canvas_inside`]: the canvas file and its children's.
+/// Answers the children, so a caller checking many comments on one canvas
+/// reads the canvas once.
+pub(super) fn canvas_files_inside(root: &Path, id: &str) -> Result<Vec<String>, String> {
     use crate::apps::canvas;
-    let inside = |file: &Path| -> Result<(), String> {
-        let rel = crate::context::relative_to(root, file)
-            .ok_or_else(|| format!("canvas `{id}` is not in this project"))?;
-        super::policy::contain(root, &rel).map(drop)
-    };
-    inside(&canvas::file_for(root, id))?;
+    file_inside(root, id, &canvas::file_for(root, id))?;
     let children = canvas::split_children(root, id);
     // A child that is not there is not opened, so it is not checked.
     for child in &children {
         let file = canvas::file_for(root, child);
         if file.exists() {
-            inside(&file)?;
+            file_inside(root, id, &file)?;
         }
     }
-    if let Some(CanvasPart::Comment(c)) = part {
-        let homes = std::iter::once(id).chain(children.iter().map(String::as_str));
-        let files: Vec<_> = homes
-            .map(|home| canvas::comments::dir_for(root, home).join(format!("{c}.json")))
-            .filter(|f| f.exists())
-            .collect();
-        if files.is_empty() {
-            return Err(format!("canvas `{id}` has no comment `{c}`"));
-        }
-        for file in &files {
-            inside(file)?;
-        }
+    Ok(children)
+}
+
+/// The second half of [`canvas_inside`]: comment `c`'s file, on canvas `id`
+/// or on one of its `children`.
+pub(super) fn comment_inside(
+    root: &Path,
+    id: &str,
+    children: &[String],
+    c: &str,
+) -> Result<(), String> {
+    use crate::apps::canvas;
+    let homes = std::iter::once(id).chain(children.iter().map(String::as_str));
+    let files: Vec<_> = homes
+        .map(|home| canvas::comments::dir_for(root, home).join(format!("{c}.json")))
+        .filter(|f| f.exists())
+        .collect();
+    if files.is_empty() {
+        return Err(format!("canvas `{id}` has no comment `{c}`"));
     }
-    Ok(())
+    files.iter().try_for_each(|f| file_inside(root, id, f))
+}
+
+/// Whether `file`, read for canvas `id`, is inside the root once links are
+/// followed.
+fn file_inside(root: &Path, id: &str, file: &Path) -> Result<(), String> {
+    let rel = crate::context::relative_to(root, file)
+        .ok_or_else(|| format!("canvas `{id}` is not in this project"))?;
+    super::policy::contain(root, &rel).map(drop)
 }
 
 fn canvas_rpc(
@@ -105,7 +185,7 @@ fn canvas_rpc(
     crate::apps::call(app, ctx, "canvas", method, Some(params))
 }
 
-fn canvas_call(
+pub(super) fn canvas_call(
     app: &AppHandle,
     ctx: &CallContext,
     actor: Actor,
@@ -517,6 +597,13 @@ mod tests {
         );
         let err = canvas_inside(root, "world", comment("c-9").as_ref()).unwrap_err();
         assert!(err.contains("has no comment `c-9`"), "{err}");
+        let children = canvas_files_inside(root, "world").unwrap();
+        assert_eq!(children, ["world-f1"]);
+        assert!(comment_inside(root, "world", &children, "c-3").is_ok());
+        assert!(
+            comment_inside(root, "world", &[], "c-3").is_err(),
+            "a moved comment is found only through the children it moved to"
+        );
         assert!(canvas_inside(root, "nope", None).is_err());
 
         write(&away.path().join("levels/inner.json"), "{}");
