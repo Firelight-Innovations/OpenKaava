@@ -52,15 +52,31 @@ agent tab, agent bar ── agent-tab/* ── AgentHost ── Adapter ── h
   2. the harness it chose with `agent-tab/choose`
   3. the first harness in `REGISTRY`
 
-  `agent-tab/choose` refuses with the code `running` while the tab's agent runs another harness.
-  The user starts a new session to switch. Each choice emits `agent-tab:chosen`, so the tab and
-  the agent bar show the same harness.
+  `agent-tab/choose` stops the outgoing harness before switching. Visible history stays in
+  the tab; the next prompt gives the receiving harness bounded conversation and tool context.
+  Pending approvals are cancelled and private reasoning is excluded from transferred context.
+  Each choice emits `agent-tab:chosen`, so the tab and agent bar show the same harness.
 
   `agent-tab/choose` also takes an optional `model`: a model's value, or `null` for the agent's
   default. The tab keeps one model for each harness. A call without `model` leaves them all as
   they are, so the agent bar, which chooses a harness only, never drops one. A model chosen while
   the tab's agent runs applies to the tab's next session. `agent-tab:chosen` carries the chosen
   harness's model.
+
+### Saved conversations and Ultra effort
+
+The tab's history button searches locally persisted conversations across harnesses for the current
+worktree. Snapshots live in app data under `agent-conversations`, outside the checkout. The tab
+saves completed content after a short debounce, before reset, on tab closure and on shutdown.
+Conversations can be archived, searched, reopened, and continued using either harness. Reopening
+does not run inference: the next prompt starts a fresh process with bounded restored context.
+Snapshots cannot be opened from another worktree and pending approvals are cancelled on restore.
+
+Ultra effort is the Claude-only sixth slider stop. It uses an advertised deep reasoning level
+(prefer xhigh) plus workflows. Changing it resumes the same Claude session through
+`_meta.claudeCode.options.settings.ultracode`; queued settings finish before the next prompt,
+and the model, transcript, permitted mode and negotiated MCP capabilities are retained.
+The slider and composer share an animated violet dot field, with reduced-motion equivalents.
 - **`agent-tab/send`.** It takes the prompt's `text`, sends it to the tab's harness, and starts
   that harness with `harness::spec` if no agent runs.
 
@@ -164,6 +180,35 @@ sets `CODEX_PATH` to the user's `codex`, and the adapter runs that one. The user
 `codex login` in a terminal. A signed-out `session/new` answers `auth_required`, and the tab shows the `signedOut`
 hint. The adapter never inherits `DEFAULT_AUTH_REQUEST` (`Descriptor::env_remove`): with it set, a
 signed-out session would sign itself in, and `chat-gpt` opens a browser.
+
+For development, `pnpm setup:codex` installs the same pinned adapter inside this checkout's
+`node_modules/.agent-adapters/codex/`, without changing global npm packages or installing a second
+native Codex CLI. `installed_spec` prefers an adapter already on PATH, then checks that one local
+directory. Its root is the agent-host crate's build checkout, never the user's active project or
+the process's current directory. The CLI itself must still be on PATH and signed in by the user.
+The local adapter is not a bundled release asset: a packaged app still needs an adapter on PATH.
+
+The 2026-10-25 check confirmed `initialize`, `session/new`, read-only mode, model switching and
+reasoning-effort changes with the user's Codex 0.153.0 and local codex-acp 2.2.2. No prompt was sent.
+That CLI's model catalog did not include the user's configured `gpt-6.1-sol` default, so the
+adapter inserted that default without effort metadata. Choosing an advertised model such as
+`gpt-6-astra` supplied its reasoning levels. The host does not invent levels for a missing model.
+
+Discovery also keeps the adapter's `available_commands_update` notification, including argument
+hints. It watches notifications during the handshake and for at most one second after
+`session/new`, without sending a prompt. These commands populate `HarnessInfo.commands` before
+the user's session starts. Codex reports skill invocations with a leading `$`; the UI groups
+skills below its single skills command rather than adding each one to the top-level menu.
+
+The slash menu includes the documented Claude Code and Codex builtins, including commands whose
+terminal dialogs are outside ACP. A command advertised by the active adapter runs through that
+adapter; the tab handles its own model, effort, login, side-chat, and composer controls. Other
+builtins carry an **Open in terminal** label. Submitting one explicitly opens a fresh native CLI
+session in the same cluster's worktree, with the command as its initial input. Picking the row
+only fills the composer. The existing agent conversation keeps running separately; no session
+identifier is guessed and no transcript is sent as an extra inference prompt. Native command
+availability still depends on the installed CLI version and account. Bundled workflows, bundled
+skills, plugin commands, custom commands, and Codex's `$` invocations live below `/skills`.
 
 **Modes.** Each Codex mode joins an approval policy and a sandbox:
 

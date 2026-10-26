@@ -1,0 +1,163 @@
+/* Reasoning is a shared visual state: slider preview, composer edge, and send affordance. */
+.at-prompt {
+  --effort-color: var(--k-accent);
+}
+.at-prompt[data-effort="low"] {
+  --effort-color: var(--k-context-3);
+}
+.at-prompt[data-effort="high"] {
+  --effort-color: var(--k-context-2);
+}
+.at-prompt[data-effort="xhigh"] {
+  --effort-color: var(--k-context-5);
+}
+.at-prompt[data-effort="max"] {
+  --effort-color: var(--k-context-6);
+}
+.at-prompt[data-effort="ultra"] {
+  --effort-color: var(--k-ultra);
+}
+.at-prompt__box {
+  position: relative;
+  isolation: isolate;
+  transition:
+    border-color 0.3s,
+    box-shadow 0.3s;
+}
+.at-prompt__box:focus-within {
+  border-color: color-mix(in srgb, var(--effort-color) 65%, var(--k-input-border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--effort-color) 20%, transparent);
+}
+.at-prompt[data-effort="ultra"] .at-prompt__box::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  border-radius: inherit;
+  opacity: 0.22;
+  background: radial-gradient(circle, var(--k-ultra) 1px, transparent 1.8px);
+  background-size: 7px 7px;
+  mask-image: linear-gradient(90deg, transparent 35%, black);
+  animation: at-ultra-field 6s linear infinite;
+}
+.at-prompt[data-effort="ultra"] .at-round--send {
+  background: var(--k-ultra);
+  box-shadow: 0 0 17px color-mix(in srgb, var(--k-ultra) 30%, transparent);
+}
+.at-prompt__writing {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+.at-prompt__writing textarea {
+  flex: 1 1 140px;
+  width: 100%;
+}
+.at-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--k-accent) 20%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--k-accent) 13%, transparent);
+  color: var(--k-accent);
+  font-size: var(--k-size-small);
+  line-height: 1.4;
+  vertical-align: baseline;
+}
+.at-chip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.at-chip[data-kind="skill"] {
+  color: var(--k-context-5);
+  background: color-mix(in srgb, var(--k-context-5) 14%, transparent);
+}
+.at-chip[data-kind="comment"],
+.at-chip[data-kind="design-comment"] {
+  color: var(--k-context-3);
+  background: color-mix(in srgb, var(--k-context-3) 14%, transparent);
+}
+.at-chip button {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.at-chip button:hover {
+  background: var(--k-list-hover);
+}
+.at-chip button:focus-visible {
+  outline: var(--k-focus-ring);
+}
+.at-user__text .at-chip {
+  margin-inline: 2px;
+}
+.at-assistant a[href^="kaava:"] {
+  display: inline-block;
+  padding: 0 5px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--k-accent) 13%, transparent);
+  color: var(--k-accent);
+  text-decoration: none;
+}
+.at-link-picker {
+  padding: var(--k-space-3);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-turn);
+  background: var(--k-raised-bg);
+}
+.at-link-picker label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-2);
+}
+.at-link-picker input {
+  padding: var(--k-space-2);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-control);
+  background: var(--k-composer-bg);
+  color: var(--k-editor-fg);
+  font: inherit;
+}
+.at-link-picker p {
+  color: var(--k-fg-muted);
+  font-size: var(--k-size-small);
+}
+.at-link-picker button {
+  margin-right: var(--k-space-2);
+  padding: var(--k-space-1) var(--k-space-2);
+  border: 0;
+  border-radius: var(--k-radius-control);
+  color: var(--k-editor-fg);
+  background: var(--k-list-hover);
+  font: inherit;
+  cursor: pointer;
+}
+@keyframes at-ultra-field {
+  to {
+    background-position: 28px -14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .at-prompt__box::before {
+    animation: none !important;
+  }
+  .at-prompt__box {
+    transition: none;
+  }
+}

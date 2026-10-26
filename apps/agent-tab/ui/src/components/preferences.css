@@ -1,0 +1,370 @@
+/* Bounded model settings and a tactile slider with a quiet motion field. */
+.at-model__menu {
+  width: 350px;
+  max-width: calc(100vw - 40px);
+  max-height: min(680px, 78vh);
+  border-radius: var(--k-radius-turn);
+  padding: var(--k-space-2);
+}
+.at-model__harnesses {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 8px;
+  border-radius: var(--k-radius-control);
+  background: var(--k-composer-bg);
+}
+.at-model__harness {
+  flex: 1;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--k-radius-control);
+  background: transparent;
+  color: var(--k-fg-muted);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background 160ms,
+    color 160ms;
+}
+.at-model__harness[aria-pressed="true"] {
+  background: var(--k-list-active);
+  color: var(--k-editor-fg);
+}
+.at-model__harness[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: default;
+}
+.at-model__harness:focus-visible,
+.at-model__more:focus-visible,
+.at-effort button:focus-visible {
+  outline: var(--k-focus-ring);
+}
+.at-model__item {
+  min-height: 34px;
+}
+.at-model__detail {
+  display: none;
+}
+.at-model__more {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--k-fg-muted);
+  font: inherit;
+  cursor: pointer;
+}
+.at-model__more:hover {
+  color: var(--k-editor-fg);
+  background: var(--k-list-hover);
+  border-radius: var(--k-radius-control);
+}
+.at-effort {
+  --energy: var(--k-accent);
+  --effort-fill: 50%;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin: 12px 2px;
+  padding: 14px 12px 10px;
+  border: 1px solid var(--k-panel-border);
+  border-radius: 18px;
+  background: var(--k-composer-bg);
+  transition:
+    border-color 220ms,
+    box-shadow 220ms;
+}
+.at-effort[data-level="0"] {
+  --energy: var(--k-context-3);
+}
+.at-effort[data-level="1"] {
+  --energy: var(--k-meter-low);
+}
+.at-effort[data-level="3"] {
+  --energy: var(--k-context-5);
+}
+.at-effort[data-level="4"] {
+  --energy: var(--k-context-6);
+}
+.at-effort[data-level="5"] {
+  --energy: var(--k-ultra);
+  border-color: color-mix(in srgb, var(--energy) 35%, var(--k-panel-border));
+  box-shadow: 0 0 24px color-mix(in srgb, var(--energy) 10%, transparent);
+}
+.at-effort__heading {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--k-fg-muted);
+  font-size: 12px;
+}
+.at-effort__heading strong {
+  margin: auto;
+  color: var(--energy);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  transition: color 180ms;
+}
+.at-effort__icon {
+  color: var(--energy);
+  flex-shrink: 0;
+}
+.at-effort__heading button {
+  padding: 2px;
+  display: flex;
+  border: 0;
+  background: transparent;
+  color: var(--k-fg-muted);
+  cursor: pointer;
+}
+.at-effort__ends {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  margin: 14px 2px 7px;
+  color: var(--k-fg-faint);
+  font-size: 10px;
+}
+.at-effort__range-wrap {
+  position: relative;
+  height: 34px;
+  border-radius: 24px;
+  background: var(--k-meter-track);
+}
+.at-effort__range-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--energy) 65%, transparent),
+    var(--energy)
+  );
+  clip-path: inset(0 calc(100% - var(--effort-fill)) 0 0 round 24px);
+  transition:
+    clip-path 140ms,
+    background 220ms;
+}
+.at-effort__range-wrap input {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  appearance: none;
+  width: 100%;
+  height: 34px;
+  margin: 0;
+  background: transparent;
+  cursor: ew-resize;
+  border-radius: inherit;
+}
+.at-effort__range-wrap input::-webkit-slider-runnable-track {
+  height: 34px;
+  background: transparent;
+  border-radius: 24px;
+}
+.at-effort__range-wrap input::-webkit-slider-thumb {
+  appearance: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--k-editor-fg);
+  border: 3px solid var(--k-raised-bg);
+  box-shadow: 0 2px 7px color-mix(in srgb, var(--k-editor-fg) 15%, transparent);
+  transition:
+    box-shadow 180ms,
+    scale 180ms;
+}
+.at-effort__range-wrap input::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--k-editor-fg);
+  border: 3px solid var(--k-raised-bg);
+}
+.at-effort__range-wrap input:focus-visible {
+  outline: var(--k-focus-ring);
+  outline-offset: 4px;
+}
+.at-effort__range-wrap input:hover::-webkit-slider-thumb {
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--energy) 20%, transparent);
+  scale: 1.08;
+}
+.at-effort__range-wrap input:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+.at-effort__ticks {
+  position: absolute;
+  inset: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.at-effort__ticks i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--k-editor-fg);
+  opacity: 0.3;
+}
+.at-effort__dots {
+  position: absolute;
+  inset: -14px -4px;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, var(--k-ultra) 1px, transparent 1.6px);
+  background-size: 5px 5px;
+  mask-image: radial-gradient(
+    ellipse 80% 90% at var(--effort-fill) 50%,
+    black 10%,
+    transparent 80%
+  );
+}
+.at-effort[data-ultra] .at-effort__dots {
+  opacity: 0.85;
+  animation:
+    at-dot-drift 6s linear infinite,
+    at-dot-bloom 3.5s ease-in-out infinite alternate;
+}
+.at-effort[data-ultra] .at-effort__range-wrap::before {
+  background: linear-gradient(90deg, transparent, var(--k-ultra-deep), var(--k-ultra));
+  opacity: 0.6;
+}
+.at-effort__spectrum {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  overflow: hidden;
+}
+.at-effort__spectrum span {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border: 1px solid color-mix(in srgb, var(--energy) 30%, transparent);
+  border-radius: 50%;
+  right: -35px;
+  top: -35px;
+}
+.at-effort[data-level="0"] .at-effort__spectrum span {
+  animation: at-orbit 12s ease-in-out infinite alternate;
+}
+.at-effort[data-level="1"] .at-effort__spectrum span {
+  border-radius: 18px;
+  animation: at-orbit 9s ease-in-out infinite alternate;
+}
+.at-effort[data-level="2"] .at-effort__spectrum span {
+  animation: at-ripple 5s ease-out infinite;
+}
+.at-effort[data-level="3"] .at-effort__spectrum span {
+  width: 140px;
+  border-radius: 30%;
+  animation: at-orbit 8s linear infinite;
+}
+.at-effort[data-level="4"] .at-effort__spectrum span {
+  width: 200px;
+  height: 200px;
+  top: -100px;
+  border-style: dashed;
+  animation: at-orbit 12s linear infinite;
+}
+.at-effort[data-level="5"] .at-effort__spectrum {
+  background: radial-gradient(
+    ellipse at 90% 90%,
+    color-mix(in srgb, var(--k-ultra) 35%, transparent),
+    transparent 70%
+  );
+  animation: at-dot-bloom 4s ease-in-out infinite alternate;
+}
+.at-effort__spectrum span:nth-child(2) {
+  animation-delay: -2s;
+  right: -15px;
+  top: -50px;
+}
+.at-effort__spectrum span:nth-child(3) {
+  animation-delay: -4s;
+  right: 0;
+  top: -60px;
+}
+.at-effort__labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 1px;
+  margin: 9px -6px 0;
+}
+.at-effort__labels button {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: var(--k-fg-faint);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+.at-effort__labels button:hover {
+  background: var(--k-list-hover);
+  color: var(--k-editor-fg);
+}
+.at-effort__labels button[aria-pressed="true"] {
+  color: var(--energy);
+  font-weight: 600;
+}
+.at-effort__labels button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.at-effort__caption {
+  margin: 9px 0 0;
+  color: var(--k-fg-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+@keyframes at-dot-drift {
+  to {
+    background-position: -30px 5px;
+  }
+}
+@keyframes at-dot-bloom {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 0.95;
+  }
+}
+@keyframes at-orbit {
+  to {
+    transform: rotate(180deg) translate(-12px, 8px);
+  }
+}
+@keyframes at-ripple {
+  from {
+    transform: scale(0.7);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .at-effort,
+  .at-effort *,
+  .at-effort *::before {
+    animation: none !important;
+    transition: none !important;
+  }
+}

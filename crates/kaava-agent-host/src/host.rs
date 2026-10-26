@@ -1,9 +1,9 @@
 //! Every agent tab's session, by the tab's instance id.
 //!
 //! The map's lock is held for lookups, inserts and removals only. Spawning a
-//! process happens outside it, and so does every kill: a session leaving the
-//! map is handed to a thread of its own that kills it and waits, so closing a
-//! tab never waits on an agent that is slow to die.
+//! process happens outside it, and so does every kill. Closing a tab retires
+//! its process on another thread; switching harnesses waits for the outgoing
+//! process to exit before a replacement can write to the same worktree.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -17,6 +17,7 @@ use crate::guard::{NotAWorktree, Worktree};
 use crate::harness::{Harness, LaunchSpec, Protocol};
 use crate::models::MODEL_CATEGORY;
 use crate::session::{Level, Log, Session, Sink, Start};
+use crate::transfer;
 
 /// How long a retired session gets to exit before its thread gives up
 /// waiting. It has already been killed; this only bounds the wait.
@@ -33,6 +34,11 @@ pub trait Adapter: Send + Sync {
     fn harness(&self) -> Harness;
     /// Start a turn with `text`.
     fn prompt(&self, text: &str) -> Result<(), HostError>;
+    /// Start a turn with handoff context that is not another visible user message.
+    fn prompt_with_context(&self, text: &str, context: Option<&str>) -> Result<(), HostError> {
+        let combined = context.map(|context| format!("{context}\n\n{text}"));
+        self.prompt(combined.as_deref().unwrap_or(text))
+    }
     /// Stop the running turn.
     fn abort(&self);
     /// Answer an approval with one of the options it offered.
@@ -67,6 +73,9 @@ impl Adapter for Session {
     }
     fn prompt(&self, text: &str) -> Result<(), HostError> {
         Session::prompt(self, text)
+    }
+    fn prompt_with_context(&self, text: &str, context: Option<&str>) -> Result<(), HostError> {
+        Session::prompt_with_context(self, text, context)
     }
     fn abort(&self) {
         self.cancel();
@@ -169,6 +178,8 @@ impl HostError {
 /// The host.
 pub struct AgentHost {
     sessions: Mutex<HashMap<String, Arc<dyn Adapter>>>,
+    /// A conversation between harness processes. No process starts just to switch.
+    transfers: Mutex<HashMap<String, Transfer>>,
     /// Held across a whole send, so two sends to a tab with no session start
     /// one between them rather than one each.
     sending: Mutex<()>,
@@ -178,6 +189,14 @@ pub struct AgentHost {
     generation: AtomicU64,
     events: Mutex<mpsc::Sender<Envelope>>,
     log: Log,
+}
+
+struct Transfer {
+    items: Vec<Item>,
+    worktree: Worktree,
+    source: Harness,
+    /// Keep the retired process until its exit has been confirmed.
+    outgoing: Option<Arc<dyn Adapter>>,
 }
 
 impl AgentHost {
@@ -194,6 +213,7 @@ impl AgentHost {
             });
         Self {
             sessions: Mutex::new(HashMap::new()),
+            transfers: Mutex::new(HashMap::new()),
             sending: Mutex::new(()),
             seq: Arc::new(AtomicU64::new(0)),
             changes: Arc::new(AtomicU64::new(0)),
@@ -222,16 +242,44 @@ impl AgentHost {
         text: &str,
     ) -> Result<(), HostError> {
         let _one_at_a_time = self.sending.lock().unwrap_or_else(|e| e.into_inner());
-        let existing = self.get(instance_id);
+        let mut existing = self.get(instance_id);
+        if let Some(session) = &existing {
+            if session.worktree() != &worktree {
+                return Err(HostError::WrongWorktree);
+            }
+            if session.harness() != spec.harness {
+                self.transfer_locked(instance_id, spec.harness)?;
+                existing = None;
+            }
+        }
         if let Some(session) = &existing {
             if session.is_alive() {
-                if session.worktree() != &worktree {
-                    return Err(HostError::WrongWorktree);
-                }
                 return session.prompt(text);
             }
         }
-        let prior = existing.map(|s| s.items()).unwrap_or_default();
+        let (prior, context) =
+            {
+                let transfers = self.transfers.lock().unwrap_or_else(|e| e.into_inner());
+                match transfers.get(instance_id) {
+                    Some(transfer) => {
+                        if transfer.worktree != worktree {
+                            return Err(HostError::WrongWorktree);
+                        }
+                        if transfer.outgoing.as_ref().is_some_and(|outgoing| {
+                            !outgoing.wait_closed(Instant::now() + RETIRE_WAIT)
+                        }) {
+                            return Err(HostError::Busy);
+                        }
+                        let prior = existing
+                            .as_ref()
+                            .map(|s| s.items())
+                            .unwrap_or_else(|| transfer.items.clone());
+                        let context = transfer::context(&prior, transfer.source);
+                        (prior, context)
+                    }
+                    None => (existing.map(|s| s.items()).unwrap_or_default(), None),
+                }
+            };
         let generation = self.generation.fetch_add(1, Ordering::SeqCst) + 1;
         let events = self
             .events
@@ -258,18 +306,147 @@ impl AgentHost {
         if let Some(old) = replaced {
             retire(old);
         }
-        session.prompt(text)
+        session.prompt_with_context(text, context.as_deref())?;
+        // Keep the handoff marker across a failed startup so Retry also receives
+        // real context. Live turns use their process's existing conversation.
+        Ok(())
+    }
+
+    /// Change harness without starting an inference. The old process is stopped first;
+    /// the next prompt carries the conversation into the new harness's real context.
+    pub fn transfer(&self, instance_id: &str, target: Harness) -> Result<Attachment, HostError> {
+        let _one_at_a_time = self.sending.lock().unwrap_or_else(|e| e.into_inner());
+        self.transfer_locked(instance_id, target)?;
+        Ok(self.attach(instance_id))
+    }
+
+    fn transfer_locked(&self, instance_id: &str, target: Harness) -> Result<(), HostError> {
+        let Some(session) = self.get(instance_id) else {
+            return Ok(());
+        };
+        if session.harness() == target {
+            return Ok(());
+        }
+        // Silence before cancelling: no late answer can be drawn after the switch.
+        session.silence();
+        let pending = session.status().pending_prompt;
+        session.abort();
+        session.shutdown();
+        let mut items = session.items();
+        transfer::settle(&mut items);
+        if let Some(text) = pending {
+            let id = self.generation.fetch_add(1, Ordering::SeqCst) + 1;
+            items.push(Item {
+                id: format!("handoff{id}:pending"),
+                turn_id: format!("handoff{id}"),
+                kind: crate::event::ItemKind::UserMessage { text },
+            });
+        }
+        let closed = session.wait_closed(Instant::now() + RETIRE_WAIT);
+        self.map().remove(instance_id);
+        self.transfers
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(
+                instance_id.to_string(),
+                Transfer {
+                    items,
+                    worktree: session.worktree().clone(),
+                    source: session.harness(),
+                    outgoing: Some(session),
+                },
+            );
+        if !closed {
+            return Err(HostError::Busy);
+        }
+        Ok(())
+    }
+
+    /// Import a saved conversation into this project worktree without running a
+    /// model. Its next prompt receives the same bounded context as a live handoff.
+    pub fn restore(
+        &self,
+        instance_id: &str,
+        items: Vec<Item>,
+        harness: Harness,
+        worktree: Worktree,
+    ) -> Result<Attachment, HostError> {
+        let _one_at_a_time = self.sending.lock().unwrap_or_else(|e| e.into_inner());
+        let outgoing = self
+            .transfers
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(instance_id)
+            .and_then(|transfer| transfer.outgoing.clone());
+        if outgoing.is_some_and(|session| !session.wait_closed(Instant::now() + RETIRE_WAIT)) {
+            return Err(HostError::Busy);
+        }
+        if let Some(session) = self.get(instance_id) {
+            session.silence();
+            session.abort();
+            session.shutdown();
+            if !session.wait_closed(Instant::now() + RETIRE_WAIT) {
+                return Err(HostError::Busy);
+            }
+            self.map().remove(instance_id);
+        }
+        let generation = self.generation.fetch_add(1, Ordering::SeqCst) + 1;
+        let mut items = crate::transcript::Transcript::from_items(items).items();
+        transfer::settle(&mut items);
+        // Disk history may come from another host whose s1 IDs overlap ours.
+        let ids: HashMap<String, String> = items
+            .iter()
+            .enumerate()
+            .map(|(index, item)| (item.id.clone(), format!("history{generation}:i{index}")))
+            .collect();
+        let mut turns = HashMap::new();
+        for (index, item) in items.iter_mut().enumerate() {
+            item.id = format!("history{generation}:i{index}");
+            let next_turn = turns.len();
+            item.turn_id = turns
+                .entry(item.turn_id.clone())
+                .or_insert_with(|| format!("history{generation}:t{next_turn}"))
+                .clone();
+            if let crate::event::ItemKind::Approval {
+                tool_call_id: Some(id),
+                ..
+            } = &mut item.kind
+            {
+                if let Some(replacement) = ids.get(id) {
+                    *id = replacement.clone();
+                }
+            }
+        }
+        self.transfers
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(
+                instance_id.to_string(),
+                Transfer {
+                    items,
+                    worktree,
+                    source: harness,
+                    outgoing: None,
+                },
+            );
+        Ok(self.attach(instance_id))
     }
 
     /// Everything the tab should draw, and the `seq` live events pick up after.
     pub fn attach(&self, instance_id: &str) -> Attachment {
         match self.get(instance_id) {
             Some(session) => session.attach(),
-            None => Attachment {
-                status: None,
-                items: Vec::new(),
-                seq: self.seq.load(Ordering::SeqCst),
-            },
+            None => {
+                let transfers = self.transfers.lock().unwrap_or_else(|e| e.into_inner());
+                Attachment {
+                    status: None,
+                    items: transfers
+                        .get(instance_id)
+                        .map(|t| t.items.clone())
+                        .unwrap_or_default(),
+                    seq: self.seq.load(Ordering::SeqCst),
+                }
+            }
         }
     }
 
@@ -323,6 +500,11 @@ impl AgentHost {
 
     /// Kill the tab's agent and forget its conversation.
     pub fn reset(&self, instance_id: &str) {
+        let _one_at_a_time = self.sending.lock().unwrap_or_else(|e| e.into_inner());
+        self.transfers
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(instance_id);
         let removed = self.map().remove(instance_id);
         if let Some(session) = removed {
             retire(session);
@@ -341,11 +523,18 @@ impl AgentHost {
 
     /// The worktree the tab's session runs in, if it has one.
     pub fn worktree(&self, instance_id: &str) -> Option<Worktree> {
-        self.get(instance_id).map(|s| s.worktree().clone())
+        self.get(instance_id)
+            .map(|s| s.worktree().clone())
+            .or_else(|| {
+                self.transfers
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .get(instance_id)
+                    .map(|t| t.worktree.clone())
+            })
     }
 
-    /// The harness the tab's agent runs, while its process lives. A prompt
-    /// goes to that agent, whatever harness the tab has chosen since.
+    /// The harness the tab's agent runs, while its process lives.
     pub fn running(&self, instance_id: &str) -> Option<Harness> {
         self.get(instance_id)
             .filter(|s| s.is_alive())
@@ -359,6 +548,11 @@ impl AgentHost {
 
     /// Kill every session whose tab `keep` does not name. Returns at once.
     pub fn retain(&self, keep: impl Fn(&str) -> bool) {
+        let _one_at_a_time = self.sending.lock().unwrap_or_else(|e| e.into_inner());
+        self.transfers
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .retain(|id, _| keep(id));
         let gone: Vec<Arc<dyn Adapter>> = {
             let mut map = self.map();
             let ids: Vec<String> = map.keys().filter(|id| !keep(id)).cloned().collect();
@@ -373,6 +567,10 @@ impl AgentHost {
     /// Kill every session and wait for them, all against one deadline. For
     /// the app's exit.
     pub fn stop_all(&self, wait: Duration) {
+        self.transfers
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clear();
         let all: Vec<Arc<dyn Adapter>> = self.map().drain().map(|(_, s)| s).collect();
         for session in &all {
             session.shutdown();

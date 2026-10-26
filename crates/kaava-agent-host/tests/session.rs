@@ -75,6 +75,8 @@ fn mock(args: &[&str]) -> LaunchSpec {
         setting_timeout: PATIENCE,
         mcp_servers: Vec::new(),
         model: None,
+        effort: None,
+        ultracode: false,
     }
 }
 
@@ -576,6 +578,265 @@ fn a_tab_runs_its_harness_only_while_its_agent_lives() {
 }
 
 #[test]
+fn switching_harness_transfers_actual_context_without_duplicating_visible_user_text() {
+    let rig = rig();
+    rig.send(&[], "Finish [@Frame](<kaava://canvas/main/frame/42>)")
+        .unwrap();
+    rig.turns_done(1);
+    rig.send(&[], "tool").unwrap();
+    rig.turns_done(2);
+    let before = rig.items();
+    let transferred = rig.host.transfer(TAB, Harness::Codex).unwrap();
+    assert_eq!(transferred.items, before);
+    assert_eq!(transferred.status, None);
+    assert_eq!(rig.host.running(TAB), None);
+    assert_eq!(rig.host.worktree(TAB), Some(rig.tree.clone()));
+
+    let mut codex = mock(&[]);
+    codex.harness = Harness::Codex;
+    rig.send_spec(codex, "Continue from here").unwrap();
+    rig.turns_done(3);
+    assert_eq!(rig.host.running(TAB), Some(Harness::Codex));
+    let items = rig.items();
+    assert_eq!(&items[..before.len()], before.as_slice());
+    let users: Vec<&str> = items
+        .iter()
+        .filter_map(|item| match &item.kind {
+            ItemKind::UserMessage { text } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        users,
+        [
+            "Finish [@Frame](<kaava://canvas/main/frame/42>)",
+            "tool",
+            "Continue from here"
+        ]
+    );
+    let answer = texts(&items).last().unwrap().to_string();
+    assert!(answer.contains("Conversation handoff from Claude"));
+    assert!(answer.contains("kaava://canvas/main/frame/42"));
+    assert!(answer.contains("Tool ("));
+    assert!(answer.contains("Continue from here"));
+
+    // Switching back also sends the new agent's actual answer into Claude.
+    rig.host.transfer(TAB, Harness::Claude).unwrap();
+    rig.send(&[], "Back in Claude").unwrap();
+    rig.turns_done(4);
+    let items = rig.items();
+    let answer = texts(&items).last().unwrap().to_string();
+    assert!(answer.contains("Conversation handoff from Codex"));
+    assert!(answer.contains("Continue from here"));
+    assert!(answer.contains("Back in Claude"));
+}
+
+#[test]
+fn switching_busy_harness_cancels_old_approval_and_cannot_answer_it_on_new_agent() {
+    let rig = rig();
+    rig.send(&[], "approve").unwrap();
+    rig.state(SessionState::NeedsInput);
+    let before = rig.items();
+    let approval = before
+        .iter()
+        .find(|item| matches!(item.kind, ItemKind::Approval { .. }))
+        .unwrap();
+    let transferred = rig.host.transfer(TAB, Harness::Codex).unwrap();
+    assert!(transferred.items.iter().any(|item| matches!(
+        &item.kind, ItemKind::Approval { answer: Some(answer), .. } if answer == "cancelled"
+    )));
+    assert!(matches!(
+        rig.host.answer(TAB, &approval.id, "allow"),
+        Err(HostError::NoSession)
+    ));
+    let mut codex = mock(&[]);
+    codex.harness = Harness::Codex;
+    rig.send_spec(codex, "continue safely").unwrap();
+    rig.turns_done(1);
+    assert_eq!(rig.host.running(TAB), Some(Harness::Codex));
+    assert!(matches!(
+        rig.host.answer(TAB, &approval.id, "allow"),
+        Err(HostError::UnknownApproval)
+    ));
+}
+
+#[test]
+fn selecting_a_different_harness_at_send_never_prompts_the_old_agent() {
+    let rig = rig();
+    rig.send(&[], "stream").unwrap();
+    rig.turns_done(1);
+    let mut codex = mock(&[]);
+    codex.harness = Harness::Codex;
+    rig.send_spec(codex, "Use the previous answer").unwrap();
+    rig.turns_done(2);
+    assert_eq!(rig.host.running(TAB), Some(Harness::Codex));
+    let items = rig.items();
+    let answer = texts(&items).last().unwrap().to_string();
+    assert!(answer.contains("Assistant: Hello"));
+}
+
+#[test]
+fn switching_before_handshake_preserves_the_submitted_pending_prompt() {
+    let rig = rig();
+    rig.send(&["--init-gate", &rig.gate()], "Remember my unfinished task")
+        .unwrap();
+    rig.status_where("queued prompt", |s| s.pending_prompt.is_some());
+    let transferred = rig.host.transfer(TAB, Harness::Codex).unwrap();
+    assert!(transferred.items.iter().any(|item| matches!(
+        &item.kind, ItemKind::UserMessage { text } if text == "Remember my unfinished task"
+    )));
+    let mut codex = mock(&[]);
+    codex.harness = Harness::Codex;
+    rig.send_spec(codex, "continue").unwrap();
+    rig.turns_done(1);
+    let items = rig.items();
+    let answer = texts(&items).last().unwrap().to_string();
+    assert!(answer.contains("Remember my unfinished task"));
+}
+
+#[test]
+fn ultra_effort_changes_the_current_session_without_losing_history_or_model() {
+    let rig = rig();
+    let trace = rig
+        .dir
+        .path()
+        .join("workflow-trace")
+        .to_string_lossy()
+        .to_string();
+    let mut spec = mock(&["--trace", &trace]);
+    spec.model = Some("opus".into());
+    spec.effort = Some("high".into());
+    rig.send_spec(spec, "stream").unwrap();
+    rig.turns_done(1);
+    let mode = rig.host.set_mode(TAB, "plan").unwrap();
+    rig.status_where("plan mode selected", |s| s.answered >= mode);
+    let before = rig.items();
+    let on = rig.host.set_config(TAB, "ultra_effort", "on").unwrap();
+    let enabled = rig.status_where("current session workflows enabled", |s| s.answered >= on);
+    assert_eq!(enabled.setting_trouble, None);
+    assert_eq!(value_of(&enabled, "ultra_effort"), Some("on"));
+    assert_eq!(enabled.mode.as_deref(), Some("plan"));
+    assert_eq!(rig.items(), before);
+    rig.send(&[], "workflow").unwrap();
+    rig.turns_done(2);
+    let items = rig.items();
+    assert_eq!(
+        texts(&items).last().unwrap(),
+        "workflow: true; model: opus; effort: xhigh"
+    );
+
+    let off = rig.host.set_config(TAB, "ultra_effort", "off").unwrap();
+    let disabled = rig.status_where("current session workflows disabled", |s| s.answered >= off);
+    assert_eq!(disabled.setting_trouble, None);
+    assert_eq!(value_of(&disabled, "ultra_effort"), Some("off"));
+    assert_eq!(disabled.mode.as_deref(), Some("plan"));
+    rig.send(&[], "workflow").unwrap();
+    rig.turns_done(3);
+    let items = rig.items();
+    assert_eq!(
+        texts(&items).last().unwrap(),
+        "workflow: false; model: opus; effort: xhigh"
+    );
+    let trace = std::fs::read_to_string(trace).unwrap();
+    assert_eq!(
+        trace.lines().filter(|line| *line == "session/new").count(),
+        1
+    );
+    assert_eq!(
+        trace
+            .lines()
+            .filter(|line| *line == "session/resume")
+            .count(),
+        2
+    );
+}
+
+#[test]
+fn queued_ultra_uses_the_latest_model_and_blocks_the_next_prompt_until_applied() {
+    let rig = rig();
+    rig.send(&["--slow-setting"], "stream").unwrap();
+    rig.turns_done(1);
+    rig.host.set_config(TAB, "model", "opus").unwrap();
+    rig.host.set_config(TAB, "effort", "high").unwrap();
+    let ultra = rig.host.set_config(TAB, "ultra_effort", "on").unwrap();
+    rig.send(&[], "workflow").unwrap();
+    rig.turns_done(2);
+    let status = last_status(&rig.events()).unwrap();
+    assert!(status.answered >= ultra);
+    assert_eq!(status.setting_trouble, None);
+    assert_eq!(value_of(&status, "ultra_effort"), Some("on"));
+    let items = rig.items();
+    assert_eq!(
+        texts(&items).last().unwrap(),
+        "workflow: true; model: opus; effort: xhigh"
+    );
+    assert_eq!(status.mode.as_deref(), Some("default"));
+}
+
+#[test]
+fn starting_in_ultra_uses_the_models_supported_deep_reasoning() {
+    for (model, effort) in [("opus", "xhigh"), ("default", "high")] {
+        let rig = rig();
+        let mut spec = mock(&[]);
+        spec.model = Some(model.into());
+        spec.effort = Some("low".into());
+        spec.ultracode = true;
+        rig.send_spec(spec, "workflow").unwrap();
+        rig.turns_done(1);
+        let items = rig.items();
+        assert_eq!(
+            texts(&items).last().unwrap(),
+            &format!("workflow: true; model: {model}; effort: {effort}")
+        );
+    }
+}
+
+#[test]
+fn saved_conversation_restores_without_a_process_and_reaches_the_next_harness() {
+    let rig = rig();
+    let items = vec![
+        Item {
+            id: "s1:i1".into(),
+            turn_id: "s1:t1".into(),
+            kind: ItemKind::UserMessage {
+                text: "Finish [@Design](<kaava://canvas/main/frame/99>)".into(),
+            },
+        },
+        Item {
+            id: "s1:i2".into(),
+            turn_id: "s1:t1".into(),
+            kind: ItemKind::AssistantText {
+                text: "The design context is loaded; next update the header.".into(),
+            },
+        },
+    ];
+    let imported = rig
+        .host
+        .restore(TAB, items, Harness::Claude, rig.tree.clone())
+        .unwrap();
+    assert_eq!(imported.status, None);
+    assert_eq!(rig.host.running(TAB), None);
+    assert_eq!(imported.items.len(), 2);
+    assert!(imported
+        .items
+        .iter()
+        .all(|item| item.id.starts_with("history")));
+    let mut codex = mock(&[]);
+    codex.harness = Harness::Codex;
+    rig.send_spec(codex, "Continue").unwrap();
+    rig.turns_done(1);
+    let items = rig.items();
+    assert_eq!(&items[..2], imported.items.as_slice());
+    let answer = texts(&items).last().unwrap().to_string();
+    assert!(answer.contains("kaava://canvas/main/frame/99"));
+    assert!(answer.contains("next update the header"));
+    let mut ids: Vec<&str> = items.iter().map(|item| item.id.as_str()).collect();
+    ids.sort_unstable();
+    ids.dedup();
+    assert_eq!(ids.len(), items.len());
+}
+
+#[test]
 fn a_tab_names_its_model_only_while_its_agent_lives() {
     let rig = rig();
     assert_eq!(rig.host.model(TAB), None);
@@ -784,6 +1045,35 @@ fn a_session_starts_on_the_model_the_tab_chose() {
     assert!(sent.contains("session/set_config_option"), "{sent}");
     let ready = first_ready(&rig.events()).unwrap();
     assert_eq!(value_of(&ready, "model"), Some("haiku"));
+}
+
+#[test]
+fn initial_effort_is_applied_after_the_model_and_before_the_first_prompt() {
+    let rig = rig();
+    let spec = LaunchSpec {
+        model: Some("opus".into()),
+        effort: Some("high".into()),
+        ..mock(&[])
+    };
+    rig.host.send(TAB, spec, rig.tree.clone(), "hi").unwrap();
+    rig.turns_done(1);
+    let ready = first_ready(&rig.events()).unwrap();
+    assert_eq!(value_of(&ready, "model"), Some("opus"));
+    assert_eq!(value_of(&ready, "effort"), Some("high"));
+}
+
+#[test]
+fn initial_effort_absent_from_the_model_is_never_sent() {
+    let rig = rig();
+    let spec = LaunchSpec {
+        model: Some("haiku".into()),
+        effort: Some("max".into()),
+        ..mock(&[])
+    };
+    rig.host.send(TAB, spec, rig.tree.clone(), "hi").unwrap();
+    rig.turns_done(1);
+    let ready = first_ready(&rig.events()).unwrap();
+    assert_eq!(value_of(&ready, "effort"), None);
 }
 
 #[test]
@@ -1346,7 +1636,7 @@ fn the_session_reports_its_modes_and_settings() {
     let ids: Vec<&str> = status.config.iter().map(|o| o.id.as_str()).collect();
     assert_eq!(
         ids,
-        ["model", "effort", "fast"],
+        ["model", "effort", "fast", "ultra_effort"],
         "the mode is not drawn twice"
     );
     assert_eq!(value_of(&status, "model"), Some("default"));
@@ -1387,7 +1677,7 @@ fn the_agent_can_change_its_settings_on_its_own() {
     let last = last_status(&events).unwrap();
     assert_eq!(
         last.config.len(),
-        3,
+        4,
         "the update with no list cleared nothing"
     );
 }

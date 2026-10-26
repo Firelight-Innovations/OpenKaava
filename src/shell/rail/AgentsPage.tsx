@@ -4,10 +4,15 @@ import {
   CircleCheck,
   CircleStop,
   CircleX,
+  Clock,
   LoaderCircle,
   Plus,
+  Search,
+  SlidersHorizontal,
+  SquarePen,
   type LucideIcon,
 } from "lucide-react";
+import { useState } from "react";
 import {
   NO_SESSION,
   type AgentCluster,
@@ -20,6 +25,12 @@ import "./agentspage.css";
 const TEXT = {
   newSession: (cluster: string) => `New agent session in ${cluster}`,
   empty: "No agent sessions",
+  actions: "Agent actions",
+  newAgent: "New Agent",
+  search: "Search",
+  automations: "Automations",
+  customize: "Customize",
+  soon: "Coming soon",
   untitled: "New session",
   current: "Current cluster",
   state: {
@@ -95,9 +106,51 @@ export default function AgentsPage({
   onOpen,
   onNew,
 }: AgentsPageProps) {
+  const [query, setQuery] = useState("");
+  const needle = query.trim().toLowerCase();
+  const visible = clusters.map((cluster) => ({
+    ...cluster,
+    tabs:
+      needle === ""
+        ? cluster.tabs
+        : cluster.tabs.filter((tab) => {
+            const prompt = sessions.get(tab.id)?.prompt ?? "";
+            return `${tab.title} ${prompt}`.toLowerCase().includes(needle);
+          }),
+  }));
   return (
     <div className="k-agents">
-      {clusters.map((cluster) => (
+      <nav className="k-agents__actions" aria-label={TEXT.actions}>
+        <button
+          type="button"
+          className="k-agents__action"
+          disabled={activeClusterId === null}
+          onClick={() => activeClusterId !== null && onNew(activeClusterId)}
+        >
+          <SquarePen size={14} strokeWidth={2} aria-hidden />
+          {TEXT.newAgent}
+        </button>
+        <label className="k-agents__action k-agents__search">
+          <Search size={14} strokeWidth={2} aria-hidden />
+          <input
+            type="text"
+            value={query}
+            spellCheck={false}
+            placeholder={TEXT.search}
+            aria-label={TEXT.search}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </label>
+        <button type="button" className="k-agents__action" disabled title={TEXT.soon}>
+          <Clock size={14} strokeWidth={2} aria-hidden />
+          {TEXT.automations}
+        </button>
+        <button type="button" className="k-agents__action" disabled title={TEXT.soon}>
+          <SlidersHorizontal size={14} strokeWidth={2} aria-hidden />
+          {TEXT.customize}
+        </button>
+      </nav>
+      {visible.map((cluster) => (
         <section
           key={cluster.id}
           className="k-agents__cluster"

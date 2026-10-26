@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig } from "framer-motion";
+import { MessageSquare } from "lucide-react";
 import { contextItemPaths, onCopilotKey, type Openable, type StackSnapshot } from "../bindings";
 import Frame, { BOTTOM_DEFAULT, PROJECT_PAGE_DEFAULT } from "./frame/Frame";
 import { bandGeometry, withBandGeometry, type BandGeometryByCluster } from "./frame/bandGeometry";
@@ -2114,6 +2115,21 @@ export default function WindowRoot({
                 <>
                   <ToolHealthBadge healthOf={stackTools} onRescan={onRescan} />
                   <SearchSlot open={searchExpanded} onOpen={openSearch} />
+                  <button
+                    type="button"
+                    className="titlebar__chat"
+                    aria-label="Agents"
+                    title="Agents"
+                    aria-pressed={rightPage?.id === "sessions"}
+                    onClick={() => onSelectPage("sessions")}
+                  >
+                    <MessageSquare
+                      size={16}
+                      strokeWidth={2}
+                      fill={rightPage?.id === "sessions" ? "currentColor" : "none"}
+                      aria-hidden="true"
+                    />
+                  </button>
                 </>
               }
             />

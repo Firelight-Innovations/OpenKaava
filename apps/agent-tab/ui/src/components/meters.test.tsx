@@ -197,7 +197,8 @@ describe("the model menu's harnesses", () => {
   it("groups each harness's models under it, and checks only the one in use", () => {
     fireEvent.click(menu("claude", vi.fn()));
     const groups = screen.getAllByRole("group").map((g) => g.getAttribute("aria-label"));
-    expect(groups).toEqual(["Claude", "Codex", "Pi", "Kaava", "Effort"]);
+    expect(groups).toEqual(["Harness", "Model", "Effort"]);
+    expect(screen.queryByRole("menuitemradio", { name: "GPT-6 Astra" })).toBeNull();
     const checked = screen
       .getAllByRole("menuitemradio")
       .filter((el) => el.getAttribute("aria-checked") === "true")
@@ -210,6 +211,7 @@ describe("the model menu's harnesses", () => {
   it("picks a harness and a model in one choice", () => {
     const onChoose = vi.fn();
     fireEvent.click(menu("claude", onChoose));
+    fireEvent.click(screen.getByRole("button", { name: "Codex" }));
     fireEvent.click(screen.getByRole("menuitemradio", { name: "GPT-6 Astra" }));
     expect(onChoose).toHaveBeenCalledWith("codex", "gpt-6-astra");
   });
@@ -217,6 +219,7 @@ describe("the model menu's harnesses", () => {
   it("offers a harness with no known models at its default", () => {
     const onChoose = vi.fn();
     fireEvent.click(menu("claude", onChoose));
+    fireEvent.click(screen.getByRole("button", { name: "Pi" }));
     fireEvent.click(screen.getByRole("menuitemradio", { name: "Default model" }));
     expect(onChoose).toHaveBeenCalledWith("pi", null);
   });
@@ -224,9 +227,9 @@ describe("the model menu's harnesses", () => {
   it("shows a harness that cannot run yet, locked, with why", () => {
     const onChoose = vi.fn();
     fireEvent.click(menu("claude", onChoose));
-    const soon = screen.getByRole("menuitemradio", { name: "Coming soon" });
+    const soon = screen.getByRole("button", { name: "Kaava" });
     expect(soon.getAttribute("aria-disabled")).toBe("true");
-    expect(soon.closest("[role=group]")?.hasAttribute("data-unavailable")).toBe(true);
+    expect(soon.title).toBe("Coming soon");
     fireEvent.click(soon);
     expect(onChoose).not.toHaveBeenCalled();
   });
@@ -234,8 +237,97 @@ describe("the model menu's harnesses", () => {
   it("locks every harness without onChoose", () => {
     fireEvent.click(menu("claude"));
     expect(
-      screen.getByRole("menuitemradio", { name: "GPT-6 Astra" }).getAttribute("aria-disabled"),
+      screen.getByRole("menuitemradio", { name: "Opus 5.5" }).getAttribute("aria-disabled"),
     ).toBe("true");
+  });
+});
+
+describe("compact preferences and friendly notices", () => {
+  it("keeps older models behind More models and can collapse them again", () => {
+    const models = ["Opus 4.6", "Opus 5.5", "Sonnet 5.5", "Fable 5.1", "Haiku 5.5"].map((name) => ({
+      value: name,
+      name,
+    }));
+    render(
+      <ModelMenu
+        label="Agent settings"
+        harness="claude"
+        harnesses={[{ id: "claude", name: "Claude", model: "Opus 5.5", models, unavailable: null }]}
+        onChoose={vi.fn()}
+        sections={[]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Agent settings/ }));
+    expect(screen.queryByRole("menuitemradio", { name: "Opus 4.6" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "More models" }));
+    expect(screen.getByRole("menuitemradio", { name: "Opus 4.6" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Latest models" }));
+    expect(screen.queryByRole("menuitemradio", { name: "Opus 4.6" })).toBeNull();
+  });
+
+  it("disables unsupported effort levels and skips them with the keyboard", () => {
+    const onChange = vi.fn();
+    render(
+      <defaultSlots.EffortPicker
+        label="Effort"
+        value="low"
+        choices={[
+          { value: "low", name: "Low" },
+          { value: "high", name: "High" },
+        ]}
+        onChange={onChange}
+      />,
+    );
+    const unsupported = screen.getByRole("button", { name: "Xhigh" });
+    expect((unsupported as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(unsupported);
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.keyDown(screen.getByRole("slider", { name: "Effort" }), { key: "ArrowRight" });
+    expect(onChange).toHaveBeenCalledWith("high");
+  });
+
+  it("includes Ultra as a Claude slider stop that changes the current conversation", () => {
+    const onChange = vi.fn();
+    render(
+      <ModelMenu
+        label="Agent settings"
+        harness="claude"
+        sections={[
+          {
+            label: "Effort",
+            value: "high",
+            choices: [{ value: "high", name: "High" }],
+            onChange: vi.fn(),
+          },
+        ]}
+        ultracode={{ enabled: true, disabled: false, onChange }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Agent settings/ }));
+    const slider = screen.getByRole("slider", { name: "Effort" });
+    expect(slider.getAttribute("aria-valuetext")).toBe("Ultra effort");
+    fireEvent.click(screen.getByRole("button", { name: "High" }));
+    expect(onChange).toHaveBeenCalledWith(false);
+    fireEvent.click(screen.getByRole("button", { name: "Ultra effort" }));
+    expect(onChange).toHaveBeenCalledWith(true);
+    expect(screen.queryByRole("switch")).toBeNull();
+  });
+
+  it("makes a usage-limit notice readable and dismissible without losing the reset time", () => {
+    const onRetry = vi.fn();
+    render(
+      <defaultSlots.ErrorItem
+        message="Internal error: You've hit your session limit · resets 11:50pm (America/Chicago)"
+        hint={null}
+        onRetry={onRetry}
+      />,
+    );
+    expect(screen.getByRole("status").textContent).toContain("11:50pm (America/Chicago)");
+    expect(screen.getByRole("status").textContent).not.toContain("Internal error");
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetry).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss notice" }));
+    expect(screen.queryByRole("status")).toBeNull();
   });
 });
 

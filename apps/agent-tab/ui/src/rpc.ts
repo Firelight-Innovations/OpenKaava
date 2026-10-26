@@ -4,6 +4,7 @@
  */
 import { invoke, on, KaavaRpcError } from "@openkaava/bridge";
 import type { Attachment, Envelope, Harness, HarnessInfo } from "./protocol.generated";
+import type { MentionHit } from "./mentions";
 
 /** Mirrors `apps::agent_tab::EVENT`. */
 export const EVENT = "agent-tab:event";
@@ -25,8 +26,38 @@ export interface Harnesses {
 
 export const harnesses = () => invoke<Harnesses>("agent-tab/harnesses");
 export const attach = () => invoke<Attachment>("agent-tab/attach");
+export interface SavedSession {
+  id: string;
+  title: string;
+  updated: number;
+  harness: Harness;
+  archived: boolean;
+}
+export const history = () => invoke<{ sessions: SavedSession[] }>("agent-tab/history");
+export const saveHistory = () => invoke<object>("agent-tab/history-save");
+export const openHistory = (id: string, harness?: Harness) =>
+  invoke<Attachment>("agent-tab/history-open", { id, ...(harness ? { harness } : {}) });
+export const archiveHistory = (id: string, archived: boolean) =>
+  invoke<object>("agent-tab/history-archive", { id, archived });
 /** Sends to the tab's current harness: the running agent's, else the one chosen. */
-export const send = (text: string) => invoke<object>("agent-tab/send", { text });
+export const send = (text: string, preferences?: { effort: string | null; ultracode: boolean }) =>
+  invoke<object>("agent-tab/send", preferences ? { text, ...preferences } : { text });
+export const searchContext = (query: string, kinds?: string[]) =>
+  invoke<{ items: MentionHit[] }>("refs/search", { query, kinds, limit: 50 });
+export const contextSources = () =>
+  invoke<{ clusters: Array<{ id: string; title: string }>; issues: MentionHit[] }>(
+    "agent-tab/context-sources",
+  );
+export const clusterContext = (clusterId: string) =>
+  invoke<MentionHit>("agent-tab/cluster-context", { clusterId });
+export const cliCommand = (text: string) => invoke<object>("agent-tab/cli-command", { text });
+export const btwSend = (text: string, context: string) =>
+  invoke<object>("agent-tab/btw-send", { text, context });
+export const btwAttach = () => invoke<Attachment>("agent-tab/btw-attach");
+export const btwCancel = () => invoke<object>("agent-tab/btw-cancel");
+export const btwReset = () => invoke<object>("agent-tab/btw-reset");
+export const btwAnswer = (itemId: string, optionId: string) =>
+  invoke<object>("agent-tab/btw-answer", { itemId, optionId });
 /**
  * Picks the harness for the tab's next session, and its model: a model's
  * value, `null` for the agent's default, or left out to keep the model this

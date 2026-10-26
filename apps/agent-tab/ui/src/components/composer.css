@@ -28,10 +28,11 @@
 }
 
 .at-notice {
-  padding: var(--k-space-1) var(--k-space-2);
-  border-radius: var(--k-radius-sm);
-  background: var(--k-error-bg);
-  color: var(--k-error-fg);
+  padding: var(--k-space-2) var(--k-space-3);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-turn);
+  background: var(--k-raised-bg);
+  color: var(--k-fg-secondary);
 }
 
 /* The input and Send on one line; Send stays at the bottom as the text grows. */

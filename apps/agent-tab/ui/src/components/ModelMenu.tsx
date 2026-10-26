@@ -1,8 +1,11 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { strings } from "../strings";
+import { featuredModels, newestModels } from "../preferences";
+import { useSlots } from "./registry";
 import type { HarnessChoice, ModelMenuProps, PickerChoice, PickerProps } from "./types";
 import "./meters.css";
+import "./preferences.css";
 
 /** A section's choices, with a value the agent reports but does not offer kept in. */
 function choicesOf({ value, choices }: PickerProps): PickerChoice[] {
@@ -51,7 +54,7 @@ function sectionOf(
 
 /** Every item, locked ones too: they stay focusable so a screen reader can read them. */
 function itemsIn(menu: HTMLElement | null): HTMLButtonElement[] {
-  return [...(menu?.querySelectorAll<HTMLButtonElement>("[role=menuitemradio]") ?? [])];
+  return [...(menu?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? [])];
 }
 
 /**
@@ -66,12 +69,21 @@ export function ModelMenu({
   harnesses = [],
   onChoose,
   sections: settings,
+  openRequest = 0,
+  harnessLocked = false,
+  ultracode,
 }: ModelMenuProps) {
+  const S = useSlots();
   const id = useId();
   const [open, setOpen] = useState(false);
+  const [more, setMore] = useState(false);
+  const [browsing, setBrowsing] = useState<string | null>(null);
   const root = useRef<HTMLSpanElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (openRequest > 0) setOpen(true);
+  }, [openRequest]);
 
   useEffect(() => {
     if (!open) return;
@@ -134,11 +146,25 @@ export function ModelMenu({
   };
 
   const inUse = harnesses.find((h) => h.id === harness);
-  const shown = [...(inUse ? [inUse.name, modelOf(inUse)] : []), ...settings.map(nameOf)].filter(
-    (name) => name !== null,
-  );
+  const selected = harnesses.find((h) => h.id === browsing) ?? inUse ?? harnesses[0];
+  const shown = [
+    ...(inUse ? [inUse.name, modelOf(inUse)] : []),
+    ...settings.map((s) =>
+      s.label === strings.preferences.effort && harness === "claude" && ultracode?.enabled
+        ? strings.preferences.ultracode
+        : nameOf(s),
+    ),
+  ].filter((name) => name !== null);
   // A harness's checked item is the model it runs, so only the one in use has one.
-  const sections = [...harnesses.map((h) => sectionOf(h, harness, onChoose)), ...settings];
+  const modelSection = selected && sectionOf(selected, harness, onChoose);
+  if (modelSection && selected.models.length > 0) {
+    modelSection.label = strings.preferences.model;
+    modelSection.choices = more
+      ? newestModels(selected.models)
+      : featuredModels(selected.models, selected.model);
+    if (harnessLocked && selected.id !== harness) modelSection.disabled = true;
+  }
+  const sections = [...(modelSection ? [modelSection] : []), ...settings];
   return (
     <span className="at-model" ref={root} onKeyDown={onKeyDown}>
       <button
@@ -164,7 +190,47 @@ export function ModelMenu({
           className="at-model__menu"
           tabIndex={-1}
         >
+          {harnesses.length > 0 && (
+            <div
+              className="at-model__harnesses"
+              role="group"
+              aria-label={strings.preferences.harness}
+            >
+              {harnesses.map((h) => (
+                <button
+                  type="button"
+                  key={h.id}
+                  className="at-model__harness"
+                  aria-pressed={h.id === selected?.id}
+                  aria-disabled={
+                    !onChoose || h.unavailable !== null || (harnessLocked && h.id !== harness)
+                  }
+                  title={
+                    h.unavailable ??
+                    (harnessLocked && h.id !== harness ? strings.preferences.nextSession : h.name)
+                  }
+                  onClick={() => {
+                    if (!onChoose || h.unavailable !== null || (harnessLocked && h.id !== harness))
+                      return;
+                    setBrowsing(h.id);
+                    setMore(false);
+                    if (h.id !== harness) onChoose?.(h.id, h.model);
+                  }}
+                >
+                  {h.name}
+                </button>
+              ))}
+            </div>
+          )}
           {sections.map((section) => {
+            if (section.label === strings.preferences.effort && section.choices.length > 0)
+              return (
+                <S.EffortPicker
+                  key={section.label}
+                  {...section}
+                  ultra={harness === "claude" ? ultracode : undefined}
+                />
+              );
             const choices = choicesOf(section);
             if (choices.length === 0) return null;
             const locked = !section.onChange || section.disabled === true;
@@ -206,6 +272,20 @@ export function ModelMenu({
                     </button>
                   );
                 })}
+                {section === modelSection &&
+                  selected &&
+                  selected.models.length >
+                    featuredModels(selected.models, selected.model).length && (
+                    <button
+                      type="button"
+                      className="at-model__more"
+                      aria-expanded={more}
+                      onClick={() => setMore((was) => !was)}
+                    >
+                      {more ? strings.preferences.less : strings.preferences.more}
+                      <ChevronDown size={13} aria-hidden="true" />
+                    </button>
+                  )}
               </div>
             );
           })}

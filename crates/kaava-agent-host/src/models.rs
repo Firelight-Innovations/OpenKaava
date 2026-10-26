@@ -21,7 +21,7 @@ use std::time::{Duration, Instant};
 use serde_json::{json, Value};
 
 use crate::config;
-use crate::event::ConfigChoice;
+use crate::event::{AgentCommand, ConfigChoice};
 use crate::guard::Worktree;
 use crate::harness::{Harness, LaunchSpec};
 use crate::job;
@@ -37,6 +37,8 @@ pub struct Models {
     pub choices: Vec<ConfigChoice>,
     /// The value a session starts on unless the tab chose another.
     pub default: String,
+    /// Commands the adapter advertised without requiring an inference turn.
+    pub commands: Vec<AgentCommand>,
 }
 
 /// The option of category `model` in a `configOptions` list, if it has one.
@@ -48,6 +50,7 @@ pub fn of(list: &Value) -> Option<Models> {
     Some(Models {
         choices: option.choices,
         default: option.value,
+        commands: Vec::new(),
     })
 }
 
@@ -86,13 +89,29 @@ fn converse(child: &mut Child, worktree: &Worktree, wait: Duration) -> Option<Mo
         ("session/new", json!({ "cwd": cwd, "mcpServers": [] })),
     ];
     let mut reply = Value::Null;
+    let mut commands = None;
     for (id, (method, params)) in requests.into_iter().enumerate() {
         let request = json!({ "jsonrpc": "2.0", "id": id, "method": method, "params": params });
         writeln!(stdin, "{request}").ok()?;
         stdin.flush().ok()?;
-        reply = answer(&lines, id, Instant::now() + wait)?;
+        reply = answer(&lines, id, Instant::now() + wait, &mut commands)?;
     }
-    of(reply.get("configOptions")?)
+    let mut models = of(reply.get("configOptions")?)?;
+    // Some adapters publish their commands just after session/new's response.
+    let deadline = Instant::now() + Duration::from_secs(1);
+    while commands.is_none() {
+        let Some(left) = deadline.checked_duration_since(Instant::now()) else {
+            break;
+        };
+        let Ok(line) = lines.recv_timeout(left) else {
+            break;
+        };
+        if let Ok(message) = serde_json::from_slice::<Value>(&line) {
+            commands = advertised_commands(&message);
+        }
+    }
+    models.commands = commands.unwrap_or_default();
+    Some(models)
 }
 
 /// Every line the agent writes, from a thread of its own. It ends when the
@@ -115,19 +134,40 @@ fn read_lines(stdout: impl std::io::Read + Send + 'static) -> Receiver<Vec<u8>> 
 
 /// The result of request `id`, skipping every other message. `None` for an
 /// error, for an agent that stopped writing, and at `deadline`.
-fn answer(lines: &Receiver<Vec<u8>>, id: usize, deadline: Instant) -> Option<Value> {
+fn answer(
+    lines: &Receiver<Vec<u8>>,
+    id: usize,
+    deadline: Instant,
+    commands: &mut Option<Vec<AgentCommand>>,
+) -> Option<Value> {
     loop {
         let left = deadline.checked_duration_since(Instant::now())?;
         let line = lines.recv_timeout(left).ok()?;
         let Ok(mut message) = serde_json::from_slice::<Value>(&line) else {
             continue;
         };
+        if let Some(advertised) = advertised_commands(&message) {
+            *commands = Some(advertised);
+        }
         let is_reply = message.get("method").is_none()
             && message.get("id").and_then(Value::as_u64) == Some(id as u64);
         if is_reply {
             return message.get_mut("result").map(Value::take);
         }
     }
+}
+
+/// Read only ACP's command notification; ignore unrelated session traffic.
+fn advertised_commands(message: &Value) -> Option<Vec<AgentCommand>> {
+    let update = message.pointer("/params/update")?;
+    if message.get("method").and_then(Value::as_str) != Some("session/update")
+        || update.get("sessionUpdate").and_then(Value::as_str) != Some("available_commands_update")
+    {
+        return None;
+    }
+    Some(crate::normalize::commands(
+        update.get("availableCommands")?.as_array()?,
+    ))
 }
 
 /// What each harness's agent answered in each worktree, asked once per launch.
@@ -274,6 +314,7 @@ mod tests {
         Some(Models {
             choices: Vec::new(),
             default: "opus".into(),
+            commands: Vec::new(),
         })
     }
 

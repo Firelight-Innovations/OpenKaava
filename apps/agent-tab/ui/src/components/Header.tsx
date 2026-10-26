@@ -1,23 +1,44 @@
-import { SquarePen } from "lucide-react";
+import { SquarePen, History, MessageSquare } from "lucide-react";
 import { strings } from "../strings";
 import { useSlots } from "./registry";
 import type { HeaderProps } from "./types";
 import "./frame.css";
 
 /**
- * Nothing to see until there is a session, then one New session button at
- * the right. The pane's tab already names the tab, and the settings button
- * names the harness and model. The state is still announced, to a screen
- * reader only: the transcript shows it to everyone else.
+ * Quiet conversation actions stay available before a first prompt, including
+ * saved sessions across harnesses. State changes are announced to screen readers.
  */
-export function Header({ state, onNewSession }: HeaderProps) {
+export function Header({ state, onNewSession, onHistory, onSideChat, history }: HeaderProps) {
   const S = useSlots();
   return (
     <header className="at-header" data-empty={state === null ? "" : undefined}>
       <span className="at-header__status">
         <S.StatusBadge state={state} />
       </span>
-      {state !== null && (
+      {onSideChat && (
+        <button
+          type="button"
+          className="k-btn k-btn--ghost k-btn--icon"
+          aria-label={strings.btw.open}
+          title={strings.btw.open}
+          onClick={onSideChat}
+        >
+          <MessageSquare size={15} />
+        </button>
+      )}
+      {onHistory && (
+        <button
+          type="button"
+          className="k-btn k-btn--ghost k-btn--icon"
+          aria-label={strings.history.title}
+          aria-expanded={!!history}
+          title={strings.history.title}
+          onClick={onHistory}
+        >
+          <History size={15} />
+        </button>
+      )}
+      {
         <button
           type="button"
           className="k-btn k-btn--ghost k-btn--icon"
@@ -27,7 +48,8 @@ export function Header({ state, onNewSession }: HeaderProps) {
         >
           <SquarePen size={14} strokeWidth={2} aria-hidden="true" />
         </button>
-      )}
+      }
+      {history}
     </header>
   );
 }

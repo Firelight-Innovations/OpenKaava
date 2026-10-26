@@ -12,11 +12,14 @@ import { Approval } from "./Approval";
 import { AssistantTurn } from "./AssistantTurn";
 import { AssistantText } from "./AssistantText";
 import { Composer } from "./Composer";
+import { ContextLink } from "./ContextLink";
 import { ContextMeter } from "./ContextMeter";
 import { Diff } from "./Diff";
 import { EmptyState } from "./EmptyState";
+import { EffortPicker } from "./EffortPicker";
 import { ErrorItem } from "./ErrorItem";
 import { Header } from "./Header";
+import { HistoryPanel } from "./HistoryPanel";
 import { Hint } from "./Hint";
 import { HoverCard } from "./HoverCard";
 import { Layout } from "./Layout";
@@ -31,6 +34,7 @@ import { SendButton } from "./SendButton";
 import { SessionList } from "./SessionList";
 import { StatusBadge } from "./StatusBadge";
 import { StopButton } from "./StopButton";
+import { SideChat } from "./SideChat";
 import { Thinking } from "./Thinking";
 import { ActionGroup } from "./ActionGroup";
 import { TodoList } from "./TodoList";
@@ -48,6 +52,7 @@ export interface Slots {
   // Frame
   Layout: ComponentType<P.LayoutProps>;
   Header: ComponentType<P.HeaderProps>;
+  HistoryPanel: ComponentType<P.HistoryPanelProps>;
   StatusBadge: ComponentType<P.StatusBadgeProps>;
   Transcript: ComponentType<P.TranscriptProps>;
   EmptyState: ComponentType<P.EmptyStateProps>;
@@ -73,6 +78,8 @@ export interface Slots {
   Hint: ComponentType<P.HintProps>;
   // Composer
   Composer: ComponentType<P.ComposerProps>;
+  ContextLink: ComponentType<P.ContextLinkProps>;
+  SideChat: ComponentType<P.SideChatProps>;
   Notice: ComponentType<P.NoticeProps>;
   SendButton: ComponentType<P.SendButtonProps>;
   StopButton: ComponentType<P.StopButtonProps>;
@@ -97,6 +104,7 @@ export interface Slots {
 export const defaultSlots: Slots = {
   Layout,
   Header,
+  HistoryPanel,
   StatusBadge,
   Transcript,
   EmptyState,
@@ -119,6 +127,8 @@ export const defaultSlots: Slots = {
   Note,
   Hint,
   Composer,
+  ContextLink,
+  SideChat,
   Notice,
   SendButton,
   StopButton,
@@ -129,7 +139,7 @@ export const defaultSlots: Slots = {
   ModelMenu,
   ModePicker: Picker,
   ModelPicker: Picker,
-  EffortPicker: Picker,
+  EffortPicker,
   HarnessPicker: Picker,
   OptionPicker: Picker,
   SlashMenu: Menu,

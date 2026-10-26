@@ -479,4 +479,8 @@ models: Array<ConfigChoice> | null,
  * The value of the model its next session starts on: the tab's choice,
  * else the agent's default. `None` when neither is known.
  */
-model: string | null, };
+model: string | null, 
+/**
+ * Commands advertised during discovery, before the tab starts its own session.
+ */
+commands?: Array<AgentCommand>, };

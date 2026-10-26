@@ -46,6 +46,54 @@
   color: var(--k-fg-faint);
   font-size: var(--k-size-small);
 }
+.at-menu-shell {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--k-space-2);
+  max-width: 100%;
+  width: max-content;
+}
+.at-menu-shell > .at-menu {
+  flex: 0 0 auto;
+  width: min(300px, calc((100vw - 48px) / 2));
+  max-height: min(360px, 45vh);
+}
+.at-menu-shell:has(> ul:nth-child(3)) > ul:first-child {
+  display: none;
+}
+.at-menu__item {
+  align-items: center;
+  min-height: 34px;
+  gap: var(--k-space-2);
+}
+.at-menu__arrow {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.at-menu__item[aria-disabled="true"] {
+  color: var(--k-fg-faint);
+  cursor: default;
+}
+.at-menu__item:focus-visible {
+  outline: var(--k-focus-ring);
+  outline-offset: -2px;
+}
+.at-menu__back {
+  display: flex;
+  gap: var(--k-space-1);
+  align-items: center;
+  padding: var(--k-space-2);
+  color: var(--k-fg-muted);
+  cursor: pointer;
+}
+@media (max-width: 560px) {
+  .at-menu-shell[data-nested] > ul:not(:last-child) {
+    display: none;
+  }
+  .at-menu-shell > .at-menu {
+    width: min(340px, calc(100vw - 48px));
+  }
+}
 
 .at-sessions {
   margin: 0;

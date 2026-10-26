@@ -67,6 +67,7 @@ fn main() {
         model: "default".into(),
         effort: "medium".into(),
         fast: "off".into(),
+        ultracode: false,
         bearer: String::new(),
     };
     if mock.has("--secret") {
@@ -143,6 +144,7 @@ struct Mock {
     model: String,
     effort: String,
     fast: String,
+    ultracode: bool,
     /// The first MCP server's bearer, as `session/new` gave it.
     bearer: String,
 }
@@ -185,6 +187,17 @@ impl Mock {
             "sessionUpdate": "agent_message_chunk",
             "messageId": message_id,
             "content": { "type": "text", "text": text }
+        }));
+    }
+
+    /// Discovery receives the same command shape whether it arrives before or after the reply.
+    fn commands(&self) {
+        self.update(json!({
+            "sessionUpdate": "available_commands_update",
+            "availableCommands": [
+                { "name": "compact", "description": "Compact history", "input": { "hint": "instructions" } },
+                { "name": "$project-skill", "description": "A project skill" }
+            ]
         }));
     }
 
@@ -407,6 +420,10 @@ impl Mock {
                     .and_then(Value::as_str)
                     .unwrap_or_default()
                     .to_string();
+                self.ultracode = params
+                    .pointer("/_meta/claudeCode/options/settings/ultracode")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false);
                 if self.has("--secret") {
                     self.send(&json!({
                         "jsonrpc": "2.0",
@@ -446,7 +463,37 @@ impl Mock {
                 if !self.has("--no-config") {
                     result["configOptions"] = self.config_options();
                 }
+                if self.has("--commands-before") {
+                    self.commands();
+                }
                 self.reply(&id, result);
+                if self.has("--commands-after") {
+                    self.commands();
+                }
+            }
+            (Some("session/resume"), Some(id)) => {
+                if params.get("sessionId").and_then(Value::as_str) != Some("mock-1") {
+                    return self.reply_error(&id, -32602, "unknown session");
+                }
+                if let Some(options) = params.pointer("/_meta/claudeCode/options") {
+                    if let Some(model) = options.get("model").and_then(Value::as_str) {
+                        self.model = model.into();
+                    }
+                    if let Some(effort) = options.get("effort").and_then(Value::as_str) {
+                        self.effort = effort.into();
+                    }
+                    self.ultracode = options
+                        .pointer("/settings/ultracode")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false);
+                }
+                self.reply(
+                    &id,
+                    json!({
+                        "sessionId": "mock-1", "modes": self.modes(),
+                        "configOptions": self.config_options()
+                    }),
+                );
             }
             (Some("session/set_mode"), Some(id)) => {
                 let mode = params
@@ -482,10 +529,16 @@ impl Mock {
             (Some("session/set_config_option"), Some(id)) => self.set_config(&id, &params),
             (Some("session/prompt"), Some(id)) => {
                 let text = params
-                    .pointer("/prompt/0/text")
-                    .and_then(Value::as_str)
-                    .unwrap_or_default()
-                    .to_string();
+                    .get("prompt")
+                    .and_then(Value::as_array)
+                    .map(|blocks| {
+                        blocks
+                            .iter()
+                            .filter_map(|block| block.get("text").and_then(Value::as_str))
+                            .collect::<Vec<_>>()
+                            .join("\n\n")
+                    })
+                    .unwrap_or_default();
                 self.prompt_id = Some(id);
                 self.prompt(&text);
             }
@@ -504,6 +557,16 @@ impl Mock {
     /// One turn, chosen by the prompt's text.
     fn prompt(&mut self, text: &str) {
         match text {
+            "workflow" => {
+                self.chunk(
+                    &format!(
+                        "workflow: {}; model: {}; effort: {}",
+                        self.ultracode, self.model, self.effort
+                    ),
+                    "m1",
+                );
+                self.end_turn("end_turn");
+            }
             "stream" => {
                 self.chunk("Hel", "m1");
                 self.chunk("lo", "m1");

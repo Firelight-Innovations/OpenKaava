@@ -22,6 +22,7 @@
 /* No bar and no rule: one icon at the right once there is a session, and no
    height at all before. */
 .at-header {
+  position: relative;
   flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
@@ -29,7 +30,7 @@
 }
 
 .at-header[data-empty] {
-  padding: 0;
+  padding: var(--k-space-1) var(--k-space-2) 0;
 }
 
 /* Heard, not seen. */

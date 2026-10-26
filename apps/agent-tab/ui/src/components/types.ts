@@ -8,6 +8,7 @@ import type { KeyboardEvent, MouseEvent, ReactNode, Ref } from "react";
 import type { ApprovalOption, PlanEntry, SessionState, ToolStatus } from "../protocol.generated";
 import type { DiffLine } from "../diff";
 import type { Tone } from "../meters";
+import type { ContextChip } from "../mentions";
 
 /** The tab's frame: header on top, transcript in the middle, composer below. */
 export interface LayoutProps {
@@ -15,11 +16,38 @@ export interface LayoutProps {
   transcript: ReactNode;
   composer: ReactNode;
 }
+export interface ContextLinkProps {
+  onAdd: (url: string) => void;
+  onCancel: () => void;
+}
+
+export interface SideChatProps {
+  children: ReactNode;
+  working: boolean;
+  error: string | null;
+  onSend: (text: string) => void;
+  onClose: () => void;
+  onClear: () => void;
+  onStop: () => void;
+}
 
 export interface HeaderProps {
+  onHistory?: () => void;
+  onSideChat?: () => void;
+  history?: ReactNode;
   /** The session's state, or `null` before there is a session. */
   state: SessionState | null;
   onNewSession: () => void;
+}
+
+export interface HistoryPanelProps {
+  sessions: import("../rpc").SavedSession[];
+  loading: boolean;
+  error: string | null;
+  onClose: () => void;
+  onRetry: () => void;
+  onOpen: (id: string, harness?: import("../protocol.generated").Harness) => void;
+  onArchive: (id: string, archived: boolean) => void;
 }
 
 export interface StatusBadgeProps {
@@ -202,6 +230,9 @@ export interface HarnessChoice {
 
 /** The composer's settings button: the harnesses and their models, then effort, mode and the rest. */
 export interface ModelMenuProps {
+  openRequest?: number;
+  harnessLocked?: boolean;
+  ultracode?: { enabled: boolean; disabled: boolean; onChange: (enabled: boolean) => void };
   label: string;
   /** The harness in use, by id. */
   harness?: string | null;
@@ -241,6 +272,15 @@ export interface NoticeProps {
 }
 
 export interface ComposerProps {
+  auxiliary?: ReactNode;
+  chips?: ContextChip[];
+  onRemoveChip?: (id: string) => void;
+  effortLevel?: string;
+  onAttach?: () => void;
+  onDictate?: () => void;
+  onSelect?: (caret: number) => void;
+  contextNotice?: string | null;
+  sideChat?: ReactNode;
   ref: Ref<HTMLTextAreaElement>;
   value: string;
   placeholder: string;
@@ -280,6 +320,8 @@ export interface PickerChoice {
  * option the agent reports. Without `onChange` it is shown, not chosen.
  */
 export interface PickerProps {
+  onPreview?: (value: string | null) => void;
+  ultra?: { enabled: boolean; disabled: boolean; onChange: (enabled: boolean) => void };
   label: string;
   title?: string | null;
   value: string | null;
@@ -293,10 +335,14 @@ export interface MenuItem {
   label: string;
   /** A second line or hint, such as a command's argument or a file's folder. */
   detail?: string;
+  children?: MenuItem[];
+  disabled?: boolean;
 }
 
 /** A popup list under the caret: slash commands, @ mentions. */
 export interface MenuProps {
+  path?: string[];
+  onPathChange?: (path: string[]) => void;
   label: string;
   items: MenuItem[];
   activeId: string | null;

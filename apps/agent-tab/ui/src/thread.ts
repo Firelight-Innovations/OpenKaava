@@ -9,6 +9,7 @@
  */
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import type { Item } from "./protocol.generated";
+import { cleanError } from "./errors";
 
 /** The tool name for every item that is not text, reasoning or a tool call. */
 export const ITEM_TOOL = "kaava.item";
@@ -67,6 +68,18 @@ function same(a: readonly Item[], b: readonly Item[]): boolean {
 export function toTurns(items: readonly Item[], previous: readonly Turn[] = []): Turn[] {
   const runs: Item[][] = [];
   for (const item of items) {
+    // Some adapters emit the same limit notice as text and again as a failed turn.
+    if (
+      item.kind.kind === "assistantText" &&
+      items.some(
+        (other) =>
+          other.turnId === item.turnId &&
+          other.kind.kind === "error" &&
+          cleanError(other.kind.message) ===
+            cleanError("text" in item.kind ? item.kind.text.replace(/\*\*/g, "") : ""),
+      )
+    )
+      continue;
     const user = item.kind.kind === "userMessage";
     const last = runs[runs.length - 1];
     if (user || !last || last[0].kind.kind === "userMessage") runs.push([item]);

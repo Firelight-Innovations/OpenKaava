@@ -321,11 +321,11 @@ describe("the slot registry", () => {
     expect(row("inProgress").querySelector(".at-tool__status")?.textContent).toBe("Running");
   });
 
-  it("offers New session only once there is a session, and still announces the state", () => {
+  it("offers New session before and during a session, and announces the state", () => {
     const { Header } = defaultSlots;
     const onNewSession = vi.fn();
     render(<Header state={null} onNewSession={onNewSession} />);
-    expect(screen.queryByRole("button", { name: "New session" })).toBeNull();
+    expect(screen.getByRole("button", { name: "New session" })).toBeTruthy();
     expect(screen.getByRole("status").textContent).toBe("No session");
     cleanup();
     render(<Header state="working" onNewSession={onNewSession} />);

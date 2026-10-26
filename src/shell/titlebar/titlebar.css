@@ -224,6 +224,34 @@
   display: flex;
   height: 100%;
 }
+.titlebar__chat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 28px;
+  margin-inline: 3px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--txt-tertiary);
+  cursor: pointer;
+}
+.titlebar__chat:hover {
+  background: var(--bg-layer-1-hover);
+  color: var(--txt-primary);
+}
+.titlebar__chat[aria-pressed="true"] {
+  color: var(--txt-primary);
+}
+.titlebar__chat:focus-visible {
+  outline: var(--focus-ring);
+}
+.titlebar__chat:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 
 .titlebar__control {
   appearance: none;

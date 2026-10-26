@@ -354,6 +354,10 @@ pub struct HarnessInfo {
     /// The value of the model its next session starts on: the tab's choice,
     /// else the agent's default. `None` when neither is known.
     pub model: Option<String>,
+    /// Commands advertised during discovery, before the tab starts its own session.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
+    pub commands: Option<Vec<AgentCommand>>,
 }
 
 /// A session's whole status.

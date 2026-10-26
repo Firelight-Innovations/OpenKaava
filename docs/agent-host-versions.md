@@ -10,8 +10,9 @@ record the version that was tested; nothing pins or checks them. See `docs/agent
 | Claude | `claude` | 2.1.296 | the user's own install | 2026-10-14 |
 | Claude | `@agentclientprotocol/claude-agent-acp` | 0.90.0 | the user's global npm install, `--omit=optional` | 2026-10-14 |
 | Codex | `codex` | 0.153.0 | the user's own install | 2026-10-14 |
-| Codex | `@agentclientprotocol/codex-acp` | 2.2.2 | the user's global npm install, `--omit=optional` | 2026-10-14 |
+| Codex | `@agentclientprotocol/codex-acp` | 2.2.2 | global npm or worktree-local `pnpm setup:codex`, `--omit=optional` | 2026-10-25 |
 
-Codex was tested through `initialize` and `session/new` only, so no prompt spent the user's quota.
+Codex was tested through `initialize`, `session/new`, read-only mode, model selection and reasoning
+effort selection (`gpt-6-astra`, `high`), so no prompt spent the user's quota.
 The adapter is built against `@openai/codex` 0.160.1, and its handshake works with 0.153.0. A full
 turn is still to be run by the owner.

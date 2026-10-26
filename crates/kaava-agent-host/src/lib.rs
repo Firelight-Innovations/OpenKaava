@@ -29,6 +29,7 @@ pub mod models;
 pub mod normalize;
 pub mod session;
 pub mod transcript;
+mod transfer;
 pub mod wire;
 
 pub use event::{

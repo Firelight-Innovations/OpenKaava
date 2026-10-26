@@ -50,8 +50,9 @@ shared by a group of components:
 ## Reserved slots
 
 These slots are defined but not rendered yet. Their features are still being built:
-`ModePicker`, `ModelPicker`, `EffortPicker`, `HarnessPicker`, `OptionPicker`, `SlashMenu`,
-`MentionMenu` and `SessionList`. Every picker defaults to `Picker`, and both menus default to `Menu`.
+`ModePicker`, `ModelPicker`, `HarnessPicker`, `OptionPicker` and `SessionList`. These pickers default
+to `Picker`. `EffortPicker` draws the animated effort stops. `SlashMenu` and `MentionMenu` both
+default to `Menu` and are rendered by the composer when completing commands or context references.
 
 ## The thread and assistant-ui
 
@@ -86,12 +87,17 @@ right.
 
 - `ModelMenu` is the settings button. It reads the current settings as one line ("Claude · Opus 5.5
   · High") and opens a menu.
-  - First come the harnesses, one group each, with its models under it: Claude, Codex, then Kaava.
-    Picking a model picks its harness too (`onChoose(harness, model)`). A harness whose models are
-    not known lists "Default model", and one that cannot run yet lists why, locked.
-  - Then one section per other setting, such as effort and mode. Each takes a picker's props. A
-    section without `onChange` is shown but cannot be changed. A section with no choices and no
-    value is left out; a value the agent reports but does not offer is listed first, checked.
+  - Harness buttons select Claude, Codex or Kaava, followed by only that harness's models. The
+    latest model in each family and the selected model are featured; More models expands older
+    versions and aliases. Names and values come from the adapter. An unavailable harness is locked
+    with its reason in the title. Switching a running conversation transfers its context.
+  - `EffortPicker` sits beneath models with Low, Medium, High, Xhigh and Max slider stops. Unsupported
+    levels are disabled; keyboard arrows skip them. Each level has its own motion, with static
+    equivalents under reduced motion. Other settings follow as ordinary sections.
+  - Claude adds an Ultra effort slider stop for deep reasoning and workflow orchestration. Its
+    violet dot animation previews on the composer. It applies to the current conversation.
+  - `HistoryPanel` searches conversations across harnesses, exposes archived entries, and lets
+    a user reopen with either harness. `Header` exposes new conversation, history, and side chat.
   - `harnesses.ts` builds the harness list. The one in use takes its models from the running
     session. The rest take what the host scanned, read from optional fields until the host sends
     them. A harness the host does not report reads "Coming soon", and one it cannot start reads

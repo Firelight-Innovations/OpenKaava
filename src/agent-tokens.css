@@ -4,7 +4,7 @@
  * below, and this file is the one place that says which Kaava token each one
  * is. Restyle the agent UI here, not in a component.
  *
- * Every value is a Kaava token or a size, never a hex, so the shell's live
+ * Values follow Kaava theme tokens, except the signature Ultra violet, so the shell's live
  * theme and accent carry straight through: light and dark come from
  * `src/tokens.css`. It sits beside that file for the same reason
  * `src/kaava-ui.css` does: the shell and an app both import it, and neither may
@@ -18,6 +18,8 @@
  * (`docs/handoffs/agent-host.md`), kept so nothing that reads them moves.
  */
 :root {
+  --k-ultra: #b498f5;
+  --k-ultra-deep: #5f39a8;
   /* Colour: surfaces */
   --k-editor-bg: var(--bg-surface-1);
   --k-sidebar-bg: var(--bg-layer-1);

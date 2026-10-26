@@ -67,7 +67,7 @@ const COMMAND_TEXT_LIMIT: usize = 300;
 
 /// ACP's `availableCommands`: a name, a description and, when the command
 /// takes an argument, `input.hint`. An entry without a name is skipped.
-fn commands(list: &[Value]) -> Vec<AgentCommand> {
+pub(crate) fn commands(list: &[Value]) -> Vec<AgentCommand> {
     let text = |value: Option<&Value>| -> Option<String> {
         let s = value?.as_str()?.trim();
         (!s.is_empty()).then(|| s.chars().take(COMMAND_TEXT_LIMIT).collect())

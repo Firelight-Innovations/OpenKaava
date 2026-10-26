@@ -120,6 +120,9 @@ struct Shared {
     mcp_servers: Vec<McpServer>,
     /// The model the tab chose, which the handshake switches to.
     model: Option<String>,
+    effort: Option<String>,
+    ultracode: bool,
+    harness: Harness,
     child: Mutex<Child>,
     /// What ends the child and everything it started at once.
     job: Option<Job>,
@@ -137,10 +140,15 @@ struct Shared {
 }
 
 struct Inner {
+    ultracode: bool,
+    mcp_http: bool,
     closed: bool,
     next_id: i64,
     replies: HashMap<i64, Option<Result<Value, RemoteError>>>,
     prompt: Option<String>,
+    prompt_context: Option<String>,
+    /// The newest queued change; a new turn waits until settings reach it.
+    queued_change: u64,
     approvals: Vec<Waiting>,
     normalizer: Normalizer,
     transcript: Transcript,
@@ -263,6 +271,9 @@ impl Session {
             expected_version: spec.expected_version,
             ask_first: spec.policy.ask_first,
             model: spec.model.clone(),
+            effort: spec.effort.clone(),
+            ultracode: spec.ultracode,
+            harness: spec.harness,
             setting_timeout: spec.setting_timeout,
             mcp_servers: spec.mcp_servers,
             child: Mutex::new(child),
@@ -276,10 +287,14 @@ impl Session {
             stderr_done: AtomicBool::new(false),
             stopped: AtomicBool::new(false),
             state: Mutex::new(Inner {
+                ultracode: spec.ultracode,
+                mcp_http: false,
                 closed: false,
                 next_id: 0,
                 replies: HashMap::new(),
                 prompt: None,
+                prompt_context: None,
+                queued_change: status.answered,
                 approvals: Vec::new(),
                 normalizer: Normalizer::new(&prefix, spec.harness),
                 transcript: Transcript::from_items(prior),
@@ -325,6 +340,15 @@ impl Session {
     /// refused rather than queued, so the tab never shows a prompt that has
     /// not started.
     pub(crate) fn prompt(&self, text: &str) -> Result<(), HostError> {
+        self.prompt_with_context(text, None)
+    }
+
+    /// A cross-harness handoff is model context, not another user message in the transcript.
+    pub(crate) fn prompt_with_context(
+        &self,
+        text: &str,
+        context: Option<&str>,
+    ) -> Result<(), HostError> {
         let mut inner = self.shared.lock();
         if inner.closed || inner.status.state == SessionState::Failed {
             return Err(HostError::Closed);
@@ -333,7 +357,10 @@ impl Session {
             return Err(HostError::Busy);
         }
         inner.prompt = Some(text.to_string());
-        if inner.status.state == SessionState::Starting {
+        inner.prompt_context = context.map(str::to_owned);
+        if inner.status.state == SessionState::Starting
+            || inner.queued_change > inner.status.answered
+        {
             inner.status.pending_prompt = Some(text.to_string());
             let status = inner.status.clone();
             self.shared.emit(&mut inner, Event::Status { status });
@@ -346,6 +373,7 @@ impl Session {
     pub(crate) fn cancel(&self) {
         let shared = &self.shared;
         let mut inner = shared.lock();
+        inner.prompt_context = None;
         if inner.prompt.take().is_some() && inner.status.pending_prompt.take().is_some() {
             let status = inner.status.clone();
             shared.emit(&mut inner, Event::Status { status });
@@ -392,7 +420,7 @@ impl Session {
     /// `answered` reaches that number shows the mode the agent settled on,
     /// which can differ from the one asked for.
     pub(crate) fn set_mode(&self, mode_id: &str) -> Result<u64, HostError> {
-        let inner = self.shared.lock();
+        let mut inner = self.shared.lock();
         let session_id = open(&inner)?;
         if !inner.status.modes.iter().any(|m| m.value == mode_id) {
             return Err(HostError::UnknownOption);
@@ -409,7 +437,7 @@ impl Session {
                 Some(mode_id.to_string()),
             ),
         };
-        Ok(self.shared.queue(&inner, change))
+        Ok(self.shared.queue(&mut inner, change))
     }
 
     /// Set the option `config_id` to `value`, one of the choices the status
@@ -418,8 +446,19 @@ impl Session {
     /// agent's reply carries every option as it then stands, which can differ
     /// in more than this one: a new model brings its own effort levels.
     pub(crate) fn set_config(&self, config_id: &str, value: &str) -> Result<u64, HostError> {
-        let inner = self.shared.lock();
+        let mut inner = self.shared.lock();
         let session_id = open(&inner)?;
+        if config_id == "ultra_effort"
+            && self.shared.harness == Harness::Claude
+            && matches!(value, "on" | "off")
+        {
+            // Resolve model, effort and permissions only after preceding queued
+            // settings have settled, not from a stale UI-time snapshot.
+            return Ok(self.shared.queue(
+                &mut inner,
+                ("session/resume", json!({ "enabled": value == "on" }), None),
+            ));
+        }
         let offered = inner
             .status
             .config
@@ -434,7 +473,7 @@ impl Session {
             json!({ "sessionId": session_id, "configId": config_id, "value": value }),
             None,
         );
-        Ok(self.shared.queue(&inner, change))
+        Ok(self.shared.queue(&mut inner, change))
     }
 
     /// Everything drawn so far.
@@ -524,6 +563,30 @@ impl Inner {
             self.mode_option = Some(mode.id);
         }
         self.status.config = settings.options;
+        self.workflow_option();
+    }
+
+    /// Host-owned workflow state is separate from the adapter's reasoning-level option.
+    fn workflow_option(&mut self) {
+        if self.status.harness != Harness::Claude {
+            return;
+        }
+        self.status.config.retain(|o| o.id != "ultra_effort");
+        self.status.config.push(crate::event::ConfigOption {
+            id: "ultra_effort".into(),
+            name: "Ultra effort".into(),
+            description: None,
+            category: Some("workflow".into()),
+            value: if self.ultracode { "on" } else { "off" }.into(),
+            choices: ["off", "on"]
+                .into_iter()
+                .map(|v| crate::event::ConfigChoice {
+                    value: v.into(),
+                    name: v.into(),
+                    description: None,
+                })
+                .collect(),
+        });
     }
 
     /// Record the mode the agent reports, but only once the handshake has
@@ -583,10 +646,11 @@ impl Shared {
     /// callers from numbering in one order and queueing in the other.
     fn queue(
         &self,
-        _held: &Inner,
+        held: &mut Inner,
         (method, params, mode): (&'static str, Value, Option<String>),
     ) -> u64 {
         let ticket = self.changes.fetch_add(1, Ordering::SeqCst) + 1;
+        held.queued_change = ticket;
         let change = Change {
             method,
             params,
@@ -728,6 +792,7 @@ impl Shared {
             .pointer("/agentCapabilities/mcpCapabilities/http")
             .and_then(Value::as_bool)
             .unwrap_or(false);
+        self.lock().mcp_http = http;
         let left_out: Vec<&str> = (self.mcp_servers.iter())
             .filter(|s| !mcp::offered(s, http))
             .map(|s| s.name.as_str())
@@ -750,12 +815,9 @@ impl Shared {
         let cwd = self.worktree.path().to_string_lossy().into_owned();
         let servers = mcp::wire(&self.mcp_servers, http);
         // Its modes and settings are taken in by the reader.
+        let new_params = session_options(self.harness, &cwd, servers, self.ultracode);
         let new = self
-            .send_request(
-                "session/new",
-                json!({ "cwd": cwd, "mcpServers": servers }),
-                carries_settings(None),
-            )
+            .send_request("session/new", new_params, carries_settings(None))
             .and_then(|id| self.finish(id, "session/new", Some(HANDSHAKE)))
             .map_err(Failure::from)?;
         let session_id = new
@@ -774,6 +836,14 @@ impl Shared {
         .map_err(|_| Failure::Protocol("the agent would not switch to ask-first mode"))?;
         if let Some(model) = &self.model {
             self.choose_model(&session_id, model);
+        }
+        let effort = if self.ultracode {
+            ultra_reasoning(&self.lock())
+        } else {
+            self.effort.clone()
+        };
+        if let Some(effort) = effort {
+            self.choose_effort(&session_id, &effort);
         }
         let mut inner = self.lock();
         inner.status.mode = Some(self.ask_first.to_string());
@@ -822,6 +892,31 @@ impl Shared {
         }
     }
 
+    /// The chosen model determines which effort values are legal. Never send an invented level.
+    fn choose_effort(&self, session_id: &str, effort: &str) {
+        let option = self
+            .lock()
+            .status
+            .config
+            .iter()
+            .find(|o| {
+                o.category.as_deref() == Some("thought_level")
+                    && o.choices.iter().any(|c| c.value == effort)
+            })
+            .map(|o| o.id.clone());
+        let Some(config_id) = option else { return };
+        let result = self
+            .send_request(
+                "session/set_config_option",
+                json!({ "sessionId": session_id, "configId": config_id, "value": effort }),
+                carries_settings(None),
+            )
+            .and_then(|id| self.finish(id, "session/set_config_option", Some(HANDSHAKE)));
+        if result.is_err() {
+            (self.log)(Level::Info, "agent-host: the agent refused the initial effort; its reported setting is retained");
+        }
+    }
+
     /// The handshake did not finish. Drawn even when the process has already
     /// exited, since that is usually why; not drawn, nor logged as a failure,
     /// when the host stopped it on purpose.
@@ -842,6 +937,7 @@ impl Shared {
             // and Retry on the error finds it. A prompt a cancel withdrew is
             // gone and draws nothing.
             inner.status.pending_prompt = None;
+            inner.prompt_context = None;
             let mut events = match inner.prompt.take() {
                 Some(text) => inner.normalizer.begin_turn(&text),
                 None => Vec::new(),
@@ -867,8 +963,14 @@ impl Shared {
 
     /// Run the queued prompt, if a cancel has not withdrawn it.
     fn turn(&self) {
-        let (text, session_id) = {
+        let (text, session_id, context) = {
             let mut inner = self.lock();
+            while inner.prompt.is_some()
+                && inner.queued_change > inner.status.answered
+                && !inner.closed
+            {
+                inner = self.wake.wait(inner).unwrap_or_else(|e| e.into_inner());
+            }
             if inner.closed {
                 return;
             }
@@ -879,13 +981,22 @@ impl Shared {
             let events = inner.normalizer.begin_turn(&text);
             self.emit_all(&mut inner, events);
             self.set_state(&mut inner, SessionState::Working);
-            (text, inner.session_id.clone().unwrap_or_default())
+            (
+                text,
+                inner.session_id.clone().unwrap_or_default(),
+                inner.prompt_context.take(),
+            )
         };
+        let mut blocks = Vec::new();
+        if let Some(context) = context {
+            blocks.push(json!({ "type": "text", "text": context }));
+        }
+        blocks.push(json!({ "type": "text", "text": text }));
         let reply = self.request(
             "session/prompt",
             json!({
                 "sessionId": session_id,
-                "prompt": [{ "type": "text", "text": text }]
+                "prompt": blocks
             }),
             None,
         );
@@ -922,6 +1033,7 @@ impl Shared {
         inner.status.state = SessionState::Ready;
         let status = inner.status.clone();
         self.emit(&mut inner, Event::Status { status });
+        self.wake.notify_all();
     }
 
     /// Send a request and wait for its reply. `None` waits until the reply
@@ -1012,6 +1124,51 @@ impl Shared {
 
     // --- the settings thread ---------------------------------------------
 
+    /// Reconfiguration uses the latest acknowledged state, including settings
+    /// queued immediately before Ultra. It never opts into another permission mode.
+    fn workflow_params(&self, inner: &Inner, enabled: bool) -> Value {
+        let mut params = session_options(
+            self.harness,
+            &inner.status.cwd,
+            mcp::wire(&self.mcp_servers, inner.mcp_http),
+            enabled,
+        );
+        params["sessionId"] = json!(inner.session_id);
+        let options = &mut params["_meta"]["claudeCode"]["options"];
+        options["permissionMode"] = json!(inner
+            .status
+            .mode
+            .as_deref()
+            .filter(|mode| inner
+                .status
+                .modes
+                .iter()
+                .any(|choice| choice.value == *mode))
+            .unwrap_or(self.ask_first));
+        if let Some(model) = inner
+            .status
+            .config
+            .iter()
+            .find(|o| o.category.as_deref() == Some("model") && o.value != "default")
+        {
+            options["model"] = json!(model.value);
+        }
+        let effort = if enabled {
+            ultra_reasoning(inner)
+        } else {
+            inner
+                .status
+                .config
+                .iter()
+                .find(|o| o.category.as_deref() == Some("thought_level") && o.value != "default")
+                .map(|o| o.value.clone())
+        };
+        if let Some(effort) = effort {
+            options["effort"] = json!(effort);
+        }
+        params
+    }
+
     /// Send each change and wait for its reply before the next, so two quick
     /// changes land in the order they were made. The reader takes the reply's
     /// settings in; this ends in a status whose `answered` counts the change,
@@ -1032,10 +1189,31 @@ impl Shared {
             };
             let Change {
                 method,
-                params,
+                mut params,
                 mode,
                 ticket,
             } = change;
+            let workflow = (method == "session/resume")
+                .then(|| params.get("enabled").and_then(Value::as_bool))
+                .flatten();
+            if workflow.is_some() {
+                // Resume updates the same conversation without replay. Let an active turn finish first.
+                let mut inner = self.lock();
+                while inner.normalizer.turn().is_some() && !inner.closed {
+                    inner = self.wake.wait(inner).unwrap_or_else(|e| e.into_inner());
+                }
+                if inner.closed {
+                    return;
+                }
+                params = self.workflow_params(&inner, workflow == Some(true));
+            }
+            let resume_mode = workflow.and_then(|_| {
+                params
+                    .pointer("/_meta/claudeCode/options/permissionMode")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned)
+            });
+            let resume_session = params.get("sessionId").cloned();
             let Ok(id) = self.send_request(method, params, carries_settings(mode)) else {
                 return;
             };
@@ -1048,7 +1226,42 @@ impl Shared {
                 reply = self.await_reply(id, None, |_| {});
             }
             let trouble = match reply.unwrap_or_else(|| Err(closed())) {
-                Ok(_) => None,
+                Ok(_) => {
+                    if let Some(mode) = resume_mode {
+                        // A resumed SDK query may rebuild its permission state. Confirm
+                        // the same allowed mode before releasing the next queued prompt.
+                        let restored = self
+                            .send_request(
+                                "session/set_mode",
+                                json!({ "sessionId": resume_session, "modeId": mode }),
+                                carries_settings(Some(mode)),
+                            )
+                            .and_then(|id| {
+                                self.finish(id, "session/set_mode", Some(self.setting_timeout))
+                            });
+                        if let Err(error) = restored {
+                            self.stopped.store(true, Ordering::SeqCst);
+                            self.send_close();
+                            let mut child = self.child.lock().unwrap_or_else(|e| e.into_inner());
+                            job::kill(&mut child, self.job.as_ref());
+                            drop(child);
+                            self.report(
+                                Some(SettingTrouble::Refused {
+                                    ticket,
+                                    message: refusal_reason(&error.message),
+                                }),
+                                Some(ticket),
+                            );
+                            return;
+                        }
+                    }
+                    if let Some(enabled) = workflow {
+                        let mut inner = self.lock();
+                        inner.ultracode = enabled;
+                        inner.workflow_option();
+                    }
+                    None
+                }
                 Err(e) => Some(SettingTrouble::Refused {
                     ticket,
                     message: refusal_reason(&e.message),
@@ -1082,6 +1295,7 @@ impl Shared {
         }
         let status = inner.status.clone();
         self.emit(&mut inner, Event::Status { status });
+        self.wake.notify_all();
         true
     }
 
@@ -1294,6 +1508,7 @@ impl Shared {
         let (dropped, noise, ready) = {
             let mut inner = self.lock();
             inner.closed = true;
+            inner.prompt_context = None;
             // Nothing is left to answer a change, or to change.
             inner.status.setting_trouble = None;
             for slot in inner.replies.values_mut() {
@@ -1449,6 +1664,30 @@ fn refusal_reason(message: &str) -> String {
     }
 }
 
+/// Claude's documented adapter extension scopes workflow settings to this query only.
+fn session_options(harness: Harness, cwd: &str, servers: Value, ultracode: bool) -> Value {
+    let mut params = json!({ "cwd": cwd, "mcpServers": servers });
+    if harness == Harness::Claude {
+        params["_meta"] =
+            json!({ "claudeCode": { "options": { "settings": { "ultracode": ultracode } } } });
+    }
+    params
+}
+
+/// Ultra means Claude's xhigh reasoning plus workflows, falling back only to
+/// a reasoning level this model actually advertises.
+fn ultra_reasoning(inner: &Inner) -> Option<String> {
+    let option = inner
+        .status
+        .config
+        .iter()
+        .find(|o| o.category.as_deref() == Some("thought_level"))?;
+    ["xhigh", "max", "high", "medium", "low"]
+        .into_iter()
+        .find(|value| option.choices.iter().any(|choice| choice.value == *value))
+        .map(str::to_owned)
+}
+
 /// `initialize`'s params, which every agent the host starts is sent. They
 /// declare no capability, so the agent never asks Kaava to read or write a
 /// file, run a command, or open a URL.
@@ -1533,6 +1772,22 @@ mod tests {
     use super::*;
 
     #[test]
+    fn workflow_settings_are_scoped_to_claudes_session_options() {
+        let claude = session_options(Harness::Claude, "C:/tree", json!([]), true);
+        assert_eq!(
+            claude["_meta"]["claudeCode"]["options"]["settings"]["ultracode"],
+            true
+        );
+        let off = session_options(Harness::Claude, "C:/tree", json!([]), false);
+        assert_eq!(
+            off["_meta"]["claudeCode"]["options"]["settings"]["ultracode"],
+            false
+        );
+        let codex = session_options(Harness::Codex, "C:/tree", json!([]), true);
+        assert!(codex.get("_meta").is_none());
+    }
+
+    #[test]
     fn a_refusal_reason_is_one_masked_line_of_bounded_length() {
         assert_eq!(refusal_reason("Internal error: no"), "Internal error: no");
         assert_eq!(refusal_reason(""), "");
@@ -1580,10 +1835,14 @@ mod tests {
     fn inner() -> Inner {
         let (events, _) = mpsc::channel();
         Inner {
+            ultracode: false,
+            mcp_http: false,
             closed: false,
             next_id: 0,
             replies: HashMap::new(),
             prompt: None,
+            prompt_context: None,
+            queued_change: 0,
             approvals: Vec::new(),
             normalizer: Normalizer::new("t", crate::harness::Harness::Claude),
             transcript: Transcript::from_items(Vec::new()),

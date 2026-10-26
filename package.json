@@ -34,6 +34,7 @@
     "bench:search": "node scripts/bench-search.mjs",
     "slop": "node scripts/slop.mjs",
     "probe": "node scripts/kaava-probe.mjs",
+    "setup:codex": "npm install --prefix node_modules/.agent-adapters/codex --omit=optional --no-save --package-lock=false @agentclientprotocol/codex-acp@2.2.2",
     "ui": "node scripts/kaava-ui.mjs",
     "ui:build": "tauri build --no-bundle --config {\\\"identifier\\\":\\\"com.firelightinnovations.openkaava.agent\\\"}",
     "lint:fix": "eslint . --fix",
