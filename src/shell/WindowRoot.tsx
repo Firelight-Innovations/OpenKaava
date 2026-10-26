@@ -69,6 +69,7 @@ import { callApp, useApps, useOpenables, usePages } from "./state/apps";
 import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
 import { agentClusters, agentsDot, useAgentSessions } from "./state/agentSessions";
+import { agentTabIn, useAgentTabRefresh } from "./state/agentTab";
 import { newAgent, openAgent, type AgentOpeners } from "./state/agentOpeners";
 import ReadOnlyBanner from "./git/ReadOnlyBanner";
 import { useProjectIcon } from "./state/projectIcon";
@@ -1641,6 +1642,10 @@ export default function WindowRoot({
     [clusters],
   );
   const onOpenProjectSwitcher = useCallback(() => setSwitchProjectOpen(true), []);
+
+  // The cluster's agent tab hears from the shell when a setting or its environment changes.
+  const agentTab = useMemo(() => agentTabIn(tree, instances), [tree, instances]);
+  useAgentTabRefresh(activeClusterId, environment ? environmentKey(environment) : null, agentTab);
 
   // The Agents page and its rail dot: the agent tabs in this window's
   // clusters, and what each session is doing, kept live whether or not the
