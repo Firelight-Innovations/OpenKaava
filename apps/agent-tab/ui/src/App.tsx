@@ -38,6 +38,7 @@ import type {
 import { completion, isLogin, matching, offered, skillCommands, commandSupport } from "./commands";
 import { harnessChoices, type RunningModel } from "./harnesses";
 import { latestUsage } from "./meters";
+import { latestValidation } from "./validation";
 import {
   attached,
   busy,
@@ -1456,6 +1457,7 @@ export default function App() {
               }
               meters={
                 <>
+                  <S.ValidationBadge {...latestValidation(state.items)} />
                   <S.ContextMeter {...latestUsage(state.items)} />
                   <S.UsageRing limits={[]} />
                 </>

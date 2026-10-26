@@ -48,6 +48,8 @@ import { UsageRing } from "./UsageRing";
 import { UserMessage } from "./UserMessage";
 import { UserTurn } from "./UserTurn";
 import { Validation } from "./Validation";
+import { ValidationBadge } from "./ValidationBadge";
+import { ValidationChecks } from "./ValidationChecks";
 import { Working } from "./Working";
 import type * as P from "./types";
 
@@ -72,6 +74,7 @@ export interface Slots {
   ActionGroup: ComponentType<P.ActionGroupProps>;
   ToolCall: ComponentType<P.ToolCallProps>;
   Validation: ComponentType<P.ValidationProps>;
+  ValidationChecks: ComponentType<P.ValidationChecksProps>;
   Diff: ComponentType<P.DiffProps>;
   PathList: ComponentType<P.PathListProps>;
   Approval: ComponentType<P.ApprovalProps>;
@@ -91,6 +94,7 @@ export interface Slots {
   StopButton: ComponentType<P.StopButtonProps>;
   ContextMeter: ComponentType<P.ContextMeterProps>;
   UsageRing: ComponentType<P.UsageRingProps>;
+  ValidationBadge: ComponentType<P.ValidationBadgeProps>;
   HoverCard: ComponentType<P.HoverCardProps>;
   Ring: ComponentType<P.RingProps>;
   /** The one settings button; its sections are pickers' props. */
@@ -125,6 +129,7 @@ export const defaultSlots: Slots = {
   ActionGroup,
   ToolCall,
   Validation,
+  ValidationChecks,
   Diff,
   PathList,
   Approval,
@@ -143,6 +148,7 @@ export const defaultSlots: Slots = {
   StopButton,
   ContextMeter,
   UsageRing,
+  ValidationBadge,
   HoverCard,
   Ring,
   ModelMenu,

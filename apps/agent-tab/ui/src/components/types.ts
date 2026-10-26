@@ -15,7 +15,7 @@ import type {
 import type { DiffLine } from "../diff";
 import type { Tone } from "../meters";
 import type { ContextChip } from "../mentions";
-import type { LintReport } from "../validation";
+import type { LintCheck, LintReport } from "../validation";
 
 /** The tab's frame: header on top, transcript in the middle, composer below. */
 export interface LayoutProps {
@@ -162,6 +162,22 @@ export interface PathListProps {
 export interface ValidationProps {
   status: ToolStatus;
   /** `null` while the check runs, or when its answer could not be read. */
+  report: LintReport | null;
+}
+
+/** The rules of one canvas validation report, each ticked or crossed. */
+export interface ValidationChecksProps {
+  checks: LintCheck[];
+}
+
+/**
+ * The composer's validation badge: the session's latest canvas report at a
+ * glance, and every rule in a popover. Draws nothing without one.
+ */
+export interface ValidationBadgeProps {
+  /** A check is running now. */
+  running: boolean;
+  /** The newest readable report, or `null` before there is one. */
   report: LintReport | null;
 }
 

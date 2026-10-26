@@ -71,6 +71,67 @@
   color: var(--k-fg-faint);
   font-variant-numeric: tabular-nums;
 }
+/* The composer's badge beside the context ring, and the popover of rules it opens. */
+.at-vbadge {
+  position: relative;
+  display: inline-flex;
+}
+.at-vbadge__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 24px;
+  padding: 0 var(--k-space-1);
+  border: 0;
+  border-radius: var(--k-radius-sm);
+  background: none;
+  font: inherit;
+  font-size: var(--k-size-small);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.at-vbadge__button:hover,
+.at-vbadge__button[aria-expanded="true"] {
+  background: var(--k-list-hover);
+}
+.at-vbadge__button:focus-visible {
+  outline: var(--k-focus-ring);
+  outline-offset: 0;
+}
+.at-vbadge--running {
+  color: var(--k-tool-running);
+}
+.at-vbadge--pass {
+  color: var(--k-tool-done);
+}
+.at-vbadge--fail {
+  color: var(--k-tool-failed);
+}
+.at-vbadge__pop {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--k-space-1));
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-2);
+  width: max-content;
+  min-width: 240px;
+  max-width: min(360px, 100cqi - 2 * var(--k-space-3));
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: var(--k-space-3);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-menu);
+  background: var(--k-raised-bg);
+  box-shadow: var(--k-shadow-menu);
+  color: var(--k-editor-fg);
+  font-size: var(--k-size-small);
+  text-align: left;
+}
+.at-vbadge__pop .at-validation__checks {
+  margin: 0;
+}
 .at-validation__issues {
   grid-column: 2 / -1;
   margin: 2px 0 var(--k-space-1);
