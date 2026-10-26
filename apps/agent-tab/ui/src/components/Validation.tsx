@@ -1,5 +1,6 @@
-import { Check, LoaderCircle, ShieldCheck, TriangleAlert, X } from "lucide-react";
+import { LoaderCircle, ShieldCheck } from "lucide-react";
 import { strings } from "../strings";
+import { useSlots } from "./registry";
 import type { ValidationProps } from "./types";
 import "./validation.css";
 
@@ -9,6 +10,7 @@ import "./validation.css";
  * crossed, with the offending elements under a failed one.
  */
 export function Validation({ status, report }: ValidationProps) {
+  const S = useSlots();
   const running = status === "pending" || status === "inProgress";
   const failed = report ? report.checks.filter((c) => !c.pass).length : 0;
   const verdict = running
@@ -30,36 +32,7 @@ export function Validation({ status, report }: ValidationProps) {
         <span className="at-validation__title">{strings.validation.title}</span>
         <span className="at-validation__verdict">{verdict}</span>
       </header>
-      {report && (
-        <ul className="at-validation__checks">
-          {report.checks.map((check) => (
-            <li
-              key={check.id}
-              className="at-validation__check"
-              data-pass={check.pass}
-              data-warn={check.warn || undefined}
-            >
-              {!check.pass ? (
-                <X size={14} strokeWidth={2.5} aria-label="Failed" />
-              ) : check.warn ? (
-                <TriangleAlert size={14} aria-label={strings.validation.warning} />
-              ) : (
-                <Check size={14} strokeWidth={2.5} aria-label="Passed" />
-              )}
-              <span className="at-validation__label">{check.label}</span>
-              {check.count > 0 && <span className="at-validation__count">{check.count}</span>}
-              {!check.pass && check.issues.length > 0 && (
-                <ul className="at-validation__issues">
-                  {check.issues.slice(0, 3).map((issue) => (
-                    <li key={issue}>{issue}</li>
-                  ))}
-                  {check.count > 3 && <li>{strings.validation.more(check.count - 3)}</li>}
-                </ul>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      {report && <S.ValidationChecks checks={report.checks} />}
     </section>
   );
 }

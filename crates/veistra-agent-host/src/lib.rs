@@ -38,7 +38,9 @@ pub use event::{
     QuestionOutcome, QuestionReply, SessionState, SessionStatus, SettingTrouble,
 };
 pub use guard::{NotAWorktree, Worktree};
-pub use harness::{spec, Capabilities, Descriptor, Harness, LaunchSpec, Setup, REGISTRY};
+pub use harness::{
+    spec, Capabilities, Descriptor, Harness, LaunchSpec, Setup, SkillDelivery, REGISTRY,
+};
 pub use host::{Adapter, AgentHost, HostError};
 pub use mcp::McpServer;
 pub use session::{Level, Log, Sink};

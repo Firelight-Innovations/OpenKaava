@@ -607,6 +607,18 @@ pub fn call_for(
                     .then(|| params.get("mode").and_then(Value::as_str))
                     .flatten()
                     .map(str::to_string);
+                // Built-in skills, read only when this send starts a process;
+                // the side chat only answers, so it gets none.
+                if !side && host.running(&target) != Some(harness) {
+                    let signals = crate::skills::Signals {
+                        canvas_files: crate::skills::has_canvas_files(&worktree.path()),
+                        names_canvas: crate::skills::names_canvas(&text),
+                        canvas_open: context.cluster_id.as_deref().is_some_and(|cluster| {
+                            canvas_open(&app.state::<ShellState>().snapshot(), cluster)
+                        }),
+                    };
+                    crate::skills::equip_live(app, &mut launch, &signals);
+                }
                 // What the chips name goes after the text, as far as the
                 // agent said it can take it: plain text until discovery has asked.
                 let accepts: refs::prompt::Accepts = sessions
@@ -1032,6 +1044,23 @@ fn has_agent_tab(snapshot: &ShellSnapshot, id: &str) -> bool {
         .instances
         .iter()
         .any(|i| i.id == id && i.app_id == ID)
+}
+
+/// Whether a Design (canvas) pane is open in cluster `cluster`, which makes a
+/// session there canvas work (`skills::Signals`). Pure, so it is tested.
+fn canvas_open(snapshot: &ShellSnapshot, cluster: &str) -> bool {
+    snapshot
+        .windows
+        .iter()
+        .flat_map(|w| &w.clusters)
+        .filter(|c| c.id == cluster)
+        .flat_map(|c| c.tree.tabs())
+        .any(|tab| {
+            snapshot
+                .instances
+                .iter()
+                .any(|i| i.id == tab && i.app_id == "canvas")
+        })
 }
 
 /// Whether `method` acts on one tab's session. The MCP panel shows these as
@@ -1504,6 +1533,22 @@ mod tests {
             !has_agent_tab(&shot, "agent-tab-9"),
             "a tab that is not open"
         );
+    }
+
+    #[test]
+    fn a_design_pane_in_the_cluster_makes_canvas_work() {
+        let mut shot = snapshot(vec![
+            cluster("c1", &["agent-tab-1", "canvas-1"], "C:/wt/a"),
+            cluster("c2", &["agent-tab-2"], "C:/wt/b"),
+        ]);
+        shot.instances = vec![
+            instance("agent-tab-1", "agent-tab"),
+            instance("canvas-1", "canvas"),
+            instance("agent-tab-2", "agent-tab"),
+        ];
+        assert!(canvas_open(&shot, "c1"));
+        assert!(!canvas_open(&shot, "c2"), "another cluster's canvas");
+        assert!(!canvas_open(&shot, "c9"));
     }
 
     fn instance(id: &str, app_id: &str) -> crate::shell_state::SurfaceInstance {

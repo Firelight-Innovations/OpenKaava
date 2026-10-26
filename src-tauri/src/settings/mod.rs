@@ -443,6 +443,9 @@ fn react(app: &AppHandle, key: &str) {
     if key == keys::KEYS_COPILOT_GLOBAL {
         crate::copilot_key::sync(app);
     }
+    if key.starts_with("skills.") {
+        crate::skills::sync(app);
+    }
 }
 
 /// The same, for a whole section going back to its defaults.
@@ -456,6 +459,9 @@ fn react_group(app: &AppHandle, id: &str) {
     }
     if id == "keys" {
         crate::copilot_key::sync(app);
+    }
+    if id == "skills" {
+        crate::skills::sync(app);
     }
 }
 

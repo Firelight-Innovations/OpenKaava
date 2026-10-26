@@ -78,6 +78,8 @@ fn mock(args: &[&str]) -> LaunchSpec {
         effort: None,
         ultracode: false,
         mode: None,
+        plugins: Vec::new(),
+        preamble: None,
     }
 }
 
@@ -2580,6 +2582,53 @@ fn a_server_off_this_machine_is_not_offered() {
             .any(|l| l.contains("not on this machine; not offered: veistra-away")),
         "{logs:?}"
     );
+}
+
+/// Built-in skills (`src-tauri/src/skills.rs`) reach Claude as plugin
+/// directories in `session/new`, for this session only.
+#[test]
+fn a_skill_plugin_reaches_claudes_session_options() {
+    let rig = rig();
+    let record = rig.dir.path().join("meta.json");
+    let plugin = rig.dir.path().join("plugin");
+    let mut spec = mock(&["--record-meta", record.to_str().unwrap()]);
+    spec.plugins = vec![plugin.clone()];
+    rig.send_spec(spec, "stream").unwrap();
+    rig.turns_done(1);
+    assert_eq!(
+        recorded(&record).pointer("/claudeCode/options/plugins"),
+        Some(&json!([{
+            "type": "local",
+            "path": plugin.to_string_lossy(),
+            "skipMcpDiscovery": true,
+        }]))
+    );
+}
+
+/// A harness with no skill route gets a hint ahead of its first prompt, which
+/// the agent reads and the transcript does not show.
+#[test]
+fn a_preamble_reaches_the_agent_but_not_the_transcript() {
+    let rig = rig();
+    let mut spec = mock(&[]);
+    spec.preamble = Some("Built-in skill agent-ready-canvas: C:/skills/SKILL.md".into());
+    rig.send_spec(spec, "Draw a board").unwrap();
+    rig.turns_done(1);
+    let items = rig.items();
+    let users: Vec<&str> = items
+        .iter()
+        .filter_map(|item| match &item.kind {
+            ItemKind::UserMessage { text } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(users, ["Draw a board"]);
+    let answer = texts(&items).last().unwrap().to_string();
+    assert!(
+        answer.contains("agent-ready-canvas: C:/skills/SKILL.md"),
+        "{answer}"
+    );
+    assert!(answer.contains("Draw a board"), "{answer}");
 }
 
 #[test]

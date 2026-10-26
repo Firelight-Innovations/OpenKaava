@@ -5,6 +5,8 @@
  * `add_shapes` carries one under `validation`.
  */
 
+import type { Item } from "./protocol.generated";
+
 export interface LintCheck {
   id: string;
   label: string;
@@ -50,4 +52,31 @@ export function lintReportOf(output: string): LintReport | null {
   if (isReport(parsed)) return parsed;
   const nested = (parsed as { validation?: unknown } | null)?.validation;
   return isReport(nested) ? nested : null;
+}
+
+/** Where the session's canvas validation stands, for the badge under the composer. */
+export interface LatestValidation {
+  /** A `lint_canvas` call is still running. */
+  running: boolean;
+  /** The newest report that could be read, or `null` before there is one. */
+  report: LintReport | null;
+}
+
+/**
+ * The newest validation in the transcript, read from the same tool calls the
+ * validation card is drawn from. A check still running wins; one that ended
+ * without a readable report is passed over for the one before it.
+ */
+export function latestValidation(items: readonly Item[]): LatestValidation {
+  for (let i = items.length - 1; i >= 0; i--) {
+    const kind = items[i].kind;
+    if (kind.kind !== "toolCall") continue;
+    const lint = isLintTool(kind.title);
+    if (lint && (kind.status === "pending" || kind.status === "inProgress")) {
+      return { running: true, report: null };
+    }
+    const report = lintReportOf(kind.output);
+    if (report) return { running: false, report };
+  }
+  return { running: false, report: null };
 }

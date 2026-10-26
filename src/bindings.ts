@@ -2094,6 +2094,42 @@ export function resetSettingsGroup(id: string): Promise<number> {
   return invoke<number>("settings_reset_group", { id });
 }
 
+/** Mirrors `skills::Mode`: a built-in skill's setting. */
+export type SkillMode = "auto" | "on" | "off";
+
+/** Mirrors `skills::How`: how one harness is given a built-in skill. */
+export type SkillHow = "plugin" | "userSkills" | "hint";
+
+/** Mirrors `skills::Owner`: who owns the folder a harness reads it from. */
+export type SkillOwner = "absent" | "veistra" | "user";
+
+/** Mirrors `skills::Install`: where one harness has a built-in skill. */
+export interface SkillInstall {
+  /** The agent tab's harness id (`veistra_agent_host::Harness`). */
+  harness: "claude" | "codex";
+  /** Its name, as the agent tab shows it. */
+  name: string;
+  how: SkillHow;
+  path: string | null;
+  owner: SkillOwner;
+}
+
+/** Mirrors `skills::SkillInfo`: one built-in skill on the settings page. */
+export interface BuiltinSkill {
+  name: string;
+  /** From its `SKILL.md` frontmatter. */
+  description: string;
+  /** The setting that holds its mode, drawn inside its card. */
+  settingKey: string;
+  mode: SkillMode;
+  installs: SkillInstall[];
+}
+
+/** Every skill Veistra ships, and where each harness has it. */
+export function builtinSkills(): Promise<BuiltinSkill[]> {
+  return invoke<BuiltinSkill[]>("builtin_skills");
+}
+
 /**
  * Subscribe to settings changes, from this window or any other.
  *

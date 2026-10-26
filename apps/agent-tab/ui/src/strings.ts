@@ -270,6 +270,15 @@ export const strings = {
     unreadable: "The result could not be read",
     warning: "Warning",
     more: (n: number) => `and ${n} more`,
+    /** The heading of the composer badge's popover. */
+    heading: "Canvas validation",
+    rule: { passed: "Passed", failed: "Failed" },
+    /** The composer badge's name for assistive tech, by state. */
+    badge: {
+      running: "Canvas validation running",
+      passed: "Canvas validation passed",
+      failed: (n: number) => `Canvas validation: ${n} ${n === 1 ? "check" : "checks"} failed`,
+    },
   },
   tool: {
     pending: "Pending",

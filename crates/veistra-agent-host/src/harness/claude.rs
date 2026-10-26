@@ -4,7 +4,7 @@
 //! `CLAUDE_CODE_EXECUTABLE`, so it never falls back to a copy of its own.
 //! Nothing else is passed: no flag, no token, no settings file.
 
-use super::{AcpAdapter, Capabilities, Descriptor, Harness, Policy, Protocol};
+use super::{AcpAdapter, Capabilities, Descriptor, Harness, Policy, Protocol, SkillDelivery};
 
 /// Claude, through `claude-agent-acp`.
 pub static CLAUDE: Descriptor = Descriptor {
@@ -31,4 +31,6 @@ pub static CLAUDE: Descriptor = Descriptor {
         fork: false,
         modes: true,
     },
+    // The SDK takes plugin directories per session, so nothing is installed.
+    skills: SkillDelivery::ClaudePlugin,
 };

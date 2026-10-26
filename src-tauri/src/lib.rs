@@ -49,6 +49,7 @@ mod search;
 mod settings;
 mod shell_state;
 mod shell_store;
+mod skills;
 mod state;
 mod sync;
 mod tool;
@@ -578,6 +579,7 @@ pub fn run() {
             settings::commands::settings_set,
             settings::commands::settings_reset,
             settings::commands::settings_reset_group,
+            skills::builtin_skills,
             git::git_cluster_diff,
             git::git_cluster_stage,
             git::git_cluster_unstage,

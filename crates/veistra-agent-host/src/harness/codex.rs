@@ -11,7 +11,7 @@
 //! (`config::NOT_OFFERED`). No token, config file or auth request is passed,
 //! and a `DEFAULT_AUTH_REQUEST` in Veistra's own environment is not inherited.
 
-use super::{AcpAdapter, Capabilities, Descriptor, Harness, Policy, Protocol};
+use super::{AcpAdapter, Capabilities, Descriptor, Harness, Policy, Protocol, SkillDelivery};
 
 /// Codex, through `codex-acp`.
 pub static CODEX: Descriptor = Descriptor {
@@ -38,5 +38,12 @@ pub static CODEX: Descriptor = Descriptor {
         steer: false,
         fork: false,
         modes: false,
+    },
+    // Neither `codex-acp` nor `codex` takes a skills folder per session, and
+    // moving CODEX_HOME would move the user's sign-in and history with it. So
+    // the skill goes into the user's own skills folder, with a marker.
+    skills: SkillDelivery::UserSkills {
+        home_env: "CODEX_HOME",
+        home_default: ".codex",
     },
 };

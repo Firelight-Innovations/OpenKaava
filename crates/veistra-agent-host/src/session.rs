@@ -20,6 +20,7 @@
 
 use std::collections::{HashMap, VecDeque};
 use std::io::{BufRead, BufReader, ErrorKind, Read, Write};
+use std::path::PathBuf;
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -120,6 +121,8 @@ struct Shared {
     /// Veistra's MCP servers, for `session/new`. Their bearers are also
     /// scrubbed from the stderr tail.
     mcp_servers: Vec<McpServer>,
+    /// Claude Code plugin directories for this session (`LaunchSpec::plugins`).
+    plugins: Vec<PathBuf>,
     /// The model the tab chose, which the handshake switches to.
     model: Option<String>,
     effort: Option<String>,
@@ -302,6 +305,7 @@ impl Session {
             harness: spec.harness,
             setting_timeout: spec.setting_timeout,
             mcp_servers: spec.mcp_servers,
+            plugins: spec.plugins,
             child: Mutex::new(child),
             job,
             writer,
@@ -881,7 +885,8 @@ impl Shared {
         let cwd = self.worktree.path().to_string_lossy().into_owned();
         let servers = mcp::wire(&self.mcp_servers, http);
         // Its modes and settings are taken in by the reader.
-        let new_params = session_options(self.harness, &cwd, servers, self.ultracode);
+        let new_params =
+            session_options(self.harness, &cwd, servers, self.ultracode, &self.plugins);
         let new = self
             .send_request("session/new", new_params, carries_settings(None))
             .and_then(|id| self.finish(id, "session/new", Some(HANDSHAKE)))
@@ -1266,6 +1271,7 @@ impl Shared {
             &inner.status.cwd,
             mcp::wire(&self.mcp_servers, inner.mcp_http),
             enabled,
+            &self.plugins,
         );
         params["sessionId"] = json!(inner.session_id);
         let options = &mut params["_meta"]["claudeCode"]["options"];
@@ -1840,11 +1846,37 @@ fn refusal_reason(message: &str) -> String {
 }
 
 /// Claude's documented adapter extension scopes workflow settings to this query only.
-fn session_options(harness: Harness, cwd: &str, servers: Value, ultracode: bool) -> Value {
+///
+/// `plugins` go the same way: the adapter spreads `_meta.claudeCode.options`
+/// into the SDK's options, whose `plugins` start `claude` with one
+/// `--plugin-dir` each. `skipMcpDiscovery` because a built-in skill's plugin
+/// brings no servers; Veistra's own arrive in `mcpServers`.
+fn session_options(
+    harness: Harness,
+    cwd: &str,
+    servers: Value,
+    ultracode: bool,
+    plugins: &[PathBuf],
+) -> Value {
     let mut params = json!({ "cwd": cwd, "mcpServers": servers });
     if harness == Harness::Claude {
         params["_meta"] =
             json!({ "claudeCode": { "options": { "settings": { "ultracode": ultracode } } } });
+        if !plugins.is_empty() {
+            // `iter().map(..).collect()` builds a `Vec<Value>`, which `json!`
+            // turns into an array.
+            let list: Vec<Value> = plugins
+                .iter()
+                .map(|dir| {
+                    json!({
+                        "type": "local",
+                        "path": dir.to_string_lossy(),
+                        "skipMcpDiscovery": true,
+                    })
+                })
+                .collect();
+            params["_meta"]["claudeCode"]["options"]["plugins"] = json!(list);
+        }
     }
     params
 }
@@ -1951,18 +1983,40 @@ mod tests {
 
     #[test]
     fn workflow_settings_are_scoped_to_claudes_session_options() {
-        let claude = session_options(Harness::Claude, "C:/tree", json!([]), true);
+        let claude = session_options(Harness::Claude, "C:/tree", json!([]), true, &[]);
         assert_eq!(
             claude["_meta"]["claudeCode"]["options"]["settings"]["ultracode"],
             true
         );
-        let off = session_options(Harness::Claude, "C:/tree", json!([]), false);
+        assert!(
+            claude["_meta"]["claudeCode"]["options"]
+                .get("plugins")
+                .is_none(),
+            "no plugin key without a plugin"
+        );
+        let off = session_options(Harness::Claude, "C:/tree", json!([]), false, &[]);
         assert_eq!(
             off["_meta"]["claudeCode"]["options"]["settings"]["ultracode"],
             false
         );
-        let codex = session_options(Harness::Codex, "C:/tree", json!([]), true);
+        let codex = session_options(Harness::Codex, "C:/tree", json!([]), true, &[]);
         assert!(codex.get("_meta").is_none());
+    }
+
+    #[test]
+    fn built_in_skill_plugins_reach_claude_and_only_claude() {
+        let plugins = [PathBuf::from("C:/veistra/skills/claude/agent-ready-canvas")];
+        let claude = session_options(Harness::Claude, "C:/tree", json!([]), false, &plugins);
+        assert_eq!(
+            claude["_meta"]["claudeCode"]["options"]["plugins"],
+            json!([{
+                "type": "local",
+                "path": "C:/veistra/skills/claude/agent-ready-canvas",
+                "skipMcpDiscovery": true,
+            }])
+        );
+        let codex = session_options(Harness::Codex, "C:/tree", json!([]), false, &plugins);
+        assert!(codex.get("_meta").is_none(), "Codex has no plugin option");
     }
 
     #[test]
