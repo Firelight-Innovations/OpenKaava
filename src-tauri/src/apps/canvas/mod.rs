@@ -23,6 +23,8 @@ pub(crate) mod comments;
 pub(crate) mod diagrams;
 /// Frames as labelled objects: type, properties, migration, search.
 mod frames;
+/// The agent-ready topology rules: frames, groups and bound labels.
+mod lint;
 /// What an agent works through: named diagrams, views, comments, drawing and
 /// linked values. `docs/canvas-drawing-guide.md` is the agent-facing manual.
 mod methods;
@@ -57,7 +59,7 @@ use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 /// the next `add_shapes` and `drawing_guide` call.
 pub static SETTINGS: crate::settings::Group = crate::settings::Group {
     id: "canvas",
-    title: "Canvas",
+    title: "Design",
     description: "How agents draw design diagrams on the canvas.",
     order: 101,
     settings: SETTINGS_ROWS,
@@ -187,6 +189,7 @@ pub fn call_with(
         "canvas/add-shapes" => methods::author(&root(context)?, web, p, "addShapes"),
         "canvas/import-mermaid" => methods::author(&root(context)?, web, p, "mermaid"),
         "canvas/coverage" => methods::coverage(&root(context)?, p),
+        "canvas/lint" => methods::lint(&root(context)?, p),
         "canvas/values" => methods::values(&root(context)?, p),
         "canvas/set-values" => methods::set_values(&root(context)?, p),
         "canvas/refs" => methods::refs(&root(context)?, p),

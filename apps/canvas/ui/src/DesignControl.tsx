@@ -83,7 +83,7 @@ export default function DesignControl({ canvasId, override, readOnly, onChange }
           {row("Detail", "detail", detail, brief?.options.detail ?? [], brief?.detail)}
           {row("Style", "style", style, brief?.options.style ?? [], brief?.style)}
           <p className="cv__design-note">
-            This canvas only. &quot;Follow Settings&quot; uses what you chose in Settings, Canvas.
+            This canvas only. &quot;Follow Settings&quot; uses what you chose in Settings, Design.
           </p>
           <button
             type="button"

@@ -7,6 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { SceneFile } from "./scene";
+import { views } from "./views";
 
 const bridge = vi.hoisted(() => {
   class VeistraRpcError extends Error {
@@ -666,6 +667,27 @@ describe("Canvas app", () => {
   });
 
   describe("asset list", () => {
+    // Hidden until it is its own app (see `views.ts`); switched on here so the view stays covered.
+    beforeEach(() => {
+      views.assetList = true;
+    });
+    afterEach(() => {
+      views.assetList = false;
+    });
+
+    it("is hidden while switched off, and the canvas is the only view, so no toggle", async () => {
+      views.assetList = false;
+      fake({
+        readOnly: false,
+        rows: [{ id: "world", title: "World", parent: null, error: null }],
+        reads: { world: scene(1) },
+      });
+      render(<App />);
+      await screen.findByText("1 elements");
+      expect(screen.queryByRole("tab", { name: "Asset list" })).toBeNull();
+      expect(screen.queryByRole("tablist", { name: "View" })).toBeNull();
+    });
+
     const withCards = (): Backend => ({
       readOnly: false,
       rows: [
@@ -770,9 +792,13 @@ describe("Canvas app", () => {
       expect(puts()).toHaveLength(1);
       expect(puts()[0]![1]).toMatchObject({
         kind: "image",
-        title: "Canvas - World, 1 element",
+        title: "Design - World, 1 element",
         bytesBase64: "cG5n",
       });
+      expect(bridge.invoke).toHaveBeenCalledWith(
+        "veistra/attach-to-agent",
+        expect.objectContaining({ label: "Canvas selection" }),
+      );
     });
 
     it("sends a model frame's card as JSON text", async () => {
