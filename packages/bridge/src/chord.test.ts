@@ -71,4 +71,32 @@ describe("installChordForwarder", () => {
     );
     expect(send).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps Ctrl+Shift+P from opening the print dialog in the frame", () => {
+    const send = vi.fn();
+    const off = installChordForwarder(document, send);
+    const print = new KeyboardEvent("keydown", {
+      key: "P",
+      ctrlKey: true,
+      shiftKey: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(print);
+    expect(print.defaultPrevented).toBe(true);
+    expect(send).toHaveBeenCalledTimes(1);
+    off();
+  });
+
+  it("leaves the default of other forwarded chords alone", () => {
+    const off = installChordForwarder(document, vi.fn());
+    const select = new KeyboardEvent("keydown", {
+      key: "ArrowLeft",
+      ctrlKey: true,
+      shiftKey: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(select);
+    expect(select.defaultPrevented).toBe(false);
+    off();
+  });
 });

@@ -62,6 +62,17 @@ export function chordPayload(e: ChordKeyEvent): ChordPayload {
 }
 
 /**
+ * True for a forwarded chord whose browser default must not run in the frame.
+ * Ctrl+Shift+P is the Command Palette to the shell and "print with the system
+ * dialog" to WebView2, so the frame opened the printer while the shell opened
+ * the palette. Only the print keys: Ctrl+Shift+Arrow and the like still select
+ * text in the app's fields.
+ */
+export function suppressesFrameDefault(e: ChordKeyEvent): boolean {
+  return (e.ctrlKey || e.metaKey) && (e.key === "p" || e.key === "P");
+}
+
+/**
  * Call `send` for each chord the app leaves unclaimed. Bubble phase, so the
  * app's own handlers have had the chance to `preventDefault`. Returns the
  * function that removes the listener.
@@ -71,7 +82,9 @@ export function installChordForwarder(
   send: (chord: ChordPayload) => void,
 ): () => void {
   const onKeyDown = (e: KeyboardEvent) => {
-    if (shouldForwardChord(e)) send(chordPayload(e));
+    if (!shouldForwardChord(e)) return;
+    if (suppressesFrameDefault(e)) e.preventDefault();
+    send(chordPayload(e));
   };
   target.addEventListener("keydown", onKeyDown);
   return () => target.removeEventListener("keydown", onKeyDown);
