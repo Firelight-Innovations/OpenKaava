@@ -25,8 +25,9 @@ uses today, so the reserved slots below are not covered until something renders 
 ## Restyle
 
 Colour, type, spacing, radius, size and motion are `--k-*` custom properties in
-`src/agent-tokens.css`. Its values point at the shell's tokens in `src/tokens.css`, so light and
-dark follow the shell. Components read only `--k-*`. Change a value there to restyle the tab. For one piece, change the stylesheet that holds it. There are four, each
+`src/agent-tokens.css`. Its values point at the
+shell's tokens in `src/tokens.css`, so light and dark follow the shell. Components read only `--k-*`.
+Change a value there to restyle the tab. For one piece, change the stylesheet that holds it. There are four, each
 shared by a group of components:
 
 - `frame.css`: Layout, Header, StatusBadge, Transcript and EmptyState.

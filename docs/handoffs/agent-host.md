@@ -5,6 +5,7 @@ Reader: **Agent C**, a cloud agent that implements and tests this feature.
 Design source: `docs/design/KAAVA-AGENT-EMBEDDING-DESIGN.md` (read it first; this document turns it into tasks).
 Related: `docs/KAAVA-UX-REWORK.md` (environments, clusters, panes; "UX spec" below), `docs/design/OPENKAAVA-PLANE-DESIGN.md`, `docs/design/kaava-ds/` (tokens; the owner's `claude/kaava-tokens.css`).
 Lint note: `ste_lint.py` was not run on this document. Terms marked PROPOSED are not in `core/terminology.csv` yet.
+Superseded in part (2026-10-25): the agent bar (§4) was removed. Agent sessions run only in the agent tab.
 
 ### Repository notes (added when this was committed)
 

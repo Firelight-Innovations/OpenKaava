@@ -1262,7 +1262,7 @@ mod tests {
     /// The keys `rpc.ts`'s `Harnesses` reads; a rename on either side has to
     /// change this test as well.
     #[test]
-    fn the_harnesses_answer_has_the_keys_the_tab_and_the_bar_read() {
+    fn the_harnesses_answer_has_the_keys_the_tab_reads() {
         let info = kaava_agent_host::harness::CLAUDE.info(None);
         let answer = harnesses_answer(
             std::slice::from_ref(&info),

@@ -22,8 +22,9 @@ agent tab ── agent-tab/* ── AgentHost ── Adapter ── harness proc
   - the mode it starts in
   - what it supports
 
-  The UI does not read them all yet. The agent tab's own `strings.ts` still spells Claude's name,
-  its adapter's install command and its sign-in, so a new harness also needs words there (step 6).
+  The UI does not read them all yet. A registered harness's name, install command and sign-in
+  reach the agent tab in `HarnessInfo`. The tab's `strings.ts` keeps a fallback name in
+  `harnessName` only for a harness the host does not report.
 - **The event model.** `apps/agent-tab/ui/src/protocol.generated.ts` is generated from the types
   in `event.rs`, and it is the only thing the UI reads. No harness's wire format reaches the UI.
 - **The `Adapter` trait.** `host.rs` drives every session through it. `Session` implements it over
@@ -90,19 +91,20 @@ breaks one.
 
 ## What the UI shows
 
-The agent tab draws every registered harness from `agent-tab/harnesses`. It never names a
-registered harness, a program or a version in its own strings. The tab's settings menu
-also lists harnesses that are not registered yet, as "Coming soon", by names in its own strings.
+The agent tab draws every registered harness from `agent-tab/harnesses`, by the name the host
+reports. Its own strings name no program or version. The tab's settings menu also lists harnesses
+that are not registered yet, as "Coming soon", by the fallback names in `harnessName`.
 
 - **The picker.** The tab's settings menu has a group per harness, listing its models, or only
   its default until its agent has said (see [Models](#models)). Choosing a model chooses that
-  harness and that model. While the tab's agent runs, the picker is locked.
+  harness and that model. While the tab's agent runs, it cannot switch harness. A model chosen
+  then applies to the tab's next session.
 - **The model.** While an agent runs, the tab's header shows its harness and its model.
 - **Hints.** Each `Hint` is a sentence template in the tab's `apps/agent-tab/ui/src/strings.ts`.
   A template fills in the harness's name and its setup commands from `HarnessInfo`, so a new
   harness gets correct install and sign-in hints without a new string. `tsc` holds the tab's table
-  to `Hint`, so a new `Hint` needs a sentence in the tab. An error item records the harness that raised it, so its hint names that harness after the
-  tab switches to another.
+  to `Hint`, so a new `Hint` needs a sentence in the tab. An error item records the harness that
+  raised it, so its hint names that harness after the tab switches to another.
 
 ## Models
 

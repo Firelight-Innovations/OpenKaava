@@ -4,6 +4,7 @@ Owner: Braden Seaborn. Date: 2026-10-13. State: DESIGN PROPOSAL, NOT YET APPROVE
 Related: `docs/KAAVA-UX-REWORK.md` (environments, clusters, panes), `docs/design/OPENKAAVA-PLANE-DESIGN.md`, `claude/openkaava-cloud-prd.md` (not in this repository).
 Implementation handoff: `docs/handoffs/agent-host.md`.
 Lint note: `ste_lint.py` was not run on this document. Terms marked PROPOSED are not yet in `core/terminology.csv`.
+Superseded in part (2026-10-25): the agent bar was removed. Agent sessions run only in the agent tab.
 
 ## 1. Answer in brief
 
