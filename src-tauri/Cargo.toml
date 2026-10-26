@@ -247,7 +247,7 @@ ureq = { version = "3", default-features = false, features = [
 # rest of the codec list; a release built by the workflow in `docs/dev/
 # releases.md` is deflate, and a format nobody produces is a decompressor
 # nobody audits.
-zip = { version = "2", default-features = false, features = ["deflate"] }
+zip = { version = "9", default-features = false, features = ["deflate"] }
 
 # Checksums. The distribution decision in `docs/tool-protocol.md` §6 is a
 # release artifact verified before anything executes, and this is the verifying.
