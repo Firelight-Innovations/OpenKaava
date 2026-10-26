@@ -2,7 +2,7 @@
  * The agent tab's calls into `src-tauri/src/apps/agent_tab.rs`. Every shape
  * comes from `protocol.generated.ts`, which the Rust crate writes.
  */
-import { invoke, on, KaavaRpcError } from "@openkaava/bridge";
+import { invoke, on, VeistraRpcError } from "@veistra/bridge";
 import type { Attachment, Envelope, Harness, HarnessInfo } from "./protocol.generated";
 
 /** Mirrors `apps::agent_tab::EVENT`. */
@@ -82,10 +82,10 @@ export interface Refusal {
 export const READ_ONLY = -32003;
 
 export function refusalOf(err: unknown): Refusal | null {
-  if (err instanceof KaavaRpcError && err.code === READ_ONLY) {
+  if (err instanceof VeistraRpcError && err.code === READ_ONLY) {
     return { code: "mainCheckout", hint: null };
   }
-  if (!(err instanceof KaavaRpcError) || err.code !== REFUSED) return null;
+  if (!(err instanceof VeistraRpcError) || err.code !== REFUSED) return null;
   const data = err.data as Partial<Refusal> | undefined;
   return typeof data?.code === "string"
     ? { code: data.code, hint: typeof data.hint === "string" ? data.hint : null }

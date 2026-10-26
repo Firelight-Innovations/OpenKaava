@@ -4,7 +4,7 @@
  *
  * **Tabs are back**, and that reverses this file's own former header, kept
  * below in spirit because the reasoning it gave has not stopped mattering —
- * only which row wins the argument has changed. The v3 boards (KAAVA-UX-SPEC
+ * only which row wins the argument has changed. The v3 boards (VEISTRA-UX-SPEC
  * §1.6, board 07) draw a 34px strip on every pane; the `chrome` workstream is
  * pulling the equivalent inline-member listing out of `ClusterBar` in the
  * same rework, so a tab still appears in exactly *one* row rather than two
@@ -34,7 +34,7 @@ import "./panes.css";
 export default function PaneTree(props: PaneTreeProps) {
   const maximizedPaneId = props.maximizedPaneId ?? null;
 
-  // `Esc` restores a maximised pane, matching KAAVA-UX-SPEC's "double-click
+  // `Esc` restores a maximised pane, matching VEISTRA-UX-SPEC's "double-click
   // again or Esc restores." A ref for the callback rather than a dependency
   // on it directly: `WindowRoot`'s `onToggleMaximizePane` closure is not
   // guaranteed stable across renders, and re-subscribing on every one of them
@@ -117,7 +117,7 @@ function Split({
       if (total <= 0) return;
       // The pixel floor is on the axis the divider actually moves along: a
       // row split's panes sit side by side, so it is their *width* that must
-      // not shrink below KAAVA-UX-SPEC's 200px; a column split's is height.
+      // not shrink below VEISTRA-UX-SPEC's 200px; a column split's is height.
       const minPx = row ? MIN_PANE_WIDTH_PX : MIN_PANE_HEIGHT_PX;
 
       const start = row ? e.clientX : e.clientY;

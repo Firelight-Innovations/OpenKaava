@@ -2,7 +2,7 @@
 #
 # The stock Python image, pinned by digest, with plane_watch.py mounted in: there is no image of
 # ours to build or push. It joins Plane's network and talks to Plane's proxy there, so its polling
-# never touches port 8765 on the host and never keeps plane-vm awake (kaava-idle counts that port).
+# never touches port 8765 on the host and never keeps plane-vm awake (veistra-idle counts that port).
 #
 # infra/plane/boot.sh writes this file and the script to /opt/plane/plane-watch/ and runs
 #   docker compose -p plane-watch -f /opt/plane/plane-watch/compose.yaml up -d
@@ -14,11 +14,11 @@ services:
     restart: unless-stopped
     environment:
       PLANE_URL: http://proxy:80
-      PLANE_HOST: plane.kaava.internal:8765
-      KAAVA_PROFILE: prod
-      KAAVA_PROJECTS: veistra-projects
-      KAAVA_WORKER: ${KAAVA_WORKER:-kaava-worker}
-      KAAVA_ZONE: ${KAAVA_ZONE:-us-central1-a}
+      PLANE_HOST: plane.veistra.internal:8765
+      VEISTRA_PROFILE: prod
+      VEISTRA_PROJECTS: veistra-projects
+      VEISTRA_WORKER: ${VEISTRA_WORKER:-veistra-worker}
+      VEISTRA_ZONE: ${VEISTRA_ZONE:-us-central1-a}
       STATE_DIR: /state
     volumes:
       - ./plane_watch.py:/app/plane_watch.py:ro

@@ -31,8 +31,8 @@ import { fileURLToPath } from "node:url";
  * between a rename and a rename that strands data.
  */
 export const IDENTITY = {
-  identifier: "com.firelightinnovations.openkaava",
-  productName: "OpenKaava",
+  identifier: "com.firelightinnovations.veistra",
+  productName: "Veistra",
 };
 
 /**
@@ -48,7 +48,7 @@ export const IDENTITY = {
  * unusual and is still the right home: the alternative is a constant in a
  * language that never reads it.
  */
-export const SUPERSEDED_PRODUCTS = ["HELVE"];
+export const SUPERSEDED_PRODUCTS = ["OpenKaava", "HELVE"];
 
 /**
  * What `ui:build` appends. An agent's instance needs its own config directory

@@ -16,7 +16,7 @@
  * `toGraph`), so a duplicate moves their counts the moment it appears.
  */
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { reportPainted } from "@openkaava/bridge";
+import { reportPainted } from "@veistra/bridge";
 
 // **Wave 5's tier switch.** `path` is the breadcrumb's own history: the
 // Stack Schematic first, whichever Service Schematic is open, and — once a

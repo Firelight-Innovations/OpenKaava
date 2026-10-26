@@ -61,7 +61,7 @@ why it can be confirmed once and then trusted. Settings → **File Explorer** �
 **Ask before deleting** turns the confirmation off.
 
 > Turning that off still leaves one prompt in place: if the thing you are
-> deleting has **unsaved** edits under it, OpenKaava asks anyway. The trash can
+> deleting has **unsaved** edits under it, Veistra asks anyway. The trash can
 > give back the last _saved_ version of a file — the typing you have not
 > saved is the one thing it cannot return.
 
@@ -76,12 +76,12 @@ was under the project root, not everything Windows has.
 
 Each row names the file, the folder it came from, its size, and how long ago
 it went. **Restore** puts it back where it was. **Delete** purges it for
-good, behind a harder confirmation that says so — nothing in OpenKaava or Windows
+good, behind a harder confirmation that says so — nothing in Veistra or Windows
 can recover it afterwards.
 
 > The list is a snapshot with a "Read {time}" stamp, not a live feed — a
 > refresh sits beside it. Something can vanish between the listing and your
-> click; OpenKaava says so rather than pretending it worked.
+> click; Veistra says so rather than pretending it worked.
 
 ## Editing
 

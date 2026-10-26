@@ -61,7 +61,7 @@ describe("addShapes", () => {
     const frame = result.elements[result.elements.length - 1]!;
     expect(frame.type).toBe("frame");
     expect(frame.customData).toMatchObject({
-      kaava: { diagram: { id: "states", title: "States" } },
+      veistra: { diagram: { id: "states", title: "States" } },
     });
   });
 
@@ -72,7 +72,7 @@ describe("addShapes", () => {
     expect(playing.width as number).toBeGreaterThanOrEqual((label.width as number) + 10);
     expect((playing.width as number) % GRID).toBe(0);
     expect((playing.height as number) % GRID).toBe(0);
-    expect(label.customData).toEqual({ kaava: { template: "Playing, gravity {{gravity}}" } });
+    expect(label.customData).toEqual({ veistra: { template: "Playing, gravity {{gravity}}" } });
   });
 
   it("binds the arrow to both shapes and puts content below the header", () => {
@@ -163,11 +163,11 @@ describe("addShapes", () => {
       e.id === first.frame.elementId
         ? {
             ...e,
-            link: "kaava://canvas/world/kid",
+            link: "veistra://canvas/world/kid",
             customData: {
               ...(e.customData as object),
-              kaava: {
-                ...(e.customData as { kaava: object }).kaava,
+              veistra: {
+                ...(e.customData as { veistra: object }).veistra,
                 object: { type: "feature", props: { summary: "x" } },
                 child: "world/kid",
               },
@@ -178,11 +178,11 @@ describe("addShapes", () => {
     const renamed = { ...states, frame: { ...states.frame, title: "Renamed" } };
     const again = addShapes(typed, renamed, mono);
     const frame = byId(again.elements, first.frame.elementId);
-    const kaava = (frame.customData as { kaava: Record<string, unknown> }).kaava;
-    expect(kaava.object).toEqual({ type: "feature", props: { summary: "x" } });
-    expect(kaava.child).toBe("world/kid");
-    expect((kaava.diagram as { title: string }).title).toBe("Renamed");
-    expect(frame.link).toBe("kaava://canvas/world/kid");
+    const veistra = (frame.customData as { veistra: Record<string, unknown> }).veistra;
+    expect(veistra.object).toEqual({ type: "feature", props: { summary: "x" } });
+    expect(veistra.child).toBe("world/kid");
+    expect((veistra.diagram as { title: string }).title).toBe("Renamed");
+    expect(frame.link).toBe("veistra://canvas/world/kid");
     expect(diagramsIn(again.elements).map((d) => d.id)).toEqual(["states"]);
   });
 
@@ -194,7 +194,7 @@ describe("addShapes", () => {
       y: 0,
       width: 50,
       height: 50,
-      customData: { kaava: { object: { type: "model", props: {} } } },
+      customData: { veistra: { object: { type: "model", props: {} } } },
     } as Element;
     const out = addShapes([other], states, mono);
     expect(byId(out.elements, "typed")).toBe(other);
@@ -375,7 +375,7 @@ describe("the index", () => {
     expect(diagramsIn(b.elements).map((d) => d.id)).toEqual(["overview", "detail-one"]);
     const spec = indexSpec(b.elements, mono);
     const links = spec.shapes.filter((s) => s.link).map((s) => s.link);
-    expect(links).toEqual(["kaava://diagram/overview", "kaava://diagram/detail-one"]);
+    expect(links).toEqual(["veistra://diagram/overview", "veistra://diagram/detail-one"]);
   });
 });
 

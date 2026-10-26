@@ -1,13 +1,13 @@
 # Wave 1a handoff: retire Forger and Journeyman, scaffold Schematify
 
-Branch `schematify/w1a-retire`. PR: https://github.com/Firelight-Innovations/OpenKaava/pull/78
+Branch `schematify/w1a-retire`. PR: https://github.com/Firelight-Innovations/Veistra/pull/78
 
 ## What changed
 
 **Retired.** `apps/forger/`, `apps/journeyman/`, `src-tauri/src/apps/forger.rs`,
 `src-tauri/src/apps/journeyman.rs`, and their registrations in
 `src-tauri/src/apps/mod.rs`, `vite.config.ts`, `catalog.toml`, and
-`kaava.toml`. Both were confirmed empty boilerplate before deletion — one
+`veistra.toml`. Both were confirmed empty boilerplate before deletion — one
 `forger/state` / `journeyman/state` method each, always `ready: false`, no
 feature code — so nothing was preserved beyond the pattern itself.
 
@@ -41,7 +41,7 @@ is in the PR diff; the categories were:
   rather than to Schematify, so a reader does not mistake a generic example
   for a statement about the real app.
 - Historical comments stating a past fact ("Forger and Journeyman were its
-  two entries") in `kaava.toml`, `catalog.toml`, `discovery.rs`,
+  two entries") in `veistra.toml`, `catalog.toml`, `discovery.rs`,
   `plugins/catalog.rs`, `apps/README.md`, tutorial content — reworded to
   state the same fact without the literal banned strings, since the
   acceptance condition is a literal string search with no folder exception
@@ -59,7 +59,7 @@ layer (owned by the parallel `crates/schematify-core` wave) had not landed.
 So PRD §3.4's URI-scheme conversion and §9.1's marker-token conversion have
 no live occurrence to convert in this repository; the identifier audit in
 §3.4's second paragraph (`kaava.toml`, `.kaava`, `kaava-tool://`,
-`@openkaava/*`) was left untouched, per its own instruction, since those are
+`@openkaava/*`; now `veistra.toml`, `.veistra`, `veistra-tool://`, `@veistra/*`) was left untouched, per its own instruction, since those are
 wire formats and not part of the rename.
 
 **Company documentation** (`C:/Users/bjsea/Documents/Viestra/company/core/`,
@@ -101,7 +101,7 @@ not a git repository — files saved directly, no commit):
    documents), I left it — those are outside the orchestrator repository's
    acceptance condition, or are the one named exception.
 3. **Test/doc fixtures using `forger` as an arbitrary example id** (plugin
-   address parsing, MCP config keys, a `kaava-tool-manifest` fixture, GitHub
+   address parsing, MCP config keys, a `veistra-tool-manifest` fixture, GitHub
    repo-URL parsing) were renamed to `acme`, a placeholder with no tie to
    Forger, Journeyman, or Schematify — renaming them to `schematify` would
    have made a generic example read as a statement about the real app.
@@ -138,7 +138,7 @@ not a git repository — files saved directly, no commit):
 The review found 4 blocking issues and 3 non-blocking ones. Fixed all 7:
 
 1. **Nine comments wrongly cited `OpenKaava-naming-decision.md`** (the
-   HELVE-ADE → OpenKaava rename record, which never mentions Schematify) as
+   HELVE-ADE → OpenKaava (now Veistra) rename record, which never mentions Schematify) as
    the source for the Forger/Journeyman retirement. Repointed all nine to
    `docs/design/SCHEMATIFY-PRD.md` §1.3, which actually states it
    (`apps/README.md`, `apps/schematify/ui/src/App.tsx`,
@@ -161,7 +161,7 @@ The review found 4 blocking issues and 3 non-blocking ones. Fixed all 7:
    now"** the same way.
 5. *(non-blocking)* **Restored "a spec's boundaries"** in
    `src-tauri/src/mcp/servers/mod.rs`, reverting my incorrect "a graph's
-   boundaries" — a `.kaava` graph is exactly the kind of thing an agent
+   boundaries" — a `.veistra` graph is exactly the kind of thing an agent
    could open as files, which undercut the sentence's own point.
 6. *(non-blocking)* **Re-wrapped** the ragged lines the earlier edits left
    in `docs/user/tutorials/the-window.md` and `README.md`.

@@ -1,7 +1,7 @@
 /**
  * The contract between `<SceneView>` and whatever draws markup over it.
  *
- * Markup is not built here. `@kaava/markup` (Excalidraw-based, shared with the
+ * Markup is not built here. `@veistra/markup` (Excalidraw-based, shared with the
  * Canvas app) mounts in SceneView's `children` slot and reaches the 3D side
  * only through this handle, so every drawing tool lives in one place.
  *

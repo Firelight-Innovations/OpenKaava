@@ -61,7 +61,7 @@ export const HEALTH_TOKEN: Record<Exclude<ToolHealth, "ok">, string> = {
 
 /** Everything a component is allowed to know about a tool. Note what is absent:
  *  version, pinned version, repo URL, checkout path. The shell shows a name and a
- *  short description; versions live in kaava.toml and the backend, and stay there. */
+ *  short description; versions live in veistra.toml and the backend, and stay there. */
 export interface ToolPresentation {
   id: string;
   name: string;
@@ -355,7 +355,7 @@ export interface ReviewSend {
 // --- Worktrees — one cluster, one checkout of its own -----------------------
 //
 // A cluster can work inside a git worktree, so two clusters can hold two branches
-// of one repository open at once. `git worktree list` — not anything OpenKaava writes
+// of one repository open at once. `git worktree list` — not anything Veistra writes
 // down — is the authority on which ones exist. They are created *outside* the
 // project, at `<project>/../.worktrees/<project-name>/<name>/`, and that
 // placement is load-bearing: `docs/design-notes/shell-core.md`.
@@ -539,7 +539,7 @@ export interface Menu {
 // --- Updates ----------------------------------------------------------------
 
 /**
- * What the status bar says about a newer OpenKaava, or `null` for the far more
+ * What the status bar says about a newer Veistra, or `null` for the far more
  * common case of nothing worth a pixel.
  *
  * Note what is absent: the version being installed *over*, the download's byte
@@ -596,13 +596,13 @@ export function updateNotice(
     case "downloading":
       return {
         label: state.percent === null ? "Downloading…" : `Downloading ${state.percent}%`,
-        detail: "Fetching the installer. OpenKaava restarts when it finishes.",
+        detail: "Fetching the installer. Veistra restarts when it finishes.",
         tone: "status",
       };
     case "installing":
       return {
         label: "Installing…",
-        detail: "OpenKaava closes and reopens on the new version.",
+        detail: "Veistra closes and reopens on the new version.",
         tone: "status",
       };
     case "failed":
@@ -767,11 +767,11 @@ export type DropTarget =
   | { kind: "pane"; paneId: string; edge: SplitDir | null; before: boolean }
   | { kind: "strip"; paneId: string; index: number }
   | { kind: "panel" }
-  /** A cluster's own chip — KAAVA-UX-REWORK.md §5's same-environment move.
+  /** A cluster's own chip — VEISTRA-UX-REWORK.md §5's same-environment move.
    *  `refused` is computed once, by `useDrag`'s `resolve`, and read by the
    *  chip, the hint bar and `commit` alike. */
   | { kind: "cluster"; clusterId: string; refused: boolean }
-  /** Empty switcher space — KAAVA-UX-REWORK.md §5's "new cluster in the same
+  /** Empty switcher space — VEISTRA-UX-REWORK.md §5's "new cluster in the same
    *  environment, holding the tab." Always allowed. */
   | { kind: "new-cluster" }
   | { kind: "detach" }
@@ -809,7 +809,7 @@ export interface PaneTreeProps {
   /** A tab's own drag handle. Omitted, a strip's tabs are not draggable. */
   dragHandleFor?: (member: ClusterMember) => DragHandleProps | undefined;
   /** The one pane drawn full-size, rest hidden but not unmounted, or `null`
-   *  for the ordinary grid. KAAVA-UX-REWORK.md §5. */
+   *  for the ordinary grid. VEISTRA-UX-REWORK.md §5. */
   maximizedPaneId?: string | null;
   onToggleMaximizePane?: (paneId: string) => void;
   /** What the `+` at the end of each pane's tab strip offers. Omitted, no `+`. */
@@ -852,7 +852,7 @@ export interface FrameSlots {
    *  page's edge — `.frame__main` in frame.css says why it does not span the
    *  window. Omitted, neither the band nor its handle is rendered at all. */
   bottomPanel?: ReactNode;
-  /** The right-side project-page rail (`docs/KAAVA-UX-REWORK.md` §4). Chrome owns the slot; **rail** owns what fills it. */
+  /** The right-side project-page rail (`docs/VEISTRA-UX-REWORK.md` §4). Chrome owns the slot; **rail** owns what fills it. */
   projectRail?: ReactNode;
   /** A project page, docked beside the panes — Git's aside is the first. Width is `projectPageWidth`.
    *  The window's only right-hand sidebar. `null`, `false` and `undefined` all mean no page is open,

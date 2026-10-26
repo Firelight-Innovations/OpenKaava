@@ -1,7 +1,7 @@
 # Hindsight: the shared agent memory service (PRD Phase 5, ORC-ARC-003).
 #
 # One service for every agent, wherever it runs: agent VMs, the GPU node's jobs, Claude Code on
-# a laptop, and OpenKaava itself. It is a Cloud Run service in front of a Cloud SQL database:
+# a laptop, and Veistra itself. It is a Cloud Run service in front of a Cloud SQL database:
 #
 #   image      Upstream ghcr.io/vectorize-io/hindsight, pinned, pulled through an Artifact
 #              Registry mirror (Cloud Run cannot pull from ghcr.io directly). We build nothing;
@@ -64,7 +64,7 @@ variable "db_tier" {
 
 variable "invokers" {
   type        = list(string)
-  description = "Extra IAM members allowed to call Hindsight. Project owners and kaava-agent already can."
+  description = "Extra IAM members allowed to call Hindsight. Project owners and veistra-agent already can."
   default     = []
 }
 
@@ -73,12 +73,12 @@ provider "google" {
   region  = var.region
 }
 
-data "google_compute_network" "kaava" {
-  name = "kaava"
+data "google_compute_network" "veistra" {
+  name = "veistra"
 }
 
-data "google_compute_subnetwork" "kaava" {
-  name   = "kaava-${var.region}"
+data "google_compute_subnetwork" "veistra" {
+  name   = "veistra-${var.region}"
   region = var.region
 }
 
@@ -117,7 +117,7 @@ locals {
 # --- Database ----------------------------------------------------------------------------------
 
 resource "google_sql_database_instance" "hindsight" {
-  name                = "kaava-hindsight"
+  name                = "veistra-hindsight"
   database_version    = "POSTGRES_17"
   region              = var.region
   deletion_protection = true
@@ -133,7 +133,7 @@ resource "google_sql_database_instance" "hindsight" {
 
     ip_configuration {
       ipv4_enabled    = false
-      private_network = data.google_compute_network.kaava.id
+      private_network = data.google_compute_network.veistra.id
     }
 
     backup_configuration {
@@ -189,7 +189,7 @@ resource "google_secret_manager_secret_version" "database_url" {
 # --- Service -----------------------------------------------------------------------------------
 
 resource "google_service_account" "hindsight" {
-  account_id   = "kaava-hindsight"
+  account_id   = "veistra-hindsight"
   display_name = "Hindsight memory service"
 }
 
@@ -223,8 +223,8 @@ resource "google_cloud_run_v2_service" "hindsight" {
 
     vpc_access {
       network_interfaces {
-        network    = data.google_compute_network.kaava.id
-        subnetwork = data.google_compute_subnetwork.kaava.id
+        network    = data.google_compute_network.veistra.id
+        subnetwork = data.google_compute_subnetwork.veistra.id
       }
       egress = "PRIVATE_RANGES_ONLY"
     }
@@ -266,7 +266,7 @@ resource "google_cloud_run_v2_service" "hindsight" {
 
       dynamic "env" {
         for_each = {
-          # The bundled web UI listens on a second port, and Cloud Run serves one. OpenKaava is
+          # The bundled web UI listens on a second port, and Cloud Run serves one. Veistra is
           # the UI.
           HINDSIGHT_ENABLE_CP = "false"
 
@@ -301,7 +301,7 @@ resource "google_cloud_run_v2_service" "hindsight" {
 
 resource "google_cloud_run_v2_service_iam_member" "invoker" {
   for_each = toset(concat(
-    ["serviceAccount:kaava-agent@${var.project_id}.iam.gserviceaccount.com"],
+    ["serviceAccount:veistra-agent@${var.project_id}.iam.gserviceaccount.com"],
     var.invokers,
   ))
   name     = google_cloud_run_v2_service.hindsight.name

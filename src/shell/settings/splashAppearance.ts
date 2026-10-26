@@ -10,7 +10,7 @@
 import type { AccentName } from "../themeBroadcast";
 
 /** Read by the inline script in `splash.html` under this exact name. */
-export const SPLASH_APPEARANCE_KEY = "kaava.splash-appearance";
+export const SPLASH_APPEARANCE_KEY = "veistra.splash-appearance";
 
 /** `system` is kept as itself: the splash resolves it against the OS on its own. */
 export type SplashTheme = "dark" | "light" | "system";

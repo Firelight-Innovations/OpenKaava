@@ -1,7 +1,7 @@
 /*
  * Design tokens shared by every entry point.
  *
- * Kaava design system v2 (`docs/design/kaava-ds/tokens.json`), decoded into
+ * Veistra design system v2 (`docs/design/veistra-ds/tokens.json`), decoded into
  * CSS custom properties named `--<token name>` — `--bg-canvas`, `--accent`,
  * `--radius-region`, and so on. Dark is `:root`'s default; light is
  * `:root[data-theme="light"]`, set by `useAppearance` (`src/shell/settings/
@@ -45,7 +45,7 @@
   color-scheme: dark;
 
   /* ============================================================
-   * Kaava design system v2 — dark (default)
+   * Veistra design system v2 — dark (default)
    * ============================================================ */
 
   /* --- colour: surfaces and structure -------------------------------- */
@@ -140,7 +140,7 @@
   --syn-string: #9fd89a;
   --syn-number: #e8a868;
   --syn-comment: #7a8185;
-  /* KAAVA-UX-SPEC.md §1.6: the pane tab strip's file-type colour square for
+  /* VEISTRA-UX-SPEC.md §1.6: the pane tab strip's file-type colour square for
      `.rs` names a raw hex the boards give with nothing here to reuse — every
      other extension in that table points at an existing token. Flag for
      `ux/tokens` to fold into the next `tokens.json` pass. */
@@ -278,7 +278,7 @@
 }
 
 /* ============================================================
- * Kaava design system v2 — light
+ * Veistra design system v2 — light
  *
  * Set by `useAppearance` as `data-theme="light"` on `<html>`, from the
  * `appearance.theme` setting (System follows `prefers-color-scheme`). Same

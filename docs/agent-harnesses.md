@@ -1,7 +1,7 @@
 # Agent harnesses
 
 A harness is a coding agent the agent tab can run: Claude and Codex today, with Pi next. This page
-describes the boundary between a harness and the rest of OpenKaava, and how to add a harness.
+describes the boundary between a harness and the rest of Veistra, and how to add a harness.
 
 `src-tauri/src/harness.rs` is a different thing. It recognises a harness that runs in a terminal, so
 that a dropped file is quoted the way that harness reads it. Nothing on this page touches it.
@@ -13,7 +13,7 @@ agent tab ── agent-tab/* ── AgentHost ── Adapter ── harness proc
              (src-tauri)    (crate)      (trait)    (ACP on stdio)
 ```
 
-- **The registry.** `crates/kaava-agent-host/src/harness.rs` holds one `Descriptor` per harness,
+- **The registry.** `crates/veistra-agent-host/src/harness.rs` holds one `Descriptor` per harness,
   in `REGISTRY`. The host and `agent-tab/harnesses` read these facts about a harness from the
   registry and nowhere else:
   - its name
@@ -69,7 +69,7 @@ agent tab ── agent-tab/* ── AgentHost ── Adapter ── harness proc
 These rules come from handoff §0 and design AGT-002 and AGT-004. Review refuses a descriptor that
 breaks one.
 
-- OpenKaava runs the user's own, unmodified binary, signed in by the user. It never reads, stores
+- Veistra runs the user's own, unmodified binary, signed in by the user. It never reads, stores
   or logs a token, and never starts a sign-in flow. `sign_in` is a command the user runs in their
   own terminal.
 - ACP is the wire protocol. A harness without ACP gets a translating adapter behind the same
@@ -125,7 +125,7 @@ ACP has no request that lists an agent's models outside a session. So the host a
 The ask never sends a prompt, so it uses none of the user's quota. It starts the user's agent
 once per launch for each harness and worktree, as a session would. The agent therefore starts its
 own MCP servers and hooks too, and Codex treats the worktree as trusted, as it does for every
-session Kaava starts. The host asks each worktree separately because a project's settings can
+session Veistra starts. The host asks each worktree separately because a project's settings can
 narrow the list or change the default. Claude reads them from the worktree's
 `.claude/settings.json`, and Codex from its project config.
 
@@ -161,7 +161,7 @@ signed-out session would sign itself in, and `chat-gpt` opens a browser.
 
 **Modes.** Each Codex mode joins an approval policy and a sandbox:
 
-| Mode id | Name | Who approves a request | Sandbox | OpenKaava |
+| Mode id | Name | Who approves a request | Sandbox | Veistra |
 |---|---|---|---|---|
 | `read-only` | Read-only | the user | reads anywhere | every session starts here |
 | `workspace-write` | Workspace access | the user | also writes the workspace and temp | allowed |
@@ -237,7 +237,7 @@ request carries what it grants under `permissions` or `additionalPermissions`, a
    worktree, or that no path stands for. If the new adapter puts paths under keys that none of
    these reads, add those keys, with a test.
 5. **Regenerate the TypeScript types.** Run
-   `KAAVA_BLESS=1 cargo test -p kaava-agent-host generated_types`. The new id joins the `Harness`
+   `VEISTRA_BLESS=1 cargo test -p veistra-agent-host generated_types`. The new id joins the `Harness`
    union. The tab's settings menu lists the new harness, and no UI code changes.
 6. **Record the version.** Add a row to `docs/agent-host-versions.md`.
 7. **Run `pnpm verify`.**

@@ -1,8 +1,8 @@
-import type { SearchEventPayload } from "@openkaava/bridge/protocol";
+import type { SearchEventPayload } from "@veistra/bridge/protocol";
 import { claimTitlebarSearch } from "../titlebarSearch";
 
 /**
- * App frames claiming the title bar's search field (`kaava/search-claim`).
+ * App frames claiming the title bar's search field (`veistra/search-claim`).
  *
  * A frame's request is recorded whether or not the frame is showing, and
  * only installed in the shell's claim stack while the frame is an active
@@ -13,9 +13,9 @@ import { claimTitlebarSearch } from "../titlebarSearch";
  * recently installed wins.
  */
 export interface FrameSearch {
-  /** A frame's `kaava/search-claim`. Repeating it updates the claim. */
+  /** A frame's `veistra/search-claim`. Repeating it updates the claim. */
   claim(instanceId: string, params: unknown): boolean;
-  /** A frame's `kaava/search-release`, or the frame going away. */
+  /** A frame's `veistra/search-release`, or the frame going away. */
   release(instanceId: string): void;
   /** Which instances are active surfaces right now. */
   setActive(instanceIds: readonly string[]): void;
@@ -28,7 +28,7 @@ interface Wanted {
 
 type Handle = ReturnType<typeof claimTitlebarSearch>;
 
-/** The placeholder and text off a `kaava/search-claim`, or null if malformed. */
+/** The placeholder and text off a `veistra/search-claim`, or null if malformed. */
 export function declaredSearchClaim(params: unknown): Wanted | null {
   if (typeof params !== "object" || params === null) return null;
   const { placeholder, value } = params as { placeholder?: unknown; value?: unknown };

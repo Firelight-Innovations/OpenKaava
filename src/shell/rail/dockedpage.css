@@ -1,4 +1,4 @@
-/* KAAVA-UX-SPEC.md §1.8 — the docked page's own content. Width, the resize
+/* VEISTRA-UX-SPEC.md §1.8 — the docked page's own content. Width, the resize
    handle and the aside's chrome (background/border/radius) are `Frame`'s
    `.frame__page` / `.frame__pagehandle` in `frame.css`; this file only
    styles what `DockedPage.tsx` actually draws. */

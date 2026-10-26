@@ -2,7 +2,7 @@
 //!
 //! A comment is a note anchored to a line range of one file, in one of the three diffs the
 //! source-control surfaces draw: the unstaged view, the staged view, or a worktree's divergence
-//! from where it forked. `.kaava/` inside the checkout is where they live, and [`store`] is the
+//! from where it forked. `.veistra/` inside the checkout is where they live, and [`store`] is the
 //! whole of that.
 //!
 //! It carries **no author and no thread**. There are exactly two parties — the person at the
@@ -32,7 +32,7 @@ use tauri::AppHandle;
 
 /// Serializes the read-modify-write in [`edit`].
 ///
-/// One lock for the whole process rather than one per checkout. OpenKaava is single-instance but not
+/// One lock for the whole process rather than one per checkout. Veistra is single-instance but not
 /// single-*window*, so two windows can have the same project open and two commands can land on the
 /// same file at once — and the loser of that race would silently drop whichever note the winner
 /// had just added. A map keyed by path would be the precise answer; a single lock is the same
@@ -209,7 +209,7 @@ pub fn mark_sent(comments: &mut [ReviewComment], ids: &[String], now: u64) -> us
 }
 
 /// File, then position in it, then age. Applied on every mutation so the stored document is
-/// stable: `.kaava/` sits inside the checkout, and a file that reshuffles itself on every write is
+/// stable: `.veistra/` sits inside the checkout, and a file that reshuffles itself on every write is
 /// a file nobody can keep in version control.
 pub fn sort(comments: &mut [ReviewComment]) {
     comments.sort_by(|a, b| {
@@ -251,7 +251,7 @@ pub fn edit<T>(
     change: impl FnOnce(&mut Vec<ReviewComment>) -> Result<T>,
 ) -> Result<T> {
     // Every note mutation goes through here, and the notes live in the checkout's
-    // own `.kaava/`, so main is refused once for all five commands.
+    // own `.veistra/`, so main is refused once for all five commands.
     crate::environments::guard_cluster_write(app, cluster_id, "review comment")?;
     let root = checkout(app, cluster_id).ok_or_else(|| {
         AppError::Review(

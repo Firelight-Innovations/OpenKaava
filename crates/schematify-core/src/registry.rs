@@ -371,7 +371,7 @@ fn matches_family(license: &str, pattern: &str) -> bool {
 /// place it can be a refusal rather than a report.
 ///
 /// Linter rule L04 asks the same question of the whole graph and is not
-/// redundant with this. A `.kaava/` tree arrives by `git merge` and by hand as
+/// redundant with this. A `.veistra/` tree arrives by `git merge` and by hand as
 /// well as through this function, and a rule that only guards one of those
 /// three doors guards nothing. This one refuses; L04 finds what got in anyway.
 ///
@@ -562,7 +562,7 @@ mod tests {
             slug: Slug::new("no-unwrap").unwrap(),
             statement: "No unwrap on anything that touches the filesystem.".to_owned(),
             command: Some("cargo clippy".to_owned()),
-            marker: Some("@kaava:0192f4a1".to_owned()),
+            marker: Some("@veistra:0192f4a1".to_owned()),
             severity: Severity::Error,
             audit: vec![AuditRow {
                 node: Uuid::from_u128(1),

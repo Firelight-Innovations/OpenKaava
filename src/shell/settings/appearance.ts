@@ -48,7 +48,7 @@ function narrowAccent(value: string | null): AccentName {
  *
  * Also the source of the shell's own resolved theme and accent for
  * `src/shell/themeBroadcast.ts`, which is how every app iframe learns to
- * follow along — see `ToolWindow.tsx`'s relay of `kaava:theme-changed`.
+ * follow along — see `ToolWindow.tsx`'s relay of `veistra:theme-changed`.
  */
 export function useAppearance(session: SettingsSession): void {
   useEffect(() => {

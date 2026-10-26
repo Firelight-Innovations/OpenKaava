@@ -126,31 +126,31 @@ class Fixture {
 
   write() {
     rmSync(this.root, { recursive: true, force: true });
-    const kaava = join(this.root, ".kaava");
+    const veistra = join(this.root, ".veistra");
 
-    writeCollection(join(kaava, "nodes"), this.nodes);
-    writeCollection(join(kaava, "edges"), this.edges);
-    writeCollection(join(kaava, "screens"), this.screens);
-    writeCollection(join(kaava, "flows"), this.flows);
-    writeCollection(join(kaava, "decisions"), this.decisions);
-    writeCollection(join(kaava, "rules"), this.rules);
+    writeCollection(join(veistra, "nodes"), this.nodes);
+    writeCollection(join(veistra, "edges"), this.edges);
+    writeCollection(join(veistra, "screens"), this.screens);
+    writeCollection(join(veistra, "flows"), this.flows);
+    writeCollection(join(veistra, "decisions"), this.decisions);
+    writeCollection(join(veistra, "rules"), this.rules);
 
-    mkdirSync(join(kaava, "registry"), { recursive: true });
-    writeJson(join(kaava, "registry", "libraries.json"), { libraries: this.libraries });
+    mkdirSync(join(veistra, "registry"), { recursive: true });
+    writeJson(join(veistra, "registry", "libraries.json"), { libraries: this.libraries });
 
-    mkdirSync(join(kaava, "layout"), { recursive: true });
+    mkdirSync(join(veistra, "layout"), { recursive: true });
     for (const layout of this.layouts) {
-      writeJson(join(kaava, "layout", `${layout.schematic}.json`), layout);
+      writeJson(join(veistra, "layout", `${layout.schematic}.json`), layout);
     }
 
     for (const { node, run } of this.runs) {
-      writeJson(join(kaava, "runs", node, `run-${run.run}.json`), run);
+      writeJson(join(veistra, "runs", node, `run-${run.run}.json`), run);
     }
     for (const { node, rows } of this.audits) {
-      writeJson(join(kaava, "runs", node, "audit.json"), rows);
+      writeJson(join(veistra, "runs", node, "audit.json"), rows);
     }
     if (this.brief) {
-      writeJson(join(kaava, "brief.json"), this.brief);
+      writeJson(join(veistra, "brief.json"), this.brief);
     }
 
     return {

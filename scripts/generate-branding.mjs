@@ -8,7 +8,7 @@
  * same moment by the same file.
  *
  * One module per frontend bundle rather than one shared module, because
- * STANDARDS.md §1.4 says an app reaches its host through `@openkaava/bridge` and
+ * STANDARDS.md §1.4 says an app reaches its host through `@veistra/bridge` and
  * nothing else. A generated file inside the app's own source tree is the only
  * form that survives that app being extracted to its own repository, which
  * `apps/README.md` says is the point of the boundary.

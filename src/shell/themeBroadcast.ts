@@ -1,5 +1,5 @@
 /**
- * Shell-side half of the live theme broadcast (`kaava:theme-changed`). App
+ * Shell-side half of the live theme broadcast (`veistra:theme-changed`). App
  * side is `packages/bridge/src/theme.ts`.
  *
  * A leaf module directly under `src/shell/`, not inside any region, so both
@@ -8,14 +8,14 @@
  *
  * Module-level pub/sub, not React context: `ToolWindow` needs the *current*
  * value the instant a frame says hello, the same "ask, then subscribe" shape
- * `kaava/publish`'s retained topics use. Scoped to one window — each Tauri
+ * `veistra/publish`'s retained topics use. Scoped to one window — each Tauri
  * window is its own WebView2 with its own JS globals.
  */
 
-/** The five accent options `docs/design/kaava-ds/tokens.json` defines. */
+/** The five accent options `docs/design/veistra-ds/tokens.json` defines. */
 export type AccentName = "amber" | "blue" | "green" | "violet" | "coral";
 
-/** What travels on `kaava:theme-changed`. Never "system" — resolved first. */
+/** What travels on `veistra:theme-changed`. Never "system" — resolved first. */
 export interface ThemeChangedPayload {
   theme: "dark" | "light";
   accent: AccentName;

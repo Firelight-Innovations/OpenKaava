@@ -3,7 +3,7 @@
  *
  * App-local rather than imported from the shell's `src/ui/Icon.tsx`, and that is
  * the same rule the types in `App.tsx` follow: an app reaches its host through
- * `@openkaava/bridge` and nothing else. Reaching into the shell's source for a
+ * `@veistra/bridge` and nothing else. Reaching into the shell's source for a
  * component would make this pane a piece of the shell that happens to live in a
  * folder, and the point of `apps/` is that it isn't.
  *
@@ -56,7 +56,7 @@ function Outline({ size = 24, className, children }: IconProps & { children: Rea
  * So the geometry is written out here rather than generated: the generator
  * reduces the mark to one path — which is what lets every other call site draw
  * it in `currentColor` — and three drawables do not reduce.
- * `assets/kaava-mark-colour.svg` is the declared asset this copies, kept in
+ * `assets/veistra-mark-colour.svg` is the declared asset this copies, kept in
  * step by hand. `docs/branding.md` §6 has the argument, and why not an `<img>`.
  *
  * The strokes are `var(--bg)` because the gap between tones *is* the

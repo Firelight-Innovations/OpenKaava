@@ -1,0 +1,22 @@
+{
+  "id": "01a0675d-d0ae-7751-a07f-dbe2d8723c37",
+  "slug": "cold-launch",
+  "kind": "budget",
+  "title": "Cold launch to first Schematic paint",
+  "description": "PRD section 14.7. Wall-clock time from process start to the first Service Schematic paint, on the reference machine the baseline audit names.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-03T00:00:00Z",
+  "superseded_by": null,
+  "parent": null,
+  "metric": "cold_launch_ms",
+  "op": "<",
+  "value": 2000,
+  "unit": "ms",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm bench:startup",
+    "parser": "veistra-bench-v1"
+  },
+  "sign_off": null
+}

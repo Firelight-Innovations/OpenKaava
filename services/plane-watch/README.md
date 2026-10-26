@@ -13,7 +13,7 @@ For every non-archived project record under `prod/projects/` in the projects buc
 2. For each item carrying `ai:breakdown`, `ai:plan-cycle`, `ai:context` or `ai:do`, writes a job
    file to `jobs/pending/<id>.json`, unless that id already exists in pending, claimed or done.
 3. Swaps the trigger label for `ai:queued` and comments "Queued for agent: job ...".
-4. Starts kaava-worker while any job is pending. kaava-jobs on the worker claims and runs it.
+4. Starts veistra-worker while any job is pending. veistra-jobs on the worker claims and runs it.
 
 While one of its jobs is still pending or claimed it writes `/state/busy`, which plane-vm's idle
 check reads, so Plane stays up until the agent has reported back.
@@ -23,12 +23,12 @@ check reads, so Plane stays up until the agent has reported back.
 ```json
 {
   "schema": 1,
-  "id": "KAAVA-5-breakdown-20260928T023536147391",
+  "id": "VEISTRA-5-breakdown-20260928T023536147391",
   "kind": "breakdown",
   "profile": "prod",
-  "project": "openkaava",
+  "project": "veistra",
   "plane": {
-    "workspace": "veistra", "project_id": "...", "identifier": "KAAVA",
+    "workspace": "veistra", "project_id": "...", "identifier": "VEISTRA",
     "work_item_id": "...", "sequence_id": 5, "name": "..."
   },
   "requested_by": "plane-watch",

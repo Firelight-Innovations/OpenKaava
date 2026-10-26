@@ -7,46 +7,46 @@ lint:rust` were not run — only the Node/CI surface changed.
 
 ## 1. Path-scope check: `runs/` and `nodes/` never move together
 
-**Files:** `scripts/check-kaava-boundary.mjs`, `scripts/check-kaava-boundary.test.mjs`,
-`.github/workflows/kaava-boundary.yml`.
+**Files:** `scripts/check-veistra-boundary.mjs`, `scripts/check-veistra-boundary.test.mjs`,
+`.github/workflows/veistra-boundary.yml`.
 
-**What it blocks:** a pull request where, for the same `.kaava/` root, both a
+**What it blocks:** a pull request where, for the same `.veistra/` root, both a
 `nodes/<uuid>.json` and a `runs/<uuid>/...` file are touched, *unless* the
 touch is exactly the lifecycle pair from §6.3: one `nodes/<uuid>.json` and
 that same uuid's `runs/<uuid>/audit.json`, nothing else in either tree.
 
 **What it deliberately allows:** any number of files moving in `nodes/` alone,
-or `runs/` alone, in one pull request; multiple `.kaava/` roots each judged
+or `runs/` alone, in one pull request; multiple `.veistra/` roots each judged
 independently (regenerating one fixture's `runs/` and another fixture's
 `nodes/` in one PR is two single-tree writes, not a mixed one); every other
 semantic tree (`edges/`, `rules/`, `screens/`, `flows/`, `decisions/`,
 `registry/`, `brief.json`) is untouched by this check — CODEOWNERS covers
 those, see §3 below.
 
-**Why unanchored `.kaava/` matching.** The repository holds three `.kaava/`
+**Why unanchored `.veistra/` matching.** The repository holds three `.veistra/`
 trees today, all under `crates/schematify-core/fixtures/`, not one at the
 repository root — see the script's own header for the regex reasoning. The
-check groups by whatever text precedes `.kaava/` in a changed path, so it
+check groups by whatever text precedes `.veistra/` in a changed path, so it
 covers all three today and any future one (including a project opened at the
 repository root) without editing the script.
 
-**Tests:** 13 vitest cases in `check-kaava-boundary.test.mjs` — clean on
+**Tests:** 13 vitest cases in `check-veistra-boundary.test.mjs` — clean on
 nodes-only, clean on runs-only, clean on exactly the lifecycle pair, blocked on
 a different uuid, an extra file in either tree, or a runs/ file that isn't
 `audit.json`, and two roots judged independently in both directions. All 13
-pass (`npx vitest run scripts/check-kaava-boundary.test.mjs`).
+pass (`npx vitest run scripts/check-veistra-boundary.test.mjs`).
 
 **Proved against real branches:**
 - `origin/main` vs itself: 0 files changed, clean, exit 0.
 - `origin/main` vs `origin/schematify/w7a-linter` (the one other open PR,
-  #83): 8 files changed, 3 of them under `.kaava/edges/` (not nodes/ or
+  #83): 8 files changed, 3 of them under `.veistra/edges/` (not nodes/ or
   runs/), clean, exit 0. This branch also carries no TypeScript changes, so
   it is unaffected by item 2 below as well.
 
 **Not made required.** The workflow exists and passes; branch protection was
 not touched (see the warning in my prompt — that is explicitly the owner's
 call). To turn it on: Settings → Branches → main → Require status checks to
-pass → add `kaava-boundary`.
+pass → add `veistra-boundary`.
 
 ## 2. TypeScript import boundary: extended the existing ESLint mechanism, not dependency-cruiser
 
@@ -64,8 +64,8 @@ of truth for "which imports are illegal." I extended the existing one instead.
 `appIsolation`, one config block per app, blocking any import whose specifier
 contains another app's `<other>/ui/` path segment. This makes mechanical what
 `apps/README.md`'s "Apps talking to each other" section already states in
-prose: an app reaches another only through the shell-routed `kaava/open` /
-`kaava/publish` topics, never a source import.
+prose: an app reaches another only through the shell-routed `veistra/open` /
+`veistra/publish` topics, never a source import.
 
 **One real bug caught while proving it works:** my first version anchored the
 pattern on `**/apps/<other>/ui/**`, copying `BRIDGE_RESTRICTION`'s shape. That
@@ -88,10 +88,10 @@ changes so cannot be affected by this rule either way.
 
 **File:** `.github/CODEOWNERS`.
 
-Added five owned patterns — `.kaava/brief.json`, `.kaava/nodes/`,
-`.kaava/edges/`, `.kaava/rules/`, `.kaava/screens/`, `.kaava/flows/`,
-`.kaava/decisions/`, `.kaava/registry/` — all to `@braden-seaborn`, and two
-unowned patterns, `.kaava/runs/` and `.kaava/layout/`, with no owner listed
+Added five owned patterns — `.veistra/brief.json`, `.veistra/nodes/`,
+`.veistra/edges/`, `.veistra/rules/`, `.veistra/screens/`, `.veistra/flows/`,
+`.veistra/decisions/`, `.veistra/registry/` — all to `@braden-seaborn`, and two
+unowned patterns, `.veistra/runs/` and `.veistra/layout/`, with no owner listed
 (GitHub CODEOWNERS treats a pattern with no name after it as removing
 ownership for that path — the existing file's `apps/ @octocat` example in
 GitHub's own docs is the same unanchored-pattern shape I used here).
@@ -103,13 +103,13 @@ constant, and matches the git log author (Braden Seaborn) and the
 `Firelight-Innovations` GitHub org this repo lives under. Reused as-is.
 
 **Why unanchored, and why placed after `/crates/`:** same reasoning as the
-path-scope check — `.kaava/` is a project root, not a fixed repository path,
+path-scope check — `.veistra/` is a project root, not a fixed repository path,
 and today all three instances sit under `crates/schematify-core/fixtures/`,
 which the pre-existing `/crates/ @braden-seaborn` rule already blankets.
 CODEOWNERS resolves each path against the *last* matching line in the file, so
 the two unowned lines are placed after `/crates/` specifically so they win for
 `runs/` and `layout/`, while every other path under `crates/` (including the
-seven owned `.kaava/` trees) keeps the owner from either rule agreeing.
+seven owned `.veistra/` trees) keeps the owner from either rule agreeing.
 
 **Not validated against GitHub's own parser tonight** — I have no way to hit
 `GET /repos/.../codeowners/errors` for a ref that only exists locally before
@@ -122,7 +122,7 @@ they are the unusual part of this file.
 off, per the existing file's own header (`required_pull_request_reviews` is
 `null` as of 2026-08-21) — this pull request only adds patterns to a file that
 currently requests nothing from anybody. Turning required review on is the
-owner's call, same as making `kaava-boundary` a required check.
+owner's call, same as making `veistra-boundary` a required check.
 
 ## 4. cargo-deny: already sufficient, nothing changed
 
@@ -145,13 +145,13 @@ item.
 Foreground, all green: `pnpm build`, `pnpm test:js` (32 files / 490 tests,
 plus `packages/bridge`'s 28), `pnpm lint:js`, `pnpm lint:comments`,
 `pnpm lint:version`, `pnpm lint:identity`, `pnpm lint:branding`,
-`pnpm format:check`, plus `npx vitest run scripts/check-kaava-boundary.test.mjs`
+`pnpm format:check`, plus `npx vitest run scripts/check-veistra-boundary.test.mjs`
 directly. Background: `cargo deny check` (item 4). Not run: `pnpm test:rust`,
 `pnpm lint:rust` — no Rust file changed this wave.
 
 ## Assumptions
 
-- The path-scope check groups by literal text preceding `.kaava/` in a changed
+- The path-scope check groups by literal text preceding `.veistra/` in a changed
   path (a "root"), and judges each root independently. The PRD does not say
   explicitly whether "a pull request" in §14.6 means the whole diff or each
   project separately; per-root reads truer to §6.2's reasoning ("the two
@@ -162,13 +162,13 @@ directly. Background: `cargo deny check` (item 4). Not run: `pnpm test:rust`,
   specifically (e.g. for a boundary shape ESLint's `no-restricted-imports`
   cannot express, such as detecting a cycle rather than a named forbidden
   edge), that is a deliberate escalation, not an oversight here.
-- CODEOWNERS ownership for `.kaava/brief.json` is a single-file pattern, not a
+- CODEOWNERS ownership for `.veistra/brief.json` is a single-file pattern, not a
   directory — PRD §14.6 says "brief.json" by name, not "brief/".
 
 ## Left undone / owner's call in the morning
 
-- Neither new check (`kaava-boundary`, or CODEOWNERS via "Require review from
-  Code Owners") is required in branch protection. Turn `kaava-boundary` on at
+- Neither new check (`veistra-boundary`, or CODEOWNERS via "Require review from
+  Code Owners") is required in branch protection. Turn `veistra-boundary` on at
   Settings → Branches → main → require status checks → add it by name.
   Require Code Owner review the same way, in the same screen.
 - CODEOWNERS syntax not confirmed against GitHub's own validator — see §3.

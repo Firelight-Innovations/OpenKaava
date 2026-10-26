@@ -296,9 +296,9 @@ mod tests {
     }
 
     const TWO: &str = r#"[
-      {"name":"kaava-worker","zone":"https://x/zones/us-central1-a","status":"TERMINATED",
+      {"name":"veistra-worker","zone":"https://x/zones/us-central1-a","status":"TERMINATED",
        "machineType":"https://x/machineTypes/e2-standard-8","labels":{"role":"agent"}},
-      {"name":"kaava-gpu","zone":"https://x/zones/us-central1-a","status":"TERMINATED",
+      {"name":"veistra-gpu","zone":"https://x/zones/us-central1-a","status":"TERMINATED",
        "machineType":"https://x/machineTypes/g2-standard-8","labels":{"role":"gpu"}}
     ]"#;
 
@@ -307,7 +307,7 @@ mod tests {
         let (_dir, source) = fixture(TWO);
         let machines = list(&Cloud::default(), &source, "agent").unwrap();
         assert_eq!(machines.len(), 1);
-        assert_eq!(machines[0].name, "kaava-worker");
+        assert_eq!(machines[0].name, "veistra-worker");
         assert_eq!(machines[0].zone, "us-central1-a");
         assert_eq!(machines[0].machine_type, "e2-standard-8");
     }
@@ -328,7 +328,7 @@ mod tests {
     #[test]
     fn start_in_a_fixture_keeps_fields_it_does_not_read() {
         let (dir, source) = fixture(
-            r#"[{"name":"kaava-worker","zone":"z/us-central1-a","status":"TERMINATED",
+            r#"[{"name":"veistra-worker","zone":"z/us-central1-a","status":"TERMINATED",
                  "labels":{"role":"agent"},"scheduling":{"provisioningModel":"SPOT"}}]"#,
         );
         let cloud = Cloud::default();
@@ -347,7 +347,7 @@ mod tests {
                 &source,
                 "fixture",
                 "us-central1-a",
-                "kaava-gpu"
+                "veistra-gpu"
             )
             .unwrap(),
             "TERMINATED"
@@ -372,9 +372,9 @@ mod tests {
     fn start_named_marks_the_machine_running_without_a_role_label() {
         let (_dir, source) = fixture(TWO);
         let cloud = Cloud::default();
-        start_named(&cloud, &source, "fixture", "us-central1-a", "kaava-gpu").unwrap();
+        start_named(&cloud, &source, "fixture", "us-central1-a", "veistra-gpu").unwrap();
         assert_eq!(
-            status(&cloud, &source, "fixture", "us-central1-a", "kaava-gpu").unwrap(),
+            status(&cloud, &source, "fixture", "us-central1-a", "veistra-gpu").unwrap(),
             "RUNNING"
         );
     }

@@ -6,8 +6,8 @@
  * a page. No window furniture, no second header bar, nothing that would read as
  * a duplicate of what the frame outside is already showing.
  *
- * Colours come from `src/tokens.css` (the Kaava design system, v2 — see
- * `docs/design/kaava-ds/README.md`), imported ahead of this file by each app's
+ * Colours come from `src/tokens.css` (the Veistra design system, v2 — see
+ * `docs/design/veistra-ds/README.md`), imported ahead of this file by each app's
  * entry point. Nothing here may introduce a hex value: the palette is the
  * design system's, and an app inventing its own would be visibly not part of
  * the same product the moment the two sat side by side. An app follows the
@@ -23,14 +23,14 @@
  * inside it.
  *
  * Shared by both apps rather than copied into each, because the thing being
- * described is "how a Kaava app looks", which is one answer. An app that needs
+ * described is "how a Veistra app looks", which is one answer. An app that needs
  * something of its own adds a second stylesheet next to its entry point.
  */
 
 /* The shared `.k-*` component vocabulary (buttons, badges, chips, dialogs —
-   see `src/kaava-ui.css`'s own header) is available to every app the same
+   see `src/veistra-ui.css`'s own header) is available to every app the same
    way the shell gets it, from one file. */
-@import "/src/kaava-ui.css";
+@import "/src/veistra-ui.css";
 
 html,
 body,
@@ -79,7 +79,7 @@ body {
  * Every app renders in its own iframe document, so the shell's copy of this
  * rule (`src/styles.css`) never reaches in here — each app needs its own.
  * Shared rather than duplicated per app for the same reason the rest of this
- * file is: it says how an OpenKaava app looks, once. See `src/styles.css` for the
+ * file is: it says how a Veistra app looks, once. See `src/styles.css` for the
  * full rationale (this is that rule, unchanged) and `overlayScrollbar.css`
  * for the values it copies.
  *

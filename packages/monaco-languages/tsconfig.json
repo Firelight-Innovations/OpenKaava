@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    // DOM is in here where `@openkaava/file-icons` needs no such thing: the type-only
+    // DOM is in here where `@veistra/file-icons` needs no such thing: the type-only
     // `monaco-editor` import below reaches a declaration file that names
     // `HTMLElement`, `KeyboardEvent` and friends throughout. `skipLibCheck`
     // suppresses errors *inside* that file but does not conjure the globals it

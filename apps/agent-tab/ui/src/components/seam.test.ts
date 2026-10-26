@@ -35,7 +35,7 @@ describe("components", () => {
     );
     const siblings = imports.filter((path) => path.startsWith("./") && !ALLOWED.test(path));
     expect(siblings).toEqual([]);
-    const host = imports.filter((path) => /rpc|@openkaava\/bridge|\/model$/.test(path));
+    const host = imports.filter((path) => /rpc|@veistra\/bridge|\/model$/.test(path));
     expect(host).toEqual([]);
   });
 

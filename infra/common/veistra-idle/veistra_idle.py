@@ -1,0 +1,322 @@
+#!/usr/bin/env python3
+"""Stop this VM when nothing has used it for a while (VEISTRA-PLANE-DESIGN.md §5.1).
+
+    veistra-idle check                 what the systemd timer runs
+    veistra-idle install [--interval]  install the command, the unit and the timer
+
+Generic across VMs: each VM describes its own activity in /etc/veistra-idle.conf.
+"""
+
+import argparse
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+
+CONFIG_PATH = "/etc/veistra-idle.conf"
+INSTALL_PATH = "/usr/local/bin/veistra-idle"
+UNIT_DIR = "/etc/systemd/system"
+STATE_PATH = "/var/lib/veistra-idle/state.json"
+BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id"
+
+DEFAULTS = {
+    "PORTS": "",
+    "IDLE_MINUTES": "30",
+    "MIN_UPTIME_MINUTES": "20",
+    "EXTRA_CHECK": "",
+    "ACTIVITY_COMMAND": "",
+    "PRE_STOP": "",
+    "DRY_RUN": "0",
+}
+
+TCP_ESTABLISHED = "01"
+
+
+def parse_config(text):
+    """Shell-style KEY=VALUE lines. Quotes around a value are stripped; `#` starts a comment line."""
+    config = dict(DEFAULTS)
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        value = value.strip()
+        # An unquoted value may carry a trailing comment, as in the design document's example.
+        if value[:1] in ("'", '"') and value[-1:] == value[:1] and len(value) >= 2:
+            value = value[1:-1]
+        elif " #" in value or "\t#" in value:
+            value = value.split("#", 1)[0].strip()
+        config[key.strip()] = value
+    return config
+
+
+def parse_ports(value):
+    return {int(p) for p in value.replace(",", " ").split() if p.strip()}
+
+
+def established_ports(proc_texts):
+    """Local ports with an ESTABLISHED connection, from /proc/net/tcp and tcp6 contents."""
+    ports = set()
+    for text in proc_texts:
+        for line in text.splitlines()[1:]:
+            fields = line.split()
+            if len(fields) < 4 or fields[3] != TCP_ESTABLISHED:
+                continue
+            ports.add(int(fields[1].rsplit(":", 1)[1], 16))
+    return ports
+
+
+def conntrack_ports(text):
+    """Destination ports of ESTABLISHED TCP flows in /proc/net/nf_conntrack.
+
+    Docker publishes a container port through NAT, so a connection to it lives in the
+    container's network namespace and never shows in the host's /proc/net/tcp. The host's
+    connection tracking still sees the flow; the first dport= is the original destination.
+    """
+    ports = set()
+    for line in text.splitlines():
+        fields = line.split()
+        if "tcp" not in fields or "ESTABLISHED" not in fields:
+            continue
+        for field in fields:
+            if field.startswith("dport="):
+                ports.add(int(field[6:]))
+                break
+    return ports
+
+
+def counter_ports(text, ports):
+    """Ports whose veistra-idle SYN counter, in `iptables -nvxL` output, is above zero: {port: pkts}."""
+    counts = {}
+    for line in text.splitlines():
+        fields = line.split()
+        for port in ports:
+            if f"veistra-idle-{port}" in line and fields and fields[0].isdigit():
+                counts[port] = int(fields[0])
+    return counts
+
+
+def new_connections(previous, current):
+    """Ports that took a connection since the last check, from two counter readings."""
+    return {port for port, count in current.items() if count > previous.get(str(port), 0)}
+
+
+def current_activity(config, open_ports, new_ports, activity_output, extra_check_busy):
+    """Why the VM counts as in use at this check, or None."""
+    watched = parse_ports(config["PORTS"])
+    if watched & open_ports:
+        return "established connection on port " + ",".join(map(str, sorted(watched & open_ports)))
+    if watched & new_ports:
+        return "new connections on port " + ",".join(map(str, sorted(watched & new_ports)))
+    if activity_output and activity_output.strip():
+        return f"activity in the last {config['IDLE_MINUTES']} min"
+    if extra_check_busy:
+        return "EXTRA_CHECK reports busy"
+    return None
+
+
+def decide(config, uptime_minutes, minutes_since_active, active_reason):
+    """The whole busy/idle decision, with every observation passed in. Returns (busy, reason).
+
+    A check sees one instant, and the timer runs every few minutes, so seeing nothing now is not
+    idleness: the VM is idle only when no check has seen activity for IDLE_MINUTES.
+    """
+    min_uptime = float(config["MIN_UPTIME_MINUTES"])
+    idle_minutes = float(config["IDLE_MINUTES"])
+    if uptime_minutes < min_uptime:
+        return True, f"uptime {uptime_minutes:.0f} min is under MIN_UPTIME_MINUTES={min_uptime:g}"
+    if active_reason:
+        return True, active_reason
+    if minutes_since_active < idle_minutes:
+        return True, f"last activity {minutes_since_active:.0f} min ago, under IDLE_MINUTES={idle_minutes:g}"
+    return False, f"no activity for {minutes_since_active:.0f} min"
+
+
+def log(message):
+    line = f"veistra-idle: {message}"
+    print(line, flush=True)
+    # stdout reaches the journal under systemd; logger also tags it for anyone grepping syslog.
+    try:
+        subprocess.run(["logger", "-t", "veistra-idle", message], check=False, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
+def read_uptime_minutes():
+    with open("/proc/uptime") as f:
+        return float(f.read().split()[0]) / 60
+
+
+def read_file(path):
+    try:
+        with open(path) as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def read_open_ports():
+    local = established_ports([read_file("/proc/net/tcp"), read_file("/proc/net/tcp6")])
+    return local | conntrack_ports(read_file("/proc/net/nf_conntrack"))
+
+
+def iptables(*args):
+    return subprocess.run(["iptables", "-w", *args], capture_output=True, text=True, timeout=30)
+
+
+def read_syn_counters(ports):
+    """Counts SYNs to each watched port, so a request that starts and ends between two checks
+    still counts. mangle PREROUTING sees the original port, before Docker's NAT rewrites it.
+    Best effort: without iptables the other signals still apply."""
+    if not ports:
+        return {}
+    try:
+        for port in ports:
+            rule = ["PREROUTING", "-p", "tcp", "--dport", str(port), "--syn",
+                    "-m", "comment", "--comment", f"veistra-idle-{port}"]
+            if iptables("-t", "mangle", "-C", *rule).returncode != 0:
+                made = iptables("-t", "mangle", "-I", *rule)
+                if made.returncode != 0:
+                    log(f"cannot add the SYN counter for port {port}: {made.stderr.strip()}")
+        return counter_ports(iptables("-t", "mangle", "-nvxL", "PREROUTING").stdout, ports)
+    except (OSError, subprocess.SubprocessError) as err:
+        log(f"no SYN counters ({err})")
+        return {}
+
+
+def load_state(path, boot_id):
+    """This boot's state, or an empty one: counters and timestamps do not survive a reboot."""
+    try:
+        with open(path) as f:
+            state = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    return state if state.get("boot_id") == boot_id else {}
+
+
+def save_state(path, state):
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            json.dump(state, f)
+    except OSError as err:
+        log(f"cannot save {path} ({err})")
+
+
+def run_activity(config):
+    command = config["ACTIVITY_COMMAND"]
+    if not command:
+        return ""
+    command = command.replace("{minutes}", config["IDLE_MINUTES"])
+    result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=60)
+    # docker logs writes the proxy's access log to stderr as well as stdout.
+    return (result.stdout or "") + (result.stderr or "")
+
+
+def run_extra_check(config):
+    command = config["EXTRA_CHECK"]
+    if not command:
+        return False
+    return subprocess.run(command, shell=True, timeout=60).returncode == 0
+
+
+def stop(config):
+    pre_stop = config["PRE_STOP"]
+    if pre_stop:
+        log(f"running PRE_STOP: {pre_stop}")
+        try:
+            code = subprocess.run(pre_stop, shell=True, timeout=300).returncode
+            if code != 0:
+                log(f"PRE_STOP exited {code}; stopping anyway")
+        except (OSError, subprocess.SubprocessError) as err:
+            log(f"PRE_STOP failed ({err}); stopping anyway")
+    log("shutting down")
+    subprocess.run(["shutdown", "-h", "now"], check=False)
+
+
+def check(config_path, state_path=STATE_PATH):
+    try:
+        with open(config_path) as f:
+            config = parse_config(f.read())
+    except OSError as err:
+        log(f"no config at {config_path} ({err}); staying up")
+        return 0
+    now, uptime = time.time(), read_uptime_minutes()
+    boot_id = read_file(BOOT_ID_PATH).strip()
+    state = load_state(state_path, boot_id)
+    counters = read_syn_counters(parse_ports(config["PORTS"]))
+    reason_now = current_activity(
+        config,
+        read_open_ports(),
+        new_connections(state.get("syn", {}), counters),
+        run_activity(config),
+        run_extra_check(config),
+    )
+    last_active = now if reason_now else state.get("last_active", now - uptime * 60)
+    save_state(state_path, {"boot_id": boot_id, "last_active": last_active,
+                            "syn": {str(p): c for p, c in counters.items()}})
+    busy, reason = decide(config, uptime, (now - last_active) / 60, reason_now)
+    if busy:
+        log(f"busy: {reason}")
+        return 0
+    if config["DRY_RUN"] == "1":
+        log(f"idle: {reason} (DRY_RUN, not stopping)")
+        return 0
+    log(f"idle: {reason}")
+    stop(config)
+    return 0
+
+
+SERVICE_UNIT = """[Unit]
+Description=Stop this VM when it has been idle (veistra-idle)
+
+[Service]
+Type=oneshot
+ExecStart={path} check
+"""
+
+TIMER_UNIT = """[Unit]
+Description=Check this VM for idleness (veistra-idle)
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec={interval}
+
+[Install]
+WantedBy=timers.target
+"""
+
+
+def install(interval):
+    source = os.path.abspath(__file__)
+    if source != INSTALL_PATH:
+        shutil.copyfile(source, INSTALL_PATH)
+    os.chmod(INSTALL_PATH, 0o755)
+    with open(os.path.join(UNIT_DIR, "veistra-idle.service"), "w") as f:
+        f.write(SERVICE_UNIT.format(path=INSTALL_PATH))
+    with open(os.path.join(UNIT_DIR, "veistra-idle.timer"), "w") as f:
+        f.write(TIMER_UNIT.format(interval=interval))
+    subprocess.run(["systemctl", "daemon-reload"], check=True)
+    subprocess.run(["systemctl", "enable", "--now", "veistra-idle.timer"], check=True)
+    if not os.path.exists(CONFIG_PATH):
+        print(f"veistra-idle: installed; write {CONFIG_PATH} or every check stays up")
+    return 0
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(prog="veistra-idle")
+    sub = parser.add_subparsers(dest="command", required=True)
+    p_check = sub.add_parser("check", help="stop the VM if it is idle")
+    p_check.add_argument("--config", default=CONFIG_PATH)
+    p_install = sub.add_parser("install", help="install the command and the systemd timer")
+    p_install.add_argument("--interval", default="5min")
+    args = parser.parse_args(argv)
+    if args.command == "check":
+        return check(args.config)
+    return install(args.interval)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

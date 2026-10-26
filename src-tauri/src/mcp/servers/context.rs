@@ -1,10 +1,10 @@
-//! `kaava-context`: references, both ways. The agent finds, reads and shows
+//! `veistra-context`: references, both ways. The agent finds, reads and shows
 //! the person files, canvas frames, comments, screenshots and assets by
-//! `kaava://` reference (`docs/design/KAAVA-CONTEXT-REFS.md`), and reads what
+//! `veistra://` reference (`docs/design/VEISTRA-CONTEXT-REFS.md`), and reads what
 //! the person has selected.
 //!
 //! What earns it a server (see [`super`]): most of what a reference names
-//! exists only inside Kaava, such as a frame, a Design Mode comment or the
+//! exists only inside Veistra, such as a frame, a Design Mode comment or the
 //! selection, and `show` puts a reference in front of the person, which no
 //! file tool does. File references are here so one scheme covers everything;
 //! plain files are still better read with the agent's own tools.
@@ -15,7 +15,7 @@
 use super::{workspace, McpResource};
 use crate::apps::CallContext;
 use crate::mcp::{McpServer, McpTool, ToolAnswer};
-use crate::refs::catalogue::{self, Component, KaavaShow};
+use crate::refs::catalogue::{self, Component, VeistraShow};
 use crate::refs::comments::{self, Wanted};
 use crate::refs::fault::{Fault, Reason};
 use crate::refs::live::{self, Actor};
@@ -23,11 +23,11 @@ use crate::refs::read::blocks;
 use crate::refs::search::{self, Query};
 use crate::refs::uri::{self, CanvasPart, Ref};
 use crate::shell_state::ShellState;
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde_json::{json, Map, Value};
 use tauri::{AppHandle, Manager};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 
-/// The server id: the route `/mcp/context` and the key `kaava-context`.
+/// The server id: the route `/mcp/context` and the key `veistra-context`.
 pub const ID: &str = "context";
 
 /// Longest note `resolve_comment` writes, in characters: a sentence or two
@@ -38,7 +38,7 @@ pub static SERVER: McpServer = McpServer {
     id: ID,
     name: "Context",
     description: "References, both ways: find, read and show the person files, canvas frames, \
-                  comments, screenshots and assets by kaava:// reference, and read what they \
+                  comments, screenshots and assets by veistra:// reference, and read what they \
                   have selected.",
     tools: TOOLS,
     call,
@@ -60,7 +60,7 @@ fn show_schema() -> Value {
             "refs": {
                 "type": "array", "minItems": 1, "maxItems": catalogue::MAX_SHOWN,
                 "items": { "type": "string" },
-                "description": "kaava:// references, shown in this order.",
+                "description": "veistra:// references, shown in this order.",
             },
             "caption": { "type": "string", "description": "One line above them." },
         }),
@@ -83,7 +83,7 @@ fn show_component_schema() -> Value {
 
 fn read_schema() -> Value {
     schema(
-        json!({ "uri": { "type": "string", "description": "A kaava:// reference." } }),
+        json!({ "uri": { "type": "string", "description": "A veistra:// reference." } }),
         &["uri"],
     )
 }
@@ -126,7 +126,7 @@ fn comments_schema() -> Value {
 fn resolve_schema() -> Value {
     schema(
         json!({
-            "uri": { "type": "string", "description": "The comment's kaava:// reference." },
+            "uri": { "type": "string", "description": "The comment's veistra:// reference." },
             "note": { "type": "string", "description": "What you did about it, for the person." },
         }),
         &["uri", "note"],
@@ -153,13 +153,13 @@ const TOOLS: &[McpTool] = &[
         description: "Show the person one to eight references inline, beside your reply: a file \
                       or lines of it, an image or model, a canvas frame, a comment and its \
                       screenshot. Use it when seeing the thing helps more than describing it. \
-                      References look like kaava://file/src/main.gd#L10-L20.",
+                      References look like veistra://file/src/main.gd#L10-L20.",
         schema: show_schema,
     },
     McpTool {
         name: "show_component",
         description: "Show the person a component beside your reply, when a structured view says \
-                      it better than prose. `body` and `detail` are markdown; refs are kaava:// \
+                      it better than prose. `body` and `detail` are markdown; refs are veistra:// \
                       references, drawn as chips. `?` marks an optional prop.\n\
                       - callout {tone: note|tip|warning|danger, title?, body, refs?: up to 8}\n\
                       - steps {title?, steps: [{title, body?, status?: \
@@ -183,7 +183,7 @@ const TOOLS: &[McpTool] = &[
     },
     McpTool {
         name: "read",
-        description: "Read a kaava:// reference: a file's lines, an image, a model's facts, a \
+        description: "Read a veistra:// reference: a file's lines, an image, a model's facts, a \
                       canvas's frames, a frame's properties and picture, a comment and its \
                       screenshot. Secrets and gitignored files are withheld and say why.",
         schema: read_schema,
@@ -192,7 +192,7 @@ const TOOLS: &[McpTool] = &[
         name: "search_context",
         description: "Find things in the person's project by name: files and folders, canvases \
                       and frames, viewer and Design Mode comments, context items and the \
-                      selection. Each hit is a kaava:// reference to `read` or `show`. Names, \
+                      selection. Each hit is a veistra:// reference to `read` or `show`. Names, \
                       not file contents: search inside files with your own tools. A comment is \
                       found by what it says.",
         schema: search_schema,
@@ -201,13 +201,13 @@ const TOOLS: &[McpTool] = &[
         name: "list_comments",
         description: "The comments the person left for you in the 3D and scene viewers, on \
                       canvases and in Design Mode, open ones unless you ask. Each has a \
-                      kaava:// reference: `read` it for the whole comment and its screenshot.",
+                      veistra:// reference: `read` it for the whole comment and its screenshot.",
         schema: comments_schema,
     },
     McpTool {
         name: "resolve_comment",
         description: "Close a comment with a note saying what you did, once the work is done. \
-                      Takes the comment's kaava:// reference from `list_comments`.",
+                      Takes the comment's veistra:// reference from `list_comments`.",
         schema: resolve_schema,
     },
     McpTool {
@@ -220,13 +220,13 @@ const TOOLS: &[McpTool] = &[
     McpTool {
         name: "get_canvas_node",
         description: "One frame of a canvas by id or exact name: its type, properties, text and \
-                      picture. The same as reading kaava://canvas/<canvas>#frame=<node>.",
+                      picture. The same as reading veistra://canvas/<canvas>#frame=<node>.",
         schema: node_schema,
     },
 ];
 
 /// The selection, published so a client can subscribe to it.
-pub const SELECTION_URI: &str = "kaava://selection";
+pub const SELECTION_URI: &str = "veistra://selection";
 
 pub static RESOURCES: &[McpResource] = &[McpResource {
     uri: SELECTION_URI,
@@ -240,27 +240,27 @@ pub static RESOURCES: &[McpResource] = &[McpResource {
 /// Every other reference reads as a resource too; these say how to write one.
 pub static TEMPLATES: &[McpResource] = &[
     template(
-        "kaava://file/{+path}",
+        "veistra://file/{+path}",
         "file",
         "A file or folder in the project. Add #L10-L20 for some lines.",
     ),
     template(
-        "kaava://canvas/{+id}",
+        "veistra://canvas/{+id}",
         "canvas",
         "A canvas and its frames. Add #frame=<id> for one frame, #comment=<id> for a comment.",
     ),
     template(
-        "kaava://comment/{id}",
+        "veistra://comment/{id}",
         "comment",
         "A comment left in a viewer, with its screenshot.",
     ),
     template(
-        "kaava://design-comment/{id}",
+        "veistra://design-comment/{id}",
         "design-comment",
         "A Design Mode comment, with its screenshot.",
     ),
     template(
-        "kaava://context/{id}",
+        "veistra://context/{id}",
         "context",
         "An item in the context store.",
     ),
@@ -457,7 +457,7 @@ fn show(
 ) -> Result<ToolAnswer, RpcError> {
     let refs = strings(args, "refs")?
         .filter(|refs| !refs.is_empty())
-        .ok_or_else(|| bad("`refs` needs at least one kaava:// reference"))?;
+        .ok_or_else(|| bad("`refs` needs at least one veistra:// reference"))?;
     let props = json!({ "refs": refs, "caption": args.get("caption") });
     present(app, ctx, Component::parse("refs", &props).map_err(bad)?)
 }
@@ -495,7 +495,7 @@ fn checked(app: &AppHandle, ctx: &CallContext, given: &str) -> Result<Ref, (Stri
     Ok(r)
 }
 
-/// The answer: `{kaavaShow: {version, component, props}}`, which the agent
+/// The answer: `{veistraShow: {version, component, props}}`, which the agent
 /// host lifts off this server's tool result for the tab to draw, and the
 /// references dropped from the props, each with its reason word and why.
 /// A `refs` component left with none is refused; any other is still shown.
@@ -507,11 +507,11 @@ fn show_answer(shown: Component, failed: Vec<(String, Fault)>) -> Result<Value, 
             .collect();
         return Err(bad(format!("nothing to show. {}", reasons.join("; "))));
     }
-    let marker = KaavaShow {
+    let marker = VeistraShow {
         version: catalogue::VERSION,
         shown,
     };
-    let mut answer = json!({ "kaavaShow": marker });
+    let mut answer = json!({ "veistraShow": marker });
     if !failed.is_empty() {
         let failed: Vec<Value> = failed
             .iter()
@@ -537,31 +537,34 @@ mod tests {
 
     fn missing() -> Vec<(String, Fault)> {
         let why = Fault::new(Reason::Missing, "no such file");
-        vec![("kaava://file/gone.gd".to_string(), why)]
+        vec![("veistra://file/gone.gd".to_string(), why)]
     }
 
     #[test]
     fn show_answers_with_the_marker_the_tab_draws_from() {
-        let shown = refs(&["kaava://file/a.gd", "kaava://selection"], Some("Here"));
+        let shown = refs(
+            &["veistra://file/a.gd", "veistra://selection"],
+            Some("Here"),
+        );
         let answer = show_answer(shown, Vec::new()).unwrap();
         assert_eq!(
             answer,
-            json!({ "kaavaShow": {
+            json!({ "veistraShow": {
                 "component": "refs",
                 "version": 1,
-                "props": { "refs": ["kaava://file/a.gd", "kaava://selection"], "caption": "Here" },
+                "props": { "refs": ["veistra://file/a.gd", "veistra://selection"], "caption": "Here" },
             }})
         );
     }
 
     #[test]
     fn show_draws_what_it_can_and_names_what_it_cannot() {
-        let answer = show_answer(refs(&["kaava://file/a.gd"], None), missing()).unwrap();
+        let answer = show_answer(refs(&["veistra://file/a.gd"], None), missing()).unwrap();
         assert_eq!(
-            answer["kaavaShow"]["props"]["refs"],
-            json!(["kaava://file/a.gd"])
+            answer["veistraShow"]["props"]["refs"],
+            json!(["veistra://file/a.gd"])
         );
-        assert!(answer["kaavaShow"]["props"].get("caption").is_none());
+        assert!(answer["veistraShow"]["props"].get("caption").is_none());
         assert_eq!(answer["failed"][0]["reason"], "missing");
         assert_eq!(answer["failed"][0]["message"], "no such file");
         let none = show_answer(refs(&[], None), missing()).unwrap_err();
@@ -577,9 +580,9 @@ mod tests {
         let props = json!({ "tone": "warning", "body": "Check these.", "refs": [] });
         let shown = Component::parse("callout", &props).unwrap();
         let answer = show_answer(shown, missing()).unwrap();
-        assert_eq!(answer["kaavaShow"]["component"], "callout");
-        assert_eq!(answer["kaavaShow"]["props"]["refs"], json!([]));
-        assert_eq!(answer["failed"][0]["uri"], "kaava://file/gone.gd");
+        assert_eq!(answer["veistraShow"]["component"], "callout");
+        assert_eq!(answer["veistraShow"]["props"]["refs"], json!([]));
+        assert_eq!(answer["failed"][0]["uri"], "veistra://file/gone.gd");
     }
 
     #[test]
@@ -619,7 +622,7 @@ mod tests {
         );
         let over = "x".repeat(MAX_NOTE + 1);
         let err = note(&args(json!({ "note": over }))).unwrap_err();
-        assert_eq!(err.code, kaava_rpc::INVALID_PARAMS);
+        assert_eq!(err.code, veistra_rpc::INVALID_PARAMS);
         assert!(note(&args(json!({ "note": "   " }))).is_err());
     }
 }

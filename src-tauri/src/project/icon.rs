@@ -1,9 +1,9 @@
-//! A project's own icon: an image at `.kaava/icon.<ext>`, drawn wherever the
+//! A project's own icon: an image at `.veistra/icon.<ext>`, drawn wherever the
 //! shell would otherwise draw the project's initial on a coloured tile.
 //!
-//! The file lives in the project, not in OpenKaava's settings, so it travels
+//! The file lives in the project, not in Veistra's settings, so it travels
 //! with the folder: commit it and everyone who opens the project sees the same
-//! icon. `.kaava/` is [`super::TRACE_DIR`], the directory OpenKaava already
+//! icon. `.veistra/` is [`super::TRACE_DIR`], the directory Veistra already
 //! owns inside a project.
 //!
 //! The webview is handed a `data:` URL rather than a path. An `<img>` in the
@@ -182,7 +182,7 @@ mod tests {
     }
 
     #[test]
-    fn setting_copies_into_kaava_and_replaces_the_old_icon() {
+    fn setting_copies_into_veistra_and_replaces_the_old_icon() {
         let project = tempfile::tempdir().unwrap();
         let dir = icon_dir(project.path());
         std::fs::write(dir.join("icon.png"), PNG).unwrap();
@@ -201,10 +201,10 @@ mod tests {
         assert!(source.exists());
     }
 
-    /// `.kaava/` does not exist in a folder that has never been opened as a
+    /// `.veistra/` does not exist in a folder that has never been opened as a
     /// project. Setting an icon is allowed to be the thing that creates it.
     #[test]
-    fn setting_creates_the_kaava_directory() {
+    fn setting_creates_the_veistra_directory() {
         let project = tempfile::tempdir().unwrap();
         let picked = tempfile::tempdir().unwrap();
         let source = picked.path().join("icon.png");

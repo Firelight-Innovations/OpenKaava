@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import { onThemeChanged } from "@openkaava/bridge/theme";
+import { onThemeChanged } from "@veistra/bridge/theme";
 // See the note in `apps/home/ui/src/main.tsx`: root-relative so Vite resolves
 // both against the project root, and so an app draws from the shell's palette
 // rather than a copy of it.

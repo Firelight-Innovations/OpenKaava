@@ -21,7 +21,7 @@ import "./frame.css";
  * being resized is the *split*, not the page. The page receives a box.
  */
 
-/** The project-page rail's fixed width (`docs/design/KAAVA-UX-SPEC.md` §1.7).
+/** The project-page rail's fixed width (`docs/design/VEISTRA-UX-SPEC.md` §1.7).
  *  It never resizes or collapses — six page buttons are the whole of it. Not
  *  in `tokens.json`; the common brief's instructions are to define a missing
  *  geometry token locally and say so in the PR, which this is. */
@@ -423,7 +423,7 @@ export default function Frame({
             page — ONE rounded card, so a page pulling out of the rail widens
             the card leftward rather than floating beside a second one. It sits
             outside the hidden wrapper on purpose: an expanded page still shows
-            the rail (`docs/design/KAAVA-UX-SPEC.md` §1.8: "the rail
+            the rail (`docs/design/VEISTRA-UX-SPEC.md` §1.8: "the rail
             persist[s]"), and the rail is a fixed width, never a split. An
             expanded page is positioned against the split row rather than this
             box (see `frame.css`), so it can span the panes while the rail

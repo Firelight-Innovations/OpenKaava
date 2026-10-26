@@ -1,7 +1,7 @@
 /**
  * The harnesses the settings menu lists, each with the models it offers.
- * The menu shows Claude, Codex and Kaava in that order. One the host does
- * not report reads "Coming soon": Kaava is our own harness and still being
+ * The menu shows Claude, Codex and Veistra in that order. One the host does
+ * not report reads "Coming soon": Veistra is our own harness and still being
  * built. The harness in use is never locked, even before the host's answer
  * arrives.
  */
@@ -10,7 +10,7 @@ import type { HarnessChoice, PickerChoice } from "./components/types";
 import { strings } from "./strings";
 
 /** The menu's order. A harness the host reports beyond these follows them. */
-export const HARNESSES = ["claude", "codex", "kaava"];
+export const HARNESSES = ["claude", "codex", "veistra"];
 
 /** The running session's model setting: what it offers and what it runs. */
 export interface RunningModel {

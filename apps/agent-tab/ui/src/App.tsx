@@ -21,7 +21,7 @@ import {
   useExternalStoreRuntime,
   type AppendMessage,
 } from "@assistant-ui/react";
-import { reportPainted } from "@openkaava/bridge";
+import { reportPainted } from "@veistra/bridge";
 import type {
   Attachment,
   ConfigOption,

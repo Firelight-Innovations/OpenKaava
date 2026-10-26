@@ -27,7 +27,7 @@ export interface CanvasScene {
   files: Record<string, unknown>;
 }
 
-export const FRAME_ELEMENT_ID = "kaava-markup-frame";
+export const FRAME_ELEMENT_ID = "veistra-markup-frame";
 
 /**
  * @param imageFileId The id the caller will register the frame's bytes under.
@@ -82,7 +82,7 @@ export function toCanvasScene(
   return {
     type: "excalidraw",
     version: 2,
-    source: "kaava-markup",
+    source: "veistra-markup",
     elements: [frame, ...ink],
     appState: {},
     files: {},

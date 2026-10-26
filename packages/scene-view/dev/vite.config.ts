@@ -5,7 +5,7 @@ import react from "@vitejs/plugin-react";
 
 /**
  * A stand-alone page for looking at `<SceneView>` before an app uses it:
- * `pnpm --filter @kaava/scene-view harness`. Not part of the app build and
+ * `pnpm --filter @veistra/scene-view harness`. Not part of the app build and
  * not on port 1420, which belongs to `pnpm app`. `strictPort` is off, as it is
  * for `pnpm dev:agent`, so parallel agents step up instead of colliding.
  */

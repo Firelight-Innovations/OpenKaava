@@ -1,11 +1,11 @@
-# OpenKaava's headless Blender export. Run as:
+# Veistra's headless Blender export. Run as:
 #
 #   blender -b <file.blend> --disable-autoexec --python-exit-code 1 --python export.py
 #
-# It reads its job from KAAVA_BLENDER_* environment variables (never argv, so
-# there is nothing to quote), writes everything into KAAVA_BLENDER_OUT, and
+# It reads its job from VEISTRA_BLENDER_* environment variables (never argv, so
+# there is nothing to quote), writes everything into VEISTRA_BLENDER_OUT, and
 # never saves the .blend. Progress goes to stdout as
-#   KAAVA_PROGRESS <step>/<total> <label>
+#   VEISTRA_PROGRESS <step>/<total> <label>
 # and the final answer is <out>/result.json.
 #
 # Every stage is wrapped on its own: a scene with no camera-worthy geometry, or
@@ -21,10 +21,10 @@ import traceback
 import bpy
 from mathutils import Vector
 
-OUT = os.environ["KAAVA_BLENDER_OUT"]
-ENGINE = os.environ.get("KAAVA_BLENDER_ENGINE", "workbench")
-RES = int(os.environ.get("KAAVA_BLENDER_RES", "512"))
-VIEWS = [v for v in os.environ.get("KAAVA_BLENDER_VIEWS", "front,three-quarter,side,wire").split(",") if v]
+OUT = os.environ["VEISTRA_BLENDER_OUT"]
+ENGINE = os.environ.get("VEISTRA_BLENDER_ENGINE", "workbench")
+RES = int(os.environ.get("VEISTRA_BLENDER_RES", "512"))
+VIEWS = [v for v in os.environ.get("VEISTRA_BLENDER_VIEWS", "front,three-quarter,side,wire").split(",") if v]
 
 # (id, label, azimuth degrees from -Y toward +X, elevation degrees, wireframe)
 VIEW_TABLE = {
@@ -50,7 +50,7 @@ step = 0
 def progress(label):
     global step
     step += 1
-    print("KAAVA_PROGRESS %d/%d %s" % (step, total_steps, label), flush=True)
+    print("VEISTRA_PROGRESS %d/%d %s" % (step, total_steps, label), flush=True)
 
 
 def mesh_objects(scene):
@@ -208,8 +208,8 @@ def render_views(scene, bounds):
     center = (lo + hi) / 2
     radius = max((hi - lo).length / 2, 0.001)
 
-    cam_data = bpy.data.cameras.new("kaava_cam")
-    cam = bpy.data.objects.new("kaava_cam", cam_data)
+    cam_data = bpy.data.cameras.new("veistra_cam")
+    cam = bpy.data.objects.new("veistra_cam", cam_data)
     scene.collection.objects.link(cam)
     scene.camera = cam
     cam_data.lens = 50
@@ -218,9 +218,9 @@ def render_views(scene, bounds):
 
     sun = None
     if ENGINE != "workbench" and not any(o.type == "LIGHT" for o in scene.objects):
-        sun_data = bpy.data.lights.new("kaava_sun", "SUN")
+        sun_data = bpy.data.lights.new("veistra_sun", "SUN")
         sun_data.energy = 3.0
-        sun = bpy.data.objects.new("kaava_sun", sun_data)
+        sun = bpy.data.objects.new("veistra_sun", sun_data)
         sun.rotation_euler = (math.radians(50), 0, math.radians(30))
         scene.collection.objects.link(sun)
 

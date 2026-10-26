@@ -5,14 +5,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const invoke = vi.hoisted(() => vi.fn());
-vi.mock("@openkaava/bridge", () => ({ invoke }));
+vi.mock("@veistra/bridge", () => ({ invoke }));
 
-import type { MarkupJson } from "@kaava/markup";
+import type { MarkupJson } from "@veistra/markup";
 import { BLENDER_TARGET, GODOT_TARGET, putMarkup, putMarkupItems, sendMarkup } from "./markupFlow";
 
 const markup: MarkupJson = {
   version: 1,
-  source: { kind: "scene", glb: ".kaava/blender/bed.glb" },
+  source: { kind: "scene", glb: ".veistra/blender/bed.glb" },
   size: { width: 640, height: 360 },
   pins: [{ n: 1, note: "thinner", nodePath: "Bed/Frame" }],
   annotations: [],

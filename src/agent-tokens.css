@@ -1,12 +1,12 @@
 /*
  * The agent surface's design tokens: the agent tab (apps/agent-tab). Its
  * components read only the `--k-*` names below, and this file is the one place
- * that says which Kaava token each one is. Restyle the agent UI here, not in a
+ * that says which Veistra token each one is. Restyle the agent UI here, not in a
  * component.
  *
- * Every value is a Kaava token or a size, never a hex, so the shell's live
+ * Every value is a Veistra token or a size, never a hex, so the shell's live
  * theme and accent carry straight through: light and dark come from
- * `src/tokens.css`. It sits beside that file, as `src/kaava-ui.css` does, so a
+ * `src/tokens.css`. It sits beside that file, as `src/veistra-ui.css` does, so a
  * shell surface can load it again without importing an app's source.
  *
  * A few tokens (`--k-accent-subtle`, `--k-shadow-card`, `--k-text-small`, `--k-control-md`,

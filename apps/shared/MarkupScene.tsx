@@ -12,22 +12,22 @@
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PenLine } from "lucide-react";
-import { SceneView } from "@kaava/scene-view";
-import type { SceneViewHandle } from "@kaava/scene-view";
-import { poseMatches, sceneHost } from "@kaava/markup";
-import type { CameraPose } from "@kaava/markup";
-import type { MarkupController, MarkupExport } from "@kaava/markup/layer";
+import { SceneView } from "@veistra/scene-view";
+import type { SceneViewHandle } from "@veistra/scene-view";
+import { poseMatches, sceneHost } from "@veistra/markup";
+import type { CameraPose } from "@veistra/markup";
+import type { MarkupController, MarkupExport } from "@veistra/markup/layer";
 import { projectRelative } from "./sceneNodes";
 import "./markup.css";
 
 /** The layer exports a named component; `lazy` wants a default. */
 const MarkupLayer = lazy(() =>
-  import("@kaava/markup/layer").then((m) => ({ default: m.MarkupLayer })),
+  import("@veistra/markup/layer").then((m) => ({ default: m.MarkupLayer })),
 );
 
 export interface MarkupSceneProps {
   glb: ArrayBuffer;
-  /** Absolute path of the glb; the markup JSON records it relative to `.kaava`. */
+  /** Absolute path of the glb; the markup JSON records it relative to `.veistra`. */
   glbPath: string;
   /** What the markup JSON says about where this came from: `engine`, the scene or `.blend`, a version. */
   extra: Record<string, string>;

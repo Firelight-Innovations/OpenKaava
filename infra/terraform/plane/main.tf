@@ -1,9 +1,9 @@
-# Plane CE, the AGDP work tracker (docs/design/OPENKAAVA-PLANE-DESIGN.md, ORC-ARC-005..008).
+# Plane CE, the AGDP work tracker (docs/design/VEISTRA-PLANE-DESIGN.md, ORC-ARC-005..008).
 #
 # One small VM runs Plane's release images, unmodified, from Plane's own compose file. It has no
 # public IP: the laptop reaches it through an IAP tunnel and agent VMs through the VPC, both at
-# http://plane.kaava.internal:8765. It stops itself when nobody has used it for 30 minutes and
-# anyone with the kaavaWaker role starts it again (kaava-wake plane), so it bills for about the
+# http://plane.veistra.internal:8765. It stops itself when nobody has used it for 30 minutes and
+# anyone with the veistraWaker role starts it again (veistra-wake plane), so it bills for about the
 # hours it is used plus two small disks.
 #
 # Nothing about Plane is in an image. The VM boots stock Ubuntu; boot.sh arrives as the startup
@@ -44,11 +44,11 @@ variable "idle_minutes" {
 variable "worker_instance" {
   type        = string
   description = "The agent VM plane-watch starts when it queues an AI job (section 5.2)."
-  default     = "kaava-worker"
+  default     = "veistra-worker"
 }
 
 locals {
-  domain = "plane.kaava.internal"
+  domain = "plane.veistra.internal"
   port   = 8765
   url    = "http://${local.domain}:${local.port}"
 
@@ -58,9 +58,9 @@ locals {
   generated = ["secret-key", "live-secret-key", "postgres-password", "rabbitmq-password", "minio-secret"]
   # Sign-in passwords for the three Plane users (section 3), used by first_run.py. Only the owner
   # can read them; plane-vm is not granted these.
-  accounts = ["owner-password", "agent-password", "kaava-password"]
+  accounts = ["owner-password", "agent-password", "veistra-password"]
   # Personal access tokens only exist after first-run setup; first_run.py adds their values.
-  tokens = ["pat-agent", "pat-kaava"]
+  tokens = ["pat-agent", "pat-veistra"]
 
   secrets = merge(
     { for s in concat(local.generated, local.accounts) : "plane-${s}" => true },
@@ -76,17 +76,17 @@ provider "google" {
   zone    = var.zone
 }
 
-data "google_compute_network" "kaava" {
-  name = "kaava"
+data "google_compute_network" "veistra" {
+  name = "veistra"
 }
 
-data "google_compute_subnetwork" "kaava" {
-  name   = "kaava-${var.region}"
+data "google_compute_subnetwork" "veistra" {
+  name   = "veistra-${var.region}"
   region = var.region
 }
 
 data "google_service_account" "agent" {
-  account_id = "kaava-agent"
+  account_id = "veistra-agent"
 }
 
 resource "google_service_account" "plane" {
@@ -131,7 +131,7 @@ resource "google_secret_manager_secret_version" "plane" {
 # plane-vm reads its own settings and plane-watch's token; agent VMs read the agent token for the
 # Plane MCP server. The owner reads plane-dev-* as project owner.
 resource "google_secret_manager_secret_iam_member" "plane_vm" {
-  for_each  = toset(concat([for s in local.generated : "plane-${s}"], ["plane-pat-kaava"]))
+  for_each  = toset(concat([for s in local.generated : "plane-${s}"], ["plane-pat-veistra"]))
   secret_id = google_secret_manager_secret.plane[each.value].id
   role      = "roles/secretmanager.secretAccessor"
   member    = google_service_account.plane.member
@@ -148,14 +148,14 @@ resource "google_secret_manager_secret_iam_member" "agent" {
 resource "google_compute_address" "plane" {
   name         = "plane-vm"
   address_type = "INTERNAL"
-  subnetwork   = data.google_compute_subnetwork.kaava.self_link
+  subnetwork   = data.google_compute_subnetwork.veistra.self_link
 }
 
 # Rules target the service account, not the `plane` tag: a rule that admits agent VMs by their
 # service account must name its target the same way.
 resource "google_compute_firewall" "plane_iap" {
-  name                    = "kaava-plane-iap"
-  network                 = data.google_compute_network.kaava.self_link
+  name                    = "veistra-plane-iap"
+  network                 = data.google_compute_network.veistra.self_link
   source_ranges           = ["35.235.240.0/20"]
   target_service_accounts = [google_service_account.plane.email]
   allow {
@@ -165,8 +165,8 @@ resource "google_compute_firewall" "plane_iap" {
 }
 
 resource "google_compute_firewall" "plane_agents" {
-  name                    = "kaava-plane-agents"
-  network                 = data.google_compute_network.kaava.self_link
+  name                    = "veistra-plane-agents"
+  network                 = data.google_compute_network.veistra.self_link
   source_service_accounts = [data.google_service_account.agent.email]
   target_service_accounts = [google_service_account.plane.email]
   allow {
@@ -176,13 +176,13 @@ resource "google_compute_firewall" "plane_agents" {
 }
 
 resource "google_dns_managed_zone" "internal" {
-  name        = "kaava-internal"
-  dns_name    = "kaava.internal."
-  description = "Private names for OpenKaava services on the kaava VPC"
+  name        = "veistra-internal"
+  dns_name    = "veistra.internal."
+  description = "Private names for Veistra services on the veistra VPC"
   visibility  = "private"
   private_visibility_config {
     networks {
-      network_url = data.google_compute_network.kaava.id
+      network_url = data.google_compute_network.veistra.id
     }
   }
 }
@@ -254,7 +254,7 @@ resource "google_compute_instance" "plane" {
 
   # No access_config: no external IP. Images pull through the VPC's existing Cloud NAT (A2.3).
   network_interface {
-    subnetwork = data.google_compute_subnetwork.kaava.self_link
+    subnetwork = data.google_compute_subnetwork.veistra.self_link
     network_ip = google_compute_address.plane.address
   }
 
@@ -276,12 +276,12 @@ resource "google_compute_instance" "plane" {
     plane-compose-override = file("${path.module}/../../plane/compose.override.yaml")
     plane-env-tmpl         = file("${path.module}/../../plane/plane.env.tmpl")
     plane-render-env       = file("${path.module}/../../plane/render_env.py")
-    kaava-idle             = file("${path.module}/../../common/kaava-idle/kaava_idle.py")
-    kaava-idle-minutes     = tostring(var.idle_minutes)
+    veistra-idle           = file("${path.module}/../../common/veistra-idle/veistra_idle.py")
+    veistra-idle-minutes   = tostring(var.idle_minutes)
     plane-watch            = file("${path.module}/../../../services/plane-watch/plane_watch.py")
     plane-watch-compose    = file("${path.module}/../../../services/plane-watch/compose.yaml")
-    kaava-worker           = var.worker_instance
-    kaava-worker-zone      = var.zone
+    veistra-worker         = var.worker_instance
+    veistra-worker-zone    = var.zone
     plane-url              = local.url
     plane-domain           = local.domain
   }
@@ -297,9 +297,9 @@ resource "google_compute_instance" "plane" {
 # --- Waking (A3.3) --------------------------------------------------------------------------
 
 resource "google_project_iam_custom_role" "waker" {
-  role_id     = "kaavaWaker"
-  title       = "Kaava waker"
-  description = "Start a stopped OpenKaava VM and read its state. Nothing else."
+  role_id     = "veistraWaker"
+  title       = "Veistra waker"
+  description = "Start a stopped Veistra VM and read its state. Nothing else."
   permissions = ["compute.instances.get", "compute.instances.start"]
 }
 
@@ -319,7 +319,7 @@ resource "google_compute_instance_iam_member" "plane_wakes_worker" {
   member        = google_service_account.plane.member
 }
 
-# plane-watch writes job files; kaava-agent's grant on this bucket is in registry/.
+# plane-watch writes job files; veistra-agent's grant on this bucket is in registry/.
 resource "google_storage_bucket_iam_member" "projects" {
   bucket = "veistra-projects"
   role   = "roles/storage.objectAdmin"

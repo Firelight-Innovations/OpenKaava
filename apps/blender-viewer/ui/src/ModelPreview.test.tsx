@@ -36,7 +36,7 @@ function mount(over: Partial<ModelPreviewProps> = {}) {
   const props: ModelPreviewProps = {
     blend: "C:/p/bed.blend",
     rel: "bed.blend",
-    model: "C:/p/.kaava/blender/bed/model.glb",
+    model: "C:/p/.veistra/blender/bed/model.glb",
     exportedAt: 1,
     blenderVersion: "4.2",
     stale: false,
@@ -81,7 +81,7 @@ describe("ModelPreview", () => {
     await screen.findByText("stage");
     expect(h.getGlb).toHaveBeenCalledWith("C:/p/bed.blend");
     const given = lastProps();
-    expect(given.glbPath).toBe("C:/p/.kaava/blender/bed/model.glb");
+    expect(given.glbPath).toBe("C:/p/.veistra/blender/bed/model.glb");
     expect(given.extra).toEqual({ engine: "blender", blend: "bed.blend", blender: "4.2" });
     expect(given.selectedPath).toBe("Bed/Frame");
     expect(given.markupDisabled).toBeNull();

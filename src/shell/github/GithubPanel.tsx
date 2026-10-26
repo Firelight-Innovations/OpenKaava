@@ -603,7 +603,7 @@ function SignIn({
         </button>
       </div>
       <p className="github__emptydetail">
-        Stored in Windows Credential Manager, not in OpenKaava&apos;s settings file.
+        Stored in Windows Credential Manager, not in Veistra&apos;s settings file.
       </p>
       {error && (
         <p className="github__failure" role="alert">

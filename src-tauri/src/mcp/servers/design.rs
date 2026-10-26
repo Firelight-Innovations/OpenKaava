@@ -17,9 +17,9 @@ use crate::design_comments::{Author, Comment, Comments, Status};
 use crate::mcp::{McpServer, McpTool, ToolAnswer};
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine as _;
-use kaava_rpc::{RpcError, INVALID_PARAMS};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager};
+use veistra_rpc::{RpcError, INVALID_PARAMS};
 
 pub static SERVER: McpServer = McpServer {
     id: "design",
@@ -164,7 +164,7 @@ fn call(app: &AppHandle, tool: &str, params: Option<Value>) -> Result<ToolAnswer
             speak(app, &params, Author::Agent, &question, Status::Question).map(Into::into)
         }
         other => Err(RpcError::new(
-            kaava_rpc::METHOD_NOT_FOUND,
+            veistra_rpc::METHOD_NOT_FOUND,
             format!("the design server has no tool named `{other}`"),
         )),
     }

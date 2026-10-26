@@ -2,7 +2,7 @@
  * Asset spec cards (P7-4) and the asset list built from them (P7-5).
  *
  * `docs/cloud-services.md` §4 fixes the card: an element carrying
- * `customData.kaava.spec = { name, reference_images, size_m, triangle_budget,
+ * `customData.veistra.spec = { name, reference_images, size_m, triangle_budget,
  * style_notes }`. `status` is added here as the card's own review state; the
  * document joins the cloud artifact's status instead, which needs the cloud
  * store and is not available in a local checkout. `status` is therefore never
@@ -135,8 +135,8 @@ export function exportDraft(
 /** The element's spec card as stored, or `null` when it is not a card. */
 export function specOf(el: SceneElement): Record<string, unknown> | null {
   if (el.isDeleted) return null;
-  const custom = el.customData as { kaava?: { spec?: unknown } } | undefined;
-  const spec = custom?.kaava?.spec;
+  const custom = el.customData as { veistra?: { spec?: unknown } } | undefined;
+  const spec = custom?.veistra?.spec;
   return spec && typeof spec === "object" && !Array.isArray(spec)
     ? (spec as Record<string, unknown>)
     : null;
@@ -149,11 +149,11 @@ export function specOf(el: SceneElement): Record<string, unknown> | null {
  */
 export function withSpec(el: SceneElement, card: SpecCard | null): SceneElement {
   const custom = { ...((el.customData as Record<string, unknown> | undefined) ?? {}) };
-  const kaava = { ...((custom.kaava as Record<string, unknown> | undefined) ?? {}) };
-  if (card === null) delete kaava.spec;
-  else kaava.spec = card;
-  if (Object.keys(kaava).length > 0) custom.kaava = kaava;
-  else delete custom.kaava;
+  const veistra = { ...((custom.veistra as Record<string, unknown> | undefined) ?? {}) };
+  if (card === null) delete veistra.spec;
+  else veistra.spec = card;
+  if (Object.keys(veistra).length > 0) custom.veistra = veistra;
+  else delete custom.veistra;
   return {
     ...el,
     customData: Object.keys(custom).length > 0 ? custom : undefined,

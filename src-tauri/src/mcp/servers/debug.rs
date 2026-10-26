@@ -1,4 +1,4 @@
-//! What OpenKaava looks like from the inside, for the agent working on it.
+//! What Veistra looks like from the inside, for the agent working on it.
 //!
 //! [`servers`](super)'s rule is that a server answers what no harness could
 //! answer for itself. An agent can read every file in this repo and still not
@@ -15,7 +15,7 @@
 //! `docs/design-notes/agent-debugging.md`.
 //!
 //! [`super::agent`] hosts these three by delegation, next to the tools that
-//! drive the window; prefer it while *working on* OpenKaava. This module is what
+//! drive the window; prefer it while *working on* Veistra. This module is what
 //! diagnoses a build with only the reads. Both need developer mode, and both
 //! are registered rather than one replacing the other.
 
@@ -23,9 +23,9 @@ use crate::diagnostics::diagnostics;
 use crate::mcp::{McpServer, McpTool, ToolAnswer};
 use crate::shell_state::ShellState;
 use crate::state::AppState;
-use kaava_rpc::{RpcError, INTERNAL_ERROR};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager};
+use veistra_rpc::{RpcError, INTERNAL_ERROR};
 
 pub static SERVER: McpServer = McpServer {
     id: "debug",
@@ -33,7 +33,7 @@ pub static SERVER: McpServer = McpServer {
     description: "Read the running shell: its layout, its recent failures, and how boot went.",
     tools: TOOLS,
     call,
-    // Read-only, but a diagnostic surface for whoever is working on OpenKaava, so
+    // Read-only, but a diagnostic surface for whoever is working on Veistra, so
     // it sits behind developer mode with `ui` and `agent`. See the module doc.
     dev_only: true,
 };
@@ -61,8 +61,7 @@ pub(super) const TOOL_LIST: [McpTool; 3] = [
     },
     McpTool {
         name: "recent_errors",
-        description:
-            "Failures OpenKaava has recorded since it started, from both the Rust backend \
+        description: "Failures Veistra has recorded since it started, from both the Rust backend \
                       and the webview. These are not written to any file — in a release build \
                       they are not written anywhere at all — so this is the only way to read \
                       them back.",
@@ -121,7 +120,7 @@ pub(super) fn call(
         "recent_errors" => Ok(recent_errors(params.as_ref()).into()),
         "boot_status" => boot_status(app).map(Into::into),
         other => Err(RpcError::new(
-            kaava_rpc::METHOD_NOT_FOUND,
+            veistra_rpc::METHOD_NOT_FOUND,
             format!("the debug server has no tool named `{other}`"),
         )),
     }

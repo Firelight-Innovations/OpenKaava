@@ -8,7 +8,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 
 const bridge = vi.hoisted(() => ({ invoke: vi.fn() }));
 
-vi.mock("@openkaava/bridge", () => ({
+vi.mock("@veistra/bridge", () => ({
   invoke: bridge.invoke,
   reportPainted: vi.fn(),
   openIn: vi.fn(),
@@ -31,7 +31,7 @@ const STATE = {
   blends: [{ path: "C:/p/bed.blend", rel: "bed.blend", mtime: 1, size: 1 }],
   blend: "C:/p/bed.blend",
   rel: "bed.blend",
-  model: "C:/p/.kaava/bed.glb",
+  model: "C:/p/.veistra/bed.glb",
   parts: [
     {
       name: "Frame",
@@ -108,7 +108,7 @@ describe("Blender Viewer send footer", () => {
     expect(group?.contains(glb)).toBe(true);
     fireEvent.click(glb);
     await waitFor(() => expect(puts()).toHaveLength(1));
-    expect(puts()[0][1]).toMatchObject({ kind: "file", path: "C:/p/.kaava/bed.glb" });
+    expect(puts()[0][1]).toMatchObject({ kind: "file", path: "C:/p/.veistra/bed.glb" });
   });
 
   it("keeps Export and Open in Blender in the footer, after the sends", async () => {

@@ -70,7 +70,7 @@ pub fn read<T: DeserializeOwned + Default>(path: &Path, keep: Keep) -> T {
         // every default, which looks exactly like a first launch.
         Err(e) => {
             if e.kind() != std::io::ErrorKind::NotFound {
-                crate::kaava_log!("could not read {}: {e}", path.display());
+                crate::veistra_log!("could not read {}: {e}", path.display());
                 return T::default();
             }
             return restored(path).unwrap_or_default();
@@ -80,14 +80,14 @@ pub fn read<T: DeserializeOwned + Default>(path: &Path, keep: Keep) -> T {
     let format = match serde_json::from_str::<Envelope>(&raw) {
         Ok(envelope) => envelope.format,
         Err(e) => {
-            crate::kaava_log!("{} is not readable: {e}", path.display());
+            crate::veistra_log!("{} is not readable: {e}", path.display());
             set_aside(path, "corrupt", keep);
             return T::default();
         }
     };
 
     if format > FORMAT {
-        crate::kaava_log!(
+        crate::veistra_log!(
             "{} is format {format} and this build reads {FORMAT}; setting it aside",
             path.display()
         );
@@ -104,7 +104,7 @@ pub fn read<T: DeserializeOwned + Default>(path: &Path, keep: Keep) -> T {
     // deliberately no empty one now, because a chain with no links is a shape
     // to maintain rather than a behaviour.
     serde_json::from_str(&raw).unwrap_or_else(|e| {
-        crate::kaava_log!(
+        crate::veistra_log!(
             "{} is format {format} and still did not parse: {e}",
             path.display()
         );
@@ -121,33 +121,33 @@ pub fn read<T: DeserializeOwned + Default>(path: &Path, keep: Keep) -> T {
 pub fn write<T: Serialize>(path: &Path, value: &T, what: &str) {
     match stamped(value) {
         Ok(json) => write_raw(path, &json, what),
-        Err(e) => crate::kaava_log!("could not serialize {what}: {e}"),
+        Err(e) => crate::veistra_log!("could not serialize {what}: {e}"),
     }
 }
 
 /// The same write, for a document that is already text and carries no format.
 ///
 /// One caller: `mcp::handoff`, which writes this launch's port and token for an
-/// agent OpenKaava did not spawn. That file is not user data — it is rewritten
-/// at every launch and its only reader is `scripts/kaava-probe.mjs` — so
+/// agent Veistra did not spawn. That file is not user data — it is rewritten
+/// at every launch and its only reader is `scripts/veistra-probe.mjs` — so
 /// stamping a version on it would version a fact rather than a format. It is
 /// here for the temp-then-rename, which it does want.
 pub fn write_raw(path: &Path, text: &str, what: &str) {
     if let Some(parent) = path.parent() {
         if let Err(e) = std::fs::create_dir_all(parent) {
-            crate::kaava_log!("could not create {}: {e}", parent.display());
+            crate::veistra_log!("could not create {}: {e}", parent.display());
             return;
         }
     }
 
     let temp = temp_path(path);
     if let Err(e) = durably(&temp, text) {
-        crate::kaava_log!("could not write {what} to {}: {e}", temp.display());
+        crate::veistra_log!("could not write {what} to {}: {e}", temp.display());
         let _ = std::fs::remove_file(&temp);
         return;
     }
     if let Err(e) = std::fs::rename(&temp, path) {
-        crate::kaava_log!("could not replace {}: {e}", path.display());
+        crate::veistra_log!("could not replace {}: {e}", path.display());
         let _ = std::fs::remove_file(&temp);
     }
 }
@@ -223,7 +223,7 @@ fn set_aside(path: &Path, label: &str, keep: Keep) {
     }
 
     if let Some(kept) = super::backup::keep(path, label) {
-        crate::kaava_log!("set {} aside as {}", path.display(), kept.display());
+        crate::veistra_log!("set {} aside as {}", path.display(), kept.display());
     }
 }
 
@@ -240,13 +240,13 @@ fn restored<T: DeserializeOwned>(path: &Path) -> Option<T> {
     let value = serde_json::from_str(&raw).ok()?;
 
     if let Err(e) = std::fs::rename(&found, path) {
-        crate::kaava_log!("read {} but could not restore it: {e}", found.display());
+        crate::veistra_log!("read {} but could not restore it: {e}", found.display());
         // Still returned. The value is right, and the worst case is reading it
         // out of the backup again next launch.
         return Some(value);
     }
 
-    crate::kaava_log!("restored {} from {}", path.display(), found.display());
+    crate::veistra_log!("restored {} from {}", path.display(), found.display());
     Some(value)
 }
 
@@ -269,7 +269,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_nanos())
             .unwrap_or_default();
-        let dir = std::env::temp_dir().join(format!("kaava-store-{tag}-{at}"));
+        let dir = std::env::temp_dir().join(format!("veistra-store-{tag}-{at}"));
         std::fs::create_dir_all(&dir).expect("the temp directory is writable");
         dir.join("settings.json")
     }
@@ -379,7 +379,7 @@ mod tests {
         assert!(aside(&path, "corrupt").is_none(), "nothing is kept");
     }
 
-    /// Two OpenKaava processes writing one store is only possible when the
+    /// Two Veistra processes writing one store is only possible when the
     /// single-instance mutex has failed — which is what an identifier change
     /// does — and a shared temp name turns that into a corrupt file rather than
     /// a last-writer-wins one.

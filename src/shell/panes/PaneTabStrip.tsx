@@ -1,5 +1,5 @@
 /**
- * One pane's own tab strip — KAAVA-UX-SPEC.md §1.6: `34px`, a file-type
+ * One pane's own tab strip — VEISTRA-UX-SPEC.md §1.6: `34px`, a file-type
  * colour square or app icon, the label, and a close button on hover; the
  * active tab carries a 2px accent underline.
  *
@@ -15,7 +15,7 @@
 import { AppWindow, Terminal } from "lucide-react";
 import type { ClusterMember, DragHandleProps, PaneAppPicker } from "../contract";
 import { useDropZone } from "../dropZones";
-import { fileIconUrl } from "@openkaava/file-icons";
+import { fileIconUrl } from "@veistra/file-icons";
 import { getSubject, subjectsVersion, subscribeSubjects } from "../viewerSubjects";
 import { Close } from "../../ui/Icon";
 import { useRef, useState, useSyncExternalStore } from "react";

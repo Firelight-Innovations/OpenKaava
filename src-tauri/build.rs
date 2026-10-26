@@ -1,7 +1,7 @@
 fn main() {
     // Test binaries need the same Windows manifest the app binary gets.
     //
-    // Tauri embeds a manifest in `openkaava-orchestrator.exe` declaring a dependency
+    // Tauri embeds a manifest in `veistra-orchestrator.exe` declaring a dependency
     // on ComCtl32 **v6**, the side-by-side assembly. It has to: the window
     // machinery, and now `rfd`'s folder picker, statically import
     // `TaskDialogIndirect`, which the ComCtl32 in System32 (v5.82) does not

@@ -189,8 +189,8 @@ const svgFiles = [
  * `public/icons/material/` is emptied on every run. This is a full recursive
  * delete of that directory, so it holds nothing but what this script puts there
  * — and since it is gitignored, anything else dropped in is gone at the next
- * `pnpm build` with no copy to restore. That is why OpenKaava's own hand-drawn
- * icons live in the sibling `public/icons/kaava/`, which is tracked and which
+ * `pnpm build` with no copy to restore. That is why Veistra's own hand-drawn
+ * icons live in the sibling `public/icons/veistra/`, which is tracked and which
  * nothing deletes. See the header of `packages/file-icons/src/index.ts`, which
  * resolves the two sets in that order.
  */

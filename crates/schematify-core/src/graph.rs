@@ -1,7 +1,7 @@
 //! The in-memory design graph, with the two relations kept apart.
 //!
 //! There is no index file on disk. PRD section 6.1 is explicit about it: the
-//! loader walks `.kaava/`, parses every file, and rebuilds this. An index
+//! loader walks `.veistra/`, parses every file, and rebuilds this. An index
 //! would be a second source of truth that goes stale on the first hand edit,
 //! and hand edits are expected because the tree is in git.
 //!

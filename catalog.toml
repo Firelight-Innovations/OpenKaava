@@ -1,10 +1,10 @@
-# The app library: what OpenKaava offers to install, and what it installs by itself.
+# The app library: what Veistra offers to install, and what it installs by itself.
 #
 # This file is the whole of the "library" tab. There is no server behind it and
 # no database — it ships in the repository, is compiled into the binary by
 # `src-tauri/src/plugins/catalog.rs`, and changes only when somebody merges a
 # change to it. That is a deliberate trade: adding an app to the library needs a
-# OpenKaava release, and in exchange the list cannot be altered by anything that is
+# Veistra release, and in exchange the list cannot be altered by anything that is
 # not a reviewed commit.
 #
 # ## This list is not a permission boundary
@@ -21,7 +21,7 @@
 # An entry marked `default` is installed **automatically, on first run, without
 # being asked for**. That makes this file the one place in the repository where
 # adding four lines causes code to be downloaded and executed on every machine
-# that installs OpenKaava. A plugin core is unsandboxed — `docs/tool-protocol.md` §6
+# that installs Veistra. A plugin core is unsandboxed — `docs/tool-protocol.md` §6
 # — so a default entry is, precisely, a decision to run somebody's binary on
 # every user's computer.
 #
@@ -31,7 +31,7 @@
 #
 # ## Fields
 #
-#   id           Must equal the `[tool] id` in the app's own kaava-tool.toml.
+#   id           Must equal the `[tool] id` in the app's own veistra-tool.toml.
 #                Checked at install time; a mismatch refuses the install.
 #   name         Display name in the library.
 #   description  One line. Shown under the name.
@@ -44,7 +44,7 @@
 #   private      Optional, defaults to false. Marks an entry as living in a
 #                private repository, which changes only the *message* shown
 #                when it cannot be fetched — "sign in to install" rather than
-#                "not found". GitHub still decides access; OpenKaava never does.
+#                "not found". GitHub still decides access; Veistra never does.
 #
 # ## Why this list is empty today
 #

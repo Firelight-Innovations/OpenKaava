@@ -36,16 +36,16 @@ directory, which both the shell and the Files app (mounted as an iframe under th
 from — so they resolve at `/icons/material/...` under either. Render the result as
 `<img src={fileIconUrl(name)} alt="" />`.
 
-### The OpenKaava icons, and why they are not in that directory
+### The Veistra icons, and why they are not in that directory
 
-`.kaava` folders and `<project>.kaava` files are ours, and the theme has never heard of them. Their
-three SVGs are hand-drawn from `assets/`, live in `public/icons/kaava/`, and are **in git** — which
+`.veistra` folders and `<project>.veistra` files are ours, and the theme has never heard of them. Their
+three SVGs are hand-drawn from `assets/`, live in `public/icons/veistra/`, and are **in git** — which
 is the whole point of the separate directory rather than the convenience of one.
 `generate-file-icons.mjs` opens with an `rmSync` on `public/icons/material/`, so anything dropped in
 there is deleted by the next `pnpm build` and, being gitignored, does not come back. A drawing
 nobody can recover is a bad place to put a drawing.
 
-They are looked up _before_ the generated tables, so an upstream theme that one day ships a `kaava`
+They are looked up _before_ the generated tables, so an upstream theme that one day ships a `veistra`
 key cannot quietly take these over.
 
 ### The mark is black, and that is deliberate
@@ -92,12 +92,12 @@ the whole reason the walk exists.
 Dots at index 0 are skipped: a leading dot begins a _name_. `.gitignore` is resolved by `fileNames`,
 and must never fall through to an extension lookup for `gitignore`.
 
-### `kaavaFileIcon` — a suffix test rather than a table
+### `veistraFileIcon` — a suffix test rather than a table
 
 A suffix test rather than a table, because the basename is the _project's_ name and there is no list
-of those — `Torn Apart.kaava` and `aurora.kaava` are both the same kind of file.
+of those — `Torn Apart.veistra` and `aurora.veistra` are both the same kind of file.
 
-The dot must have something before it. `.kaava` on its own is a name, not a file with a `kaava`
+The dot must have something before it. `.veistra` on its own is a name, not a file with a `veistra`
 extension, and it is a name the theme has no icon for either; leaving it to the generic file glyph
 is the honest answer, and it is the same rule `extensionOf` in `apps/files/ui/src/rpc.ts` already
 applies.
@@ -129,9 +129,9 @@ The exact lookup runs first so a name that _is_ its own key still wins. The gene
 alias whose stripped form is missing from the table (`__pycache__` with no bare `pycache`, say), and
 normalising before looking up would turn those into a silent fallback to the plain folder icon.
 
-The `.kaava` check runs before the theme, and before the decoration strip — which is the reason it
-sits in the function rather than folded into the exact lookup. `.kaava` bares to `kaava`, so a theme
-that ever gains a `kaava` folder would win on the second pass and this folder would stop being ours.
+The `.veistra` check runs before the theme, and before the decoration strip — which is the reason it
+sits in the function rather than folded into the exact lookup. `.veistra` bares to `veistra`, so a theme
+that ever gains a `veistra` folder would win on the second pass and this folder would stop being ours.
 
 ### `rootFolderIconUrl` — the theme ships no root overrides
 

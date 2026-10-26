@@ -4,13 +4,13 @@ Code: `src-tauri/src/godot/` (`detect`, `runner`, `addon`, `scene`, `rpc`), rout
 `apps/play.rs` and `apps/godot_viewer.rs`. Frontends: `apps/play/ui`, `apps/godot-viewer/ui`,
 shared types in `apps/shared/godot.ts`.
 
-The rule everything obeys is `KAAVA-UX-REWORK.md` section 3.1: Godot is never embedded in the
-webview. It is a native process Kaava starts, watches and stops.
+The rule everything obeys is `VEISTRA-UX-REWORK.md` section 3.1: Godot is never embedded in the
+webview. It is a native process Veistra starts, watches and stops.
 
 ## Section 9.2, decided: a native run
 
 Play runs `godot --path <project>` as a child process of the environment. The game opens in its
-own window and the pane shows what Kaava can honestly know about it: state, an stdout/stderr
+own window and the pane shows what Veistra can honestly know about it: state, an stdout/stderr
 log with errors and warnings highlighted, and pause, restart and stop.
 
 The alternative was a web export shown in the pane. It was rejected because it needs an export
@@ -30,7 +30,7 @@ for runs, because the GUI-subsystem exe writes nothing to a pipe. A found engine
 until the setting changes or the pane asks to check again; a failed search is never cached.
 
 Projects are `project.godot` files at or below the environment root (four folders deep,
-skipping `.git`, `.godot`, `node_modules`, `.kaava`, `addons`). With several, the pane offers a
+skipping `.git`, `.godot`, `node_modules`, `.veistra`, `addons`). With several, the pane offers a
 picker. A `config_version` of 4 or less is Godot 3 and is refused with a message.
 
 ## The run
@@ -42,7 +42,7 @@ of the line they follow. The pane polls `play/state` with a cursor every 500 ms.
 
 Stop kills the whole tree: `taskkill /T /F` on Windows, the process group on Unix, so the game
 window and anything it spawned go with it. `RunEvent::Exit` calls `Godot::shutdown`, so no game
-outlives Kaava. `Stopped` (asked for) and `Exited { code }` (the game ended) are different
+outlives Veistra. `Stopped` (asked for) and `Exited { code }` (the game ended) are different
 states.
 
 ## Capture & comment, and pause
@@ -51,9 +51,9 @@ Godot has no external "give me a frame" interface, so a real screenshot needs co
 game. That is the capture addon: one GDScript autoload, opt in per project, consent-gated,
 removable.
 
-- Enable adds `addons/kaava/kaava_capture.gd` and one `[autoload]` line to `project.godot`.
-  Disable removes exactly those, leaving anything else in `addons/kaava/` alone.
-- The channel is a folder in the OS temp directory, passed as `-- --kaava-dir=<dir>`. Kaava
+- Enable adds `addons/veistra/veistra_capture.gd` and one `[autoload]` line to `project.godot`.
+  Disable removes exactly those, leaving anything else in `addons/veistra/` alone.
+- The channel is a folder in the OS temp directory, passed as `-- --veistra-dir=<dir>`. Veistra
   writes `cmd.json` (atomically), the script answers `res-<id>.json`. No socket, no listener,
   no network. A reply may not name a file outside its own folder.
 - Without the addon, Capture and Pause are disabled and say why. Nothing is faked.
@@ -78,9 +78,9 @@ appears briefly. The frame is cached beside the tree and stamped separately.
 Running and viewing read the project, so they work on main. Writing does not:
 `godot/open-editor`, `play/addon-install` and `play/addon-remove` are in `WRITE_METHODS` and are
 refused on main before a handler runs. The viewer's cache goes under the app-local data folder
-for main and under `<env>/.kaava/godot-viewer/` for a worktree; run channels are always in temp.
+for main and under `<env>/.veistra/godot-viewer/` for a worktree; run channels are always in temp.
 
-What Kaava cannot prevent: Godot writes `<project>/.godot/` (import cache) whenever it loads a
+What Veistra cannot prevent: Godot writes `<project>/.godot/` (import cache) whenever it loads a
 project. It is engine-generated and gitignored by every Godot template.
 
 ## The 3D preview and markup
@@ -91,12 +91,12 @@ to, with the reason, when the export fails.
 
 **Export.** `godot/preview-glb` (params: `scene`, `actor`, optional `force`) runs
 `export_glb.gd` headless (`GLTFDocument.append_from_scene`) and answers `ready`, `running` or
-`failed`. The file is `<project>/.kaava/preview/godot/<scene-slug>.glb`, one per scene, replaced in
+`failed`. The file is `<project>/.veistra/preview/godot/<scene-slug>.glb`, one per scene, replaced in
 place through a temp file and rename. A `.json` beside it holds the cache key and the node map. The
 key hashes the Godot version, the scene, every text scene or resource it references (by content)
 and binary assets (by size and modified time), so an unchanged scene answers `ready` without
 running Godot. Failures are remembered until `force`. On read-only main the file goes under the
-app cache instead of `.kaava`. `actor` must be `human` or `agent`; `system` is refused.
+app cache instead of `.veistra`. `actor` must be `human` or `agent`; `system` is refused.
 `godot/preview-glb-bytes` hands the file to the viewer (48 MB cap).
 
 **Node paths.** three.js renames nodes it loads (spaces become `_`, and `[ ] . : /` are dropped)
@@ -118,7 +118,7 @@ The JSON an agent receives is the format in `docs/markup-format.md`, with the so
 ```json
 {
   "version": 1,
-  "source": { "kind": "scene", "glb": ".kaava/preview/godot/main_tscn.glb",
+  "source": { "kind": "scene", "glb": ".veistra/preview/godot/main_tscn.glb",
               "engine": "godot", "scene": "res://main.tscn", "godot": "4.7.2" },
   "camera": { "position": [4, 3, 5], "target": [0, 1, 0], "up": [0, 1, 0], "fov": 50 },
   "size": { "width": 640, "height": 360 },

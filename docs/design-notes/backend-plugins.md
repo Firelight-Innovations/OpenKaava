@@ -9,7 +9,7 @@ back at its section here.
 ### Why this is not `discovery.rs`
 
 That module answers a neighbouring question and answers it about different
-things. It joins the `[[tool]]` pins in `kaava.toml` against the disk and reports
+things. It joins the `[[tool]]` pins in `veistra.toml` against the disk and reports
 health — "the stack says engine 0.1.0, is it here, is it that version". Those
 pins are checked into the repository and describe the *stack*. What a person has
 installed is neither: it is per-user, mutable at runtime, and has no pinned
@@ -39,7 +39,7 @@ vocabulary belongs to the plugin, not to the protocol.
 
 Until this module existed that path had never run. `ToolWindow.tsx` refused a
 plugin frame's `invoke` outright, naming the gap, and every host-side piece it
-needed was already written and called by nothing: `kaava_rpc::ToolProcess` spawns
+needed was already written and called by nothing: `veistra_rpc::ToolProcess` spawns
 the child, drains its stderr, routes responses by id and reaps it on drop. So the
 file is mostly lifecycle — when a core starts, when it stops, and what happens to
 a call that arrives while it is neither.
@@ -78,7 +78,7 @@ one would spend a thread and a handle observing a directory that cannot change.
 
 ### What is watched, and why not the checkout
 
-Two narrow things: `kaava-tool.toml`, and the directory holding the resolved
+Two narrow things: `veistra-tool.toml`, and the directory holding the resolved
 `core.bin`. **Not the checkout recursively** — that would put a watch over
 `target/` and `node_modules/`, which between them produce thousands of events per
 build, and the shell would spend a rebuild reloading a plugin over and over while

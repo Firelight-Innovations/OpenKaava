@@ -21,7 +21,7 @@ use super::{
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-/// Where the Console is told to write the export. `KAAVA_BILLING_DATASET` overrides it.
+/// Where the Console is told to write the export. `VEISTRA_BILLING_DATASET` overrides it.
 pub const DEFAULT_DATASET: &str = "billing_export";
 
 /// The standard usage-cost table's name, before the billing account id. The
@@ -116,7 +116,7 @@ pub struct MonthlyCost {
 }
 
 pub fn dataset() -> String {
-    std::env::var("KAAVA_BILLING_DATASET")
+    std::env::var("VEISTRA_BILLING_DATASET")
         .ok()
         .filter(|d| is_identifier(d))
         .unwrap_or_else(|| DEFAULT_DATASET.to_string())

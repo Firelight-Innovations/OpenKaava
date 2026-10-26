@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { KaavaRpcError, invoke, on, openIn, reportPainted } from "@openkaava/bridge";
+import { VeistraRpcError, invoke, on, openIn, reportPainted } from "@veistra/bridge";
 import { PRODUCT_NAME, TAGLINE, WORDMARK } from "./branding.generated";
 import { Book, Close, FolderOpen, FolderPlus, GitBranch, Mark, PackagePlus } from "./icons";
 import NewProject from "./NewProjectPage";
@@ -11,15 +11,15 @@ import "./home.css";
  *
  * Declared here rather than imported from the orchestrator's `src/bindings.ts`,
  * for the same reason `icons.tsx` draws its own glyphs: an app's only coupling to
- * its host is `@openkaava/bridge` and the shape of what crosses it. Only what this
+ * its host is `@veistra/bridge` and the shape of what crosses it. Only what this
  * pane actually draws is described — there is no `format` below, because Home
- * does not yet have anything to say about a project written by a newer OpenKaava.
+ * does not yet have anything to say about a project written by a newer Veistra.
  */
 interface Project {
   name: string;
   path: string;
   id: string | null;
-  /** Whether a `<name>.kaava` manifest is there. `false` is a plain folder. */
+  /** Whether a `<name>.veistra` manifest is there. `false` is a plain folder. */
   initialized: boolean;
   /** Whether the folder is still on disk. A recent can outlive its project. */
   exists: boolean;
@@ -38,7 +38,7 @@ type State = Projects & { version?: string | null };
 
 /**
  * `home/worktree-state`'s reply. Declared here for the same reason `Project`
- * is: this pane's only coupling to its host is `@openkaava/bridge` and the shape
+ * is: this pane's only coupling to its host is `@veistra/bridge` and the shape
  * of what crosses it.
  */
 interface WorktreeState {
@@ -267,8 +267,8 @@ export default function App() {
   }, []);
 
   /**
-   * Home is the app OpenKaava opens on, so the splash window is held up until this
-   * pane has something on it — see `reportPainted` in `@openkaava/bridge`, and
+   * Home is the app Veistra opens on, so the splash window is held up until this
+   * pane has something on it — see `reportPainted` in `@veistra/bridge`, and
    * `boot::await_apps` for what is waiting.
    *
    * The condition is "the first answer landed", either way it went. A Home that
@@ -454,7 +454,7 @@ export default function App() {
 }
 
 /**
- * A project's own icon (`.kaava/icon.*`), or its initial when it has none.
+ * A project's own icon (`.veistra/icon.*`), or its initial when it has none.
  *
  * Asked per project rather than folded into `home/state`: the icon is a data
  * URL, and carrying one for every Recent row on every state read would make the
@@ -578,12 +578,12 @@ function since(at: number | null): string {
 }
 
 /**
- * A `KaavaRpcError` carries the JSON-RPC code its host produced it from, which
+ * A `VeistraRpcError` carries the JSON-RPC code its host produced it from, which
  * is the difference between "this build has no such method" and "the call never
  * reached a host at all". Anything else is shown as-is rather than guessed at.
  */
 function describe(error: unknown): string {
-  if (error instanceof KaavaRpcError) return `[${error.code}] ${error.message}`;
+  if (error instanceof VeistraRpcError) return `[${error.code}] ${error.message}`;
   if (error instanceof Error) return error.message;
   return String(error);
 }

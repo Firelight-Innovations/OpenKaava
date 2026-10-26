@@ -3,7 +3,7 @@
 Do the work the work item describes.
 
 You are on the worker VM, in an empty working directory for this job. You have Bash and the file
-tools as well as Plane. Godot (`godot`), Blender (`blender -b`) and `kaava-render` are installed.
+tools as well as Plane. Godot (`godot`), Blender (`blender -b`) and `veistra-render` are installed.
 The project record names the artifact registry path (`artifacts`) and the repository (`repo`).
 
 1. Assign the work item to yourself (the `agent` user; list the project members to find its id)

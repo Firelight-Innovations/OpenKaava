@@ -28,8 +28,8 @@ export default function Index({
       <header className="tut__index-head">
         <h1>Tutorials</h1>
         <p className="tut__index-blurb">
-          Short walkthroughs of what OpenKaava does today. Each one is a page you can read beside
-          the thing it describes — put this tab in one pane and work in the other.
+          Short walkthroughs of what Veistra does today. Each one is a page you can read beside the
+          thing it describes — put this tab in one pane and work in the other.
         </p>
         <p className="tut__index-count">
           {left === 0

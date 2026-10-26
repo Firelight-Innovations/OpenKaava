@@ -18,7 +18,7 @@
  * the tree left of the file, in one window.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { on, openIn, publish, reportPainted, subscribe } from "@openkaava/bridge";
+import { on, openIn, publish, reportPainted, subscribe } from "@veistra/bridge";
 import Explorer, { type ExplorerHandle } from "./explorer/Explorer";
 import NoticeBar, { type Notice } from "./NoticeBar";
 import { useOsDrop } from "./explorer/useOsDrop";
@@ -138,7 +138,7 @@ export default function App() {
    * Which file the Viewer is showing, for the row treatment.
    *
    * Retained by the shell and replayed on handshake, so an Explorer opened
-   * after a Viewer is not briefly wrong about this — see `kaava/publish`.
+   * after a Viewer is not briefly wrong about this — see `veistra/publish`.
    *
    * With two Viewers in one cluster this takes the most recent announcement
    * rather than arbitrating between them — the honest answer to a question with

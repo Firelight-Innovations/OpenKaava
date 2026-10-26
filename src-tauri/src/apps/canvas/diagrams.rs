@@ -1,7 +1,7 @@
 //! Named diagrams: what an agent reads a canvas *as*, rather than as 100 loose
 //! shapes.
 //!
-//! A diagram is an Excalidraw frame whose `customData.kaava.diagram` names it:
+//! A diagram is an Excalidraw frame whose `customData.veistra.diagram` names it:
 //! a stable `id`, a `title`, a one-line `summary`, an optional `parent` diagram
 //! and a `level` (`index`, `overview`, `subsystem` or `detail`). The frame's own
 //! `name` is what Excalidraw draws above it and is kept equal to the title by
@@ -101,9 +101,9 @@ pub fn elements_of(scene: &Value) -> &[Value] {
         .unwrap_or(&[])
 }
 
-/// An element's `customData.kaava.<key>`.
-pub fn kaava_of<'a>(el: &'a Value, key: &str) -> Option<&'a Value> {
-    el.get("customData")?.get("kaava")?.get(key)
+/// An element's `customData.veistra.<key>`.
+pub fn veistra_of<'a>(el: &'a Value, key: &str) -> Option<&'a Value> {
+    el.get("customData")?.get("veistra")?.get(key)
 }
 
 /// The box an element occupies. Lines and arrows are measured by their points,
@@ -178,7 +178,7 @@ pub fn list(scene: &Value) -> Vec<Diagram> {
     live(elements)
         .filter(|e| is_frame(e))
         .map(|frame| {
-            let meta = kaava_of(frame, "diagram");
+            let meta = veistra_of(frame, "diagram");
             let element_id = str_of(frame, "id").unwrap_or("").to_string();
             let name = str_of(frame, "name").unwrap_or("").to_string();
             let get = |key: &str| {
@@ -348,7 +348,7 @@ fn end_of(elements: &[Value], binding: Option<&Value>) -> Value {
     let el = live(elements).find(|e| str_of(e, "id") == Some(target));
     json!({
         "id": target,
-        "node": el.and_then(|e| kaava_of(e, "node")).cloned(),
+        "node": el.and_then(|e| veistra_of(e, "node")).cloned(),
         "label": el.and_then(|e| label_of(elements, e)),
     })
 }
@@ -366,7 +366,7 @@ pub fn describe(scene: &Value, d: &Diagram) -> Value {
         let id = str_of(el, "id").unwrap_or("");
         let kind = str_of(el, "type").unwrap_or("");
         let at = relative(bounds_of(el), d.bounds);
-        let node = kaava_of(el, "node").cloned();
+        let node = veistra_of(el, "node").cloned();
         match kind {
             "text" => {
                 // A bound label is reported on its shape, not twice.
@@ -379,8 +379,8 @@ pub fn describe(scene: &Value, d: &Diagram) -> Value {
                     "text": str_of(el, "text").unwrap_or(""),
                     "fontSize": el.get("fontSize"),
                     "bounds": at,
-                    "linkedTo": kaava_of(el, "linksTo"),
-                    "template": kaava_of(el, "template"),
+                    "linkedTo": veistra_of(el, "linksTo"),
+                    "template": veistra_of(el, "template"),
                 }));
             }
             "arrow" | "line" => arrows.push(json!({
@@ -434,7 +434,7 @@ pub fn describe(scene: &Value, d: &Diagram) -> Value {
     })
 }
 
-/// The canvas's own checklist (`kaava.checklist.concerns`), else the game one.
+/// The canvas's own checklist (`veistra.checklist.concerns`), else the game one.
 pub fn checklist_of(scene: &Value, given: Option<&Value>) -> Vec<String> {
     let from = |v: Option<&Value>| {
         let list = string_list(v);
@@ -444,7 +444,7 @@ pub fn checklist_of(scene: &Value, given: Option<&Value>) -> Vec<String> {
         .or_else(|| {
             from(
                 scene
-                    .get("kaava")
+                    .get("veistra")
                     .and_then(|k| k.get("checklist"))
                     .and_then(|c| c.get("concerns")),
             )
@@ -498,10 +498,10 @@ pub fn coverage(scene: &Value, checklist: &[String]) -> Value {
 
 // --- linked values ----------------------------------------------------------
 
-/// The canvas's value table, `kaava.values`: name to `{ value, unit?, spec? }`.
+/// The canvas's value table, `veistra.values`: name to `{ value, unit?, spec? }`.
 pub fn values_of(scene: &Value) -> Map<String, Value> {
     scene
-        .get("kaava")
+        .get("veistra")
         .and_then(|k| k.get("values"))
         .and_then(Value::as_object)
         .cloned()
@@ -561,7 +561,7 @@ pub fn values_report(scene: &Value) -> Value {
     let mut uses = Vec::new();
     let mut mismatches = Vec::new();
     for el in live(elements) {
-        let Some(template) = kaava_of(el, "template").and_then(Value::as_str) else {
+        let Some(template) = veistra_of(el, "template").and_then(Value::as_str) else {
             continue;
         };
         let (expected, unknown) = render_template(template, &values);
@@ -588,7 +588,7 @@ pub fn values_report(scene: &Value) -> Value {
         let field = link.get("field").and_then(Value::as_str).unwrap_or("");
         let card = live(elements)
             .find(|e| str_of(e, "id") == Some(element))
-            .and_then(|e| kaava_of(e, "spec"));
+            .and_then(|e| veistra_of(e, "spec"));
         let actual = card.and_then(|c| c.get(field));
         let ok = actual.is_some_and(|a| value_text(a) == value_text(entry));
         let row = json!({
@@ -637,7 +637,7 @@ pub fn apply_values(scene: &mut Value) -> usize {
         .collect();
     for el in elements.iter_mut() {
         let id = str_of(el, "id").unwrap_or("").to_string();
-        if let Some(template) = kaava_of(el, "template").and_then(Value::as_str) {
+        if let Some(template) = veistra_of(el, "template").and_then(Value::as_str) {
             let (text, _) = render_template(template, &values);
             let old = str_of(el, "text").unwrap_or("").to_string();
             if text != old {
@@ -657,7 +657,7 @@ pub fn apply_values(scene: &mut Value) -> usize {
             }
             let Some(spec) = el
                 .get_mut("customData")
-                .and_then(|c| c.get_mut("kaava"))
+                .and_then(|c| c.get_mut("veistra"))
                 .and_then(|k| k.get_mut("spec"))
                 .and_then(Value::as_object_mut)
             else {
@@ -698,7 +698,7 @@ mod tests {
         json!({
             "id": id, "type": "frame", "name": "Frame name",
             "x": 100, "y": 50, "width": 400, "height": 300,
-            "customData": { "kaava": { "diagram": meta } },
+            "customData": { "veistra": { "diagram": meta } },
         })
     }
 
@@ -718,7 +718,7 @@ mod tests {
                 json!({ "id": "index", "title": "Index", "level": "index" }),
             ),
             json!({ "id": "ball", "type": "ellipse", "frameId": "f1", "x": 130, "y": 90,
-                    "width": 20, "height": 20, "customData": { "kaava": { "node": "ball" } } }),
+                    "width": 20, "height": 20, "customData": { "veistra": { "node": "ball" } } }),
             json!({ "id": "ball-label", "type": "text", "containerId": "ball", "text": "ball",
                     "x": 131, "y": 91, "width": 18, "height": 18 }),
             json!({ "id": "pillar", "type": "rectangle", "frameId": "f1", "x": 300, "y": 50,
@@ -728,7 +728,7 @@ mod tests {
                     "startBinding": { "elementId": "ball" }, "endBinding": { "elementId": "pillar" } }),
             json!({ "id": "note", "type": "text", "frameId": "f1", "text": "gravity 30",
                     "x": 110, "y": 300, "width": 80, "height": 20,
-                    "customData": { "kaava": { "template": "gravity {{gravity}}" } } }),
+                    "customData": { "veistra": { "template": "gravity {{gravity}}" } } }),
             json!({ "id": "gone", "type": "rectangle", "frameId": "f1", "isDeleted": true }),
         ])
     }
@@ -827,7 +827,7 @@ mod tests {
     #[test]
     fn a_canvas_checklist_replaces_the_default() {
         let mut s = sample();
-        s["kaava"] = json!({ "checklist": { "concerns": ["physics", "rendering"] } });
+        s["veistra"] = json!({ "checklist": { "concerns": ["physics", "rendering"] } });
         let list = checklist_of(&s, None);
         assert_eq!(list, vec!["physics", "rendering"]);
         let given = json!(["spawning"]);
@@ -849,7 +849,7 @@ mod tests {
     #[test]
     fn a_hand_edited_number_is_a_mismatch_and_apply_fixes_it() {
         let mut s = sample();
-        s["kaava"] = json!({ "values": { "gravity": { "value": 24 } } });
+        s["veistra"] = json!({ "values": { "gravity": { "value": 24 } } });
         let report = values_report(&s);
         assert_eq!(report["consistent"], false);
         assert_eq!(report["mismatches"][0]["expected"], "gravity 24");
@@ -864,15 +864,15 @@ mod tests {
     fn a_value_linked_to_a_spec_field_flags_and_fixes_drift() {
         let mut s = scene(vec![json!({
             "id": "card", "type": "rectangle",
-            "customData": { "kaava": { "spec": { "name": "Ball", "size_m": 0.5 } } },
+            "customData": { "veistra": { "spec": { "name": "Ball", "size_m": 0.5 } } },
         })]);
-        s["kaava"] = json!({ "values": { "ball-size": {
+        s["veistra"] = json!({ "values": { "ball-size": {
             "value": 0.6, "spec": { "element": "card", "field": "size_m" } } } });
         assert_eq!(values_report(&s)["consistent"], false);
         assert_eq!(apply_values(&mut s), 1);
         assert_eq!(values_report(&s)["consistent"], true);
         assert_eq!(
-            elements_of(&s)[0]["customData"]["kaava"]["spec"]["size_m"],
+            elements_of(&s)[0]["customData"]["veistra"]["spec"]["size_m"],
             0.6
         );
     }

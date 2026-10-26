@@ -1,6 +1,6 @@
-# OpenKaava Cloud: system diagram
+# Veistra Cloud: system diagram
 
-What exists in `veistra-prod` today, how the pieces talk to each other, and how the OpenKaava
+What exists in `veistra-prod` today, how the pieces talk to each other, and how the Veistra
 desktop app (and the tools that stand in for its unbuilt parts) reach them. Built today = solid
 edges. Planned = dashed edges. Every node and edge below is labeled `[build]` or `[plan]`.
 
@@ -16,16 +16,16 @@ flowchart LR
     classDef planned stroke-dasharray: 5 5,stroke:#b00,color:#b00;
     classDef built stroke:#0a5,color:#0a5;
 
-    subgraph LAPTOP["Laptop build: OpenKaava desktop, Windows"]
+    subgraph LAPTOP["Laptop build: Veistra desktop, Windows"]
         direction TB
-        UIshell["OpenKaava shell (Tauri v2)<br/>build: apps home, files, viewer, tutorial, design, schematify"]
+        UIshell["Veistra shell (Tauri v2)<br/>build: apps home, files, viewer, tutorial, design, schematify"]
         UIagents["Agents app - apps-agents<br/>build (branch cloud-ui-agents-app, not yet merged to main)<br/>lists agent VMs, sessions, transcripts"]
         UIprojects["apps-projects - plan<br/>project switcher, embedded Plane webview, New project dialog"]
         RustCloud["Rust cloud module - src-tauri-src-cloud<br/>build (same unmerged branch): auth, compute, storage, http"]
         RustPlane["Rust plane module + IAP tunnel manager<br/>plan: plane_get/plane_post, gcloud tunnel spawn, wake flow"]
-        CLI["kaava-project CLI (Python, run by hand)<br/>build: list/create/show/archive"]
-        WakeLib["kaava-wake / kaava-idle libraries<br/>build: infra/common, used as a library from CLI and Rust"]
-        HostsFile["hosts file entry<br/>plan: plane.kaava.internal -> 127.0.0.1"]
+        CLI["veistra-project CLI (Python, run by hand)<br/>build: list/create/show/archive"]
+        WakeLib["veistra-wake / veistra-idle libraries<br/>build: infra/common, used as a library from CLI and Rust"]
+        HostsFile["hosts file entry<br/>plan: plane.veistra.internal -> 127.0.0.1"]
     end
 
     class UIshell built
@@ -37,13 +37,13 @@ flowchart LR
     class RustPlane planned
     class HostsFile planned
 
-    subgraph GCP["GCP project veistra-prod, VPC kaava, us-central1-a, no public IPs"]
+    subgraph GCP["GCP project veistra-prod, VPC veistra, us-central1-a, no public IPs"]
         direction TB
-        Worker["kaava-worker VM<br/>build: e2-standard-8, Claude Code + Godot + Blender, image kaava-agent<br/>stops itself when idle"]
-        GPU["kaava-gpu VM<br/>build: Spot g2-standard-8 with L4, TERMINATED at rest"]
+        Worker["veistra-worker VM<br/>build: e2-standard-8, Claude Code + Godot + Blender, image veistra-agent<br/>stops itself when idle"]
+        GPU["veistra-gpu VM<br/>build: Spot g2-standard-8 with L4, TERMINATED at rest"]
         PlaneVM["plane-vm<br/>build: e2-standard-2, Plane CE v1.4.2 containers (unmodified)<br/>stops itself after 30 idle min"]
-        PlaneWatch["plane-watch + job worker loop<br/>plan: polls ai:* labels, writes job files, starts kaava-worker"]
-        NAT["Cloud NAT (router kaava-us-central1)<br/>build: outbound only, no public IPs"]
+        PlaneWatch["plane-watch + job worker loop<br/>plan: polls ai:* labels, writes job files, starts veistra-worker"]
+        NAT["Cloud NAT (router veistra-us-central1)<br/>build: outbound only, no public IPs"]
     end
 
     class Worker built
@@ -55,14 +55,14 @@ flowchart LR
     subgraph MANAGED["Serverless / managed services"]
         direction TB
         Hindsight["Hindsight on Cloud Run<br/>build: service 'hindsight', min=0 max=2 instances, port 8888->8888 mapped as :8888 path /mcp"]
-        CloudSQL["Cloud SQL kaava-hindsight<br/>build: Postgres db-f1-micro, private VPC access"]
+        CloudSQL["Cloud SQL veistra-hindsight<br/>build: Postgres db-f1-micro, private VPC access"]
         Vertex["Vertex AI<br/>build: gemini-3.1-flash-lite (global endpoint), gemini-embedding-001"]
         BucketArtifacts["gs://veistra-artifacts<br/>build: artifact registry + design canvases under design/"]
         BucketSessions["gs://veistra-prod-sessions<br/>build: agent session status.json + transcript.jsonl"]
         BucketRenderQ["gs://veistra-prod-render-queue<br/>build: jobs/ and done/ for the GPU node"]
         BucketProjects["gs://veistra-projects<br/>build: prod/projects/*.json; prod/jobs/pending,claimed,done - plan"]
         SecretMgr["Secret Manager<br/>build: claude-oauth-token, plane-*, plane-dev-*, hindsight db url"]
-        DNS["Cloud DNS private zone kaava-internal<br/>build: plane.kaava.internal -> plane-vm internal IP"]
+        DNS["Cloud DNS private zone veistra-internal<br/>build: plane.veistra.internal -> plane-vm internal IP"]
         ArtifactRegMirror["Artifact Registry (ghcr.io mirror)<br/>build: image source for Cloud Run"]
     end
 
@@ -79,7 +79,7 @@ flowchart LR
 
     subgraph EXTERNAL["External"]
         direction TB
-        GitHub["GitHub<br/>build: Firelight-Innovations/OpenKaava, Anomaly, Torn-Apart repos"]
+        GitHub["GitHub<br/>build: Firelight-Innovations/Veistra, Anomaly, Torn-Apart repos"]
         Anthropic["Anthropic API<br/>build: subscription OAuth token, no API key"]
     end
 
@@ -103,13 +103,13 @@ flowchart LR
     %% --- Laptop -> Plane, planned ---
     RustPlane -.->|"GCE REST start - plan"| PlaneVM
     RustPlane -.->|"gcloud start-iap-tunnel :8765 - plan"| PlaneVM
-    RustPlane -.->|"X-API-Key plane-pat-kaava, HTTP :8765 - plan"| PlaneVM
+    RustPlane -.->|"X-API-Key plane-pat-veistra, HTTP :8765 - plan"| PlaneVM
     UIprojects -.->|"child webview, same session - plan"| PlaneVM
-    HostsFile -.->|"resolves plane.kaava.internal - plan"| RustPlane
+    HostsFile -.->|"resolves plane.veistra.internal - plan"| RustPlane
 
-    %% --- kaava-project CLI (today's stand-in for apps/projects) ---
-    CLI -->|"kaava-wake: GCE REST start then health poll"| PlaneVM
-    CLI -->|"X-API-Key plane-pat-kaava, HTTP :8765 via IAP tunnel"| PlaneVM
+    %% --- veistra-project CLI (today's stand-in for apps/projects) ---
+    CLI -->|"veistra-wake: GCE REST start then health poll"| PlaneVM
+    CLI -->|"X-API-Key plane-pat-veistra, HTTP :8765 via IAP tunnel"| PlaneVM
     CLI -->|"gcloud secrets versions access"| SecretMgr
     CLI -->|"GCS JSON API read/write JSON"| BucketProjects
     CLI -->|"GCS JSON API .keep placeholder"| BucketArtifacts
@@ -128,7 +128,7 @@ flowchart LR
 
     %% --- Worker to managed services, built ---
     Worker -->|"MCP over HTTPS, ID token: /mcp/asset-build/, /mcp/godot-build/"| Hindsight
-    Worker -->|"kaava-render: writes job, GCE REST start"| GPU
+    Worker -->|"veistra-render: writes job, GCE REST start"| GPU
     Worker -->|"GCS JSON API read/write"| BucketArtifacts
     Worker -->|"GCS JSON API write status.json + transcript.jsonl"| BucketSessions
     GPU -->|"GCS JSON API read job, upload screenshots"| BucketRenderQ
@@ -147,7 +147,7 @@ flowchart LR
     Worker -.->|"plane-mcp-server stdio, X-API-Key plane-pat-agent - plan A4.4"| PlaneVM
 ```
 
-## 2. Sequence: open Plane from OpenKaava (planned end state)
+## 2. Sequence: open Plane from Veistra (planned end state)
 
 ```mermaid
 sequenceDiagram
@@ -185,22 +185,22 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant O as Owner or OpenKaava [plan: OpenKaava path]
+    participant O as Owner or Veistra [plan: Veistra path]
     participant Plane as plane-vm - Plane API [build]
     participant Watch as plane-watch [plan]
     participant Jobs as gs://veistra-projects/prod/jobs [plan]
     participant GCE as Compute Engine REST [build]
-    participant Worker as kaava-worker [build]
+    participant Worker as veistra-worker [build]
     participant Claude as claude -p session [build]
     participant MCP as plane-mcp-server [plan]
 
-    O->>Plane: add label ai:breakdown (or OpenKaava button writes the same job)
+    O->>Plane: add label ai:breakdown (or Veistra button writes the same job)
     Watch->>Plane: poll issues with ai:* label, every 60s
     Plane-->>Watch: matching issue
     Watch->>Jobs: write jobs/pending/<job-id>.json
     Watch->>Plane: comment "Queued for agent: job <id>"
     Watch->>Plane: swap label for ai:queued
-    Watch->>GCE: POST instances/kaava-worker/start
+    Watch->>GCE: POST instances/veistra-worker/start
     GCE-->>Watch: RUNNING
     Worker->>Jobs: claim job (move pending -> claimed, generation precondition)
     Worker->>Claude: claude -p with prompt template + job JSON
@@ -226,10 +226,10 @@ Two built things sit in an unusual place and are called out individually rather 
   mechanism this document describes — `gcloud auth print-access-token`, Compute Engine REST list
   and start, Cloud Storage JSON API list and download — but it lives on branch
   `cloud-ui/agents-app`, which is **not merged into `main`** and not present in this worktree
-  (`tools/kaava-project`). It is drawn as built because the mechanism is real and demonstrated, not
+  (`tools/veistra-project`). It is drawn as built because the mechanism is real and demonstrated, not
   because it ships today.
-- **`kaava-project` (Python CLI)** is the thing that actually creates/lists/shows/archives
-  projects today. It is not part of the OpenKaava desktop app; it is a terminal tool the owner (or
+- **`veistra-project` (Python CLI)** is the thing that actually creates/lists/shows/archives
+  projects today. It is not part of the Veistra desktop app; it is a terminal tool the owner (or
   an agent on the worker) runs by hand. `apps/projects` is meant to replace the parts of it that
   touch the UI (B3.1), but until B1-B3 land, the CLI is the only "project" surface that exists.
 
@@ -237,20 +237,20 @@ Two built things sit in an unusual place and are called out individually rather 
 
 | Node / item | Source |
 |---|---|
-| `veistra-prod`, VPC `kaava`, Cloud NAT, IAP-only firewall | `infra/terraform/foundation/main.tf` (`google_compute_network.kaava`, `google_compute_router_nat.kaava`, `google_compute_firewall.iap_ingress`) |
-| `kaava-worker` VM, agent image, idle stop | `infra/terraform/worker/main.tf` (`google_compute_instance.agent`, var `agents`, default `e2-standard-8`); `infra/images/agent/` |
-| `kaava-gpu` VM, Spot L4, TERMINATED at rest | `infra/terraform/gpu/main.tf` (`google_compute_instance.gpu`, `desired_status = "TERMINATED"`, `machine_type = "g2-standard-8"`) |
+| `veistra-prod`, VPC `veistra`, Cloud NAT, IAP-only firewall | `infra/terraform/foundation/main.tf` (`google_compute_network.veistra`, `google_compute_router_nat.veistra`, `google_compute_firewall.iap_ingress`) |
+| `veistra-worker` VM, agent image, idle stop | `infra/terraform/worker/main.tf` (`google_compute_instance.agent`, var `agents`, default `e2-standard-8`); `infra/images/agent/` |
+| `veistra-gpu` VM, Spot L4, TERMINATED at rest | `infra/terraform/gpu/main.tf` (`google_compute_instance.gpu`, `desired_status = "TERMINATED"`, `machine_type = "g2-standard-8"`) |
 | `plane-vm`, disk `plane-data`, DNS, firewall | `infra/terraform/plane/main.tf` (`google_compute_instance.plane`, `google_compute_disk.data`, `google_dns_managed_zone.internal`, `google_compute_firewall.plane_iap`/`plane_agents`) |
 | Plane CE v1.4.2 live, cold-start numbers, PATs | `docs/handoffs/plane-frontend.md` ("What is live" table) |
 | Hindsight on Cloud Run + Cloud SQL + Vertex | `infra/terraform/hindsight/main.tf` (`google_cloud_run_v2_service.hindsight`, `google_sql_database_instance.hindsight`, env `HINDSIGHT_API_LLM_MODEL`) |
 | Buckets `veistra-artifacts`, `-render-queue`, `-sessions`, `veistra-projects` | `infra/terraform/registry/main.tf`; `infra/terraform/plane/main.tf` (`google_storage_bucket_iam_member.projects`) |
 | Secret Manager (`claude-oauth-token`, `plane-*`) | `infra/terraform/secrets/main.tf`, `infra/terraform/plane/main.tf` (`local.secrets`) |
-| `kaavaWaker` custom role, wake/idle contract | `infra/terraform/plane/main.tf` (`google_project_iam_custom_role.waker`); `infra/common/kaava-wake/`, `infra/common/kaava-idle/` |
-| `kaava-project` CLI, prod projects | `tools/kaava-project/kaava_project.py`, `tools/kaava-project/README.md` |
+| `veistraWaker` custom role, wake/idle contract | `infra/terraform/plane/main.tf` (`google_project_iam_custom_role.waker`); `infra/common/veistra-wake/`, `infra/common/veistra-idle/` |
+| `veistra-project` CLI, prod projects | `tools/veistra-project/veistra_project.py`, `tools/veistra-project/README.md` |
 | UI-facing contracts (auth, artifact/session/canvas shapes, Hindsight rules) | `docs/cloud-services.md` |
 | Agents app (built, unmerged) | `git show origin/cloud-ui/agents-app` — `src-tauri/src/apps/agents.rs`, `src-tauri/src/cloud/{mod,auth,compute,storage,http}.rs` |
-| `apps/projects` (planned), design rules, deep links | `docs/design/OPENKAAVA-PLANE-DESIGN.md` §7.4, §11 (task table B1-B3); `docs/handoffs/plane-frontend.md` ("Not built yet") |
-| `plane-watch`, AI job queue, job flow | `docs/design/OPENKAAVA-PLANE-DESIGN.md` §7.3, §8.1; `docs/handoffs/plane-frontend.md` ("Not built yet") |
-| Local dev Plane `:8766` | `docs/design/OPENKAAVA-PLANE-DESIGN.md` §9; `docs/handoffs/plane-frontend.md` |
-| Cost model, scale-to-zero targets | `docs/design/OPENKAAVA-PLANE-DESIGN.md` §4-§5; `infra/README.md` ("Cost at idle") |
-| Overall PRD scope and phases | `docs/design/OPENKAAVA-CLOUD-PRD.md` |
+| `apps/projects` (planned), design rules, deep links | `docs/design/VEISTRA-PLANE-DESIGN.md` §7.4, §11 (task table B1-B3); `docs/handoffs/plane-frontend.md` ("Not built yet") |
+| `plane-watch`, AI job queue, job flow | `docs/design/VEISTRA-PLANE-DESIGN.md` §7.3, §8.1; `docs/handoffs/plane-frontend.md` ("Not built yet") |
+| Local dev Plane `:8766` | `docs/design/VEISTRA-PLANE-DESIGN.md` §9; `docs/handoffs/plane-frontend.md` |
+| Cost model, scale-to-zero targets | `docs/design/VEISTRA-PLANE-DESIGN.md` §4-§5; `infra/README.md` ("Cost at idle") |
+| Overall PRD scope and phases | `docs/design/VEISTRA-CLOUD-PRD.md` |

@@ -25,7 +25,7 @@ const frame = (id: string, x: number, y: number, w: number, h: number, child?: s
     height: h,
     version: 1,
     versionNonce: 1,
-    ...(child ? { customData: { kaava: { child } } } : {}),
+    ...(child ? { customData: { veistra: { child } } } : {}),
   }) as SceneElement;
 
 const row = (id: string, parent: string | null): CanvasSummary => ({
@@ -38,7 +38,7 @@ const row = (id: string, parent: string | null): CanvasSummary => ({
 });
 
 describe("child links on frames", () => {
-  it("reads the link from customData.kaava.child, on frames only", () => {
+  it("reads the link from customData.veistra.child, on frames only", () => {
     expect(childOf(frame("f", 0, 0, 1, 1, "levels/ward-b"))).toBe("levels/ward-b");
     expect(childOf(frame("f", 0, 0, 1, 1))).toBeNull();
     const rect = { ...frame("r", 0, 0, 1, 1, "x"), type: "rectangle" } as SceneElement;
@@ -219,7 +219,7 @@ describe("linkBadges", () => {
   it("keeps a sub-canvas frame's chip on its top edge, as the arrow alone", () => {
     // Split frames sit edge to edge: under one is the next one's picture.
     const base = { ...withChild(frame("n", 100, 50, 150, 100), "world/kid"), name: "Zone" };
-    const tiled = { ...base, customData: { kaava: { child: "world/kid", subcanvas: true } } };
+    const tiled = { ...base, customData: { veistra: { child: "world/kid", subcanvas: true } } };
     expect(linkBadges([tiled], view, title)[0]).toMatchObject({ below: false, compact: true });
     // With no room even for the arrow, it still goes underneath.
     const long = { ...tiled, name: "A much longer frame name" };

@@ -134,12 +134,12 @@ pub struct RunSpec {
     pub project: PathBuf,
     /// A `res://` scene to run instead of the project's main scene.
     pub scene: Option<String>,
-    /// The folder the Kaava capture addon listens in, when it is installed.
+    /// The folder the Veistra capture addon listens in, when it is installed.
     pub channel: Option<PathBuf>,
 }
 
 impl RunSpec {
-    /// `godot --path <project> [scene] [-- --kaava-dir=<dir>]`
+    /// `godot --path <project> [scene] [-- --veistra-dir=<dir>]`
     pub fn args(&self) -> Vec<String> {
         let mut args = vec!["--path".to_string(), self.project.display().to_string()];
         if let Some(scene) = &self.scene {
@@ -147,7 +147,7 @@ impl RunSpec {
         }
         if let Some(channel) = &self.channel {
             args.push("--".to_string());
-            args.push(format!("--kaava-dir={}", channel.display()));
+            args.push(format!("--veistra-dir={}", channel.display()));
         }
         args
     }
@@ -230,7 +230,7 @@ impl Run {
     }
 
     fn note(&self, text: String) {
-        self.log.lock_or_panic().push("kaava", text);
+        self.log.lock_or_panic().push("veistra", text);
     }
 
     fn finish(&self, code: Option<i32>) {
@@ -382,7 +382,7 @@ fn wait_in_background(run: Arc<Run>, mut child: Child) {
 }
 
 /// `taskkill /T` walks descendants, which is what reaches the game when the
-/// program Kaava started was a wrapper (a `.cmd` shim, or a launcher that spawns
+/// program Veistra started was a wrapper (a `.cmd` shim, or a launcher that spawns
 /// the real binary). Killing only the pid it holds would leave the game window
 /// open with nothing supervising it.
 #[cfg(windows)]
@@ -394,7 +394,7 @@ pub fn kill_tree(pid: u32) {
         .creation_flags(CREATE_NO_WINDOW)
         .output();
     if let Err(e) = result {
-        crate::kaava_log!("could not stop the game (pid {pid}): {e}");
+        crate::veistra_log!("could not stop the game (pid {pid}): {e}");
     }
 }
 
@@ -482,7 +482,7 @@ mod tests {
         };
         assert_eq!(
             spec.args(),
-            vec!["--path", "/p", "res://a.tscn", "--", "--kaava-dir=/tmp/c"]
+            vec!["--path", "/p", "res://a.tscn", "--", "--veistra-dir=/tmp/c"]
         );
     }
 

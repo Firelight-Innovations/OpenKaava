@@ -1,20 +1,20 @@
-//! End-to-end coverage of `kaava-rpc` against the real `kaava-echo-tool`
+//! End-to-end coverage of `veistra-rpc` against the real `veistra-echo-tool`
 //! binary -- not a mock, the actual process spawned the way the
 //! orchestrator will spawn it.
 //!
-//! `CARGO_BIN_EXE_kaava-echo-tool` is set by Cargo only for tests that live
+//! `CARGO_BIN_EXE_veistra-echo-tool` is set by Cargo only for tests that live
 //! in *this* package (the one that declares the `[[bin]]`), which is why
-//! this test can't move to `kaava-rpc` -- see the README for why that's also
+//! this test can't move to `veistra-rpc` -- see the README for why that's also
 //! the right way to resolve the binary inside this workspace at all.
 //!
 //! Every call below passes an explicit short timeout rather than relying on
 //! `call`'s 30s default: if a regression turns a request into a hang, the
 //! test should fail in a couple of seconds, not sit for half a minute.
 
-use kaava_rpc::{ToolProcess, INVALID_PARAMS, METHOD_NOT_FOUND, TOOL_EXITED};
 use serde_json::json;
 use std::path::Path;
 use std::time::Duration;
+use veistra_rpc::{ToolProcess, INVALID_PARAMS, METHOD_NOT_FOUND, TOOL_EXITED};
 
 const T: Duration = Duration::from_secs(5);
 
@@ -26,10 +26,10 @@ const T: Duration = Duration::from_secs(5);
     reason = "test helper; a panic is the failure report"
 )]
 fn spawn() -> ToolProcess {
-    let bin = Path::new(env!("CARGO_BIN_EXE_kaava-echo-tool"));
+    let bin = Path::new(env!("CARGO_BIN_EXE_veistra-echo-tool"));
     let cwd = std::env::current_dir().expect("cwd");
-    ToolProcess::spawn(bin, &["--kaava-rpc".to_string()], &cwd, "echo")
-        .expect("failed to spawn kaava-echo-tool")
+    ToolProcess::spawn(bin, &["--veistra-rpc".to_string()], &cwd, "echo")
+        .expect("failed to spawn veistra-echo-tool")
 }
 
 #[test]
@@ -38,11 +38,11 @@ fn handshake_echo_upper_and_shutdown() {
 
     let hello = tool
         .call_timeout(
-            "kaava/hello",
+            "veistra/hello",
             Some(json!({"protocol": 1, "session": {"projectPath": null}})),
             T,
         )
-        .expect("kaava/hello should succeed");
+        .expect("veistra/hello should succeed");
     assert_eq!(
         hello,
         json!({"id": "echo", "version": "0.1.0", "protocol": 1})

@@ -444,7 +444,7 @@ mod tests {
         let uris: Vec<_> = out.iter().map(|h| h.uri.as_str()).collect();
         assert_eq!(
             uris,
-            ["kaava://file/notes/deploy_steps.txt"],
+            ["veistra://file/notes/deploy_steps.txt"],
             "the key is left out and does not use up the limit"
         );
     }
@@ -470,8 +470,8 @@ mod tests {
             .into_iter()
             .map(|h| h.uri)
             .collect();
-        assert!(uris.contains(&"kaava://file/scripts/config/config.gd".to_string()));
-        assert!(uris.contains(&"kaava://file/scripts/config".to_string()));
+        assert!(uris.contains(&"veistra://file/scripts/config/config.gd".to_string()));
+        assert!(uris.contains(&"veistra://file/scripts/config".to_string()));
         for absent in ["build/config.gd", "config.env", "config.pem", ".config"] {
             assert!(
                 !uris.iter().any(|u| u.ends_with(absent)),
@@ -493,7 +493,7 @@ mod tests {
         let all = |_: &str| true;
         let hits = canvas_hits(&listed, &q("hosp"), &all);
         assert_eq!(hits.len(), 1);
-        assert_eq!(hits[0].uri, "kaava://canvas/levels/hospital");
+        assert_eq!(hits[0].uri, "veistra://canvas/levels/hospital");
         assert_eq!(canvas_hits(&listed, &q("world"), &all)[0].title, "world");
 
         let found = json!({ "matches": [
@@ -501,7 +501,7 @@ mod tests {
             { "canvas": "world", "id": "f_2", "name": null },
         ]});
         let hits = frame_hits(&found, &q("menu"), &all);
-        assert_eq!(hits[0].uri, "kaava://canvas/world#frame=f_1");
+        assert_eq!(hits[0].uri, "veistra://canvas/world#frame=f_1");
         assert_eq!(hits[0].detail.as_deref(), Some("Screen on canvas world"));
         assert_eq!(hits[1].title, "f_2");
         assert_eq!(
@@ -540,7 +540,7 @@ mod tests {
         let fine = copy("notes/build", "c.txt");
         let out = rank(context_items(dir.path(), &q("build")), 10);
         let uris: Vec<_> = out.iter().map(|h| h.uri.clone()).collect();
-        assert_eq!(uris, [format!("kaava://context/{}", fine.id)]);
+        assert_eq!(uris, [format!("veistra://context/{}", fine.id)]);
     }
 
     #[test]
@@ -554,7 +554,7 @@ mod tests {
 
     #[test]
     fn the_selection_is_one_hit_when_its_name_is_asked_for() {
-        assert_eq!(selection(&q("sel")).unwrap().uri, "kaava://selection");
+        assert_eq!(selection(&q("sel")).unwrap().uri, "veistra://selection");
         assert!(selection(&q("door")).is_none());
         let other = Query::new("sel", Some(vec!["file".into()]), None).unwrap();
         assert!(selection(&other).is_none());

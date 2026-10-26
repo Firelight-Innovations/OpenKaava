@@ -30,7 +30,7 @@ export function openAgent(w: AgentOpeners, instanceId: string): Promise<void> {
   w.focusWhenShown(instanceId);
   return w
     .activateInstance(instanceId)
-    .catch((err: unknown) => w.report("kaava: could not bring that agent tab forward:", err));
+    .catch((err: unknown) => w.report("veistra: could not bring that agent tab forward:", err));
 }
 
 /**
@@ -55,6 +55,6 @@ export async function newAgent(w: AgentOpeners, clusterId: string): Promise<void
     await w.setActiveCluster(w.label, clusterId);
     w.focusWhenShown(await w.openInstance(w.label, AGENT_TAB_APP));
   } catch (err) {
-    w.report("kaava: could not open an agent tab:", err);
+    w.report("veistra: could not open an agent tab:", err);
   }
 }

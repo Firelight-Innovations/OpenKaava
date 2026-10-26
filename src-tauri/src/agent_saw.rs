@@ -1,12 +1,12 @@
 //! "Agent saw": which image files Claude Code read, shown back to the person.
 //!
 //! **Transport.** A `PostToolUse` hook (matcher `Read`) appends the hook's JSON
-//! payload, one line per call, to `<env>/.kaava/context/.saw.jsonl`, and Kaava
+//! payload, one line per call, to `<env>/.veistra/context/.saw.jsonl`, and Veistra
 //! reads that file. The alternative was a hook binary posting to the local MCP
 //! listener; that needs a shipped executable, a port and token that change on
 //! every launch, and `curl` quoting that differs between cmd and bash. A file
-//! append needs only `cat`, works with Kaava closed, and cannot fail loudly in
-//! the agent's session. The cost is that Kaava polls; it is a stat and a small
+//! append needs only `cat`, works with Veistra closed, and cannot fail loudly in
+//! the agent's session. The cost is that Veistra polls; it is a stat and a small
 //! read.
 //!
 //! **Consent.** Nothing here runs unless the person turns it on. Enabling edits
@@ -21,7 +21,7 @@ use std::path::{Path, PathBuf};
 
 const SAW_FILE: &str = ".saw.jsonl";
 /// Present in our hook's command, and how we find it again.
-const MARKER: &str = ".kaava/context/.saw.jsonl";
+const MARKER: &str = ".veistra/context/.saw.jsonl";
 const MAX_LOG_BYTES: usize = 1024 * 1024;
 const KEEP_LOG_BYTES: usize = 256 * 1024;
 const MAX_SEEN: usize = 50;
@@ -54,12 +54,12 @@ fn saw_path(root: &Path) -> PathBuf {
     crate::context::store_dir(root).join(SAW_FILE)
 }
 
-/// The hook's command line. `mkdir -p` because Claude can run before Kaava has
+/// The hook's command line. `mkdir -p` because Claude can run before Veistra has
 /// ever created the store; bash is what Claude Code runs hooks with on every
 /// platform it supports, Git Bash included.
 fn command() -> String {
     format!(
-        "mkdir -p \"$CLAUDE_PROJECT_DIR/.kaava/context\" && cat >> \"$CLAUDE_PROJECT_DIR/{MARKER}\""
+        "mkdir -p \"$CLAUDE_PROJECT_DIR/.veistra/context\" && cat >> \"$CLAUDE_PROJECT_DIR/{MARKER}\""
     )
 }
 
@@ -76,7 +76,7 @@ fn read_settings(root: &Path) -> Result<Value, String> {
         Ok(text) => {
             let v: Value = serde_json::from_str(&text).map_err(|e| {
                 format!(
-                    "{} is not valid JSON ({e}); fix or remove it, and Kaava will not touch it",
+                    "{} is not valid JSON ({e}); fix or remove it, and Veistra will not touch it",
                     path.display()
                 )
             })?;
@@ -98,7 +98,7 @@ fn write_settings(root: &Path, value: &Value) -> Result<(), String> {
             .map_err(|e| format!("could not create {}: {e}", dir.display()))?;
     }
     let text = serde_json::to_string_pretty(value).map_err(|e| e.to_string())? + "\n";
-    let tmp = path.with_extension("json.kaava-tmp");
+    let tmp = path.with_extension("json.veistra-tmp");
     std::fs::write(&tmp, text).map_err(|e| format!("could not write {}: {e}", tmp.display()))?;
     std::fs::rename(&tmp, &path).map_err(|e| {
         let _ = std::fs::remove_file(&tmp);

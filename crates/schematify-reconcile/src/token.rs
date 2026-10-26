@@ -1,7 +1,7 @@
 //! The marker-token grammar (PRD `SCHEMATIFY-PRD.md` section 9.1):
 //!
 //! ```text
-//! @kaava:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 token-verifier.verify_signature
+//! @veistra:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 token-verifier.verify_signature
 //! ```
 //!
 //! found by plain regular expression rather than parsed as a doc comment,
@@ -21,7 +21,7 @@ use regex::{Captures, Regex};
 use uuid::Uuid;
 
 /// The literal prefix every marker token starts with.
-pub const TOKEN_PREFIX: &str = "@kaava:";
+pub const TOKEN_PREFIX: &str = "@veistra:";
 
 /// Build the regular expression that finds every well-formed marker token in
 /// a line of text. Compiled once per scan (by the caller) rather than once
@@ -32,7 +32,7 @@ pub fn token_pattern() -> Regex {
     // test time rather than in a scanner run.
     #[allow(clippy::unwrap_used)]
     Regex::new(
-        r"@kaava:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?:[ \t]+([A-Za-z0-9_][A-Za-z0-9_.\-]*))?",
+        r"@veistra:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?:[ \t]+([A-Za-z0-9_][A-Za-z0-9_.\-]*))?",
     )
     .unwrap()
 }
@@ -87,7 +87,7 @@ mod tests {
     #[test]
     fn parses_a_well_formed_token_with_slug() {
         let (id, slug) = parse_token(
-            "@kaava:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 token-verifier.verify_signature",
+            "@veistra:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 token-verifier.verify_signature",
         )
         .expect("well-formed token should parse");
         assert_eq!(id.to_string(), "0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8");
@@ -97,7 +97,7 @@ mod tests {
     #[test]
     fn parses_a_token_with_no_slug() {
         let (id, slug) =
-            parse_token("@kaava:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8").expect("should parse");
+            parse_token("@veistra:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8").expect("should parse");
         assert_eq!(id.to_string(), "0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8");
         assert_eq!(slug, None);
     }
@@ -113,7 +113,7 @@ mod tests {
     #[test]
     fn rejects_truncated_uuid() {
         assert_eq!(
-            parse_token("@kaava:0192f4a1-4c3d-7890-a1b2 token-verifier"),
+            parse_token("@veistra:0192f4a1-4c3d-7890-a1b2 token-verifier"),
             None
         );
     }
@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn rejects_non_hex_uuid() {
         assert_eq!(
-            parse_token("@kaava:zzzzzzzz-4c3d-7890-a1b2-c3d4e5f6a7b8 token-verifier"),
+            parse_token("@veistra:zzzzzzzz-4c3d-7890-a1b2-c3d4e5f6a7b8 token-verifier"),
             None
         );
     }
@@ -129,21 +129,21 @@ mod tests {
     #[test]
     fn rejects_wrong_hyphen_placement() {
         assert_eq!(
-            parse_token("@kaava:0192f4a14c3d-7890-a1b2-c3d4e5f6a7b8 token-verifier"),
+            parse_token("@veistra:0192f4a14c3d-7890-a1b2-c3d4e5f6a7b8 token-verifier"),
             None
         );
     }
 
     #[test]
     fn rejects_bare_prefix_with_nothing_following() {
-        assert_eq!(parse_token("@kaava:"), None);
-        assert_eq!(parse_token("@kaava: token-verifier"), None);
+        assert_eq!(parse_token("@veistra:"), None);
+        assert_eq!(parse_token("@veistra: token-verifier"), None);
     }
 
     #[test]
     fn rejects_a_token_that_does_not_start_at_offset_zero() {
         assert_eq!(
-            parse_token("// @kaava:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 token-verifier"),
+            parse_token("// @veistra:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 token-verifier"),
             None
         );
     }
@@ -151,7 +151,8 @@ mod tests {
     #[test]
     fn finds_a_token_anywhere_in_a_line_via_captures_iter() {
         let re = token_pattern();
-        let line = "// @kaava:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 token-verifier.verify_signature";
+        let line =
+            "// @veistra:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 token-verifier.verify_signature";
         let caps: Vec<_> = re.captures_iter(line).collect();
         assert_eq!(caps.len(), 1);
         let (id, slug) = parse_captures(&caps[0]).expect("should parse from captures");
@@ -162,7 +163,7 @@ mod tests {
     #[test]
     fn finds_two_tokens_on_one_line() {
         let re = token_pattern();
-        let line = "@kaava:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 a @kaava:0192f4a2-4c3d-7890-a1b2-c3d4e5f6a7b8 b";
+        let line = "@veistra:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 a @veistra:0192f4a2-4c3d-7890-a1b2-c3d4e5f6a7b8 b";
         let caps: Vec<_> = re.captures_iter(line).collect();
         assert_eq!(caps.len(), 2);
     }

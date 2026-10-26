@@ -6,7 +6,7 @@
  * opening it twice, to reuse the one replaceable "preview" tab a single click
  * in the Explorer should take over, and to hand a restored instance its file
  * back after a restart. The instance itself is a frame the shell cannot read, so
- * the viewer reports it (`kaava/title` carries `subject`) and this module keeps
+ * the viewer reports it (`veistra/title` carries `subject`) and this module keeps
  * the answer.
  *
  * Held in the shell's own `localStorage` rather than in Rust's layout file: the
@@ -32,7 +32,7 @@ export interface DeclaredSubject extends Subject {
   title: string;
 }
 
-const STORAGE_KEY = "kaava.viewer.subjects.v1";
+const STORAGE_KEY = "veistra.viewer.subjects.v1";
 
 /**
  * Two spellings of one path must match: a Windows path arrives with either
@@ -45,7 +45,7 @@ export function normalizePath(path: string): string {
   return /^[A-Za-z]:/.test(slashed) ? slashed.toLowerCase() : slashed;
 }
 
-/** True when a `kaava/title` request says the viewer no longer has a file. */
+/** True when a `veistra/title` request says the viewer no longer has a file. */
 export function clearsSubject(params: unknown): boolean {
   return (
     typeof params === "object" &&
@@ -54,7 +54,7 @@ export function clearsSubject(params: unknown): boolean {
   );
 }
 
-/** The subject fields off a `kaava/title` request, or `null` when it names none. */
+/** The subject fields off a `veistra/title` request, or `null` when it names none. */
 export function declaredSubject(params: unknown): DeclaredSubject | null {
   if (typeof params !== "object" || params === null) return null;
   const { title, subject, preview, dirty } = params as Record<string, unknown>;

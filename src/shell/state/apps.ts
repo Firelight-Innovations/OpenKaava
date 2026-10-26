@@ -34,7 +34,7 @@ export function useApps(): AppInfo[] {
       // An app list that fails to load leaves the switcher showing tools only.
       // Reported rather than swallowed: every other path here is infallible, so
       // a failure is worth seeing instead of reading as "this build ships none".
-      .catch((err: unknown) => console.error("kaava: could not list apps:", err));
+      .catch((err: unknown) => console.error("veistra: could not list apps:", err));
 
     return () => {
       live = false;
@@ -57,7 +57,7 @@ export function usePages(): PageInfo[] {
     let live = true;
     void listPages()
       .then((result) => live && setPages(result))
-      .catch((err: unknown) => console.error("kaava: could not list pages:", err));
+      .catch((err: unknown) => console.error("veistra: could not list pages:", err));
 
     return () => {
       live = false;
@@ -93,7 +93,7 @@ export function useOpenables(): Openable[] {
         .then((result) => live && setOpenables(result))
         // An empty Apps menu looks exactly like a feature nobody wired up, so it
         // is reported rather than swallowed, for the reason `useApps` gives.
-        .catch((err: unknown) => console.error("kaava: could not list openables:", err));
+        .catch((err: unknown) => console.error("veistra: could not list openables:", err));
     };
 
     refresh();

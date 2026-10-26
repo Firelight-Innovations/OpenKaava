@@ -1,6 +1,6 @@
-# Contributing to OpenKaava
+# Contributing to Veistra
 
-This repository is the OpenKaava orchestrator: the shell that reads the stack
+This repository is the Veistra orchestrator: the shell that reads the stack
 manifest, finds the tool checkouts, and hosts the first-party apps. Everything
 else in the stack is its own repository and reaches this one through
 `docs/tool-protocol.md`. `README.md` describes what the thing is and how it is
@@ -49,8 +49,8 @@ first thing that happens.
 Then:
 
 ```sh
-git clone https://github.com/Firelight-Innovations/OpenKaava.git
-cd OpenKaava
+git clone https://github.com/Firelight-Innovations/Veistra.git
+cd Veistra
 pnpm install
 pnpm verify
 ```
@@ -75,7 +75,7 @@ itself through `beforeDevCommand` and `beforeBuildCommand`. Use the `app`
 scripts.
 
 **A fresh clone reports most of the stack as `not cloned`, and that is
-correct.** `kaava.toml` pins each component repository and looks for it in a
+correct.** `veistra.toml` pins each component repository and looks for it in a
 sibling directory of this checkout; on a machine that has only this repo,
 finding none of them is the accurate answer rather than a broken install. The
 shell, Home and Files all run in that state, which is the state most work on the
@@ -289,9 +289,9 @@ The other three, briefly, because they follow from what is above:
 
 - A pull request that makes a check pass by widening a baseline, deleting a
   test, or skipping one.
-- A rename of anything in the on-disk or wire vocabulary — the `kaava.toml`
-  filename, the `.kaava` extension and `.kaava/` directory, the `kaava/*` RPC
-  method namespace, the `kaava-tool://` scheme, the `@openkaava/*` npm scope, the
+- A rename of anything in the on-disk or wire vocabulary — the `veistra.toml`
+  filename, the `.veistra` extension and `.veistra/` directory, the `veistra/*` RPC
+  method namespace, the `veistra-tool://` scheme, the `@veistra/*` npm scope, the
   crate names. Those are contracts with every tool repository and every project
   already on disk, and renaming one stops existing projects opening.
 - A change to `crates/` without tests. Other repositories depend on those, and a

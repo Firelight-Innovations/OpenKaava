@@ -14,7 +14,7 @@ const el = (id: string, type: string, x: number, y: number, w: number, h: number
 
 const scene = [
   el("f", "frame", 100, 200, 800, 600, {
-    customData: { kaava: { diagram: { id: "world" } } },
+    customData: { veistra: { diagram: { id: "world" } } },
   }),
   el("a", "rectangle", 150, 250, 100, 50),
   el("b", "rectangle", 400, 400, 60, 80),

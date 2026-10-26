@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="assets/ui/icon.png" alt="OpenKaava" width="120" height="120">
+<img src="assets/ui/icon.png" alt="Veistra" width="120" height="120">
 
-# OpenKaava
+# Veistra
 
 <p>
   <strong>An Agentic Development Environment (ADE).</strong><br/>
@@ -11,8 +11,8 @@
 </p>
 
 <p>
-  <a href="https://github.com/Firelight-Innovations/OpenKaava/actions/workflows/verify.yml"><img src="https://github.com/Firelight-Innovations/OpenKaava/actions/workflows/verify.yml/badge.svg" alt="verify workflow status" /></a>
-  <a href="https://github.com/Firelight-Innovations/OpenKaava/stargazers"><img src="https://img.shields.io/github/stars/Firelight-Innovations/OpenKaava?style=flat&label=%E2%98%85&color=08C" alt="GitHub stars" /></a>
+  <a href="https://github.com/Firelight-Innovations/Veistra/actions/workflows/verify.yml"><img src="https://github.com/Firelight-Innovations/Veistra/actions/workflows/verify.yml/badge.svg" alt="verify workflow status" /></a>
+  <a href="https://github.com/Firelight-Innovations/Veistra/stargazers"><img src="https://img.shields.io/github/stars/Firelight-Innovations/Veistra?style=flat&label=%E2%98%85&color=08C" alt="GitHub stars" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-08C?style=flat" alt="License: Apache-2.0" /></a>
   <img src="https://img.shields.io/badge/platform-Windows-4493F8?style=flat" alt="Platform: Windows" />
   <a href="#status"><img src="https://img.shields.io/badge/status-alpha-yellow?style=flat" alt="Status: alpha" /></a>
@@ -22,16 +22,16 @@
   <a href="docs/user/tutorials/README.md"><ins>Tutorials</ins></a> &middot;
   <a href="docs/user/README.md"><ins>User docs</ins></a> &middot;
   <a href="docs/dev/README.md"><ins>Developer docs</ins></a> &middot;
-  <a href="https://github.com/Firelight-Innovations/OpenKaava/discussions"><ins>Discussions</ins></a>
+  <a href="https://github.com/Firelight-Innovations/Veistra/discussions"><ins>Discussions</ins></a>
 </p>
 
 </div>
 
 ---
 
-## What OpenKaava is
+## What Veistra is
 
-OpenKaava is an Agentic Development Environment (ADE): a desktop app that puts
+Veistra is an Agentic Development Environment (ADE): a desktop app that puts
 your terminals, your files, a design canvas and your game tools in one window,
 beside the coding agents you already use (Claude Code, Codex).
 
@@ -40,11 +40,11 @@ the design canvas exist because that is the work it was made for. The rest
 (clusters, terminals, files, git, MCP servers) is not tied to games, so with
 some tweaks it works for ordinary software too.
 
-OpenKaava is a development tool. It does not run the software you build with it.
+Veistra is a development tool. It does not run the software you build with it.
 
 ## Status
 
-OpenKaava is **alpha**. The features below run today, but expect rough edges,
+Veistra is **alpha**. The features below run today, but expect rough edges,
 changing behavior and bugs. It is Windows only. Parts marked **preview** or
 **coming soon** are not finished, and the list is plain about which is which.
 
@@ -86,7 +86,7 @@ prompt tells an agent how to draw.
 
 ### Godot
 
-OpenKaava drives the headless Godot CLI. You need Godot installed; OpenKaava
+Veistra drives the headless Godot CLI. You need Godot installed; Veistra
 does not bundle it.
 
 - **Godot Viewer** shows the scene tree and a 3D preview. The preview is
@@ -97,7 +97,7 @@ does not bundle it.
 
 ### Blender
 
-OpenKaava drives headless Blender. You need Blender installed.
+Veistra drives headless Blender. You need Blender installed.
 
 - **Blender Viewer** exports a `.blend` to `.glb` and shows the model, with a
   parts list and renders.
@@ -116,14 +116,14 @@ with **Send to agent**, instead of pasted into a terminal by hand.
 
 The Projects page shows the work items of a Plane workspace, so planning sits
 next to the work. **Preview / coming soon:** it reaches Plane through the
-OpenKaava Cloud gateway, so it needs a cloud setup that is not generally
+Veistra Cloud gateway, so it needs a cloud setup that is not generally
 available yet. The screenshot shows fixture data, not a live workspace.
 
 ![The Plane page listing a workspace's projects, from fixture data (preview, coming soon)](assets/ui/plane-projects.png)
 
 ### MCP servers
 
-OpenKaava hosts MCP (Model Context Protocol) servers and writes them into
+Veistra hosts MCP (Model Context Protocol) servers and writes them into
 `.mcp.json`, so your coding agent can call them. They cover the canvas, the
 workspace and design tools. Each server has its own switch under
 Settings, MCP servers. [The MCP server manager](docs/mcp-server-manager.md)
@@ -133,7 +133,7 @@ explains each one.
 
 ### Cost tracker
 
-The Cost Tracker estimates what your OpenKaava Cloud resources have cost this
+The Cost Tracker estimates what your Veistra Cloud resources have cost this
 month at list price, forecasts the month against a budget, and shows what
 Google has billed beside it. An estimate, not a bill. **Preview / coming soon:**
 it is only useful with a cloud setup, and the screenshot shows fixture data.
@@ -165,10 +165,10 @@ commit message. Every setting comes from one schema.
 
 ## Install
 
-**[Download OpenKaava for Windows](https://github.com/Firelight-Innovations/OpenKaava/releases/latest/download/OpenKaava-setup.exe)**
+**[Download Veistra for Windows](https://github.com/Firelight-Innovations/Veistra/releases/latest/download/Veistra-setup.exe)**
 
 Run the installer. It does not ask for administrator rights. It installs for
-your account only. OpenKaava also fetches the WebView2 runtime for you, if your
+your account only. Veistra also fetches the WebView2 runtime for you, if your
 machine does not already have it.
 
 > **Windows will warn you. You can go ahead.** The installer is not signed.
@@ -179,12 +179,12 @@ machine does not already have it.
 > signing would and would not fix.
 
 After installing, right-click any folder in Explorer and choose **Open with
-OpenKaava**. OpenKaava opens the folder as a project. The same entry appears on files.
+Veistra**. Veistra opens the folder as a project. The same entry appears on files.
 A file opens in the File Viewer, with its folder as the project.
 
 ## Build from source
 
-Use this option to build OpenKaava yourself, or to contribute code to it.
+Use this option to build Veistra yourself, or to contribute code to it.
 
 Every prerequisite below is a Windows prerequisite. Install each one once.
 
@@ -198,8 +198,8 @@ Every prerequisite below is a Windows prerequisite. Install each one once.
 Then run:
 
 ```sh
-git clone https://github.com/Firelight-Innovations/OpenKaava.git
-cd OpenKaava
+git clone https://github.com/Firelight-Innovations/Veistra.git
+cd Veistra
 pnpm install
 pnpm app
 ```
@@ -211,17 +211,17 @@ step takes several minutes. Later runs are fast.
 
 [Ten short tutorials](docs/user/tutorials/README.md) cover the window, your
 first project, panes and clusters, terminals, search, settings, files and
-editing, git and worktrees, MCP servers, and the stack. OpenKaava ships the same
+editing, git and worktrees, MCP servers, and the stack. Veistra ships the same
 pages in its own Tutorials tool. Read each tutorial beside the thing it
 describes.
 
-Start with [The OpenKaava window](docs/user/tutorials/the-window.md).
+Start with [The Veistra window](docs/user/tutorials/the-window.md).
 
 ## The stack
 
-OpenKaava's own tools are apps inside this repository, under `apps/`, and ship
+Veistra's own tools are apps inside this repository, under `apps/`, and ship
 in the same binary as the window. A third-party tool can live in its own
-repository instead, pinned to an exact version in `kaava.toml`. Nothing is
+repository instead, pinned to an exact version in `veistra.toml`. Nothing is
 pinned today, so the switcher bar's health badge stays silent.
 [The stack, end to end](docs/user/tutorials/the-stack.md) explains how to read
 that badge once something is pinned.
@@ -248,24 +248,24 @@ issues are coming. They will point to exactly where.
 
 Found a bug? Open an issue. Want something that is not here? Open an issue
 too. Want to talk about an idea first? Open a
-[discussion](https://github.com/Firelight-Innovations/OpenKaava/discussions).
+[discussion](https://github.com/Firelight-Innovations/Veistra/discussions).
 
 ## License
 
-OpenKaava uses the Apache-2.0 license. [LICENSE](LICENSE) has the full text.
+Veistra uses the Apache-2.0 license. [LICENSE](LICENSE) has the full text.
 [NOTICE](NOTICE) is the file that a redistributor must carry with it.
 
-OpenKaava uses Apache, not MIT, because of the patent grant. Third-party tools
-load into OpenKaava through the tool protocol. MIT says nothing about patents.
-OpenKaava does not use GPL or AGPL, under any circumstances. A copyleft license
-would give someone a real argument that private tools mounting into OpenKaava are
+Veistra uses Apache, not MIT, because of the patent grant. Third-party tools
+load into Veistra through the tool protocol. MIT says nothing about patents.
+Veistra does not use GPL or AGPL, under any circumstances. A copyleft license
+would give someone a real argument that private tools mounting into Veistra are
 derivative works.
 
-The license covers the code. It does not cover the names. OpenKaava and
+The license covers the code. It does not cover the names. Veistra and
 the marks that go with it are trademarks of Veistra.
 
-You can fork OpenKaava. You can sell what you build on it. State plainly that your
-work is based on OpenKaava. All of that is fine.
+You can fork Veistra. You can sell what you build on it. State plainly that your
+work is based on Veistra. All of that is fine.
 
-Do not ship your fork as OpenKaava itself. The code is free to copy. The name is
+Do not ship your fork as Veistra itself. The code is free to copy. The name is
 not. The name tells a user which build runs the tools on their machine.

@@ -3,7 +3,7 @@
  *
  * App-local rather than imported from the shell's `src/ui/Icon.tsx`, for the
  * reason `apps/home/ui/src/icons.tsx` gives at length: an app reaches its host
- * through `@openkaava/bridge` and nothing else, and reaching into the shell's source
+ * through `@veistra/bridge` and nothing else, and reaching into the shell's source
  * for a component would make this pane a piece of the shell that happens to live
  * in a folder.
  *

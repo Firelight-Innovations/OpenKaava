@@ -151,7 +151,7 @@
 
 /* --- the project page and its handle --------------------------------------
    `--w-project-rail` and the rest of this block are geometry the spec names
-   (`docs/design/KAAVA-UX-SPEC.md` §1.7-1.8) but `tokens.json` does not define
+   (`docs/design/VEISTRA-UX-SPEC.md` §1.7-1.8) but `tokens.json` does not define
    — kept local per the common brief rather than added to `src/tokens.css`. */
 
 :root {

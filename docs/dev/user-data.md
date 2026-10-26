@@ -1,6 +1,6 @@
 # User data, reinstalls and updates
 
-Eight JSON files and a directory of plugin checkouts hold everything OpenKaava
+Eight JSON files and a directory of plugin checkouts hold everything Veistra
 remembers about a person. None of them is versioned, none of them is backed
 up, all of them live at a path derived from the bundle identifier, and until
 the rename nobody had to think about that. This page is the system that makes
@@ -11,7 +11,10 @@ without somebody deciding it should.
 Written after `com.firelightinnovations.helve` became
 `com.firelightinnovations.openkaava` and orphaned a live directory. That
 instance is being accepted — there is one user and they can reinstall — so
-this is about the second time, not the first.
+this is about the second time, not the first. The second time was OpenKaava
+becoming Veistra, and it went through `check-identity.mjs --adopt`: the
+OpenKaava identifier and product name are in the superseded lists, so the
+first launch of Veistra adopts the old config directory.
 
 ## What is actually at risk
 
@@ -45,13 +48,13 @@ the directory the rename orphaned still holds `layout.json`,
 
 Two more things are user data and are not in that directory:
 
-- **`.kaava/review-comments.json`**, inside each checkout. Review notes are
+- **`.veistra/review-comments.json`**, inside each checkout. Review notes are
   about the code rather than about the machine, so they travel with the branch
   — `review/store.rs`'s module doc makes that argument in full. It is not at
   risk from a rename, and it is the only store here that already carries a
   format version.
 - **The GitHub token**, in the Windows credential store under the service name
-  `com.firelightinnovations.openkaava` — a *hardcoded copy* of the identifier
+  `com.firelightinnovations.veistra` — a *hardcoded copy* of the identifier
   in `plugins/install.rs`, not the one Tauri derives paths from. It changed
   when the identifier did, so the stored token is orphaned exactly the way the
   directory is.
@@ -63,7 +66,7 @@ migration is allowed to throw away.
 
 **Precious** — the user typed it, and nothing can reconstruct it:
 `projects.json`, `presets.json`, `settings.json`, `plugins.json`,
-`.kaava/review-comments.json`.
+`.veistra/review-comments.json`.
 
 **Reconstructible with effort** — losing it is annoying rather than
 destructive: `layout.json` (rearrange the windows again), `mcp.json` (flip the
@@ -85,7 +88,7 @@ to `%APPDATA%`. That derivation is convenient right up to the moment the
 identifier moves, and then it is the bug.
 
 The tempting fix is to stop using it: give the orchestrator its own
-`userdata::dir()` returning `%APPDATA%\OpenKaava\`, wire the eight stores
+`userdata::dir()` returning `%APPDATA%\Veistra\`, wire the eight stores
 through it, and the identifier can then say whatever it likes.
 
 **Rejected, because it fixes one consumer out of four.** The identifier is not
@@ -125,7 +128,7 @@ depends on, and a change to it would be a breaking release the migration story
 below would cover the same way it covers a rename.
 
 `ui:build` in `package.json` already overrides the identifier to
-`com.firelightinnovations.openkaava.agent`, which is how an agent's instance
+`com.firelightinnovations.veistra.agent`, which is how an agent's instance
 gets its own directory and its own mutex rather than fighting Braden's. That
 suffix is deliberate and the check has to know about it rather than trip over
 it.
@@ -133,9 +136,9 @@ it.
 ## The identifier, and the check that makes a rename announce itself
 
 `branding.toml` already says the identifier must not move. Under **What is
-frozen**, beside the `kaava.toml` filename and the `kaava-tool://` scheme:
+frozen**, beside the `veistra.toml` filename and the `veistra-tool://` scheme:
 
-> `com.firelightinnovations.openkaava` / the OS config directory holding
+> `com.firelightinnovations.veistra` / the OS config directory holding
 > `projects.json`
 
 That is a comment. `scripts/check-branding.mjs` checks six surfaces and the
@@ -190,8 +193,8 @@ which is the difference between a rename and a rename that strands data.
 
 ```js
 export const IDENTITY = {
-  identifier: "com.firelightinnovations.openkaava",
-  productName: "OpenKaava",
+  identifier: "com.firelightinnovations.veistra",
+  productName: "Veistra",
 };
 ```
 
@@ -207,7 +210,7 @@ export const IDENTITY = {
 | `identity.rs` `SUPERSEDED` | must not contain `IDENTIFIER` | a directory cannot supersede itself |
 
 The registry check is not theoretical. `installer-hooks.nsh` writes
-`Software\Classes\Directory\shell\OpenWithOpenKaava` — but this machine still
+`Software\Classes\Directory\shell\OpenWithVeistra` — but this machine still
 has `OpenWithHELVE` under that path, written by an installer whose uninstaller
 is the only thing that will ever remove it. Renaming the key in both macros at
 once looks correct and leaves litter in every existing install's registry, so
@@ -218,8 +221,8 @@ The failure message is the whole value of the check, so it says what to do:
 ```
 identity: 1 problem(s)
 
-  src-tauri/tauri.conf.json identifier is "com.firelightinnovations.kaava",
-  but the identity is "com.firelightinnovations.openkaava". Changing it moves
+  src-tauri/tauri.conf.json identifier is "com.firelightinnovations.example",
+  but the identity is "com.firelightinnovations.veistra". Changing it moves
   %APPDATA%\<identifier>\, the WebView2 profile, the single-instance mutex and
   the keyring entry.
 
@@ -252,8 +255,11 @@ Sometimes a rename is right. `src-tauri/src/userdata/identity.rs`:
 
 ```rust
 /// The bundle identifier, and every one it replaced, newest first.
-pub const IDENTIFIER: &str = "com.firelightinnovations.openkaava";
-pub const SUPERSEDED: &[&str] = &["com.firelightinnovations.helve"];
+pub const IDENTIFIER: &str = "com.firelightinnovations.veistra";
+pub const SUPERSEDED: &[&str] = &[
+    "com.firelightinnovations.openkaava",
+    "com.firelightinnovations.helve",
+];
 ```
 
 The product name's equivalent list lives in `check-identity.mjs` instead, and
@@ -295,7 +301,7 @@ Four rules, each of which is a test below:
    and when, so the act is visible on disk and a second launch does not try
    again after the user has deleted something.
 4. **Failure is not fatal.** Every store already degrades to its default; an
-   adoption that cannot move a directory logs through `kaava_log!` and lets
+   adoption that cannot move a directory logs through `veistra_log!` and lets
    that happen, on the same rule the eight stores follow.
 
 The keyring entry cannot be moved this way — `keyring::Entry` has no rename —
@@ -384,7 +390,7 @@ all, which row one already covers. An empty migration chain is a shape to
 maintain rather than a behaviour, and the first bump is what earns it.
 
 The last row is the downgrade fix. "Set aside" means moving the file into
-`backups/` as `layout.format-3.<unix-ms>.json`, intact, and `kaava_log!` says
+`backups/` as `layout.format-3.<unix-ms>.json`, intact, and `veistra_log!` says
 which file and which format so `pnpm probe recent_errors` can answer why the
 workspace came back empty.
 
@@ -412,7 +418,7 @@ in it once:
 
 ```rust
 serde_json::from_str(&raw).unwrap_or_else(|e| {
-    crate::kaava_log!("{} is not readable, starting fresh: {e}", path.display());
+    crate::veistra_log!("{} is not readable, starting fresh: {e}", path.display());
     Stored::default()
 })
 ```
@@ -518,7 +524,7 @@ memory:
 - When checked, it removes `$APPDATA\${BUNDLEID}` and
   `$LOCALAPPDATA\${BUNDLEID}` — the identifier's directories, including
   `backups/` and the `plugins/` checkouts. Not the keyring entry, and not
-  anything under `.kaava/` in a checkout.
+  anything under `.veistra/` in a checkout.
 - The confirm page carries `un.SkipIfPassive`, and `plugins.updater.windows.installMode`
   is `passive`. **An update can therefore never reach the checkbox**, which is
   exactly right: an update is not a moment at which anybody agreed to lose
@@ -539,11 +545,11 @@ Three changes:
    honest version is a `--uninstall-credentials` argument on the binary that
    the uninstall macro invokes, and which fails quietly.
 3. **`installer-hooks.nsh`'s uninstall macro should delete the superseded key
-   names too** — `OpenWithHELVE` alongside `OpenWithOpenKaava` — for the same
+   names too** — `OpenWithHELVE` alongside `OpenWithVeistra` — for the same
    reason `SUPERSEDED` exists in Rust. A rename otherwise leaves a context-menu
    entry pointing at a binary that is no longer there.
 
-An **uninstall must never delete `.kaava/` inside a checkout**, and today it
+An **uninstall must never delete `.veistra/` inside a checkout**, and today it
 cannot, since it only knows about `$APPDATA` and `$LOCALAPPDATA`. Worth writing
 down anyway: review notes are inside the user's own repository, and an
 uninstaller that reached into a source tree would be doing something no

@@ -1,7 +1,7 @@
 /**
  * Refuse a pull request that edits the app library, unless the maintainer wrote it.
  *
- * `catalog.toml` decides what OpenKaava offers to install and, through
+ * `catalog.toml` decides what Veistra offers to install and, through
  * `default = true`, what it downloads and runs on first launch without being
  * asked. `docs/design-notes/app-library.md` is the argument for why that is
  * worth a gate of its own, and — importantly — what this check cannot protect
@@ -99,9 +99,9 @@ if (author === MAINTAINER) {
 console.error(`catalog: ${touched.length} guarded path(s) changed by ${author ?? "(unknown)"}\n`);
 for (const path of touched) console.error(`  ${path}`);
 console.error(
-  `\nOnly ${MAINTAINER} may change these. \`catalog.toml\` decides what OpenKaava\n` +
+  `\nOnly ${MAINTAINER} may change these. \`catalog.toml\` decides what Veistra\n` +
     `installs by itself on first run, and a plugin core is unsandboxed — an entry\n` +
-    `added here runs on every machine that installs OpenKaava.\n\n` +
+    `added here runs on every machine that installs Veistra.\n\n` +
     `If this change is wanted, ${MAINTAINER} should carry it in a pull request of\n` +
     `their own. Split the rest of this branch out and it will pass.`,
 );

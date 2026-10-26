@@ -6,11 +6,11 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import transcriptText from "../../../../src-tauri/fixtures/cloud/veistra-prod-sessions/kaava-worker/3f2a9c1e-7b40-4d2a-9e61-0c5d8b7a1f01/transcript.jsonl?raw";
+import transcriptText from "../../../../src-tauri/fixtures/cloud/veistra-prod-sessions/veistra-worker/3f2a9c1e-7b40-4d2a-9e61-0c5d8b7a1f01/transcript.jsonl?raw";
 import type { Machine, Overview, Session } from "./rpc";
 
 const bridge = vi.hoisted(() => {
-  class KaavaRpcError extends Error {
+  class VeistraRpcError extends Error {
     constructor(
       readonly code: number,
       message: string,
@@ -19,12 +19,12 @@ const bridge = vi.hoisted(() => {
       super(message);
     }
   }
-  return { invoke: vi.fn(), KaavaRpcError };
+  return { invoke: vi.fn(), VeistraRpcError };
 });
 
-vi.mock("@openkaava/bridge", () => ({
+vi.mock("@veistra/bridge", () => ({
   invoke: bridge.invoke,
-  KaavaRpcError: bridge.KaavaRpcError,
+  VeistraRpcError: bridge.VeistraRpcError,
   reportPainted: vi.fn(),
 }));
 
@@ -43,7 +43,7 @@ const machine = (name: string, status: string): Machine => ({
 });
 
 const live: Session = {
-  agent: "kaava-worker",
+  agent: "veistra-worker",
   sessionId: "3f2a9c1e-7b40-4d2a-9e61-0c5d8b7a1f01",
   statusGeneration: 1,
   written: recent,
@@ -58,7 +58,7 @@ const live: Session = {
 const OVERVIEW: Overview = {
   source: "fixture",
   project: "veistra-prod",
-  machines: [machine("kaava-worker", "RUNNING"), machine("kaava-worker-2", "TERMINATED")],
+  machines: [machine("veistra-worker", "RUNNING"), machine("veistra-worker-2", "TERMINATED")],
   sessions: [live],
   problems: [],
 };
@@ -78,7 +78,7 @@ function backend(overview: Overview = OVERVIEW) {
           truncated: false,
         });
       case "agents/start":
-        return Promise.resolve({ started: "kaava-worker-2" });
+        return Promise.resolve({ started: "veistra-worker-2" });
       default:
         return Promise.reject(new Error(`unexpected ${method}`));
     }
@@ -110,14 +110,14 @@ describe("Agents", () => {
     expect(screen.getByText(/Bills e2-standard-8/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Start" }));
     await waitFor(() =>
-      expect(bridge.invoke).toHaveBeenCalledWith("agents/start", { name: "kaava-worker-2" }),
+      expect(bridge.invoke).toHaveBeenCalledWith("agents/start", { name: "veistra-worker-2" }),
     );
   });
 
   it("shows the fix, not a stack of errors, when gcloud is signed out", async () => {
     bridge.invoke.mockImplementation(() =>
       Promise.reject(
-        new bridge.KaavaRpcError(-32603, "signed out", { kind: "signedOut", detail: "x" }),
+        new bridge.VeistraRpcError(-32603, "signed out", { kind: "signedOut", detail: "x" }),
       ),
     );
     render(<App />);
@@ -140,7 +140,7 @@ describe("Agents", () => {
 
   it("ends the wait in a timed-out state with Retry when the bridge gives up", async () => {
     bridge.invoke.mockImplementation(() =>
-      Promise.reject(new bridge.KaavaRpcError(-32001, "request timed out")),
+      Promise.reject(new bridge.VeistraRpcError(-32001, "request timed out")),
     );
     render(<App />);
     expect(await screen.findByText("Reading Agents timed out")).toBeTruthy();
@@ -149,7 +149,9 @@ describe("Agents", () => {
 
   it("says which account to check when Google Cloud denies the read", async () => {
     bridge.invoke.mockImplementation(() =>
-      Promise.reject(new bridge.KaavaRpcError(-32603, "refused", { kind: "denied", detail: "no" })),
+      Promise.reject(
+        new bridge.VeistraRpcError(-32603, "refused", { kind: "denied", detail: "no" }),
+      ),
     );
     render(<App />);
     expect(await screen.findByText("This Google account may not read that")).toBeTruthy();
@@ -158,7 +160,7 @@ describe("Agents", () => {
 
   it("tells you to install the CLI when gcloud is missing", async () => {
     bridge.invoke.mockImplementation(() =>
-      Promise.reject(new bridge.KaavaRpcError(-32603, "no gcloud", { kind: "gcloudMissing" })),
+      Promise.reject(new bridge.VeistraRpcError(-32603, "no gcloud", { kind: "gcloudMissing" })),
     );
     render(<App />);
     expect(await screen.findByText("The Google Cloud CLI is not installed")).toBeTruthy();

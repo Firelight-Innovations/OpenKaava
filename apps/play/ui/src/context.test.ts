@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const invoke = vi.hoisted(() => vi.fn());
-vi.mock("@openkaava/bridge", () => ({ invoke }));
+vi.mock("@veistra/bridge", () => ({ invoke }));
 
 import { logText, putLog, putShot } from "./context";
 import type { LogLine } from "./rpc";

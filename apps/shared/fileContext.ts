@@ -4,7 +4,7 @@
  * the strip beside each terminal) is the host's; a path outside the environment
  * is copied in and one inside is referenced where it is, all decided in Rust.
  */
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 import { contextKey, type ContextRef } from "./context";
 
 /** The formats the store accepts as an image, by their bytes. */

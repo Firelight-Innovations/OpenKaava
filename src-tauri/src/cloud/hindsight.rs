@@ -16,10 +16,10 @@ use serde::Serialize;
 use std::time::Instant;
 
 /// Where the deployed service lives, from `docs/cloud-services.md` §1.
-/// `KAAVA_HINDSIGHT_URL` overrides it, the same variable the agent VMs read.
+/// `VEISTRA_HINDSIGHT_URL` overrides it, the same variable the agent VMs read.
 pub const DEFAULT_URL: &str = "https://hindsight-hsi6ckovra-uc.a.run.app";
 
-pub const URL_ENV: &str = "KAAVA_HINDSIGHT_URL";
+pub const URL_ENV: &str = "VEISTRA_HINDSIGHT_URL";
 
 pub fn base_url() -> String {
     std::env::var(URL_ENV)

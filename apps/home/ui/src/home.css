@@ -1,7 +1,7 @@
 /*
  * Home's own layout.
  *
- * Separate from `apps/shared/app.css`, which describes how an OpenKaava *app* looks
+ * Separate from `apps/shared/app.css`, which describes how a Veistra *app* looks
  * in general — a header strip, a scrolling body, rows and labels. Home is not
  * that shape. It is a landing page: one wide centred column, no pane header (the
  * switcher tab above already said "Home", and the brand lockup says it again in
@@ -45,7 +45,7 @@
 /*
  * The lockup, from section 03 of the brand packet.
  *
- * "OpenKaava set in IBM Plex Sans SemiBold, all caps. Horizontal: wordmark size is
+ * "Veistra set in IBM Plex Sans SemiBold, all caps. Horizontal: wordmark size is
  * 0.62× the mark's height, letterspaced 0.30em, with a gap of 0.45× the mark
  * height." Every measurement is a ratio of one number, so that number is the
  * only literal here and the ratios are written as the multiplications the

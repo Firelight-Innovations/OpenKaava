@@ -18,7 +18,7 @@ import {
 import type { ThemeChangedPayload } from "./protocol.js";
 
 describe("parseThemePayload", () => {
-  it("accepts a well-formed kaava:theme-changed payload", () => {
+  it("accepts a well-formed veistra:theme-changed payload", () => {
     const payload: ThemeChangedPayload = { theme: "light", accent: "violet" };
     expect(parseThemePayload(payload)).toEqual(payload);
   });

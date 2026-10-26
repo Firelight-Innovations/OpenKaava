@@ -1,16 +1,16 @@
 /**
- * The door Rust knocks on: `window.__kaavaCanvas`.
+ * The door Rust knocks on: `window.__veistraCanvas`.
  *
  * `src-tauri/src/apps/canvas/webview.rs` evaluates a script in the shell
  * window that looks for this object in every app iframe and calls `run`. The
  * heavy operations are imported on first use, so a canvas pane that no agent
  * talks to never loads them.
  *
- * `window.__kaavaContext` is the same idea for the agent server's `context`
+ * `window.__veistraContext` is the same idea for the agent server's `context`
  * tool: what this app is showing and what is selected, asked for rather than
  * scraped from the DOM.
  *
- * Rejected: a bridge message from Rust to the app (`@openkaava/bridge`). The
+ * Rejected: a bridge message from Rust to the app (`@veistra/bridge`). The
  * bridge carries requests from an app to Rust, not the other way, and adding
  * a reverse channel for one app would be a protocol change for all of them.
  */
@@ -56,15 +56,15 @@ export async function run(op: string, payload: unknown): Promise<unknown> {
 
 declare global {
   interface Window {
-    __kaavaCanvas?: { currentId: () => string | null; run: typeof run };
-    __kaavaContext?: () => Record<string, unknown>;
+    __veistraCanvas?: { currentId: () => string | null; run: typeof run };
+    __veistraContext?: () => Record<string, unknown>;
   }
 }
 
 /** Install both hooks on this window. Idempotent. */
 export function install(): void {
-  window.__kaavaCanvas = { currentId: () => hooks?.currentId() ?? null, run };
-  window.__kaavaContext = () => ({
+  window.__veistraCanvas = { currentId: () => hooks?.currentId() ?? null, run };
+  window.__veistraContext = () => ({
     app: "canvas",
     canvas: hooks?.currentId() ?? null,
     ...(hooks?.selection() ?? { elementIds: [], diagram: null }),

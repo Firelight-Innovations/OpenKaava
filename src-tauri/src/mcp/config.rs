@@ -1,15 +1,15 @@
-//! Writing OpenKaava's servers into a project's `.mcp.json`.
+//! Writing Veistra's servers into a project's `.mcp.json`.
 //!
 //! This is the discovery step: the file is how a harness learns that these
 //! servers exist at all. Two rules govern everything here.
 //!
 //! **The file is the user's, not ours.** A project may already configure its own
-//! servers, and this must round-trip them untouched. Only the `kaava-` prefixed
+//! servers, and this must round-trip them untouched. Only the `veistra-` prefixed
 //! keys are ours to add, change or remove.
 //!
 //! **Nothing machine-specific goes in it.** The port and the token are written
-//! as `${KAAVA_MCP_PORT}` and `${KAAVA_MCP_TOKEN}`, which the client expands
-//! from the environment OpenKaava gave the shell. So the file holds no secret and no
+//! as `${VEISTRA_MCP_PORT}` and `${VEISTRA_MCP_TOKEN}`, which the client expands
+//! from the environment Veistra gave the shell. So the file holds no secret and no
 //! per-machine value, and can be committed and shared like any other project
 //! config — see `docs/mcp-server-manager.md` §6.
 
@@ -21,7 +21,7 @@ use tauri::{AppHandle, Manager};
 
 /// The `mcpServers` table, and the prefix that marks a row as ours.
 const SERVERS_KEY: &str = "mcpServers";
-const OURS: &str = "kaava-";
+const OURS: &str = "veistra-";
 
 #[derive(Debug, PartialEq)]
 pub enum ConfigError {
@@ -39,7 +39,7 @@ pub enum ConfigError {
 /// no enabled servers is left alone rather than given an empty file.
 ///
 /// `mcp.writeProjectConfig` off does not skip this — it merges as though
-/// nothing were enabled. A stale `kaava-` row pointing at a route nobody
+/// nothing were enabled. A stale `veistra-` row pointing at a route nobody
 /// advertises is worse than no row at all, so a file that already exists still
 /// gets rewritten with those rows removed; only a project with no file to begin
 /// with stays untouched, via the same `existing.is_none()` check below that
@@ -56,7 +56,7 @@ pub fn sync(app: &AppHandle, project: &Path) {
         Ok(raw) => match serde_json::from_str::<Value>(&raw) {
             Ok(value) => Some(value),
             Err(e) => {
-                crate::kaava_log!(
+                crate::veistra_log!(
                     "{} is not valid JSON, leaving it alone: {e}",
                     path.display()
                 );
@@ -73,7 +73,7 @@ pub fn sync(app: &AppHandle, project: &Path) {
     let merged = match merge(existing, &enabled) {
         Ok(merged) => merged,
         Err(ConfigError::NotAnObject) => {
-            crate::kaava_log!(
+            crate::veistra_log!(
                 "{} is JSON but not an object, leaving it alone",
                 path.display()
             );
@@ -89,7 +89,7 @@ pub fn sync(app: &AppHandle, project: &Path) {
     text.push('\n');
 
     if let Err(e) = std::fs::write(&path, text) {
-        crate::kaava_log!("could not write {}: {e}", path.display());
+        crate::veistra_log!("could not write {}: {e}", path.display());
     }
 }
 
@@ -126,7 +126,7 @@ pub fn sync_all(app: &AppHandle) {
 ///
 /// Pure, so the round-trip rules below can be tested without a project on disk.
 ///
-/// **Every** `kaava-` key is dropped before ours are added, not just the ones we
+/// **Every** `veistra-` key is dropped before ours are added, not just the ones we
 /// are about to rewrite. That is what makes a server the user switched off — or
 /// one this build no longer has — disappear from the file rather than linger as
 /// a row pointing at a route that no longer answers.
@@ -161,8 +161,8 @@ fn merge(existing: Option<Value>, enabled: &[String]) -> Result<Value, ConfigErr
 fn entry(id: &str) -> Value {
     json!({
         "type": "http",
-        "url": format!("http://127.0.0.1:${{KAAVA_MCP_PORT}}{}", route(id)),
-        "headers": { "Authorization": "Bearer ${KAAVA_MCP_TOKEN}" },
+        "url": format!("http://127.0.0.1:${{VEISTRA_MCP_PORT}}{}", route(id)),
+        "headers": { "Authorization": "Bearer ${VEISTRA_MCP_TOKEN}" },
     })
 }
 
@@ -182,8 +182,8 @@ mod tests {
         let servers = servers_of(&merged);
 
         assert_eq!(servers.len(), 2);
-        assert!(servers.contains_key("kaava-echo"));
-        assert!(servers.contains_key("kaava-acme"));
+        assert!(servers.contains_key("veistra-echo"));
+        assert!(servers.contains_key("veistra-acme"));
     }
 
     /// The rule the rest of this module exists to protect: a project's own
@@ -208,7 +208,7 @@ mod tests {
             merged["someOtherKey"]["kept"], true,
             "an unrelated top-level key survives"
         );
-        assert!(servers_of(&merged).contains_key("kaava-echo"));
+        assert!(servers_of(&merged).contains_key("veistra-echo"));
     }
 
     /// Switching a server off has to remove its row, or the file keeps
@@ -217,8 +217,8 @@ mod tests {
     fn a_server_that_is_no_longer_enabled_is_removed() {
         let existing = json!({
             "mcpServers": {
-                "kaava-echo": { "type": "http", "url": "http://127.0.0.1:1/mcp/echo" },
-                "kaava-gone": { "type": "http", "url": "http://127.0.0.1:1/mcp/gone" },
+                "veistra-echo": { "type": "http", "url": "http://127.0.0.1:1/mcp/echo" },
+                "veistra-gone": { "type": "http", "url": "http://127.0.0.1:1/mcp/gone" },
                 "github": { "type": "http", "url": "https://api.github.com/mcp" },
             },
         });
@@ -226,9 +226,9 @@ mod tests {
         let merged = merge(Some(existing), &["echo".to_string()]).unwrap();
         let servers = servers_of(&merged);
 
-        assert!(servers.contains_key("kaava-echo"));
+        assert!(servers.contains_key("veistra-echo"));
         assert!(
-            !servers.contains_key("kaava-gone"),
+            !servers.contains_key("veistra-gone"),
             "a stale row is dropped"
         );
         assert!(servers.contains_key("github"), "and only ours are touched");
@@ -236,7 +236,7 @@ mod tests {
 
     /// What `sync` does when `mcp.writeProjectConfig` reads false: it passes
     /// `merge` an empty enabled list rather than skipping the write, so a
-    /// `kaava-` row already in the file is removed instead of left pointing at
+    /// `veistra-` row already in the file is removed instead of left pointing at
     /// a route nobody advertises. Exercised here at the `merge` level, which is
     /// pure, rather than through `sync` itself, which needs a Tauri
     /// `AppHandle` to read the setting.
@@ -244,7 +244,7 @@ mod tests {
     fn the_toggle_being_off_merges_as_though_nothing_were_enabled() {
         let existing = json!({
             "mcpServers": {
-                "kaava-echo": { "type": "http", "url": "http://127.0.0.1:1/mcp/echo" },
+                "veistra-echo": { "type": "http", "url": "http://127.0.0.1:1/mcp/echo" },
                 "github": { "type": "http", "url": "https://api.github.com/mcp" },
             },
         });
@@ -253,7 +253,7 @@ mod tests {
         let servers = servers_of(&merged);
 
         assert!(
-            !servers.contains_key("kaava-echo"),
+            !servers.contains_key("veistra-echo"),
             "a stale row is removed when discovery is switched off"
         );
         assert!(
@@ -265,7 +265,7 @@ mod tests {
     #[test]
     fn disabling_everything_leaves_the_users_config_intact() {
         let existing = json!({
-            "mcpServers": { "kaava-echo": {}, "github": { "type": "http" } },
+            "mcpServers": { "veistra-echo": {}, "github": { "type": "http" } },
         });
 
         let merged = merge(Some(existing), &[]).unwrap();
@@ -282,8 +282,11 @@ mod tests {
         let row = entry("acme");
 
         assert_eq!(row["type"], "http");
-        assert_eq!(row["url"], "http://127.0.0.1:${KAAVA_MCP_PORT}/mcp/acme");
-        assert_eq!(row["headers"]["Authorization"], "Bearer ${KAAVA_MCP_TOKEN}");
+        assert_eq!(row["url"], "http://127.0.0.1:${VEISTRA_MCP_PORT}/mcp/acme");
+        assert_eq!(
+            row["headers"]["Authorization"],
+            "Bearer ${VEISTRA_MCP_TOKEN}"
+        );
 
         // `entry` is given neither the port nor the token, so the only digits
         // that can appear are the loopback address itself. Anything else would
@@ -301,7 +304,7 @@ mod tests {
     #[test]
     fn every_entry_declares_its_transport() {
         let merged = merge(None, &["echo".to_string()]).unwrap();
-        assert_eq!(servers_of(&merged)["kaava-echo"]["type"], "http");
+        assert_eq!(servers_of(&merged)["veistra-echo"]["type"], "http");
     }
 
     /// Something hand-edited into a shape we did not expect is still the user's
@@ -326,7 +329,7 @@ mod tests {
 
     /// The repository's own `.mcp.json` is a real file this module's output has
     /// to keep matching, not just a fixture. It was committed once, by a
-    /// merge (`9f5e300`) that landed each of `kaava-debug` and `kaava-echo`
+    /// merge (`9f5e300`) that landed each of `veistra-debug` and `veistra-echo`
     /// twice with identical bodies — `serde_json` silently kept the last
     /// occurrence of each on read, so the file parsed and worked, and nobody
     /// noticed the JSON text itself was malformed.
@@ -344,7 +347,7 @@ mod tests {
         }
 
         // The working copy as well, when there is one. Unlike the drift check
-        // below, this half cannot go red from a running OpenKaava — `sync`
+        // below, this half cannot go red from a running Veistra — `sync`
         // builds a `serde_json::Map`, which has no way to hold a key twice — so
         // reading both costs nothing and catches a bad merge resolution while
         // it is still uncommitted, which is where it is cheapest to fix.
@@ -360,7 +363,7 @@ mod tests {
     /// a fresh checkout's first `sync` would write — `merge`'s own docs call it
     /// "the same file for every developer" — so it has to name every server
     /// that ships enabled by default, not just the two that existed when it was
-    /// last hand-updated. `kaava-design` shipped after the file was last
+    /// last hand-updated. `veistra-design` shipped after the file was last
     /// touched and was missing from it until this test was added.
     #[test]
     fn the_tracked_mcp_json_matches_a_fresh_syncs_default_output() {
@@ -378,7 +381,7 @@ mod tests {
             "the committed .mcp.json no longer matches what a fresh checkout's \
              first sync would write for the servers that ship enabled by \
              default; regenerate it and commit the result. This reads HEAD, not \
-             your working copy, so a running OpenKaava having rewritten the file \
+             your working copy, so a running Veistra having rewritten the file \
              on disk is not what failed here"
         );
     }
@@ -397,7 +400,7 @@ mod tests {
         let root = repo.path();
         let file = root.join(".mcp.json");
 
-        let committed = "{\n  \"mcpServers\": {\n    \"kaava-echo\": {}\n  }\n}\n";
+        let committed = "{\n  \"mcpServers\": {\n    \"veistra-echo\": {}\n  }\n}\n";
         std::fs::write(&file, committed).unwrap();
 
         run_git(root, &["init", "--quiet"]);
@@ -422,7 +425,7 @@ mod tests {
             ],
         );
 
-        // What a running OpenKaava does to the file: `sync` with nothing
+        // What a running Veistra does to the file: `sync` with nothing
         // enabled writes an empty table over it.
         std::fs::write(&file, "{\n  \"mcpServers\": {}\n}\n").unwrap();
         assert_ne!(std::fs::read_to_string(&file).unwrap(), committed);
@@ -466,7 +469,7 @@ mod tests {
     /// This repository's `.mcp.json` as it is committed at `HEAD`.
     ///
     /// Through git rather than `include_str!`, which reads the *working tree*.
-    /// A running OpenKaava rewrites that file — `sync` writes an empty table
+    /// A running Veistra rewrites that file — `sync` writes an empty table
     /// when `mcp.writeProjectConfig` is off — so the old spelling turned normal,
     /// documented behaviour into a red `cargo test --workspace` on an otherwise
     /// clean checkout, and told the developer to regenerate a file that was
@@ -605,10 +608,10 @@ mod tests {
     #[test]
     fn duplicate_object_key_catches_a_repeated_key() {
         let err =
-            duplicate_object_key(r#"{ "mcpServers": { "kaava-echo": {}, "kaava-echo": {} } }"#)
+            duplicate_object_key(r#"{ "mcpServers": { "veistra-echo": {}, "veistra-echo": {} } }"#)
                 .expect_err("a repeated key must be reported");
         assert!(
-            err.contains("kaava-echo"),
+            err.contains("veistra-echo"),
             "expected the repeated key in the error, got {err}"
         );
     }

@@ -22,13 +22,13 @@ import { rerunLabel } from "../run";
  * The shell knows these strings and nothing else about them. It does not know
  * that `file/save` writes a file, or that only Files can do it — it posts the
  * string to the active frame and greys the item out when that frame has not
- * declared it (see `kaava/commands` in `docs/tool-protocol.md` §3). That is
+ * declared it (see `veistra/commands` in `docs/tool-protocol.md` §3). That is
  * what keeps one app's capability list out of the title bar, so the next app to
  * arrive does not break the menu.
  *
  * The Files app restates these ids in `apps/files/ui/src/commands.ts` rather
  * than importing them, for the reason that file's header gives about an app's
- * only coupling to its host being `@openkaava/bridge`. Two copies of a small table
+ * only coupling to its host being `@veistra/bridge`. Two copies of a small table
  * is the price; the alternative is `apps/` reaching into `src/`.
  */
 export const APP_COMMAND = {
@@ -183,8 +183,8 @@ export interface HelpMenuHandlers {
  * own. Rust re-checks the host and refuses anything else; see `github.rs`.
  */
 const HELP_LINKS = {
-  issues: "https://github.com/Firelight-Innovations/OpenKaava/issues",
-  readme: "https://github.com/Firelight-Innovations/OpenKaava/blob/main/README.md",
+  issues: "https://github.com/Firelight-Innovations/Veistra/issues",
+  readme: "https://github.com/Firelight-Innovations/Veistra/blob/main/README.md",
 } as const;
 
 /**
@@ -197,7 +197,7 @@ const HELP_LINKS = {
  */
 function openHelpLink(url: string): void {
   void githubOpenInBrowser(url).catch((err: unknown) =>
-    console.error("kaava: could not open", url, err),
+    console.error("veistra: could not open", url, err),
   );
 }
 

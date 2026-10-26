@@ -2,7 +2,7 @@
  * Docked vs expanded is chosen by the app's own pane width, not the window's
  * — the host decides how much room this app gets, and a docked rail pane can
  * be wider than a narrow expanded one (`docs/design/COST-TRACKER-CHARTS.md`
- * §5, `docs/design/KAAVA-UX-SPEC.md` boards 06 and 11).
+ * §5, `docs/design/VEISTRA-UX-SPEC.md` boards 06 and 11).
  */
 export type Layout = "docked" | "expanded";
 

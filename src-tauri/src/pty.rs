@@ -294,11 +294,11 @@ impl PtySessions {
                 reason: e.to_string(),
             })?;
 
-        // How an agent in this shell finds OpenKaava's MCP servers. Read here, at
+        // How an agent in this shell finds Veistra's MCP servers. Read here, at
         // spawn, rather than baked into a config file: the port and token are
         // per-launch, and handing them to the process instead of writing them
         // down is what lets the project's `.mcp.json` be committable and keeps a
-        // shell the user opened outside OpenKaava unable to connect. Empty if the
+        // shell the user opened outside Veistra unable to connect. Empty if the
         // listener never bound, which spawns an ordinary shell.
         let mut mcp_env = app.state::<crate::mcp::Endpoint>().env();
         mcp_env.extend_from_slice(marker_env);
@@ -655,7 +655,7 @@ fn spawn_shell(
                 // reads as a trailing NUL after `pwsh.exe` in `recent_errors` and sends a reader
                 // after a NUL that was never in the program or the cwd.
                 let reason = strip_error_nul(&e.to_string());
-                crate::kaava_log!("shell candidate {program} did not start: {reason}");
+                crate::veistra_log!("shell candidate {program} did not start: {reason}");
                 last_err = format!("{name}: {reason}");
             }
         }
@@ -735,7 +735,7 @@ fn pump(
 
 /// The shells to try, best first.
 ///
-/// `KAAVA_SHELL` wins when it is set, which is how this machine switches to Git
+/// `VEISTRA_SHELL` wins when it is set, which is how this machine switches to Git
 /// Bash (`C:\Program Files\Git\bin\bash.exe`) without a rebuild. Otherwise
 /// Windows gets PowerShell — cross-platform PowerShell first, then the one that
 /// ships with the OS — and everything else gets the login shell, falling back to
@@ -825,7 +825,7 @@ fn clean_cwd(cwd: &Path) -> PathBuf {
     if cleaned.is_dir() {
         return cleaned;
     }
-    crate::kaava_log!(
+    crate::veistra_log!(
         "shell cwd {} is not a folder, starting in the process's own instead",
         cleaned.display()
     );
@@ -864,7 +864,7 @@ fn runnable_only(candidates: impl Iterator<Item = Candidate>) -> Vec<Candidate> 
             |candidate| match crate::runnable::unrunnable(&candidate.program) {
                 None => true,
                 Some(why) => {
-                    crate::kaava_log!("skipping shell candidate {}: {why}", candidate.program);
+                    crate::veistra_log!("skipping shell candidate {}: {why}", candidate.program);
                     false
                 }
             },
@@ -910,7 +910,7 @@ fn preferred_candidate(preference: &str) -> Option<Candidate> {
 /// succeed against a stub, and a file existing says nothing about whether this
 /// user may execute it.
 fn shell_candidates() -> Vec<Candidate> {
-    if let Ok(explicit) = std::env::var("KAAVA_SHELL") {
+    if let Ok(explicit) = std::env::var("VEISTRA_SHELL") {
         if !explicit.trim().is_empty() {
             return vec![candidate(explicit.trim())];
         }
@@ -981,7 +981,7 @@ pub fn busy(sessions: &PtySessions, id: &str) -> Option<Busy> {
 /// launches knows it is a child of that session.
 ///
 /// A terminal here is the user's own shell, not a child of whatever started
-/// OpenKaava. When an agent launches the app from inside Claude Code, these
+/// Veistra. When an agent launches the app from inside Claude Code, these
 /// leak through the process environment into every pane, and a `claude` run
 /// there reads `CLAUDE_CODE_CHILD_SESSION` as "I am a nested child": it turns
 /// transcript saving off, so the session never appears under `/resume`.
@@ -1211,7 +1211,7 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_nanos())
             .unwrap_or_default();
-        let dir = std::env::temp_dir().join(format!("kaava-pty-candidate-{stamp}"));
+        let dir = std::env::temp_dir().join(format!("veistra-pty-candidate-{stamp}"));
         std::fs::create_dir_all(&dir).expect("the temp directory is writable");
 
         let fake = dir.join("pwsh.exe");
@@ -1242,7 +1242,7 @@ mod tests {
     /// real diagnostic with silence.
     #[test]
     fn a_shell_that_is_not_installed_is_still_tried() {
-        let kept = runnable_only(vec![candidate("kaava-no-such-shell-9f3a.exe")].into_iter());
+        let kept = runnable_only(vec![candidate("veistra-no-such-shell-9f3a.exe")].into_iter());
         assert_eq!(kept.len(), 1);
     }
 
@@ -1336,7 +1336,7 @@ mod tests {
         // not. A shell that spawned bare here and not in the app would leave the
         // one difference between them untested.
         let injected = [(
-            "KAAVA_MCP_TOKEN".to_string(),
+            "VEISTRA_MCP_TOKEN".to_string(),
             "test-token-not-a-real-one".to_string(),
         )];
         let (name, mut child) = spawn_shell(&*pty.slave, "test", &cwd, &injected, "auto")
@@ -1409,7 +1409,7 @@ mod tests {
         );
     }
 
-    /// `KAAVA_SHELL` is the documented one-line override, and a typo'd path in
+    /// `VEISTRA_SHELL` is the documented one-line override, and a typo'd path in
     /// it must not fall back to PowerShell and pretend it worked.
     #[test]
     fn an_explicit_shell_is_the_only_candidate() {
@@ -1501,7 +1501,7 @@ mod tests {
 
     #[test]
     fn a_cwd_that_does_not_exist_falls_back_to_a_folder_that_does() {
-        let missing = std::env::temp_dir().join("kaava-no-such-folder-for-a-shell");
+        let missing = std::env::temp_dir().join("veistra-no-such-folder-for-a-shell");
         let cleaned = clean_cwd(&missing);
         assert!(cleaned.is_dir());
     }

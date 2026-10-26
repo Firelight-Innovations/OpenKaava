@@ -199,7 +199,7 @@ function CopyButton({ text }: { text: string }) {
         setCopied(true);
         window.setTimeout(() => setCopied(false), 1500);
       })
-      .catch((err: unknown) => console.error("kaava: could not copy the schema:", err));
+      .catch((err: unknown) => console.error("veistra: could not copy the schema:", err));
   };
   return (
     <button type="button" className="mcp-tool__button" onClick={copy}>

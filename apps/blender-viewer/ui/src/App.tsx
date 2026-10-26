@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { reportPainted } from "@openkaava/bridge";
+import { reportPainted } from "@veistra/bridge";
 import {
   Box,
   Clock,

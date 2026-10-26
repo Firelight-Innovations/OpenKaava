@@ -101,7 +101,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "field"
         }
       }
@@ -133,7 +133,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "floor"
         }
       }
@@ -165,7 +165,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "p1-top"
         }
       }
@@ -197,7 +197,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "p1-bottom"
         }
       }
@@ -229,7 +229,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "p2-top"
         }
       }
@@ -261,7 +261,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "p2-bottom"
         }
       }
@@ -293,7 +293,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "ball"
         }
       }
@@ -325,7 +325,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "flap-text",
           "template": "flap: v = +{{flap-velocity}}"
         }
@@ -367,7 +367,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "fall-text",
           "template": "gravity {{gravity}} u/s²\nmax fall {{terminal-fall}} u/s"
         }
@@ -409,7 +409,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "scroll-text",
           "template": "pillars move left {{pillar-speed}} u/s"
         }
@@ -451,7 +451,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "spawn-text",
           "template": "next pair spawns\nat centre x = {{spawn-x}}\n(off the right edge)"
         }
@@ -493,7 +493,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "ceiling-text",
           "template": "ceiling y = {{field-height}}"
         }
@@ -535,7 +535,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "floor-text",
           "template": "floor y = {{floor-y}}"
         }
@@ -577,7 +577,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "range-text",
           "template": "gap centre\n{{gap-centre-min}}–{{gap-centre-max}},\nwithin {{gap-centre-step}} of\nthe previous"
         }
@@ -619,7 +619,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "gap-dim-text",
           "template": "gap\n{{gap}}"
         }
@@ -661,7 +661,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "ballx-dim-text",
           "template": "ball x = {{ball-x}} ({{ball-x-pct}}%)"
         }
@@ -703,7 +703,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "width-dim-text",
           "template": "width {{pillar-width}}"
         }
@@ -745,7 +745,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "spacing-dim-text",
           "template": "{{pillar-spacing}} between pillar centres"
         }
@@ -787,7 +787,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "flap"
         }
       },
@@ -829,7 +829,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "fall"
         }
       },
@@ -871,7 +871,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "scroll"
         }
       },
@@ -913,7 +913,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "range"
         }
       },
@@ -954,7 +954,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "gap-dim"
         }
       },
@@ -995,7 +995,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "ballx-dim"
         }
       },
@@ -1036,7 +1036,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "width-dim"
         }
       },
@@ -1077,7 +1077,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "spacing-dim"
         }
       },
@@ -1119,7 +1119,7 @@
       "locked": false,
       "name": "Playfield, to scale",
       "customData": {
-        "kaava": {
+        "veistra": {
           "diagram": {
             "id": "playfield",
             "title": "Playfield, to scale",
@@ -1230,7 +1230,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "top"
         }
       }
@@ -1262,7 +1262,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "bottom"
         }
       }
@@ -1294,7 +1294,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "score-text"
         }
       },
@@ -1335,7 +1335,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "no-tap-text"
         }
       },
@@ -1376,7 +1376,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "ball"
         }
       }
@@ -1408,7 +1408,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "tap-0"
         }
       },
@@ -1449,7 +1449,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "tap-1"
         }
       },
@@ -1490,7 +1490,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "tap-2"
         }
       },
@@ -1531,7 +1531,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "peak-text",
           "template": "+{{peak-rise}} u\nper tap"
         }
@@ -1573,7 +1573,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "t-0"
         }
       },
@@ -1614,7 +1614,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "t-1"
         }
       },
@@ -1655,7 +1655,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "t-2"
         }
       },
@@ -1696,7 +1696,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "t-3"
         }
       },
@@ -1737,7 +1737,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "interval-text",
           "template": "{{tap-interval}} s"
         }
@@ -1779,7 +1779,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "tuning"
         }
       },
@@ -1820,7 +1820,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "ground"
         }
       },
@@ -1861,7 +1861,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "score-line"
         }
       },
@@ -1902,7 +1902,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "flight"
         }
       },
@@ -1978,7 +1978,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "no-tap"
         }
       },
@@ -2024,7 +2024,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "peak"
         }
       },
@@ -2065,7 +2065,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "axis"
         }
       },
@@ -2107,7 +2107,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "interval"
         }
       },
@@ -2149,7 +2149,7 @@
       "locked": false,
       "name": "A run through one gap",
       "customData": {
-        "kaava": {
+        "veistra": {
           "diagram": {
             "id": "run",
             "title": "A run through one gap",
@@ -2275,7 +2275,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "ready"
         }
       }
@@ -2358,7 +2358,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "playing"
         }
       }
@@ -2441,7 +2441,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "dead"
         }
       }
@@ -2509,7 +2509,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "restart-text",
           "template": "Restart (ignored for the first {{restart-delay}} s)"
         }
@@ -2551,7 +2551,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "ready-note"
         }
       },
@@ -2592,7 +2592,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "playing-note"
         }
       },
@@ -2633,7 +2633,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "dead-note"
         }
       },
@@ -2674,7 +2674,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "audio"
         }
       },
@@ -2720,7 +2720,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "start"
         }
       },
@@ -2811,7 +2811,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "die"
         }
       },
@@ -2897,7 +2897,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "restart"
         }
       },
@@ -2952,7 +2952,7 @@
       "locked": false,
       "name": "Game states",
       "customData": {
-        "kaava": {
+        "veistra": {
           "diagram": {
             "id": "states",
             "title": "Game states",
@@ -3068,7 +3068,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "pillar"
         }
       }
@@ -3136,7 +3136,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "miss-ball"
         }
       }
@@ -3168,7 +3168,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "miss-p"
         }
       }
@@ -3200,7 +3200,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "miss-text"
         }
       },
@@ -3241,7 +3241,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "hit-ball"
         }
       }
@@ -3273,7 +3273,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "hit-p"
         }
       }
@@ -3305,7 +3305,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "hit-text"
         }
       },
@@ -3346,7 +3346,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "miss-c"
         }
       }
@@ -3378,7 +3378,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "hit-c"
         }
       }
@@ -3410,7 +3410,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "p-text"
         }
       },
@@ -3451,7 +3451,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "rule",
           "template": "P = (clamp(cx, left, right),\n        clamp(cy, bottom, top))\nd = |C − P|\nhit if d < r   (r = {{ball-radius}})"
         }
@@ -3493,7 +3493,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "also"
         }
       },
@@ -3534,7 +3534,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "miss-d"
         }
       },
@@ -3575,7 +3575,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "hit-d"
         }
       },
@@ -3617,7 +3617,7 @@
       "locked": false,
       "name": "Collision: circle against rectangle",
       "customData": {
-        "kaava": {
+        "veistra": {
           "diagram": {
             "id": "collision",
             "title": "Collision: circle against rectangle",
@@ -3728,7 +3728,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "level-subsystem"
         }
       },
@@ -3766,10 +3766,10 @@
       "isDeleted": false,
       "boundElements": null,
       "updated": 1,
-      "link": "kaava://diagram/playfield",
+      "link": "veistra://diagram/playfield",
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "go-playfield"
         }
       },
@@ -3810,7 +3810,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "about-playfield"
         }
       },
@@ -3848,10 +3848,10 @@
       "isDeleted": false,
       "boundElements": null,
       "updated": 1,
-      "link": "kaava://diagram/run",
+      "link": "veistra://diagram/run",
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "go-run"
         }
       },
@@ -3892,7 +3892,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "about-run"
         }
       },
@@ -3930,10 +3930,10 @@
       "isDeleted": false,
       "boundElements": null,
       "updated": 1,
-      "link": "kaava://diagram/states",
+      "link": "veistra://diagram/states",
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "go-states"
         }
       },
@@ -3974,7 +3974,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "about-states"
         }
       },
@@ -4015,7 +4015,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "level-detail"
         }
       },
@@ -4053,10 +4053,10 @@
       "isDeleted": false,
       "boundElements": null,
       "updated": 1,
-      "link": "kaava://diagram/collision",
+      "link": "veistra://diagram/collision",
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "go-collision"
         }
       },
@@ -4097,7 +4097,7 @@
       "link": null,
       "locked": false,
       "customData": {
-        "kaava": {
+        "veistra": {
           "node": "about-collision"
         }
       },
@@ -4139,7 +4139,7 @@
       "locked": false,
       "name": "Flap Ball",
       "customData": {
-        "kaava": {
+        "veistra": {
           "diagram": {
             "id": "index",
             "title": "Flap Ball",
@@ -4155,7 +4155,7 @@
     "gridSize": 20
   },
   "files": {},
-  "kaava": {
+  "veistra": {
     "schema": 1,
     "id": "flap-ball",
     "title": "Flap Ball",

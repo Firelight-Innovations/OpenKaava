@@ -22,7 +22,7 @@ export type Block =
   | { kind: "soon"; body: string }
   | { kind: "code"; body: string }
   | { kind: "keys"; rows: { chord: Chord; what: string }[] }
-  // A picture of OpenKaava's UI, built only from `mocks/chrome.tsx`'s primitives.
+  // A picture of Veistra's UI, built only from `mocks/chrome.tsx`'s primitives.
   | { kind: "mock"; view: MockName; caption?: string }
   // A path of steps in a row, joined by arrows, rather than a numbered list.
   | { kind: "flow"; steps: string[] };

@@ -1,4 +1,4 @@
-//! The run artifact of PRD section 5.10, schema `kaava-bench-v1`.
+//! The run artifact of PRD section 5.10, schema `veistra-bench-v1`.
 //!
 //! Schematify never invokes a probe. CI runs it, emits one of these, and
 //! Schematify ingests the file into `runs/` and draws it. That one-way flow is
@@ -21,7 +21,7 @@
 use serde::{Deserialize, Serialize};
 
 /// The one artifact schema this build reads.
-pub const RUN_SCHEMA_VERSION: &str = "kaava-bench-v1";
+pub const RUN_SCHEMA_VERSION: &str = "veistra-bench-v1";
 
 /// One budget measured by one run.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -252,12 +252,12 @@ mod tests {
             ],
             tests: vec![
                 TestResult {
-                    impl_ref: "@kaava:0192f4a1".to_owned(),
+                    impl_ref: "@veistra:0192f4a1".to_owned(),
                     status: "passing".to_owned(),
                     ms: Some(41.0),
                 },
                 TestResult {
-                    impl_ref: "@kaava:0192f4a2".to_owned(),
+                    impl_ref: "@veistra:0192f4a2".to_owned(),
                     status: "failing".to_owned(),
                     ms: None,
                 },
@@ -286,7 +286,7 @@ mod tests {
     fn a_known_schema_is_recognised_and_an_unknown_one_is_not() {
         let mut run = sample();
         assert!(run.is_known_schema());
-        run.schema = "kaava-bench-v2".to_owned();
+        run.schema = "veistra-bench-v2".to_owned();
         assert!(!run.is_known_schema());
     }
 
@@ -314,7 +314,7 @@ mod tests {
         // would refuse. Reaching `UnknownSchema` rather than `Malformed`
         // proves the probe ran before the full deserialize.
         let bytes = serde_json::to_vec(&serde_json::json!({
-            "schema": "kaava-bench-v9",
+            "schema": "veistra-bench-v9",
             "run": 9,
             "at": "2026-08-25T00:00:00Z",
             "commit": "abc",
@@ -324,7 +324,7 @@ mod tests {
         .unwrap();
         match read_run_artifact(&bytes) {
             Err(RunReadError::UnknownSchema(version)) => {
-                assert_eq!(version, "kaava-bench-v9");
+                assert_eq!(version, "veistra-bench-v9");
             }
             other => panic!("expected UnknownSchema, got {other:?}"),
         }

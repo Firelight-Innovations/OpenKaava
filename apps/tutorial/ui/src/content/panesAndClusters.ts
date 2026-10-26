@@ -1,7 +1,7 @@
 import type { Body } from "./blocks";
 
 /**
- * The one genuinely unfamiliar idea in OpenKaava.
+ * The one genuinely unfamiliar idea in Veistra.
  *
  * Panes are VS Code's splits and need no defending. Clusters do: nothing else a
  * developer uses has them, "cluster" is not a word anybody guesses, and the
@@ -88,7 +88,7 @@ export const panesAndClusters: Body = {
     },
     {
       kind: "text",
-      body: "That is the whole point. The project belongs to the cluster and not to the process, so two clusters are two genuinely separate pieces of work. That separation is what makes reviewing one branch while building on another possible without two copies of OpenKaava.",
+      body: "That is the whole point. The project belongs to the cluster and not to the process, so two clusters are two genuinely separate pieces of work. That separation is what makes reviewing one branch while building on another possible without two copies of Veistra.",
     },
     {
       kind: "note",
@@ -102,13 +102,13 @@ export const panesAndClusters: Body = {
     },
     {
       kind: "text",
-      body: "Opening a preset lays that arrangement out again. A preset holding a terminal opens it already in the folder that cluster has open, rather than wherever OpenKaava happened to start.",
+      body: "Opening a preset lays that arrangement out again. A preset holding a terminal opens it already in the folder that cluster has open, rather than wherever Veistra happened to start.",
     },
 
     { kind: "heading", body: "What survives a restart" },
     {
       kind: "text",
-      body: "The layout does. OpenKaava reopens the clusters you had, their panes, their apps and their projects — so a restart puts you back where you were rather than on an empty Home.",
+      body: "The layout does. Veistra reopens the clusters you had, their panes, their apps and their projects — so a restart puts you back where you were rather than on an empty Home.",
     },
     {
       kind: "keys",

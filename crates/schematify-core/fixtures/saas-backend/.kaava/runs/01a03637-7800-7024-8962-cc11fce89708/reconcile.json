@@ -1,8 +1,0 @@
-{
-  "schema": "kaava-reconcile-v1",
-  "at": "2026-08-25T14:02:00Z",
-  "outcome": "matched",
-  "node_id": "01a03637-7800-7024-8962-cc11fce89708",
-  "slug": "token-verifier",
-  "site": { "file": "src/auth/verifier.ts", "line": 1 }
-}

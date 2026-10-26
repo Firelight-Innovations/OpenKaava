@@ -1,4 +1,4 @@
-//! What a launch does when the OpenKaava already running has stopped answering.
+//! What a launch does when the Veistra already running has stopped answering.
 //!
 //! `tauri-plugin-single-instance` hands a second launch's arguments to the
 //! first process with `SendMessageW`, which has no timeout. A first process
@@ -53,7 +53,7 @@ fn wide(text: &str) -> Vec<u16> {
     text.encode_utf16().chain(std::iter::once(0)).collect()
 }
 
-/// If an OpenKaava is running and not answering, offer to end it.
+/// If a Veistra is running and not answering, offer to end it.
 ///
 /// Returns when this launch may carry on: nothing was running, what was
 /// running is healthy, or the hung process has been ended. Exits this process
@@ -78,7 +78,7 @@ pub fn clear_hung_primary(identifier: &str) {
     }
 
     if let Err(e) = win::end(hwnd, SETTLE_MS) {
-        crate::kaava_log!("could not end the unresponsive {product}: {e}");
+        crate::veistra_log!("could not end the unresponsive {product}: {e}");
     }
     // The launches that were stuck behind it each hold the mutex too, and they
     // let go only as they exit. Starting before they have would leave the
@@ -277,7 +277,7 @@ mod tests {
 
         #[test]
         fn a_primary_that_pumps_messages_answers() {
-            let id = "test.openkaava.launch-guard.healthy";
+            let id = "test.veistra.launch-guard.healthy";
             let stop = primary(id, true);
             let hwnd = win::find(&names(id)).expect("the window is found by name");
 
@@ -287,7 +287,7 @@ mod tests {
 
         #[test]
         fn a_primary_that_has_stopped_pumping_does_not_answer() {
-            let id = "test.openkaava.launch-guard.hung";
+            let id = "test.veistra.launch-guard.hung";
             let stop = primary(id, false);
             let hwnd = win::find(&names(id)).expect("the window is found by name");
 
@@ -297,7 +297,7 @@ mod tests {
 
         #[test]
         fn no_primary_means_no_window_to_ask() {
-            assert!(win::find(&names("test.openkaava.launch-guard.absent")).is_none());
+            assert!(win::find(&names("test.veistra.launch-guard.absent")).is_none());
         }
     }
 }

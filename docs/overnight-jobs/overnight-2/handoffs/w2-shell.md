@@ -88,7 +88,7 @@ seam rather than a sibling of it.** `fetchState`/`reasonForFailure` (wrapping
 the one Tauri command this app has, `schematify/state`) moved there, unused
 by any component yet. This is **not** the same file as `graph/index.ts`: an
 initial attempt folded them into `index.ts` directly and broke
-`index.test.ts` (`ReferenceError: window is not defined` — `@openkaava/bridge`'s
+`index.test.ts` (`ReferenceError: window is not defined` — `@veistra/bridge`'s
 root export touches `window` at module load, and `index.ts` is imported by a
 plain-Node vitest suite that has none). Splitting them keeps `index.ts` pure
 and testable while `backend.ts` stays the one file in this app that calls
@@ -163,7 +163,7 @@ All under `apps/schematify/ui/src/`:
   rather than hidden behind a flag. **Wave 3 and Wave 5 should not rebuild
   either.** Schematify's own `StatusBar` stays: unlike the title bar and tab
   strip, it is not the shell's status bar wearing a different hat — its
-  cells carry Schematify's own content (the `.kaava/` node/edge counts, the
+  cells carry Schematify's own content (the `.veistra/` node/edge counts, the
   layout file's clean state), the acceptance conditions name the exact
   strings, and every count is computed from the graph. It is an
   application-local strip at the bottom of Schematify's own frame, the same
@@ -189,7 +189,7 @@ function's return type (`ServiceGraph`) and is unaffected by the swap.
 |---|---|
 | No literal hex value in the Schematify UI | **Pass.** `src/noLiteralHex.test.ts` scans every `.ts`/`.tsx`/`.css` file under `apps/schematify/ui/src/` except `tokens.css` (the one documented exception) for a literal color — hex, `rgb()`/`rgba()`/`hsl()`/`hsla()`/`color-mix()`, and CSS named colors in value position; 0 offenders, enforced as a regression test with a positive-control suite proving the patterns actually catch each form. |
 | The shell opens the fixture and draws the Outline tree with its header, badges, triangles, and footer | **Pass.** `App.tsx` calls `loadGraph()` and renders `Outline`, which draws `OUTLINE — CONTAINMENT`, each row's slug (not its title — fixed in review round 2), the `ENTRY` badge on `http-entry`, the `STALE` badge on `audit-emitter`, `▾`/`▸` triangles, and the footer. `graph/index.test.ts` asserts the row shape (10 rows drawn, `session-store`'s 2 children hidden with a trailing count of 2, `token-verifier`'s 2 children drawn in full) since no DOM renderer is wired into this repo's Vitest config (`environment: "node"`, no jsdom — see `vitest.config.ts`'s own header). A human needs to look at the actual pixels; see below. |
-| Status bar cell 1 reads exactly `.kaava/ · 12 nodes · 9 edges` | **Pass**, asserted in `graph/index.test.ts`. |
+| Status bar cell 1 reads exactly `.veistra/ · 12 nodes · 9 edges` | **Pass**, asserted in `graph/index.test.ts`. |
 | Status bar cell 2 reads exactly `layout/auth-service.json clean` | **Pass**, asserted in `graph/index.test.ts`. |
 | `pnpm verify` passes | **Pass.** `pnpm build`, `pnpm test:js`, `pnpm lint:js`, `pnpm lint:comments`, `pnpm lint:version`, `pnpm lint:identity`, `pnpm lint:branding`, and `pnpm format:check` all ran clean in the foreground. `pnpm test:rust` and `pnpm lint:rust` ran in the background (no Rust file touched this wave) — see the PR for their result if this line was written before they finished. |
 

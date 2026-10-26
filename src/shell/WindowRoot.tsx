@@ -130,7 +130,7 @@ function isTakeover(appId: string | undefined): boolean {
 }
 
 /**
- * One OpenKaava window.
+ * One Veistra window.
  *
  * Both the main window and every detached one mount this. They differ in
  * exactly one visible way — a detached window holds a single tool, so it has no
@@ -206,7 +206,7 @@ export default function WindowRoot({
   // The pinned stack components, resolved but **not openable**.
   //
   // Not the same thing as an installed plugin, and the distinction is the whole
-  // reason both exist. These are the `[[tool]]` entries in `kaava.toml` — the
+  // reason both exist. These are the `[[tool]]` entries in `veistra.toml` — the
   // stack this build expects, at the versions it pins — and what the shell does
   // with them is *report* on them: this is what the title bar's warning badge
   // and its health list read, and the only place that says a component needs an
@@ -442,11 +442,11 @@ export default function WindowRoot({
   }, [paneIds, activePaneId]);
 
   // Tells the backend where focus is, so an agent subscribed to
-  // `kaava://workspace/focus` hears when it moves. See `focusReport.ts`.
+  // `veistra://workspace/focus` hears when it moves. See `focusReport.ts`.
   useFocusReporter(label, activeClusterId, activePaneId);
 
   // Which pane, if any, is drawn full-size with the rest hidden but still
-  // mounted — KAAVA-UX-REWORK.md §5's "double-click a tab to maximise its
+  // mounted — VEISTRA-UX-REWORK.md §5's "double-click a tab to maximise its
   // pane." View-local for the same reason `activePaneId` is: a fact about
   // this window's screen, not the project. Reset rather than followed when
   // the maximised pane disappears out from under it (its cluster's tree
@@ -536,7 +536,7 @@ export default function WindowRoot({
       .then((id) => (openedHome.current = id))
       .catch((err: unknown) => {
         setHomeWanted(false);
-        console.error("kaava: could not open Home:", err);
+        console.error("veistra: could not open Home:", err);
       });
   }, [label, activePaneId, homeInstanceId, tutorialInstanceId]);
 
@@ -596,7 +596,7 @@ export default function WindowRoot({
       hideTakeover();
       void openInstance(label, appId, activePaneId ?? undefined, splitDirOnOpen(activePaneId))
         .then(setOpenedInstance)
-        .catch((err: unknown) => console.error("kaava: could not open that app:", err));
+        .catch((err: unknown) => console.error("veistra: could not open that app:", err));
     },
     [label, activePaneId, hideTakeover],
   );
@@ -627,7 +627,7 @@ export default function WindowRoot({
       // A session id is a tab id in a tree like any other, so the same
       // focus-follows-open path above applies to it unchanged.
       .then(setOpenedInstance)
-      .catch((err: unknown) => console.error("kaava: could not open a terminal here:", err));
+      .catch((err: unknown) => console.error("veistra: could not open a terminal here:", err));
   }, [label, activePaneId, hideTakeover]);
 
   /**
@@ -679,7 +679,7 @@ export default function WindowRoot({
   // correctly if one is ever the active one (Rust still keeps them in
   // `placement.clusters`); there is simply no switcher-row UI left in this
   // rework that opens one. The rail below is where that affordance lives now
-  // — see `docs/design/KAAVA-UX-SPEC.md` §1.7.
+  // — see `docs/design/VEISTRA-UX-SPEC.md` §1.7.
 
   // --- the project-page rail --------------------------------------------
   //
@@ -1335,7 +1335,7 @@ export default function WindowRoot({
           : openInstance(label, entry.id, paneId ?? undefined);
       void opened
         .then(setOpenedInstance)
-        .catch((err: unknown) => console.error("kaava: could not open that app:", err));
+        .catch((err: unknown) => console.error("veistra: could not open that app:", err));
     },
     [label, hideTakeover],
   );
@@ -1405,7 +1405,7 @@ export default function WindowRoot({
     if (activeClusterId === null) return;
     void callApp("home", "home/open-project", undefined, {
       clusterId: activeClusterId,
-    }).catch((err: unknown) => console.error("kaava: File > Open… failed:", err));
+    }).catch((err: unknown) => console.error("veistra: File > Open… failed:", err));
   }, [activeClusterId]);
 
   // `MenuItem` has no submenu and faking one is out, so Open Recent shows the
@@ -1430,7 +1430,7 @@ export default function WindowRoot({
       // a menu row that silently does nothing is the hardest failure here to see
       // from the outside.
       void applyPreset(label, presetId).catch((err: unknown) =>
-        console.error("kaava: could not apply the preset:", err),
+        console.error("veistra: could not apply the preset:", err),
       );
     },
     [label],
@@ -1530,7 +1530,7 @@ export default function WindowRoot({
     activeCluster?.worktree?.path ?? activeCluster?.project ?? null,
   );
 
-  // Whether a newer OpenKaava exists. Per-window, but not a per-window *answer*:
+  // Whether a newer Veistra exists. Per-window, but not a per-window *answer*:
   // the state is one value in Rust and arrives on `updater:changed`, so two
   // windows can never offer two different versions. What is genuinely local is
   // `asked` — a check started from this window's Help menu is this window's
@@ -1700,7 +1700,7 @@ export default function WindowRoot({
     cancelSwitchProject();
     if (activeClusterId === null) return;
     void callApp("home", "home/new-project", undefined, { clusterId: activeClusterId }).catch(
-      (err: unknown) => console.error("kaava: New Project failed:", err),
+      (err: unknown) => console.error("veistra: New Project failed:", err),
     );
   }, [cancelSwitchProject, activeClusterId]);
 
@@ -1746,7 +1746,7 @@ export default function WindowRoot({
     [drag, activeClusterId],
   );
 
-  // The other drag: files coming in from outside OpenKaava, which the operating
+  // The other drag: files coming in from outside Veistra, which the operating
   // system is already carrying by the time we hear about it. Held here for the
   // same reason as the one above — two regions draw the answer, the band and
   // the one emulator under the cursor, and neither may import the drag layer to
@@ -2066,7 +2066,7 @@ export default function WindowRoot({
         projectPageExpanded={rightPage?.mode === "expanded"}
         slots={{
           // The centred project pill, not a plain title — `docs/design/
-          // KAAVA-UX-SPEC.md` §1.2. What the window is *pointed at* rather
+          // VEISTRA-UX-SPEC.md` §1.2. What the window is *pointed at* rather
           // than which surface happens to be in front, same as the old
           // three-segment title this replaces; see `TitleBar.tsx`'s header.
           titleBar: (
@@ -2247,7 +2247,7 @@ export default function WindowRoot({
             />
           ),
           // The project-page rail and, when a page is open, its body — the
-          // **rail** workstream's three slots (`docs/KAAVA-UX-REWORK.md` §4).
+          // **rail** workstream's three slots (`docs/VEISTRA-UX-REWORK.md` §4).
           // Only Agents has a dot so far: a session that needs you, or one at
           // work. The others' colours come from live data (Plane asleep or
           // running, Cost's burn against budget) that nothing reads yet — a

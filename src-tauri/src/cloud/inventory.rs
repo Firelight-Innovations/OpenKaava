@@ -548,13 +548,13 @@ mod tests {
     #[test]
     fn machines_carry_their_specs_gpus_and_spot_flag() {
         let vms = vms(&Cloud::default(), &fixtures()).unwrap();
-        let gpu = vms.iter().find(|v| v.name == "kaava-gpu").unwrap();
+        let gpu = vms.iter().find(|v| v.name == "veistra-gpu").unwrap();
         assert_eq!(gpu.region, "us-central1");
         assert_eq!(gpu.cpus, 8.0);
         assert_eq!(gpu.memory_gib, 32.0);
         assert_eq!(gpu.gpus, vec![("nvidia-l4".to_string(), 1)]);
         assert!(!gpu.spot);
-        let spot = vms.iter().find(|v| v.name == "kaava-worker-2").unwrap();
+        let spot = vms.iter().find(|v| v.name == "veistra-worker-2").unwrap();
         assert!(spot.spot);
         assert_eq!(spot.external_ips, 1);
     }
@@ -564,8 +564,9 @@ mod tests {
         let (cloud, source) = (Cloud::default(), fixtures());
         let disks = disks(&cloud, &source).unwrap();
         assert_eq!(disks.len(), 4);
-        assert_eq!(disks[0].kind, "pd-balanced");
-        assert_eq!(disks[0].attached_to.as_deref(), Some("kaava-gpu"));
+        assert_eq!(disks[0].name, "plane-vm", "sorted by name");
+        assert_eq!(disks[1].kind, "pd-balanced");
+        assert_eq!(disks[1].attached_to.as_deref(), Some("veistra-gpu"));
         let spare = addresses(&cloud, &source)
             .unwrap()
             .into_iter()

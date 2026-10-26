@@ -41,8 +41,8 @@ provider "google" {
   zone    = var.zone
 }
 
-data "google_compute_subnetwork" "kaava" {
-  name   = "kaava-${var.region}"
+data "google_compute_subnetwork" "veistra" {
+  name   = "veistra-${var.region}"
   region = var.region
 }
 
@@ -55,12 +55,12 @@ data "google_storage_bucket" "render_queue" {
 }
 
 data "google_service_account" "agent" {
-  account_id = "kaava-agent"
+  account_id = "veistra-agent"
 }
 
 resource "google_service_account" "gpu" {
-  account_id   = "kaava-gpu"
-  display_name = "OpenKaava GPU node"
+  account_id   = "veistra-gpu"
+  display_name = "Veistra GPU node"
 }
 
 resource "google_project_iam_member" "gpu" {
@@ -81,7 +81,7 @@ resource "google_storage_bucket_iam_member" "gpu" {
 }
 
 resource "google_compute_instance" "gpu" {
-  name                      = "kaava-gpu"
+  name                      = "veistra-gpu"
   machine_type              = "g2-standard-8" # the L4 comes with the machine type
   tags                      = ["iap"]
   allow_stopping_for_update = true
@@ -99,7 +99,7 @@ resource "google_compute_instance" "gpu" {
   }
 
   network_interface {
-    subnetwork = data.google_compute_subnetwork.kaava.self_link
+    subnetwork = data.google_compute_subnetwork.veistra.self_link
   }
 
   scheduling {
@@ -122,12 +122,12 @@ resource "google_compute_instance" "gpu" {
   }
 
   metadata = {
-    enable-oslogin     = "TRUE"
-    startup-script     = file("${path.module}/../../gpu/startup.sh")
-    kaava-render-agent = file("${path.module}/../../gpu/render-agent.sh")
-    kaava-turntable    = file("${path.module}/../../gpu/turntable.py")
-    kaava-render-queue = data.google_storage_bucket.render_queue.name
-    kaava-idle-minutes = tostring(var.idle_minutes)
+    enable-oslogin       = "TRUE"
+    startup-script       = file("${path.module}/../../gpu/startup.sh")
+    veistra-render-agent = file("${path.module}/../../gpu/render-agent.sh")
+    veistra-turntable    = file("${path.module}/../../gpu/turntable.py")
+    veistra-render-queue = data.google_storage_bucket.render_queue.name
+    veistra-idle-minutes = tostring(var.idle_minutes)
   }
 }
 

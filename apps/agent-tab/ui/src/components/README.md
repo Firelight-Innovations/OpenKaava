@@ -85,7 +85,7 @@ right.
 
 - `ModelMenu` is the settings button. It reads the current settings as one line ("Claude · Opus 5.5
   · High") and opens a menu.
-  - First come the harnesses, one group each, with its models under it: Claude, Codex, then Kaava.
+  - First come the harnesses, one group each, with its models under it: Claude, Codex, then Veistra.
     Picking a model picks its harness too (`onChoose(harness, model)`). A harness whose models are
     not known lists "Default model", and one that cannot run yet lists why, locked.
   - Then one section per other setting, such as effort and mode. Each takes a picker's props. A

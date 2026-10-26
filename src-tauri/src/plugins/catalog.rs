@@ -27,7 +27,7 @@ pub struct Entry {
     #[serde(default)]
     pub default: bool,
     /// Changes the wording when a fetch fails, and nothing else. GitHub decides
-    /// access; OpenKaava only decides whether to say "sign in" or "not found".
+    /// access; Veistra only decides whether to say "sign in" or "not found".
     #[serde(default)]
     pub private: bool,
 }
@@ -51,7 +51,7 @@ pub fn entries() -> &'static [Entry] {
         .get_or_init(|| match toml::from_str::<Document>(SOURCE) {
             Ok(doc) => doc.app,
             Err(e) => {
-                eprintln!("kaava: catalog.toml did not parse, the library will be empty: {e}");
+                eprintln!("veistra: catalog.toml did not parse, the library will be empty: {e}");
                 Vec::new()
             }
         })

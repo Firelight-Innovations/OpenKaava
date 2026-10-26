@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@openkaava/bridge", () => ({ invoke: vi.fn() }));
+vi.mock("@veistra/bridge", () => ({ invoke: vi.fn() }));
 
 import { pickSelection } from "./SendToAgent";
 

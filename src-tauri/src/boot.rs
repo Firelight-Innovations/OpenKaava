@@ -99,7 +99,7 @@ pub(crate) fn total_steps() -> u8 {
 /// Which apps this launch is actually waiting on.
 ///
 /// Not the whole registry, which is what it used to be, and the difference is four seconds on most
-/// launches. Boot waits for every app it expects to report `kaava/painted`, giving up after
+/// launches. Boot waits for every app it expects to report `veistra/painted`, giving up after
 /// `APP_BOOT_TIMEOUT` on any that do not — while every app was docked at startup, the roster and
 /// what was on screen were the same list. No longer: a session restores the surfaces it had open,
 /// and a first run opens Home alone. Waiting on the roster would hold the splash for the full
@@ -210,7 +210,7 @@ pub fn start(app: AppHandle, waiting_for: Vec<(String, String)>) {
 /// A first-party app's UI has drawn its first meaningful frame.
 ///
 /// Called from `commands::app_painted`, which the shell reaches after an app frame sends
-/// `kaava/painted` over transport B. Never called by an app for itself: the id is the one
+/// `veistra/painted` over transport B. Never called by an app for itself: the id is the one
 /// `ToolWindow` resolved from the frame the message arrived on, not one the message claimed — the
 /// same rule that makes a tool unable to answer for another tool.
 ///
@@ -310,7 +310,7 @@ fn starting_label(pending: &[(String, String)]) -> String {
 /// the only trace left that an app never answered, so it names which.
 fn give_up(pending: &[(String, String)]) {
     let names: Vec<&str> = pending.iter().map(|(_, name)| name.as_str()).collect();
-    crate::kaava_log!(
+    crate::veistra_log!(
         "{} did not report a painted frame within {}s — showing the window anyway",
         names.join(", "),
         APP_BOOT_TIMEOUT.as_secs(),

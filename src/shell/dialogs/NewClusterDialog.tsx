@@ -231,8 +231,8 @@ export default function NewClusterDialog({
 
       <footer className="new-cluster__footer">
         <p className="new-cluster__note">
-          Nothing in Kaava writes to {defaultBranch ?? "the default branch"}. Merges go through Git
-          → PR.
+          Nothing in Veistra writes to {defaultBranch ?? "the default branch"}. Merges go through
+          Git → PR.
         </p>
         <div className="new-cluster__actions">
           {step === 2 && (
@@ -535,7 +535,7 @@ function validateWorktreeName(name: string, taken: string[]): string | null {
 
 /** `create_cluster_with_environment` rejects with `AppError`'s `Display`
  *  message, serialized as a plain string (see `error.rs`'s `Serialize`
- *  impl) — not a `KaavaRpcError` the way `@openkaava/bridge` calls reject,
+ *  impl) — not a `VeistraRpcError` the way `@veistra/bridge` calls reject,
  *  since this dialog goes through `@tauri-apps/api/core`'s `invoke`
  *  directly via `bindings.ts`, not through the bridge. */
 function describe(error: unknown): string {

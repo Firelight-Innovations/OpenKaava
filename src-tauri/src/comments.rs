@@ -1,10 +1,10 @@
 //! Comments left on a viewer, kept where an agent working in that environment
 //! can read them.
 //!
-//! `docs/KAAVA-UX-REWORK.md` §3.4 sets the shape: a comment anchors to a node
+//! `docs/VEISTRA-UX-REWORK.md` §3.4 sets the shape: a comment anchors to a node
 //! path in the Godot viewer, a mesh part and material in the Blender viewer, or
 //! a scene, a playhead time and a screenshot in Play — then it is a file in
-//! `.kaava/comments/` *inside the environment*, one file per comment rather
+//! `.veistra/comments/` *inside the environment*, one file per comment rather
 //! than one shared book, so it travels with that environment's branch and
 //! merges the way git already merges text. [`new_id`] is why an id never has
 //! to be reserved from a shared counter first.
@@ -17,16 +17,16 @@
 use crate::apps::CallContext;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine as _;
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
 
 /// Where a comment points. Exactly the three anchors
-/// `docs/KAAVA-UX-REWORK.md` §3.4 names — one enum rather than three optional
+/// `docs/VEISTRA-UX-REWORK.md` §3.4 names — one enum rather than three optional
 /// fields on [`Comment`], so a comment can never be read back pointing at two
 /// things at once or at nothing.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -55,7 +55,7 @@ pub enum Anchor {
 ///
 /// Every comment this build writes is the user's. A resolution is the agent's
 /// when it comes through the context server's `resolve_comment`, which reads
-/// `.kaava/comments/` for an agent; every other resolution is the user's.
+/// `.veistra/comments/` for an agent; every other resolution is the user's.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Author {
@@ -79,7 +79,7 @@ pub struct Resolution {
     pub at: u64,
 }
 
-/// One comment, and the whole of one `.kaava/comments/<id>.json` file.
+/// One comment, and the whole of one `.veistra/comments/<id>.json` file.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Comment {
@@ -116,7 +116,7 @@ pub struct Draft {
 /// for display however it wants to.
 ///
 /// An environment that has never had a comment written to it — no
-/// `.kaava/comments/` directory at all — is an empty list, not an error.
+/// `.veistra/comments/` directory at all — is an empty list, not an error.
 pub fn list(context: &CallContext) -> Result<Vec<Comment>, RpcError> {
     let dir = comments_dir(context)?;
 
@@ -142,7 +142,7 @@ pub fn list(context: &CallContext) -> Result<Vec<Comment>, RpcError> {
             // One unreadable comment — hand-edited, half-written by a crash —
             // is not a failed list. The rest of the environment's comments
             // still deserve to be shown.
-            Err(e) => crate::kaava_log!("skipping unreadable comment {}: {e}", path.display()),
+            Err(e) => crate::veistra_log!("skipping unreadable comment {}: {e}", path.display()),
         }
     }
     comments.sort_by(|a, b| a.created.cmp(&b.created).then_with(|| a.id.cmp(&b.id)));
@@ -298,7 +298,7 @@ fn to_value<T: Serialize>(value: T) -> Result<Value, RpcError> {
 
 // --- storage --------------------------------------------------------------
 
-/// `<environment>/.kaava/comments`. `INTERNAL_ERROR` rather than a fallback
+/// `<environment>/.veistra/comments`. `INTERNAL_ERROR` rather than a fallback
 /// directory when the calling surface is in no cluster or the cluster has no
 /// project: a comment anchors to *this environment's* branch, and writing one
 /// somewhere else — the orchestrator's own working directory, say — would be a
@@ -307,7 +307,7 @@ fn comments_dir(context: &CallContext) -> Result<PathBuf, RpcError> {
     context
         .project
         .clone()
-        .map(|project| project.join(".kaava").join("comments"))
+        .map(|project| project.join(".veistra").join("comments"))
         .ok_or_else(|| {
             RpcError::new(
                 INTERNAL_ERROR,
@@ -462,10 +462,10 @@ mod tests {
 
         let path = env
             .path()
-            .join(".kaava")
+            .join(".veistra")
             .join("comments")
             .join(format!("{}.json", comment.id));
-        assert!(path.exists(), "the comment lands under .kaava/comments/");
+        assert!(path.exists(), "the comment lands under .veistra/comments/");
     }
 
     #[test]
@@ -547,7 +547,7 @@ mod tests {
 
         let shot = env
             .path()
-            .join(".kaava")
+            .join(".veistra")
             .join("comments")
             .join(format!("{}.png", comment.id));
         assert!(shot.exists());
@@ -586,7 +586,7 @@ mod tests {
         let comment = create(&context(env.path()), draft).expect("create");
         let shot = env
             .path()
-            .join(".kaava")
+            .join(".veistra")
             .join("comments")
             .join(format!("{}.png", comment.id));
         assert!(

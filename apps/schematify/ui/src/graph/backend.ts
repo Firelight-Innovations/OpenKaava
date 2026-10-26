@@ -1,6 +1,6 @@
 /**
  * This app's one and only door to Rust. Kept out of `./index.ts` on purpose:
- * that module is imported by a plain-Node unit test, and `@openkaava/bridge`'s
+ * that module is imported by a plain-Node unit test, and `@veistra/bridge`'s
  * root export touches `window` at module load, which a Node test has none of.
  * `./index.ts`'s `defaultSeam` reaches everything below through a dynamic
  * `import("./backend")` for the same reason.
@@ -16,7 +16,7 @@
  * `CLAUDE.md`, this file stays the only one in this app that contains
  * `invoke` — a new operation gets a new function here, never a new file.
  */
-import { KaavaRpcError, invoke } from "@openkaava/bridge";
+import { VeistraRpcError, invoke } from "@veistra/bridge";
 import type { RawDecision, RawFlow, RawProjectBrief, RawScreen } from "../product/types";
 import type { Dashboard, RawRunsReport } from "./dashboard";
 import { DENSE_SERVICE_GRAPH } from "./dense";
@@ -41,7 +41,7 @@ export const fetchState = () => invoke<SchematifyState>("schematify/state");
  *  `apps/design/ui/src/rpc.ts`: every refusal on the Rust side is written as
  *  a sentence for a person, so none is mapped to a category here. */
 export function reasonForFailure(err: unknown): string {
-  if (err instanceof KaavaRpcError) return err.message;
+  if (err instanceof VeistraRpcError) return err.message;
   return String(err);
 }
 
@@ -209,7 +209,7 @@ export function fetchRuns(): Promise<RawRunsReport> {
 /** `schematify/ingest-run` (wave 9d's own arm): the Tauri wiring for wave
  *  9b's `schematify_core::ingest_run_file`. `module` is the node whose CI
  *  workflow produced the run; `path` is wherever CI dropped the
- *  `kaava-bench-v1` artifact, outside `.kaava/`. */
+ *  `veistra-bench-v1` artifact, outside `.veistra/`. */
 export function ingestRun(module: string, path: string): Promise<{ ingested: boolean }> {
   return invoke<{ ingested: boolean }>("schematify/ingest-run", { actor: ACTOR, module, path });
 }
