@@ -1,5 +1,5 @@
 /** The settings screen: the categories rail, and a couple of controls in the
- *  section it opened on — see `src/shell/settings/SettingsScreen.tsx`. Six
+ *  section picked in it — see `src/shell/settings/SettingsScreen.tsx`. Six
  *  sections in the order `schema.rs`'s groups sort by (`order`, then `id`):
  *  five of the shell's own, plus the one the File Explorer registers for
  *  itself — see `settings.ts`'s "What is in there today". */

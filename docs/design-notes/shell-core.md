@@ -494,8 +494,8 @@ field: the two are one gesture and the clip is what makes the panel look attache
 spawned it.
 
 Settings is not attached to anything. It is a screen you go to and come back from, and giving it
-search's unroll would say it belongs to the status bar glyph that opened it, which is a button and
-not a source. So it arrives the way a sheet does: the window behind dims, and the screen settles
+search's unroll would say it belongs to whatever opened it, a shortcut or a button, and neither is
+a source. So it arrives the way a sheet does: the window behind dims, and the screen settles
 forward out of it.
 
 Both halves are paint-only — `opacity` on the backdrop, `opacity` and `transform` on the surface —

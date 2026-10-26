@@ -307,8 +307,10 @@ piece of state it never reads, purely to pass it from one child to another.
 
 So the flag lives in `src/shell/settingsSurface.ts`, a shared leaf directly under
 `src/shell/` alongside `motion.ts` and `hostWindow.ts`. Regions may import those
-(`eslint.config.js` says so explicitly), which is what lets the status bar open a
-screen it is not allowed to import.
+(`eslint.config.js` says so explicitly). `App.tsx` draws the screen, above
+`WindowRoot`. `WindowRoot` opens it from Ctrl+, and its status-bar git controls
+close it. Apps reach it through `onSettingsOpen`. None
+of those callers imports the screen.
 
 A React context was considered and rejected: it would have to be provided in
 `App.tsx`, which is where this module already effectively sits, and it would buy
@@ -325,8 +327,8 @@ was open.
 
 The **status bar** keeps reporting while a transient surface is up. That is what
 every other one in this shell does — `searchOverlay.css` states it for the search
-overlay — and it is also where the sliders glyph that opens settings lives, so
-covering it would hide the control that got you there.
+overlay. Its git controls stay live too: one pressed while settings is up closes
+settings and opens the Git page it names.
 
 ## 10. What this does not do yet
 

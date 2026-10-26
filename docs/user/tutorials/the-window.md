@@ -83,12 +83,15 @@ Switch clusters → the terminal band swaps too → same as the panes above
 
 <!-- SCREENSHOT: the status bar along the bottom of the window, 1440x40 -->
 
-_The branch and its diff stat, GitHub, then settings._
+_The branch and its diff stat, then GitHub. Each opens the Git page._
 
 The thin bar along the bottom. It reports, left to right, the open cluster's
 branch and how far it has diverged, and a diff-stat readout of the working
-tree. GitHub status and the sliders glyph that opens **Settings** finish the
-row.
+tree. GitHub status finishes the row.
+
+Both are buttons. Click the branch to open **Source Control**, or **GitHub** to
+see the project's pull requests and issues. Each opens the Git page down the
+right-hand side, and a second click closes it again.
 
 ## Worth knowing now
 
@@ -99,6 +102,7 @@ row.
 | `` Ctrl+` ``     | Show or hide the terminal band.                                       |
 | `` Ctrl+Shift+` ``| New terminal.                                                        |
 | `F11`            | Full screen.                                                           |
+| `Ctrl+,`         | Open Settings.                                                         |
 | `Ctrl+1`         | …through `Ctrl+9`, select the nth tab in this window's bar.           |
 
 > **Not yet:** `Ctrl+Shift+P` opens a command palette that is not built yet,

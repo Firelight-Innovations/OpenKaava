@@ -35,7 +35,7 @@ export const mcpServers: Body = {
     { kind: "heading", body: "Turn one on" },
     {
       kind: "step",
-      body: "Open the status bar's sliders glyph and pick **MCP servers**, which lands you on that section of Settings.",
+      body: "Press `Ctrl+,` to open Settings, and pick **MCP servers** from the list of sections.",
     },
     {
       kind: "step",
