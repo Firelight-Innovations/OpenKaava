@@ -7,7 +7,7 @@ Google itself, instead of using the `gcloud` CLI. Three PRs against `ux/rework`:
 
 | PR | Branch | Contains |
 |---|---|---|
-| a | `feat/veistra-api` | `services/veistra-api/` (the service and its tests), `infra/terraform/veistra-api/`, the deploy step |
+| a | `feat/kaava-api` | `services/veistra-api/` (the service and its tests), `infra/terraform/veistra-api/`, the deploy step |
 | b | `feat/google-signin` | In-app Google sign-in (OAuth installed-app flow, PKCE, refresh token in the OS keystore) and its Settings panel |
 | c | `feat/plane-gateway` (stacked on b) | `plane.rs`, `wake.rs` callers and `apps/projects` switched to the gateway |
 

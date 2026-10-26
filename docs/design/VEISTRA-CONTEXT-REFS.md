@@ -15,25 +15,25 @@ mode off, behind its own switch in Settings → MCP servers.
 
 Status of each part:
 
-| Part                                              | Where                          | State   |
-| ------------------------------------------------- | ------------------------------ | ------- |
-| Scheme, policy, resolver, `refs/resolve`          | `src-tauri/src/refs/`          | PR 1    |
+| Part                                                | Where                          | State   |
+| --------------------------------------------------- | ------------------------------ | ------- |
+| Scheme, policy, resolver, `refs/resolve`            | `src-tauri/src/refs/`          | PR 1    |
 | `veistra-context` server: `show`, search, resources | `src-tauri/src/mcp/servers/`   | PR 2    |
-| `refs/search`, `refs/prompt`, failure reasons     | `src-tauri/src/refs/`          | PR 3    |
-| Component catalogue and `show_component`          | server; the tab's renderers    | PR 4    |
+| `refs/search`, `refs/prompt`, failure reasons       | `src-tauri/src/refs/`          | PR 3    |
+| Component catalogue and `show_component`            | server; the tab's renderers    | PR 4    |
 
 ## 1. The scheme
 
-| Reference                          | Points at                                                          |
-| ---------------------------------- | ------------------------------------------------------------------ |
+| Reference                            | Points at                                                          |
+| ------------------------------------ | ------------------------------------------------------------------ |
 | `veistra://file/<path>`              | A file, asset or folder, relative to the cluster's root            |
 | `veistra://file/<path>#L10-L20`      | Lines 10 to 20 of it (`#L10` for one line; `#L10-20` also parses)  |
-| `veistra://canvas/<id>`              | A canvas. Ids may nest: `veistra://canvas/levels/hospital`           |
+| `veistra://canvas/<id>`              | A canvas. Ids may nest: `veistra://canvas/levels/hospital`         |
 | `veistra://canvas/<id>#frame=<id>`   | One frame on it, by element id or exact name                       |
 | `veistra://canvas/<id>#comment=<id>` | One comment on it                                                  |
-| `veistra://comment/<id>`             | A viewer comment (`.veistra/comments/`) and its screenshot           |
+| `veistra://comment/<id>`             | A viewer comment (`.veistra/comments/`) and its screenshot         |
 | `veistra://design-comment/<id>`      | A Design Mode comment and its screenshot (design-mode builds only) |
-| `veistra://context/<id>`             | An item in the context store (`.veistra/context/`)                   |
+| `veistra://context/<id>`             | An item in the context store (`.veistra/context/`)                 |
 | `veistra://selection`                | What is selected in the cluster's panes, read when it is resolved  |
 
 Rules:
@@ -184,17 +184,17 @@ The message is for logs and for anyone without that mapping. Branch on the word,
 message. A plugin caller and an unknown `refs/*` method are method-not-found, with no word: neither
 is a reference failing.
 
-| `reason`      | Means                                                                                    |
-| ------------- | ---------------------------------------------------------------------------------------- |
-| `bad-params`  | The call is malformed: a parameter is missing, mistyped or over its count                |
+| `reason`      | Means                                                                                      |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| `bad-params`  | The call is malformed: a parameter is missing, mistyped or over its count                  |
 | `bad-uri`     | Not a `veistra://` reference, over 2,048 characters, or a path none may name, such as `..` |
-| `no-project`  | No project is open, or the surface is in no cluster                                      |
-| `missing`     | Nothing is there by that name, or the file has no such line                              |
-| `ambiguous`   | The name fits more than one thing, such as a frame name two frames share                 |
-| `outside`     | It leads outside the project: through a link, or a stored item that points out           |
-| `secret`      | A §3 secret, refused by `show`. Resolving withholds it instead                           |
-| `unavailable` | What answers it, the Canvas app or Design Mode, could not                                |
-| `unreadable`  | It is there but could not be read: a broken record, or a line past the 16 MB scan        |
+| `no-project`  | No project is open, or the surface is in no cluster                                        |
+| `missing`     | Nothing is there by that name, or the file has no such line                                |
+| `ambiguous`   | The name fits more than one thing, such as a frame name two frames share                   |
+| `outside`     | It leads outside the project: through a link, or a stored item that points out             |
+| `secret`      | A §3 secret, refused by `show`. Resolving withholds it instead                             |
+| `unavailable` | What answers it, the Canvas app or Design Mode, could not                                  |
+| `unreadable`  | It is there but could not be read: a broken record, or a line past the 16 MB scan          |
 
 `refs/search` is `search_context` (§5) for the @-mention picker, with the same ranking, caps and
 screens.
@@ -234,8 +234,8 @@ the canvas records `agent` as the actor.
 | `search_context`  | `{ query?, kinds?, limit? }`   | `{ query, hits: [{ uri, kind, title, detail? }] }`, best first |
 | `list_comments`   | `{ status?, sources? }`        | `{ comments, total, covers, problems? }`, open ones by default |
 | `resolve_comment` | `{ uri, note }`                | `{ uri, status: "resolved", note }`                            |
-| `get_selection`   | `{}`                           | `veistra://selection`, read when asked                           |
-| `get_canvas_node` | `{ canvas, node }`             | `veistra://canvas/<canvas>#frame=<node>`, read                   |
+| `get_selection`   | `{}`                           | `veistra://selection`, read when asked                         |
+| `get_canvas_node` | `{ canvas, node }`             | `veistra://canvas/<canvas>#frame=<node>`, read                 |
 
 `read` turns each part into one content block. Text parts become text, and a text part that starts
 past line 1 says so. A cut-short excerpt says how to read further. JSON parts are pretty-printed and

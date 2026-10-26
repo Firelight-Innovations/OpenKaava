@@ -285,7 +285,7 @@ prose because the list is also the trademark surface.
   scale it to leave 11.7% of the tile clear above and below — on the 256 tile,
   `translate(5.333 5.333) scale(10.2222)`. Change the mark's geometry and these
   three numbers have to be recomputed; nothing checks them. There was a
-  third, `veistra-icon-textured.svg`, which stippled grain over the whole tile; it
+  third, a textured variant, which stippled grain over the whole tile; it
   is gone, because the tile's ground is now a two-stop radial falloff and that
   falloff is the only thing drawing the icon's edge. Grain laid over it fights
   the edge it is there to make.
