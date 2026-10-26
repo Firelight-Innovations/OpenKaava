@@ -4,22 +4,40 @@
  * below, and this file is the one place that says which Kaava token each one
  * is. Restyle the agent UI here, not in a component.
  *
- * Values follow Kaava theme tokens, except the signature Ultra violet, so the shell's live
- * theme and accent carry straight through: light and dark come from
- * `src/tokens.css`. It sits beside that file for the same reason
+ * Values follow Kaava theme tokens, except the effort charge's gold, glint and
+ * thumb, so the shell's live theme and accent carry straight through: light and
+ * dark come from `src/tokens.css`. It sits beside that file for the same reason
  * `src/kaava-ui.css` does: the shell and an app both import it, and neither may
  * import the other's source.
  *
- * A few tokens (`--k-accent`, `--k-accent-subtle`, `--k-on-accent`, `--k-border-strong`,
- * `--k-space-4`, `--k-motion-fast`, `--k-shadow-card`) are not read by a component yet. They are
- * the rest of the palette, kept for the components that are still being built.
+ * `--k-shadow-card` is not read by a component yet. It is the rest of the
+ * palette, kept for the components that are still being built.
  *
  * The colour names are the VS Code-style ones from handoff §2.1.1
  * (`docs/handoffs/agent-host.md`), kept so nothing that reads them moves.
  */
 :root {
-  --k-ultra: #b498f5;
-  --k-ultra-deep: #5f39a8;
+  /* Effort: cool to hot through veistra.com's palette (teal, blue, violet, pink,
+     coral), and Ultra runs the whole ramp out to the site's gold. */
+  --k-effort-low: var(--chart-3);
+  --k-effort-medium: var(--accent);
+  --k-effort-high: var(--accent-violet);
+  --k-effort-xhigh: var(--chart-5);
+  --k-effort-max: var(--accent-coral);
+  --k-effort-ultra: #f5cf73;
+  /* Ultra's gold as text: the warning text tone, the same gold in dark and amber in light. */
+  --k-effort-ultra-text: var(--txt-warning);
+  --k-effort-ramp: linear-gradient(
+    90deg,
+    var(--k-effort-low),
+    var(--accent-blue) 28%,
+    var(--k-effort-high) 52%,
+    var(--k-effort-max) 78%,
+    var(--k-effort-ultra)
+  );
+  /* The bright parts of the charge: its glint, halftone and thumb, light in both themes. */
+  --k-glint: rgb(255 255 255 / 0.7);
+  --k-effort-thumb: #f4f5f5;
   /* Colour: surfaces */
   --k-editor-bg: var(--bg-surface-1);
   --k-sidebar-bg: var(--bg-layer-1);
@@ -33,6 +51,8 @@
   --k-badge-bg: var(--bg-layer-2);
   --k-list-hover: var(--bg-layer-1-hover);
   --k-list-active: var(--bg-layer-1-selected);
+  /* A row's hover inside a menu: layer 3, since layer 2's hover is all but the menu's own colour in light. */
+  --k-menu-hover: var(--bg-layer-3);
 
   /* Colour: text */
   --k-editor-fg: var(--txt-primary);
@@ -93,11 +113,12 @@
   --k-text-body: var(--type-body);
   --k-text-small: var(--type-caption);
   --k-text-code: 400 12px/1.45 var(--mono);
+  --k-text-label: var(--type-label);
   --k-text-label-size: 11px;
   --k-text-label-tracking: var(--type-label-tracking);
   --k-size-small: 12px;
   --k-size-heading: 16px;
-  --k-weight-strong: 600;
+  --k-weight-strong: 500;
 
   /* Spacing */
   --k-space-0-5: 2px;
@@ -115,10 +136,11 @@
   --k-radius-card: var(--radius-sm);
   --k-radius-input: var(--radius-sm);
   --k-radius-control: var(--radius-md);
+  --k-radius-menu: var(--radius-lg);
   --k-radius-bar: var(--radius-region);
   --k-radius-pill: 999px;
-  --k-radius-turn: 12px;
-  --k-radius-composer: 18px;
+  --k-radius-turn: var(--radius-xl);
+  --k-radius-composer: var(--radius-xl);
 
   /* Size */
   --k-control-md: var(--control-md);

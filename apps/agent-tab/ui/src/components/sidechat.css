@@ -36,7 +36,7 @@
   cursor: pointer;
 }
 .at-side button:hover {
-  background: var(--k-list-hover);
+  background: var(--k-menu-hover);
 }
 .at-side button:focus-visible {
   outline: var(--k-focus-ring);
@@ -88,29 +88,4 @@
 .at-side__compose button:disabled {
   opacity: 0.4;
   cursor: default;
-}
-.at-prompt__icon {
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  margin-block: var(--k-space-0-5);
-  border: 0;
-  border-radius: var(--k-radius-pill);
-  background: transparent;
-  color: var(--k-fg-muted);
-  cursor: pointer;
-}
-.at-prompt__icon:hover {
-  background: var(--k-list-hover);
-  color: var(--k-editor-fg);
-}
-.at-prompt__icon:focus-visible {
-  outline: var(--k-focus-ring);
-}
-.at-prompt__context-note {
-  color: var(--k-fg-muted);
-  font-size: var(--k-size-small);
-  padding: var(--k-space-2);
 }

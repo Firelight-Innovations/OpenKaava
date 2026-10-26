@@ -13,13 +13,12 @@
   max-width: calc(var(--k-thread-width) + 2 * var(--k-space-3));
   margin-inline: auto;
   padding: 0 var(--k-space-3) var(--k-space-3);
+  /* The popups above the box size themselves to the column (`cqi`), not the window. */
+  position: relative;
+  container-type: inline-size;
 }
 
 /* The slash-command list floats over the transcript, its bottom edge on the box. */
-.at-prompt {
-  position: relative;
-}
-
 .at-prompt__menu {
   position: absolute;
   inset-inline: var(--k-space-3);
@@ -35,57 +34,93 @@
   color: var(--k-fg-secondary);
 }
 
-/* The input and Send on one line; Send stays at the bottom as the text grows. */
+/* One card: chips, then the input, then the toolbar along its foot. */
 .at-prompt__box {
   display: flex;
-  align-items: flex-end;
-  gap: var(--k-space-2);
-  padding: var(--k-space-1-5) var(--k-space-1-5) var(--k-space-1-5) var(--k-space-3);
+  flex-direction: column;
+  gap: var(--k-space-1);
+  padding: var(--k-space-2) var(--k-space-1-5) var(--k-space-1-5);
   border: 1px solid var(--k-input-border);
   border-radius: var(--k-radius-composer);
   background: var(--k-composer-bg);
+  cursor: text;
   transition: border-color var(--k-motion-fast) var(--k-ease);
 }
 
-.at-prompt__box:focus-within {
+.at-prompt__box:hover {
   border-color: var(--k-border-strong);
 }
 
-/* The ring moves from the input to the card, so focus still shows. */
-.at-prompt__box:has(.at-prompt__input:focus-visible) {
-  outline: var(--k-focus-ring);
+.at-prompt__box:focus-within {
+  border-color: var(--k-accent);
+}
+
+.at-prompt__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--k-space-1);
+  padding-inline: var(--k-space-1);
 }
 
 /* The card draws the edge; the input inside it has none of its own. */
 .at-prompt__input {
-  flex: 1;
   min-width: 0;
   resize: none;
-  min-height: 28px;
+  min-height: 40px;
   max-height: 40vh;
   field-sizing: content;
-  padding: var(--k-space-1) 0;
+  padding: var(--k-space-1) var(--k-space-1-5);
   border: none;
   background: transparent;
   color: var(--k-editor-fg);
   font: inherit;
+  line-height: 1.5;
+}
+
+.at-prompt__input::placeholder {
+  color: var(--k-fg-faint);
 }
 
 .at-prompt__input:focus-visible {
   outline: none;
 }
 
-/* Under the card, not in it: quiet text, lined up with the card's rounding. */
-.at-prompt__footer {
+.at-prompt__toolbar {
   display: flex;
   align-items: center;
-  gap: var(--k-space-2);
-  min-height: 24px;
-  padding: 0 var(--k-space-2);
+  gap: var(--k-space-1);
+  min-width: 0;
+  cursor: default;
 }
 
 .at-prompt__spacer {
   flex: 1;
+}
+
+.at-prompt__icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--k-radius-pill);
+  background: transparent;
+  color: var(--k-fg-muted);
+  cursor: pointer;
+  transition:
+    background var(--k-motion-fast) var(--k-ease),
+    color var(--k-motion-fast) var(--k-ease);
+}
+
+.at-prompt__icon:hover {
+  background: var(--k-list-hover);
+  color: var(--k-editor-fg);
+}
+
+.at-prompt__icon:focus-visible {
+  outline: var(--k-focus-ring);
 }
 
 .at-round {
@@ -97,15 +132,24 @@
   padding: 0;
   border: none;
   border-radius: var(--k-radius-pill);
-  font: inherit;
-  font-weight: var(--k-weight-strong);
   cursor: pointer;
-  transition: opacity var(--k-motion-fast) var(--k-ease);
+  transition:
+    background var(--k-motion-fast) var(--k-ease),
+    filter var(--k-motion-fast) var(--k-ease),
+    box-shadow var(--k-motion-base) var(--k-ease);
+}
+
+.at-round:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+
+.at-round:active:not(:disabled) {
+  filter: brightness(0.95);
 }
 
 .at-round:focus-visible {
   outline: var(--k-focus-ring);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
 
 .at-round--send {
@@ -113,8 +157,10 @@
   color: var(--k-on-accent);
 }
 
+/* Nothing to send: it sits back into the card rather than asking to be pressed. */
 .at-round--send:disabled {
-  background: var(--k-badge-bg);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--k-input-border);
   color: var(--k-fg-disabled);
   cursor: default;
 }
@@ -122,7 +168,6 @@
 .at-round--stop {
   background: var(--k-editor-fg);
   color: var(--k-editor-bg);
-  font-size: var(--k-text-label-size);
 }
 
 .at-prompt__mode {
@@ -151,20 +196,4 @@
 .at-picker__select:focus-visible {
   outline: var(--k-focus-ring);
   outline-offset: 0;
-}
-
-.at-meter {
-  display: inline-block;
-  width: 48px;
-  height: 4px;
-  overflow: hidden;
-  border-radius: var(--k-radius-pill);
-  background: var(--k-badge-bg);
-}
-
-.at-meter__fill {
-  display: block;
-  height: 100%;
-  background: var(--k-fg-muted);
-  transition: width var(--k-motion-base) var(--k-ease);
 }

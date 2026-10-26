@@ -6,7 +6,7 @@
   width: min(380px, calc(100% - 16px));
   padding: 12px;
   border: 1px solid var(--k-input-border);
-  border-radius: 16px;
+  border-radius: var(--k-radius-turn);
   background: var(--k-raised-bg);
   box-shadow: var(--k-shadow-menu);
   color: var(--k-editor-fg);
@@ -82,7 +82,7 @@
   border-radius: 9px;
 }
 .at-history__list li:hover {
-  background: var(--k-list-hover);
+  background: var(--k-menu-hover);
 }
 .at-history__conversation {
   display: flex;

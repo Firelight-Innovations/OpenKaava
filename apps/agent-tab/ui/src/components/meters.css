@@ -18,10 +18,9 @@
   color: var(--k-meter-full);
 }
 
-/* The model menu */
+/* The model menu's button; the menu itself is in preferences.css, anchored to the composer card. */
 
 .at-model {
-  position: relative;
   display: inline-flex;
   min-width: 0;
 }
@@ -60,87 +59,6 @@
   white-space: nowrap;
 }
 
-.at-model__menu,
-.at-hover__card {
-  position: absolute;
-  bottom: calc(100% + var(--k-space-1));
-  z-index: 10;
-  min-width: 220px;
-  max-width: min(320px, 90vw);
-  border: 1px solid var(--k-input-border);
-  border-radius: var(--k-radius-control);
-  background: var(--k-raised-bg);
-  box-shadow: var(--k-shadow-menu);
-  color: var(--k-editor-fg);
-  font-size: var(--k-size-small);
-  text-align: left;
-}
-
-.at-model__menu {
-  left: 0;
-  display: flex;
-  flex-direction: column;
-  max-height: 60vh;
-  overflow-y: auto;
-  padding: var(--k-space-1);
-}
-
-.at-model__group + .at-model__group {
-  margin-top: var(--k-space-1);
-  padding-top: var(--k-space-1);
-  border-top: 1px solid var(--k-panel-border);
-}
-
-.at-model__heading {
-  padding: var(--k-space-1) var(--k-space-2) var(--k-space-0-5);
-  color: var(--k-fg-faint);
-  font-size: var(--k-text-label-size);
-  letter-spacing: var(--k-text-label-tracking);
-}
-
-.at-model__item {
-  display: grid;
-  grid-template-columns: 16px 1fr;
-  column-gap: var(--k-space-1-5);
-  align-items: center;
-  width: 100%;
-  min-height: var(--k-row);
-  padding: var(--k-space-1) var(--k-space-2);
-  border: 0;
-  border-radius: var(--k-radius-sm);
-  background: none;
-  color: var(--k-editor-fg);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.at-model__item:hover:not([aria-disabled="true"]),
-.at-model__item:focus-visible {
-  outline: none;
-  background: var(--k-list-hover);
-}
-
-.at-model__item[aria-disabled="true"] {
-  color: var(--k-fg-secondary);
-  cursor: default;
-}
-
-/* A harness that cannot run yet reads quieter than one that is only locked. */
-.at-model__group[data-unavailable] .at-model__item {
-  color: var(--k-fg-faint);
-}
-
-.at-model__check {
-  display: inline-flex;
-  color: var(--k-accent);
-}
-
-.at-model__detail {
-  grid-column: 2;
-  color: var(--k-fg-faint);
-}
-
 /* The hover card, and the small buttons that open it */
 
 .at-hover {
@@ -168,9 +86,21 @@
 }
 
 .at-hover__card {
+  position: absolute;
+  bottom: calc(100% + var(--k-space-1));
+  z-index: 10;
   display: none;
   width: max-content;
+  min-width: 220px;
+  max-width: min(320px, 100cqi - 2 * var(--k-space-3));
   padding: var(--k-space-3);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-menu);
+  background: var(--k-raised-bg);
+  box-shadow: var(--k-shadow-menu);
+  color: var(--k-editor-fg);
+  font-size: var(--k-size-small);
+  text-align: left;
 }
 
 .at-hover__card[data-open] {
@@ -239,8 +169,7 @@
   color: var(--k-fg-muted);
 }
 
-.at-bar,
-.at-minibar {
+.at-bar {
   display: block;
   overflow: hidden;
   border-radius: var(--k-radius-pill);
@@ -258,12 +187,7 @@
   transition: width var(--k-motion-base) var(--k-ease);
 }
 
-/* The context meter and its card */
-
-.at-minibar {
-  width: 28px;
-  height: 4px;
-}
+/* The context meter's card */
 
 .at-stack {
   display: flex;

@@ -32,7 +32,7 @@
   gap: var(--k-space-1);
   border: 0;
   border-radius: var(--k-radius-control);
-  background: var(--k-list-hover);
+  background: var(--k-menu-hover);
   color: var(--k-fg-secondary);
   font: inherit;
   cursor: pointer;
@@ -57,7 +57,13 @@
   cursor: pointer;
 }
 .at-friendly-error pre {
+  margin: var(--k-space-1-5) 0 0;
+  padding: var(--k-space-2);
+  border-radius: var(--k-radius-sm);
+  /* The card is layer 2, as the code background is; the selected tint stands apart in both themes. */
+  background: var(--k-list-active);
+  color: var(--k-fg-secondary);
+  font: var(--k-text-code);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font-family: var(--k-mono);
 }

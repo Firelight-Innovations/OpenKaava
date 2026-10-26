@@ -1,75 +1,52 @@
-/* Reasoning is a shared visual state: slider preview, composer edge, and send affordance. */
-.at-prompt {
-  --effort-color: var(--k-accent);
-}
-.at-prompt[data-effort="low"] {
-  --effort-color: var(--k-context-3);
-}
-.at-prompt[data-effort="high"] {
-  --effort-color: var(--k-context-2);
-}
-.at-prompt[data-effort="xhigh"] {
-  --effort-color: var(--k-context-5);
-}
-.at-prompt[data-effort="max"] {
-  --effort-color: var(--k-context-6);
-}
-.at-prompt[data-effort="ultra"] {
-  --effort-color: var(--k-ultra);
-}
+/*
+ * Effort leaves the composer alone, with one exception: turning Ultra on
+ * sweeps the whole ramp across the card once, through veistra.com's dot
+ * screen, with a ring that flares and fades. Then it is the plain card again.
+ */
 .at-prompt__box {
   position: relative;
   isolation: isolate;
-  transition:
-    border-color 0.3s,
-    box-shadow 0.3s;
 }
-.at-prompt__box:focus-within {
-  border-color: color-mix(in srgb, var(--effort-color) 65%, var(--k-input-border));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--effort-color) 20%, transparent);
+/* Isolated, the box traps its popups' z-index; it comes forward while one is open. */
+.at-prompt__box:has(.at-model__menu, .at-hover__card[data-open]) {
+  z-index: 10;
 }
-.at-prompt[data-effort="ultra"] .at-prompt__box::before {
+.at-prompt[data-surge] .at-prompt__box {
+  animation: at-surge-ring 1300ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.at-prompt[data-surge] .at-prompt__box::before {
   content: "";
   position: absolute;
   inset: 0;
-  pointer-events: none;
   z-index: -1;
   border-radius: inherit;
-  opacity: 0.22;
-  background: radial-gradient(circle, var(--k-ultra) 1px, transparent 1.8px);
-  background-size: 7px 7px;
-  mask-image: linear-gradient(90deg, transparent 35%, black);
-  animation: at-ultra-field 6s linear infinite;
+  background: var(--k-effort-ramp);
+  mask:
+    radial-gradient(circle, #000 0.8px, transparent 1.3px) 0 0 / 6px 6px,
+    linear-gradient(100deg, transparent 30%, #000 50%, transparent 70%) 100% 0 / 300% 100% no-repeat;
+  mask-composite: intersect;
+  pointer-events: none;
+  animation: at-surge-sweep 1300ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
-.at-prompt[data-effort="ultra"] .at-round--send {
-  background: var(--k-ultra);
-  box-shadow: 0 0 17px color-mix(in srgb, var(--k-ultra) 30%, transparent);
-}
-.at-prompt__writing {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  flex-wrap: wrap;
-  gap: 5px;
-  min-width: 0;
-}
-.at-prompt__writing textarea {
-  flex: 1 1 140px;
-  width: 100%;
-}
+/* A tag like the shell's git chips: neutral, with only its glyph in the kind's colour. */
 .at-chip {
+  --chip-glyph: var(--k-link);
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--k-space-1);
   max-width: 100%;
-  padding: 3px 7px;
-  border: 1px solid color-mix(in srgb, var(--k-accent) 20%, transparent);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--k-accent) 13%, transparent);
-  color: var(--k-accent);
-  font-size: var(--k-size-small);
-  line-height: 1.4;
+  height: 22px;
+  padding: 0 var(--k-space-0-5) 0 var(--k-space-1-5);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-control);
+  background: var(--k-badge-bg);
+  color: var(--k-fg-secondary);
+  font: var(--k-text-small);
   vertical-align: baseline;
+}
+.at-chip > svg:first-child {
+  flex-shrink: 0;
+  color: var(--chip-glyph);
 }
 .at-chip > span {
   overflow: hidden;
@@ -77,13 +54,14 @@
   white-space: nowrap;
 }
 .at-chip[data-kind="skill"] {
-  color: var(--k-context-5);
-  background: color-mix(in srgb, var(--k-context-5) 14%, transparent);
+  --chip-glyph: var(--k-context-5);
 }
 .at-chip[data-kind="comment"],
 .at-chip[data-kind="design-comment"] {
-  color: var(--k-context-3);
-  background: color-mix(in srgb, var(--k-context-3) 14%, transparent);
+  --chip-glyph: var(--k-context-3);
+}
+.at-chip[data-kind="issue"] {
+  --chip-glyph: var(--k-context-4);
 }
 .at-chip button {
   display: inline-grid;
@@ -93,71 +71,140 @@
   height: 16px;
   padding: 0;
   border: 0;
-  border-radius: 3px;
+  border-radius: var(--k-radius-sm);
   background: transparent;
-  color: inherit;
+  color: var(--k-fg-faint);
   cursor: pointer;
 }
 .at-chip button:hover {
-  background: var(--k-list-hover);
+  background: var(--k-menu-hover);
+  color: var(--k-editor-fg);
 }
 .at-chip button:focus-visible {
   outline: var(--k-focus-ring);
 }
+/* Inline in a sent message: it sits on the text's line, in the link colour. */
 .at-user__text .at-chip {
-  margin-inline: 2px;
+  height: auto;
+  margin-inline: var(--k-space-0-5);
+  padding: 0 var(--k-space-1);
+  border: 0;
+  background: var(--k-accent-subtle);
+  color: var(--k-link);
+  line-height: inherit;
 }
 .at-assistant a[href^="kaava:"] {
   display: inline-block;
-  padding: 0 5px;
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--k-accent) 13%, transparent);
-  color: var(--k-accent);
+  padding: 0 var(--k-space-1);
+  border-radius: var(--k-radius-sm);
+  background: var(--k-accent-subtle);
+  color: var(--k-link);
   text-decoration: none;
 }
 .at-link-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-2);
   padding: var(--k-space-3);
   border: 1px solid var(--k-input-border);
-  border-radius: var(--k-radius-turn);
+  border-radius: var(--k-radius-menu);
   background: var(--k-raised-bg);
+  box-shadow: var(--k-shadow-menu);
+  font-size: var(--k-size-small);
 }
-.at-link-picker label {
+.at-link-picker__field {
   display: flex;
   flex-direction: column;
   gap: var(--k-space-2);
 }
+.at-link-picker__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--k-space-1-5);
+  color: var(--k-editor-fg);
+  font-weight: var(--k-weight-strong);
+}
 .at-link-picker input {
-  padding: var(--k-space-2);
+  height: 30px;
+  padding: 0 var(--k-space-2);
   border: 1px solid var(--k-input-border);
   border-radius: var(--k-radius-control);
   background: var(--k-composer-bg);
   color: var(--k-editor-fg);
   font: inherit;
 }
-.at-link-picker p {
-  color: var(--k-fg-muted);
-  font-size: var(--k-size-small);
+.at-link-picker input:focus-visible {
+  outline: none;
+  border-color: var(--k-accent);
 }
-.at-link-picker button {
-  margin-right: var(--k-space-2);
-  padding: var(--k-space-1) var(--k-space-2);
-  border: 0;
+.at-link-picker p {
+  margin: 0;
+  color: var(--k-fg-muted);
+  line-height: 1.45;
+}
+.at-link-picker__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--k-space-1-5);
+}
+.at-link-picker__actions button {
+  height: 26px;
+  padding: 0 var(--k-space-2-5);
+  border: 1px solid var(--k-input-border);
   border-radius: var(--k-radius-control);
   color: var(--k-editor-fg);
-  background: var(--k-list-hover);
+  background: transparent;
   font: inherit;
   cursor: pointer;
 }
-@keyframes at-ultra-field {
+.at-link-picker__actions button:hover:not(:disabled) {
+  background: var(--k-menu-hover);
+}
+.at-link-picker__actions .at-link-picker__primary {
+  border-color: transparent;
+  background: var(--k-accent);
+  color: var(--k-on-accent);
+}
+.at-link-picker__actions .at-link-picker__primary:hover:not(:disabled) {
+  background: var(--k-accent);
+  filter: brightness(1.1);
+}
+.at-link-picker__actions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.at-link-picker__actions button:focus-visible {
+  outline: var(--k-focus-ring);
+}
+/* The band crosses the card left to right and fades as it reaches the far side. */
+@keyframes at-surge-sweep {
+  from {
+    mask-position:
+      0 0,
+      100% 0;
+    opacity: 0.55;
+  }
+  70% {
+    opacity: 0.55;
+  }
   to {
-    background-position: 28px -14px;
+    mask-position:
+      0 0,
+      0% 0;
+    opacity: 0;
+  }
+}
+@keyframes at-surge-ring {
+  30% {
+    border-color: var(--k-effort-ultra);
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--k-effort-max) 30%, transparent),
+      0 0 18px color-mix(in srgb, var(--k-effort-ultra) 30%, transparent);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .at-prompt__box::before {
-    animation: none !important;
-  }
-  .at-prompt__box {
-    transition: none;
+  .at-prompt[data-surge] .at-prompt__box,
+  .at-prompt[data-surge] .at-prompt__box::before {
+    animation: none;
   }
 }
