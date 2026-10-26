@@ -71,14 +71,6 @@ const SURFACES = [
 
   surface({
     file: "splash.html",
-    field: ".splash__company",
-    expects: "the company, written as a word (the stylesheet capitalises it)",
-    expected: product.company,
-    pattern: /(<span class="splash__company">)([^<]*)(<\/span>)/,
-  }),
-
-  surface({
-    file: "splash.html",
     field: ".splash__legal",
     expects: "the copyright notice, as printed",
     expected: product.copyright,

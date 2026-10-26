@@ -34,7 +34,7 @@ Lucide icons at 16px with a 1.5px stroke, drawn in `txt-tertiary` (the current c
 
 ## The mark
 
-The veistra fruit: `mark-skin` outer body, `mark-flesh` inner body and `mark-seed` seed, with the inner shapes stroked in the ground colour at 0.9. Its colours are brand colours and never appear in the interface. On light grounds use the `-light` values. Files are in the Logos group. The monochrome `veistra-mark.svg` draws the seed as a hole, so it survives greyscale and a 15px title bar.
+The veistra closed EI: one block with two slots cut out of it, in `mark-rust`. Its colour is a brand colour and never appears in the interface. Files are in the Logos group. The monochrome `veistra-mark.svg` draws the slots as holes, so it survives greyscale and a 15px title bar.
 
 ## Rules
 
