@@ -35,9 +35,10 @@ cells of the rows it closes in section 2.
 - **PR 1** (setup): the host reads `modes` and `configOptions` from the
   `session/new` reply and from `config_option_update` into
   `SessionStatus.modes` and `SessionStatus.config`. The mode option is split
-  out, so the mode is drawn once. Bypass and Auto are held back in every
-  option (`config::NOT_OFFERED`), and so are approval options that enter
-  either. `agentCapabilities` and `authMethods` are not stored yet: nothing
+  out, so the mode is drawn once. Bypass is held back in every option
+  (`config::NOT_OFFERED`), and so are approval options that enter it. Auto
+  was held back too, until the owner decided to offer it (2026-10).
+  `agentCapabilities` and `authMethods` are not stored yet: nothing
   reads them, so PR 7 (session list) and PR 24 (auth) read them when they
   need them.
 - **PR 2** (mode switcher): `agent-tab/set-mode` queues a mode change to
@@ -82,10 +83,11 @@ cells of the rows it closes in section 2.
 
 Open questions:
 
-- **Auto is held back with Bypass** (`config::NOT_OFFERED`). In Auto a
-  classifier approves calls in the user's place; those never reach
+- **Auto is offered** (decided 2026-10; it was held back with Bypass). In
+  Auto a classifier approves calls in the user's place; those never reach
   `session/request_permission`, so the outside-worktree guard cannot apply
-  as D3 requires. Accept edits stays: Claude allows writes inside the
+  as D3 requires. The owner accepted that trade-off; Bypass and Codex's
+  full access stay held back. Accept edits stays: Claude allows writes inside the
   working directory unasked, and still asks for any write outside it, so the
   guard sees those. Some shell commands are also allowed unasked in Accept
   edits; which ones was not decoded from the CLI.
@@ -96,12 +98,14 @@ Constraints for later PRs, found while reading the adapter:
 
 - The ExitPlanMode request offers `exit-plan-bypass`, `exit-plan-auto` and
   their `exit-plan-clear-*` forms whenever the adapter lists those modes,
-  which on Windows includes Bypass. PR 1 drops them, and any approval
-  option whose id is a held-back mode or names one as a word, by option id
-  (`config::enters_held_back`), whatever the option's kind. PRs 11 and 13
-  keep that filter when they lift the `allow_always` one, or one click
-  enters a mode D4 rules out. The mode switcher (PR 2) is what refuses a
-  held-back mode if asked.
+  which on Windows includes Bypass. Only the Bypass forms, and any approval
+  option whose id is a held-back mode or names one as a word, are dropped
+  by option id (`config::enters_held_back`), whatever the option's kind.
+  The Auto exits are dropped only because the adapter sends them as
+  `allow_always`. PRs 11 and 13 keep the id filter when they lift the
+  `allow_always` one, or one click enters a mode D4 rules out; lifting it
+  puts the Auto exits on the card. The mode switcher (PR 2) is what refuses
+  a held-back mode if asked.
 - An Edit or Write "allow all edits during this session" answer switches
   the CLI to Accept edits without any `current_mode_update`, so the status
   would show the old mode. PR 11 must account for that.
@@ -169,7 +173,7 @@ Constraints for later PRs, found while reading the adapter:
 | Manual (default) | Mode dropdown "Manual"; Shift+Tab; `--permission-mode default` (permission-modes doc) | exposed: id `default` (session-mode.js:226-261) | done in PR 2: forced to `default` at handshake and fails closed (session.rs, `Shared::handshake`, with harness.rs `Policy::ask_first`); shown as "Manual" and selectable | P0 | PR 2. |
 | Accept edits | "Edit automatically" (VS Code); `acceptEdits` | exposed: id `acceptEdits` (session-mode.js:226-261) | done in PR 2 | P0 | PR 2. |
 | Plan | "Plan"; `/plan` | exposed: id `plan` (session-mode.js:247); EnterPlanMode switches to plan (acp-agent.js:7962-7963) | done in PR 2: selectable; the plan card is PR 13 | P0 | PR 2 and PR 13. |
-| Auto | "Auto"; classifier approves calls | exposed: id `auto`; falls back to acceptEdits with a warning on unsupported models (session-mode.js:6-14, 46-54) | held back with Bypass (`config::NOT_OFFERED`); see section 0 | P1 | Show "Auto mode unavailable" as a notice (PR 19). |
+| Auto | "Auto"; classifier approves calls | exposed: id `auto`; falls back to acceptEdits with a warning on unsupported models (session-mode.js:6-14, 46-54) | offered (2026-10), in the mode picker and before a session; the handshake shows where the agent settles; see section 0 | P1 | Show "Auto mode unavailable" as a notice (PR 19). |
 | Bypass permissions | "Bypass permissions"; needs a settings gate (permission-modes doc) | partial: offered only when allowed (permissions/modes.js:3; session-mode.js:261); root or IS_SANDBOX gate (modes.js:18-20) | not implemented | P2 | Owner decision D4. Keep off until the guard is checked in this mode. |
 | dontAsk | CLI only; not in Desktop or VS Code selectors (permission-modes doc) | not-exposed: parser accepts it; catalog omits it; `set_mode` throws (session-mode.js:213-225) | not implemented | Skip | CLI-only per docs. |
 | Mode switcher | mode dropdown (VS Code); Desktop Cmd+Shift+M | exposed: `session/set_mode` and config option `mode` (session-mode.js:5, 66-81, 135-166) | done in PR 2: a section of the composer's settings menu | P0 | PR 2. |
@@ -338,7 +342,7 @@ Constraints for later PRs, found while reading the adapter:
 | Code review card | Walk through, Fix this one, Apply fixes (desktop doc) | not-exposed | not implemented | P2 | Shows after `/code-review`. |
 | Allow once | "Yes" | exposed: `allow_once` (permissions/options/shared.js:16-22) | done (session.rs, `Session::answer`) | P0 | Done. |
 | Yes and don't ask again | "Always allow" for a matching rule | exposed: `allow_always` with `updatedPermissions` to localSettings (permissions/effects.js:10-40; options/tools.js:6-8, 28-31) | partial: dropped when the request names no file (normalize.rs, `Normalizer::approval`) | P0 | Corrected. The adapter writes the rule. OpenKaava's filter is the blocker (Section 4 I). |
-| Yes and switch to auto mode | option on some prompts | exposed: option passes through (options/tools.js:77) | dropped: an option that enters a held-back mode is filtered; the rest are shown with the agent's label (normalize.rs, `Normalizer::approval`) | P1 | Not offered: the host drops options that enter Auto or Bypass (`config::enters_held_back`) until the guard is checked in those modes. |
+| Yes and switch to auto mode | option on some prompts | exposed: option passes through (options/tools.js:77) | dropped: the adapter sends it as `allow_always`, which no card offers; an option that enters Bypass is dropped whatever its kind (normalize.rs, `Normalizer::approval`) | P1 | Auto is entered from the mode picker. Bypass stays dropped (`config::enters_held_back`). |
 | Reject | "No" | exposed: `reject_once` (shared.js:16-22) | done | P0 | Done. |
 | Comment on an answer | Tab adds a comment (permissions doc) | unknown: no comment path found | not implemented | P2 | Verify whether the comment reaches ACP. |
 | Outside-worktree refusal | not in Claude Code | OpenKaava policy (guard.rs, its module comment; session.rs, `Shared::permission`) | done | P0 | Keep. OpenKaava rule. |
@@ -355,7 +359,7 @@ Constraints for later PRs, found while reading the adapter:
 | Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
 |---|---|---|---|---|---|
 | Plan mode | `/plan`; Shift+Tab | exposed: mode `plan` (session-mode.js:247) | done in PR 2: selectable in the mode switcher and by Shift+Tab | P0 | The plan card is PR 13. |
-| Plan approval card | Yes, auto mode; Yes, manual edits; No, keep planning (permission-modes doc) | exposed: ExitPlanMode options (acp-agent.js:4781, 4855) | generic approval card (normalize.rs, `Normalizer::approval`) | P0 | Works as buttons now, except the options that enter Auto or Bypass, which the host drops. PR 13 adds plan text. |
+| Plan approval card | Yes, auto mode; Yes, manual edits; No, keep planning (permission-modes doc) | exposed: ExitPlanMode options (acp-agent.js:4781, 4855) | generic approval card (normalize.rs, `Normalizer::approval`) | P0 | Works as buttons now, with only the manual way out: the adapter sends the others as `allow_always`, which the host drops. PR 13 adds plan text. |
 | Plan document text | Markdown plan; VS Code document with comments | exposed: `plan_update` markdown with planId `plan-mode` (exit-plan.js:85-110); needs `clientCapabilities.plan` (acp-agent.js:1216) | not declared; no handler | P0 | Declare `plan` in PR 13. |
 | Plan file path | plan file opened in VS Code | AIR-only: `rawInput.planFilePath` (air-extension.js) | n/a | Skip | Use plan text instead (D1). |
 | Clear context and implement | fresh context carrying only the plan | partial: restart on approval (exit-plan.js:121-160; clear-context-coordinator.js) | not implemented | P1 | PR 13. |
@@ -547,7 +551,7 @@ These need no new OpenKaava work. The UI still shows what is listed in the last 
 | Usage line | `usage_update` after each turn | Already drawn (components/Usage.tsx). PR 18 adds cost and rate limit | acp-agent.js:4677-4690 |
 | Plan card | Plan updates for TodoWrite and Task tools | Already drawn (components/TodoList.tsx). PR 13 adds plan text and clear-context | tools.js:22-29, 78-220 |
 | Retry on error | Kaava-side | Already done (components/ErrorItem.tsx) | — |
-| Auto-mode fallback | Mode drops to acceptEdits with a warning | Warning arrives as text today; PR 19 shows a notice | session-mode.js:6-14, 46-54 |
+| Auto-mode fallback | Mode drops to acceptEdits with a warning | During a turn the warning arrives as text. For a mode picked before the session, it comes outside a turn and is dropped, so only the settled mode in the status shows it. PR 19 shows a notice | session-mode.js:6-14, 46-54 |
 | Session titles | Generated after first prompt | Show the title (PR 8) | session-titles.js:217 |
 | Background Bash | Backgrounded calls tagged | Background state (PR 26) | tool-calls/background.js |
 | Compaction | SDK compacts; without the capability the adapter sends a tool_call | Native row after PR 18 | acp-agent.js:2584-2592 |

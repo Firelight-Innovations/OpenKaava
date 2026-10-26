@@ -103,7 +103,8 @@ breaks one.
   The worktree guard checks each `session/request_permission`, and a mode like these skips that
   request, so the guard never sees what the agent does. Name those modes when you verify the
   adapter (step 1), and add their ids to `config::NOT_OFFERED`. The host drops those ids from
-  every option's choices, and never starts a session in one.
+  every option's choices, and never starts a session in one. One exception, decided by the owner
+  in 2026-10: Claude's `auto` is offered, and the calls it approves skip the guard.
 - `env` never carries a credential.
 - The UI calls a harness by its short name: "Claude", "Codex", "Pi".
 
