@@ -14,7 +14,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::Value;
 
-use crate::event::{Attachment, Envelope, Event, Hint, Item, SessionStatus};
+use crate::event::{Attachment, Envelope, Event, Hint, Item, QuestionOutcome, SessionStatus};
 use crate::guard::{NotAWorktree, Worktree};
 use crate::harness::{Harness, LaunchSpec, Protocol};
 use crate::models::MODEL_CATEGORY;
@@ -51,6 +51,8 @@ pub trait Adapter: Send + Sync {
     fn abort(&self);
     /// Answer an approval with one of the options it offered.
     fn answer_approval(&self, item_id: &str, option_id: &str) -> Result<(), HostError>;
+    /// Answer a question card, skip it, or withdraw it.
+    fn answer_question(&self, item_id: &str, outcome: QuestionOutcome) -> Result<(), HostError>;
     /// Switch to one of the modes the status offers. Returns the change's
     /// number, which the status's `answered` reaches once it is answered.
     fn set_mode(&self, mode_id: &str) -> Result<u64, HostError>;
@@ -95,6 +97,9 @@ impl Adapter for Session {
     }
     fn answer_approval(&self, item_id: &str, option_id: &str) -> Result<(), HostError> {
         self.answer(item_id, option_id)
+    }
+    fn answer_question(&self, item_id: &str, outcome: QuestionOutcome) -> Result<(), HostError> {
+        self.reply(item_id, outcome)
     }
     fn set_mode(&self, mode_id: &str) -> Result<u64, HostError> {
         Session::set_mode(self, mode_id)
@@ -425,6 +430,10 @@ impl AgentHost {
             if let crate::event::ItemKind::Approval {
                 tool_call_id: Some(id),
                 ..
+            }
+            | crate::event::ItemKind::Question {
+                tool_call_id: Some(id),
+                ..
             } = &mut item.kind
             {
                 if let Some(replacement) = ids.get(id) {
@@ -481,6 +490,18 @@ impl AgentHost {
         self.get(instance_id)
             .ok_or(HostError::NoSession)?
             .answer_approval(item_id, option_id)
+    }
+
+    /// Answer a question card in the tab's session.
+    pub fn answer_question(
+        &self,
+        instance_id: &str,
+        item_id: &str,
+        outcome: QuestionOutcome,
+    ) -> Result<(), HostError> {
+        self.get(instance_id)
+            .ok_or(HostError::NoSession)?
+            .answer_question(item_id, outcome)
     }
 
     /// Switch the tab's session to another of its modes. Returns the
@@ -646,6 +667,7 @@ mod tests {
             exit_code: None,
             hint: None,
             pending_prompt: None,
+            session_title: None,
         }
     }
 

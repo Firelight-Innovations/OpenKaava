@@ -357,6 +357,7 @@ of the drawing and collapse to a strip; nothing floats over the drawing.
 | `canvas/values`, `canvas/set-values` | The `{{name}}` value table, where each is used, and labels that no longer match. |
 | `canvas/design-brief`, `canvas/set-design` | The detail level and drawing style in force for a canvas (its override, else Settings > Canvas, else the default), and a per-canvas override: `{detail?, style?}`, `null` clears. `add_shapes` draws in the style; `drawing_guide` ends with the guidance. The Canvas toolbar's Drawing style control sets the same override by hand (`veistra.design` in the file). `drawing_guide {topic: "design"}` serves `docs/canvas-design-prompt.md`, the brief for designing a game. |
 | `canvas/coverage` | Which frames cover each checklist topic, and which topics none do. |
+| `canvas/lint` | Agent-ready topology, rule by rule: named frames, no loose parts, bound labels. `canvas/add-shapes` returns the same report under `validation`. |
 | `canvas/refs` | Reference images under `canvas/<id>/refs/`. |
 | `canvas/list-comments` | `{status?: open\|resolved\|all, diagram?}`. |
 | `canvas/create-comment` | `{diagram, elementIds \| region, text}`; the region is frame-relative. |

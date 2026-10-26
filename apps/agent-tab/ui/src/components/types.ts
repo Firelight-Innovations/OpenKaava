@@ -5,10 +5,17 @@
  * an RPC or the transcript.
  */
 import type { KeyboardEvent, MouseEvent, ReactNode, Ref } from "react";
-import type { ApprovalOption, PlanEntry, SessionState, ToolStatus } from "../protocol.generated";
+import type {
+  ApprovalOption,
+  PlanEntry,
+  QuestionChoice,
+  SessionState,
+  ToolStatus,
+} from "../protocol.generated";
 import type { DiffLine } from "../diff";
 import type { Tone } from "../meters";
 import type { ContextChip } from "../mentions";
+import type { LintReport } from "../validation";
 
 /** The tab's frame: header on top, transcript in the middle, composer below. */
 export interface LayoutProps {
@@ -36,6 +43,8 @@ export interface SideChatProps {
 export interface HeaderProps {
   onHistory?: () => void;
   onSideChat?: () => void;
+  /** Show or hide the shell's Agents list, beside the work. */
+  onAgents?: () => void;
   history?: ReactNode;
   /** The session's state, or `null` before there is a session. */
   state: SessionState | null;
@@ -149,6 +158,13 @@ export interface PathListProps {
   paths: string[];
 }
 
+/** A canvas topology check, drawn as its own card in the transcript. */
+export interface ValidationProps {
+  status: ToolStatus;
+  /** `null` while the check runs, or when its answer could not be read. */
+  report: LintReport | null;
+}
+
 export interface ApprovalProps {
   title: string;
   detail: string | null;
@@ -162,6 +178,47 @@ export interface ApprovalProps {
   /** The option being sent, while it is in flight; every option is disabled meanwhile. */
   sending: string | null;
   onChoose: (optionId: string) => void;
+}
+
+/** One question on a `QuestionCard`, with the user's reply so far. */
+export interface QuestionCardQuestion {
+  header: string | null;
+  /** The question; `null` when the card's `message` is the question. */
+  text: string | null;
+  choices: QuestionChoice[];
+  /** Checkboxes rather than one pick. */
+  multi: boolean;
+  /** The composer's text answers it. */
+  other: boolean;
+  /** The values picked. */
+  picks: string[];
+  /** What was typed, if anything. */
+  typed: string | null;
+}
+
+/**
+ * The agent's question, with numbered choices. Open, a click on a row picks it
+ * (or toggles it, for `multi`) and Submit sends; answered, it shows what was
+ * chosen, read-only.
+ */
+export interface QuestionCardProps {
+  message: string;
+  questions: QuestionCardQuestion[];
+  /** The card is open: the keyboard and the composer answer it. */
+  open: boolean;
+  /** How it ended, in words, once it has; `null` while open. */
+  ended: string | null;
+  /** The question number keys pick on, while open. */
+  current: number;
+  /** A Submit button is needed: more than one question, or a multi-select. */
+  submit: boolean;
+  /** Every question has an answer, so Submit may be pressed. */
+  ready: boolean;
+  /** The answer is in flight; everything is disabled meanwhile. */
+  sending: boolean;
+  onPick: (question: number, value: string) => void;
+  onSubmit: () => void;
+  onSkip: () => void;
 }
 
 export interface TodoListProps {
@@ -256,6 +313,13 @@ export interface ModelMenuProps {
   sections: PickerProps[];
 }
 
+/** Draws over a picture; `onSave` hands back the marked-up one as base64 PNG. */
+export interface MarkupEditorProps {
+  src: string;
+  onSave: (mime: string, data: string) => void;
+  onClose: () => void;
+}
+
 export interface ErrorItemProps {
   message: string;
   /** The one-line fix, already in words, or `null`. */
@@ -285,7 +349,16 @@ export interface ComposerProps {
   /** The agent's task list, pinned over the prompt box while it has steps left. */
   plan?: ReactNode;
   chips?: ContextChip[];
-  onRemoveChip?: (id: string) => void;
+  /** Pictures pasted into the box, shown as thumbnails above the text. */
+  images?: Array<{ id: string; mime: string; data: string }>;
+  /** Pictures found on the clipboard when the user pastes. */
+  onPasteImages?: (files: File[]) => void;
+  onRemoveImage?: (id: string) => void;
+  /** Prompts waiting for the running turn to end; each can be taken back out. */
+  queued?: Array<{ id: string; text: string }>;
+  onUnqueue?: (id: string) => void;
+  /** A picture was marked up and saved: swap it for the annotated one. */
+  onReplaceImage?: (id: string, image: { mime: string; data: string }) => void;
   effortLevel?: string;
   onAttach?: () => void;
   onDictate?: () => void;

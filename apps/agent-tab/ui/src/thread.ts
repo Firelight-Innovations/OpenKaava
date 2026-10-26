@@ -52,7 +52,9 @@ function turn(items: readonly Item[]): Turn {
   return {
     id: first.id,
     items,
-    message: { id: first.id, role, content: items.map(part) },
+    // The protocol carries no clock, so a turn is stamped when this tab last
+    // changed it: for the turn just answered, that is when it finished.
+    message: { id: first.id, role, content: items.map(part), createdAt: new Date() },
   };
 }
 

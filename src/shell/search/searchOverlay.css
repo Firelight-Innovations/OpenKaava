@@ -77,9 +77,12 @@
   color: var(--txt-placeholder);
 }
 
-.search-dialog .search-dialog__input,
-.search-dialog .search-dialog__input:focus,
-.search-dialog .search-dialog__input:focus-visible {
+/* The field's border is the one ring. `dialogs.css`'s `.k-dialog :is(button,
+   input, select, textarea, a[href]):focus-visible` scores (0,3,1), since `:is`
+   takes its most specific argument, so this needs (0,4,1) to win. */
+.search-dialog input.search-dialog__input.search-dialog__input,
+.search-dialog input.search-dialog__input.search-dialog__input:focus,
+.search-dialog input.search-dialog__input.search-dialog__input:focus-visible {
   outline: none;
   box-shadow: none;
   background: transparent;

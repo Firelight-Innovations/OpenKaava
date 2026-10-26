@@ -59,8 +59,8 @@ export interface KeyboardActions {
   openApp(): void;
   /** Ctrl+Alt+P and Shift+Alt+P — open the Switch project dialog (board 08). */
   switchProject(): void;
-  /** Ctrl+B — opens or closes the rail's Git page, which holds source control. */
-  toggleSourceControl(): void;
+  /** Ctrl+B — folds the cluster list away or back. */
+  toggleClusters(): void;
   /** Ctrl+` */
   toggleTerminal(): void;
   /** F11 */
@@ -146,7 +146,7 @@ export const CHORDS: Record<string, Chord> = {
     shift: (a) => a.openApp,
   },
   b: {
-    plain: (a) => a.toggleSourceControl,
+    plain: (a) => a.toggleClusters,
     shift: null,
   },
   "\\": {

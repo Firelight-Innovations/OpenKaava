@@ -17,7 +17,7 @@ use veistra_agent_host::harness::{Policy, CLAUDE};
 use veistra_agent_host::mask::looks_secret;
 use veistra_agent_host::{
     AgentHost, Envelope, Event, Harness, Hint, HostError, Item, ItemKind, LaunchSpec, McpServer,
-    SessionState, SettingTrouble, Worktree,
+    QuestionOutcome, QuestionReply, SessionState, SettingTrouble, Worktree,
 };
 
 const PATIENCE: Duration = Duration::from_secs(10);
@@ -538,6 +538,144 @@ fn the_agent_can_withdraw_its_request() {
     rig.turns_done(1);
     let card = approval(&rig.items()).unwrap();
     assert!(matches!(&card.kind, ItemKind::Approval { answer: Some(a), .. } if a == "cancelled"));
+}
+
+fn question(items: &[Item]) -> Option<Item> {
+    items
+        .iter()
+        .rev()
+        .find(|i| matches!(i.kind, ItemKind::Question { .. }))
+        .cloned()
+}
+
+fn outcome_of(item: &Item) -> Option<QuestionOutcome> {
+    match &item.kind {
+        ItemKind::Question { outcome, .. } => outcome.clone(),
+        _ => None,
+    }
+}
+
+fn picked(pick: &str) -> QuestionOutcome {
+    QuestionOutcome::Answered {
+        replies: vec![QuestionReply {
+            picks: vec![pick.to_string()],
+            other: None,
+        }],
+    }
+}
+
+#[test]
+fn an_agents_question_is_a_card_and_its_answer_reaches_the_agent() {
+    let rig = rig();
+    rig.send(&[], "question").unwrap();
+    rig.state(SessionState::NeedsInput);
+    let card = question(&rig.items()).expect("the client declared forms, so the agent asked");
+    let ItemKind::Question {
+        message, questions, ..
+    } = &card.kind
+    else {
+        unreachable!()
+    };
+    assert_eq!(message, "How should the grapple let go?");
+    assert_eq!(questions.len(), 1, "the Other box is part of its question");
+    assert!(questions[0].other);
+
+    assert!(matches!(
+        rig.host.answer_question(TAB, &card.id, picked("Teleport")),
+        Err(HostError::UnknownOption)
+    ));
+    assert!(
+        matches!(
+            rig.host.answer(TAB, &card.id, "o1"),
+            Err(HostError::UnknownOption)
+        ),
+        "a question is not answered as an approval"
+    );
+    rig.host
+        .answer_question(TAB, &card.id, picked("At the top of the swing"))
+        .unwrap();
+    rig.turns_done(1);
+    assert_eq!(
+        echoed_answer(&rig.items()),
+        json!({ "action": "accept", "content": { "question_0": "At the top of the swing" } })
+    );
+    let card = question(&rig.items()).unwrap();
+    assert_eq!(outcome_of(&card), Some(picked("At the top of the swing")));
+    assert!(matches!(
+        rig.host
+            .answer_question(TAB, &card.id, QuestionOutcome::Skipped),
+        Err(HostError::UnknownApproval)
+    ));
+}
+
+#[test]
+fn a_skipped_question_declines() {
+    let rig = rig();
+    rig.send(&[], "question").unwrap();
+    rig.state(SessionState::NeedsInput);
+    let card = question(&rig.items()).unwrap();
+    rig.host
+        .answer_question(TAB, &card.id, QuestionOutcome::Skipped)
+        .unwrap();
+    rig.turns_done(1);
+    assert_eq!(echoed_answer(&rig.items()), json!({ "action": "decline" }));
+    assert_eq!(
+        outcome_of(&question(&rig.items()).unwrap()),
+        Some(QuestionOutcome::Skipped)
+    );
+}
+
+#[test]
+fn stopping_the_turn_cancels_an_open_question() {
+    let rig = rig();
+    rig.send(&[], "question").unwrap();
+    rig.state(SessionState::NeedsInput);
+    rig.host.cancel(TAB).unwrap();
+    rig.turns_done(1);
+    assert_eq!(echoed_answer(&rig.items()), json!({ "action": "cancel" }));
+    assert_eq!(
+        outcome_of(&question(&rig.items()).unwrap()),
+        Some(QuestionOutcome::Cancelled)
+    );
+}
+
+#[test]
+fn a_question_left_open_when_the_agent_exits_is_cancelled() {
+    let rig = rig();
+    rig.send(&[], "question").unwrap();
+    rig.state(SessionState::NeedsInput);
+    let card = question(&rig.items()).unwrap();
+    rig.host.stop(TAB);
+    rig.until("the card closed", |events| {
+        events.iter().any(|e| {
+            matches!(&e.event, Event::ItemCompleted { item }
+                if item.id == card.id && outcome_of(item) == Some(QuestionOutcome::Cancelled))
+        })
+    });
+    assert!(rig
+        .host
+        .answer_question(TAB, &card.id, picked("On button release"))
+        .is_err());
+}
+
+#[test]
+fn the_agent_can_withdraw_its_question() {
+    let rig = rig();
+    rig.send(&[], "questionwithdrawn").unwrap();
+    rig.turns_done(1);
+    assert_eq!(
+        outcome_of(&question(&rig.items()).unwrap()),
+        Some(QuestionOutcome::Cancelled)
+    );
+}
+
+#[test]
+fn a_url_elicitation_is_declined_unasked() {
+    let rig = rig();
+    rig.send(&[], "questionurl").unwrap();
+    rig.turns_done(1);
+    assert_eq!(echoed_answer(&rig.items()), json!({ "action": "decline" }));
+    assert!(question(&rig.items()).is_none());
 }
 
 #[test]

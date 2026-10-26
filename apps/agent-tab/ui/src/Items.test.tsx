@@ -1,16 +1,22 @@
 // @vitest-environment jsdom
 /**
  * The item renderers on their own: what an agent's Markdown may do when it is
- * clicked, and the approval card's diff and cut-off notice.
+ * clicked, the approval card's diff and cut-off notice, and the question card.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ItemView } from "./Items";
-import type { FileDiff, Item } from "./protocol.generated";
+import { answerOpenCard } from "./questions";
+import type { FileDiff, Item, Question, QuestionOutcome } from "./protocol.generated";
 
 afterEach(cleanup);
 
-const actions = { onAnswer: () => Promise.resolve(), onRetry: () => {}, hintText: () => "" };
+const actions = {
+  onAnswer: () => Promise.resolve(),
+  onQuestion: () => Promise.resolve(),
+  onRetry: () => {},
+  hintText: () => "",
+};
 
 function view(item: Item) {
   return render(<ItemView item={item} actions={actions} />);
@@ -104,5 +110,202 @@ describe("an approval card", () => {
   it("says nothing of the sort for a command shown in full", () => {
     view(approval({ detail: "ls" }));
     expect(screen.queryByText(/Only the start of this is shown/)).toBeNull();
+  });
+});
+
+type QuestionKind = Extract<Item["kind"], { kind: "question" }>;
+
+const grapple: Question = {
+  id: "question_0",
+  header: "Grapple",
+  text: "How should the grapple let go?",
+  choices: [
+    { value: "release", label: "On button release", description: null },
+    { value: "top", label: "At the top of the swing", description: null },
+    { value: "both", label: "Both, test each", description: null },
+  ],
+  multi: false,
+  other: true,
+};
+
+const extras: Question = {
+  id: "question_1",
+  header: null,
+  text: "Which extras?",
+  choices: [
+    { value: "rope", label: "Rope sway", description: null },
+    { value: "dust", label: "Dust puffs", description: null },
+  ],
+  multi: true,
+  other: false,
+};
+
+const question = (over: Partial<QuestionKind> = {}): Item => ({
+  id: "q1",
+  turnId: "t1",
+  kind: {
+    kind: "question",
+    message: "",
+    toolCallId: null,
+    questions: [grapple],
+    outcome: null,
+    ...over,
+  },
+});
+
+function ask(item: Item) {
+  const onQuestion = vi.fn<(id: string, outcome: QuestionOutcome) => Promise<void>>(() =>
+    Promise.resolve(),
+  );
+  const utils = render(<ItemView item={item} actions={{ ...actions, onQuestion }} />);
+  return { onQuestion, ...utils };
+}
+
+const key = (k: string) => fireEvent.keyDown(window, { key: k, bubbles: true, cancelable: true });
+
+describe("a question card", () => {
+  it("shows the question in bold over numbered, full-width rows", () => {
+    ask(question());
+    expect(screen.getByText("How should the grapple let go?").className).toContain(
+      "at-question__text",
+    );
+    const rows = screen.getAllByRole("radio");
+    expect(rows.map((r) => r.textContent)).toEqual([
+      "1 ·On button release",
+      "2 ·At the top of the swing",
+      "3 ·Both, test each",
+    ]);
+    expect(rows.every((r) => r.getAttribute("aria-checked") === "false")).toBe(true);
+    // One question, one pick: no Submit to press.
+    expect(screen.queryByRole("button", { name: "Submit" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Skip" })).toBeTruthy();
+  });
+
+  it("sends a single question's answer on the click", () => {
+    const { onQuestion } = ask(question());
+    fireEvent.click(screen.getByRole("radio", { name: /At the top of the swing/ }));
+    expect(onQuestion).toHaveBeenCalledWith("q1", {
+      kind: "answered",
+      replies: [{ picks: ["top"], other: null }],
+    });
+    expect(screen.getByRole("radio", { name: /At the top/ }).getAttribute("data-picked")).toBe(
+      "true",
+    );
+  });
+
+  it("picks by number key while it is the open card", () => {
+    const { onQuestion } = ask(question());
+    key("3");
+    expect(onQuestion).toHaveBeenCalledWith("q1", {
+      kind: "answered",
+      replies: [{ picks: ["both"], other: null }],
+    });
+  });
+
+  it("ignores a number past the last choice", () => {
+    const { onQuestion } = ask(question());
+    key("7");
+    expect(onQuestion).not.toHaveBeenCalled();
+  });
+
+  it("takes the composer's text as the typed answer", async () => {
+    const { onQuestion } = ask(question());
+    expect(answerOpenCard("  Only while held  ")).toBe(true);
+    await waitFor(() =>
+      expect(onQuestion).toHaveBeenCalledWith("q1", {
+        kind: "answered",
+        replies: [{ picks: [], other: "Only while held" }],
+      }),
+    );
+  });
+
+  it("shows checkboxes for a multi-select and sends on Submit", () => {
+    const { onQuestion } = ask(question({ questions: [grapple, extras] }));
+    const submit = screen.getByRole("button", { name: "Submit" }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+    // Keys answer the first open question, then move on to the next.
+    key("1");
+    expect(onQuestion).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("checkbox", { name: /Dust puffs/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /Rope sway/ }));
+    expect(submit.disabled).toBe(false);
+    fireEvent.click(submit);
+    expect(onQuestion).toHaveBeenCalledWith("q1", {
+      kind: "answered",
+      // In the agent's order, not the order they were clicked in.
+      replies: [
+        { picks: ["release"], other: null },
+        { picks: ["rope", "dust"], other: null },
+      ],
+    });
+  });
+
+  it("sends a skip", () => {
+    const { onQuestion } = ask(question());
+    fireEvent.click(screen.getByRole("button", { name: "Skip" }));
+    expect(onQuestion).toHaveBeenCalledWith("q1", { kind: "skipped" });
+  });
+
+  it("can be answered again when the answer did not land", async () => {
+    const onQuestion = vi.fn(() => Promise.reject(new Error("gone")));
+    render(<ItemView item={question()} actions={{ ...actions, onQuestion }} />);
+    fireEvent.click(screen.getByRole("radio", { name: /On button release/ }));
+    await waitFor(() =>
+      expect(
+        (screen.getByRole("radio", { name: /On button release/ }) as HTMLButtonElement).disabled,
+      ).toBe(false),
+    );
+  });
+
+  it("collapses to the question and the answer once answered", () => {
+    const { onQuestion } = ask(
+      question({
+        questions: [grapple, extras],
+        outcome: {
+          kind: "answered",
+          replies: [
+            { picks: [], other: "Only while held" },
+            { picks: ["dust"], other: null },
+          ],
+        },
+      }),
+    );
+    expect(screen.getByText("How should the grapple let go?")).toBeTruthy();
+    expect(screen.getByText("“Only while held”")).toBeTruthy();
+    const rows = screen.getAllByRole("checkbox");
+    expect(rows.map((r) => r.textContent)).toEqual(["2 ·✓Dust puffs"]);
+    expect((rows[0] as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole("radio")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Skip" })).toBeNull();
+    // A closed card no longer takes keys or text.
+    key("1");
+    expect(answerOpenCard("more")).toBe(false);
+    expect(onQuestion).not.toHaveBeenCalled();
+  });
+
+  it("says when it was skipped or withdrawn", () => {
+    ask(question({ outcome: { kind: "skipped" } }));
+    expect(screen.getByText("Skipped")).toBeTruthy();
+    cleanup();
+    ask(question({ outcome: { kind: "cancelled" } }));
+    expect(screen.getByText("Withdrawn")).toBeTruthy();
+    expect(screen.queryByText("No answer")).toBeNull();
+  });
+
+  it("answers only the newest open card from the keyboard", () => {
+    const first = vi.fn(() => Promise.resolve());
+    const second = vi.fn(() => Promise.resolve());
+    render(
+      <>
+        <ItemView item={question()} actions={{ ...actions, onQuestion: first }} />
+        <ItemView item={{ ...question(), id: "q2" }} actions={{ ...actions, onQuestion: second }} />
+      </>,
+    );
+    key("2");
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledWith("q2", {
+      kind: "answered",
+      replies: [{ picks: ["top"], other: null }],
+    });
   });
 });

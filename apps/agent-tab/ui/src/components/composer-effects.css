@@ -28,60 +28,27 @@
   pointer-events: none;
   animation: at-surge-sweep 1300ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
-/* A tag like the shell's git chips: neutral, with only its glyph in the kind's colour. */
+/* A mention tag, as on the marketing site: the label in the link colour on a
+   tinted ground, no edge and no glyph. */
 .at-chip {
-  --chip-glyph: var(--k-link);
   display: inline-flex;
   align-items: center;
-  gap: var(--k-space-1);
+  gap: var(--k-space-0-5);
   max-width: 100%;
   height: 22px;
-  padding: 0 var(--k-space-0-5) 0 var(--k-space-1-5);
-  border: 1px solid var(--k-input-border);
+  padding: 0 var(--k-space-1-5);
+  border: 0;
   border-radius: var(--k-radius-control);
-  background: var(--k-badge-bg);
-  color: var(--k-fg-secondary);
+  background: var(--k-accent-subtle);
+  color: var(--k-link);
   font: var(--k-text-small);
+  font-weight: 500;
   vertical-align: baseline;
-}
-.at-chip > svg:first-child {
-  flex-shrink: 0;
-  color: var(--chip-glyph);
 }
 .at-chip > span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.at-chip[data-kind="skill"] {
-  --chip-glyph: var(--k-context-5);
-}
-.at-chip[data-kind="comment"],
-.at-chip[data-kind="design-comment"] {
-  --chip-glyph: var(--k-context-3);
-}
-.at-chip[data-kind="issue"] {
-  --chip-glyph: var(--k-context-4);
-}
-.at-chip button {
-  display: inline-grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--k-radius-sm);
-  background: transparent;
-  color: var(--k-fg-faint);
-  cursor: pointer;
-}
-.at-chip button:hover {
-  background: var(--k-menu-hover);
-  color: var(--k-editor-fg);
-}
-.at-chip button:focus-visible {
-  outline: var(--k-focus-ring);
 }
 /* Inline in a sent message: it sits on the text's line, in the link colour. */
 .at-user__text .at-chip {

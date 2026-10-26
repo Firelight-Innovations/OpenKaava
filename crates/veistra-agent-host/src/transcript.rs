@@ -136,6 +136,21 @@ fn weight(item: &Item) -> usize {
                 + diffs(changes)
                 + options.iter().map(|o| o.name.len()).sum::<usize>()
         }
+        ItemKind::Question {
+            message, questions, ..
+        } => {
+            message.len()
+                + questions
+                    .iter()
+                    .map(|q| {
+                        q.text.as_ref().map_or(0, String::len)
+                            + q.choices
+                                .iter()
+                                .map(|c| c.label.len() + c.value.len())
+                                .sum::<usize>()
+                    })
+                    .sum::<usize>()
+        }
         ItemKind::Plan { entries } => entries.iter().map(|e| e.content.len()).sum(),
         ItemKind::Usage { .. } => 0,
         ItemKind::Error { message, .. } => message.len(),

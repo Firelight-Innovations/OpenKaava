@@ -184,7 +184,23 @@ options: Array<ApprovalOption>,
  * The chosen option's id, `cancelled`, `outside` (refused by the host
  * because a path left the worktree), or `None` while waiting.
  */
-answer: string | null, } | { "kind": "plan", 
+answer: string | null, } | { "kind": "question", 
+/**
+ * The agent's own line: for one question, the question itself.
+ */
+message: string, 
+/**
+ * The tool call this is about, when the agent named one.
+ */
+toolCallId: string | null, 
+/**
+ * What it asks, in the agent's order.
+ */
+questions: Array<Question>, 
+/**
+ * How it was answered, or `None` while waiting.
+ */
+outcome: QuestionOutcome | null, } | { "kind": "plan", 
 /**
  * The steps.
  */
@@ -280,6 +296,62 @@ kind: string,
  */
 name: string, };
 
+export type Question = { 
+/**
+ * The form field it answers. Only the host reads it.
+ */
+id: string, 
+/**
+ * A short label above the question (Claude's `header`), if any.
+ */
+header: string | null, 
+/**
+ * The question, or `None` when the card's `message` is the question.
+ */
+text: string | null, 
+/**
+ * The choices, in the agent's order. Empty for a free-text question.
+ */
+choices: Array<QuestionChoice>, 
+/**
+ * Several choices may be picked.
+ */
+multi: boolean, 
+/**
+ * The user may type an answer of their own.
+ */
+other: boolean, };
+
+export type QuestionChoice = { 
+/**
+ * What to send back to pick it.
+ */
+value: string, 
+/**
+ * The agent's label for it.
+ */
+label: string, 
+/**
+ * The agent's longer description, if it gave one.
+ */
+description: string | null, };
+
+export type QuestionReply = { 
+/**
+ * The values of the choices picked: one at most unless `multi`.
+ */
+picks: Array<string>, 
+/**
+ * What the user typed instead, or as well for a multi-select.
+ */
+other: string | null, };
+
+export type QuestionOutcome = { "kind": "answered", 
+/**
+ * One reply per question, in the card's order.
+ */
+replies: Array<QuestionReply>, } | { "kind": "skipped" } | { "kind": "cancelled" };
+
 export type PlanEntry = { 
 /**
  * What the step is.
@@ -365,7 +437,12 @@ hint: Hint | null,
  * still starting. The transcript draws a prompt only when its turn
  * begins, so this is how the tab shows it meanwhile, and Stop withdraws it.
  */
-pendingPrompt: string | null, };
+pendingPrompt: string | null, 
+/**
+ * The name the agent gave the conversation, as `session_info_update`
+ * reported it. Absent until it does; a later report replaces it.
+ */
+sessionTitle?: string, };
 
 export type SettingTrouble = { "kind": "unanswered", 
 /**

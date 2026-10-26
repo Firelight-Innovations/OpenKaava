@@ -243,7 +243,9 @@ const REGISTRY: &[Registered] = &[
     },
     Registered {
         id: "canvas",
-        name: "Canvas",
+        // Shown as Design; the id, the `canvas/*` methods and `veistra://canvas/`
+        // keep the old name so nothing that points at it breaks.
+        name: "Design",
         description: "Draw the game's design on an Excalidraw canvas, stored in the environment's \
                       checkout as canvas/<name>.json.",
         // Not `design`: that id is the feature-gated Design Mode app, which

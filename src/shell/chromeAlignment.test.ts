@@ -69,19 +69,22 @@ describe("one gutter around the panes and the rail card", () => {
 });
 
 describe("the cluster strip", () => {
-  it("draws 28px badges, the shell's control size, with the active one marked on the edge", () => {
-    const badge = rule(stripCss, ".clusterstrip__badge");
-    expect(badge.get("width")).toMatch(/^var\(--control-md, 28px\)$/);
-    expect(badge.get("height")).toMatch(/^var\(--control-md, 28px\)$/);
-    expect(rule(stripCss, ".clusterstrip__badge[data-active]::before").get("background")).toBe(
-      "var(--accent)",
-    );
+  it("draws each cluster's mark at 24px, with the open cluster's in the accent", () => {
+    const mark = rule(stripCss, ".clusterstrip__mono");
+    expect(mark.get("width")).toBe("24px");
+    expect(mark.get("height")).toBe("24px");
+    expect(
+      rule(
+        stripCss,
+        ".clusterstrip__badge[data-active] .clusterstrip__mono:not([data-icon-color])",
+      ).get("background"),
+    ).toBe("var(--accent)");
   });
 
-  it("scrolls its own list rather than pushing the page icons off the rail", () => {
+  it("scrolls its own list rather than pushing the New cluster row off the rail", () => {
     const list = rule(stripCss, ".clusterstrip__list");
     expect(list.get("overflow-y")).toBe("auto");
-    expect(list.get("max-height")).toBeDefined();
+    expect(list.get("min-height")).toBe("0");
   });
 });
 

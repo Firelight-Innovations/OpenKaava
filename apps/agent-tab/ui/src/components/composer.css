@@ -55,11 +55,161 @@
   border-color: var(--k-accent);
 }
 
-.at-prompt__chips {
+/* Pasted pictures, in a row along the top of the card. */
+.at-prompt__images {
   display: flex;
   flex-wrap: wrap;
+  gap: var(--k-space-2);
+  padding: var(--k-space-1) var(--k-space-1) var(--k-space-1-5);
+}
+
+.at-thumb {
+  position: relative;
+}
+
+.at-thumb__open {
+  display: block;
+  width: 88px;
+  height: 88px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-control);
+  background: var(--k-editor-bg);
+  cursor: zoom-in;
+}
+
+.at-thumb__open img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The remove button only shows while the thumbnail is hovered or focused. */
+.at-thumb__remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--k-border-strong);
+  border-radius: 50%;
+  background: var(--k-raised-bg);
+  color: var(--k-editor-fg);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.at-thumb:hover .at-thumb__remove,
+.at-thumb:focus-within .at-thumb__remove {
+  opacity: 1;
+}
+
+/* The full-size view: the picture over a dimmed tab, closed by a press anywhere. */
+.at-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(0 0 0 / 0.72);
+  cursor: zoom-out;
+}
+
+.at-lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: var(--k-radius-control);
+  object-fit: contain;
+}
+
+.at-lightbox__close {
+  position: absolute;
+  top: var(--k-space-3);
+  right: var(--k-space-3);
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.12);
+  color: #fff;
+  cursor: pointer;
+}
+
+/* Skill chips sit on the input's first line, ahead of the text, rather than in
+   a row of their own above it or centred on a prompt of several lines. */
+.at-prompt__field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: var(--k-space-1);
   padding-inline: var(--k-space-1);
+}
+
+/* The wrapper adds no box: its chips are the field's own flex items. */
+.at-prompt__chips {
+  display: contents;
+}
+
+/* Centred on the first line: its padding plus half a 1.5 line, less half the chip. */
+.at-prompt__chips > .at-chip {
+  margin-top: calc(var(--k-space-1) + 0.75em - 11px);
+}
+
+.at-prompt__editor {
+  position: relative;
+  display: flex;
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+.at-prompt__field .at-prompt__input {
+  /* Above the mirror, so the caret and the selection draw over it. */
+  position: relative;
+  flex: 1;
+  box-sizing: border-box;
+  /* One line tall beside a chip, so the text and the chip share a line. */
+  min-height: 0;
+  padding-block: var(--k-space-1);
+  padding-inline: var(--k-space-1);
+}
+
+/* The input's text laid out again under it, with each reference's token drawn
+   as a chip. Every metric matches the input's, or the caret drifts off it. */
+.at-prompt__mirror {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding-block: var(--k-space-1);
+  padding-inline: var(--k-space-1);
+  color: var(--k-editor-fg);
+  font: inherit;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  pointer-events: none;
+}
+
+/* No padding and no weight change: either would widen the run past the input's. */
+.at-prompt__mirror .at-chip {
+  display: inline;
+  height: auto;
+  padding: 0;
+  font: inherit;
+  box-shadow: 0 0 0 2px var(--k-accent-subtle);
+  box-decoration-break: clone;
+}
+
+.at-prompt__editor[data-inline] .at-prompt__input {
+  color: transparent;
+  caret-color: var(--k-editor-fg);
 }
 
 /* The card draws the edge; the input inside it has none of its own. */
@@ -83,6 +233,14 @@
 
 .at-prompt__input:focus-visible {
   outline: none;
+}
+
+.at-prompt__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-1);
+  min-width: 0;
+  padding: var(--k-space-1) var(--k-space-2) 0;
 }
 
 .at-prompt__toolbar {
@@ -196,4 +354,42 @@
 .at-picker__select:focus-visible {
   outline: var(--k-focus-ring);
   outline-offset: 0;
+}
+
+/* Prompts queued behind the running turn, stacked above the card. */
+.at-queue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-1);
+  margin: 0 0 var(--k-space-1-5);
+  padding: 0;
+  list-style: none;
+}
+
+.at-queue__item {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-2);
+  padding: var(--k-space-1) var(--k-space-2);
+  border: 1px dashed var(--k-input-border);
+  border-radius: var(--k-radius-control);
+  color: var(--k-editor-fg-muted, var(--k-editor-fg));
+}
+
+.at-queue__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.at-queue__remove {
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
 }

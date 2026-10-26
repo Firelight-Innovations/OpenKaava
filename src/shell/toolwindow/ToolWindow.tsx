@@ -1,3 +1,4 @@
+import { AGENT_TAB_APP } from "../state/agentTab";
 import { createPortal } from "react-dom";
 import {
   forwardRef,
@@ -56,11 +57,13 @@ import {
   AGENT_TAB_EVENT,
   AGENT_TAB_LOGIN,
   AGENT_TAB_MODELS,
+  AGENT_TAB_RESTORED,
   appPainted,
   onAgentTabChosen,
   onAgentTabEvent,
   onAgentTabLogin,
   onAgentTabModels,
+  onAgentTabRestored,
   onFilesChanged,
   onLaunchTarget,
   onProjectChanged,
@@ -1113,6 +1116,23 @@ const ToolWindow = forwardRef<
       // business, like the two above: which tab this is, is something only the
       // shell knows, and it knows it from `event.source` rather than from
       // anything the frame could assert about itself.
+      // An app handing something already in the context store to the agent tab
+      // beside it: the tab shows it as a chip on the next prompt.
+      if (method === "veistra/attach-to-agent") {
+        respond({ id, result: null });
+        const { contextId, label } = (params ?? {}) as { contextId?: unknown; label?: unknown };
+        if (typeof contextId !== "string") return;
+        const payload = { contextId, label: typeof label === "string" ? label : contextId };
+        for (const [win, other] of frames.current) {
+          if (!other.isApp || other.appId !== AGENT_TAB_APP || other.origin === null) continue;
+          win.postMessage(
+            { veistra: 1, kind: "event", event: AGENT_TAB_ATTACH, payload } satisfies EventMessage,
+            other.origin,
+          );
+        }
+        return;
+      }
+
       if (method === "veistra/title") {
         respond({ id, result: null });
         const title = declaredTitle(params);
@@ -1400,6 +1420,7 @@ const ToolWindow = forwardRef<
         [onAgentTabChosen, AGENT_TAB_CHOSEN],
         [onAgentTabModels, AGENT_TAB_MODELS],
         [onAgentTabLogin, AGENT_TAB_LOGIN],
+        [onAgentTabRestored, AGENT_TAB_RESTORED],
       ] as const;
       for (const [listen, event] of listeners) {
         const stop = await listen(relay(event));
@@ -1790,6 +1811,9 @@ function viewerFileRequest(
   const { path, preview } = payload as { path?: unknown; preview?: unknown };
   return typeof path === "string" && path !== "" ? { path, preview: preview === true } : null;
 }
+
+/** The event an app's `veistra/attach-to-agent` becomes, for the agent tab. */
+const AGENT_TAB_ATTACH = "agent-tab:attach";
 
 /**
  * The `title` off a `veistra/title` request, or `null` for anything that is not a

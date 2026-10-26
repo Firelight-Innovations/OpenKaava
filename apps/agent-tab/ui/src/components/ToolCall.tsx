@@ -1,6 +1,7 @@
 import { Check, Circle, LoaderCircle, X, type LucideIcon } from "lucide-react";
 import type { ToolStatus } from "../protocol.generated";
 import { strings } from "../strings";
+import { isLintTool, lintReportOf } from "../validation";
 import { useSlots } from "./registry";
 import type { ToolCallProps } from "./types";
 import "./items.css";
@@ -19,6 +20,10 @@ const ICON: Record<ToolStatus, LucideIcon> = {
  */
 export function ToolCall({ title, status, output, truncated, paths, diffs }: ToolCallProps) {
   const S = useSlots();
+  // A canvas topology check is its own card; an edit that carries one shows
+  // the card under its row.
+  const report = lintReportOf(output);
+  if (isLintTool(title)) return <S.Validation status={status} report={report} />;
   const hasBody = output !== "" || paths.length > 0 || diffs.length > 0;
   const added = diffs.reduce((n, diff) => n + diff.added, 0);
   const removed = diffs.reduce((n, diff) => n + diff.removed, 0);
@@ -45,7 +50,7 @@ export function ToolCall({ title, status, output, truncated, paths, diffs }: Too
     </>
   );
   if (!hasBody) return <div className="at-item at-tool at-tool__head">{head}</div>;
-  return (
+  const row = (
     <details className="at-item at-tool">
       <summary className="at-tool__head at-disclosure">{head}</summary>
       <S.PathList paths={paths} />
@@ -55,5 +60,12 @@ export function ToolCall({ title, status, output, truncated, paths, diffs }: Too
       {output !== "" && <pre className="at-pre">{output}</pre>}
       {truncated && <S.Note text={strings.outputTruncated} />}
     </details>
+  );
+  if (report === null) return row;
+  return (
+    <>
+      {row}
+      <S.Validation status={status} report={report} />
+    </>
   );
 }

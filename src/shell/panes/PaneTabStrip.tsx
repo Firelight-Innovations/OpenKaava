@@ -12,10 +12,11 @@
  * two rows is a tab that can disagree with itself; nothing about that
  * argument has stopped being true, only which row won.
  */
-import { AppWindow, Terminal } from "lucide-react";
+import { AppWindow, MessageSquare, Terminal } from "lucide-react";
 import type { ClusterMember, DragHandleProps, PaneAppPicker } from "../contract";
 import { useDropZone } from "../dropZones";
 import { fileIconUrl } from "@veistra/file-icons";
+import { agentTabState, agentTabStatesVersion, subscribeAgentTabStates } from "../agentTabStates";
 import { getSubject, subjectsVersion, subscribeSubjects } from "../viewerSubjects";
 import { Close } from "../../ui/Icon";
 import { useRef, useState, useSyncExternalStore } from "react";
@@ -146,6 +147,9 @@ function PaneTab({
   // learns something new about a viewer.
   useSyncExternalStore(subscribeSubjects, subjectsVersion);
   const file = member.appId === "viewer" ? getSubject(member.id) : undefined;
+  // An agent tab's bubble is filled once its agent is done and fades while it works.
+  useSyncExternalStore(subscribeAgentTabStates, agentTabStatesVersion);
+  const agent = member.appId === "agent-tab" ? agentTabState(member.id) : undefined;
 
   return (
     <>
@@ -187,6 +191,14 @@ function PaneTab({
                 width={14}
                 height={14}
                 draggable={false}
+              />
+            ) : member.appId === "agent-tab" ? (
+              <MessageSquare
+                size={14}
+                strokeWidth={1.5}
+                className="pane-tab__icon pane-tab__icon--app pane-tab__icon--agent"
+                data-agent={agent}
+                aria-hidden="true"
               />
             ) : (
               <AppWindow

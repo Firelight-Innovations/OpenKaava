@@ -24,6 +24,7 @@ use std::collections::{HashMap, HashSet};
 use serde_json::Value;
 
 use crate::config::{enters_held_back, settings, Settings};
+use crate::elicit::Card;
 use crate::event::{
     AgentCommand, ApprovalOption, Event, FileDiff, Hint, Item, ItemKind, PlanEntry, ToolStatus,
 };
@@ -106,6 +107,7 @@ pub struct Normalizer {
     mode: Option<String>,
     settings: Option<Settings>,
     commands: Option<Vec<AgentCommand>>,
+    title: Option<String>,
     dropped: u64,
 }
 
@@ -136,6 +138,7 @@ impl Normalizer {
             mode: None,
             settings: None,
             commands: None,
+            title: None,
             dropped: 0,
         }
     }
@@ -177,6 +180,11 @@ impl Normalizer {
     /// The commands the agent last offered, taken so they are applied once.
     pub fn take_commands(&mut self) -> Option<Vec<AgentCommand>> {
         self.commands.take()
+    }
+
+    /// The name the agent last gave the conversation, taken so it is applied once.
+    pub fn take_title(&mut self) -> Option<String> {
+        self.title.take()
     }
 
     /// The open turn, if any.
@@ -321,6 +329,16 @@ impl Normalizer {
         })
     }
 
+    /// The item for a form `elicitation/create`, read by [`crate::elicit`].
+    pub fn question(&mut self, card: Card) -> Item {
+        self.item(ItemKind::Question {
+            message: card.message,
+            tool_call_id: card.tool_call_id,
+            questions: card.questions,
+            outcome: None,
+        })
+    }
+
     /// One `session/update`'s `update` object.
     pub fn update(&mut self, update: &Value) -> Vec<Event> {
         let kind = update
@@ -358,6 +376,17 @@ impl Normalizer {
                 if let Some(list) = update.get("availableCommands").and_then(Value::as_array) {
                     self.commands = Some(commands(list));
                 }
+                Vec::new()
+            }
+            // The agent named the conversation, as `/rename` does. A blank or
+            // absent title says nothing rather than clearing the name.
+            "session_info_update" => {
+                self.title = update
+                    .get("title")
+                    .and_then(Value::as_str)
+                    .map(str::trim)
+                    .filter(|t| !t.is_empty())
+                    .map(|t| cut(t, TITLE_LIMIT).0);
                 Vec::new()
             }
             _ => {
@@ -976,6 +1005,19 @@ mod tests {
         assert!(n.take_commands().is_none());
         n.update(&json!({"sessionUpdate": "available_commands_update"}));
         assert!(n.take_commands().is_none(), "no list says nothing");
+        assert_eq!(n.dropped(), 0);
+    }
+
+    #[test]
+    fn the_agents_name_for_the_conversation_is_reported_once() {
+        let mut n = started();
+        let events = n.update(&json!({"sessionUpdate": "session_info_update", "title": " balls "}));
+        assert!(events.is_empty(), "nothing is drawn in the transcript");
+        assert_eq!(n.take_title().as_deref(), Some("balls"));
+        assert!(n.take_title().is_none());
+        n.update(&json!({"sessionUpdate": "session_info_update", "title": null}));
+        n.update(&json!({"sessionUpdate": "session_info_update", "title": "  "}));
+        assert!(n.take_title().is_none(), "a blank title clears nothing");
         assert_eq!(n.dropped(), 0);
     }
 

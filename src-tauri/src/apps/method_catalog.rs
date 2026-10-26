@@ -45,7 +45,7 @@ const GROUPS: &[(&str, &str)] = &[
     ("home", "Home"),
     ("files", "File Explorer and File Viewer"),
     ("trash", "Trash"),
-    ("canvas", "Canvas"),
+    ("canvas", "Design"),
     ("godot-viewer", "Godot Viewer"),
     ("godot", "Godot"),
     ("blender-viewer", "Blender Viewer"),

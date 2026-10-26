@@ -147,11 +147,14 @@ function item(id: string, kind: Item["kind"]): Item {
   return { id, turnId: "t1", kind };
 }
 
-function backend(attachment: Attachment, overrides: Record<string, () => Promise<unknown>> = {}) {
+function backend(
+  attachment: Attachment,
+  overrides: Record<string, (params?: { kinds?: string[] }) => Promise<unknown>> = {},
+) {
   let ticket = 0;
-  bridge.invoke.mockImplementation((method: string) => {
+  bridge.invoke.mockImplementation((method: string, params?: { kinds?: string[] }) => {
     const override = overrides[method];
-    if (override) return override();
+    if (override) return override(params);
     switch (method) {
       case "agent-tab/attach":
         return Promise.resolve(attachment);
@@ -213,7 +216,7 @@ async function pick(group: string, name: string) {
   const button = await settingsButton();
   if (button.getAttribute("aria-expanded") !== "true") fireEvent.click(button);
   const section = within(
-    await screen.findByRole("group", { name: group === "Claude" ? "Model" : group }),
+    await screen.findByRole("group", { hidden: true, name: group === "Claude" ? "Model" : group }),
   );
   await act(async () => {
     fireEvent.click(section.getByRole(group === "Effort" ? "button" : "menuitemradio", { name }));
@@ -224,12 +227,13 @@ async function pick(group: string, name: string) {
 /** The settings menu's Mode group, opened. */
 async function modeMenu() {
   fireEvent.click(await settingsButton());
-  return within(await screen.findByRole("group", { name: "Mode" }));
+  return within(await screen.findByRole("group", { hidden: true, name: "Mode" }));
 }
 
 beforeEach(() => {
   bridge.invoke.mockReset();
   bridge.listeners.clear();
+  localStorage.clear();
 });
 afterEach(cleanup);
 
@@ -273,7 +277,11 @@ describe("the agent tab", () => {
       fireEvent.keyDown(prompt(), { key: "Enter" });
     });
     // The host picks the harness: the live agent's, else the tab's choice.
-    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", { text: "fix the test" });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
+      text: "fix the test",
+      effort: "medium",
+      ultracode: false,
+    });
     expect(prompt()).toHaveProperty("value", "");
   });
 
@@ -410,6 +418,56 @@ describe("the agent tab", () => {
     );
   });
 
+  const grappleQuestion = item("q1", {
+    kind: "question",
+    message: "",
+    toolCallId: null,
+    questions: [
+      {
+        id: "question_0",
+        header: null,
+        text: "How should the grapple let go?",
+        choices: [
+          { value: "release", label: "On button release", description: null },
+          { value: "top", label: "At the top of the swing", description: null },
+        ],
+        multi: false,
+        other: true,
+      },
+    ],
+    outcome: null,
+  });
+
+  it("answers an open question with a click", async () => {
+    backend({ status: { ...STATUS, state: "needsInput" }, seq: 3, items: [grappleQuestion] });
+    render(<App />);
+    fireEvent.click(await screen.findByRole("radio", { name: /On button release/ }));
+    await waitFor(() =>
+      expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/answer", {
+        itemId: "q1",
+        outcome: { kind: "answered", replies: [{ picks: ["release"], other: null }] },
+      }),
+    );
+  });
+
+  it("sends text typed in the composer as the open question's answer, not as a prompt", async () => {
+    backend({ status: { ...STATUS, state: "needsInput" }, seq: 3, items: [grappleQuestion] });
+    render(<App />);
+    await screen.findByRole("radio", { name: /On button release/ });
+    fireEvent.change(prompt(), { target: { value: "Only while held" } });
+    await act(async () => {
+      fireEvent.keyDown(prompt(), { key: "Enter" });
+    });
+    await waitFor(() =>
+      expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/answer", {
+        itemId: "q1",
+        outcome: { kind: "answered", replies: [{ picks: [], other: "Only while held" }] },
+      }),
+    );
+    expect(bridge.invoke).not.toHaveBeenCalledWith("agent-tab/send", expect.anything());
+    expect(prompt()).toHaveProperty("value", "");
+  });
+
   it("retries the prompt the error answered, and keeps what is being typed", async () => {
     backend({
       status: STATUS,
@@ -425,7 +483,11 @@ describe("the agent tab", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     });
-    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", { text: "fix the build" });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
+      text: "fix the build",
+      effort: "medium",
+      ultracode: false,
+    });
     expect(prompt()).toHaveProperty("value", "half typed");
   });
 
@@ -460,6 +522,18 @@ describe("the agent tab", () => {
     await screen.findByRole("button", { name: "Stop" });
     fireEvent.keyDown(prompt(), { key: "Escape" });
     expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/cancel");
+  });
+
+  it("queues a prompt typed while the agent works instead of sending it", async () => {
+    backend({ status: { ...STATUS, state: "working" }, seq: 1, items: [] });
+    render(<App />);
+    await screen.findByRole("button", { name: "Stop" });
+    fireEvent.change(prompt(), { target: { value: "then run the tests" } });
+    fireEvent.keyDown(prompt(), { key: "Enter" });
+    expect(screen.getByText("then run the tests")).toBeTruthy();
+    expect(bridge.invoke).not.toHaveBeenCalledWith("agent-tab/send", expect.anything());
+    fireEvent.click(screen.getByRole("button", { name: "Remove queued message" }));
+    expect(screen.queryByText("then run the tests")).toBeNull();
   });
 
   it("puts a hover card away with Esc before Esc stops the turn", async () => {
@@ -524,7 +598,11 @@ describe("the agent tab", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     });
-    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", { text: "the one that failed" });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
+      text: "the one that failed",
+      effort: "medium",
+      ultracode: false,
+    });
   });
 
   it("groups the transcript into turns, and says it is working before the first reply", async () => {
@@ -681,7 +759,7 @@ describe("the agent tab", () => {
         fireEvent.click(copy);
       });
       expect(writeText).toHaveBeenCalledWith("an answer");
-      expect(copy.textContent).toBe("Copied");
+      expect(copy.getAttribute("title")).toBe("Copied");
     } finally {
       delete (navigator as { clipboard?: unknown }).clipboard;
     }
@@ -927,7 +1005,7 @@ describe("the agent tab", () => {
     backend({ status: { ...STATUS, state: "failed" }, seq: 1, items: [] });
     render(<App />);
     fireEvent.click(await settingsButton());
-    expect(screen.queryByRole("group", { name: "Mode" })).toBeNull();
+    expect(screen.queryByRole("group", { hidden: true, name: "Mode" })).toBeNull();
     expect(screen.queryByText("The mode and model appear once the session starts.")).toBeNull();
   });
 
@@ -984,7 +1062,7 @@ describe("the agent tab", () => {
       emit({ instanceId: "i", seq, event: { type: "status", status } });
 
     await act(async () => {
-      const claude = within(screen.getByRole("group", { name: "Model" }));
+      const claude = within(screen.getByRole("group", { hidden: true, name: "Model" }));
       fireEvent.click(claude.getByRole("menuitemradio", { name: "Opus" }));
     });
     expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/set-config", {
@@ -1005,7 +1083,7 @@ describe("the agent tab", () => {
     status(2, opus);
     expect(await shown()).toEqual(["Claude", "Opus", "Default", "Manual"]);
     fireEvent.click(await settingsButton());
-    const effort = within(screen.getByRole("group", { name: "Effort" }));
+    const effort = within(screen.getByRole("group", { hidden: true, name: "Effort" }));
     const levels = effort
       .getAllByRole("button")
       .filter(
@@ -1029,7 +1107,7 @@ describe("the agent tab", () => {
     status(3, { ...MODELS, answered: 2, config: [{ ...MODELS.config[0], value: "haiku" }] });
     expect(await shown()).toEqual(["Claude", "Haiku", "Manual"]);
     fireEvent.click(await settingsButton());
-    expect(screen.queryByRole("group", { name: "Effort" })).toBeNull();
+    expect(screen.queryByRole("group", { hidden: true, name: "Effort" })).toBeNull();
   });
 
   it("holds each setting's choice until its own answer", async () => {
@@ -1128,7 +1206,7 @@ describe("the harness", () => {
   /** The one item under harness `name` in the settings menu: its default model. */
   async function harnessItem(name: string) {
     fireEvent.click(await settingsButton());
-    const group = await screen.findByRole("group", { name: "Harness" });
+    const group = await screen.findByRole("group", { hidden: true, name: "Harness" });
     return within(group).getByRole("button", { name });
   }
 
@@ -1161,7 +1239,7 @@ describe("the harness", () => {
     render(<App />);
     await waitFor(() => expect(asked()).toBe(1));
     fireEvent.click(await settingsButton());
-    const group = await screen.findByRole("group", { name: "Model" });
+    const group = await screen.findByRole("group", { hidden: true, name: "Model" });
     await act(async () => {
       fireEvent.click(within(group).getByRole("menuitemradio", { name: /Opus/ }));
     });
@@ -1372,14 +1450,14 @@ describe("the harness", () => {
       ]);
       fireEvent.click(menu.getByRole("menuitemradio", { name: "Plan" }));
       // The menu stays open on a harness, so its mode is set in the same place.
-      const modes = () => within(screen.getByRole("group", { name: "Mode" }));
+      const modes = () => within(screen.getByRole("group", { hidden: true, name: "Mode" }));
       await act(async () => {
         fireEvent.click(await harnessItem("Codex"));
       });
       await waitFor(() => expect(checked(modes())).toEqual(["Read Only"]));
       expect(modes().getByRole("menuitemradio", { name: "Default" })).toBeTruthy();
       // Each harness keeps its own pick.
-      const group = within(screen.getByRole("group", { name: "Harness" }));
+      const group = within(screen.getByRole("group", { hidden: true, name: "Harness" }));
       await act(async () => {
         fireEvent.click(group.getByRole("button", { name: "Claude" }));
       });
@@ -1394,7 +1472,7 @@ describe("the harness", () => {
       await send("fix the build");
       expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
         text: "fix the build",
-        effort: null,
+        effort: "medium",
         ultracode: false,
         mode: "auto",
       });
@@ -1407,10 +1485,16 @@ describe("the harness", () => {
       fireEvent.click(menu.getByRole("menuitemradio", { name: "Plan" }));
       fireEvent.click((await modeMenu()).getByRole("menuitemradio", { name: "Manual" }));
       await send("fix the build");
-      expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", { text: "fix the build" });
+      expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
+        text: "fix the build",
+        effort: "medium",
+        ultracode: false,
+      });
     });
 
-    it("starts a later session asking first, not in an earlier session's pick", async () => {
+    // The user asked for the tab to keep its settings, so a later session
+    // starts in the last mode picked rather than asking first again.
+    it("starts a later session in the mode last picked", async () => {
       listed();
       render(<App />);
       await untilMode("Manual");
@@ -1436,9 +1520,26 @@ describe("the harness", () => {
         .filter(([method]) => method === "agent-tab/send")
         .map(([, params]) => params);
       expect(sent).toEqual([
-        { text: "fix the build", effort: null, ultracode: false, mode: "auto" },
-        { text: "and the tests" },
+        { text: "fix the build", effort: "medium", ultracode: false, mode: "auto" },
+        { text: "and the tests", effort: "medium", ultracode: false, mode: "auto" },
       ]);
+    });
+
+    it("opens a new tab with the effort and mode picked in an earlier one", async () => {
+      localStorage.setItem(
+        "veistra.agent-tab.prefs",
+        JSON.stringify({ effort: "high", modes: { claude: "auto" } }),
+      );
+      listed();
+      render(<App />);
+      await untilMode("Auto");
+      await send("hello");
+      expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
+        text: "hello",
+        effort: "high",
+        ultracode: false,
+        mode: "auto",
+      });
     });
 
     it("switches the next session's mode with Shift+Tab", async () => {
@@ -1494,13 +1595,16 @@ describe("slash commands", () => {
     fireEvent.click(await screen.findByRole("option", { name: "Frames" }));
     const option = await screen.findByRole("option", { name: /Login design/ });
     fireEvent.click(option);
-    expect(prompt()).toHaveProperty("value", "");
-    expect(screen.getByRole("button", { name: "Remove Login design" })).toBeTruthy();
+    // The chip sits in the text where it was picked.
+    expect(prompt()).toHaveProperty("value", "@Login design ");
+    expect(screen.getByRole("group", { hidden: true, name: "Login design" })).toBeTruthy();
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Send" }));
     });
     expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
       text: "[@Login design](<veistra://canvas/design#frame=login>)",
+      effort: "medium",
+      ultracode: false,
     });
     expect(screen.getByRole("button", { name: "Voice dictation" })).toBeTruthy();
   });
@@ -1520,15 +1624,169 @@ describe("slash commands", () => {
     render(<App />);
     await settingsButton();
     fireEvent.change(prompt(), { target: { value: "@" } });
+    // The search over every kind, not the frame listing the menu also asks for on opening.
     await waitFor(() =>
-      expect(bridge.invoke).toHaveBeenCalledWith("refs/search", expect.anything()),
+      expect(bridge.invoke).toHaveBeenCalledWith(
+        "refs/search",
+        expect.objectContaining({ kinds: undefined }),
+      ),
     );
     fireEvent.keyDown(prompt(), { key: "ArrowRight" });
     fireEvent.keyDown(prompt(), { key: "ArrowDown" });
     fireEvent.keyDown(prompt(), { key: "ArrowRight" });
     fireEvent.keyDown(prompt(), { key: "Enter" });
-    expect(screen.getByRole("button", { name: "Remove Login design" })).toBeTruthy();
-    expect(prompt()).toHaveProperty("value", "");
+    expect(screen.getByRole("group", { hidden: true, name: "Login design" })).toBeTruthy();
+    expect(prompt()).toHaveProperty("value", "@Login design ");
+  });
+
+  it("opens a canvas onto its frames, with the whole canvas first", async () => {
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        "refs/search": (p?: { kinds?: string[] }) =>
+          Promise.resolve({
+            items: p?.kinds?.includes("frame")
+              ? [{ uri: "veistra://canvas/hammer#frame=f1", kind: "frame", title: "Fling physics" }]
+              : [{ uri: "veistra://canvas/hammer", kind: "canvas", title: "hammer" }],
+          }),
+      },
+    );
+    render(<App />);
+    await settingsButton();
+    fireEvent.change(prompt(), { target: { value: "@" } });
+    await waitFor(() =>
+      expect(bridge.invoke).toHaveBeenCalledWith(
+        "refs/search",
+        expect.objectContaining({ kinds: undefined }),
+      ),
+    );
+    fireEvent.click(await screen.findByRole("option", { name: /Design/ }));
+    fireEvent.click(await screen.findByRole("option", { name: /Canvases/ }));
+    fireEvent.click(await screen.findByRole("option", { name: /hammer/ }));
+    await screen.findByRole("option", { name: /Whole canvas/ });
+    fireEvent.click(screen.getByRole("option", { name: /Fling physics/ }));
+    expect(screen.getByRole("group", { hidden: true, name: "Fling physics" })).toBeTruthy();
+  });
+
+  // The canvas `hammer` held two open comments, and Design's Comments listed neither: it
+  // searched Design Mode's and the viewers' comments, never the ones left on a canvas.
+  const canvasComments = [
+    {
+      uri: "veistra://canvas/hammer#comment=c-1",
+      kind: "canvas-comment",
+      title: "Opinion on this?",
+      detail: "open · canvas hammer, frame f1",
+    },
+    {
+      uri: "veistra://canvas/hammer#comment=c-2",
+      kind: "canvas-comment",
+      title: "What the fahh is this?",
+      detail: "open · canvas hammer, frame f2",
+    },
+  ];
+
+  it("searches canvas comments under Design's Comments, and picks one by its reference", async () => {
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        // As the backend answers: canvas comments only for a search that names their kind.
+        "refs/search": (p?: { query?: string; kinds?: string[] }) =>
+          Promise.resolve({
+            items: p?.kinds?.includes("canvas-comment")
+              ? canvasComments.filter((c) => c.title.toLowerCase().includes(p.query ?? ""))
+              : [],
+          }),
+      },
+    );
+    render(<App />);
+    await settingsButton();
+    fireEvent.change(prompt(), { target: { value: "@" } });
+    fireEvent.click(await screen.findByRole("option", { name: "Design" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Comments" }));
+    await waitFor(() =>
+      expect(bridge.invoke).toHaveBeenCalledWith(
+        "refs/search",
+        expect.objectContaining({ kinds: ["canvas-comment", "design-comment"] }),
+      ),
+    );
+    expect(await screen.findByRole("option", { name: /Opinion on this\?/ })).toBeTruthy();
+    expect(screen.getByRole("option", { name: /What the fahh is this\?/ })).toBeTruthy();
+    fireEvent.change(prompt(), { target: { value: "@opinion" } });
+    await waitFor(() => expect(screen.queryByRole("option", { name: /What the fahh/ })).toBeNull());
+    fireEvent.click(screen.getByRole("option", { name: /Opinion on this\?/ }));
+    expect(screen.getByRole("group", { hidden: true, name: "Opinion on this?" })).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    });
+    expect(bridge.invoke).toHaveBeenCalledWith(
+      "agent-tab/send",
+      expect.objectContaining({
+        text: "[@Opinion on this?](<veistra://canvas/hammer#comment=c-1>)",
+      }),
+    );
+  });
+
+  it("lists canvas comments the opening search found under Design's Comments", async () => {
+    backend(
+      { status: null, seq: 0, items: [] },
+      { "refs/search": () => Promise.resolve({ items: canvasComments }) },
+    );
+    render(<App />);
+    await settingsButton();
+    fireEvent.change(prompt(), { target: { value: "@" } });
+    fireEvent.click(await screen.findByRole("option", { name: "Design" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Comments" }));
+    fireEvent.click(await screen.findByRole("option", { name: /What the fahh is this\?/ }));
+    expect(
+      screen.getByRole("group", { hidden: true, name: "What the fahh is this?" }),
+    ).toBeTruthy();
+  });
+
+  it("offers the Design group's search when @design is typed", async () => {
+    backend(
+      { status: null, seq: 0, items: [] },
+      {
+        "refs/search": (p?: { kinds?: string[] }) =>
+          Promise.resolve({
+            items: p?.kinds?.includes("canvas-comment")
+              ? [
+                  { uri: "veistra://canvas/hammer", kind: "canvas", title: "hammer" },
+                  { uri: "veistra://canvas/hammer#frame=f1", kind: "frame", title: "Fling" },
+                  ...canvasComments,
+                ]
+              : [],
+          }),
+      },
+    );
+    render(<App />);
+    await settingsButton();
+    fireEvent.change(prompt(), { target: { value: "@design" } });
+    await screen.findByRole("option", { name: "Design" });
+    fireEvent.keyDown(prompt(), { key: "Enter" });
+    expect(prompt()).toHaveProperty("value", "@");
+    await waitFor(() =>
+      expect(bridge.invoke).toHaveBeenCalledWith(
+        "refs/search",
+        expect.objectContaining({
+          query: "",
+          kinds: ["canvas", "frame", "canvas-comment", "design-comment"],
+        }),
+      ),
+    );
+    expect(await screen.findByRole("option", { name: /Fling/ })).toBeTruthy();
+    expect(screen.getByRole("option", { name: /Opinion on this\?/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("option", { name: /Opinion on this\?/ }));
+    expect(screen.getByRole("group", { hidden: true, name: "Opinion on this?" })).toBeTruthy();
+  });
+
+  it("takes a context item another app attached as a chip", async () => {
+    backend({ status: null, seq: 0, items: [] });
+    render(<App />);
+    await settingsButton();
+    act(() =>
+      bridge.listeners.get("agent-tab:attach")?.({ contextId: "ctx_1", label: "Canvas selection" }),
+    );
+    expect(screen.getByRole("group", { hidden: true, name: "Canvas selection" })).toBeTruthy();
   });
 
   it("offers a kind's search when its name is typed, and starts that search empty", async () => {
@@ -1578,12 +1836,12 @@ describe("slash commands", () => {
       ),
     );
     fireEvent.keyDown(prompt(), { key: "Enter" });
-    expect(screen.queryByRole("button", { name: "Remove Canvas A" })).toBeNull();
+    expect(screen.queryByRole("group", { hidden: true, name: "Canvas A" })).toBeNull();
     expect(prompt()).toHaveProperty("value", "@readme");
     await act(async () => answer({ items: [readme] }));
     fireEvent.keyDown(prompt(), { key: "Enter" });
-    expect(screen.getByRole("button", { name: "Remove README.md" })).toBeTruthy();
-    expect(prompt()).toHaveProperty("value", "");
+    expect(screen.getByRole("group", { hidden: true, name: "README.md" })).toBeTruthy();
+    expect(prompt()).toHaveProperty("value", "@README.md ");
   });
 
   it("starts the next @ at the top level after a pick inside a scope", async () => {
@@ -1601,8 +1859,8 @@ describe("slash commands", () => {
     // With no file listed yet, Files is the search itself rather than a level to open.
     fireEvent.click(await screen.findByRole("option", { name: "Files" }));
     fireEvent.click(await screen.findByRole("option", { name: /README\.md/ }));
-    expect(screen.getByRole("button", { name: "Remove README.md" })).toBeTruthy();
-    expect(prompt()).toHaveProperty("value", "");
+    expect(screen.getByRole("group", { hidden: true, name: "README.md" })).toBeTruthy();
+    expect(prompt()).toHaveProperty("value", "@README.md ");
     // The pick puts the caret back on the next frame; type after it, as a person would.
     await act(() => new Promise((done) => requestAnimationFrame(() => done(undefined))));
     fireEvent.change(prompt(), { target: { value: "@" } });
@@ -1645,12 +1903,14 @@ describe("slash commands", () => {
     await act(async () =>
       copied({ uri: "veistra://cluster/c2", kind: "cluster", title: "Backend work" }),
     );
-    expect(screen.getByRole("button", { name: "Remove Backend work" })).toBeTruthy();
+    expect(screen.getByRole("group", { hidden: true, name: "Backend work" })).toBeTruthy();
     await act(async () => {
       fireEvent.keyDown(prompt(), { key: "Enter" });
     });
     expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
       text: expect.stringContaining("veistra://cluster/c2"),
+      effort: "medium",
+      ultracode: false,
     });
   });
 
@@ -1681,7 +1941,7 @@ describe("slash commands", () => {
     expect(screen.queryByRole("listbox")).toBeNull();
     expect(prompt().getAttribute("aria-activedescendant")).toBeNull();
     fireEvent.keyDown(prompt(), { key: "ArrowDown" });
-    expect(screen.queryByRole("button", { name: "Remove a.ts" })).toBeNull();
+    expect(screen.queryByRole("group", { hidden: true, name: "a.ts" })).toBeNull();
   });
 
   it("does not send a half-typed mention when Enter has nothing to pick", async () => {
@@ -1739,6 +1999,21 @@ describe("slash commands", () => {
     });
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.getByText("A saved conversation")).toBeTruthy();
+    expect(bridge.invoke).not.toHaveBeenCalledWith("agent-tab/send", expect.anything());
+  });
+
+  it("shows a saved session the Agents page opened in it", async () => {
+    const restored = item("old", { kind: "userMessage", text: "Resumed from the Agents page" });
+    let attachment: Attachment = { status: null, seq: 0, items: [] };
+    backend(attachment, { "agent-tab/attach": () => Promise.resolve(attachment) });
+    render(<App />);
+    await settingsButton();
+    expect(screen.queryByText("Resumed from the Agents page")).toBeNull();
+    attachment = { status: null, seq: 5, items: [restored] };
+    await act(async () => {
+      bridge.listeners.get("agent-tab:restored")?.({ instanceId: "tab" });
+    });
+    expect(await screen.findByText("Resumed from the Agents page")).toBeTruthy();
     expect(bridge.invoke).not.toHaveBeenCalledWith("agent-tab/send", expect.anything());
   });
 
@@ -1838,7 +2113,7 @@ describe("slash commands", () => {
     await act(async () => {
       fireEvent.keyDown(prompt(), { key: "Enter" });
     });
-    expect(screen.getByRole("button", { name: "Remove investigate" })).toBeTruthy();
+    expect(screen.getByRole("group", { hidden: true, name: "investigate" })).toBeTruthy();
     expect(prompt()).toHaveProperty("value", "");
     fireEvent.change(prompt(), { target: { value: "/skills zzz" } });
     expect(screen.getByText("No matching skills")).toBeTruthy();
@@ -1884,7 +2159,11 @@ describe("slash commands", () => {
     await act(async () => {
       fireEvent.keyDown(prompt(), { key: "Enter" });
     });
-    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", { text: "/init" });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
+      text: "/init",
+      effort: "medium",
+      ultracode: false,
+    });
   });
 
   it("signs in on /login without sending it to the agent, and says how it ended", async () => {
@@ -1918,5 +2197,91 @@ describe("slash commands", () => {
       fireEvent.keyDown(prompt(), { key: "Enter" });
     });
     expect(await screen.findByText("Could not start the sign-in.")).toBeTruthy();
+  });
+});
+
+describe("naming the chat", () => {
+  const ONE_PROMPT: Attachment = {
+    status: STATUS,
+    seq: 1,
+    items: [item("u1", { kind: "userMessage", text: "Hello!" })],
+  };
+
+  async function type(text: string) {
+    fireEvent.change(prompt(), { target: { value: text } });
+    await act(async () => {
+      fireEvent.keyDown(prompt(), { key: "Enter" });
+    });
+  }
+
+  const titles = () =>
+    bridge.invoke.mock.calls.filter(([m]) => m === "veistra/title").map(([, p]) => p);
+
+  it("/rename names the tab over its first prompt, keeps it, and sends nothing to the agent", async () => {
+    backend(ONE_PROMPT);
+    render(<App />);
+    await screen.findByText("Hello!");
+    await waitFor(() => expect(titles().at(-1)).toMatchObject({ title: "Hello!" }));
+    await type("/rename  balls ");
+    expect(await screen.findByText("Session renamed to: balls")).toBeTruthy();
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/set-session-meta", { name: "balls" });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/history-save");
+    expect(titles().at(-1)).toMatchObject({ title: "balls" });
+    expect(bridge.invoke).not.toHaveBeenCalledWith("agent-tab/send", expect.anything());
+    expect(bridge.invoke).not.toHaveBeenCalledWith("agent-tab/cli-command", expect.anything());
+  });
+
+  it("/rename with no name says how to use it", async () => {
+    backend(ONE_PROMPT);
+    render(<App />);
+    await screen.findByText("Hello!");
+    await type("/rename ");
+    expect(await screen.findByText(strings.rename.usage)).toBeTruthy();
+    expect(bridge.invoke).not.toHaveBeenCalledWith("agent-tab/set-session-meta", expect.anything());
+  });
+
+  it("brings back the name a reopened session was saved with", async () => {
+    backend(ONE_PROMPT, {
+      "agent-tab/session-meta": () => Promise.resolve({ name: "balls" }),
+    });
+    render(<App />);
+    await waitFor(() => expect(titles().at(-1)).toMatchObject({ title: "balls" }));
+  });
+
+  it("re-reads them when the Agents page renames or restores the session", async () => {
+    let meta = { name: null as string | null };
+    backend(ONE_PROMPT, { "agent-tab/session-meta": () => Promise.resolve(meta) });
+    render(<App />);
+    await screen.findByText("Hello!");
+    meta = { name: "from the sidebar" };
+    act(() => bridge.listeners.get("agent-tab:restored")?.({ instanceId: "i" }));
+    await waitFor(() => expect(titles().at(-1)).toMatchObject({ title: "from the sidebar" }));
+  });
+
+  it("takes a name the agent gives the conversation, but not one it had before", async () => {
+    backend({ ...ONE_PROMPT, status: { ...STATUS, sessionTitle: "old" } });
+    render(<App />);
+    await screen.findByText("Hello!");
+    expect(bridge.invoke).not.toHaveBeenCalledWith("agent-tab/set-session-meta", expect.anything());
+    emit({
+      instanceId: "i",
+      seq: 2,
+      event: { type: "status", status: { ...STATUS, sessionTitle: "Agent named" } },
+    });
+    await waitFor(() =>
+      expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/set-session-meta", {
+        name: "Agent named",
+      }),
+    );
+  });
+
+  it("a new conversation starts unnamed", async () => {
+    backend(ONE_PROMPT, {
+      "agent-tab/session-meta": () => Promise.resolve({ name: "balls" }),
+    });
+    render(<App />);
+    await waitFor(() => expect(titles().at(-1)).toMatchObject({ title: "balls" }));
+    await type("/clear");
+    await waitFor(() => expect(titles().at(-1)).not.toMatchObject({ title: "balls" }));
   });
 });

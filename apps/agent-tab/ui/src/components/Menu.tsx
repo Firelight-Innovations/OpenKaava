@@ -29,6 +29,7 @@ const ICON: Record<string, LucideIcon> = {
   canvas: Shapes,
   frame: Frame,
   comment: MessageSquare,
+  "canvas-comment": MessageSquare,
   "design-comment": MessageSquare,
   pm: SquareKanban,
   issue: Link,

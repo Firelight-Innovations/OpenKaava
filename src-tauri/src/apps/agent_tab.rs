@@ -30,8 +30,8 @@ use tauri::{AppHandle, Emitter, Manager};
 use veistra_agent_host::harness::installed_spec as spec;
 use veistra_agent_host::models::{self, Catalogue, Models};
 use veistra_agent_host::{
-    harness, AgentHost, Harness, HarnessInfo, HostError, LaunchSpec, Level, McpServer, Worktree,
-    REGISTRY,
+    harness, AgentHost, Harness, HarnessInfo, HostError, LaunchSpec, Level, McpServer,
+    QuestionOutcome, Worktree, REGISTRY,
 };
 use veistra_rpc::{RpcError, INVALID_PARAMS, METHOD_NOT_FOUND};
 
@@ -58,6 +58,20 @@ pub const LOGIN: &str = "agent-tab:login";
 /// `harness`'s agent has said which models it offers, so the tab asks
 /// `agent-tab/harnesses` again. Mirrored in `src/bindings.ts`.
 pub const MODELS: &str = "agent-tab:models";
+
+/// The event a tab is sent, `{ instanceId }`, when a saved session was opened
+/// in it by someone else, such as the shell's Agents page, so the tab attaches
+/// again and shows it. Mirrored in `src/bindings.ts`.
+pub const RESTORED: &str = "agent-tab:restored";
+
+/// The event, `{}`, after a saved session was written, archived or opened,
+/// so the Agents page lists them again. Mirrored in `src/bindings.ts`.
+pub const HISTORY: &str = "agent-tab:history";
+
+/// The history methods that answer for a cluster's project with no tab
+/// behind them: the shell's Agents page lists and archives saved sessions
+/// with these. Neither runs an agent or reads one tab's session.
+const PROJECT_METHODS: &[&str] = &["agent-tab/history", "agent-tab/history-archive"];
 
 /// How long an agent gets to answer each request of a models ask, as long
 /// as a session's handshake gives it.
@@ -94,6 +108,8 @@ const INSTANCE_METHODS: &[&str] = &[
     "agent-tab/history-save",
     "agent-tab/history-open",
     "agent-tab/history-archive",
+    "agent-tab/session-meta",
+    "agent-tab/set-session-meta",
 ];
 
 /// The methods that advance an agent, and so run only with developer mode on.
@@ -122,6 +138,8 @@ const UNGATED_METHODS: &[&str] = &[
     "agent-tab/history-save",
     "agent-tab/history-open",
     "agent-tab/history-archive",
+    "agent-tab/session-meta",
+    "agent-tab/set-session-meta",
     "agent-tab/context-sources",
     "agent-tab/cluster-context",
     "agent-tab/btw-attach",
@@ -370,6 +388,41 @@ impl Sessions {
             }
         }
     }
+
+    /// Where saved sessions live, set by the first [`Sessions::host`].
+    fn history_dir(&self) -> Result<&Path, RpcError> {
+        self.history_dir.get().map(PathBuf::as_path).ok_or_else(|| {
+            RpcError::new(
+                veistra_rpc::INTERNAL_ERROR,
+                "Conversation history is unavailable",
+            )
+        })
+    }
+}
+
+/// `agent-tab/history` lists `root`'s saved sessions, newest first;
+/// `agent-tab/history-archive` archives one, or with `archived: false` puts
+/// it back, and says so on [`HISTORY`].
+fn saved_sessions(
+    app: &AppHandle,
+    sessions: &Sessions,
+    root: &Path,
+    method: &str,
+    params: &Value,
+) -> Result<Value, RpcError> {
+    let dir = sessions.history_dir()?;
+    if method == "agent-tab/history" {
+        return sessions.history.list(dir, root);
+    }
+    let archived = params
+        .get("archived")
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    sessions
+        .history
+        .archive(dir, root, &text_param(params, "id")?, archived)?;
+    let _ = app.emit(HISTORY, json!({}));
+    Ok(json!({}))
 }
 
 /// Called after every layout change, beside `plane_webview::sync_visibility`:
@@ -403,6 +456,15 @@ pub fn call_for(
         let tab = instance.filter(|id| is_agent_tab(app, id));
         return Ok(harnesses(app, context, tab));
     }
+    // The shell's Agents page has a cluster and no tab: it lists and archives
+    // the project's saved sessions without saving any tab's first.
+    if instance.is_none() && PROJECT_METHODS.contains(&method) {
+        let sessions = app.state::<Sessions>();
+        sessions.host(app);
+        let root = worktree(app, context)?.path();
+        let params = params.unwrap_or(Value::Null);
+        return saved_sessions(app, &sessions, &root, method, &params);
+    }
     let instance = match instance {
         Some(id) if is_agent_tab(app, id) => id,
         _ => return Err(unreached(method)),
@@ -421,12 +483,7 @@ pub fn call_for(
         | "agent-tab/history-archive" => {
             let root = worktree(app, context)?;
             let root = root.path();
-            let dir = sessions.history_dir.get().ok_or_else(|| {
-                RpcError::new(
-                    veistra_rpc::INTERNAL_ERROR,
-                    "Conversation history is unavailable",
-                )
-            })?;
+            let dir = sessions.history_dir()?;
             let _turn = sessions.turn();
             sessions.history.save(
                 dir,
@@ -436,18 +493,11 @@ pub fn call_for(
                 host.attach(instance),
             )?;
             match method {
-                "agent-tab/history" => sessions.history.list(dir, &root),
-                "agent-tab/history-save" => Ok(json!({})),
-                "agent-tab/history-archive" => {
-                    sessions.history.archive(
-                        dir,
-                        &root,
-                        &text_param(&params, "id")?,
-                        params
-                            .get("archived")
-                            .and_then(Value::as_bool)
-                            .unwrap_or(true),
-                    )?;
+                "agent-tab/history" | "agent-tab/history-archive" => {
+                    saved_sessions(app, &sessions, &root, method, &params)
+                }
+                "agent-tab/history-save" => {
+                    let _ = app.emit(HISTORY, json!({}));
                     Ok(json!({}))
                 }
                 _ => {
@@ -480,6 +530,9 @@ pub fn call_for(
                         CHOSEN,
                         json!({ "instanceId": instance, "harness": harness, "model": null }),
                     );
+                    // The tab attaches again when someone else opened this in
+                    // it; the tab that asked has the attachment already.
+                    let _ = app.emit(RESTORED, json!({ "instanceId": instance }));
                     serde_json::to_value(attachment)
                         .map_err(|e| RpcError::new(veistra_rpc::INTERNAL_ERROR, e.to_string()))
                 }
@@ -532,7 +585,12 @@ pub fn call_for(
                         json!(hint),
                     )
                 })?;
-                launch.mcp_servers = session_servers(app, context.cluster_id.as_deref());
+                let offered =
+                    crate::mcp::session_servers(app, context.cluster_id.as_deref().unwrap_or(""));
+                // The project's `.mcp.json` names these variables; unset, the
+                // agent reports every `veistra-*` server as INVALID_CONFIG.
+                launch.env.extend(crate::mcp::session_env(&offered));
+                launch.mcp_servers = from_session(offered);
                 launch.model = model;
                 launch.effort = params
                     .get("effort")
@@ -551,16 +609,20 @@ pub fn call_for(
                     .map(str::to_string);
                 // What the chips name goes after the text, as far as the
                 // agent said it can take it: plain text until discovery has asked.
-                let attached = if resolved.is_empty() {
+                let accepts: refs::prompt::Accepts = sessions
+                    .models
+                    .models(harness, &worktree.path())
+                    .and_then(|m| serde_json::from_value(m.prompt_capabilities).ok())
+                    .unwrap_or_default();
+                let mut attached = if resolved.is_empty() {
                     Vec::new()
                 } else {
-                    let accepts = sessions
-                        .models
-                        .models(harness, &worktree.path())
-                        .and_then(|m| serde_json::from_value(m.prompt_capabilities).ok())
-                        .unwrap_or_default();
                     refs::prompt::attachments(resolved, accepts)
                 };
+                // Pictures pasted into the box, after what the chips name.
+                if accepts.image && !side {
+                    attached.extend(pasted_images(&params));
+                }
                 host.send(&target, launch, worktree, &text, attached)
                     .map_err(host_error)
             })?;
@@ -576,18 +638,11 @@ pub fn call_for(
             host.reset(&format!("{instance}:btw"));
             Ok(json!({}))
         }
-        "agent-tab/btw-answer" => done(host.answer(
-            &format!("{instance}:btw"),
-            &text_param(&params, "itemId")?,
-            &text_param(&params, "optionId")?,
-        )),
+        "agent-tab/btw-answer" => answer(host, &format!("{instance}:btw"), &params),
         "agent-tab/cancel" => done(host.cancel(instance)),
-        // Gated with `send` above, in `GATED_METHODS`.
-        "agent-tab/answer" => done(host.answer(
-            instance,
-            &text_param(&params, "itemId")?,
-            &text_param(&params, "optionId")?,
-        )),
+        // Gated with `send` above, in `GATED_METHODS`. Answers a question card
+        // too, so a question needs no method, and no gate, of its own.
+        "agent-tab/answer" => answer(host, instance, &params),
         // Gated with `send` above. Bypassing permissions is never on offer.
         "agent-tab/set-mode" => queued(host.set_mode(instance, &text_param(&params, "modeId")?)),
         // Gated with `send` above, as the mode is.
@@ -599,6 +654,20 @@ pub fn call_for(
             host.stop(instance);
             Ok(json!({}))
         }
+        // What the tab's session is called. A `name` that is present sets it,
+        // and `null` or blank takes it back. Answers with what it now is.
+        "agent-tab/set-session-meta" => {
+            if let Some(name) = params.get("name") {
+                sessions.history.set_name(instance, name.as_str());
+            }
+            // A change made from outside the tab, such as the Agents page's
+            // rename, tells the tab to read the session again.
+            if params.get("announce").and_then(Value::as_bool) == Some(true) {
+                let _ = app.emit(RESTORED, json!({ "instanceId": instance }));
+            }
+            Ok(json!(sessions.history.meta(instance)))
+        }
+        "agent-tab/session-meta" => Ok(json!(sessions.history.meta(instance))),
         "agent-tab/reset" => {
             if let Ok(root) = worktree(app, context) {
                 sessions.save_history(host, instance, &root.path());
@@ -628,6 +697,29 @@ pub fn call_for(
         }
         _ => Err(unreached(method)),
     }
+}
+
+/// The pictures pasted into the prompt box, as ACP image blocks: at most
+/// [`refs::prompt::MAX_IMAGES`], and no more base64 than
+/// [`refs::prompt::MAX_IMAGE_DATA`] between them. A malformed entry is skipped.
+fn pasted_images(params: &Value) -> Vec<Value> {
+    let mut left = refs::prompt::MAX_IMAGE_DATA;
+    params
+        .get("images")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|image| {
+            let mime = image.get("mime")?.as_str()?;
+            let data = image.get("data")?.as_str()?;
+            if !mime.starts_with("image/") || data.len() > left {
+                return None;
+            }
+            left -= data.len();
+            Some(json!({ "type": "image", "mimeType": mime, "data": data }))
+        })
+        .take(refs::prompt::MAX_IMAGES)
+        .collect()
 }
 
 /// The arguments that start `harness`'s own sign-in, which opens a browser.
@@ -891,12 +983,19 @@ fn gate(method: &str, developer_mode: bool) -> Result<(), RpcError> {
 }
 
 /// Veistra's MCP servers for a session in `cluster_id`, each with a token
-/// scoped to it. None yet: the context server's `mcp::session_servers`
-/// takes this one's place when it lands. Called on every send, though only a
-/// send that starts a session uses the spec, so it must hand back the
-/// cluster's bearer, never mint one per call.
-fn session_servers(_app: &AppHandle, _cluster_id: Option<&str>) -> Vec<McpServer> {
-    Vec::new()
+/// scoped to it, from `mcp::session_servers`. Called on every send, though
+/// only a send that starts a session uses the spec, so the bearer is the
+/// cluster's, never minted per call (`mcp::Sessions::token_for` keeps it).
+/// The host's form of those servers. Pure, so it is tested.
+fn from_session(servers: Vec<crate::mcp::SessionServer>) -> Vec<McpServer> {
+    servers
+        .into_iter()
+        .map(|s| McpServer {
+            name: s.name,
+            url: s.url,
+            bearer: s.bearer,
+        })
+        .collect()
 }
 
 /// The worktree the calling cluster writes to, or why it has none.
@@ -936,14 +1035,15 @@ fn has_agent_tab(snapshot: &ShellSnapshot, id: &str) -> bool {
 }
 
 /// Whether `method` acts on one tab's session. The MCP panel shows these as
-/// refused, which is what [`call`] does with them.
+/// refused, which is what [`call`] does with them. A method in
+/// [`PROJECT_METHODS`] answers without a tab too.
 pub fn needs_its_tab(method: &str) -> bool {
-    INSTANCE_METHODS.contains(&method)
+    INSTANCE_METHODS.contains(&method) && !PROJECT_METHODS.contains(&method)
 }
 
 /// The answer for a method that reached here without its tab.
 fn unreached(method: &str) -> RpcError {
-    if needs_its_tab(method) {
+    if INSTANCE_METHODS.contains(&method) {
         return refused(
             "noInstance",
             &format!("`{method}` acts on one agent tab's session, and only that tab may call it"),
@@ -951,6 +1051,27 @@ fn unreached(method: &str) -> RpcError {
         );
     }
     RpcError::new(METHOD_NOT_FOUND, format!("no such method: {method}"))
+}
+
+/// `agent-tab/answer`: an approval takes `optionId`, a question card takes
+/// `outcome` instead (a `QuestionOutcome`: answered, skipped or cancelled).
+fn answer(host: &AgentHost, instance: &str, params: &Value) -> Result<Value, RpcError> {
+    let item_id = text_param(params, "itemId")?;
+    let result = match params.get("outcome") {
+        Some(outcome) => host.answer_question(instance, &item_id, outcome_param(outcome)?),
+        None => host.answer(instance, &item_id, &text_param(params, "optionId")?),
+    };
+    result.map(|()| json!({})).map_err(host_error)
+}
+
+/// The `outcome` param of a question's answer.
+fn outcome_param(outcome: &Value) -> Result<QuestionOutcome, RpcError> {
+    serde_json::from_value(outcome.clone()).map_err(|e| {
+        RpcError::new(
+            INVALID_PARAMS,
+            format!("`outcome` is not a question's answer: {e}"),
+        )
+    })
 }
 
 /// A setting change's answer: its number. The tab waits for a status whose
@@ -1019,7 +1140,34 @@ fn text_param(params: &Value, name: &str) -> Result<String, RpcError> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn pasted_pictures_become_image_blocks_within_the_limits() {
+        let params = json!({ "images": [
+            { "mime": "image/png", "data": "AAAA" },
+            { "mime": "text/plain", "data": "BBBB" },
+            { "data": "CCCC" },
+        ] });
+        let blocks = super::pasted_images(&params);
+        assert_eq!(
+            blocks,
+            vec![json!({ "type": "image", "mimeType": "image/png", "data": "AAAA" })]
+        );
+        assert!(super::pasted_images(&json!({})).is_empty());
+    }
+
     use super::*;
+
+    #[test]
+    fn the_sessions_mcp_servers_reach_the_host_with_their_bearers() {
+        let servers = from_session(vec![crate::mcp::SessionServer {
+            name: "veistra-canvas".into(),
+            url: "http://127.0.0.1:4000/mcp/canvas".into(),
+            bearer: "tok".into(),
+        }]);
+        assert_eq!(servers.len(), 1);
+        assert_eq!(servers[0].name, "veistra-canvas");
+        assert_eq!(servers[0].bearer, "tok");
+    }
 
     fn code_of(error: &RpcError) -> Option<&str> {
         error.data.as_ref()?.get("code")?.as_str()
@@ -1230,6 +1378,35 @@ mod tests {
         assert_eq!(code_of(&err), Some("unknownOption"));
     }
 
+    /// One method answers both cards: `outcome` makes it a question's answer,
+    /// and a malformed one is refused before any session is looked at.
+    #[test]
+    fn answer_takes_an_option_or_a_questions_outcome() {
+        let host = AgentHost::new(Arc::new(|_| {}), Arc::new(|_, _: &str| {}));
+        let answered = json!({ "itemId": "i1", "outcome": {
+            "kind": "answered", "replies": [{ "picks": ["On button release"], "other": null }]
+        } });
+        let err = answer(&host, "tab", &answered).unwrap_err();
+        assert_eq!(code_of(&err), Some("noSession"), "parsed, then looked up");
+        let skipped = json!({ "itemId": "i1", "outcome": { "kind": "skipped" } });
+        assert_eq!(
+            code_of(&answer(&host, "tab", &skipped).unwrap_err()),
+            Some("noSession")
+        );
+        let bad = json!({ "itemId": "i1", "outcome": { "kind": "maybe" } });
+        assert_eq!(answer(&host, "tab", &bad).unwrap_err().code, INVALID_PARAMS);
+        let approval = json!({ "itemId": "i1", "optionId": "o1" });
+        assert_eq!(
+            code_of(&answer(&host, "tab", &approval).unwrap_err()),
+            Some("noSession")
+        );
+        let neither = json!({ "itemId": "i1" });
+        assert_eq!(
+            answer(&host, "tab", &neither).unwrap_err().code,
+            INVALID_PARAMS
+        );
+    }
+
     /// MCP `app_call` reaches the registry dispatch with no instance, so an
     /// agent can neither prompt another agent nor approve its requests.
     #[test]
@@ -1247,6 +1424,20 @@ mod tests {
             assert_eq!(code_of(&err), Some("noInstance"), "{method}");
         }
         assert_eq!(unreached("agent-tab/nonesuch").code, METHOD_NOT_FOUND);
+    }
+
+    /// The Agents page lists and archives a project's saved sessions with no
+    /// tab; opening one, or saving one, still needs the tab it is for.
+    #[test]
+    fn only_listing_and_archiving_answer_without_a_tab() {
+        for method in PROJECT_METHODS {
+            assert!(INSTANCE_METHODS.contains(method), "{method} is routed");
+            assert!(UNGATED_METHODS.contains(method), "{method} runs no agent");
+            assert!(!needs_its_tab(method), "{method}");
+        }
+        for method in ["agent-tab/history-open", "agent-tab/history-save"] {
+            assert!(needs_its_tab(method), "{method}");
+        }
     }
 
     /// Each method that advances an agent, by name: moved to

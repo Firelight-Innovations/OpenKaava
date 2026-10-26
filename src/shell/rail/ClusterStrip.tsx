@@ -1,9 +1,9 @@
 /**
- * The cluster strip: one small badge per cluster, at the top of the right rail.
- * The other half of what the cluster tab bar used to be. The title bar's pill
- * dropdown (`ClusterSwitcher`) is the complete list; this is the always-visible,
- * one-click version of it, sized to sit in the rail's 44px column above the page
- * icons and to cost no height.
+ * The cluster list at the top of the right rail: a CLUSTERS heading, one row per
+ * cluster (its mark, its name and its branch), and under each row the agent
+ * tabs open in it. The other half of what the cluster tab bar used to be. The
+ * title bar's pill dropdown (`ClusterSwitcher`) is the complete list; this is
+ * the always-visible, one-click version of it.
  *
  * Everything a tab did is still reachable from a badge:
  *  - click switches, and clicking the open one toggles the Home cover, exactly
@@ -17,32 +17,52 @@
  * There is no drag-to-reorder. The tab bar never had it — its drag gesture moves
  * a cluster *between windows* — so the strip does not invent it.
  */
-import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
-import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useState, type MouseEvent } from "react";
+import { PanelRight } from "lucide-react";
 import type { Cluster, DragHandleProps } from "../contract";
 import { environmentOf } from "../environment";
+import type { AgentSessionState } from "../state/agentSessions";
 import { useDropZone } from "../dropZones";
-import { placeMenu, type Point } from "../contextMenu";
-import MenuItemList, { inMenuSurface } from "../MenuItemList";
-import { popover } from "../motion";
+import type { Point } from "../contextMenu";
+import ContextMenuSurface, { type OpenContextMenu } from "../ContextMenuSurface";
+import { useAgentMenu } from "../useAgentMenu";
+import type { AgentMenuActions } from "../agentMenuItems";
 import { Plus } from "../../ui/Icon";
 import ClusterChip from "../ClusterChip";
 import {
+  branchLabel,
   clusterMenuItems,
   clusterTooltip,
   needsAttention,
   type ClusterMenuActions,
   type ClusterTerminal,
 } from "../clusterList";
-import "../contextMenu.css";
 import "./clusterStrip.css";
+
+/** One agent tab under its cluster's row. */
+export interface StripAgent {
+  id: string;
+  /** What the row says: the latest prompt, else the tab's title. */
+  label: string;
+  /** The name the session was given, if any; the rename field starts from it. */
+  name?: string | null;
+  state: AgentSessionState;
+}
 
 export interface ClusterStripProps extends ClusterMenuActions {
   /** In display order (`orderClusters`). */
   clusters: Cluster[];
   activeClusterId: string | null;
   terminals: ClusterTerminal[];
+  /** Each cluster's open agent tabs, by cluster id. A cluster with none shows no list. */
+  agents?: ReadonlyMap<string, readonly StripAgent[]>;
+  /** Whether the list is folded away. It draws nothing and gives its column back. */
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
+  /** Bring an agent tab forward, in whichever cluster holds it. */
+  onOpenAgent?: (instanceId: string) => void;
+  /** What the right-click menu on an agent row may do; omitted, its rows are disabled. */
+  agentMenu?: AgentMenuActions;
   onAdd: () => void;
   /** The gesture that pulls a cluster into another window. */
   dragHandleForCluster?: (cluster: Cluster) => DragHandleProps | undefined;
@@ -51,9 +71,23 @@ export interface ClusterStripProps extends ClusterMenuActions {
 }
 
 export default function ClusterStrip(props: ClusterStripProps) {
-  const { clusters, activeClusterId, terminals, onAdd, dragHandleForCluster, clusterTabRef } =
-    props;
-  const [menu, setMenu] = useState<{ cluster: Cluster; at: Point } | null>(null);
+  const {
+    clusters,
+    activeClusterId,
+    terminals,
+    agents,
+    collapsed = false,
+    onToggleCollapsed,
+    onOpenAgent,
+    agentMenu: agentMenuActions,
+    onAdd,
+    dragHandleForCluster,
+    clusterTabRef,
+  } = props;
+  // Built when the click lands, so a re-render under an open menu does not move it.
+  const [menu, setMenu] = useState<OpenContextMenu | null>(null);
+  const agentMenu = useAgentMenu(agentMenuActions);
+  const closeMenu = useCallback(() => setMenu(null), []);
 
   // Empty strip space: a tab dropped here opens a new cluster. Registered on the
   // whole strip because `hitTest` checks the badges' own `cluster` zones first,
@@ -61,20 +95,72 @@ export default function ClusterStrip(props: ClusterStripProps) {
   const stripZone = useDropZone({ kind: "switcher" });
 
   return (
-    <nav className="clusterstrip" aria-label="Clusters" ref={stripZone}>
+    <nav
+      className="clusterstrip"
+      aria-label="Clusters"
+      ref={stripZone}
+      data-collapsed={collapsed || undefined}
+    >
+      <div className="clusterstrip__head">
+        <h2 className="clusterstrip__heading">Clusters</h2>
+        {onToggleCollapsed && (
+          <button
+            type="button"
+            className="clusterstrip__fold"
+            aria-label="Hide clusters"
+            title="Hide clusters (Ctrl+B)"
+            onClick={onToggleCollapsed}
+          >
+            <PanelRight size={15} aria-hidden="true" />
+          </button>
+        )}
+      </div>
       <div className="clusterstrip__list">
-        {clusters.map((cluster) => (
-          <Badge
-            key={cluster.id}
-            cluster={cluster}
-            active={cluster.id === activeClusterId}
-            attention={needsAttention(cluster.id, activeClusterId, terminals)}
-            dragHandle={dragHandleForCluster?.(cluster)}
-            tabRef={clusterTabRef?.(cluster.id)}
-            onSelect={props.onSelect}
-            onContextMenu={(at) => setMenu({ cluster, at })}
-          />
-        ))}
+        {clusters.map((cluster) => {
+          const open = agents?.get(cluster.id) ?? [];
+          return (
+            <div key={cluster.id} className="clusterstrip__group">
+              <Badge
+                cluster={cluster}
+                active={cluster.id === activeClusterId}
+                attention={needsAttention(cluster.id, activeClusterId, terminals)}
+                dragHandle={dragHandleForCluster?.(cluster)}
+                tabRef={clusterTabRef?.(cluster.id)}
+                onSelect={props.onSelect}
+                onContextMenu={(at) =>
+                  setMenu({
+                    at,
+                    label: `${cluster.name} actions`,
+                    items: clusterMenuItems(cluster, props),
+                  })
+                }
+              />
+              {open.length > 0 && (
+                <ul className="clusterstrip__agents" aria-label={`${cluster.name} agents`}>
+                  {open.map((agent) => (
+                    <li key={agent.id}>
+                      <button
+                        type="button"
+                        className="clusterstrip__agent"
+                        data-state={agent.state}
+                        title={agent.label}
+                        onClick={() => onOpenAgent?.(agent.id)}
+                        onContextMenu={agentMenu.open({
+                          kind: "open",
+                          id: agent.id,
+                          name: agent.name ?? null,
+                        })}
+                      >
+                        <span className="clusterstrip__agentdot" aria-hidden="true" />
+                        <span className="clusterstrip__agentname">{agent.label}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <button
@@ -85,11 +171,11 @@ export default function ClusterStrip(props: ClusterStripProps) {
         onClick={onAdd}
       >
         <Plus />
+        <span>New cluster</span>
       </button>
 
-      <span className="clusterstrip__divider" aria-hidden="true" />
-
-      <ClusterContextMenu opened={menu} actions={props} onClose={() => setMenu(null)} />
+      <ContextMenuSurface opened={menu} onClose={closeMenu} />
+      {agentMenu.menu}
     </nav>
   );
 }
@@ -145,6 +231,8 @@ function Badge({
       style={dragHandle?.style}
     >
       <ClusterChip cluster={cluster} className="clusterstrip__mono" />
+      <span className="clusterstrip__name">{cluster.name}</span>
+      <span className="clusterstrip__branch">{branchLabel(cluster)}</span>
       {attention && (
         <span
           className="clusterstrip__dot"
@@ -154,90 +242,5 @@ function Badge({
       )}
       {missing && <span className="clusterstrip__warn" aria-hidden="true" />}
     </button>
-  );
-}
-
-/**
- * The badge's right-click menu, on the shell's own menu surface.
- *
- * `ContextMenuHost` is the document's edit-menu (cut, copy, paste) and takes its
- * rows from what the click landed in; this is a different menu for a different
- * subject, so it does not go through it. It reuses the *surface* — the
- * `.context-menu` box, `MenuItemList`'s rows (including its rename prompt),
- * `placeMenu`'s flip-and-clamp — so it looks and behaves like every other menu
- * here, and dismisses the way `ContextMenuHost` does.
- */
-function ClusterContextMenu({
-  opened,
-  actions,
-  onClose,
-}: {
-  opened: { cluster: Cluster; at: Point } | null;
-  actions: ClusterMenuActions;
-  onClose: () => void;
-}) {
-  const surfaceRef = useRef<HTMLDivElement>(null);
-  const [at, setAt] = useState<Point>({ x: 0, y: 0 });
-
-  useEffect(() => {
-    if (opened === null) return;
-    const onPointerDown = (e: PointerEvent) => {
-      if (e.button === 2) return;
-      const inside =
-        surfaceRef.current?.contains(e.target as Node) === true || inMenuSurface(e.target);
-      if (!inside) onClose();
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("blur", onClose);
-    window.addEventListener("resize", onClose);
-    return () => {
-      window.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("blur", onClose);
-      window.removeEventListener("resize", onClose);
-    };
-  }, [opened, onClose]);
-
-  // Placed after layout, from the measured size, so the first painted frame is
-  // already flipped away from a window edge. See `ContextMenuHost`.
-  useLayoutEffect(() => {
-    const surface = surfaceRef.current;
-    if (opened === null || !surface) return;
-    const rect = surface.getBoundingClientRect();
-    setAt(
-      placeMenu(
-        opened.at,
-        { width: rect.width, height: rect.height },
-        { width: window.innerWidth, height: window.innerHeight },
-      ),
-    );
-    surface.focus({ preventScroll: true });
-  }, [opened]);
-
-  return createPortal(
-    <AnimatePresence>
-      {opened !== null && (
-        <motion.div
-          ref={surfaceRef}
-          className="context-menu"
-          role="menu"
-          aria-label={`${opened.cluster.name} actions`}
-          tabIndex={-1}
-          style={{ top: at.y, left: at.x }}
-          variants={popover}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          onContextMenu={(e) => e.preventDefault()}
-        >
-          <MenuItemList items={clusterMenuItems(opened.cluster, actions)} onAfterSelect={onClose} />
-        </motion.div>
-      )}
-    </AnimatePresence>,
-    document.body,
   );
 }

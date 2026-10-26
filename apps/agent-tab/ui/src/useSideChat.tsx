@@ -72,6 +72,7 @@ export function useSideChat(main: readonly Item[]) {
   const actions = useMemo<ItemActions>(
     () => ({
       onAnswer: (itemId, optionId) => rpc.btwAnswer(itemId, optionId).then(() => undefined),
+      onQuestion: (itemId, outcome) => rpc.btwAnswerQuestion(itemId, outcome).then(() => undefined),
       onRetry: (id) => {
         const items = attachment?.items ?? [];
         const at = items.findIndex((item) => item.id === id);

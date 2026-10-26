@@ -38,17 +38,27 @@ const PAGES: PageInfo[] = [
 ];
 
 describe("Rail", () => {
-  it("draws one button per page, each with its icon", () => {
+  it("draws one button per enabled page, each with its icon", () => {
     render(<Rail pages={PAGES} activePageId={null} onSelect={() => {}} />);
 
-    expect(screen.getAllByRole("button")).toHaveLength(PAGES.length);
-    for (const page of PAGES) {
+    const drawn = PAGES.filter((p) => !p.disabled && p.id !== "sessions" && p.id !== "git");
+    expect(screen.getAllByRole("button")).toHaveLength(drawn.length);
+    for (const page of drawn) {
       const button = screen.getByRole("button", { name: page.name });
       expect(button.querySelector("svg"), `${page.name}'s icon`).not.toBeNull();
     }
-    // Agents is sparkles, not a second robot beside Cloud agents.
-    const agents = screen.getByRole("button", { name: "Agents" });
-    expect(agents.querySelector("svg")?.getAttribute("class")).toContain("sparkles");
+  });
+
+  it("leaves Agents to the title bar and the agent tab", () => {
+    render(<Rail pages={PAGES} activePageId={null} onSelect={() => {}} />);
+
+    expect(screen.queryByRole("button", { name: "Agents" })).toBeNull();
+  });
+
+  it("leaves Git to the status bar", () => {
+    render(<Rail pages={PAGES} activePageId={null} onSelect={() => {}} />);
+
+    expect(screen.queryByRole("button", { name: "Git" })).toBeNull();
   });
 
   it("marks the open page active and nothing else", () => {
@@ -58,27 +68,30 @@ describe("Rail", () => {
     expect(plane.getAttribute("data-active")).toBe("");
     expect(plane.getAttribute("aria-pressed")).toBe("true");
 
-    const git = screen.getByRole("button", { name: "Git" });
-    expect(git.getAttribute("data-active")).toBeNull();
-    expect(git.getAttribute("aria-pressed")).toBe("false");
+    const hindsight = screen.getByRole("button", { name: "Hindsight" });
+    expect(hindsight.getAttribute("data-active")).toBeNull();
+    expect(hindsight.getAttribute("aria-pressed")).toBe("false");
   });
 
-  it("disables the artifact registry and nothing else", () => {
+  it("does not draw a disabled page, and draws the rest", () => {
     render(<Rail pages={PAGES} activePageId={null} onSelect={() => {}} />);
 
-    const registry = screen.getByRole("button", { name: "Artifact registry" }) as HTMLButtonElement;
-    expect(registry.disabled).toBe(true);
-    const git = screen.getByRole("button", { name: "Git" }) as HTMLButtonElement;
-    expect(git.disabled).toBe(false);
+    expect(screen.queryByRole("button", { name: "Artifact registry" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Hindsight" })).toBeTruthy();
   });
 
   it("draws a dot only for a page it was handed one for", () => {
     render(
-      <Rail pages={PAGES} activePageId={null} dots={{ git: "#d98a3f" }} onSelect={() => {}} />,
+      <Rail
+        pages={PAGES}
+        activePageId={null}
+        dots={{ hindsight: "#d98a3f" }}
+        onSelect={() => {}}
+      />,
     );
 
-    const git = screen.getByRole("button", { name: "Git" });
-    const dot = git.querySelector(".k-rail__dot");
+    const hindsight = screen.getByRole("button", { name: "Hindsight" });
+    const dot = hindsight.querySelector(".k-rail__dot");
     expect(dot).not.toBeNull();
     expect(dot?.getAttribute("style")).toContain("background: rgb(217, 138, 63)");
 

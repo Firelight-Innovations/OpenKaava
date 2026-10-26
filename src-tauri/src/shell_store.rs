@@ -1009,7 +1009,7 @@ mod tests {
                         fullscreen: false,
                     }),
                     right_page: Some(RightPage {
-                        id: "costs".to_string(),
+                        id: "sessions".to_string(),
                         mode: PageMode::Docked,
                         width: 455.0,
                         instance_id: Some("costs-page-main".to_string()),
@@ -1021,7 +1021,7 @@ mod tests {
                     active_cluster_id: Some("cluster-4".to_string()),
                     geometry: None,
                     right_page: Some(RightPage {
-                        id: "git".to_string(),
+                        id: "sessions".to_string(),
                         mode: PageMode::Expanded,
                         width: 340.0,
                         instance_id: None,

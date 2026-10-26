@@ -1,4 +1,4 @@
-import { SquarePen, History, MessageSquare } from "lucide-react";
+import { SquarePen, History, MessageSquare, PanelRight } from "lucide-react";
 import { strings } from "../strings";
 import { useSlots } from "./registry";
 import type { HeaderProps } from "./types";
@@ -8,7 +8,14 @@ import "./frame.css";
  * Quiet conversation actions stay available before a first prompt, including
  * saved sessions across harnesses. State changes are announced to screen readers.
  */
-export function Header({ state, onNewSession, onHistory, onSideChat, history }: HeaderProps) {
+export function Header({
+  state,
+  onNewSession,
+  onHistory,
+  onSideChat,
+  onAgents,
+  history,
+}: HeaderProps) {
   const S = useSlots();
   return (
     <header className="at-header" data-empty={state === null ? "" : undefined}>
@@ -49,6 +56,17 @@ export function Header({ state, onNewSession, onHistory, onSideChat, history }: 
           <SquarePen size={14} strokeWidth={2} aria-hidden="true" />
         </button>
       }
+      {onAgents && (
+        <button
+          type="button"
+          className="k-btn k-btn--ghost k-btn--icon"
+          aria-label={strings.agentsList}
+          title={strings.agentsList}
+          onClick={onAgents}
+        >
+          <PanelRight size={15} aria-hidden="true" />
+        </button>
+      )}
       {history}
     </header>
   );

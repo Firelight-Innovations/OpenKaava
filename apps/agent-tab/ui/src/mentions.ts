@@ -13,7 +13,78 @@ export interface ContextChip {
   command?: string;
 }
 
-/** Visible chips retain their structured identity until the prompt is sent. */
+/** One run of a draft: plain text, or the `@label` token a reference chip sits on. */
+export interface ChipSegment {
+  text: string;
+  start: number;
+  end: number;
+  chip?: ContextChip;
+}
+
+/**
+ * A draft cut at its reference chips. A chip lives in the draft as `@label`
+ * where it was picked, so it reads in place; each chip claims its first token
+ * that starts a word, longest label first so `@ab` is not taken for `@a`.
+ */
+export function chipSegments(text: string, chips: readonly ContextChip[]): ChipSegment[] {
+  const refs = chips.filter((c) => c.uri).sort((a, b) => b.label.length - a.label.length);
+  const used = new Set<ContextChip>();
+  const parts: ChipSegment[] = [];
+  let from = 0;
+  let i = 0;
+  while (i < text.length) {
+    const chip =
+      text[i] === "@" && (i === 0 || /\s/.test(text[i - 1]))
+        ? refs.find((c) => !used.has(c) && text.startsWith(`@${c.label}`, i))
+        : undefined;
+    if (!chip) {
+      i += 1;
+      continue;
+    }
+    if (i > from) parts.push({ text: text.slice(from, i), start: from, end: i });
+    const end = i + chip.label.length + 1;
+    parts.push({ text: text.slice(i, end), start: i, end, chip });
+    used.add(chip);
+    from = i = end;
+  }
+  if (from < text.length) parts.push({ text: text.slice(from), start: from, end: text.length });
+  return parts;
+}
+
+/** The chips a draft still holds: every skill, and each reference whose token is in it. */
+export function keptChips(text: string, chips: readonly ContextChip[]): ContextChip[] {
+  const placed = new Set(chipSegments(text, chips).map((p) => p.chip));
+  return chips.filter((c) => !c.uri || placed.has(c));
+}
+
+/** The reference chip whose token ends at `caret`, for Backspace to take whole. */
+export function chipEndingAt(
+  text: string,
+  caret: number,
+  chips: readonly ContextChip[],
+): ChipSegment | undefined {
+  return chipSegments(text, chips).find((p) => p.chip && p.end === caret);
+}
+
+/** Puts `@label` in place of `start..end`, spaced off from the words either side. */
+export function insertChipToken(
+  text: string,
+  start: number,
+  end: number,
+  label: string,
+): { text: string; caret: number } {
+  const before = text.slice(0, start);
+  const after = text.slice(end);
+  const token = `${before === "" || /\s$/.test(before) ? "" : " "}@${label}${/^\s/.test(after) ? "" : " "}`;
+  return { text: before + token + after, caret: before.length + token.length };
+}
+
+const link = (chip: ContextChip) => `[@${chip.label.replace(/[[\]]/g, "")}](<${chip.uri}>)`;
+
+/**
+ * Visible chips retain their structured identity until the prompt is sent: each
+ * reference becomes its link where its token sits, and skills lead the prompt.
+ */
 export function withChips(text: string, chips: readonly ContextChip[]): string {
   const skills = chips
     .map((chip) => chip.command?.trim())
@@ -22,11 +93,17 @@ export function withChips(text: string, chips: readonly ContextChip[]): string {
       command.startsWith("$") || command.startsWith("/") ? command : `/${command}`,
     )
     .join(" ");
-  const refs = chips
-    .filter((chip) => chip.uri)
-    .map((chip) => `[@${chip.label.replace(/[[\]]/g, "")}](<${chip.uri}>)`)
+  const parts = chipSegments(text, chips);
+  const placed = new Set(parts.map((p) => p.chip));
+  const loose = chips
+    .filter((chip) => chip.uri && !placed.has(chip))
+    .map(link)
     .join(" ");
-  return [skills, refs, text].filter(Boolean).join(" ");
+  const body = parts
+    .map((p) => (p.chip ? link(p.chip) : p.text))
+    .join("")
+    .trim();
+  return [skills, loose, body].filter(Boolean).join(" ");
 }
 
 export function referenceParts(text: string): Array<{ text: string; uri?: string }> {

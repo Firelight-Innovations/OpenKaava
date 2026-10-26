@@ -1,6 +1,6 @@
 //! A bounded account of the visible conversation for a different harness.
 
-use crate::event::{Item, ItemKind, ToolStatus};
+use crate::event::{Item, ItemKind, QuestionOutcome, ToolStatus};
 use crate::harness::Harness;
 
 const CONTEXT_LIMIT: usize = 64 * 1024;
@@ -12,6 +12,9 @@ pub(crate) fn settle(items: &mut [Item]) {
         match &mut item.kind {
             ItemKind::Approval { answer, .. } if answer.is_none() => {
                 *answer = Some("cancelled".into());
+            }
+            ItemKind::Question { outcome, .. } if outcome.is_none() => {
+                *outcome = Some(QuestionOutcome::Cancelled);
             }
             ItemKind::ToolCall { status, .. }
                 if matches!(status, ToolStatus::Pending | ToolStatus::InProgress) =>

@@ -2945,7 +2945,7 @@ fn open_page_pure(s: &mut ShellSnapshot, label: &str, page: &crate::pages::Page)
     w.right_page = Some(RightPage {
         id: page.id.to_string(),
         mode: page.mode,
-        width: crate::pages::DEFAULT_WIDTH,
+        width: crate::pages::opening_width(page),
         instance_id,
     });
 }
@@ -5574,8 +5574,8 @@ mod tests {
     #[test]
     fn an_enabled_page_left_open_survives_restore() {
         let mut s = state(vec![window("main", "cluster-1", &[])], Vec::new());
-        let git = crate::pages::find("git").expect("Git is a page in this build");
-        open_page_pure(&mut s, "main", git);
+        let agents = crate::pages::find("sessions").expect("Agents is a page in this build");
+        open_page_pure(&mut s, "main", agents);
 
         let shell = ShellState::default();
         shell.restore(s);
@@ -5583,7 +5583,7 @@ mod tests {
         let back = shell.snapshot();
         assert_eq!(
             back.windows[0].right_page.as_ref().map(|rp| rp.id.as_str()),
-            Some("git")
+            Some("sessions")
         );
     }
 
