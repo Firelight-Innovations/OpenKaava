@@ -77,6 +77,20 @@ ignore = [
   "RUSTSEC-2026-0370",
   "RUSTSEC-2026-0371",
   "RUSTSEC-2026-0372",
+
+  # The second zip in the tree, 4.6.1, which tauri-plugin-updater pins. Added
+  # 2026-10-26. Even the newest 2.x updater (2.14) still pins it, so the bump
+  # has to come from Tauri. All three advisories need an attacker-controlled
+  # archive, and the updater verifies the release signature before it extracts
+  # anything. Two of them are about Unix permission bits, which Windows does
+  # not have.
+  #
+  # cargo-deny can scope an ignore to a crate version only for yanked crates,
+  # so these are by id. The zip this crate depends on directly is 9, which none
+  # of them affects; remove all three when the updater moves past 4.6.1.
+  { id = "RUSTSEC-2026-0367", reason = "zip@4.6.1 via tauri-plugin-updater, which extracts only signature-verified releases" },
+  { id = "RUSTSEC-2026-0368", reason = "zip@4.6.1 via tauri-plugin-updater, which extracts only signature-verified releases" },
+  { id = "RUSTSEC-2026-0369", reason = "zip@4.6.1 via tauri-plugin-updater, which extracts only signature-verified releases" },
 ]
 
 [licenses]
