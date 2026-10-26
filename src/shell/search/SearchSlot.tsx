@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Search } from "../../ui/Icon";
 import { accelerator, hasPrimaryModifier } from "../accelerators";
-import { useActiveTitlebarSearch } from "../titlebarSearch";
+import { CLAIMED_FIELD_CLASS, useActiveTitlebarSearch } from "../titlebarSearch";
 import "./search.css";
 
 export interface SearchSlotProps {
@@ -50,7 +50,7 @@ export default function SearchSlot({ open = false, onOpen }: SearchSlotProps = {
 
   if (claim !== null) {
     return (
-      <label className="search-slot search-slot--claimed">
+      <label className={`search-slot ${CLAIMED_FIELD_CLASS}`}>
         <Search size={14} className="search-slot__glyph" />
         <input
           ref={inputRef}

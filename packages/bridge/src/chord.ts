@@ -32,14 +32,19 @@ export interface ChordPayload {
 const MODIFIER_KEYS = new Set(["Control", "Shift", "Alt", "Meta", "AltGraph"]);
 
 /**
- * True for Ctrl or Meta with Shift or Alt, and for Alt+1 to Alt+9 alone, when
- * the app has not claimed the key. AltGr arrives as Ctrl+Alt on Windows and
- * types characters, so a Ctrl+Alt chord that produced one is left alone.
+ * True for Ctrl or Meta with Shift or Alt, for Ctrl+, alone, and for Alt+1 to
+ * Alt+9 alone, when the app has not claimed the key. AltGr arrives as Ctrl+Alt
+ * on Windows and types characters, so a Ctrl+Alt chord that produced one is
+ * left alone.
+ *
+ * Ctrl+, is Settings, and no editing surface binds it. Without it Settings
+ * could not be opened from the keyboard while an app had focus.
  */
 export function shouldForwardChord(e: ChordKeyEvent): boolean {
   if (e.defaultPrevented || MODIFIER_KEYS.has(e.key)) return false;
   const primary = e.ctrlKey || e.metaKey;
   if (primary && e.shiftKey) return true;
+  if (primary && !e.altKey && e.key === ",") return true;
   if (primary && e.altKey) return e.key.length !== 1 || e.key === "p" || e.key === "P";
   return e.altKey && !primary && /^[1-9]$/.test(e.key);
 }

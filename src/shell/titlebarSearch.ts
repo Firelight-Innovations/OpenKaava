@@ -26,6 +26,10 @@ export interface TitlebarSearchClaim {
   onEscape?: () => void;
 }
 
+/** The class the title bar's field carries while claimed. A claiming surface
+ *  checks for it to tell its own field from somewhere else focus has gone. */
+export const CLAIMED_FIELD_CLASS = "search-slot--claimed";
+
 interface Entry {
   claim: TitlebarSearchClaim;
 }

@@ -24,6 +24,7 @@ function actions(over: Partial<KeyboardActions>): KeyboardActions {
     toggleFullscreen: noop,
     zoomIn: noop,
     zoomOut: noop,
+    openSettings: noop,
     newTerminal: noop,
     splitTerminal: noop,
     switchProject: noop,

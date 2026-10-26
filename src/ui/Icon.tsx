@@ -167,27 +167,6 @@ export function Close({ size = 9, className }: IconProps) {
   );
 }
 
-/**
- * Settings, at the trailing edge of the status bar — sliders, not a cog. The
- * knob circles are filled with the surface behind them so the rules appear to
- * pass under rather than through, which means the fill has to be told what it
- * is sitting on.
- */
-export function Sliders({
-  size = 14,
-  knobFill = "var(--surface)",
-  className,
-}: IconProps & { knobFill?: string }) {
-  return (
-    <Outline size={size} className={className}>
-      <path d="M4 6h16M4 12h16M4 18h16" />
-      <circle cx="9" cy="6" r="2.2" fill={knobFill} />
-      <circle cx="15" cy="12" r="2.2" fill={knobFill} />
-      <circle cx="8" cy="18" r="2.2" fill={knobFill} />
-    </Outline>
-  );
-}
-
 /** The checked box in the search type filter. Heavier stroke, small viewport. */
 export function Check({ size = 9, className }: IconProps) {
   return (

@@ -126,6 +126,12 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
         keys: ["Ctrl", "-"],
         chords: [ctrl("-"), ctrl("-", true), ctrl("_"), ctrl("_", true)],
       },
+      {
+        label: "Settings",
+        keys: ["Ctrl", ","],
+        chords: [ctrl(",")],
+        note: "Not in a menu yet. Works from inside an app too.",
+      },
     ],
   },
   {

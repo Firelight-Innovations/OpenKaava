@@ -11,11 +11,11 @@ export const settings: Body = {
   blocks: [
     {
       kind: "step",
-      body: "Click the sliders glyph at the right-hand end of the status bar, along the bottom of the window.",
+      body: "Press `Ctrl+,`. It works from inside an app too, this one included.",
     },
     {
       kind: "step",
-      body: "Pick **All settings**. The other two rows — **MCP servers** and **Appearance** — open the same screen on a particular section.",
+      body: "The screen opens on its first section. Pick another from the list down its left side, or type in the search field in the title bar to search every section at once.",
     },
     {
       kind: "text",
@@ -55,7 +55,7 @@ export const settings: Body = {
     {
       kind: "mock",
       view: "settings-screen",
-      caption: "The sections rail, and the **MCP servers** section it opens to.",
+      caption: "The sections rail, with **MCP servers** picked.",
     },
     {
       kind: "text",

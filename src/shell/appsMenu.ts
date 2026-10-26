@@ -9,7 +9,7 @@ import type { Openable } from "../bindings";
 import type { LayoutPreset, Menu, MenuItem } from "./contract";
 // Called, not passed in as a handler like everything else here: the library is
 // a module-scope surface so that anything may raise it without a prop threaded
-// down. `statusbar/SettingsPopover.tsx` reaches its twin the same way.
+// down. `settingsSurface.ts` is its twin, raised the same way.
 import { openLibrary } from "./librarySurface";
 
 /**
