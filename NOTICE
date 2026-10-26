@@ -1,4 +1,4 @@
-OpenKaava
+Veistra
 Copyright 2026 Veistra
 
 This product includes software developed at Veistra.
@@ -28,14 +28,14 @@ the file says so at the top, and the whole of it is listed here.
   Copyright (c) Stably AI
   MIT License
 
-  OpenKaava's GitHub panel is adapted from Orca's, which does the same job in an
+  Veistra's GitHub panel is adapted from Orca's, which does the same job in an
   Electron application. What was taken is design rather than text: the data
   model for one list holding issues and pull requests together, the `is:` and
   `label:` filter vocabulary, and the arrangement of a row. Orca's own client
   shells out to the `gh` command line from Node, which has no counterpart in a
   Rust backend, so none of it was translated line for line.
 
-  OpenKaava's diff annotations are adapted from Orca's diff comments. Two pieces:
+  Veistra's diff annotations are adapted from Orca's diff comments. Two pieces:
   the format review notes are serialized into for an agent to read, together
   with the escaping rule that makes that format survive being pasted at a shell
   prompt, from `src/shared/diff-comments-format.ts`; and the review-comment data
@@ -81,7 +81,7 @@ TRADEMARKS
 
 The license covers the code. It does not cover the names.
 
-OpenKaava and Schematify, together with the OpenKaava mark, wordmark and app
+Veistra and Schematify, together with the Veistra mark, wordmark and app
 icons, are trademarks of Veistra. Apache-2.0 grants copyright and patent
 rights and says plainly, in section 6, that it grants no trademark rights. This
 section is not an extra restriction bolted on top of the license;
@@ -89,9 +89,9 @@ it is a statement of where the line the license already draws actually falls,
 written out because a reader should not have to infer it.
 
 So: fork this repository, change it, build a product on it, sell that product,
-and say in plain words that your work is based on OpenKaava, or is compatible with
-OpenKaava, or is a fork of OpenKaava. All of that is fine and none of it needs
-permission. What is not fine is shipping it *as* OpenKaava — under the name, under
+and say in plain words that your work is based on Veistra, or is compatible with
+Veistra, or is a fork of Veistra. All of that is fine and none of it needs
+permission. What is not fine is shipping it *as* Veistra — under the name, under
 the marks, under the wordmark or the app icon, or in any other way that would
 leave someone believing they had installed the build Veistra publishes.
 

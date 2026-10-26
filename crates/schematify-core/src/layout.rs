@@ -6,7 +6,7 @@
 //! layout file costs positions and nothing else.
 //!
 //! The file is named by the Schematic slug rather than by a UUID, which is the
-//! one place in `.kaava/` where a name is a filename. The wireframe status bar
+//! one place in `.veistra/` where a name is a filename. The wireframe status bar
 //! draws it that way, `layout/auth-service.json clean`, and a person reading a
 //! diff should be able to tell which surface moved. The cost is that a slug
 //! rename has to rename the file, and [`crate::Store::rename_layout`] is where

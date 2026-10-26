@@ -50,7 +50,7 @@ fn project() -> (tempfile::TempDir, Store) {
 }
 
 #[test]
-fn a_directory_with_no_kaava_tree_is_the_one_error_the_loader_returns() {
+fn a_directory_with_no_veistra_tree_is_the_one_error_the_loader_returns() {
     let directory = tempfile::tempdir().unwrap();
     let error = load_project(directory.path()).unwrap_err();
     assert!(matches!(error, CoreError::NoProject { .. }));
@@ -316,7 +316,7 @@ fn a_file_that_is_not_json_is_reported_and_the_rest_of_the_project_loads() {
         .write_node(&node(1, "auth-service", NodeKind::Service, None))
         .unwrap();
     fs::write(
-        store.kaava_dir().join("nodes").join("broken.json"),
+        store.veistra_dir().join("nodes").join("broken.json"),
         "{ not json",
     )
     .unwrap();
@@ -384,12 +384,12 @@ fn a_future_run_format_is_quarantined_by_version_rather_than_failing_to_parse() 
     write_json_atomic(
         &store.run_path(Uuid::from_u128(1), 9),
         &serde_json::json!({
-            "schema": "kaava-bench-v9",
+            "schema": "veistra-bench-v9",
             "run": 9,
             "at": "2026-08-25T00:00:00Z",
             "commit": "abc",
             "workflow": "ci/verify.yml",
-            "flakes": [{ "impl_ref": "@kaava:x", "retries": 3 }],
+            "flakes": [{ "impl_ref": "@veistra:x", "retries": 3 }],
             "carbon_grams": 4.2
         }),
     )
@@ -408,7 +408,7 @@ fn a_future_run_format_is_quarantined_by_version_rather_than_failing_to_parse() 
         .iter()
         .find(|q| q.reason == QuarantineReason::UnknownRunSchema)
         .expect("the version is reported");
-    assert_eq!(record.reference, "kaava-bench-v9");
+    assert_eq!(record.reference, "veistra-bench-v9");
     assert_eq!(record.subject, Uuid::from_u128(1));
     assert!(record.file.ends_with("run-9.json"));
 }
@@ -512,8 +512,8 @@ fn the_loader_reads_a_project_written_anywhere_on_disk() {
 #[test]
 fn two_files_claiming_one_identifier_are_both_reported() {
     let (directory, store) = project();
-    let first = store.kaava_dir().join("nodes").join("aaa.json");
-    let second = store.kaava_dir().join("nodes").join("zzz.json");
+    let first = store.veistra_dir().join("nodes").join("aaa.json");
+    let second = store.veistra_dir().join("nodes").join("zzz.json");
     let mut a = node(1, "first-file", NodeKind::Service, None);
     a.envelope.title = "First file".to_owned();
     let mut b = node(1, "second-file", NodeKind::Service, None);
@@ -538,7 +538,10 @@ fn the_surviving_file_of_a_collision_is_the_same_on_every_load() {
         let mut value = node(1, "same-id", NodeKind::Service, None);
         value.envelope.title = name.to_owned();
         write_json_atomic(
-            &store.kaava_dir().join("nodes").join(format!("{name}.json")),
+            &store
+                .veistra_dir()
+                .join("nodes")
+                .join(format!("{name}.json")),
             &value,
         )
         .unwrap();
@@ -561,7 +564,10 @@ fn the_surviving_file_of_a_collision_is_the_same_on_every_load() {
 #[test]
 fn a_filename_that_disagrees_with_its_identifier_is_reported() {
     let (directory, store) = project();
-    let path = store.kaava_dir().join("nodes").join("token-verifier.json");
+    let path = store
+        .veistra_dir()
+        .join("nodes")
+        .join("token-verifier.json");
     write_json_atomic(&path, &node(1, "token-verifier", NodeKind::Module, None)).unwrap();
 
     let outcome = load_project(directory.path()).unwrap();
@@ -576,7 +582,7 @@ fn a_filename_that_disagrees_with_its_identifier_is_reported() {
 #[test]
 fn a_quarantine_row_names_the_file_the_reference_was_read_from() {
     let (directory, store) = project();
-    let path = store.kaava_dir().join("nodes").join("odd-name.json");
+    let path = store.veistra_dir().join("nodes").join("odd-name.json");
     write_json_atomic(&path, &node(2, "orphan", NodeKind::Module, Some(999))).unwrap();
 
     let outcome = load_project(directory.path()).unwrap();
@@ -622,7 +628,7 @@ fn a_facet_under_a_group_is_scoped_to_its_module_root() {
 fn a_closed_schema_refuses_a_field_it_does_not_model() {
     let (directory, store) = project();
     write_json_atomic(
-        &store.kaava_dir().join("screens").join("s.json"),
+        &store.veistra_dir().join("screens").join("s.json"),
         &serde_json::json!({
             "id": "00000000-0000-0000-0000-000000000001",
             "kind": "screen",
@@ -673,7 +679,7 @@ fn the_three_product_schemas_carry_their_kind() {
 fn a_file_declaring_the_wrong_kind_is_refused() {
     let (directory, store) = project();
     write_json_atomic(
-        &store.kaava_dir().join("screens").join("s.json"),
+        &store.veistra_dir().join("screens").join("s.json"),
         &serde_json::json!({
             "id": "00000000-0000-0000-0000-000000000001",
             "kind": "flow",
@@ -706,7 +712,10 @@ fn the_surviving_file_of_a_collision_is_the_same_for_every_kind() {
         );
         edge.source_port = Some(name.to_owned());
         write_json_atomic(
-            &store.kaava_dir().join("edges").join(format!("{name}.json")),
+            &store
+                .veistra_dir()
+                .join("edges")
+                .join(format!("{name}.json")),
             &edge,
         )
         .unwrap();

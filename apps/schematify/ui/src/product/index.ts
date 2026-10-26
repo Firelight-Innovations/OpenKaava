@@ -1,6 +1,6 @@
 /**
  * Pure derivations over the product layer (PRD §5.7, §5.8, §5.9, §5.12,
- * §12.17, §12.18) — nothing here touches `@openkaava/bridge`, so this module
+ * §12.17, §12.18) — nothing here touches `@veistra/bridge`, so this module
  * unit-tests under plain Node, the same split `../graph/index.ts` and
  * `../graph/backend.ts` already draw for the design graph. Every count is
  * computed from whatever is passed in, never cached (PRD §0.4).

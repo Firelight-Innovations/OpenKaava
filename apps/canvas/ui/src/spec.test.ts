@@ -96,7 +96,7 @@ describe("withSpec and specOf", () => {
     id: "a",
     type: "frame",
     version: 3,
-    customData: { kaava: { child: "world/ward-b" }, other: 1 },
+    customData: { veistra: { child: "world/ward-b" }, other: 1 },
   };
 
   it("adds a card without disturbing the frame link, and raises the version", () => {
@@ -105,11 +105,11 @@ describe("withSpec and specOf", () => {
     expect(next.version).toBe(4);
     expect(next.versionNonce).not.toBe(el.versionNonce);
     expect(next.customData).toEqual({
-      kaava: { child: "world/ward-b", spec: card },
+      veistra: { child: "world/ward-b", spec: card },
       other: 1,
     });
     expect(specOf(next)).toEqual(card);
-    expect(el.customData).toEqual({ kaava: { child: "world/ward-b" }, other: 1 });
+    expect(el.customData).toEqual({ veistra: { child: "world/ward-b" }, other: 1 });
   });
 
   it("removes the card and tidies empty containers", () => {
@@ -123,7 +123,9 @@ describe("withSpec and specOf", () => {
   it("ignores deleted elements and non-object specs", () => {
     const card = draftToCard(valid)!;
     expect(specOf({ ...withSpec(el, card), isDeleted: true })).toBeNull();
-    expect(specOf({ id: "x", type: "rectangle", customData: { kaava: { spec: [1] } } })).toBeNull();
+    expect(
+      specOf({ id: "x", type: "rectangle", customData: { veistra: { spec: [1] } } }),
+    ).toBeNull();
     expect(specOf({ id: "x", type: "rectangle" })).toBeNull();
   });
 });

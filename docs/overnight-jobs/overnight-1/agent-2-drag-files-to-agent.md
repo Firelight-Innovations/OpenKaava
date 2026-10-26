@@ -6,9 +6,9 @@ ground rules, and stack-mismatch guidance that apply to you too.
 ## Setup
 
 ```bash
-cd OpenKaava
-git worktree add ../OpenKaava-drag-to-agent -b feat/drag-files-to-agent origin/main
-cd ../OpenKaava-drag-to-agent
+cd Veistra
+git worktree add ../Veistra-drag-to-agent -b feat/drag-files-to-agent origin/main
+cd ../Veistra-drag-to-agent
 ```
 
 Then read, in order: `CONTRIBUTING.md`, `STANDARDS.md`,
@@ -22,9 +22,9 @@ drag files or images straight into an agent's prompt.
 
 **This is the feature most affected by the stack mismatch — read carefully
 before you start copying anything.** Orca has a docked agent chat pane, so
-"into an agent's prompt" means a literal text input it controls. OpenKaava has
+"into an agent's prompt" means a literal text input it controls. Veistra has
 no such thing (see `docs/dev/architecture.md` — no tool is docked yet, no
-agent broker exists). The only place an agent runs in OpenKaava today is as a
+agent broker exists). The only place an agent runs in Veistra today is as a
 CLI process inside a terminal in the terminal band. Do not try to build a
 docked chat pane tonight to make Orca's exact model fit — that's a much
 bigger feature than this one and isn't your scope. Adapt the *goal* (get a
@@ -38,7 +38,7 @@ handling, path formatting — even though the destination is different here.
 
 ## Scope
 
-1. Dragging one or more files from OpenKaava's Files app (or the OS file
+1. Dragging one or more files from Veistra's Files app (or the OS file
    explorer) onto an active terminal tab inserts the file path(s), quoted
    correctly for the shell in use, at the terminal's current input
    position. Insert text only — never execute anything.
@@ -47,7 +47,7 @@ handling, path formatting — even though the destination is different here.
    Check `src/shell/drag/` for the drag-and-drop pattern already used
    elsewhere in the shell and reuse it — don't invent a second one.
 4. If time allows: dragging an image file inserts its path the same way
-   (not raw bytes — OpenKaava has no way to know what agent or CLI tool is
+   (not raw bytes — Veistra has no way to know what agent or CLI tool is
    running in a given terminal, so a path is the safe, general answer).
 
 ## Out of scope

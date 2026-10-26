@@ -3,16 +3,16 @@
  *
  * **Restated in `apps/files/ui/src/settings.ts`, deliberately.** The argument
  * is the one `apps/files/ui/src/topics.ts` already makes for itself: an app's
- * only coupling to anything outside itself is `@openkaava/bridge` and the shape of
+ * only coupling to anything outside itself is `@veistra/bridge` and the shape of
  * what crosses it, and a module the two apps shared would let one app's
  * refactor break the other's build.
  *
  * The types below mirror `src-tauri/src/settings/mod.rs` and carry only the
  * fields a reader needs. `src/bindings.ts` holds the shell's own mirror of the
  * same shapes and is not importable from here — it is shell code and calls
- * Tauri directly, which is the thing `@openkaava/bridge` exists to replace.
+ * Tauri directly, which is the thing `@veistra/bridge` exists to replace.
  */
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 
 /** What a setting can hold. The three shapes the four controls produce. */
 export type SettingValue = boolean | number | string;
@@ -77,7 +77,7 @@ export function loadSettings(): Promise<SettingsReader> {
       // Once, not once per read: the memoised promise keeps the degraded
       // reader, so an app whose host cannot answer still opens files instead
       // of filling the console.
-      console.warn("kaava: could not read settings; falling back to this build's own", err);
+      console.warn("veistra: could not read settings; falling back to this build's own", err);
       return DEGRADED;
     });
   return pending;

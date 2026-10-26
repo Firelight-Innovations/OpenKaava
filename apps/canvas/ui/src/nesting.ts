@@ -2,8 +2,8 @@
  * Nested canvases: a frame links to a child canvas, and the child links back to
  * its parent. `docs/cloud-services.md` §4 fixes the two halves of the link:
  *
- * - the frame element carries `customData.kaava.child = "<canvas-id>"`;
- * - the child's file carries `kaava.parent = "<canvas-id>"`, which is what the
+ * - the frame element carries `customData.veistra.child = "<canvas-id>"`;
+ * - the child's file carries `veistra.parent = "<canvas-id>"`, which is what the
  *   breadcrumb follows upward.
  *
  * Everything here is pure, so the hit test and the breadcrumb are tested
@@ -16,19 +16,19 @@ import type { SceneElement } from "./scene";
  * A frame with a child canvas also carries this as its Excalidraw `link`, so the
  * editor draws its link badge on the frame and a click on it opens the child.
  */
-export const CANVAS_LINK = "kaava://canvas/";
+export const CANVAS_LINK = "veistra://canvas/";
 
 /** The deepest folder nesting the backend accepts; see `canvas.rs`. */
 const MAX_DEPTH = 4;
 
-interface Kaava {
+interface Veistra {
   child?: unknown;
   subcanvas?: unknown;
 }
 
-function kaavaData(el: SceneElement): Kaava | undefined {
-  const custom = el.customData as { kaava?: Kaava } | undefined;
-  return custom?.kaava;
+function veistraData(el: SceneElement): Veistra | undefined {
+  const custom = el.customData as { veistra?: Veistra } | undefined;
+  return custom?.veistra;
 }
 
 export function isFrame(el: SceneElement): boolean {
@@ -38,7 +38,7 @@ export function isFrame(el: SceneElement): boolean {
 /** The child canvas a frame links to, or `null`. */
 export function childOf(el: SceneElement): string | null {
   if (!isFrame(el) || el.isDeleted) return null;
-  const child = kaavaData(el)?.child;
+  const child = veistraData(el)?.child;
   return typeof child === "string" && child !== "" ? child : null;
 }
 
@@ -50,11 +50,11 @@ export function childOf(el: SceneElement): string | null {
  */
 export function withChild(el: SceneElement, child: string | null): SceneElement {
   const custom = { ...((el.customData as Record<string, unknown> | undefined) ?? {}) };
-  const kaava = { ...((custom.kaava as Record<string, unknown> | undefined) ?? {}) };
-  if (child === null) delete kaava.child;
-  else kaava.child = child;
-  if (Object.keys(kaava).length > 0) custom.kaava = kaava;
-  else delete custom.kaava;
+  const veistra = { ...((custom.veistra as Record<string, unknown> | undefined) ?? {}) };
+  if (child === null) delete veistra.child;
+  else veistra.child = child;
+  if (Object.keys(veistra).length > 0) custom.veistra = veistra;
+  else delete custom.veistra;
   const link =
     child !== null
       ? `${CANVAS_LINK}${child}`
@@ -284,7 +284,7 @@ export function linkBadges(
     const fullPx = Math.min(CHIP_MAX_PX, CHIP_FIXED_PX + label.length * CHIP_CHAR_PX);
     // A split canvas tiles its sub-canvas frames edge to edge, so under the
     // bottom edge is the next frame's picture: shrink to the arrow first.
-    const tiled = kaavaData(el)?.subcanvas === true;
+    const tiled = veistraData(el)?.subcanvas === true;
     const compact =
       px < BADGE_COMPACT_PX || (tiled && labelPx + fullPx > px && labelPx + CHIP_COMPACT_PX <= px);
     const chipPx = compact ? CHIP_COMPACT_PX : fullPx;

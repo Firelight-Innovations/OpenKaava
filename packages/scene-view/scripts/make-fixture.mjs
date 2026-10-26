@@ -8,7 +8,7 @@
  * binary through `FileReader`, which Node does not have, and a fixture whose
  * generator needs a browser shim is a fixture nobody regenerates.
  *
- *   pnpm --filter @openkaava/scene-view fixture
+ *   pnpm --filter @veistra/scene-view fixture
  */
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";

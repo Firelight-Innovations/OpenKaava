@@ -58,7 +58,7 @@ export const strings = {
   /** The same, as a screen reader hears it. */
   settingsSpoken: ", ",
   /** Every harness the settings menu lists, by id. */
-  harnessName: { claude: "Claude", codex: "Codex", kaava: "Kaava" } as Record<string, string>,
+  harnessName: { claude: "Claude", codex: "Codex", veistra: "Veistra" } as Record<string, string>,
   /** A harness that is listed but cannot run yet. */
   harnessSoon: "Coming soon",
   /** A harness the host reports but cannot start, such as one not installed or signed out. */
@@ -170,11 +170,11 @@ export const strings = {
     adapterMissing: ({ name, setup }: HarnessWords) =>
       `The ${name} ACP adapter is not installed. Run \`${setup.adapterInstall}\` in a terminal.`,
     signedOut: ({ name, setup }: HarnessWords) =>
-      `${name} is not signed in. Run \`${setup.signIn}\` once in a terminal and sign in there. Kaava never signs you in.`,
+      `${name} is not signed in. Run \`${setup.signIn}\` once in a terminal and sign in there. Veistra never signs you in.`,
     adapterVersion: ({ setup }: HarnessWords) =>
       `This build was tested with adapter ${setup.adapterVersion}. Another version may behave differently: \`${setup.adapterInstall}\`.`,
     outsideWorktree: () =>
-      "The agent asked to touch a file outside this worktree, so Kaava refused the request.",
+      "The agent asked to touch a file outside this worktree, so Veistra refused the request.",
   } satisfies Record<Hint, (words: HarnessWords) => string>,
   /** A hint before the tab knows which harness it is about. */
   hintUnknown: "The agent is not ready to run.",

@@ -1,7 +1,7 @@
 /**
  * Nothing this app draws is written in Mac key glyphs.
  *
- * OpenKaava has never run on macOS, and the ⌘/⌥/⌃ forms it shipped with came from a
+ * Veistra has never run on macOS, and the ⌘/⌥/⌃ forms it shipped with came from a
  * design handoff drawn on one. They were removed by hand; this is what keeps
  * them out, because the failure they cause is not a crash — it is a Windows
  * user reading `⌘K` and having no key to press. The two tables that hold

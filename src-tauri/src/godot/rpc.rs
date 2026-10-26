@@ -10,7 +10,7 @@
 //! are**, because they read the project. Installing the capture addon is not,
 //! and neither is launching the editor - both are refused there, and both are
 //! also in `apps::WRITE_METHODS` so the refusal happens before a handler runs.
-//! Two things still touch a main checkout that Kaava does not control: Godot
+//! Two things still touch a main checkout that Veistra does not control: Godot
 //! itself keeps an import cache in `<project>/.godot/` whenever it loads a
 //! project, and that folder is gitignored by every Godot template. The viewer's
 //! own cache and a run's channel go under the app data and temp directories
@@ -24,11 +24,11 @@ use super::scene::{self, Refresh};
 use super::{scratch_root, Godot};
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine as _;
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 
 /// Code for a write refused on main; the same value `apps::READ_ONLY` uses.
 const READ_ONLY: i32 = -32003;
@@ -45,7 +45,7 @@ pub struct Ctx<'a> {
     pub probe: Probe,
     pub check: Check<'a>,
     /// Where a read-only environment's viewer cache goes instead of its own
-    /// `.kaava/`, which main may not be written to.
+    /// `.veistra/`, which main may not be written to.
     pub cache_root: PathBuf,
     pub scratch: PathBuf,
 }
@@ -223,7 +223,7 @@ fn open_editor(ctx: &Ctx, p: &Params) -> Result<Value, RpcError> {
     if ctx.read_only {
         return Err(RpcError::new(
             READ_ONLY,
-            "This is the main checkout, which is read-only in Kaava - the editor could change it. \
+            "This is the main checkout, which is read-only in Veistra - the editor could change it. \
              Open a worktree and launch Godot there.",
         ));
     }
@@ -231,7 +231,7 @@ fn open_editor(ctx: &Ctx, p: &Params) -> Result<Value, RpcError> {
     let project = pick_project(ctx, p)?;
     if project.engine_major < 4 {
         return Err(fail(format!(
-            "`{}` is a Godot 3 project; Kaava drives Godot 4.x",
+            "`{}` is a Godot 3 project; Veistra drives Godot 4.x",
             project.name
         )));
     }
@@ -240,8 +240,8 @@ fn open_editor(ctx: &Ctx, p: &Params) -> Result<Value, RpcError> {
     Ok(json!({ "pid": pid, "project": project.rel, "godot": found.version }))
 }
 
-/// Start a program that outlives Kaava: its own process group, no console, no
-/// pipes. The editor is the person's to close; Kaava does not supervise it.
+/// Start a program that outlives Veistra: its own process group, no console, no
+/// pipes. The editor is the person's to close; Veistra does not supervise it.
 fn spawn_detached(program: &Path, args: &[String], cwd: &Path) -> std::io::Result<u32> {
     let mut command = std::process::Command::new(program);
     command
@@ -264,7 +264,7 @@ fn spawn_detached(program: &Path, args: &[String], cwd: &Path) -> std::io::Resul
     }
     let mut child = command.spawn()?;
     let pid = child.id();
-    // Reaps the child if it exits while Kaava is still running.
+    // Reaps the child if it exits while Veistra is still running.
     std::thread::spawn(move || {
         let _ = child.wait();
     });
@@ -304,7 +304,7 @@ fn start_run(ctx: &Ctx, project: &GodotProject, scene: Option<String>) -> Result
     let found = require_engine(ctx)?;
     if project.engine_major < 4 {
         return Err(fail(format!(
-            "`{}` is a Godot 3 project; Kaava drives Godot 4.x",
+            "`{}` is a Godot 3 project; Veistra drives Godot 4.x",
             project.name
         )));
     }
@@ -360,7 +360,7 @@ fn live_channel(
         .filter(|r| r.is_running())
         .ok_or_else(|| fail("no game is running"))?;
     let channel = run.spec.channel.clone().ok_or_else(|| {
-        fail("This game was started without the Kaava capture addon. Enable capture in Play, then restart the game.")
+        fail("This game was started without the Veistra capture addon. Enable capture in Play, then restart the game.")
     })?;
     Ok((run, channel))
 }
@@ -436,7 +436,7 @@ fn addon_change(ctx: &Ctx, p: &Params, install: bool) -> Result<Value, RpcError>
     if ctx.read_only {
         return Err(RpcError::new(
             READ_ONLY,
-            "This is the main checkout, which is read-only in Kaava, so the capture addon cannot be \
+            "This is the main checkout, which is read-only in Veistra, so the capture addon cannot be \
              installed here. Play still runs; make a worktree to capture frames.",
         ));
     }
@@ -466,7 +466,7 @@ fn cache_dir(ctx: &Ctx, project: &GodotProject) -> Result<PathBuf, RpcError> {
         let hex: String = digest.iter().take(6).map(|b| format!("{b:02x}")).collect();
         ctx.cache_root.join("godot-viewer").join(hex).join(leaf)
     } else {
-        root.join(".kaava").join("godot-viewer").join(leaf)
+        root.join(".veistra").join("godot-viewer").join(leaf)
     })
 }
 
@@ -597,7 +597,7 @@ fn actor(p: &Params) -> Result<&'static str, RpcError> {
     }
 }
 
-/// Where a project's previews live: `<root>/.kaava/preview/godot/`, or under
+/// Where a project's previews live: `<root>/.veistra/preview/godot/`, or under
 /// the app data folder for the read-only main checkout, which is never written.
 fn preview_dir(ctx: &Ctx) -> Result<PathBuf, RpcError> {
     let root = root(ctx)?;
@@ -607,7 +607,7 @@ fn preview_dir(ctx: &Ctx) -> Result<PathBuf, RpcError> {
         let hex: String = digest.iter().take(6).map(|b| format!("{b:02x}")).collect();
         ctx.cache_root.join("preview").join("godot").join(hex)
     } else {
-        root.join(".kaava").join("preview").join("godot")
+        root.join(".veistra").join("preview").join("godot")
     })
 }
 
@@ -983,7 +983,7 @@ mod tests {
 
         call(&c, "play/run", json!({})).unwrap();
         let err = call(&c, "play/capture", json!({})).unwrap_err();
-        assert!(err.message.contains("without the Kaava capture addon"));
+        assert!(err.message.contains("without the Veistra capture addon"));
 
         let after = call(&c, "play/addon-install", json!({})).unwrap();
         assert_eq!(after["addon"], "yes");
@@ -991,7 +991,10 @@ mod tests {
             after["needsRestart"], true,
             "the running game predates the install"
         );
-        assert!(w.root.join("game/addons/kaava/kaava_capture.gd").is_file());
+        assert!(w
+            .root
+            .join("game/addons/veistra/veistra_capture.gd")
+            .is_file());
 
         call(&c, "play/restart", json!({})).unwrap();
         let channel = w
@@ -1078,8 +1081,8 @@ mod tests {
         assert!(state["renderedAt"].as_u64().unwrap() > 0);
         assert!(state["note"].as_str().unwrap().contains("scene file"));
         assert!(
-            w.root.join(".kaava/godot-viewer").is_dir(),
-            "the cache lives in the environment's .kaava"
+            w.root.join(".veistra/godot-viewer").is_dir(),
+            "the cache lives in the environment's .veistra"
         );
         assert_eq!(
             call(&c, "godot-viewer/image", json!({})).unwrap()["png"],
@@ -1096,7 +1099,7 @@ mod tests {
             call(&c, "godot-viewer/state", json!({})).unwrap()["job"]["running"] == json!(false)
         });
         assert!(
-            !w.root.join(".kaava").exists(),
+            !w.root.join(".veistra").exists(),
             "main's checkout is untouched"
         );
         assert!(w.scratch.join("appdata/godot-viewer").is_dir());
@@ -1174,7 +1177,7 @@ mod tests {
     fn a_current_glb_is_served_from_the_cache_and_no_engine_runs() {
         let w = world(false);
         let c = ctx(&w, false, &real_check);
-        let dir = w.root.join(".kaava/preview/godot");
+        let dir = w.root.join(".veistra/preview/godot");
         seed_preview(&c, &w, &dir);
 
         let answer = call(&c, "godot/preview-glb", preview_params(json!({}))).unwrap();
@@ -1203,7 +1206,7 @@ mod tests {
     fn editing_the_scene_makes_the_cached_glb_stale() {
         let w = world(false);
         let c = ctx(&w, false, &real_check);
-        seed_preview(&c, &w, &w.root.join(".kaava/preview/godot"));
+        seed_preview(&c, &w, &w.root.join(".veistra/preview/godot"));
         std::fs::write(
             w.root.join("game/main.tscn"),
             "[gd_scene format=3]\n\n[node name=\"World\" type=\"Node3D\"]\n\n[node name=\"New\" type=\"Node3D\" parent=\".\"]\n",
@@ -1249,7 +1252,7 @@ mod tests {
         wait_until("the retry", || {
             w.godot.jobs.get("c1#preview").is_some_and(|j| !j.running)
         });
-        let dir = w.root.join(".kaava/preview/godot");
+        let dir = w.root.join(".veistra/preview/godot");
         assert!(
             std::fs::read_dir(&dir).map_or(true, |mut d| d.next().is_none()),
             "a failed export leaves no file behind"
@@ -1266,7 +1269,7 @@ mod tests {
             w.godot.jobs.get("c1#preview").is_some_and(|j| !j.running)
         });
         assert!(
-            !w.root.join(".kaava").exists(),
+            !w.root.join(".veistra").exists(),
             "main's checkout is untouched"
         );
         assert!(w.scratch.join("appdata/preview/godot").is_dir());

@@ -18,12 +18,12 @@
 //! renders as an honest "not written yet" card rather than failing.
 
 use crate::apps::CallContext;
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 
 /// A group of tutorials, drawn as one heading in the app's sidebar.
 #[derive(Debug, Clone, Serialize)]
@@ -49,7 +49,7 @@ pub struct Tutorial {
     /// One sentence, in the second person, saying what you will be able to do
     /// afterwards. Shown on the card and nowhere else.
     pub blurb: &'static str,
-    /// How long it takes, honestly, for somebody who has not seen OpenKaava before.
+    /// How long it takes, honestly, for somebody who has not seen Veistra before.
     /// A number rather than a band, because "5 min" reads as a measurement and
     /// "short" reads as a guess.
     pub minutes: u32,
@@ -69,7 +69,7 @@ static SECTIONS: &[Section] = &[
     Section {
         id: "shell",
         title: "Working in the shell",
-        description: "Panes, terminals, search — the parts of OpenKaava that are not an app.",
+        description: "Panes, terminals, search — the parts of Veistra that are not an app.",
         order: 10,
     },
     Section {
@@ -81,7 +81,7 @@ static SECTIONS: &[Section] = &[
     Section {
         id: "agents",
         title: "Agents",
-        description: "Pointing a coding agent at OpenKaava, and what it can reach.",
+        description: "Pointing a coding agent at Veistra, and what it can reach.",
         order: 30,
     },
     Section {
@@ -96,7 +96,7 @@ static TUTORIALS: &[Tutorial] = &[
     Tutorial {
         id: "the-window",
         section: "start",
-        title: "The OpenKaava window",
+        title: "The Veistra window",
         blurb: "Name every part of the frame, so the rest of these make sense.",
         minutes: 4,
         after: None,
@@ -105,7 +105,7 @@ static TUTORIALS: &[Tutorial] = &[
         id: "first-project",
         section: "start",
         title: "Your first project",
-        blurb: "Open a folder, set it up as an OpenKaava project, and know what got written.",
+        blurb: "Open a folder, set it up as a Veistra project, and know what got written.",
         minutes: 6,
         after: Some("the-window"),
     },
@@ -137,7 +137,7 @@ static TUTORIALS: &[Tutorial] = &[
         id: "settings",
         section: "shell",
         title: "Settings",
-        blurb: "Change how OpenKaava looks and behaves, and know when a change takes effect.",
+        blurb: "Change how Veistra looks and behaves, and know when a change takes effect.",
         minutes: 5,
         after: Some("search"),
     },
@@ -160,8 +160,8 @@ static TUTORIALS: &[Tutorial] = &[
     Tutorial {
         id: "mcp-servers",
         section: "agents",
-        title: "Give your agent OpenKaava's tools",
-        blurb: "Let Claude Code or another MCP client drive the parts of OpenKaava you drive.",
+        title: "Give your agent Veistra's tools",
+        blurb: "Let Claude Code or another MCP client drive the parts of Veistra you drive.",
         minutes: 7,
         after: None,
     },

@@ -1,7 +1,7 @@
-# Developing OpenKaava
+# Developing Veistra
 
 This section is for someone working on the orchestrator's code, not someone
-running the app. If you want to use OpenKaava instead, see
+running the app. If you want to use Veistra instead, see
 [the user docs](../user/README.md).
 
 The prose these pages are built from already lives in this repository, close
@@ -33,7 +33,7 @@ who has never seen the repo.
   the reasoning behind each rule that has one. This is the API every tool
   repository is built against.
 - **[Porting a repository to Schematify](porting-a-repo-to-schematify.md)** —
-  what the `.kaava/` on-disk contract actually is, which file decides each part
+  what the `.veistra/` on-disk contract actually is, which file decides each part
   of it, the thirteen linter rules a finished tree has to satisfy, and how this
   repository was ported to itself. Written while doing it, so it also records
   what the repository does *not* document, which is the list a future skills
@@ -49,7 +49,7 @@ who has never seen the repo.
   that a row writing a value nothing reads is worse than no row at all.
 - **[The Files app's methods](../files-app-methods.md)** — the RPC surface a
   frontend, or an agent, uses to browse, edit and delete files.
-- **[The MCP server manager](../mcp-server-manager.md)** — how OpenKaava hosts
+- **[The MCP server manager](../mcp-server-manager.md)** — how Veistra hosts
   MCP servers for a coding agent, and the rule that decides what earns one.
 - **[Tutorials](../tutorials.md)** — how the in-app Tutorials feature itself
   is built, if you're adding or editing one. (Not to be confused with the

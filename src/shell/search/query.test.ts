@@ -141,8 +141,8 @@ describe("compilePathFilter", () => {
   it("filters by extension and by kind", () => {
     expect(compilePathFilter(parseQuery("ext:rs"))("src-tauri/src/lib.rs")).toBe(true);
     expect(compilePathFilter(parseQuery("ext:rs"))("src/main.ts")).toBe(false);
-    expect(compilePathFilter(parseQuery("kind:kaava"))("repo/kaava.toml")).toBe(true);
-    expect(compilePathFilter(parseQuery("kind:kaava"))("repo/Cargo.toml")).toBe(false);
+    expect(compilePathFilter(parseQuery("kind:veistra"))("repo/veistra.toml")).toBe(true);
+    expect(compilePathFilter(parseQuery("kind:veistra"))("repo/Cargo.toml")).toBe(false);
   });
 
   it("treats an empty axis as no restriction, not as match-nothing", () => {

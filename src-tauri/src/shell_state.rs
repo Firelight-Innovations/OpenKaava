@@ -1,4 +1,4 @@
-//! What every OpenKaava window has to agree on.
+//! What every Veistra window has to agree on.
 //!
 //! The shell runs in more than one window: the main one, plus a real OS window for anything that
 //! has been dragged out of it. Most of what a window knows is its own business — how wide its
@@ -185,7 +185,7 @@ pub struct Cluster {
     ///
     /// Only the *normal* height is kept. Shut and maximized are the same drag's other two
     /// outcomes, and they stay in the window that draws them: whether a band is open is a fact
-    /// about this session, and a layout that restored a maximized band would open OpenKaava with the
+    /// about this session, and a layout that restored a maximized band would open Veistra with the
     /// apps hidden behind a terminal. See `frame/Frame.tsx`'s `bottomHeight` for the same split
     /// spelled from the view's side.
     ///
@@ -240,7 +240,7 @@ pub struct Cluster {
     /// The pinned Design canvas cluster, and only it. Not closable — see
     /// `close_cluster_pure`, the one mutator this actually changes the
     /// behaviour of; renaming and moving are left alone, since nothing in
-    /// `KAAVA-UX-REWORK.md` asks for either to be refused.
+    /// `VEISTRA-UX-REWORK.md` asks for either to be refused.
     ///
     /// `default` rather than derived from `environment`'s `Design` variant,
     /// even though in practice the two are only ever set together (see
@@ -265,7 +265,7 @@ pub struct Cluster {
     /// `mark_missing_environments` and never trusted from the file: a stale
     /// `true` written last launch is overwritten before anything reads it. It
     /// is on the wire so the switcher can draw the cluster as "missing" rather
-    /// than the cluster vanishing (a worktree deleted outside OpenKaava) or
+    /// than the cluster vanishing (a worktree deleted outside Veistra) or
     /// quietly pointing at the wrong folder. Only worktree-backed environments
     /// can be missing; `Main` follows the project (Home already draws an
     /// unavailable project) and `Cloud` has no local path to lose.
@@ -514,7 +514,7 @@ pub struct ShellState {
     /// *every* one of them — so a `reclaim` that trusted `Destroyed` alone
     /// would fold every detached window into `main` on the way out, and,
     /// because every mutation is persisted, would write that collapsed layout
-    /// to disk as the thing to restore. You would close OpenKaava with three
+    /// to disk as the thing to restore. You would close Veistra with three
     /// windows and open it with one, every time, and the tree serialization
     /// would look broken when it was working perfectly.
     ///
@@ -829,7 +829,7 @@ impl ShellState {
     /// `wt/design` worktree — see `environments::detect_design_environment`,
     /// the caller's own check for whether to call this at all. A project
     /// that lacks one is *offered* the canvas rather than having it created
-    /// silently; see `KAAVA-UX-REWORK.md` §5 for that half.
+    /// silently; see `VEISTRA-UX-REWORK.md` §5 for that half.
     ///
     /// Idempotent per window: a window that already holds a pinned cluster is
     /// left alone, since `project::open` runs on every open and nothing
@@ -870,7 +870,7 @@ impl ShellState {
 
     /// `add_cluster`'s counterpart for the one gesture that *should* inherit
     /// the project: dropping a tab on the switcher's empty space
-    /// (KAAVA-UX-REWORK.md §5), which is "give this tab a cluster of its own,
+    /// (VEISTRA-UX-REWORK.md §5), which is "give this tab a cluster of its own,
     /// here" rather than "start something new" — the dragged tab is already
     /// mid-flight over the project it belongs to, so a picker would ask a
     /// question the drop already answered.
@@ -1057,7 +1057,7 @@ impl ShellState {
     /// project open somewhere this session and exactly zero for one that
     /// isn't, rather than a stale or invented number. A project nobody has
     /// opened *this session* reads as closed even if it was open last
-    /// launch; only per-project workspace persistence (KAAVA-UX-REWORK.md §6,
+    /// launch; only per-project workspace persistence (VEISTRA-UX-REWORK.md §6,
     /// not built yet) could answer that honestly, and until it exists the
     /// dialog says so rather than guessing.
     pub fn project_live_counts(&self, path: &str) -> ProjectLiveCounts {
@@ -3207,7 +3207,7 @@ fn mark_missing_environments(snapshot: &mut ShellSnapshot, exists: &dyn Fn(&str)
         };
         c.environment_missing = path.is_some_and(|p| !exists(p));
         if c.environment_missing {
-            crate::kaava_log!(
+            crate::veistra_log!(
                 "cluster {} ({}): its worktree folder is missing on disk, keeping the cluster",
                 c.id,
                 c.name
@@ -3636,8 +3636,8 @@ mod tests {
     #[test]
     fn shorten_title_passes_a_plain_name_through_untouched() {
         assert_eq!(
-            shorten_title("kaava-shell-finishing-touches"),
-            "kaava-shell-finishing-touches",
+            shorten_title("veistra-shell-finishing-touches"),
+            "veistra-shell-finishing-touches",
             "a title that isn't a path form must not be mistaken for one"
         );
     }
@@ -4354,7 +4354,7 @@ mod tests {
         );
     }
 
-    /// Released over another OpenKaava window. A cluster is appended to that
+    /// Released over another Veistra window. A cluster is appended to that
     /// window's list, so a label is the whole of the address — which is why this
     /// works where the same drop for a single tab does not.
     #[test]
@@ -5659,7 +5659,7 @@ mod tests {
 
     fn design_environment() -> crate::environments::Environment {
         crate::environments::Environment::Design {
-            path: "C:/proj/.kaava/worktrees/design".to_string(),
+            path: "C:/proj/.veistra/worktrees/design".to_string(),
             branch: "wt/design".to_string(),
         }
     }
@@ -5968,7 +5968,7 @@ mod tests {
     fn repointing_at_the_same_project_keeps_an_explicit_environment() {
         let mut c = project_only_cluster(Some("C:/a"));
         let design = crate::environments::Environment::Design {
-            path: "C:/a/.kaava/worktrees/design".to_string(),
+            path: "C:/a/.veistra/worktrees/design".to_string(),
             branch: "wt/design".to_string(),
         };
         c.environment = Some(design.clone());

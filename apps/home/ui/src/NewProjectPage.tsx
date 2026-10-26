@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { KaavaRpcError, invoke } from "@openkaava/bridge";
+import { VeistraRpcError, invoke } from "@veistra/bridge";
 import { AlertCircle, ArrowLeft, Check } from "./icons";
 import {
   buildCreateRequest,
@@ -365,7 +365,7 @@ function CodeSection({
         <h2 className="new-project__section-title">3 · Code</h2>
         <Field
           label="Project folder"
-          hint="Must already contain a Kaava project file."
+          hint="Must already contain a Veistra project file."
           error={errors.path}
         >
           <div className="new-project__input-row">
@@ -588,7 +588,7 @@ function ServicesSection({
 // --- shared bits --------------------------------------------------------------
 
 /**
- * A `.k-field` — see the Field README (`src/kaava-ui.css`'s own header on
+ * A `.k-field` — see the Field README (`src/veistra-ui.css`'s own header on
  * that class): label, input, one hint line that flips to the error message
  * and `--error`'s colour once there is one to show.
  */
@@ -657,7 +657,7 @@ function StepRow({
 
 /** Same convention `App.tsx`'s own `describe` follows for an RPC failure. */
 function describe(error: unknown): string {
-  if (error instanceof KaavaRpcError) return `[${error.code}] ${error.message}`;
+  if (error instanceof VeistraRpcError) return `[${error.code}] ${error.message}`;
   if (error instanceof Error) return error.message;
   return String(error);
 }

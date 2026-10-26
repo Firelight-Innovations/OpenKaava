@@ -92,7 +92,7 @@ def main(argv):
 
     # Named after the stem so two agents linting two different tutorials at the
     # same time cannot land on the same scratch file.
-    out_dir = Path(tempfile.gettempdir()) / "kaava-tutorial-lint" / src.stem
+    out_dir = Path(tempfile.gettempdir()) / "veistra-tutorial-lint" / src.stem
     out_dir.mkdir(parents=True, exist_ok=True)
     md = out_dir / (src.stem + ".md")
     md.write_text(extract(src), encoding="utf-8")

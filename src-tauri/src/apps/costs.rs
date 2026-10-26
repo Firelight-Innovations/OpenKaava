@@ -1,4 +1,4 @@
-//! The Cost Tracker's Rust half: what OpenKaava Cloud has cost this month at
+//! The Cost Tracker's Rust half: what Veistra Cloud has cost this month at
 //! list price, and where the month is heading against its budget.
 //!
 //! An estimate, not a bill. It multiplies what exists (`cloud::inventory`) by
@@ -15,14 +15,14 @@ use crate::cloud::billing::{self, Sku};
 use crate::cloud::inventory::{self, Address, Bucket, Disk, RunService, Vm};
 use crate::cloud::monitoring::{self, Series};
 use crate::cloud::{self, days_from_civil, parse_rfc3339, rfc3339, Cloud, Source, Trouble};
-use kaava_rpc::{RpcError, INTERNAL_ERROR, METHOD_NOT_FOUND};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tauri::{AppHandle, Manager};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, METHOD_NOT_FOUND};
 
-/// The monthly budget OpenKaava Cloud is held to. `KAAVA_GCP_BUDGET` overrides it.
+/// The monthly budget Veistra Cloud is held to. `VEISTRA_GCP_BUDGET` overrides it.
 const BUDGET_USD: f64 = 150.0;
 
 /// How far back the forecast looks for a running rate.
@@ -314,7 +314,7 @@ fn now_for(source: &Source) -> i64 {
 }
 
 fn budget() -> f64 {
-    std::env::var("KAAVA_GCP_BUDGET")
+    std::env::var("VEISTRA_GCP_BUDGET")
         .ok()
         .and_then(|b| b.parse::<f64>().ok())
         .filter(|b| *b > 0.0)
@@ -926,7 +926,7 @@ mod tests {
         assert_eq!(e.now, "2026-09-28T21:00:00Z");
         assert!(e.problems.is_empty(), "{:?}", e.problems);
 
-        let core = line(&e, "kaava-worker", "vCPU");
+        let core = line(&e, "veistra-worker", "vCPU");
         assert_eq!(
             core.sku.as_deref(),
             Some("E2 Instance Core running in Americas (CF4E-A0C7-E3BF)")
@@ -937,20 +937,20 @@ mod tests {
         let expected = core.quantity_to_date * 0.021_811_59;
         assert!((core.to_date - expected).abs() < 1e-9);
 
-        let spot = line(&e, "kaava-worker-2", "vCPU");
+        let spot = line(&e, "veistra-worker-2", "vCPU");
         assert!(spot
             .sku
             .as_deref()
             .unwrap()
             .starts_with("Spot Preemptible E2"));
-        let gpu = line(&e, "kaava-gpu", "L4 GPU");
+        let gpu = line(&e, "veistra-gpu", "L4 GPU");
         assert_eq!(
             gpu.sku.as_deref(),
             Some("Nvidia L4 GPU running in Americas (A88A-5A60-E821)")
         );
         assert!(gpu.to_date > 0.0);
 
-        let disk = line(&e, "kaava-gpu", "Capacity");
+        let disk = line(&e, "veistra-gpu", "Capacity");
         assert!(
             (disk.forecast - 200.0 * 0.1).abs() < 1e-9,
             "a whole month of 200 GiB balanced"

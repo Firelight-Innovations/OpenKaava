@@ -53,7 +53,7 @@ function build(): Parser {
   // schemed links and `www.` are autolinked.
   md.linkify.set({ fuzzyLink: false, fuzzyEmail: false, fuzzyIP: false });
 
-  md.core.ruler.push("openkaava_lines", (state) => {
+  md.core.ruler.push("veistra_lines", (state) => {
     for (const token of state.tokens) {
       if (!token.map || token.type === "inline" || token.type === "html_block") continue;
       if (token.nesting === -1) continue;
@@ -61,7 +61,7 @@ function build(): Parser {
     }
   });
 
-  md.core.ruler.push("openkaava_headings", (state) => {
+  md.core.ruler.push("veistra_headings", (state) => {
     const seen = new Map<string, number>();
     const tokens = state.tokens;
     for (let i = 0; i < tokens.length; i += 1) {
@@ -88,7 +88,7 @@ function build(): Parser {
     }
   });
 
-  md.core.ruler.push("openkaava_tasks", (state) => {
+  md.core.ruler.push("veistra_tasks", (state) => {
     const tokens = state.tokens;
     for (let i = 2; i < tokens.length; i += 1) {
       const inline = tokens[i];

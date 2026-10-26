@@ -90,7 +90,7 @@ export function useSettings(): SettingsSession {
         // unreadable — Rust degrades a broken `settings.json` to the defaults
         // on its own. Worth seeing: the symptom is a screen that never fills
         // in, which looks like a feature nobody wired up.
-        console.error("kaava: could not load the settings:", err);
+        console.error("veistra: could not load the settings:", err);
       }
     })();
 

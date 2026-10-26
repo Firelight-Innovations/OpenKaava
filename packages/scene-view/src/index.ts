@@ -1,10 +1,10 @@
 /**
- * `@kaava/scene-view`: an interactive glTF preview for the Godot and
+ * `@veistra/scene-view`: an interactive glTF preview for the Godot and
  * Blender viewers. See `SceneView.tsx` for how the pieces fit, and
  * `markupHost.ts` for the contract the markup layer consumes.
  *
  * Shipped as TypeScript source rather than a built `dist/`, unlike
- * `@openkaava/bridge`: it is private to this repository and imports CSS, and a
+ * `@veistra/bridge`: it is private to this repository and imports CSS, and a
  * second bundler pass would only get in the way of Vite's tree-shaking of
  * three.js.
  */

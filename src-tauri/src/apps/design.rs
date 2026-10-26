@@ -24,11 +24,11 @@ use crate::design_comments::{Author, Comment, Comments, Draft, Element, Page, Re
 use crate::devtools;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine as _;
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use tauri::{AppHandle, Manager, Url};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 
 /// The probe, as browser code. See `design_probe.js` for why it is a file.
 const PROBE: &str = include_str!("design_probe.js");
@@ -80,7 +80,7 @@ impl Refusal {
             Refusal::NoHost => "that address names no host to fetch it from".to_string(),
             Refusal::ReservedHost(host) => format!(
                 "`{host}` is reserved — a name under `.localhost` can be mistaken for this \
-                 application's own origin, which would hand the page OpenKaava's own permissions. \
+                 application's own origin, which would hand the page Veistra's own permissions. \
                  Use `localhost` with a port instead."
             ),
             Refusal::OwnOrigin(origin) => format!(
@@ -242,7 +242,7 @@ fn read_clip(params: Option<&Value>) -> Result<Clip, RpcError> {
 /// inventing that mapping is a change to the shell's own model rather than to
 /// this app. The frontend closes the gap from its side instead: it refuses to
 /// ask while `document.hasFocus()` is false, so the window being photographed
-/// is the window the click happened in. A second OpenKaava window holding a second
+/// is the window the click happened in. A second Veistra window holding a second
 /// Design Mode while this one has focus is the case that would otherwise be
 /// answered with a picture of the wrong screen.
 fn capture(app: &AppHandle, params: Option<&Value>) -> Result<Value, RpcError> {
@@ -652,7 +652,7 @@ mod tests {
             "file:///C:/Windows/System32/drivers/etc/hosts",
             "javascript://x/%0aalert(1)",
             "data:text/html,<h1>hi</h1>",
-            "kaava-tool://home/index.html",
+            "veistra-tool://home/index.html",
         ] {
             assert!(
                 matches!(normalize(raw, None), Err(Refusal::Scheme(_))),
@@ -667,7 +667,7 @@ mod tests {
     #[test]
     fn a_host_under_localhost_is_refused() {
         for raw in [
-            "http://kaava-tool.localhost:5173",
+            "http://veistra-tool.localhost:5173",
             "http://tauri.localhost",
             "https://ipc.localhost/anything",
             "http://SOMETHING.LocalHost:1234",
@@ -823,7 +823,7 @@ mod tests {
             let parsed: Value = serde_json::from_str(&text).expect("a capability file is JSON");
             assert!(
                 parsed.get("remote").is_none(),
-                "{} declares `remote`, which lets a page Design Mode embedded reach OpenKaava's \
+                "{} declares `remote`, which lets a page Design Mode embedded reach Veistra's \
                  commands. If this is deliberate, Design Mode needs a different defence and \
                  docs/design-notes/design-mode.md needs rewriting.",
                 path.display()

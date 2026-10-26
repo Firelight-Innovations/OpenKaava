@@ -3,29 +3,29 @@
  * as parameters instead of reaching for `window`/`window.parent` globally —
  * under jsdom `window.parent === window`, so a client hard-wired to globals
  * could only ever be exercised on the Tauri path. Passing `self`/`parent` in
- * lets tests fake the iframe relationship and drive the Kaava path too.
+ * lets tests fake the iframe relationship and drive the Veistra path too.
  * `src/index.ts` is the thin layer that supplies the real globals.
  */
 import {
   isCommandMessage,
   isEventMessage,
-  isKaavaMessage,
+  isVeistraMessage,
   isReadyMessage,
   isResponseMessage,
   TOPIC_EVENT_PREFIX,
-  type KaavaErrorPayload,
+  type VeistraErrorPayload,
   type IncomingMessage,
   type PublishedTopic,
   type Session,
 } from "./protocol.js";
-import { KaavaErrorCode, KaavaRpcError } from "./errors.js";
+import { VeistraErrorCode, VeistraRpcError } from "./errors.js";
 import { createSearchClaimer, type SearchClaim, type SearchHandle } from "./search.js";
 
 export type { SearchClaim, SearchHandle };
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-export type Host = "kaava" | "tauri";
+export type Host = "veistra" | "tauri";
 
 /** A window-shaped message event — kept minimal (not the DOM `MessageEvent`
  * type) so tests can hand the listener plain objects instead of constructing
@@ -55,7 +55,7 @@ export interface ClientOptions {
   parent: WindowLike;
   /**
    * Dynamic import of the Tauri APIs, injected so `@tauri-apps/api` stays an
-   * optional peer dependency — a tool that only ever runs inside OpenKaava
+   * optional peer dependency — a tool that only ever runs inside Veistra
    * shouldn't have to install it — and so tests can supply a fake without
    * the real module needing to resolve at all.
    */
@@ -151,7 +151,7 @@ export function createClient(opts: ClientOptions): Client {
   // top-level window, so `self === parent` (mirroring `window.parent ===
   // window`) is a one-time fact about how the page was loaded, checked once
   // here — no probe, no timeout, no ambiguous middle state.
-  const host: Host = self === parent ? "tauri" : "kaava";
+  const host: Host = self === parent ? "tauri" : "veistra";
 
   let nextId = 1;
   const pending = new Map<number, PendingRequest>();
@@ -172,22 +172,22 @@ export function createClient(opts: ClientOptions): Client {
     resolveSession = resolve;
   });
 
-  function settleResponse(id: number, result: unknown, error: KaavaErrorPayload | undefined) {
+  function settleResponse(id: number, result: unknown, error: VeistraErrorPayload | undefined) {
     const req = pending.get(id);
     if (!req) return; // already timed out, or an id this client never sent
     pending.delete(id);
     clearTimeout(req.timer);
-    if (error) req.reject(new KaavaRpcError(error.code, error.message, error.data));
+    if (error) req.reject(new VeistraRpcError(error.code, error.message, error.data));
     else req.resolve(result);
   }
 
-  if (host === "kaava") {
+  if (host === "veistra") {
     self.addEventListener("message", (event) => {
       // Anything not from the parent frame, or not wearing the version
       // marker, isn't the shell — could be an unrelated message sharing the
       // window, or (before `ready` arrives) simply not it yet.
       if (event.source !== parent) return;
-      if (!isKaavaMessage(event.data)) return;
+      if (!isVeistraMessage(event.data)) return;
       const msg: IncomingMessage = event.data;
 
       if (isReadyMessage(msg)) {
@@ -219,7 +219,7 @@ export function createClient(opts: ClientOptions): Client {
     // registration, and a postMessage that arrives before a listener exists
     // is simply gone, no replay. (Same failure mode this project already
     // hit with Tauri events during splash boot — see Splash.tsx.)
-    parent.postMessage({ kaava: 1, kind: "hello" }, "*");
+    parent.postMessage({ veistra: 1, kind: "hello" }, "*");
   } else {
     // No shell exists under the Tauri host, so there's no handshake to wait
     // on — the session is knowable immediately, and is always empty.
@@ -233,15 +233,15 @@ export function createClient(opts: ClientOptions): Client {
     // broadcast a request — params and all — to any listening origin, and do
     // it silently.
     if (shellOrigin === null) throw new Error("bridge: sendRequest before handshake");
-    parent.postMessage({ kaava: 1, kind: "request", id, method, params }, shellOrigin);
+    parent.postMessage({ veistra: 1, kind: "request", id, method, params }, shellOrigin);
   }
 
-  function invokeKaava<T>(method: string, params: unknown, timeoutMs: number): Promise<T> {
+  function invokeVeistra<T>(method: string, params: unknown, timeoutMs: number): Promise<T> {
     const id = nextId++;
     return new Promise<T>((resolve, reject) => {
       const timer = setTimeout(() => {
         pending.delete(id);
-        reject(new KaavaRpcError(KaavaErrorCode.Timeout, `invoke timed out: ${method}`));
+        reject(new VeistraRpcError(VeistraErrorCode.Timeout, `invoke timed out: ${method}`));
       }, timeoutMs);
       pending.set(id, { resolve: resolve as (v: unknown) => void, reject, timer });
       // The `pending.has` guard matters for the queued path specifically. The
@@ -263,60 +263,60 @@ export function createClient(opts: ClientOptions): Client {
   }
 
   async function invokeTauri<T>(method: string, params: unknown): Promise<T> {
-    // `/` isn't legal in a Tauri command name, so `kaava/*` would be a
+    // `/` isn't legal in a Tauri command name, so `veistra/*` would be a
     // guaranteed runtime error if forwarded. Handle the reserved methods
     // locally instead of ever reaching `@tauri-apps/api`. There's no real
     // handshake to answer under this host, so `hello` only has the one
     // field the bridge can honestly claim to know; `shutdown` has nothing
     // to ack and resolves to null, per the reserved-methods table in
     // docs/tool-protocol.md §2.
-    if (method === "kaava/hello") return { protocol: 1 } as unknown as T;
-    if (method === "kaava/shutdown") return null as unknown as T;
+    if (method === "veistra/hello") return { protocol: 1 } as unknown as T;
+    if (method === "veistra/shutdown") return null as unknown as T;
     // Nothing is waiting on this one here. Under the orchestrator it tells the
     // shell a frame has drawn its first meaningful content, which is what the
     // splash window holds for; a tool's own Tauri app has no splash and no
     // second window to reveal, so it acknowledges and does nothing, like
-    // `kaava/shutdown` above.
-    if (method === "kaava/painted") return null as unknown as T;
+    // `veistra/shutdown` above.
+    if (method === "veistra/painted") return null as unknown as T;
     // Nothing under this host has a menu bar to grey out — the tool's own Tauri
     // app draws its own chrome — so the declaration is accepted and dropped,
-    // exactly like `kaava/painted` above. Refusing it instead would make every
+    // exactly like `veistra/painted` above. Refusing it instead would make every
     // frontend that supports menu commands log an error on a host where the
     // feature simply does not apply.
-    if (method === "kaava/commands") return null as unknown as T;
-    // The sideways channel needs a shell to be sideways *through*: `kaava/open`
-    // finds another app in this frame's cluster, and `kaava/publish` relays to
+    if (method === "veistra/commands") return null as unknown as T;
+    // The sideways channel needs a shell to be sideways *through*: `veistra/open`
+    // finds another app in this frame's cluster, and `veistra/publish` relays to
     // the frames beside it. A tool's own Tauri app is one window with one
     // frontend in it — there is no cluster, no second app, and nobody to
     // deliver to.
     //
     // Refused rather than dropped, and that is the difference from
-    // `kaava/commands` above. A dropped declaration costs nothing: the menu bar
+    // `veistra/commands` above. A dropped declaration costs nothing: the menu bar
     // it would have greyed out does not exist here either, so accepting it
     // silently is honest. An open is a user's instruction that something should
     // now be on screen, and answering "done" to that while nothing happened
     // would leave a frontend believing it had opened a file it had not.
-    // `kaava/publish` is refused alongside it rather than dropped for a smaller
+    // `veistra/publish` is refused alongside it rather than dropped for a smaller
     // reason: it is fire-and-forget below, so the rejection is swallowed at the
     // call site, and having the two halves of one feature disagree about
     // whether this host supports it would be the confusing thing to read.
-    // `kaava/drag` is refused with them, for `kaava/open`'s reason: a drag out of
+    // `veistra/drag` is refused with them, for `veistra/open`'s reason: a drag out of
     // a frame aims at somewhere else in the window, a standalone app has no
     // elsewhere, and the user is mid-gesture while it is answered.
     if (
-      method === "kaava/open" ||
-      method === "kaava/publish" ||
-      method === "kaava/drag" ||
-      method === "kaava/search-claim" ||
-      method === "kaava/search-release"
+      method === "veistra/open" ||
+      method === "veistra/publish" ||
+      method === "veistra/drag" ||
+      method === "veistra/search-claim" ||
+      method === "veistra/search-release"
     ) {
-      throw new KaavaRpcError(
-        KaavaErrorCode.MethodNotFound,
+      throw new VeistraRpcError(
+        VeistraErrorCode.MethodNotFound,
         `${method}: there is no shell here — this frontend is its own window`,
       );
     }
-    if (method.startsWith("kaava/")) {
-      throw new KaavaRpcError(KaavaErrorCode.MethodNotFound, `no such method: ${method}`);
+    if (method.startsWith("veistra/")) {
+      throw new VeistraRpcError(VeistraErrorCode.MethodNotFound, `no such method: ${method}`);
     }
     const tauri = await importTauri();
     return tauri.invoke(method, params) as Promise<T>;
@@ -332,8 +332,8 @@ export function createClient(opts: ClientOptions): Client {
     params?: unknown,
     timeoutMs = defaultTimeoutMs,
   ): Promise<T> {
-    return host === "kaava"
-      ? invokeKaava<T>(method, params, timeoutMs)
+    return host === "veistra"
+      ? invokeVeistra<T>(method, params, timeoutMs)
       : invokeTauri<T>(method, params);
   }
 
@@ -342,7 +342,7 @@ export function createClient(opts: ClientOptions): Client {
   // every method of this client *unbound*, so a `this.on` there would find a
   // `this` of undefined the moment anyone imported the shorthand.
   function onEvent(event: string, cb: (payload: unknown) => void): () => void {
-    if (host === "kaava") {
+    if (host === "veistra") {
       let set = listeners.get(event);
       if (!set) {
         set = new Set();
@@ -404,11 +404,11 @@ export function createClient(opts: ClientOptions): Client {
       // null, and one that refuses has told us nothing we can act on — the
       // frontend's own state is unchanged either way. What must not happen is
       // an unhandled rejection from a call nobody awaited.
-      void invokeAny("kaava/commands", { commands: [...commands] }).catch(() => {});
+      void invokeAny("veistra/commands", { commands: [...commands] }).catch(() => {});
     },
 
     openIn(appId: string, payload?: unknown): Promise<{ instanceId: string }> {
-      return invokeAny<{ instanceId: string }>("kaava/open", { appId, payload });
+      return invokeAny<{ instanceId: string }>("veistra/open", { appId, payload });
     },
 
     publish(topic: string, value: unknown): void {
@@ -432,7 +432,7 @@ export function createClient(opts: ClientOptions): Client {
       // reason: nothing in this frontend's own state depends on the answer, and
       // an unhandled rejection from a call nobody awaited is the worse outcome.
       // Under the Tauri host this rejects every time — see `invokeTauri`.
-      void invokeAny("kaava/publish", { topic, value }).catch(() => {});
+      void invokeAny("veistra/publish", { topic, value }).catch(() => {});
     },
 
     subscribe(topic: string, cb: (value: unknown, from: string) => void): () => void {

@@ -1,0 +1,65 @@
+# Schematify's architectural boundary between design data and audit data.
+#
+# PRD §14.6: "CI enforces the architectural boundary. Convention enforces
+# nothing... A path-scope check blocks a pull request that writes to `runs/`
+# and `nodes/` together, with the lifecycle pair in §6.3 as the one exception."
+# `scripts/check-veistra-boundary.mjs` is that check; its own header carries the
+# full reasoning, including why each `.veistra/` root in the repository is judged
+# on its own.
+#
+# Its own workflow rather than a step inside `verify`, for the same reason
+# `catalog.yml` gives: `verify` answers "is this branch correct" from one
+# command a contributor can run offline. This answers a question about *which*
+# files moved together, needs the pull request's base and head commits, and
+# cannot be run against a single ref alone. A required status check named after
+# a workflow should mean one thing.
+#
+# Nothing here runs the project's code. It reads a diff, which is what keeps
+# this cheap enough to be its own job — seconds on a Linux runner rather than
+# minutes on a Windows one.
+
+name: veistra-boundary
+
+on:
+  pull_request:
+
+# Read-only. This reports through the job's own pass/fail, not by commenting,
+# so it needs nothing more than a fork's read-only token already gives it.
+permissions:
+  contents: read
+
+concurrency:
+  group: veistra-boundary-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  veistra-boundary:
+    # Linux, like catalog.yml and unlike verify.yml and deny.yml: this reads a
+    # git diff and nothing platform-specific, so there is no reason to spend
+    # Windows minutes on it.
+    runs-on: ubuntu-latest
+
+    steps:
+      # fetch-depth: 0 because the check diffs against the base commit, and a
+      # shallow clone does not have it.
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      # package-manager-cache: false because this job runs no package manager.
+      # Left at its default, setup-node reads `packageManager` from
+      # package.json and fails the job looking for a pnpm store that was never
+      # installed here, deliberately.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          package-manager-cache: false
+
+      # No `pnpm install` first: the script imports only `node:` built-ins, so
+      # it runs against a bare checkout. A gate with fewer moving parts is a
+      # gate with fewer ways to be wrong.
+      - name: Check the nodes/runs boundary
+        run: |
+          node scripts/check-veistra-boundary.mjs \
+            --base "${{ github.event.pull_request.base.sha }}" \
+            --head "${{ github.event.pull_request.head.sha }}"

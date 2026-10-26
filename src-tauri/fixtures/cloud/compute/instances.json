@@ -1,6 +1,6 @@
 [
   {
-    "name": "kaava-worker",
+    "name": "veistra-worker",
     "zone": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a",
     "status": "RUNNING",
     "machineType": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/machineTypes/e2-standard-8",
@@ -25,12 +25,12 @@
     ],
     "disks": [
       {
-        "source": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/disks/kaava-worker"
+        "source": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/disks/veistra-worker"
       }
     ]
   },
   {
-    "name": "kaava-worker-2",
+    "name": "veistra-worker-2",
     "zone": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a",
     "status": "TERMINATED",
     "machineType": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/machineTypes/e2-standard-8",
@@ -56,12 +56,12 @@
     ],
     "disks": [
       {
-        "source": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/disks/kaava-worker-2"
+        "source": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/disks/veistra-worker-2"
       }
     ]
   },
   {
-    "name": "kaava-gpu",
+    "name": "veistra-gpu",
     "zone": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a",
     "status": "TERMINATED",
     "machineType": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/machineTypes/g2-standard-8",
@@ -85,7 +85,7 @@
     ],
     "disks": [
       {
-        "source": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/disks/kaava-gpu"
+        "source": "https://www.googleapis.com/compute/v1/projects/fixture/zones/us-central1-a/disks/veistra-gpu"
       }
     ]
   },

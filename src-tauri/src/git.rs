@@ -13,7 +13,7 @@
 //! Commands take a cluster *id*, never a path. Resolving the id to a checkout happens on this side,
 //! through `project::cluster_path`, so the frontend never gets to name a directory for the backend
 //! to run `git` in. They used to take a *tool* id, resolved against the `[[tool]]` pins in
-//! `kaava.toml`. That was not merely the wrong scope: `discovery.rs` filters those pins through
+//! `veistra.toml`. That was not merely the wrong scope: `discovery.rs` filters those pins through
 //! `ENABLED_TOOLS`, which is `&[]`, so the list is empty for every project and the lookup could
 //! only ever fail. See the note on `git_cluster_status` for what that cost.
 
@@ -109,7 +109,7 @@ pub struct GitDiff {
 /// There is no tool-scoped twin of this any more. A `git_status(id)` taking a *tool* id used to sit
 /// beside it, called by the source-control view and the status bar, and it could not work: it
 /// resolved through a `repo()` helper that looked its id up in `StackSnapshot.tools` — the
-/// `[[tool]]` pins from `kaava.toml` — a different id space from the shell's own apps, and one
+/// `[[tool]]` pins from `veistra.toml` — a different id space from the shell's own apps, and one
 /// `discovery.rs`'s `ENABLED_TOOLS = &[]` leaves empty for every project regardless. The lookup
 /// could only ever return `UnknownTool`. It read as a scoping subtlety and was a dead path, which
 /// is why it is gone rather than fixed: a command that has never returned a value to anyone is not
@@ -856,7 +856,7 @@ pub fn worktrees(repo: &Path) -> Result<Vec<GitWorktree>> {
 /// forked from `repo`'s current HEAD.
 ///
 /// `git worktree add -b <branch> <path>` creates the directory itself — it
-/// must not already exist — so this is also how OpenKaava creates the branch,
+/// must not already exist — so this is also how Veistra creates the branch,
 /// not a separate step.
 pub fn add_worktree(repo: &Path, path: &Path, branch: &str) -> Result<()> {
     let path = path.to_string_lossy();
@@ -907,9 +907,9 @@ pub fn remove_worktree(repo: &Path, path: &Path, force: bool) -> Result<()> {
 
 /// Forget worktrees whose directories no longer exist.
 ///
-/// A worktree OpenKaava created is only ever removed through `remove_worktree`
+/// A worktree Veistra created is only ever removed through `remove_worktree`
 /// above, but a worktree's directory can also just be deleted from outside
-/// OpenKaava — in Explorer, by `rm -rf`, by cleaning a CI checkout. Git does not
+/// Veistra — in Explorer, by `rm -rf`, by cleaning a CI checkout. Git does not
 /// notice that on its own; `git worktree list` keeps reporting the dead entry
 /// until something runs `prune`. This is that something.
 pub fn prune_worktrees(repo: &Path) -> Result<()> {
@@ -944,7 +944,7 @@ pub fn repo_root(path: &Path) -> Option<PathBuf> {
 /// (`<main>/.git/worktrees/<name>`) but shares one common dir with the main
 /// checkout, and that shared dir lives directly under the main checkout's
 /// working tree — so its parent is the answer. `worktrees` and
-/// `add_worktree` should be pointed at this rather than at `repo_root`: OpenKaava
+/// `add_worktree` should be pointed at this rather than at `repo_root`: Veistra
 /// shows one worktree list per project regardless of which worktree happens
 /// to be the active tool, and resolving through the main checkout every time
 /// is what keeps that list from depending on which one asked.
@@ -1142,7 +1142,7 @@ fn cluster_repo(app: &AppHandle, cluster_id: &str, op: &str) -> Result<(PathBuf,
 /// as its empty state — the same judgement `git_status` makes in returning
 /// `None` instead of failing.
 ///
-/// Prunes first. A worktree directory deleted outside OpenKaava stays in `git
+/// Prunes first. A worktree directory deleted outside Veistra stays in `git
 /// worktree list` until something runs `prune`, and a list that still names a
 /// folder nobody can open is worse than one that is a moment out of date.
 #[tauri::command]
@@ -1249,7 +1249,7 @@ pub fn git_worktree_remove(app: AppHandle, cluster_id: String, force: bool) -> R
 
 /// Drop the cluster's worktree binding if the checkout behind it is gone.
 ///
-/// `git worktree list` is the authority on which worktrees exist, and OpenKaava is
+/// `git worktree list` is the authority on which worktrees exist, and Veistra is
 /// not the only thing that can delete one — Explorer, `rm -rf`, and another
 /// clone of the same repository all can. Without this, such a cluster keeps a
 /// working root pointing at nothing: its terminals fail to spawn, its file tree
@@ -2182,7 +2182,7 @@ body line",
 
     /// Where [`git_init_where_it_was_asked`] runs `git init`, set by the test
     /// that starts it.
-    const INIT_HERE: &str = "KAAVA_TEST_GIT_INIT_HERE";
+    const INIT_HERE: &str = "VEISTRA_TEST_GIT_INIT_HERE";
 
     /// The bug: run under `git rebase --exec`, this crate's tests inherited
     /// `GIT_DIR`, and a fixture's `git init` in a temp folder set `core.bare`

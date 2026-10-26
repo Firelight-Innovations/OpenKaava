@@ -29,7 +29,7 @@ until Braden says otherwise; none of them is a decision row.
   "applies next session". Decided as that default; the toggle itself is
   built in the P1 pass, not in PR 3.
 
-Done so far. Each PR adds its entry here and updates the "OpenKaava today"
+Done so far. Each PR adds its entry here and updates the "Veistra today"
 cells of the rows it closes in section 2.
 
 - **PR 1** (setup): the host reads `modes` and `configOptions` from the
@@ -57,7 +57,7 @@ cells of the rows it closes in section 2.
   is sent, so a held Shift+Tab does not step the agent through every mode.
 - **Host-supplied MCP servers** (not a numbered PR; the host half of the
   context server's generative UI): `LaunchSpec.mcp_servers` holds
-  OpenKaava's own servers, each a name, a URL and a bearer scoped to one
+  Veistra's own servers, each a name, a URL and a bearer scoped to one
   cluster. `session/new` offers them in ACP's HTTP form, with the bearer
   in an `Authorization` header, only to an agent that advertised
   `mcpCapabilities.http`, and only for a URL on this machine. Every line the
@@ -119,9 +119,9 @@ Constraints for later PRs, found while reading the adapter:
 
 ## 2. Feature matrix
 
-**Legend.** ACP status: `exposed`, `partial`, `not-exposed`, `unknown`, `n/a` (same meaning as the sweep). Priority: P0 parity-critical; P1 needed after P0; P2 later; Skip (reason given); Shell (covered by OpenKaava's shell, wiring noted).
+**Legend.** ACP status: `exposed`, `partial`, `not-exposed`, `unknown`, `n/a` (same meaning as the sweep). Priority: P0 parity-critical; P1 needed after P0; P2 later; Skip (reason given); Shell (covered by Veistra's shell, wiring noted).
 
-**Sources.** `acp-agent.js`, `session-*.js`, `normalize.rs` and similar names are in the claude-agent-acp `dist/` folder or the OpenKaava crates and UI folders (`crates/kaava-agent-host/src`, `apps/agent-tab/ui/src`). Doc pages are under `https://code.claude.com/docs/en/`, named in each row. A cite into OpenKaava's own code names the file and the function, not a line: the parity PRs keep moving those lines. A `.js` cite is a line in claude-agent-acp 0.90.0.
+**Sources.** `acp-agent.js`, `session-*.js`, `normalize.rs` and similar names are in the claude-agent-acp `dist/` folder or the Veistra crates and UI folders (`crates/veistra-agent-host/src`, `apps/agent-tab/ui/src`). Doc pages are under `https://code.claude.com/docs/en/`, named in each row. A cite into Veistra's own code names the file and the function, not a line: the parity PRs keep moving those lines. A `.js` cite is a line in claude-agent-acp 0.90.0.
 
 **Sweep conflicts resolved in this revision.**
 
@@ -142,7 +142,7 @@ Constraints for later PRs, found while reading the adapter:
 
 ### 2.1 Session and models
 
-| Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
+| Feature | In Claude Code | ACP path | Veistra today | Priority | Notes |
 |---|---|---|---|---|---|
 | Start a session in a worktree | CLI `--worktree`; Desktop worktree option | exposed: `session/new` `cwd` (acp-agent.js:1433-1442, 7687-7700) | done: worktree cwd, host-owned `mcpServers` (session.rs, `Shared::handshake`) | Shell | Only a local worktree may run an agent (agent_tab.rs, `worktree`). |
 | New conversation | `/clear`, `/new`, `/reset`; VS Code New Conversation; Desktop Cmd+N | partial: `/clear` filtered from the menu (acp-agent.js:9006); new conversation is `session/new` (acp-agent.js:1433) | done: New session kills the agent and clears the transcript (host.rs, `Host::reset`) | P0 | Map typed `/clear` and the button to `session/new`. Typed `/clear` behaviour is unknown (acp-agent.js:677 vs 2084). |
@@ -164,7 +164,7 @@ Constraints for later PRs, found while reading the adapter:
 
 ### 2.2 Permission modes
 
-| Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
+| Feature | In Claude Code | ACP path | Veistra today | Priority | Notes |
 |---|---|---|---|---|---|
 | Manual (default) | Mode dropdown "Manual"; Shift+Tab; `--permission-mode default` (permission-modes doc) | exposed: id `default` (session-mode.js:226-261) | done in PR 2: forced to `default` at handshake and fails closed (session.rs, `Shared::handshake`, with harness.rs `Policy::ask_first`); shown as "Manual" and selectable | P0 | PR 2. |
 | Accept edits | "Edit automatically" (VS Code); `acceptEdits` | exposed: id `acceptEdits` (session-mode.js:226-261) | done in PR 2 | P0 | PR 2. |
@@ -180,7 +180,7 @@ Constraints for later PRs, found while reading the adapter:
 
 ### 2.3 Prompt input
 
-| Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
+| Feature | In Claude Code | ACP path | Veistra today | Priority | Notes |
 |---|---|---|---|---|---|
 | Send text prompt | type and send | exposed: `session/prompt` text block (session.rs, `Shared::turn`) | done | P0 | Done. |
 | Enter sends; Shift+Enter newline | chat:submit; Shift+Enter (interactive-mode doc) | n/a: client key | done (App.tsx, `submit`) | P0 | Done. |
@@ -220,7 +220,7 @@ Constraints for later PRs, found while reading the adapter:
 
 ### 2.4 Slash commands
 
-| Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
+| Feature | In Claude Code | ACP path | Veistra today | Priority | Notes |
 |---|---|---|---|---|---|
 | Command menu from advertised list | `/` menu, filters as you type | exposed: `available_commands_update` (acp-agent.js:7262-7291; list built 8987-9048) | dropped (normalize.rs, the last arm of `Normalizer::update`) | P0 | PR 5. Commands run only at message start. |
 | Argument hints | argument hint shown | exposed: `input.hint` from argumentHint (acp-agent.js:9005-9046) | not implemented | P1 | — |
@@ -238,7 +238,7 @@ Constraints for later PRs, found while reading the adapter:
 | `/goal` | keep working until a condition is met | exposed as typed text (goal-extension.js:6; acp-agent.js:2318-2330); structured panel AIR-only (acp-agent.js:2301-2303) | not implemented | P1 | Typed `/goal` works now. Panel after D1 (Section 4 E). |
 | `/config`, `/settings` | settings dialog | partial: no ACP dialog; SDK `updateSettings` and `applyFlagSettings` exist (sdk.d.ts:2970-2985) but only the adapter holds the SDK | not implemented | P1 | Native settings panel (PR 20). Section 4 J. |
 | `/permissions`, `/allowed-tools` | rule editor | partial (see Permission modes) | not implemented | P1 | PR 20. |
-| `/theme` | colour theme | not-exposed | OpenKaava theming | Shell | — |
+| `/theme` | colour theme | not-exposed | Veistra theming | Shell | — |
 | `/help` | help and command list | not-exposed (local-jsx) | not implemented | P1 | Native help panel lists advertised commands and shortcuts (PR 22). |
 | `/status` | account, version, model, connectivity | unknown: local-jsx variant; adapter treats as replay-hidden text (acp-agent.js:686) | not implemented | P1 | Build a native status panel from auth status, mode, model and capabilities (PR 24). |
 | `/doctor`, `/checkup` | install and settings health | not-exposed: terminal-tagged | not implemented | Shell | Run `claude doctor` in a terminal pane. |
@@ -295,7 +295,7 @@ Constraints for later PRs, found while reading the adapter:
 
 ### 2.5 Skills, commands and subagents
 
-| Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
+| Feature | In Claude Code | ACP path | Veistra today | Priority | Notes |
 |---|---|---|---|---|---|
 | Skill invocation `/skill args` | skills from user, project, plugin and managed folders | exposed: advertised with `input.hint` (acp-agent.js:8995-9000) | not implemented | P0 | Via the menu (PR 5). |
 | Skill frontmatter runtime | `$ARGUMENTS`, `` !`cmd` ``, `context: fork`, `allowed-tools` | partial: runs in the SDK | — | Works automatically | See Section 3. |
@@ -324,7 +324,7 @@ Constraints for later PRs, found while reading the adapter:
 
 ### 2.6 Tool calls, diffs and approvals
 
-| Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
+| Feature | In Claude Code | ACP path | Veistra today | Priority | Notes |
 |---|---|---|---|---|---|
 | Tool rows (title, kind, status) | Read, Edit, Bash, Grep and others | exposed: `tool_call` and `tool_call_update` by toolCallId (tool-calls/reporters) | done (normalize.rs, `Normalizer::tool` and `merge_tool`) | P0 | Done. |
 | Failed Bash output | command output in tool row | partial: success output arrives via toolResult (bash.js:18-40); failed-command output needs `_meta.terminal_output` (client-capabilities.js:41-42; renderer.js:228, 291-296; bash.js:29-31) | text only; terminal blocks dropped (normalize.rs, `merge_tool`) | P0 | Corrected. Verify on a failing command. Declare only if needed (PR 17). |
@@ -337,22 +337,22 @@ Constraints for later PRs, found while reading the adapter:
 | Line comments on diffs | Desktop Changes pane: Enter adds, Cmd+Enter submits (desktop doc) | unknown | not implemented | P2 | Would send as a prompt. |
 | Code review card | Walk through, Fix this one, Apply fixes (desktop doc) | not-exposed | not implemented | P2 | Shows after `/code-review`. |
 | Allow once | "Yes" | exposed: `allow_once` (permissions/options/shared.js:16-22) | done (session.rs, `Session::answer`) | P0 | Done. |
-| Yes and don't ask again | "Always allow" for a matching rule | exposed: `allow_always` with `updatedPermissions` to localSettings (permissions/effects.js:10-40; options/tools.js:6-8, 28-31) | partial: dropped when the request names no file (normalize.rs, `Normalizer::approval`) | P0 | Corrected. The adapter writes the rule. OpenKaava's filter is the blocker (Section 4 I). |
+| Yes and don't ask again | "Always allow" for a matching rule | exposed: `allow_always` with `updatedPermissions` to localSettings (permissions/effects.js:10-40; options/tools.js:6-8, 28-31) | partial: dropped when the request names no file (normalize.rs, `Normalizer::approval`) | P0 | Corrected. The adapter writes the rule. Veistra's filter is the blocker (Section 4 I). |
 | Yes and switch to auto mode | option on some prompts | exposed: option passes through (options/tools.js:77) | dropped: an option that enters a held-back mode is filtered; the rest are shown with the agent's label (normalize.rs, `Normalizer::approval`) | P1 | Not offered: the host drops options that enter Auto or Bypass (`config::enters_held_back`) until the guard is checked in those modes. |
 | Reject | "No" | exposed: `reject_once` (shared.js:16-22) | done | P0 | Done. |
 | Comment on an answer | Tab adds a comment (permissions doc) | unknown: no comment path found | not implemented | P2 | Verify whether the comment reaches ACP. |
-| Outside-worktree refusal | not in Claude Code | OpenKaava policy (guard.rs, its module comment; session.rs, `Shared::permission`) | done | P0 | Keep. OpenKaava rule. |
+| Outside-worktree refusal | not in Claude Code | Veistra policy (guard.rs, its module comment; session.rs, `Shared::permission`) | done | P0 | Keep. Veistra rule. |
 | AskUserQuestion | multiple-choice card with Other and notes | exposed when `clientCapabilities.elicitation.form` is declared (acp-agent.js:7030-7040; elicitation.js:170-256); tool disallowed without it (acp-agent.js:7818, 7941) | not implemented; no elicitation declared (session.rs, `Shared::handshake`); -32601 reply (session.rs, `METHOD_NOT_FOUND` in `Shared::on_line`) | P0 | The model cannot ask questions today. PR 12. |
 | MCP elicitation | form or URL prompts from servers | exposed: `elicitation/create` form or url (elicitation.js:9-60) | not implemented | P1 | PR 15. |
 | Refusal fallback consent | consent dialog on refusal | exposed: form kind `refusal_fallback_prompt` (elicitation.js:276-347) | not implemented | P1 | Needs the form declaration (PR 12). |
 | Paths in tool rows | file paths shown | exposed: locations and rawInput paths (guard.rs, `request_paths`) | plain text, not links (components/PathList.tsx) | P1 | Open in the shell file viewer (PR 22). |
 | Open a changed file | open in editor | n/a: client action | not implemented | P1 | Shell file viewer. |
 | Monitor tool | streams long command output | partial: Monitor tasks not treated as subagents (async-tasks.js isMonitorTask) | think row (reporters/index.js:33) | P2 | — |
-| Tool output cap | full output in transcript | OpenKaava policy: 16 KiB (normalize.rs, `OUTPUT_LIMIT`) | capped | P2 | Add a "show all" action. |
+| Tool output cap | full output in transcript | Veistra policy: 16 KiB (normalize.rs, `OUTPUT_LIMIT`) | capped | P2 | Add a "show all" action. |
 
 ### 2.7 Plans and todos
 
-| Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
+| Feature | In Claude Code | ACP path | Veistra today | Priority | Notes |
 |---|---|---|---|---|---|
 | Plan mode | `/plan`; Shift+Tab | exposed: mode `plan` (session-mode.js:247) | done in PR 2: selectable in the mode switcher and by Shift+Tab | P0 | The plan card is PR 13. |
 | Plan approval card | Yes, auto mode; Yes, manual edits; No, keep planning (permission-modes doc) | exposed: ExitPlanMode options (acp-agent.js:4781, 4855) | generic approval card (normalize.rs, `Normalizer::approval`) | P0 | Works as buttons now, except the options that enter Auto or Bypass, which the host drops. PR 13 adds plan text. |
@@ -368,7 +368,7 @@ Constraints for later PRs, found while reading the adapter:
 
 ### 2.8 Context, usage and cost
 
-| Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
+| Feature | In Claude Code | ACP path | Veistra today | Priority | Notes |
 |---|---|---|---|---|---|
 | Context meter | ring beside model; VS Code indicator; CLI token count | exposed: `usage_update` used and size, after each turn (acp-agent.js:4677-4690; 8413-8436) | partial: drawn once at end of turn (components/Usage.tsx) | P1 | Not live during a turn. Verify whether mid-turn updates arrive. |
 | Session cost | cost in `/usage` and header | exposed: `usage_update` cost (acp-agent.js:4677-4690) | ignored (normalize.rs, the `usage_update` arm of `Normalizer::update`) | P1 | PR 18. |
@@ -388,7 +388,7 @@ Constraints for later PRs, found while reading the adapter:
 
 ### 2.9 History, resume and rewind
 
-| Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
+| Feature | In Claude Code | ACP path | Veistra today | Priority | Notes |
 |---|---|---|---|---|---|
 | Session list | `/resume` picker; VS Code Session history (Local tab) | exposed: `session/list`, page size 1000 (acp-agent.js:525, 1549); `subscribeSessionList` (1583) | not implemented | P0 | PR 7. Web tab is cloud (Skip). |
 | Resume by id or picker | `/resume`; `claude --resume` | exposed: `session/resume` (acp-agent.js:1433-1555) | not implemented | P0 | PR 7. |
@@ -416,7 +416,7 @@ Constraints for later PRs, found while reading the adapter:
 
 ### 2.10 MCP, hooks, plugins and settings
 
-| Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
+| Feature | In Claude Code | ACP path | Veistra today | Priority | Notes |
 |---|---|---|---|---|---|
 | MCP status list | `/mcp`: failed, needs auth, connecting, connected, disabled | exposed: `/mcp` adapter command (mcp-command.js:263-326; SDK `mcpServerStatus`) | not implemented | P1 | PR 14. Status calls time out at 5 s (mcp-command.js). |
 | Reconnect, enable, disable | `/mcp reconnect`, enable, disable | exposed (mcp-command.js; SDK `reconnectMcpServer`, `toggleMcpServer`) | not implemented | P1 | PR 14. |
@@ -442,7 +442,7 @@ Constraints for later PRs, found while reading the adapter:
 | Settings view and edit | `/config`; settings files | not-exposed; SDK methods exist (sdk.d.ts:2970-2985) but need the adapter | not implemented | P1 | PR 20. Write files with a schema check. Show "applies next session" until live apply is verified. |
 | Settings precedence and reload | managed, flag, local, project, user | partial: adapter watches files and re-resolves (settings.js:37-160; unverified live) | — | Works automatically | — |
 | Settings source selection | `--setting-sources`, `--settings` | partial: hard-coded user, project, local (acp-agent.js:7897); `--settings` option (acp-agent.js:7904) | — | P2 | — |
-| Environment block | `env` in settings | partial: depends on what the host passes; OpenKaava sets only `CLAUDE_CODE_EXECUTABLE` (harness.rs, `spec`) | — | P2 | Verify env reaches the SDK. |
+| Environment block | `env` in settings | partial: depends on what the host passes; Veistra sets only `CLAUDE_CODE_EXECUTABLE` (harness.rs, `spec`) | — | P2 | Verify env reaches the SDK. |
 | Output styles | `/output-style`; `outputStyle` setting | partial: listed command; no outputStyle wiring (acp-agent.js:9011) | not implemented | P2 | Section 4 X. |
 | Custom output styles | `.md` files in `~/.claude/output-styles` | partial: via settingSources; not verified | — | Works automatically | — |
 | Status line | `statusLine` command; `/statusline` | not-exposed: no statusLine handling (grep) | not implemented | P2 | Section 4 AD. |
@@ -457,7 +457,7 @@ Constraints for later PRs, found while reading the adapter:
 
 Ctrl+C is copy in a webview, so the tab keeps Escape as the stop key. Tab is not the thinking toggle; Option+T (Alt+T) is.
 
-| Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
+| Feature | In Claude Code | ACP path | Veistra today | Priority | Notes |
 |---|---|---|---|---|---|
 | Enter sends; Shift+Enter newline | chat:submit | n/a | done (App.tsx, `submit`) | P0 | Done. |
 | Escape stops a turn | chat:cancel | exposed: `session/cancel` (acp-agent.js:5778-5800) | done (App.tsx, `onKeyDown`) | P0 | Done. |
@@ -482,7 +482,7 @@ Ctrl+C is copy in a webview, so the tab keeps Escape as the stop key. Tab is not
 | Ctrl+G, Ctrl+S | external editor; stash | n/a | not implemented | P2 | — |
 | Ctrl+L, Ctrl+Z | redraw; suspend | n/a | — | Skip | Terminal behaviour. |
 | `?` help | help panel | n/a | not implemented | P1 | PR 22. |
-| keybindings.json | CLI keymap file | n/a | none | Skip | OpenKaava keeps its own map; show the tab map in help. |
+| keybindings.json | CLI keymap file | n/a | none | Skip | Veistra keeps its own map; show the tab map in help. |
 | Vim mode | `editorMode: vim` | n/a | not implemented | P2 | — |
 | Desktop Cmd+; side chat | not saved to disk | not-exposed | not implemented | P2 | — |
 | Desktop Cmd+Shift+D; Ctrl+`; Cmd+\; Ctrl+Tab | diff, terminal, close pane, cycle sessions | n/a | shell | Shell | — |
@@ -492,7 +492,7 @@ Ctrl+C is copy in a webview, so the tab keeps Escape as the stop key. Tab is not
 
 ### 2.12 Desktop and VS Code chrome
 
-| Feature | In Claude Code | ACP path | OpenKaava today | Priority | Notes |
+| Feature | In Claude Code | ACP path | Veistra today | Priority | Notes |
 |---|---|---|---|---|---|
 | Session sidebar layout | sidebar with filters, groups, archive | exposed: `listSessions`, `subscribeSessionList` (acp-agent.js:1549, 1583) | shell tab and cluster model | Shell | Owner decision D11. |
 | Environment selector | Local, Cloud, SSH, WSL | not-exposed: host-level | clusters and environments | Shell | — |
@@ -529,7 +529,7 @@ Ctrl+C is copy in a webview, so the tab keeps Escape as the stop key. Tab is not
 
 ## 3. Works automatically
 
-These need no new OpenKaava work. The UI still shows what is listed in the last column.
+These need no new Veistra work. The UI still shows what is listed in the last column.
 
 | Item | What the binary or adapter does | What the UI should still show | Source |
 |---|---|---|---|
@@ -546,7 +546,7 @@ These need no new OpenKaava work. The UI still shows what is listed in the last 
 | Tool rows, text and diffs | Sent as tool_call and tool_call_update | Already rendered (normalize.rs, `Normalizer::tool` and `merge_tool`). Failed Bash output is the gap (Section 4 Q) | reporters/ |
 | Usage line | `usage_update` after each turn | Already drawn (components/Usage.tsx). PR 18 adds cost and rate limit | acp-agent.js:4677-4690 |
 | Plan card | Plan updates for TodoWrite and Task tools | Already drawn (components/TodoList.tsx). PR 13 adds plan text and clear-context | tools.js:22-29, 78-220 |
-| Retry on error | Kaava-side | Already done (components/ErrorItem.tsx) | — |
+| Retry on error | Veistra-side | Already done (components/ErrorItem.tsx) | — |
 | Auto-mode fallback | Mode drops to acceptEdits with a warning | Warning arrives as text today; PR 19 shows a notice | session-mode.js:6-14, 46-54 |
 | Session titles | Generated after first prompt | Show the title (PR 8) | session-titles.js:217 |
 | Background Bash | Backgrounded calls tagged | Background state (PR 26) | tool-calls/background.js |
@@ -575,7 +575,7 @@ Options: **R** read or write files directly; **C** run a `claude` CLI subcommand
 | F. Async tasks and `/tasks` view | AIR-gated (async-tasks.js; acp-agent.js:204-205). `/tasks` status unknown | D (D1); show tool-level state now | Show background state on tool rows only. |
 | G. File-change audit | AIR-only report (file-change-audit.js:1-25) | Derive locally from diff content | Derive changed files from tool diffs. |
 | H. Plan file path | AIR-only `planFilePath` (air-extension.js). Plan text works without AIR (exit-plan.js:85-110, with `clientCapabilities.plan`) | D (plan) | Use plan text. Skip the file path. |
-| I. "Don't ask again" scope and storage | Adapter writes `localSettings` for `allow_always` (permissions/effects.js:10-40; options/shared.js:19). OpenKaava drops `allow_always` when the request names no file (normalize.rs, `Normalizer::approval`) | Stop the filter (D3); R (read `settings.local.json` to list rules) | Owner sets the scope first (D3). Then stop the filter. Test: a second identical request is not prompted. |
+| I. "Don't ask again" scope and storage | Adapter writes `localSettings` for `allow_always` (permissions/effects.js:10-40; options/shared.js:19). Veistra drops `allow_always` when the request names no file (normalize.rs, `Normalizer::approval`) | Stop the filter (D3); R (read `settings.local.json` to list rules) | Owner sets the scope first (D3). Then stop the filter. Test: a second identical request is not prompted. |
 | J. Settings editor | No ACP settings method. SDK `updateSettings` and `applyFlagSettings` exist (sdk.d.ts:2970-2985) but only the adapter holds the SDK | R (write settings files with a schema check); C only if a subcommand is confirmed (none checked) | R with a schema check. Show "applies next session" until live apply is verified. |
 | K. Hooks | No method. `includeHookEvents` exists (acp-agent.js:356); output unverified | R (read hook config); verify the option | Read-only list from settings and plugin files. Enable the events option after a check. |
 | L. Plugins | No ACP plugin method | C (`claude plugin` subcommands, after confirmation); R (read `installed_plugins.json`) | Run plugin actions through the CLI after explicit confirmation. Plugin install runs code, so confirm each time. Reload by restarting with session/resume. |
@@ -584,9 +584,9 @@ Options: **R** read or write files directly; **C** run a `claude` CLI subcommand
 | O. Subagent child sessions | Needs `clientCapabilities.subagents` (acp-subagents.js:9-13). RFD form for non-AIR (native-subagents.js:635-661). Child cannot be prompted or cancelled (README:65) | D (`subagents`) | Declare and render. No child controls. Stop all background tasks only if the adapter stops them (verify). |
 | P. Compaction presentation | Not a gap. Without `session.compaction` the adapter sends a tool_call (acp-agent.js:2584-2592) | D (`session.compaction`) | Declare in PR 18 for a native row. Not required. |
 | Q. Failed Bash output | Terminal output needs `clientCapabilities._meta.terminal_output` or `terminal_output_delta` (client-capabilities.js:41-42; renderer.js:228, 291-296). Success output already arrives (bash.js:18-40). Failed command returns nothing without it (bash.js:29-31) | D (`_meta.terminal_output`) after verify | Verify on a failing command. Declare only if output is missing. |
-| R. Steering and queued sends | Steering is advertised to all clients (acp-agent.js:1415-1427; handler 2380-2452). OpenKaava blocks it: `steer` false (harness/claude.rs, `CLAUDE.capabilities`) and busy refusal (session.rs, `Session::prompt`) | Host change (no upstream); P (queue locally) | Host-side queue for take-back (PR 9). Enable steer for send-now in PR 10. |
+| R. Steering and queued sends | Steering is advertised to all clients (acp-agent.js:1415-1427; handler 2380-2452). Veistra blocks it: `steer` false (harness/claude.rs, `CLAUDE.capabilities`) and busy refusal (session.rs, `Session::prompt`) | Host change (no upstream); P (queue locally) | Host-side queue for take-back (PR 9). Enable steer for send-now in PR 10. |
 | S. Prompt suggestions | Dropped (acp-agent.js:5653-5654) | U | Skip until forwarded. |
-| T. Rate-limit notice | Adapter sends `_meta['_claude/rateLimit']` on usage_update (acp-agent.js:5619-5627). OpenKaava drops the `_meta` | Read the `_meta` (OpenKaava change) | Read in PR 18. Not an adapter gap. |
+| T. Rate-limit notice | Adapter sends `_meta['_claude/rateLimit']` on usage_update (acp-agent.js:5619-5627). Veistra drops the `_meta` | Read the `_meta` (Veistra change) | Read in PR 18. Not an adapter gap. |
 | U. Thinking budget | Only `MAX_THINKING_TOKENS` env (acp-agent.js:9933-9945) | R (settings env); effort option | Effort option only. Budget via settings after D12. |
 | V. Additional directories and guard | Accepted on session/new (acp-agent.js:7832-7834). Guard is worktree-only (guard.rs, its module comment) | Owner decision (D5) | Keep the guard strict. Show extra dirs read-only until decided. |
 | W. Bypass mode | Reachable when allowed (session-mode.js:261). Guard coverage in bypass unverified | Owner decision (D4) | Off until verified. |
@@ -625,7 +625,7 @@ Options: **R** read or write files directly; **C** run a `claude` CLI subcommand
 
 ### 5.2 Ordered PRs
 
-Rules for every PR: run `pnpm verify` before commit (`pnpm verify:fast` while iterating). Put user-facing strings in `strings.ts`. Each bug fix ships with its test. Use `mock-agent` (crates/kaava-agent-host/src/bin/mock-agent.rs) where it covers the message. Check acceptance on `pnpm ui launch` with `pnpm probe --agent --server agent`. Never run `pnpm app` or `pnpm dev`.
+Rules for every PR: run `pnpm verify` before commit (`pnpm verify:fast` while iterating). Put user-facing strings in `strings.ts`. Each bug fix ships with its test. Use `mock-agent` (crates/veistra-agent-host/src/bin/mock-agent.rs) where it covers the message. Check acceptance on `pnpm ui launch` with `pnpm probe --agent --server agent`. Never run `pnpm app` or `pnpm dev`.
 
 1. **Read agent capabilities and config options at setup.** Scope: store `modes` and `configOptions` from the `session/new` reply and from `config_option_update`; `agentCapabilities` and `authMethods` are not stored yet (PR 7 and PR 24 read them when they need them) (session.rs, `Shared::handshake`). ACP: `initialize` result, `session/new` result. Acceptance: the mock-agent session tests show `modes` and `config` in the status, kept when the handshake fails and updated by `config_option_update`. Done, narrowed (see Done so far); the adapter version log line is unchanged and has no test.
 2. **Mode switcher.** Scope: flip `modes` (harness/claude.rs, `CLAUDE.capabilities`). Mode dropdown and Shift+Tab. Initial mode stays `default` (`Policy::ask_first` in harness.rs). Bypass only if allowed (D4). ACP: `session/set_mode` or config option `mode`; `current_mode_update`. Acceptance: each allowed mode round-trips; unknown id rejected; label shown.

@@ -68,7 +68,7 @@ mod tests {
 
     #[test]
     fn a_resolved_reference_reads_as_a_header_then_its_parts() {
-        let mut r = resolved("kaava://file/a.gd", "a.gd");
+        let mut r = resolved("veistra://file/a.gd", "a.gd");
         r.detail = Some("a.gd · lines 3–4".into());
         r.meta.insert("lines".into(), json!(40));
         r.parts.push(Part::Text {
@@ -86,7 +86,9 @@ mod tests {
         let out = blocks(&r);
         assert_eq!(
             out[0],
-            Block::Text("kaava://file/a.gd (text): a.gd\na.gd · lines 3–4\n{\"lines\":40}".into())
+            Block::Text(
+                "veistra://file/a.gd (text): a.gd\na.gd · lines 3–4\n{\"lines\":40}".into()
+            )
         );
         let Block::Text(body) = &out[1] else {
             panic!("{:?}", out[1])
@@ -100,12 +102,12 @@ mod tests {
 
     #[test]
     fn a_withheld_reference_says_why_in_its_header() {
-        let mut r = resolved("kaava://file/.env", ".env");
+        let mut r = resolved("veistra://file/.env", ".env");
         r.withheld = Some("withheld: secrets".into());
         assert_eq!(
             blocks(&r),
             vec![Block::Text(
-                "kaava://file/.env (text): .env\nwithheld: secrets".into()
+                "veistra://file/.env (text): .env\nwithheld: secrets".into()
             )]
         );
     }

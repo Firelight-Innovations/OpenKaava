@@ -4,7 +4,7 @@
  * The component is the React shell around `SceneEngine`. It owns the DOM the
  * engine cannot (sizing, visibility, toolbar, keyboard) and exposes the engine
  * to a markup layer through the `SceneViewHandle` contract in `markupHost.ts`.
- * Markup itself is not drawn here: `@kaava/markup` mounts as `children`, inside
+ * Markup itself is not drawn here: `@veistra/markup` mounts as `children`, inside
  * this box, and drives the camera, picking and capture through the handle.
  *
  * The canvas is created imperatively, not rendered by React. A WebGL context

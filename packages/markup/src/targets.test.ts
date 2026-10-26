@@ -56,15 +56,15 @@ describe("annotateTargets", () => {
       [arrow("a", 0, 0, 10, 10), el({ id: "r", type: "rectangle", width: 10, height: 10 })],
       pick,
     );
-    expect(a.customData).toEqual({ kaava: { kind: "arrow", targets: [{ ...hit, at: "head" }] } });
+    expect(a.customData).toEqual({ veistra: { kind: "arrow", targets: [{ ...hit, at: "head" }] } });
     expect(r.customData).toEqual({
-      kaava: { kind: "rectangle", targets: [{ ...hit, at: "centre" }] },
+      veistra: { kind: "rectangle", targets: [{ ...hit, at: "centre" }] },
     });
   });
 
   it("stamps only the kind when the host cannot pick", () => {
     const [a] = annotateTargets([arrow("a", 0, 0, 10, 10)], undefined);
-    expect(a.customData).toEqual({ kaava: { kind: "arrow" } });
+    expect(a.customData).toEqual({ veistra: { kind: "arrow" } });
   });
 
   it("is idempotent: a second pass returns the same objects", () => {
@@ -76,7 +76,7 @@ describe("annotateTargets", () => {
   it("drops a stale target when the arrow now points at nothing", () => {
     const once = annotateTargets([arrow("a", 0, 0, 10, 10)], pick);
     const [after] = annotateTargets(once, () => null);
-    expect(after.customData).toEqual({ kaava: { kind: "arrow" } });
+    expect(after.customData).toEqual({ veistra: { kind: "arrow" } });
   });
 
   it("leaves pins and bound labels alone", () => {

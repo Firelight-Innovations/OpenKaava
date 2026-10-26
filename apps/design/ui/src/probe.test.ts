@@ -24,7 +24,7 @@ describe("readProbeMessage", () => {
   // everything else an iframe's window receives, so it is not optional.
   it("ignores anything without the channel marker", () => {
     expect(readProbeMessage({ kind: "picked", element: {} })).toBeNull();
-    expect(readProbeMessage({ kaavaDesign: 2, kind: "armed" })).toBeNull();
+    expect(readProbeMessage({ veistraDesign: 2, kind: "armed" })).toBeNull();
     expect(readProbeMessage("armed")).toBeNull();
     expect(readProbeMessage(null)).toBeNull();
     expect(readProbeMessage(undefined)).toBeNull();

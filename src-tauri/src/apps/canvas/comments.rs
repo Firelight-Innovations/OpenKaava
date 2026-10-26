@@ -18,10 +18,10 @@
 //! status and a resolution note. It does not depend on either.
 
 use super::{bad, file_for, inside, now_rfc3339, plain_file_for, relative, DIR};
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
 
 /// The `schema` value this build writes.
 const SCHEMA: u64 = 1;

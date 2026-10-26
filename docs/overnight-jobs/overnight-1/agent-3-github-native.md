@@ -6,9 +6,9 @@ ground rules, and stack-mismatch guidance that apply to you too.
 ## Setup
 
 ```bash
-cd OpenKaava
-git worktree add ../OpenKaava-github-native -b feat/github-native origin/main
-cd ../OpenKaava-github-native
+cd Veistra
+git worktree add ../Veistra-github-native -b feat/github-native origin/main
+cd ../Veistra-github-native
 ```
 
 Then read, in order: `CONTRIBUTING.md`, `STANDARDS.md`,
@@ -33,7 +33,7 @@ rather than code to translate directly.
 
 ## Scope
 
-1. **Auth:** a personal access token, entered and stored through OpenKaava's
+1. **Auth:** a personal access token, entered and stored through Veistra's
    existing settings system (`src-tauri/src/settings/`) — not a new ad hoc
    storage mechanism. No OAuth device flow tonight; a PAT field is enough.
 2. **A new region in the shell** listing open issues and PRs for the repo
@@ -69,7 +69,7 @@ rather than code to translate directly.
   the same generation path every other setting uses. Don't hand-write a
   settings UI row outside that schema.
 - The PAT is a secret: never log it, never let it surface in an error
-  message that could land in agent traces under `.kaava/`. Check
+  message that could land in agent traces under `.veistra/`. Check
   `STANDARDS.md` for how the codebase already handles anything
   security-sensitive before inventing your own approach.
 - `pnpm verify` clean before opening the PR.

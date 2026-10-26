@@ -34,7 +34,7 @@ function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
  * What to tell someone whose check ended in a trouble, in the words of the
  * backend's `cloud::Trouble` tag. Every branch names the missing piece and
  * the command that fixes it. There is no Settings section for Google Cloud:
- * OpenKaava holds no keys and uses this machine's `gcloud` login, and the
+ * Veistra holds no keys and uses this machine's `gcloud` login, and the
  * copy says so instead of linking nowhere.
  */
 function troubleNote(trouble: { kind: string }): { heading: string; steps: ReactNode } {
@@ -73,8 +73,8 @@ function troubleNote(trouble: { kind: string }): { heading: string; steps: React
         heading: "Hindsight is not deployed at that address",
         steps: (
           <>
-            Deploy it from <code>infra/terraform/hindsight</code>, or point OpenKaava at the right
-            service by setting <code>KAAVA_HINDSIGHT_URL</code> before it starts.
+            Deploy it from <code>infra/terraform/hindsight</code>, or point Veistra at the right
+            service by setting <code>VEISTRA_HINDSIGHT_URL</code> before it starts.
           </>
         ),
       };
@@ -178,7 +178,7 @@ export default function HindsightPage({
           <p className="k-hindsight__empty">
             {phase.timedOut
               ? "No answer within the time limit. Check the network connection, then check again."
-              : `${phase.message}. The check runs inside the OpenKaava desktop app; a browser-only build has no backend to ask.`}
+              : `${phase.message}. The check runs inside the Veistra desktop app; a browser-only build has no backend to ask.`}
           </p>
         </section>
       )}

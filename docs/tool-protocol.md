@@ -1,4 +1,4 @@
-# The OpenKaava tool protocol — v1
+# The Veistra tool protocol — v1
 
 The wire contract between the orchestrator and a tool. This is the reference
 implementations are written against; if code and this document disagree, one of
@@ -30,10 +30,10 @@ is a relay, not a translator.
 
 ---
 
-## 1. `kaava-tool.toml`
+## 1. `veistra-tool.toml`
 
-Lives at the root of a tool's checkout. `kaava.toml` (the stack manifest) says
-*which* tools exist and at what version; `kaava-tool.toml` says *how to run* the
+Lives at the root of a tool's checkout. `veistra.toml` (the stack manifest) says
+*which* tools exist and at what version; `veistra-tool.toml` says *how to run* the
 one it sits next to.
 
 One file describes a **package**: an identity, at most one core process, and
@@ -41,7 +41,7 @@ zero or more **surfaces** — the things a person can put in a pane.
 
 ```toml
 [tool]
-id      = "echo"          # must equal the [[tool]] id in kaava.toml
+id      = "echo"          # must equal the [[tool]] id in veistra.toml
 version = "0.1.0"         # semver
 name    = "Echo"          # optional; falls back to id
 description = "Says it back."     # optional
@@ -58,8 +58,8 @@ path        = "specs/"    # optional; where in the bundle, default its root
 present     = "pane"      # optional; "pane" or "cover", default "pane"
 
 [core]                    # optional; omit for a frontend-only package
-bin  = "target/debug/kaava-echo-tool"   # relative to the checkout root
-args = ["--kaava-rpc"]                  # optional, default ["--kaava-rpc"]
+bin  = "target/debug/veistra-echo-tool"   # relative to the checkout root
+args = ["--veistra-rpc"]                  # optional, default ["--veistra-rpc"]
 
 [permissions]             # optional; reserved, ignored by the broker today
 ```
@@ -67,7 +67,7 @@ args = ["--kaava-rpc"]                  # optional, default ["--kaava-rpc"]
 Rules:
 
 - Every path is **relative to the checkout root** (the directory holding
-  `kaava-tool.toml`). Rejected: absolute paths, any `..` component, and
+  `veistra-tool.toml`). Rejected: absolute paths, any `..` component, and
   anything resolving to the checkout root itself — a `dist` of `""` would
   otherwise serve the tool's whole checkout, `.git` included.
   *Known gap:* a symlink inside the checkout still escapes it, because paths
@@ -99,7 +99,7 @@ a plugin surface colliding with a first-party app.
   orchestrator's own `vite.config.ts` does for Home, Files, Viewer and Tutorials,
   so a plugin repo is laid out the way the shell already is.
 - **`present = "cover"`** takes the surface out of both menus. It stays mountable
-  and stays reachable when another frame calls `kaava/open` for it — the
+  and stays reachable when another frame calls `veistra/open` for it — the
   behaviour Home and Tutorials have inside the orchestrator.
 - **A package with no `[[surface]]` and no `[frontend]` has no UI at all**, and
   that is a supported shape rather than a broken one: a package that exists only
@@ -124,7 +124,7 @@ newline-delimited JSON** on its standard streams.
 - A whole message is written under one lock, so a tool may send notifications
   from any thread — a file watcher, a build reporter — without interleaving
   bytes into another message. That only holds for writes made through
-  `kaava-rpc`; raw writes to stdout are still the tool's own problem.
+  `veistra-rpc`; raw writes to stdout are still the tool's own problem.
 - The child exits when its stdin closes. That is what makes orphan processes
   impossible: kill the orchestrator, every pipe closes, every tool exits.
 
@@ -162,7 +162,7 @@ pending table of the side that sent the request.
 
 ### Reserved methods
 
-Every tool core must implement these. The `kaava/` prefix is reserved; tools
+Every tool core must implement these. The `veistra/` prefix is reserved; tools
 must not define their own methods under it.
 
 > The methods a *first-party app* answers are not part of this protocol and are
@@ -172,18 +172,18 @@ must not define their own methods under it.
 
 | Method | Params | Result |
 |---|---|---|
-| `kaava/hello` | `{"protocol":1,"session":Session}` | `{"id":string,"version":string,"protocol":1}` |
-| `kaava/shutdown` | none | `null` |
+| `veistra/hello` | `{"protocol":1,"session":Session}` | `{"id":string,"version":string,"protocol":1}` |
+| `veistra/shutdown` | none | `null` |
 
-`kaava/hello` is the first message on the pipe, always sent by the host. The host
-rejects the tool if `protocol != 1` or if `id` disagrees with `kaava-tool.toml`.
+`veistra/hello` is the first message on the pipe, always sent by the host. The host
+rejects the tool if `protocol != 1` or if `id` disagrees with `veistra-tool.toml`.
 
-`kaava/shutdown` asks for a clean exit: reply, then exit. The host waits two
+`veistra/shutdown` asks for a clean exit: reply, then exit. The host waits two
 seconds after the reply and then kills the process.
 
 ### Error codes
 
-Standard JSON-RPC, plus an OpenKaava range:
+Standard JSON-RPC, plus a Veistra range:
 
 | Code | Meaning |
 |---|---|
@@ -199,24 +199,24 @@ Standard JSON-RPC, plus an OpenKaava range:
 ## 3. Transport B — tool frontend ↔ shell (window messages)
 
 The frontend runs in an iframe on a different origin from the shell, so the two
-talk with `postMessage`. Every message carries `kaava: 1` as a version marker and
+talk with `postMessage`. Every message carries `veistra: 1` as a version marker and
 a cheap way to ignore traffic from anything else sharing the window.
 
 Frontend → shell:
 
 ```jsonc
-{"kaava":1,"kind":"hello"}
-{"kaava":1,"kind":"request","id":1,"method":"echo","params":{"text":"hi"}}
+{"veistra":1,"kind":"hello"}
+{"veistra":1,"kind":"request","id":1,"method":"echo","params":{"text":"hi"}}
 ```
 
 Shell → frontend:
 
 ```jsonc
-{"kaava":1,"kind":"ready","toolId":"echo","protocol":1,"session":{...}}
-{"kaava":1,"kind":"response","id":1,"result":{"text":"hi"}}
-{"kaava":1,"kind":"response","id":1,"error":{"code":-32601,"message":"..."}}
-{"kaava":1,"kind":"event","event":"file/changed","payload":{"path":"a.txt"}}
-{"kaava":1,"kind":"command","command":"file/save"}
+{"veistra":1,"kind":"ready","toolId":"echo","protocol":1,"session":{...}}
+{"veistra":1,"kind":"response","id":1,"result":{"text":"hi"}}
+{"veistra":1,"kind":"response","id":1,"error":{"code":-32601,"message":"..."}}
+{"veistra":1,"kind":"event","event":"file/changed","payload":{"path":"a.txt"}}
+{"veistra":1,"kind":"command","command":"file/save"}
 ```
 
 ### The handshake is client-initiated, and that is load-bearing
@@ -235,22 +235,22 @@ on handshake, so tool code never has to think about this.
 
 ### Reserved methods
 
-The `kaava/` prefix is reserved on this transport too, and for the same reason:
+The `veistra/` prefix is reserved on this transport too, and for the same reason:
 the shell answers these itself and never forwards them to a core.
 
 | Method | Params | Result | Meaning |
 |---|---|---|---|
-| `kaava/painted` | none | `null` | This frontend has drawn its first meaningful content. |
-| `kaava/commands` | `{"commands":string[]}` | `null` | These are the menu commands this frontend can carry out **right now**. |
-| `kaava/title` | `{"title":string}` | `null` | Call this surface's tab something other than its app's name. |
-| `kaava/open` | `{"appId":string,"payload"?:any}` | `{"instanceId":string}` | Put something on screen in another app, in my cluster. |
-| `kaava/publish` | `{"topic":string,"value":any}` | `null` | State a fact about myself for my cluster-mates to read. |
-| `kaava/drag` | `{"phase":"begin"\|"end","paths"?:string[],"items"?:string[]}` | `null` | I have picked up these file paths and context items (ids from `context/put`), or put them down. |
-| `kaava/escape` | none | `null` | I saw a bare Escape that nothing in me handled. |
-| `kaava/search-claim` | `{"placeholder":string,"value":string}` | `null` | Show my filter in the title bar's search field while I am the active surface. Sending it again updates the claim. |
-| `kaava/search-release` | none | `null` | I no longer have a filter to show. |
+| `veistra/painted` | none | `null` | This frontend has drawn its first meaningful content. |
+| `veistra/commands` | `{"commands":string[]}` | `null` | These are the menu commands this frontend can carry out **right now**. |
+| `veistra/title` | `{"title":string}` | `null` | Call this surface's tab something other than its app's name. |
+| `veistra/open` | `{"appId":string,"payload"?:any}` | `{"instanceId":string}` | Put something on screen in another app, in my cluster. |
+| `veistra/publish` | `{"topic":string,"value":any}` | `null` | State a fact about myself for my cluster-mates to read. |
+| `veistra/drag` | `{"phase":"begin"\|"end","paths"?:string[],"items"?:string[]}` | `null` | I have picked up these file paths and context items (ids from `context/put`), or put them down. |
+| `veistra/escape` | none | `null` | I saw a bare Escape that nothing in me handled. |
+| `veistra/search-claim` | `{"placeholder":string,"value":string}` | `null` | Show my filter in the title bar's search field while I am the active surface. Sending it again updates the claim. |
+| `veistra/search-release` | none | `null` | I no longer have a filter to show. |
 
-`kaava/painted` is a report, not a request. The orchestrator holds its splash
+`veistra/painted` is a report, not a request. The orchestrator holds its splash
 window up until every first-party app has sent one, so that the window it hands
 off to is finished rather than still filling in — see `src-tauri/src/boot.rs`.
 A host with nothing waiting on it acknowledges and does nothing, which is what
@@ -274,7 +274,7 @@ that — a frame is a separate document, and for a tool a separate origin — so
 menu item becomes a `command` message aimed at the **active** frame.
 
 ```jsonc
-{"kaava":1,"kind":"command","command":"file/save"}
+{"veistra":1,"kind":"command","command":"file/save"}
 ```
 
 It is fire-and-forget. There is no `id` and no reply, because the only thing the
@@ -287,12 +287,12 @@ gave. A frontend registers for one without having to filter out the other.
 
 #### The frontend declares; the shell never assumes
 
-`kaava/commands` is the other half, and it is the half that makes this design
+`veistra/commands` is the other half, and it is the half that makes this design
 work. A menu offering Save when nothing is dirty is a menu that lies — and the
 shell cannot know when that is, because whether there is anything to save is a
 fact about the frontend's own state.
 
-So the direction is reversed. The frontend sends `kaava/commands` with the set
+So the direction is reversed. The frontend sends `veistra/commands` with the set
 it can carry out at this moment, and the shell **disables every item not in that
 set**. The last declaration replaces the previous one; it does not add to it.
 A frame that has never declared anything can do nothing, which is the honest
@@ -312,13 +312,13 @@ Command ids are the host's vocabulary, not the protocol's — this document does
 not enumerate them, the same way it does not enumerate an app's methods. The
 orchestrator's are in `src/shell/titlebar/TitleBar.tsx` (`APP_COMMAND`).
 
-`@openkaava/bridge` exposes both halves as `onCommand` and `declareCommands`. The
+`@veistra/bridge` exposes both halves as `onCommand` and `declareCommands`. The
 declaration is de-duplicated against the last one actually sent, because the
 natural place to call it is an effect that runs on every render.
 
 ### Frames talking to each other
 
-`kaava/open` and `kaava/publish` are how one frontend reaches **another
+`veistra/open` and `veistra/publish` are how one frontend reaches **another
 frontend** — sideways, through the shell, without either of them learning the
 other exists. Everything else on this transport goes down to a host and back.
 
@@ -326,10 +326,10 @@ Neither travels through a tool core or through Rust. Both frames are already in
 the same browser, and the layout that decides *which* frame is a fact only the
 shell holds.
 
-#### `kaava/open` — put this on screen somewhere else
+#### `veistra/open` — put this on screen somewhere else
 
 ```jsonc
-{"kaava":1,"kind":"request","id":7,"method":"kaava/open",
+{"veistra":1,"kind":"request","id":7,"method":"veistra/open",
  "params":{"appId":"viewer","payload":{"path":"a.txt","preview":true}}}
 ```
 
@@ -338,7 +338,7 @@ cluster**, brings it forward if it is already there, opens one if it is not,
 and delivers the payload to it as an event:
 
 ```jsonc
-{"kaava":1,"kind":"event","event":"kaava:opened","payload":{"path":"a.txt","preview":true}}
+{"veistra":1,"kind":"event","event":"veistra:opened","payload":{"path":"a.txt","preview":true}}
 ```
 
 The result names the surface that was chosen — `{"instanceId":"viewer-2"}` —
@@ -364,10 +364,10 @@ The payload is **not validated by the shell**, and that is deliberate: it is the
 app's vocabulary, not the protocol's. The receiving app is the first and only
 place its shape is checked.
 
-#### `kaava/publish` — state a fact for your cluster-mates
+#### `veistra/publish` — state a fact for your cluster-mates
 
 ```jsonc
-{"kaava":1,"kind":"request","id":8,"method":"kaava/publish",
+{"veistra":1,"kind":"request","id":8,"method":"veistra/publish",
  "params":{"topic":"files/active-path","value":{"path":"a.txt"}}}
 ```
 
@@ -375,7 +375,7 @@ Delivered to every **other** app frame in the cluster under the topic's name,
 prefixed:
 
 ```jsonc
-{"kaava":1,"kind":"event","event":"kaava:topic/files/active-path",
+{"veistra":1,"kind":"event","event":"veistra:topic/files/active-path",
  "payload":{"value":{"path":"a.txt"},"from":"viewer-1"}}
 ```
 
@@ -389,7 +389,7 @@ the fact is not left blind until the next change. A publisher's topics are
 dropped when its frame goes — a retained value from a surface that has closed
 would be replayed to the next one as though it were current.
 
-The `kaava:topic/` prefix is what keeps an app's topics from colliding with the
+The `veistra:topic/` prefix is what keeps an app's topics from colliding with the
 shell's own push events (`project:changed`). A frame cannot publish under a name
 that would arrive looking like news the shell authored.
 
@@ -398,10 +398,10 @@ a real thing to say, and narrowing it to a refusal would leave the last real
 value retained and make an empty editor indistinguishable from one nobody had
 heard from.
 
-#### `kaava/drag` — I have picked up some paths
+#### `veistra/drag` — I have picked up some paths
 
 ```jsonc
-{"kaava":1,"kind":"request","id":9,"method":"kaava/drag",
+{"veistra":1,"kind":"request","id":9,"method":"veistra/drag",
  "params":{"phase":"begin","paths":["C:\repo\src\main.rs"]}}
 ```
 
@@ -427,21 +427,21 @@ inserts them at the prompt of whichever terminal the release landed on, quoted
 for that terminal's shell and followed by no newline; see
 `docs/design-notes/drag-files-to-terminal.md`.
 
-`paths` is validated, unlike `kaava/open`'s opaque `payload`. These strings end
+`paths` is validated, unlike `veistra/open`'s opaque `payload`. These strings end
 up in a running program's input rather than in another app's hands, so "the
 receiver knows what it means" does not apply: every entry that is not a string
 is dropped, and quoting happens in Rust.
 
-#### `kaava/escape` — Escape typed inside a frame
+#### `veistra/escape` — Escape typed inside a frame
 
 ```jsonc
-{"kaava":1,"kind":"request","id":10,"method":"kaava/escape"}
+{"veistra":1,"kind":"request","id":10,"method":"veistra/escape"}
 ```
 
 Keys typed in an iframe never reach the shell's `document`, so the shell's "Esc
 leaves the expanded page" binding goes deaf as soon as the page has focus. The
 bridge closes that gap: it listens for `keydown` on the frame's document and
-sends `kaava/escape`, with no params, for each bare Escape that the app did not
+sends `veistra/escape`, with no params, for each bare Escape that the app did not
 claim. An Escape is forwarded only if the app left it un-`preventDefault`ed and
 it was not typed into an `input`, a `textarea` or a contenteditable element,
 since those want Escape for themselves (clearing, cancelling, closing a widget).
@@ -454,7 +454,7 @@ own document, so the same binding handles it as if the key had been typed
 outside the frame. Nothing comes back but the acknowledgement.
 
 ```jsonc
-{"kaava":1,"kind":"request","id":11,"method":"kaava/key","params":{"key":"P","code":"KeyP","ctrlKey":true,"shiftKey":true,"altKey":false,"metaKey":false}}
+{"veistra":1,"kind":"request","id":11,"method":"veistra/key","params":{"key":"P","code":"KeyP","ctrlKey":true,"shiftKey":true,"altKey":false,"metaKey":false}}
 ```
 
 The same gap exists for the shell's chords. The bridge forwards `Ctrl/Meta` with
@@ -464,7 +464,7 @@ forwarded. The shell replays the chord as a `keydown` on its own document, from
 any frame, and refuses a payload with no Ctrl, Meta or Alt so a frame cannot type
 into the shell.
 
-#### `kaava/search-claim` — the title bar's search field
+#### `veistra/search-claim` — the title bar's search field
 
 The shell has one search field, in the title bar. A frame with a filter of its own claims it
 rather than drawing a second bar. The shell records the claim and shows it only while the frame
@@ -472,7 +472,7 @@ is an active surface (the focused pane's visible tab, a takeover, or the rail pa
 user does in the field comes back as an event:
 
 ```jsonc
-{"kaava":1,"kind":"event","event":"kaava:search","payload":{"kind":"query","value":"src"}}
+{"veistra":1,"kind":"event","event":"veistra:search","payload":{"kind":"query","value":"src"}}
 ```
 
 `kind` is `query` (the text changed), `submit` (Enter) or `escape`. The bridge's `claimSearch`
@@ -482,7 +482,7 @@ input. See `docs/design-notes/titlebar-search.md`.
 #### Under the Tauri host
 
 The sideways channel, the drag and the search claim are **refused** with `-32601`, not accepted and dropped the way
-`kaava/commands` is. A tool's own standalone app is one window with one frontend
+`veistra/commands` is. A tool's own standalone app is one window with one frontend
 in it: there is no cluster, no second app, no shell chrome to drag into, and
 nobody to deliver to. Answering "done" to an open while nothing happened would
 leave a frontend believing it had put a file on screen that nothing anywhere is
@@ -504,7 +504,7 @@ are swallowed at the call site rather than surfacing as unhandled promises.
 
 ### Session
 
-Handed to the frontend on `ready`, and to the core in `kaava/hello`. Same shape
+Handed to the frontend on `ready`, and to the core in `veistra/hello`. Same shape
 both places:
 
 ```ts
@@ -519,19 +519,19 @@ field is null today, and stays null until projects reach tools.
 
 ## 4. The bridge package
 
-`@openkaava/bridge` is what a tool's `ui/` imports instead of `@tauri-apps/api`. Same
+`@veistra/bridge` is what a tool's `ui/` imports instead of `@tauri-apps/api`. Same
 tool code, either host.
 
 ```ts
 import {
   invoke, on, onCommand, declareCommands, session, host, reportPainted,
   openIn, publish, subscribe, OPENED_EVENT,
-} from "@openkaava/bridge";
+} from "@veistra/bridge";
 
 const reply = await invoke<{ text: string }>("echo", { text: "hi" });
 const off   = on("file/changed", (p) => console.log(p));
 const s     = await session();   // resolves after handshake
-host();                          // "kaava" | "tauri"
+host();                          // "veistra" | "tauri"
 reportPainted();                 // "there is something on screen now"
 
 // The menu bar. `declareCommands` is what makes the items clickable; call it
@@ -553,7 +553,7 @@ const off = subscribe("files/active-path", (value, from) => highlight(value, fro
 the natural place to call it is an effect that runs on every render — the same
 reasoning `declareCommands` is built on.
 
-`reportPainted` sends `kaava/painted` once, from a `requestAnimationFrame` so
+`reportPainted` sends `veistra/painted` once, from a `requestAnimationFrame` so
 the browser has laid the content out first — with a short timer racing it,
 because a webview in a window that is still hidden stops firing animation
 frames entirely, and that is exactly the case this signal exists for. Every
@@ -562,7 +562,7 @@ call after the first is a no-op, so it is safe from an effect that runs twice.
 ### Host detection
 
 ```
-window.parent !== window   →  "kaava"
+window.parent !== window   →  "veistra"
 otherwise                  →  "tauri"
 ```
 
@@ -574,9 +574,9 @@ timing guess — there is no probe, no timeout, and no ambiguous middle state.
 
 - `invoke(method, params)` forwards to `@tauri-apps/api/core`'s `invoke`, with
   the method name passed through unchanged.
-- `kaava/*` methods are handled **inside the bridge** and never reach Tauri —
-  they aren't valid Tauri command names anyway (`/` is not allowed). `kaava/hello`
-  resolves locally; `kaava/shutdown`, `kaava/painted` and `kaava/commands` all
+- `veistra/*` methods are handled **inside the bridge** and never reach Tauri —
+  they aren't valid Tauri command names anyway (`/` is not allowed). `veistra/hello`
+  resolves locally; `veistra/shutdown`, `veistra/painted` and `veistra/commands` all
   resolve to null. A tool's own app draws its own chrome, so there is no menu bar
   for a declaration to grey out — it is accepted and dropped rather than refused,
   so a frontend that supports menu commands does not log an error on a host where
@@ -589,15 +589,15 @@ timing guess — there is no probe, no timeout, and no ambiguous middle state.
 ### Timeouts
 
 Every `invoke` rejects after 30 seconds by default. A pending request whose tool
-process dies rejects with `-32000`. Both surface as a `KaavaRpcError` carrying
+process dies rejects with `-32000`. Both surface as a `VeistraRpcError` carrying
 `code`, `message`, and optional `data`.
 
 ## 5. What a tool repository ships
 
-1. `kaava-tool.toml` at the checkout root.
-2. A headless binary that speaks transport A when passed `--kaava-rpc` — unless
+1. `veistra-tool.toml` at the checkout root.
+2. A headless binary that speaks transport A when passed `--veistra-rpc` — unless
    the package declares no `[core]`, in which case it ships no binary at all.
-3. A frontend bundle whose only host coupling is `@openkaava/bridge`, holding one
+3. A frontend bundle whose only host coupling is `@veistra/bridge`, holding one
    document per `[[surface]]` — unless the package declares no `[frontend]`.
 
 `examples/echo-tool` in this repo is the reference implementation, and is what
@@ -606,7 +606,7 @@ the protocol's tests run against.
 ### Installing one
 
 The orchestrator installs a package from a **folder on this machine**: Home's
-*Install App*, which takes the directory holding `kaava-tool.toml`. The record
+*Install App*, which takes the directory holding `veistra-tool.toml`. The record
 is kept in `plugins.json` beside the other per-user state; the directory is
 never copied and never deleted, because it is a working tree the person already
 had.
@@ -616,7 +616,7 @@ normal state while writing one, and each half reports its own absence when it
 matters — a surface says the frontend has not been built, a call says the core
 has not.
 
-**Rebuild and it reloads.** A folder install is watched: when `kaava-tool.toml`
+**Rebuild and it reloads.** A folder install is watched: when `veistra-tool.toml`
 or the built `core.bin` stops changing, the core is stopped and every window
 re-reads the manifest, so a new `[[surface]]` appears without a restart. A
 surface pointed at `dev-url` needs nothing at all — its own dev server's hot
@@ -628,7 +628,7 @@ The protocol is at v1 and most of what is above is running code. **The broker is
 built**, so the one path this whole document exists to describe — a tool's
 frontend asking a question its own core answers — now runs end to end:
 `src-tauri/src/plugins/broker.rs` spawns a package's core on the first call from
-any of its surfaces, completes `kaava/hello`, and relays every non-`kaava/*`
+any of its surfaces, completes `veistra/hello`, and relays every non-`veistra/*`
 method to it. This section is still the map, because not all of it is settled:
 what to build against, what is still moving, and what happens to your tool when
 it moves.
@@ -637,29 +637,29 @@ it moves.
 
 Implemented, covered by tests, and not changing shape under v1.
 
-- **`kaava-tool.toml` (§1)** — every key, the path rules, and unknown keys being
-  an error. `crates/kaava-tool-manifest` is the only parser there is;
-  `examples/echo-tool/kaava-tool.toml` is the file its tests read.
-- **Transport A (§2)** — the framing, the three message shapes, `kaava/shutdown`,
-  and the error codes. `crates/kaava-rpc` is *both* halves of the pipe, which is
+- **`veistra-tool.toml` (§1)** — every key, the path rules, and unknown keys being
+  an error. `crates/veistra-tool-manifest` is the only parser there is;
+  `examples/echo-tool/veistra-tool.toml` is the file its tests read.
+- **Transport A (§2)** — the framing, the three message shapes, `veistra/shutdown`,
+  and the error codes. `crates/veistra-rpc` is *both* halves of the pipe, which is
   what stops a host and a tool drifting apart, and
   `examples/echo-tool/tests/roundtrip.rs` drives a real child process through
   handshake, call, bad params, unknown method, notification, and death.
-- **Transport B (§3)** — the `kaava: 1` envelope, the five message kinds, the
-  client-initiated handshake, the five reserved `kaava/*` methods, and the
+- **Transport B (§3)** — the `veistra: 1` envelope, the five message kinds, the
+  client-initiated handshake, the five reserved `veistra/*` methods, and the
   origin rules. All of it runs on every launch: the orchestrator's own Home and
   Files are not special-cased anywhere, they are frames speaking this transport
   through this bridge.
-- **`@openkaava/bridge` (§4)** — the exported names, the thirty-second default
-  timeout, `KaavaRpcError`'s `code`, `message` and `data`, and host detection.
+- **`@veistra/bridge` (§4)** — the exported names, the thirty-second default
+  timeout, `VeistraRpcError`'s `code`, `message` and `data`, and host detection.
 
 Both caveats that used to sit here are closed, and it is worth saying which,
 because a tool author reading an older copy of this file would plan around them.
 Transport B is exercised by third-party frames now and not only by the shell's
-own. And the host half of the `kaava/hello` check in §2 — reject the tool if
+own. And the host half of the `veistra/hello` check in §2 — reject the tool if
 `protocol != 1` or if `id` disagrees with the manifest — is **enforced**;
 `HANDSHAKE_FAILED` is raised by `plugins::broker::handshake`, which is the code
-that used to be missing. A tool must answer `kaava/hello` correctly, and is now
+that used to be missing. A tool must answer `veistra/hello` correctly, and is now
 refused if it does not.
 
 ### What may still move
@@ -693,31 +693,31 @@ refused if it does not.
 
 ### The versioning rule
 
-Both transports carry an integer — `protocol` in `kaava/hello`, `kaava` on every
+Both transports carry an integer — `protocol` in `veistra/hello`, `veistra` on every
 window message — and **that integer is the only breaking-change lever.** It goes
 to 2 when something that already exists stops meaning what it meant: a field
 removed, a type changed, a result reshaped, a handshake reversed.
 
-Additive change leaves it at 1. A new reserved `kaava/*` method, a new optional
-key in `kaava-tool.toml`, a new field on `Session`, a new code in the OpenKaava error
+Additive change leaves it at 1. A new reserved `veistra/*` method, a new optional
+key in `veistra-tool.toml`, a new field on `Session`, a new code in the Veistra error
 range. A tool written against v1 keeps working across every one of those, and
 that is the entire promise the number is making.
 
 One asymmetry inside that, because it will otherwise be found the hard way. A
 new optional manifest key is additive for *tool authors* — every existing
-`kaava-tool.toml` still parses — and is not additive for *hosts*, because
+`veistra-tool.toml` still parses — and is not additive for *hosts*, because
 unknown keys are a hard error. A manifest using a key added in a later shell is
 rejected by an earlier one, by name. That trade is deliberate and §1 already
 argues it: a key silently ignored is the worse failure. The consequence is that
 a tool adopting a new key has declared a minimum shell version, and should say
 so somewhere its users will read.
 
-`kaava/hello` is specified to **reject a mismatch rather than negotiate down.**
+`veistra/hello` is specified to **reject a mismatch rather than negotiate down.**
 A shell and a tool from two majors half-working is a worse day than either of
 them stopping at the handshake.
 
-The crates and `@openkaava/bridge` carry ordinary semver, independent of this
-number. `@openkaava/bridge` 0.2.0 still speaks protocol 1. A package version is not
+The crates and `@veistra/bridge` carry ordinary semver, independent of this
+number. `@veistra/bridge` 0.2.0 still speaks protocol 1. A package version is not
 a protocol version.
 
 And the rule this file lives under: a change to §1 through §4 lands in the same
@@ -734,7 +734,7 @@ through a resolver later. A tool author's threat model depends on the answers.
 #### Open: does the shell clone a repository, or fetch a signed artifact?
 
 Nothing above says how a tool's checkout arrived on disk, and today nothing puts
-one there — `checkout-root` in `kaava.toml` points at directories a person
+one there — `checkout-root` in `veistra.toml` points at directories a person
 cloned by hand. The question becomes real the moment the shell does the
 fetching, which is the reason to answer it before it does.
 
@@ -749,7 +749,7 @@ one build permanently. It costs a release pipeline in every tool repository.
 
 **Recommendation: signed artifacts for anything the shell fetches itself, with
 the hand-cloned local checkout kept as the development path.** Those two are
-already separate in `kaava-tool.toml` — `dist` is a built bundle, `dev-url` is a
+already separate in `veistra-tool.toml` — `dist` is a built bundle, `dev-url` is a
 live server — so the cost lands on distribution rather than on a tool author's
 inner loop, which is the half that has to stay fast.
 
@@ -765,10 +765,10 @@ fetching half is built yet.
 The protocol bounds the frontend, and it is worth being exact about how far,
 because it stops well short of where a reader will assume it reaches. A tool
 frontend is an iframe on its own origin — `src-tauri/src/tool_frontend.rs` has
-why that is `kaava-tool://` and not `file://`, and the answer is that `file://`
+why that is `veistra-tool://` and not `file://`, and the answer is that `file://`
 would put every tool on one opaque origin and dissolve the checks below. The
 shell resolves who is speaking from `event.source` rather than from anything in
-the message body, so a tool cannot claim to be another tool. `kaava/open`
+the message body, so a tool cannot claim to be another tool. `veistra/open`
 reaches only app *kinds*, and only inside the calling frame's own cluster.
 
 None of that touches the core. **A tool's core is a child process holding the

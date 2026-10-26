@@ -11,7 +11,7 @@ this handoff. It runs the baseline audit from PRD section 14.2.
 |---|---|
 | Names every path (Tauri crate, front-end workspace, package list) | Done — sections 1–2 |
 | Names the tab-strip module and its literal strings | Done — section 3. Traced the actual mechanism: `src-tauri/src/apps/mod.rs`'s `REGISTRY` constant (lines 157–238) holds the strings; `ClusterBar.tsx` only renders a runtime `title` field they seed |
-| Records presence/absence of `kaava.toml`, `.kaava`, `kaava-tool://`, `@openkaava/*` | Done — section 4. All four present; clarified `kaava.toml` (stack manifest) is not the same thing as `<name>.kaava` (project manifest) |
+| Records presence/absence of `veistra.toml`, `.veistra`, `veistra-tool://`, `@veistra/*` | Done — section 4. All four present; clarified `veistra.toml` (stack manifest) is not the same thing as `<name>.veistra` (project manifest) |
 | Names every `pnpm verify` step, expanded | Done — section 5, plus the comment-density linter's exact thresholds |
 | Every occurrence of Forger/Journeyman/forger:// /journeyman:// /@forger: | Done — section 12. `forger://`, `journeyman://`, `@forger:` appear only in the planning docs, never in product code. `Forger`/`Journeyman` (and lowercase) appear in ~180 lines across ~45 product-code and doc files, tabulated by category (apps to delete, registration to remove, generic test placeholders that happen to say "forger", prose needing a rewrite, file/directory names) |
 | Reference machine | Done — section 13, via PowerShell CIM queries |

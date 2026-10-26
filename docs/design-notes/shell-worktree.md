@@ -29,13 +29,13 @@ to nothing and renders as plain text — which is the same answer the prop gave
 for every id before, so no caller regresses.
 
 That asymmetry is not an oversight, it is the shape of the fix. TOML is
-hand-written (`@openkaava/monaco-languages`) precisely because Monaco does not
+hand-written (`@veistra/monaco-languages`) precisely because Monaco does not
 ship it, and a hand-written Monarch grammar can be handed to a bare
 `editor.api` instance for free. Every other language would arrive by
 importing its own entry under `languages/definitions/`, one lazy chunk each,
 and that is a bundle decision for whoever decides a source-control diff should be
 fully coloured — not a side effect of teaching this editor the one format
-OpenKaava's own config files are written in.
+Veistra's own config files are written in.
 
 (The short specifier is not a shorthand for the long one: monaco-editor
 0.56's `exports` map is `"./*": "./esm/vs/*.js"`, so
@@ -43,7 +43,7 @@ OpenKaava's own config files are written in.
 `esm/vs/esm/vs/editor/editor.api.js` and fail. The code below has always been
 right; this comment used to name a path that does not exist.)
 
-### The `kaava-dark` theme's colours
+### The `veistra-dark` theme's colours
 
 Colours are lifted from src/tokens.css, not chosen here. `editor.background`
 and `editor.foreground` reuse --bg and --text directly. The diff
@@ -83,7 +83,7 @@ escape their backslashes a second time.
 ### Why there is a preamble and Orca has none
 
 Orca has an agent chat pane and can put a batch of notes into it as a labelled
-message. OpenKaava has a terminal, so this string arrives as raw typing at whatever
+message. Veistra has a terminal, so this string arrives as raw typing at whatever
 prompt is sitting there, with nothing around it to say that a list of
 file-and-line blocks is a review rather than a paste accident. One sentence in
 front of the blocks is what makes it read as an instruction.

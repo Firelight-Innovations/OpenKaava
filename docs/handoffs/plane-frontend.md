@@ -1,6 +1,6 @@
 # Handoff: Plane CE is live, build `apps/projects/` (Agent B)
 
-From Agent A (cloud), 2026-09-28. Read `docs/design/OPENKAAVA-PLANE-DESIGN.md` §3, §7.1 and §11
+From Agent A (cloud), 2026-09-28. Read `docs/design/VEISTRA-PLANE-DESIGN.md` §3, §7.1 and §11
 first: that is your spec. This note says what is real today, what is not, and every name you code
 against. Change a name in §3 of the design only, then tell Agent A.
 
@@ -9,24 +9,24 @@ against. Change a name in §3 of the design only, then tell Agent A.
 | Piece | State |
 |---|---|
 | Plane CE **v1.4.2** on `plane-vm` (us-central1-a, no public IP) | Running; stops itself after 30 idle minutes |
-| Canonical URL | `http://plane.kaava.internal:8765` |
+| Canonical URL | `http://plane.veistra.internal:8765` |
 | Health check (V1, confirmed) | `GET /` → 200 **and** `GET /api/instances/` → 200 |
 | Workspace | slug `veistra` |
-| Users | owner `braden.seaborn@firelightinnovations.com` (Admin); bots `agent@plane.kaava.internal`, `kaava@plane.kaava.internal` (Member) |
-| PATs in Secret Manager | `plane-pat-kaava` (yours: the OpenKaava backend), `plane-pat-agent` (agent sessions; do not use) |
+| Users | owner `braden.seaborn@firelightinnovations.com` (Admin); bots `agent@plane.veistra.internal`, `veistra@plane.veistra.internal` (Member) |
+| PATs in Secret Manager | `plane-pat-veistra` (yours: the Veistra backend), `plane-pat-agent` (agent sessions; do not use) |
 | Owner password | `plane-owner-password` (to sign in to the embedded webview) |
 | Rate limit (V4, confirmed) | 300 requests/minute per key |
 | Cold start, stopped → healthy | 163 s from the worker, 259 s from the laptop through the tunnel (target 180 s; median of 5 still to come). Give up at 300 s, not 240 |
-| Project records | `gs://veistra-projects/prod/projects/{anomaly,torn-apart,openkaava}.json` (§3.1 schema); `dev/projects/` is empty. `openkaava` has `game: null` and `artifacts: null` |
-| Plane projects | `ANOM`, `TORN`, `KAAVA`, each with the seven `ai:*` labels and an `In Review` state. `VEIST` is Plane's own demo project, not ours: it has no record, so it never shows in the list |
-| Project CLI | `tools/kaava-project/` (see its README). "New project" (B3.1) can shell out to `create`, or make the same calls in Rust |
+| Project records | `gs://veistra-projects/prod/projects/{anomaly,torn-apart,veistra}.json` (§3.1 schema); `dev/projects/` is empty. `veistra` has `game: null` and `artifacts: null` |
+| Plane projects | `ANOM`, `TORN`, `VEISTRA`, each with the seven `ai:*` labels and an `In Review` state. `VEIST` is Plane's own demo project, not ours: it has no record, so it never shows in the list |
+| Project CLI | `tools/veistra-project/` (see its README). "New project" (B3.1) can shell out to `create`, or make the same calls in Rust |
 
 The owner's `gcloud` login can read every secret above. Read them from Rust into memory at app
 start; never into the frontend, a file, or a log (B2.1).
 
 ## Connecting from the laptop
 
-1. **Hosts entry** (B2.3), once, admin: `127.0.0.1 plane.kaava.internal` in
+1. **Hosts entry** (B2.3), once, admin: `127.0.0.1 plane.veistra.internal` in
    `%SystemRoot%\System32\drivers\etc\hosts`. Plane's `WEB_URL` and CORS are that exact origin, so
    `http://localhost:8765` loads but sign-in cookies and links break. Use the name.
 2. **Wake** (B2.4, design §3.3): Compute Engine REST with the owner's token.
@@ -42,11 +42,11 @@ start; never into the frontend, a file, or a log (B2.1).
    Start it once the VM reports `RUNNING` (untested whether it starts against a stopped VM), and
    restart it if it exits. On Windows `gcloud` is `gcloud.cmd`, a script that launches Python:
    spawn it through `cmd /c` and kill the whole process tree on exit, not just the wrapper.
-4. **REST** (§7.1): base `http://plane.kaava.internal:8765/api/v1/`, header `X-API-Key: <PAT>`,
+4. **REST** (§7.1): base `http://plane.veistra.internal:8765/api/v1/`, header `X-API-Key: <PAT>`,
    cursor pagination, `per_page` at most 100. Quick check:
    `GET /api/v1/workspaces/veistra/projects/` → 200.
 
-A reference implementation of the wake loop is `infra/common/kaava-wake/kaava_wake.py` (stdlib
+A reference implementation of the wake loop is `infra/common/veistra-wake/veistra_wake.py` (stdlib
 Python, with tests); mirror its state handling in Rust.
 
 ## AI jobs (B3.2)
@@ -54,7 +54,7 @@ Python, with tests); mirror its state handling in Rust.
 The job loop is live (PRs #132, #134). **To request a job, put a label on the work item** through
 the Plane API: `ai:breakdown`, `ai:plan-cycle`, `ai:context` or `ai:do`. plane-watch picks the
 label up within a minute and swaps it for `ai:queued`. It then writes the job file, starts
-kaava-worker, and keeps plane-vm awake until the job finishes. The agent reports back on the item
+veistra-worker, and keeps plane-vm awake until the job finishes. The agent reports back on the item
 itself: one summary comment, then `ai:done` or `ai:failed` in place of `ai:queued`. A breakdown
 took 62 s end to end.
 
@@ -67,15 +67,15 @@ To show progress, read the item's labels, or the job files in
 ```json
 {
   "schema": 1,
-  "id": "KAAVA-5-breakdown-20260928T143146106415",
+  "id": "VEISTRA-5-breakdown-20260928T143146106415",
   "kind": "breakdown",
   "profile": "prod",
-  "project": "openkaava",
-  "plane": {"workspace": "veistra", "project_id": "…", "identifier": "KAAVA",
+  "project": "veistra",
+  "plane": {"workspace": "veistra", "project_id": "…", "identifier": "VEISTRA",
             "work_item_id": "…", "sequence_id": 5, "name": "…"},
   "requested_by": "plane-watch",
   "created": "2026-09-28T14:31:46Z",
-  "claimed_by": "kaava-worker", "claimed_at": "…",
+  "claimed_by": "veistra-worker", "claimed_at": "…",
   "finished_at": "…",
   "result": {"outcome": "done", "result": "one-sentence summary", "session_id": "…",
              "num_turns": 14, "seconds": 62}

@@ -2,7 +2,7 @@
 
 The RPC surface a frontend — or an **agent** — uses to browse, edit and delete
 files in the open project. Every method here is reached the same way any app
-method is, through `invoke` from `@openkaava/bridge`; `docs/tool-protocol.md`
+method is, through `invoke` from `@veistra/bridge`; `docs/tool-protocol.md`
 describes that transport and does not describe these, because they are one app's
 methods rather than part of the protocol.
 
@@ -137,7 +137,7 @@ a way through.
 ### Purge is the one thing with no way back
 
 `files/delete` is undone by `trash/restore`. `trash/purge` is undone by nothing —
-not by OpenKaava, not by Windows. Anything that calls it on a user's behalf owes them
+not by Veistra, not by Windows. Anything that calls it on a user's behalf owes them
 a confirmation that says so in those terms.
 
 ## Platform

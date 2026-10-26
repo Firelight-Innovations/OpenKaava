@@ -11,7 +11,7 @@ rail is source control. It has two tabs, **Source Control** and **GitHub**.
 Click the branch icon on the rail, press `Alt+1` or press `Ctrl+B` to open it,
 and do the same again to close it.
 
-> OpenKaava runs the `git` binary on your machine rather than linking a git
+> Veistra runs the `git` binary on your machine rather than linking a git
 > library. That means your credential helper, SSH agent, `.gitconfig`, hooks
 > and aliases all apply, because they are already `git`'s and nothing had to
 > be taught about them.
@@ -37,7 +37,7 @@ so what you see is what git said a moment ago rather than a live feed.
 
 > **Not yet:** Push, pull, fetch and clone are not here. Each is
 > long-running and reports progress, which wants the terminal rather than a
-> panel — run them from an OpenKaava terminal, where your credentials already
+> panel — run them from a Veistra terminal, where your credentials already
 > work.
 
 ## In the file apps
@@ -48,12 +48,12 @@ dimmed, and the File Viewer can show what changed inside a file against
 
 ## The worktree offer
 
-Open a git repository into a cluster that has no worktree yet and OpenKaava asks:
+Open a git repository into a cluster that has no worktree yet and Veistra asks:
 **Work in a separate worktree?**
 
 A git worktree is a second checkout of the same repository, on its own
 branch, in its own folder — one `.git` history, two working directories.
-OpenKaava offers one because a **cluster** is meant to be an independent piece of
+Veistra offers one because a **cluster** is meant to be an independent piece of
 work, and two clusters sharing one checkout share one branch and one set of
 uncommitted edits.
 

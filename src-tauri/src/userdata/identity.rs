@@ -4,8 +4,9 @@
 //! is ours to redirect: the config directory, the WebView2 profile beside it,
 //! the single-instance mutex, and — by hand — the keyring service in
 //! `plugins::install`. Moving it moves all four at once, which is what orphaned
-//! a live directory when `com.firelightinnovations.helve` became the name
-//! below. So it is a constant here as well as a field there, and
+//! a live directory when `com.firelightinnovations.helve` became
+//! `com.firelightinnovations.openkaava`, since renamed again to the name below.
+//! So it is a constant here as well as a field there, and
 //! `scripts/check-identity.mjs` fails the build when the two disagree.
 //!
 //! `productName` is the other half of what a rename moves, is checked by that
@@ -14,14 +15,17 @@
 
 /// What `tauri.conf.json` must say, and what `plugins::install`'s
 /// `KEYRING_SERVICE` must be.
-pub const IDENTIFIER: &str = "com.firelightinnovations.openkaava";
+pub const IDENTIFIER: &str = "com.firelightinnovations.veistra";
 
 /// Every identifier [`IDENTIFIER`] has replaced, newest first.
 ///
 /// `userdata::adopt` walks this in order. Order is the contract: a machine that
 /// has been through two renames has two orphaned directories, and the newest is
 /// the one holding what the user last worked in.
-pub const SUPERSEDED: &[&str] = &["com.firelightinnovations.helve"];
+pub const SUPERSEDED: &[&str] = &[
+    "com.firelightinnovations.openkaava",
+    "com.firelightinnovations.helve",
+];
 
 #[cfg(test)]
 mod tests {

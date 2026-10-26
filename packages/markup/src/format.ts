@@ -3,7 +3,7 @@
  * `docs/markup-format.md` is the agent-facing description; this file is the
  * code that writes it.
  */
-import { kaavaData, live } from "./elements";
+import { veistraData, live } from "./elements";
 import { isPinPart, listPins } from "./pins";
 import type { CameraPose, MarkupElement, MarkupHost, MarkupTarget, Vec3 } from "./types";
 
@@ -49,7 +49,7 @@ export interface BuildInput {
 }
 
 function targetsOf(el: MarkupElement): MarkupTarget[] | undefined {
-  const t = kaavaData(el)?.targets;
+  const t = veistraData(el)?.targets;
   return Array.isArray(t) && t.length > 0 ? (t as MarkupTarget[]) : undefined;
 }
 

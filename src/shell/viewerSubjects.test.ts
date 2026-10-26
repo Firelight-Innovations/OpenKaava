@@ -58,7 +58,7 @@ describe("the store", () => {
   });
 
   it("ignores corrupt stored state", () => {
-    window.localStorage.setItem("kaava.viewer.subjects.v1", "{not json");
+    window.localStorage.setItem("veistra.viewer.subjects.v1", "{not json");
     resetSubjectsForTest();
     expect(getSubject("v1")).toBeUndefined();
   });

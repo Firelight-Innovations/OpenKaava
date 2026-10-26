@@ -1,0 +1,8 @@
+{
+  "schema": "veistra-reconcile-v1",
+  "at": "2026-08-25T14:02:00Z",
+  "outcome": "matched",
+  "node_id": "01a03637-7800-7026-b087-77932935b4d3",
+  "slug": "clock-skew",
+  "site": { "file": "src/auth/clockSkew.ts", "line": 1 }
+}

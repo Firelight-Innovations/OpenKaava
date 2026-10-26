@@ -3,7 +3,7 @@
  *
  * Mirrors `src-tauri/src/tool_frontend.rs`. In development this resolves to the
  * tool's own Vite server, so its hot reload works inside the real shell; in a
- * release build it resolves to the tool's built bundle on the `kaava-tool://`
+ * release build it resolves to the tool's built bundle on the `veistra-tool://`
  * scheme. The frontend never constructs either URL — it asks and mounts what it
  * is given.
  *

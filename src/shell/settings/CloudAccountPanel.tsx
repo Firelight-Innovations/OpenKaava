@@ -1,5 +1,5 @@
 /**
- * The Google account OpenKaava signs in with, for the Cloud section.
+ * The Google account Veistra signs in with, for the Cloud section.
  *
  * ## Why this is a panel and not a setting
  *
@@ -88,7 +88,7 @@ export default function CloudAccountPanel() {
           <span className="setting__title">Google account</span>
           <span className="setting__description">
             {status.email !== null
-              ? `Signed in as ${status.email}. OpenKaava sends this account's ID token to the gateway.`
+              ? `Signed in as ${status.email}. Veistra sends this account's ID token to the gateway.`
               : signingIn
                 ? "Waiting for the browser. Approve the sign-in there, then come back."
                 : status.configured

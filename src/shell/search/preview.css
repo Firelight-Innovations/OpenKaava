@@ -3,7 +3,7 @@
  * fills inside it.
  *
  * Same division of labour `apps/files/ui/src/viewer/text.css`'s header
- * describes for its own pane: Monaco draws itself from the `kaava-preview-dark`
+ * describes for its own pane: Monaco draws itself from the `veistra-preview-dark`
  * theme in `./previewMonaco.ts`, so this sheet gives the editor a correctly
  * sized box and draws the handful of things Monaco has no opinion about — the
  * empty/loading/not-text/failed states, and the truncation banner.

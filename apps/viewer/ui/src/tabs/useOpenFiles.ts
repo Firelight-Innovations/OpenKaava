@@ -29,7 +29,7 @@ import type { OpenFile } from "../viewer/registry";
 // only holds and disposes ones `TextViewer` made.
 import type { TextModel, EditorViewState } from "../viewer/monaco";
 import { baseName, extensionOf, stat, write } from "../rpc";
-import { publish } from "@openkaava/bridge";
+import { publish } from "@veistra/bridge";
 import { FILE_SAVED, type FileSaved } from "../topics";
 
 /** Bumped for every `FILE_SAVED`, so no two are equal and the bridge's dedup

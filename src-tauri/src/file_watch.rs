@@ -10,7 +10,7 @@
 //!
 //! **What is not watched.** `.git` internals (a commit writes dozens of objects and refs
 //! and the working tree did not change), `node_modules` and `target` (build output, tens
-//! of thousands of files and never in the explorer's way), and `.kaava/worktrees` (other
+//! of thousands of files and never in the explorer's way), and `.veistra/worktrees` (other
 //! clusters' checkouts: their churn is not this tree's).
 //!
 //! **The two `.git` files that are.** `index` and `HEAD`: a `git add`, a commit or a
@@ -42,7 +42,7 @@ const IGNORED_DIRS: &[&str] = &[".git", "node_modules", "target"];
 
 /// Whether a change at `path` is one the explorer should react to.
 ///
-/// Pure, so the filter is tested without a filesystem. `.kaava/worktrees` is two
+/// Pure, so the filter is tested without a filesystem. `.veistra/worktrees` is two
 /// components, not a name, so it is matched as a pair.
 pub fn is_relevant(root: &Path, path: &Path) -> bool {
     let rel = path.strip_prefix(root).unwrap_or(path);
@@ -58,7 +58,7 @@ pub fn is_relevant(root: &Path, path: &Path) -> bool {
     }
     !parts
         .windows(2)
-        .any(|pair| pair[0] == ".kaava" && pair[1] == "worktrees")
+        .any(|pair| pair[0] == ".veistra" && pair[1] == "worktrees")
 }
 
 /// The directory holding `root`'s `index` and `HEAD`: `root/.git` when that is a
@@ -127,7 +127,7 @@ impl FileWatches {
                 watches.insert(root.to_path_buf(), watcher);
             }
             // Not fatal: the explorer still refreshes by hand and on its own actions.
-            None => eprintln!("kaava: not watching {} for file changes", root.display()),
+            None => eprintln!("veistra: not watching {} for file changes", root.display()),
         }
     }
 }
@@ -140,11 +140,11 @@ pub(crate) fn spawn_watch(
 ) -> Option<RecommendedWatcher> {
     let (tx, rx) = mpsc::channel::<notify::Result<Event>>();
     let mut watcher = notify::recommended_watcher(tx)
-        .map_err(|e| eprintln!("kaava: could not create a file watcher: {e}"))
+        .map_err(|e| eprintln!("veistra: could not create a file watcher: {e}"))
         .ok()?;
     watcher
         .watch(root, RecursiveMode::Recursive)
-        .map_err(|e| eprintln!("kaava: could not watch {}: {e}", root.display()))
+        .map_err(|e| eprintln!("veistra: could not watch {}: {e}", root.display()))
         .ok()?;
 
     // A linked worktree's git directory sits outside `root`, so the recursive watch above
@@ -152,7 +152,7 @@ pub(crate) fn spawn_watch(
     let git_dir = resolve_git_dir(root);
     if let Some(dir) = git_dir.as_deref().filter(|d| !d.starts_with(root)) {
         if let Err(e) = watcher.watch(dir, RecursiveMode::NonRecursive) {
-            eprintln!("kaava: could not watch {}: {e}", dir.display());
+            eprintln!("veistra: could not watch {}: {e}", dir.display());
         }
     }
 
@@ -220,7 +220,7 @@ mod tests {
         assert!(rel("src/main.rs"));
         assert!(rel("notes.txt"));
         assert!(rel(".gitignore"));
-        assert!(rel(".kaava/layout/stack.json"));
+        assert!(rel(".veistra/layout/stack.json"));
     }
 
     #[test]
@@ -235,8 +235,8 @@ mod tests {
 
     #[test]
     fn other_clusters_worktrees_do_not() {
-        assert!(!rel(".kaava/worktrees/feat/src/a.rs"));
-        assert!(rel(".kaava/other"));
+        assert!(!rel(".veistra/worktrees/feat/src/a.rs"));
+        assert!(rel(".veistra/other"));
     }
 
     fn wait_for(count: &AtomicUsize, at_least: usize, within: Duration) -> bool {

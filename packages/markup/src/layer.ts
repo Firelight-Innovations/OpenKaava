@@ -1,5 +1,5 @@
 /**
- * The React half: import it with `React.lazy(() => import("@kaava/markup/layer"))`
+ * The React half: import it with `React.lazy(() => import("@veistra/markup/layer"))`
  * so Excalidraw's script is fetched only when markup is opened.
  */
 export { default as MarkupLayer } from "./MarkupLayer";

@@ -1,25 +1,25 @@
 {
   "mcpServers": {
-    "kaava-canvas": {
+    "veistra-canvas": {
       "headers": {
-        "Authorization": "Bearer ${KAAVA_MCP_TOKEN}"
+        "Authorization": "Bearer ${VEISTRA_MCP_TOKEN}"
       },
       "type": "http",
-      "url": "http://127.0.0.1:${KAAVA_MCP_PORT}/mcp/canvas"
+      "url": "http://127.0.0.1:${VEISTRA_MCP_PORT}/mcp/canvas"
     },
-    "kaava-context": {
+    "veistra-context": {
       "headers": {
-        "Authorization": "Bearer ${KAAVA_MCP_TOKEN}"
+        "Authorization": "Bearer ${VEISTRA_MCP_TOKEN}"
       },
       "type": "http",
-      "url": "http://127.0.0.1:${KAAVA_MCP_PORT}/mcp/context"
+      "url": "http://127.0.0.1:${VEISTRA_MCP_PORT}/mcp/context"
     },
-    "kaava-workspace": {
+    "veistra-workspace": {
       "headers": {
-        "Authorization": "Bearer ${KAAVA_MCP_TOKEN}"
+        "Authorization": "Bearer ${VEISTRA_MCP_TOKEN}"
       },
       "type": "http",
-      "url": "http://127.0.0.1:${KAAVA_MCP_PORT}/mcp/workspace"
+      "url": "http://127.0.0.1:${VEISTRA_MCP_PORT}/mcp/workspace"
     }
   }
 }

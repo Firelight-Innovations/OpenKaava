@@ -6,9 +6,9 @@ ground rules, and stack-mismatch guidance that apply to you too.
 ## Setup
 
 ```bash
-cd OpenKaava
-git worktree add ../OpenKaava-annotate-diffs -b feat/annotate-ai-diffs origin/main
-cd ../OpenKaava-annotate-diffs
+cd Veistra
+git worktree add ../Veistra-annotate-diffs -b feat/annotate-ai-diffs origin/main
+cd ../Veistra-annotate-diffs
 ```
 
 Then read, in order: `CONTRIBUTING.md`, `STANDARDS.md`,
@@ -34,14 +34,14 @@ Rust rather than translating it line by line.
 
 1. In the existing diff view, let the user attach a comment to a specific
    line or hunk of an uncommitted or agent-produced diff.
-2. Persist comments per-project. OpenKaava already has a per-project state
+2. Persist comments per-project. Veistra already has a per-project state
    location — read "Projects" in `docs/dev/architecture.md` for what
-   `.kaava/` already holds and follow that pattern; don't invent a second
+   `.veistra/` already holds and follow that pattern; don't invent a second
    one.
 3. Comments must survive a restart, the same way other durable state in this
    app is re-derived on load (see `shell_store.rs` for the existing
    precedent).
-4. Give the user a way to get annotated comments out to an agent. OpenKaava has
+4. Give the user a way to get annotated comments out to an agent. Veistra has
    no agent chat pane — the only agent surface is a terminal (PTY) process.
    A "copy to clipboard" or "insert into the active terminal" action is
    correct scope for tonight; do not build a new transport.

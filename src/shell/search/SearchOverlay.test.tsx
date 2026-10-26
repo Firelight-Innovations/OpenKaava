@@ -25,7 +25,7 @@ function session(overrides: Partial<SearchSession> = {}): SearchSession {
     query: "a",
     setQuery: vi.fn(),
     parsed: parseQuery("a"),
-    kinds: ["script", "data", "content", "kaava"],
+    kinds: ["script", "data", "content", "veistra"],
     toggleKind: vi.fn(),
     hits: [script, content],
     rows,

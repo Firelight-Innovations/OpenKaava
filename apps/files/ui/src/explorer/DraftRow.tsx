@@ -14,7 +14,7 @@
  * is not gaining a sibling, it is being re-labelled where it stands.
  */
 import type { DraftKind } from "../ContextMenu";
-import { fileIconUrl, folderIconUrl } from "@openkaava/file-icons";
+import { fileIconUrl, folderIconUrl } from "@veistra/file-icons";
 import { useInlineName } from "../useInlineName";
 
 /** One sentence, used as both the placeholder and the accessible name — they

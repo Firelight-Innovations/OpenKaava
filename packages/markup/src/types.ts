@@ -62,7 +62,7 @@ export interface MarkupHost {
 }
 
 /**
- * The contract `@kaava/scene-view` implements for its handle, mirrored here
+ * The contract `@veistra/scene-view` implements for its handle, mirrored here
  * rather than imported: importing it, even as a type, would make this package
  * typecheck three.js and the viewer's CSS. It is not left to drift. The Godot
  * viewer passes a real `SceneViewHandle` to `sceneHost`, so a change to either

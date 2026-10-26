@@ -1,6 +1,6 @@
 # Agent debugging
 
-Why OpenKaava can be asked what it is doing, and by whom.
+Why Veistra can be asked what it is doing, and by whom.
 
 An agent working on this repo can read every file in it and still not know
 whether the window it just changed drew two panes or four, which cluster is in
@@ -12,7 +12,7 @@ it cost.
 
 Every failure path in this crate writes a line and moves on. That is the right
 shape — none of them are worth stopping for — but it means the record of a
-failure is a line of stderr, and stderr is where OpenKaava's diagnostics go to die.
+failure is a line of stderr, and stderr is where Veistra's diagnostics go to die.
 `main.rs` sets the `windows` subsystem in release, so a shipped build has no
 console attached and every one of those lines goes to a handle nobody holds. The
 frontend's `console.error` calls are worse off still: they reach a webview
@@ -43,13 +43,13 @@ so a reader is never quietly shown a partial history as a complete one.
 
 ### Why the stderr half is kept
 
-`kaava_log!` prints *and* records. A debug build with a console attached is still
-the fastest way to watch OpenKaava fail, and this is meant to add a second reader,
+`veistra_log!` prints *and* records. A debug build with a console attached is still
+the fastest way to watch Veistra fail, and this is meant to add a second reader,
 not to take the first one away.
 
 ## src/shell/diagnostics.ts
 
-The shell reports its failures with `console.error("kaava: …", err)` in seventeen
+The shell reports its failures with `console.error("veistra: …", err)` in seventeen
 places, and the browser reports the ones nobody caught through `error` and
 `unhandledrejection`. All of it lands in a devtools console that is only open if
 somebody opened it, which means the answer to "what just went wrong" is gone by
@@ -95,7 +95,7 @@ endpoint is reachable by anything on the machine holding the token, so the blast
 radius of that token leaking should stay "someone learned your window layout"
 rather than "someone rearranged it".
 
-An agent that wants to *change* OpenKaava has the commands the frontend uses and a
+An agent that wants to *change* Veistra has the commands the frontend uses and a
 user sitting in front of it. This is for finding out what happened.
 
 ### Why it ships in release
@@ -103,21 +103,21 @@ user sitting in front of it. This is for finding out what happened.
 `debug` is registered in every build but is `dev_only`: it is served only with
 `developer.mode` on and its own switch on, like `ui` and `agent`. A `cfg` would
 have removed it from release entirely, which is the wrong trade:
-the builds worth debugging include the release one. A shipped OpenKaava that
+the builds worth debugging include the release one. A shipped Veistra that
 misbehaves on a machine none of us have is exactly the case where reading its
 layout and its failures is worth the most, and a server compiled out of that
 build cannot answer.
 
 ## src-tauri/src/mcp/handoff.rs
 
-`Endpoint::env` hands the port and token to every terminal OpenKaava opens, which
-covers the agent working *inside* OpenKaava and nothing else. An agent in Windows
-Terminal, in an editor, or in a Claude Code session started before OpenKaava was,
+`Endpoint::env` hands the port and token to every terminal Veistra opens, which
+covers the agent working *inside* Veistra and nothing else. An agent in Windows
+Terminal, in an editor, or in a Claude Code session started before Veistra was,
 inherits neither variable and has no way to ask — the values live in one
 process's memory and are never written down.
 
-That gap is the difference between "agents can debug OpenKaava" and "agents launched
-a particular way can debug OpenKaava", so this writes them down.
+That gap is the difference between "agents can debug Veistra" and "agents launched
+a particular way can debug Veistra", so this writes them down.
 
 ### What this costs, stated plainly
 
@@ -135,11 +135,11 @@ anything inherited from here. `docs/design-notes/design-comments.md` has it.
 Two things bound the damage. The file goes in the app config directory, under the
 user's profile, which on Windows is not readable by other standard users. And the
 token is minted fresh on every launch, so a copy of this file is worthless the
-moment OpenKaava restarts.
+moment Veistra restarts.
 
 ### Staleness, and why nothing deletes this
 
-OpenKaava has no exit hook to clean up in, and adding one would mean rebuilding the
+Veistra has no exit hook to clean up in, and adding one would mean rebuilding the
 Tauri builder chain around `RunEvent` for a file that does not need it. `pid` is
 the answer instead: a reader checks the process is alive before trusting the
 port, exactly as `echo`'s `ping` returns a pid so a green response can be told

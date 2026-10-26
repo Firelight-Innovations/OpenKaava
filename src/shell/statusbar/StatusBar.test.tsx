@@ -39,9 +39,9 @@ describe("StatusBar", () => {
       branch: "wt/flashlight-cone",
       path: "/repo/wt/fl",
     };
-    render(<StatusBar project="OpenKaava" environment={env} git={null} githubOk update={null} />);
+    render(<StatusBar project="Veistra" environment={env} git={null} githubOk update={null} />);
 
-    expect(screen.getByText("OpenKaava")).not.toBeNull();
+    expect(screen.getByText("Veistra")).not.toBeNull();
     expect(screen.getByText("wt/flashlight-cone")).not.toBeNull();
   });
 
@@ -53,7 +53,7 @@ describe("StatusBar", () => {
     };
     render(
       <StatusBar
-        project="OpenKaava"
+        project="Veistra"
         environment={env}
         git={git({ branch: "wt/flashlight-cone", ahead: 1, behind: 0 })}
         githubOk
@@ -68,7 +68,7 @@ describe("StatusBar", () => {
 
   it("draws the worktree kind chip, once, with the path as its tooltip", () => {
     const env: Environment = { kind: "worktree", branch: "wt/x", path: "/repo/wt/x" };
-    render(<StatusBar project="OpenKaava" environment={env} git={git()} githubOk update={null} />);
+    render(<StatusBar project="Veistra" environment={env} git={git()} githubOk update={null} />);
 
     const chip = screen.getByRole("button", { name: /Local worktree/ });
     expect(chip.textContent).toBe("Local worktree");
@@ -80,7 +80,7 @@ describe("StatusBar", () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
     const env: Environment = { kind: "worktree", branch: "wt/x", path: "/repo/wt/x" };
-    render(<StatusBar project="OpenKaava" environment={env} git={null} githubOk update={null} />);
+    render(<StatusBar project="Veistra" environment={env} git={null} githubOk update={null} />);
 
     screen.getByRole("button", { name: /Local worktree/ }).click();
     expect(writeText).toHaveBeenCalledWith("/repo/wt/x");
@@ -91,7 +91,7 @@ describe("StatusBar", () => {
     const env: Environment = { kind: "worktree", branch: "wt/x", path: "/x" };
     render(
       <StatusBar
-        project="OpenKaava"
+        project="Veistra"
         environment={env}
         git={null}
         githubOk
@@ -107,7 +107,7 @@ describe("StatusBar", () => {
   it("omits Review & merge on main, where there is nothing to merge", () => {
     render(
       <StatusBar
-        project="OpenKaava"
+        project="Veistra"
         environment={{ kind: "main" }}
         git={null}
         githubOk
@@ -120,7 +120,7 @@ describe("StatusBar", () => {
   it("reads main as a bare branch segment with no ahead/behind, plus the trailing read-only label", () => {
     render(
       <StatusBar
-        project="OpenKaava"
+        project="Veistra"
         environment={{ kind: "main" }}
         git={null}
         githubOk
@@ -135,7 +135,7 @@ describe("StatusBar", () => {
   it("names the real branch when the repository's default is master", () => {
     render(
       <StatusBar
-        project="OpenKaava"
+        project="Veistra"
         environment={{ kind: "main" }}
         git={git({ branch: "master" })}
         githubOk
@@ -149,7 +149,7 @@ describe("StatusBar", () => {
 
   it("omits the read-only label for a worktree", () => {
     const env: Environment = { kind: "worktree", branch: "wt/x", path: "/x" };
-    render(<StatusBar project="OpenKaava" environment={env} git={null} githubOk update={null} />);
+    render(<StatusBar project="Veistra" environment={env} git={null} githubOk update={null} />);
 
     expect(screen.queryByText("main is read-only")).toBeNull();
   });
@@ -157,13 +157,13 @@ describe("StatusBar", () => {
   it("only draws the diff stat once git reports touched files", () => {
     const env: Environment = { kind: "worktree", branch: "wt/x", path: "/x" };
     const { rerender } = render(
-      <StatusBar project="OpenKaava" environment={env} git={git()} githubOk update={null} />,
+      <StatusBar project="Veistra" environment={env} git={git()} githubOk update={null} />,
     );
     expect(screen.queryByText(/files$/)).toBeNull();
 
     rerender(
       <StatusBar
-        project="OpenKaava"
+        project="Veistra"
         environment={env}
         git={git({
           insertions: 3,

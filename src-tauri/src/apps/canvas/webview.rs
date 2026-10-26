@@ -15,8 +15,8 @@
 //! When no canvas frontend is loaded anywhere the call fails with
 //! `kind: "canvas-not-open"` and says how to open one, rather than pretending.
 
-use kaava_rpc::{RpcError, INTERNAL_ERROR};
 use serde_json::{json, Value};
+use veistra_rpc::{RpcError, INTERNAL_ERROR};
 
 /// Something that can run one canvas frontend operation.
 ///
@@ -59,7 +59,7 @@ pub fn name_canvas(err: RpcError, canvas: &str) -> RpcError {
     RpcError::with_data(
         INTERNAL_ERROR,
         format!(
-            "canvas `{canvas}` cannot be drawn: no Canvas pane is open in OpenKaava, and \
+            "canvas `{canvas}` cannot be drawn: no Canvas pane is open in Veistra, and \
              rendering and text measurement run inside one. Open a Canvas pane (the agent \
              server's open_app {{\"appId\":\"canvas\"}}, or ask the person to), ideally showing \
              `{canvas}`, then call this again."
@@ -73,7 +73,7 @@ pub fn name_canvas(err: RpcError, canvas: &str) -> RpcError {
 pub fn not_open() -> RpcError {
     RpcError::with_data(
         INTERNAL_ERROR,
-        "no Canvas app is open in OpenKaava, and rendering and text measurement run inside it. \
+        "no Canvas app is open in Veistra, and rendering and text measurement run inside it. \
          Open one with the agent server's open_app {\"appId\":\"canvas\"} (or ask the person to \
          open Canvas), then call this again.",
         json!({ "kind": "canvas-not-open", "openWith": { "tool": "open_app", "appId": "canvas" } }),
@@ -199,7 +199,7 @@ pub fn interpret(reply: Value) -> Result<Option<Value>, RpcError> {
     ))
 }
 
-/// The page-side half. It looks for `__kaavaCanvas` in the window and every
+/// The page-side half. It looks for `__veistraCanvas` in the window and every
 /// same-origin iframe beneath it, prefers the one showing `canvas`, and runs
 /// the operation there. Arguments are JSON-encoded, never spliced as code.
 #[cfg(test)]
@@ -217,7 +217,7 @@ const argument = {argument};
 const hosts = [];
 const visit = (w, depth) => {{
   try {{
-    if (w.__kaavaCanvas) hosts.push(w.__kaavaCanvas);
+    if (w.__veistraCanvas) hosts.push(w.__veistraCanvas);
     if (depth > 3) return;
     for (const f of w.document.querySelectorAll('iframe')) {{
       try {{ if (f.contentWindow) visit(f.contentWindow, depth + 1); }} catch (e) {{}}

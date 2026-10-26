@@ -1,4 +1,4 @@
-/* KAAVA-UX-SPEC.md §1.8 — the expanded page header. */
+/* VEISTRA-UX-SPEC.md §1.8 — the expanded page header. */
 
 /* Fills `Frame`'s `.frame__page-expanded`, which is `position: absolute;
    inset: 0` and sets no `display` of its own -- so this needs its own

@@ -1,4 +1,4 @@
-//! Finding out that a newer OpenKaava exists, and replacing this one with it.
+//! Finding out that a newer Veistra exists, and replacing this one with it.
 //!
 //! The mechanism is `tauri-plugin-updater`: it fetches the `latest.json` named
 //! in `plugins.updater.endpoints`, verifies its minisign signature against
@@ -270,7 +270,7 @@ fn failed<T>(
 fn publish(app: &AppHandle, next: UpdateState) -> UpdateState {
     app.state::<UpdateStatus>().set(next.clone());
     if let Err(e) = app.emit(UPDATE_CHANGED_EVENT, &next) {
-        eprintln!("kaava: could not announce the update state: {e}");
+        eprintln!("veistra: could not announce the update state: {e}");
     }
     next
 }
@@ -278,12 +278,12 @@ fn publish(app: &AppHandle, next: UpdateState) -> UpdateState {
 /// Why this build cannot update itself, or `None` if it can.
 ///
 /// A debug build was started by `cargo` out of a target directory, and the
-/// installer would put a *release* OpenKaava in Program Files and leave the
+/// installer would put a *release* Veistra in Program Files and leave the
 /// developer looking at the one they are still compiling. Offering that is
 /// worse than saying so.
 fn unsupported() -> Option<String> {
     cfg!(debug_assertions).then(|| {
-        "This is a development build. Updates replace an installed OpenKaava, and there is not one \
+        "This is a development build. Updates replace an installed Veistra, and there is not one \
          here to replace."
             .to_string()
     })

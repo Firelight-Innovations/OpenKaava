@@ -4,12 +4,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const invoke = vi.hoisted(() => vi.fn());
-vi.mock("@openkaava/bridge", () => ({
+vi.mock("@veistra/bridge", () => ({
   invoke,
   subscribe: () => () => {},
   host: () => "standalone",
   claimSearch: () => ({ release: () => {}, update: () => {} }),
-  KaavaRpcError: class extends Error {
+  VeistraRpcError: class extends Error {
     code = 0;
   },
 }));

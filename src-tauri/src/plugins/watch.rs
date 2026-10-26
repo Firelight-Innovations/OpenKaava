@@ -79,7 +79,7 @@ impl Watchers {
                 // Not fatal, and not silent. Losing a watch costs the automatic
                 // half of the reload loop; the Reload action still works, which
                 // is why this is a line on stderr rather than a refused install.
-                None => eprintln!("kaava: not watching {id} for rebuilds"),
+                None => eprintln!("veistra: not watching {id} for rebuilds"),
             }
         }
     }
@@ -95,14 +95,14 @@ fn start(app: AppHandle, id: String, checkout: &Path) -> Option<RecommendedWatch
     let (tx, rx) = mpsc::channel::<notify::Result<Event>>();
 
     let mut watcher = notify::recommended_watcher(tx)
-        .map_err(|e| eprintln!("kaava: could not create a watcher for {id}: {e}"))
+        .map_err(|e| eprintln!("veistra: could not create a watcher for {id}: {e}"))
         .ok()?;
 
     // The manifest, through its directory. A watch on the checkout root
-    // non-recursively sees `kaava-tool.toml` being rewritten and sees nothing
+    // non-recursively sees `veistra-tool.toml` being rewritten and sees nothing
     // from `src/` or `target/`, which is the whole point.
     if let Err(e) = watcher.watch(checkout, RecursiveMode::NonRecursive) {
-        eprintln!("kaava: could not watch {}: {e}", checkout.display());
+        eprintln!("veistra: could not watch {}: {e}", checkout.display());
         return None;
     }
 
@@ -113,7 +113,7 @@ fn start(app: AppHandle, id: String, checkout: &Path) -> Option<RecommendedWatch
     if let Some(dir) = core_dir(checkout) {
         if dir != checkout {
             if let Err(e) = watcher.watch(&dir, RecursiveMode::NonRecursive) {
-                eprintln!("kaava: could not watch {}: {e}", dir.display());
+                eprintln!("veistra: could not watch {}: {e}", dir.display());
             }
         }
     }
@@ -150,7 +150,7 @@ fn debounce(app: &AppHandle, id: &str, rx: &mpsc::Receiver<notify::Result<Event>
 
 /// The directory holding a plugin's built binary, if it has one and it exists.
 fn core_dir(checkout: &Path) -> Option<PathBuf> {
-    let manifest = kaava_tool_manifest::ToolManifest::load(checkout).ok()?;
+    let manifest = veistra_tool_manifest::ToolManifest::load(checkout).ok()?;
     let bin = manifest.resolve_bin(checkout).ok()?;
     bin.parent().map(Path::to_path_buf).filter(|d| d.is_dir())
 }

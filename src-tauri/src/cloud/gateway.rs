@@ -1,17 +1,17 @@
-//! The `kaava-api` gateway (`services/kaava-api`): how OpenKaava reaches Plane
+//! The `veistra-api` gateway (`services/veistra-api`): how Veistra reaches Plane
 //! without an IAP tunnel, a hosts entry or the Plane token on the laptop.
 //!
-//! Every call carries a Google ID token: OpenKaava's own sign-in when there is
+//! Every call carries a Google ID token: Veistra's own sign-in when there is
 //! one ([`super::google`]), otherwise `gcloud auth print-identity-token`. Cloud
 //! Run checks it before the service sees the request. The gateway marks its own
-//! replies with `X-Kaava-Api: 1`, so a 401 or 403 without that header is Cloud
+//! replies with `X-Veistra-Api: 1`, so a 401 or 403 without that header is Cloud
 //! Run refusing the identity, and one with it is the service speaking.
 
 use super::google::Client;
 use super::{http, Cloud, Result, Trouble};
 use serde_json::Value;
 
-const MARKER: &str = "x-kaava-api";
+const MARKER: &str = "x-veistra-api";
 const REPLY_LIMIT: u64 = 8 << 20;
 
 /// Where the gateway is and which OAuth client the sign-in uses, both from
@@ -212,7 +212,7 @@ pub fn classify(status: u16, marked: bool, body: &[u8], identity: Identity) -> T
     if !marked {
         return match (status, identity) {
             (401, Identity::Google) => Trouble::SignInNeeded {
-                detail: "the gateway did not accept OpenKaava's Google sign-in".into(),
+                detail: "the gateway did not accept Veistra's Google sign-in".into(),
             },
             (401, Identity::Gcloud) => Trouble::SignedOut {
                 detail: "the gateway did not accept the gcloud identity".into(),
@@ -266,7 +266,7 @@ mod tests {
 
     #[test]
     fn a_plain_http_url_is_refused_so_a_token_never_crosses_the_network_in_clear() {
-        let err = gateway("http://kaava-api.example")
+        let err = gateway("http://veistra-api.example")
             .endpoint("v1/plane/status", &[])
             .unwrap_err();
         assert!(matches!(err, Trouble::GatewayUnreachable { .. }), "{err:?}");
@@ -274,7 +274,7 @@ mod tests {
 
     #[test]
     fn the_endpoint_joins_the_path_and_encodes_the_query() {
-        let url = gateway("https://kaava-api-x.a.run.app/")
+        let url = gateway("https://veistra-api-x.a.run.app/")
             .endpoint(
                 "/v1/plane/api/v1/workspaces/veistra/projects/",
                 &[
@@ -285,7 +285,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             url,
-            "https://kaava-api-x.a.run.app/v1/plane/api/v1/workspaces/veistra/projects/?per_page=100&q=a%20b"
+            "https://veistra-api-x.a.run.app/v1/plane/api/v1/workspaces/veistra/projects/?per_page=100&q=a%20b"
         );
     }
 
@@ -362,7 +362,7 @@ mod tests {
             let body = r#"{"vm":"RUNNING","healthy":true,"detail":"healthy"}"#;
             write!(
                 stream,
-                "HTTP/1.1 200 OK\r\nX-Kaava-Api: 1\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                "HTTP/1.1 200 OK\r\nX-Veistra-Api: 1\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
                 body.len()
             )
             .unwrap();

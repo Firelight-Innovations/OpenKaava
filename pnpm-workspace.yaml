@@ -1,7 +1,7 @@
 # The orchestrator app itself is the root package. Everything listed here is a
 # package it publishes or ships alongside:
 #
-#   packages/*      libraries other OpenKaava repos consume — @openkaava/bridge today
+#   packages/*      libraries other Veistra repos consume — @veistra/bridge today
 #   examples/*/ui   frontends of the reference tools, which import those
 #                   libraries the same way a real tool repo would
 #

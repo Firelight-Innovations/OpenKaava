@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
 const bridge = vi.hoisted(() => {
-  class KaavaRpcError extends Error {
+  class VeistraRpcError extends Error {
     constructor(
       readonly code: number,
       message: string,
@@ -20,18 +20,18 @@ const bridge = vi.hoisted(() => {
   return {
     invoke: vi.fn(),
     listeners: new Map<string, (payload: unknown) => void>(),
-    KaavaRpcError,
+    VeistraRpcError,
   };
 });
 
-vi.mock("@openkaava/bridge", () => ({
+vi.mock("@veistra/bridge", () => ({
   invoke: bridge.invoke,
   on: (event: string, cb: (payload: unknown) => void) => {
     bridge.listeners.set(event, cb);
     return () => bridge.listeners.delete(event);
   },
   reportPainted: vi.fn(),
-  KaavaRpcError: bridge.KaavaRpcError,
+  VeistraRpcError: bridge.VeistraRpcError,
 }));
 
 import App from "./App";
@@ -272,7 +272,7 @@ describe("the agent tab", () => {
       {
         "agent-tab/send": () =>
           Promise.reject(
-            new bridge.KaavaRpcError(-32010, "x", { code: "harness", hint: "adapterMissing" }),
+            new bridge.VeistraRpcError(-32010, "x", { code: "harness", hint: "adapterMissing" }),
           ),
       },
     );
@@ -323,7 +323,7 @@ describe("the agent tab", () => {
       { status: null, seq: 0, items: [] },
       {
         "agent-tab/send": () =>
-          Promise.reject(new bridge.KaavaRpcError(-32003, "main is read-only")),
+          Promise.reject(new bridge.VeistraRpcError(-32003, "main is read-only")),
       },
     );
     render(<App />);
@@ -825,7 +825,7 @@ describe("the agent tab", () => {
       {
         "agent-tab/set-mode": () =>
           Promise.reject(
-            new bridge.KaavaRpcError(-32010, "x", { code: "unknownOption", hint: null }),
+            new bridge.VeistraRpcError(-32010, "x", { code: "unknownOption", hint: null }),
           ),
       },
     );
@@ -1002,7 +1002,7 @@ describe("the agent tab", () => {
       {
         "agent-tab/set-config": () =>
           Promise.reject(
-            new bridge.KaavaRpcError(-32010, "x", { code: "unknownOption", hint: null }),
+            new bridge.VeistraRpcError(-32010, "x", { code: "unknownOption", hint: null }),
           ),
       },
     );
@@ -1118,7 +1118,7 @@ describe("the harness", () => {
       {
         "agent-tab/harnesses": both,
         "agent-tab/choose": () =>
-          Promise.reject(new bridge.KaavaRpcError(-32010, "x", { code: "running", hint: null })),
+          Promise.reject(new bridge.VeistraRpcError(-32010, "x", { code: "running", hint: null })),
       },
     );
     render(<App />);

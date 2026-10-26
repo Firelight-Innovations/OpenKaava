@@ -8,7 +8,7 @@
  */
 import { lazy, Suspense, useMemo, type ReactNode } from "react";
 import { RefreshCw } from "lucide-react";
-import type { MarkupExport } from "@kaava/markup/layer";
+import type { MarkupExport } from "@veistra/markup/layer";
 import { nodeLookup } from "../../../shared/sceneNodes";
 import { partNodeMap } from "./preview";
 import { useGlb } from "./useGlb";

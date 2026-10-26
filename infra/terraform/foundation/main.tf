@@ -26,28 +26,28 @@ provider "google" {
   region  = var.region
 }
 
-resource "google_compute_network" "kaava" {
-  name                    = "kaava"
+resource "google_compute_network" "veistra" {
+  name                    = "veistra"
   auto_create_subnetworks = false
 }
 
-resource "google_compute_subnetwork" "kaava" {
-  name                     = "kaava-${var.region}"
-  network                  = google_compute_network.kaava.id
+resource "google_compute_subnetwork" "veistra" {
+  name                     = "veistra-${var.region}"
+  network                  = google_compute_network.veistra.id
   region                   = var.region
   ip_cidr_range            = "10.10.0.0/24"
   private_ip_google_access = true
 }
 
-resource "google_compute_router" "kaava" {
-  name    = "kaava-${var.region}"
-  network = google_compute_network.kaava.id
+resource "google_compute_router" "veistra" {
+  name    = "veistra-${var.region}"
+  network = google_compute_network.veistra.id
   region  = var.region
 }
 
-resource "google_compute_router_nat" "kaava" {
-  name                               = "kaava-${var.region}"
-  router                             = google_compute_router.kaava.name
+resource "google_compute_router_nat" "veistra" {
+  name                               = "veistra-${var.region}"
+  router                             = google_compute_router.veistra.name
   region                             = var.region
   nat_ip_allocate_option             = "AUTO_ONLY"
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
@@ -61,8 +61,8 @@ resource "google_compute_router_nat" "kaava" {
 # 35.235.240.0/20 is the fixed range IAP TCP forwarding connects from. SSH for every machine;
 # 8888 and 9999 for Hindsight's API and UI on the worker, reached with `gcloud start-iap-tunnel`.
 resource "google_compute_firewall" "iap_ingress" {
-  name          = "kaava-allow-iap"
-  network       = google_compute_network.kaava.id
+  name          = "veistra-allow-iap"
+  network       = google_compute_network.veistra.id
   direction     = "INGRESS"
   source_ranges = ["35.235.240.0/20"]
   target_tags   = ["iap"]
@@ -76,25 +76,25 @@ resource "google_compute_firewall" "iap_ingress" {
 # Private services access: the peering Cloud SQL's private IP lives behind. Hindsight's database
 # gets no public address; Cloud Run reaches it through Direct VPC egress on the subnet above.
 resource "google_compute_global_address" "services" {
-  name          = "kaava-google-services"
+  name          = "veistra-google-services"
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
   prefix_length = 20
-  network       = google_compute_network.kaava.id
+  network       = google_compute_network.veistra.id
 }
 
 resource "google_service_networking_connection" "services" {
-  network                 = google_compute_network.kaava.id
+  network                 = google_compute_network.veistra.id
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.services.name]
 }
 
 # One identity for every agent VM, whatever it runs. Services grant access to this account, not
-# to a machine, so a second or third agent VM needs no grants of its own: it runs as kaava-agent
+# to a machine, so a second or third agent VM needs no grants of its own: it runs as veistra-agent
 # and is already allowed to use Hindsight, the registry and the render queue.
 resource "google_service_account" "agent" {
-  account_id   = "kaava-agent"
-  display_name = "OpenKaava agent VMs"
+  account_id   = "veistra-agent"
+  display_name = "Veistra agent VMs"
 }
 
 resource "google_project_iam_member" "agent" {
@@ -109,9 +109,9 @@ output "agent_service_account" {
 }
 
 output "network" {
-  value = google_compute_network.kaava.name
+  value = google_compute_network.veistra.name
 }
 
 output "subnetwork" {
-  value = google_compute_subnetwork.kaava.name
+  value = google_compute_subnetwork.veistra.name
 }

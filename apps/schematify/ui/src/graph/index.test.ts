@@ -65,7 +65,7 @@ describe("computed counts", () => {
 
 describe("status bar", () => {
   it("draws cell 1 exactly as PRD §17 Wave 2 requires", () => {
-    expect(statusCell1(AUTH_SERVICE_GRAPH)).toBe(".kaava/ · 12 nodes · 9 edges");
+    expect(statusCell1(AUTH_SERVICE_GRAPH)).toBe(".veistra/ · 12 nodes · 9 edges");
   });
 
   it("draws cell 2 exactly as PRD §17 Wave 2 requires", () => {
@@ -191,6 +191,6 @@ describe("the tier-1 count strings at 1", () => {
   });
 
   it("draws status bar cell 1 in the singular", () => {
-    expect(statusCell1(ONE_SERVICE)).toBe(".kaava/ · 1 service");
+    expect(statusCell1(ONE_SERVICE)).toBe(".veistra/ · 1 service");
   });
 });

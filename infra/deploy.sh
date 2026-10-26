@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# Plan or apply the OpenKaava cloud stacks, in dependency order.
+# Plan or apply the Veistra cloud stacks, in dependency order.
 #
 #   infra/deploy.sh plan                  # every stack
 #   infra/deploy.sh apply                 # every stack, in order; Terraform asks before each
 #   infra/deploy.sh apply worker gpu      # just these
 #   infra/deploy.sh image                 # rebuild the agent VM image (Packer)
 #   infra/deploy.sh migrate-bootstrap     # once, after bootstrap's first apply
-#   infra/deploy.sh apply kaava-api       # the Plane gateway: its repository, its image, then the rest
-#   infra/deploy.sh kaava-api-image       # build and push the gateway image only
+#   infra/deploy.sh apply veistra-api     # the Plane gateway: its repository, its image, then the rest
+#   infra/deploy.sh veistra-api-image     # build and push the gateway image only
 #
 # `image` is a step in the order like the stacks are: `apply` builds the agent image only when
 # the project has none yet, and `plan` skips it.
 #
-# `kaava-api` is a stack with an image of its own (services/kaava-api/). Its `apply` runs in three
+# `veistra-api` is a stack with an image of its own (services/veistra-api/). Its `apply` runs in three
 # parts, each of which Terraform or Docker shows before it acts: create the Artifact Registry
 # repository, build and push the image if that tag is not there yet (needs Docker), then apply the
 # whole stack. The tag is a hash of the image's source, so an unchanged service is not rebuilt.
@@ -27,7 +27,7 @@ set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
 tf="$here/terraform"
-order=(bootstrap foundation secrets registry hindsight image worker gpu plane kaava-api)
+order=(bootstrap foundation secrets registry hindsight image worker gpu plane veistra-api)
 
 action=${1:-plan}
 shift || true
@@ -47,7 +47,7 @@ init() {
 }
 
 has_image() {
-  gcloud compute images describe-from-family kaava-agent --project "$project" >/dev/null 2>&1
+  gcloud compute images describe-from-family veistra-agent --project "$project" >/dev/null 2>&1
 }
 
 build_image() {
@@ -56,24 +56,24 @@ build_image() {
   packer build -var "project_id=$project" "$here/images/agent"
 }
 
-# The same three files, in the same order, that terraform/kaava-api hashes for its image tag.
-api_sources=("$here/../services/kaava-api/Dockerfile" "$here/../services/kaava-api/kaava_api.py"
-  "$here/common/kaava-wake/kaava_wake.py")
+# The same three files, in the same order, that terraform/veistra-api hashes for its image tag.
+api_sources=("$here/../services/veistra-api/Dockerfile" "$here/../services/veistra-api/veistra_api.py"
+  "$here/common/veistra-wake/veistra_wake.py")
 
 api_image() {
   local tag
   tag=$(cat "${api_sources[@]}" | sha256sum | cut -c1-12)
-  echo "$region-docker.pkg.dev/$project/kaava/kaava-api:$tag"
+  echo "$region-docker.pkg.dev/$project/veistra/veistra-api:$tag"
 }
 
 build_api_image() {
   local image context
   image=$(api_image)
   if gcloud artifacts docker images describe "$image" >/dev/null 2>&1; then
-    echo "=== kaava-api image: $image is already pushed"
+    echo "=== veistra-api image: $image is already pushed"
     return
   fi
-  echo "=== kaava-api image: $image (docker build)"
+  echo "=== veistra-api image: $image (docker build)"
   context=$(mktemp -d)
   cp "${api_sources[@]}" "$context/"
   docker build --platform linux/amd64 -t "$image" "$context"
@@ -86,7 +86,7 @@ case "$action" in
   image)
     build_image
     ;;
-  kaava-api-image)
+  veistra-api-image)
     build_api_image
     ;;
   plan | apply)
@@ -95,11 +95,11 @@ case "$action" in
         [ "$action" = apply ] && ! has_image && build_image
         continue
       fi
-      if [ "$stack" = kaava-api ] && [ "$action" = apply ]; then
-        echo "=== kaava-api (apply: repository, image, service)"
+      if [ "$stack" = veistra-api ] && [ "$action" = apply ]; then
+        echo "=== veistra-api (apply: repository, image, service)"
         init "$stack"
         terraform -chdir="$tf/$stack" apply -var-file="$tf/common.tfvars" \
-          -target=google_artifact_registry_repository.kaava
+          -target=google_artifact_registry_repository.veistra
         build_api_image
         terraform -chdir="$tf/$stack" apply -var-file="$tf/common.tfvars"
         continue
@@ -125,7 +125,7 @@ EOF
     rm -f "$tf/bootstrap/terraform.tfstate" "$tf/bootstrap/terraform.tfstate.backup"
     ;;
   *)
-    echo "usage: deploy.sh plan|apply [stack...] | image | kaava-api-image | migrate-bootstrap" >&2
+    echo "usage: deploy.sh plan|apply [stack...] | image | veistra-api-image | migrate-bootstrap" >&2
     exit 2
     ;;
 esac

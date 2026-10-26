@@ -1,16 +1,16 @@
 //! The Godot Viewer's Rust half.
 //!
-//! `docs/KAAVA-UX-REWORK.md` §3.1 is the rule this app honours: Godot is never
+//! `docs/VEISTRA-UX-REWORK.md` §3.1 is the rule this app honours: Godot is never
 //! embedded. Refreshing runs `godot --headless` as a child process, reads the
 //! scene tree it dumps, optionally renders one frame, and caches both under
-//! `.kaava/` stamped with their age. The work lives in [`crate::godot`]; this
+//! `.veistra/` stamped with their age. The work lives in [`crate::godot`]; this
 //! module routes `godot-viewer/*` and `godot/*` there and hands node-anchored
-//! comments (`docs/KAAVA-UX-REWORK.md` §3.4) to [`crate::comments`].
+//! comments (`docs/VEISTRA-UX-REWORK.md` §3.4) to [`crate::comments`].
 
 use crate::apps::CallContext;
-use kaava_rpc::{RpcError, METHOD_NOT_FOUND};
 use serde_json::Value;
 use tauri::AppHandle;
+use veistra_rpc::{RpcError, METHOD_NOT_FOUND};
 
 pub fn call(
     app: &AppHandle,

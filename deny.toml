@@ -172,7 +172,7 @@ exceptions = []
 # one, and it is not what this file is for.
 #
 # `wildcards`: the intra-workspace path dependencies — `examples/echo-tool`
-# depending on `crates/kaava-rpc` by path — have no version requirement and are
+# depending on `crates/veistra-rpc` by path — have no version requirement and are
 # read as wildcards. They are the same repository at the same commit, so the
 # risk the check exists to catch cannot apply to them.
 multiple-versions = "allow"

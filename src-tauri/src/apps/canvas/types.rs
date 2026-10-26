@@ -1,10 +1,10 @@
 //! Object types: what kind of thing a frame describes, and the properties that
 //! kind has.
 //!
-//! A frame is the unit of detail on a canvas. Its `customData.kaava.object`
+//! A frame is the unit of detail on a canvas. Its `customData.veistra.object`
 //! names a type (`feature`, `model`, ...) and holds the values of that type's
 //! fields. The five built-in types are code, below. Custom types are the
-//! project's own and live in `.kaava/canvas/types.json`, written atomically.
+//! project's own and live in `.veistra/canvas/types.json`, written atomically.
 //! A custom type may not reuse a built-in id, so a project can never change what
 //! `model` means for the agent.
 //!
@@ -13,10 +13,10 @@
 
 use super::bad;
 use super::store::atomic_write;
-use kaava_rpc::{RpcError, INTERNAL_ERROR};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
+use veistra_rpc::{RpcError, INTERNAL_ERROR};
 
 /// The icon names the Inspector can draw.
 pub const ICONS: &[&str] = &[
@@ -355,9 +355,9 @@ pub fn resolve(
 
 // --- the project's custom types ---------------------------------------------
 
-/// `<root>/.kaava/canvas/types.json`.
+/// `<root>/.veistra/canvas/types.json`.
 pub fn types_path(root: &Path) -> PathBuf {
-    root.join(".kaava").join("canvas").join("types.json")
+    root.join(".veistra").join("canvas").join("types.json")
 }
 
 /// The custom types on disk. A missing file is no types; a file that does not
@@ -625,7 +625,7 @@ mod tests {
         );
         assert!(types_path(dir.path()).is_file());
         assert!(!types_path(dir.path())
-            .with_extension("json.kaava-tmp")
+            .with_extension("json.veistra-tmp")
             .exists());
 
         let (everything, problem) = all(dir.path());

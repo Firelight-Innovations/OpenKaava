@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 
 const invoke = vi.hoisted(() => vi.fn());
-vi.mock("@openkaava/bridge", () => ({ invoke }));
+vi.mock("@veistra/bridge", () => ({ invoke }));
 
 import { BLENDER_TARGET } from "./markupFlow";
 import { useMarkup } from "./useMarkup";

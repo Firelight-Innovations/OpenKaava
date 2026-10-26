@@ -3,7 +3,7 @@
  * other apps restate theirs: a frontend calls the bridge, not the Rust module
  * (`src-tauri/src/apps/canvas/`).
  */
-import { invoke, KaavaRpcError } from "@openkaava/bridge";
+import { invoke, VeistraRpcError } from "@veistra/bridge";
 import type { SceneFile } from "./scene";
 import type { TypeDef } from "./objects";
 import type { AssetsResult } from "./spec";
@@ -115,7 +115,7 @@ export interface TypesResult {
   builtin: TypeDef[];
   custom: TypeDef[];
   path: string;
-  /** Set when `.kaava/canvas/types.json` could not be read. */
+  /** Set when `.veistra/canvas/types.json` could not be read. */
   problem: string | null;
 }
 
@@ -171,7 +171,7 @@ export const putSnapshot = (
 // --- reading the errors -------------------------------------------------------
 
 function kindOf(err: unknown): string | null {
-  if (!(err instanceof KaavaRpcError)) return null;
+  if (!(err instanceof VeistraRpcError)) return null;
   const data = err.data as { kind?: unknown } | undefined;
   return typeof data?.kind === "string" ? data.kind : null;
 }
@@ -179,7 +179,7 @@ function kindOf(err: unknown): string | null {
 /** A `canvas/write` that lost a race, and the mtime it lost to. */
 export function staleWrite(err: unknown): { mtime: number | null } | null {
   if (kindOf(err) !== "stale") return null;
-  const data = (err as KaavaRpcError).data as { mtime?: unknown };
+  const data = (err as VeistraRpcError).data as { mtime?: unknown };
   return { mtime: typeof data.mtime === "number" ? data.mtime : null };
 }
 

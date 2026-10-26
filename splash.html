@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OpenKaava</title>
+    <title>Veistra</title>
     <!--
       This file is deliberately standalone: no imports, no build step, no
       shared modules, no coupling of any kind to the rest of the application.
@@ -52,7 +52,7 @@
     <script id="splash-appearance">
       (function () {
         try {
-          var stored = JSON.parse(localStorage.getItem("kaava.splash-appearance"));
+          var stored = JSON.parse(localStorage.getItem("veistra.splash-appearance"));
           var root = document.documentElement;
           var theme = stored.theme;
           if (theme === "system") {
@@ -529,7 +529,7 @@
         </svg>
 
         <div class="splash__lockup">
-          <p class="splash__wordmark">OpenKaava<span class="splash__tm">™</span></p>
+          <p class="splash__wordmark">Veistra<span class="splash__tm">™</span></p>
           <span class="splash__rule" aria-hidden="true"></span>
           <span class="splash__company">Veistra</span>
         </div>
@@ -550,7 +550,7 @@
       <div class="splash__band">
         <p class="splash__tiprow">
           <span class="splash__tiplabel">TIP</span>
-          <span class="splash__tip">A different OpenKaava tip appears here on each launch.</span>
+          <span class="splash__tip">A different Veistra tip appears here on each launch.</span>
         </p>
         <div class="splash__status">
           <p class="splash__step">Starting</p>
@@ -845,7 +845,7 @@
         // The lockup's box (see .splash__lockup).
         var LOCKUP = { x0: 149, x1: 449, y0: 184, y1: 218 };
 
-        // The mark in the 24x24 box of assets/kaava-mark.svg: cubic segments
+        // The mark in the 24x24 box of assets/veistra-mark.svg: cubic segments
         // [x0 y0 c1x c1y c2x c2y x1 y1] of the skin outline, and the seed circle.
         var SKIN = [
           [12, 2.4, 15.3, 2.4, 19, 6.6, 19, 12.5],

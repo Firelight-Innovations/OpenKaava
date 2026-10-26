@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Render client (PRD P4-2). Runs on the worker as /usr/local/bin/kaava-render.
+# Render client (PRD P4-2). Runs on the worker as /usr/local/bin/veistra-render.
 #
-#   kaava-render <model.glb> <gs://veistra-artifacts/<game>/<kind>/<id>/v<n>/screenshots/>
+#   veistra-render <model.glb> <gs://veistra-artifacts/<game>/<kind>/<id>/v<n>/screenshots/>
 #
 # Puts the model and a job file in the render queue bucket, starts the GPU node if it is not
 # already running, and waits for the node to report the job done. The node stops itself once the
@@ -14,20 +14,20 @@
 #   done/<id>.json        written by the node: {"status": "ok"|"error", ...}
 
 set -euo pipefail
-. /etc/kaava/env
+. /etc/veistra/env
 
 if [ $# -ne 2 ]; then
-  echo "usage: kaava-render <model.glb> <gs://.../screenshots/>" >&2
+  echo "usage: veistra-render <model.glb> <gs://.../screenshots/>" >&2
   exit 2
 fi
 input=$1
 output=${2%/}/
-frames=${KAAVA_RENDER_FRAMES:-4}
-resolution=${KAAVA_RENDER_RESOLUTION:-1024}
-timeout_min=${KAAVA_RENDER_TIMEOUT_MIN:-30}
+frames=${VEISTRA_RENDER_FRAMES:-4}
+resolution=${VEISTRA_RENDER_RESOLUTION:-1024}
+timeout_min=${VEISTRA_RENDER_TIMEOUT_MIN:-30}
 
 id="$(date -u +%Y%m%dT%H%M%SZ)-$RANDOM"
-queue="gs://$KAAVA_RENDER_QUEUE"
+queue="gs://$VEISTRA_RENDER_QUEUE"
 
 gcloud storage cp --quiet "$input" "$queue/jobs/$id/input.glb"
 jq -n --arg id "$id" --arg output "$output" --argjson frames "$frames" --argjson res "$resolution" \
@@ -35,11 +35,11 @@ jq -n --arg id "$id" --arg output "$output" --argjson frames "$frames" --argjson
   | gcloud storage cp --quiet - "$queue/jobs/$id/job.json"
 echo "queued $id"
 
-status=$(gcloud compute instances describe "$KAAVA_GPU_INSTANCE" --zone "$KAAVA_ZONE" \
-  --project "$KAAVA_PROJECT" --format='value(status)')
+status=$(gcloud compute instances describe "$VEISTRA_GPU_INSTANCE" --zone "$VEISTRA_ZONE" \
+  --project "$VEISTRA_PROJECT" --format='value(status)')
 if [ "$status" != "RUNNING" ]; then
-  echo "starting $KAAVA_GPU_INSTANCE (was $status)"
-  gcloud compute instances start "$KAAVA_GPU_INSTANCE" --zone "$KAAVA_ZONE" --project "$KAAVA_PROJECT" --quiet
+  echo "starting $VEISTRA_GPU_INSTANCE (was $status)"
+  gcloud compute instances start "$VEISTRA_GPU_INSTANCE" --zone "$VEISTRA_ZONE" --project "$VEISTRA_PROJECT" --quiet
 fi
 
 deadline=$(($(date +%s) + timeout_min * 60))

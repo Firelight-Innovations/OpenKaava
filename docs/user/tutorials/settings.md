@@ -2,7 +2,7 @@
 
 *Working in the shell · 5 min · after [Finding things](search.md)*
 
-Change how OpenKaava looks and behaves, and know when a change takes effect.
+Change how Veistra looks and behaves, and know when a change takes effect.
 
 ---
 
@@ -28,7 +28,7 @@ Change a control → written to `settings.json` → takes effect — now, or the
 | ---------- | ----------------------------------------------------------------------------- |
 | Now       | Takes effect as you change it. The appearance settings are these.             |
 | Next…     | Read when the next one of something opens — an editor, a terminal, a search.  |
-| Restart   | Read once, while OpenKaava is starting.                                           |
+| Restart   | Read once, while Veistra is starting.                                           |
 
 > So changing **Font size** under Editor does nothing to a file you already
 > have open. Open another file and the new size shows. That is why the line
@@ -63,7 +63,7 @@ Move a setting off its default → a dot marks it → that section's **Reset** c
 
 That is not cosmetic. Only the settings you changed are written to disk — a
 `settings.json` on a machine nobody has touched this screen on does not
-exist. Which means a later version of OpenKaava can improve a default and have
+exist. Which means a later version of Veistra can improve a default and have
 the new one reach everybody who never disagreed with the old one. Your
 choices stay where you put them.
 

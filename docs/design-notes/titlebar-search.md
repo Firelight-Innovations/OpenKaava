@@ -35,13 +35,13 @@ made when the argument becomes non-null and released when it goes back or the co
 Apps live in iframes and cannot reach the shell's store, so the bridge carries it
 (`docs/tool-protocol.md` section 3):
 
-- `kaava/search-claim` `{placeholder, value}` records the claim. Sending it again updates it.
-- `kaava/search-release` gives it up.
-- The shell delivers what the user does in the field as a `kaava:search` event,
+- `veistra/search-claim` `{placeholder, value}` records the claim. Sending it again updates it.
+- `veistra/search-release` gives it up.
+- The shell delivers what the user does in the field as a `veistra:search` event,
   `{kind: "query" | "submit" | "escape", value}`.
 
 App side, `claimSearch({placeholder, value, onChange, onSubmit?, onEscape?})` from
-`@openkaava/bridge` returns a handle with `update` and `release`. A frame holds one claim.
+`@veistra/bridge` returns a handle with `update` and `release`. A frame holds one claim.
 
 **Only an active surface's claim is shown.** The shell records every frame's claim but puts it on
 the stack only while that frame is the focused pane's visible tab, a takeover surface, or the
@@ -49,7 +49,7 @@ rail page (`src/shell/toolwindow/frameSearch.ts`). A frame therefore claims when
 exists and never tracks focus; the shell shows it when the user is in that pane and hides it
 when they are not. Typing is echoed back only if the app changed the text itself.
 
-Under a standalone host there is no shell, `host() !== "kaava"`, and the claim is refused. The
+Under a standalone host there is no shell, `host() !== "veistra"`, and the claim is refused. The
 app draws its own input in that case, as File Explorer does.
 
 | App | Placeholder | State |

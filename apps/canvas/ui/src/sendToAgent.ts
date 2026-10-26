@@ -6,7 +6,7 @@
  * one path. The image is rendered by Excalidraw's own exporter, loaded on the
  * first send, not with the editor.
  */
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 import { contextKey, type ContextRef } from "../../../shared/context";
 import type { SceneElement } from "./scene";
 

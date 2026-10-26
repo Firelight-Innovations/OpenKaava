@@ -8,7 +8,7 @@ import "./statusbar.css";
 
 export interface StatusBarProps {
   /**
-   * A newer OpenKaava, or `null` for nothing worth a pixel — which is what this is
+   * A newer Veistra, or `null` for nothing worth a pixel — which is what this is
    * almost always. `updateNotice` in `contract.ts` decides which; this
    * component only draws what it is given.
    */

@@ -1,4 +1,4 @@
-# New-machine setup for OpenKaava Cloud (PRD P1-5). Installs the three command-line tools the
+# New-machine setup for Veistra Cloud (PRD P1-5). Installs the three command-line tools the
 # infrastructure needs, then logs in. Safe to run twice: winget skips what is already installed.
 #
 #   powershell -ExecutionPolicy Bypass -File infra\bootstrap.ps1

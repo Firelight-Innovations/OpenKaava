@@ -42,7 +42,7 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-const project = { name: "OpenKaava", path: "C:/repo" };
+const project = { name: "Veistra", path: "C:/repo" };
 
 function renderDialog(onCreated = vi.fn(), onCancel = vi.fn()) {
   return {

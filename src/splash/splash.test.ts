@@ -90,14 +90,15 @@ describe("splash.html lockup and band", () => {
 
   it("sets the wordmark as written, in a face that has the lowercase and the TM", () => {
     expect(splash).toContain(
-      '<p class="splash__wordmark">OpenKaava<span class="splash__tm">™</span></p>',
+      '<p class="splash__wordmark">Veistra<span class="splash__tm">™</span></p>',
     );
     const wordmark = /\.splash__wordmark \{([^}]*)\}/.exec(splash)?.[1] ?? "";
     expect(wordmark).not.toContain("text-transform");
     expect(splash).toMatch(/U\+0061-007A, U\+2122\s+the wordmark/);
   });
 
-  // OpenKaava is the trademark; the company beside it is not.
+  // The wordmark carries the trademark sign; the company line beside it, which
+  // has the same name, does not.
   it("sets the company without a trademark sign", () => {
     expect(splash).toContain('<span class="splash__company">Veistra</span>');
   });

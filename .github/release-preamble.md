@@ -1,6 +1,6 @@
 ### Install
 
-Download **`OpenKaava-setup.exe`** below and run it. The wizard never asks for
+Download **`Veistra-setup.exe`** below and run it. The wizard never asks for
 administrator rights and installs for your account only.
 
 > **Windows will warn you, and you can go ahead.** The installer is not signed,
@@ -9,12 +9,12 @@ administrator rights and installs for your account only.
 > pre-alpha does not yet justify.
 
 Once installed, right-click any folder in Explorer and choose **Open with
-OpenKaava** to open it as a project. Files get the same entry and open in the File
+Veistra** to open it as a project. Files get the same entry and open in the File
 Viewer with their folder as the project.
 
 ### Before you file a bug
 
-**OpenKaava is pre-alpha.** The window runs, and so do its own apps: Home, the File
+**Veistra is pre-alpha.** The window runs, and so do its own apps: Home, the File
 Explorer, the File Viewer, Tutorials and Agents. Whatever the notes below call
 new is where bugs are most likely. When you report one, include the message
 the app showed.

@@ -1,0 +1,17 @@
+{
+  "id": "01a03637-7800-703f-b5c6-246916adff9d",
+  "slug": "a-lazy-refresh-is-skipped",
+  "kind": "test-case",
+  "title": "a lazy refresh is skipped",
+  "lifecycle": "specified",
+  "authored_by": "human",
+  "created": "2026-08-25T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a03637-7800-7024-8962-cc11fce89708",
+  "given": "a fresh key set",
+  "when": "the module is exercised",
+  "then": "the declared behaviour holds",
+  "impl_ref": "@veistra:01a03637-7800-7024-8962-cc11fce89708 token-verifier",
+  "status": "passing",
+  "last_result_ms": 4
+}

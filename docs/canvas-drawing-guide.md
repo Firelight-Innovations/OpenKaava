@@ -1,9 +1,9 @@
 # Drawing on the canvas
 
-How to draw a design on an OpenKaava canvas, for people and for agents. The worked example is
+How to draw a design on a Veistra canvas, for people and for agents. The worked example is
 `docs/canvas-examples/flap-ball.json`, a small game designed in four diagrams plus an index.
 
-An agent that only has the `kaava-canvas` tools can read this page with `drawing_guide`
+An agent that only has the `veistra-canvas` tools can read this page with `drawing_guide`
 (`{"topic": "drawing"}`). `{"topic": "frames"}` gives the frames-and-types manual, and
 `{"topic": "design"}` gives the brief for designing a game: what the design must contain, from
 mechanics with numbers to the asset list and the open questions.
@@ -50,7 +50,7 @@ how much to fill, how to word labels. Follow the person's choice over your own t
 ## Diagrams are named frames
 
 Every diagram is an Excalidraw frame with a stable id. `canvas/add-shapes` creates it, or you can
-draw a frame and name it. The frame carries `customData.kaava.diagram`:
+draw a frame and name it. The frame carries `customData.veistra.diagram`:
 
 | Field | Meaning |
 |---|---|
@@ -67,7 +67,7 @@ draw a frame and name it. The frame carries `customData.kaava.diagram`:
 timing chart, a transition table) gets its own frame with that subsystem as its `parent`.
 
 **The index.** Build it with `{"index": true, "title": "…"}` in `canvas/add-shapes`. It lists
-every diagram by level with its summary and topics. Each title is a `kaava://diagram/<id>` link,
+every diagram by level with its summary and topics. Each title is a `veistra://diagram/<id>` link,
 so clicking it moves to that diagram. Rebuild it after adding diagrams.
 
 **Big canvases split.** Once a canvas holds thousands of elements, `canvas/split-frames` moves
@@ -181,7 +181,7 @@ anything. There are four sizes, and nothing smaller than 14 px reads at 1x.
 ## Look at what you drew
 
 Always run `canvas/view-diagram` after drawing. It renders only that frame, with nothing from the
-editor around it, to `.kaava/canvas-views/<canvas>/<diagram>.png`. Read the PNG.
+editor around it, to `.veistra/canvas-views/<canvas>/<diagram>.png`. Read the PNG.
 
 - **Zoom in:** pass `"region": {"x", "y", "width", "height"}` (frame-relative) to read small labels.
 - **Theme:** pass `"theme": "dark"` to check that the colours survive dark mode.

@@ -41,7 +41,7 @@ impl ShellFamily {
     /// it only in how a literal quote is escaped, which almost no path contains.
     /// The one shell it would be wrong for is `cmd`, and `cmd` is matched by
     /// name. Defaulting to the *platform's* shell would be worse: on Windows
-    /// that is PowerShell, so a user who set `KAAVA_SHELL` to something exotic
+    /// that is PowerShell, so a user who set `VEISTRA_SHELL` to something exotic
     /// would get the rule for a shell they are deliberately not running.
     pub fn of(shell_name: &str) -> Self {
         match shell_name.trim().to_ascii_lowercase().as_str() {
@@ -130,7 +130,7 @@ fn has_control(path: &str) -> bool {
 /// `src/renderer/src/components/terminal-pane/pane-helpers.ts` (MIT,
 /// (c) Lovecast Inc.; see THIRD-PARTY-NOTICES). What is not theirs: Orca has
 /// two dialects and treats every Windows shell as `cmd`, where this has three,
-/// because OpenKaava spawns PowerShell by default and PowerShell reads the `$` and
+/// because Veistra spawns PowerShell by default and PowerShell reads the `$` and
 /// backtick in a `cmd`-quoted path.
 fn needs_quoting(family: ShellFamily, path: &str) -> bool {
     if path.is_empty() {
@@ -187,7 +187,7 @@ mod tests {
         assert_eq!(ShellFamily::of("zsh"), ShellFamily::Posix);
     }
 
-    /// The stem of whatever `KAAVA_SHELL` names, and the casing Windows uses
+    /// The stem of whatever `VEISTRA_SHELL` names, and the casing Windows uses
     /// for it, both have to land on the right dialect.
     #[test]
     fn the_name_is_matched_case_insensitively() {

@@ -1,5 +1,8 @@
 # Naming Decision: HELVE-ADE → OpenKaava
 
+> **Superseded.** OpenKaava has since been renamed **Veistra**. This file is kept
+> unchanged as the record of the earlier HELVE-ADE → OpenKaava decision.
+
 **Status:** Decided
 **Old name:** HELVE-ADE
 **New name:** OpenKaava

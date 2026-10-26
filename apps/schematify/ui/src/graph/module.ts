@@ -153,7 +153,7 @@ const nodes: GraphNode[] = [
     when: "verify_signature runs",
     then: "Err(Expired)",
     markerToken:
-      "@kaava:0192f4a1-4c3d-7890-a1b2-a1b2c3d4e5f1 token-verifier.expired_token_is_rejected",
+      "@veistra:0192f4a1-4c3d-7890-a1b2-a1b2c3d4e5f1 token-verifier.expired_token_is_rejected",
     lastDurationMs: 41,
   },
   {
@@ -168,7 +168,7 @@ const nodes: GraphNode[] = [
     when: "verify_signature runs",
     then: "exactly 1 refetch of the key set",
     markerToken:
-      "@kaava:0192f4a1-4c3d-7890-a1b2-a1b2c3d4e5f2 token-verifier.unknown_kid_triggers_one_refetch",
+      "@veistra:0192f4a1-4c3d-7890-a1b2-a1b2c3d4e5f2 token-verifier.unknown_kid_triggers_one_refetch",
     mismatch: "expected 1 fetch, saw 2",
   },
   // WIREFRAME-EXTRACT.md §3.2's 3rd drawn case: declared, no marker found —
@@ -200,7 +200,7 @@ const nodes: GraphNode[] = [
     given: "a token signed with a kid present in the cached key set",
     when: "verify_signature runs",
     then: "Ok(Claims)",
-    markerToken: "@kaava:0192f4a1-4c3d-7890-a1b2-a1b2c3d4e5f3 token-verifier.signature_roundtrip",
+    markerToken: "@veistra:0192f4a1-4c3d-7890-a1b2-a1b2c3d4e5f3 token-verifier.signature_roundtrip",
     lastDurationMs: 12,
   },
   {
@@ -214,7 +214,8 @@ const nodes: GraphNode[] = [
     given: "a token whose iat is ahead of the server clock",
     when: "verify_signature runs",
     then: "Err(NotYetValid)",
-    markerToken: "@kaava:0192f4a1-4c3d-7890-a1b2-a1b2c3d4e5f4 token-verifier.future_token_rejected",
+    markerToken:
+      "@veistra:0192f4a1-4c3d-7890-a1b2-a1b2c3d4e5f4 token-verifier.future_token_rejected",
     lastDurationMs: 9,
   },
   {
@@ -228,7 +229,7 @@ const nodes: GraphNode[] = [
     given: "2 callers invoke refresh_keys at once",
     when: "the key set has not yet expired",
     then: "exactly 1 network fetch runs",
-    markerToken: "@kaava:0192f4a1-4c3d-7890-a1b2-a1b2c3d4e5f5 token-verifier.refresh_dedup",
+    markerToken: "@veistra:0192f4a1-4c3d-7890-a1b2-a1b2c3d4e5f5 token-verifier.refresh_dedup",
     lastDurationMs: 18,
   },
   {
@@ -242,7 +243,7 @@ const nodes: GraphNode[] = [
     given: "a fresh, unexpired cached key set",
     when: "refresh_keys(force: true) runs",
     then: "a fetch happens anyway",
-    markerToken: "@kaava:0192f4a1-4c3d-7890-a1b2-a1b2c3d4e5f6 token-verifier.refresh_force_flag",
+    markerToken: "@veistra:0192f4a1-4c3d-7890-a1b2-a1b2c3d4e5f6 token-verifier.refresh_force_flag",
     lastDurationMs: 15,
   },
   {

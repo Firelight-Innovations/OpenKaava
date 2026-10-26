@@ -32,7 +32,7 @@ pub enum PageMode {
 }
 
 /// The docked width a page opens to before anyone has dragged its handle.
-/// `docs/design/KAAVA-UX-SPEC.md` §1.8: the written spec allows 320-640, and
+/// `docs/design/VEISTRA-UX-SPEC.md` §1.8: the written spec allows 320-640, and
 /// 380 (`--w-panel-default`) is the default within that range, not a fixed one.
 pub const DEFAULT_WIDTH: f32 = 380.0;
 pub const MIN_WIDTH: f32 = 320.0;
@@ -62,18 +62,18 @@ pub struct Page {
     /// Where this page opens the first time a window shows it. See
     /// [`PageMode`] for why this is only the default.
     pub mode: PageMode,
-    /// `Alt 1`...`Alt 7`, in rail order -- `docs/design/KAAVA-UX-SPEC.md` §1.7,
+    /// `Alt 1`...`Alt 7`, in rail order -- `docs/design/VEISTRA-UX-SPEC.md` §1.7,
     /// plus Agents before the registry.
     pub key: u8,
     /// Not openable. Drawn on the rail at reduced opacity, per
-    /// `KAAVA-UX-REWORK.md` §4's "(later)": the Artifact registry is not built
+    /// `VEISTRA-UX-REWORK.md` §4's "(later)": the Artifact registry is not built
     /// yet, and Cloud agents is switched off for the MVP. `open_page` refuses
     /// both, and a restored layout that had one open comes back without it.
     pub disabled: bool,
 }
 
-/// Every page, in rail order. `KAAVA-UX-REWORK.md` §4 and
-/// `docs/design/KAAVA-UX-SPEC.md` §1.7 are both this exact order and key set,
+/// Every page, in rail order. `VEISTRA-UX-REWORK.md` §4 and
+/// `docs/design/VEISTRA-UX-SPEC.md` §1.7 are both this exact order and key set,
 /// with Agents added before the registry.
 pub const PAGES: &[Page] = &[
     Page {
@@ -189,7 +189,7 @@ pub fn find(id: &str) -> Option<&'static Page> {
 }
 
 /// Whether an app id draws a page. What keeps a page's app out of the Apps
-/// menu, the add-app button, presets and `kaava/open`: a page's app must never
+/// menu, the add-app button, presets and `veistra/open`: a page's app must never
 /// be openable as an ordinary surface, since opening it that way would leave
 /// a second copy of it loose in a pane instead of on the rail.
 pub fn is_page_app(app_id: &str) -> bool {

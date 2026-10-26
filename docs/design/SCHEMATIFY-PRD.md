@@ -1,11 +1,11 @@
 # Schematify — Product Requirements Document
 
-**Product:** OpenKaava
+**Product:** Veistra
 **Application:** Schematify
 **Status:** Draft 3, for implementation handoff
 **Date:** 2026-09-02
 **Owner:** Ozymandias
-**Audience:** Claude Code, running in waves against the OpenKaava monorepo
+**Audience:** Claude Code, running in waves against the Veistra monorepo
 
 ---
 
@@ -57,7 +57,7 @@ Section 16 holds the reference fixture. The fixture reproduces the wireframe con
 
 ### 1.1 What Schematify is
 
-Schematify is the design layer of OpenKaava. Schematify holds the full plan for one software project. Schematify hands that plan to coding agents in a machine-readable form.
+Schematify is the design layer of Veistra. Schematify holds the full plan for one software project. Schematify hands that plan to coding agents in a machine-readable form.
 
 The brand truth: the full-scale plan is drawn once, and every build after that follows the lines.
 
@@ -105,14 +105,14 @@ Schematify runs one linter against its own graph. Section 10.4 states those rule
 
 | Term | Definition | Do not use |
 |---|---|---|
-| Schematify | The design application inside OpenKaava | Forger, Journeyman |
+| Schematify | The design application inside Veistra | Forger, Journeyman |
 | Schematic | One drawn surface bound to one node | board, diagram |
 | Node | One addressed design element | box, item, entity |
 | Facet | One tier-3 node inside a module | detail, property |
 | Containment | The strict parent tree | ownership, hierarchy |
 | Dependency | The directed acyclic call graph | link, connection |
 | Probe | The declared command that measures a budget | benchmark, check |
-| Marker token | The `@kaava:` string that binds code to a node | tag, annotation |
+| Marker token | The `@veistra:` string that binds code to a node | tag, annotation |
 | Lifecycle | The review path of a node | status, stage |
 | Staleness | The state of an accepted node after an upstream contract change | drift, rot |
 | Run | One ingested CI result set | build, job |
@@ -166,7 +166,7 @@ Schematify resolves 1 URI scheme inside 1 application:
 
 The schemes `forger://`, `journeyman://`, and `decision://` are retired. Wave 1 shall convert every stored reference to the `schematify://` form.
 
-Wave 1 shall audit the repository for `kaava.toml`, the `.kaava` file extension, `kaava-tool://`, and the `@openkaava/*` npm scope. Where an identifier exists, the rename shall leave it unchanged. Where an identifier is missing, Wave 1 shall report the gap and shall continue.
+Wave 1 shall audit the repository for `veistra.toml`, the `.veistra` file extension, `veistra-tool://`, and the `@veistra/*` npm scope. Where an identifier exists, the rename shall leave it unchanged. Where an identifier is missing, Wave 1 shall report the gap and shall continue.
 
 ---
 
@@ -350,17 +350,17 @@ The `status` field takes `ACTIVE` or `SUPERSEDED`. The decision log follows the 
 
 **Layout** (`layout/<schematic-slug>.json`): `schematic`, `zoom`, `pan`, `nodes` as a map of node identifier to `{x, y, w, h, collapsed}`, and `groups` as a map of group identifier to `{x, y, w, h, collapsed}`. The wireframe status bar names the file by slug: `layout/auth-service.json clean`. On a slug rename, Schematify shall rename the layout file. Layout is cosmetic, and a lost layout file costs positions alone.
 
-**Run artifact** (`runs/<node-uuid>/run-<n>.json`), schema name `kaava-bench-v1`:
+**Run artifact** (`runs/<node-uuid>/run-<n>.json`), schema name `veistra-bench-v1`:
 
 ```json
 {
-  "schema": "kaava-bench-v1",
+  "schema": "veistra-bench-v1",
   "run": 1184,
   "at": "2026-08-25T14:02:00Z",
   "commit": "4f2c9ab",
   "workflow": "ci/verify.yml",
   "budgets": [ { "metric": "verify_p95", "value": 1.8, "unit": "ms", "pass": true } ],
-  "tests": [ { "impl_ref": "@kaava:0192f4a1…a7b8", "status": "passing", "ms": 41 } ],
+  "tests": [ { "impl_ref": "@veistra:0192f4a1…a7b8", "status": "passing", "ms": 41 } ],
   "linter": { "rules": 14, "violations": 0 },
   "reconcile": { "matched": 7, "declared_absent": 1, "present_unknown": 0, "duplicate": 0 }
 }
@@ -387,7 +387,7 @@ The `references_ui` edge is authoritative. The `ui_refs` field on a module node 
 All design data is atomic JSON on the project filesystem, tracked by git. One node per file. No graph index file exists.
 
 ```
-.kaava/
+.veistra/
   brief.json                   # semantic — human-authored
   nodes/<uuid>.json            # semantic — services, modules, facets
   screens/<uuid>.json          # semantic — product screens
@@ -400,7 +400,7 @@ All design data is atomic JSON on the project filesystem, tracked by git. One no
   layout/<schematic-slug>.json # cosmetic — positions, groups, collapse state
 ```
 
-The wireframe status bar names the root as `sdd/`. Decision SCH-ARC-003 changes the root to `.kaava/`. Wave 2 draws `.kaava/` in that cell.
+The wireframe status bar names the root as `sdd/`. Decision SCH-ARC-003 changes the root to `.veistra/`. Wave 2 draws `.veistra/` in that cell.
 
 Natural language lives inside JSON string fields. Schematify shall not write a sibling Markdown file for node prose.
 
@@ -420,7 +420,7 @@ The `runs/` tree therefore holds 2 writers. A CI job writes result files. A huma
 
 ### 6.4 Load
 
-On project open, Schematify shall walk `.kaava/`, parse every file, and build the graph in memory.
+On project open, Schematify shall walk `.veistra/`, parse every file, and build the graph in memory.
 
 Section 14.7 states the load budget and names the reference machine.
 
@@ -502,7 +502,7 @@ A budget declares a target and the command that measures it.
   "value": 3,
   "unit": "ms",
   "tier": "hard",
-  "probe": { "command": "pnpm bench:verify", "parser": "kaava-bench-v1" }
+  "probe": { "command": "pnpm bench:verify", "parser": "veistra-bench-v1" }
 }
 ```
 
@@ -516,7 +516,7 @@ A budget with no probe is a Schematify lint error. The wireframe states the reas
 
 A soft budget that trends toward its threshold draws the caption `trending to breach · sign-off required`. The Budgets tab captures the sign-off. The dashboard names the signer and the run.
 
-CI runs the probe and emits a `kaava-bench-v1` artifact. Schematify ingests the artifact into `runs/` and draws it. Schematify shall never invoke the probe command.
+CI runs the probe and emits a `veistra-bench-v1` artifact. Schematify ingests the artifact into `runs/` and draws it. Schematify shall never invoke the probe command.
 
 ---
 
@@ -527,7 +527,7 @@ CI runs the probe and emits a `kaava-bench-v1` artifact. Schematify ingests the 
 Every design element with a counterpart in code carries a marker token, placed anywhere in the file:
 
 ```
-@kaava:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 token-verifier.verify_signature
+@veistra:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 token-verifier.verify_signature
 ```
 
 The token is a fixed string found by plain regular expression. A docstring parser breaks on the first language nobody anticipated. The UUID is authoritative. The trailing slug lets a human grep for a readable name.
@@ -550,10 +550,10 @@ The drawn strings are the wireframe strings. Every surface and every log line us
 ### 9.3 The reconcile command
 
 ```
-kaava reconcile [--root <path>] [--out <path>] [--format text|json]
+veistra reconcile [--root <path>] [--out <path>] [--format text|json]
 ```
 
-The binary name is `kaava`. The crate is `crates/schematify-reconcile`. The command reads `.kaava/nodes/`, scans the working tree, and writes `runs/<node-uuid>/reconcile.json` for every node it touches.
+The binary name is `veistra`. The crate is `crates/schematify-reconcile`. The command reads `.veistra/nodes/`, scans the working tree, and writes `runs/<node-uuid>/reconcile.json` for every node it touches.
 
 Exit code 0 means no error outcome. Exit code 1 means one or more error outcomes. Exit code 2 means the command read no project at that path.
 
@@ -693,7 +693,7 @@ The wireframes draw the dock on the Service Schematic alone. Schematify draws th
 
 **Status bar.** The Stack Schematic status bar draws 2 cells: `sdd/ · 6 services` and `3 errors · 2 warnings`. The Service Schematic status bar draws 4 cells: `sdd/ · 12 nodes · 9 edges`, `layout/auth-service.json clean`, `3 errors · 2 warnings`, and `run #1184 · 2h ago`.
 
-Cell 1 states the storage root and the counts that suit the tier. The Stack Schematic counts services. The Service Schematic counts nodes and edges. Wave 2 draws `.kaava/` in place of `sdd/` per section 6.1.
+Cell 1 states the storage root and the counts that suit the tier. The Stack Schematic counts services. The Service Schematic counts nodes and edges. Wave 2 draws `.veistra/` in place of `sdd/` per section 6.1.
 
 ### 12.2 Surface inventory
 
@@ -1103,7 +1103,7 @@ Schematify ships 1 theme. The theme is dark. Every color reaches the surface thr
 
 ### 14.1 Stack
 
-Schematify builds inside the existing OpenKaava monorepo. The stack is Tauri v2, Rust, React, and TypeScript. The package manager is pnpm. The verification command is `pnpm verify`.
+Schematify builds inside the existing Veistra monorepo. The stack is Tauri v2, Rust, React, and TypeScript. The package manager is pnpm. The verification command is `pnpm verify`.
 
 ### 14.2 The baseline audit
 
@@ -1112,7 +1112,7 @@ Wave 0 runs before any code. Wave 0 reads the repository and writes `docs/audits
 - The path of the Tauri crate, and the current `commands.rs`, `lib.rs`, and `generate_handler!` sites.
 - The path of the front-end workspace and the current package list.
 - The module that draws the application tab strip and the strings it holds.
-- The presence or absence of `kaava.toml`, the `.kaava` extension, `kaava-tool://`, and the `@openkaava/*` scope.
+- The presence or absence of `veistra.toml`, the `.veistra` extension, `veistra-tool://`, and the `@veistra/*` scope.
 - The steps `pnpm verify` runs.
 - Every occurrence of the strings `Forger`, `Journeyman`, `forger://`, `journeyman://`, and `@forger:`.
 - The reference machine: processor, memory, and operating system.
@@ -1124,9 +1124,9 @@ Wave 0 changes no file. Where the repository contradicts section 14.3, Wave 0 re
 | Path | Content |
 |---|---|
 | `crates/schematify-core` | Schemas, storage, graph construction, the linter, lifecycle rules |
-| `crates/schematify-reconcile` | Marker-token scanning and the `kaava reconcile` command |
+| `crates/schematify-reconcile` | Marker-token scanning and the `veistra reconcile` command |
 | `src-tauri/src/apps/schematify/mod.rs` | The single Tauri command registration module for this application |
-| `packages/schematify-ui` | React surface, published under `@openkaava/schematify-ui` |
+| `packages/schematify-ui` | React surface, published under `@veistra/schematify-ui` |
 
 Wave 0 confirms these paths against the repository. A path that conflicts with the existing layout is replaced by the existing convention, recorded in the baseline audit.
 
@@ -1142,14 +1142,14 @@ A wave that touches a shared registration file shall merge alone. Two waves shal
 
 | Command | Purpose |
 |---|---|
-| `schematify_open_project` | Opens a project root and validates `.kaava/` |
+| `schematify_open_project` | Opens a project root and validates `.veistra/` |
 | `schematify_load_graph` | Returns the whole graph and the validation report |
 | `schematify_write_node` | Writes 1 node file |
 | `schematify_write_edge` | Writes 1 edge file |
 | `schematify_write_layout` | Writes 1 layout file |
 | `schematify_transition` | Applies 1 lifecycle transition and appends 1 audit row |
 | `schematify_lint` | Runs the graph linter and returns findings |
-| `schematify_ingest_run` | Reads a `kaava-bench-v1` artifact and writes it under `runs/` |
+| `schematify_ingest_run` | Reads a `veistra-bench-v1` artifact and writes it under `runs/` |
 | `schematify_search` | Returns ranked search hits across every kind |
 | `schematify_reconcile_status` | Reads `runs/<node-uuid>/reconcile.json` |
 
@@ -1181,7 +1181,7 @@ The reference machine is the developer workstation named in the baseline audit. 
 
 The lint budget and the search budget carry the `hard` tier, because a wave acceptance blocks on each. A `soft` threshold and a `target` threshold shall never act as a wave gate.
 
-Wave 9 declares these 6 budgets as nodes inside Schematify's own `.kaava/` project. The fixture budget nodes in section 16 are project data and sit outside that rule.
+Wave 9 declares these 6 budgets as nodes inside Schematify's own `.veistra/` project. The fixture budget nodes in section 16 are project data and sit outside that rule.
 
 ---
 
@@ -1337,7 +1337,7 @@ Prerequisites: Wave 0.
 
 - Retire the names Forger and Journeyman across the repository, the documentation, and the product strings.
 - Convert `forger://`, `journeyman://`, and `decision://` references to the `schematify://` form.
-- Convert the `@forger:` marker token to `@kaava:`.
+- Convert the `@forger:` marker token to `@veistra:`.
 - Create `crates/schematify-core` and `packages/schematify-ui`.
 - Build every schema in section 5, including the edge, rule, library, layout, and run schemas.
 - Build UUIDv7 minting, slug uniqueness per section 3.2, and the atomic JSON writer.
@@ -1358,7 +1358,7 @@ Prerequisites: Wave 1.
 - Draw cell 1 and cell 2 of the status bar. Leave cell 3 and cell 4 empty until Wave 7 and Wave 9.
 - Build the first-run empty state for the Stack Schematic.
 
-Acceptance: `packages/schematify-ui` holds no literal hex value. The shell opens `fixtures/saas-backend/` and draws the Outline tree with its header, badges, triangles, and footer. Cell 1 reads `.kaava/ · 12 nodes · 9 edges`. Cell 2 reads `layout/auth-service.json clean`.
+Acceptance: `packages/schematify-ui` holds no literal hex value. The shell opens `fixtures/saas-backend/` and draws the Outline tree with its header, badges, triangles, and footer. Cell 1 reads `.veistra/ · 12 nodes · 9 edges`. Cell 2 reads `layout/auth-service.json clean`.
 
 ### Wave 3 — Schematic engine
 
@@ -1439,12 +1439,12 @@ Acceptance: a library with a blocked license is refused with a stated reason. A 
 
 Prerequisites: Wave 8.
 
-- Build the `kaava-bench-v1` reader against the schema in section 5.10.
+- Build the `veistra-bench-v1` reader against the schema in section 5.10.
 - Wire `schematify_ingest_run` and build the Runs dock tab.
 - Draw status-bar cell 4.
-- Build `crates/schematify-reconcile` and the `kaava reconcile` command under section 9.3.
+- Build `crates/schematify-reconcile` and the `veistra reconcile` command under section 9.3.
 - Build the Module dashboard under section 12.13, with all 5 counters, every named column, and every section header.
-- Declare the 6 budgets in section 14.7 inside Schematify's own `.kaava/` project, each with its probe command.
+- Declare the 6 budgets in section 14.7 inside Schematify's own `.veistra/` project, each with its probe command.
 - Add the 6 `pnpm bench:*` scripts.
 
 Acceptance: the dashboard holds no editable control. The actor column names human or agent on every row. A duplicate marker token produces an error and exit code 1. Every counter and every column cell draws the section 16.1 value.
@@ -1513,11 +1513,11 @@ Add each row to the Veistra decision log in Wave 10. Domain: `core/decisions/tec
 | SCH-SCO-004 | The wireframes outrank every written source on visual and copy questions | scope |
 | SCH-SCO-005 | Every drawn count is computed at draw time and never stored | scope |
 | SCH-ARC-001 | The `schematify://` scheme replaces `forger://`, `journeyman://`, and `decision://` | architecture |
-| SCH-ARC-002 | The marker token changes from `@forger:` to `@kaava:` | architecture |
-| SCH-ARC-003 | The storage root changes from `sdd/` to `.kaava/` | architecture |
+| SCH-ARC-002 | The marker token changes from `@forger:` to `@veistra:` | architecture |
+| SCH-ARC-003 | The storage root changes from `sdd/` to `.veistra/` | architecture |
 | SCH-ARC-004 | Schematify registers through 1 Tauri module and 1 `generate_handler!` line | architecture |
 | SCH-ARC-005 | A layout file is keyed by Schematic slug, matching the wireframe status bar | architecture |
 | SCH-ARC-006 | The `references_ui` edge is authoritative and `ui_refs` is a derived cache | architecture |
-| SCH-API-001 | The `kaava reconcile` command runs marker scanning outside the interface process | api |
-| SCH-API-002 | The `kaava-bench-v1` schema carries every ingested probe result | api |
+| SCH-API-001 | The `veistra reconcile` command runs marker scanning outside the interface process | api |
+| SCH-API-002 | The `veistra-bench-v1` schema carries every ingested probe result | api |
 | SCH-API-003 | Every Tauri command carries an `actor` argument holding `human` or `agent` | api |

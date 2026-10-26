@@ -194,7 +194,7 @@ export interface RingProps {
 
 /** A harness in the settings menu, with the models it offers. */
 export interface HarnessChoice {
-  /** `claude`, `codex`, `kaava`. */
+  /** `claude`, `codex`, `veistra`. */
   id: string;
   /** "Claude". */
   name: string;

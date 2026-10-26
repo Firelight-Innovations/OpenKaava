@@ -1,4 +1,4 @@
-# The OpenKaava window
+# The Veistra window
 
 *Getting started · 4 min*
 
@@ -6,11 +6,11 @@ Name every part of the frame, so the rest of these tutorials make sense.
 
 ---
 
-The OpenKaava window is five horizontal bands stacked in a column. Only the middle
+The Veistra window is five horizontal bands stacked in a column. Only the middle
 one grows. Naming them is worth four minutes, because every other tutorial says
 these words without stopping.
 
-<!-- SCREENSHOT: the full OpenKaava window with each of the five bands labelled by an arrow, 1440x900 -->
+<!-- SCREENSHOT: the full Veistra window with each of the five bands labelled by an arrow, 1440x900 -->
 
 _The five bands, each named by the arrow pointing at it._
 
@@ -112,5 +112,5 @@ right-hand side, and a second click closes it again.
 
 ---
 
-**Takeaway:** You can name every band of the OpenKaava window, which is what the
+**Takeaway:** You can name every band of the Veistra window, which is what the
 rest of these tutorials assume.

@@ -1,5 +1,5 @@
 {
-  "name": "@openkaava/file-icons",
+  "name": "@veistra/file-icons",
   "version": "0.1.0",
   "description": "Lookup for VS Code Material Icon Theme file/folder glyphs, shared between the Files app and the shell.",
   "license": "Apache-2.0",

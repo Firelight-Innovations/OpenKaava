@@ -3,7 +3,7 @@
  * `src-tauri/src/godot/runner.rs` and `rpc.rs`. The pane polls `play/state`
  * with a log cursor; nothing is pushed.
  */
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 import type { AddonState } from "../../../shared/godot";
 
 export type RunState =

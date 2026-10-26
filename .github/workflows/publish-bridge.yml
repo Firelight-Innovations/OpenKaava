@@ -1,4 +1,4 @@
-# Publish @openkaava/bridge to npm.
+# Publish @veistra/bridge to npm.
 #
 # Separate from release.yml on purpose: that file ships the orchestrator's own
 # installer off a `v*` tag, this one ships a library out of packages/bridge off
@@ -8,7 +8,7 @@
 # workflow_dispatch      a dry run: build + test only, nothing published
 #
 # docs/dev/architecture.md and docs/dev/app-releases.md both currently say
-# @openkaava/bridge is not on npm (`npm view @openkaava/bridge` is a 404). This is the
+# @veistra/bridge is not on npm (`npm view @veistra/bridge` is a 404). This is the
 # thing that stops being true.
 
 name: publish-bridge
@@ -65,10 +65,10 @@ jobs:
           fi
 
       - name: Build
-        run: pnpm --filter @openkaava/bridge build
+        run: pnpm --filter @veistra/bridge build
 
       - name: Test
-        run: pnpm --filter @openkaava/bridge test
+        run: pnpm --filter @veistra/bridge test
 
       # Refuses to publish over an existing version rather than letting npm's
       # own rejection be the first anyone hears of it. `npm view ... version`
@@ -80,8 +80,8 @@ jobs:
         working-directory: packages/bridge
         run: |
           VERSION="$(node -p "require('./package.json').version")"
-          if npm view "@openkaava/bridge@$VERSION" version >/dev/null 2>&1; then
-            echo "::error::@openkaava/bridge@$VERSION is already on the registry"
+          if npm view "@veistra/bridge@$VERSION" version >/dev/null 2>&1; then
+            echo "::error::@veistra/bridge@$VERSION is already on the registry"
             exit 1
           fi
 

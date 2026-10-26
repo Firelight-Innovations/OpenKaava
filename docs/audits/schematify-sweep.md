@@ -15,7 +15,7 @@ Schematify overnight.
 backend had 52 dispatch tests, all green, all happy-path.
 
 So twenty-four PRs of design-layer machinery had never been *run*. This sweep
-ran it: all eighteen JSON-RPC methods against real fixtures, the `kaava
+ran it: all eighteen JSON-RPC methods against real fixtures, the `veistra
 reconcile` CLI end to end against a purpose-built tree, scale to 2000 nodes,
 and — for the first time — a person-equivalent looking at the screen.
 
@@ -190,7 +190,7 @@ Both proven inert by mutation, in an isolated copy of the crate:
 
 - `token::tests::token_pattern_compiles` — the body is
   `let _ = token_pattern();`, with **no assertion**. Replacing the marker regex
-  with `@kaava:(.*)` — matches anything, still compiles — left this test green
+  with `@veistra:(.*)` — matches anything, still compiles — left this test green
   while 13 others correctly went red.
 - `report::tests::summary_counts_match_outcome_kinds` — only ever exercises the
   **empty** run. Mutating `summarize()`'s `Matched` arm to increment
@@ -235,7 +235,7 @@ the real writer.
 
 ### W4 — stale `reconcile.json` verdicts never expire
 
-`crates/schematify-reconcile/src/bin/kaava.rs` (`write_run_files`)
+`crates/schematify-reconcile/src/bin/veistra.rs` (`write_run_files`)
 
 Only writes directories for node ids in the *current* run's outcomes.
 Demonstrated: a tree with 9 hand-authored `reconcile.json` dirs, reconciled
@@ -313,7 +313,7 @@ accounts for its own longest content.
   §6.6, but the RPC never surfaces a per-node boolean, so every consumer must
   re-join two arrays by id.
 - **R2 — Windows path separators are mixed** in RPC responses
-  (`".../saas-b\\.kaava"`) and in `site.file`, where the real writer emits
+  (`".../saas-b\\.veistra"`) and in `site.file`, where the real writer emits
   OS-native paths while hand-authored fixtures use forward slashes.
 - **R3 — `actorName` is camelCase while the node payload is snake_case.** A
   deliberate asymmetry (RPC params vs. domain objects), but a caller assuming
@@ -343,8 +343,8 @@ are.
   `stress-2000` and `dense-service`, with 13 rules loaded. Both are generated
   as pure `service`→`module` `depends_on` chains with no screens, flows or
   decisions.
-- **`saas-backend` contains no source files at all.** Every non-`.kaava` path
-  is absent, so `kaava reconcile` against it can only ever report
+- **`saas-backend` contains no source files at all.** Every non-`.veistra` path
+  is absent, so `veistra reconcile` against it can only ever report
   `declared_absent` — 31 of them — and never exercises the scanner's match
   path.
 
@@ -444,7 +444,7 @@ against the others is a claim, not a proof.
 
 Recorded because each was believed before it was checked.
 
-- **`.kaava/runs/<uuid>/reconcile.json` is written** by shipped code —
+- **`.veistra/runs/<uuid>/reconcile.json` is written** by shipped code —
   `write_run_files`, unconditionally. The suspicion that nothing wrote it was
   wrong.
 - **The module tier is wired** and uses real backend UUIDs. Only the **stack**
@@ -459,13 +459,13 @@ Recorded because each was believed before it was checked.
 
 - `pnpm probe` mangles JSON arguments containing parentheses or braces through
   Windows batch quoting, reporting a bogus "not valid JSON". Call
-  `node scripts/kaava-probe.mjs` directly.
+  `node scripts/veistra-probe.mjs` directly.
 - `snapshot` refs go stale the moment the DOM beneath them changes. Re-using
   one snapshot across several clicks produced a false "the tabs do not update"
   result before a one-at-a-time retest showed all eight correct.
-- `kaava-shot.png` is tracked in git and rewritten by every screenshot, so it
+- `veistra-shot.png` is tracked in git and rewritten by every screenshot, so it
   dirties the tree continuously and can be swept into an unrelated commit.
-- `.mcp.json` is committed with duplicate keys — `kaava-debug` and `kaava-echo`
+- `.mcp.json` is committed with duplicate keys — `veistra-debug` and `veistra-echo`
   each appear twice — and a running app rewrote it to `{"mcpServers":{}}`
   mid-sweep — though that rewrite turned out **not** to be a second bug: it is
   what `sync()` does when `mcp.writeProjectConfig` is off or nothing is enabled
@@ -473,7 +473,7 @@ Recorded because each was believed before it was checked.
   is the natural suspicion: `mcp::config`'s `merge`/`sync` build the table as a
   `serde_json::Map`, which structurally cannot hold two entries under one key.
   The duplication came from commit `9f5e300`, a merge of two branches that had
-  each independently renamed `helve-*` to `kaava-*`; git's line-based merge
+  each independently renamed `helve-*` to `kaava-*` (now `veistra-*`); git's line-based merge
   interleaved both sides' near-identical insertions into one object rather than
   reporting a conflict, and JSON's last-key-wins meant the file kept parsing, so
   nothing downstream ever complained. A structurally invalid file survived
@@ -482,6 +482,6 @@ Recorded because each was believed before it was checked.
   The fix (PR #107) closes the class rather than the instance: a test now
   compares the tracked file against `merge(None, enabled_ids)`, so any drift
   between what is committed and what `sync()` actually produces fails the build.
-  That immediately caught a second, separate defect — `kaava-design` was
+  That immediately caught a second, separate defect — `veistra-design` was
   **missing** from the tracked file entirely, having shipped enabled by default
   after the file was last hand-edited.

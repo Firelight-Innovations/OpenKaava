@@ -5,7 +5,7 @@
  */
 import { X } from "lucide-react";
 import type { PointerEvent } from "react";
-import type { MarkupJson } from "@kaava/markup";
+import type { MarkupJson } from "@veistra/markup";
 import { markupSummary } from "./markupFlow";
 import "./markup.css";
 

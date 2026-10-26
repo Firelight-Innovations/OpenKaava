@@ -3,11 +3,11 @@
 // Plane v1.4.2's routing; only what `docs/handoffs/plane-frontend.md` marks
 // "confirmed" has been checked against the live instance. A wrong guess here
 // still fails safe: `plane_webview::is_plane_url` refuses any host that
-// isn't `plane.kaava.internal`, whatever path a caller builds.
+// isn't `plane.veistra.internal`, whatever path a caller builds.
 
-/** `OPENKAAVA-PLANE-DESIGN.md` §2/§3, restated as a full origin so every
+/** `VEISTRA-PLANE-DESIGN.md` §2/§3, restated as a full origin so every
  * route below can build an absolute URL for `webview-open`/`-navigate`. */
-export const PLANE_ORIGIN = "http://plane.kaava.internal:8765";
+export const PLANE_ORIGIN = "http://plane.veistra.internal:8765";
 
 /** The one workspace this app talks to today (confirmed). */
 export const WORKSPACE = "veistra";

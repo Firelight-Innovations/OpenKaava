@@ -9,7 +9,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import type { SceneFile } from "./scene";
 
 const bridge = vi.hoisted(() => {
-  class KaavaRpcError extends Error {
+  class VeistraRpcError extends Error {
     constructor(
       readonly code: number,
       message: string,
@@ -18,12 +18,12 @@ const bridge = vi.hoisted(() => {
       super(message);
     }
   }
-  return { invoke: vi.fn(), KaavaRpcError, instanceId: "inst-a" as string | undefined };
+  return { invoke: vi.fn(), VeistraRpcError, instanceId: "inst-a" as string | undefined };
 });
 
-vi.mock("@openkaava/bridge", () => ({
+vi.mock("@veistra/bridge", () => ({
   invoke: bridge.invoke,
-  KaavaRpcError: bridge.KaavaRpcError,
+  VeistraRpcError: bridge.VeistraRpcError,
   reportPainted: vi.fn(),
   session: () => Promise.resolve({ projectPath: null, instanceId: bridge.instanceId }),
 }));
@@ -120,7 +120,7 @@ vi.mock("./Editor", () => ({
               version: 1,
               versionNonce: 1,
               customData: {
-                kaava: { object: { type: "model", props: { size_m: 2, triangle_budget: 8000 } } },
+                veistra: { object: { type: "model", props: { size_m: 2, triangle_budget: 8000 } } },
               },
             };
             live.elements = [...initial.elements, model];
@@ -172,7 +172,7 @@ const scene = (n: number, title = "World"): SceneFile => ({
   })),
   appState: {},
   files: {},
-  kaava: { title },
+  veistra: { title },
 });
 
 const TYPES = [
@@ -226,7 +226,7 @@ function fake(b: Backend) {
         return { id: params!.id, path: `canvas/${params!.id}.json`, scene: got, mtime: 100 };
       }
       case "canvas/types":
-        return { builtin: TYPES, custom: [], path: ".kaava/canvas/types.json", problem: null };
+        return { builtin: TYPES, custom: [], path: ".veistra/canvas/types.json", problem: null };
       case "canvas/set-parent":
         return { id: params!.id, parent: params!.parent };
       case "canvas/assets":
@@ -333,7 +333,7 @@ describe("Canvas app", () => {
     await screen.findByText("Saved");
   });
 
-  it("saves a per-canvas style choice into kaava.design and clears it again", async () => {
+  it("saves a per-canvas style choice into veistra.design and clears it again", async () => {
     fake({
       readOnly: false,
       rows: [{ id: "world", title: "World", parent: null, error: null }],
@@ -350,7 +350,7 @@ describe("Canvas app", () => {
       () => {
         const writes = bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write");
         expect(writes.length).toBeGreaterThan(0);
-        expect(writes[writes.length - 1]![1].scene.kaava.design).toEqual({ style: "whiteboard" });
+        expect(writes[writes.length - 1]![1].scene.veistra.design).toEqual({ style: "whiteboard" });
       },
       { timeout: 3000 },
     );
@@ -358,7 +358,7 @@ describe("Canvas app", () => {
     await waitFor(
       () => {
         const writes = bridge.invoke.mock.calls.filter((c) => c[0] === "canvas/write");
-        expect(writes[writes.length - 1]![1].scene.kaava.design).toBeUndefined();
+        expect(writes[writes.length - 1]![1].scene.veistra.design).toBeUndefined();
       },
       { timeout: 3000 },
     );
@@ -412,7 +412,7 @@ describe("Canvas app", () => {
       readOnly: false,
       rows: [{ id: "broken", title: "broken", parent: null, error: "x" }],
       reads: {
-        broken: new bridge.KaavaRpcError(-32603, "canvas/broken.json is not valid JSON: eof", {
+        broken: new bridge.VeistraRpcError(-32603, "canvas/broken.json is not valid JSON: eof", {
           kind: "corrupt",
         }),
       },
@@ -540,7 +540,7 @@ describe("Canvas app", () => {
       const linked = (write![1].scene.elements as { id: string; customData?: unknown }[]).find(
         (e) => e.id === "f1",
       );
-      expect(linked?.customData).toEqual({ kaava: { child: "world/ward-b" } });
+      expect(linked?.customData).toEqual({ veistra: { child: "world/ward-b" } });
       const order = bridge.invoke.mock.calls.map((c) => c[0]);
       expect(order.indexOf("canvas/create")).toBeLessThan(order.indexOf("canvas/write"));
       expect(await screen.findByLabelText("Canvas path")).toBeTruthy();
@@ -578,7 +578,7 @@ describe("Canvas app", () => {
       fireEvent.change(screen.getByLabelText("Type"), { target: { value: "model" } });
       await waitFor(() =>
         expect(written("f1")?.customData).toMatchObject({
-          kaava: { object: { type: "model", props: { review_state: "draft" } } },
+          veistra: { object: { type: "model", props: { review_state: "draft" } } },
         }),
       );
       expect(await screen.findByLabelText("Triangle budget")).toBeTruthy();
@@ -591,8 +591,8 @@ describe("Canvas app", () => {
       fireEvent.click(screen.getByText("select model frame"));
       fireEvent.change(await screen.findByLabelText("Type"), { target: { value: "feature" } });
       await waitFor(() => expect(screen.queryByLabelText("Triangle budget")).toBeNull());
-      const object = (written("m1")?.customData as { kaava: { object: { props: unknown } } }).kaava
-        .object;
+      const object = (written("m1")?.customData as { veistra: { object: { props: unknown } } })
+        .veistra.object;
       expect(object.props).toMatchObject({ size_m: 2, triangle_budget: 8000 });
     });
 

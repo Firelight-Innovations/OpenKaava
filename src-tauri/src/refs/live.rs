@@ -1,4 +1,4 @@
-//! The references only a running Kaava can answer: canvases (read and drawn
+//! The references only a running Veistra can answer: canvases (read and drawn
 //! through the Canvas app), Design Mode comments (kept in app state) and the
 //! selection (reported by the panes on screen). Files, context items and
 //! viewer comments are plain disk reads and go straight to [`super::resolve`].
@@ -7,10 +7,10 @@ use super::fault::{Fault, Reason};
 use super::resolve::{self, Part, Resolved};
 use super::uri::{CanvasPart, Ref};
 use crate::apps::CallContext;
-use kaava_rpc::RpcError;
 use serde_json::{json, Value};
 use std::path::Path;
 use tauri::AppHandle;
+use veistra_rpc::RpcError;
 
 /// Most frames a canvas reference lists, and most text items a frame lists.
 const MAX_LISTED: usize = 100;
@@ -216,7 +216,7 @@ pub(super) fn canvas_call(
 fn canvas_fault(e: RpcError) -> Fault {
     let kind = e.data.as_ref().and_then(|d| d.get("kind"));
     let reason = match e.code {
-        kaava_rpc::INVALID_PARAMS => Reason::Missing,
+        veistra_rpc::INVALID_PARAMS => Reason::Missing,
         _ if kind.and_then(Value::as_str) == Some("corrupt") => Reason::Unreadable,
         _ => Reason::Unavailable,
     };
@@ -571,7 +571,7 @@ mod tests {
 
     #[test]
     fn a_canvas_failure_says_whether_it_is_missing_broken_or_the_apps() {
-        use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
+        use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
         let reason = |e| canvas_fault(e).reason;
         let corrupt = json!({ "kind": "corrupt" });
         assert_eq!(reason(RpcError::new(INVALID_PARAMS, "no")), Reason::Missing);
@@ -599,7 +599,7 @@ mod tests {
             tempfile::TempDir::new().unwrap(),
             tempfile::TempDir::new().unwrap(),
         );
-        let here = dir.path().join(".kaava/preview/canvas/world/f1.png");
+        let here = dir.path().join(".veistra/preview/canvas/world/f1.png");
         let there = away.path().join("f1.png");
         write_png(&here);
         write_png(&there);
@@ -642,7 +642,7 @@ mod tests {
         };
         assert_eq!(
             out.meta["refs"],
-            json!([frame.to_string(), "kaava://file/src/main.gd"])
+            json!([frame.to_string(), "veistra://file/src/main.gd"])
         );
         assert_eq!(out.detail.as_deref(), Some("World"));
         let cut = |o: &Resolved| matches!(o.parts[0], Part::Text { truncated, .. } if truncated);
@@ -684,7 +684,7 @@ mod tests {
         json!({ "type": "excalidraw", "elements": [{
             "id": "f1",
             "type": "frame",
-            "customData": { "kaava": { "subcanvas": true, "child": child } },
+            "customData": { "veistra": { "subcanvas": true, "child": child } },
         }] })
         .to_string()
     }
@@ -777,7 +777,7 @@ mod tests {
         assert_eq!(rows.len(), MAX_LISTED);
         assert_eq!(
             rows[0],
-            json!({ "name": "Room 0", "type": "Room", "ref": "kaava://canvas/levels/one#frame=f0" })
+            json!({ "name": "Room 0", "type": "Room", "ref": "veistra://canvas/levels/one#frame=f0" })
         );
         let untitled =
             canvas_from(&json!({ "canvases": [{ "title": "" }] }), &r, "levels/one").unwrap();
@@ -793,9 +793,9 @@ mod tests {
 
     #[test]
     fn a_comment_falls_back_to_its_record_only_when_no_pane_can_draw_it() {
-        use kaava_rpc::INTERNAL_ERROR;
+        use veistra_rpc::INTERNAL_ERROR;
         let dir = tempfile::TempDir::new().unwrap();
-        let shot = dir.path().join(".kaava/preview/canvas/world/c-1.png");
+        let shot = dir.path().join(".veistra/preview/canvas/world/c-1.png");
         write_png(&shot);
         let r = Ref::Canvas {
             id: "world".into(),

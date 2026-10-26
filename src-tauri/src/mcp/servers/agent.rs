@@ -1,4 +1,4 @@
-//! The one server an agent working on OpenKaava connects to.
+//! The one server an agent working on Veistra connects to.
 //!
 //! Everything needed to drive this window behind a single endpoint: the ten
 //! interaction tools [`super::ui`] owns, the three reads [`super::debug`] owns,
@@ -16,16 +16,16 @@
 //! `dev_only`, for [`super::ui`]'s reason rather than a new one: this can
 //! click, and `eval` reaches every `#[tauri::command]`. Gating `debug`'s reads
 //! *here* is what `debug` staying registered is for — a release build that
-//! misbehaves is still diagnosed through `kaava-debug`, ungated, as before.
+//! misbehaves is still diagnosed through `veistra-debug`, ungated, as before.
 
 use crate::apps;
 use crate::layout::SplitDir;
 use crate::mcp::{McpServer, McpTool, ToolAnswer};
 use crate::shell_state::ShellState;
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde_json::{json, Value};
 use std::path::Path;
 use tauri::{AppHandle, Manager};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 
 pub static SERVER: McpServer = McpServer {
     id: "agent",
@@ -271,7 +271,7 @@ fn guard_refs(method: &str) -> Result<(), RpcError> {
     Err(RpcError::new(
         INVALID_PARAMS,
         format!(
-            "`{method}`: {AS_THE_PERSON}. `read` on the kaava-context server resolves a \
+            "`{method}`: {AS_THE_PERSON}. `read` on the veistra-context server resolves a \
              reference as the agent."
         ),
     ))
@@ -570,7 +570,7 @@ mod tests {
             refusal.message
         );
         assert!(
-            refusal.message.contains("kaava-context"),
+            refusal.message.contains("veistra-context"),
             "names what to use instead: {}",
             refusal.message
         );

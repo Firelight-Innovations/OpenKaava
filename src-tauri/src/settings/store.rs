@@ -1,4 +1,4 @@
-//! Where OpenKaava remembers what you changed, across launches.
+//! Where Veistra remembers what you changed, across launches.
 //!
 //! The fourth thing in the orchestrator to touch the disk, after
 //! [`crate::project::store`], [`crate::shell_store`] and

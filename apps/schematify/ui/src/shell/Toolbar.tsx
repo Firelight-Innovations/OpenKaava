@@ -3,7 +3,7 @@
  *
  * The node search is not drawn here. Under the shell the search field is the
  * title bar's, shared by every surface; when Wave 8 builds node search it claims
- * that field with `claimSearch` from `@openkaava/bridge` instead of adding a
+ * that field with `claimSearch` from `@veistra/bridge` instead of adding a
  * second bar. Until then there is nothing to type into, so nothing is shown.
  */
 export interface ToolbarProps {

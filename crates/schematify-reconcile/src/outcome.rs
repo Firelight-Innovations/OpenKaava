@@ -133,7 +133,7 @@ impl ReconcileOutcome {
         }
     }
 
-    /// Whether this outcome counts toward `kaava reconcile`'s exit code 1
+    /// Whether this outcome counts toward `veistra reconcile`'s exit code 1
     /// (PRD section 9.3: "Exit code 1 means one or more error outcomes").
     #[must_use]
     pub fn is_error(&self) -> bool {

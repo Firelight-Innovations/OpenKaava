@@ -1,7 +1,7 @@
 /**
  * How a keystroke is written down, and what counts as holding the modifier.
  *
- * OpenKaava ships on Windows only, so both questions have one answer — `Ctrl`, and
+ * Veistra ships on Windows only, so both questions have one answer — `Ctrl`, and
  * `ctrlKey` — and this module is where it is given, in place of the `⌘K` the
  * search slot used to draw and the `e.metaKey ||` two listeners used to test.
  * `menus.ts` and `shortcuts.ts` keep their accelerators as literals, being data

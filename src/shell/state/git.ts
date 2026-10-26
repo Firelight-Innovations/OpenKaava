@@ -110,7 +110,7 @@ export const worktreeControl: WorktreeControl = {
 
 /**
  * Drop a cluster's worktree binding when the checkout behind it has been
- * deleted from outside OpenKaava.
+ * deleted from outside Veistra.
  *
  * Not on `WorktreeControl` because it is not something a user does — it is
  * housekeeping the shell runs on a cluster switch, and putting it on the

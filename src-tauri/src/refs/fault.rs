@@ -4,17 +4,17 @@
 //! The word travels as `data.reason` on a `refs/*` error and as `reason` on
 //! each reference a call could not use. Branch on it, never on the sentence.
 
-use kaava_rpc::{RpcError, INVALID_PARAMS};
 use serde::Serialize;
 use serde_json::json;
 use std::fmt;
+use veistra_rpc::{RpcError, INVALID_PARAMS};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Reason {
     /// The call is malformed: a parameter missing, mistyped or over its cap.
     BadParams,
-    /// Not a `kaava://` reference, or a path no reference may name.
+    /// Not a `veistra://` reference, or a path no reference may name.
     BadUri,
     /// No project is open, or the surface is in no cluster.
     NoProject,

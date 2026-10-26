@@ -1,10 +1,10 @@
 /**
  * App-side half of the live theme broadcast. The shell side —
  * `src/shell/themeBroadcast.ts` plus the relay in `ToolWindow.tsx` — posts a
- * `kaava:theme-changed` event into this frame on hello and on every later
+ * `veistra:theme-changed` event into this frame on hello and on every later
  * change; this module is what an app's bootstrap calls to hear it.
  *
- * A separate subpath (`@openkaava/bridge/theme`), like `./protocol.js` and
+ * A separate subpath (`@veistra/bridge/theme`), like `./protocol.js` and
  * `./errors.js`: a tool with no use for it should not pay for it.
  */
 import { on } from "./index.js";
@@ -16,7 +16,7 @@ const THEMES = new Set(["dark", "light"]);
 const ACCENTS = new Set(["amber", "blue", "green", "violet", "coral"]);
 
 /** Narrow an event payload to a `ThemeChangedPayload`, or `null`. Defensive
- *  like every `kaava:*` validator: this crosses `postMessage` as `unknown`,
+ *  like every `veistra:*` validator: this crosses `postMessage` as `unknown`,
  *  and a malformed event should leave the document untouched. */
 export function parseThemePayload(data: unknown): ThemeChangedPayload | null {
   if (typeof data !== "object" || data === null) return null;

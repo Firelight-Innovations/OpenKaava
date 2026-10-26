@@ -10,7 +10,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 
 const bridge = vi.hoisted(() => ({ invoke: vi.fn() }));
 
-vi.mock("@openkaava/bridge", () => ({
+vi.mock("@veistra/bridge", () => ({
   invoke: bridge.invoke,
   reportPainted: vi.fn(),
   openIn: vi.fn(),
@@ -23,7 +23,7 @@ vi.mock("./usePreview", () => ({
       data: {
         glb: new ArrayBuffer(0),
         nodeMap: {},
-        path: "C:/p/.kaava/x.glb",
+        path: "C:/p/.veistra/x.glb",
         exportedAt: 1,
         godot: null,
       },

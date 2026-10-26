@@ -33,7 +33,7 @@ The **Terminal** menu holds the same three, plus **Kill Terminal** and
 ## It starts where your project is
 
 A new terminal opens in the folder the **cluster** has open, not in whatever
-directory OpenKaava was launched from.
+directory Veistra was launched from.
 
 A project is open → the cluster owns the band → a new terminal inherits its folder
 
@@ -58,22 +58,22 @@ build beside the code, instead of under it.
 Settings → **Terminal** → **Shell** picks it. The default works it out from
 the machine; you can pin it to PowerShell, `cmd`, bash or zsh instead.
 
-**Open a terminal at launch** in the same section starts one with OpenKaava. That
-one is read while OpenKaava is starting, so changing it needs a restart to show —
+**Open a terminal at launch** in the same section starts one with Veistra. That
+one is read while Veistra is starting, so changing it needs a restart to show —
 the setting says so under the control.
 
-## Why an OpenKaava terminal is not the same as yours
+## Why a Veistra terminal is not the same as yours
 
-OpenKaava spawns these shells, so it puts things in their environment —
-including the port and token an MCP client needs to reach OpenKaava's own tools.
+Veistra spawns these shells, so it puts things in their environment —
+including the port and token an MCP client needs to reach Veistra's own tools.
 
-A shell you opened yourself, outside OpenKaava, inherits none of that. That shell
+A shell you opened yourself, outside Veistra, inherits none of that. That shell
 works fine; it simply cannot reach back into the running application — the
 correct answer, rather than a limitation.
 
-> That single fact is behind almost every "my agent cannot see the OpenKaava
-> tools" report. Run the agent from a terminal inside OpenKaava. See
-> [Give your agent OpenKaava's tools](mcp-servers.md).
+> That single fact is behind almost every "my agent cannot see the Veistra
+> tools" report. Run the agent from a terminal inside Veistra. See
+> [Give your agent Veistra's tools](mcp-servers.md).
 
 ## Resizing the band
 

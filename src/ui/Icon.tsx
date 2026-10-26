@@ -61,7 +61,7 @@ function Outline({
 /**
  * The product's mark. Today that is an avocado: one outline with the seed as a
  * counter cut out of it. Filled, not stroked, and monochrome — the three-tone
- * version exists (`assets/kaava-mark-colour.svg`) but is drawn only by Home's
+ * version exists (`assets/veistra-mark-colour.svg`) but is drawn only by Home's
  * 52px lockup, because this glyph appears at 15px on the title bar and at 38px
  * as the placeholder every tool shares until it earns its own icon, and the
  * hairlines separating the tones close up long before either of those sizes.

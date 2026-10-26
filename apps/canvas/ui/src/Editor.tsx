@@ -43,7 +43,7 @@ export interface EditorProps {
   onOpenChild: (id: string) => void;
   /** The title to show for a child canvas id on a frame's link badge. */
   titleOf: (canvasId: string) => string;
-  /** A `kaava://diagram/<id>` link (an index row) was followed. */
+  /** A `veistra://diagram/<id>` link (an index row) was followed. */
   onOpenDiagram?: (id: string) => void;
   /** Outlines to draw over what a comment is about; an overlay, never scene elements. */
   highlights?: Highlight[];
@@ -51,7 +51,7 @@ export interface EditorProps {
 
 const NO_HIGHLIGHTS: Highlight[] = [];
 
-const DIAGRAM_LINK = "kaava://diagram/";
+const DIAGRAM_LINK = "veistra://diagram/";
 
 /**
  * Module-level on purpose. Excalidraw re-renders, and fires `onChange`, whenever
@@ -100,7 +100,7 @@ export default function Editor({
   const onOpenChildRef = useRef(onOpenChild);
   onOpenChildRef.current = onOpenChild;
   // An index row's link names a diagram in this canvas; following it moves the
-  // view instead of asking the browser to open a `kaava:` URL.
+  // view instead of asking the browser to open a `veistra:` URL.
   const handleLink = useCallback(
     (element: { link?: string | null }, event: CustomEvent<{ nativeEvent: unknown }>) => {
       const link = element.link ?? "";

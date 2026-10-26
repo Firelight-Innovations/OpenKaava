@@ -52,7 +52,7 @@ like `projects/.../secrets/claude-oauth-token/versions/7` — never the token it
 ## 3. Check it
 
 ```powershell
-gcloud compute ssh kaava-worker --zone us-central1-a --project veistra-prod ` --tunnel-through-iap -- sudo -i kaava-smoke-test
+gcloud compute ssh veistra-worker --zone us-central1-a --project veistra-prod ` --tunnel-through-iap -- sudo -i veistra-smoke-test
 ```
 
 The first IAP SSH from a Windows machine may pop a prompt from PuTTY/plink asking whether to cache
@@ -64,7 +64,7 @@ each new shell reads the latest version of the secret.
 If the worker is stopped (it stops itself after 30 idle minutes), start it first:
 
 ```powershell
-gcloud compute instances start kaava-worker --zone us-central1-a --project veistra-prod
+gcloud compute instances start veistra-worker --zone us-central1-a --project veistra-prod
 ```
 
 You can confirm the stored value has no stray CR/LF without ever printing it:

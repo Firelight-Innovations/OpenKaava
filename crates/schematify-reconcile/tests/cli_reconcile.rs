@@ -1,4 +1,4 @@
-//! End-to-end tests that spawn the real `kaava` binary, per
+//! End-to-end tests that spawn the real `veistra` binary, per
 //! `SCHEMATIFY-PRD.md` section 9.3 and Wave 9's acceptance condition: "A
 //! duplicate marker token produces an error and exit code 1." `CARGO_BIN_EXE_
 //! <name>` is a cargo-provided environment variable naming the just-built
@@ -9,8 +9,8 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-fn kaava_bin() -> &'static str {
-    env!("CARGO_BIN_EXE_kaava")
+fn veistra_bin() -> &'static str {
+    env!("CARGO_BIN_EXE_veistra")
 }
 
 // A test fixture helper, not itself a `#[test]` fn, so clippy.toml's
@@ -37,7 +37,7 @@ fn write_node(nodes_dir: &Path, id: &str, slug: &str, kind: &str, lifecycle: &st
 fn duplicate_marker_token_exits_1() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
-    let nodes_dir = root.join(".kaava").join("nodes");
+    let nodes_dir = root.join(".veistra").join("nodes");
     fs::create_dir_all(&nodes_dir).unwrap();
 
     let id = "0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8";
@@ -50,15 +50,23 @@ fn duplicate_marker_token_exits_1() {
     );
 
     fs::create_dir_all(root.join("src")).unwrap();
-    fs::write(root.join("src/a.rs"), format!("// @kaava:{id} thing.run\n")).unwrap();
-    fs::write(root.join("src/b.rs"), format!("// @kaava:{id} thing.run\n")).unwrap();
+    fs::write(
+        root.join("src/a.rs"),
+        format!("// @veistra:{id} thing.run\n"),
+    )
+    .unwrap();
+    fs::write(
+        root.join("src/b.rs"),
+        format!("// @veistra:{id} thing.run\n"),
+    )
+    .unwrap();
 
-    let output = Command::new(kaava_bin())
+    let output = Command::new(veistra_bin())
         .arg("reconcile")
         .arg("--root")
         .arg(root)
         .output()
-        .expect("kaava reconcile should run");
+        .expect("veistra reconcile should run");
 
     assert_eq!(
         output.status.code(),
@@ -68,7 +76,7 @@ fn duplicate_marker_token_exits_1() {
     );
 
     let written = fs::read_to_string(
-        root.join(".kaava")
+        root.join(".veistra")
             .join("runs")
             .join(id)
             .join("reconcile.json"),
@@ -82,7 +90,7 @@ fn duplicate_marker_token_exits_1() {
 fn clean_project_exits_0() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
-    let nodes_dir = root.join(".kaava").join("nodes");
+    let nodes_dir = root.join(".veistra").join("nodes");
     fs::create_dir_all(&nodes_dir).unwrap();
 
     let id = "0192f4a2-4c3d-7890-a1b2-c3d4e5f6a7b8";
@@ -94,14 +102,18 @@ fn clean_project_exits_0() {
         "implemented",
     );
     fs::create_dir_all(root.join("src")).unwrap();
-    fs::write(root.join("src/a.rs"), format!("// @kaava:{id} thing.run\n")).unwrap();
+    fs::write(
+        root.join("src/a.rs"),
+        format!("// @veistra:{id} thing.run\n"),
+    )
+    .unwrap();
 
-    let output = Command::new(kaava_bin())
+    let output = Command::new(veistra_bin())
         .arg("reconcile")
         .arg("--root")
         .arg(root)
         .output()
-        .expect("kaava reconcile should run");
+        .expect("veistra reconcile should run");
 
     assert_eq!(
         output.status.code(),
@@ -116,12 +128,12 @@ fn missing_project_exits_2() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
 
-    let output = Command::new(kaava_bin())
+    let output = Command::new(veistra_bin())
         .arg("reconcile")
         .arg("--root")
         .arg(root)
         .output()
-        .expect("kaava reconcile should run");
+        .expect("veistra reconcile should run");
 
     assert_eq!(output.status.code(), Some(2));
 }
@@ -134,7 +146,7 @@ fn a_result_write_failure_exits_3_not_2() {
     // different code.
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
-    let nodes_dir = root.join(".kaava").join("nodes");
+    let nodes_dir = root.join(".veistra").join("nodes");
     fs::create_dir_all(&nodes_dir).unwrap();
 
     let id = "0192f4a4-4c3d-7890-a1b2-c3d4e5f6a7b8";
@@ -146,18 +158,22 @@ fn a_result_write_failure_exits_3_not_2() {
         "implemented",
     );
     fs::create_dir_all(root.join("src")).unwrap();
-    fs::write(root.join("src/a.rs"), format!("// @kaava:{id} thing.run\n")).unwrap();
+    fs::write(
+        root.join("src/a.rs"),
+        format!("// @veistra:{id} thing.run\n"),
+    )
+    .unwrap();
 
-    // Block `.kaava/runs/` from being created: a plain file sits where
+    // Block `.veistra/runs/` from being created: a plain file sits where
     // `write_run_files` needs a directory.
-    fs::write(root.join(".kaava").join("runs"), b"not a directory").unwrap();
+    fs::write(root.join(".veistra").join("runs"), b"not a directory").unwrap();
 
-    let output = Command::new(kaava_bin())
+    let output = Command::new(veistra_bin())
         .arg("reconcile")
         .arg("--root")
         .arg(root)
         .output()
-        .expect("kaava reconcile should run");
+        .expect("veistra reconcile should run");
 
     assert_eq!(
         output.status.code(),
@@ -171,7 +187,7 @@ fn a_result_write_failure_exits_3_not_2() {
 fn json_format_writes_a_parseable_report_to_out() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
-    let nodes_dir = root.join(".kaava").join("nodes");
+    let nodes_dir = root.join(".veistra").join("nodes");
     fs::create_dir_all(&nodes_dir).unwrap();
     let id = "0192f4a3-4c3d-7890-a1b2-c3d4e5f6a7b8";
     write_node(
@@ -182,10 +198,14 @@ fn json_format_writes_a_parseable_report_to_out() {
         "implemented",
     );
     fs::create_dir_all(root.join("src")).unwrap();
-    fs::write(root.join("src/a.rs"), format!("// @kaava:{id} thing.run\n")).unwrap();
+    fs::write(
+        root.join("src/a.rs"),
+        format!("// @veistra:{id} thing.run\n"),
+    )
+    .unwrap();
 
     let out_path = root.join("report.json");
-    let status = Command::new(kaava_bin())
+    let status = Command::new(veistra_bin())
         .arg("reconcile")
         .arg("--root")
         .arg(root)
@@ -194,7 +214,7 @@ fn json_format_writes_a_parseable_report_to_out() {
         .arg("--format")
         .arg("json")
         .status()
-        .expect("kaava reconcile should run");
+        .expect("veistra reconcile should run");
 
     assert_eq!(status.code(), Some(0));
     let content = fs::read_to_string(&out_path).unwrap();

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { openIn, reportPainted } from "@openkaava/bridge";
+import { openIn, reportPainted } from "@veistra/bridge";
 import {
   ChevronDown,
   ChevronRight,

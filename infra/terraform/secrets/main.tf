@@ -56,11 +56,11 @@ resource "google_secret_manager_secret" "this" {
   }
 }
 
-# Every agent VM runs as kaava-agent (foundation/), so this one grant covers all of them.
+# Every agent VM runs as veistra-agent (foundation/), so this one grant covers all of them.
 resource "google_secret_manager_secret_iam_member" "agent_claude" {
   secret_id = google_secret_manager_secret.this["claude-oauth-token"].secret_id
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:kaava-agent@${var.project_id}.iam.gserviceaccount.com"
+  member    = "serviceAccount:veistra-agent@${var.project_id}.iam.gserviceaccount.com"
 }
 
 output "secret_ids" {

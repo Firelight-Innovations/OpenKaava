@@ -171,7 +171,7 @@ export function useProbeFrame(): ProbeFrame {
 
       // `design/capture` photographs the *focused* window, because nothing maps
       // a cluster to an operating system window — `capture` in `design.rs` has
-      // the whole account. This is the frontend's half of that: with two OpenKaava
+      // the whole account. This is the frontend's half of that: with two Veistra
       // windows open, only the focused one may ask.
       if (!document.hasFocus()) {
         return { shot: null, shotProblem: "this window was not in front when the click landed" };
