@@ -69,9 +69,9 @@ wordmark = "Veistra"
 # repeated on a second surface stops being a tagline.
 tagline = "The Veistra custom agentic development stack"
 
-# The company that makes the product. The splash sets it beside the wordmark, in
-# tracked capitals that its stylesheet applies, so this is written as a word for
-# the same reason `wordmark` is.
+# The company that makes the product. No surface prints it on its own today (the
+# splash used to set it beside the wordmark); the copyright line below names it
+# as written.
 company = "Veistra"
 
 # The copyright notice on the splash, as it is printed. The year is the year of
@@ -84,29 +84,28 @@ copyright = "© 2026 Veistra. All rights reserved."
 # Paths are relative to this file. Every one of them is checked to exist, so a
 # fork that replaces the art gets told about the entry it missed.
 
-# The mark, as a monochrome silhouette: an avocado, drawn as one outline with
-# the seed as a counter inside it. One path in a 24×24 box, and that is a
+# The mark, as a monochrome silhouette: the closed EI, drawn as one block with
+# two slots as counters inside it. One path in a 24×24 box, and that is a
 # requirement rather than a description — the generator lifts the path data out
 # of this file into the frontend's branding module so the shell can draw it as
 # inline SVG in `currentColor`, and it refuses a file it cannot reduce to one
 # path.
 #
 # The counter only reads as a hole under the default nonzero fill rule because
-# the outline is wound clockwise and the seed counter-clockwise. The generator
+# the outline is wound clockwise and the slots counter-clockwise. The generator
 # lifts `d` and nothing else, so a `fill-rule` attribute on the source would be
-# dropped silently and the seed would fill in. Do not rewind the arc flags.
+# dropped silently and the slots would fill in. Do not rewind the path.
 mark = "assets/veistra-mark.svg"
 
-# The same mark in its three tones — dark skin, light flesh, brown seed — with a
-# hairline of the background separating each. Three drawables, so the generator
-# cannot reduce it and nothing compiles it in; it is for the surfaces big enough
-# to carry the colour, which read it as a file or inline it by hand.
+# The same mark in brand rust (#B4442E). Nothing compiles it in; it is for the
+# surfaces big enough to carry the colour, which read it as a file or inline it
+# by hand.
 #
 # Its one reader today is Home's 52px lockup, `Mark` in
-# `apps/home/ui/src/icons.tsx`, which inlines this geometry by hand so the two
-# hairlines can be `var(--bg)` rather than a fixed hex. Everything smaller — the
-# 15px title-bar glyph, the shared tool placeholder, the 34px mark inside the
-# splash ring — stays on `mark` above and inherits its `currentColor`.
+# `apps/home/ui/src/icons.tsx`, which inlines this geometry by hand so the fill
+# can be `var(--mark-rust)` rather than a fixed hex. Everything smaller — the
+# 15px title-bar glyph, the shared tool placeholder, the mark on the splash —
+# stays on `mark` above and inherits its `currentColor`.
 mark-colour = "assets/veistra-mark-colour.svg"
 
 # What the installer and taskbar icons are drawn from. Its reader is a person
