@@ -26,8 +26,7 @@ pub use registry::{
 };
 pub use servers::workspace::selection_in;
 pub use session::Sessions;
-#[allow(unused_imports)] // See `session::SessionServer`.
-pub use session::{session_servers, SessionServer};
+pub use session::{session_env, session_servers, SessionServer};
 use std::time::Duration;
 pub use subscriptions::Subscriptions;
 use tauri::{AppHandle, Manager};
