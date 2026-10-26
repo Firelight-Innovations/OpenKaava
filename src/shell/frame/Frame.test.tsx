@@ -145,10 +145,12 @@ describe("Frame's terminal band", () => {
     expect(heights).toEqual([474]);
   });
 
-  it("re-fits a maximized band to the column when the column changes size", async () => {
-    // Each observer the frame makes, with what it watches and what it runs.
-    const observers: { seen: Element[]; resized: () => void }[] = [];
-    const real = globalThis.ResizeObserver;
+  // Each observer the frame makes, with what it watches and what it runs.
+  let observers: { seen: Element[]; resized: () => void }[] = [];
+  const realObserver = globalThis.ResizeObserver;
+  const realRect = Element.prototype.getBoundingClientRect;
+  const observeByHand = () => {
+    observers = [];
     globalThis.ResizeObserver = class {
       readonly seen: Element[] = [];
       constructor(callback: ResizeObserverCallback) {
@@ -160,6 +162,14 @@ describe("Frame's terminal band", () => {
       unobserve() {}
       disconnect() {}
     };
+  };
+  const restore = () => {
+    globalThis.ResizeObserver = realObserver;
+    Element.prototype.getBoundingClientRect = realRect;
+  };
+
+  it("re-fits a maximized band to the column when the column changes size", async () => {
+    observeByHand();
     try {
       const { container } = render(
         <Frame
@@ -172,6 +182,10 @@ describe("Frame's terminal band", () => {
       const main = container.querySelector(".frame__main") as HTMLElement;
       const column = observers.filter((o) => o.seen.includes(main)).pop();
       expect(column?.seen).toEqual([main]);
+      // The mount's spring runs to the fit jsdom measures, 0px. Let it finish, or
+      // its next step would overwrite whatever the observer writes.
+      const band = container.querySelector('[data-region="bottom"]') as HTMLElement;
+      await waitFor(() => expect(band.style.height).toBe("0px"), { timeout: 2000 });
 
       main.getBoundingClientRect = () => ({ height: 700 }) as DOMRect;
       const handle = container.querySelector('[data-region="bottomhandle"]') as HTMLElement;
@@ -179,10 +193,52 @@ describe("Frame's terminal band", () => {
       act(() => column?.resized());
 
       // 700 (column) - 6 (handle) = 694: the whole column, with no tool window left.
-      const band = container.querySelector('[data-region="bottom"]') as HTMLElement;
       await waitFor(() => expect(band.style.height).toBe("694px"));
+      await new Promise((r) => setTimeout(r, 300));
+      expect(band.style.height).toBe("694px");
     } finally {
-      globalThis.ResizeObserver = real;
+      restore();
+    }
+  });
+
+  it("lets a maximized band spring open, though its observer reports as it starts", async () => {
+    observeByHand();
+    // The column's size from the first layout on, as a browser has it before any observer starts.
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      if (this.classList.contains("frame__main")) return { height: 700 } as DOMRect;
+      if (this.getAttribute("data-region") === "bottomhandle") return { height: 6 } as DOMRect;
+      return realRect.call(this);
+    };
+    try {
+      const band = <div>band</div>;
+      const { container, rerender } = render(
+        <Frame kind="main" slots={slots({ bottomPanel: band })} bottomCollapsed bottomMaximized />,
+      );
+      rerender(
+        <Frame
+          kind="main"
+          slots={slots({ bottomPanel: band })}
+          bottomCollapsed={false}
+          bottomMaximized
+        />,
+      );
+      const main = container.querySelector(".frame__main") as HTMLElement;
+      // The observer the open started reports at once, with the height the column already had.
+      act(() =>
+        observers
+          .filter((o) => o.seen.includes(main))
+          .pop()
+          ?.resized(),
+      );
+
+      const bottom = container.querySelector('[data-region="bottom"]') as HTMLElement;
+      await new Promise((r) => setTimeout(r, 100));
+      const midway = parseFloat(bottom.style.height);
+      expect(midway).toBeGreaterThan(0);
+      expect(midway).toBeLessThan(694);
+      await waitFor(() => expect(bottom.style.height).toBe("694px"));
+    } finally {
+      restore();
     }
   });
 });
