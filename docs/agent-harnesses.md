@@ -114,7 +114,8 @@ ACP has no request that lists an agent's models outside a session. So the host a
 1. A tab calls `agent-tab/harnesses`, with developer mode on and a worktree to run in. The tab
    does this when it opens. The shell makes the same call as the cluster's agent tab
    (`useAgentTabRefresh`, in `src/shell/state/agentTab.ts`). It calls when the tab mounts, when a
-   setting or the cluster's environment changes, and when the tab's session starts or resets.
+   setting or the cluster's environment changes, and on each status or reset event from the
+   tab's session.
 2. For each installed harness that it has not asked in that worktree this launch, the host starts
    the harness's adapter there. It sends `initialize` and `session/new`, and nothing else.
 3. It reads the option of category `model` from the reply to `session/new`, and kills the agent.

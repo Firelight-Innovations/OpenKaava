@@ -23,11 +23,11 @@ export function agentTabIn(
 
 /**
  * Asks `agent-tab/harnesses` as `agentTab` whenever something the tab cannot
- * see changes: a setting, the cluster's environment, or its own session
- * starting or resetting.
+ * see changes: a setting, the cluster's environment, or a status or reset from
+ * its own session.
  *
- * The tab asks only when it mounts, chooses, or hears its models are in, and a
- * frame is never sent settings. Asked as the tab, the host can start a model
+ * The tab asks only when it mounts, chooses, retries a failed ask, or hears its
+ * models are in, and a frame is never sent settings. Asked as the tab, the host can start a model
  * ask for each installed harness it has not asked in this worktree this
  * launch, or retry the running harness's unanswered ask once its agent has
  * signed in. Only an ask that returns models makes the host tell every tab to

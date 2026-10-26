@@ -103,7 +103,7 @@ describe("useAgentTabRefresh", () => {
     expect(calls.appCall).toHaveBeenCalledTimes(2);
   });
 
-  it("asks again when its tab's session starts or resets, not on every event", async () => {
+  it("asks again on its tab's status and reset events, not on every event", async () => {
     renderHook(() => useAgentTabRefresh("c1", "env", "agent-1"));
     await waitFor(() => expect(calls.heard.event).toBeDefined());
 
