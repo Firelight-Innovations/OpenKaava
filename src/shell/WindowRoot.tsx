@@ -69,10 +69,9 @@ import TerminalDeck, { type TerminalDeckHandle } from "./terminal/TerminalDeck";
 import { callApp, useApps, useOpenables, usePages } from "./state/apps";
 import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
-import { agentBarShown, agentTabIn, barActions, useAgentBarStatus } from "./state/agentBar";
 import { agentClusters, agentsDot, useAgentSessions } from "./state/agentSessions";
+import { agentTabIn, useAgentTabRefresh } from "./state/agentTab";
 import { newAgent, openAgent, type AgentOpeners } from "./state/agentOpeners";
-import { ClusterAgentBar } from "./agentbar/AgentBar";
 import ReadOnlyBanner from "./git/ReadOnlyBanner";
 import { useProjectIcon } from "./state/projectIcon";
 import { useUpdates } from "./state/updates";
@@ -102,6 +101,11 @@ import { gitControl, worktreeControl } from "./state/git";
 import { githubAuthControl, githubControl } from "./state/github";
 import { copyToClipboard, reviewControl } from "./state/review";
 import { isFullscreen, isTauri, nextZoom, setFullscreen, setZoom } from "./hostWindow";
+import { useSettingsSurface } from "./settingsSurface";
+import { gitViewShowing, showGitView } from "./gitPageDoor";
+import { useLibrarySurface } from "./librarySurface";
+import { useShortcutsSurface } from "./shortcutsSurface";
+import { closeCoveringScreens, openSettingsOnTop } from "./coveringScreens";
 import Rail from "./rail/Rail";
 import PageShell from "./rail/PageShell";
 import AppPage from "./rail/AppPage";
@@ -1645,24 +1649,9 @@ export default function WindowRoot({
   );
   const onOpenProjectSwitcher = useCallback(() => setSwitchProjectOpen(true), []);
 
-  // The agent bar (handoff §4), shown only while Rust says this cluster may run an agent at
-  // all: developer mode gates it until V6. A main checkout still shows the bar, disabled, with
-  // the reason, so the way to a worktree is on screen. It asks about the cluster's agent tab
-  // when there is one, so it names the harness and model that tab runs.
+  // The cluster's agent tab hears from the shell when a setting or its environment changes.
   const agentTab = useMemo(() => agentTabIn(tree, instances), [tree, instances]);
-  const agentBarStatus = useAgentBarStatus(
-    activeClusterId,
-    environment ? environmentKey(environment) : null,
-    agentTab,
-  );
-  const agentBarActions = useMemo(
-    () =>
-      barActions(
-        { label, tree, instances, paneId: activePaneId, dir: splitDirOnOpen(activePaneId) },
-        agentTab,
-      ),
-    [label, tree, instances, activePaneId, agentTab],
-  );
+  useAgentTabRefresh(activeClusterId, environment ? environmentKey(environment) : null, agentTab);
 
   // The Agents page and its rail dot: the agent tabs in this window's
   // clusters, and what each session is doing, kept live whether or not the
@@ -1721,15 +1710,29 @@ export default function WindowRoot({
     );
   }, [cancelSwitchProject, activeClusterId]);
 
-  // The environment bar's "Review & merge" opens the same Git page the rail
-  // does, through the same door — `onSelectPage`, not a second path onto
-  // `right_page`. Guarded, because that door toggles: a second click with Git
-  // already open would otherwise close the page it asked to see. It lands on
-  // the Source Control tab, which is where a review happens.
-  const onReviewAndMerge = useCallback(() => {
-    if (rightPage?.id !== "git") onSelectPage("git");
-    setGitView("worktree");
-  }, [onSelectPage, rightPage?.id]);
+  // The status bar's git controls open the same Git page the rail does,
+  // through the same door — `onSelectPage`, not a second path onto
+  // `right_page`. `showGitView` says when to go through it, since it toggles,
+  // and why a screen covering the page comes down first.
+  const settingsOpen = useSettingsSurface().open;
+  const libraryOpen = useLibrarySurface().open;
+  const shortcutsOpen = useShortcutsSurface().open;
+  const pageCovered = settingsOpen || libraryOpen || shortcutsOpen;
+  const onShowGit = useCallback(
+    (view: GitPageView | null) => {
+      showGitView(view, rightPage?.id === "git", {
+        uncover: closeCoveringScreens,
+        open: () => onSelectPage("git"),
+        close: onClosePage,
+        setView: setGitView,
+      });
+    },
+    [onSelectPage, onClosePage, rightPage?.id],
+  );
+
+  // "Review & merge" lands on the Source Control tab, which is where a review
+  // happens, and never shuts the page.
+  const onReviewAndMerge = useCallback(() => onShowGit("worktree"), [onShowGit]);
 
   // The drag layer is the only thing in the shell that spans regions, so it is
   // the only thing that has to be handed down rather than owned locally. The
@@ -1856,6 +1859,7 @@ export default function WindowRoot({
     toggleFullscreen: onToggleFullscreen,
     zoomIn: () => onZoom(1),
     zoomOut: () => onZoom(-1),
+    openSettings: () => openSettingsOnTop(),
 
     newTerminal: () => void onNewTerminal(),
     splitTerminal: () => {
@@ -2141,15 +2145,6 @@ export default function WindowRoot({
                 onNewWorktreeCluster={() => onAddCluster("newLocalWorktree")}
               />
             ) : undefined,
-          agentBar:
-            activeCluster && agentBarShown(agentBarStatus) ? (
-              <ClusterAgentBar
-                clusterId={activeCluster.id}
-                status={agentBarStatus}
-                onChoose={agentBarActions.onChoose}
-                onSend={agentBarActions.onSend}
-              />
-            ) : undefined,
           toolWindow: (
             <ToolWindow
               ref={toolRef}
@@ -2380,6 +2375,8 @@ export default function WindowRoot({
               git={git.status}
               githubOk={!error}
               onReviewAndMerge={onReviewAndMerge}
+              onShowGit={onShowGit}
+              gitShowing={gitViewShowing(rightPage?.id, pageCovered, gitView)}
               update={updateNotice(updates.state, updates.asked, updates.install)}
             />
           ),

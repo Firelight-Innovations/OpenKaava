@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import SettingRow from "./SettingRow";
 import McpPanel from "./McpPanel";
@@ -6,7 +6,7 @@ import CloudAccountPanel from "./CloudAccountPanel";
 import { settingsBackdrop, settingsScreen } from "../motion";
 import { closeSettings } from "../settingsSurface";
 import { X } from "lucide-react";
-import { useTitlebarSearch } from "../titlebarSearch";
+import { CLAIMED_FIELD_CLASS, useTitlebarSearch } from "../titlebarSearch";
 import type { Setting, SettingsGroup } from "../../bindings";
 import type { SettingsSession } from "./useSettings";
 import "./settings.css";
@@ -22,8 +22,8 @@ import "./settings.css";
  * window unclosable for as long as settings was open.
  *
  * The status bar stays for an unrelated reason — it keeps reporting while any
- * transient surface is up, as every one of them in this shell does, and it holds
- * the glyph that opened this screen. `settings.css` spells out both.
+ * transient surface is up, as every one of them in this shell does.
+ * `settings.css` spells out both.
  *
  * Nothing below is per-setting: every row comes from the schema Rust publishes,
  * so adding a setting is a Rust-only edit. The MCP panel and the Google account
@@ -44,8 +44,8 @@ export default function SettingsScreen({
 }) {
   // `landOn` is read exactly here and nowhere else — an initialiser, so it is
   // seen once at mount and never again. That is the whole contract: it is a
-  // *request* from whatever opened the screen ("MCP servers" in the status bar's
-  // popover), not a selection. Once the sidebar has been clicked, `picked` is
+  // *request* from whatever opened the screen (an app's own settings button, such
+  // as the canvas's Drawing style), not a selection. Once the sidebar has been clicked, `picked` is
   // the answer and an unchanged prop cannot take it back. Making this controlled
   // would mean a click that the next render silently undid.
   const [picked, setPicked] = useState<string | null>(landOn);
@@ -73,6 +73,31 @@ export default function SettingsScreen({
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  // Focus comes into the screen when it opens. Ctrl+, can open it from a
+  // terminal, a field or an app's frame, and focus left there would send typing
+  // to the surface behind and keep Escape from ever reaching the listener above.
+  // On the way out it goes back, unless something else took it first: a click
+  // on the status bar's git controls, say, which shut this screen. The title
+  // bar's field counts as the screen's own while claimed: the filter is typed
+  // there, and it turns back into a button as the claim is released.
+  const dialog = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const before = document.activeElement;
+    const node = dialog.current;
+    node?.focus({ preventScroll: true });
+    return () => {
+      const now = document.activeElement;
+      const ours =
+        now === null ||
+        now === document.body ||
+        node?.contains(now) === true ||
+        now.closest(`.${CLAIMED_FIELD_CLASS}`) !== null;
+      if (ours && before instanceof HTMLElement && before.isConnected) {
+        before.focus({ preventScroll: true });
+      }
+    };
   }, []);
 
   const needle = filter.trim().toLowerCase();
@@ -117,11 +142,13 @@ export default function SettingsScreen({
       }}
     >
       <motion.div
+        ref={dialog}
         className="settings"
         variants={settingsScreen}
         role="dialog"
         aria-modal="true"
         aria-label="Settings"
+        tabIndex={-1}
       >
         <header className="settings__header">
           <h1 className="settings__heading">Settings</h1>

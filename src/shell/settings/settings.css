@@ -30,12 +30,10 @@
 
    The **status bar** keeps reporting while a transient surface is up, which is
    the behaviour every one of them in this shell has; searchOverlay.css states
-   the same rule in its own header. It is also where the sliders glyph that
-   opens settings lives, so covering it would hide the control that got you
-   here.
+   the same rule in its own header.
 
-   z-index 60 clears everything: the search overlay sits at 20, the status bar's
-   popover at 20, and detached-window chrome below both. */
+   z-index 60 clears everything: the search overlay sits at 20, and
+   detached-window chrome below it. */
 
 .settings__backdrop {
   position: fixed;
@@ -65,6 +63,12 @@
   flex-direction: column;
   background: var(--bg-surface-1);
   color: var(--txt-primary);
+}
+
+/* Focused only to hold the keyboard while the screen is up (SettingsScreen.tsx).
+   It is not a control, so a ring around the whole band would point at nothing. */
+.settings:focus {
+  outline: none;
 }
 
 /* The shared switch eases its knob; on this screen it does not, per the file

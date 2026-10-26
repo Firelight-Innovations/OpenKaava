@@ -6,10 +6,10 @@ Change how Veistra looks and behaves, and know when a change takes effect.
 
 ---
 
-1. Click the sliders glyph at the right-hand end of the status bar, along the
-   bottom of the window.
-2. Pick **All settings**. The other two rows — **MCP servers** and
-   **Appearance** — open the same screen on a particular section.
+1. Press `Ctrl+,`. It works from inside an app too, this one included.
+2. The screen opens on its first section. Pick another from the list down its
+   left side, or type in the search field in the title bar to search every
+   section at once.
 
 The screen covers everything between the title bar and the status bar. Press
 `Escape` to close it; nothing needs saving, because every change is written
@@ -39,7 +39,7 @@ Change a control → written to `settings.json` → takes effect — now, or the
 
 <!-- SCREENSHOT: the settings screen — sections rail on the left, MCP servers section open, 1440x900 -->
 
-_The sections rail, and the **MCP servers** section it opens to._
+_The sections rail, with **MCP servers** picked._
 
 Six sections. Five are the shell's own; the sixth is declared by the File
 Explorer, which is the interesting one. An app can add a settings section of

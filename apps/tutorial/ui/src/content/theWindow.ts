@@ -92,11 +92,15 @@ export const theWindow: Body = {
     {
       kind: "mock",
       view: "status-bar",
-      caption: "The branch and its diff stat, GitHub, then settings.",
+      caption: "The branch and its diff stat, then GitHub. Each opens the Git page.",
     },
     {
       kind: "text",
-      body: "The thin bar along the bottom. It reports, left to right, the open cluster's branch and how far it has diverged, and a diff-stat readout of the working tree. GitHub status and the sliders glyph that opens **Settings** finish the row.",
+      body: "The thin bar along the bottom. It reports, left to right, the open cluster's branch and how far it has diverged, and a diff-stat readout of the working tree. GitHub status finishes the row.",
+    },
+    {
+      kind: "text",
+      body: "Both are buttons. Click the branch to open **Source Control**, or **GitHub** to see the project's pull requests and issues. Each opens the Git page down the right-hand side, and a second click closes it again.",
     },
 
     { kind: "heading", body: "Worth knowing now" },
@@ -108,6 +112,7 @@ export const theWindow: Body = {
         { chord: "Ctrl+`", what: "Show or hide the terminal band." },
         { chord: "Ctrl+Shift+`", what: "New terminal." },
         { chord: "F11", what: "Full screen." },
+        { chord: "Ctrl+,", what: "Open Settings." },
         { chord: "Ctrl+1", what: "…through `Ctrl+9`, select the nth tab in this window's bar." },
       ],
     },

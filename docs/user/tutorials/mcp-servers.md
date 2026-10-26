@@ -30,8 +30,8 @@ Turn on a server → Lands in `.mcp.json` → Connect an agent from a terminal
 
 ## Turn one on
 
-1. Open the status bar's sliders glyph and pick **MCP servers**, which lands
-   you on that section of Settings.
+1. Press `Ctrl+,` to open Settings, and pick **MCP servers** from the list of
+   sections.
 2. Turn on **developer mode** (Settings, Developer). Echo and Debug are
    developer servers, like UI and Agent: they stay out of the list, and out of
    `.mcp.json`, until it is on.

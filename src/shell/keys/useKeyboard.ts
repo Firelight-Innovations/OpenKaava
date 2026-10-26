@@ -69,6 +69,9 @@ export interface KeyboardActions {
   zoomIn(): void;
   /** Ctrl+- */
   zoomOut(): void;
+  /** Ctrl+, — the settings screen, as in VS Code and Cursor. Bound with no menu
+   *  row, since the menus have no Settings item yet. */
+  openSettings(): void;
 
   /**
    * The Windows Copilot key. Returns true when it did something, so the
@@ -148,6 +151,10 @@ export const CHORDS: Record<string, Chord> = {
   },
   "\\": {
     plain: (a) => a.splitTerminal,
+    shift: null,
+  },
+  ",": {
+    plain: (a) => a.openSettings,
     shift: null,
   },
   // Ctrl+Tab and Ctrl+Shift+Tab cycle clusters, the way they cycle tabs in every

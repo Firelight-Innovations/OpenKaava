@@ -848,9 +848,6 @@ export interface FrameSlots {
   toolWindow: ReactNode;
   /** A notice band above the tool window, full width of the column. Omitted, nothing renders. */
   banner?: ReactNode;
-  /** The agent bar, docked under the tool window and above the terminal band
-   *  (handoff §4). Omitted, nothing renders and the band keeps the whole column. */
-  agentBar?: ReactNode;
   /** The terminal band, under the tool window and stopping at the docked
    *  page's edge — `.frame__main` in frame.css says why it does not span the
    *  window. Omitted, neither the band nor its handle is rendered at all. */

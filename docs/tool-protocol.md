@@ -458,8 +458,8 @@ outside the frame. Nothing comes back but the acknowledgement.
 ```
 
 The same gap exists for the shell's chords. The bridge forwards `Ctrl/Meta` with
-`Shift` or `Alt`, and `Alt+1` to `Alt+9`, that the app did not
-`preventDefault`. Ordinary editing chords (Ctrl+C, Ctrl+Z, Ctrl+B) are never
+`Shift` or `Alt`, `Ctrl+,` (Settings), and `Alt+1` to `Alt+9`, that the app did
+not `preventDefault`. Ordinary editing chords (Ctrl+C, Ctrl+Z, Ctrl+B) are never
 forwarded. The shell replays the chord as a `keydown` on its own document, from
 any frame, and refuses a payload with no Ctrl, Meta or Alt so a frame cannot type
 into the shell.

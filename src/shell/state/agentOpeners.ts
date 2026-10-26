@@ -9,7 +9,7 @@
  * pane holding it on the render that first shows it.
  */
 import type { SplitDir } from "../../bindings";
-import { AGENT_TAB_APP } from "./agentBar";
+import { AGENT_TAB_APP } from "./agentTab";
 
 export interface AgentOpeners {
   label: string;

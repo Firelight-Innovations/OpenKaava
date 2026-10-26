@@ -9,8 +9,8 @@ that a dropped file is quoted the way that harness reads it. Nothing on this pag
 ## The boundary
 
 ```text
-agent tab, agent bar ── agent-tab/* ── AgentHost ── Adapter ── harness process
-                        (src-tauri)    (crate)      (trait)    (ACP on stdio)
+agent tab ── agent-tab/* ── AgentHost ── Adapter ── harness process
+             (src-tauri)    (crate)      (trait)    (ACP on stdio)
 ```
 
 - **The registry.** `crates/veistra-agent-host/src/harness.rs` holds one `Descriptor` per harness,
@@ -22,9 +22,9 @@ agent tab, agent bar ── agent-tab/* ── AgentHost ── Adapter ── h
   - the mode it starts in
   - what it supports
 
-  The UI does not read them all yet. The agent tab's and the agent bar's own `strings.ts` still
-  spell Claude's name, its adapter's install command and its sign-in, so a new harness also needs
-  words there (step 6).
+  The UI does not read them all yet. A registered harness's name, install command and sign-in
+  reach the agent tab in `HarnessInfo`. The tab's `strings.ts` keeps a fallback name in
+  `harnessName` only for a harness the host does not report.
 - **The event model.** `apps/agent-tab/ui/src/protocol.generated.ts` is generated from the types
   in `event.rs`, and it is the only thing the UI reads. No harness's wire format reaches the UI.
 - **The `Adapter` trait.** `host.rs` drives every session through it. `Session` implements it over
@@ -55,11 +55,11 @@ agent tab, agent bar ── agent-tab/* ── AgentHost ── Adapter ── h
   `agent-tab/choose` stops the outgoing harness before switching. Visible history stays in
   the tab; the next prompt gives the receiving harness bounded conversation and tool context.
   Pending approvals are cancelled and private reasoning is excluded from transferred context.
-  Each choice emits `agent-tab:chosen`, so the tab and agent bar show the same harness.
+  Each choice emits `agent-tab:chosen`, so every view of the tab shows the same harness.
 
   `agent-tab/choose` also takes an optional `model`: a model's value, or `null` for the agent's
   default. The tab keeps one model for each harness. A call without `model` leaves them all as
-  they are, so the agent bar, which chooses a harness only, never drops one. A model chosen while
+  they are, so a caller that chooses a harness only never drops one. A model chosen while
   the tab's agent runs applies to the tab's next session. `agent-tab:chosen` carries the chosen
   harness's model.
 
@@ -110,33 +110,31 @@ breaks one.
 
 ## What the UI shows
 
-The agent tab and the agent bar draw every registered harness from `agent-tab/harnesses`. Neither
-names a registered harness, a program or a version in its own strings. The tab's settings menu
-also lists harnesses that are not registered yet, as "Coming soon", by names in its own strings.
+The agent tab draws every registered harness from `agent-tab/harnesses`, by the name the host
+reports. Its own strings name no program or version. The tab's settings menu also lists harnesses
+that are not registered yet, as "Coming soon", by the fallback names in `harnessName`.
 
 - **The picker.** The tab's settings menu has a group per harness, listing its models, or only
   its default until its agent has said (see [Models](#models)). Choosing a model chooses that
-  harness and that model. The agent bar shows a picker when more than one harness is registered,
-  and it chooses a harness only. While the tab's agent runs, both are locked.
-- **The model.** While an agent runs, the tab's header and the agent bar show its harness and its
-  model.
+  harness and that model. While the tab's agent runs, the menu cannot switch harness. A model
+  chosen under the running harness changes that agent's model at once, through
+  `agent-tab/set-config`. A choice under any other harness is ignored.
+- **The model.** While an agent runs, the tab's header shows its harness and its model.
 - **Hints.** Each `Hint` is a sentence template in the tab's `apps/agent-tab/ui/src/strings.ts`.
   A template fills in the harness's name and its setup commands from `HarnessInfo`, so a new
   harness gets correct install and sign-in hints without a new string. `tsc` holds the tab's table
-  to `Hint`. The agent bar words only `harnessMissing` and `adapterMissing`, the two that
-  `agent-tab/harnesses` can report before a session starts, from its own copy in
-  `src/shell/agentbar/strings.ts`, since the shell may not import an app's source. That copy is
-  held to `BarHint`, and `src/shell/agentbar/strings.test.ts` checks each of its hints is still in
-  `Hint`. A new `Hint` needs a sentence in the tab; the bar needs one only if `spec` can fail with
-  it. An error item records the harness that raised it, so its hint names that harness after the
-  tab switches to another.
+  to `Hint`, so a new `Hint` needs a sentence in the tab. An error item records the harness that
+  raised it, so its hint names that harness after the tab switches to another.
 
 ## Models
 
 ACP has no request that lists an agent's models outside a session. So the host asks for them:
 
 1. A tab calls `agent-tab/harnesses`, with developer mode on and a worktree to run in. The tab
-   does this when it opens.
+   does this when it opens. The shell makes the same call as the cluster's agent tab
+   (`useAgentTabRefresh`, in `src/shell/state/agentTab.ts`). It calls when the tab mounts, when a
+   setting or the cluster's environment changes, and on each status or reset event from the
+   tab's session.
 2. For each installed harness that it has not asked in that worktree this launch, the host starts
    the harness's adapter there. It sends `initialize` and `session/new`, and nothing else.
 3. It reads the option of category `model` from the reply to `session/new`, and kills the agent.
@@ -149,8 +147,6 @@ own MCP servers and hooks too, and Codex treats the worktree as trusted, as it d
 session Veistra starts. The host asks each worktree separately because a project's settings can
 narrow the list or change the default. Claude reads them from the worktree's
 `.claude/settings.json`, and Codex from its project config.
-
-The agent bar reads the answer for its cluster's worktree. It never starts an ask.
 
 A harness lists no models in these cases:
 
@@ -238,7 +234,7 @@ the guard, as in Claude's `auto`. `agent-full-access` is Codex's equivalent of C
 
 **Settings.** The adapter reports these select options, and the host passes each one to the tab in
 `SessionStatus.config`. `agent-tab/harnesses` lists the models before a session starts (see
-[Models](#models)). While an agent runs, the tab's header and the agent bar show the model. The
+[Models](#models)). While an agent runs, the tab's header shows the model. The
 tab has no control for the other options yet.
 
 - `model`: the model
@@ -290,6 +286,6 @@ request carries what it grants under `permissions` or `additionalPermissions`, a
    these reads, add those keys, with a test.
 5. **Regenerate the TypeScript types.** Run
    `VEISTRA_BLESS=1 cargo test -p veistra-agent-host generated_types`. The new id joins the `Harness`
-   union. The pickers list the new harness, and no UI code changes.
+   union. The tab's settings menu lists the new harness, and no UI code changes.
 6. **Record the version.** Add a row to `docs/agent-host-versions.md`.
 7. **Run `pnpm verify`.**

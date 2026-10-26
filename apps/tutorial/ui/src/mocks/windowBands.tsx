@@ -48,7 +48,6 @@ export default function WindowBands() {
           <span className="tut__mock-caption">main</span>
           <span className="tut__mock-dot tut__mock-dot--ok" />
           <span className="tut__mock-caption">GitHub</span>
-          <span className="tut__mock-btn">⚙</span>
         </Band>
       </Labelled>
     </Col>

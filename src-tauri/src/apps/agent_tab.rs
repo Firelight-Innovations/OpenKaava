@@ -47,7 +47,7 @@ pub const ID: &str = "agent-tab";
 pub const EVENT: &str = "agent-tab:event";
 
 /// The event a tab's choice is emitted as, `{ instanceId, harness, model }`, so
-/// the tab and the agent bar show the same one. Mirrored in `src/bindings.ts`.
+/// every view of the tab shows the same one. Mirrored in `src/bindings.ts`.
 pub const CHOSEN: &str = "agent-tab:chosen";
 
 /// The event a tab is sent, `{ instanceId, harness, ok }`, when the sign-in it
@@ -685,7 +685,7 @@ fn login(app: &AppHandle, instance: &str, harness: Harness) -> Result<(), RpcErr
     Ok(())
 }
 
-/// What the agent bar and the tab's empty state need before a first prompt:
+/// What the tab's empty state needs before a first prompt:
 /// each harness, what stands in its way and the models it offers, the one
 /// `tab`'s next prompt goes to, the harness and model its agent runs while it
 /// lives, and whether this cluster can run one at all.
@@ -763,7 +763,7 @@ fn tell_tabs(app: &AppHandle, harness: Harness) {
 }
 
 /// The answer to `agent-tab/harnesses`. The tab reads it as `Harnesses` in
-/// its `rpc.ts`, and the agent bar in `src/shell/state/agentBar.ts`.
+/// its `rpc.ts`.
 fn harnesses_answer<H: Serialize>(
     harnesses: &[HarnessInfo],
     current: H,
@@ -830,8 +830,7 @@ fn next_of<H>(running: Option<H>, chosen: Option<H>, first: H) -> H {
 
 /// A choice of `harness`, and of `model` for it when the call named one:
 /// `Some(None)` is the agent's default. Every model chosen before is kept, each
-/// for its own harness, so choosing a harness alone, as the agent bar does,
-/// never drops one.
+/// for its own harness, so choosing a harness alone never drops one.
 fn next_choice<H: Copy + Eq + Hash>(
     before: Option<&Choice<H>>,
     harness: H,
@@ -1108,8 +1107,8 @@ mod tests {
         }
     }
 
-    /// The agent bar chooses a harness alone, so switching away from a
-    /// harness and back must find its model where the tab left it.
+    /// A call may choose a harness alone, so switching away from a harness
+    /// and back must find its model where the tab left it.
     #[test]
     fn each_harness_keeps_the_model_chosen_for_it() {
         let gpt = (Harness::Codex, "gpt-5.2");
@@ -1578,10 +1577,10 @@ mod tests {
         assert_eq!(chosen(&map, "agent-tab-1"), Some("claude"));
     }
 
-    /// The keys `rpc.ts`'s `Harnesses` and `agentBar.ts` read; a rename on
-    /// either side has to change this test as well.
+    /// The keys `rpc.ts`'s `Harnesses` reads; a rename on either side has to
+    /// change this test as well.
     #[test]
-    fn the_harnesses_answer_has_the_keys_the_tab_and_the_bar_read() {
+    fn the_harnesses_answer_has_the_keys_the_tab_reads() {
         let info = veistra_agent_host::harness::CLAUDE.info(None);
         let answer = harnesses_answer(
             std::slice::from_ref(&info),

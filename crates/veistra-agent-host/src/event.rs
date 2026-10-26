@@ -332,7 +332,7 @@ pub struct Attachment {
     pub seq: u64,
 }
 
-/// One registered harness, as the tab and the bar see it: whether it can
+/// One registered harness, as the agent tab sees it: whether it can
 /// start here, and what to say about it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(ts_rs::TS))]

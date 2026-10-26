@@ -52,7 +52,7 @@ export const instantOutCss = `${INSTANT_OUT_MS}ms cubic-bezier(${INSTANT_OUT_EAS
 export const instantOutMs = INSTANT_OUT_MS;
 
 /** The shared open/close for every popover and menu in the shell — the health
- *  list, the eight menus, the type filter, settings. One variant object rather
+ *  list, the eight menus, the type filter. One variant object rather
  *  than a copy per component, so they cannot drift apart. */
 export const popover = {
   initial: { opacity: 0, y: -4, scale: 0.98 },

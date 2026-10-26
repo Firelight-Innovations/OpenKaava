@@ -2,7 +2,8 @@
 /**
  * The left cluster (project, branch/environment, diff stat) and the
  * environment-conditioned pieces of the right cluster: the "main is
- * read-only" label, and the ahead/behind upgrade once `git` lands.
+ * read-only" label, and the ahead/behind upgrade once `git` lands. Then the
+ * git controls: the branch and GitHub buttons that open the Git page.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -184,5 +185,184 @@ describe("StatusBar", () => {
       />,
     );
     expect(screen.getByText("1 file", { exact: false })).not.toBeNull();
+  });
+});
+
+describe("StatusBar's git controls", () => {
+  const env: Environment = { kind: "worktree", branch: "wt/x", path: "/x" };
+  const touched = git({
+    ahead: 2,
+    insertions: 3,
+    deletions: 1,
+    unstaged: [
+      {
+        path: "a.ts",
+        file: "a.ts",
+        dir: "",
+        kind: "modified",
+        staged: false,
+        insertions: 3,
+        deletions: 1,
+      },
+    ],
+  });
+
+  // What the arrows and the diff stat draw, said in words.
+  const touchedName =
+    "Source control: wt/x, 2 ahead, 0 behind, 1 file changed, 3 insertions, 1 deletion";
+
+  it("opens Source Control from the branch, and GitHub from its status", () => {
+    const onShowGit = vi.fn();
+    render(
+      <StatusBar
+        project="Veistra"
+        environment={env}
+        git={touched}
+        githubOk
+        update={null}
+        onShowGit={onShowGit}
+      />,
+    );
+
+    screen.getByRole("button", { name: touchedName }).click();
+    screen.getByRole("button", { name: "GitHub" }).click();
+    expect(onShowGit.mock.calls).toEqual([["worktree"], ["github"]]);
+  });
+
+  it("names the branch alone before git lands, and leaves the arrows out on main", () => {
+    const { rerender } = render(
+      <StatusBar
+        project="Veistra"
+        environment={env}
+        git={null}
+        githubOk
+        update={null}
+        onShowGit={() => {}}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Source control: wt/x" })).not.toBeNull();
+
+    rerender(
+      <StatusBar
+        project="Veistra"
+        environment={{ kind: "main" }}
+        git={git({ branch: "main", ahead: 3 })}
+        githubOk
+        update={null}
+        onShowGit={() => {}}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Source control: main" })).not.toBeNull();
+  });
+
+  it("holds the arrows and the diff stat inside the branch button, and not the chip", () => {
+    render(
+      <StatusBar
+        project="Veistra"
+        environment={env}
+        git={touched}
+        githubOk
+        update={null}
+        onShowGit={() => {}}
+      />,
+    );
+
+    const branch = screen.getByRole("button", { name: touchedName });
+    expect(branch.textContent).toContain("↑2");
+    expect(branch.textContent).toContain("+3");
+    expect(branch.textContent).not.toContain("Local worktree");
+    // No button inside a button: the chip copies a path, and nesting is invalid HTML.
+    expect(branch.querySelector("button")).toBeNull();
+  });
+
+  it("presses the view that is showing, and shuts the page when it is pressed again", () => {
+    const onShowGit = vi.fn();
+    render(
+      <StatusBar
+        project="Veistra"
+        environment={env}
+        git={null}
+        githubOk
+        update={null}
+        onShowGit={onShowGit}
+        gitShowing="worktree"
+      />,
+    );
+
+    const branch = screen.getByRole("button", { name: "Source control: wt/x" });
+    const github = screen.getByRole("button", { name: "GitHub" });
+    expect(branch.getAttribute("aria-pressed")).toBe("true");
+    expect(github.getAttribute("aria-pressed")).toBe("false");
+
+    branch.click();
+    github.click();
+    // The showing view shuts; the other switches the page over rather than shutting it.
+    expect(onShowGit.mock.calls).toEqual([[null], ["github"]]);
+  });
+
+  it("presses GitHub while its view shows, and shuts it on a second press", () => {
+    const onShowGit = vi.fn();
+    render(
+      <StatusBar
+        project="Veistra"
+        environment={env}
+        git={null}
+        githubOk
+        update={null}
+        onShowGit={onShowGit}
+        gitShowing="github"
+      />,
+    );
+
+    const branch = screen.getByRole("button", { name: "Source control: wt/x" });
+    const github = screen.getByRole("button", { name: "GitHub" });
+    expect(github.getAttribute("aria-pressed")).toBe("true");
+    expect(branch.getAttribute("aria-pressed")).toBe("false");
+
+    github.click();
+    branch.click();
+    expect(onShowGit.mock.calls).toEqual([[null], ["worktree"]]);
+  });
+
+  // `githubOk` comes from the stack scan, not from a GitHub sign-in, so the
+  // label must not claim a connection state.
+  it("names GitHub's button the same whether or not the dot is red", () => {
+    render(
+      <StatusBar
+        project="Veistra"
+        environment={env}
+        git={null}
+        githubOk={false}
+        update={null}
+        onShowGit={() => {}}
+      />,
+    );
+    const github = screen.getByRole("button", { name: "GitHub" });
+    expect(github.querySelector<HTMLElement>(".statusbar__dot")?.style.background).toBe(
+      "var(--err)",
+    );
+  });
+
+  it("draws readouts, not buttons, with nowhere to open", () => {
+    render(<StatusBar project="Veistra" environment={env} git={touched} githubOk update={null} />);
+
+    expect(screen.queryByRole("button", { name: /Source control/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /GitHub/ })).toBeNull();
+    expect(screen.getByText("wt/x")).not.toBeNull();
+    expect(screen.getByText("GitHub")).not.toBeNull();
+  });
+
+  it("has no settings button", () => {
+    render(
+      <StatusBar
+        project="Veistra"
+        environment={env}
+        git={touched}
+        githubOk
+        update={null}
+        onShowGit={() => {}}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: /settings/i })).toBeNull();
   });
 });
