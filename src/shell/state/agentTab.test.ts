@@ -3,15 +3,23 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
 const calls = vi.hoisted(() => {
-  // The last listener each event was given, so a test can fire it.
+  // The last listener each event was given, so a test can fire it, and the stop handed back for it.
   const heard: Record<string, (payload: unknown) => void> = {};
-  const listen = (event: string) => (cb: (payload: unknown) => void) => {
+  const stops: Record<string, () => void> = {};
+  // While set, a listen answers only once this settles.
+  const gate: { held: Promise<void> | null } = { held: null };
+  const listen = (event: string) => async (cb: (payload: unknown) => void) => {
     heard[event] = cb;
-    return Promise.resolve(() => {});
+    const stop = vi.fn();
+    stops[event] = stop;
+    if (gate.held) await gate.held;
+    return stop;
   };
   return {
     appCall: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
     heard,
+    stops,
+    gate,
     listen,
   };
 });
@@ -52,6 +60,8 @@ const asked = [
 beforeEach(() => {
   calls.appCall.mockReset().mockResolvedValue({});
   for (const event of Object.keys(calls.heard)) delete calls.heard[event];
+  for (const event of Object.keys(calls.stops)) delete calls.stops[event];
+  calls.gate.held = null;
 });
 
 describe("agentTabIn", () => {
@@ -75,7 +85,7 @@ describe("useAgentTabRefresh", () => {
     expect(calls.appCall).not.toHaveBeenCalled();
   });
 
-  // Developer mode turned on: the tab is never sent settings, so only this ask tells it.
+  // Developer mode turned on: the tab is never sent settings, so this is the shell's only ask.
   it("asks again when a setting changes", async () => {
     renderHook(() => useAgentTabRefresh("c1", "env", "agent-1"));
     await waitFor(() => expect(calls.heard.settings).toBeDefined());
@@ -106,12 +116,27 @@ describe("useAgentTabRefresh", () => {
     expect(calls.appCall).toHaveBeenCalledTimes(3);
   });
 
-  it("stops asking once it unmounts", async () => {
+  it("stops asking once it unmounts, and lets go of both listeners", async () => {
     const { unmount } = renderHook(() => useAgentTabRefresh("c1", "env", "agent-1"));
-    await waitFor(() => expect(calls.heard.settings).toBeDefined());
+    // A task, so every listen has answered first.
+    await new Promise((r) => setTimeout(r, 0));
     unmount();
 
+    expect(calls.stops.settings).toHaveBeenCalledTimes(1);
+    expect(calls.stops.event).toHaveBeenCalledTimes(1);
     act(() => calls.heard.settings({}));
     expect(calls.appCall).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets go of a listener that answers only after it unmounts", async () => {
+    let release = () => {};
+    calls.gate.held = new Promise<void>((r) => (release = r));
+    const { unmount } = renderHook(() => useAgentTabRefresh("c1", "env", "agent-1"));
+    unmount();
+    expect(calls.stops.settings).not.toHaveBeenCalled();
+
+    release();
+    await waitFor(() => expect(calls.stops.event).toHaveBeenCalledTimes(1));
+    expect(calls.stops.settings).toHaveBeenCalledTimes(1);
   });
 });

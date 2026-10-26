@@ -26,11 +26,13 @@ export function agentTabIn(
  * see changes: a setting, the cluster's environment, or its own session
  * starting or resetting.
  *
- * The tab asks only when it mounts, chooses, or hears its models are in. A
- * frame is never sent settings, so turning developer mode on would leave an
- * open tab saying it is off. Asked as the tab, the host starts its model asks
- * and, once they answer, tells every tab to ask again. It also retries the
- * running harness's ask once its agent has signed in.
+ * The tab asks only when it mounts, chooses, or hears its models are in, and a
+ * frame is never sent settings. Asked as the tab, the host can start a model
+ * ask for each installed harness it has not asked in this worktree this
+ * launch, or retry the running harness's unanswered ask once its agent has
+ * signed in. Only an ask that returns models makes the host tell every tab to
+ * ask again. With none, an open tab keeps its last answer, so this does not
+ * always clear a tab still saying developer mode is off.
  */
 export function useAgentTabRefresh(
   clusterId: string | null,
