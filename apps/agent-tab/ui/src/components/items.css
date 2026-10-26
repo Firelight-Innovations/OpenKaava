@@ -286,11 +286,16 @@ details:not([open]) > .at-tool__head .at-tool__title {
 }
 
 .at-tool__counts {
+  flex-shrink: 0;
+  white-space: nowrap;
   font-family: var(--k-mono);
   font-size: var(--k-size-small);
 }
 
 .at-tool__status {
+  /* A long title shrinks, not the word beside it: wrapped, it stands on end. */
+  flex-shrink: 0;
+  white-space: nowrap;
   color: var(--k-fg-faint);
   font-size: var(--k-size-small);
 }

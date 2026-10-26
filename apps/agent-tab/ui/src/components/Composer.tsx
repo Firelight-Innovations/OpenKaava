@@ -1,48 +1,20 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { chipSegments } from "../mentions";
 import { strings } from "../strings";
-import {
-  Bookmark,
-  File,
-  FileText,
-  Folder,
-  Frame,
-  GitBranch,
-  Link,
-  MessageSquare,
-  Mic,
-  MousePointer2,
-  Plus,
-  Shapes,
-  Sparkles,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { Mic, Pencil, Plus, X } from "lucide-react";
+import { useSlots } from "./registry";
 import type { ComposerProps } from "./types";
 import "./composer.css";
 import "./composer-effects.css";
-
-/** A chip's glyph, by the kind of thing it points at. */
-const CHIP_ICON: Record<string, LucideIcon> = {
-  skill: Sparkles,
-  file: FileText,
-  folder: Folder,
-  canvas: Shapes,
-  frame: Frame,
-  comment: MessageSquare,
-  "design-comment": MessageSquare,
-  issue: Link,
-  cluster: GitBranch,
-  context: Bookmark,
-  selection: MousePointer2,
-};
 
 /** What a press on the card that misses its controls should not take focus from. */
 const INTERACTIVE = "button, a, input, textarea, select, [role='menu'], [role='listbox']";
 
 /**
  * The prompt box: notices, then one rounded card holding the chips, the input,
- * and a toolbar along its foot — attach and the settings button at the left,
- * the meters, dictation and Send or Stop at the right.
+ * and a toolbar along its foot — attach at the left, dictation and Send or Stop
+ * at the right. Below the card, as in Claude Code, sit the settings button
+ * (model, effort, mode) and the meters.
  *
  * Pressing anywhere on the card that is not a control puts the caret in the
  * input, the way a text field the size of the card would.
@@ -66,7 +38,12 @@ export function Composer({
   plan,
   auxiliary,
   chips = [],
-  onRemoveChip,
+  images = [],
+  onPasteImages,
+  onRemoveImage,
+  queued = [],
+  onUnqueue,
+  onReplaceImage,
   effortLevel,
 }: ComposerProps) {
   const focusInput = (event: MouseEvent<HTMLDivElement>) => {
@@ -89,51 +66,137 @@ export function Composer({
     const timer = window.setTimeout(() => setSurge(false), 1400);
     return () => window.clearTimeout(timer);
   }, [effortLevel]);
+  const S = useSlots();
   const floating = auxiliary ?? menu;
+  const [viewing, setViewing] = useState<string | null>(null);
+  const [marking, setMarking] = useState(false);
+  const shown = images.find((image) => image.id === viewing);
+  // Skills lead the prompt, so they sit ahead of the input. A reference sits in
+  // the text where it was picked: the input holds its `@label`, and a mirror
+  // under it draws that run as a chip, the same width so the caret lines up.
+  const skills = chips.filter((chip) => !chip.uri);
+  const segments = chipSegments(value, chips);
+  const inline = segments.some((part) => part.chip);
+  const mirror = useRef<HTMLDivElement>(null);
   return (
     <footer className="at-prompt" data-surge={surge ? "" : undefined}>
       {sideChat}
       {plan}
       {notices}
       {floating && <div className="at-prompt__menu">{floating}</div>}
+      {queued.length > 0 && (
+        <ul className="at-queue" aria-label={strings.queuedLabel}>
+          {queued.map((item) => (
+            <li key={item.id} className="at-queue__item">
+              <span className="at-queue__text">{item.text || strings.queuedLabel}</span>
+              <button
+                type="button"
+                className="at-queue__remove"
+                aria-label={strings.unqueue}
+                title={strings.unqueue}
+                onClick={() => onUnqueue?.(item.id)}
+              >
+                <X size={12} aria-hidden="true" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <div className="at-prompt__box" onMouseDown={focusInput}>
-        {chips.length > 0 && (
-          <div className="at-prompt__chips">
-            {chips.map((chip) => {
-              const Icon = chip.command ? Sparkles : (CHIP_ICON[chip.kind] ?? File);
-              return (
-                <span
-                  key={chip.id}
-                  className="at-chip"
-                  data-kind={chip.kind}
-                  title={chip.uri ?? chip.command}
+        {images.length > 0 && (
+          <div className="at-prompt__images">
+            {images.map((image) => (
+              <div key={image.id} className="at-thumb">
+                <button
+                  type="button"
+                  className="at-thumb__open"
+                  aria-label={strings.viewImage}
+                  onClick={() => setViewing(image.id)}
                 >
-                  <Icon size={12} aria-hidden="true" />
-                  <span>{chip.label}</span>
-                  <button
-                    type="button"
-                    aria-label={strings.removeChip(chip.label)}
-                    onClick={() => onRemoveChip?.(chip.id)}
-                  >
-                    <X size={11} />
-                  </button>
-                </span>
-              );
-            })}
+                  <img src={`data:${image.mime};base64,${image.data}`} alt="" />
+                </button>
+                <button
+                  type="button"
+                  className="at-thumb__remove"
+                  aria-label={strings.removeImage}
+                  title={strings.removeImage}
+                  onClick={() => onRemoveImage?.(image.id)}
+                >
+                  <X size={12} aria-hidden="true" />
+                </button>
+              </div>
+            ))}
           </div>
         )}
-        <textarea
-          ref={ref}
-          className="at-prompt__input"
-          aria-label={strings.promptLabel}
-          placeholder={placeholder}
-          value={value}
-          rows={1}
-          aria-activedescendant={menuActiveId ? `menu-item-${menuActiveId}` : undefined}
-          onChange={(event) => onChange(event.target.value, event.target.selectionStart)}
-          onKeyDown={onKeyDown}
-          onSelect={(event) => onSelect?.(event.currentTarget.selectionStart)}
-        />
+        <div className="at-prompt__field">
+          {skills.length > 0 && (
+            <div className="at-prompt__chips">
+              {skills.map((chip) => {
+                return (
+                  <span
+                    key={chip.id}
+                    className="at-chip"
+                    role="group"
+                    aria-label={chip.label}
+                    data-kind={chip.kind}
+                    title={chip.uri ?? chip.command}
+                  >
+                    <span>
+                      {chip.command ? "" : "@"}
+                      {chip.label}
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+          )}
+          <div className="at-prompt__editor" data-inline={inline ? "" : undefined}>
+            {inline && (
+              <div ref={mirror} className="at-prompt__mirror" aria-hidden="true">
+                {segments.map((part) =>
+                  part.chip ? (
+                    <span
+                      key={part.start}
+                      className="at-chip"
+                      role="group"
+                      aria-label={part.chip.label}
+                      data-kind={part.chip.kind}
+                    >
+                      {part.text}
+                    </span>
+                  ) : (
+                    part.text
+                  ),
+                )}
+                {/* A last line break draws a line only with something after it. */}
+                {"​"}
+              </div>
+            )}
+            <textarea
+              ref={ref}
+              className="at-prompt__input"
+              aria-label={strings.promptLabel}
+              placeholder={placeholder}
+              value={value}
+              rows={1}
+              aria-activedescendant={menuActiveId ? `menu-item-${menuActiveId}` : undefined}
+              onChange={(event) => onChange(event.target.value, event.target.selectionStart)}
+              onKeyDown={onKeyDown}
+              onPaste={(event) => {
+                const files = Array.from(event.clipboardData.items)
+                  .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+                  .flatMap((item) => item.getAsFile() ?? []);
+                if (files.length === 0) return;
+                event.preventDefault();
+                onPasteImages?.(files);
+              }}
+              onSelect={(event) => onSelect?.(event.currentTarget.selectionStart)}
+              onScroll={(event) => {
+                if (mirror.current) mirror.current.scrollTop = event.currentTarget.scrollTop;
+              }}
+            />
+          </div>
+        </div>
         <div className="at-prompt__toolbar">
           <button
             className="at-prompt__icon"
@@ -144,9 +207,7 @@ export function Composer({
           >
             <Plus size={16} />
           </button>
-          {controls}
           <span className="at-prompt__spacer" />
-          {meters}
           <button
             className="at-prompt__icon"
             type="button"
@@ -159,6 +220,52 @@ export function Composer({
           {action}
         </div>
       </div>
+      <div className="at-prompt__foot">
+        {controls}
+        <span className="at-prompt__spacer" />
+        {meters}
+      </div>
+      {shown && (
+        <div
+          className="at-lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label={strings.viewImage}
+          onClick={() => setViewing(null)}
+        >
+          <img src={`data:${shown.mime};base64,${shown.data}`} alt="" />
+          <button
+            type="button"
+            className="at-lightbox__close at-lightbox__edit"
+            aria-label={strings.markup.open}
+            title={strings.markup.open}
+            onClick={(event) => {
+              event.stopPropagation();
+              setMarking(true);
+            }}
+          >
+            <Pencil size={16} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="at-lightbox__close"
+            aria-label={strings.closeImage}
+            onClick={() => setViewing(null)}
+          >
+            <X size={18} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+      {shown && marking && (
+        <S.MarkupEditor
+          src={`data:${shown.mime};base64,${shown.data}`}
+          onClose={() => setMarking(false)}
+          onSave={(mime, data) => {
+            onReplaceImage?.(shown.id, { mime, data });
+            setMarking(false);
+          }}
+        />
+      )}
     </footer>
   );
 }

@@ -23,7 +23,7 @@ export function offered(
     ...Object.entries(strings.localCommands).map(([name, description]) => ({
       name,
       description,
-      hint: name === "btw" ? "question" : null,
+      hint: ({ btw: "question", rename: "name" } as Record<string, string>)[name] ?? null,
     })),
   ];
   const result: OfferedCommand[] = local.map((command) => ({ ...command, support: "native" }));

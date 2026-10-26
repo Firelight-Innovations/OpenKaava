@@ -32,6 +32,7 @@ pub const KINDS: &[&str] = &[
     "canvas",
     "frame",
     "comment",
+    "canvas-comment",
     "design-comment",
     "context",
     "selection",
@@ -95,6 +96,14 @@ impl Query {
         })
     }
 
+    /// True only when the caller named `kind`, so a search over everything does
+    /// not list every frame of every canvas.
+    fn asks_for(&self, kind: &str) -> bool {
+        self.kinds
+            .as_ref()
+            .is_some_and(|k| k.iter().any(|w| w == kind))
+    }
+
     fn wants(&self, kind: &str) -> bool {
         self.kinds
             .as_ref()
@@ -137,6 +146,10 @@ pub fn run(app: &AppHandle, ctx: &CallContext, actor: Actor, q: &Query) -> Vec<H
     hits.extend(context_items(root, q));
     hits.extend(viewer_comments(ctx, q));
     hits.extend(canvases(app, ctx, actor, root, q));
+    if q.wants("canvas-comment") {
+        let rows = super::comments::open_canvas_rows(app, ctx, actor);
+        hits.extend(canvas_comment_hits(&rows, q));
+    }
     hits.extend(design_comments(app, q));
     hits.extend(files(root, q));
     rank(hits, q.limit)
@@ -287,7 +300,7 @@ pub(super) fn anchor_label(anchor: &crate::comments::Anchor) -> String {
 }
 
 /// Canvases by title or id, and frames by what the Canvas app's own frame
-/// search finds. Comments on canvases are the server's `list_comments`. A
+/// search finds. Comments on canvases are [`canvas_comment_hits`]. A
 /// canvas whose file is outside the project once links are followed is not
 /// listed, nor are its frames, as resolving it would be refused.
 fn canvases(app: &AppHandle, ctx: &CallContext, actor: Actor, root: &Path, q: &Query) -> Vec<Hit> {
@@ -303,6 +316,12 @@ fn canvases(app: &AppHandle, ctx: &CallContext, actor: Actor, root: &Path, q: &Q
     if q.wants("frame") && !q.words.is_empty() {
         let asked = json!({ "query": q.words.join(" "), "limit": q.limit });
         hits.extend(frame_hits(&call("canvas/search-frames", asked), q, &inside));
+    } else if q.asks_for("frame") {
+        // Frames named as the only kind with nothing typed: list them, so a
+        // person can browse what is on a canvas instead of having to guess a name.
+        let listed = call("canvas/frames", json!({}));
+        let as_matches = json!({ "matches": listed["frames"] });
+        hits.extend(frame_hits(&as_matches, q, &inside));
     }
     hits
 }
@@ -350,6 +369,24 @@ fn frame_hits(found: &Value, q: &Query, inside: &dyn Fn(&str) -> bool) -> Vec<Hi
     .collect()
 }
 
+/// Comments left on canvases, from the rows the comment listing makes of
+/// `canvas/list-comments`, by what they say and where they are pinned. An
+/// empty query lists them all: a canvas holds few, and each asks for work.
+/// Neither `comment` nor `design-comment` ever reached these, so the
+/// @-menu's Design comments listed nothing while a canvas held open ones.
+fn canvas_comment_hits(rows: &[Value], q: &Query) -> Vec<Hit> {
+    rows.iter()
+        .filter_map(|c| {
+            let r = super::uri::parse(c["uri"].as_str()?).ok()?;
+            let (text, at) = (c["text"].as_str()?, c["where"].as_str().unwrap_or(""));
+            let score = q.score(text, &format!("{at} {text}"))?;
+            let status = c["status"].as_str().unwrap_or("open");
+            let detail = format!("{status} · {at}");
+            Some(hit(&r, "canvas-comment", text.into(), Some(detail), score))
+        })
+        .collect()
+}
+
 #[cfg(feature = "design-mode")]
 fn design_comments(app: &AppHandle, q: &Query) -> Vec<Hit> {
     use tauri::Manager;
@@ -380,6 +417,14 @@ mod tests {
 
     fn q(text: &str) -> Query {
         Query::new(text, None, None).unwrap()
+    }
+
+    #[test]
+    fn frames_are_listed_only_when_asked_for_by_name() {
+        let everything = Query::new("", None, None).unwrap();
+        assert!(everything.wants("frame") && !everything.asks_for("frame"));
+        let frames = Query::new("", Some(vec!["frame".into()]), None).unwrap();
+        assert!(frames.asks_for("frame"));
     }
 
     #[test]
@@ -509,6 +554,41 @@ mod tests {
             "a property match ranks below any path match"
         );
         assert!(q("menu").score("main.gd", "menu/main.gd") > Some(0));
+    }
+
+    #[test]
+    fn canvas_comments_are_their_own_kind_listed_with_nothing_typed() {
+        assert!(Query::new("", Some(vec!["canvas-comment".into()]), None).is_ok());
+        let design = Query::new("", Some(vec!["design-comment".into()]), None).unwrap();
+        assert!(
+            !design.wants("canvas-comment"),
+            "a Design Mode search does not reach canvases"
+        );
+        let rows = [
+            json!({ "uri": "veistra://canvas/hammer#comment=c-1", "status": "open",
+                    "text": "Opinion on this?", "where": "canvas hammer, frame f_1" }),
+            json!({ "uri": "veistra://canvas/hammer#comment=c-2", "status": "open",
+                    "text": "What the fahh is this?", "where": "canvas hammer, frame f_2" }),
+            json!({ "uri": "not a reference", "text": "dropped" }),
+        ];
+        let all = canvas_comment_hits(&rows, &q(""));
+        let uris: Vec<_> = all.iter().map(|h| h.uri.as_str()).collect();
+        assert_eq!(
+            uris,
+            [
+                "veistra://canvas/hammer#comment=c-1",
+                "veistra://canvas/hammer#comment=c-2"
+            ]
+        );
+        assert_eq!(all[0].kind, "canvas-comment");
+        assert_eq!(
+            all[0].detail.as_deref(),
+            Some("open · canvas hammer, frame f_1")
+        );
+        let typed = canvas_comment_hits(&rows, &q("opinion"));
+        assert_eq!(typed.len(), 1);
+        assert_eq!(typed[0].title, "Opinion on this?");
+        assert_eq!(canvas_comment_hits(&rows, &q("hammer")).len(), 2);
     }
 
     #[test]

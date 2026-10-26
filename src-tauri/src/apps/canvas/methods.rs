@@ -12,6 +12,7 @@
 
 use super::comments::{self, Region};
 use super::diagrams::{self, Bounds, Diagram};
+use super::lint;
 use super::store;
 use super::style;
 use super::subcanvas;
@@ -437,8 +438,23 @@ pub fn author(
         "checkpoint": checkpoint,
         "mtime": mtime,
         "elementCount": live_count(&scene),
-        "hint": "view-diagram the frame to check the result; restore-checkpoint undoes this edit",
+        // Every edit is checked for agent-ready topology, so a broken rule is
+        // seen at once rather than when someone tries to select the object.
+        "validation": lint::lint(&scene),
+        "hint": "view-diagram the frame to check the result; fix any failed validation check; \
+                 restore-checkpoint undoes this edit",
     }))
+}
+
+/// `canvas/lint`: whether every element sits in a named frame and every
+/// multi-part object is one group, rule by rule.
+pub fn lint(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
+    let p = params_of(params);
+    actor(p)?;
+    let (id, scene, _) = open(root, p)?;
+    let mut out = lint::lint(&scene);
+    out["canvas"] = json!(id);
+    Ok(out)
 }
 
 /// The detail level and style in force for `scene`: its own override, else the
@@ -819,6 +835,7 @@ mod tests {
             "canvas/list-comments",
             "canvas/create-comment",
             "canvas/coverage",
+            "canvas/lint",
             "canvas/values",
             "canvas/set-values",
         ] {

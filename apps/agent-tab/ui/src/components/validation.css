@@ -1,0 +1,81 @@
+/* The canvas topology card: a bordered panel that stands out from the quiet tool rows. */
+.at-validation {
+  margin: var(--k-space-2) 0;
+  padding: var(--k-space-2) var(--k-space-3);
+  border: 1px solid var(--k-panel-border);
+  border-left: 3px solid var(--k-tool-running);
+  border-radius: var(--k-radius-card);
+  background: var(--k-code-bg);
+}
+.at-validation--pass {
+  border-left-color: var(--k-tool-done);
+}
+.at-validation--fail {
+  border-left-color: var(--k-tool-failed);
+}
+.at-validation__head {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-2);
+}
+.at-validation__title {
+  font-weight: var(--k-weight-strong);
+}
+.at-validation__verdict {
+  margin-left: auto;
+  color: var(--k-fg-muted);
+  font-size: var(--k-size-small);
+}
+.at-validation--pass .at-validation__verdict {
+  color: var(--k-tool-done);
+}
+.at-validation--fail .at-validation__verdict {
+  color: var(--k-tool-failed);
+}
+.at-validation__spin {
+  animation: at-validation-spin 1s linear infinite;
+}
+@keyframes at-validation-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .at-validation__spin {
+    animation: none;
+  }
+}
+.at-validation__checks {
+  margin: var(--k-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.at-validation__check {
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  column-gap: var(--k-space-2);
+  align-items: center;
+  padding: 2px 0;
+  font-size: var(--k-size-small);
+}
+.at-validation__check[data-pass="true"] > svg {
+  color: var(--k-tool-done);
+}
+.at-validation__check[data-warn] > svg {
+  color: var(--k-warning-fg);
+}
+.at-validation__check[data-pass="false"] > svg {
+  color: var(--k-tool-failed);
+}
+.at-validation__count {
+  color: var(--k-fg-faint);
+  font-variant-numeric: tabular-nums;
+}
+.at-validation__issues {
+  grid-column: 2 / -1;
+  margin: 2px 0 var(--k-space-1);
+  padding-left: var(--k-space-3);
+  color: var(--k-fg-muted);
+  font-family: var(--k-mono);
+  font-size: var(--k-text-label-size);
+}

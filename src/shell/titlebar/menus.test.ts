@@ -30,7 +30,7 @@ import {
 /** A `ViewMenuHandlers` whose six actions are spies, over a stated window state. */
 type ViewSpies = ViewMenuHandlers & {
   commandPalette: Mock;
-  toggleSourceControl: Mock;
+  toggleClusters: Mock;
   toggleTerminal: Mock;
   toggleFullscreen: Mock;
   zoomIn: Mock;
@@ -45,14 +45,14 @@ type ViewSpies = ViewMenuHandlers & {
  */
 type ViewState = Pick<
   ViewMenuHandlers,
-  "sourceControlShowing" | "terminalShowing" | "fullscreen" | "zoomInBlocked" | "zoomOutBlocked"
+  "clustersShowing" | "terminalShowing" | "fullscreen" | "zoomInBlocked" | "zoomOutBlocked"
 >;
 
 function viewHandlers(state: Partial<ViewState> = {}): ViewSpies {
   return {
     commandPalette: vi.fn(),
-    sourceControlShowing: false,
-    toggleSourceControl: vi.fn(),
+    clustersShowing: false,
+    toggleClusters: vi.fn(),
     terminalShowing: false,
     toggleTerminal: vi.fn(),
     fullscreen: false,
@@ -138,7 +138,7 @@ describe("the View menu", () => {
   it("has the six rows the menu declares", () => {
     expect(labels(viewMenu(viewHandlers()))).toEqual([
       "Command Palette…",
-      "Show Source Control",
+      "Show Clusters",
       "Show Terminal",
       "Enter Full Screen",
       "Zoom In",
@@ -162,24 +162,18 @@ describe("the View menu", () => {
  */
 describe("the View menu's toggles", () => {
   it("offer to hide source control while the Git page is open", () => {
-    const items = viewMenu(viewHandlers({ sourceControlShowing: true }));
-    expect(labels(items)).toContain("Hide Source Control");
-    expect(labels(items)).not.toContain("Show Source Control");
+    const items = viewMenu(viewHandlers({ clustersShowing: true }));
+    expect(labels(items)).toContain("Hide Clusters");
+    expect(labels(items)).not.toContain("Show Clusters");
   });
 
   it("offer to show source control while the Git page is closed", () => {
-    expect(labels(viewMenu(viewHandlers({ sourceControlShowing: false })))).toContain(
-      "Show Source Control",
-    );
+    expect(labels(viewMenu(viewHandlers({ clustersShowing: false })))).toContain("Show Clusters");
   });
 
   it("flip source control from either state", () => {
-    expect(
-      select({ sourceControlShowing: true }, "Hide Source Control").toggleSourceControl,
-    ).toHaveBeenCalled();
-    expect(
-      select({ sourceControlShowing: false }, "Show Source Control").toggleSourceControl,
-    ).toHaveBeenCalled();
+    expect(select({ clustersShowing: true }, "Hide Clusters").toggleClusters).toHaveBeenCalled();
+    expect(select({ clustersShowing: false }, "Show Clusters").toggleClusters).toHaveBeenCalled();
   });
 
   it("offer to hide the terminal only while it is showing", () => {

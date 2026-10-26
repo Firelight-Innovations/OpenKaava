@@ -35,8 +35,18 @@ pub enum PageMode {
 /// `docs/design/VEISTRA-UX-SPEC.md` §1.8: the written spec allows 320-640, and
 /// 380 (`--w-panel-default`) is the default within that range, not a fixed one.
 pub const DEFAULT_WIDTH: f32 = 380.0;
-pub const MIN_WIDTH: f32 = 320.0;
+pub const MIN_WIDTH: f32 = 240.0;
 pub const MAX_WIDTH: f32 = 640.0;
+
+/// The width a page opens to. Agents opens as narrow as the spec allows: it is a
+/// list beside the work, not a screen of its own.
+pub fn opening_width(page: &Page) -> f32 {
+    if page.id == "sessions" {
+        MIN_WIDTH
+    } else {
+        DEFAULT_WIDTH
+    }
+}
 
 /// Clamp a requested docked width to the range the spec allows.
 pub fn clamp_width(width: f32) -> f32 {
@@ -83,6 +93,9 @@ pub const PAGES: &[Page] = &[
         icon: "git-branch",
         mode: PageMode::Docked,
         key: 1,
+        // Kept off the rail (the rail shows Agents only, by the owner's call on
+        // 2026-10-26; see `OFF_THE_RAIL` in `rail/Rail.tsx`), but still openable:
+        // the status bar's branch, Review & merge and GitHub buttons open it.
         disabled: false,
     },
     Page {
@@ -92,7 +105,10 @@ pub const PAGES: &[Page] = &[
         icon: "kanban",
         mode: PageMode::Expanded,
         key: 2,
-        disabled: false,
+        // Off by the owner's call on 2026-10-26: the rail shows Agents only,
+        // for now, and a disabled page is not drawn at all. Turning it back on
+        // is this one flag.
+        disabled: true,
     },
     Page {
         id: "agents",
@@ -113,7 +129,10 @@ pub const PAGES: &[Page] = &[
         icon: "brain",
         mode: PageMode::Docked,
         key: 4,
-        disabled: false,
+        // Off by the owner's call on 2026-10-26: the rail shows Agents only,
+        // for now, and a disabled page is not drawn at all. Turning it back on
+        // is this one flag.
+        disabled: true,
     },
     Page {
         id: "costs",
@@ -122,7 +141,10 @@ pub const PAGES: &[Page] = &[
         icon: "receipt",
         mode: PageMode::Docked,
         key: 5,
-        disabled: false,
+        // Off by the owner's call on 2026-10-26: the rail shows Agents only,
+        // for now, and a disabled page is not drawn at all. Turning it back on
+        // is this one flag.
+        disabled: true,
     },
     // Not "agents": that id is Cloud agents, and is written to `layout.json`.
     Page {
@@ -224,9 +246,10 @@ mod tests {
     }
 
     #[test]
-    fn only_the_registry_and_cloud_agents_are_disabled() {
+    fn only_agents_and_git_are_enabled() {
         for page in PAGES {
-            let expected = matches!(page.id, "registry" | "agents");
+            // Git stays openable for the status bar, which is its only door.
+            let expected = !matches!(page.id, "sessions" | "git");
             assert_eq!(page.disabled, expected, "{}", page.id);
         }
     }
@@ -288,6 +311,18 @@ mod tests {
         assert!(is_page_app("costs"));
         assert!(!is_page_app("files"));
         assert!(!is_page_app("git"));
+    }
+
+    #[test]
+    fn agents_opens_at_the_narrowest_width_and_the_rest_at_the_default() {
+        for page in PAGES {
+            let expected = if page.id == "sessions" {
+                MIN_WIDTH
+            } else {
+                DEFAULT_WIDTH
+            };
+            assert_eq!(opening_width(page), expected, "{}", page.id);
+        }
     }
 
     #[test]

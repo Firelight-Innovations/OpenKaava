@@ -7,7 +7,11 @@ import { strings } from "./strings";
 /** The kinds a scope searches, where it is more than its own name. */
 const SCOPE_KINDS: Record<string, string[]> = {
   file: ["file", "folder"],
-  comment: ["comment", "design-comment"],
+  comment: ["comment", "canvas-comment", "design-comment"],
+  // Design's comments: those on canvases, and Design Mode's on a running page.
+  "canvas-comment": ["canvas-comment", "design-comment"],
+  // `@design`: everything the Design group holds, searched at once.
+  design: ["canvas", "frame", "canvas-comment", "design-comment"],
 };
 
 export function useMentions(text: string, caret: number, scope: string | null = null) {

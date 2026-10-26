@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { reportPainted, session } from "@veistra/bridge";
+import { invoke, reportPainted, session } from "@veistra/bridge";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { AlertTriangle, ChevronRight, FilePlus2, Lock, Palette, SquareDashed } from "lucide-react";
 import { SendButton, SendFooter } from "../../../shared/SendFooter";
@@ -77,6 +77,7 @@ import {
   type SceneFile,
 } from "./scene";
 import DesignControl from "./DesignControl";
+import { views } from "./views";
 import "./App.css";
 
 // The editor is the bulk of this app's weight; load it only once a canvas is open.
@@ -706,7 +707,12 @@ export default function App() {
   const sendSelection = useCallback(() => {
     setNotice(null);
     putSelection().then(
-      () => {
+      (item) => {
+        // The agent tab beside this one gets it as a chip on its next prompt.
+        void invoke("veistra/attach-to-agent", {
+          contextId: item.id,
+          label: "Canvas selection",
+        }).catch(() => {});
         setSentSelection(true);
         setTimeout(() => setSentSelection(false), 1800);
       },
@@ -997,26 +1003,29 @@ export default function App() {
           ))}
           {empty && <option value="">No canvases yet</option>}
         </select>
-        <div className="cv__tabs" role="tablist" aria-label="View">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === "canvas"}
-            className={`cv__tab${view === "canvas" ? " is-on" : ""}`}
-            onClick={() => setView("canvas")}
-          >
-            Canvas
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === "assets"}
-            className={`cv__tab${view === "assets" ? " is-on" : ""}`}
-            onClick={() => void showAssets()}
-          >
-            Asset list
-          </button>
-        </div>
+        {/* With the asset list off (see `views.ts`) the canvas is the only view, so no toggle. */}
+        {views.assetList && (
+          <div className="cv__tabs" role="tablist" aria-label="View">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === "canvas"}
+              className={`cv__tab${view === "canvas" ? " is-on" : ""}`}
+              onClick={() => setView("canvas")}
+            >
+              Canvas
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === "assets"}
+              className={`cv__tab${view === "assets" ? " is-on" : ""}`}
+              onClick={() => void showAssets()}
+            >
+              Asset list
+            </button>
+          </div>
+        )}
         {chain.length > 1 && (
           <nav className="cv__crumbs" aria-label="Canvas path">
             {chain.map((row, i) => (

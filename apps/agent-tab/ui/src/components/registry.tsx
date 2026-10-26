@@ -23,12 +23,14 @@ import { HistoryPanel } from "./HistoryPanel";
 import { Hint } from "./Hint";
 import { HoverCard } from "./HoverCard";
 import { Layout } from "./Layout";
+import { MarkupEditor } from "./MarkupEditor";
 import { Menu } from "./Menu";
 import { ModelMenu } from "./ModelMenu";
 import { Note } from "./Note";
 import { Notice } from "./Notice";
 import { PathList } from "./PathList";
 import { Picker } from "./Picker";
+import { QuestionCard } from "./QuestionCard";
 import { Ring } from "./Ring";
 import { SendButton } from "./SendButton";
 import { SessionList } from "./SessionList";
@@ -45,6 +47,7 @@ import { Usage } from "./Usage";
 import { UsageRing } from "./UsageRing";
 import { UserMessage } from "./UserMessage";
 import { UserTurn } from "./UserTurn";
+import { Validation } from "./Validation";
 import { Working } from "./Working";
 import type * as P from "./types";
 
@@ -68,9 +71,11 @@ export interface Slots {
   Thinking: ComponentType<P.ThinkingProps>;
   ActionGroup: ComponentType<P.ActionGroupProps>;
   ToolCall: ComponentType<P.ToolCallProps>;
+  Validation: ComponentType<P.ValidationProps>;
   Diff: ComponentType<P.DiffProps>;
   PathList: ComponentType<P.PathListProps>;
   Approval: ComponentType<P.ApprovalProps>;
+  QuestionCard: ComponentType<P.QuestionCardProps>;
   TodoList: ComponentType<P.TodoListProps>;
   Usage: ComponentType<P.UsageProps>;
   ErrorItem: ComponentType<P.ErrorItemProps>;
@@ -80,6 +85,7 @@ export interface Slots {
   Composer: ComponentType<P.ComposerProps>;
   ContextLink: ComponentType<P.ContextLinkProps>;
   SideChat: ComponentType<P.SideChatProps>;
+  MarkupEditor: ComponentType<P.MarkupEditorProps>;
   Notice: ComponentType<P.NoticeProps>;
   SendButton: ComponentType<P.SendButtonProps>;
   StopButton: ComponentType<P.StopButtonProps>;
@@ -118,9 +124,11 @@ export const defaultSlots: Slots = {
   Thinking,
   ActionGroup,
   ToolCall,
+  Validation,
   Diff,
   PathList,
   Approval,
+  QuestionCard,
   TodoList,
   Usage,
   ErrorItem,
@@ -129,6 +137,7 @@ export const defaultSlots: Slots = {
   Composer,
   ContextLink,
   SideChat,
+  MarkupEditor,
   Notice,
   SendButton,
   StopButton,

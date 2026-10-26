@@ -9,6 +9,7 @@
  * pane holding it on the render that first shows it.
  */
 import type { SplitDir } from "../../bindings";
+import { NO_SESSION, type AgentCluster, type AgentSession } from "./agentSessions";
 import { AGENT_TAB_APP } from "./agentTab";
 
 export interface AgentOpeners {
@@ -21,6 +22,8 @@ export interface AgentOpeners {
   setActiveCluster: (label: string, clusterId: string) => Promise<void>;
   openInstance: (label: string, appId: string, paneId?: string, dir?: SplitDir) => Promise<string>;
   splitDirOnOpen: (paneId: string | null) => SplitDir;
+  /** Open saved session `sessionId` in agent tab `instanceId` (`agent-tab/history-open`). */
+  resume: (instanceId: string, sessionId: string) => Promise<unknown>;
   report: (message: string, err: unknown) => void;
 }
 
@@ -56,5 +59,49 @@ export async function newAgent(w: AgentOpeners, clusterId: string): Promise<void
     w.focusWhenShown(await w.openInstance(w.label, AGENT_TAB_APP));
   } catch (err) {
     w.report("veistra: could not open an agent tab:", err);
+  }
+}
+
+/** The first of `cluster`'s agent tabs that has never sent a prompt, or `null`. */
+export function emptyAgentTab(
+  cluster: AgentCluster | undefined,
+  sessions: ReadonlyMap<string, AgentSession>,
+): string | null {
+  const empty = cluster?.tabs.find((tab) => {
+    const session = sessions.get(tab.id) ?? NO_SESSION;
+    return session.state === "none" && session.prompt === null;
+  });
+  return empty?.id ?? null;
+}
+
+/**
+ * A previous session's row: open it in `emptyTab`, an agent tab in the
+ * cluster on screen that has never sent a prompt, or else in a new agent tab
+ * beside the active pane. The backend restores it into that tab and tells
+ * the tab, which attaches again and shows it.
+ */
+export async function resumeAgent(
+  w: AgentOpeners,
+  sessionId: string,
+  emptyTab: string | null,
+): Promise<void> {
+  w.hideTakeover();
+  try {
+    let tab = emptyTab;
+    if (tab === null) {
+      tab = await w.openInstance(
+        w.label,
+        AGENT_TAB_APP,
+        w.activePaneId ?? undefined,
+        w.splitDirOnOpen(w.activePaneId),
+      );
+      w.focusWhenShown(tab);
+    } else {
+      w.focusWhenShown(tab);
+      await w.activateInstance(tab);
+    }
+    await w.resume(tab, sessionId);
+  } catch (err) {
+    w.report("veistra: could not resume that agent session:", err);
   }
 }

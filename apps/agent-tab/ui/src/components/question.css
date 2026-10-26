@@ -1,0 +1,140 @@
+/* The agent's question: a card with the question in bold and a full-width,
+   numbered row per choice. The picked row takes the accent's border and fill. */
+
+.at-question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-1-5);
+  padding: var(--k-space-2) var(--k-space-2-5);
+  border: 1px solid var(--k-panel-border);
+  border-radius: var(--k-radius-card);
+  background: var(--k-card-bg);
+}
+
+.at-question[data-open] {
+  border-color: var(--k-border-strong);
+}
+
+.at-question__message,
+.at-question__text {
+  font-weight: var(--k-weight-strong);
+  color: var(--k-fg-secondary);
+}
+
+.at-question__block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-1);
+}
+
+.at-question__block + .at-question__block {
+  padding-top: var(--k-space-1-5);
+  border-top: 1px solid var(--k-panel-border);
+}
+
+.at-question__header {
+  font-size: var(--k-size-small);
+  color: var(--k-fg-faint);
+}
+
+.at-question__choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-1);
+}
+
+.at-question__choice {
+  display: flex;
+  align-items: baseline;
+  gap: var(--k-space-1-5);
+  width: 100%;
+  padding: var(--k-space-1-5) var(--k-space-2);
+  border: 1px solid var(--k-panel-border);
+  border-radius: var(--k-radius-control);
+  background: transparent;
+  color: var(--k-fg-secondary);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background var(--k-motion-fast) var(--k-ease),
+    border-color var(--k-motion-fast) var(--k-ease);
+}
+
+.at-question__choice:hover:not(:disabled) {
+  background: var(--k-list-hover);
+}
+
+.at-question__choice:focus-visible {
+  outline: 2px solid var(--k-focus-ring);
+  outline-offset: 1px;
+}
+
+.at-question__choice[data-picked] {
+  border-color: var(--k-accent);
+  background: var(--k-accent-subtle);
+}
+
+.at-question__choice:disabled {
+  cursor: default;
+}
+
+.at-question__number {
+  flex: none;
+  color: var(--k-fg-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.at-question__box {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 1em;
+  height: 1em;
+  border: 1px solid var(--k-border-strong);
+  border-radius: var(--k-radius-sm);
+  font-size: 0.85em;
+  line-height: 1;
+  align-self: center;
+}
+
+.at-question__choice[data-picked] .at-question__box {
+  border-color: var(--k-accent);
+  background: var(--k-accent);
+  color: var(--k-on-accent);
+}
+
+.at-question__label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-0-5);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.at-question__description {
+  font-size: var(--k-size-small);
+  color: var(--k-fg-muted);
+}
+
+.at-question__typed {
+  color: var(--k-fg-secondary);
+}
+
+.at-question__hint,
+.at-question__ended {
+  font-size: var(--k-size-small);
+  color: var(--k-fg-faint);
+}
+
+.at-question__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--k-space-1-5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .at-question__choice {
+    transition: none;
+  }
+}

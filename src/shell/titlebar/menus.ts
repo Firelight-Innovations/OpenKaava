@@ -89,8 +89,8 @@ export interface FileMenuHandlers {
 export interface ViewMenuHandlers {
   commandPalette(): void;
   /** Whether the rail's Git page, which holds source control, is open. */
-  sourceControlShowing: boolean;
-  toggleSourceControl(): void;
+  clustersShowing: boolean;
+  toggleClusters(): void;
   /** Whether the terminal band is open. */
   terminalShowing: boolean;
   toggleTerminal(): void;
@@ -344,10 +344,10 @@ export function defaultMenus(handlers: MenuHandlers): Menu[] {
         // "Toggle …", so the menu answers "is it open?" without the user
         // having to close it to find out.
         {
-          label: view.sourceControlShowing ? "Hide Source Control" : "Show Source Control",
+          label: view.clustersShowing ? "Hide Clusters" : "Show Clusters",
           accelerator: "Ctrl+B",
           separatorBefore: true,
-          onSelect: view.toggleSourceControl,
+          onSelect: view.toggleClusters,
         },
         {
           label: view.terminalShowing ? "Hide Terminal" : "Show Terminal",

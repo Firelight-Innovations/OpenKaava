@@ -116,8 +116,8 @@ export async function putSelectionImage(
   return invoke<ContextRef>("context/put", {
     key: contextKey("canvas", canvasTitle, "selection"),
     kind: "image",
-    title: `Canvas - ${canvasTitle}, ${noun}`,
-    label: `Canvas - ${canvasTitle}`,
+    title: `Design - ${canvasTitle}, ${noun}`,
+    label: `Design - ${canvasTitle}`,
     bytesBase64: await blobToBase64(png),
   });
 }

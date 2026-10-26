@@ -196,6 +196,113 @@
   color: var(--txt-tertiary);
 }
 
+/* An open session: an ordinary row, with a rename button that shows on hover. */
+.k-agents__open {
+  position: relative;
+}
+
+.k-agents__open .k-agents__row {
+  padding-right: 32px;
+}
+
+.k-agents__open:hover .k-agents__archive {
+  opacity: 1;
+}
+
+.k-agents__row--editing {
+  cursor: text;
+}
+
+.k-agents__rename {
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  outline: none;
+  background: var(--bg-layer-1);
+  color: var(--txt-primary);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+/* Previous sessions: saved conversations of the current cluster's project. */
+.k-agents__previous {
+  border-top: 1px solid var(--line);
+  margin-top: 6px;
+  padding-top: 10px;
+}
+
+.k-agents__saved {
+  position: relative;
+}
+
+.k-agents__saved .k-agents__row {
+  padding-right: 32px;
+}
+
+.k-agents__archive {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--txt-tertiary);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.k-agents__saved:hover .k-agents__archive,
+.k-agents__archive:focus-visible {
+  opacity: 1;
+}
+
+.k-agents__archive:hover {
+  background: var(--bg-layer-1-hover);
+  color: var(--txt-primary);
+}
+
+.k-agents__fold {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--txt-tertiary);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.k-agents__fold:hover {
+  background: var(--bg-layer-1-hover);
+  color: var(--txt-primary);
+}
+
+.k-agents__archive:focus-visible,
+.k-agents__fold:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.k-agents__chevron {
+  transition: transform 120ms ease;
+}
+
+.k-agents__chevron[data-open] {
+  transform: rotate(90deg);
+}
+
 .k-agents__empty {
   margin: 0;
   padding: 4px 8px;

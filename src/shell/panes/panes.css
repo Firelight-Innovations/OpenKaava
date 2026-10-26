@@ -340,3 +340,36 @@
 /* The insertion caret used to be here too, and moved with the tabs when they
    left for the switcher; it is back for the same reason the strip is — see
    `.pane-tabstrip__caret` above. */
+
+/* An agent tab's bubble: filled once the agent is done, breathing while it works. */
+.pane-tab__icon--agent[data-agent="ready"],
+.pane-tab__icon--agent[data-agent="stopped"],
+.pane-tab__icon--agent[data-agent="needsInput"] {
+  fill: currentcolor;
+}
+
+.pane-tab__icon--agent[data-agent="working"],
+.pane-tab__icon--agent[data-agent="starting"] {
+  fill: currentcolor;
+  animation: pane-tab-agent-breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes pane-tab-agent-breathe {
+  0%,
+  100% {
+    fill-opacity: 0.9;
+    opacity: 1;
+  }
+
+  50% {
+    fill-opacity: 0;
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pane-tab__icon--agent[data-agent="working"],
+  .pane-tab__icon--agent[data-agent="starting"] {
+    animation: none;
+  }
+}

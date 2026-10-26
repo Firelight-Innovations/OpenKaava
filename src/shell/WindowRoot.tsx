@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig } from "framer-motion";
-import { MessageSquare } from "lucide-react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { contextItemPaths, onCopilotKey, type Openable, type StackSnapshot } from "../bindings";
 import Frame, { BOTTOM_DEFAULT, PROJECT_PAGE_DEFAULT } from "./frame/Frame";
 import { bandGeometry, withBandGeometry, type BandGeometryByCluster } from "./frame/bandGeometry";
@@ -53,6 +53,7 @@ import { toggleMaximize } from "./panes/paneMaximize";
 import BottomPanel from "./panel/BottomPanel";
 import StatusBar from "./statusbar/StatusBar";
 import SearchSlot from "./search/SearchSlot";
+import TitleBarActions, { UPGRADE_URL } from "./titlebar/TitleBarActions";
 import SearchOverlay from "./search/SearchOverlay";
 import { useSearchSession } from "./search/useSearchSession";
 import { openHitInFiles } from "./search/openHit";
@@ -69,9 +70,24 @@ import TerminalDeck, { type TerminalDeckHandle } from "./terminal/TerminalDeck";
 import { callApp, useApps, useOpenables, usePages } from "./state/apps";
 import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
-import { agentClusters, agentsDot, useAgentSessions } from "./state/agentSessions";
+import { publishAgentTabStates } from "./agentTabStates";
+import {
+  agentClusters,
+  agentName,
+  agentsDot,
+  NO_SESSION,
+  useAgentSessions,
+} from "./state/agentSessions";
 import { agentTabIn, useAgentTabRefresh } from "./state/agentTab";
-import { newAgent, openAgent, type AgentOpeners } from "./state/agentOpeners";
+import {
+  emptyAgentTab,
+  newAgent,
+  openAgent,
+  resumeAgent,
+  type AgentOpeners,
+} from "./state/agentOpeners";
+import { openSavedSession, renameAgentTab } from "./state/savedSessions";
+import { agentScopeOf, type AgentMenuActions } from "./agentMenuItems";
 import ReadOnlyBanner from "./git/ReadOnlyBanner";
 import { useProjectIcon } from "./state/projectIcon";
 import { useUpdates } from "./state/updates";
@@ -82,6 +98,7 @@ import {
   closeInstance,
   closePage,
   closeWindow as closeThisWindow,
+  detachInstance,
   newWindow,
   openInstance,
   openPage,
@@ -93,6 +110,7 @@ import {
   setPageMode,
   setPageWidth,
   setPaneSizes,
+  splitPane,
   useShellState,
   windowLabel,
 } from "./state/shellState";
@@ -150,6 +168,8 @@ function isTakeover(appId: string | undefined): boolean {
  * beneath it, so the seven moments collapse to state changes for anyone who
  * has asked the OS for that — no per-component opt-in, and no way to forget.
  */
+const CLUSTERS_COLLAPSED_KEY = "veistra.clusters-collapsed";
+
 export default function WindowRoot({
   snapshot,
   error,
@@ -705,10 +725,26 @@ export default function WindowRoot({
   const onClosePage = useCallback(() => {
     void closePage(label);
   }, [label]);
-  // Ctrl+B and View > Show/Hide Source Control. The secondary panel this key
-  // used to collapse is the Git page now, so the key opens and closes that
-  // page — `open_page`'s toggle does the closing when Git is already open.
-  const onToggleSourceControl = useCallback(() => onSelectPage("git"), [onSelectPage]);
+  // Ctrl+B, View > Show/Hide Clusters, and the panel buttons in the cluster
+  // list and the agent tab: fold the cluster list away and bring it back. Kept
+  // across launches, but only as a convenience: unreadable storage means open.
+  const [clustersCollapsed, setClustersCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(CLUSTERS_COLLAPSED_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const onToggleClusters = useCallback(() => {
+    setClustersCollapsed((was) => {
+      try {
+        localStorage.setItem(CLUSTERS_COLLAPSED_KEY, was ? "0" : "1");
+      } catch {
+        // Not remembered; the toggle still works for this launch.
+      }
+      return !was;
+    });
+  }, []);
   const onTogglePageMode = useCallback(() => {
     if (!rightPage) return;
     void setPageMode(label, rightPage.mode === "docked" ? "expanded" : "docked");
@@ -1665,6 +1701,10 @@ export default function WindowRoot({
     [agentList],
   );
   const agentSessions = useAgentSessions(agentIds);
+  useEffect(
+    () => publishAgentTabStates(new Map([...agentSessions].map(([id, s]) => [id, s.state]))),
+    [agentSessions],
+  );
   // Like choosing a tab from the cluster's strip: Home stops covering the
   // window, `activate_instance` brings the tab's own cluster forward, and the
   // pane holding the tab takes focus once that cluster is drawn.
@@ -1679,6 +1719,7 @@ export default function WindowRoot({
       setActiveCluster,
       openInstance,
       splitDirOnOpen,
+      resume: openSavedSession,
       report: (message, err) => console.error(message, err),
     }),
     [label, activeClusterId, activePaneId, hideTakeover],
@@ -1691,6 +1732,66 @@ export default function WindowRoot({
     (clusterId: string) => void newAgent(openers, clusterId),
     [openers],
   );
+  // A previous session opens in the cluster on screen: in an agent tab there
+  // that never sent a prompt, else in a new one.
+  const onResumeAgent = useCallback(
+    (sessionId: string) =>
+      void resumeAgent(
+        openers,
+        sessionId,
+        emptyAgentTab(
+          agentList.find((cluster) => cluster.id === activeClusterId),
+          agentSessions,
+        ),
+      ),
+    [openers, agentList, activeClusterId, agentSessions],
+  );
+
+  // The agents under each cluster's row in the rail's list, from the same
+  // tabs and live sessions the Agents page reads.
+  const stripAgents = useMemo(
+    () =>
+      new Map(
+        agentList.map((cluster) => [
+          cluster.id,
+          cluster.tabs.map((tab) => {
+            const session = agentSessions.get(tab.id) ?? NO_SESSION;
+            return {
+              id: tab.id,
+              label: agentName(tab.title) ?? session.prompt ?? (tab.title || "New session"),
+              name: agentName(tab.title),
+              state: session.state,
+            };
+          }),
+        ]),
+      ),
+    [agentList, agentSessions],
+  );
+
+  // The right-click menu on an agent button, wherever it is drawn. Close, split
+  // and move go through the same commands a tab's × and a drag do.
+  const agentMenu = useMemo<AgentMenuActions>(() => {
+    const scope = (id: string) =>
+      agentScopeOf(orderedClusters, (tab) => instances.get(tab)?.appId, id);
+    const closeAll = (ids: readonly string[]) => ids.forEach((id) => void closeInstance(id));
+    return {
+      scope,
+      rename: (id, name) => renameAgentTab(id, name).then(() => undefined),
+      close: (id) => void closeInstance(id),
+      closeOthers: (id) => closeAll((scope(id)?.agentTabs ?? []).filter((tab) => tab !== id)),
+      closeToRight: (id) => {
+        const tabs = scope(id)?.agentTabs ?? [];
+        closeAll(tabs.slice(tabs.indexOf(id) + 1));
+      },
+      closeAll: (id) => closeAll(scope(id)?.agentTabs ?? [id]),
+      split: (id, dir, before) => {
+        const pane = orderedClusters.map((c) => paneOfTab(c.tree, id)).find((p) => p !== null);
+        if (pane) void splitPane(pane, dir, id, before);
+      },
+      moveToNewWindow: (id) => void detachInstance(id),
+      openSettings: () => openSettingsOnTop("mcp"),
+    };
+  }, [orderedClusters, instances]);
 
   // The dialog's own "Open folder…"/"New project" buttons close it and hand
   // off to Home's pickers — the same two `home/*` methods the File menu and
@@ -1854,7 +1955,7 @@ export default function WindowRoot({
     commandPalette: openPalette,
     openApp: openPicker,
     switchProject: onOpenProjectSwitcher,
-    toggleSourceControl: onToggleSourceControl,
+    toggleClusters: onToggleClusters,
     toggleTerminal: onToggleTerminal,
     toggleFullscreen: onToggleFullscreen,
     zoomIn: () => onZoom(1),
@@ -1893,8 +1994,8 @@ export default function WindowRoot({
     },
     view: {
       commandPalette: openPalette,
-      sourceControlShowing: rightPage?.id === "git",
-      toggleSourceControl: onToggleSourceControl,
+      clustersShowing: !clustersCollapsed,
+      toggleClusters: onToggleClusters,
       terminalShowing,
       toggleTerminal: onToggleTerminal,
       fullscreen,
@@ -1987,6 +2088,8 @@ export default function WindowRoot({
         activeClusterId={activeClusterId}
         onOpen={onOpenAgent}
         onNew={onNewAgent}
+        onResume={onResumeAgent}
+        agentMenu={agentMenu}
       />
     ) : (
       <AppPage page={activePage} instanceId={rightPage.instanceId} onHost={setPageHost} />
@@ -2119,21 +2222,19 @@ export default function WindowRoot({
                 <>
                   <ToolHealthBadge healthOf={stackTools} onRescan={onRescan} />
                   <SearchSlot open={searchExpanded} onOpen={openSearch} />
-                  <button
-                    type="button"
-                    className="titlebar__chat"
-                    aria-label="Agents"
-                    title="Agents"
-                    aria-pressed={rightPage?.id === "sessions"}
-                    onClick={() => onSelectPage("sessions")}
-                  >
-                    <MessageSquare
-                      size={16}
-                      strokeWidth={2}
-                      fill={rightPage?.id === "sessions" ? "currentColor" : "none"}
-                      aria-hidden="true"
-                    />
-                  </button>
+                  <TitleBarActions
+                    onUpgrade={() => void openUrl(UPGRADE_URL)}
+                    onNewAgent={
+                      activeClusterId === null ? undefined : () => onNewAgent(activeClusterId)
+                    }
+                    terminalOpen={terminalShowing}
+                    onToggleTerminal={onToggleTerminal}
+                    agentsOpen={rightPage?.id === "sessions"}
+                    onToggleAgents={() => onSelectPage("sessions")}
+                    clustersOpen={!clustersCollapsed}
+                    onToggleClusters={onToggleClusters}
+                    onOpenSettings={() => openSettingsOnTop()}
+                  />
                 </>
               }
             />
@@ -2298,6 +2399,11 @@ export default function WindowRoot({
                 clusters={orderedClusters}
                 activeClusterId={activeClusterId}
                 terminals={shell?.terminals ?? []}
+                collapsed={clustersCollapsed}
+                onToggleCollapsed={onToggleClusters}
+                agents={stripAgents}
+                onOpenAgent={onOpenAgent}
+                agentMenu={agentMenu}
                 onSelect={onSelectCluster}
                 onAdd={() => onAddCluster()}
                 onClose={onCloseCluster}
@@ -2334,7 +2440,8 @@ export default function WindowRoot({
               title={activePage?.name ?? rightPage.id}
               backLabel={activeCluster ? activeCluster.name : "Back"}
               onClose={onClosePage}
-              onExpand={onTogglePageMode}
+              // Agents is a sidebar, not a workspace: it has no expanded form.
+              onExpand={rightPage.id === "sessions" ? undefined : onTogglePageMode}
             >
               {pageBody}
             </PageShell>

@@ -224,7 +224,7 @@
   display: flex;
   height: 100%;
 }
-.titlebar__chat {
+.titlebar__icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -238,19 +238,41 @@
   color: var(--txt-tertiary);
   cursor: pointer;
 }
-.titlebar__chat:hover {
+.titlebar__icon:hover {
   background: var(--bg-layer-1-hover);
   color: var(--txt-primary);
 }
-.titlebar__chat[aria-pressed="true"] {
+.titlebar__icon[aria-pressed="true"] {
   color: var(--txt-primary);
 }
-.titlebar__chat:focus-visible {
+.titlebar__icon:focus-visible {
   outline: var(--focus-ring);
 }
-.titlebar__chat:disabled {
+.titlebar__icon:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+.titlebar__upgrade {
+  flex-shrink: 0;
+  height: 28px;
+  margin-inline: 3px;
+  padding-inline: 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--txt-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.titlebar__upgrade:hover {
+  background: var(--bg-layer-1-hover);
+  color: var(--txt-primary);
+}
+.titlebar__upgrade:focus-visible {
+  outline: var(--focus-ring);
 }
 
 .titlebar__control {
@@ -287,8 +309,35 @@
 
 /* --- collapse order --------------------------------------------------------
    Widths are the bar's own (it fills the window). Each step gives up the least
-   useful thing first so nothing ever reaches the centred pill, which wins:
+   useful thing first so nothing ever reaches the pill:
      <1240  the search box becomes an icon
      <1180  the six menus become the hamburger (`useNarrowTitlebar`)
-   Anything still too long ellipsises inside its own cell; the cells are
-   clipped or shrink, never overlap the pill. */
+     <1000  the pill gives up the window's centre and sits after the hamburger,
+            so the right cell gets every pixel the short left one leaves
+     <900   Upgrade goes: the one action here that is not part of the work
+   The right cell's buttons do not shrink, so on overflow they would spill left
+   under the pill; the cell clips instead, leaving room for its focus rings. */
+
+.titlebar__end {
+  overflow: clip;
+  overflow-clip-margin: 4px;
+}
+
+@container titlebar (max-width: 999px) {
+  .titlebar[data-has-pill] {
+    grid-template-columns: auto auto minmax(0, 1fr);
+    column-gap: var(--space-2);
+  }
+
+  /* Off the centre, a dropdown centred on the pill would run off the left edge. */
+  .titlebar .clusterswitch__panel {
+    left: 0;
+    translate: none;
+  }
+}
+
+@container titlebar (max-width: 899px) {
+  .titlebar__upgrade {
+    display: none;
+  }
+}

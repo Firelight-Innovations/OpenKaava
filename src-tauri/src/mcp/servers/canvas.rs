@@ -108,7 +108,7 @@ canvas_tools! {
 
     "set_design" => "canvas/set-design", Scope::Canvas, false,
     "Give this canvas its own detail level and/or style, overriding Settings; `null` or \
-     `\"default\"` clears the override. Only when the person asks: Settings, Canvas is where \
+     `\"default\"` clears the override. Only when the person asks: Settings, Design is where \
      they choose.",
     || canvas_schema(
         json!({
@@ -246,6 +246,13 @@ canvas_tools! {
         json!({ "checklist": { "type": "array", "items": { "type": "string" }, "description": "Concerns to check. Defaults to the canvas's own, else the game checklist." } }),
         &[],
     );
+
+    "lint_canvas" => "canvas/lint", Scope::Canvas, true,
+    "Validate the canvas topology: every element inside a uniquely named frame, no nested \
+     frames, every multi-part object one group, every label bound to its shape. Answers each \
+     rule with pass/fail and examples. add_shapes runs it too, under `validation`; call this \
+     after any other edit and fix every failed check before finishing.",
+    || canvas_schema(json!({}), &[]);
 
     "values" => "canvas/values", Scope::Canvas, true,
     "The linked value table and whether every text and spec field using a value agrees with it.",

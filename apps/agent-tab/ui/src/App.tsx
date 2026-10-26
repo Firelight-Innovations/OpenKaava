@@ -21,7 +21,7 @@ import {
   useExternalStoreRuntime,
   type AppendMessage,
 } from "@assistant-ui/react";
-import { reportPainted } from "@veistra/bridge";
+import { invoke, reportPainted } from "@veistra/bridge";
 import type {
   Attachment,
   ConfigOption,
@@ -31,6 +31,7 @@ import type {
   Hint,
   Item,
   PlanEntry,
+  QuestionOutcome,
   SessionStatus,
   SettingTrouble,
 } from "./protocol.generated";
@@ -53,6 +54,7 @@ import {
   type Setting,
   type TabState,
 } from "./model";
+import { answerOpenCard } from "./questions";
 import * as rpc from "./rpc";
 import { toTurns, type Turn } from "./thread";
 import { Turns, TurnsProvider } from "./Turns";
@@ -60,13 +62,44 @@ import { useSlots } from "./components/registry";
 import type { PickerProps, MenuItem } from "./components/types";
 import { hintText, infoOf } from "./harness";
 import { strings, type HarnessWords } from "./strings";
-import { withChips, type ContextChip } from "./mentions";
+import {
+  chipEndingAt,
+  chipSegments,
+  insertChipToken,
+  keptChips,
+  withChips,
+  type ContextChip,
+  type MentionHit,
+} from "./mentions";
 import { useMentions } from "./useMentions";
 import { useSideChat } from "./useSideChat";
 import { EFFORT_LEVELS } from "./preferences";
+import { loadPrefs, savePrefs } from "./prefs";
+
+/** A prompt waiting for the running turn to end. */
+interface QueuedPrompt {
+  id: string;
+  text: string;
+  chips: ContextChip[];
+  images: rpc.PastedImage[];
+}
+
+/** What a reference chip is made from: a search hit, a copied cluster, an issue link. */
+interface ChipHit {
+  uri: string;
+  title: string;
+  kind: string;
+}
+
+const chipOf = (hit: ChipHit): ContextChip => ({
+  id: hit.uri,
+  label: hit.title,
+  kind: hit.kind,
+  uri: hit.uri,
+});
 
 /** A search scope's glyph in the @ menu, where it differs from the scope's own name. */
-const SCOPE_GLYPH: Record<string, string> = { file: "folder", "design-comment": "comment" };
+const SCOPE_GLYPH: Record<string, string> = { file: "folder", "canvas-comment": "comment" };
 
 type Action =
   { type: "attached"; attachment: Attachment } | { type: "envelope"; envelope: Envelope };
@@ -114,27 +147,38 @@ export default function App() {
   const [loginNote, setLoginNote] = useState<string | null>(null);
   /** Cluster transcripts still being copied into chips; Send waits for them. */
   const [capturing, setCapturing] = useState(0);
-  const [effort, setEffort] = useState<string | null>(null);
-  const [ultracode, setUltracode] = useState(false);
+  // A new tab starts with what the user last picked in any tab.
+  const [effort, setEffortState] = useState<string | null>(() => loadPrefs().effort ?? "medium");
+  const setEffort = useCallback((value: string | null) => {
+    setEffortState(value);
+    savePrefs({ effort: value });
+  }, []);
+  const [ultracode, setUltracodeState] = useState(() => loadPrefs().ultracode ?? false);
+  const setUltracode = useCallback((on: boolean) => {
+    setUltracodeState(on);
+    savePrefs({ ultracode: on });
+  }, []);
   // The mode each harness's next session starts in, picked before it exists.
-  const [startModes, setStartModes] = useState<StartModes>({});
-  const pickStartMode = useCallback(
-    (harness: Harness, mode: string) => setStartModes((now) => ({ ...now, [harness]: mode })),
-    [],
-  );
-  // A pick is for the one session it starts. Once a session of that harness
-  // has entered its mode, the agent's mode is the one to follow, and a later
-  // session asks first again unless the user picks again. Heard from each
-  // status as it comes, since a render may fold Ready and Stopped into one.
+  const [startModes, setStartModes] = useState<StartModes>(() => loadPrefs().modes ?? {});
+  const pickStartMode = useCallback((harness: Harness, mode: string) => {
+    setStartModes((now) => ({ ...now, [harness]: mode }));
+    savePrefs({ modes: { [harness]: mode } });
+  }, []);
+  // Once a session of that harness has entered its mode, the agent's mode is
+  // the one to follow, and a later session starts in the last mode the user
+  // picked, in this tab or another. Heard from each status as it comes, since
+  // a render may fold Ready and Stopped into one.
   const heardStatus = useCallback((envelope: Envelope) => {
     if (envelope.event.type !== "status") return;
     const { harness, state } = envelope.event.status;
     if (state === "starting" || state === "stopped" || state === "failed") return;
-    setStartModes((now) => (now[harness] === undefined ? now : { ...now, [harness]: undefined }));
+    const kept = loadPrefs().modes?.[harness];
+    setStartModes((now) => (now[harness] === kept ? now : { ...now, [harness]: kept }));
   }, []);
   const [settingsRequest, setSettingsRequest] = useState(0);
   const [caret, setCaret] = useState(0);
   const [chips, setChips] = useState<ContextChip[]>([]);
+  const [images, setImages] = useState<rpc.PastedImage[]>([]);
   const [sources, setSources] = useState<Awaited<ReturnType<typeof rpc.contextSources>>>({
     clusters: [],
     issues: [],
@@ -165,13 +209,103 @@ export default function App() {
       )
       .finally(() => setHistoryLoading(false));
   }, []);
+  /**
+   * Puts a chip that arrives later, after the draft may have moved on, at `at`
+   * (clamped to the draft as it is then). Reads only through updaters, so it
+   * is safe from a listener installed once.
+   */
+  const latest = useRef({ draft, caret });
+  latest.current = { draft, caret };
+  const setChipLater = useCallback((hit: ChipHit, at: number) => {
+    const chip = chipOf(hit);
+    const { draft: now, caret: was } = latest.current;
+    setChips((held) => (held.some((c) => c.id === chip.id) ? held : [...held, chip]));
+    if (chipSegments(now, [chip]).some((part) => part.chip)) return;
+    const where = Math.min(at, now.length);
+    const placed = insertChipToken(now, where, where, chip.label);
+    setDraft(placed.text);
+    // Text typed after the "@" moves along with the caret in it.
+    const moved = was >= where ? was + placed.text.length - now.length : was;
+    setCaret(moved);
+    requestAnimationFrame(() => prompt.current?.setSelectionRange(moved, moved));
+  }, []);
+  // Something sent from another app, such as a canvas selection, joins the end of the next prompt.
+  useEffect(
+    () =>
+      rpc.onAttach(({ contextId, label }) =>
+        setChipLater(
+          { uri: `veistra://context/${contextId}`, title: label, kind: "context" },
+          Infinity,
+        ),
+      ),
+    [setChipLater],
+  );
+
+  // What the user called this session. It is kept in Rust beside the
+  // conversation, so a saved session comes back as it was.
+  const [chatName, setChatName] = useState<string | null>(null);
+  const loadMeta = useCallback(() => {
+    void rpc.sessionMeta().then(
+      (meta) => setChatName(meta.name ?? null),
+      () => {},
+    );
+  }, []);
+  const saveMeta = useCallback((meta: Partial<rpc.SessionMeta>) => {
+    void rpc
+      .setSessionMeta(meta)
+      .then(() => rpc.saveHistory())
+      .catch(() => {});
+  }, []);
+  const renameSession = useCallback(
+    (name: string) => {
+      const next = name.replace(/\s+/g, " ").trim().slice(0, 100);
+      if (next === "") return;
+      setChatName(next);
+      saveMeta({ name: next });
+    },
+    [saveMeta],
+  );
+
+  // The tab is named for its session: the name it was given, else what was
+  // first asked, shortened.
+  const sessionName = useMemo(() => {
+    if (chatName) return chatName;
+    for (const item of state.items) {
+      if (item.kind.kind !== "userMessage") continue;
+      const flat = item.kind.text
+        .replace(/\[(@[^\]]*)\]\(<[^>]*>\)/g, "$1")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (flat === "") continue;
+      return flat.length > 32 ? `${flat.slice(0, 31)}…` : flat;
+    }
+    return strings.agentTabName;
+  }, [state.items, chatName]);
+  useEffect(() => {
+    void invoke("veistra/title", { title: sessionName, subject: null }).catch(() => {});
+  }, [sessionName]);
   useEffect(() => {
     if (!state.attached || (!state.items.length && !state.status?.pendingPrompt)) return;
     const timer = setTimeout(() => {
       void rpc.saveHistory().catch(() => {});
     }, 750);
     return () => clearTimeout(timer);
-  }, [state.attached, state.items, state.status?.pendingPrompt]);
+  }, [state.attached, state.items, state.status?.pendingPrompt, chatName]);
+  // The agent can name the conversation itself, as its own /rename does. Only a
+  // title that arrives while the tab is open counts: the one a reattach finds
+  // was heard before, and the user may have renamed it since.
+  const heardTitle = useRef<string | undefined | null>(null);
+  const agentTitle = state.status?.sessionTitle;
+  useEffect(() => {
+    if (!state.attached) return;
+    if (heardTitle.current === null) {
+      heardTitle.current = agentTitle;
+      return;
+    }
+    if (agentTitle === undefined || agentTitle === heardTitle.current) return;
+    heardTitle.current = agentTitle;
+    renameSession(agentTitle);
+  }, [state.attached, agentTitle, renameSession]);
   // The effect that hears a sign-in end runs once, so it reads the latest list from here.
   const harnessesRef = useRef<HarnessInfo[]>([]);
   harnessesRef.current = harnesses;
@@ -183,10 +317,11 @@ export default function App() {
         (attachment) => {
           setAttachFailed(false);
           dispatch({ type: "attached", attachment });
+          loadMeta();
         },
         () => setAttachFailed(true),
       ),
-    [],
+    [loadMeta],
   );
 
   const heardChoice = useCallback((harness: Harness) => {
@@ -229,11 +364,18 @@ export default function App() {
       setLoginNote(ok ? strings.login.done(name) : strings.login.failed(name));
       if (ok) void listHarnesses();
     });
+    // The Agents page opened a saved session in this tab: show it.
+    const stopRestored = rpc.onRestored(() => {
+      setHistoryOpen(false);
+      void attach();
+      void listHarnesses();
+    });
     return () => {
       stop();
       stopChosen();
       stopModels();
       stopLogin();
+      stopRestored();
     };
   }, [attach, heardChoice, heardStatus, listHarnesses]);
 
@@ -256,13 +398,73 @@ export default function App() {
   );
   const skillList = skillCommands(reportedCommands, running ?? chosen ?? "claude");
 
+  // A tab with no session yet takes the harness and model last picked; one
+  // that reattaches to its own session keeps what that session chose.
+  const restored = useRef(false);
+  useEffect(() => {
+    if (!state.attached || restored.current) return;
+    restored.current = true;
+    const { harness, model } = loadPrefs();
+    if (state.status !== null || harness === undefined) return;
+    rpc.choose(harness, model ?? null).then(
+      () => {
+        heardChoice(harness);
+        void listHarnesses();
+      },
+      () => {},
+    );
+  }, [state.attached, state.status, heardChoice, listHarnesses]);
+
+  // Pasted pictures are read to base64 here and travel with the next prompt.
+  const addImages = useCallback(async (files: File[]) => {
+    const read = await Promise.all(
+      files.map(
+        (file) =>
+          new Promise<rpc.PastedImage | null>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const url = String(reader.result);
+              resolve({
+                id: crypto.randomUUID(),
+                mime: file.type,
+                data: url.slice(url.indexOf(",") + 1),
+              });
+            };
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(file);
+          }),
+      ),
+    );
+    setImages((now) => [...now, ...read.filter((i): i is rpc.PastedImage => i !== null)]);
+  }, []);
+
+  // Prompts typed while the agent works, sent one by one as each turn ends.
+  const [queue, setQueue] = useState<QueuedPrompt[]>([]);
+  const queuedSent = useRef(false);
+
   const submit = useCallback(
-    (text: string, retry = false) => {
-      if (text.trim() === "" && (retry || chips.length === 0)) return;
+    (text: string, retry = false, queued?: QueuedPrompt) => {
+      const heldChips = queued?.chips ?? chips;
+      const heldImages = queued?.images ?? images;
+      if (text.trim() === "" && (retry || (heldChips.length === 0 && heldImages.length === 0)))
+        return;
       setNotice(null);
       if (/^\/skills(?:\s|$)/.test(text.trim())) {
         setDraft("/skills ");
         setMenuClosedFor(null);
+        return;
+      }
+      // Naming the chat is this tab's own, whatever the agent offers: the name
+      // belongs to the tab, not to the agent's session.
+      const own = /^\/rename(?:\s+([\s\S]*))?$/.exec(text.trim());
+      if (own) {
+        setDraft("");
+        const argument = (own[1] ?? "").trim();
+        if (argument === "") setLoginNote(strings.rename.usage);
+        else {
+          renameSession(argument);
+          setLoginNote(strings.rename.done(argument.replace(/\s+/g, " ").slice(0, 100)));
+        }
         return;
       }
       if (commandSupport(text, reportedCommands, running ?? chosen ?? "claude") === "terminal") {
@@ -282,11 +484,13 @@ export default function App() {
         )
       ) {
         setDraft("");
-        if (["/clear", "/new", "/reset"].includes(command))
+        if (["/clear", "/new", "/reset"].includes(command)) {
+          // A fresh conversation starts unnamed.
+          setChatName(null);
           void rpc
             .reset()
             .catch((err: unknown) => setNotice(noticeOf(err, strings.failed.setting, current)));
-        else if (command === "/stop") void rpc.cancel().catch(() => {});
+        } else if (command === "/stop") void rpc.cancel().catch(() => {});
         else if (command === "/help") setLoginNote(strings.help);
         else if (command === "/btw") askSide(args.join(" "));
         else if (
@@ -322,9 +526,10 @@ export default function App() {
         return;
       }
       // A cluster's chip is still being copied: sending now would leave it out.
-      if (!retry && capturing > 0) return;
+      if (!retry && !queued && capturing > 0) return;
       setLoginNote(null);
-      const sentChips = retry ? [] : chips;
+      const sentChips = retry ? [] : heldChips;
+      const sentImages = retry ? [] : heldImages;
       const ultra = ultracode && current?.harness === "claude";
       // Only a session about to start takes a mode; ask-first is where it starts anyway.
       const picked = running ? null : startMode(current, startModes);
@@ -335,15 +540,23 @@ export default function App() {
           effort !== null || ultra || mode !== undefined
             ? { effort, ultracode: ultra, ...(mode === undefined ? {} : { mode }) }
             : undefined,
+          sentImages,
         )
         .then(
           // Only if the box still holds what was sent: the user may have typed
           // on while it was in flight, and a Retry sends an older prompt.
           () => {
+            if (queued) return;
             setDraft((now) => (now === text ? "" : now));
             setChips((now) => now.filter((c) => !sentChips.includes(c)));
+            setImages((now) => now.filter((i) => !sentImages.includes(i)));
           },
-          (err: unknown) => setNotice(noticeOf(err, strings.failed.send, current)),
+          (err: unknown) => {
+            // A queued prompt that fails goes back in the box to be edited.
+            if (queued) setDraft((now) => (now === "" ? text : now));
+            queuedSent.current = false;
+            setNotice(noticeOf(err, strings.failed.send, current));
+          },
         );
     },
     [
@@ -353,13 +566,29 @@ export default function App() {
       status,
       askSide,
       chips,
+      images,
       capturing,
       reportedCommands,
       running,
       chosen,
       startModes,
+      setEffort,
+      setUltracode,
+      renameSession,
     ],
   );
+
+  useEffect(() => {
+    if (working) {
+      queuedSent.current = false;
+      return;
+    }
+    if (queuedSent.current || queue.length === 0) return;
+    const [next, ...rest] = queue;
+    queuedSent.current = true;
+    setQueue(rest);
+    submit(next.text, false, next);
+  }, [working, queue, submit]);
 
   // A harness and one of its models, `null` for the agent's default. The host
   // keeps the model for that harness's next session, and the menu checks it
@@ -368,6 +597,7 @@ export default function App() {
     setNotice(null);
     rpc.choose(harness as Harness, model).then(
       () => {
+        savePrefs({ harness: harness as Harness, model });
         heardChoice(harness as Harness);
         void attach();
         void listHarnesses();
@@ -401,9 +631,17 @@ export default function App() {
       },
     );
   };
-  const onMode = (modeId: string) => choose("mode", modeId, () => rpc.setMode(modeId));
-  const onConfig = (configId: string, value: string) =>
+  // What is picked in a running session is also what the next one starts with.
+  const onMode = (modeId: string) => {
+    if (status) savePrefs({ modes: { [status.harness]: modeId } });
+    choose("mode", modeId, () => rpc.setMode(modeId));
+  };
+  const onConfig = (configId: string, value: string) => {
+    const category = status?.config.find((o) => o.id === configId)?.category;
+    if (category === "thought_level") savePrefs({ effort: value });
+    else if (category === "model" && status) savePrefs({ harness: status.harness, model: value });
     choose({ option: configId }, value, () => rpc.setConfig(configId, value));
+  };
 
   // "/skills " opens the skill list as a search: what follows it narrows the
   // list by name or description, names first.
@@ -419,6 +657,19 @@ export default function App() {
     : matching(draft, offered(reportedCommands, running ?? chosen ?? "claude"));
   // The issue-link form covers both menus, so neither takes keys while it is open.
   const mentionOpen = issuePicker === null && mentions.query !== null && menuClosedFor !== draft;
+  // The frames on every canvas, fetched when the @ menu opens, so a canvas can be opened up.
+  const [canvasFrames, setCanvasFrames] = useState<MentionHit[]>([]);
+  const framesAsked = useRef(false);
+  useEffect(() => {
+    if (!mentionOpen || framesAsked.current) return;
+    framesAsked.current = true;
+    rpc.searchContext("", ["frame"]).then(
+      ({ items }) => setCanvasFrames(items),
+      () => {
+        framesAsked.current = false;
+      },
+    );
+  }, [mentionOpen]);
   const menuOpen =
     issuePicker === null &&
     !mentionOpen &&
@@ -471,10 +722,29 @@ export default function App() {
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === "Backspace" && draft === "" && chips.length) {
-      event.preventDefault();
-      setChips((now) => now.slice(0, -1));
-      return;
+    if (event.key === "Backspace") {
+      // Right after a reference, Backspace takes the whole chip, not its last letter.
+      const box = event.currentTarget;
+      const token =
+        box.selectionStart === box.selectionEnd
+          ? chipEndingAt(draft, box.selectionStart, chips)
+          : undefined;
+      if (token?.chip) {
+        event.preventDefault();
+        const gone = token.chip;
+        setDraft(draft.slice(0, token.start) + draft.slice(token.end));
+        setChips((now) => now.filter((c) => c !== gone));
+        setCaret(token.start);
+        requestAnimationFrame(() => prompt.current?.setSelectionRange(token.start, token.start));
+        return;
+      }
+      // In an empty box it takes the last skill, which sits ahead of the text.
+      const skill = [...chips].reverse().find((c) => !c.uri);
+      if (draft === "" && skill) {
+        event.preventDefault();
+        setChips((now) => now.filter((c) => c !== skill));
+        return;
+      }
     }
     if ((mentionOpen || menuOpen) && !event.nativeEvent.isComposing) {
       const count = navigable.length;
@@ -557,8 +827,19 @@ export default function App() {
       if (!event.repeat) pickStartMode(current.harness, next);
     } else if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
+      // While the agent waits on a question, typed text is its "Other" answer.
+      if (draft.trim() !== "" && !draft.startsWith("/") && answerOpenCard(draft.trim())) {
+        setDraft("");
+        return;
+      }
       if (!working || /^\/(btw|model|effort|login|clear|new|reset|stop|help)(?:\s|$)/.test(draft))
         submit(draft);
+      else if (draft.trim() !== "" || chips.length > 0 || images.length > 0) {
+        setQueue((now) => [...now, { id: crypto.randomUUID(), text: draft, chips, images }]);
+        setDraft("");
+        setChips([]);
+        setImages([]);
+      }
     }
   };
 
@@ -566,6 +847,14 @@ export default function App() {
     () => ({
       onAnswer: (itemId: string, optionId: string) =>
         rpc.answer(itemId, optionId).then(
+          () => undefined,
+          (err: unknown) => {
+            setNotice(noticeOf(err, strings.failed.send, session));
+            throw err;
+          },
+        ),
+      onQuestion: (itemId: string, outcome: QuestionOutcome) =>
+        rpc.answerQuestion(itemId, outcome).then(
           () => undefined,
           (err: unknown) => {
             setNotice(noticeOf(err, strings.failed.send, session));
@@ -663,12 +952,24 @@ export default function App() {
       prompt.current?.setSelectionRange(query.start, query.start);
     });
   };
-  const addChip = (hit: { uri: string; title: string; kind: string }) =>
-    setChips((now) =>
-      now.some((c) => c.id === hit.uri)
-        ? now
-        : [...now, { id: hit.uri, label: hit.title, kind: hit.kind, uri: hit.uri }],
-    );
+  /** Puts a reference's chip in the draft over `start..end`: the "@query" it answers, or the caret. */
+  const placeChip = (hit: ChipHit, start: number, end: number) => {
+    setMenuPath([]);
+    setMenuRow(0);
+    setContextScope(null);
+    if (chips.some((c) => c.id === hit.uri)) {
+      dropMention();
+      return;
+    }
+    const placed = insertChipToken(draft, start, end, hit.title);
+    setChips((now) => [...now, chipOf(hit)]);
+    setDraft(placed.text);
+    setCaret(placed.caret);
+    requestAnimationFrame(() => {
+      prompt.current?.focus();
+      prompt.current?.setSelectionRange(placed.caret, placed.caret);
+    });
+  };
   const pickMention = (uri: string) => {
     if (uri.startsWith("scope:")) {
       setContextScope(uri.slice(6));
@@ -693,20 +994,23 @@ export default function App() {
     }
     if (uri.startsWith("cluster:")) {
       // The "@query" goes now, so nothing typed while the transcript is copied is lost;
-      // the chip follows when the copy is ready.
+      // the chip follows where the "@" was when the copy is ready.
+      const at = mentions.query?.start ?? caret;
       dropMention();
       setCapturing((n) => n + 1);
       void rpc
         .clusterContext(uri.slice(8))
-        .then(addChip, () => setLoginNote(strings.mentions.failed))
+        .then(
+          (hit) => setChipLater(hit, at),
+          () => setLoginNote(strings.mentions.failed),
+        )
         .finally(() => setCapturing((n) => n - 1));
       return;
     }
-    const hit = [...mentions.items, ...sources.issues].find((h) => h.uri === uri);
+    const hit = [...mentions.items, ...canvasFrames, ...sources.issues].find((h) => h.uri === uri);
     if (!hit || !mentions.query) return;
     setLoginNote(null);
-    addChip(hit);
-    dropMention();
+    placeChip(hit, mentions.query.start, mentions.query.end);
   };
   // Before a session, the effort and, once discovery has listed them, the mode
   // are the tab's own, sent with the prompt that starts it.
@@ -738,6 +1042,18 @@ export default function App() {
   const empty = (label: string): MenuItem[] => [{ id: `empty:${label}`, label, disabled: true }];
   const byKind = (kinds: string[]) =>
     mentions.items.filter((h) => kinds.includes(h.kind)).map(contextItem);
+  // A canvas opens onto what is on it: the whole canvas first, then its frames.
+  const openable = (row: MenuItem): MenuItem => {
+    if (row.kind !== "canvas") return row;
+    const inside = canvasFrames.filter((f) => f.uri.startsWith(`${row.id}#`));
+    if (inside.length === 0) return row;
+    return {
+      ...row,
+      id: `canvas-group:${row.id}`,
+      children: [{ ...row, label: strings.wholeCanvas }, ...inside.map(contextItem)],
+    };
+  };
+  const canvasRows = byKind(["canvas"]).map(openable);
   const group = (id: string, label: string, kind: string, children: MenuItem[]): MenuItem => ({
     id,
     label,
@@ -784,14 +1100,14 @@ export default function App() {
     : [];
   const contextItems: MenuItem[] =
     mentions.query?.query || contextScope
-      ? [...named, ...mentions.items.map(contextItem)]
+      ? [...named, ...mentions.items.map(contextItem).map(openable)]
       : [
           group("design", strings.contextGroups.design, "design", [
             browse(
               "canvases",
               strings.contextGroups.canvases,
               "canvas",
-              byKind(["canvas"]),
+              canvasRows,
               "canvas",
               strings.searchCanvases,
             ),
@@ -803,12 +1119,13 @@ export default function App() {
               "frame",
               strings.searchFrames,
             ),
+            // Comments left on canvases, and Design Mode's; the viewers' are under Comments below.
             browse(
               "design-comments",
               strings.contextGroups.comments,
               "comment",
-              byKind(["design-comment", "comment"]),
-              "design-comment",
+              byKind(["canvas-comment", "design-comment"]),
+              "canvas-comment",
               strings.searchComments,
             ),
           ]),
@@ -852,7 +1169,7 @@ export default function App() {
             "comments",
             strings.contextGroups.comments,
             "comment",
-            byKind(["comment", "design-comment"]),
+            byKind(["comment", "canvas-comment", "design-comment"]),
             "comment",
             strings.searchComments,
           ),
@@ -897,6 +1214,13 @@ export default function App() {
             <S.Header
               state={status?.state ?? null}
               onSideChat={() => askSide("")}
+              // The shell's Alt+6, sent the way the bridge forwards any chord a
+              // frame swallows; the shell opens or closes its Agents window.
+              onAgents={() =>
+                void invoke("veistra/key", { key: "6", code: "Digit6", altKey: true }).catch(
+                  () => {},
+                )
+              }
               onHistory={() => {
                 setHistoryOpen((was) => !was);
                 if (!historyOpen) loadHistory();
@@ -925,6 +1249,7 @@ export default function App() {
                         .then(
                           (attachment) => {
                             dispatch({ type: "attached", attachment });
+                            loadMeta();
                             setHistoryOpen(false);
                             setNotice(null);
                             setDraft("");
@@ -940,6 +1265,7 @@ export default function App() {
               }
               onNewSession={() => {
                 setNotice(null);
+                setChatName(null);
                 void rpc.reset().catch(() => {});
               }}
             />
@@ -966,7 +1292,6 @@ export default function App() {
             <S.Composer
               ref={prompt}
               chips={chips}
-              onRemoveChip={(id) => setChips((now) => now.filter((c) => c.id !== id))}
               effortLevel={effortValue}
               auxiliary={
                 issuePicker ? (
@@ -977,17 +1302,17 @@ export default function App() {
                       dropMention();
                     }}
                     onAdd={(link) => {
-                      setChips((now) => [
-                        ...now.filter((c) => c.id !== link),
-                        {
-                          id: link,
-                          label: link.split("/").filter(Boolean).slice(-2).join("/"),
-                          kind: "issue",
-                          uri: link,
-                        },
-                      ]);
+                      const at = mentions.query ?? { start: caret, end: caret };
                       setIssuePicker(null);
-                      dropMention();
+                      placeChip(
+                        {
+                          uri: link,
+                          title: link.split("/").filter(Boolean).slice(-2).join("/"),
+                          kind: "issue",
+                        },
+                        at.start,
+                        at.end,
+                      );
                     }}
                   />
                 ) : undefined
@@ -996,12 +1321,25 @@ export default function App() {
               placeholder={working ? strings.promptBusy : strings.promptPlaceholder}
               onChange={(text, at) => {
                 setDraft(text);
+                // A reference whose token was typed over or cut is gone with it.
+                setChips((now) => {
+                  const kept = keptChips(text, now);
+                  return kept.length === now.length ? now : kept;
+                });
                 if (!text.includes("@")) setContextScope(null);
                 setCaret(at ?? text.length);
                 setMenuRow(0);
                 setMenuPath([]);
               }}
               onSelect={setCaret}
+              images={images}
+              queued={queue.map((q) => ({ id: q.id, text: q.text }))}
+              onUnqueue={(id) => setQueue((now) => now.filter((q) => q.id !== id))}
+              onRemoveImage={(id) => setImages((now) => now.filter((i) => i.id !== id))}
+              onReplaceImage={(id, image) =>
+                setImages((now) => now.map((i) => (i.id === id ? { ...i, ...image } : i)))
+              }
+              onPasteImages={(files) => void addImages(files)}
               onAttach={() => {
                 const at = prompt.current?.selectionStart ?? draft.length;
                 const prefix = at > 0 && !/\s/.test(draft[at - 1]) ? " @" : "@";

@@ -195,7 +195,7 @@ describe("the slot registry", () => {
     // "default", shown by the name the agent gives it.
     expect(await screen.findByRole("button", { name: "Context window 10% full" })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Agent settings/ }).textContent).toBe(
-      "Claude · Manual",
+      "Claude · Medium · Manual",
     );
   });
 

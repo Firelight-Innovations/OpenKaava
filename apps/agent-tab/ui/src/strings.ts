@@ -42,6 +42,7 @@ export const strings = {
   idle: "No session",
   loading: "Loading…",
   newSession: "New session",
+  agentsList: "Agents",
   newSessionHint: "Stop the agent and clear this conversation",
   history: {
     title: "Previous sessions",
@@ -130,11 +131,12 @@ export const strings = {
   searchSaved: "Search saved context…",
   /** The @ menu's heading while it searches one source. */
   scopeTitle: {
+    design: "Design",
     file: "Files",
     canvas: "Canvases",
     frame: "Frames",
     comment: "Comments",
-    "design-comment": "Design comments",
+    "canvas-comment": "Design comments",
     context: "Saved context",
   } as Record<string, string>,
   issues: {
@@ -177,8 +179,13 @@ export const strings = {
     stop: "Stop the current response",
     help: "Show available commands",
     btw: "Ask a side question",
+    rename: "Name this conversation",
   },
-  help: "Use /model to choose a harness and model, /effort to set reasoning, /btw for a side question, /clear for a new conversation, /stop to stop, and /login to sign in. Type @ to reference project files, designs, comments, or context. The agent’s commands also appear under / once connected.",
+  rename: {
+    usage: "Give the conversation a name with /rename followed by the name.",
+    done: (name: string) => `Session renamed to: ${name}`,
+  },
+  help: "Use /model to choose a harness and model, /effort to set reasoning, /rename to name the conversation, /btw for a side question, /clear for a new conversation, /stop to stop, and /login to sign in. Type @ to reference project files, designs, comments, or context. The agent’s commands also appear under / once connected.",
   mentions: {
     label: "Project context",
     searching: "Searching project context…",
@@ -225,9 +232,45 @@ export const strings = {
   you: "You",
   thinking: "Thinking",
   copy: "Copy",
+  viewImage: "View image",
+  closeImage: "Close",
+  agentTabName: "Agent",
+  wholeCanvas: "Whole canvas",
+  queuedLabel: "Queued",
+  unqueue: "Remove queued message",
+  markup: {
+    open: "Mark up image",
+    title: "Mark up image",
+    pen: "Pen",
+    rect: "Rectangle",
+    text: "Text",
+    undo: "Undo",
+    save: "Save",
+    colour: (hex: string) => `Colour ${hex}`,
+    width: (px: number) => `Stroke ${px}`,
+  },
+  removeImage: "Remove image",
   copied: "Copied",
-  copyTurn: "Copy the agent's text from this turn",
+  copyTurn: "Copy",
+  ago: (ms: number) => {
+    const minutes = Math.floor(ms / 60_000);
+    if (minutes < 1) return "just now";
+    if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days === 1 ? "" : "s"} ago`;
+  },
   working: "Working…",
+  validation: {
+    title: "Validating canvas topology",
+    running: "Checking frames, groups and labels…",
+    passed: "All checks passed",
+    failed: (n: number) => `${n} ${n === 1 ? "check" : "checks"} failed`,
+    unreadable: "The result could not be read",
+    warning: "Warning",
+    more: (n: number) => `and ${n} more`,
+  },
   tool: {
     pending: "Pending",
     inProgress: "Running",
@@ -257,6 +300,21 @@ export const strings = {
     answered: (name: string) => `Answered: ${name}`,
     cancelled: "Withdrawn",
     outside: "Refused: it named a file outside this worktree",
+  },
+  question: {
+    heading: "The agent is asking",
+    submit: "Submit",
+    skip: "Skip",
+    /** Under an open card whose questions take a typed answer. */
+    typeHint: "Or type your own answer below and send it.",
+    /** Under an open card with numbered choices. */
+    keysHint: "Press a number to pick.",
+    /** A free-text question's only way to answer. */
+    typeOnly: "Type your answer below and send it.",
+    typed: (text: string) => `“${text}”`,
+    skipped: "Skipped",
+    cancelled: "Withdrawn",
+    noAnswer: "No answer",
   },
   plan: {
     title: "Tasks",

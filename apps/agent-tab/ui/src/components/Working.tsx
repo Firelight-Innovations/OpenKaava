@@ -4,8 +4,7 @@ import type { WorkingProps } from "./types";
 import "./turns.css";
 
 /**
- * The line under a running turn, as Claude Code draws it: a turning spark in
- * veistra.com's ramp, what the agent is at, and how long the turn has run.
+ * The line under a running turn, as Claude Code draws it: four pulsing dots, what the agent is at, and how long the turn has run.
  */
 export function Working({ activity, since }: WorkingProps) {
   const [now, setNow] = useState(() => Date.now());
@@ -16,7 +15,12 @@ export function Working({ activity, since }: WorkingProps) {
   }, [since]);
   return (
     <div className="at-working" role="status">
-      <span className="at-working__spark" aria-hidden="true" />
+      <span className="at-working__spark" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+        <i />
+      </span>
       <span className="at-shimmer" data-live="">
         {activity ?? strings.working}
       </span>

@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { insertMention, mentionAt, mentionedUris, referenceParts, withChips } from "./mentions";
+import {
+  chipEndingAt,
+  chipSegments,
+  insertChipToken,
+  insertMention,
+  keptChips,
+  mentionAt,
+  mentionedUris,
+  referenceParts,
+  withChips,
+} from "./mentions";
 import type { ContextChip } from "./mentions";
 
 const skill = (command: string): ContextChip => ({
@@ -54,6 +64,54 @@ describe("skill and project context chips", () => {
       { text: "See https://example.com" },
     ]);
     expect(mentionedUris("See veistra://canvas/comments/1")).toEqual([]);
+  });
+});
+
+describe("chips in place in the draft", () => {
+  const design: ContextChip = {
+    id: "design",
+    label: "design",
+    kind: "canvas",
+    uri: "veistra://canvas/design",
+  };
+
+  it("sends each reference where its token sits, not at the front", () => {
+    expect(
+      withChips("Review the @design and the @Comment 1 and give me feedback", [design, reference]),
+    ).toBe(
+      "Review the [@design](<veistra://canvas/design>) and the " +
+        "[@Comment 1](<veistra://canvas/comments/1>) and give me feedback",
+    );
+  });
+
+  it("places a token at the caret, spaced off from the words around it", () => {
+    expect(insertChipToken("Review the  and more", 11, 11, "design")).toEqual({
+      text: "Review the @design and more",
+      caret: 18,
+    });
+    expect(insertChipToken("Review@des", 6, 10, "design")).toEqual({
+      text: "Review @design ",
+      caret: 15,
+    });
+  });
+
+  it("drops a reference whose token was edited away, and keeps skills", () => {
+    const chips = [design, reference, skill("$review")];
+    expect(keptChips("look at @design", chips)).toEqual([design, skill("$review")]);
+    expect(keptChips("look at @desXign", chips)).toEqual([skill("$review")]);
+  });
+
+  it("takes the longest label, and only at the start of a word", () => {
+    const short: ContextChip = { ...design, id: "d", label: "des", uri: "veistra://canvas/d" };
+    const parts = chipSegments("x@design @design", [short, design]);
+    expect(parts.filter((p) => p.chip).map((p) => [p.start, p.chip!.label])).toEqual([
+      [9, "design"],
+    ]);
+  });
+
+  it("finds the chip Backspace should take whole", () => {
+    expect(chipEndingAt("see @design now", 11, [design])?.start).toBe(4);
+    expect(chipEndingAt("see @design now", 10, [design])).toBeUndefined();
   });
 });
 

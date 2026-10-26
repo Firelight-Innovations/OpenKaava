@@ -36,6 +36,9 @@ shared by a group of components:
 - `composer.css`: Composer, Notice, SendButton, StopButton, ContextMeter and Picker.
 - `menu.css`: Menu and SessionList.
 
+Some components keep a stylesheet of their own beside them, such as `question.css` for
+QuestionCard, the agent's multiple-choice question.
+
 ## Rules for a component
 
 - Plain data and callbacks in. Keep only UI-local state, such as open or closed.

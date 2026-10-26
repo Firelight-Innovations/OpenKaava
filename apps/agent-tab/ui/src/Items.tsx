@@ -3,10 +3,30 @@
  * behind it: markdown, diffs, the copy button, an approval in flight. Nothing
  * here draws; every piece of DOM comes from `components/` through `useSlots()`.
  */
-import { useMemo, useState, type MouseEvent } from "react";
-import type { FileDiff, Harness, Hint, Item, ItemKind } from "./protocol.generated";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import type {
+  FileDiff,
+  Harness,
+  Hint,
+  Item,
+  ItemKind,
+  QuestionOutcome,
+  QuestionReply,
+} from "./protocol.generated";
 import { counts, lineDiff } from "./diff";
 import { renderMarkdown } from "./markdown";
+import {
+  complete,
+  current,
+  emptyReplies,
+  numberKey,
+  oneClick,
+  openCard,
+  pick,
+  registerOpen,
+  typeOther,
+  type OpenCard,
+} from "./questions";
 import { strings } from "./strings";
 import { useSlots } from "./components/registry";
 import type { DiffProps } from "./components/types";
@@ -16,6 +36,8 @@ type Kind<K extends ItemKind["kind"]> = Extract<ItemKind, { kind: K }>;
 export interface ItemActions {
   /** Rejects if the answer did not land, so the card can be answered again. */
   onAnswer: (itemId: string, optionId: string) => Promise<void>;
+  /** Answers a question card. Rejects if the answer did not land, as `onAnswer` does. */
+  onQuestion: (itemId: string, outcome: QuestionOutcome) => Promise<void>;
   /** Send again what the user asked before the error `itemId`. */
   onRetry: (itemId: string) => void;
   /** A hint as a sentence about `harness`, the one that raised it. */
@@ -45,6 +67,8 @@ export function ItemView({
       return <ToolItem tool={kind} />;
     case "approval":
       return <ApprovalItem id={item.id} approval={kind} onAnswer={actions.onAnswer} />;
+    case "question":
+      return <QuestionItem id={item.id} question={kind} onQuestion={actions.onQuestion} />;
     // The plan is pinned over the composer and the usage is the composer's
     // context ring, so neither repeats in the transcript.
     case "plan":
@@ -154,4 +178,106 @@ function answerText(approval: Kind<"approval">): string {
   if (approval.answer === "outside") return strings.approval.outside;
   const option = approval.options.find((o) => o.optionId === approval.answer);
   return strings.approval.answered(option?.name ?? approval.answer ?? "");
+}
+
+/**
+ * A question card. While open it is the card the number keys and the
+ * composer answer, if it is the newest open one (`questions.ts`). A single
+ * question with one pick is sent on the click; anything else waits for Submit.
+ */
+function QuestionItem({
+  id,
+  question,
+  onQuestion,
+}: {
+  id: string;
+  question: Kind<"question">;
+  onQuestion: ItemActions["onQuestion"];
+}) {
+  const S = useSlots();
+  const { questions, outcome } = question;
+  const [replies, setReplies] = useState<QuestionReply[]>(() => emptyReplies(questions));
+  const [sending, setSending] = useState(false);
+  const open = outcome === null;
+  const submit = !oneClick(questions);
+
+  const send = (sent: QuestionOutcome) => {
+    setSending(true);
+    onQuestion(id, sent).catch(() => setSending(false));
+  };
+  const answer = (next: QuestionReply[]) => send({ kind: "answered", replies: next });
+  const choose = (index: number, value: string) => {
+    const next = pick(questions, replies, index, value);
+    setReplies(next);
+    if (!submit) answer(next);
+  };
+
+  // The registered card reads the latest replies without registering again.
+  const latest = useRef({ replies, choose, answer });
+  latest.current = { replies, choose, answer };
+  const listening = open && !sending;
+  useEffect(() => {
+    if (!listening) return;
+    const card: OpenCard = {
+      pickNumber: (n) => {
+        const { replies: now, choose: pickIt } = latest.current;
+        const at = current(questions, now);
+        const choice = questions[at]?.choices[n];
+        if (!choice) return false;
+        pickIt(at, choice.value);
+        return true;
+      },
+      answerText: (text) => {
+        const now = latest.current.replies;
+        const next = typeOther(questions, now, current(questions, now), text);
+        if (next === null) return false;
+        setReplies(next);
+        if (!submit) latest.current.answer(next);
+        return true;
+      },
+    };
+    const unregister = registerOpen(card);
+    const onKey = (event: KeyboardEvent) => {
+      if (openCard() !== card) return;
+      const n = numberKey(event);
+      if (n !== null && card.pickNumber(n)) event.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      unregister();
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [listening, questions, submit]);
+
+  // Closed, the card shows what the host says was sent, not what was clicked.
+  const shown = outcome?.kind === "answered" ? outcome.replies : open ? replies : [];
+  return (
+    <S.QuestionCard
+      message={question.message}
+      questions={questions.map((q, i) => ({
+        header: q.header,
+        text: q.text,
+        choices: q.choices,
+        multi: q.multi,
+        other: q.other,
+        picks: shown[i]?.picks ?? [],
+        typed: shown[i]?.other?.trim() || null,
+      }))}
+      open={open}
+      ended={
+        outcome?.kind === "skipped"
+          ? strings.question.skipped
+          : outcome?.kind === "cancelled"
+            ? strings.question.cancelled
+            : null
+      }
+      current={current(questions, replies)}
+      submit={submit}
+      ready={complete(questions, replies)}
+      sending={sending}
+      onPick={choose}
+      onSubmit={() => answer(replies)}
+      onSkip={() => send({ kind: "skipped" })}
+    />
+  );
 }

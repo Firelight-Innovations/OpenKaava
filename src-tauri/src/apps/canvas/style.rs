@@ -367,7 +367,7 @@ pub fn guidance_text(e: &Effective) -> String {
         e.style.guidance
     ));
     text.push_str(
-        "The person chose these in Settings, Canvas. Follow them over your own taste, and do not \
+        "The person chose these in Settings, Design. Follow them over your own taste, and do not \
          change them yourself. `canvas/set-design` is for when the person asks.\n",
     );
     text

@@ -563,6 +563,24 @@ export function onAgentTabLogin(cb: (payload: unknown) => void): Promise<Unliste
   return listen<unknown>(AGENT_TAB_LOGIN, (e) => cb(e.payload));
 }
 
+/** The event Rust sends a tab a saved session was opened in from elsewhere,
+ *  such as the Agents page (`apps::agent_tab::RESTORED`). Payload is `{ instanceId }`. */
+export const AGENT_TAB_RESTORED = "agent-tab:restored";
+
+/** Hear that a saved session was opened in a tab, to relay to that tab. */
+export function onAgentTabRestored(cb: (payload: unknown) => void): Promise<UnlistenFn> {
+  return listen<unknown>(AGENT_TAB_RESTORED, (e) => cb(e.payload));
+}
+
+/** The event Rust emits after a saved agent session was written or archived
+ *  (`apps::agent_tab::HISTORY`). Payload is `{}`. */
+export const AGENT_TAB_HISTORY = "agent-tab:history";
+
+/** Hear that the saved agent sessions changed, to list them again. */
+export function onAgentTabHistory(cb: () => void): Promise<UnlistenFn> {
+  return listen<unknown>(AGENT_TAB_HISTORY, () => cb());
+}
+
 /** A project's `.veistra/icon.*` as a `data:` URL, or `null` for "draw the
  *  letter tile". Mirrors `commands::project_icon`. */
 export function projectIcon(path: string): Promise<string | null> {

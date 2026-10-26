@@ -70,6 +70,7 @@ fn main() {
         ultracode: false,
         bearer: String::new(),
         blocks: Vec::new(),
+        forms: false,
     };
     if mock.has("--secret") {
         eprintln!("debug: token sk-ant-oat01-AbCdEf0123456789xyzAbCd for someone@example.com");
@@ -150,6 +151,8 @@ struct Mock {
     bearer: String,
     /// The type of each content block in the last prompt, in order.
     blocks: Vec<String>,
+    /// The client declared form elicitation at `initialize`.
+    forms: bool,
 }
 
 impl Mock {
@@ -396,6 +399,11 @@ impl Mock {
                 let version = self
                     .flag_value("--version")
                     .unwrap_or_else(|| "0.90.0".into());
+                // As Claude's adapter does, ask questions only of a client
+                // that declared form elicitation.
+                self.forms = params
+                    .pointer("/clientCapabilities/elicitation/form")
+                    .is_some();
                 // `--no-mcp-caps` leaves the MCP capabilities out altogether.
                 let caps = if self.has("--no-mcp-caps") {
                     json!({})
@@ -669,6 +677,46 @@ impl Mock {
                     Value::Null,
                     json!([]),
                 );
+            }
+            // AskUserQuestion, as Claude's adapter sends it: one question.
+            "question" | "questionwithdrawn" => {
+                if !self.forms {
+                    self.chunk("no forms", "m1");
+                    self.end_turn("end_turn");
+                    return;
+                }
+                self.waiting = Some(text.to_string());
+                self.send(&json!({
+                    "jsonrpc": "2.0", "id": "ask-1", "method": "elicitation/create",
+                    "params": {
+                        "sessionId": "mock-1", "toolCallId": "t3", "mode": "form",
+                        "message": "How should the grapple let go?",
+                        "requestedSchema": { "type": "object", "properties": {
+                            "question_0": { "type": "string", "title": "Grapple", "oneOf": [
+                                { "const": "On button release", "title": "On button release" },
+                                { "const": "At the top of the swing", "title": "At the top of the swing" }
+                            ] },
+                            "question_0_custom": { "type": "string", "title": "Other" }
+                        } }
+                    }
+                }));
+                if text == "questionwithdrawn" {
+                    self.send(&json!({
+                        "jsonrpc": "2.0", "method": "$/cancel_request",
+                        "params": { "requestId": "ask-1" }
+                    }));
+                    self.waiting = None;
+                    self.end_turn("end_turn");
+                }
+            }
+            // A URL elicitation, which the client never declared.
+            "questionurl" => {
+                self.waiting = Some(text.to_string());
+                self.send(&json!({
+                    "jsonrpc": "2.0", "id": "ask-2", "method": "elicitation/create",
+                    "params": { "sessionId": "mock-1", "mode": "url", "message": "Sign in",
+                                "url": "https://example.com", "elicitationId": "e1" }
+                }));
             }
             "cancelreq" => {
                 self.ask(

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { Cluster } from "../contract";
 import ClusterStrip, { type ClusterStripProps } from "./ClusterStrip";
 
@@ -40,7 +40,10 @@ describe("ClusterStrip", () => {
     setup();
     const nav = screen.getByRole("navigation", { name: "Clusters" });
     expect(nav.querySelectorAll(".clusterstrip__badge")).toHaveLength(3);
-    expect(screen.getByRole("button", { name: /^godot-port/ }).textContent).toBe("GP");
+    expect(
+      screen.getByRole("button", { name: /^godot-port/ }).querySelector(".cluster-chip")
+        ?.textContent,
+    ).toBe("GP");
   });
 
   it("names each badge for the cluster and gives project · branch as the tooltip", () => {
@@ -109,10 +112,12 @@ describe("ClusterStrip", () => {
       ],
     });
     const withIcon = screen.getByRole("button", { name: /^auth/ });
-    expect(withIcon.textContent).toBe("🚀");
+    expect(withIcon.querySelector(".cluster-chip")?.textContent).toBe("🚀");
     expect(withIcon.querySelector(".cluster-chip")?.getAttribute("data-kind")).toBe("emoji");
     expect(withIcon.querySelector(".cluster-chip")?.getAttribute("data-icon-color")).toBe("blue");
-    expect(screen.getByRole("button", { name: /^billing/ }).textContent).toBe("BI");
+    expect(
+      screen.getByRole("button", { name: /^billing/ }).querySelector(".cluster-chip")?.textContent,
+    ).toBe("BI");
   });
 
   it("puts Change icon… in the right-click menu when a picker is wired", () => {
@@ -131,5 +136,58 @@ describe("ClusterStrip", () => {
     setup({ dragHandleForCluster: () => ({ onPointerDown, style: { cursor: "grab" } }) });
     fireEvent.pointerDown(screen.getByRole("button", { name: /^billing/ }));
     expect(onPointerDown).toHaveBeenCalled();
+  });
+
+  it("lists each cluster's open agents under its row and opens one on click", () => {
+    const onOpenAgent = vi.fn();
+    setup({
+      onOpenAgent,
+      agents: new Map([
+        [
+          "a",
+          [
+            { id: "agent-1", label: "Hammer fling", state: "working" as const },
+            { id: "agent-2", label: "Uppercut", state: "ready" as const },
+          ],
+        ],
+      ]),
+    });
+    const list = screen.getByRole("list", { name: "auth agents" });
+    expect(list.querySelectorAll("li")).toHaveLength(2);
+    expect(screen.queryByRole("list", { name: "billing agents" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Uppercut" }));
+    expect(onOpenAgent).toHaveBeenCalledWith("agent-2");
+  });
+
+  it("opens the agent menu on right-click of an agent row, and runs a live row on it", async () => {
+    const close = vi.fn();
+    setup({
+      agents: new Map([
+        ["a", [{ id: "agent-1", label: "Hammer fling", state: "working" as const }]],
+      ]),
+      agentMenu: { close },
+    });
+    expect(fireEvent.contextMenu(screen.getByRole("button", { name: "Hammer fling" }))).toBe(false);
+    expect(screen.getByRole("menu", { name: "Agent actions" })).not.toBeNull();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Fork Chat" }));
+    expect(close).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Close" }));
+    expect(close).toHaveBeenCalledWith("agent-1");
+    await waitFor(() => expect(screen.queryByRole("menu", { name: "Agent actions" })).toBeNull());
+  });
+
+  it("shows each cluster's branch beside its name", () => {
+    setup();
+    expect(screen.getByRole("button", { name: /^billing/ }).textContent).toContain("feat/billing");
+  });
+
+  it("folds away from its own button, and marks itself collapsed when told to", () => {
+    const onToggleCollapsed = vi.fn();
+    setup({ onToggleCollapsed });
+    fireEvent.click(screen.getByRole("button", { name: "Hide clusters" }));
+    expect(onToggleCollapsed).toHaveBeenCalledTimes(1);
+    cleanup();
+    setup({ collapsed: true, onToggleCollapsed });
+    expect(document.querySelector(".clusterstrip")?.hasAttribute("data-collapsed")).toBe(true);
   });
 });

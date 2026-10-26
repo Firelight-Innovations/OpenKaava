@@ -3,7 +3,8 @@
  * the window is told to focus once it is drawn.
  */
 import { describe, expect, it, vi } from "vitest";
-import { newAgent, openAgent, type AgentOpeners } from "./agentOpeners";
+import { emptyAgentTab, newAgent, openAgent, resumeAgent, type AgentOpeners } from "./agentOpeners";
+import type { AgentSession } from "./agentSessions";
 
 function window(over: Partial<AgentOpeners> = {}) {
   const calls: string[] = [];
@@ -20,6 +21,9 @@ function window(over: Partial<AgentOpeners> = {}) {
       return "new-tab";
     }),
     splitDirOnOpen: vi.fn(() => "row" as const),
+    resume: vi.fn(
+      async (tab: string, session: string) => void calls.push(`resume ${session} in ${tab}`),
+    ),
     report: vi.fn(),
     ...over,
   };
@@ -59,5 +63,54 @@ describe("newAgent", () => {
     await newAgent(w, "c2");
     expect(w.report).toHaveBeenCalled();
     expect(w.openInstance).not.toHaveBeenCalled();
+  });
+});
+
+describe("resumeAgent", () => {
+  it("opens the saved session in the cluster's empty agent tab, brought forward", async () => {
+    const { w, calls } = window();
+    await resumeAgent(w, "s1", "a3");
+    expect(calls).toEqual(["hide", "focus a3", "activate a3", "resume s1 in a3"]);
+    expect(w.openInstance).not.toHaveBeenCalled();
+  });
+
+  it("opens a new agent tab beside the active pane when none is empty", async () => {
+    const { w, calls } = window();
+    await resumeAgent(w, "s1", null);
+    expect(calls).toEqual(["hide", "open agent-tab p2", "focus new-tab", "resume s1 in new-tab"]);
+  });
+
+  it("reports a session that could not be opened", async () => {
+    const { w } = window({ resume: () => Promise.reject(new Error("busy")) });
+    await resumeAgent(w, "s1", "a3");
+    expect(w.report).toHaveBeenCalled();
+  });
+});
+
+describe("emptyAgentTab", () => {
+  const cluster = {
+    id: "c1",
+    name: "api",
+    tabs: [
+      { id: "a1", title: "Agent" },
+      { id: "a2", title: "Agent" },
+      { id: "a3", title: "Agent" },
+    ],
+  };
+
+  it("picks the first tab that never sent a prompt", () => {
+    const sessions = new Map<string, AgentSession>([
+      ["a1", { state: "ready", harness: "claude", prompt: "Fix it" }],
+      // Restored from history: no live agent, but a conversation all the same.
+      ["a2", { state: "none", harness: null, prompt: "An old question" }],
+    ]);
+    expect(emptyAgentTab(cluster, sessions)).toBe("a3");
+  });
+
+  it("has none to offer when every tab is in use, or there is no cluster", () => {
+    const busy: AgentSession = { state: "working", harness: "codex", prompt: "Go" };
+    const sessions = new Map(cluster.tabs.map((tab) => [tab.id, busy]));
+    expect(emptyAgentTab(cluster, sessions)).toBeNull();
+    expect(emptyAgentTab(undefined, new Map())).toBeNull();
   });
 });

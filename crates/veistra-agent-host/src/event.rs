@@ -166,6 +166,20 @@ pub enum ItemKind {
         /// because a path left the worktree), or `None` while waiting.
         answer: Option<String>,
     },
+    /// The agent asked the user one or more questions, each with choices or
+    /// free text: ACP's form `elicitation/create`, which Claude's
+    /// AskUserQuestion, Codex's `request_user_input` and any MCP server's form
+    /// elicitation all arrive as. The turn is paused until this completes.
+    Question {
+        /// The agent's own line: for one question, the question itself.
+        message: String,
+        /// The tool call this is about, when the agent named one.
+        tool_call_id: Option<String>,
+        /// What it asks, in the agent's order.
+        questions: Vec<Question>,
+        /// How it was answered, or `None` while waiting.
+        outcome: Option<QuestionOutcome>,
+    },
     /// The agent's plan, replaced in place as it changes.
     Plan {
         /// The steps.
@@ -265,6 +279,69 @@ pub struct ApprovalOption {
     /// The agent's own label, shown as it is: only the agent knows what, say,
     /// its "always" saves to.
     pub name: String,
+}
+
+/// One question on a question card.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct Question {
+    /// The form field it answers. Only the host reads it.
+    pub id: String,
+    /// A short label above the question (Claude's `header`), if any.
+    pub header: Option<String>,
+    /// The question, or `None` when the card's `message` is the question.
+    pub text: Option<String>,
+    /// The choices, in the agent's order. Empty for a free-text question.
+    pub choices: Vec<QuestionChoice>,
+    /// Several choices may be picked.
+    pub multi: bool,
+    /// The user may type an answer of their own.
+    pub other: bool,
+}
+
+/// One choice of a [`Question`].
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct QuestionChoice {
+    /// What to send back to pick it.
+    pub value: String,
+    /// The agent's label for it.
+    pub label: String,
+    /// The agent's longer description, if it gave one.
+    pub description: Option<String>,
+}
+
+/// The user's answer to one [`Question`], in the card's order.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct QuestionReply {
+    /// The values of the choices picked: one at most unless `multi`.
+    pub picks: Vec<String>,
+    /// What the user typed instead, or as well for a multi-select.
+    pub other: Option<String>,
+}
+
+/// How a question card ended.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum QuestionOutcome {
+    /// The user answered.
+    Answered {
+        /// One reply per question, in the card's order.
+        replies: Vec<QuestionReply>,
+    },
+    /// The user chose not to answer. The agent is told so and carries on.
+    Skipped,
+    /// The turn was stopped, the agent withdrew the question, or it exited.
+    Cancelled,
 }
 
 /// One step of a plan.
@@ -417,6 +494,11 @@ pub struct SessionStatus {
     /// still starting. The transcript draws a prompt only when its turn
     /// begins, so this is how the tab shows it meanwhile, and Stop withdraws it.
     pub pending_prompt: Option<String>,
+    /// The name the agent gave the conversation, as `session_info_update`
+    /// reported it. Absent until it does; a later report replaces it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
+    pub session_title: Option<String>,
 }
 
 /// A setting change the agent has not settled.
@@ -510,6 +592,10 @@ mod tests {
             ShowMarker::decl(&cfg),
             ShowFailure::decl(&cfg),
             ApprovalOption::decl(&cfg),
+            Question::decl(&cfg),
+            QuestionChoice::decl(&cfg),
+            QuestionReply::decl(&cfg),
+            QuestionOutcome::decl(&cfg),
             PlanEntry::decl(&cfg),
             SessionState::decl(&cfg),
             Hint::decl(&cfg),

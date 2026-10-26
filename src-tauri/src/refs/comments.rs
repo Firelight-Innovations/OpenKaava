@@ -84,7 +84,7 @@ pub fn list(
         }
     }
     if from("canvas") {
-        rows.extend(canvas_rows(app, ctx, wanted, &mut problems));
+        rows.extend(canvas_rows(app, ctx, Actor::Agent, wanted, &mut problems));
     }
     if from("design") {
         rows.extend(design_rows(app, wanted));
@@ -125,6 +125,12 @@ fn viewer_rows(all: Vec<crate::comments::Comment>, wanted: Wanted) -> Vec<Value>
         .collect()
 }
 
+/// The open comments on every canvas, as rows, for the @-mention search.
+/// A canvas that cannot be read is left out rather than failing the search.
+pub(super) fn open_canvas_rows(app: &AppHandle, ctx: &CallContext, actor: Actor) -> Vec<Value> {
+    canvas_rows(app, ctx, actor, Wanted::Open, &mut Vec::new())
+}
+
 /// Every canvas's comments. A canvas lists the comments on its split frames'
 /// children too, so a child that is also listed on its own is not counted twice.
 /// A canvas, or a comment, whose file leads outside the project is skipped
@@ -132,10 +138,11 @@ fn viewer_rows(all: Vec<crate::comments::Comment>, wanted: Wanted) -> Vec<Value>
 fn canvas_rows(
     app: &AppHandle,
     ctx: &CallContext,
+    actor: Actor,
     wanted: Wanted,
     problems: &mut Vec<String>,
 ) -> Vec<Value> {
-    let listed = match live::canvas_call(app, ctx, Actor::Agent, "canvas/frames", json!({})) {
+    let listed = match live::canvas_call(app, ctx, actor, "canvas/frames", json!({})) {
         Ok(listed) => listed,
         Err(e) => {
             problems.push(format!("canvases: {e}"));
@@ -166,7 +173,7 @@ fn canvas_rows(
         .filter(|id| inside(id, None))
     {
         let asked = json!({ "id": id, "status": wanted.name() });
-        match live::canvas_call(app, ctx, Actor::Agent, "canvas/list-comments", asked) {
+        match live::canvas_call(app, ctx, actor, "canvas/list-comments", asked) {
             Ok(answer) => answers.push(answer),
             Err(e) => problems.push(format!("canvas `{id}`: {e}")),
         }

@@ -36,6 +36,19 @@ export function clipPrompt(text: string): string {
   return flat.length > PROMPT_CHARS ? `${flat.slice(0, PROMPT_CHARS - 1)}…` : flat;
 }
 
+/** What an agent tab is called before it has anything to be named for: the tab's own `strings.agentTabName`. */
+const DEFAULT_TAB_NAME = "Agent";
+
+/**
+ * The name an agent tab's session goes by, or `null` while it has none. The
+ * tab is named for its session, the name the user gave it or else what was
+ * first asked, so a title other than the default is that name, and a list of
+ * sessions shows it in place of the latest prompt.
+ */
+export function agentName(title: string): string | null {
+  return title !== "" && title !== DEFAULT_TAB_NAME ? title : null;
+}
+
 /** One cluster's agent tabs, in layout order. */
 export interface AgentCluster {
   id: string;

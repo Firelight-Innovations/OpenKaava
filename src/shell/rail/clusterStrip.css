@@ -1,32 +1,73 @@
 /*
- * The cluster strip at the top of the rail's 44px column.
- *
- * 28px badges (`--control-md`) centred in the column, so each has 8px either
- * side. The strip has no ground of its own: it sits inside the rail card
- * (`.frame__side`), the same as the page icons below it.
+ * The cluster list at the top of the rail: a heading, a row per cluster, and the
+ * agent tabs open in each cluster nested under its row. It has no ground of its
+ * own: it sits inside the rail card (`.frame__side`).
  */
 
 .clusterstrip {
   flex: none;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 4px;
   width: 100%;
-  padding: 6px 0 0;
+  min-height: 0;
+  padding: 10px 8px 8px;
+  box-sizing: border-box;
+}
+
+.clusterstrip__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.clusterstrip__fold {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--txt-tertiary);
+  cursor: pointer;
+}
+
+.clusterstrip__fold:hover {
+  background: var(--bg-layer-1-hover);
+  color: var(--txt-primary);
+}
+
+.clusterstrip__fold:focus-visible {
+  outline: var(--focus-ring);
+}
+
+/* Folded: nothing drawn, and the column is given back (`frame.css`). */
+.clusterstrip[data-collapsed] {
+  display: none;
+}
+
+.clusterstrip__heading {
+  margin: 0;
+  padding: 2px 8px 6px;
+  font: 600 11px/1 var(--sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt-tertiary);
 }
 
 .clusterstrip__list {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
+  gap: 6px;
   width: 100%;
-  /* A window with a dozen clusters scrolls this rather than pushing the page
-     icons off the bottom of the rail. The scrollbar is hidden: the badges are
-     the affordance, and a 44px column has no room for a track. */
-  max-height: min(240px, 40vh);
-  padding: 4px 0;
+  flex: 0 1 auto;
+  min-height: 0;
+  padding: 0;
+  /* A window with a dozen clusters scrolls this rather than pushing the New
+     cluster row off the bottom. The scrollbar is hidden. */
   overflow-y: auto;
   scrollbar-width: none;
 }
@@ -35,23 +76,127 @@
   display: none;
 }
 
+.clusterstrip__group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .clusterstrip__badge {
   position: relative;
   flex: none;
-  width: var(--control-md, 28px);
-  height: var(--control-md, 28px);
-  padding: 0;
-  border: 1px solid var(--border-subtle-1);
-  border-radius: 7px;
-  background: var(--bg-layer-1);
-  color: var(--txt-secondary);
-  font: 600 10.5px/1 var(--sans);
-  letter-spacing: 0.02em;
-  cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--txt-secondary);
+  font: 600 14px/1.2 var(--sans);
+  text-align: left;
+  cursor: pointer;
   user-select: none;
+}
+
+.clusterstrip__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--txt-primary);
+}
+
+.clusterstrip__branch {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 400 12px/1 var(--sans);
+  color: var(--txt-tertiary);
+}
+
+.clusterstrip__agents {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clusterstrip__agent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px 6px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--txt-primary);
+  font: 400 13.5px/1.2 var(--sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.clusterstrip__agent:hover {
+  background: var(--bg-layer-1-hover);
+}
+
+.clusterstrip__agent:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.clusterstrip__agentname {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clusterstrip__agentdot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.clusterstrip__agent[data-state="none"] .clusterstrip__agentdot,
+.clusterstrip__agent[data-state="stopped"] .clusterstrip__agentdot {
+  background: var(--txt-tertiary);
+}
+
+.clusterstrip__agent[data-state="needsInput"] .clusterstrip__agentdot {
+  background: var(--warn);
+}
+
+.clusterstrip__agent[data-state="failed"] .clusterstrip__agentdot {
+  background: var(--txt-danger, #f4a49c);
+}
+
+.clusterstrip__mono {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--bg-layer-2);
+  color: var(--txt-secondary);
+  font: 600 11px/1 var(--sans);
+  letter-spacing: 0.02em;
+}
+
+/* The open cluster's mark takes the accent, as the website's list does. */
+.clusterstrip__badge[data-active] .clusterstrip__mono:not([data-icon-color]) {
+  background: var(--accent);
+  color: var(--txt-on-accent, #fff);
 }
 
 .clusterstrip__badge:hover {
@@ -70,31 +215,18 @@
   color: var(--txt-info, #a3c1ff);
 }
 
-/* The open cluster: a stronger fill and the accent edge, drawn in the 8px
-   between the badge and the column's own edge so it reads as a tab marker. */
+/* The open cluster: a stronger fill. */
 .clusterstrip__badge[data-active] {
-  background: var(--bg-layer-2);
-  border-color: var(--border-strong);
+  background: var(--bg-layer-1);
   color: var(--txt-primary);
-}
-
-.clusterstrip__badge[data-active]::before {
-  content: "";
-  position: absolute;
-  left: -8px;
-  top: 6px;
-  bottom: 6px;
-  width: 3px;
-  border-radius: 0 2px 2px 0;
-  background: var(--accent);
 }
 
 /* An agent finished in a cluster you are not in. The same dot the rail's page
    buttons wear, on the same ring, so the two read as one language. */
 .clusterstrip__dot {
   position: absolute;
-  right: -3px;
-  top: -3px;
+  right: 4px;
+  top: 4px;
   width: 7px;
   height: 7px;
   border-radius: 4px;
@@ -106,8 +238,8 @@
 /* The cluster's worktree folder is gone from disk. */
 .clusterstrip__warn {
   position: absolute;
-  right: -3px;
-  bottom: -3px;
+  right: 4px;
+  bottom: 4px;
   width: 7px;
   height: 7px;
   border-radius: 4px;
@@ -131,28 +263,23 @@
 
 .clusterstrip__add {
   flex: none;
-  width: var(--control-md, 28px);
-  height: 22px;
-  padding: 0;
-  border: 1px dashed var(--border-subtle-1);
-  border-radius: 7px;
-  background: transparent;
-  color: var(--txt-tertiary);
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 30px;
+  margin-top: 4px;
+  padding: 0;
+  border: 1px dashed var(--border-subtle-1);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--txt-tertiary);
+  font: 500 12.5px/1 var(--sans);
   cursor: pointer;
 }
 
 .clusterstrip__add:hover {
   color: var(--txt-primary);
   background: var(--bg-layer-1-hover);
-}
-
-.clusterstrip__divider {
-  flex: none;
-  align-self: stretch;
-  height: 1px;
-  margin: 4px 8px 2px;
-  background: var(--border-subtle-1);
 }

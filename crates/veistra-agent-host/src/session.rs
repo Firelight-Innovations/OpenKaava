@@ -30,8 +30,10 @@ use std::time::{Duration, Instant};
 use serde_json::{json, Value};
 
 use crate::config::{self, Settings};
+use crate::elicit::{self, Form};
 use crate::event::{
-    Attachment, Envelope, Event, Hint, Item, ItemKind, SessionState, SessionStatus, SettingTrouble,
+    Attachment, Envelope, Event, Hint, Item, ItemKind, QuestionOutcome, SessionState,
+    SessionStatus, SettingTrouble,
 };
 use crate::guard::{escapes, request_scope, Worktree};
 use crate::harness::{Harness, LaunchSpec};
@@ -182,10 +184,23 @@ struct Inner {
     silenced: bool,
 }
 
-/// An approval the user has not answered, and the agent request it answers.
+/// An approval or question the user has not answered, and the agent request
+/// it answers.
 struct Waiting {
     item_id: String,
     rpc: Id,
+    /// The form a question answers; `None` for a permission request.
+    form: Option<Form>,
+}
+
+impl Waiting {
+    /// The reply that withdraws it: each request has its own shape.
+    fn cancelled(&self) -> Value {
+        match self.form {
+            Some(_) => json!({ "action": "cancel" }),
+            None => cancelled(),
+        }
+    }
 }
 
 enum Line {
@@ -273,6 +288,7 @@ impl Session {
             exit_code: None,
             hint: None,
             pending_prompt: None,
+            session_title: None,
         };
         let shared = Arc::new(Shared {
             instance_id,
@@ -426,6 +442,27 @@ impl Session {
         let waiting = inner.approvals.remove(index);
         shared.send(wire::result(&waiting.rpc, selected(option_id)));
         shared.complete_approval(&mut inner, item_id, option_id);
+        shared.settle(&mut inner);
+        Ok(())
+    }
+
+    /// Answer the question card `item_id`. A pick it did not offer is
+    /// refused, and the card stays open.
+    pub(crate) fn reply(&self, item_id: &str, outcome: QuestionOutcome) -> Result<(), HostError> {
+        let shared = &self.shared;
+        let mut inner = shared.lock();
+        let index = inner
+            .approvals
+            .iter()
+            .position(|w| w.item_id == item_id && w.form.is_some())
+            .ok_or(HostError::UnknownApproval)?;
+        let result = match &inner.approvals[index].form {
+            Some(form) => form.response(&outcome)?,
+            None => return Err(HostError::UnknownApproval),
+        };
+        let waiting = inner.approvals.remove(index);
+        shared.send(wire::result(&waiting.rpc, result));
+        shared.complete_question(&mut inner, item_id, outcome);
         shared.settle(&mut inner);
         Ok(())
     }
@@ -740,15 +777,28 @@ impl Shared {
         let Some(mut item) = inner.transcript.get(item_id).cloned() else {
             return;
         };
-        if let ItemKind::Approval { answer: slot, .. } = &mut item.kind {
-            *slot = Some(answer.to_string());
+        match &mut item.kind {
+            ItemKind::Approval { answer: slot, .. } => *slot = Some(answer.to_string()),
+            // A question is only ever closed here unanswered.
+            ItemKind::Question { outcome, .. } => *outcome = Some(QuestionOutcome::Cancelled),
+            _ => {}
+        }
+        self.emit(inner, Event::ItemCompleted { item });
+    }
+
+    fn complete_question(&self, inner: &mut Inner, item_id: &str, answered: QuestionOutcome) {
+        let Some(mut item) = inner.transcript.get(item_id).cloned() else {
+            return;
+        };
+        if let ItemKind::Question { outcome, .. } = &mut item.kind {
+            *outcome = Some(answered);
         }
         self.emit(inner, Event::ItemCompleted { item });
     }
 
     fn close_approvals(&self, inner: &mut Inner, answer: &str) {
         for waiting in std::mem::take(&mut inner.approvals) {
-            self.send(wire::result(&waiting.rpc, cancelled()));
+            self.send(wire::result(&waiting.rpc, waiting.cancelled()));
             self.complete_approval(inner, &waiting.item_id, answer);
         }
         self.settle(inner);
@@ -1419,6 +1469,8 @@ impl Shared {
             Some(Incoming::Request { id, method, params }) => {
                 if method == "session/request_permission" {
                     self.permission(id, &params);
+                } else if method == "elicitation/create" {
+                    self.elicit(id, &params);
                 } else {
                     // We declared no file system and no terminal; anything
                     // else the agent asks for is not ours to do.
@@ -1441,11 +1493,16 @@ impl Shared {
                     let mode = inner.normalizer.take_mode();
                     let settings = inner.normalizer.take_settings();
                     let commands = inner.normalizer.take_commands();
-                    if mode.is_none() && settings.is_none() && commands.is_none() {
+                    let title = inner.normalizer.take_title();
+                    if mode.is_none() && settings.is_none() && commands.is_none() && title.is_none()
+                    {
                         return;
                     }
                     if let Some(commands) = commands {
                         inner.status.commands = commands;
+                    }
+                    if title.is_some() {
+                        inner.status.session_title = title;
                     }
                     if let Some(mode) = mode {
                         inner.show_mode(mode);
@@ -1545,7 +1602,40 @@ impl Shared {
         }
         let item_id = item.id.clone();
         self.emit(&mut inner, Event::ItemStarted { item });
-        inner.approvals.push(Waiting { item_id, rpc });
+        inner.approvals.push(Waiting {
+            item_id,
+            rpc,
+            form: None,
+        });
+        self.set_state(&mut inner, SessionState::NeedsInput);
+    }
+
+    /// An `elicitation/create`: the agent asks the user a question. Only the
+    /// form mode is declared, so anything else is declined unasked.
+    fn elicit(&self, rpc: Id, params: &Value) {
+        let mut inner = self.lock();
+        if inner.closed {
+            return;
+        }
+        let Some((card, form)) = elicit::read(params) else {
+            self.send(wire::result(&rpc, json!({ "action": "decline" })));
+            return;
+        };
+        if inner.approvals.len() >= MAX_PENDING_APPROVALS {
+            inner.normalizer.drop_one();
+            self.send(wire::result(&rpc, json!({ "action": "cancel" })));
+            return;
+        }
+        let events = inner.normalizer.close_text();
+        self.emit_all(&mut inner, events);
+        let item = inner.normalizer.question(card);
+        let item_id = item.id.clone();
+        self.emit(&mut inner, Event::ItemStarted { item });
+        inner.approvals.push(Waiting {
+            item_id,
+            rpc,
+            form: Some(form),
+        });
         self.set_state(&mut inner, SessionState::NeedsInput);
     }
 
@@ -1774,14 +1864,17 @@ fn ultra_reasoning(inner: &Inner) -> Option<String> {
 }
 
 /// `initialize`'s params, which every agent the host starts is sent. They
-/// declare no capability, so the agent never asks Veistra to read or write a
-/// file, run a command, or open a URL.
+/// declare no file system or terminal, so the agent never asks Veistra to
+/// read or write a file, run a command, or open a URL. They do declare form
+/// elicitation: it is how every agent asks the user a question, and Claude's
+/// adapter disallows its AskUserQuestion tool without it (see `elicit.rs`).
 pub(crate) fn hello() -> Value {
     json!({
         "protocolVersion": 1,
         "clientCapabilities": {
             "fs": { "readTextFile": false, "writeTextFile": false },
-            "terminal": false
+            "terminal": false,
+            "elicitation": { "form": {} }
         },
         "clientInfo": { "name": "veistra", "version": env!("CARGO_PKG_VERSION") }
     })
@@ -1946,6 +2039,7 @@ mod tests {
                 exit_code: None,
                 hint: None,
                 pending_prompt: None,
+                session_title: None,
             },
             session_id: None,
             mode_option: None,

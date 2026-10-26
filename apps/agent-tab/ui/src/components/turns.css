@@ -23,6 +23,15 @@
   opacity: 1;
 }
 
+.at-turn__actions {
+  align-items: center;
+}
+
+.at-turn__time {
+  padding-inline: var(--k-space-1);
+  font-variant-numeric: tabular-nums;
+}
+
 .at-turn__actions .k-btn {
   color: inherit;
   font-size: inherit;
@@ -44,21 +53,34 @@
   white-space: nowrap;
 }
 
-/* A ring in the effort ramp, a quarter of it missing, turning like a charge. */
+/* Four dots in a square, lit one after another like Claude Code's, in veistra.com's teal, blue, violet and coral. */
 .at-working__spark {
   flex-shrink: 0;
-  width: 12px;
-  height: 12px;
+  display: grid;
+  grid-template: repeat(2, 4px) / repeat(2, 4px);
+  gap: 3px;
+}
+
+.at-working__spark > i {
   border-radius: 50%;
-  background: conic-gradient(
-    transparent 0 25%,
-    var(--k-effort-low) 25%,
-    var(--k-effort-medium) 50%,
-    var(--k-effort-high) 75%,
-    var(--k-effort-max)
-  );
-  mask: radial-gradient(circle, transparent 3px, #000 3.5px);
-  animation: at-working-spin 900ms linear infinite;
+  background: var(--k-effort-low);
+  opacity: 0.25;
+  animation: at-working-dot 1200ms ease-in-out infinite;
+}
+
+.at-working__spark > i:nth-child(2) {
+  background: var(--accent-blue);
+  animation-delay: 300ms;
+}
+
+.at-working__spark > i:nth-child(4) {
+  background: var(--k-effort-high);
+  animation-delay: 600ms;
+}
+
+.at-working__spark > i:nth-child(3) {
+  background: var(--k-effort-max);
+  animation-delay: 900ms;
 }
 
 .at-working__clock {
@@ -66,14 +88,19 @@
   font-variant-numeric: tabular-nums;
 }
 
-@keyframes at-working-spin {
-  to {
-    rotate: 360deg;
+@keyframes at-working-dot {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  25% {
+    opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .at-working__spark {
+  .at-working__spark > i {
     animation: none;
+    opacity: 0.7;
   }
 }

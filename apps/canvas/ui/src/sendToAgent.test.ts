@@ -73,8 +73,8 @@ describe("what is put in the store", () => {
     expect(bridge.invoke).toHaveBeenCalledWith("context/put", {
       key: "canvas/World/selection",
       kind: "image",
-      title: "Canvas - World, 3 elements",
-      label: "Canvas - World",
+      title: "Design - World, 3 elements",
+      label: "Design - World",
       bytesBase64: "aGk=",
     });
   });
