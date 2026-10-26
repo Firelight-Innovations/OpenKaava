@@ -68,6 +68,15 @@ ignore = [
   "RUSTSEC-2025-0081",
   "RUSTSEC-2025-0098",
   "RUSTSEC-2025-0100",
+
+  # zbus_names, zvariant and zvariant_derive, reached through zbus ->
+  # tauri-plugin-opener's D-Bus backend for Linux and the BSDs. Added
+  # 2026-10-26. They were folded into zbus and are no longer published on their
+  # own, so no safe upgrade exists until zbus stops depending on them. Like the
+  # gtk-rs crates above, they are never compiled for Windows.
+  "RUSTSEC-2026-0370",
+  "RUSTSEC-2026-0371",
+  "RUSTSEC-2026-0372",
 ]
 
 [licenses]
