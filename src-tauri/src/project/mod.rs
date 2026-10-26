@@ -1,13 +1,13 @@
-//! What an OpenKaava project is, and which one is open.
+//! What a Veistra project is, and which one is open.
 //!
 //! A project is **a folder** — chosen, not defaulted to: a game is already a
 //! tree of files a person moves, copies and version-controls, and any other
 //! definition owes an answer for what happens when the folder moves without it.
 //!
-//! A folder becomes an *OpenKaava* project when it holds a `<name>.kaava` manifest —
-//! see [`marker`] for why that name and not `.kaava`. An un-marked folder still
-//! opens, so OpenKaava can be pointed at a game that exists today, before the
-//! format is finished, and "what happens when the `.kaava` format changes" is
+//! A folder becomes a *Veistra* project when it holds a `<name>.veistra` manifest —
+//! see [`marker`] for why that name and not `.veistra`. An un-marked folder still
+//! opens, so Veistra can be pointed at a game that exists today, before the
+//! format is finished, and "what happens when the `.veistra` format changes" is
 //! never answered with "it stops opening"; [`ProjectInfo::initialized`] tells
 //! the two apart, so the frontend can offer to set one up rather than refuse it.
 //!
@@ -22,7 +22,7 @@ pub mod icon;
 mod marker;
 mod store;
 
-/// Re-exported because `.kaava` is a wire format rather than a name (STANDARDS.md §7), so the one
+/// Re-exported because `.veistra` is a wire format rather than a name (STANDARDS.md §7), so the one
 /// literal belongs in one place. `review::store` writes inside this directory and would otherwise
 /// hold a second copy of the string to drift from this one.
 pub use marker::TRACE_DIR;
@@ -59,17 +59,17 @@ pub struct ProjectInfo {
     /// Here because it is the only handle that survives a rename or a move, and
     /// the first thing anything cross-referencing projects will want.
     pub id: Option<String>,
-    /// Whether a `<name>.kaava` manifest was found. `false` is a plain folder
-    /// OpenKaava has been pointed at — openable, and offered a setup.
+    /// Whether a `<name>.veistra` manifest was found. `false` is a plain folder
+    /// Veistra has been pointed at — openable, and offered a setup.
     pub initialized: bool,
     /// Whether the folder is still on disk. A recent entry can outlive the
     /// project it names — a moved folder, an unplugged drive — and a row that
     /// silently failed on click would be worse than one drawn as unavailable.
     pub exists: bool,
     /// The manifest's `format`. Greater than [`marker::FORMAT`] means a newer
-    /// OpenKaava wrote it and this build is reading it partially.
+    /// Veistra wrote it and this build is reading it partially.
     pub format: Option<i64>,
-    /// Milliseconds since the Unix epoch, when OpenKaava last opened it. `None` for
+    /// Milliseconds since the Unix epoch, when Veistra last opened it. `None` for
     /// a project opened for the first time this session.
     pub last_opened: Option<u64>,
     /// The folder's own mtime, in the same units. What *the work* last changed,
@@ -283,7 +283,7 @@ pub fn open(app: &AppHandle, path: &Path, cluster_id: &str) -> Result<ProjectSna
 }
 
 /// The auto-create half of the pinned Design canvas — see
-/// `KAAVA-UX-REWORK.md` §5. Only the *auto*-create half: a project with no
+/// `VEISTRA-UX-REWORK.md` §5. Only the *auto*-create half: a project with no
 /// `wt/design` worktree yet is left alone here, and is offered the canvas
 /// through a dialog instead (not part of this module — see the New Cluster
 /// / Design canvas UI). Silent on every kind of "cannot", the same way the
@@ -309,7 +309,7 @@ fn open_design_cluster_if_present(
     shell.add_design_cluster(app, &label, &path.display().to_string(), environment);
 }
 
-/// Make `dir` an OpenKaava project and open it in `cluster_id`.
+/// Make `dir` a Veistra project and open it in `cluster_id`.
 ///
 /// The project's name is the folder's, which is why this takes no name
 /// argument: the native folder picker already names a folder, and a second name
@@ -345,7 +345,7 @@ pub(crate) fn prepare_new_folder(dir: &Path) -> Result<Option<String>> {
 }
 
 /// Write a manifest into a folder that is already open without one — the "set
-/// this up as an OpenKaava project" action.
+/// this up as a Veistra project" action.
 ///
 /// Separate from [`create`] despite doing nearly the same thing, because the two
 /// answer differently when the folder is already a project: creating over one is
@@ -358,7 +358,7 @@ pub fn initialize(app: &AppHandle, dir: &Path, cluster_id: &str) -> Result<Proje
     open(app, dir, cluster_id)
 }
 
-/// Whether `dir` already has a `<name>.kaava` manifest.
+/// Whether `dir` already has a `<name>.veistra` manifest.
 ///
 /// For `project::create`'s land-the-code step: it needs to know, before it
 /// writes anything, whether a folder is already a project — "Open existing"
@@ -387,11 +387,11 @@ pub fn ensure_manifest(dir: &Path) -> Result<bool> {
     Ok(true)
 }
 
-/// Undo [`ensure_manifest`]: delete the manifest it wrote, and the `.kaava/`
+/// Undo [`ensure_manifest`]: delete the manifest it wrote, and the `.veistra/`
 /// trace directory beside it if `ensure_manifest`'s `marker::create` left it
 /// empty. Only called by `project::create`'s rollback, and only on a folder
 /// [`ensure_manifest`] itself just wrote into — never on one this run merely
-/// linked, whose manifest (if any) was already there before Kaava touched it.
+/// linked, whose manifest (if any) was already there before Veistra touched it.
 pub fn remove_manifest(dir: &Path) -> Result<()> {
     let Some(path) = marker::find(dir) else {
         return Ok(());
@@ -403,7 +403,7 @@ pub fn remove_manifest(dir: &Path) -> Result<()> {
 
     // Best-effort: `remove_dir` refuses a non-empty directory on its own, so
     // this is a no-op rather than a data-loss risk if anything (an agent
-    // trace, a design canvas) has already been written into `.kaava/`.
+    // trace, a design canvas) has already been written into `.veistra/`.
     let _ = std::fs::remove_dir(dir.join(TRACE_DIR));
     Ok(())
 }
@@ -428,7 +428,7 @@ pub fn close(app: &AppHandle, cluster_id: &str) -> ProjectSnapshot {
 }
 
 /// Drop one entry from the Recent list. Deletes nothing on disk — this is the
-/// history forgetting a project, not OpenKaava removing one.
+/// history forgetting a project, not Veistra removing one.
 ///
 /// The Recent list is global, so this is too: forgetting forgets everywhere,
 /// whichever cluster asked. `cluster_id` is only here so the snapshot handed
@@ -486,7 +486,7 @@ pub fn announce(app: &AppHandle, cluster_id: &str) {
 ///
 /// Every field but the cached name is read fresh on each call rather than
 /// stored: a project can be initialized, renamed, or deleted by something that
-/// is not OpenKaava, and a Recent list reporting its own last belief instead of the
+/// is not Veistra, and a Recent list reporting its own last belief instead of the
 /// disk's would be confidently wrong in exactly the cases that matter.
 fn describe(path: &Path, cached_name: Option<&str>, last_opened: Option<u64>) -> ProjectInfo {
     let exists = path.is_dir();
@@ -579,7 +579,7 @@ mod tests {
 
     #[test]
     fn a_new_project_folder_gets_a_manifest_and_a_repository() {
-        let dir = std::env::temp_dir().join(format!("kaava-newproj-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("veistra-newproj-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let notice = prepare_new_folder(&dir).unwrap();
@@ -595,7 +595,7 @@ mod tests {
 
     #[test]
     fn a_new_project_inside_an_existing_repository_is_not_given_a_second_one() {
-        let outer = std::env::temp_dir().join(format!("kaava-newproj-in-{}", std::process::id()));
+        let outer = std::env::temp_dir().join(format!("veistra-newproj-in-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&outer);
         let inner = outer.join("sub");
         std::fs::create_dir_all(&inner).unwrap();

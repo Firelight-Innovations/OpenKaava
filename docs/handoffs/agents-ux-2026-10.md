@@ -8,9 +8,9 @@ sessions run at the same time:
 
 - **UI/UX rework to match marketing copy** (local, worktree `.claude/worktrees/veistra-sidebar`):
   shell chrome, sidebar, rail.
-- **Rename OpenKaava to Veistra** (remote, branch `claude/loving-hamilton-nfdkbr`): every
-  identifier, including `crates/kaava-agent-host` -> `crates/veistra-agent-host` and
-  `apps/agent-tab/ui/src/kaava-show.generated.ts` -> `veistra-show.generated.ts`.
+- **Rename Veistra to Veistra** (remote, branch `claude/loving-hamilton-nfdkbr`): every
+  identifier, including `crates/veistra-agent-host` -> `crates/veistra-agent-host` and
+  `apps/agent-tab/ui/src/veistra-show.generated.ts` -> `veistra-show.generated.ts`.
 
 ## Claimed by this session
 
@@ -20,7 +20,7 @@ sessions run at the same time:
 - `src/shell/rail/AgentsPage.tsx`, `AgentsPage.test.tsx`, `agentspage.css`
 - `src/shell/toolwindow/agentTabFrames.ts`
 - `src/agent-tokens.css`
-- Backend, for slash commands and `/login`: `crates/kaava-agent-host/src/{event,normalize,session,host}.rs`,
+- Backend, for slash commands and `/login`: `crates/veistra-agent-host/src/{event,normalize,session,host}.rs`,
   `src-tauri/src/apps/agent_tab.rs`, `docs/agent-harnesses.md`
 - One added line each in `src/bindings.ts` and `src/shell/toolwindow/ToolWindow.tsx`, to relay the
   `agent-tab:login` event to the tab that asked
@@ -34,7 +34,7 @@ so `WindowRoot.tsx` and `titlebar.css` now include that small addition.
 ## Rename
 
 The rename changes almost nothing inside the claimed files. This branch rebases onto the rename once
-it merges. Until then, new identifiers keep the existing `kaava` spelling, so the rename's search
+it merges. Until then, new identifiers keep the existing `veistra` spelling, so the rename's search
 and replace still catches them.
 
 ## Agent composer update, 2026-10-25

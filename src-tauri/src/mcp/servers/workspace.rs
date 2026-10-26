@@ -1,4 +1,4 @@
-//! Where the person is working, for any agent connected to OpenKaava.
+//! Where the person is working, for any agent connected to Veistra.
 //! An agent in a terminal pane cannot see the window around it; these three tools say which
 //! pane has focus, how panes are arranged, and which project each cluster is on.
 //!
@@ -13,7 +13,7 @@
 //! lives in the DOM, so each window's shell reports it to [`FocusState`]; `focus`
 //! takes who has focus from there, asks each window's page for what only the DOM
 //! knows (the way the `context` tool does), and falls back to the layout's active
-//! tabs when nothing has reported. The `kaava://workspace/focus` resource serves
+//! tabs when nothing has reported. The `veistra://workspace/focus` resource serves
 //! the same answer and is what a subscribed agent is told has changed.
 
 use super::McpResource;
@@ -21,10 +21,10 @@ use crate::devtools;
 use crate::layout::PaneNode;
 use crate::mcp::{FocusReport, FocusState, McpServer, McpTool, ToolAnswer};
 use crate::shell_state::{Cluster, ShellSnapshot, ShellState, SurfaceKind, WindowPlacement};
-use kaava_rpc::{RpcError, INTERNAL_ERROR, METHOD_NOT_FOUND};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, METHOD_NOT_FOUND};
 
 pub static SERVER: McpServer = McpServer {
     id: ID,
@@ -41,7 +41,7 @@ pub const ID: &str = "workspace";
 
 /// What an agent subscribes to in order to hear that focus moved. Reading it
 /// returns exactly what the `focus` tool does.
-pub const FOCUS_URI: &str = "kaava://workspace/focus";
+pub const FOCUS_URI: &str = "veistra://workspace/focus";
 
 pub static RESOURCES: &[McpResource] = &[McpResource {
     uri: FOCUS_URI,
@@ -110,14 +110,14 @@ fn call(app: &AppHandle, tool: &str, _params: Option<Value>) -> Result<ToolAnswe
 /// What one window's page says about focus.
 ///
 /// Evaluated in the page because the backend never learns where DOM focus is.
-/// `reports` come from `window.__kaavaContext`, which an app defines to say what
+/// `reports` come from `window.__veistraContext`, which an app defines to say what
 /// it is showing (the canvas app reports its open canvas and selection).
 const FOCUS_BODY: &str = r#"
 const a = deepActive();
 const apps = [];
 for (const f of document.querySelectorAll('iframe')) {
   let report = null;
-  try { const fn = f.contentWindow.__kaavaContext; report = typeof fn === 'function' ? fn() : null; } catch { report = null; }
+  try { const fn = f.contentWindow.__veistraContext; report = typeof fn === 'function' ? fn() : null; } catch { report = null; }
   apps.push({ instance: instanceOf(f), title: f.getAttribute('title'), focused: f === a.frame, visible: shown(f, document), report });
 }
 let text = '';
@@ -566,7 +566,7 @@ pub(super) fn focus_view(snapshot: &ShellSnapshot, pages: &Pages) -> Value {
     })
 }
 
-/// What the person has selected in one cluster, for `kaava://selection`: the
+/// What the person has selected in one cluster, for `veistra://selection`: the
 /// surfaces showing in it (with what each app reports, such as the canvas's
 /// selected shapes), the focused one, and the selected text.
 pub fn selection_in(app: &AppHandle, cluster: &str) -> Value {
@@ -603,7 +603,7 @@ pub(super) fn selection_view(snapshot: &ShellSnapshot, pages: &Pages, cluster: &
 fn hint(focus_in: &str, has_page: bool) -> &'static str {
     match (has_page, focus_in) {
         (false, _) => {
-            "OpenKaava is not the foreground window (or no page answered), so `focused` is \
+            "Veistra is not the foreground window (or no page answered), so `focused` is \
              empty. `visible` is each pane's active tab in the active cluster: the person's \
              last view."
         }

@@ -49,11 +49,11 @@ pub mod tutorial;
 use crate::plugins;
 use crate::project;
 use crate::shell_state::ShellState;
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, Manager};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 
 /// One app, as the switcher bar needs to see it.
 ///
@@ -142,7 +142,7 @@ impl CallContext {
     pub fn require_cluster(&self) -> Result<&str, RpcError> {
         self.cluster_id.as_deref().ok_or_else(|| {
             RpcError::new(
-                kaava_rpc::INTERNAL_ERROR,
+                veistra_rpc::INTERNAL_ERROR,
                 "there is no cluster to open a project in — this surface is not in one any more",
             )
         })
@@ -159,7 +159,7 @@ impl CallContext {
 /// that boundary because it is someone else's code on its own release cycle; an
 /// app is this code.
 ///
-/// `kaava/hello` never reaches one of these. The shell answers the handshake
+/// `veistra/hello` never reaches one of these. The shell answers the handshake
 /// itself in `ToolWindow.tsx` — it is the side that knows the session, and an
 /// app that had to reimplement the reply could get it wrong.
 type Dispatch = fn(&AppHandle, &CallContext, &str, Option<Value>) -> Result<Value, RpcError>;
@@ -173,7 +173,7 @@ struct Registered {
 
 /// Every app this build ships, in the order they appear in the switcher bar.
 ///
-/// Compiled in rather than declared in `kaava.toml`, because that manifest
+/// Compiled in rather than declared in `veistra.toml`, because that manifest
 /// answers a different question. It pins *other repositories* at versions this
 /// orchestrator expects, and every state it can report — needs update, not
 /// installed — is about a checkout that might not be there. An app is in the
@@ -248,7 +248,7 @@ const REGISTRY: &[Registered] = &[
                       checkout as canvas/<name>.json.",
         // Not `design`: that id is the feature-gated Design Mode app, which
         // points at a running page. This is the design canvas of
-        // `docs/KAAVA-UX-REWORK.md` §5, and it is always compiled in.
+        // `docs/VEISTRA-UX-REWORK.md` §5, and it is always compiled in.
         call: canvas::call_live,
     },
     Registered {
@@ -262,14 +262,14 @@ const REGISTRY: &[Registered] = &[
     Registered {
         id: "agents",
         name: "Agents",
-        description: "Agent machines in OpenKaava Cloud, their sessions, and what each one did.",
+        description: "Agent machines in Veistra Cloud, their sessions, and what each one did.",
         // Reads Google Cloud with the user's own gcloud login; see `cloud`.
         call: agents::call,
     },
     Registered {
         id: "costs",
         name: "Cost Tracker",
-        description: "What OpenKaava Cloud has cost this month at list price, and the forecast against its budget.",
+        description: "What Veistra Cloud has cost this month at list price, and the forecast against its budget.",
         // Read-only: inventory, Cloud Monitoring usage and the Billing Catalog.
         call: costs::call,
     },
@@ -279,7 +279,7 @@ const REGISTRY: &[Registered] = &[
         description: "Switch between projects, and open the shared Plane workspace for one.",
         // Reads `gs://veistra-projects` the same way Agents reads Google Cloud,
         // and — once a project is picked — wakes and embeds Plane CE. See
-        // `apps/projects.rs` and `OPENKAAVA-PLANE-DESIGN.md`.
+        // `apps/projects.rs` and `VEISTRA-PLANE-DESIGN.md`.
         call: projects::call,
     },
     // Disabled by default; see `[features]` in `Cargo.toml`.
@@ -299,7 +299,7 @@ const REGISTRY: &[Registered] = &[
     Registered {
         id: "schematify",
         name: "Schematify",
-        description: "The design layer of OpenKaava — draws the full-scale plan agents build from.",
+        description: "The design layer of Veistra — draws the full-scale plan agents build from.",
         // Was going to ship as two separate repositories, each installed as a
         // tool. That plan is reversed and the two are folded into one: see
         // `apps/schematify.rs` and `docs/design/SCHEMATIFY-PRD.md` §1.3 for
@@ -313,11 +313,11 @@ const REGISTRY: &[Registered] = &[
     Registered {
         id: "tutorial",
         name: "Tutorials",
-        description: "Learn OpenKaava — short walkthroughs of the window, projects and the stack.",
+        description: "Learn Veistra — short walkthroughs of the window, projects and the stack.",
         // Registered like any other app and deliberately never *listed*: the
         // frontend filters it and Home out of the Apps menu, both covering the
         // cluster rather than taking a pane. This row is still what makes
-        // `kaava/open` resolve a frontend. See `docs/tutorials.md` §8.
+        // `veistra/open` resolve a frontend. See `docs/tutorials.md` §8.
         call: tutorial::call,
     },
 ];
@@ -429,7 +429,7 @@ pub fn openables(app: &AppHandle) -> Vec<Openable> {
         .into_iter()
         .flat_map(|plugin| plugin.surfaces)
         // **Only what a plugin asked to have listed.** `present = "cover"` is
-        // reachable by `kaava/open` and absent from both menus, as Home and
+        // reachable by `veistra/open` and absent from both menus, as Home and
         // Tutorials already are. A package with *no* surfaces — an MCP server,
         // an indexer — contributes nothing, which is the whole answer to "there
         // should be no button offering to add a backend".
@@ -541,7 +541,7 @@ pub fn entry_url(id: &str) -> String {
 /// caller has already resolved.
 ///
 /// This is the half an app does *not* share with a tool; the *frontend* contract
-/// it does. An app's UI imports `@openkaava/bridge` and calls `invoke("home/stack")`
+/// it does. An app's UI imports `@veistra/bridge` and calls `invoke("home/stack")`
 /// exactly as a tool's UI calls `invoke("echo")`, and neither one knows which
 /// kind of host answered. So an app can become a tool later — or a tool be
 /// absorbed into the shell — without its interface code changing.
@@ -585,7 +585,7 @@ pub fn call(
 
     // The context store, likewise answered by the host so every app (and every
     // plugin surface) reaches one implementation. Deliberately *before* the
-    // write refusal: `.kaava/context/` is Kaava's own gitignored state, not the
+    // write refusal: `.veistra/context/` is Veistra's own gitignored state, not the
     // checkout, so a read-only main may still collect context. See `context.rs`.
     if crate::context::is_method(method) {
         let result = crate::context::call(context.project.as_deref(), id, method, params);
@@ -597,7 +597,7 @@ pub fn call(
         return result;
     }
 
-    // `kaava://` references, resolved by the host so the rules in
+    // `veistra://` references, resolved by the host so the rules in
     // `refs::policy` sit in one place. Read-only, so before the write refusal.
     // First-party apps only: a plugin's method of the same name is its own.
     if crate::refs::is_method(method) && is_app(id) {
@@ -624,7 +624,7 @@ pub fn call(
     //
     // `CallContext` is deliberately *not* forwarded. It resolves a cluster and
     // that cluster's project — facts about this shell's layout — and a core is
-    // told about the world it opened into through `session` in `kaava/hello`
+    // told about the world it opened into through `session` in `veistra/hello`
     // instead. Handing a plugin the shell's internal vocabulary would make the
     // layout part of the plugin contract, which §3 of the protocol is shaped to
     // avoid; when a core needs to know about a project, `Session` is the field
@@ -663,7 +663,7 @@ pub fn call_for_instance(
 }
 
 /// The JSON-RPC code for a write refused because the cluster is on main.
-/// Outside the range `kaava_rpc` reserves; the bridge hands it to the app
+/// Outside the range `veistra_rpc` reserves; the bridge hands it to the app
 /// unchanged and the message is what gets shown.
 pub const READ_ONLY: i32 = -32003;
 
@@ -955,7 +955,7 @@ mod tests {
         assert_eq!(total, ids.len(), "duplicate app id in the registry");
     }
 
-    /// The same rule `kaava-tool.toml` holds tools to (`^[a-z][a-z0-9-]*$`),
+    /// The same rule `veistra-tool.toml` holds tools to (`^[a-z][a-z0-9-]*$`),
     /// applied here for the same reason: an id ends up in a URL.
     #[test]
     fn app_ids_are_url_safe() {

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { KaavaRpcError, invoke } from "@openkaava/bridge";
+import { VeistraRpcError, invoke } from "@veistra/bridge";
 import "./home.css";
 
 /**
  * `home/worktree-create`'s reply, mirroring `home/worktree-state`'s shape —
  * see the comment on `Project` in `App.tsx` for why this is declared here
- * rather than shared: an app's only coupling to its host is `@openkaava/bridge`
+ * rather than shared: an app's only coupling to its host is `@veistra/bridge`
  * and the shape of what crosses it. Nothing here reads the fields back; the
  * type exists so a change to the contract shows up as a type error rather
  * than a silently ignored field.
@@ -225,7 +225,7 @@ function suggest(projectName: string, taken: string[]): string {
  * shown verbatim, and a prefix in front of it would no longer be verbatim.
  */
 function describe(error: unknown): string {
-  if (error instanceof KaavaRpcError) return error.message;
+  if (error instanceof VeistraRpcError) return error.message;
   if (error instanceof Error) return error.message;
   return String(error);
 }

@@ -27,12 +27,12 @@ pub fn suppress_default_context_menu(webview: &tauri::Webview) {
         })();
 
         if let Err(e) = applied {
-            crate::kaava_log!("the webview kept its own context menu: {e}");
+            crate::veistra_log!("the webview kept its own context menu: {e}");
         }
     });
 
     if let Err(e) = posted {
-        crate::kaava_log!("could not reach the webview to turn off its context menu: {e}");
+        crate::veistra_log!("could not reach the webview to turn off its context menu: {e}");
     }
 }
 

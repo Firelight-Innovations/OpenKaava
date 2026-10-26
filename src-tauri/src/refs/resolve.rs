@@ -131,7 +131,7 @@ pub fn file(root: &Path, r: &Ref) -> Result<Resolved, Fault> {
     }
     if policy::ignored(&found.root, &found.abs) {
         return Ok(out.withhold(
-            "withheld: this file is gitignored, so Kaava names it but does not read it",
+            "withheld: this file is gitignored, so Veistra names it but does not read it",
         ));
     }
     if found.abs.is_dir() {
@@ -167,7 +167,7 @@ pub(super) fn secret_head(abs: &Path) -> Option<&'static str> {
 }
 
 /// Whether a context item stands for a project file rather than a copy that
-/// Kaava keeps in its store.
+/// Veistra keeps in its store.
 fn stands_for_file(item: &ContextItem) -> bool {
     !item.owned && !item.rel_path.is_empty()
 }
@@ -212,7 +212,7 @@ fn detail_for(path: &str, lines: Option<Lines>) -> String {
 }
 
 /// Fill in a file's kind, metadata and parts. Shared by file references and by
-/// context items Kaava stored itself, which skip the gitignore screen.
+/// context items Veistra stored itself, which skip the gitignore screen.
 pub(super) fn describe(
     mut out: Resolved,
     abs: &Path,
@@ -613,7 +613,7 @@ pub fn png_part(path: &Path) -> Result<Part, String> {
     Ok(image_part(sniffed.mime, &bytes))
 }
 
-/// An item in the context store. One Kaava stored itself is read where it
+/// An item in the context store. One Veistra stored itself is read where it
 /// lies; one that references a project file goes through every file rule.
 pub fn context_item(root: &Path, r: &Ref) -> Result<Resolved, Fault> {
     let Ref::Context { id } = r else {
@@ -655,7 +655,7 @@ pub fn context_item(root: &Path, r: &Ref) -> Result<Resolved, Fault> {
     Ok(out)
 }
 
-/// A viewer comment, `.kaava/comments/<id>.json`, and its screenshot.
+/// A viewer comment, `.veistra/comments/<id>.json`, and its screenshot.
 pub fn viewer_comment(root: &Path, r: &Ref) -> Result<Resolved, Fault> {
     let Ref::Comment { id } = r else {
         return Err(Fault::new(Reason::BadUri, "not a comment reference"));
@@ -669,7 +669,7 @@ pub fn viewer_comment(root: &Path, r: &Ref) -> Result<Resolved, Fault> {
     out.parts.push(json_part(
         serde_json::to_value(&comment).unwrap_or(Value::Null),
     ));
-    if let Ok(shot) = policy::contain(root, &format!(".kaava/comments/{id}.png")) {
+    if let Ok(shot) = policy::contain(root, &format!(".veistra/comments/{id}.png")) {
         out.parts
             .push(png_part(&shot.abs).unwrap_or_else(|why| Part::Note {
                 text: format!("No screenshot: {why}"),
@@ -694,7 +694,7 @@ pub(super) fn viewer_record(root: &Path, id: &str) -> Result<crate::comments::Co
 
 /// Where a viewer comment's record is, unread: inside the project, or why not.
 pub(super) fn viewer_record_at(root: &Path, id: &str) -> Result<policy::Contained, Fault> {
-    policy::contain(root, &format!(".kaava/comments/{id}.json")).map_err(|f| {
+    policy::contain(root, &format!(".veistra/comments/{id}.json")).map_err(|f| {
         let missing = format!("there is no comment `{id}` in this project");
         match f.reason {
             Reason::Missing => Fault::new(Reason::Missing, missing),
@@ -708,9 +708,9 @@ pub(super) fn viewer_record_at(root: &Path, id: &str) -> Result<policy::Containe
 /// tells the two apart.
 pub(super) fn stored_item(root: &Path, id: &str) -> Result<ContextItem, Fault> {
     crate::context::get(root, id).map_err(|e| {
-        let sidecar = format!(".kaava/context/{id}.json");
+        let sidecar = format!(".veistra/context/{id}.json");
         match e.code {
-            kaava_rpc::INVALID_PARAMS if policy::contain(root, &sidecar).is_err() => {
+            veistra_rpc::INVALID_PARAMS if policy::contain(root, &sidecar).is_err() => {
                 Fault::new(Reason::Missing, e.message)
             }
             _ => Fault::from(e.message),
@@ -779,14 +779,14 @@ mod tests {
         let dir = project();
         let body: String = (1..=50).map(|n| format!("line {n}\n")).collect();
         put(&dir, "scripts/player.gd", body.as_bytes());
-        let r = resolve(&dir, "kaava://file/scripts/player.gd#L10-L12").unwrap();
+        let r = resolve(&dir, "veistra://file/scripts/player.gd#L10-L12").unwrap();
         assert_eq!(r.kind, "text");
         assert_eq!(r.title, "player.gd");
         assert_eq!(text_of(&r), ("line 10\nline 11\nline 12", 10, false));
         assert_eq!(r.detail.as_deref(), Some("scripts/player.gd · lines 10–12"));
-        let whole = resolve(&dir, "kaava://file/scripts/player.gd").unwrap();
+        let whole = resolve(&dir, "veistra://file/scripts/player.gd").unwrap();
         assert_eq!(whole.meta["lines"], 50);
-        assert!(resolve(&dir, "kaava://file/scripts/player.gd#L51")
+        assert!(resolve(&dir, "veistra://file/scripts/player.gd#L51")
             .unwrap_err()
             .message
             .contains("50 lines"));
@@ -796,7 +796,7 @@ mod tests {
     fn an_empty_file_is_an_empty_excerpt_not_an_error() {
         let dir = project();
         put(&dir, "empty.txt", b"");
-        let r = resolve(&dir, "kaava://file/empty.txt").unwrap();
+        let r = resolve(&dir, "veistra://file/empty.txt").unwrap();
         assert_eq!(text_of(&r), ("", 1, false));
     }
 
@@ -807,14 +807,14 @@ mod tests {
             .map(|n| format!("{n}\n"))
             .collect();
         put(&dir, "many.txt", many.as_bytes());
-        let r = resolve(&dir, "kaava://file/many.txt").unwrap();
+        let r = resolve(&dir, "veistra://file/many.txt").unwrap();
         let (text, _, truncated) = text_of(&r);
         assert!(truncated);
         assert_eq!(text.lines().count(), MAX_EXCERPT_LINES as usize);
 
         let wide = "é".repeat(MAX_EXCERPT_BYTES);
         put(&dir, "wide.txt", wide.as_bytes());
-        let r = resolve(&dir, "kaava://file/wide.txt").unwrap();
+        let r = resolve(&dir, "veistra://file/wide.txt").unwrap();
         let (text, _, truncated) = text_of(&r);
         assert!(truncated);
         assert!(text.len() <= MAX_EXCERPT_BYTES && !text.is_empty());
@@ -855,12 +855,12 @@ mod tests {
         put(&dir, ".env", b"API_KEY=hunter2\n");
         put(&dir, "config/.env.example", b"API_KEY=\n");
         put(&dir, "android/release.keystore", b"\x00\x01");
-        let env = resolve(&dir, "kaava://file/.env").unwrap();
+        let env = resolve(&dir, "veistra://file/.env").unwrap();
         assert!(env.parts.is_empty());
         assert!(env.withheld.unwrap().contains(".env files"));
-        let template = resolve(&dir, "kaava://file/config/.env.example").unwrap();
+        let template = resolve(&dir, "veistra://file/config/.env.example").unwrap();
         assert!(template.withheld.is_none());
-        let key = resolve(&dir, "kaava://file/android/release.keystore").unwrap();
+        let key = resolve(&dir, "veistra://file/android/release.keystore").unwrap();
         assert!(key.withheld.unwrap().contains("key stores"));
     }
 
@@ -874,15 +874,15 @@ mod tests {
         put(&dir, "nested/.gitignore", b"local.txt\n");
         put(&dir, "nested/local.txt", b"mine\n");
         for uri in [
-            "kaava://file/build/out.txt",
-            "kaava://file/debug.log",
-            "kaava://file/nested/local.txt",
+            "veistra://file/build/out.txt",
+            "veistra://file/debug.log",
+            "veistra://file/nested/local.txt",
         ] {
             let r = resolve(&dir, uri).unwrap();
             assert!(r.withheld.unwrap().contains("gitignored"), "{uri}");
             assert!(r.parts.is_empty());
         }
-        assert!(resolve(&dir, "kaava://file/keep.log")
+        assert!(resolve(&dir, "veistra://file/keep.log")
             .unwrap()
             .withheld
             .is_none());
@@ -891,7 +891,7 @@ mod tests {
     #[test]
     fn a_missing_file_is_an_error_that_names_it() {
         let dir = project();
-        let err = resolve(&dir, "kaava://file/nope.gd").unwrap_err();
+        let err = resolve(&dir, "veistra://file/nope.gd").unwrap_err();
         assert_eq!(err.reason, Reason::Missing);
         assert!(err.message.contains("nope.gd"), "{err}");
     }
@@ -906,12 +906,12 @@ mod tests {
         put(&dir, ".ssh/config", b"Host x\n");
 
         links::folder(outside.path(), &dir.path().join("linkdir"));
-        let err = resolve(&dir, "kaava://file/linkdir/private.txt").unwrap_err();
+        let err = resolve(&dir, "veistra://file/linkdir/private.txt").unwrap_err();
         assert_eq!(err.reason, Reason::Outside, "through a folder: {err}");
-        let err = resolve(&dir, "kaava://file/linkdir").unwrap_err();
+        let err = resolve(&dir, "veistra://file/linkdir").unwrap_err();
         assert_eq!(err.reason, Reason::Outside, "the folder: {err}");
         links::folder(&dir.path().join(".ssh"), &dir.path().join("sshdir"));
-        let r = resolve(&dir, "kaava://file/sshdir/config").unwrap();
+        let r = resolve(&dir, "veistra://file/sshdir/config").unwrap();
         assert!(r.withheld.unwrap().contains(".ssh"), "named by its target");
 
         if !links::file(
@@ -920,14 +920,14 @@ mod tests {
         ) {
             return;
         }
-        let err = resolve(&dir, "kaava://file/away.txt").unwrap_err();
+        let err = resolve(&dir, "veistra://file/away.txt").unwrap_err();
         assert_eq!(err.reason, Reason::Outside);
         assert!(err.message.contains("outside the project"), "{err}");
         assert!(links::file(
             &dir.path().join(".env"),
             &dir.path().join("notes.txt")
         ));
-        let r = resolve(&dir, "kaava://file/notes.txt").unwrap();
+        let r = resolve(&dir, "veistra://file/notes.txt").unwrap();
         assert!(r.withheld.unwrap().contains(".env"));
     }
 
@@ -935,7 +935,7 @@ mod tests {
     fn an_image_comes_back_inline_with_its_size_until_the_cap() {
         let dir = project();
         put(&dir, "art/hero.png", &png(64, 32));
-        let r = resolve(&dir, "kaava://file/art/hero.png").unwrap();
+        let r = resolve(&dir, "veistra://file/art/hero.png").unwrap();
         assert_eq!(r.kind, "image");
         assert_eq!(r.meta["width"], 64);
         match &r.parts[0] {
@@ -948,7 +948,7 @@ mod tests {
         let mut big = png(4000, 4000);
         big.resize(MAX_IMAGE_BYTES as usize + 1, 0);
         put(&dir, "art/huge.png", &big);
-        let huge = resolve(&dir, "kaava://file/art/huge.png").unwrap();
+        let huge = resolve(&dir, "veistra://file/art/huge.png").unwrap();
         assert!(huge.withheld.unwrap().contains("over the"));
         assert!(huge.parts.is_empty());
         assert_eq!(huge.meta["width"], 4000);
@@ -963,7 +963,7 @@ mod tests {
         if !made.is_ok_and(|s| s.success()) {
             return;
         }
-        let err = resolve(&dir, "kaava://file/pipe").unwrap_err();
+        let err = resolve(&dir, "veistra://file/pipe").unwrap_err();
         assert!(
             err.message.contains("not a regular file"),
             "{}",
@@ -976,7 +976,7 @@ mod tests {
         let dir = project();
         // A WebP that opens with none of the three chunks it is sized from.
         put(&dir, "art/odd.webp", b"RIFF\0\0\0\0WEBPXYZW\0\0\0\0");
-        match &resolve(&dir, "kaava://file/art/odd.webp").unwrap().parts[0] {
+        match &resolve(&dir, "veistra://file/art/odd.webp").unwrap().parts[0] {
             Part::Image { width, height, .. } => assert_eq!((*width, *height), UNSIZED),
             other => panic!("{other:?}"),
         }
@@ -984,12 +984,12 @@ mod tests {
         let svg = |size: &str| format!("<svg xmlns=\"http://www.w3.org/2000/svg\" {size}></svg>");
         put(&dir, "art/box.svg", svg("viewBox=\"0 0 40 20\"").as_bytes());
         put(&dir, "art/bare.svg", svg("").as_bytes());
-        let boxed = resolve(&dir, "kaava://file/art/box.svg").unwrap();
+        let boxed = resolve(&dir, "veistra://file/art/box.svg").unwrap();
         assert_eq!(
             (&boxed.meta["width"], &boxed.meta["height"]),
             (&json!(40), &json!(20))
         );
-        let bare = resolve(&dir, "kaava://file/art/bare.svg").unwrap();
+        let bare = resolve(&dir, "veistra://file/art/bare.svg").unwrap();
         assert!(bare.meta.get("width").is_none(), "{:?}", bare.meta);
     }
 
@@ -1058,7 +1058,7 @@ mod tests {
         let dir = project();
         let svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"><circle r=\"4\"/></svg>\n";
         put(&dir, "art/dot.svg", svg.as_bytes());
-        let r = resolve(&dir, "kaava://file/art/dot.svg").unwrap();
+        let r = resolve(&dir, "veistra://file/art/dot.svg").unwrap();
         assert_eq!(r.kind, "image");
         assert_eq!(r.meta["mime"], "image/svg+xml");
         match r.parts.as_slice() {
@@ -1076,7 +1076,7 @@ mod tests {
         let mut svg = b"<svg xmlns=\"http://www.w3.org/2000/svg\">".to_vec();
         svg.resize(MAX_IMAGE_BYTES as usize + 1, b' ');
         put(&dir, "art/huge.svg", &svg);
-        let huge = resolve(&dir, "kaava://file/art/huge.svg").unwrap();
+        let huge = resolve(&dir, "veistra://file/art/huge.svg").unwrap();
         assert!(huge.withheld.unwrap().contains("over the"));
         assert!(huge.parts.is_empty(), "{:?}", huge.parts);
     }
@@ -1090,10 +1090,10 @@ mod tests {
         put(&dir, "art/logo.svg", &svg);
         // Sent as its text, so only the excerpt goes, and it stops short of
         // the key; a range that reaches the key is withheld.
-        let logo = resolve(&dir, "kaava://file/art/logo.svg").unwrap();
+        let logo = resolve(&dir, "veistra://file/art/logo.svg").unwrap();
         let (text, _, cut) = text_of(&logo);
         assert!(cut && !text.contains("PRIVATE KEY"), "{text:.80}");
-        let ranged = resolve(&dir, "kaava://file/art/logo.svg#L2-L3").unwrap();
+        let ranged = resolve(&dir, "veistra://file/art/logo.svg#L2-L3").unwrap();
         assert!(ranged.parts.is_empty(), "{:?}", ranged.parts);
         assert!(ranged.withheld.unwrap().contains("private keys"));
     }
@@ -1109,13 +1109,13 @@ mod tests {
         glb.extend_from_slice(b"JSON");
         glb.extend_from_slice(json);
         put(&dir, "models/hero.glb", &glb);
-        let r = resolve(&dir, "kaava://file/models/hero.glb").unwrap();
+        let r = resolve(&dir, "veistra://file/models/hero.glb").unwrap();
         assert_eq!(r.kind, "model");
         assert_eq!(r.meta["meshes"], 1);
         assert_eq!(r.meta["animations"], 2);
         assert!(matches!(r.parts[0], Part::Note { .. }));
         put(&dir, "blob.dat", &[0u8, 1, 2, 3]);
-        let blob = resolve(&dir, "kaava://file/blob.dat").unwrap();
+        let blob = resolve(&dir, "veistra://file/blob.dat").unwrap();
         assert_eq!(blob.kind, "binary");
     }
 
@@ -1127,7 +1127,7 @@ mod tests {
         put(&dir, "level/props/b.glb", b"glTF");
         put(&dir, "level/.env", b"X=1\n");
         put(&dir, "level/scratch.tmp", b"tmp\n");
-        let r = resolve(&dir, "kaava://file/level").unwrap();
+        let r = resolve(&dir, "veistra://file/level").unwrap();
         assert_eq!(r.kind, "folder");
         assert_eq!(text_of(&r).0, "props/\na.tscn");
         assert_eq!(r.meta["hidden"], 2);
@@ -1140,7 +1140,7 @@ mod tests {
         for n in 0..5 {
             put(&dir, &format!("dump/{n}.bin"), b"x");
         }
-        let r = Resolved::empty(&parse("kaava://file/dump").unwrap(), "folder", "dump");
+        let r = Resolved::empty(&parse("veistra://file/dump").unwrap(), "folder", "dump");
         let r = folder_within(r, dir.path(), &dir.path().join("dump"), 3).unwrap();
         assert_eq!(r.meta["entries"], 3);
         assert_eq!(r.meta["partial"], true);
@@ -1152,7 +1152,7 @@ mod tests {
             }
         ));
         assert!(matches!(&r.parts[1], Part::Note { text } if text.contains("first 3 entries")));
-        let whole = Resolved::empty(&parse("kaava://file/dump").unwrap(), "folder", "dump");
+        let whole = Resolved::empty(&parse("veistra://file/dump").unwrap(), "folder", "dump");
         let whole = folder_within(whole, dir.path(), &dir.path().join("dump"), 5).unwrap();
         assert_eq!(whole.meta["entries"], 5);
         assert!(whole.meta.get("partial").is_none(), "exactly at the cap");
@@ -1175,7 +1175,7 @@ mod tests {
             },
         )
         .unwrap();
-        let r = resolve(&dir, &format!("kaava://context/{}", shot.id)).unwrap();
+        let r = resolve(&dir, &format!("veistra://context/{}", shot.id)).unwrap();
         assert_eq!(r.kind, "image");
         assert_eq!(r.title, "Play frame");
         assert!(matches!(r.parts[0], Part::Image { .. }));
@@ -1195,7 +1195,7 @@ mod tests {
             },
         )
         .unwrap();
-        let r = resolve(&dir, &format!("kaava://context/{}", env.id)).unwrap();
+        let r = resolve(&dir, &format!("veistra://context/{}", env.id)).unwrap();
         assert!(r.withheld.unwrap().contains(".env"));
         assert!(item_secret(dir.path(), &env).is_some());
         assert_eq!(item_secret(dir.path(), &shot), None);
@@ -1204,14 +1204,14 @@ mod tests {
     #[test]
     fn a_context_record_that_cannot_be_read_is_unreadable_not_missing() {
         let dir = project();
-        let gone = resolve(&dir, "kaava://context/ctx_0a1b").unwrap_err();
+        let gone = resolve(&dir, "veistra://context/ctx_0a1b").unwrap_err();
         assert_eq!(gone.reason, Reason::Missing);
         put(
             &dir,
-            ".kaava/context/ctx_0a1b.json",
+            ".veistra/context/ctx_0a1b.json",
             b"{\"title\":\"\xff\"}",
         );
-        let broken = resolve(&dir, "kaava://context/ctx_0a1b").unwrap_err();
+        let broken = resolve(&dir, "veistra://context/ctx_0a1b").unwrap_err();
         assert_eq!(broken.reason, Reason::Unreadable, "{broken}");
     }
 
@@ -1241,13 +1241,13 @@ mod tests {
         );
         assert!(text.len() as u64 > HEAD_BYTES);
         put(&dir, "notes/long.txt", text.as_bytes());
-        let early = resolve(&dir, "kaava://file/notes/long.txt#L1-L2").unwrap();
+        let early = resolve(&dir, "veistra://file/notes/long.txt#L1-L2").unwrap();
         assert_eq!(early.withheld, None);
-        let late = resolve(&dir, "kaava://file/notes/long.txt#L2000-L2002").unwrap();
+        let late = resolve(&dir, "veistra://file/notes/long.txt#L2000-L2002").unwrap();
         assert!(late.parts.is_empty());
         assert!(late.withheld.unwrap().contains("private keys"));
         // The header is not in this range, only the key's body.
-        let body = resolve(&dir, "kaava://file/notes/long.txt#L2002-L2003").unwrap();
+        let body = resolve(&dir, "veistra://file/notes/long.txt#L2002-L2003").unwrap();
         assert!(body.parts.is_empty());
         assert!(body.withheld.unwrap().contains("private keys"));
     }
@@ -1284,7 +1284,7 @@ mod tests {
         .unwrap();
         for item in [by_name, by_content] {
             assert!(item.owned, "a file from outside is copied in");
-            let r = resolve(&dir, &format!("kaava://context/{}", item.id)).unwrap();
+            let r = resolve(&dir, &format!("veistra://context/{}", item.id)).unwrap();
             assert!(r.withheld.unwrap().contains("private keys"), "{}", item.key);
             assert!(r.parts.is_empty());
             assert!(item_secret(dir.path(), &item).is_some(), "{}", item.key);
@@ -1311,7 +1311,7 @@ mod tests {
             )
             .unwrap()
         };
-        let read = |id: &str| resolve(&dir, &format!("kaava://context/{id}")).unwrap();
+        let read = |id: &str| resolve(&dir, &format!("veistra://context/{id}")).unwrap();
         for prose in [
             "Credentials rotation plan",
             "id_card layout",
@@ -1353,11 +1353,11 @@ mod tests {
             },
         )
         .unwrap();
-        let r = resolve(&dir, &format!("kaava://comment/{}", c.id)).unwrap();
+        let r = resolve(&dir, &format!("veistra://comment/{}", c.id)).unwrap();
         assert_eq!(r.title, "The door clips through the wall");
         assert_eq!(r.detail.as_deref(), Some("Play · hospital.tscn at 12.5s"));
         assert!(r.parts.iter().any(|p| matches!(p, Part::Image { .. })));
-        let err = resolve(&dir, "kaava://comment/nope").unwrap_err();
+        let err = resolve(&dir, "veistra://comment/nope").unwrap_err();
         assert_eq!(err.reason, Reason::Missing);
     }
 
@@ -1366,8 +1366,8 @@ mod tests {
         let dir = project();
         let mut big = br#"{"body":""#.to_vec();
         big.resize(MAX_COMMENT_BYTES as usize + 1, b'x');
-        put(&dir, ".kaava/comments/c-big.json", &big);
-        let err = resolve(&dir, "kaava://comment/c-big").unwrap_err();
+        put(&dir, ".veistra/comments/c-big.json", &big);
+        let err = resolve(&dir, "veistra://comment/c-big").unwrap_err();
         assert_eq!(err.reason, Reason::Unreadable);
         assert!(err.message.contains("more than a comment holds"), "{err}");
     }

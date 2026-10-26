@@ -56,7 +56,7 @@ export function useUpdates(): Updates {
         // a failed check into a `failed` state rather than an error. A shell
         // running outside Tauri is the ordinary case, and it has no updater to
         // report on, so this stays a console line rather than a state.
-        console.error("kaava: could not read the update state:", err);
+        console.error("veistra: could not read the update state:", err);
       }
     })();
 
@@ -71,7 +71,7 @@ export function useUpdates(): Updates {
     // The resolved value is the same state the event already carried, so it is
     // dropped rather than applied — one writer keeps the two windows level.
     void checkForUpdate().catch((err: unknown) => {
-      console.error("kaava: could not check for an update:", err);
+      console.error("veistra: could not check for an update:", err);
     });
   }, []);
 
@@ -81,7 +81,7 @@ export function useUpdates(): Updates {
       // Rust has already published a `failed` state carrying the sentence to
       // show, so there is nothing for this to render. It logs so a rejection
       // that never became a state is still visible somewhere.
-      console.error("kaava: could not install the update:", err);
+      console.error("veistra: could not install the update:", err);
     });
   }, []);
 

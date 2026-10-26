@@ -1,5 +1,5 @@
 {
-  "name": "@kaava/scene-view",
+  "name": "@veistra/scene-view",
   "version": "0.1.0",
   "private": true,
   "description": "Interactive three.js preview of a glTF scene with a markup layer, shared by the Godot and Blender viewers.",

@@ -50,10 +50,10 @@ pub fn build_args(blend: &Path, script: &Path) -> Vec<OsString> {
 
 pub fn build_env(spec: &Spec) -> Vec<(&'static str, String)> {
     vec![
-        ("KAAVA_BLENDER_OUT", spec.out_dir.display().to_string()),
-        ("KAAVA_BLENDER_ENGINE", spec.engine.clone()),
-        ("KAAVA_BLENDER_RES", spec.resolution.to_string()),
-        ("KAAVA_BLENDER_VIEWS", spec.views.join(",")),
+        ("VEISTRA_BLENDER_OUT", spec.out_dir.display().to_string()),
+        ("VEISTRA_BLENDER_ENGINE", spec.engine.clone()),
+        ("VEISTRA_BLENDER_RES", spec.resolution.to_string()),
+        ("VEISTRA_BLENDER_VIEWS", spec.views.join(",")),
     ]
 }
 
@@ -64,9 +64,9 @@ pub struct Progress {
     pub label: String,
 }
 
-/// `KAAVA_PROGRESS 2/5 render front` to `Progress { 2, 5, "render front" }`.
+/// `VEISTRA_PROGRESS 2/5 render front` to `Progress { 2, 5, "render front" }`.
 pub fn parse_progress(line: &str) -> Option<Progress> {
-    let rest = line.trim().strip_prefix("KAAVA_PROGRESS ")?;
+    let rest = line.trim().strip_prefix("VEISTRA_PROGRESS ")?;
     let (fraction, label) = rest.split_once(' ').unwrap_or((rest, ""));
     let (step, total) = fraction.split_once('/')?;
     Some(Progress {
@@ -421,7 +421,7 @@ impl Jobs {
         running
     }
 
-    /// For app exit: cancel and wait briefly, so no Blender outlives OpenKaava.
+    /// For app exit: cancel and wait briefly, so no Blender outlives Veistra.
     pub fn stop_all(&self) {
         if self.cancel() {
             let until = Instant::now() + Duration::from_secs(3);
@@ -478,30 +478,30 @@ pub(crate) mod tests {
     #[cfg(windows)]
     const OK: &str = "@echo off\r\n\
 if \"%1\"==\"--version\" (\r\necho Blender 4.2.1\r\nexit /b 0\r\n)\r\n\
-echo %*> \"%KAAVA_BLENDER_OUT%\\argv.txt\"\r\n\
-echo KAAVA_PROGRESS 1/3 parts list\r\n\
+echo %*> \"%VEISTRA_BLENDER_OUT%\\argv.txt\"\r\n\
+echo VEISTRA_PROGRESS 1/3 parts list\r\n\
 echo hello from blender\r\n\
-echo KAAVA_PROGRESS 2/3 glb\r\n\
-echo glb> \"%KAAVA_BLENDER_OUT%\\model.glb\"\r\n\
-echo png> \"%KAAVA_BLENDER_OUT%\\front.png\"\r\n\
-echo KAAVA_PROGRESS 3/3 render front\r\n\
-echo {\"blenderVersion\":\"4.2.1\",\"glb\":\"model.glb\",\"renders\":[{\"id\":\"front\",\"label\":\"front\",\"file\":\"front.png\"},{\"id\":\"gone\",\"label\":\"gone\",\"file\":\"missing.png\"}],\"parts\":[{\"name\":\"Frame\",\"kind\":\"mesh\",\"visible\":true,\"mesh\":\"Frame\",\"materials\":[\"steel\"],\"verts\":8,\"polys\":6,\"tris\":12,\"dimensions\":[1,1,1]}],\"stats\":{\"objects\":1},\"warnings\":[\"a warning\"]}> \"%KAAVA_BLENDER_OUT%\\result.json\"\r\n";
+echo VEISTRA_PROGRESS 2/3 glb\r\n\
+echo glb> \"%VEISTRA_BLENDER_OUT%\\model.glb\"\r\n\
+echo png> \"%VEISTRA_BLENDER_OUT%\\front.png\"\r\n\
+echo VEISTRA_PROGRESS 3/3 render front\r\n\
+echo {\"blenderVersion\":\"4.2.1\",\"glb\":\"model.glb\",\"renders\":[{\"id\":\"front\",\"label\":\"front\",\"file\":\"front.png\"},{\"id\":\"gone\",\"label\":\"gone\",\"file\":\"missing.png\"}],\"parts\":[{\"name\":\"Frame\",\"kind\":\"mesh\",\"visible\":true,\"mesh\":\"Frame\",\"materials\":[\"steel\"],\"verts\":8,\"polys\":6,\"tris\":12,\"dimensions\":[1,1,1]}],\"stats\":{\"objects\":1},\"warnings\":[\"a warning\"]}> \"%VEISTRA_BLENDER_OUT%\\result.json\"\r\n";
     #[cfg(not(windows))]
     const OK: &str = "#!/bin/sh\n\
 if [ \"$1\" = \"--version\" ]; then echo 'Blender 4.2.1'; exit 0; fi\n\
-printf '%s ' \"$@\" > \"$KAAVA_BLENDER_OUT/argv.txt\"\n\
-echo 'KAAVA_PROGRESS 1/3 parts list'\n\
+printf '%s ' \"$@\" > \"$VEISTRA_BLENDER_OUT/argv.txt\"\n\
+echo 'VEISTRA_PROGRESS 1/3 parts list'\n\
 echo 'hello from blender'\n\
-echo 'KAAVA_PROGRESS 2/3 glb'\n\
-echo glb > \"$KAAVA_BLENDER_OUT/model.glb\"\n\
-echo png > \"$KAAVA_BLENDER_OUT/front.png\"\n\
-echo 'KAAVA_PROGRESS 3/3 render front'\n\
-echo '{\"blenderVersion\":\"4.2.1\",\"glb\":\"model.glb\",\"renders\":[{\"id\":\"front\",\"label\":\"front\",\"file\":\"front.png\"},{\"id\":\"gone\",\"label\":\"gone\",\"file\":\"missing.png\"}],\"parts\":[{\"name\":\"Frame\",\"kind\":\"mesh\",\"visible\":true,\"mesh\":\"Frame\",\"materials\":[\"steel\"],\"verts\":8,\"polys\":6,\"tris\":12,\"dimensions\":[1,1,1]}],\"stats\":{\"objects\":1},\"warnings\":[\"a warning\"]}' > \"$KAAVA_BLENDER_OUT/result.json\"\n";
+echo 'VEISTRA_PROGRESS 2/3 glb'\n\
+echo glb > \"$VEISTRA_BLENDER_OUT/model.glb\"\n\
+echo png > \"$VEISTRA_BLENDER_OUT/front.png\"\n\
+echo 'VEISTRA_PROGRESS 3/3 render front'\n\
+echo '{\"blenderVersion\":\"4.2.1\",\"glb\":\"model.glb\",\"renders\":[{\"id\":\"front\",\"label\":\"front\",\"file\":\"front.png\"},{\"id\":\"gone\",\"label\":\"gone\",\"file\":\"missing.png\"}],\"parts\":[{\"name\":\"Frame\",\"kind\":\"mesh\",\"visible\":true,\"mesh\":\"Frame\",\"materials\":[\"steel\"],\"verts\":8,\"polys\":6,\"tris\":12,\"dimensions\":[1,1,1]}],\"stats\":{\"objects\":1},\"warnings\":[\"a warning\"]}' > \"$VEISTRA_BLENDER_OUT/result.json\"\n";
 
     #[cfg(windows)]
-    const HANG: &str = "@echo off\r\nif \"%1\"==\"--version\" (\r\necho Blender 4.2.1\r\nexit /b 0\r\n)\r\necho KAAVA_PROGRESS 1/3 parts list\r\nping -n 60 127.0.0.1 >nul\r\n";
+    const HANG: &str = "@echo off\r\nif \"%1\"==\"--version\" (\r\necho Blender 4.2.1\r\nexit /b 0\r\n)\r\necho VEISTRA_PROGRESS 1/3 parts list\r\nping -n 60 127.0.0.1 >nul\r\n";
     #[cfg(not(windows))]
-    const HANG: &str = "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then echo 'Blender 4.2.1'; exit 0; fi\necho 'KAAVA_PROGRESS 1/3 parts list'\nexec sleep 60\n";
+    const HANG: &str = "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then echo 'Blender 4.2.1'; exit 0; fi\necho 'VEISTRA_PROGRESS 1/3 parts list'\nexec sleep 60\n";
 
     #[cfg(windows)]
     const CRASH: &str = "@echo off\r\nif \"%1\"==\"--version\" (\r\necho Blender 4.2.1\r\nexit /b 0\r\n)\r\necho Error: cannot open file 1>&2\r\nexit /b 3\r\n";
@@ -555,23 +555,23 @@ echo '{\"blenderVersion\":\"4.2.1\",\"glb\":\"model.glb\",\"renders\":[{\"id\":\
         let dir = TempDir::new().unwrap();
         let env = build_env(&spec(dir.path(), PathBuf::from("blender")));
         let get = |k: &str| env.iter().find(|(n, _)| *n == k).map(|(_, v)| v.as_str());
-        assert_eq!(get("KAAVA_BLENDER_ENGINE"), Some("workbench"));
-        assert_eq!(get("KAAVA_BLENDER_RES"), Some("256"));
-        assert_eq!(get("KAAVA_BLENDER_VIEWS"), Some("front,wire"));
-        assert!(get("KAAVA_BLENDER_OUT").unwrap().ends_with("pending"));
+        assert_eq!(get("VEISTRA_BLENDER_ENGINE"), Some("workbench"));
+        assert_eq!(get("VEISTRA_BLENDER_RES"), Some("256"));
+        assert_eq!(get("VEISTRA_BLENDER_VIEWS"), Some("front,wire"));
+        assert!(get("VEISTRA_BLENDER_OUT").unwrap().ends_with("pending"));
     }
 
     #[test]
     fn progress_lines_parse_and_other_lines_do_not() {
         assert_eq!(
-            parse_progress("KAAVA_PROGRESS 2/5 render front\r"),
+            parse_progress("VEISTRA_PROGRESS 2/5 render front\r"),
             Some(Progress {
                 step: 2,
                 total: 5,
                 label: "render front".into()
             })
         );
-        assert_eq!(parse_progress("KAAVA_PROGRESS x/5 y"), None);
+        assert_eq!(parse_progress("VEISTRA_PROGRESS x/5 y"), None);
         assert_eq!(parse_progress("Fra:1 Mem:12M"), None);
     }
 

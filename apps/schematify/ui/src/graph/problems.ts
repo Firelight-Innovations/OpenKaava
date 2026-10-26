@@ -4,7 +4,7 @@
  * (`schematify_core::LintReport`, `crates/schematify-core/src/lint.rs`).
  *
  * Pure and DOM-free, the same convention `./navigation.ts` and this
- * directory's other files follow: nothing here imports `@openkaava/bridge`,
+ * directory's other files follow: nothing here imports `@veistra/bridge`,
  * so it unit-tests under plain Node. `./backend.ts` is this app's only door
  * to Rust; see `fetchLintReport` there.
  *

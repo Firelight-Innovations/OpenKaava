@@ -42,7 +42,7 @@ const TEXT = {
     stopped: "Stopped",
     failed: "Failed",
   } satisfies Record<AgentSessionState, string>,
-  harness: { claude: "Claude", codex: "Codex", kaava: "Kaava" } as Record<string, string>,
+  harness: { claude: "Claude", codex: "Codex", veistra: "Veistra" } as Record<string, string>,
 };
 
 const ICON: Record<AgentSessionState, LucideIcon> = {

@@ -1,5 +1,5 @@
 //! The agent tab's Rust half: one coding agent per tab, run in its cluster's
-//! worktree through `kaava-agent-host`.
+//! worktree through `veistra-agent-host`.
 //!
 //! The crate does the work — the process, the protocol, the transcript. This
 //! module decides *where* a session may run and *who* may drive it, which are
@@ -24,16 +24,16 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
-use kaava_agent_host::harness::installed_spec as spec;
-use kaava_agent_host::models::{self, Catalogue, Models};
-use kaava_agent_host::{
-    harness, AgentHost, Harness, HarnessInfo, HostError, LaunchSpec, Level, McpServer, Worktree,
-    REGISTRY,
-};
-use kaava_rpc::{RpcError, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde::Serialize;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager};
+use veistra_agent_host::harness::installed_spec as spec;
+use veistra_agent_host::models::{self, Catalogue, Models};
+use veistra_agent_host::{
+    harness, AgentHost, Harness, HarnessInfo, HostError, LaunchSpec, Level, McpServer, Worktree,
+    REGISTRY,
+};
+use veistra_rpc::{RpcError, INVALID_PARAMS, METHOD_NOT_FOUND};
 
 use crate::apps::CallContext;
 use crate::environments::Environment;
@@ -292,8 +292,8 @@ impl Sessions {
                     let _ = emitter.emit(EVENT, &envelope);
                 }),
                 Arc::new(|level, line| match level {
-                    Level::Failure => crate::kaava_log!("{line}"),
-                    Level::Info => eprintln!("kaava: {line}"),
+                    Level::Failure => crate::veistra_log!("{line}"),
+                    Level::Info => eprintln!("veistra: {line}"),
                 }),
             )
         })
@@ -366,7 +366,7 @@ impl Sessions {
                 self.current(host, instance),
                 host.attach(instance),
             ) {
-                eprintln!("kaava: conversation history: {e}");
+                eprintln!("veistra: conversation history: {e}");
             }
         }
     }
@@ -423,7 +423,7 @@ pub fn call_for(
             let root = root.path();
             let dir = sessions.history_dir.get().ok_or_else(|| {
                 RpcError::new(
-                    kaava_rpc::INTERNAL_ERROR,
+                    veistra_rpc::INTERNAL_ERROR,
                     "Conversation history is unavailable",
                 )
             })?;
@@ -481,7 +481,7 @@ pub fn call_for(
                         json!({ "instanceId": instance, "harness": harness, "model": null }),
                     );
                     serde_json::to_value(attachment)
-                        .map_err(|e| RpcError::new(kaava_rpc::INTERNAL_ERROR, e.to_string()))
+                        .map_err(|e| RpcError::new(veistra_rpc::INTERNAL_ERROR, e.to_string()))
                 }
             }
         }
@@ -568,9 +568,9 @@ pub fn call_for(
             Ok(json!({}))
         }
         "agent-tab/attach" => serde_json::to_value(host.attach(instance))
-            .map_err(|e| RpcError::new(kaava_rpc::INTERNAL_ERROR, e.to_string())),
+            .map_err(|e| RpcError::new(veistra_rpc::INTERNAL_ERROR, e.to_string())),
         "agent-tab/btw-attach" => serde_json::to_value(host.attach(&format!("{instance}:btw")))
-            .map_err(|e| RpcError::new(kaava_rpc::INTERNAL_ERROR, e.to_string())),
+            .map_err(|e| RpcError::new(veistra_rpc::INTERNAL_ERROR, e.to_string())),
         "agent-tab/btw-cancel" => done(host.cancel(&format!("{instance}:btw"))),
         "agent-tab/btw-reset" => {
             host.reset(&format!("{instance}:btw"));
@@ -643,7 +643,7 @@ fn login_args(harness: Harness) -> &'static [&'static str] {
 /// its output.
 fn login(app: &AppHandle, instance: &str, harness: Harness) -> Result<(), RpcError> {
     let descriptor = harness.descriptor();
-    let cli = kaava_agent_host::harness::which(
+    let cli = veistra_agent_host::harness::which(
         descriptor.cli,
         std::env::var_os("PATH").as_deref(),
         std::env::var_os("PATHEXT").as_deref(),
@@ -652,7 +652,7 @@ fn login(app: &AppHandle, instance: &str, harness: Harness) -> Result<(), RpcErr
         refused(
             "harness",
             &format!("{} is not on PATH", descriptor.name),
-            json!(kaava_agent_host::event::Hint::HarnessMissing),
+            json!(veistra_agent_host::event::Hint::HarnessMissing),
         )
     })?;
     let mut command = std::process::Command::new(cli);
@@ -669,7 +669,7 @@ fn login(app: &AppHandle, instance: &str, harness: Harness) -> Result<(), RpcErr
     }
     let mut child = command.spawn().map_err(|e| {
         RpcError::new(
-            kaava_rpc::INTERNAL_ERROR,
+            veistra_rpc::INTERNAL_ERROR,
             format!("could not start {}'s sign-in: {e}", descriptor.name),
         )
     })?;
@@ -891,7 +891,7 @@ fn gate(method: &str, developer_mode: bool) -> Result<(), RpcError> {
     Ok(())
 }
 
-/// OpenKaava's MCP servers for a session in `cluster_id`, each with a token
+/// Veistra's MCP servers for a session in `cluster_id`, each with a token
 /// scoped to it. None yet: the context server's `mcp::session_servers`
 /// takes this one's place when it lands. Called on every send, though only a
 /// send that starts a session uses the spec, so it must hand back the
@@ -1169,7 +1169,7 @@ mod tests {
         Models {
             choices: values
                 .iter()
-                .map(|v| kaava_agent_host::ConfigChoice {
+                .map(|v| veistra_agent_host::ConfigChoice {
                     value: v.to_string(),
                     name: v.to_string(),
                     description: None,
@@ -1391,7 +1391,7 @@ mod tests {
     }
 
     /// A host that records what it emits, in a `Sessions` nothing has started.
-    fn recording_sessions() -> (Sessions, Arc<Mutex<Vec<kaava_agent_host::Envelope>>>) {
+    fn recording_sessions() -> (Sessions, Arc<Mutex<Vec<veistra_agent_host::Envelope>>>) {
         let seen = Arc::new(Mutex::new(Vec::new()));
         let sink = Arc::clone(&seen);
         let host = AgentHost::new(
@@ -1409,7 +1409,7 @@ mod tests {
     /// way when the marker is here.
     fn reset_tabs(
         sessions: &Sessions,
-        seen: &Mutex<Vec<kaava_agent_host::Envelope>>,
+        seen: &Mutex<Vec<veistra_agent_host::Envelope>>,
     ) -> Vec<String> {
         const MARKER: &str = "marker";
         sessions.host.get().unwrap().reset(MARKER);
@@ -1419,7 +1419,7 @@ mod tests {
             if got.iter().any(|e| e.instance_id == MARKER) || std::time::Instant::now() > deadline {
                 let mut tabs: Vec<String> = got
                     .into_iter()
-                    .filter(|e| matches!(e.event, kaava_agent_host::Event::Reset))
+                    .filter(|e| matches!(e.event, veistra_agent_host::Event::Reset))
                     .map(|e| e.instance_id)
                     .filter(|id| id != MARKER)
                     .collect();
@@ -1582,7 +1582,7 @@ mod tests {
     /// either side has to change this test as well.
     #[test]
     fn the_harnesses_answer_has_the_keys_the_tab_and_the_bar_read() {
-        let info = kaava_agent_host::harness::CLAUDE.info(None);
+        let info = veistra_agent_host::harness::CLAUDE.info(None);
         let answer = harnesses_answer(
             std::slice::from_ref(&info),
             Harness::Claude,

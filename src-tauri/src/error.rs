@@ -9,7 +9,7 @@ use serde::{Serialize, Serializer};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
-    #[error("could not locate kaava.toml (looked in: {0})")]
+    #[error("could not locate veistra.toml (looked in: {0})")]
     ManifestNotFound(String),
 
     #[error("failed to read {path}: {source}")]

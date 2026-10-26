@@ -11,8 +11,8 @@
  * references typed at the prompt. What differs between viewers is only the
  * {@link MarkupTarget}: the key prefix and the label the items carry.
  */
-import { invoke } from "@openkaava/bridge";
-import type { MarkupJson } from "@kaava/markup";
+import { invoke } from "@veistra/bridge";
+import type { MarkupJson } from "@veistra/markup";
 import { contextKey, type ContextRef } from "./context";
 
 /** Which viewer a markup came from: names its context keys and labels. */
@@ -199,7 +199,7 @@ export async function sendMarkup(
   try {
     await invoke("context/insert", { itemIds: [image.id, notes.id] });
   } catch (e) {
-    console.error("kaava: could not type the markup reference at the prompt", e);
+    console.error("veistra: could not type the markup reference at the prompt", e);
   }
   return image;
 }

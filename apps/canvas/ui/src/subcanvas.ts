@@ -2,7 +2,7 @@
  * Sub-canvas frames: a frame whose elements were moved into a child canvas of
  * their own (`canvas/split-frames`, `src-tauri/src/apps/canvas/subcanvas.rs`).
  * The parent keeps the empty frame, linked to the child and marked
- * `customData.kaava.subcanvas`, and the editor draws a picture of the child into
+ * `customData.veistra.subcanvas`, and the editor draws a picture of the child into
  * it: one locked image element per frame, which `toSaved` never writes.
  *
  * A picture instead of the elements is the point. Excalidraw repaints every
@@ -25,13 +25,13 @@ export const SPLIT_MIN_ELEMENTS = 40;
 export const HEAVY_CANVAS = 1500;
 
 /** The picture element's id for frame `frameId`. */
-export const snapshotIdFor = (frameId: string) => `kaava-snapshot:${frameId}`;
+export const snapshotIdFor = (frameId: string) => `veistra-snapshot:${frameId}`;
 
 /** The child canvas a sub-canvas frame shows, or `null` for any other element. */
 export function subcanvasChild(el: SceneElement): string | null {
   if (!isFrame(el) || el.isDeleted) return null;
-  const kaava = (el.customData as { kaava?: { subcanvas?: unknown } } | undefined)?.kaava;
-  return kaava?.subcanvas === true ? childOf(el) : null;
+  const veistra = (el.customData as { veistra?: { subcanvas?: unknown } } | undefined)?.veistra;
+  return veistra?.subcanvas === true ? childOf(el) : null;
 }
 
 /** Every live sub-canvas frame, with its child. */
@@ -87,7 +87,7 @@ export function splitCandidates(elements: readonly SceneElement[]): number {
 }
 
 /** The file id of the stand-in picture shown until a frame's real one exists. */
-export const PLACEHOLDER_FILE_ID = "kaava-snapshot:placeholder";
+export const PLACEHOLDER_FILE_ID = "veistra-snapshot:placeholder";
 
 /** A neutral "rendering..." picture, as an SVG data URL. Drawn right after a
  *  split so a frame is never empty while its snapshot renders. */
@@ -156,7 +156,7 @@ export function snapshotElement(frame: SceneElement, fileId: string): SceneEleme
     fileId,
     scale: [1, 1],
     crop: null,
-    customData: { kaava: { snapshot: true } },
+    customData: { veistra: { snapshot: true } },
   };
 }
 

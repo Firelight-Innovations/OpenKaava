@@ -2,7 +2,7 @@
 //!
 //! Restarting a machine should not cost you your workspace. This writes the shell's layout — every
 //! window, where it sits, the clusters it holds, the pane trees inside them, the tab order, what
-//! was focused — and reads it back at launch, so OpenKaava opens in the state it closed in.
+//! was focused — and reads it back at launch, so Veistra opens in the state it closed in.
 //!
 //! Second thing here to touch the disk, after `project::store`, and built to its same four rules:
 //!   * **Never fatal.** Every read degrades to `Stored::default()`. An unparseable layout costs
@@ -16,7 +16,7 @@
 //! Written on every mutation, from inside `ShellState::mutate`, and never on exit — not a
 //! preference but the only correct place. `WindowEvent::Destroyed` fires for *every* window when
 //! the app quits, so saving on the way out would save a state `reclaim` had already collapsed into
-//! one window: close OpenKaava with three windows, open with one, every time, and the bug looks like a
+//! one window: close Veistra with three windows, open with one, every time, and the bug looks like a
 //! serialization fault, not a lifecycle one. `project::store` writes inside every mutator too.
 
 use crate::shell_state::{
@@ -302,7 +302,7 @@ pub fn load(app: &AppHandle) -> Stored {
 /// [`load`], against a path — the half with no `AppHandle` in it, so the whole
 /// read path (missing, corrupt, older, newer) is testable against a real file.
 ///
-/// Failures are logged through `kaava_log!`, which is what `recent_errors`
+/// Failures are logged through `veistra_log!`, which is what `recent_errors`
 /// reads, and degrade to an empty `Stored`, which `restore_session` turns into
 /// a first-run workspace. With `KEEP` the bad file was already moved aside.
 pub fn load_from(path: &Path) -> Stored {
@@ -380,7 +380,7 @@ impl From<Rect> for WindowGeometry {
 /// The case that matters is the laptop: you arrange three windows across two
 /// monitors, undock, and launch. The second monitor's coordinates are still in
 /// the file and are now nowhere — restoring to them puts a window off-screen,
-/// with no title bar to drag it back by, which reads as OpenKaava simply failing to
+/// with no title bar to drag it back by, which reads as Veistra simply failing to
 /// start.
 ///
 /// The test is the window's *centre*, not its whole rectangle. A window
@@ -892,7 +892,7 @@ mod tests {
             .map(|d| d.as_nanos())
             .unwrap_or_default();
         let dir = std::env::temp_dir().join(format!(
-            "kaava-shell-store-{tag}-{at}-{}",
+            "veistra-shell-store-{tag}-{at}-{}",
             N.fetch_add(1, Ordering::Relaxed)
         ));
         std::fs::create_dir_all(&dir).expect("the temp directory is writable");

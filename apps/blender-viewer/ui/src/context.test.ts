@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const invoke = vi.hoisted(() => vi.fn());
-vi.mock("@openkaava/bridge", () => ({ invoke }));
+vi.mock("@veistra/bridge", () => ({ invoke }));
 
 import { partSummary, partsText, putGlb, putParts, putRender } from "./context";
 import type { BlenderPart, BlenderViewerState } from "./rpc";
 
 const state = {
   rel: "art/crate.blend",
-  model: "C:/p/.kaava/blender/crate/model.glb",
+  model: "C:/p/.veistra/blender/crate/model.glb",
   parts: [
     {
       name: "Crate",

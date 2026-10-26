@@ -1,0 +1,22 @@
+{
+  "id": "01a0675d-d0ae-7753-a693-e77b8f2b52d1",
+  "slug": "frame-time",
+  "kind": "budget",
+  "title": "Service Schematic frame time, dense fixture",
+  "description": "PRD section 14.7. Median of 21 samples building one frame over apps/schematify/ui's dense fixture, asserted in frameBudget.test.ts.",
+  "lifecycle": "specified",
+  "authored_by": "agent",
+  "created": "2026-09-03T00:00:00Z",
+  "superseded_by": null,
+  "parent": null,
+  "metric": "frame_time_ms",
+  "op": "<",
+  "value": 16,
+  "unit": "ms",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm bench:frame",
+    "parser": "veistra-bench-v1"
+  },
+  "sign_off": null
+}

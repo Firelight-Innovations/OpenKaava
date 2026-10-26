@@ -1,6 +1,6 @@
 /*
  * Styles for <SceneView>. Every colour, radius and size is a token from
- * src/tokens.css (docs/design/kaava-ds/README.md); the host app is expected to
+ * src/tokens.css (docs/design/veistra-ds/README.md); the host app is expected to
  * have loaded it. Controls follow the 28px ladder, overlays use shadow-overlay.
  */
 .sv-root {

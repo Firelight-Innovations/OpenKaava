@@ -12,7 +12,7 @@ const reference: ContextChip = {
   id: "comment-1",
   label: "Comment 1",
   kind: "comment",
-  uri: "kaava://canvas/comments/1",
+  uri: "veistra://canvas/comments/1",
 };
 
 describe("skill and project context chips", () => {
@@ -33,7 +33,7 @@ describe("skill and project context chips", () => {
 
   it("retains stable context URIs beside skill invocations and the draft", () => {
     const text = withChips("Check the spacing", [reference, skill("$design")]);
-    expect(text).toBe("$design [@Comment 1](<kaava://canvas/comments/1>) Check the spacing");
+    expect(text).toBe("$design [@Comment 1](<veistra://canvas/comments/1>) Check the spacing");
     expect(mentionedUris(text)).toEqual([reference.uri]);
   });
 
@@ -45,7 +45,7 @@ describe("skill and project context chips", () => {
   });
 
   it("renders inserted project references while leaving ordinary URLs as prose", () => {
-    expect(referenceParts("Read [@Comment 1](<kaava://canvas/comments/1>) here")).toEqual([
+    expect(referenceParts("Read [@Comment 1](<veistra://canvas/comments/1>) here")).toEqual([
       { text: "Read " },
       { text: "Comment 1", uri: reference.uri },
       { text: " here" },
@@ -53,7 +53,7 @@ describe("skill and project context chips", () => {
     expect(referenceParts("See https://example.com")).toEqual([
       { text: "See https://example.com" },
     ]);
-    expect(mentionedUris("See kaava://canvas/comments/1")).toEqual([]);
+    expect(mentionedUris("See veistra://canvas/comments/1")).toEqual([]);
   });
 });
 
@@ -67,7 +67,7 @@ describe("caret-local reference completion", () => {
       uri: reference.uri!,
       kind: "comment",
     });
-    expect(inserted.text).toBe("Check [@Comment 1](<kaava://canvas/comments/1>)  beside this");
+    expect(inserted.text).toBe("Check [@Comment 1](<veistra://canvas/comments/1>)  beside this");
     expect(inserted.text.slice(inserted.caret)).toBe(" beside this");
   });
 

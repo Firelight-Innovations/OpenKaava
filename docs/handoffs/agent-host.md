@@ -1,9 +1,9 @@
-# Kaava agent host and agent bar: handoff for the implementation agent
+# Veistra agent host and agent bar: handoff for the implementation agent
 
 Owner: Braden Seaborn. Date: 2026-10-13. State: DRAFT FOR AGENT HANDOFF (v0.1).
 Reader: **Agent C**, a cloud agent that implements and tests this feature.
-Design source: `docs/design/KAAVA-AGENT-EMBEDDING-DESIGN.md` (read it first; this document turns it into tasks).
-Related: `docs/KAAVA-UX-REWORK.md` (environments, clusters, panes; "UX spec" below), `docs/design/OPENKAAVA-PLANE-DESIGN.md`, `docs/design/kaava-ds/` (tokens; the owner's `claude/kaava-tokens.css`).
+Design source: `docs/design/VEISTRA-AGENT-EMBEDDING-DESIGN.md` (read it first; this document turns it into tasks).
+Related: `docs/VEISTRA-UX-REWORK.md` (environments, clusters, panes; "UX spec" below), `docs/design/VEISTRA-PLANE-DESIGN.md`, `docs/design/veistra-ds/` (tokens; the owner's `claude/veistra-tokens.css`).
 Lint note: `ste_lint.py` was not run on this document. Terms marked PROPOSED are not in `core/terminology.csv` yet.
 
 ### Repository notes (added when this was committed)
@@ -12,7 +12,7 @@ Lint note: `ste_lint.py` was not run on this document. Terms marked PROPOSED are
   machines, workflows and cloud sessions (`docs/design/CLOUD-SYSTEM-DIAGRAM.md`). The proposed
   `apps/agent` sits one letter away from it. Settle the name with the owner (§11.2) before creating
   the directory, and record it in §12.
-- `core/terminology.csv`, `core/decisions/` and `claude/openkaava-cloud-prd.md` live in the owner's
+- `core/terminology.csv`, `core/decisions/` and `claude/veistra-cloud-prd.md` live in the owner's
   design repository, not here.
 - The repository's own working agreements in `CLAUDE.md` and `STANDARDS.md` apply on top of this
   document: `pnpm verify` before every commit, never grow a lint baseline, every new app needs its
@@ -22,8 +22,8 @@ Lint note: `ste_lint.py` was not run on this document. Terms marked PROPOSED are
 
 ## 0. Rules for Agent C
 
-1. **Scope.** Build the agent host, the adapters, the agent tab, the agent bar, and the Kaava tool server described below. Nothing else. Do not touch Plane, the registry app, the canvas app, or Schematify.
-2. **Never read, store, log, or forward a Claude or ChatGPT login token.** Claude and Codex own their sign-in. Kaava only spawns their programs. Add a test that greps logs and the session store for token-shaped strings.
+1. **Scope.** Build the agent host, the adapters, the agent tab, the agent bar, and the Veistra tool server described below. Nothing else. Do not touch Plane, the registry app, the canvas app, or Schematify.
+2. **Never read, store, log, or forward a Claude or ChatGPT login token.** Claude and Codex own their sign-in. Veistra only spawns their programs. Add a test that greps logs and the session store for token-shaped strings.
 3. **Run Claude as the unmodified `claude` binary.** Do not patch it, wrap its auth, or remove its login methods. Do not use the Claude Agent SDK to sign users in.
 4. **Naming in the UI:** "Claude", "Codex", "Pi". Never "Claude Code" in a label, title, or icon. Do not copy Claude Code or Codex logos or look-alike visuals.
 5. **No agent writes to main.** Every agent process starts with its working directory set to its environment (UX spec §0 and §2). The host refuses to start an agent on main.
@@ -40,7 +40,7 @@ Lint note: `ste_lint.py` was not run on this document. Terms marked PROPOSED are
 
 ### 1.1 Goal
 
-Kaava shows Claude, Codex, and Pi (the Kaava default harness) in one native panel. The panel looks and behaves like the chat panels in VS Code. An **agent bar** at the bottom of each cluster starts and steers sessions. Each session is bound to its cluster's environment.
+Veistra shows Claude, Codex, and Pi (the Veistra default harness) in one native panel. The panel looks and behaves like the chat panels in VS Code. An **agent bar** at the bottom of each cluster starts and steers sessions. Each session is bound to its cluster's environment.
 
 ### 1.2 Decisions this implements (owner direction, 2026-10-13)
 
@@ -48,9 +48,9 @@ Kaava shows Claude, Codex, and Pi (the Kaava default harness) in one native pane
 |---|---|
 | AGT-001 | Do not embed the VS Code extensions. Embed the programs they wrap. |
 | AGT-002 | ACP (Agent Client Protocol) is the primary wire protocol. A native side channel is added only on request. |
-| AGT-003 | Pi is the Kaava default harness. Kaava owns its ACP shim. Pi stays on upstream through extensions. |
+| AGT-003 | Pi is the Veistra default harness. Veistra owns its ACP shim. Pi stays on upstream through extensions. |
 | AGT-004 | Claude runs as the unmodified binary, signed in by the user. Codex runs as `codex app-server` or `codex-acp`, signed in by the user. |
-| AGT-005 | A Kaava tool server gives all three harnesses the same context and feedback tools. |
+| AGT-005 | A Veistra tool server gives all three harnesses the same context and feedback tools. |
 
 These are not yet rows in `core/decisions/`. Do not write decision rows. Report them to the owner in the first PR.
 
@@ -66,8 +66,8 @@ The owner wants the look and feel of VS Code and its chat extensions. This secti
 
 ### 2.1 Visual rules
 
-1. **Tokens.** Define a thin mapping layer, `apps/agent/src/theme/vscode-map.css`, from Kaava tokens (`claude/kaava-tokens.css`; in this repository, `docs/design/kaava-ds/`) to VS Code-style semantic names. Components read the mapped names only. Examples: `--k-editor-bg`, `--k-sidebar-bg`, `--k-panel-border`, `--k-focus-ring`, `--k-list-hover`, `--k-list-active`, `--k-badge-bg`, `--k-diff-add`, `--k-diff-del`. Do not hard-code colors.
-2. **Theme.** Dark and light, following the shell's `kaava:theme-changed` event.
+1. **Tokens.** Define a thin mapping layer, `apps/agent/src/theme/vscode-map.css`, from Veistra tokens (`claude/veistra-tokens.css`; in this repository, `docs/design/veistra-ds/`) to VS Code-style semantic names. Components read the mapped names only. Examples: `--k-editor-bg`, `--k-sidebar-bg`, `--k-panel-border`, `--k-focus-ring`, `--k-list-hover`, `--k-list-active`, `--k-badge-bg`, `--k-diff-add`, `--k-diff-del`. Do not hard-code colors.
+2. **Theme.** Dark and light, following the shell's `veistra:theme-changed` event.
 3. **Density.** 13 px base text, 22 px list rows, 1 px borders, 2 px focus ring, 4 px radius on cards, no drop shadows except menus. Monospace for code, commands, and paths.
 4. **Icons.** Use Codicons (MIT licensed font) for all new icons. Do not draw new icon sets.
 5. **Layout inside the agent tab**, top to bottom:
@@ -92,9 +92,9 @@ The owner wants the look and feel of VS Code and its chat extensions. This secti
 
 ### 2.3 Interaction model
 
-- **Mode indicator** at the left of the prompt footer: Ask before edits, Accept edits, Plan. Click to cycle. Claude and Codex map to their own modes. Pi's modes come from Kaava.
+- **Mode indicator** at the left of the prompt footer: Ask before edits, Accept edits, Plan. Click to cycle. Claude and Codex map to their own modes. Pi's modes come from Veistra.
 - **Model picker** at the footer. Lists models the adapter reports.
-- **`/` command menu.** Lists the adapter's slash commands plus Kaava commands: New session, Switch model, Compact, Fork, Attach file, Send comments.
+- **`/` command menu.** Lists the adapter's slash commands plus Veistra commands: New session, Switch model, Compact, Fork, Attach file, Send comments.
 - **`@` mentions.** Files in the environment, comment anchors, canvas nodes, Plane work items.
 - **Queue and steer.** Typing while the agent works queues a message. `Enter` sends it as a steer message. `Esc` stops the current turn.
 - **Session history** (header button and a sidebar list): search, filter by Needs input / Working / Completed, group, archive, unarchive. Same behavior as the VS Code extension's history list.
@@ -111,7 +111,7 @@ The owner wants the look and feel of VS Code and its chat extensions. This secti
 | `Ctrl+Shift+Enter` | Send and open as a new agent tab |
 | `Ctrl+O` | Expand or collapse all reasoning blocks |
 
-Existing Kaava keys stay unchanged (`Ctrl+Shift+N`, `Ctrl+Shift+O`, `Ctrl+Shift+C`, `F5`). Register all new keys through the shell's existing keybinding registry. Report any conflict.
+Existing Veistra keys stay unchanged (`Ctrl+Shift+N`, `Ctrl+Shift+O`, `Ctrl+Shift+C`, `F5`). Register all new keys through the shell's existing keybinding registry. Report any conflict.
 
 ### 2.5 Accessibility
 
@@ -122,7 +122,7 @@ Every control is reachable by keyboard. Focus order follows the layout in §2.1.
 ## 3. Architecture
 
 ```
-React (apps/agent)                       Rust (crates/kaava-agent-host)
+React (apps/agent)                       Rust (crates/veistra-agent-host)
   Agent bar, agent tab, history   <──>   process manager
   receives normalized events              adapter trait + normalizer
   sends commands via Tauri                session store
@@ -131,7 +131,7 @@ React (apps/agent)                       Rust (crates/kaava-agent-host)
                                           ▼
                        Adapters:  pi-acp shim | claude ACP adapter | codex-acp
                                           │
-                       Kaava tool server (per environment)
+                       Veistra tool server (per environment)
 ```
 
 Paths above are proposals. Confirm them against the repository layout and record the final paths in §12.
@@ -148,9 +148,9 @@ Methods: `start(env, config)`, `prompt(thread, input)`, `steer(thread, input)`, 
 
 | Adapter | Program | Notes |
 |---|---|---|
-| Pi | `pi --mode rpc` behind a Kaava-owned ACP shim (`packages/pi-acp/`, Node) | MIT. Check for a maintained community shim first (V3). Commands: `prompt`, `steer`, `follow_up`, `abort`, `get_state`, `set_model`, `fork`, `switch_session`, `compact`. Done at `agent_settled`. |
+| Pi | `pi --mode rpc` behind a Veistra-owned ACP shim (`packages/pi-acp/`, Node) | MIT. Check for a maintained community shim first (V3). Commands: `prompt`, `steer`, `follow_up`, `abort`, `get_state`, `set_model`, `fork`, `switch_session`, `compact`. Done at `agent_settled`. |
 | Claude | The unmodified `claude` binary through an ACP adapter | Pin the adapter version. Sign-in happens in Claude's own flow. |
-| Codex | `@agentclientprotocol/codex-acp` (built on `codex app-server`, Apache-2.0) | Pin versions. Identify as `kaava` at initialize. |
+| Codex | `@agentclientprotocol/codex-acp` (built on `codex app-server`, Apache-2.0) | Pin versions. Identify as `veistra` at initialize. |
 | Mock | `packages/mock-agent/`, a scripted ACP agent | Used by every automated test (§9). |
 
 If a real ACP adapter cannot cover a required item type, write the gap into §10. Do not fork the adapter without owner approval.
@@ -164,16 +164,16 @@ If a real ACP adapter cannot cover a required item type, write the gap into §10
 
 ### 3.5 Session store
 
-Save thread ids, harness, model, mode, and environment id in `workspaces/<project-id>.json` (UX spec §6). Never save tokens. Transcripts stay in each harness's own storage. Kaava keeps an index only. On restore, show a session whose process is gone as "Stopped" with a **Resume** button.
+Save thread ids, harness, model, mode, and environment id in `workspaces/<project-id>.json` (UX spec §6). Never save tokens. Transcripts stay in each harness's own storage. Veistra keeps an index only. On restore, show a session whose process is gone as "Stopped" with a **Resume** button.
 
-### 3.6 Kaava tool server
+### 3.6 Veistra tool server
 
 One per environment, started with the host. Exposed to Claude and Codex as an MCP server (stdio), and to Pi as native `customTools`. The tool names are identical in both.
 
 | Tool | Behavior |
 |---|---|
 | `get_selection` | Returns the current file, node, mesh part, or canvas selection |
-| `list_comments`, `resolve_comment` | Reads and writes `.kaava/comments/` in the environment |
+| `list_comments`, `resolve_comment` | Reads and writes `.veistra/comments/` in the environment |
 | `get_canvas_node` | Returns a canvas node by id |
 | `render_scene`, `render_asset` | Stub in this phase; returns "not implemented" |
 | `plane_*`, `hindsight_*` | Out of scope here; reserve the names |
@@ -186,7 +186,7 @@ One per environment, started with the host. Exposed to Claude and Codex as an MC
 2. Contents, left to right: harness picker, model picker, mode indicator, context chips, prompt box, send button.
 3. **Context chips** fill automatically from the shell's selection state: file selection, selected Godot node or Blender mesh part, open comments, selected Plane work item, selected canvas node. The user can remove a chip before sending. A chip that points to an excluded or ignored file sends the path only.
 4. Sending focuses the cluster's existing agent tab for that harness, or opens a new one in the pane tree. The tab is a normal pane tab: it can be split, dragged within the same environment, and restored.
-5. If the harness is not installed or not signed in, the bar shows a one-line fix ("Run `claude` once to sign in") and a link to the harness's own docs. Kaava never starts a sign-in flow itself.
+5. If the harness is not installed or not signed in, the bar shows a one-line fix ("Run `claude` once to sign in") and a link to the harness's own docs. Veistra never starts a sign-in flow itself.
 
 ---
 
@@ -209,7 +209,7 @@ Order matters. Finish T0 first.
 |---|---|---|
 | T0.1 | Spike (Rust test, Linux): spawn the mock agent, a real Pi (`--mode rpc`, API key from env), `codex-acp`, and a Claude ACP adapter; print raw messages | Transcript files for each, saved under `docs/spikes/`. Real Claude and Codex runs are owner-run (§9); record "not run" for them if no login exists |
 | T0.2 | Fill the verify-first table (§10) with results | No open V-row except those marked owner-run |
-| T1.1 | Crate `kaava-agent-host`: types, adapter trait, process manager | Unit tests: start, prompt, abort, crash, restart |
+| T1.1 | Crate `veistra-agent-host`: types, adapter trait, process manager | Unit tests: start, prompt, abort, crash, restart |
 | T1.2 | Event normalizer with generated TypeScript types | Round-trip test over recorded transcripts; type generation is part of `pnpm verify` |
 | T1.3 | Mock agent with scripted scenarios: streaming text, tool call, approval, diff, plan, error, slow turn | Each scenario has a golden event file |
 | T1.4 | Pi adapter and ACP shim | Prompt, steer, abort, fork pass against real Pi when `PI_TEST_KEY` is set; otherwise against the mock |
@@ -224,7 +224,7 @@ Order matters. Finish T0 first.
 | T3.1 | Agent bar and context chips wired to shell selection state | A selected node shows as a chip and arrives in the prompt payload |
 | T3.2 | Keybindings (§2.4) and status bar item | No conflicts reported by the registry; docs table updated |
 | T3.3 | Not-installed and not-signed-in states (§4.5) | Test with a missing binary and with an unauthenticated mock |
-| T4.1 | Kaava tool server: `get_selection`, `list_comments`, `resolve_comment`, `get_canvas_node` | The same `list_comments` call succeeds from Pi, Claude (MCP), and Codex (MCP) in an integration test |
+| T4.1 | Veistra tool server: `get_selection`, `list_comments`, `resolve_comment`, `get_canvas_node` | The same `list_comments` call succeeds from Pi, Claude (MCP), and Codex (MCP) in an integration test |
 | T4.2 | Accessibility pass (§2.5) | Check passes; manual tab-order notes recorded |
 | T5.0 | Windows build and owner checklist (§9) | Checklist handed to the owner with the build artifact |
 
@@ -274,7 +274,7 @@ Agent C cannot sign in to Claude or ChatGPT. Prepare a script and a checklist. T
 | # | Item | Owner | Result |
 |---|---|---|---|
 | V1 | Claude, Codex, and Pi run natively on Windows as Tauri child processes without WSL | Owner | Partly checked 2026-10-14 on the owner's machine: `claude` 2.1.296 is a native `claude.exe`, `codex` 0.153.0 a native exe, `pi` 0.84.1 an npm `.cmd` shim. All three run without WSL. The Tauri child-process run is still owner-run. |
-| V2 | The Claude ACP adapter keeps the unmodified binary's sign-in and passes permission prompts through | C, then owner | **Passes technically, with two conflicts raised in §11.6.** Adapter: `@agentclientprotocol/claude-agent-acp` 0.90.0 (Apache-2.0; the Zed packages `@zed-industries/claude-code-acp` and `claude-agent-acp` are deprecated renames of it). By default it runs the native `claude` that the Agent SDK bundles; with `CLAUDE_CODE_EXECUTABLE` set it runs the user's own unmodified `claude`. Sign-in stays in that binary: the adapter only runs `claude auth status --json` (no token in the output) and offers `claude auth login` as a terminal method, which Kaava never runs. Permission prompts arrive as ACP `session/request_permission`. The adapter reads no credential file. Owner still runs the real login (§9.2). |
+| V2 | The Claude ACP adapter keeps the unmodified binary's sign-in and passes permission prompts through | C, then owner | **Passes technically, with two conflicts raised in §11.6.** Adapter: `@agentclientprotocol/claude-agent-acp` 0.90.0 (Apache-2.0; the Zed packages `@zed-industries/claude-code-acp` and `claude-agent-acp` are deprecated renames of it). By default it runs the native `claude` that the Agent SDK bundles; with `CLAUDE_CODE_EXECUTABLE` set it runs the user's own unmodified `claude`. Sign-in stays in that binary: the adapter only runs `claude auth status --json` (no token in the output) and offers `claude auth login` as a terminal method, which Veistra never runs. Permission prompts arrive as ACP `session/request_permission`. The adapter reads no credential file. Owner still runs the real login (§9.2). |
 | V3 | Whether a maintained Pi ACP shim exists; if not, T1.4 writes one | C | Exists: `pi-acp` 0.0.34 (MIT, github.com/svkozak/pi-acp, in Zed's ACP registry, releases about monthly, last 2026-09-24). Self-described MVP. Gaps against §3.3: no steer (queue is client-side), no fork, no thought stream, client MCP servers not passed to Pi. T1.4 decides between extending it and owning a shim. |
 | V4 | Pi RPC covers steer, abort, fork, and extension UI requests as documented | C | Passes, from `docs/rpc.md` of the installed `@earendil-works/pi-coding-agent` 0.84.1 (the package moved from `@mariozechner/pi-coding-agent`): `steer`, `follow_up`, `abort`, `fork`, `clone`, `switch_session`, `agent_settled`, and `extension_ui_request` / `extension_ui_response` (select, confirm, input, editor). |
 | V5 | `codex-acp` covers approval, diff, and plan items | C | Passes: `@agentclientprotocol/codex-acp` 2.2.2 (Apache-2.0; replaces `@zed-industries/codex-acp`) emits permission requests, `diff` content and `plan` updates. It bundles `@openai/codex` ^0.160.1; `CODEX_PATH` selects the user's own binary. |
@@ -282,8 +282,8 @@ Agent C cannot sign in to Claude or ChatGPT. Prepare a script and a checklist. T
 | V7 | Codex CLI license text confirmed (the adapter is Apache-2.0) | C | Passes: `@openai/codex` 0.160.1 and 0.162.1 are Apache-2.0 (github.com/openai/codex). |
 
 **T0.1 transcripts.** The mock agent runs in `cargo test` as a real child process, and its
-scenarios are assertions in `crates/kaava-agent-host/tests/session.rs`, not recorded golden
-event files. Real Claude, Codex and Pi transcripts are not run. Kaava never
+scenarios are assertions in `crates/veistra-agent-host/tests/session.rs`, not recorded golden
+event files. Real Claude, Codex and Pi transcripts are not run. Veistra never
 signs in to Claude or ChatGPT, so those runs are owner-run (§9.2).
 
 ---
@@ -304,7 +304,7 @@ signs in to Claude or ChatGPT, so those runs are owner-run (§9.2).
      route through Free, Pro or Max credentials. The adapter is such a product. It ships
      `--hide-claude-auth`, which refuses every turn a subscription would pay for.
    - Proposed handling: do not vendor the adapter. The user installs it once, pinned, with
-     `npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@0.90.0`. Kaava runs it with
+     `npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@0.90.0`. Veistra runs it with
      `CLAUDE_CODE_EXECUTABLE` set to the user's own `claude`. Subscription use is limited to the
      owner's single-user testing, the same gray area design §6 rule 4 accepts. V6 gates any
      external release. Owner decision recorded in §12.
@@ -324,20 +324,20 @@ signs in to Claude or ChatGPT, so those runs are owner-run (§9.2).
 ### 2026-10-14 — owner decisions
 
 - **Paths (§11.2).** The app is `apps/agent-tab`, not `apps/agent`. The crate is
-  `crates/kaava-agent-host`. The agent bar is the shell region `src/shell/agentbar`. Every
+  `crates/veistra-agent-host`. The agent bar is the shell region `src/shell/agentbar`. Every
   `apps/agent/...` path in this document reads as `apps/agent-tab/ui/...`.
 - **Cloud Agents app.** The owner asked for the cloud Agents app (`apps/agents/`) to be disabled
   while the MVP focuses on core features. It is hidden from the app registry and the rail in its
   own PR, not deleted.
 - **§11.6 (V2 conflicts).** Personal testing only. The adapter is not vendored. The user installs
   it once, pinned, with `npm i -g --omit=optional @agentclientprotocol/claude-agent-acp@0.90.0`.
-  Kaava runs it with `CLAUDE_CODE_EXECUTABLE` set to the user's own `claude` and the user's own
+  Veistra runs it with `CLAUDE_CODE_EXECUTABLE` set to the user's own `claude` and the user's own
   sign-in. `--hide-claude-auth` is not passed. V6 gates any external release that includes Claude.
 
 ### Deviations from this document
 
 - **Mock agent location.** `packages/mock-agent/` (§3.3) would be a Node package. The mock is a
-  Rust binary inside the crate (`crates/kaava-agent-host/src/bin/mock-agent.rs`) so `cargo test`
+  Rust binary inside the crate (`crates/veistra-agent-host/src/bin/mock-agent.rs`) so `cargo test`
   needs no Node and the host's own tests spawn it as a real child process.
 - **Codicons (§2.1.4).** `@vscode/codicons` is published as CC-BY-4.0 (the font and SVGs), not
   MIT, which fails §7.1. Not added. Raised in §11.7.
@@ -382,7 +382,7 @@ signs in to Claude or ChatGPT, so those runs are owner-run (§9.2).
   and can be opened with developer mode off. It then shows its empty state and refuses a prompt.
   Only the agent bar and `agent-tab/send` and `agent-tab/answer` are gated.
 - **Job Object.** On Windows each agent starts suspended in a Job Object of its own, so a stop
-  is one `TerminateJobObject`. An agent and all it started also end with OpenKaava. `taskkill /T
+  is one `TerminateJobObject`. An agent and all it started also end with Veistra. `taskkill /T
   /F` is the fallback only when no job can be made.
 - **No trace switch (§8).** The host logs lifecycle lines only, with tokens masked. A raw trace
   switch is a follow-up.
@@ -421,7 +421,7 @@ Acceptance rows above that this slice does not meet:
 
 ## Sources
 
-1. Design: `docs/design/KAAVA-AGENT-EMBEDDING-DESIGN.md`
+1. Design: `docs/design/VEISTRA-AGENT-EMBEDDING-DESIGN.md`
 2. OpenAI, Unlocking the Codex harness: https://openai.com/index/unlocking-the-codex-harness
 3. Pi coding agent: https://github.com/badlogic/pi-mono
 4. Claude Code in VS Code (UI reference for the chat panel): https://code.claude.com/docs/en/vs-code

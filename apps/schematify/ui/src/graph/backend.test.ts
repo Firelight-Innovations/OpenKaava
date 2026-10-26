@@ -10,7 +10,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// `@openkaava/bridge` is mocked, not imported for real — its root export
+// `@veistra/bridge` is mocked, not imported for real — its root export
 // touches `window` at module load, which this plain-Node file has none of.
 // `./index.ts` keeps `./backend.ts` out of its own static imports for the
 // same reason; faking the one thing `backend.ts` calls covers both
@@ -18,14 +18,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // through `./index.ts`'s own lazy `import("./backend")`).
 
 const invokeMock = vi.fn();
-vi.mock("@openkaava/bridge", () => ({
+vi.mock("@veistra/bridge", () => ({
   invoke: (...args: unknown[]) => invokeMock(...args),
-  KaavaRpcError: class KaavaRpcError extends Error {},
+  VeistraRpcError: class VeistraRpcError extends Error {},
 }));
 
 // Import after the mock: `vi.mock` calls are hoisted above every import in
 // this file by vitest's transform, so `./backend`'s own static
-// `import { invoke } from "@openkaava/bridge"` resolves to the mock above,
+// `import { invoke } from "@veistra/bridge"` resolves to the mock above,
 // never the real bridge — whether reached directly (`createBackendSeam`) or
 // through `./index.ts`'s lazy `import("./backend")` (`defaultSeam`).
 const { createBackendSeam, productSeam } = await import("./backend");
@@ -161,7 +161,7 @@ describe("defaultSeam.loadGraph (the real path a click-through calls)", () => {
  * sections as project-wide (one screen registry, one flow editor, one
  * decision log per project, not one per Schematic), and
  * `src-tauri/src/apps/schematify.rs`'s own `load_graph` has no scope
- * parameter to forward one to — it always walks the whole `.kaava/` tree
+ * parameter to forward one to — it always walks the whole `.veistra/` tree
  * (see that function's own doc comment). This is not the round-2
  * `loadGraph` defect in a new place: there is no narrower call to make.
  * Asserted directly, the same way the suites above assert on `invokeMock`'s

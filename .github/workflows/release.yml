@@ -13,7 +13,7 @@
 # lines — not a rewrite.
 #
 # The updater's minisign key below is a different thing entirely and is free. It
-# signs `latest.json` so an installed OpenKaava can tell an update from this
+# signs `latest.json` so an installed Veistra can tell an update from this
 # repository apart from one from anywhere else. It says nothing to SmartScreen.
 #
 # **The updater step is gated on that secret existing.** `createUpdaterArtifacts`
@@ -22,7 +22,7 @@
 # not this workflow. It lives in `src-tauri/tauri.updater.conf.json` instead,
 # merged over the real config with `--config` only when the secret is there.
 # Without it, this workflow still produces installers — they simply are not
-# updates anybody's OpenKaava can find.
+# updates anybody's Veistra can find.
 #
 # Two triggers, doing genuinely different jobs:
 #
@@ -113,7 +113,7 @@ jobs:
           if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
             pnpm app:build --config src-tauri/tauri.updater.conf.json
           else
-            echo "::warning title=No updater artifacts::TAURI_SIGNING_PRIVATE_KEY is not set. This release ships installers only, no OpenKaava will offer it as an update, and docs/dev/releases.md says how to create the secret."
+            echo "::warning title=No updater artifacts::TAURI_SIGNING_PRIVATE_KEY is not set. This release ships installers only, no Veistra will offer it as an update, and docs/dev/releases.md says how to create the secret."
             pnpm app:build
           fi
 
@@ -147,11 +147,11 @@ jobs:
           # A second copy under a name that never changes. Release filenames
           # carry the version, so no link to one survives the next release,
           # and "Download for Windows" needs a URL that does:
-          # /releases/latest/download/OpenKaava-setup.exe resolves forever.
-          cp artifacts/*-setup.exe artifacts/OpenKaava-setup.exe
+          # /releases/latest/download/Veistra-setup.exe resolves forever.
+          cp artifacts/*-setup.exe artifacts/Veistra-setup.exe
           ls -la artifacts
 
-      # The document an installed OpenKaava actually reads. It is the one
+      # The document an installed Veistra actually reads. It is the one
       # artifact in a release nobody looks at, so a wrong `url` in it is a
       # silent no-op on every machine at once — which is why the shaping lives
       # in a unit-tested script rather than in a `jq` line here.
@@ -159,7 +159,7 @@ jobs:
       # Two conditions, and they fail differently. No tag means no asset URLs to
       # point at, so a dry run has nothing to write. No `.sig` means the build
       # ran unsigned, and a manifest naming an unverifiable installer is worse
-      # than no manifest: every OpenKaava would offer an update it then refuses.
+      # than no manifest: every Veistra would offer an update it then refuses.
       - name: Build the update manifest
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
@@ -177,7 +177,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with:
-          name: openkaava-installers
+          name: veistra-installers
           path: artifacts/
           retention-days: 14
 
@@ -195,7 +195,7 @@ jobs:
           else
             gh release create "${{ github.ref_name }}" artifacts/* \
               --draft \
-              --title "OpenKaava ${{ github.ref_name }}" \
+              --title "Veistra ${{ github.ref_name }}" \
               --generate-notes \
               --notes-file .github/release-preamble.md
           fi

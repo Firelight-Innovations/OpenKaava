@@ -19,11 +19,11 @@ time. The live task list is the tracker artifact
 - The Godot viewer has a three.js 3D preview with markup. Markup is a JSON context kind, with
   auto-send that types `@path` at the prompt without pressing Enter.
 - The Canvas app (Excalidraw) stores one JSON file per canvas in the repo. It has typed frames,
-  custom types, nested canvases, and 35 MCP tools on `kaava-canvas`.
-- Two MCP servers are on in every build: `kaava-canvas` and `kaava-workspace`. `kaava-workspace`
+  custom types, nested canvases, and 35 MCP tools on `veistra-canvas`.
+- Two MCP servers are on in every build: `veistra-canvas` and `veistra-workspace`. `veistra-workspace`
   also pushes focus changes as a subscribable resource. The `agent`, `debug`, `echo` and `ui`
   servers exist only in developer mode.
-- Cloud work is out of scope for the UI side. WR-2 (cloud clusters on `kaava-worker`) is parked
+- Cloud work is out of scope for the UI side. WR-2 (cloud clusters on `veistra-worker`) is parked
   until there is a design for the canvas, Blender and Godot in cloud sessions, and for source
   control of large art next to game source.
 
@@ -38,11 +38,11 @@ time. The live task list is the tracker artifact
 | Search | #154, #176, #193, #194, #213 | Command palette surface. One titlebar search with a claim stack (`src/shell/titlebarSearch.ts`, `docs/design-notes/titlebar-search.md`) |
 | Clusters and workspace | #150, #163, #165, #181, #195 | Environments, read-only main, persisted layout, terminals follow the cluster's project |
 | Git | #157, #159, #192 | Git rail page, lane-based commit graph |
-| Context for agents | #153 (spec), #170, #173, #179, #199, #200 | `.kaava/context/` store, Context strip, consent-gated Claude Code Read hook |
+| Context for agents | #153 (spec), #170, #173, #179, #199, #200 | `.veistra/context/` store, Context strip, consent-gated Claude Code Read hook |
 | Godot | #172, #177, #202, #203, #215, #219 | Detect, Open, Play, scene tree, 3D preview, markup, shared Markup settings |
 | Blender | #171, #174, #198 | Detect, Open, headless `.glb` export and renders. No 3D preview or markup yet |
 | Canvas | #183 to #188, #207, #211, #216, #217 | See `docs/canvas-objects.md` and section 13 of `docs/mcp-server-manager.md` |
-| MCP | #197, #212, #214, #217, #218 | Settings lists every tool with its signature. `kaava://workspace/focus` resource |
+| MCP | #197, #212, #214, #217, #218 | Settings lists every tool with its signature. `veistra://workspace/focus` resource |
 | Rail pages | #164, #175, #182 | Cost (ECharts), Plane, Cloud agents and Hindsight mount their apps or show a setup note |
 | Splash | #160, #169 | Assembly concept |
 
@@ -55,7 +55,7 @@ Agents were still working on these when this note was written. Check the tracker
 - **Canvas follow-ups:** link a frame to an existing canvas, a link badge, named diagrams and
   typed frames on one element, `view_diagram` and `add_shapes` aimed at the named canvas.
 - **UX-36:** an end-to-end run. A Sonnet agent designs a Minecraft clone on a new demo-game
-  canvas through the UI and through Claude Code over `kaava-canvas`. A report follows.
+  canvas through the UI and through Claude Code over `veistra-canvas`. A report follows.
 - **Blender markup:** the Blender viewer needs the 3D preview and the markup layer. Then move
   `apps/godot-viewer/ui/src/markupFlow.ts` and `sendMarkup` into `apps/shared/`.
 - **Then:** an agent sweeps the whole UI for defects. Braden reviews a fresh build. One more
@@ -75,7 +75,7 @@ with the chat), CX-6 (video context), and dropping a tab onto another window to 
   3. `pnpm install --frozen-lockfile`
   4. `pnpm ui:build`
   5. `pnpm ui launch`
-  6. `node scripts/kaava-probe.mjs --agent --server agent set_project '{"path":".../demo-game"}'`
+  6. `node scripts/veistra-probe.mjs --agent --server agent set_project '{"path":".../demo-game"}'`
 - Agent instances share one identifier with the review instance. Agents must not run
   `pnpm ui launch` or `pnpm ui close` while it is in use, or they take over its window.
 - Merge procedure for each PR:
@@ -98,7 +98,7 @@ with the chat), CX-6 (video context), and dropping a tab onto another window to 
   has finished.
 - **Port 1420 belongs to `pnpm app`.** Agents use `pnpm dev:agent` (1430 and up) and stop what
   they start.
-- **`pnpm probe` mangles JSON arguments** on Windows. Call `node scripts/kaava-probe.mjs` directly.
+- **`pnpm probe` mangles JSON arguments** on Windows. Call `node scripts/veistra-probe.mjs` directly.
 - **Native dialogs block the webview.** Use `set_project` and `app_call` instead of the Home
   buttons.
 - **Background agents** re-send their reports and get handed back while a verify runs. Ask for

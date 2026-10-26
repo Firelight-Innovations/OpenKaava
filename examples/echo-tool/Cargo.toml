@@ -1,6 +1,6 @@
 [package]
-name = "kaava-echo-tool"
-description = "Reference tool core — the smallest thing that satisfies the OpenKaava tool protocol"
+name = "veistra-echo-tool"
+description = "Reference tool core — the smallest thing that satisfies the Veistra tool protocol"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -12,17 +12,17 @@ publish = false
 workspace = true
 
 [[bin]]
-name = "kaava-echo-tool"
+name = "veistra-echo-tool"
 path = "src/main.rs"
 
 [dependencies]
-kaava-rpc = { path = "../../crates/kaava-rpc" }
+veistra-rpc = { path = "../../crates/veistra-rpc" }
 serde.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]
-# The end-to-end test lives here rather than in kaava-rpc because
-# `CARGO_BIN_EXE_kaava-echo-tool` is only set for tests inside the package that
+# The end-to-end test lives here rather than in veistra-rpc because
+# `CARGO_BIN_EXE_veistra-echo-tool` is only set for tests inside the package that
 # declares the binary — which is what lets the test spawn the real stub instead
 # of guessing a path into target/.
 serde_json.workspace = true

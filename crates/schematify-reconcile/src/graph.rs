@@ -6,8 +6,8 @@
 //! `impl` block and no change to [`crate::reconcile`].
 //!
 //! Two implementations ship today: [`InMemoryGraph`], for tests, and
-//! [`JsonFileGraph`], which reads `.kaava/nodes/*.json` off disk (PRD section
-//! 6.1) so `kaava reconcile` runs against a real project without linking
+//! [`JsonFileGraph`], which reads `.veistra/nodes/*.json` off disk (PRD section
+//! 6.1) so `veistra reconcile` runs against a real project without linking
 //! `schematify-core`.
 //
 // For the wiring wave: implement `GraphLookup` for whatever `schematify-core`
@@ -90,10 +90,10 @@ impl GraphLookup for InMemoryGraph {
 /// An error loading a [`JsonFileGraph`] from disk.
 #[derive(Debug, thiserror::Error)]
 pub enum GraphLoadError {
-    /// `<root>/.kaava/nodes` does not exist — PRD section 9.3's "the command
-    /// read no project at that path," mapped to `kaava reconcile`'s exit
+    /// `<root>/.veistra/nodes` does not exist — PRD section 9.3's "the command
+    /// read no project at that path," mapped to `veistra reconcile`'s exit
     /// code 2 by the binary.
-    #[error("no project found at {0}: `.kaava/nodes` does not exist")]
+    #[error("no project found at {0}: `.veistra/nodes` does not exist")]
     NoProject(PathBuf),
 
     /// A node file could not be read.
@@ -136,11 +136,11 @@ struct NodeEnvelope {
     impl_ref: Option<serde_json::Value>,
 }
 
-/// A [`GraphLookup`] backed by `.kaava/nodes/*.json` on disk (PRD section
+/// A [`GraphLookup`] backed by `.veistra/nodes/*.json` on disk (PRD section
 /// 6.1), where every node kind — service, module, and every facet — is one
 /// file. This is the stand-in for `schematify-core`'s in-process graph: it
 /// answers the same questions from the same files, just re-read from disk
-/// per `kaava reconcile` invocation rather than kept live in memory.
+/// per `veistra reconcile` invocation rather than kept live in memory.
 #[derive(Debug)]
 pub struct JsonFileGraph {
     nodes: HashMap<Uuid, NodeFacts>,
@@ -150,13 +150,13 @@ pub struct JsonFileGraph {
 }
 
 impl JsonFileGraph {
-    /// Load every node under `<root>/.kaava/nodes/*.json`. Fails with
+    /// Load every node under `<root>/.veistra/nodes/*.json`. Fails with
     /// [`GraphLoadError::NoProject`] if that directory does not exist; a node
     /// file that fails to read or parse is a hard error rather than a silent
     /// skip, since a corrupt node file is itself something reconciliation
     /// should surface, not paper over.
     pub fn load(root: &Path) -> Result<Self, GraphLoadError> {
-        let nodes_dir = root.join(".kaava").join("nodes");
+        let nodes_dir = root.join(".veistra").join("nodes");
         if !nodes_dir.is_dir() {
             return Err(GraphLoadError::NoProject(root.to_path_buf()));
         }
@@ -212,7 +212,7 @@ impl GraphLookup for JsonFileGraph {
         self.nodes.get(&id).cloned()
     }
 
-    /// A node is markable — expected to carry a `@kaava:` marker in code —
+    /// A node is markable — expected to carry a `@veistra:` marker in code —
     /// when its file declares a non-null `impl_ref`, not by matching its
     /// `kind` against a fixed list. PRD section 9.1 says every design
     /// element *with a counterpart in code* carries a marker, and `impl_ref`
@@ -276,7 +276,7 @@ mod tests {
     }
 
     #[test]
-    fn missing_kaava_dir_is_no_project() {
+    fn missing_veistra_dir_is_no_project() {
         let dir = tempfile::tempdir().unwrap();
         let err = JsonFileGraph::load(dir.path()).unwrap_err();
         assert!(matches!(err, GraphLoadError::NoProject(_)));
@@ -285,7 +285,7 @@ mod tests {
     #[test]
     fn loads_nodes_and_filters_markable_by_impl_ref_not_kind() {
         let dir = tempfile::tempdir().unwrap();
-        let nodes_dir = dir.path().join(".kaava").join("nodes");
+        let nodes_dir = dir.path().join(".veistra").join("nodes");
         fs::create_dir_all(&nodes_dir).unwrap();
 
         // A `test-case` facet (PRD 5.5) declaring an `impl_ref` is markable...
@@ -296,7 +296,7 @@ mod tests {
                 "verify-signature-test",
                 "test-case",
                 "implemented",
-                Some("@kaava:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 verify_signature_test"),
+                Some("@veistra:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 verify_signature_test"),
             ),
         )
         .unwrap();

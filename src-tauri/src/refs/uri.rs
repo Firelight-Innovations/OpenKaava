@@ -1,4 +1,4 @@
-//! The `kaava://` grammar: parsing a reference and writing its one canonical form.
+//! The `veistra://` grammar: parsing a reference and writing its one canonical form.
 //!
 //! Pure string work. Nothing here touches the disk, so a reference that parses
 //! may still name a file that does not exist; [`super::resolve`] decides that.
@@ -7,7 +7,7 @@ use super::policy;
 use std::fmt;
 
 /// The scheme every reference starts with.
-pub const SCHEME: &str = "kaava://";
+pub const SCHEME: &str = "veistra://";
 /// A reference longer than this is refused before it is looked at.
 pub const MAX_URI_CHARS: usize = 2048;
 /// Longest id accepted for a comment, a design comment or a context item.
@@ -23,11 +23,11 @@ pub enum Ref {
         id: String,
         part: Option<CanvasPart>,
     },
-    /// A viewer comment in `.kaava/comments/`, with its screenshot.
+    /// A viewer comment in `.veistra/comments/`, with its screenshot.
     Comment { id: String },
     /// A Design Mode comment and its screenshot.
     DesignComment { id: String },
-    /// An item in the context store, `.kaava/context/`.
+    /// An item in the context store, `.veistra/context/`.
     Context { id: String },
     /// Whatever the person has selected in the focused pane, read when resolved.
     Selection,
@@ -110,11 +110,11 @@ pub fn parse(raw: &str) -> Result<Ref, String> {
         "selection" => {
             no_fragment(fragment, kind)?;
             if !tail.is_empty() {
-                return Err("`kaava://selection` takes no path".into());
+                return Err("`veistra://selection` takes no path".into());
             }
             Ok(Ref::Selection)
         }
-        "" => Err("the reference names no kind after `kaava://`".into()),
+        "" => Err("the reference names no kind after `veistra://`".into()),
         other => Err(format!(
             "`{other}` is not a reference kind; use file, canvas, comment, design-comment, \
              context or selection"
@@ -136,7 +136,7 @@ fn no_fragment(fragment: Option<&str>, kind: &str) -> Result<(), String> {
     }
 }
 
-/// Ids Kaava minted itself: letters, digits, `-` and `_`, nothing that could
+/// Ids Veistra minted itself: letters, digits, `-` and `_`, nothing that could
 /// become a path separator once joined.
 fn parse_id(tail: &str, kind: &str) -> Result<String, String> {
     let id = decode(tail)?;
@@ -188,7 +188,7 @@ fn own_canvas_id(id: &str) -> Result<(), String> {
     match crate::apps::canvas::canvas_id(id) {
         Ok(own) if own == id => Ok(()),
         Ok(own) => Err(format!(
-            "`{id}` is spelt as a path; name the canvas `kaava://canvas/{own}`"
+            "`{id}` is spelt as a path; name the canvas `veistra://canvas/{own}`"
         )),
         Err(e) => Err(e.message),
     }
@@ -308,18 +308,18 @@ mod tests {
     #[test]
     fn every_kind_round_trips_through_its_canonical_form() {
         let cases = [
-            "kaava://file/scripts/player.gd",
-            "kaava://file/scripts/player.gd#L10",
-            "kaava://file/scripts/player.gd#L10-L20",
-            "kaava://file/art/hero%20sheet.png",
-            "kaava://canvas/levels/hospital",
-            "kaava://canvas/levels/hospital#frame=f_12",
-            "kaava://canvas/world#frame=Main%20Menu",
-            "kaava://canvas/world#comment=c-1",
-            "kaava://comment/0190af3c2b1e-a1b2",
-            "kaava://design-comment/dc_7",
-            "kaava://context/ctx_0123abcd",
-            "kaava://selection",
+            "veistra://file/scripts/player.gd",
+            "veistra://file/scripts/player.gd#L10",
+            "veistra://file/scripts/player.gd#L10-L20",
+            "veistra://file/art/hero%20sheet.png",
+            "veistra://canvas/levels/hospital",
+            "veistra://canvas/levels/hospital#frame=f_12",
+            "veistra://canvas/world#frame=Main%20Menu",
+            "veistra://canvas/world#comment=c-1",
+            "veistra://comment/0190af3c2b1e-a1b2",
+            "veistra://design-comment/dc_7",
+            "veistra://context/ctx_0123abcd",
+            "veistra://selection",
         ];
         for case in cases {
             let parsed = parse(case).unwrap_or_else(|e| panic!("{case}: {e}"));
@@ -336,39 +336,39 @@ mod tests {
                 end: Some(9),
             }),
         );
-        assert_eq!(parse("kaava://file/a.rs#L3-9").unwrap(), expected);
-        assert_eq!(parse("kaava://file/a.rs#L3-L9").unwrap(), expected);
-        assert_eq!(expected.to_string(), "kaava://file/a.rs#L3-L9");
-        let single = parse("kaava://file/a.rs#L4-L4").unwrap();
-        assert_eq!(single.to_string(), "kaava://file/a.rs#L4");
+        assert_eq!(parse("veistra://file/a.rs#L3-9").unwrap(), expected);
+        assert_eq!(parse("veistra://file/a.rs#L3-L9").unwrap(), expected);
+        assert_eq!(expected.to_string(), "veistra://file/a.rs#L3-L9");
+        let single = parse("veistra://file/a.rs#L4-L4").unwrap();
+        assert_eq!(single.to_string(), "veistra://file/a.rs#L4");
     }
 
     #[test]
     fn a_backwards_or_zero_range_is_refused() {
-        assert!(parse("kaava://file/a.rs#L9-L3").is_err());
-        assert!(parse("kaava://file/a.rs#L0").is_err());
-        assert!(parse("kaava://file/a.rs#L+3").is_err());
-        assert!(parse("kaava://file/a.rs#10").is_err());
+        assert!(parse("veistra://file/a.rs#L9-L3").is_err());
+        assert!(parse("veistra://file/a.rs#L0").is_err());
+        assert!(parse("veistra://file/a.rs#L+3").is_err());
+        assert!(parse("veistra://file/a.rs#10").is_err());
     }
 
     #[test]
     fn the_scheme_is_case_insensitive_and_nothing_else_is() {
-        assert_eq!(parse("KAAVA://file/a.rs").unwrap(), file("a.rs", None));
-        assert!(parse("kaava://File/a.rs").is_err());
+        assert_eq!(parse("VEISTRA://file/a.rs").unwrap(), file("a.rs", None));
+        assert!(parse("veistra://File/a.rs").is_err());
     }
 
     #[test]
     fn a_path_that_could_leave_the_root_never_parses() {
         for bad in [
-            "kaava://file/../secret.txt",
-            "kaava://file/a/../../b",
-            "kaava://file/%2e%2e/b",
-            "kaava://file/C:/Windows/win.ini",
-            "kaava://file//etc/passwd",
-            "kaava://file/a%5Cb",
-            "kaava://file/a%00b",
-            "kaava://file/",
-            "kaava://canvas/../x",
+            "veistra://file/../secret.txt",
+            "veistra://file/a/../../b",
+            "veistra://file/%2e%2e/b",
+            "veistra://file/C:/Windows/win.ini",
+            "veistra://file//etc/passwd",
+            "veistra://file/a%5Cb",
+            "veistra://file/a%00b",
+            "veistra://file/",
+            "veistra://canvas/../x",
         ] {
             assert!(parse(bad).is_err(), "{bad} parsed");
         }
@@ -376,56 +376,59 @@ mod tests {
 
     #[test]
     fn ids_are_single_safe_segments() {
-        assert!(parse("kaava://comment/a/b").is_err());
-        assert!(parse("kaava://context/ctx_1%2F2").is_err());
-        assert!(parse("kaava://design-comment/").is_err());
-        assert!(parse("kaava://comment/x#L1").is_err());
+        assert!(parse("veistra://comment/a/b").is_err());
+        assert!(parse("veistra://context/ctx_1%2F2").is_err());
+        assert!(parse("veistra://design-comment/").is_err());
+        assert!(parse("veistra://comment/x#L1").is_err());
     }
 
     #[test]
     fn junk_is_refused_with_a_sentence() {
-        assert!(parse("file:///a.rs").unwrap_err().contains("kaava://"));
-        assert!(parse("kaava://").is_err());
-        assert!(parse("kaava://shell/x")
+        assert!(parse("file:///a.rs").unwrap_err().contains("veistra://"));
+        assert!(parse("veistra://").is_err());
+        assert!(parse("veistra://shell/x")
             .unwrap_err()
             .contains("not a reference kind"));
-        assert!(parse("kaava://file/a.rs?raw=1").is_err());
-        assert!(parse("kaava://file/a%zz").is_err());
-        assert!(parse("kaava://selection/x").is_err());
-        let long = format!("kaava://file/{}", "a".repeat(MAX_URI_CHARS));
+        assert!(parse("veistra://file/a.rs?raw=1").is_err());
+        assert!(parse("veistra://file/a%zz").is_err());
+        assert!(parse("veistra://selection/x").is_err());
+        let long = format!("veistra://file/{}", "a".repeat(MAX_URI_CHARS));
         assert!(parse(&long).is_err());
     }
 
     #[test]
     fn a_canvas_fragment_must_name_its_part() {
-        assert!(parse("kaava://canvas/w#frame=").is_err());
-        assert!(parse("kaava://canvas/w#shape=x").is_err());
-        assert!(parse("kaava://canvas/w#L3").is_err());
+        assert!(parse("veistra://canvas/w#frame=").is_err());
+        assert!(parse("veistra://canvas/w#shape=x").is_err());
+        assert!(parse("veistra://canvas/w#L3").is_err());
     }
 
     #[test]
     fn a_canvas_is_named_only_by_the_id_the_canvas_app_opens() {
         for (spelt, own) in [
-            ("kaava://canvas/canvas/evil", "kaava://canvas/evil"),
-            ("kaava://canvas/world.json", "kaava://canvas/world"),
-            ("kaava://canvas/world.canvas.json", "kaava://canvas/world"),
+            ("veistra://canvas/canvas/evil", "veistra://canvas/evil"),
+            ("veistra://canvas/world.json", "veistra://canvas/world"),
+            (
+                "veistra://canvas/world.canvas.json",
+                "veistra://canvas/world",
+            ),
         ] {
             let why = parse(spelt).unwrap_err();
             assert!(why.contains(own), "{spelt}: {why}");
         }
         for bad in [
-            "kaava://canvas/World",
-            "kaava://canvas/a%20b",
-            "kaava://canvas/-x",
+            "veistra://canvas/World",
+            "veistra://canvas/a%20b",
+            "veistra://canvas/-x",
         ] {
             assert!(parse(bad).unwrap_err().contains("not a slug"), "{bad}");
         }
-        assert!(parse("kaava://canvas/levels/ward-b_2").is_ok());
+        assert!(parse("veistra://canvas/levels/ward-b_2").is_ok());
     }
 
     #[test]
     fn a_comment_id_is_one_the_canvas_app_could_have_made() {
-        let ok = parse("kaava://canvas/w#comment=c-18f2a-0a1b2c").unwrap();
+        let ok = parse("veistra://canvas/w#comment=c-18f2a-0a1b2c").unwrap();
         assert!(matches!(
             ok,
             Ref::Canvas {
@@ -434,14 +437,14 @@ mod tests {
             }
         ));
         for bad in ["..%2Fx", "a%2Fb", "C-1", "c_1", &"c".repeat(65)] {
-            let uri = format!("kaava://canvas/w#comment={bad}");
+            let uri = format!("veistra://canvas/w#comment={bad}");
             assert!(
                 parse(&uri).unwrap_err().contains("not a comment id"),
                 "{uri}"
             );
         }
         assert!(
-            parse("kaava://canvas/w#frame=Ward%20B").is_ok(),
+            parse("veistra://canvas/w#frame=Ward%20B").is_ok(),
             "a frame may be a name"
         );
     }

@@ -1,11 +1,11 @@
 //! Godot integration: finding the engine, running a project, capturing a frame,
 //! and reading a scene's tree.
 //!
-//! `docs/KAAVA-UX-REWORK.md` §3.1 is the rule everything here obeys: **Godot is
+//! `docs/VEISTRA-UX-REWORK.md` §3.1 is the rule everything here obeys: **Godot is
 //! never embedded in the webview.** It runs as its own native process - the
 //! editor in its own window when someone opens it, the game in its own window
 //! when someone plays it, and a windowless `--headless` process when the viewer
-//! reads a scene. Kaava holds the process handles, the logs and the results;
+//! reads a scene. Veistra holds the process handles, the logs and the results;
 //! it does not draw the engine.
 //!
 //! * [`detect`] - the executable and the projects inside an environment.
@@ -110,7 +110,7 @@ impl Godot {
 /// never the project: a channel is throwaway, and writing it into a checkout
 /// would be a change to a repository nobody asked for.
 pub fn scratch_root() -> PathBuf {
-    std::env::temp_dir().join("kaava-godot")
+    std::env::temp_dir().join("veistra-godot")
 }
 
 #[cfg(test)]

@@ -1,11 +1,11 @@
 //! Seeing and driving the running interface, for the agent working on it.
 //!
-//! The debug server next door answers what OpenKaava *believes* — its layout tree,
+//! The debug server next door answers what Veistra *believes* — its layout tree,
 //! its failures, how boot went. This one answers what is actually on screen, and
 //! can act on it: a screenshot, a list of what can be clicked, and real mouse
 //! and keyboard input into the window.
 //!
-//! **This is the one server that writes.** Everything else OpenKaava hosts is a
+//! **This is the one server that writes.** Everything else Veistra hosts is a
 //! read, deliberately, so that a leaked token costs knowledge and not control.
 //! A tool that clicks cannot be that, which is why this server is `dev_only`,
 //! starts switched off even once developer mode reveals it, and says so on the
@@ -21,9 +21,9 @@
 
 use crate::devtools;
 use crate::mcp::{McpServer, McpTool, ToolAnswer};
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
 use serde_json::{json, Value};
 use tauri::AppHandle;
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
 
 pub static SERVER: McpServer = McpServer {
     id: "ui",
@@ -119,8 +119,8 @@ static TOOLS: &[McpTool] = &TOOL_LIST;
 pub(super) const TOOL_LIST: [McpTool; 10] = [
     McpTool {
         name: "screenshot",
-        description: "A PNG of the OpenKaava window as it is drawn right now, app content \
-                      included. This is how to see OpenKaava: it is a desktop app, not a web \
+        description: "A PNG of the Veistra window as it is drawn right now, app content \
+                      included. This is how to see Veistra: it is a desktop app, not a web \
                       page, so a browser tool cannot reach it.",
         schema: window_only,
     },
@@ -142,7 +142,7 @@ pub(super) const TOOL_LIST: [McpTool; 10] = [
     },
     McpTool {
         name: "type_text",
-        description: "Type into the focused field inside OpenKaava's window. Refuses when \
+        description: "Type into the focused field inside Veistra's window. Refuses when \
                       nothing has focus, when focus is on something that takes no text, or \
                       when it is in a terminal. To set a field without clicking it first, use \
                       fill_field.",
@@ -421,7 +421,7 @@ pub(super) fn call(
         "scroll" => scroll(app, window, &params).map(Into::into),
         "eval" => evaluate(app, window, required(&params, "expression")?).map(Into::into),
         other => Err(RpcError::new(
-            kaava_rpc::METHOD_NOT_FOUND,
+            veistra_rpc::METHOD_NOT_FOUND,
             format!("the UI server has no tool named `{other}`"),
         )),
     }
@@ -538,7 +538,7 @@ fn click(
     };
 
     // Move, press, release. `el.click()` would be one call instead of three and
-    // would skip both the pointer events OpenKaava's menus and drag handles listen
+    // would skip both the pointer events Veistra's menus and drag handles listen
     // for and the focus change a real press causes.
     with_modifiers(app, window, modifiers, || {
         for event in click_events(x, y, modifiers) {
@@ -869,7 +869,7 @@ fn type_refusal(focus: &Value) -> Option<String> {
     match focus.get("problem").and_then(Value::as_str) {
         None => None,
         Some("nothing") => Some(
-            "nothing in the OpenKaava window has focus, so there is nowhere to type. Click the \
+            "nothing in the Veistra window has focus, so there is nowhere to type. Click the \
              field first, or use fill_field to set it by label."
                 .to_string(),
         ),
@@ -1263,7 +1263,7 @@ for (const { doc, dx, dy } of docs()) {
     refs.push(el);
   }
 }
-window.__kaavaDebugRefs = refs;
+window.__veistraDebugRefs = refs;
 return JSON.stringify(rows);
 "#;
 
@@ -1273,7 +1273,7 @@ return JSON.stringify(rows);
 /// size, and be what is actually under its centre, in its own document and in
 /// the shell's (an overlay can sit over a whole app frame).
 const LOCATE_BODY: &str = r#"
-const kept = window.__kaavaDebugRefs || [];
+const kept = window.__veistraDebugRefs || [];
 const isRef = /^e\d+$/.test(argument);
 let el = isRef ? kept[Number(argument.slice(1))] : null;
 if (isRef && el && !el.isConnected) return JSON.stringify({ problem: 'stale' });
@@ -1303,15 +1303,15 @@ const top = document.elementFromPoint(at.x, at.y);
 const cover = !hits(local, el) ? local : (frameEl && !hits(top, frameEl) ? top : null);
 if (cover) return JSON.stringify({ problem: 'covered', label: name(el),
   coveredBy: cover.tagName.toLowerCase() + (cover.className && typeof cover.className === 'string' ? '.' + cover.className.split(' ')[0] : '') + (name(cover) ? ' "' + name(cover) + '"' : '') });
-window.__kaavaClickTarget = el;
+window.__veistraClickTarget = el;
 return JSON.stringify({ x: at.x, y: at.y, label: name(el) });
 "#;
 
 /// After a click: what has focus, and focus moved onto the target when the
 /// press left it elsewhere and the target can take it.
 const FOCUS_BODY: &str = r#"
-const el = window.__kaavaClickTarget;
-window.__kaavaClickTarget = null;
+const el = window.__veistraClickTarget;
+window.__veistraClickTarget = null;
 if (!el || !el.isConnected) return JSON.stringify(describe(deepActive().el));
 let now = deepActive();
 const onIt = () => now.el === el || (now.el && el.contains(now.el));
@@ -1341,7 +1341,7 @@ const norm = (s) => (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
 const FIELDS = 'input,textarea,select,[contenteditable=true],[role=textbox]';
 let el = null;
 if (/^e\d+$/.test(field)) {
-  el = (window.__kaavaDebugRefs || [])[Number(field.slice(1))] || null;
+  el = (window.__veistraDebugRefs || [])[Number(field.slice(1))] || null;
   if (el && !el.isConnected) return JSON.stringify({ problem: 'stale' });
 }
 if (!el) {
@@ -1394,7 +1394,7 @@ return JSON.stringify({ filled: describe(el), frame: frame ? 'app' : 'shell',
 "#;
 
 /// Focus, the pane instance it is in, each visible app's own report through
-/// `window.__kaavaContext` (the canvas answers with its open file and
+/// `window.__veistraContext` (the canvas answers with its open file and
 /// selection), and any selected text.
 const CONTEXT_BODY: &str = r#"
 const a = deepActive();
@@ -1402,7 +1402,7 @@ const apps = [];
 for (const f of document.querySelectorAll('iframe')) {
   if (!shown(f, document)) continue;
   let report = null;
-  try { const fn = f.contentWindow.__kaavaContext; report = typeof fn === 'function' ? fn() : null; } catch { report = null; }
+  try { const fn = f.contentWindow.__veistraContext; report = typeof fn === 'function' ? fn() : null; } catch { report = null; }
   apps.push({ instance: instanceOf(f), title: f.getAttribute('title'), focused: f === a.frame, report });
 }
 let text = '';
@@ -1451,7 +1451,7 @@ mod tests {
         );
     }
 
-    /// An agent reached for a browser to look at OpenKaava and found nothing.
+    /// An agent reached for a browser to look at Veistra and found nothing.
     /// The descriptions are what it reads first, so they say where to look.
     #[test]
     fn the_screenshot_tool_says_a_browser_cannot_reach_the_app() {
@@ -1650,7 +1650,7 @@ mod tests {
             !js.contains("; alert(1); //']\n"),
             "the argument escaped its literal"
         );
-        assert!(js.contains("window.__kaavaDebugRefs"));
+        assert!(js.contains("window.__veistraDebugRefs"));
     }
 
     /// `null` is what "no selector" becomes, and the body has to read it as

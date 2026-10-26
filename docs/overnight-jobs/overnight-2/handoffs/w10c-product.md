@@ -253,7 +253,7 @@ No browser was available (`00-AGENT-CONTEXT.md` forbids `pnpm dev:agent`/
 | `pnpm lint:comments` | Pass — 0 grandfathered, after trimming `schematify.rs`'s module doc comment twice (once pre-merge, once again once wave 10b's own paragraph landed alongside it) and `EmptyModule.tsx` once |
 | `pnpm lint:version`/`lint:identity`/`lint:branding` | Pass |
 | `pnpm format:check` (prettier + `cargo fmt --all -- --check`) | Pass |
-| `cargo test --workspace` | Pass — every crate green, 0 failed (`schematify-core` lib: 186; `schematify.rs`'s own suite: part of the workspace's `openkaava-orchestrator` binary tests). Run with an isolated `CARGO_TARGET_DIR`, not the shared one — see the note below |
+| `cargo test --workspace` | Pass — every crate green, 0 failed (`schematify-core` lib: 186; `schematify.rs`'s own suite: part of the workspace's `veistra-orchestrator` binary tests). Run with an isolated `CARGO_TARGET_DIR`, not the shared one — see the note below |
 | `cargo clippy` (`node scripts/clippy-baseline.mjs`) | Pass — 0 warnings, at the baseline of 0 |
 
 **A shared-`CARGO_TARGET_DIR` false failure, not this wave's bug.** Two
@@ -267,7 +267,7 @@ both the check and the full test suite with the shared target-dir variable
 unset (an isolated, private target dir) passed cleanly both times, before
 and after the merge — this is the same class of defect
 `docs/overnight-jobs/overnight-2/handoffs/w10a-gates.md`'s "known false
-failure" note describes for `kaava-tool-manifest`, just manifesting as a
+failure" note describes for `veistra-tool-manifest`, just manifesting as a
 compile error instead of 3 named test failures. If a reviewer sees this
 error against the shared target dir, retry with `CARGO_TARGET_DIR` unset
 before concluding the code is wrong.

@@ -2,7 +2,7 @@
 """Render plane.env.tmpl into a Plane env file, filling secrets from Secret Manager.
 
     render_env.py --template plane.env.tmpl --out /run/plane/plane.env \\
-        --prefix plane- --param web_url=http://plane.kaava.internal:8765 --param port=8765 ...
+        --prefix plane- --param web_url=http://plane.veistra.internal:8765 --param port=8765 ...
 
 ${SECRET:<name>} becomes the latest version of secret <prefix><name>; ${PARAM:<name>} becomes the
 matching --param. An unfilled placeholder is an error, so a missing secret stops Plane from

@@ -25,7 +25,7 @@ import { wasUpdated } from "./mergeContext";
 import { useContextItems, useHarnessInfo, useThumb } from "./useContextItems";
 import "./contextStrip.css";
 
-const COLLAPSED_KEY = "kaava.contextStrip.collapsed";
+const COLLAPSED_KEY = "veistra.contextStrip.collapsed";
 
 function readCollapsed(): boolean {
   try {
@@ -149,7 +149,7 @@ export default function ContextStrip({
       ) : asking ? (
         <div className="ctxstrip__consent" role="group" aria-label="Track what the agent reads">
           <p>
-            Kaava will add a hook to{" "}
+            Veistra will add a hook to{" "}
             <code>{saw.status?.settingsPath ?? ".claude/settings.local.json"}</code> that records
             the path of each file Claude Code reads, so images it looked at show here. Your other
             settings are kept. Nothing leaves this machine, and you can remove it here at any time.

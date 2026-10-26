@@ -7,7 +7,7 @@ import type { Body } from "./blocks";
  * page says "the stack" as though the reader already knows, and because a fresh
  * machine could, in principle, raise a warning badge over tools that are not
  * installed — which reads as breakage until you know none are meant to be
- * there yet. Today that principle is untested: `kaava.toml`'s `[[tool]]` array
+ * there yet. Today that principle is untested: `veistra.toml`'s `[[tool]]` array
  * is empty (Schematify, its former two entries folded into one, is an app
  * now — see `apps/README.md`), so the badge has nothing to report either way.
  */
@@ -17,7 +17,7 @@ export const theStack: Body = {
   blocks: [
     {
       kind: "text",
-      body: "OpenKaava is not one program: an orchestrator that a **stack** of separate authoring tools can mount into, plus whatever ships compiled into the orchestrator itself. The orchestrator — the thing you are reading this in — is the one that ties a tool together with the rest when it runs, and it holds none of a tool's code.",
+      body: "Veistra is not one program: an orchestrator that a **stack** of separate authoring tools can mount into, plus whatever ships compiled into the orchestrator itself. The orchestrator — the thing you are reading this in — is the one that ties a tool together with the rest when it runs, and it holds none of a tool's code.",
     },
     {
       kind: "text",
@@ -29,13 +29,13 @@ export const theStack: Body = {
     },
     {
       kind: "text",
-      body: "The list lives in `kaava.toml` at the root of the orchestrator's checkout. Each entry pins an exact version, so a given checkout of the orchestrator always describes one reproducible stack rather than whatever each repository's branch tip happens to be today.",
+      body: "The list lives in `veistra.toml` at the root of the orchestrator's checkout. Each entry pins an exact version, so a given checkout of the orchestrator always describes one reproducible stack rather than whatever each repository's branch tip happens to be today.",
     },
 
     { kind: "heading", body: "Nothing is pinned today" },
     {
       kind: "text",
-      body: "`kaava.toml`'s `[[tool]]` array is empty right now. It held two entries once, and both are now the single Schematify app built into the orchestrator itself rather than separate tool repositories — see `apps/README.md` at the repository root for what it is now and why.",
+      body: "`veistra.toml`'s `[[tool]]` array is empty right now. It held two entries once, and both are now the single Schematify app built into the orchestrator itself rather than separate tool repositories — see `apps/README.md` at the repository root for what it is now and why.",
     },
     {
       kind: "note",
@@ -46,7 +46,7 @@ export const theStack: Body = {
     {
       kind: "flow",
       steps: [
-        "Reads `kaava.toml`",
+        "Reads `veistra.toml`",
         "looks for each tool's checkout",
         "resolves one of four states",
       ],
@@ -59,7 +59,7 @@ export const theStack: Body = {
       kind: "mock",
       view: "stack-list",
       caption:
-        "Two unwell tools and the count the badge carries. A healthy tool has no row here at all. Illustrative rather than live — nothing is pinned in kaava.toml today, so this exact screen has no current example to show.",
+        "Two unwell tools and the count the badge carries. A healthy tool has no row here at all. Illustrative rather than live — nothing is pinned in veistra.toml today, so this exact screen has no current example to show.",
     },
     {
       kind: "text",
@@ -71,7 +71,7 @@ export const theStack: Body = {
     },
     {
       kind: "text",
-      body: "`checkout-root` in `kaava.toml` says where a pinned tool's checkout is looked for, and defaults to `..` — every OpenKaava repository sitting as a sibling of the orchestrator's own folder. Cloning the pinned version there is what clears a tool from the badge; cloning the wrong one only changes which word it shows.",
+      body: "`checkout-root` in `veistra.toml` says where a pinned tool's checkout is looked for, and defaults to `..` — every Veistra repository sitting as a sibling of the orchestrator's own folder. Cloning the pinned version there is what clears a tool from the badge; cloning the wrong one only changes which word it shows.",
     },
 
     { kind: "heading", body: "Apps and tools are different things" },

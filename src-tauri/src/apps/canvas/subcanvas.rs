@@ -6,8 +6,8 @@
 //! moves each frame's members into `canvas/<parent>/<diagram>.json`, together
 //! with a copy of the frame itself (same element id, same position, same
 //! diagram metadata). The parent keeps the empty frame, linked to the child
-//! with the ordinary nesting link (`customData.kaava.child` plus a
-//! `kaava://canvas/` link) and marked `customData.kaava.subcanvas: true`. The
+//! with the ordinary nesting link (`customData.veistra.child` plus a
+//! `veistra://canvas/` link) and marked `customData.veistra.subcanvas: true`. The
 //! marker is what tells the editor to draw the child's picture into the frame,
 //! and tells the agent methods that the frame's elements now live in the child.
 //!
@@ -24,16 +24,16 @@ use super::methods::{actor, open, params_of, save_scene, string};
 use super::store;
 use super::{bad, file_for, mtime_at, relative, validate_id, SCHEMA};
 use base64::Engine;
-use kaava_rpc::RpcError;
 use serde_json::{json, Map, Value};
 use std::collections::HashSet;
 use std::path::Path;
+use veistra_rpc::RpcError;
 
 /// A frame with fewer members than this stays where it is unless named.
 pub const MIN_ELEMENTS: usize = 40;
 
 /// Mirrors `CANVAS_LINK` in `ui/src/nesting.ts`.
-const CANVAS_LINK: &str = "kaava://canvas/";
+const CANVAS_LINK: &str = "veistra://canvas/";
 
 fn str_of<'a>(v: &'a Value, key: &str) -> Option<&'a str> {
     v.get(key).and_then(Value::as_str)
@@ -54,11 +54,11 @@ pub fn child_of_frame(el: &Value) -> Option<&str> {
     if !is_frame(el) || !is_live(el) {
         return None;
     }
-    let kaava = el.pointer("/customData/kaava")?;
-    if kaava.get("subcanvas").and_then(Value::as_bool) != Some(true) {
+    let veistra = el.pointer("/customData/veistra")?;
+    if veistra.get("subcanvas").and_then(Value::as_bool) != Some(true) {
         return None;
     }
-    kaava.get("child").and_then(Value::as_str)
+    veistra.get("child").and_then(Value::as_str)
 }
 
 /// Every sub-canvas frame in `scene`: `(frame element, child id)`.
@@ -130,9 +130,9 @@ pub fn sync_parent_frame(parent: &mut Value, child: &str, child_scene: &Value) -
             }
         }
     }
-    if let Some(diagram) = source.pointer("/customData/kaava/diagram") {
-        if target.pointer("/customData/kaava/diagram") != Some(diagram) {
-            target["customData"]["kaava"]["diagram"] = diagram.clone();
+    if let Some(diagram) = source.pointer("/customData/veistra/diagram") {
+        if target.pointer("/customData/veistra/diagram") != Some(diagram) {
+            target["customData"]["veistra"]["diagram"] = diagram.clone();
             changed = true;
         }
     }
@@ -177,15 +177,15 @@ pub fn mirror_into_child(root: &Path, parent_frame: &Value, who: &str) -> Result
         target["customData"] = json!({});
     }
     if !target["customData"]
-        .get("kaava")
+        .get("veistra")
         .is_some_and(Value::is_object)
     {
-        target["customData"]["kaava"] = json!({});
+        target["customData"]["veistra"] = json!({});
     }
-    match parent_frame.pointer("/customData/kaava/object") {
-        Some(o) => target["customData"]["kaava"]["object"] = o.clone(),
+    match parent_frame.pointer("/customData/veistra/object") {
+        Some(o) => target["customData"]["veistra"]["object"] = o.clone(),
         None => {
-            if let Some(k) = target["customData"]["kaava"].as_object_mut() {
+            if let Some(k) = target["customData"]["veistra"].as_object_mut() {
                 k.remove("object");
             }
         }
@@ -193,7 +193,10 @@ pub fn mirror_into_child(root: &Path, parent_frame: &Value, who: &str) -> Result
     diagrams::bump(target);
     // The child's title is what its badge, breadcrumb and picker show.
     let name = parent_frame.get("name").and_then(Value::as_str);
-    if let (Some(n), Some(k)) = (name, scene.get_mut("kaava").and_then(Value::as_object_mut)) {
+    if let (Some(n), Some(k)) = (
+        name,
+        scene.get_mut("veistra").and_then(Value::as_object_mut),
+    ) {
         k.insert("title".into(), json!(n));
     }
     save_scene(root, child, scene, base, who)?;
@@ -305,7 +308,7 @@ fn child_id(root: &Path, parent: &str, base: &str, taken: &HashSet<String>) -> O
 fn child_frame(frame: &Value, members: &HashSet<String>) -> Value {
     let mut f = frame.clone();
     if let Some(k) = f
-        .pointer_mut("/customData/kaava")
+        .pointer_mut("/customData/veistra")
         .and_then(Value::as_object_mut)
     {
         k.remove("child");
@@ -388,7 +391,7 @@ pub fn split_frames(root: &Path, params: Option<&Value>) -> Result<Value, RpcErr
         let Some(frame) = frame_el(&scene, d) else {
             continue;
         };
-        if frame.pointer("/customData/kaava/child").is_some() {
+        if frame.pointer("/customData/veistra/child").is_some() {
             skipped.push(skip("it already links to a child canvas".into()));
             continue;
         }
@@ -457,7 +460,7 @@ pub fn split_frames(root: &Path, params: Option<&Value>) -> Result<Value, RpcErr
             "gridSize": a.get("gridSize").cloned().unwrap_or(Value::Null),
         })
     };
-    let values = scene.pointer("/kaava/values").cloned();
+    let values = scene.pointer("/veistra/values").cloned();
 
     let mut written: Vec<String> = Vec::new();
     let undo = |written: &[String]| {
@@ -489,18 +492,18 @@ pub fn split_frames(root: &Path, params: Option<&Value>) -> Result<Value, RpcErr
             let f = child_elements.remove(pos);
             child_elements.push(f);
         }
-        let mut kaava = json!({ "schema": SCHEMA, "title": plan.title, "parent": id });
+        let mut veistra = json!({ "schema": SCHEMA, "title": plan.title, "parent": id });
         if let Some(v) = &values {
-            kaava["values"] = v.clone();
+            veistra["values"] = v.clone();
         }
         let child_scene = json!({
             "type": "excalidraw",
             "version": 2,
-            "source": "openkaava",
+            "source": "veistra",
             "elements": child_elements,
             "appState": app_state,
             "files": used_files,
-            "kaava": kaava,
+            "veistra": veistra,
         });
         if let Err(e) = save_scene(root, &plan.child, child_scene, None, who) {
             undo(&written);
@@ -523,11 +526,11 @@ pub fn split_frames(root: &Path, params: Option<&Value>) -> Result<Value, RpcErr
                 if !f.get("customData").is_some_and(Value::is_object) {
                     f["customData"] = json!({});
                 }
-                if !f["customData"].get("kaava").is_some_and(Value::is_object) {
-                    f["customData"]["kaava"] = json!({});
+                if !f["customData"].get("veistra").is_some_and(Value::is_object) {
+                    f["customData"]["veistra"] = json!({});
                 }
-                f["customData"]["kaava"]["child"] = json!(plan.child);
-                f["customData"]["kaava"]["subcanvas"] = json!(true);
+                f["customData"]["veistra"]["child"] = json!(plan.child);
+                f["customData"]["veistra"]["subcanvas"] = json!(true);
                 f["link"] = json!(format!("{CANVAS_LINK}{}", plan.child));
                 keep_bound(f, |b| !plan.members.contains(b));
                 diagrams::bump(f);
@@ -590,7 +593,7 @@ pub fn merge_children(
         let Ok(mut cscene) = super::load(root, &file_for(root, &child)) else {
             continue;
         };
-        if cscene.pointer("/kaava/parent").and_then(Value::as_str) != Some(parent) {
+        if cscene.pointer("/veistra/parent").and_then(Value::as_str) != Some(parent) {
             continue;
         }
         store::inflate(root, &child, &mut cscene);
@@ -683,7 +686,7 @@ pub fn unsplit(
         let path = file_for(root, &child);
         let ours = super::load(root, &path)
             .ok()
-            .is_some_and(|s| s.pointer("/kaava/parent").and_then(Value::as_str) == Some(parent));
+            .is_some_and(|s| s.pointer("/veistra/parent").and_then(Value::as_str) == Some(parent));
         if ours && store::checkpoint(root, &child, "unsplit")?.is_some() {
             std::fs::remove_file(&path)
                 .map_err(|e| bad(format!("could not remove {child}: {e}")))?;
@@ -770,7 +773,7 @@ pub fn snapshots(root: &Path, params: Option<&Value>) -> Result<Value, RpcError>
 
 /// `canvas/put-snapshot` `{child, mtime, png, width, height}`: cache the
 /// picture the editor drew of `child` as it was at `mtime`. A cache write under
-/// `.kaava/`, not a design change, so it works on a read-only checkout too.
+/// `.veistra/`, not a design change, so it works on a read-only checkout too.
 pub fn put_snapshot(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
     let p = params_of(params);
     let child = string(p, "child")?;
@@ -812,7 +815,7 @@ mod tests {
     fn frame(id: &str, diagram: &str, x: f64) -> Value {
         json!({ "id": id, "type": "frame", "name": format!("Frame {diagram}"),
                 "x": x, "y": 0, "width": 400, "height": 300, "version": 1,
-                "customData": { "kaava": { "diagram": { "id": diagram, "title": diagram,
+                "customData": { "veistra": { "diagram": { "id": diagram, "title": diagram,
                                                         "parent": "overview" } } } })
     }
 
@@ -835,7 +838,7 @@ mod tests {
         elements.push(boxed);
         elements.push(json!({ "id": "label", "type": "text", "containerId": "box",
                               "text": "{{gravity}}", "x": 12, "y": 12, "version": 1,
-                              "customData": { "kaava": { "value": "gravity", "template": "{{gravity}}" } } }));
+                              "customData": { "veistra": { "value": "gravity", "template": "{{gravity}}" } } }));
         elements.push(frame("fb", "big", 0.0));
         elements.push(rect("s1", "fs"));
         elements.push(frame("fs", "small", 500.0));
@@ -850,7 +853,7 @@ mod tests {
             "elements": elements,
             "appState": { "viewBackgroundColor": "#fafafa", "gridSize": 20 },
             "files": {},
-            "kaava": { "title": "Game", "values": { "gravity": { "value": 30 } } },
+            "veistra": { "title": "Game", "values": { "gravity": { "value": 30 } } },
         });
         let path = dir.path().join("canvas/game.json");
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -911,7 +914,7 @@ mod tests {
         assert_eq!(ids, ["fb", "fs", "t1", "ft", "arrow"]);
         let fb = &diagrams::elements_of(&parent)[0];
         assert_eq!(child_of_frame(fb), Some("game/big"));
-        assert_eq!(fb["link"], "kaava://canvas/game/big");
+        assert_eq!(fb["link"], "veistra://canvas/game/big");
         assert_eq!(fb["version"], 2);
 
         let child = read(dir.path(), "game/big");
@@ -919,11 +922,11 @@ mod tests {
         assert_eq!(celements.len(), 52);
         let last = celements.last().unwrap();
         assert_eq!(last["id"], "fb");
-        assert!(last.pointer("/customData/kaava/child").is_none());
-        assert!(last.pointer("/customData/kaava/diagram/parent").is_none());
+        assert!(last.pointer("/customData/veistra/child").is_none());
+        assert!(last.pointer("/customData/veistra/diagram/parent").is_none());
         assert_eq!(last["x"], 0.0);
-        assert_eq!(child["kaava"]["parent"], "game");
-        assert_eq!(child["kaava"]["values"]["gravity"]["value"], 30);
+        assert_eq!(child["veistra"]["parent"], "game");
+        assert_eq!(child["veistra"]["values"]["gravity"]["value"], 30);
         assert_eq!(child["appState"]["viewBackgroundColor"], "#fafafa");
         let label = celements.iter().find(|e| e["id"] == "label").unwrap();
         assert_eq!(label["containerId"], "box");
@@ -1150,7 +1153,7 @@ mod tests {
         )
         .unwrap();
         let child = read(dir.path(), "game/big");
-        assert_eq!(child["kaava"]["values"]["gravity"]["value"], 12);
+        assert_eq!(child["veistra"]["values"]["gravity"]["value"], 12);
         // Its report lists the uses inside the child, as canvas/values does.
         assert!(set["uses"]
             .as_array()
@@ -1175,7 +1178,7 @@ mod tests {
         )
         .unwrap();
         let child = read(dir.path(), "game/big");
-        assert_eq!(child["kaava"]["title"], "Renamed");
+        assert_eq!(child["veistra"]["title"], "Renamed");
     }
 
     #[test]

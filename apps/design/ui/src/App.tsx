@@ -15,7 +15,7 @@
  * is the whole reason `design_comments` and `mcp::servers::design` exist.
  */
 import { useEffect, useRef, useState } from "react";
-import { reportPainted } from "@openkaava/bridge";
+import { reportPainted } from "@veistra/bridge";
 import CommentList from "./CommentList";
 import { CLOSED_BY_HAND } from "./comments";
 import { copyForAgent, type Handoff } from "./handoff";
@@ -24,7 +24,7 @@ import { useComments } from "./useComments";
 import { useProbeFrame } from "./useProbeFrame";
 
 /** What the frame is allowed to do. Read the omissions rather than the list:
- *  there is no `allow-top-navigation`, so the page cannot replace the OpenKaava
+ *  there is no `allow-top-navigation`, so the page cannot replace the Veistra
  *  window with itself — which a cross-origin frame may otherwise do off a user
  *  gesture, and a click on an element is a user gesture. */
 const FRAME_SANDBOX = "allow-scripts allow-same-origin allow-forms allow-popups allow-modals";

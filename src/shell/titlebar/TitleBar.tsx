@@ -4,7 +4,7 @@
  * controls.
  *
  * Menu geometry is lifted from `docs/handoffs/shell-spec.html` (search
- * `>File<`); the pill is `docs/design/KAAVA-UX-SPEC.md` §1.2 / board 08. The
+ * `>File<`); the pill is `docs/design/VEISTRA-UX-SPEC.md` §1.2 / board 08. The
  * environment summary (worktree kind, branch, ahead/behind, path) and Review &
  * merge live in the status bar (`StatusBar`), so each git fact is drawn once.
  * `titlebar.css` owns the collapse order.
@@ -42,7 +42,7 @@ export interface TitleBarProps {
   environment: Environment | null;
   /**
    * What the chip names when `environment` is not `null`: the cluster's own
-   * name. `docs/design/KAAVA-UX-SPEC.md` §1.2's own example ("godot-port") is a
+   * name. `docs/design/VEISTRA-UX-SPEC.md` §1.2's own example ("godot-port") is a
    * cluster's short name rather than its full branch, which is what a person
    * actually recognises a cluster by — the branch is already on the switcher
    * tab and on the environment bar below it.

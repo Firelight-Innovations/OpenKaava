@@ -7,10 +7,10 @@ concentration under the caps in STANDARDS.md §10. The source files point back h
 
 Grammars for languages Monaco does not ship, plus the one function that installs them.
 
-There is exactly one language in here today — TOML, which OpenKaava's own two marker formats
+There is exactly one language in here today — TOML, which Veistra's own two marker formats
 are written in — and the package is named for the general case because the boundary it
 exists to cross is general. `src/` and `apps/files/` may not import each other, so
-anything both sides of the shell need lives under `packages/`; `@openkaava/file-icons` was the
+anything both sides of the shell need lives under `packages/`; `@veistra/file-icons` was the
 first of these and this is the second. A second grammar would be another file beside
 `./toml.ts` and another `register*` below, not a second package.
 
@@ -77,18 +77,18 @@ because neither is reachable from the other.
 
 ### Why it was worth writing rather than aliasing again
 
-`.kaava` is TOML. `src-tauri/src/project/marker.rs` parses a project marker with
-`raw.parse::<toml::Table>()`, and `manifest.rs` does the same for `kaava.toml`. So the
-three files anyone working in this product opens most — `<project>.kaava`, `kaava.toml`,
+`.veistra` is TOML. `src-tauri/src/project/marker.rs` parses a project marker with
+`raw.parse::<toml::Table>()`, and `manifest.rs` does the same for `veistra.toml`. So the
+three files anyone working in this product opens most — `<project>.veistra`, `veistra.toml`,
 `Cargo.toml` — are all one format, and all three were being coloured by a grammar for a
 different one.
 
 The `ini` stand-in is not merely imprecise on them, it is wrong on their actual contents:
 
 - Its key rule is `/(^\w+)(\s*)(\=)/`, and `\w` does not include `-`. Every kebab-case key
-  OpenKaava writes — `created-with`, `created-unix-ms`, `checkout-root` — is therefore not
+  Veistra writes — `created-with`, `created-unix-ms`, `checkout-root` — is therefore not
   highlighted as a key at all.
-- Its section rule is `/^\[[^\]]*\]/`, which on `kaava.toml`'s `[[tool]]` matches
+- Its section rule is `/^\[[^\]]*\]/`, which on `veistra.toml`'s `[[tool]]` matches
   `[[tool]` and leaves a stray `]` behind.
 - Its comment rule is `/^\s*[#;].*$/`, so a comment after a value on the same line is not
   a comment.
@@ -103,7 +103,7 @@ It was written for the Files app and sat in `apps/files/ui/src/viewer/toml.ts` f
 as long as there was one editor to serve. There are now three — Files' viewer, the search
 overlay's preview pane, and the source-control diff — and `src/` and `apps/files/` may not
 import each other (see the repository CLAUDE.md), so the only ground all three can stand
-on is `packages/`. Moving it here is what makes "TOML is highlighted in OpenKaava" one fact
+on is `packages/`. Moving it here is what makes "TOML is highlighted in Veistra" one fact
 rather than three copies drifting apart.
 
 That move is also why `index.ts` exports a `registerToml` rather than leaving each editor
@@ -116,17 +116,17 @@ already had to be pulled apart to avoid.
 
 Every token this emits is one `vs-dark` already colours — `key`, `metatag`, `comment`,
 `string`, `number`, `number.hex`, `keyword`, `delimiter` (read out of
-`editor/standalone/common/themes.js`). That is deliberate and it is what lets every OpenKaava
+`editor/standalone/common/themes.js`). That is deliberate and it is what lets every Veistra
 theme keep `rules: []`: the theme headers forbid inventing a token colour, on the grounds
 that the handoff palette names UI surfaces rather than grammar scopes. Borrowing scopes
-the base theme already styles means a `.kaava` file is coloured by exactly the machinery
+the base theme already styles means a `.veistra` file is coloured by exactly the machinery
 that colours a `.py` or a `.md`, and this file introduces no palette of its own.
 
 ### What it deliberately does not do
 
 No validation, no folding provider, no language service. A Monarch tokenizer is a lexer:
 it says what a run of characters *looks* like, not whether the document is well-formed. A
-`.kaava` with a duplicate table is coloured perfectly and is still rejected by Rust, which
+`.veistra` with a duplicate table is coloured perfectly and is still rejected by Rust, which
 is the half that gets to have an opinion — the same division every consumer of this
 package draws for every other language it registers, except JSON.
 

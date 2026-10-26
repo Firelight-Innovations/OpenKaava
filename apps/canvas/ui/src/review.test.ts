@@ -15,7 +15,9 @@ const el = (id: string, type: string, x: number, y: number, w: number, h: number
 const named = (id: string, diagram: string, x: number, w = 400) =>
   el(id, "frame", x, 0, w, 300, {
     name: `Frame ${diagram}`,
-    customData: { kaava: { diagram: { id: diagram, title: `Title ${diagram}`, level: "detail" } } },
+    customData: {
+      veistra: { diagram: { id: diagram, title: `Title ${diagram}`, level: "detail" } },
+    },
   });
 
 const scene: SceneElement[] = [

@@ -43,7 +43,7 @@ const MAX_E_LFANEW: u32 = 1 << 20;
 ///
 /// `PATHEXT` is not applied either, so a bare `bash` with no extension resolves
 /// to nothing here and is spawned unchecked. Every candidate this build offers
-/// carries its extension; the one that might not is a `KAAVA_SHELL` somebody
+/// carries its extension; the one that might not is a `VEISTRA_SHELL` somebody
 /// set by hand, and letting that through unchecked is the same degradation as
 /// a program that is not installed.
 pub fn resolve(program: &str) -> Option<PathBuf> {
@@ -137,7 +137,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_nanos())
             .unwrap_or_default();
-        let dir = std::env::temp_dir().join(format!("kaava-runnable-{tag}-{at}"));
+        let dir = std::env::temp_dir().join(format!("veistra-runnable-{tag}-{at}"));
         std::fs::create_dir_all(&dir).expect("the temp directory is writable");
         dir
     }
@@ -191,7 +191,7 @@ mod tests {
 
         assert_eq!(resolve(&there.to_string_lossy()), Some(there));
         assert_eq!(resolve(&dir.join("nowhere.exe").to_string_lossy()), None);
-        assert_eq!(resolve("kaava-no-such-program-9f3a"), None);
+        assert_eq!(resolve("veistra-no-such-program-9f3a"), None);
     }
 
     /// A program that is simply not installed is not this module's business:
@@ -199,6 +199,6 @@ mod tests {
     /// would be one more thing to keep in step.
     #[test]
     fn a_program_that_is_not_installed_is_not_reported_as_unrunnable() {
-        assert_eq!(unrunnable("kaava-no-such-program-9f3a"), None);
+        assert_eq!(unrunnable("veistra-no-such-program-9f3a"), None);
     }
 }

@@ -1,7 +1,7 @@
 //! Wave 9: "Declare the 6 budgets in section 14.7 inside Schematify's own
-//! `.kaava/` project, each with its probe command" (PRD §17, Wave 9).
+//! `.veistra/` project, each with its probe command" (PRD §17, Wave 9).
 //!
-//! `self/.kaava/` is that project — Schematify describing itself, as distinct
+//! `self/.veistra/` is that project — Schematify describing itself, as distinct
 //! from the reference fixtures under `fixtures/`, which PRD §14.7's last
 //! paragraph calls out as project data that sits outside this rule.
 //!
@@ -161,7 +161,7 @@ fn every_row_of_the_section_14_7_table_is_a_budget_node_here() {
         // measurement — the command is real and wired either way.
         let probe = fields.probe.expect("declared with a probe");
         assert_eq!(probe.command, row.probe_command, "{} probe", row.slug);
-        assert_eq!(probe.parser, "kaava-bench-v1", "{} parser", row.slug);
+        assert_eq!(probe.parser, "veistra-bench-v1", "{} parser", row.slug);
     }
 }
 

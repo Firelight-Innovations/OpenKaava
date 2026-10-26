@@ -17,10 +17,10 @@ use super::style;
 use super::subcanvas;
 use super::webview::Webview;
 use super::{bad, file_for, load, mtime_at, relative, stamp, validate_id, write_file};
-use kaava_rpc::{RpcError, INVALID_PARAMS};
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
 use std::path::Path;
+use veistra_rpc::{RpcError, INVALID_PARAMS};
 
 /// The widest or tallest a view is drawn, in pixels, unless asked otherwise.
 /// Big enough to read a 14 px label at scale 1, small enough to look at.
@@ -374,8 +374,8 @@ pub fn author(
     let (id, scene, base) = open(root, p)?;
     // Drawing into a split frame draws into its child canvas, with the
     // parent's value table so `{{name}}` templates still resolve.
-    let parent_values = scene.pointer("/kaava/values").cloned();
-    let parent_design = scene.pointer("/kaava/design").cloned();
+    let parent_values = scene.pointer("/veistra/values").cloned();
+    let parent_design = scene.pointer("/veistra/design").cloned();
     let (id, mut scene, base, parent) = match p.pointer("/frame/id").and_then(Value::as_str) {
         Some(f) => subcanvas::follow(root, id, scene, base, f)?,
         None => (id, scene, base, None),
@@ -390,13 +390,15 @@ pub fn author(
         // How this canvas is drawn is not the agent's call: the person's choice
         // (or the canvas's own override) goes to the renderer whatever it sent.
         // A child without its own override draws as its parent does.
-        let e = match (&parent, &parent_design, scene.pointer("/kaava/design")) {
-            (Some(_), Some(d), None) => effective_design(&json!({ "kaava": { "design": d } }), web),
+        let e = match (&parent, &parent_design, scene.pointer("/veistra/design")) {
+            (Some(_), Some(d), None) => {
+                effective_design(&json!({ "veistra": { "design": d } }), web)
+            }
             _ => effective_design(&scene, web),
         };
         obj.insert("render".into(), style::render_params(e.style));
     }
-    // The layout needs each image's `kaavaRef` to place `{type: image, ref}`,
+    // The layout needs each image's `veistraRef` to place `{type: image, ref}`,
     // and never its bytes, so an inline `dataURL` stays behind.
     let mut light = scene.clone();
     if let Some(files) = light.get_mut("files").and_then(Value::as_object_mut) {
@@ -487,14 +489,14 @@ pub fn set_design(root: &Path, params: Option<&Value>) -> Result<Value, RpcError
 }
 
 fn merge_values(scene: &mut Value, incoming: &Map<String, Value>) {
-    if !scene.get("kaava").is_some_and(Value::is_object) {
-        scene["kaava"] = json!({});
+    if !scene.get("veistra").is_some_and(Value::is_object) {
+        scene["veistra"] = json!({});
     }
-    let kaava = &mut scene["kaava"];
-    if !kaava.get("values").is_some_and(Value::is_object) {
-        kaava["values"] = json!({});
+    let veistra = &mut scene["veistra"];
+    if !veistra.get("values").is_some_and(Value::is_object) {
+        veistra["values"] = json!({});
     }
-    let Some(table) = kaava["values"].as_object_mut() else {
+    let Some(table) = veistra["values"].as_object_mut() else {
         return;
     };
     for (name, v) in incoming {
@@ -779,7 +781,7 @@ mod tests {
             "elements": [
                 { "id": "f1", "type": "frame", "name": "Playfield", "x": 100, "y": 50,
                   "width": 400, "height": 300,
-                  "customData": { "kaava": { "diagram": { "id": "playfield", "title": "Playfield",
+                  "customData": { "veistra": { "diagram": { "id": "playfield", "title": "Playfield",
                                                           "covers": ["physics"] } } } },
                 { "id": "ball", "type": "ellipse", "frameId": "f1", "x": 200, "y": 150,
                   "width": 20, "height": 20 },
@@ -840,8 +842,11 @@ mod tests {
         let params = json!({ "id": "game", "diagram": "playfield", "actor": "agent" });
         let first = run(&dir, &web, "canvas/view-diagram", params.clone()).unwrap();
         run(&dir, &web, "canvas/view-diagram", params).unwrap();
-        assert_eq!(first["relative"], ".kaava/canvas-views/game/playfield.png");
-        let folder = dir.path().join(".kaava/canvas-views/game");
+        assert_eq!(
+            first["relative"],
+            ".veistra/canvas-views/game/playfield.png"
+        );
+        let folder = dir.path().join(".veistra/canvas-views/game");
         assert_eq!(std::fs::read_dir(folder).unwrap().count(), 1);
         let (op, payload) = web.calls.borrow()[0].clone();
         assert_eq!(op, "render");
@@ -916,7 +921,7 @@ mod tests {
             "elements": [
                 { "id": "g1", "type": "frame", "name": "Side", "x": 0, "y": 0, "width": 200,
                   "height": 100,
-                  "customData": { "kaava": { "diagram": { "id": "side", "title": "Side" } } } },
+                  "customData": { "veistra": { "diagram": { "id": "side", "title": "Side" } } } },
             ],
             "files": {},
         });
@@ -955,8 +960,8 @@ mod tests {
             json!({ "id": "other", "diagram": "side", "actor": "agent" }),
         )
         .unwrap();
-        assert_eq!(game["relative"], ".kaava/canvas-views/game/playfield.png");
-        assert_eq!(side["relative"], ".kaava/canvas-views/other/side.png");
+        assert_eq!(game["relative"], ".veistra/canvas-views/game/playfield.png");
+        assert_eq!(side["relative"], ".veistra/canvas-views/other/side.png");
         let calls = web.inner.calls.borrow();
         assert_eq!(calls[0].1["frameId"], "f1", "game's scene, not other's");
         assert_eq!(calls[1].1["frameId"], "g1", "other's scene, not game's");
@@ -1013,7 +1018,7 @@ mod tests {
             json!({ "id": "game", "diagram": "playfield", "actor": "agent" }),
         )
         .unwrap();
-        assert_eq!(out["relative"], ".kaava/canvas-views/game/playfield.png");
+        assert_eq!(out["relative"], ".veistra/canvas-views/game/playfield.png");
         assert_eq!(web.inner.calls.borrow()[0].1["frameId"], "f1");
         assert_eq!(
             *web.served.borrow(),
@@ -1113,8 +1118,8 @@ mod tests {
         )
         .unwrap();
         assert_eq!(saved["elements"].as_array().unwrap().len(), 3);
-        assert_eq!(saved["kaava"]["updated_by"], "agent");
-        assert_eq!(saved["kaava"]["values"]["gravity"]["value"], 30);
+        assert_eq!(saved["veistra"]["updated_by"], "agent");
+        assert_eq!(saved["veistra"]["values"]["gravity"]["value"], 30);
         let (_, payload) = web.calls.borrow()[0].clone();
         assert_eq!(payload["scene"]["files"], json!({}));
         assert!(payload["spec"].get("actor").is_none());
@@ -1134,7 +1139,7 @@ mod tests {
     }
 
     /// The layout places `{type: image, ref: "refs/a.png"}` by finding that
-    /// `kaavaRef` in `files`. Dropping `files` to keep the payload small made
+    /// `veistraRef` in `files`. Dropping `files` to keep the payload small made
     /// every image placement fail with "no reference image"; only the bytes
     /// may stay behind.
     #[test]
@@ -1142,7 +1147,7 @@ mod tests {
         let dir = setup();
         let mut with_image = scene();
         with_image["files"] = json!({ "img1": { "id": "img1", "mimeType": "image/png",
-            "kaavaRef": "refs/a.png", "dataURL": "data:image/png;base64,AAAA" } });
+            "veistraRef": "refs/a.png", "dataURL": "data:image/png;base64,AAAA" } });
         std::fs::write(dir.path().join("canvas/game.json"), with_image.to_string()).unwrap();
         let web = Fake::default();
         run(
@@ -1154,7 +1159,7 @@ mod tests {
         .unwrap();
         let (_, payload) = web.calls.borrow()[0].clone();
         let sent = &payload["scene"]["files"]["img1"];
-        assert_eq!(sent["kaavaRef"], "refs/a.png");
+        assert_eq!(sent["veistraRef"], "refs/a.png");
         assert!(sent.get("dataURL").is_none(), "{sent}");
     }
 
@@ -1266,10 +1271,10 @@ mod tests {
     fn a_split_frame_draws_in_its_parents_style() {
         let dir = setup();
         let mut parent = scene();
-        parent["kaava"] = json!({ "design": { "style": "whiteboard" } });
+        parent["veistra"] = json!({ "design": { "style": "whiteboard" } });
         let frame = &mut parent["elements"][0];
-        frame["customData"]["kaava"]["child"] = json!("game/playfield");
-        frame["customData"]["kaava"]["subcanvas"] = json!(true);
+        frame["customData"]["veistra"]["child"] = json!("game/playfield");
+        frame["customData"]["veistra"]["subcanvas"] = json!(true);
         let ball = parent["elements"][1].clone();
         parent["elements"].as_array_mut().unwrap().truncate(1);
         let root = dir.path().join("canvas");
@@ -1277,7 +1282,7 @@ mod tests {
         std::fs::create_dir_all(root.join("game")).unwrap();
         let mut child = scene();
         child["elements"] = json!([ball, scene()["elements"][0].clone()]);
-        child["kaava"] = json!({ "title": "Playfield", "parent": "game" });
+        child["veistra"] = json!({ "title": "Playfield", "parent": "game" });
         std::fs::write(root.join("game/playfield.json"), child.to_string()).unwrap();
 
         let fake = Fake::default();

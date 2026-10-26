@@ -1,5 +1,5 @@
 {
-  "name": "@kaava/markup",
+  "name": "@veistra/markup",
   "version": "0.1.0",
   "private": true,
   "description": "One markup system for the Canvas app and the 3D scene viewer: a transparent Excalidraw layer, pins, a host adapter and one JSON format agents can read.",

@@ -7,7 +7,7 @@
  * is reported. A read-only checkout refuses before calling anything.
  */
 import { useEffect, useRef, useState } from "react";
-import { on } from "@openkaava/bridge";
+import { on } from "@veistra/bridge";
 import { describe, importFiles, type Root } from "../rpc";
 import { dropFolderAt, importMessage, READ_ONLY_DROP } from "./osDrop";
 

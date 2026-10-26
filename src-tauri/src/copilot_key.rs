@@ -1,11 +1,11 @@
 //! The Windows Copilot key, claimed below the webview.
 //!
 //! The key has no virtual-key code of its own: Windows sends Left Win, Left
-//! Shift and F23 in a row. While OpenKaava is focused the page hears that as a
+//! Shift and F23 in a row. While Veistra is focused the page hears that as a
 //! plain `keydown` (`src/shell/copilotKey.ts`). This module is the other route,
 //! for when it is not: a low-level keyboard hook (`WH_KEYBOARD_LL`) that sees
 //! every key before any window and before the Windows shell, swallows F23, and
-//! tells the right OpenKaava window instead.
+//! tells the right Veistra window instead.
 //!
 //! It is off by default and installed only while `keys.copilotGlobal` is on,
 //! because a global hook is a thing to opt in to. A hook needs a thread that
@@ -93,7 +93,7 @@ mod hook {
             let module = GetModuleHandleW(std::ptr::null());
             let hook = SetWindowsHookExW(WH_KEYBOARD_LL, Some(hook_proc), module, 0);
             if hook.is_null() {
-                crate::kaava_log!("could not install the Copilot key hook");
+                crate::veistra_log!("could not install the Copilot key hook");
                 return;
             }
             THREAD.store(GetCurrentThreadId(), Ordering::SeqCst);
@@ -135,7 +135,7 @@ mod hook {
         unsafe { CallNextHookEx(std::ptr::null_mut(), code, wparam, lparam) }
     }
 
-    /// Whether OpenKaava wants the key: the action is not "none".
+    /// Whether Veistra wants the key: the action is not "none".
     fn claimed() -> bool {
         APP.get()
             .is_some_and(|app| settings::text(app, keys::KEYS_COPILOT_ACTION) != "none")
@@ -143,7 +143,7 @@ mod hook {
 
     /// Bring the window that should act forward and tell it the key was hit.
     ///
-    /// The focused OpenKaava window if there is one, otherwise the first by
+    /// The focused Veistra window if there is one, otherwise the first by
     /// label, so the answer is stable. Raised first, so the palette does not
     /// open in a window behind another application.
     fn notify() {
@@ -161,7 +161,7 @@ mod hook {
             let _ = window.set_focus();
         }
         if let Err(e) = app.emit_to(window.label(), COPILOT_KEY_EVENT, ()) {
-            crate::kaava_log!("could not deliver the Copilot key: {e}");
+            crate::veistra_log!("could not deliver the Copilot key: {e}");
         }
     }
 }

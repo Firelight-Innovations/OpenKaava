@@ -329,8 +329,8 @@ export function isStepWired(id: (typeof STEP_IDS)[number]): boolean {
 
 /**
  * What each step's title says, before any run has told it otherwise. The
- * board's own copy says "Clone it and write kaava.toml" for step 2; this
- * build's manifest is actually `<name>.kaava` (see `project::marker`'s own
+ * board's own copy says "Clone it and write veistra.toml" for step 2; this
+ * build's manifest is actually `<name>.veistra` (see `project::marker`'s own
  * doc comment for why), so the title below corrects that rather than
  * repeating a filename this build would never write.
  */
@@ -366,7 +366,7 @@ export function stepPreviewDetail(id: (typeof STEP_IDS)[number]): string {
   if (!isStepWired(id)) return "Not wired yet in this build.";
   switch (id) {
     case "cloneOrLink":
-      return "Lands the code on disk and writes the <name>.kaava manifest if it isn't there yet.";
+      return "Lands the code on disk and writes the <name>.veistra manifest if it isn't there yet.";
     case "designWorktree":
       return "wt/design, for design-canvas work that shouldn't collide with the main checkout.";
     case "openProject":

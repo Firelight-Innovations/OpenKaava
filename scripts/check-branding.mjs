@@ -33,7 +33,7 @@ const read = (file) => readFileSync(join(repoRoot, file), "utf8");
  * disagree about which span of the file is the value.
  *
  * `after` narrows the search to the text following a literal. Two surfaces need
- * it: `kaava.toml` has a `name` key in every `[[tool]]` as well as in
+ * it: `veistra.toml` has a `name` key in every `[[tool]]` as well as in
  * `[stack]`, and `tauri.conf.json` has a `title` per window.
  */
 function surface({ file, field, expects, expected, pattern, after }) {
@@ -86,7 +86,7 @@ const SURFACES = [
   }),
 
   surface({
-    file: "kaava.toml",
+    file: "veistra.toml",
     field: "[stack] name",
     expects: NAME,
     expected: product.name,

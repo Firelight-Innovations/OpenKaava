@@ -2,7 +2,7 @@
  * The tab's transcript: what `agent-tab/attach` answered, plus every live
  * envelope after it.
  *
- * The same rules as `crates/kaava-agent-host/src/transcript.rs`, so the tab
+ * The same rules as `crates/veistra-agent-host/src/transcript.rs`, so the tab
  * and the host cannot disagree: an item event replaces the item with that id
  * (or appends it), a delta appends text, and a reset clears everything.
  *

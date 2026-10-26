@@ -1,6 +1,6 @@
 //! Every comment the person has left, wherever it was left, as references:
 //! viewer comments on disk, canvas comments through the Canvas app, and
-//! Design Mode comments in app state. Each row carries a `kaava://` reference,
+//! Design Mode comments in app state. Each row carries a `veistra://` reference,
 //! so reading or showing one goes through the resolver like anything else.
 
 use super::live::{self, Actor};
@@ -322,8 +322,8 @@ mod tests {
         assert_eq!(
             uris,
             [
-                "kaava://canvas/world#comment=c-1",
-                "kaava://canvas/world/menu#comment=c-2"
+                "veistra://canvas/world#comment=c-1",
+                "veistra://canvas/world/menu#comment=c-2"
             ]
         );
         assert_eq!(rows[0]["text"], "Move this");

@@ -60,7 +60,7 @@ _Cluster tabs on the left; this cluster's own app tabs beside them._
 That is the whole point. The project belongs to the cluster and not to the
 process, so two clusters are two genuinely separate pieces of work. That
 separation is what makes reviewing one branch while building on another
-possible without two copies of OpenKaava.
+possible without two copies of Veistra.
 
 > Closing the last cluster is allowed. The app area draws its own empty state
 > rather than a window being guaranteed to hold one.
@@ -73,11 +73,11 @@ this cluster's panes and which app is in each.
 
 Opening a preset lays that arrangement out again. A preset holding a terminal
 opens it already in the folder that cluster has open, rather than wherever
-OpenKaava happened to start.
+Veistra happened to start.
 
 ## What survives a restart
 
-The layout does. OpenKaava reopens the clusters you had, their panes, their apps
+The layout does. Veistra reopens the clusters you had, their panes, their apps
 and their projects — so a restart puts you back where you were rather than on
 an empty Home.
 

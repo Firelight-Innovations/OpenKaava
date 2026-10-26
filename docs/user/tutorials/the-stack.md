@@ -7,7 +7,7 @@ today, with none pinned, it has nothing to say.
 
 ---
 
-OpenKaava is not one program: an orchestrator that a stack of separate authoring
+Veistra is not one program: an orchestrator that a stack of separate authoring
 tools can mount into, plus whatever ships compiled into the orchestrator
 itself. The orchestrator — the thing you are reading this in — is the one
 that ties a tool together with the rest at runtime, and it holds none of a
@@ -20,14 +20,14 @@ and only those. A tool that is where it should be says nothing at all.
 > So a stack with nothing wrong raises no badge. An empty result here is the
 > healthy answer, not a screen that failed to load.
 
-The list lives in `kaava.toml` at the root of the orchestrator's checkout.
+The list lives in `veistra.toml` at the root of the orchestrator's checkout.
 Each entry pins an exact version, so a given checkout of the orchestrator
 always describes one reproducible stack rather than whatever each
 repository's branch tip happens to be today.
 
 ## Nothing is pinned today
 
-`kaava.toml`'s `[[tool]]` array is empty right now. It held two entries once,
+`veistra.toml`'s `[[tool]]` array is empty right now. It held two entries once,
 and both are now the single Schematify app built into the orchestrator itself
 rather than separate tool repositories — see `apps/README.md` at the
 repository root for what it is now and why. The mechanism below still runs,
@@ -37,7 +37,7 @@ that is what it is — a stack with nothing unwell in it.
 
 ## Why the badge would say things are missing
 
-Reads `kaava.toml` → looks for each tool's checkout → resolves one of four states
+Reads `veistra.toml` → looks for each tool's checkout → resolves one of four states
 
 Discovery resolves each checkout to one of four states, and the interface
 never shows the raw word for any of them. A checkout that matches the pin
@@ -49,7 +49,7 @@ One with nothing at the checkout path shows **not installed**.
 
 _All three unwell states at once, with the count the badge carries. A healthy
 tool has no row here at all. Illustrative rather than live: nothing is pinned
-in `kaava.toml` today, so this exact screen has no current example to show —
+in `veistra.toml` today, so this exact screen has no current example to show —
 see "Nothing is pinned today" above._
 
 **Missing** and **broken** read differently once you know the words.
@@ -63,8 +63,8 @@ all in the binary and need no checkout at all. A pinned tool's checkout is a
 separate, additional thing to have on the machine, not a requirement for the
 window to open.
 
-`checkout-root` in `kaava.toml` says where a pinned tool's checkout is looked
-for, and defaults to `..` — every OpenKaava repository sitting as a sibling of the
+`checkout-root` in `veistra.toml` says where a pinned tool's checkout is looked
+for, and defaults to `..` — every Veistra repository sitting as a sibling of the
 orchestrator's own folder. Cloning the pinned version there is what clears a
 tool from the badge; cloning the wrong one only changes which word it shows.
 

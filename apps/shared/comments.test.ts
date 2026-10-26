@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// `comments.ts` imports `@openkaava/bridge`, which builds its singleton
+// `comments.ts` imports `@veistra/bridge`, which builds its singleton
 // client against the real `window` at module load time (see
 // `packages/bridge/src/index.ts`) — so importing it at all, even just for
 // `anchorLabel`/`formatPlayTime` below, needs a DOM to exist. See

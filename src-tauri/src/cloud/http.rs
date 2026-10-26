@@ -6,7 +6,7 @@ use super::{Result, Trouble};
 use std::time::Duration;
 
 const TIMEOUT: Duration = Duration::from_secs(20);
-const USER_AGENT: &str = concat!("OpenKaava/", env!("CARGO_PKG_VERSION"));
+const USER_AGENT: &str = concat!("Veistra/", env!("CARGO_PKG_VERSION"));
 
 pub enum Verb {
     Get,
@@ -29,7 +29,7 @@ pub struct Reply {
 /// to a Google API, so it cannot go through [`send`] below (that function
 /// always attaches a gcloud bearer token). It still wants the same TLS setup —
 /// a corporate proxy terminating with a private root does not stop existing
-/// once the request is aimed at `plane.kaava.internal` instead of
+/// once the request is aimed at `plane.veistra.internal` instead of
 /// `storage.googleapis.com` — so it takes this builder rather than repeating
 /// the reasoning in a second copy.
 pub(crate) fn agent() -> ureq::Agent {

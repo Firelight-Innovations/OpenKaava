@@ -1,9 +1,9 @@
-//! How an agent that OpenKaava did not spawn finds the MCP endpoint.
+//! How an agent that Veistra did not spawn finds the MCP endpoint.
 //!
 //! [`Endpoint::env`](super::listener::Endpoint::env) hands the port and token to
-//! every terminal OpenKaava opens, which covers the agent working *inside* OpenKaava and
+//! every terminal Veistra opens, which covers the agent working *inside* Veistra and
 //! nothing else. An agent in Windows Terminal, in an editor, or in a session
-//! started before OpenKaava was, inherits neither and has no way to ask. This writes
+//! started before Veistra was, inherits neither and has no way to ask. This writes
 //! them down so it can.
 //!
 //! **The token is a bearer credential and this puts it in a file**, readable by
@@ -24,8 +24,8 @@ const FILE: &str = "mcp-endpoint.json";
 /// Write the endpoint where an outside agent can find it.
 ///
 /// Never fatal, on the same rule the four other stores follow: a machine that
-/// will not take this file is one where OpenKaava should still open. It costs the
-/// out-of-process agent path and nothing else — terminals OpenKaava spawns still get
+/// will not take this file is one where Veistra should still open. It costs the
+/// out-of-process agent path and nothing else — terminals Veistra spawns still get
 /// the environment variables.
 /// Temp file then rename, like every other store here, through
 /// `userdata::store::write_raw` — the same mechanism without the format stamp

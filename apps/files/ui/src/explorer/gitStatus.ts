@@ -11,7 +11,7 @@
  * still tint through rule 2, which is the only place a deletion can show here.
  * The source control panel is where the file itself appears.
  */
-import { invoke, subscribe } from "@openkaava/bridge";
+import { invoke, subscribe } from "@veistra/bridge";
 import { useEffect, useMemo, useState } from "react";
 import { baseName } from "../rpc";
 import { asSavedPath, FILE_SAVED, isAtOrUnder } from "../topics";

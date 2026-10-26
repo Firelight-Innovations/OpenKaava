@@ -1,4 +1,4 @@
-//! Locating and parsing kaava.toml.
+//! Locating and parsing veistra.toml.
 
 use crate::error::{AppError, Result};
 use crate::tool::ToolSpec;
@@ -46,7 +46,7 @@ impl Manifest {
     }
 }
 
-/// Find kaava.toml, trying the most specific location first.
+/// Find veistra.toml, trying the most specific location first.
 ///
 /// This matters because `tauri dev` runs the binary with its working directory
 /// set to `src-tauri/`, while a bundled release runs from wherever the user
@@ -59,7 +59,7 @@ pub fn locate(app: &AppHandle) -> Result<PathBuf> {
 
     // 1. Explicit override. Useful for tests, and for pointing a dev build at a
     //    different stack checkout without editing anything.
-    if let Ok(raw) = std::env::var("KAAVA_MANIFEST") {
+    if let Ok(raw) = std::env::var("VEISTRA_MANIFEST") {
         let candidate = PathBuf::from(raw);
         if candidate.is_file() {
             return Ok(candidate);
@@ -72,7 +72,7 @@ pub fn locate(app: &AppHandle) -> Result<PathBuf> {
     //    matter what the process's working directory happens to be.
     #[cfg(debug_assertions)]
     if let Some(repo_root) = Path::new(env!("CARGO_MANIFEST_DIR")).parent() {
-        let candidate = repo_root.join("kaava.toml");
+        let candidate = repo_root.join("veistra.toml");
         if candidate.is_file() {
             return Ok(candidate);
         }
@@ -84,7 +84,7 @@ pub fn locate(app: &AppHandle) -> Result<PathBuf> {
     //    step 4 points at paths that only exist on a dev machine.
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
-            let candidate = dir.join("kaava.toml");
+            let candidate = dir.join("veistra.toml");
             if candidate.is_file() {
                 return Ok(candidate);
             }
@@ -97,7 +97,7 @@ pub fn locate(app: &AppHandle) -> Result<PathBuf> {
     //    relative to the exe — the layout differs per platform (next to the
     //    binary on Windows, inside `Contents/Resources` in a macOS .app).
     if let Ok(dir) = app.path().resource_dir() {
-        let candidate = dir.join("kaava.toml");
+        let candidate = dir.join("veistra.toml");
         if candidate.is_file() {
             return Ok(candidate);
         }

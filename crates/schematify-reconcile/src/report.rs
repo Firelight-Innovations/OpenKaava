@@ -1,11 +1,11 @@
-//! Writing reconciliation results: `.kaava/runs/<node-uuid>/reconcile.json`
+//! Writing reconciliation results: `.veistra/runs/<node-uuid>/reconcile.json`
 //! per marker identifier touched (PRD `SCHEMATIFY-PRD.md` section 9.3), and
-//! the consolidated report `kaava reconcile --out` writes or prints, in
+//! the consolidated report `veistra reconcile --out` writes or prints, in
 //! `text` or `json` form.
 //!
 //! Section 9.3 names the path `runs/<node-uuid>/reconcile.json` but not its
 //! schema; section 6.1's storage layout is what puts the `runs/` tree inside
-//! `.kaava/`, alongside `nodes/` — the same root [`crate::graph::JsonFileGraph`]
+//! `.veistra/`, alongside `nodes/` — the same root [`crate::graph::JsonFileGraph`]
 //! reads from. This crate settles the schema itself on the outcome plus a
 //! `schema` tag and a timestamp, mirroring how the `run-<n>.json` bench
 //! artifact carries a `schema` field (section 5.10) so a future reader can
@@ -24,7 +24,7 @@ use crate::reconcile::ReconcileRun;
 use crate::scan::SkippedFile;
 
 /// The `schema` tag written into every `reconcile.json`.
-pub const RECONCILE_SCHEMA: &str = "kaava-reconcile-v1";
+pub const RECONCILE_SCHEMA: &str = "veistra-reconcile-v1";
 
 /// An error writing reconciliation output to disk.
 #[derive(Debug, thiserror::Error)]
@@ -55,10 +55,10 @@ struct NodeReconcileFile<'a> {
     outcome: &'a ReconcileOutcome,
 }
 
-/// Write one `<root>/.kaava/runs/<node-uuid>/reconcile.json` per outcome in
-/// `run` (PRD section 6.1 puts `runs/` inside `.kaava/`, beside `nodes/`).
+/// Write one `<root>/.veistra/runs/<node-uuid>/reconcile.json` per outcome in
+/// `run` (PRD section 6.1 puts `runs/` inside `.veistra/`, beside `nodes/`).
 pub fn write_run_files(root: &Path, run: &ReconcileRun) -> Result<(), ReportError> {
-    let runs_dir = root.join(".kaava").join("runs");
+    let runs_dir = root.join(".veistra").join("runs");
     let now = now_rfc3339();
 
     for outcome in &run.outcomes {
@@ -234,7 +234,7 @@ mod tests {
         fs::create_dir_all(root.join("src")).unwrap();
         fs::write(
             root.join("src/lib.rs"),
-            format!("// @kaava:{} thing.run\n", id()),
+            format!("// @veistra:{} thing.run\n", id()),
         )
         .unwrap();
 
@@ -252,7 +252,7 @@ mod tests {
         write_run_files(root, &run).unwrap();
 
         let written = root
-            .join(".kaava")
+            .join(".veistra")
             .join("runs")
             .join(id().to_string())
             .join("reconcile.json");
@@ -333,7 +333,7 @@ mod tests {
     fn render_text_uses_the_drawn_strings() {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
-        fs::write(root.join("lib.rs"), format!("// @kaava:{} thing\n", id())).unwrap();
+        fs::write(root.join("lib.rs"), format!("// @veistra:{} thing\n", id())).unwrap();
         let graph = InMemoryGraph::new();
         let run = reconcile(root, &graph);
         let text = render_text(&run);

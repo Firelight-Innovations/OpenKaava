@@ -1,5 +1,5 @@
-// Generated from crates/kaava-agent-host/src/event.rs by ts-rs. Do not edit.
-// Regenerate: KAAVA_BLESS=1 cargo test -p kaava-agent-host generated_types
+// Generated from crates/veistra-agent-host/src/event.rs by ts-rs. Do not edit.
+// Regenerate: VEISTRA_BLESS=1 cargo test -p veistra-agent-host generated_types
 
 export type Harness = "claude" | "codex";
 
@@ -144,10 +144,10 @@ paths: Array<string>,
  */
 diffs: Array<FileDiff>, 
 /**
- * What the `kaava-context` server asked the tab to draw, when this is
- * one of its show tools and it completed (see `kaava_call.rs`).
+ * What the `veistra-context` server asked the tab to draw, when this is
+ * one of its show tools and it completed (see `veistra_call.rs`).
  */
-kaava?: ShowMarker, } | { "kind": "approval", 
+veistra?: ShowMarker, } | { "kind": "approval", 
 /**
  * What the agent wants to do.
  */

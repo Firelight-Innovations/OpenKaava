@@ -48,7 +48,7 @@ describe("toCanvasScene", () => {
 
   it("carries pins along with their data", () => {
     const m = scene.elements.find((e) => e.id === "m1");
-    expect(m?.customData).toEqual({ kaava: { kind: "pin", n: 1, note: "note 1" } });
+    expect(m?.customData).toEqual({ veistra: { kind: "pin", n: 1, note: "note 1" } });
   });
 
   it("drops deleted elements and unlocks ink", () => {

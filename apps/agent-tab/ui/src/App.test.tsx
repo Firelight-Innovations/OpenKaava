@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
 const bridge = vi.hoisted(() => {
-  class KaavaRpcError extends Error {
+  class VeistraRpcError extends Error {
     constructor(
       readonly code: number,
       message: string,
@@ -20,18 +20,18 @@ const bridge = vi.hoisted(() => {
   return {
     invoke: vi.fn(),
     listeners: new Map<string, (payload: unknown) => void>(),
-    KaavaRpcError,
+    VeistraRpcError,
   };
 });
 
-vi.mock("@openkaava/bridge", () => ({
+vi.mock("@veistra/bridge", () => ({
   invoke: bridge.invoke,
   on: (event: string, cb: (payload: unknown) => void) => {
     bridge.listeners.set(event, cb);
     return () => bridge.listeners.delete(event);
   },
   reportPainted: vi.fn(),
-  KaavaRpcError: bridge.KaavaRpcError,
+  VeistraRpcError: bridge.VeistraRpcError,
 }));
 
 import App from "./App";
@@ -283,7 +283,7 @@ describe("the agent tab", () => {
       {
         "agent-tab/send": () =>
           Promise.reject(
-            new bridge.KaavaRpcError(-32010, "x", { code: "harness", hint: "adapterMissing" }),
+            new bridge.VeistraRpcError(-32010, "x", { code: "harness", hint: "adapterMissing" }),
           ),
       },
     );
@@ -334,7 +334,7 @@ describe("the agent tab", () => {
       { status: null, seq: 0, items: [] },
       {
         "agent-tab/send": () =>
-          Promise.reject(new bridge.KaavaRpcError(-32003, "main is read-only")),
+          Promise.reject(new bridge.VeistraRpcError(-32003, "main is read-only")),
       },
     );
     render(<App />);
@@ -860,7 +860,7 @@ describe("the agent tab", () => {
       {
         "agent-tab/set-mode": () =>
           Promise.reject(
-            new bridge.KaavaRpcError(-32010, "x", { code: "unknownOption", hint: null }),
+            new bridge.VeistraRpcError(-32010, "x", { code: "unknownOption", hint: null }),
           ),
       },
     );
@@ -1064,7 +1064,7 @@ describe("the agent tab", () => {
       {
         "agent-tab/set-config": () =>
           Promise.reject(
-            new bridge.KaavaRpcError(-32010, "x", { code: "unknownOption", hint: null }),
+            new bridge.VeistraRpcError(-32010, "x", { code: "unknownOption", hint: null }),
           ),
       },
     );
@@ -1189,7 +1189,7 @@ describe("the harness", () => {
       {
         "agent-tab/harnesses": both,
         "agent-tab/choose": () =>
-          Promise.reject(new bridge.KaavaRpcError(-32010, "x", { code: "running", hint: null })),
+          Promise.reject(new bridge.VeistraRpcError(-32010, "x", { code: "running", hint: null })),
       },
     );
     render(<App />);
@@ -1478,7 +1478,7 @@ describe("slash commands", () => {
   });
 
   it("searches context from the plus button and sends the selected stable reference", async () => {
-    const hit = { uri: "kaava://canvas/design#frame=login", kind: "frame", title: "Login design" };
+    const hit = { uri: "veistra://canvas/design#frame=login", kind: "frame", title: "Login design" };
     backend(
       { status: null, seq: 0, items: [] },
       { "refs/search": () => Promise.resolve({ items: [hit] }) },
@@ -1496,7 +1496,7 @@ describe("slash commands", () => {
       fireEvent.click(screen.getByRole("button", { name: "Send" }));
     });
     expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
-      text: "[@Login design](<kaava://canvas/design#frame=login>)",
+      text: "[@Login design](<veistra://canvas/design#frame=login>)",
     });
     expect(screen.getByRole("button", { name: "Voice dictation" })).toBeTruthy();
   });
@@ -1508,7 +1508,7 @@ describe("slash commands", () => {
         "refs/search": () =>
           Promise.resolve({
             items: [
-              { uri: "kaava://canvas/design#frame=login", kind: "frame", title: "Login design" },
+              { uri: "veistra://canvas/design#frame=login", kind: "frame", title: "Login design" },
             ],
           }),
       },
@@ -1552,8 +1552,8 @@ describe("slash commands", () => {
   });
 
   it("does not pick a hit left over from an earlier query while the new one is searched", async () => {
-    const canvas = { uri: "kaava://canvas/a", kind: "canvas", title: "Canvas A" };
-    const readme = { uri: "kaava://file/README.md", kind: "file", title: "README.md" };
+    const canvas = { uri: "veistra://canvas/a", kind: "canvas", title: "Canvas A" };
+    const readme = { uri: "veistra://file/README.md", kind: "file", title: "README.md" };
     let answer: (value: unknown) => void = () => {};
     backend({ status: null, seq: 0, items: [] });
     const base = bridge.invoke.getMockImplementation()!;
@@ -1583,7 +1583,7 @@ describe("slash commands", () => {
   });
 
   it("starts the next @ at the top level after a pick inside a scope", async () => {
-    const readme = { uri: "kaava://file/README.md", kind: "file", title: "README.md" };
+    const readme = { uri: "veistra://file/README.md", kind: "file", title: "README.md" };
     backend({ status: null, seq: 0, items: [] });
     const base = bridge.invoke.getMockImplementation()!;
     bridge.invoke.mockImplementation((method: string, params?: { kinds?: string[] }) =>
@@ -1639,14 +1639,14 @@ describe("slash commands", () => {
     expect(bridge.invoke).not.toHaveBeenCalledWith("agent-tab/send", expect.anything());
     expect((screen.getByRole("button", { name: "Send" }) as HTMLButtonElement).disabled).toBe(true);
     await act(async () =>
-      copied({ uri: "kaava://cluster/c2", kind: "cluster", title: "Backend work" }),
+      copied({ uri: "veistra://cluster/c2", kind: "cluster", title: "Backend work" }),
     );
     expect(screen.getByRole("button", { name: "Remove Backend work" })).toBeTruthy();
     await act(async () => {
       fireEvent.keyDown(prompt(), { key: "Enter" });
     });
     expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", {
-      text: expect.stringContaining("kaava://cluster/c2"),
+      text: expect.stringContaining("veistra://cluster/c2"),
     });
   });
 
@@ -1656,7 +1656,7 @@ describe("slash commands", () => {
       {
         "refs/search": () =>
           Promise.resolve({
-            items: [{ uri: "kaava://file/a.ts", kind: "file", title: "a.ts" }],
+            items: [{ uri: "veistra://file/a.ts", kind: "file", title: "a.ts" }],
           }),
       },
     );

@@ -1,6 +1,6 @@
 //! A deadline on shutdown, so a stuck exit cannot leave a process nobody can see.
 //!
-//! OpenKaava is single-instance: a second launch hands its arguments to the
+//! Veistra is single-instance: a second launch hands its arguments to the
 //! process already running and waits for it to answer. A process that has
 //! hidden its windows and then stalled on the way out still holds that claim,
 //! so every later launch waits on it forever and nothing appears on screen.
@@ -29,11 +29,11 @@ static ARMED: Once = Once::new();
 /// Forcing the exit skips whatever cleanup had not run yet, so a plugin core or
 /// a `gcloud` tunnel can outlive it. That is the lesser failure: an orphaned
 /// child is visible in a process list under its own name, and it does not stop
-/// OpenKaava from starting again.
+/// Veistra from starting again.
 pub fn arm() {
     ARMED.call_once(|| {
         after(GRACE, || {
-            eprintln!("kaava: exit did not finish within {GRACE:?}; forcing it");
+            eprintln!("veistra: exit did not finish within {GRACE:?}; forcing it");
             std::process::exit(0);
         });
     });

@@ -1,7 +1,7 @@
 //! Marker-token scanning and code-to-design reconciliation for Schematify
 //! (`SCHEMATIFY-PRD.md` section 9). This crate is both halves of the
-//! `kaava reconcile` command (`src/bin/kaava.rs`): the scanner that finds
-//! `@kaava:` marker tokens in a source tree ([`token`], [`scan`]), and the
+//! `veistra reconcile` command (`src/bin/veistra.rs`): the scanner that finds
+//! `@veistra:` marker tokens in a source tree ([`token`], [`scan`]), and the
 //! comparison against a design graph that turns what it found into
 //! reconciliation outcomes ([`graph`], [`outcome`], [`reconcile`], [`report`]).
 //!
@@ -14,7 +14,7 @@
 // This crate is depended on by the wiring wave that connects
 // `schematify-core`, and later by `src-tauri/src/apps/schematify.rs`'s
 // `schematify_reconcile_status` handler (PRD section 9.3) — a published
-// surface other code reads, the same shape `crates/kaava-rpc` is in. See that
+// surface other code reads, the same shape `crates/veistra-rpc` is in. See that
 // crate's `lib.rs` for the fuller reasoning; STANDARDS.md §4.1 and §5 ask for
 // documented public items and private modules with flat re-exports, enforced
 // here rather than in `[workspace.lints]` because it is not true of

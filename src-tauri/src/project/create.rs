@@ -1,8 +1,8 @@
-//! The `kaava-project create` step-runner — pure state machine, no filesystem,
+//! The `veistra-project create` step-runner — pure state machine, no filesystem,
 //! no `git`, no `AppHandle`.
 //!
-//! Board 14 (`docs/design/KAAVA-UX-SPEC.md` §"Board 14") and
-//! `docs/KAAVA-UX-REWORK.md` §7 fix eight steps, in order, and this build does
+//! Board 14 (`docs/design/VEISTRA-UX-SPEC.md` §"Board 14") and
+//! `docs/VEISTRA-UX-REWORK.md` §7 fix eight steps, in order, and this build does
 //! not talk to GitHub, Plane or GCS at all (see the UX rework brief). So five
 //! of the eight — the GitHub repo, Plane, the registry prefix, the Hindsight
 //! banks, and the project record — always report [`StepStatus::Skipped`] with
@@ -382,7 +382,7 @@ fn skip_the_rest(steps: &mut [StepState], failed_at: StepId) {
 /// it sits inside of. Only a step that actually completed (`Done`) is
 /// touched — a `Skipped` step made nothing, and there is nothing there to
 /// undo. Best-effort: a rollback op that itself fails leaves that step
-/// `Failed` rather than `RolledBack`, which is the honest answer — "Kaava
+/// `Failed` rather than `RolledBack`, which is the honest answer — "Veistra
 /// could not finish undoing this" is not the same claim as "there was
 /// nothing here to undo" or "this was undone".
 fn rollback(

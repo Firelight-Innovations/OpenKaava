@@ -1,9 +1,9 @@
 # Who may change the app library.
 #
-# `catalog.toml` is what OpenKaava offers to install and, for entries marked
+# `catalog.toml` is what Veistra offers to install and, for entries marked
 # `default`, what it downloads and runs on first launch with nobody asked. A
 # plugin core is unsandboxed (`docs/tool-protocol.md` §6), so an entry there
-# executes on every machine that installs OpenKaava. `scripts/check-catalog.mjs`
+# executes on every machine that installs Veistra. `scripts/check-catalog.mjs`
 # refuses a pull request that edits it unless the maintainer is its author, and
 # that script's header is where the reasoning lives — including an honest
 # account of what this cannot protect against on its own.

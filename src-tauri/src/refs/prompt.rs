@@ -2,12 +2,12 @@
 //! the agent tab to send after what the person typed.
 //!
 //! A `resource_link` is the one kind every ACP agent accepts, and an agent
-//! with `kaava-context` reads it through that, so for `refs/prompt` any
+//! with `veistra-context` reads it through that, so for `refs/prompt` any
 //! reference can go as one. An agent that takes embedded context gets a
 //! reference's text in a `resource` block instead, and one that takes images
 //! gets its pictures as `image` blocks. What resolving withholds, a secret or
 //! a gitignored file, is only ever linked. So is whatever would take the
-//! message past its budget. The agent tab's agents have no `kaava-context`
+//! message past its budget. The agent tab's agents have no `veistra-context`
 //! yet, so for them nothing is only linked: see [`attachments`].
 
 use super::fault::{Fault, Reason};
@@ -41,10 +41,10 @@ pub struct Accepts {
     pub embedded_context: bool,
 }
 
-/// Whether the agent can `read` a `kaava://` link itself.
+/// Whether the agent can `read` a `veistra://` link itself.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Reach {
-    /// Through `kaava-context`, as a `refs/prompt` caller can.
+    /// Through `veistra-context`, as a `refs/prompt` caller can.
     Links,
     /// The agent tab's: what is not in the message, the agent never sees.
     Inline,
@@ -110,15 +110,15 @@ pub fn resolve<'a>(app: &AppHandle, ctx: &CallContext, uris: &'a [String]) -> Re
 /// The blocks the agent tab sends after a prompt's text: each reference's,
 /// in order, and in place of one that failed a note saying which and why.
 /// The prompt goes whatever becomes of its references. The tab's agents
-/// have no `kaava-context` to `read` a link through, so nothing is only
+/// have no `veistra-context` to `read` a link through, so nothing is only
 /// linked: text goes in a `resource` to an agent that takes one and as text
 /// to any other, and what cannot go at all is a note.
 pub fn attachments(resolved: Resolution<'_>, accepts: Accepts) -> Vec<Value> {
     in_order(resolved.0, accepts)
 }
 
-/// The `kaava://` references a message's chips name, as the agent tab writes
-/// them (`[@label](<kaava://…>)`, `withChips` in mentions.ts): each once, in
+/// The `veistra://` references a message's chips name, as the agent tab writes
+/// them (`[@label](<veistra://…>)`, `withChips` in mentions.ts): each once, in
 /// order, and no more than [`MAX_URIS`]. Any past that are not attached,
 /// though the text still names them.
 pub fn named_in(text: &str) -> Vec<String> {
@@ -136,7 +136,7 @@ pub fn named_in(text: &str) -> Vec<String> {
         let tail = &rest[close + 3..];
         let Some(end) = tail.find(">)") else { break };
         let uri = &tail[..end];
-        if uri.starts_with("kaava://") && !uri.contains('>') && !uris.iter().any(|u| u == uri) {
+        if uri.starts_with("veistra://") && !uri.contains('>') && !uris.iter().any(|u| u == uri) {
             uris.push(uri.to_string());
         }
         rest = &tail[end + 2..];
@@ -273,7 +273,7 @@ fn unseen(n: usize, uri: &str, reach: Reach) -> Option<String> {
 fn no_room(r: &Resolved, reach: Reach, unseen: Option<&str>) -> Value {
     if reach == Reach::Links {
         let spent = "Not embedded: this message has no room left for attached text. \
-                     `read` it through kaava-context.";
+                     `read` it through veistra-context.";
         return link(
             r,
             &[Some(spent), unseen]
@@ -370,16 +370,16 @@ mod tests {
 
     #[test]
     fn an_agent_that_takes_nothing_more_gets_links_it_can_read() {
-        let r = with_pictures(text_ref("kaava://file/a.gd", "a.gd", "x\ny"), 1, 8);
+        let r = with_pictures(text_ref("veistra://file/a.gd", "a.gd", "x\ny"), 1, 8);
         let out = blocks(vec![r], NONE);
         assert_eq!(out.len(), 1);
         assert_eq!(
             out[0],
             json!({
                 "type": "resource_link",
-                "uri": "kaava://file/a.gd",
+                "uri": "veistra://file/a.gd",
                 "name": "a.gd",
-                "description": "a.gd · lines 1–2\nA picture is not attached: `read` kaava://file/a.gd to see it.",
+                "description": "a.gd · lines 1–2\nA picture is not attached: `read` veistra://file/a.gd to see it.",
                 "mimeType": "text/x-gdscript",
                 "size": 3,
             })
@@ -388,22 +388,25 @@ mod tests {
 
     #[test]
     fn an_agent_that_takes_everything_gets_the_text_then_the_pictures() {
-        let r = with_pictures(text_ref("kaava://file/a.gd", "a.gd", "x\ny"), 2, 8);
+        let r = with_pictures(text_ref("veistra://file/a.gd", "a.gd", "x\ny"), 2, 8);
         let out = blocks(vec![r], ALL);
         assert_eq!(out.len(), 3);
         assert_eq!(out[0]["type"], "resource");
-        assert_eq!(out[0]["resource"]["uri"], "kaava://file/a.gd");
+        assert_eq!(out[0]["resource"]["uri"], "veistra://file/a.gd");
         let text = out[0]["resource"]["text"].as_str().unwrap();
-        assert!(text.starts_with("kaava://file/a.gd (text): a.gd"), "{text}");
+        assert!(
+            text.starts_with("veistra://file/a.gd (text): a.gd"),
+            "{text}"
+        );
         assert!(text.ends_with("x\ny"), "{text}");
         assert_eq!(out[1]["type"], "image");
         assert_eq!(out[1]["mimeType"], "image/png");
-        assert_eq!(out[2]["uri"], "kaava://file/a.gd");
+        assert_eq!(out[2]["uri"], "veistra://file/a.gd");
     }
 
     #[test]
     fn a_withheld_reference_is_only_ever_linked() {
-        let mut r = text_ref("kaava://file/.env", ".env", "");
+        let mut r = text_ref("veistra://file/.env", ".env", "");
         r.parts.clear();
         r.withheld = Some("withheld: environment files are never read".into());
         let out = blocks(vec![r], ALL);
@@ -421,8 +424,8 @@ mod tests {
         let big = "x".repeat(MAX_TEXT_BYTES);
         let out = blocks(
             vec![
-                text_ref("kaava://file/big.txt", "big.txt", &big),
-                text_ref("kaava://file/small.gd", "small.gd", "y"),
+                text_ref("veistra://file/big.txt", "big.txt", &big),
+                text_ref("veistra://file/small.gd", "small.gd", "y"),
             ],
             ALL,
         );
@@ -435,7 +438,7 @@ mod tests {
     #[test]
     fn a_link_for_text_past_the_budget_still_names_the_pictures_left_out() {
         let big = "x".repeat(MAX_TEXT_BYTES);
-        let r = with_pictures(text_ref("kaava://file/big.svg", "big.svg", &big), 1, 8);
+        let r = with_pictures(text_ref("veistra://file/big.svg", "big.svg", &big), 1, 8);
         let text_only = Accepts {
             image: false,
             embedded_context: true,
@@ -444,7 +447,7 @@ mod tests {
         let about = out[0]["description"].as_str().unwrap();
         assert!(about.contains("no room left"), "{about}");
         assert!(
-            about.ends_with("`read` kaava://file/big.svg to see it."),
+            about.ends_with("`read` veistra://file/big.svg to see it."),
             "{about}"
         );
     }
@@ -452,7 +455,7 @@ mod tests {
     #[test]
     fn pictures_stop_at_the_count_and_the_rest_are_named() {
         let r = with_pictures(
-            text_ref("kaava://file/a.png", "a.png", ""),
+            text_ref("veistra://file/a.png", "a.png", ""),
             MAX_IMAGES + 2,
             8,
         );
@@ -460,7 +463,7 @@ mod tests {
         assert_eq!(out.len(), 1 + MAX_IMAGES);
         let text = out[0]["resource"]["text"].as_str().unwrap();
         assert!(
-            text.ends_with("2 pictures are not attached: `read` kaava://file/a.png to see them.")
+            text.ends_with("2 pictures are not attached: `read` veistra://file/a.png to see them.")
         );
         let mut budget = Budget::default();
         assert!(
@@ -474,9 +477,9 @@ mod tests {
     #[test]
     fn a_reference_given_twice_goes_once_and_a_bad_one_says_why() {
         let given = [
-            "kaava://file/a.gd".to_string(),
-            "kaava://file/../x".to_string(),
-            "kaava://file/a.gd".to_string(),
+            "veistra://file/a.gd".to_string(),
+            "veistra://file/../x".to_string(),
+            "veistra://file/a.gd".to_string(),
         ];
         let parsed = wanted(&given);
         assert_eq!(parsed.len(), 2);
@@ -484,7 +487,7 @@ mod tests {
         let missing = Fault::new(Reason::Missing, "there is no `gone.gd` in this project");
         let out = answer(
             vec![
-                ("kaava://file/gone.gd", Err(missing)),
+                ("veistra://file/gone.gd", Err(missing)),
                 (parsed[1].0, Err(parsed[1].1.clone().unwrap_err())),
             ],
             ALL,
@@ -493,7 +496,7 @@ mod tests {
         assert_eq!(
             out["failed"][0],
             json!({
-                "uri": "kaava://file/gone.gd",
+                "uri": "veistra://file/gone.gd",
                 "reason": "missing",
                 "message": "there is no `gone.gd` in this project",
             })
@@ -503,11 +506,11 @@ mod tests {
 
     #[test]
     fn a_file_chip_is_a_resource_and_one_that_failed_is_a_note_in_its_place() {
-        let text = "[@gone.gd](<kaava://file/gone.gd>) [@a.gd](<kaava://file/a.gd>) look";
+        let text = "[@gone.gd](<veistra://file/gone.gd>) [@a.gd](<veistra://file/a.gd>) look";
         let uris = named_in(text);
-        assert_eq!(uris, ["kaava://file/gone.gd", "kaava://file/a.gd"]);
+        assert_eq!(uris, ["veistra://file/gone.gd", "veistra://file/a.gd"]);
         let missing = Fault::new(Reason::Missing, "there is no `gone.gd` in this project");
-        let a = text_ref("kaava://file/a.gd", "a.gd", "x\ny");
+        let a = text_ref("veistra://file/a.gd", "a.gd", "x\ny");
         let out = in_order(
             vec![(uris[0].as_str(), Err(missing)), (uris[1].as_str(), Ok(a))],
             ALL,
@@ -516,11 +519,11 @@ mod tests {
             out[0],
             json!({
                 "type": "text",
-                "text": "[kaava://file/gone.gd is not attached: there is no `gone.gd` in this project]",
+                "text": "[veistra://file/gone.gd is not attached: there is no `gone.gd` in this project]",
             })
         );
         assert_eq!(out[1]["type"], "resource");
-        assert_eq!(out[1]["resource"]["uri"], "kaava://file/a.gd");
+        assert_eq!(out[1]["resource"]["uri"], "veistra://file/a.gd");
         assert_eq!(out.len(), 2);
     }
 
@@ -534,20 +537,20 @@ mod tests {
 
     #[test]
     fn the_agent_tab_sends_text_its_agent_cannot_take_embedded_as_text() {
-        let r = with_pictures(text_ref("kaava://file/a.gd", "a.gd", "x\ny"), 1, 8);
+        let r = with_pictures(text_ref("veistra://file/a.gd", "a.gd", "x\ny"), 1, 8);
         let out = inline(vec![r], NONE);
         assert_eq!(out.len(), 1);
         assert_eq!(out[0]["type"], "text");
         let text = out[0]["text"].as_str().unwrap();
-        assert!(text.starts_with("kaava://file/a.gd (text): a.gd"), "{text}");
+        assert!(text.starts_with("veistra://file/a.gd (text): a.gd"), "{text}");
         assert!(text.contains("x\ny"), "{text}");
         assert!(text.ends_with("A picture is not attached."), "{text}");
     }
 
-    /// Its agents have no `kaava-context`, so a link would lead nowhere.
+    /// Its agents have no `veistra-context`, so a link would lead nowhere.
     #[test]
     fn the_agent_tab_never_sends_a_link_and_says_what_it_left_out() {
-        let mut env = text_ref("kaava://file/.env", ".env", "");
+        let mut env = text_ref("veistra://file/.env", ".env", "");
         env.parts.clear();
         env.withheld = Some("withheld: environment files are never read".into());
         let big = "x".repeat(MAX_TEXT_BYTES);
@@ -555,19 +558,19 @@ mod tests {
             let out = inline(
                 vec![
                     env.clone(),
-                    text_ref("kaava://file/big.txt", "big.txt", &big),
-                    text_ref("kaava://file/small.gd", "small.gd", "y"),
+                    text_ref("veistra://file/big.txt", "big.txt", &big),
+                    text_ref("veistra://file/small.gd", "small.gd", "y"),
                 ],
                 accepts,
             );
             assert!(out.iter().all(|b| b["type"] != "resource_link"), "{out:?}");
             assert_eq!(
                 out[0]["text"],
-                "[kaava://file/.env is not attached: withheld: environment files are never read]"
+                "[veistra://file/.env is not attached: withheld: environment files are never read]"
             );
             assert_eq!(
                 out[1]["text"],
-                "[kaava://file/big.txt is not attached: this message has no room left for attached text]"
+                "[veistra://file/big.txt is not attached: this message has no room left for attached text]"
             );
             let fits = if accepts.embedded_context {
                 "resource"
@@ -580,23 +583,23 @@ mod tests {
 
     #[test]
     fn only_chips_name_references_and_each_goes_once() {
-        let text = "see [@a](<kaava://file/a.gd>), [x](<kaava://file/b.gd>), \
-                    [@](<kaava://file/c.gd>), [@PROJ-1](<https://jira.example/PROJ-1>), \
-                    [@ a ] b [@a again](<kaava://file/a.gd>) [@d](<kaava://file/d.gd>)";
-        assert_eq!(named_in(text), ["kaava://file/a.gd", "kaava://file/d.gd"]);
+        let text = "see [@a](<veistra://file/a.gd>), [x](<veistra://file/b.gd>), \
+                    [@](<veistra://file/c.gd>), [@PROJ-1](<https://jira.example/PROJ-1>), \
+                    [@ a ] b [@a again](<veistra://file/a.gd>) [@d](<veistra://file/d.gd>)";
+        assert_eq!(named_in(text), ["veistra://file/a.gd", "veistra://file/d.gd"]);
         assert_eq!(
-            named_in("[@unclosed](<kaava://file/a.gd"),
+            named_in("[@unclosed](<veistra://file/a.gd"),
             Vec::<String>::new()
         );
         // A stray `[@` before a plain link does not make the link a chip.
         for text in [
-            "a [@ note [y](<kaava://file/y.gd>)",
-            "a [@ note\nthen](<kaava://file/y.gd>)",
+            "a [@ note [y](<veistra://file/y.gd>)",
+            "a [@ note\nthen](<veistra://file/y.gd>)",
         ] {
             assert_eq!(named_in(text), Vec::<String>::new(), "{text}");
         }
         let many: String = (0..MAX_URIS + 3)
-            .map(|i| format!("[@f{i}](<kaava://file/f{i}.gd>) "))
+            .map(|i| format!("[@f{i}](<veistra://file/f{i}.gd>) "))
             .collect();
         assert_eq!(named_in(&many).len(), MAX_URIS);
     }

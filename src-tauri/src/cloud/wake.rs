@@ -1,5 +1,5 @@
-//! The wake state machine `OPENKAAVA-PLANE-DESIGN.md` §3.3 asks for, mirroring
-//! `infra/common/kaava-wake/kaava_wake.py`'s state handling in Rust:
+//! The wake state machine `VEISTRA-PLANE-DESIGN.md` §3.3 asks for, mirroring
+//! `infra/common/veistra-wake/veistra_wake.py`'s state handling in Rust:
 //!
 //! 1. Read the instance's status. If it is already `RUNNING`, skip to step 3.
 //! 2. If `TERMINATED` (or the rarer `STOPPED`), start it, then poll status

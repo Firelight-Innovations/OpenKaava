@@ -1,7 +1,7 @@
 //! Native CLI dialogs that ACP does not expose, launched only on an explicit command submission.
 
-use kaava_agent_host::{harness, Harness, Worktree};
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
+use veistra_agent_host::{harness, Harness, Worktree};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager};
 

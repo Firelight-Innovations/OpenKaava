@@ -32,7 +32,7 @@ export function withChips(text: string, chips: readonly ContextChip[]): string {
 export function referenceParts(text: string): Array<{ text: string; uri?: string }> {
   const parts: Array<{ text: string; uri?: string }> = [];
   let at = 0;
-  for (const match of text.matchAll(/\[@([^\]]+)\]\(<((?:kaava|https):\/\/[^>]+)>\)/g)) {
+  for (const match of text.matchAll(/\[@([^\]]+)\]\(<((?:veistra|https):\/\/[^>]+)>\)/g)) {
     if (match.index! > at) parts.push({ text: text.slice(at, match.index) });
     parts.push({ text: match[1], uri: match[2] });
     at = match.index! + match[0].length;
@@ -66,5 +66,5 @@ export function insertMention(
 
 /** Only explicit inserted references are resolved, never arbitrary URLs in prose. */
 export function mentionedUris(text: string): string[] {
-  return [...new Set([...text.matchAll(/\[@[^\]]+\]\(<(kaava:\/\/[^>]+)>\)/g)].map((m) => m[1]))];
+  return [...new Set([...text.matchAll(/\[@[^\]]+\]\(<(veistra:\/\/[^>]+)>\)/g)].map((m) => m[1]))];
 }

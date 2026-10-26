@@ -13,14 +13,14 @@ const bridge = vi.hoisted(() => ({
   listeners: new Map<string, (payload: unknown) => void>(),
 }));
 
-vi.mock("@openkaava/bridge", () => ({
+vi.mock("@veistra/bridge", () => ({
   invoke: bridge.invoke,
   on: (event: string, cb: (payload: unknown) => void) => {
     bridge.listeners.set(event, cb);
     return () => bridge.listeners.delete(event);
   },
   reportPainted: vi.fn(),
-  KaavaRpcError: class extends Error {},
+  VeistraRpcError: class extends Error {},
 }));
 
 import App from "./App";

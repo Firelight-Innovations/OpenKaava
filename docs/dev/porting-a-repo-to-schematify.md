@@ -13,11 +13,11 @@ Read this for how to feed it.
 
 ## 1. What a port actually is
 
-A Schematify project is a directory named `.kaava/` at the root of the
+A Schematify project is a directory named `.veistra/` at the root of the
 repository it describes. Nothing else. There is no database, no index, no
 lockfile, no init command, and no registration step:
 
-> On project open Schematify walks `.kaava/`, parses every file, and builds the
+> On project open Schematify walks `.veistra/`, parses every file, and builds the
 > graph in memory. There is no index to consult and none to keep in step.
 >
 > — `crates/schematify-core/src/load.rs`
@@ -26,7 +26,7 @@ So "porting a repo to Schematify" means exactly one thing: **writing a tree of
 JSON files that `schematify_core::load_project` accepts and
 `schematify_core::lint` does not flag.** Everything below serves that sentence.
 
-The `.kaava/` tree describes the repository it sits in. It is committed
+The `.veistra/` tree describes the repository it sits in. It is committed
 alongside the code, reviewed in the same pull request, and branches with it —
 `crates/schematify-core/src/store.rs` calls that "the traceability property in
 operation" rather than a defect.
@@ -46,7 +46,7 @@ of authority when they conflict:
 | The linter | The 13 rules a finished tree must satisfy | `crates/schematify-core/src/lint.rs` |
 | The slug type | What characters a slug may contain, and its uniqueness scope | `crates/schematify-core/src/slug.rs` |
 | The PRD | Intent, tier model, the reasoning behind each rule | `docs/design/SCHEMATIFY-PRD.md` §3–§11 |
-| The reference fixture | A worked example of every file kind | `crates/schematify-core/fixtures/saas-backend/.kaava/` |
+| The reference fixture | A worked example of every file kind | `crates/schematify-core/fixtures/saas-backend/.veistra/` |
 
 **The PRD is a build specification, not a user guide.** It is written to an
 agent implementing Schematify, and several of its examples are illustrative
@@ -58,7 +58,7 @@ requires. When the PRD and a struct disagree, the struct is what runs.
 ## 3. The on-disk contract, in full
 
 ```
-.kaava/
+.veistra/
 ├── brief.json                  ProjectBrief          semantic
 ├── nodes/<uuid>.json           Node                  semantic
 ├── edges/<uuid>.json           Edge                  semantic
@@ -82,8 +82,8 @@ permission boundary enforced by two mechanisms that will fire on your port:
 
 - `.github/CODEOWNERS` assigns an owner to every semantic directory and
   deliberately assigns **none** to `runs/` and `layout/`.
-- `.github/workflows/kaava-boundary.yml` runs
-  `scripts/check-kaava-boundary.mjs`, which **fails any pull request touching
+- `.github/workflows/veistra-boundary.yml` runs
+  `scripts/check-veistra-boundary.mjs`, which **fails any pull request touching
   `nodes/` and `runs/` together**, with one narrow exception for a lifecycle
   transition (one node file plus that node's `audit.json`).
 
@@ -91,11 +91,11 @@ A port that writes `nodes/` and also seeds `runs/` in the same commit is
 blocked by CI. Write the semantic tree; leave `runs/` empty for a real
 benchmark job to fill.
 
-> Both files were *written* for a repo-root `.kaava/`. CODEOWNERS says so in as
+> Both files were *written* for a repo-root `.veistra/`. CODEOWNERS says so in as
 > many words — its patterns are unanchored precisely "if this repository is
 > ever opened as a Schematify project itself" — and CODEOWNERS is correct as
 > written. The check script was not: its two path patterns required a directory
-> before `.kaava`, so the gate matched the three fixtures and silently ignored
+> before `.veistra`, so the gate matched the three fixtures and silently ignored
 > the root. §9 has the details; it is fixed, with tests.
 
 ### Node — the common envelope
@@ -225,21 +225,21 @@ repository's architecture, not a defect in the port.
 ## 6. Marker tokens, and choosing not to write them
 
 PRD §9.1 defines the link between a node and its code. The token is the literal
-string `@kaava:` followed by a full UUID and an optional slug — written here as
-`@kaava:<uuid> <slug>` on purpose, because a real one in this file would be a
+string `@veistra:` followed by a full UUID and an optional slug — written here as
+`@veistra:<uuid> <slug>` on purpose, because a real one in this file would be a
 real marker. `crates/schematify-reconcile/src/token.rs` matches it with a plain
 regular expression that requires all five UUID groups, so the placeholder form
 is inert and the literal form is not.
 
-> **This is not hypothetical.** `kaava reconcile` on this repository today
+> **This is not hypothetical.** `veistra reconcile` on this repository today
 > reports 9 `present, unknown` and 3 `duplicate` outcomes, and every one of them
 > is PRD §9.1's own example token quoted as prose — in the PRD itself, in
 > `token.rs`'s doc comments, in `scan.rs`'s test strings, and in
 > `apps/schematify/ui/src/graph/module.ts`'s fixture data. Those predate this
-> port and are why `kaava reconcile` exits 1 on a clean checkout. An earlier
+> port and are why `veistra reconcile` exits 1 on a clean checkout. An earlier
 > draft of this page added a tenth site by quoting the example verbatim.
 
-`kaava reconcile` reports four outcomes: `matched`, `declared, absent`,
+`veistra reconcile` reports four outcomes: `matched`, `declared, absent`,
 `present, unknown`, `duplicate`.
 
 **Which nodes are even eligible is not what PRD §9.2 implies.**
@@ -258,15 +258,15 @@ reconcile run reports every node as declared-and-absent without failing. That
 is a legitimate end state: it is the design declared ahead of the code being
 annotated, which is the direction Schematify is built to work in.
 
-Writing markers later is purely additive and touches no `.kaava/` file except
+Writing markers later is purely additive and touches no `.veistra/` file except
 the lifecycle transitions.
 
 ---
 
 ## 7. How to verify a port
 
-`kaava reconcile` is **not** a validator. `JsonFileGraph::load` in
-`crates/schematify-reconcile/src/graph.rs` reads only `.kaava/nodes/*.json` and
+`veistra reconcile` is **not** a validator. `JsonFileGraph::load` in
+`crates/schematify-reconcile/src/graph.rs` reads only `.veistra/nodes/*.json` and
 only three fields from each. It will happily pass a tree with dangling edges, a
 broken containment tree, and a malformed registry.
 
@@ -275,10 +275,10 @@ and **there is no command in this repository that runs them over an arbitrary
 project.** They are reachable three ways:
 
 1. **The `schematify/lint` app method**, via `pnpm probe --agent --server agent
-   app_call`. Needs a running OpenKaava with developer mode on, and needs the
+   app_call`. Needs a running Veistra with developer mode on, and needs the
    project open. See [CLAUDE.md](../../CLAUDE.md).
 2. **A Rust test in-tree**, the way `crates/schematify-core/tests/self_budgets.rs`
-   pins `crates/schematify-core/self/.kaava/`.
+   pins `crates/schematify-core/self/.veistra/`.
 3. **A throwaway binary with a path dependency on `schematify-core`**, which is
    what this port used:
 
@@ -327,32 +327,32 @@ only genuinely awkward step in the whole procedure.
    Every invariant in §5 above is a property of the generator, not of a prompt.
 5. **Load, lint, fix, repeat** with the validator from §7.
 6. **Run the repository's own gates**: `pnpm verify` and
-   `node scripts/check-kaava-boundary.mjs`.
+   `node scripts/check-veistra-boundary.mjs`.
 
 ---
 
 ## 9. Traps
 
-- **`.prettierignore` did not cover a repo-root `.kaava/`.** It excludes
+- **`.prettierignore` did not cover a repo-root `.veistra/`.** It excludes
   `crates/schematify-core/fixtures/*/` — the fixtures, not the concept. Worse
   than a formatting nuisance: `write_json_atomic` calls
   `serde_json::to_vec_pretty`, which expands every array, and Prettier collapses
   a short array back onto one line. Left format-checked, `pnpm format:check`
   would start failing the moment anyone dragged a node in the app. This port
-  added a `.kaava/` entry with that reasoning written down.
-- **`kaava reconcile` writes into `runs/`, and that is a commit CI rejects.**
+  added a `.veistra/` entry with that reasoning written down.
+- **`veistra reconcile` writes into `runs/`, and that is a commit CI rejects.**
   One `reconcile.json` per node — 490 files here — landing in the audit tree
   beside the semantic tree you just generated. Generate, validate, commit; run
   reconcile *after*, and do not commit what it wrote.
-- **The boundary gate could not see a repo-root `.kaava/` at all.** Its two
-  patterns began `.*\/\.kaava`, which requires a slash before `.kaava`, so
-  `.kaava/nodes/<uuid>.json` matched nothing and the gate reported no violation
+- **The boundary gate could not see a repo-root `.veistra/` at all.** Its two
+  patterns began `.*\/\.veistra`, which requires a slash before `.veistra`, so
+  `.veistra/nodes/<uuid>.json` matched nothing and the gate reported no violation
   — for exactly the case its own header and `.github/CODEOWNERS` say it is
   there to cover. It failed open and silently. Fixed on 2026-09-06 with the two
-  tests that catch it, in `scripts/check-kaava-boundary.test.mjs`.
+  tests that catch it, in `scripts/check-veistra-boundary.test.mjs`.
 - **`contains` edges do not exist as files.** The `parent` field is the edge.
 - **The facet slug scope is the module root, not the parent.** §3 above.
-- **`kaava reconcile` passing means almost nothing.** §7 above.
+- **`veistra reconcile` passing means almost nothing.** §7 above.
 - **Do not derive a UUIDv7's timestamp field from mint order.** It is tempting,
   because it makes ids sort in creation order. It also means inserting one node
   renumbers every node minted after it, so adding a single service turned a
@@ -362,7 +362,7 @@ only genuinely awkward step in the whole procedure.
   generated tree — the covers mapping here — should record
   `(module, test, method)` slugs. An id is a function of your generator; a slug
   is a function of the repository.
-- **`crates/schematify-core/self/.kaava/` already exists** and is *not* a
+- **`crates/schematify-core/self/.veistra/` already exists** and is *not* a
   self-port — it is six budget nodes pinning PRD §14.7's table, and
   `tests/self_budgets.rs` asserts them by value. Do not fold it into a
   repo-root port; the test resolves it against `CARGO_MANIFEST_DIR`.
@@ -378,7 +378,7 @@ TypeScript files.
 
 | | |
 |---|---|
-| Files under `.kaava/` | 3229 |
+| Files under `.veistra/` | 3229 |
 | Nodes | 1810 — 17 services, 250 modules, 1543 facets |
 | Facets by kind | 645 contract-method, 478 test-case, 199 external-dep, 186 doc-block, 35 budget |
 | Edges | 1181 — 602 `covers`, 289 `depends_on`, 186 `documents`, 69 `references_ui`, 35 `satisfies` |
@@ -401,7 +401,7 @@ Two passes produced those `covers` edges. A slug heuristic in the generator got
 remaining 149 methods have no test that touches them.
 
 The 17th service is `examples/echo-tool`. It was not in the original sixteen and
-was added because the linter asked for it: `kaava-rpc` looked like a shared node
+was added because the linter asked for it: `veistra-rpc` looked like a shared node
 sitting above the lowest common ancestor of its dependents (L10), and the reason
 was that the graph modelled only one consumer. The reference tool core is the
 second, it is real, and adding it made the finding go away correctly rather than
@@ -421,7 +421,7 @@ by suppression. That is the linter doing its job on its own repository.
   reconstruct.
 - A worked reference fixture with every file kind present, deliberately seeded
   with five lint findings so the Problems panel has something to draw.
-- Mechanical enforcement written for a root `.kaava/` before one existed:
+- Mechanical enforcement written for a root `.veistra/` before one existed:
   CODEOWNERS covers it correctly, and the boundary check was one regex away
   from doing so.
 
@@ -429,8 +429,8 @@ by suppression. That is the linter doing its job on its own repository.
 
 - Any document describing how to adopt Schematify on an existing repository.
   This page is the first.
-- A `kaava init`, a scaffold, or any command that creates a `.kaava/` tree.
-  `kaava` has exactly one subcommand, `reconcile`.
+- A `veistra init`, a scaffold, or any command that creates a `.veistra/` tree.
+  `veistra` has exactly one subcommand, `reconcile`.
 - A standalone validator. §7.
 - A JSON Schema, a TypeScript type, or any machine-readable description of the
   format outside the Rust structs. An external generator has to be written
@@ -445,7 +445,7 @@ by suppression. That is the linter doing its job on its own repository.
 - Any statement that reconciliation keys on `impl_ref` rather than on node kind
   (§6). A contract method is silently outside reconciliation, and neither the
   PRD nor any surface says so.
-- Any warning that `kaava reconcile` writes into `runs/`, which is the tree the
+- Any warning that `veistra reconcile` writes into `runs/`, which is the tree the
   boundary gate forbids you to commit beside `nodes/`. The two rules are each
   documented and their interaction is not.
 - A way to run the linter from a terminal. §7.

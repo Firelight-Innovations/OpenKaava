@@ -145,7 +145,7 @@ fn mb_to_bytes(mb: i64) -> u64 {
 /// already started and this one has nothing left to contribute, so it stops rather than spending
 /// more of the blocking thread pool on a result nobody will read.
 ///
-/// This is coarser than per-search cancellation would be — a search anywhere in OpenKaava invalidates
+/// This is coarser than per-search cancellation would be — a search anywhere in Veistra invalidates
 /// a search anywhere else — but the search overlay is a single session shared by one window
 /// (`useSearchSession.ts`), so "newest search wins" is already the exact rule the frontend enforces
 /// with its own `AbortController`. One counter mirrors it without inventing a second cancellation
@@ -180,7 +180,7 @@ impl SearchState {
 /// Why this is `async` and hops to a worker: a `#[tauri::command]` that is a plain synchronous
 /// function runs on the **main thread** — the same one driving every window's UI.
 /// `commands::app_call`'s doc comment lays out the failure mode this avoids: a filesystem walk of
-/// any real size would freeze every OpenKaava window for as long as it took.
+/// any real size would freeze every Veistra window for as long as it took.
 /// `tauri::async_runtime::spawn_blocking` moves the walk to a worker thread and this command
 /// `.await`s it, the same shape `app_call` already uses for exactly this reason.
 ///
@@ -338,7 +338,7 @@ fn walk(
     let truncated = AtomicBool::new(false);
 
     let walker = WalkBuilder::new(root)
-        // Dotfiles are ordinary search targets here — `.env`, `.github/`, OpenKaava's own `.kaava/` —
+        // Dotfiles are ordinary search targets here — `.env`, `.github/`, Veistra's own `.veistra/` —
         // unlike ripgrep's default, which is tuned for a terminal user who types `--hidden` when
         // they want them. A GUI search box has no equivalent flag, so this always includes them.
         .hidden(false)
@@ -780,12 +780,12 @@ the stack here
         assert!(!is_binary_extension(Path::new("Makefile")));
     }
 
-    /// Manual profiling, not a check: `OPENKAAVA_BENCH_ROOT=<dir> cargo test bench_walk -- --ignored
+    /// Manual profiling, not a check: `VEISTRA_BENCH_ROOT=<dir> cargo test bench_walk -- --ignored
     /// --nocapture` prints how long a real tree takes for a query that matches little.
     #[test]
     #[ignore]
     fn bench_walk() {
-        let root = std::env::var("OPENKAAVA_BENCH_ROOT").expect("set OPENKAAVA_BENCH_ROOT");
+        let root = std::env::var("VEISTRA_BENCH_ROOT").expect("set VEISTRA_BENCH_ROOT");
         for query in ["zzqxnomatch", "stack", "a"] {
             let started = Instant::now();
             let response = run(Path::new(&root), query, Duration::from_secs(600));

@@ -11,11 +11,11 @@ import { isValidElement, type ComponentType, type ReactNode } from "react";
 
 const bridge = vi.hoisted(() => ({ invoke: vi.fn() }));
 
-vi.mock("@openkaava/bridge", () => ({
+vi.mock("@veistra/bridge", () => ({
   invoke: bridge.invoke,
   on: () => () => {},
   reportPainted: vi.fn(),
-  KaavaRpcError: class extends Error {},
+  VeistraRpcError: class extends Error {},
 }));
 
 import App from "../App";

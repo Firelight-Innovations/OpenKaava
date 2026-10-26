@@ -3,7 +3,7 @@
  *
  * Mirrors `CLAUDE_SESSION_MARKERS` in `src-tauri/src/pty.rs`; the backend strips
  * them from every terminal it spawns, and `pnpm ui launch` strips them before the
- * app starts so the app never holds them at all. A `claude` run in an OpenKaava
+ * app starts so the app never holds them at all. A `claude` run in a Veistra
  * terminal that sees `CLAUDE_CODE_CHILD_SESSION` believes it is nested, turns
  * transcript saving off, and `/resume` cannot find the session.
  *

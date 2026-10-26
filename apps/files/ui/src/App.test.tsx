@@ -10,7 +10,7 @@ import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 const handlers = vi.hoisted(() => new Map<string, (payload: unknown) => void>());
 const watchRoot = vi.hoisted(() => vi.fn());
 
-vi.mock("@openkaava/bridge", () => ({
+vi.mock("@veistra/bridge", () => ({
   on: (event: string, cb: (payload: unknown) => void) => {
     handlers.set(event, cb);
     return () => handlers.delete(event);

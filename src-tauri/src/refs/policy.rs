@@ -90,9 +90,9 @@ pub fn contain(root: &Path, rel: &str) -> Result<Contained, Fault> {
     Ok(Contained { root, abs, rel })
 }
 
-/// Whether a root-relative path ([`Contained::rel`]) is inside Kaava's context store.
+/// Whether a root-relative path ([`Contained::rel`]) is inside Veistra's context store.
 pub fn inside_store(rel: &str) -> bool {
-    rel.to_ascii_lowercase().starts_with(".kaava/context/")
+    rel.to_ascii_lowercase().starts_with(".veistra/context/")
 }
 
 /// Templates that look like `.env` files and hold no secrets by convention.
@@ -117,7 +117,7 @@ const CREDENTIAL_NAMES: &[&str] = &[
     ".my.cnf",
     "keystore.properties",
     "export_credentials.cfg",
-    // OpenKaava's own: the bearer token for every MCP server it hosts.
+    // Veistra's own: the bearer token for every MCP server it hosts.
     "mcp-endpoint.json",
     ".vault-token",
     "application_default_credentials.json",
@@ -548,7 +548,7 @@ mod tests {
     fn a_linked_worktree_reads_the_shared_info_exclude() {
         let dir = tempfile::TempDir::new().unwrap();
         let base = std::fs::canonicalize(dir.path()).unwrap();
-        let (main, root) = (base.join("main"), base.join("main/.kaava/worktrees/wt"));
+        let (main, root) = (base.join("main"), base.join("main/.veistra/worktrees/wt"));
         write(&main, ".git/info/exclude", "local.cfg\n");
         write(&main, ".git/worktrees/wt/commondir", "../..\n");
         let git_dir = main.join(".git/worktrees/wt");

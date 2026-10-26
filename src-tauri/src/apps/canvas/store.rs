@@ -3,23 +3,23 @@
 //!
 //! **Reference images** live beside the design as `canvas/<id>/refs/<file>`.
 //! Excalidraw keeps an image as a base64 `dataURL` in the scene's `files` map;
-//! a write here swaps each one for a `kaavaRef` path and writes the bytes out,
+//! a write here swaps each one for a `veistraRef` path and writes the bytes out,
 //! and a read puts the `dataURL` back, so the editor never knows. A photo is
 //! then a binary file git can store once, not a megabyte line in every diff.
-//! Rejected: a content-addressed store under `.kaava/`. It would be invisible
+//! Rejected: a content-addressed store under `.veistra/`. It would be invisible
 //! in the checkout and ignored by git, so a clone would open with holes.
 //!
-//! **Checkpoints** and **views** are Kaava's own working state, not the
-//! design's, so they go under `.kaava/` with a `.gitignore` of `*`, the same
-//! arrangement as `.kaava/context/`. Checkpoints are a ring of
+//! **Checkpoints** and **views** are Veistra's own working state, not the
+//! design's, so they go under `.veistra/` with a `.gitignore` of `*`, the same
+//! arrangement as `.veistra/context/`. Checkpoints are a ring of
 //! [`CHECKPOINTS`] per canvas; a view is overwritten in place per diagram, so
 //! an agent looking a hundred times leaves one file, not a hundred.
 
 use super::{bad, file_for, is_inside, relative, DIR};
 use base64::Engine;
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
 use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
 
 /// How many checkpoints each canvas keeps.
 pub const CHECKPOINTS: usize = 5;
@@ -43,7 +43,7 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), RpcError> {
         std::fs::create_dir_all(parent).map_err(|e| io("create", parent, e))?;
     }
     let mut name = path.file_name().unwrap_or_default().to_os_string();
-    name.push(".kaava-tmp");
+    name.push(".veistra-tmp");
     let temp = path.with_file_name(name);
     std::fs::write(&temp, bytes).map_err(|e| io("write", &temp, e))?;
     std::fs::rename(&temp, path).map_err(|e| {
@@ -52,9 +52,9 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), RpcError> {
     })
 }
 
-/// Make `.kaava/<name>/` with a `.gitignore` of `*`, and return it.
-fn kaava_dir(root: &Path, name: &str) -> Result<PathBuf, RpcError> {
-    let dir = root.join(".kaava").join(name);
+/// Make `.veistra/<name>/` with a `.gitignore` of `*`, and return it.
+fn veistra_dir(root: &Path, name: &str) -> Result<PathBuf, RpcError> {
+    let dir = root.join(".veistra").join(name);
     std::fs::create_dir_all(&dir).map_err(|e| io("create", &dir, e))?;
     let ignore = dir.join(".gitignore");
     if !ignore.exists() {
@@ -153,13 +153,13 @@ pub fn externalize(root: &Path, canvas: &str, scene: &mut Value) -> Result<Vec<S
         if let Some(obj) = entry.as_object_mut() {
             obj.remove("dataURL");
             obj.insert("mimeType".into(), json!(mime));
-            obj.insert("kaavaRef".into(), json!(format!("refs/{name}")));
+            obj.insert("veistraRef".into(), json!(format!("refs/{name}")));
         }
     }
     Ok(written)
 }
 
-/// Put each `kaavaRef` image back as a `dataURL`. Returns the refs that are
+/// Put each `veistraRef` image back as a `dataURL`. Returns the refs that are
 /// missing from disk, which the editor then shows as a broken image. A ref that
 /// a link leads out of the project is reported as missing and never read.
 pub fn inflate(root: &Path, canvas: &str, scene: &mut Value) -> Vec<String> {
@@ -172,7 +172,7 @@ pub fn inflate(root: &Path, canvas: &str, scene: &mut Value) -> Vec<String> {
         if entry.get("dataURL").is_some() {
             continue;
         }
-        let Some(rel) = entry.get("kaavaRef").and_then(Value::as_str) else {
+        let Some(rel) = entry.get("veistraRef").and_then(Value::as_str) else {
             continue;
         };
         let name = rel.strip_prefix("refs/").unwrap_or("");
@@ -213,14 +213,14 @@ pub fn list_refs(root: &Path, canvas: &str, scene: &Value) -> Value {
         let mut names: Vec<String> = reader
             .flatten()
             .map(|e| e.file_name().to_string_lossy().into_owned())
-            .filter(|n| !n.ends_with(".kaava-tmp"))
+            .filter(|n| !n.ends_with(".veistra-tmp"))
             .collect();
         names.sort();
         for name in names {
             let rel = format!("refs/{name}");
             let file_id = placed
                 .iter()
-                .find(|(_, v)| v.get("kaavaRef").and_then(Value::as_str) == Some(rel.as_str()))
+                .find(|(_, v)| v.get("veistraRef").and_then(Value::as_str) == Some(rel.as_str()))
                 .map(|(k, _)| k.clone());
             rows.push(json!({
                 "name": name,
@@ -237,7 +237,7 @@ pub fn list_refs(root: &Path, canvas: &str, scene: &Value) -> Value {
 // --- checkpoints ------------------------------------------------------------
 
 fn checkpoint_dir(root: &Path, canvas: &str) -> Result<PathBuf, RpcError> {
-    Ok(nest(kaava_dir(root, "canvas-checkpoints")?, canvas))
+    Ok(nest(veistra_dir(root, "canvas-checkpoints")?, canvas))
 }
 
 /// Copy the canvas file as it is now into the ring, dropping the oldest.
@@ -350,10 +350,10 @@ pub fn view_path(
         .take(80)
         .collect();
     let suffix = if region { ".region.png" } else { ".png" };
-    Ok(nest(kaava_dir(root, "canvas-views")?, canvas).join(format!("{safe}{suffix}")))
+    Ok(nest(veistra_dir(root, "canvas-views")?, canvas).join(format!("{safe}{suffix}")))
 }
 
-/// The file a frame's picture renders to: `.kaava/preview/canvas/<canvas>/<frame>.png`.
+/// The file a frame's picture renders to: `.veistra/preview/canvas/<canvas>/<frame>.png`.
 /// Overwritten on every render, so an agent that looks a hundred times leaves one file.
 pub fn frame_image_path(root: &Path, canvas: &str, frame_id: &str) -> Result<PathBuf, RpcError> {
     let safe: String = frame_id
@@ -367,14 +367,14 @@ pub fn frame_image_path(root: &Path, canvas: &str, frame_id: &str) -> Result<Pat
         })
         .take(80)
         .collect();
-    Ok(nest(kaava_dir(root, "preview/canvas")?, canvas).join(format!("{safe}.png")))
+    Ok(nest(veistra_dir(root, "preview/canvas")?, canvas).join(format!("{safe}.png")))
 }
 
-/// Where a sub-canvas's picture is cached: `.kaava/canvas-snapshots/<child>.png`,
+/// Where a sub-canvas's picture is cached: `.veistra/canvas-snapshots/<child>.png`,
 /// with a `.json` beside it naming the child's mtime the picture was drawn from.
-/// A cache, so it is under `.kaava/` and ignored by git: a clone redraws it.
+/// A cache, so it is under `.veistra/` and ignored by git: a clone redraws it.
 pub fn snapshot_paths(root: &Path, child: &str) -> Result<(PathBuf, PathBuf), RpcError> {
-    let base = nest(kaava_dir(root, "canvas-snapshots")?, child);
+    let base = nest(veistra_dir(root, "canvas-snapshots")?, child);
     Ok((base.with_extension("png"), base.with_extension("json")))
 }
 
@@ -420,7 +420,7 @@ mod tests {
         let written = externalize(dir.path(), "game", &mut scene).unwrap();
         assert_eq!(written, vec!["canvas/game/refs/abc123.png"]);
         assert!(scene["files"]["abc123"].get("dataURL").is_none());
-        assert_eq!(scene["files"]["abc123"]["kaavaRef"], "refs/abc123.png");
+        assert_eq!(scene["files"]["abc123"]["veistraRef"], "refs/abc123.png");
         assert!(dir.path().join("canvas/game/refs/abc123.png").is_file());
         let missing = inflate(dir.path(), "game", &mut scene);
         assert!(missing.is_empty());
@@ -433,9 +433,9 @@ mod tests {
     #[test]
     fn a_missing_ref_is_reported_not_invented() {
         let dir = TempDir::new().unwrap();
-        let mut scene = json!({ "files": { "x": { "kaavaRef": "refs/x.png" } } });
+        let mut scene = json!({ "files": { "x": { "veistraRef": "refs/x.png" } } });
         assert_eq!(inflate(dir.path(), "game", &mut scene), vec!["refs/x.png"]);
-        let mut escape = json!({ "files": { "x": { "kaavaRef": "refs/../../secret.png" } } });
+        let mut escape = json!({ "files": { "x": { "veistraRef": "refs/../../secret.png" } } });
         assert_eq!(inflate(dir.path(), "game", &mut escape).len(), 1);
     }
 
@@ -464,7 +464,7 @@ mod tests {
         assert_eq!(names.len(), CHECKPOINTS);
         let (_, newest) = checkpoint_scene(dir.path(), "game", None).unwrap();
         assert_eq!(newest["n"], 6);
-        let ignore = dir.path().join(".kaava/canvas-checkpoints/.gitignore");
+        let ignore = dir.path().join(".veistra/canvas-checkpoints/.gitignore");
         assert_eq!(std::fs::read_to_string(ignore).unwrap(), "*\n");
         assert!(checkpoint(dir.path(), "none", "x").unwrap().is_none());
     }

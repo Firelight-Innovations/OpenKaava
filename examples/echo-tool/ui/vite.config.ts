@@ -7,7 +7,7 @@ export default defineConfig({
 
   server: {
     // Fixed and strict so this never silently drifts onto the orchestrator's
-    // own dev server port (1420) if that one's busy — kaava-tool.toml's
+    // own dev server port (1420) if that one's busy — veistra-tool.toml's
     // `dev-url` points at this exact port.
     port: 5174,
     strictPort: true,

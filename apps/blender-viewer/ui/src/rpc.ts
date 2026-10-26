@@ -4,7 +4,7 @@
  * the bridge, not the Rust module. The Rust side is
  * `src-tauri/src/apps/blender_viewer.rs`.
  */
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 
 export interface BlenderPart {
   name: string;

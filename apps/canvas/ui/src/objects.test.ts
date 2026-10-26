@@ -40,12 +40,12 @@ const def = (id: string, fields: FieldDef[]): TypeDef => ({
 describe("a frame that is both a named diagram and a typed object", () => {
   const diagram = { id: "hub", title: "Hub", level: "overview" };
   const both = () =>
-    frame("f", { customData: { kaava: { diagram, child: "kid" }, other: { keep: 1 } } });
+    frame("f", { customData: { veistra: { diagram, child: "kid" }, other: { keep: 1 } } });
 
   it("withObject adds the object and keeps the diagram, child and foreign data", () => {
     const out = withObject(both(), { type: "feature", props: { a: 1 } });
     expect(out.customData).toEqual({
-      kaava: { diagram, child: "kid", object: { type: "feature", props: { a: 1 } } },
+      veistra: { diagram, child: "kid", object: { type: "feature", props: { a: 1 } } },
       other: { keep: 1 },
     });
     expect(objectOf(out)?.type).toBe("feature");
@@ -54,7 +54,7 @@ describe("a frame that is both a named diagram and a typed object", () => {
   it("removing the object leaves the diagram, and removing the last key drops customData", () => {
     const typed = withObject(both(), { type: "feature", props: {} });
     expect(withObject(typed, null).customData).toEqual({
-      kaava: { diagram, child: "kid" },
+      veistra: { diagram, child: "kid" },
       other: { keep: 1 },
     });
     const only = withObject(frame("g"), { type: "feature", props: {} });
@@ -64,7 +64,7 @@ describe("a frame that is both a named diagram and a typed object", () => {
   it("changing the type, setting a prop and renaming keep the diagram", () => {
     const typed = withObject(both(), { type: "feature", props: { a: 1 } });
     const next = withObject(typed, setProp(changeType(objectOf(typed), def("system", [])), "b", 2));
-    expect((next.customData as { kaava: { diagram: unknown } }).kaava.diagram).toEqual(diagram);
+    expect((next.customData as { veistra: { diagram: unknown } }).veistra.diagram).toEqual(diagram);
     expect(objectOf(next)).toEqual({ type: "system", props: { a: 1, b: 2 } });
   });
 
@@ -138,7 +138,7 @@ describe("wrapSelection", () => {
 describe("convertLegacy", () => {
   it("moves a shape's spec card onto a model frame around it", () => {
     const card = { name: "Gurney", size_m: 2, triangle_budget: 8000, status: "review" };
-    const shape = el("a", { customData: { kaava: { spec: card } } });
+    const shape = el("a", { customData: { veistra: { spec: card } } });
     const got = convertLegacy([shape], "a");
     if (!got.ok) throw new Error(got.error);
     const made = got.elements.find((e) => e.id === got.frameId)!;

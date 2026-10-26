@@ -1,5 +1,5 @@
 /**
- * An app frame reporting Escape (`kaava/escape`). Keys typed inside an iframe
+ * An app frame reporting Escape (`veistra/escape`). Keys typed inside an iframe
  * never reach the shell's `document`, so once an expanded rail page has focus
  * the shell's "Esc leaves the page" binding cannot hear the key itself.
  *

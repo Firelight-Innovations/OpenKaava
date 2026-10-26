@@ -16,8 +16,8 @@
 import { useEffect, useRef, useState } from "react";
 import * as monaco from "monaco-editor/editor/editor.api";
 import EditorWorker from "monaco-editor/editor/editor.worker?worker";
-import { registerToml } from "@openkaava/monaco-languages";
-import { hexWithAlpha, monacoThemeData } from "@openkaava/bridge/theme";
+import { registerToml } from "@veistra/monaco-languages";
+import { hexWithAlpha, monacoThemeData } from "@veistra/bridge/theme";
 import { onThemeChange } from "../themeBroadcast";
 import { anchorFor, countLabel, markAtLine, type LineDecoration } from "./reviewComments";
 import "./diff.css";
@@ -37,7 +37,7 @@ self.MonacoEnvironment = {
 // Idempotent: `search/previewMonaco.ts` calls this too and is shell-side like
 // this module, so both chunks can be live in one JS context and would
 // otherwise register the same id twice against one global registry. The guard
-// lives in `@openkaava/monaco-languages` so neither caller has to remember.
+// lives in `@veistra/monaco-languages` so neither caller has to remember.
 registerToml(monaco);
 
 // Defined once at module scope, not per-mount — `defineTheme` writes into
@@ -51,7 +51,7 @@ registerToml(monaco);
 // unseen, are in the design note named in the file header.
 function defineDiffTheme(): void {
   const { base, colors } = monacoThemeData();
-  monaco.editor.defineTheme("kaava-dark", {
+  monaco.editor.defineTheme("veistra-dark", {
     base,
     inherit: true,
     rules: [],
@@ -64,7 +64,7 @@ function defineDiffTheme(): void {
       "diffEditor.removedTextBackground": hexWithAlpha(tokenValue("--err"), 0.25), // --err
     },
   });
-  monaco.editor.setTheme("kaava-dark");
+  monaco.editor.setTheme("veistra-dark");
 }
 
 function tokenValue(name: string): string {
@@ -109,7 +109,7 @@ export interface DiffViewProps {
   modified: string;
   /** Passed straight to Monaco's model, but only `"toml"` actually tokenizes
    *  here; everything else renders as plain text until someone decides this
-   *  editor should carry Monaco's bundled grammars. `@openkaava/monaco-languages`'s
+   *  editor should carry Monaco's bundled grammars. `@veistra/monaco-languages`'s
    *  `isTomlPath` is how a caller with a path and no Monaco import decides. */
   language?: string;
   /** Two columns, or one with removals and additions interleaved. Defaults to
@@ -165,7 +165,7 @@ export default function DiffView({
     if (!container) return;
 
     const diffEditor = monaco.editor.createDiffEditor(container, {
-      theme: "kaava-dark",
+      theme: "veistra-dark",
       readOnly: true,
       automaticLayout: true,
       renderSideBySide,

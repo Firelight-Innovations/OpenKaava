@@ -1,6 +1,6 @@
 //! Access tokens from the user's own `gcloud`, cached in memory.
 //!
-//! `docs/cloud-services.md` §2: OpenKaava holds no keys. It asks
+//! `docs/cloud-services.md` §2: Veistra holds no keys. It asks
 //! `gcloud auth print-access-token`, keeps the answer for most of its hour, and
 //! forgets it the moment Google says it stopped working. The token never goes
 //! to disk, to a log, or into an error message.

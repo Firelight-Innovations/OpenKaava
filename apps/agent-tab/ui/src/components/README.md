@@ -96,7 +96,7 @@ right.
 
 - `ModelMenu` is the settings button. It reads the current settings as one line ("Claude · Opus 5.5
   · High") and opens a menu.
-  - Harness buttons select Claude, Codex or Kaava, followed by only that harness's models. The
+  - Harness buttons select Claude, Codex or Veistra, followed by only that harness's models. The
     latest model in each family and the selected model are featured; More models expands older
     versions and aliases. Names and values come from the adapter. An unavailable harness is locked
     with its reason in the title. Switching a running conversation transfers its context.

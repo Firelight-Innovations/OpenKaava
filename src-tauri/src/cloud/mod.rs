@@ -1,11 +1,11 @@
-//! OpenKaava Cloud from the desktop side: the Google Cloud reads (and the one
+//! Veistra Cloud from the desktop side: the Google Cloud reads (and the one
 //! write) behind the Agents app and the views that follow it.
 //!
 //! `docs/cloud-services.md` is the contract. This module owns three rules from
 //! it so no app has to remember them:
 //!
 //! - **No keys.** Every call carries a token from the user's own `gcloud`, held
-//!   in memory only ([`auth`]), or from OpenKaava's own Google sign-in
+//!   in memory only ([`auth`]), or from Veistra's own Google sign-in
 //!   ([`google`]), whose refresh token is in the OS credential store. Nothing
 //!   here writes a token anywhere else.
 //! - **A missing or signed-out `gcloud` is a state, not a network error.**
@@ -31,23 +31,23 @@ pub mod storage;
 pub mod tunnel;
 pub mod wake;
 
-use kaava_rpc::{RpcError, INTERNAL_ERROR};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::Value;
 use std::path::{Path, PathBuf};
+use veistra_rpc::{RpcError, INTERNAL_ERROR};
 
-/// The one project OpenKaava Cloud lives in. `KAAVA_GCP_PROJECT` overrides it.
+/// The one project Veistra Cloud lives in. `VEISTRA_GCP_PROJECT` overrides it.
 pub const DEFAULT_PROJECT: &str = "veistra-prod";
 
 /// Where agent VMs write their session records. `docs/cloud-services.md` §5.
 pub const SESSIONS_BUCKET: &str = "veistra-prod-sessions";
 
-/// Project records and the AI job queue. `OPENKAAVA-PLANE-DESIGN.md` §3.
+/// Project records and the AI job queue. `VEISTRA-PLANE-DESIGN.md` §3.
 pub const PROJECTS_BUCKET: &str = "veistra-projects";
 
 /// Points every read at a local folder instead of Google Cloud.
-pub const FIXTURES_ENV: &str = "KAAVA_CLOUD_FIXTURES";
+pub const FIXTURES_ENV: &str = "VEISTRA_CLOUD_FIXTURES";
 
 /// Where the answers come from for one call.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -69,7 +69,7 @@ impl Source {
         match std::env::var_os(FIXTURES_ENV) {
             Some(root) if !root.is_empty() => Source::Fixture { root: root.into() },
             _ => Source::Live {
-                project: std::env::var("KAAVA_GCP_PROJECT")
+                project: std::env::var("VEISTRA_GCP_PROJECT")
                     .ok()
                     .filter(|p| !p.is_empty())
                     .unwrap_or_else(|| DEFAULT_PROJECT.to_string()),
@@ -112,10 +112,10 @@ pub enum Trouble {
     Api { status: u16, detail: String },
     /// A fixture file is missing or malformed.
     Fixture { detail: String },
-    /// OpenKaava's own Google sign-in has lapsed (revoked, expired, or the
+    /// Veistra's own Google sign-in has lapsed (revoked, expired, or the
     /// password changed). The fix is Settings, Cloud, Sign in with Google.
     SignInNeeded { detail: String },
-    /// No `kaava-api` URL in Settings, Cloud: the gateway is not deployed yet.
+    /// No `veistra-api` URL in Settings, Cloud: the gateway is not deployed yet.
     GatewayUnconfigured,
     /// The gateway did not answer, or something else answered at its URL.
     GatewayUnreachable { detail: String },
@@ -140,10 +140,10 @@ impl Trouble {
                 "the Google sign-in has lapsed — sign in again in Settings, Cloud".into()
             }
             Trouble::GatewayUnconfigured => {
-                "no gateway URL is set — add the kaava-api URL in Settings, Cloud".into()
+                "no gateway URL is set — add the veistra-api URL in Settings, Cloud".into()
             }
             Trouble::GatewayUnreachable { detail } => {
-                format!("the kaava-api gateway did not answer: {detail}")
+                format!("the veistra-api gateway did not answer: {detail}")
             }
             Trouble::PlaneAsleep { detail } => format!("Plane is not running: {detail}"),
         }
@@ -168,7 +168,7 @@ pub struct Cloud {
     pub prices: billing::Prices,
     /// The Plane call budget. See [`plane`].
     pub plane: plane::PlaneState,
-    /// OpenKaava's own Google sign-in. See [`google`].
+    /// Veistra's own Google sign-in. See [`google`].
     pub google: google::GoogleAuth,
 }
 
@@ -351,7 +351,7 @@ mod tests {
 
     #[test]
     fn plain_segments_refuse_traversal() {
-        assert!(is_plain_segment("kaava-worker"));
+        assert!(is_plain_segment("veistra-worker"));
         assert!(is_plain_segment("0b6c1f7e-1234"));
         for bad in ["", ".", "..", "a/b", "a\\b", "x y"] {
             assert!(!is_plain_segment(bad), "{bad:?} must be refused");

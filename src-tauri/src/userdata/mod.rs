@@ -1,4 +1,4 @@
-//! Everything OpenKaava remembers about a person, and what keeps it across an
+//! Everything Veistra remembers about a person, and what keeps it across an
 //! install.
 //!
 //! Eight JSON files and a directory of plugin checkouts sit under

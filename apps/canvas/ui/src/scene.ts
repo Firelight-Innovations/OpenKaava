@@ -3,12 +3,12 @@
  * imports Excalidraw: the editor hands over plain elements, and this decides
  * what of them is written to the game repository and when a change is real.
  *
- * The file is an Excalidraw scene plus one `kaava` object (`docs/cloud-services.md`
+ * The file is an Excalidraw scene plus one `veistra` object (`docs/cloud-services.md`
  * §4). Rust owns the bookkeeping fields (`schema`, `id`, `updated`,
  * `updated_by`); the title and the parent link are this side's.
  */
 
-export interface KaavaMeta {
+export interface VeistraMeta {
   schema?: number;
   id?: string;
   title?: string;
@@ -27,19 +27,19 @@ export interface DesignOverride {
 }
 
 /**
- * `kaava` with one design choice set, or cleared when `choice` is null. An empty
+ * `veistra` with one design choice set, or cleared when `choice` is null. An empty
  * `design` is dropped, so a canvas that follows Settings in both has no trace of it,
  * the same rule `style::store_choice` keeps on the Rust side.
  */
 export function withDesign(
-  kaava: KaavaMeta | undefined,
+  veistra: VeistraMeta | undefined,
   key: keyof DesignOverride,
   choice: string | null,
-): KaavaMeta {
-  const design: DesignOverride = { ...kaava?.design };
+): VeistraMeta {
+  const design: DesignOverride = { ...veistra?.design };
   if (choice) design[key] = choice;
   else delete design[key];
-  const next: KaavaMeta = { ...kaava };
+  const next: VeistraMeta = { ...veistra };
   delete next.design;
   if (Object.keys(design).length) next.design = design;
   return next;
@@ -61,7 +61,7 @@ export interface SceneFile {
   elements: SceneElement[];
   appState: Record<string, unknown>;
   files: Record<string, unknown>;
-  kaava?: KaavaMeta;
+  veistra?: VeistraMeta;
 }
 
 /** The only view settings worth committing: everything else in Excalidraw's
@@ -71,8 +71,8 @@ const KEPT_APP_STATE = ["viewBackgroundColor", "gridSize"] as const;
 
 /** Whether `el` is the picture the editor draws into a sub-canvas frame. */
 export function isSnapshot(el: { [key: string]: unknown }): boolean {
-  const kaava = (el.customData as { kaava?: { snapshot?: unknown } } | undefined)?.kaava;
-  return kaava?.snapshot === true;
+  const veistra = (el.customData as { veistra?: { snapshot?: unknown } } | undefined)?.veistra;
+  return veistra?.snapshot === true;
 }
 
 /**
@@ -86,7 +86,7 @@ export function toSaved(
   elements: readonly SceneElement[],
   appState: Record<string, unknown>,
   files: Record<string, unknown>,
-  kaava: KaavaMeta | undefined,
+  veistra: VeistraMeta | undefined,
 ): SceneFile {
   // A sub-canvas frame's picture is redrawn from its child on every open, so
   // it is never written into the parent (`subcanvas.ts`).
@@ -102,7 +102,7 @@ export function toSaved(
     elements: live,
     appState: keptState,
     files: keptFiles,
-    ...(kaava ? { kaava } : {}),
+    ...(veistra ? { veistra } : {}),
   };
 }
 
@@ -118,8 +118,8 @@ export function signature(scene: SceneFile): string {
   parts.push(`files=${Object.keys(scene.files).sort().join(",")}`);
   parts.push(`bg=${String(scene.appState.viewBackgroundColor ?? "")}`);
   parts.push(`grid=${String(scene.appState.gridSize ?? "")}`);
-  parts.push(`title=${scene.kaava?.title ?? ""}`);
-  parts.push(`design=${scene.kaava?.design?.detail ?? ""}/${scene.kaava?.design?.style ?? ""}`);
+  parts.push(`title=${scene.veistra?.title ?? ""}`);
+  parts.push(`design=${scene.veistra?.design?.detail ?? ""}/${scene.veistra?.design?.style ?? ""}`);
   return parts.join("|");
 }
 

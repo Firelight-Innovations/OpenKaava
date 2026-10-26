@@ -110,14 +110,14 @@ break needed to prove it.
 The 2 additive fields are exercised implicitly by every existing `lint.rs`
 and `tests/lint.rs` test that constructs or reads a `Finding`/`Location` —
 all reverified passing after both additions (`cargo test -p schematify-core
--p openkaava-orchestrator lint`, then the full `cargo test --workspace`).
+-p veistra-orchestrator lint`, then the full `cargo test --workspace`).
 
 ## 5. Verification
 
 | Step | Result |
 |---|---|
-| `cargo test -p schematify-core -p openkaava-orchestrator lint` (after `slug`) | Pass |
-| `cargo test -p schematify-core -p openkaava-orchestrator lint` (after `rule_name`) | Pass |
+| `cargo test -p schematify-core -p veistra-orchestrator lint` (after `slug`) | Pass |
+| `cargo test -p schematify-core -p veistra-orchestrator lint` (after `rule_name`) | Pass |
 | `cargo test --workspace` | Pass |
 | `cargo clippy --workspace --all-targets -- -D warnings` | Pass, 0 warnings |
 | `cargo fmt --all -- --check` | Pass (1 formatting fix applied and reverified) |
@@ -141,7 +141,7 @@ is unverified on screen:
 1. **The Problems panel itself**, open Schematify on `auth-service` (the
    default landing view): the dock's `Problems` tab should be active by
    default, its badge pair should read `3` and `2` against the real project
-   (`fixtures/saas-backend/`, once a real `.kaava/` project is open — the
+   (`fixtures/saas-backend/`, once a real `.veistra/` project is open — the
    panel currently draws against whatever `schematify/lint` answers for
    whatever project is open in the cluster), 5 rows in 2 groups (3 errors,
    a blank-row break, 2 warnings), each row's `SEVERITY` cell reading

@@ -10,11 +10,11 @@ import type { Body } from "./blocks";
  */
 export const theWindow: Body = {
   takeaway:
-    "You can name every band of the OpenKaava window, which is what the rest of these tutorials assume.",
+    "You can name every band of the Veistra window, which is what the rest of these tutorials assume.",
   blocks: [
     {
       kind: "text",
-      body: "The OpenKaava window is four horizontal bands stacked in a column, with a narrow rail down the right. Only the middle band grows. Naming them is worth four minutes, because every other tutorial says these words without stopping.",
+      body: "The Veistra window is four horizontal bands stacked in a column, with a narrow rail down the right. Only the middle band grows. Naming them is worth four minutes, because every other tutorial says these words without stopping.",
     },
     {
       kind: "mock",

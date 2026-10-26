@@ -28,7 +28,7 @@ appeared. Do not skip the Hindsight recall because its server was still connecti
 ## How to finish (always do both steps, exactly once)
 
 1. Post **one** comment on the work item that summarises what you did: what you created or found,
-   with the identifiers (for example `KAAVA-14`), and anything the owner must decide. Keep it
+   with the identifiers (for example `VEISTRA-14`), and anything the owner must decide. Keep it
    short; use HTML (`<p>`, `<ul>`, `<li>`, `<code>`).
 2. Update the work item's labels: remove `ai:queued` and add `ai:done`, or `ai:failed` if you could
    not do the job. Keep every other label. Labels are UUIDs; list the project's labels to find

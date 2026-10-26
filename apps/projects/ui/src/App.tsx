@@ -1,4 +1,4 @@
-import { on, reportPainted } from "@openkaava/bridge";
+import { on, reportPainted } from "@veistra/bridge";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TroubleNote, describeFailure } from "../../../shared/trouble";
 import { absoluteBounds, isFrameRect, type FrameRect } from "./frameRect";
@@ -29,12 +29,12 @@ export default function App() {
   const frameRectRef = useRef<FrameRect | null>(null);
 
   // The shell's report of where this app's own iframe sits in the window —
-  // see `kaava/window-rect` in `src/shell/toolwindow/ToolWindow.tsx`. Needed
+  // see `veistra/window-rect` in `src/shell/toolwindow/ToolWindow.tsx`. Needed
   // because `paneRef`'s `getBoundingClientRect()` is relative to this iframe's
   // own viewport, not the window `add_child`/`set_position` place things in.
   useEffect(
     () =>
-      on("kaava/window-rect", (payload) => {
+      on("veistra/window-rect", (payload) => {
         if (!isFrameRect(payload)) return;
         frameRectRef.current = payload;
         setFrameRect(payload);
@@ -191,7 +191,7 @@ export default function App() {
                 ))}
                 {list.projects.length === 0 ? (
                   <p className="app__note">
-                    No projects yet. <code>kaava-project</code> writes one to{" "}
+                    No projects yet. <code>veistra-project</code> writes one to{" "}
                     <code>gs://veistra-projects/{list.profile}/projects/</code> per project.
                   </p>
                 ) : (

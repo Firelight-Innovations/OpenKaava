@@ -11,7 +11,7 @@ function cluster(id: string, name: string, over: Partial<Cluster> = {}): Cluster
     id,
     name,
     tree: { kind: "leaf", tabs: [], active: null } as unknown as Cluster["tree"],
-    project: "C:/code/openkaava",
+    project: "C:/code/veistra",
     worktree: { path: `C:/wt/${name}`, branch: `feat/${name}`, base: "main" },
     activeTerminal: null,
     bandHeight: null,
@@ -46,7 +46,7 @@ describe("ClusterStrip", () => {
   it("names each badge for the cluster and gives project · branch as the tooltip", () => {
     setup();
     const badge = screen.getByRole("button", { name: /^billing/ });
-    expect(badge.getAttribute("title")).toBe("openkaava · feat/billing");
+    expect(badge.getAttribute("title")).toBe("veistra · feat/billing");
   });
 
   it("marks the open cluster with aria-current and nothing else", () => {

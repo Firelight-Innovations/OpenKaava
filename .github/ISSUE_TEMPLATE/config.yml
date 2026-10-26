@@ -13,14 +13,14 @@ blank_issues_enabled: false
 
 contact_links:
   - name: Question, or an idea you want to talk through
-    url: https://github.com/Firelight-Innovations/OpenKaava/discussions
+    url: https://github.com/Firelight-Innovations/Veistra/discussions
     about: >-
       How something works, whether an approach makes sense, or anything that
       does not yet have a definite right answer. Ask here rather than in the
       tracker.
 
   - name: Security vulnerability
-    url: https://github.com/Firelight-Innovations/OpenKaava/security/policy
+    url: https://github.com/Firelight-Innovations/Veistra/security/policy
     about: >-
       Please do not open a public issue. The security policy has a private
       reporting route and the response window you should expect.

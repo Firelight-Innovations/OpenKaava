@@ -32,9 +32,9 @@ src-tauri/src/commands.rs   the only door from the frontend  ─┐
 src-tauri/src/apps/*        first-party app backends          │ backend
 src-tauri/src/*             state, discovery, project, pty    ─┘
         │  (JSON-RPC over stdio)
-crates/kaava-rpc            the transport, both halves       ─┐
-crates/kaava-tool-manifest  what a tool declares              │ protocol
-docs/tool-protocol.md       the contract itself              ─┘
+crates/veistra-rpc            the transport, both halves     ─┐
+crates/veistra-tool-manifest  what a tool declares            │ protocol
+docs/tool-protocol.md         the contract itself            ─┘
 ```
 
 Rules that follow from it:
@@ -68,12 +68,12 @@ Rules that follow from it:
    own answer applies instead: pass it in. `ToolWindow` draws the pane tree and
    the terminal emulator through `renderPanes` and `renderTerminal` props typed
    in `contract.ts`, and `WindowRoot` — which is not a region — supplies both.
-3. **The protocol crates depend on nothing above them.** `kaava-rpc` and
-   `kaava-tool-manifest` are consumed by this repo *and* by every tool
+3. **The protocol crates depend on nothing above them.** `veistra-rpc` and
+   `veistra-tool-manifest` are consumed by this repo *and* by every tool
    repository. They must not learn about the orchestrator. If a change to one of
    them would only make sense to the orchestrator, it belongs in `src-tauri/`.
 4. **Apps reach the shell only through the bridge.** An app's frontend calls
-   `invoke` from `@openkaava/bridge` exactly as a tool's does, and neither knows
+   `invoke` from `@veistra/bridge` exactly as a tool's does, and neither knows
    which kind of host answered. That symmetry is deliberate: it is what would let
    an app be extracted into its own tool repo later, or a tool absorbed into
    this one, without its interface code changing.
@@ -92,9 +92,9 @@ Two files exist purely to be chokepoints. Their value is entirely in being the
 *only* way through, so adding a bypass — even a small, obviously-fine one —
 costs more than the bypass saves.
 
-Both are chokepoints in the same sense, and `@openkaava/bridge` is the third. The
-shell reaches its wire types through the `@openkaava/bridge/protocol` and
-`@openkaava/bridge/errors` subpaths rather than the package root, because the root
+Both are chokepoints in the same sense, and `@veistra/bridge` is the third. The
+shell reaches its wire types through the `@veistra/bridge/protocol` and
+`@veistra/bridge/errors` subpaths rather than the package root, because the root
 builds a client that reaches for `window.parent` at module load — the tool half
 of the transport, which the *host* must not instantiate. The subpaths are types,
 two constants and an error table, and have no such side effect.
@@ -155,7 +155,7 @@ and a program that would only ask the shell for all of that again is shipping an
 IPC hop to talk to ourselves.
 
 **Write it as a tool when it has its own domain, its own release cadence, or
-needs to ship separately from the orchestrator.** Everything in `kaava.toml` is
+needs to ship separately from the orchestrator.** Everything in `veistra.toml` is
 a tool for one of those three reasons.
 
 Adding an app means three edits and no more: a registry entry in
@@ -163,7 +163,7 @@ Adding an app means three edits and no more: a registry entry in
 `vite.config.ts`. The Vite entry is the one piece that cannot be inferred — miss
 it and the app silently does not build.
 
-Every app owes the shell one call: `reportPainted()` from `@openkaava/bridge`, once
+Every app owes the shell one call: `reportPainted()` from `@veistra/bridge`, once
 its first meaningful content is committed to the DOM. The right moment is the
 *content*, not the fetch that produced it. An error state counts.
 
@@ -226,7 +226,7 @@ not fine to be vague about one.
 ### Errors
 
 `thiserror` is a workspace dependency and is the default. Follow
-`crates/kaava-tool-manifest`:
+`crates/veistra-tool-manifest`:
 
 - One error enum per crate or per bounded domain, with `#[derive(Error)]`.
 - `#[error("...")]` messages name the thing that failed and the value that caused
@@ -243,10 +243,10 @@ saying which invariant is being asserted.
 
 ### Modules
 
-- Private modules, flat public re-exports. `crates/kaava-rpc/src/lib.rs` declares
+- Private modules, flat public re-exports. `crates/veistra-rpc/src/lib.rs` declares
   `mod codec; mod host; mod tool;` and re-exports the public surface in one
-  place, so a consumer imports `kaava_rpc::ToolProcess`, not
-  `kaava_rpc::host::ToolProcess`. That keeps internal file organization free to
+  place, so a consumer imports `veistra_rpc::ToolProcess`, not
+  `veistra_rpc::host::ToolProcess`. That keeps internal file organization free to
   change without breaking anyone.
 - `src-tauri/src/lib.rs` lists its modules alphabetically. Keep it that way.
 
@@ -283,11 +283,11 @@ in a command is logic that cannot be tested without Tauri.
 ## 7. Naming and layout
 
 - Rust: `snake_case` files and functions, `PascalCase` types, crates as
-  `kaava-<thing>`.
+  `veistra-<thing>`.
 - TypeScript: `PascalCase.tsx` for components, `camelCase.ts` for everything
   else, `PascalCase` for types.
 - Tool and app ids match `^[a-z][a-z0-9-]*$` — enforced by
-  `kaava-tool-manifest` and worth matching for anything id-shaped.
+  `veistra-tool-manifest` and worth matching for anything id-shaped.
 - RPC methods are `namespace/verb`: `files/list`, `files/read`, `home/state`.
 - Directories are singular when they hold one concept (`viewer/`, `explorer/`)
   and plural when they hold many of a kind (`apps/`, `crates/`, `icons/`).
@@ -295,8 +295,8 @@ in a command is logic that cannot be tested without Tauri.
   `branding.toml`, through the generated `branding.generated.ts` in the frontend
   and `branding::product_name()` in Rust. `docs/branding.md` has the list of
   surfaces and, more importantly, the list of names that are *not* branding and
-  must never be renamed — the `.kaava` extension, the `kaava/*` RPC namespace,
-  the `kaava-tool://` scheme, the `@openkaava/*` scope, the crate names and the
+  must never be renamed — the `.veistra` extension, the `veistra/*` RPC namespace,
+  the `veistra-tool://` scheme, the `@veistra/*` scope, the crate names and the
   bundle identifier are wire formats, and renaming one breaks every tool
   repository ever written against this shell.
 
@@ -313,8 +313,8 @@ What exists today — 1773 tests, all passing:
 | Where | Count | Runner |
 |---|---|---|
 | `src-tauri/src/**` | 632 | `cargo test` |
-| `crates/kaava-rpc` | 11 | `cargo test` |
-| `crates/kaava-tool-manifest` | 28 | `cargo test` |
+| `crates/veistra-rpc` | 11 | `cargo test` |
+| `crates/veistra-tool-manifest` | 28 | `cargo test` |
 | `crates/schematify-core` | 228 | `cargo test` |
 | `crates/schematify-reconcile` | 41 | `cargo test` |
 | `examples/echo-tool` | 3 | `cargo test` |
@@ -408,7 +408,7 @@ all run, and `pnpm lint` is the single command that runs the three checks.
 |---|---|
 | §1.1 only `bindings.ts` may call Tauri | ESLint `no-restricted-imports` |
 | §1.2 region isolation | ESLint, one config block per region |
-| §1.4 apps reach the bridge via `@openkaava/bridge` | ESLint `no-restricted-imports` |
+| §1.4 apps reach the bridge via `@veistra/bridge` | ESLint `no-restricted-imports` |
 | §4.1 module doc comments | `missing_docs`, in `crates/*` only |
 | §5 no `unwrap`/`expect` | `clippy::unwrap_used`, `expect_used` |
 | §5 flat public re-exports | `unreachable_pub`, in `crates/*` only |
@@ -429,7 +429,7 @@ Two rules answer §5's ban on `unwrap`/`expect` in a way worth knowing about,
 because clippy cannot tell a genuine invariant from a fallible call. Tests are
 exempt wholesale (`clippy.toml`), and the one invariant shipping code leans on —
 a lock this process owns being un-poisoned — is answered once, in
-`src-tauri/src/sync.rs` and `crates/kaava-rpc/src/sync.rs`, rather than at each
+`src-tauri/src/sync.rs` and `crates/veistra-rpc/src/sync.rs`, rather than at each
 of its forty call sites. Those two modules are the comment §5 asks for.
 
 Two of the rules above are narrower than they look. `missing_docs` and `unreachable_pub`

@@ -2,9 +2,9 @@
  * The tab's view of the harness registry: which harness a sentence is about,
  * the words for its hints and its picker's choices.
  *
- * Everything here reads `agent-tab/harnesses`. The registry itself lives in
- * Rust (`crates/kaava-agent-host/src/harness.rs`), so a new harness shows up
- * here with no change to this file.
+ * Everything here reads `agent-tab/harnesses` and the session's status. The
+ * registry itself lives in Rust (`crates/veistra-agent-host/src/harness.rs`),
+ * so a new harness shows up here with no change to this file.
  */
 import type { Harness, HarnessInfo, Hint } from "./protocol.generated";
 import { strings, type HarnessWords } from "./strings";

@@ -7,52 +7,52 @@ Agents read and write Plane through the official
 | File | On the VM | What it does |
 |---|---|---|
 | `requirements-mcp.in` | | The one direct dependency, `plane-mcp-server==0.3.3` |
-| `requirements-mcp.txt` | `/opt/kaava/plane-mcp/` (a venv) | Every package pinned by hash, compiled from the `.in` file; the image installs it with `pip --require-hashes` |
-| `plane-mcp.sh` | `/opt/kaava/bin/plane-mcp` | The launcher: `kaava-wake plane`, then the `plane-pat-agent` token from Secret Manager into its own environment, then `exec plane-mcp-server stdio` |
-| `plane_mcp_check.py` | `/opt/kaava/bin/plane-mcp-check` | The verify-first test (V2) and the MCP step of the smoke suite |
+| `requirements-mcp.txt` | `/opt/veistra/plane-mcp/` (a venv) | Every package pinned by hash, compiled from the `.in` file; the image installs it with `pip --require-hashes` |
+| `plane-mcp.sh` | `/opt/veistra/bin/plane-mcp` | The launcher: `veistra-wake plane`, then the `plane-pat-agent` token from Secret Manager into its own environment, then `exec plane-mcp-server stdio` |
+| `plane_mcp_check.py` | `/opt/veistra/bin/plane-mcp-check` | The verify-first test (V2) and the MCP step of the smoke suite |
 
 `boot.sh` registers the launcher as the `plane` server in `/etc/claude-code/managed-mcp.json`,
-beside the Hindsight servers, when the worker stack sets `kaava-plane-url` (it does by default).
+beside the Hindsight servers, when the worker stack sets `veistra-plane-url` (it does by default).
 The design says `claude mcp add plane`, but `managed-mcp.json` takes exclusive control of MCP on
 an agent VM, so a server added that way would be ignored.
 
 A stopped plane-vm takes 3 to 4.5 minutes to answer. Claude Code waits for the launcher because
 the image's managed settings set `MCP_TIMEOUT=300000` (5 minutes); the default is 30 seconds.
 
-## AI jobs (kaava-jobs)
+## AI jobs (veistra-jobs)
 
 plane-watch (`services/plane-watch/`) queues a job when a work item gets an `ai:*` label.
-`kaava-jobs.timer` runs `kaava-jobs run` every minute while the worker is up:
+`veistra-jobs.timer` runs `veistra-jobs run` every minute while the worker is up:
 
 1. It closes as failed any job this worker claimed but never finished. That happens when the VM
    stopped mid-job.
 2. It claims the oldest file in `gs://veistra-projects/prod/jobs/pending/`. It copies the file to
    `claimed/` with `ifGenerationMatch=0`, so only one worker gets each job.
-3. It wakes plane-vm, then runs `claude -p` as the `kaava-jobs` user. The prompt is
+3. It wakes plane-vm, then runs `claude -p` as the `veistra-jobs` user. The prompt is
    `prompts/protocol.md` plus the kind's own prompt, the job and the project record. Plane must be
    awake first, because `claude -p` does not wait for MCP servers; the first live job failed that
    way.
 4. It reads the outcome from the item's labels. If the agent set neither `ai:done` nor
-   `ai:failed`, kaava-jobs sets `ai:failed` and comments why. Either way the job moves to `done/`
+   `ai:failed`, veistra-jobs sets `ai:failed` and comments why. Either way the job moves to `done/`
    with the session's result.
 
 | File | On the VM |
 |---|---|
-| `kaava_jobs.py` | `/opt/kaava/bin/kaava-jobs` (`run`, `status`) |
-| `prompts/*.md` | `/opt/kaava/prompts/` |
+| `veistra_jobs.py` | `/opt/veistra/bin/veistra-jobs` (`run`, `status`) |
+| `prompts/*.md` | `/opt/veistra/prompts/` |
 
 Only `do` jobs get Bash and file tools; the others get Plane and the project's Hindsight banks.
 Each job times out after one hour. An empty queue costs two bucket listings and never wakes Plane.
 
-On the worker, `kaava-jobs status` lists the queue, and
-`sudo journalctl -u kaava-jobs` shows the runs. Unit tests: `python infra/worker/test_kaava_jobs.py`.
+On the worker, `veistra-jobs status` lists the queue, and
+`sudo journalctl -u veistra-jobs` shows the runs. Unit tests: `python infra/worker/test_veistra_jobs.py`.
 
 ## Checking it
 
 On the worker:
 
 ```sh
-plane-mcp-check                 # tool list, then create/read/update/comment/delete in KAAVA
+plane-mcp-check                 # tool list, then create/read/update/comment/delete in VEISTRA
 claude mcp list                 # shows plane beside hindsight-*
 ```
 

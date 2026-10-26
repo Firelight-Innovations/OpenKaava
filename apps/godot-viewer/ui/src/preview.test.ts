@@ -13,7 +13,7 @@ function answer(over: Partial<PreviewAnswer>): PreviewAnswer {
     status: "ready",
     scene: "res://main.tscn",
     cached: false,
-    path: "C:\\proj\\.kaava\\preview\\godot\\main_tscn.glb",
+    path: "C:\\proj\\.veistra\\preview\\godot\\main_tscn.glb",
     exportedAt: 7,
     godot: "4.7.2.stable",
     bytes: 3,
@@ -132,9 +132,9 @@ describe("nodeLookup", () => {
 });
 
 describe("projectRelative", () => {
-  it("names the glb from .kaava down, whatever the separators", () => {
-    expect(projectRelative("C:\\p\\.kaava\\preview\\godot\\m.glb")).toBe(
-      ".kaava/preview/godot/m.glb",
+  it("names the glb from .veistra down, whatever the separators", () => {
+    expect(projectRelative("C:\\p\\.veistra\\preview\\godot\\m.glb")).toBe(
+      ".veistra/preview/godot/m.glb",
     );
     expect(projectRelative("C:\\AppData\\preview\\m.glb")).toBe("C:/AppData/preview/m.glb");
   });

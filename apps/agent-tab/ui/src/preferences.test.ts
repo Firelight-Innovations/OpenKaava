@@ -41,20 +41,20 @@ describe("project mentions", () => {
     const query = mentionAt(text, 10)!;
     expect(query.query).toBe("read");
     const next = insertMention(text, query, {
-      uri: "kaava://file/README.md",
+      uri: "veistra://file/README.md",
       title: "README.md",
       kind: "file",
     });
-    expect(next.text).toBe("Look [@README.md](<kaava://file/README.md>)  and keep this");
-    expect(mentionedUris(next.text)).toEqual(["kaava://file/README.md"]);
+    expect(next.text).toBe("Look [@README.md](<veistra://file/README.md>)  and keep this");
+    expect(mentionedUris(next.text)).toEqual(["veistra://file/README.md"]);
   });
   it("preserves stable canvas and comment URIs", () => {
     const next = insertMention("@login", mentionAt("@login", 6)!, {
-      uri: "kaava://canvas/design#frame=login",
+      uri: "veistra://canvas/design#frame=login",
       title: "Login design",
       kind: "frame",
     });
-    expect(mentionedUris(next.text)).toEqual(["kaava://canvas/design#frame=login"]);
+    expect(mentionedUris(next.text)).toEqual(["veistra://canvas/design#frame=login"]);
   });
 });
 

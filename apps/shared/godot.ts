@@ -5,7 +5,7 @@
  * `comments.ts` restates the comment shapes. Both apps answer `godot/*` by
  * delegating to `src-tauri/src/godot/rpc.rs`.
  */
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 
 export type AddonState = "no" | "yes" | "partial";
 

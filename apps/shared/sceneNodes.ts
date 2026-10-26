@@ -51,10 +51,10 @@ export function nodeLookup(nodeMap: Record<string, string>): NodeLookup {
   };
 }
 
-/** The glb's location as an agent would open it: from `.kaava` down when it is inside one. */
+/** The glb's location as an agent would open it: from `.veistra` down when it is inside one. */
 export function projectRelative(absolute: string): string {
   const path = absolute.replace(/\\/g, "/");
-  const at = path.indexOf("/.kaava/");
+  const at = path.indexOf("/.veistra/");
   return at >= 0 ? path.slice(at + 1) : path;
 }
 

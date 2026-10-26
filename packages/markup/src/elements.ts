@@ -1,8 +1,8 @@
 import type { MarkupElement } from "./types";
 
-/** The `customData.kaava` object of an element, or undefined when it has none. */
-export function kaavaData(el: MarkupElement): Record<string, unknown> | undefined {
-  const raw = el.customData?.kaava;
+/** The `customData.veistra` object of an element, or undefined when it has none. */
+export function veistraData(el: MarkupElement): Record<string, unknown> | undefined {
+  const raw = el.customData?.veistra;
   return raw && typeof raw === "object" ? (raw as Record<string, unknown>) : undefined;
 }
 
@@ -21,10 +21,10 @@ export function touch<T extends MarkupElement>(el: T, patch: Partial<MarkupEleme
   };
 }
 
-/** Replaces `customData.kaava` with `kaava` merged over what was there. */
-export function withKaava<T extends MarkupElement>(el: T, kaava: Record<string, unknown>): T {
+/** Replaces `customData.veistra` with `veistra` merged over what was there. */
+export function withVeistra<T extends MarkupElement>(el: T, veistra: Record<string, unknown>): T {
   return touch(el, {
-    customData: { ...el.customData, kaava: { ...kaavaData(el), ...kaava } },
+    customData: { ...el.customData, veistra: { ...veistraData(el), ...veistra } },
   });
 }
 

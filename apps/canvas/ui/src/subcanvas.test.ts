@@ -29,8 +29,8 @@ const frame = (id: string, extra: Record<string, unknown> = {}): SceneElement =>
 
 const split = (id: string, child: string) =>
   frame(id, {
-    customData: { kaava: { child, subcanvas: true } },
-    link: `kaava://canvas/${child}`,
+    customData: { veistra: { child, subcanvas: true } },
+    link: `veistra://canvas/${child}`,
   });
 
 const rect = (id: string, frameId: string | null): SceneElement => ({
@@ -42,7 +42,7 @@ const rect = (id: string, frameId: string | null): SceneElement => ({
 
 describe("sub-canvas frames", () => {
   it("are frames marked subcanvas with a child, and nothing else", () => {
-    const linkedOnly = frame("f2", { customData: { kaava: { child: "game/b" } } });
+    const linkedOnly = frame("f2", { customData: { veistra: { child: "game/b" } } });
     const elements = [split("f1", "game/a"), linkedOnly, rect("r", "f1")];
     expect(subcanvasChild(elements[0]!)).toBe("game/a");
     expect(subcanvasChild(linkedOnly)).toBeNull();

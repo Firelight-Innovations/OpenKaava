@@ -1,0 +1,17 @@
+{
+  "id": "01a03637-7800-707e-9a70-a6555af8799d",
+  "slug": "jwks-cache-case-2",
+  "kind": "test-case",
+  "title": "Case 2",
+  "lifecycle": "specified",
+  "authored_by": "human",
+  "created": "2026-08-25T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a03637-7800-7025-98ce-14295e1b5901",
+  "given": "the module",
+  "when": "it is exercised",
+  "then": "the declared behaviour holds",
+  "impl_ref": "@veistra:01a03637-7800-7025-98ce-14295e1b5901 jwks-cache",
+  "status": "passing",
+  "last_result_ms": 6
+}

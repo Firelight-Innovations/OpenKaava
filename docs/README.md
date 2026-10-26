@@ -2,13 +2,13 @@
 
 Two audiences, two sections.
 
-## [Using OpenKaava](user/README.md)
+## [Using Veistra](user/README.md)
 
-For someone who wants to run OpenKaava and learn their way around it. Includes
+For someone who wants to run Veistra and learn their way around it. Includes
 [the tutorials](user/tutorials/README.md) — the same ten pages the Tutorials
-app inside OpenKaava shows you.
+app inside Veistra shows you.
 
-## [Developing OpenKaava](dev/README.md)
+## [Developing Veistra](dev/README.md)
 
 For someone working on the orchestrator's own code: how to open a pull
 request, how the project is laid out and why, and what is and is not built

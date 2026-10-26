@@ -1,0 +1,72 @@
+{
+  "schema": "veistra-bench-v1",
+  "run": 1184,
+  "at": "2026-08-25T14:02:00Z",
+  "commit": "4f2c9ab",
+  "workflow": "ci/verify.yml",
+  "budgets": [
+    {
+      "metric": "verify_p95",
+      "value": 1.8,
+      "unit": "ms",
+      "pass": true
+    },
+    {
+      "metric": "jwks_refetch_rate",
+      "value": 0.9,
+      "unit": "per minute",
+      "pass": true
+    },
+    {
+      "metric": "cold_start_p95",
+      "value": 940,
+      "unit": "ms",
+      "pass": false
+    }
+  ],
+  "tests": [
+    {
+      "impl_ref": "@veistra:expired-token-is-rejected",
+      "status": "passing",
+      "ms": 41
+    },
+    {
+      "impl_ref": "@veistra:unknown-kid-triggers-one-refetch",
+      "status": "failing"
+    },
+    {
+      "impl_ref": "@veistra:clock-skew-at-the-boundary",
+      "status": "declared"
+    },
+    {
+      "impl_ref": "@veistra:a-valid-token-yields-claims",
+      "status": "passing",
+      "ms": 12
+    },
+    {
+      "impl_ref": "@veistra:a-forced-refresh-refetches",
+      "status": "passing",
+      "ms": 88
+    },
+    {
+      "impl_ref": "@veistra:a-lazy-refresh-is-skipped",
+      "status": "passing",
+      "ms": 4
+    },
+    {
+      "impl_ref": "@veistra:a-refetch-failure-surfaces",
+      "status": "passing",
+      "ms": 31
+    }
+  ],
+  "linter": {
+    "rules": 14,
+    "violations": 0
+  },
+  "reconcile": {
+    "matched": 7,
+    "declared_absent": 1,
+    "present_unknown": 0,
+    "duplicate": 0
+  }
+}

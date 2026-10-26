@@ -1,5 +1,5 @@
 /**
- * `@openkaava/bridge` — what a tool's `ui/` imports instead of `@tauri-apps/api`.
+ * `@veistra/bridge` — what a tool's `ui/` imports instead of `@tauri-apps/api`.
  * Same tool code, either host: an iframe under the orchestrator shell, or a
  * top-level window in its own standalone Tauri app. Wires `createClient` (the
  * testable core, see `client.ts`) to the real `window`. A singleton, not a
@@ -22,7 +22,7 @@ export type {
   CommandMessage,
   EventMessage,
   HelloMessage,
-  KaavaErrorPayload,
+  VeistraErrorPayload,
   IncomingMessage,
   OutgoingMessage,
   PublishedTopic,
@@ -34,7 +34,7 @@ export type {
   ThemeChangedPayload,
 } from "./protocol.js";
 export { OPENED_EVENT, SEARCH_EVENT, THEME_CHANGED_EVENT, TOPIC_EVENT_PREFIX } from "./protocol.js";
-export { KaavaErrorCode, KaavaRpcError } from "./errors.js";
+export { VeistraErrorCode, VeistraRpcError } from "./errors.js";
 
 // The cast narrows `addEventListener`: `Window`'s takes any event type, an
 // `EventListenerObject` alternative, capture options — `WindowLike` needs none.
@@ -86,7 +86,7 @@ export const subscribe: (topic: string, cb: (value: unknown, from: string) => vo
  * typed there rather than in a bar of this app's own. Only honoured while this
  * frame is the active surface; release it when the filter goes away. Under a
  * standalone host there is no shell to claim from, so check
- * `host() === "kaava"` and draw a local input otherwise.
+ * `host() === "veistra"` and draw a local input otherwise.
  */
 export const claimSearch: typeof client.claimSearch = client.claimSearch;
 
@@ -110,12 +110,12 @@ const PAINT_FALLBACK_MS = 200;
 // shell (`parent === self`) and nothing to tell.
 if (typeof window !== "undefined" && window.parent !== window) {
   installEscapeForwarder(document, () => {
-    void client.invoke("kaava/escape").catch(() => {});
+    void client.invoke("veistra/escape").catch(() => {});
   });
   // The same gap, for the shell's chords: Ctrl+Shift+P and Alt+1 went dead as
   // soon as an app had focus.
   installChordForwarder(document, (chord) => {
-    void client.invoke("kaava/key", chord).catch(() => {});
+    void client.invoke("veistra/key", chord).catch(() => {});
   });
 }
 
@@ -147,7 +147,7 @@ export function reportPainted(): void {
     // it — a tool build with no such method, a shell that stopped waiting — has
     // told us nothing we can use. What must not happen is an unhandled
     // rejection in an app whose only crime was finishing its first render.
-    void client.invoke("kaava/painted").catch(() => {});
+    void client.invoke("veistra/painted").catch(() => {});
   };
 
   const fallback = setTimeout(send, PAINT_FALLBACK_MS);

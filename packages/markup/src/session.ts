@@ -11,7 +11,7 @@
  * - Several sessions can coexist, one per pose.
  */
 import { isPinPart, movePinTo } from "./pins";
-import { kaavaData, live } from "./elements";
+import { veistraData, live } from "./elements";
 import type { CameraPose, MarkupElement, MarkupHost, Vec3 } from "./types";
 
 const POSE_EPSILON = 1e-3;
@@ -109,7 +109,7 @@ export function followPins(
   if (!project) return [];
   let out = elements.filter((el) => isPinPart(el) && !el.isDeleted);
   for (const el of out.slice()) {
-    const data = kaavaData(el);
+    const data = veistraData(el);
     if (data?.kind !== "pin" || typeof data.n !== "number") continue;
     const wp = data.worldPoint;
     if (!Array.isArray(wp)) {
@@ -128,7 +128,7 @@ export function followPins(
 
 function dropPin(elements: MarkupElement[], n: number): MarkupElement[] {
   return elements.filter((el) => {
-    const d = kaavaData(el);
+    const d = veistraData(el);
     return !(d && (d.kind === "pin" || d.kind === "pin-label") && d.n === n);
   });
 }
@@ -180,7 +180,7 @@ export class MarkupSessions {
     if (!session) return;
     session.elements = elements.slice();
     for (const el of elements) {
-      const d = kaavaData(el);
+      const d = veistraData(el);
       if (d && (d.kind === "pin" || d.kind === "pin-label") && typeof d.n === "number") {
         if (d.n > this.pinHighWater) this.pinHighWater = d.n;
       }

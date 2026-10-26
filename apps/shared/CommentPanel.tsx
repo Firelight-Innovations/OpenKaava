@@ -61,13 +61,13 @@ export function CommentPanel({
       </div>
 
       <p className="k-comment-panel__footer-note">
-        Comments are files in <code>.kaava/comments/</code>, inside this environment.
+        Comments are files in <code>.veistra/comments/</code>, inside this environment.
       </p>
       <SendFooter>
         <SendButton
           label="Send to agent now"
           disabled
-          title="Nothing reads .kaava/comments/ into an agent yet — this button has nothing to nudge."
+          title="Nothing reads .veistra/comments/ into an agent yet — this button has nothing to nudge."
         />
       </SendFooter>
     </div>

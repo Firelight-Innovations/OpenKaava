@@ -54,8 +54,8 @@ import "monaco-editor/languages/definitions/ini/register";
  */
 import { jsonDefaults } from "monaco-editor/languages/features/json/register";
 
-import { registerToml } from "@openkaava/monaco-languages";
-import { monacoThemeData } from "@openkaava/bridge/theme";
+import { registerToml } from "@veistra/monaco-languages";
+import { monacoThemeData } from "@veistra/bridge/theme";
 import { onThemeChange } from "../themeBroadcast";
 
 import EditorWorker from "monaco-editor/editor/editor.worker?worker";
@@ -86,13 +86,13 @@ jsonDefaults.setDiagnosticsOptions({
 
 /**
  * TOML, the one language here that Monaco does not ship at all. It matters more
- * than its file count suggests: `kaava.toml` and `<project>.kaava` are the
- * format behind an entire quarter of the search filter — the OpenKaava kind in
+ * than its file count suggests: `veistra.toml` and `<project>.veistra` are the
+ * format behind an entire quarter of the search filter — the Veistra kind in
  * `./kinds.ts` is, today, exactly these two files — so flat grey text would
  * have made the one file type this product names after itself the one file type
  * it could not colour.
  *
- * `registerToml` is idempotent by design; `@openkaava/monaco-languages`'s header
+ * `registerToml` is idempotent by design; `@veistra/monaco-languages`'s header
  * explains why that guard exists rather than being belt-and-braces:
  * `diff/DiffView.tsx` calls it too, and shares this module's JS context.
  */
@@ -148,13 +148,13 @@ const LANGUAGE_BY_EXTENSION: Record<string, string> = {
   cfg: "ini",
 
   /**
-   * TOML, and OpenKaava's own marker with it. `<project>.kaava` *is* TOML —
+   * TOML, and Veistra's own marker with it. `<project>.veistra` *is* TOML —
    * `project/marker.rs` reads one with `raw.parse::<toml::Table>()` — so the
-   * extension is OpenKaava's and the format is not, which is why one grammar
+   * extension is Veistra's and the format is not, which is why one grammar
    * serves both rather than there being a second to keep in step.
    */
   toml: "toml",
-  kaava: "toml",
+  veistra: "toml",
 };
 
 /** The Monaco language id for a file, or `undefined` for plain text. */
@@ -163,11 +163,11 @@ function languageFor(extension: string): string | undefined {
 }
 
 /**
- * The preview's theme name, deliberately not `kaava-dark`: DiffView registers
+ * The preview's theme name, deliberately not `veistra-dark`: DiffView registers
  * that one in the same JS context, and two definitions of one name would let
  * whichever evaluates second win for both.
  */
-export const THEME = "kaava-preview-dark";
+export const THEME = "veistra-preview-dark";
 
 /** Redefined on every theme or accent change; Monaco cannot take `var()`. */
 function defineAccentTheme(): void {

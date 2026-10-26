@@ -169,7 +169,7 @@ export const terminalTransport: TerminalTransport = {
       }
       queued.length = 0;
 
-      // The shell was already gone before anyone attached — a bad `KAAVA_SHELL`
+      // The shell was already gone before anyone attached — a bad `VEISTRA_SHELL`
       // or a crash on startup. `pty:exit` fired into the same empty room the
       // output did, so the reap has to happen here instead.
       if (caught.exited) terminalControl.close(id);

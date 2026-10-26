@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The Plane MCP verify-first test (Plane design §7.2, V2), and the MCP step of the smoke suite.
 
-    plane-mcp-check                               the worker's launcher, project KAAVA
+    plane-mcp-check                               the worker's launcher, project VEISTRA
     plane-mcp-check --identifier ANOM -- <cmd…>   any other launcher
 
 It starts the server the way Claude Code does (stdio), lists its tools, then creates, reads,
@@ -87,8 +87,8 @@ def step(message):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="plane-mcp-check", description=__doc__.splitlines()[0])
-    ap.add_argument("--identifier", default="KAAVA", help="Plane project to test in")
-    ap.add_argument("command", nargs="*", default=["/opt/kaava/bin/plane-mcp"])
+    ap.add_argument("--identifier", default="VEISTRA", help="Plane project to test in")
+    ap.add_argument("command", nargs="*", default=["/opt/veistra/bin/plane-mcp"])
     args = ap.parse_args(argv)
     try:
         asyncio.run(run(args.command, args.identifier))

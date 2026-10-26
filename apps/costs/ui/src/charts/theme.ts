@@ -26,7 +26,7 @@ function readVar(style: CSSStyleDeclaration, name: string): string {
   return style.getPropertyValue(name).trim();
 }
 
-/** Reads the theme fresh — call again after `kaava:theme-changed`, never cache it. */
+/** Reads the theme fresh — call again after `veistra:theme-changed`, never cache it. */
 export function readChartTheme(): ChartTheme {
   const style = getComputedStyle(document.documentElement);
   return {

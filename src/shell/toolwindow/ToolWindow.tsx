@@ -23,8 +23,8 @@ import { activateInstance, openInstance, setInstanceTitle } from "../state/shell
 import { clearsSubject, declaredSubject, getSubject, setSubject } from "../viewerSubjects";
 import { resolveViewerTarget as planViewerTarget } from "../viewerTarget";
 import { baseNameOf } from "../viewerTitle";
-// The wire types come from `@openkaava/bridge`'s `protocol`/`errors` subpaths
-// rather than its root entry. The root package does depend on `@openkaava/bridge`
+// The wire types come from `@veistra/bridge`'s `protocol`/`errors` subpaths
+// rather than its root entry. The root package does depend on `@veistra/bridge`
 // now — the first-party apps under `apps/` import it, and they are built by
 // this same Vite config — but the shell must not import the client that entry
 // builds, which is the tool half of transport B and reaches for
@@ -39,7 +39,7 @@ import type {
   ReadyMessage,
   RequestMessage,
   ResponseMessage,
-} from "@openkaava/bridge/protocol";
+} from "@veistra/bridge/protocol";
 import { relayPageEscape } from "./pageEscape";
 import { relayChord } from "./relayChord";
 import { agentTabFrames } from "./agentTabFrames";
@@ -49,8 +49,8 @@ import {
   SEARCH_EVENT,
   THEME_CHANGED_EVENT,
   TOPIC_EVENT_PREFIX,
-} from "@openkaava/bridge/protocol";
-import { KaavaErrorCode } from "@openkaava/bridge/errors";
+} from "@veistra/bridge/protocol";
+import { VeistraErrorCode } from "@veistra/bridge/errors";
 import {
   AGENT_TAB_CHOSEN,
   AGENT_TAB_EVENT,
@@ -95,7 +95,7 @@ const FILES_APP = "files";
 /**
  * Apps whose native content Rust places directly onto the window rather than
  * drawing it in the iframe — so their instance needs its surface's true
- * window-space rect pushed down as `kaava/window-rect`, not just the
+ * window-space rect pushed down as `veistra/window-rect`, not just the
  * pane-relative geometry an iframe can already see for itself.
  *
  * `projects` (`plane_webview`) is the only one today. A second consumer is
@@ -116,10 +116,10 @@ const NEEDS_WINDOW_RECT = new Set(["projects"]);
  * against.
  *
  * Four directions of traffic, each argued where it is handled: a frame's
- * `request` messages and the `kaava/*` methods the shell answers itself, in
+ * `request` messages and the `veistra/*` methods the shell answers itself, in
  * `onMessage`; a Tauri broadcast relayed inward, at the `project:changed`
  * effect; a menu command posted outward, at `ToolWindowHandle.send`; and the
- * sideways channel — `kaava/open` and `kaava/publish` — at `answerOpen` and
+ * sideways channel — `veistra/open` and `veistra/publish` — at `answerOpen` and
  * `answerPublish`. Only the Tauri broadcast travels through Rust; for the rest
  * both ends are already in this browser, and a round trip would buy nothing but
  * a chance for the two to disagree about which frame is which.
@@ -168,7 +168,7 @@ interface MountedFrame {
   origin: string | null;
   /**
    * What the frame last declared it can do. Empty until it says
-   * `kaava/commands`, which is the honest starting point: a frame that has never
+   * `veistra/commands`, which is the honest starting point: a frame that has never
    * declared anything can do nothing the menu bar knows how to ask for.
    */
   commands: Set<string>;
@@ -234,7 +234,7 @@ const ToolWindow = forwardRef<
     onResize: (splitId: string, sizes: number[]) => void;
     dropTarget?: DropTarget | null;
     /**
-     * A frame's declared command set changed — it said `kaava/commands`, or it
+     * A frame's declared command set changed — it said `veistra/commands`, or it
      * went away and its declaration went with it. Keyed by *instance*, because
      * two instances of one app can have different things to offer: one Files
      * with a dirty editor can Save and one without cannot.
@@ -448,7 +448,7 @@ const ToolWindow = forwardRef<
       for (const [win, frame] of frames.current) {
         if (!frame.isApp || frame.origin === null) continue;
         win.postMessage(
-          { kaava: 1, kind: "event", event: THEME_CHANGED_EVENT, payload } satisfies EventMessage,
+          { veistra: 1, kind: "event", event: THEME_CHANGED_EVENT, payload } satisfies EventMessage,
           frame.origin,
         );
       }
@@ -508,7 +508,7 @@ const ToolWindow = forwardRef<
           if (frame.id !== instanceId) continue;
           if (frame.origin === null || !frame.commands.has(command)) return;
           win.postMessage(
-            { kaava: 1, kind: "command", command } satisfies CommandMessage,
+            { veistra: 1, kind: "command", command } satisfies CommandMessage,
             frame.origin,
           );
           return;
@@ -530,7 +530,7 @@ const ToolWindow = forwardRef<
     for (const [win, frame] of frames.current) {
       if (frame.id !== instanceId || frame.origin === null) continue;
       win.postMessage(
-        { kaava: 1, kind: "event", event, payload } satisfies EventMessage,
+        { veistra: 1, kind: "event", event, payload } satisfies EventMessage,
         frame.origin,
       );
       return;
@@ -622,7 +622,7 @@ const ToolWindow = forwardRef<
       const prev = lastWindowRect.current.get(instanceId);
       if (prev && sameWindowRect(prev, next)) continue;
       lastWindowRect.current.set(instanceId, next);
-      sendEventWhenReady(instanceId, "kaava/window-rect", { ...next, window: windowLabel() });
+      sendEventWhenReady(instanceId, "veistra/window-rect", { ...next, window: windowLabel() });
     }
   }, [rects, tree, instances, sendEventWhenReady]);
 
@@ -645,7 +645,7 @@ const ToolWindow = forwardRef<
       const prev = lastWindowRect.current.get(pageInstanceId);
       if (prev && sameWindowRect(prev, next)) return;
       lastWindowRect.current.set(pageInstanceId, next);
-      sendEventWhenReady(pageInstanceId, "kaava/window-rect", { ...next, window: windowLabel() });
+      sendEventWhenReady(pageInstanceId, "veistra/window-rect", { ...next, window: windowLabel() });
     };
     send();
     const observer = new ResizeObserver(send);
@@ -661,7 +661,7 @@ const ToolWindow = forwardRef<
   /**
    * The last value published under each topic, and which instance published it.
    *
-   * This is what makes `kaava/publish` *retained* rather than a bare relay, and
+   * This is what makes `veistra/publish` *retained* rather than a bare relay, and
    * the retention is the point: a File Viewer publishes which file it is
    * showing once, when it changes. An Explorer opened a minute later would
    * otherwise have no way to learn that until the user clicked something else,
@@ -686,7 +686,7 @@ const ToolWindow = forwardRef<
     topics.current.clear();
   }, [clusterId]);
 
-  // The layout and the instances in it, read by `kaava/open` to find a target.
+  // The layout and the instances in it, read by `veistra/open` to find a target.
   // Refs for the reason `report` above is one: the message listener is
   // installed once and must keep reading the current answer rather than the one
   // that was current when it was registered.
@@ -696,7 +696,7 @@ const ToolWindow = forwardRef<
   roster.current = instances;
 
   /**
-   * Which surface a `kaava/open` should be delivered to: an existing instance
+   * Which surface a `veistra/open` should be delivered to: an existing instance
    * of that app in this cluster, brought forward, or a new one.
    *
    * The same rule `onOpenRecent` in `WindowRoot.tsx` applies to Home, and the
@@ -780,14 +780,14 @@ const ToolWindow = forwardRef<
   );
 
   /**
-   * Explorer's "Open with OpenKaava", pointed at a file.
+   * Explorer's "Open with Veistra", pointed at a file.
    *
    * Only the file case arrives here. A folder is already open as a project by
    * the time this runs — `launch::apply` does that in Rust, where
    * `project::open` lives — and a file is the half that needs the layout: find
    * or open a viewer, hand it the path. That is `resolveOpenTarget` plus
    * `sendEventWhenReady`, which is to say exactly what `answerOpen` does for a
-   * `kaava/open` from the Explorer. The same route, reached from the launch
+   * `veistra/open` from the Explorer. The same route, reached from the launch
    * rather than from a frame.
    *
    * Both delivery paths are taken because the two launches differ. The first
@@ -898,7 +898,7 @@ const ToolWindow = forwardRef<
      */
     function answerHello(source: Window, origin: string, frame: MountedFrame) {
       const reply: ReadyMessage = {
-        kaava: 1,
+        veistra: 1,
         kind: "ready",
         toolId: frame.appId,
         protocol: 1,
@@ -919,7 +919,7 @@ const ToolWindow = forwardRef<
       if (frame.isApp && lastTheme.current) {
         source.postMessage(
           {
-            kaava: 1,
+            veistra: 1,
             kind: "event",
             event: THEME_CHANGED_EVENT,
             payload: lastTheme.current,
@@ -940,7 +940,7 @@ const ToolWindow = forwardRef<
         if (held.from === frame.id) continue;
         source.postMessage(
           {
-            kaava: 1,
+            veistra: 1,
             kind: "event",
             event: `${TOPIC_EVENT_PREFIX}${topic}`,
             payload: held,
@@ -953,23 +953,23 @@ const ToolWindow = forwardRef<
     }
 
     /**
-     * `kaava/open`: put something on screen in a cluster-mate, and tell it.
+     * `veistra/open`: put something on screen in a cluster-mate, and tell it.
      *
      * Half of the sideways channel — one frame reaching another through this
      * component, without either of them learning the other exists. File Explorer
-     * sends `kaava/open` naming the app kind `viewer`; the shell finds or opens
+     * sends `veistra/open` naming the app kind `viewer`; the shell finds or opens
      * one in that cluster and delivers the payload as an `OPENED_EVENT`.
      *
      * Routed without being understood: an `appId` is matched against the layout,
      * no payload is inspected and no intent is enumerated, so adding a fifth
      * thing two apps want to say to each other is not an edit to this file. That
-     * is the same discipline `kaava/commands` is built on, and what keeps the
+     * is the same discipline `veistra/commands` is built on, and what keeps the
      * shell from accumulating a table of every app's vocabulary.
      */
     function answerOpen(
       frameId: string,
       params: unknown,
-      respond: (body: Omit<ResponseMessage, "kaava" | "kind">) => void,
+      respond: (body: Omit<ResponseMessage, "veistra" | "kind">) => void,
       id: ResponseMessage["id"],
     ) {
       const target = openRequest(params);
@@ -977,8 +977,8 @@ const ToolWindow = forwardRef<
         respond({
           id,
           error: {
-            code: KaavaErrorCode.InvalidParams,
-            message: "kaava/open needs an `appId` string",
+            code: VeistraErrorCode.InvalidParams,
+            message: "veistra/open needs an `appId` string",
           },
         });
         return;
@@ -1001,13 +1001,13 @@ const ToolWindow = forwardRef<
         .catch((err: unknown) =>
           respond({
             id,
-            error: { code: KaavaErrorCode.InternalError, message: String(err) },
+            error: { code: VeistraErrorCode.InternalError, message: String(err) },
           }),
         );
     }
 
     /**
-     * `kaava/publish`: retain a fact for this cluster, and fan it out.
+     * `veistra/publish`: retain a fact for this cluster, and fan it out.
      *
      * The other half of the sideways channel. File Viewer publishes which file
      * it is showing; the shell retains that and relays it to its cluster-mates,
@@ -1017,7 +1017,7 @@ const ToolWindow = forwardRef<
      */
     function answerPublish(
       params: unknown,
-      respond: (body: Omit<ResponseMessage, "kaava" | "kind">) => void,
+      respond: (body: Omit<ResponseMessage, "veistra" | "kind">) => void,
       id: ResponseMessage["id"],
       frame: MountedFrame,
     ) {
@@ -1026,8 +1026,8 @@ const ToolWindow = forwardRef<
         respond({
           id,
           error: {
-            code: KaavaErrorCode.InvalidParams,
-            message: "kaava/publish needs a `topic` string",
+            code: VeistraErrorCode.InvalidParams,
+            message: "veistra/publish needs a `topic` string",
           },
         });
         return;
@@ -1046,7 +1046,7 @@ const ToolWindow = forwardRef<
         if (other.id === frame.id || other.origin === null) continue;
         win.postMessage(
           {
-            kaava: 1,
+            veistra: 1,
             kind: "event",
             event: `${TOPIC_EVENT_PREFIX}${published.topic}`,
             payload: held,
@@ -1075,13 +1075,13 @@ const ToolWindow = forwardRef<
       }
 
       const { id, method, params } = event.data;
-      const respond = (body: Omit<ResponseMessage, "kaava" | "kind">) =>
+      const respond = (body: Omit<ResponseMessage, "veistra" | "kind">) =>
         source.postMessage(
-          { kaava: 1, kind: "response", ...body } satisfies ResponseMessage,
+          { veistra: 1, kind: "response", ...body } satisfies ResponseMessage,
           origin,
         );
 
-      // `kaava/*` belongs to the host, exactly as `hello` above does — this one
+      // `veistra/*` belongs to the host, exactly as `hello` above does — this one
       // is a frame saying it has drawn its first meaningful content, and it is
       // answered here rather than forwarded on to an app's Rust half. Not an
       // app's question to answer: the frame is claiming something about itself,
@@ -1099,11 +1099,11 @@ const ToolWindow = forwardRef<
       // there are. A second instance reporting is a duplicate that
       // `boot::await_apps` already ignores, which is the behaviour we want:
       // the splash lifts when each kind of app has drawn once.
-      if (method === "kaava/painted") {
+      if (method === "veistra/painted") {
         respond({ id, result: null });
         if (frame.isApp) {
           void appPainted(frame.appId).catch((err: unknown) =>
-            console.error(`kaava: could not report ${frame.appId} painted:`, err),
+            console.error(`veistra: could not report ${frame.appId} painted:`, err),
           );
         }
         return;
@@ -1113,7 +1113,7 @@ const ToolWindow = forwardRef<
       // business, like the two above: which tab this is, is something only the
       // shell knows, and it knows it from `event.source` rather than from
       // anything the frame could assert about itself.
-      if (method === "kaava/title") {
+      if (method === "veistra/title") {
         respond({ id, result: null });
         const title = declaredTitle(params);
         if (title) void setInstanceTitle(frame.id, title);
@@ -1131,7 +1131,7 @@ const ToolWindow = forwardRef<
         return;
       }
 
-      // The other `kaava/*` the shell answers itself: a frame saying which menu
+      // The other `veistra/*` the shell answers itself: a frame saying which menu
       // commands it can carry out right now. Host business, not an app's Rust
       // half's — the menu being greyed out is a fact about this window's title
       // bar, and the backend has no part in it.
@@ -1144,9 +1144,9 @@ const ToolWindow = forwardRef<
       //
       // A tool may declare too. Its *requests* cannot be served (the broker is
       // not built), but a declaration asks nothing of a core: it is the frame
-      // making a claim about itself, exactly as `kaava/painted` is, so it is
+      // making a claim about itself, exactly as `veistra/painted` is, so it is
       // answered above the `isApp` refusal rather than below it.
-      if (method === "kaava/commands") {
+      if (method === "veistra/commands") {
         frame.commands = new Set(declaredCommands(params));
         respond({ id, result: null });
         report.current?.(frame.id, [...frame.commands]);
@@ -1155,11 +1155,11 @@ const ToolWindow = forwardRef<
 
       // --- the sideways channel -------------------------------------------
       //
-      // Both of these are host business in the same sense `kaava/commands` is,
+      // Both of these are host business in the same sense `veistra/commands` is,
       // and they sit above the `isApp` refusal for the same reason: neither
-      // asks anything of a core. `kaava/open` is a question about the *layout*
+      // asks anything of a core. `veistra/open` is a question about the *layout*
       // — which surface of a given kind is in this cluster — and only the shell
-      // can answer it. `kaava/publish` is a frame making a claim about itself
+      // can answer it. `veistra/publish` is a frame making a claim about itself
       // and asking that its neighbours hear it.
       //
       // A tool may use both, and that is deliberate rather than an oversight.
@@ -1171,14 +1171,14 @@ const ToolWindow = forwardRef<
       // than a surface, and hands over a payload the receiving app is free to
       // ignore. Per-tool permissions are a later pass; see the `[permissions]`
       // table in `docs/tool-protocol.md` §1, reserved and unenforced today.
-      if (method === "kaava/open") {
+      if (method === "veistra/open") {
         answerOpen(frame.id, params, respond, id);
         return;
       }
 
       // Escape typed inside a frame, forwarded by the bridge because the shell's
       // own key handler cannot hear it. Only the rail page's frame is honoured.
-      if (method === "kaava/escape") {
+      if (method === "veistra/escape") {
         respond({ id, result: null });
         relayPageEscape(frame.id, pageIdRef.current, document);
         return;
@@ -1186,33 +1186,33 @@ const ToolWindow = forwardRef<
 
       // A shell chord typed inside a frame (Ctrl+Shift+P, Alt+1, ...), replayed
       // on the shell's document so the same handlers hear it as outside a frame.
-      if (method === "kaava/key") {
+      if (method === "veistra/key") {
         respond({ id, result: null });
         relayChord(params, document);
         return;
       }
 
-      if (method === "kaava/publish") {
+      if (method === "veistra/publish") {
         answerPublish(params, respond, id, frame);
         return;
       }
 
       // The title bar's search field. Recorded for any frame and shown only while
       // that frame is an active surface; see `frameSearch.ts`.
-      if (method === "kaava/search-claim") {
+      if (method === "veistra/search-claim") {
         if (frameSearch.current.claim(frame.id, params)) respond({ id, result: null });
         else
           respond({
             id,
             error: {
-              code: KaavaErrorCode.InvalidParams,
-              message: "kaava/search-claim needs a non-empty `placeholder` string",
+              code: VeistraErrorCode.InvalidParams,
+              message: "veistra/search-claim needs a non-empty `placeholder` string",
             },
           });
         return;
       }
 
-      if (method === "kaava/search-release") {
+      if (method === "veistra/search-release") {
         frameSearch.current.release(frame.id);
         respond({ id, result: null });
         return;
@@ -1225,14 +1225,14 @@ const ToolWindow = forwardRef<
       // begins and ends; everything else is answered out here and never travels
       // back. Above the `isApp` refusal like the rest, and for the same reason:
       // nothing is asked of a core.
-      if (method === "kaava/drag") {
+      if (method === "veistra/drag") {
         const drag = pathDragRequest(params);
         if (!drag) {
           respond({
             id,
             error: {
-              code: KaavaErrorCode.InvalidParams,
-              message: 'kaava/drag needs a `phase` of "begin" or "end"',
+              code: VeistraErrorCode.InvalidParams,
+              message: 'veistra/drag needs a `phase` of "begin" or "end"',
             },
           });
           return;
@@ -1275,7 +1275,7 @@ const ToolWindow = forwardRef<
             id,
             error: isErrorPayload(err)
               ? err
-              : { code: KaavaErrorCode.InternalError, message: String(err) },
+              : { code: VeistraErrorCode.InternalError, message: String(err) },
           }),
         );
     }
@@ -1333,7 +1333,7 @@ const ToolWindow = forwardRef<
           if (!frame.isApp || frame.origin === null) continue;
           win.postMessage(
             {
-              kaava: 1,
+              veistra: 1,
               kind: "event",
               event: "project:changed",
               payload,
@@ -1365,7 +1365,7 @@ const ToolWindow = forwardRef<
         for (const [win, frame] of frames.current) {
           if (!frame.isApp || frame.origin === null) continue;
           win.postMessage(
-            { kaava: 1, kind: "event", event: "files:changed", payload } satisfies EventMessage,
+            { veistra: 1, kind: "event", event: "files:changed", payload } satisfies EventMessage,
             frame.origin,
           );
         }
@@ -1388,7 +1388,10 @@ const ToolWindow = forwardRef<
     const relay = (event: string) => (payload: unknown) => {
       if (!live) return;
       for (const [win, origin] of agentTabFrames(frames.current, payload)) {
-        win.postMessage({ kaava: 1, kind: "event", event, payload } satisfies EventMessage, origin);
+        win.postMessage(
+          { veistra: 1, kind: "event", event, payload } satisfies EventMessage,
+          origin,
+        );
       }
     };
     void (async () => {
@@ -1516,7 +1519,7 @@ const ToolWindow = forwardRef<
   //
   // "Time to draw" is counted in animation frames, not milliseconds: two of them
   // is what it takes for a change committed now to have been rastered. Only the
-  // fade that follows is a duration, taken from `instantOut`. `kaava/painted`
+  // fade that follows is a duration, taken from `instantOut`. `veistra/painted`
   // would be the exact signal to wait on instead, and it is not usable here —
   // `reportPainted` in `packages/bridge/src/index.ts` latches on first call, so
   // a frontend sends it once in its life. It answers "has this app booted",
@@ -1789,7 +1792,7 @@ function viewerFileRequest(
 }
 
 /**
- * The `title` off a `kaava/title` request, or `null` for anything that is not a
+ * The `title` off a `veistra/title` request, or `null` for anything that is not a
  * non-empty string.
  *
  * Validated for the same reason `declaredCommands` below is: this decides what
@@ -1805,7 +1808,7 @@ function declaredTitle(params: unknown): string | null {
 export default ToolWindow;
 
 /**
- * The `commands` array off a `kaava/commands` request, with anything that is
+ * The `commands` array off a `veistra/commands` request, with anything that is
  * not a string dropped.
  *
  * Validated rather than trusted even though every app in this build is
@@ -1822,13 +1825,13 @@ function declaredCommands(params: unknown): string[] {
 }
 
 /**
- * The `appId` and `payload` off a `kaava/open` request, or `null` if there is
+ * The `appId` and `payload` off a `veistra/open` request, or `null` if there is
  * no usable app id.
  *
  * Only `appId` is validated. The payload is opaque by design — it is the app's
  * vocabulary, not the protocol's, and the shell checking its shape would mean
  * the shell knowing what an open *means* for each app it can route to. That is
- * exactly the coupling `kaava/commands` was designed to avoid, and it would
+ * exactly the coupling `veistra/commands` was designed to avoid, and it would
  * make every new intent an edit to this file.
  */
 function openRequest(params: unknown): { appId: string; payload: unknown } | null {
@@ -1839,7 +1842,7 @@ function openRequest(params: unknown): { appId: string; payload: unknown } | nul
 }
 
 /**
- * The `topic` and `value` off a `kaava/publish` request, or `null` for anything
+ * The `topic` and `value` off a `veistra/publish` request, or `null` for anything
  * without a usable topic.
  *
  * `value` is deliberately unchecked, including when it is `undefined` —
@@ -1849,7 +1852,7 @@ function openRequest(params: unknown): { appId: string; payload: unknown } | nul
  * indistinguishable from one nobody had heard from.
  */
 /**
- * The `phase` and `paths` off a `kaava/drag` request, or `null` for a phase
+ * The `phase` and `paths` off a `veistra/drag` request, or `null` for a phase
  * this shell does not know. `end` carries no paths and need not.
  *
  * Unlike `openRequest`'s payload, `paths` is validated down to dropping every
@@ -1877,7 +1880,7 @@ function publishRequest(params: unknown): { topic: string; value: unknown } | nu
 }
 
 /**
- * `isKaavaMessage` in the bridge package is typed for the frontend's inbound
+ * `isVeistraMessage` in the bridge package is typed for the frontend's inbound
  * direction (`ReadyMessage | ResponseMessage | EventMessage`) — we are the
  * shell, receiving the other direction, so reusing it would narrow to the
  * wrong union. The runtime check is the same two fields either way; this just
@@ -1886,8 +1889,8 @@ function publishRequest(params: unknown): { topic: string; value: unknown } | nu
  */
 function isInboundMessage(data: unknown): data is HelloMessage | RequestMessage {
   if (typeof data !== "object" || data === null) return false;
-  const message = data as { kaava?: unknown; kind?: unknown; id?: unknown; method?: unknown };
-  if (message.kaava !== 1) return false;
+  const message = data as { veistra?: unknown; kind?: unknown; id?: unknown; method?: unknown };
+  if (message.veistra !== 1) return false;
   if (message.kind === "hello") return true;
   // A request without a numeric id could never be answered — there would be
   // nothing to echo back — and one without a method names nothing to call.

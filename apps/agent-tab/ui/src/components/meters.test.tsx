@@ -173,7 +173,7 @@ describe("the model menu's harnesses", () => {
       unavailable: null,
     },
     { id: "pi", name: "Pi", models: [], model: null, unavailable: null },
-    { id: "kaava", name: "Kaava", models: [], model: null, unavailable: "Coming soon" },
+    { id: "veistra", name: "Veistra", models: [], model: null, unavailable: "Coming soon" },
   ];
   const EFFORT: PickerProps = { label: "Effort", value: "high", choices: [] };
 
@@ -228,7 +228,7 @@ describe("the model menu's harnesses", () => {
   it("shows a harness that cannot run yet, locked, with why", () => {
     const onChoose = vi.fn();
     fireEvent.click(menu("claude", onChoose));
-    const soon = screen.getByRole("button", { name: "Kaava" });
+    const soon = screen.getByRole("button", { name: "Veistra" });
     expect(soon.getAttribute("aria-disabled")).toBe("true");
     expect(soon.title).toBe("Coming soon");
     fireEvent.click(soon);

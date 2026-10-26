@@ -52,7 +52,7 @@ Round 2 found the identical shape 1 layer up — see §3.
   `badge`/`staleReason` factored into a shared `staleFields` helper — both
   walks were already tier-agnostic, only their names weren't.
 - **`graph/backend.test.ts`**, new — the direct proof of the fix: mocks
-  `@openkaava/bridge`'s `invoke` and asserts both `createBackendSeam()
+  `@veistra/bridge`'s `invoke` and asserts both `createBackendSeam()
   .loadGraph(tier, slug)` and, since round 2, `defaultSeam.loadGraph`
   actually draw the requested scope (see §3).
 - **`graph/project.test.ts`** — 18 new cases under `projectModuleGraph`,
@@ -80,7 +80,7 @@ fewer declared parameters to satisfy a type requiring more, unconditionally,
 so the backstop has to be a test through the real path, not a type. Fixed:
 `defaultSeam.loadGraph` now forwards both arguments. `backend.test.ts`
 gained a 2nd `describe` block exercising `defaultSeam.loadGraph` itself
-(imported from `./index`, still against the same `@openkaava/bridge` mock),
+(imported from `./index`, still against the same `@veistra/bridge` mock),
 proving the real path, not just `createBackendSeam` 1 layer below it where
 the bug no longer lived. Made to fail on purpose the same way as round 1 —
 see §5.
@@ -93,7 +93,7 @@ agree, not because any one assertion pins what `defaultSeam.loadGraph`
 itself does with its arguments. Asked for a direct one: assert the backend
 *received* the exact values, not that it was called or that something
 plausible came back. New file, `graph/index.defaultSeam.test.ts`, mocks
-`./backend` itself (not `@openkaava/bridge` — the mocked `createBackendSeam`
+`./backend` itself (not `@veistra/bridge` — the mocked `createBackendSeam`
 never reaches the real bridge, so nothing there needs faking) with a
 `vi.fn()` standing in for the whole backend seam's `loadGraph`, calls
 `defaultSeam.loadGraph("module", "token-verifier")`, and asserts
@@ -223,7 +223,7 @@ directly and confirmed it: `Location::Stack` is a distinct variant, and the
 ## 8. What a human must check by eye
 
 No browser was available (`00-AGENT-CONTEXT.md`'s standing limit). Once a
-real `.kaava/` project is open in OpenKaava:
+real `.veistra/` project is open in Veistra:
 
 1. Drill from the Stack Schematic (or the breadcrumb) into a service other
    than `auth-service` — confirm its own modules draw, not `auth-service`'s.

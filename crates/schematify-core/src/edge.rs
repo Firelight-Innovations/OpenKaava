@@ -105,7 +105,7 @@ impl fmt::Display for EdgeKind {
     }
 }
 
-/// One edge file under `.kaava/edges/`.
+/// One edge file under `.veistra/edges/`.
 ///
 /// Closed to unknown fields for the reason [`crate::Screen`] gives.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

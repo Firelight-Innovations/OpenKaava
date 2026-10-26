@@ -1,4 +1,4 @@
-//! The IAP tunnel to `plane-vm`: `OPENKAAVA-PLANE-DESIGN.md` §5.2 / §11 B2.2.
+//! The IAP tunnel to `plane-vm`: `VEISTRA-PLANE-DESIGN.md` §5.2 / §11 B2.2.
 //!
 //! One `gcloud compute start-iap-tunnel` child, kept alive for the life of
 //! the app: restarted if it exits on its own, and killed — the whole process
@@ -98,7 +98,7 @@ impl Tunnel {
     }
 
     /// Whether a tunnel is currently supervised. Only the tests read it now:
-    /// `projects/plane-*` goes through the `kaava-api` gateway, not the tunnel.
+    /// `projects/plane-*` goes through the `veistra-api` gateway, not the tunnel.
     #[cfg(test)]
     pub fn is_running(&self) -> bool {
         self.handle
@@ -120,7 +120,7 @@ fn supervise(project: &str, stop: &Arc<AtomicBool>, pid_slot: &Arc<Mutex<Option<
                 *pid_slot.lock().unwrap_or_else(|e| e.into_inner()) = None;
             }
             Err(e) => {
-                crate::kaava_log!("could not start the IAP tunnel: {e}");
+                crate::veistra_log!("could not start the IAP tunnel: {e}");
             }
         }
         if stop.load(Ordering::SeqCst) {
@@ -188,7 +188,7 @@ fn kill_tree(pid: u32) {
         .creation_flags(CREATE_NO_WINDOW)
         .output();
     if let Err(e) = result {
-        crate::kaava_log!("could not stop the IAP tunnel (pid {pid}): {e}");
+        crate::veistra_log!("could not stop the IAP tunnel (pid {pid}): {e}");
     }
 }
 

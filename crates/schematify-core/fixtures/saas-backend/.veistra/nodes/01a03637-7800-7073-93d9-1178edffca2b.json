@@ -1,0 +1,17 @@
+{
+  "id": "01a03637-7800-7073-93d9-1178edffca2b",
+  "slug": "crypto-primitives-case-12",
+  "kind": "test-case",
+  "title": "Case 12",
+  "lifecycle": "specified",
+  "authored_by": "human",
+  "created": "2026-08-25T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a03637-7800-702a-ac0a-72768738bcd6",
+  "given": "the module",
+  "when": "it is exercised",
+  "then": "the declared behaviour holds",
+  "impl_ref": "@veistra:01a03637-7800-702a-ac0a-72768738bcd6 crypto-primitives",
+  "status": "passing",
+  "last_result_ms": 16
+}

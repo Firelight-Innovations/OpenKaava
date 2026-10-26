@@ -18,7 +18,7 @@
  * sections rather than one scrolling list.
  */
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { isTomlPath, TOML_LANGUAGE_ID } from "@openkaava/monaco-languages";
+import { isTomlPath, TOML_LANGUAGE_ID } from "@veistra/monaco-languages";
 import type {
   GitBranch,
   GitCommit,

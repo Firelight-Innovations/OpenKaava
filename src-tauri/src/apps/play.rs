@@ -1,17 +1,17 @@
 //! Play's Rust half: run the environment's Godot project as a child process,
 //! stream its log, pause, restart and stop it, and capture a frame.
 //!
-//! `docs/KAAVA-UX-REWORK.md` §9.2 is resolved as a native run - see
+//! `docs/VEISTRA-UX-REWORK.md` §9.2 is resolved as a native run - see
 //! `docs/design-notes/godot-play.md` for why - and the work lives in
 //! [`crate::godot`]. This module only routes: `play/*` and `godot/*` go there,
 //! and comments anchored to a scene, a time and a screenshot
-//! (`docs/KAAVA-UX-REWORK.md` §3.4) go through [`crate::comments`], shared with
+//! (`docs/VEISTRA-UX-REWORK.md` §3.4) go through [`crate::comments`], shared with
 //! every other viewer.
 
 use crate::apps::CallContext;
-use kaava_rpc::{RpcError, METHOD_NOT_FOUND};
 use serde_json::Value;
 use tauri::AppHandle;
+use veistra_rpc::{RpcError, METHOD_NOT_FOUND};
 
 pub fn call(
     app: &AppHandle,

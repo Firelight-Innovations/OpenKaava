@@ -1,18 +1,18 @@
 //! The Canvas app's Rust half: design canvases kept as one JSON file each,
 //! inside the environment's checkout, so they are committed with the game.
 //!
-//! `docs/KAAVA-UX-REWORK.md` §6 puts canvases in `canvas/` on the environment's
-//! branch, and `docs/design/KAAVA-UX-SPEC.md` board 12 shows the path
+//! `docs/VEISTRA-UX-REWORK.md` §6 puts canvases in `canvas/` on the environment's
+//! branch, and `docs/design/VEISTRA-UX-SPEC.md` board 12 shows the path
 //! `canvas/levels/hospital-wing.json`. `docs/cloud-services.md` §4 proposes
 //! moving them to the artifact bucket instead but marks that "decision needed",
 //! so this follows the two documents that are decided: a canvas is
 //! `<environment>/canvas/<id>.json`, and `<id>` may nest one folder per segment.
 //!
-//! The file is an Excalidraw scene plus one top-level `kaava` object, the shape
+//! The file is an Excalidraw scene plus one top-level `veistra` object, the shape
 //! `cloud-services.md` §4 gives (`schema`, `id`, `title`, `parent`, `updated`,
 //! `updated_by`). The scene is opaque here: Rust validates its outline and never
 //! interprets an element. The one exception is the spec-card scan behind
-//! `canvas/assets`, which reads `customData.kaava.spec`.
+//! `canvas/assets`, which reads `customData.veistra.spec`.
 //!
 //! Writes are atomic (a sibling temp file, then rename) and conflict-checked
 //! against the `mtime` the caller last read, the same contract as `files/write`.
@@ -39,18 +39,18 @@ mod types;
 /// The frontend work only a webview can do.
 mod webview;
 
-/// A canvas id as every method here reads one, for `kaava://` references.
+/// A canvas id as every method here reads one, for `veistra://` references.
 pub(crate) use objects::canvas_id;
 /// The icon names and field kinds a type may use, for the MCP schema that lists
 /// them up front.
 pub use types::{ICONS as TYPE_ICONS, KINDS as FIELD_KINDS};
 
 use crate::apps::CallContext;
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 
 /// The Canvas app's settings section: how much an agent draws and how it looks.
 /// Both are read when an agent asks for the guide or draws, so a change reaches
@@ -137,7 +137,7 @@ pub const DIR: &str = "canvas";
 /// How many `/`-separated segments an id may have.
 const MAX_DEPTH: usize = 4;
 
-/// The `kaava.schema` value this build writes.
+/// The `veistra.schema` value this build writes.
 const SCHEMA: u64 = 1;
 
 /// The registry's entry point: works out whether the cluster's environment is
@@ -363,7 +363,7 @@ fn looks_like_canvas(root: &Path, path: &Path) -> bool {
         Ok(Value::Object(obj)) => {
             obj.get("type").and_then(Value::as_str) == Some("excalidraw")
                 || obj.contains_key("elements")
-                || obj.contains_key("kaava")
+                || obj.contains_key("veistra")
         }
         Ok(_) => false,
     }
@@ -404,31 +404,31 @@ pub fn validate_scene(scene: &Value) -> Result<(), String> {
             return Err("the scene's `files` is not an object".into());
         }
     }
-    if let Some(kaava) = obj.get("kaava") {
-        if !kaava.is_object() {
-            return Err("the scene's `kaava` is not an object".into());
+    if let Some(veistra) = obj.get("veistra") {
+        if !veistra.is_object() {
+            return Err("the scene's `veistra` is not an object".into());
         }
     }
     Ok(())
 }
 
 fn empty_scene(id: &str, title: &str, parent: Option<&str>, actor: &str) -> Value {
-    let mut kaava = Map::new();
-    kaava.insert("schema".into(), json!(SCHEMA));
-    kaava.insert("id".into(), json!(id));
-    kaava.insert("title".into(), json!(title));
+    let mut veistra = Map::new();
+    veistra.insert("schema".into(), json!(SCHEMA));
+    veistra.insert("id".into(), json!(id));
+    veistra.insert("title".into(), json!(title));
     if let Some(parent) = parent {
-        kaava.insert("parent".into(), json!(parent));
+        veistra.insert("parent".into(), json!(parent));
     }
-    kaava.insert("updated".into(), json!(now_rfc3339()));
-    kaava.insert("updated_by".into(), json!(actor));
+    veistra.insert("updated".into(), json!(now_rfc3339()));
+    veistra.insert("updated_by".into(), json!(actor));
     json!({
         "type": "excalidraw",
         "version": 2,
         "elements": [],
         "appState": {},
         "files": {},
-        "kaava": Value::Object(kaava),
+        "veistra": Value::Object(veistra),
     })
 }
 
@@ -496,13 +496,15 @@ fn summary(root: &Path, id: &str, path: &Path) -> Value {
     let mtime = mtime_at(path);
     match load(root, path) {
         Ok(scene) => {
-            let kaava = scene.get("kaava");
-            let title = kaava
+            let veistra = scene.get("veistra");
+            let title = veistra
                 .and_then(|k| k.get("title"))
                 .and_then(Value::as_str)
                 .filter(|t| !t.is_empty())
                 .unwrap_or_else(|| id.rsplit('/').next().unwrap_or(id));
-            let parent = kaava.and_then(|k| k.get("parent")).and_then(Value::as_str);
+            let parent = veistra
+                .and_then(|k| k.get("parent"))
+                .and_then(Value::as_str);
             json!({
                 "id": id,
                 "title": title,
@@ -581,7 +583,7 @@ fn list(root: &Path) -> Result<Value, RpcError> {
 
 /// Every spec card in every canvas of the checkout: the asset list (P7-5).
 ///
-/// A spec card is a live element with `customData.kaava.spec`. The card is
+/// A spec card is a live element with `customData.veistra.spec`. The card is
 /// returned as the file holds it; judging whether it is complete is the
 /// frontend's job, so a half-filled card still shows up in the list. Its review
 /// state is the card's own `status` (`draft` when unset). Joining the latest
@@ -602,7 +604,7 @@ fn assets(root: &Path) -> Result<Value, RpcError> {
         frames::migrate(&mut scene);
         canvases += 1;
         let title = scene
-            .get("kaava")
+            .get("veistra")
             .and_then(|k| k.get("title"))
             .and_then(Value::as_str)
             .filter(|t| !t.is_empty())
@@ -620,7 +622,7 @@ fn assets(root: &Path) -> Result<Value, RpcError> {
             let model = frames::model_card(el);
             let Some(spec) = el
                 .get("customData")
-                .and_then(|c| c.get("kaava"))
+                .and_then(|c| c.get("veistra"))
                 .and_then(|k| k.get("spec"))
                 .filter(|s| s.is_object())
                 .or(model.as_ref())
@@ -786,10 +788,10 @@ fn stamp(scene: &mut Value, id: &str, actor: &str) {
     let Some(obj) = scene.as_object_mut() else {
         return;
     };
-    let kaava = obj
-        .entry("kaava")
+    let veistra = obj
+        .entry("veistra")
         .or_insert_with(|| Value::Object(Map::new()));
-    if let Some(k) = kaava.as_object_mut() {
+    if let Some(k) = veistra.as_object_mut() {
         k.insert("schema".into(), json!(SCHEMA));
         k.insert("id".into(), json!(id));
         k.insert("updated".into(), json!(now_rfc3339()));
@@ -1042,7 +1044,7 @@ mod tests {
     fn card(id: &str, spec: Value, deleted: bool) -> Value {
         json!({
             "id": id, "type": "rectangle", "isDeleted": deleted,
-            "customData": { "kaava": { "spec": spec } },
+            "customData": { "veistra": { "spec": spec } },
         })
     }
 
@@ -1124,11 +1126,11 @@ mod tests {
             json!({ "id": "from-mcp", "actor": "agent" }),
         )
         .unwrap();
-        assert_eq!(by_agent["scene"]["kaava"]["updated_by"], "agent");
+        assert_eq!(by_agent["scene"]["veistra"]["updated_by"], "agent");
         let read = run(dir.path(), "canvas/read", json!({ "id": "from-mcp" })).unwrap();
-        assert_eq!(read["scene"]["kaava"]["updated_by"], "agent");
+        assert_eq!(read["scene"]["veistra"]["updated_by"], "agent");
         let by_default = run(dir.path(), "canvas/create", json!({ "id": "from-ui" })).unwrap();
-        assert_eq!(by_default["scene"]["kaava"]["updated_by"], "human");
+        assert_eq!(by_default["scene"]["veistra"]["updated_by"], "human");
         assert!(run(
             dir.path(),
             "canvas/create",
@@ -1143,7 +1145,7 @@ mod tests {
         let created = run(dir.path(), "canvas/create", json!({ "id": "world" })).unwrap();
         let mtime = created["mtime"].as_u64();
         let mut scene = rect_scene();
-        scene["kaava"] = json!({ "title": "World map" });
+        scene["veistra"] = json!({ "title": "World map" });
         let saved = run(
             dir.path(),
             "canvas/write",
@@ -1154,10 +1156,10 @@ mod tests {
 
         let read = run(dir.path(), "canvas/read", json!({ "id": "world" })).unwrap();
         assert_eq!(read["scene"]["elements"], rect_scene()["elements"]);
-        assert_eq!(read["scene"]["kaava"]["title"], "World map");
-        assert_eq!(read["scene"]["kaava"]["id"], "world");
-        assert_eq!(read["scene"]["kaava"]["schema"], 1);
-        assert_eq!(read["scene"]["kaava"]["updated_by"], "human");
+        assert_eq!(read["scene"]["veistra"]["title"], "World map");
+        assert_eq!(read["scene"]["veistra"]["id"], "world");
+        assert_eq!(read["scene"]["veistra"]["schema"], 1);
+        assert_eq!(read["scene"]["veistra"]["updated_by"], "human");
         assert_eq!(read["path"], "canvas/world.json");
     }
 
@@ -1208,7 +1210,7 @@ mod tests {
         let leftovers: Vec<_> = std::fs::read_dir(dir.path().join("canvas"))
             .unwrap()
             .flatten()
-            .filter(|e| e.file_name().to_string_lossy().ends_with(".kaava-tmp"))
+            .filter(|e| e.file_name().to_string_lossy().ends_with(".veistra-tmp"))
             .collect();
         assert!(leftovers.is_empty());
     }
@@ -1345,7 +1347,7 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let created = run(dir.path(), "canvas/create", json!({ "id": "a" })).unwrap();
         let mut scene = rect_scene();
-        scene["kaava"] = json!({ "id": "impostor", "title": "T" });
+        scene["veistra"] = json!({ "id": "impostor", "title": "T" });
         run(
             dir.path(),
             "canvas/write",
@@ -1353,7 +1355,7 @@ mod tests {
         )
         .unwrap();
         let read = run(dir.path(), "canvas/read", json!({ "id": "a" })).unwrap();
-        assert_eq!(read["scene"]["kaava"]["id"], "a");
+        assert_eq!(read["scene"]["veistra"]["id"], "a");
     }
 
     #[test]
@@ -1407,7 +1409,7 @@ mod tests {
         std::fs::create_dir_all(&folder).unwrap();
         std::fs::write(
             folder.join("flappy-ball.canvas.json"),
-            r#"{"type":"excalidraw","elements":[],"kaava":{"title":"Flappy Ball"}}"#,
+            r#"{"type":"excalidraw","elements":[],"veistra":{"title":"Flappy Ball"}}"#,
         )
         .unwrap();
         std::fs::write(
@@ -1454,7 +1456,7 @@ mod tests {
         run(dir.path(), "canvas/create", json!({ "id": "world" })).unwrap();
         std::fs::write(
             dir.path().join("canvas/world.canvas.json"),
-            r#"{"type":"excalidraw","elements":[],"kaava":{"title":"Tagged"}}"#,
+            r#"{"type":"excalidraw","elements":[],"veistra":{"title":"Tagged"}}"#,
         )
         .unwrap();
         let listed = run(dir.path(), "canvas/list", json!({})).unwrap();
@@ -1477,7 +1479,7 @@ mod tests {
         };
         assert!(at("a.json", r#"{"type":"excalidraw","elements":[]}"#));
         assert!(at("b.json", r#"{"elements":[]}"#), "damaged but a scene");
-        assert!(at("c.json", r#"{"kaava":{}}"#), "damaged but a scene");
+        assert!(at("c.json", r#"{"veistra":{}}"#), "damaged but a scene");
         assert!(
             at("d.json", "{ nope"),
             "unparseable is reported, not hidden"

@@ -5,7 +5,7 @@
  * (`context/put`, the strip beside each terminal) is the host's; see
  * `apps/README.md`, "Context: pushing things to an agent".
  */
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 
 /** The slice of `ContextItem` an app reads back. */
 export interface ContextRef {
@@ -34,8 +34,8 @@ export function contextKey(...parts: Array<string | null | undefined>): string {
 const PRESS_THRESHOLD = 4;
 
 function tell(phase: "begin" | "end", items: string[]): void {
-  void invoke("kaava/drag", { phase, items }).catch((e: unknown) => {
-    console.error(`kaava: the app could not report a ${phase} drag`, e);
+  void invoke("veistra/drag", { phase, items }).catch((e: unknown) => {
+    console.error(`veistra: the app could not report a ${phase} drag`, e);
   });
 }
 
@@ -66,7 +66,7 @@ export function dragContext(put: () => Promise<ContextRef>) {
           // Released while the put was in flight: there is nothing to drag.
           if (live) tell("begin", [item.id]);
         })
-        .catch((err: unknown) => console.error("kaava: the app could not add context", err));
+        .catch((err: unknown) => console.error("veistra: the app could not add context", err));
     };
     const detach = () => {
       live = false;

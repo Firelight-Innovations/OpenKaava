@@ -10,7 +10,7 @@
 //!
 //! Anything the manifest already says. A record names where a package came from
 //! and nothing about what is in it — no surface list, no version, no name. All
-//! of that is read back out of the checkout's own `kaava-tool.toml` at load, so
+//! of that is read back out of the checkout's own `veistra-tool.toml` at load, so
 //! a plugin that gains a surface between launches gains it here too, and a
 //! record can never disagree with the code it points at.
 //!
@@ -174,7 +174,7 @@ mod tests {
             plugins: vec![Record {
                 id: "acme".to_string(),
                 source: Source::Folder {
-                    path: PathBuf::from("C:/code/kaava/acme"),
+                    path: PathBuf::from("C:/code/veistra/acme"),
                 },
                 enabled: true,
             }],

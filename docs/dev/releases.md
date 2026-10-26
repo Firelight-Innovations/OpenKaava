@@ -1,7 +1,7 @@
 # Releases and updates
 
 A release is cut from a **tag**, built on GitHub, and published as a **draft**
-that a person reviews before it goes out. An installed OpenKaava finds the next one
+that a person reviews before it goes out. An installed Veistra finds the next one
 by itself, if — and only if — the release it came from was built with the
 updater signing key. Nothing is code-signed, which is a different absence and is
 described at the bottom rather than left to be discovered.
@@ -75,18 +75,18 @@ The release profile has no cheap incremental rebuild, so expect minutes.
 
 | Path | What |
 |---|---|
-| `openkaava-orchestrator.exe` | the app, self-contained |
-| `bundle/nsis/OpenKaava_<ver>_x64-setup.exe` | the installer |
+| `veistra-orchestrator.exe` | the app, self-contained |
+| `bundle/nsis/Veistra_<ver>_x64-setup.exe` | the installer |
 
 **One installer, not two.** `bundle.targets` is `["nsis"]` rather than `"all"`,
 so no MSI is built. Two downloads on a release page is a choice a first-time
 visitor has to make and has no basis for making, and the wizard is the one that
 suits a person rather than a deployment tool. MSI is worth adding back the day
-somebody wants to push OpenKaava out over group policy, and not before.
+somebody wants to push Veistra out over group policy, and not before.
 
 The workflow uploads the installer twice: once under its versioned name, and
-once as `OpenKaava-setup.exe`. The second is what makes
-`/releases/latest/download/OpenKaava-setup.exe` a link that never breaks, which is
+once as `Veistra-setup.exe`. The second is what makes
+`/releases/latest/download/Veistra-setup.exe` a link that never breaks, which is
 what the README's download button points at.
 
 Those filenames come from `productName` in `tauri.conf.json`, which is checked
@@ -94,9 +94,10 @@ against `branding.toml` — renaming the product renames the installers with it.
 
 This page used to add that the bundle identifier does not change, and that
 therefore nobody's projects or settings move. Both halves were false by the
-time anybody read them: the rename to OpenKaava moved the identifier and
-orphaned a live `%APPDATA%` directory, and it moved `productName` too, which is
-what installed OpenKaava beside HELVE instead of over it. Nothing was watching
+time anybody read them: the rename from HELVE to OpenKaava (now Veistra) moved
+the identifier and orphaned a live `%APPDATA%` directory, and it moved
+`productName` too, which is what installed OpenKaava beside HELVE instead of over
+it. Nothing was watching
 either value. `pnpm lint:identity` now is, and `docs/dev/user-data.md` is where
 the whole subject lives — what user data is at risk, what a rename costs, and
 what to run when one is deliberate.
@@ -111,7 +112,7 @@ beats making the gate everyone waits for miss its cache.
 ## What the installer does besides copying files
 
 `src-tauri/installer-hooks.nsh` runs on install and on uninstall, and it exists
-for one feature: **Open with OpenKaava** in Explorer's context menu, on folders, on
+for one feature: **Open with Veistra** in Explorer's context menu, on folders, on
 the background of an open folder, and on files.
 
 Those are three registry keys under `HKCU\Software\Classes`. HKCU rather than
@@ -127,13 +128,13 @@ background click can mean.
 `src-tauri/src/launch.rs` is the other half: it reads the path off the command
 line, decides whether it is a folder or a file, and opens the folder as a
 project. It also registers `tauri-plugin-single-instance`, and that is not
-optional. Without it, "Open with OpenKaava" on a second folder starts a second
+optional. Without it, "Open with Veistra" on a second folder starts a second
 process, and two processes writing `layout.json` and `projects.json` is data
 loss rather than a glitch.
 
 ## The updater
 
-An installed OpenKaava checks once per launch — in the background, after everything
+An installed Veistra checks once per launch — in the background, after everything
 else in `lib.rs`'s setup — and again whenever somebody picks **Help ▸ Check for
 Updates**. What it finds appears as one line in the status bar and nowhere else:
 no dialog, no toast, nothing that takes the screen away from what it was
@@ -182,7 +183,7 @@ pnpm app:build                                              # always works
 The workflow gates on `TAURI_SIGNING_PRIVATE_KEY` being non-empty rather than on
 a `secrets` lookup, because a workflow cannot read `secrets` in a step's `if:`.
 A release built without it still publishes installers; it simply publishes no
-`latest.json`, and no installed OpenKaava will offer that version.
+`latest.json`, and no installed Veistra will offer that version.
 
 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` is set from a secret that may not exist, in
 which case Actions supplies an empty string — and an empty string is exactly
@@ -200,8 +201,8 @@ command.
 Once, by whoever owns the repository. The private half must never be committed.
 
 ```sh
-pnpm tauri signer generate -w "$HOME/.kaava/updater.key"
-gh secret set TAURI_SIGNING_PRIVATE_KEY < "$HOME/.kaava/updater.key"
+pnpm tauri signer generate -w "$HOME/.veistra/updater.key"
+gh secret set TAURI_SIGNING_PRIVATE_KEY < "$HOME/.veistra/updater.key"
 # only if the key was given a password:
 gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD
 ```
@@ -211,20 +212,20 @@ Then paste the contents of `updater.key.pub` into `plugins.updater.pubkey` in
 a build signed with a key whose public half is not in the shipped binary
 produces updates every installed copy downloads and then refuses.
 
-**Losing the private key is not recoverable.** Every already-installed OpenKaava
+**Losing the private key is not recoverable.** Every already-installed Veistra
 carries the public half compiled in, so a new keypair means those copies stop
 accepting updates and have to be reinstalled by hand.
 
 ## The installed build cannot find a stack
 
 **This is the one caveat that will be mistaken for a bug.** `bundle.resources`
-ships a copy of `kaava.toml`, but its `checkout-root = ".."` resolves relative
+ships a copy of `veistra.toml`, but its `checkout-root = ".."` resolves relative
 to wherever the manifest ends up — which is the install directory, not your
 code tree. `locate()` searches in this order:
 
-1. `$KAAVA_MANIFEST`
+1. `$VEISTRA_MANIFEST`
 2. the repo root (dev builds only, via `CARGO_MANIFEST_DIR`)
-3. a `kaava.toml` placed next to the installed executable
+3. a `veistra.toml` placed next to the installed executable
 4. the copy bundled into the app
 
 Steps 1 and 3 are the ones that make an installed build useful. Until the
@@ -254,4 +255,4 @@ the answer arrives with the download rather than after a bug report.
   say pre-alpha, and marking them would stop `/releases/latest` resolving —
   which is both the stable download URL worth having and, now, the URL the
   updater's endpoint is built on. Marking one release prerelease would take
-  every installed OpenKaava off the update path silently.
+  every installed Veistra off the update path silently.

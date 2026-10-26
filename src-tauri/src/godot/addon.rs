@@ -1,30 +1,30 @@
-//! The Kaava capture addon: what it is, how it is installed and removed, and
+//! The Veistra capture addon: what it is, how it is installed and removed, and
 //! the file channel a running game answers on.
 //!
 //! **Opt-in and removable.** Nothing here runs unless someone presses Enable
-//! capture in Play. Enabling writes one script into `addons/kaava/` and one
+//! capture in Play. Enabling writes one script into `addons/veistra/` and one
 //! line into `project.godot`'s `[autoload]` section; disabling deletes exactly
 //! those two things. Nothing is added to a project that was not asked to have
 //! it, and a game started without the addon is unaffected.
 //!
-//! **Files, not sockets.** A game with the addon reads `--kaava-dir=<folder>`
+//! **Files, not sockets.** A game with the addon reads `--veistra-dir=<folder>`
 //! from its user arguments and watches that folder (in the OS temp directory,
-//! never in the project) for `cmd.json`. Kaava writes a command and reads
+//! never in the project) for `cmd.json`. Veistra writes a command and reads
 //! `res-<id>.json` back. No listener, no port, nothing reachable from the
 //! network.
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-pub const SCRIPT: &str = include_str!("kaava_capture.gd");
+pub const SCRIPT: &str = include_str!("veistra_capture.gd");
 
 /// The autoload's name, and the line that registers it.
-const AUTOLOAD_KEY: &str = "KaavaCapture";
-const SCRIPT_RES_PATH: &str = "res://addons/kaava/kaava_capture.gd";
+const AUTOLOAD_KEY: &str = "VeistraCapture";
+const SCRIPT_RES_PATH: &str = "res://addons/veistra/veistra_capture.gd";
 
 /// Where the version marker on the script's first line says it is from, so a
 /// project holding an older copy can be told to update.
-const VERSION_MARKER: &str = "# kaava-capture v1";
+const VERSION_MARKER: &str = "# veistra-capture v1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -39,8 +39,8 @@ pub enum Installed {
 pub fn script_path(project: &Path) -> PathBuf {
     project
         .join("addons")
-        .join("kaava")
-        .join("kaava_capture.gd")
+        .join("veistra")
+        .join("veistra_capture.gd")
 }
 
 fn autoload_line() -> String {
@@ -96,7 +96,7 @@ pub fn install(project: &Path) -> Result<(), String> {
     Ok(())
 }
 
-/// Delete what [`install`] wrote. The `addons/kaava` folder goes only if it is
+/// Delete what [`install`] wrote. The `addons/veistra` folder goes only if it is
 /// then empty, so anything else someone put there survives.
 pub fn remove(project: &Path) -> Result<(), String> {
     let script = script_path(project);
@@ -302,8 +302,9 @@ mod tests {
     #[test]
     fn a_new_autoload_section_is_appended_and_removal_restores_the_file() {
         let added = with_autoload(PROJECT);
-        assert!(added
-            .ends_with("[autoload]\n\nKaavaCapture=\"*res://addons/kaava/kaava_capture.gd\"\n"));
+        assert!(added.ends_with(
+            "[autoload]\n\nVeistraCapture=\"*res://addons/veistra/veistra_capture.gd\"\n"
+        ));
         assert!(added.starts_with(PROJECT.trim_end()));
         assert!(has_autoload(&added));
         assert_eq!(without_autoload(&added), PROJECT);
@@ -314,7 +315,7 @@ mod tests {
         let text = "config_version=5\n\n[autoload]\n\nGlobal=\"*res://global.gd\"\n\n[display]\n\nwindow/size/width=800\n";
         let added = with_autoload(text);
         assert!(added.contains(
-            "[autoload]\n\nKaavaCapture=\"*res://addons/kaava/kaava_capture.gd\"\nGlobal="
+            "[autoload]\n\nVeistraCapture=\"*res://addons/veistra/veistra_capture.gd\"\nGlobal="
         ));
         assert!(added.contains("[display]"));
         assert_eq!(without_autoload(&added), text);
@@ -330,7 +331,7 @@ mod tests {
 
     #[test]
     fn a_line_in_another_section_is_not_mistaken_for_the_autoload() {
-        let text = "[application]\nKaavaCapture=1\n";
+        let text = "[application]\nVeistraCapture=1\n";
         assert!(!has_autoload(text));
         assert_eq!(without_autoload(text), text);
     }
@@ -367,9 +368,9 @@ mod tests {
     fn remove_keeps_a_folder_that_holds_someone_elses_files() {
         let dir = project(PROJECT);
         install(dir.path()).unwrap();
-        std::fs::write(dir.path().join("addons/kaava/mine.txt"), "x").unwrap();
+        std::fs::write(dir.path().join("addons/veistra/mine.txt"), "x").unwrap();
         remove(dir.path()).unwrap();
-        assert!(dir.path().join("addons/kaava/mine.txt").is_file());
+        assert!(dir.path().join("addons/veistra/mine.txt").is_file());
     }
 
     #[test]

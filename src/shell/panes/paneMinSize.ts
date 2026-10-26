@@ -1,12 +1,12 @@
 /**
- * The minimum share a divider drag may leave either side — KAAVA-UX-SPEC.md
+ * The minimum share a divider drag may leave either side — VEISTRA-UX-SPEC.md
  * §1.5's floor of `200 x 120px`, as a fraction of the axis a drag moves
  * along. Split out of `PaneTree.tsx`'s `Split` so the clamp is a pure,
  * directly-tested function rather than something reachable only by
  * simulating a pointer drag.
  */
 
-/** KAAVA-UX-SPEC.md §1.5's stated floor. */
+/** VEISTRA-UX-SPEC.md §1.5's stated floor. */
 export const MIN_PANE_WIDTH_PX = 200;
 export const MIN_PANE_HEIGHT_PX = 120;
 

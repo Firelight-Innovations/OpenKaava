@@ -5,10 +5,10 @@
 //!
 //! **If the harness can already do it, it does not get a server.** No file
 //! reading, writing or listing, no search, no git. Every agent worth pointing at
-//! OpenKaava arrives with those, and a second worse copy costs a permission surface
+//! Veistra arrives with those, and a second worse copy costs a permission surface
 //! and a pile of tool descriptions competing for the model's attention.
 //!
-//! What earns a server is something that exists only inside OpenKaava and has no
+//! What earns a server is something that exists only inside Veistra and has no
 //! filesystem equivalent — Schematify's design model is the first real case, because
 //! an agent cannot read a spec's *boundaries* by opening a file. [`debug`] is
 //! the second, [`design`] the third and [`ui`] the fourth; each module's doc says
@@ -56,7 +56,7 @@ pub fn seed(registry: &Registry) {
     registry.register(&agent::SERVER);
 }
 
-/// Whether a tool is known to leave OpenKaava's state alone, for MCP's
+/// Whether a tool is known to leave Veistra's state alone, for MCP's
 /// `readOnlyHint`.
 ///
 /// `None` means "not claimed", and is what an unlisted tool gets: the hint is
@@ -111,7 +111,7 @@ pub fn resources(id: &str) -> &'static [McpResource] {
 
 /// The URI templates a server reads beyond what it publishes, in
 /// [`McpResource`] form with the template as `uri`. Only `context` has any: it
-/// reads every `kaava://` reference.
+/// reads every `veistra://` reference.
 pub fn resource_templates(id: &str) -> &'static [McpResource] {
     match id {
         context::ID => context::TEMPLATES,
@@ -133,7 +133,7 @@ pub fn read_resource(
     id: &str,
     uri: &str,
     cluster: Option<&str>,
-) -> Option<Result<super::ToolAnswer, kaava_rpc::RpcError>> {
+) -> Option<Result<super::ToolAnswer, veistra_rpc::RpcError>> {
     match id {
         "workspace" => workspace::read_resource(app, uri).map(|read| read.map(Into::into)),
         context::ID => Some(context::read_resource(app, uri, cluster)),
@@ -143,7 +143,7 @@ pub fn read_resource(
 
 /// What an MCP client is told at `initialize`, before it reads a single tool.
 ///
-/// Said here because an agent once went looking for OpenKaava in a browser —
+/// Said here because an agent once went looking for Veistra in a browser —
 /// its global instructions named a Chrome extension for "all UI verification" —
 /// and found nothing, since the app is a desktop window. The servers that can
 /// see the window say so up front. Rejected: a field on `McpServer`, which
@@ -151,7 +151,7 @@ pub fn read_resource(
 pub fn instructions(id: &str) -> Option<&'static str> {
     match id {
         "ui" | "agent" => Some(
-            "This server is how you see and drive OpenKaava, a desktop app. It is not a web \
+            "This server is how you see and drive Veistra, a desktop app. It is not a web \
              page: browser and Chrome tools cannot reach it, and a dev server on localhost \
              serves the shell with no backend behind it. Use `screenshot` to look, `snapshot` \
              for clickable refs, `click`, `drag`, `scroll`, `press_key`, `fill_field` and `type_text` to act, and `context` \
@@ -173,15 +173,15 @@ pub fn instructions(id: &str) -> Option<&'static str> {
              ends with the detail level and style the person chose in Settings, which you follow.",
         ),
         context::ID => Some(
-            "kaava:// references to what is in the person's project: kaava://file/<path>#L10-L20, \
-             kaava://canvas/<id>#frame=<frame>, kaava://comment/<id>, kaava://design-comment/<id>, \
-             kaava://context/<id> and kaava://selection. `search_context` finds them by name, \
+            "veistra:// references to what is in the person's project: veistra://file/<path>#L10-L20, \
+             veistra://canvas/<id>#frame=<frame>, veistra://comment/<id>, veistra://design-comment/<id>, \
+             veistra://context/<id> and veistra://selection. `search_context` finds them by name, \
              `read` reads one, and `show` puts up to eight in front of the person beside your \
              reply. `list_comments` has what they asked of you; `resolve_comment` closes one. Call `get_selection` when they \
              say \"this\". Secrets and gitignored files are withheld and say so.",
         ),
         "debug" => Some(
-            "Read-only views of a running OpenKaava: its shell layout, recent errors and boot \
+            "Read-only views of a running Veistra: its shell layout, recent errors and boot \
              progress. To see or click the window, use the `agent` server, not a browser.",
         ),
         _ => None,
@@ -203,14 +203,14 @@ mod tests {
 
     #[test]
     fn the_context_server_reads_every_reference_and_publishes_the_selection() {
-        assert_eq!(resources(context::ID)[0].uri, "kaava://selection");
-        assert!(reads_unpublished(context::ID, "kaava://file/a.gd"));
-        assert!(reads_unpublished(context::ID, "KAAVA://file/a.gd"));
+        assert_eq!(resources(context::ID)[0].uri, "veistra://selection");
+        assert!(reads_unpublished(context::ID, "veistra://file/a.gd"));
+        assert!(reads_unpublished(context::ID, "VEISTRA://file/a.gd"));
         assert!(!reads_unpublished(context::ID, "file:///etc/passwd"));
-        assert!(!reads_unpublished("workspace", "kaava://file/a.gd"));
+        assert!(!reads_unpublished("workspace", "veistra://file/a.gd"));
         assert!(resource_templates("workspace").is_empty());
         for t in resource_templates(context::ID) {
-            assert!(t.uri.starts_with("kaava://"), "{}", t.uri);
+            assert!(t.uri.starts_with("veistra://"), "{}", t.uri);
         }
     }
 
@@ -320,7 +320,7 @@ mod tests {
         );
     }
 
-    /// Every ordinary server is usable the moment OpenKaava starts. The one that
+    /// Every ordinary server is usable the moment Veistra starts. The one that
     /// can click is not, and no amount of the rest being convenient is a reason
     /// to make it so.
     #[test]
@@ -391,7 +391,7 @@ mod tests {
         seed(&registry);
 
         for server in registry.list(true) {
-            assert_eq!(server.config_key, format!("kaava-{}", server.id));
+            assert_eq!(server.config_key, format!("veistra-{}", server.id));
             assert_eq!(server.path, format!("/mcp/{}", server.id));
         }
     }
@@ -412,7 +412,7 @@ mod tests {
     /// fixture. `registry.rs` has the same check over its own test doubles,
     /// which proves the rule and not the shipped set — and the shipped set is
     /// the one where an id becomes a URL path (`/mcp/<id>`) and a `.mcp.json`
-    /// key (`kaava-<id>`). The same rule `kaava-tool-manifest` holds tool ids
+    /// key (`veistra-<id>`). The same rule `veistra-tool-manifest` holds tool ids
     /// to, for the same reason.
     #[test]
     fn every_registered_server_id_is_url_safe() {

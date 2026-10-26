@@ -2,8 +2,8 @@
 use super::CallContext;
 use crate::context::{self, Method, Payload, PutRequest};
 use crate::shell_state::ShellState;
-use kaava_agent_host::{event::ItemKind, AgentHost};
-use kaava_rpc::{RpcError, INVALID_PARAMS};
+use veistra_agent_host::{event::ItemKind, AgentHost};
+use veistra_rpc::{RpcError, INVALID_PARAMS};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager};
 
@@ -19,7 +19,7 @@ pub(super) fn sources(app: &AppHandle, ctx: &CallContext) -> Value {
     let issues: Vec<_> = ctx.project.as_deref().map(context::list).unwrap_or_default().into_iter().filter(|item| {
         let source = format!("{} {} {:?}", item.title, item.key, item.source.label).to_lowercase();
         source.contains("jira") || source.contains("linear")
-    }).map(|item| json!({ "uri": format!("kaava://context/{}", item.id), "title": item.title, "kind": "issue", "detail": item.source.label })).collect();
+    }).map(|item| json!({ "uri": format!("veistra://context/{}", item.id), "title": item.title, "kind": "issue", "detail": item.source.label })).collect();
     json!({ "clusters": clusters, "issues": issues })
 }
 
@@ -82,5 +82,5 @@ pub(super) fn capture(
             reference_in_place: false,
         },
     )?;
-    Ok(json!({ "uri": format!("kaava://context/{}", item.id), "title": title, "kind": "cluster" }))
+    Ok(json!({ "uri": format!("veistra://context/{}", item.id), "title": title, "kind": "cluster" }))
 }

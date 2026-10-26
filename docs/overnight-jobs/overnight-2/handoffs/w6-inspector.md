@@ -105,7 +105,7 @@ fixture extension did not shift a Problems row.
 
 **A note for whoever reads `cargo test --workspace` tonight: it currently
 cannot reach `schematify-core` or `src-tauri` at all.** A pre-existing,
-unrelated failure in `kaava-tool-manifest`'s `reference_manifest.rs` (3
+unrelated failure in `veistra-tool-manifest`'s `reference_manifest.rs` (3
 tests, a path baked in at compile time from whichever worktree's `cargo`
 last built that binary, colliding across every worktree that shares
 tonight's `CARGO_TARGET_DIR` — confirmed against 3 different colliding
@@ -114,7 +114,7 @@ before either crate's tests execute. `sch-fix-flake` owns the real fix on
 its own branch. Until that lands, **"`cargo test --workspace` is red"
 tells you nothing about this branch** — read per-crate results instead:
 `cargo test -p schematify-core` (39 tests, 0 failed, includes the
-`lint.rs` suite above) and `cargo test -p openkaava-orchestrator` (583
+`lint.rs` suite above) and `cargo test -p veistra-orchestrator` (583
 tests, 0 failed, 1 pre-existing ignored, includes all 26
 `apps::schematify::tests::` cases) were both run directly against the
 merged tree (`facd2ed`) and are clean.
@@ -232,7 +232,7 @@ above). The table below is the merged-result run, the one that matters.
 | `pnpm lint:comments` | Pass — 0 grandfathered. |
 | `pnpm lint:version` / `lint:identity` / `lint:branding` | Pass. |
 | `pnpm format:check` | Pass, no changes needed on the merged tree. |
-| `cargo test --workspace` | **Still fails on the pre-existing, unrelated `kaava-tool-manifest` flake — see "The merge onto main" above for what to read instead.** `cargo test -p schematify-core` and `cargo test -p openkaava-orchestrator`, run directly, are both clean. |
+| `cargo test --workspace` | **Still fails on the pre-existing, unrelated `veistra-tool-manifest` flake — see "The merge onto main" above for what to read instead.** `cargo test -p schematify-core` and `cargo test -p veistra-orchestrator`, run directly, are both clean. |
 | `cargo clippy` | Pass — 0 warnings, at the baseline of 0. |
 | `pnpm baseline` | Never run. |
 
