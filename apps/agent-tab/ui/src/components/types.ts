@@ -248,6 +248,10 @@ export interface ComposerProps {
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   /** Notices to show above the input. */
   notices: ReactNode;
+  /** The slash-command list, floated above the box while one is being typed. */
+  menu?: ReactNode;
+  /** The id of the menu item Enter and Tab would pick, for the input to point at. */
+  menuActiveId?: string | null;
   /** Under the box, at the left: the settings button. */
   controls: ReactNode;
   /** Under the box, at the right: the context meter and the usage ring. */

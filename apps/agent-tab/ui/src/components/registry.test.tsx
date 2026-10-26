@@ -45,6 +45,7 @@ const EVERYTHING: Attachment = {
     config: [],
     answered: 0,
     settingTrouble: null,
+    commands: [],
   },
   items: [
     item("u", { kind: "userMessage", text: "hi" }),

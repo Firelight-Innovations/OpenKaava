@@ -48,6 +48,10 @@ pub const EVENT: &str = "agent-tab:event";
 /// the tab and the agent bar show the same one. Mirrored in `src/bindings.ts`.
 pub const CHOSEN: &str = "agent-tab:chosen";
 
+/// The event a tab is sent, `{ instanceId, harness, ok }`, when the sign-in it
+/// started has ended. Mirrored in `src/bindings.ts`.
+pub const LOGIN: &str = "agent-tab:login";
+
 /// The event each open agent tab is sent, `{ instanceId, harness }`, once
 /// `harness`'s agent has said which models it offers, so the tab asks
 /// `agent-tab/harnesses` again. Mirrored in `src/bindings.ts`.
@@ -75,6 +79,7 @@ const INSTANCE_METHODS: &[&str] = &[
     "agent-tab/stop",
     "agent-tab/reset",
     "agent-tab/choose",
+    "agent-tab/login",
 ];
 
 /// The methods that advance an agent, and so run only with developer mode on.
@@ -101,6 +106,7 @@ const UNGATED_METHODS: &[&str] = &[
     "agent-tab/stop",
     "agent-tab/reset",
     "agent-tab/choose",
+    "agent-tab/login",
 ];
 
 /// The host, built on first use so it can hold the `AppHandle` it emits on,
@@ -401,8 +407,70 @@ pub fn call_for(
             let _ = app.emit(CHOSEN, event);
             Ok(json!({}))
         }
+        // The harness's own sign-in, in the user's browser. Nothing it prints is
+        // kept, so no token ever passes through here.
+        "agent-tab/login" => {
+            let harness = sessions.current(host, instance);
+            login(app, instance, harness)?;
+            Ok(json!({}))
+        }
         _ => Err(unreached(method)),
     }
+}
+
+/// The arguments that start `harness`'s own sign-in, which opens a browser.
+fn login_args(harness: Harness) -> &'static [&'static str] {
+    match harness {
+        Harness::Claude => &["auth", "login"],
+        Harness::Codex => &["login"],
+    }
+}
+
+/// Starts `harness`'s CLI sign-in and, once it ends, tells `instance`'s tab
+/// whether it succeeded. The CLI keeps its own credentials; this reads none of
+/// its output.
+fn login(app: &AppHandle, instance: &str, harness: Harness) -> Result<(), RpcError> {
+    let descriptor = harness.descriptor();
+    let cli = kaava_agent_host::harness::which(
+        descriptor.cli,
+        std::env::var_os("PATH").as_deref(),
+        std::env::var_os("PATHEXT").as_deref(),
+    )
+    .ok_or_else(|| {
+        refused(
+            "harness",
+            &format!("{} is not on PATH", descriptor.name),
+            json!(kaava_agent_host::event::Hint::HarnessMissing),
+        )
+    })?;
+    let mut command = std::process::Command::new(cli);
+    command
+        .args(login_args(harness))
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+    let mut child = command.spawn().map_err(|e| {
+        RpcError::new(
+            kaava_rpc::INTERNAL_ERROR,
+            format!("could not start {}'s sign-in: {e}", descriptor.name),
+        )
+    })?;
+    let app = app.clone();
+    let instance = instance.to_string();
+    std::thread::spawn(move || {
+        let ok = child.wait().map(|s| s.success()).unwrap_or(false);
+        let _ = app.emit(
+            LOGIN,
+            json!({ "instanceId": instance, "harness": harness, "ok": ok }),
+        );
+    });
+    Ok(())
 }
 
 /// What the agent bar and the tab's empty state need before a first prompt:

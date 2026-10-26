@@ -86,6 +86,7 @@ const STATUS: SessionStatus = {
   config: [],
   answered: 0,
   settingTrouble: null,
+  commands: [],
   adapterVersion: "0.90.0",
   exitCode: null,
   hint: null,
@@ -1272,5 +1273,116 @@ describe("the harness", () => {
     await waitFor(() => expect(asked()).toBe(1));
     act(() => bridge.listeners.get("agent-tab:models")?.({ instanceId: "i", harness: "claude" }));
     await waitFor(() => expect(asked()).toBe(2));
+  });
+});
+
+describe("slash commands", () => {
+  const WITH_COMMANDS: SessionStatus = {
+    ...STATUS,
+    commands: [
+      { name: "compact", description: "Clear history", hint: "instructions" },
+      { name: "init", description: "Set up CLAUDE.md", hint: null },
+    ],
+  };
+
+  async function ready(status: SessionStatus | null) {
+    backend({ status, seq: 1, items: [] });
+    render(<App />);
+    await screen.findByRole("status");
+  }
+
+  const names = () => screen.queryAllByRole("option").map((o) => o.textContent);
+
+  it("lists the agent's commands, and login, for a bare slash", async () => {
+    await ready(WITH_COMMANDS);
+    fireEvent.change(prompt(), { target: { value: "/" } });
+    expect(names()).toEqual([
+      "compactClear history",
+      "initSet up CLAUDE.md",
+      "loginSign in to your account",
+    ]);
+  });
+
+  it("filters as the name is typed, and offers nothing once an argument starts", async () => {
+    await ready(WITH_COMMANDS);
+    fireEvent.change(prompt(), { target: { value: "/co" } });
+    expect(names()).toEqual(["compactClear history"]);
+    fireEvent.change(prompt(), { target: { value: "/compact now" } });
+    expect(names()).toEqual([]);
+  });
+
+  it("offers login before any session has listed commands", async () => {
+    await ready(null);
+    fireEvent.change(prompt(), { target: { value: "/" } });
+    expect(names()).toEqual(["loginSign in to your account"]);
+  });
+
+  it("moves with the arrows, and Enter fills the name instead of sending it", async () => {
+    await ready(WITH_COMMANDS);
+    fireEvent.change(prompt(), { target: { value: "/" } });
+    fireEvent.keyDown(prompt(), { key: "ArrowDown" });
+    expect(screen.getByRole("option", { selected: true }).textContent).toContain("init");
+    await act(async () => {
+      fireEvent.keyDown(prompt(), { key: "Enter" });
+    });
+    expect(prompt()).toHaveProperty("value", "/init ");
+    expect(bridge.invoke).not.toHaveBeenCalledWith("agent-tab/send", expect.anything());
+  });
+
+  it("fills on Tab or a click, and closes on Escape until the draft changes", async () => {
+    await ready(WITH_COMMANDS);
+    fireEvent.change(prompt(), { target: { value: "/co" } });
+    fireEvent.keyDown(prompt(), { key: "Tab" });
+    expect(prompt()).toHaveProperty("value", "/compact ");
+    fireEvent.change(prompt(), { target: { value: "/i" } });
+    fireEvent.click(screen.getByRole("option", { name: /init/ }));
+    expect(prompt()).toHaveProperty("value", "/init ");
+    fireEvent.change(prompt(), { target: { value: "/c" } });
+    fireEvent.keyDown(prompt(), { key: "Escape" });
+    expect(names()).toEqual([]);
+    fireEvent.change(prompt(), { target: { value: "/co" } });
+    expect(names()).toEqual(["compactClear history"]);
+  });
+
+  it("sends a command typed out in full that takes no argument", async () => {
+    await ready(WITH_COMMANDS);
+    fireEvent.change(prompt(), { target: { value: "/init" } });
+    await act(async () => {
+      fireEvent.keyDown(prompt(), { key: "Enter" });
+    });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/send", { text: "/init" });
+  });
+
+  it("signs in on /login without sending it to the agent, and says how it ended", async () => {
+    await ready(null);
+    fireEvent.change(prompt(), { target: { value: "/login" } });
+    await act(async () => {
+      fireEvent.keyDown(prompt(), { key: "Enter" });
+    });
+    expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/login");
+    expect(bridge.invoke).not.toHaveBeenCalledWith("agent-tab/send", expect.anything());
+    expect(prompt()).toHaveProperty("value", "");
+    expect(await screen.findByText("Finish signing in to Claude in your browser.")).toBeTruthy();
+
+    act(() => bridge.listeners.get("agent-tab:login")?.({ harness: "claude", ok: true }));
+    expect(
+      await screen.findByText("Signed in to Claude. Send a prompt to start a session."),
+    ).toBeTruthy();
+    act(() => bridge.listeners.get("agent-tab:login")?.({ harness: "claude", ok: false }));
+    expect(await screen.findByText("Could not sign in to Claude. Try /login again.")).toBeTruthy();
+  });
+
+  it("names a sign-in that could not start", async () => {
+    backend(
+      { status: null, seq: 0, items: [] },
+      { "agent-tab/login": () => Promise.reject(new Error("no")) },
+    );
+    render(<App />);
+    await screen.findByText("No session");
+    fireEvent.change(prompt(), { target: { value: "/login" } });
+    await act(async () => {
+      fireEvent.keyDown(prompt(), { key: "Enter" });
+    });
+    expect(await screen.findByText("Could not start the sign-in.")).toBeTruthy();
   });
 });

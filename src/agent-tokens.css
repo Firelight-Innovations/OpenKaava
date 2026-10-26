@@ -116,7 +116,7 @@
   --k-radius-bar: var(--radius-region);
   --k-radius-pill: 999px;
   --k-radius-turn: 12px;
-  --k-radius-composer: 14px;
+  --k-radius-composer: 18px;
 
   /* Size */
   --k-control-md: var(--control-md);

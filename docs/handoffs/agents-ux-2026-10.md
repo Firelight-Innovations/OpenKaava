@@ -20,6 +20,10 @@ sessions run at the same time:
 - `src/shell/rail/AgentsPage.tsx`, `AgentsPage.test.tsx`, `agentspage.css`
 - `src/shell/toolwindow/agentTabFrames.ts`
 - `src/agent-tokens.css`
+- Backend, for slash commands and `/login`: `crates/kaava-agent-host/src/{event,normalize,session,host}.rs`,
+  `src-tauri/src/apps/agent_tab.rs`, `docs/agent-harnesses.md`
+- One added line each in `src/bindings.ts` and `src/shell/toolwindow/ToolWindow.tsx`, to relay the
+  `agent-tab:login` event to the tab that asked
 
 ## Not touched by this session
 

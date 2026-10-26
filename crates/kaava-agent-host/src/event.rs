@@ -378,6 +378,9 @@ pub struct SessionStatus {
     /// last reported them. Filled from the `session/new` reply, so a session
     /// that fails later in its handshake still carries them.
     pub config: Vec<ConfigOption>,
+    /// The slash commands the agent last offered, in its order. Empty until it
+    /// reports any; a later report replaces the list.
+    pub commands: Vec<AgentCommand>,
     /// The number of the last setting change the agent answered. Changing a
     /// setting returns the change's number, and numbers only grow, so the tab
     /// knows which status answers the choice it is showing. A new session
@@ -422,6 +425,19 @@ pub enum SettingTrouble {
         /// The agent's reason, masked.
         message: String,
     },
+}
+
+/// One slash command the agent offers, as `available_commands_update` lists it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct AgentCommand {
+    /// What follows the slash.
+    pub name: String,
+    /// The agent's one-line description.
+    pub description: String,
+    /// What the argument looks like, when the command takes one.
+    pub hint: Option<String>,
 }
 
 /// One session setting the agent offers: ACP's select config option. Every
@@ -485,6 +501,7 @@ mod tests {
             SettingTrouble::decl(&cfg),
             ConfigOption::decl(&cfg),
             ConfigChoice::decl(&cfg),
+            AgentCommand::decl(&cfg),
             Attachment::decl(&cfg),
             HarnessInfo::decl(&cfg),
         ];

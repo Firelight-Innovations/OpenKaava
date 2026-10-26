@@ -329,6 +329,11 @@ modes: Array<ConfigChoice>,
  */
 config: Array<ConfigOption>, 
 /**
+ * The slash commands the agent last offered, in its order. Empty until it
+ * reports any; a later report replaces the list.
+ */
+commands: Array<AgentCommand>, 
+/**
  * The number of the last setting change the agent answered. Changing a
  * setting returns the change's number, and numbers only grow, so the tab
  * knows which status answers the choice it is showing. A new session
@@ -414,6 +419,20 @@ name: string,
  * The agent's longer description, if it gave one.
  */
 description: string | null, };
+
+export type AgentCommand = { 
+/**
+ * What follows the slash.
+ */
+name: string, 
+/**
+ * The agent's one-line description.
+ */
+description: string, 
+/**
+ * What the argument looks like, when the command takes one.
+ */
+hint: string | null, };
 
 export type Attachment = { 
 /**

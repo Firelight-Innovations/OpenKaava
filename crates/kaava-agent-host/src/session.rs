@@ -249,6 +249,7 @@ impl Session {
             mode: None,
             modes: Vec::new(),
             config: Vec::new(),
+            commands: Vec::new(),
             answered: changes.load(Ordering::SeqCst),
             setting_trouble: None,
             adapter_version: None,
@@ -1141,8 +1142,12 @@ impl Shared {
                     self.emit_all(&mut inner, events);
                     let mode = inner.normalizer.take_mode();
                     let settings = inner.normalizer.take_settings();
-                    if mode.is_none() && settings.is_none() {
+                    let commands = inner.normalizer.take_commands();
+                    if mode.is_none() && settings.is_none() && commands.is_none() {
                         return;
+                    }
+                    if let Some(commands) = commands {
+                        inner.status.commands = commands;
                     }
                     if let Some(mode) = mode {
                         inner.show_mode(mode);
@@ -1589,6 +1594,7 @@ mod tests {
                 mode: None,
                 modes: Vec::new(),
                 config: Vec::new(),
+                commands: Vec::new(),
                 answered: 0,
                 setting_trouble: None,
                 adapter_version: None,

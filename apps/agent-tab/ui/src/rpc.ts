@@ -38,6 +38,8 @@ export const cancel = () => invoke<object>("agent-tab/cancel");
 export const answer = (itemId: string, optionId: string) =>
   invoke<object>("agent-tab/answer", { itemId, optionId });
 export const reset = () => invoke<object>("agent-tab/reset");
+/** Starts the harness's own sign-in in the browser; `onLogin` hears how it ended. */
+export const login = () => invoke<object>("agent-tab/login");
 /**
  * Queues the change and answers with its number. The first status whose
  * `answered` reaches that number shows what the agent chose.
@@ -67,6 +69,16 @@ export const MODELS = "agent-tab:models";
 
 /** A harness's agent has said which models it offers: `harnesses` now lists them. */
 export const onModels = (cb: () => void) => on(MODELS, () => cb());
+
+/** Mirrors `apps::agent_tab::LOGIN`. */
+export const LOGIN = "agent-tab:login";
+
+/** The sign-in this tab started has ended, signed in or not. */
+export const onLogin = (cb: (harness: Harness, ok: boolean) => void) =>
+  on(LOGIN, (payload) => {
+    const { harness, ok } = payload as { harness: Harness; ok: boolean };
+    cb(harness, ok);
+  });
 
 /** A refusal's `data`: which refusal, and the hint that explains it. */
 export interface Refusal {

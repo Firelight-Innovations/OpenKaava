@@ -10,7 +10,7 @@
   max-height: 280px;
   overflow-y: auto;
   border: 1px solid var(--k-input-border);
-  border-radius: var(--k-radius-control);
+  border-radius: var(--k-radius-composer);
   background: var(--k-raised-bg);
   box-shadow: var(--k-shadow-menu);
 }
@@ -18,10 +18,10 @@
 .at-menu__item {
   display: flex;
   align-items: baseline;
-  gap: var(--k-space-2);
+  gap: var(--k-space-3);
   min-height: var(--k-row);
-  padding: var(--k-space-0-5) var(--k-space-2);
-  border-radius: var(--k-radius-sm);
+  padding: var(--k-space-1) var(--k-space-3);
+  border-radius: var(--k-radius-control);
   cursor: pointer;
 }
 
@@ -34,7 +34,9 @@
 }
 
 .at-menu__label {
+  flex-shrink: 0;
   color: var(--k-editor-fg);
+  white-space: nowrap;
 }
 
 .at-menu__detail {

@@ -32,6 +32,7 @@ import type {
   SessionStatus,
   SettingTrouble,
 } from "./protocol.generated";
+import { completion, isLogin, matching, offered } from "./commands";
 import { harnessChoices, type RunningModel } from "./harnesses";
 import { latestUsage } from "./meters";
 import {
@@ -96,11 +97,19 @@ export default function App() {
   const [attachFailed, setAttachFailed] = useState(false);
   const [pending, setPending] = useState<Pending | null>(null);
   const [harnessesFailed, setHarnessesFailed] = useState(false);
+  // The slash-command list: the row the keys are on, and the draft Esc closed it for.
+  const [menuRow, setMenuRow] = useState(0);
+  const [menuClosedFor, setMenuClosedFor] = useState<string | null>(null);
+  // What `/login` last said, shown under the transcript until the next prompt.
+  const [loginNote, setLoginNote] = useState<string | null>(null);
   // Counts the choices this tab has heard of. A `harnesses` reply asked for
   // before one is older than it, so it must not put back the harness it
   // replaced.
   const choices = useRef(0);
   const prompt = useRef<HTMLTextAreaElement | null>(null);
+  // The effect that hears a sign-in end runs once, so it reads the latest list from here.
+  const harnessesRef = useRef<HarnessInfo[]>([]);
+  harnessesRef.current = harnesses;
 
   // Envelopes are held until this answers, so a retry loses none of them.
   const attach = useCallback(
@@ -143,10 +152,16 @@ export default function App() {
     // The host asks each agent for its models after its first answer, and
     // says when they are in.
     const stopModels = rpc.onModels(() => void listHarnesses());
+    const stopLogin = rpc.onLogin((harness, ok) => {
+      const name = infoOf(harnessesRef.current, harness)?.name ?? "";
+      setLoginNote(ok ? strings.login.done(name) : strings.login.failed(name));
+      if (ok) void listHarnesses();
+    });
     return () => {
       stop();
       stopChosen();
       stopModels();
+      stopLogin();
     };
   }, [attach, heardChoice, listHarnesses]);
 
@@ -165,6 +180,17 @@ export default function App() {
     (text: string) => {
       if (text.trim() === "") return;
       setNotice(null);
+      // The sign-in is the host's, not a prompt: the agent never sees it.
+      if (isLogin(text)) {
+        setDraft("");
+        setLoginNote(strings.login.started(current?.name ?? ""));
+        rpc.login().catch((err: unknown) => {
+          setLoginNote(null);
+          setNotice(noticeOf(err, strings.login.notStarted, current));
+        });
+        return;
+      }
+      setLoginNote(null);
       rpc.send(text).then(
         // Only if the box still holds what was sent: the user may have typed
         // on while it was in flight, and a Retry sends an older prompt.
@@ -218,7 +244,36 @@ export default function App() {
   const onConfig = (configId: string, value: string) =>
     choose({ option: configId }, value, () => rpc.setConfig(configId, value));
 
+  const matches = matching(draft, offered(status?.commands ?? []));
+  const menuOpen = matches.length > 0 && menuClosedFor !== draft;
+  const row = Math.min(menuRow, matches.length - 1);
+  const pickCommand = (name: string) => {
+    const command = matches.find((c) => c.name === name);
+    if (command) setDraft(completion(command));
+  };
+
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (menuOpen && !event.nativeEvent.isComposing) {
+      const picked = matches[row];
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const step = event.key === "ArrowDown" ? 1 : -1;
+        setMenuRow((row + step + matches.length) % matches.length);
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMenuClosedFor(draft);
+        return;
+      }
+      // A command typed out in full, with no argument to give, sends as it is.
+      const complete = draft === `/${picked.name}` && picked.hint === null;
+      if (event.key === "Tab" || (event.key === "Enter" && !event.shiftKey && !complete)) {
+        event.preventDefault();
+        pickCommand(picked.name);
+        return;
+      }
+    }
     if (event.key === "Escape" && working) {
       event.preventDefault();
       stopTurn();
@@ -324,6 +379,7 @@ export default function App() {
               )}
               {pendingPrompt !== null && <S.UserMessage text={pendingPrompt} pending />}
               {hint && <S.Hint text={hintText(hint, session)} />}
+              {loginNote && <S.Note text={loginNote} />}
               {exited && state.items.length > 0 && (
                 <S.Note text={strings.exited(status.exitCode)} />
               )}
@@ -334,8 +390,26 @@ export default function App() {
               ref={prompt}
               value={draft}
               placeholder={working ? strings.promptBusy : strings.promptPlaceholder}
-              onChange={setDraft}
+              onChange={(text) => {
+                setDraft(text);
+                setMenuRow(0);
+              }}
               onKeyDown={onKeyDown}
+              menu={
+                menuOpen && (
+                  <S.SlashMenu
+                    label={strings.commands}
+                    items={matches.map((c) => ({
+                      id: c.name,
+                      label: c.name,
+                      detail: c.description,
+                    }))}
+                    activeId={matches[row].name}
+                    onPick={pickCommand}
+                  />
+                )
+              }
+              menuActiveId={menuOpen ? matches[row].name : null}
               notices={
                 <>
                   {attachFailed && (

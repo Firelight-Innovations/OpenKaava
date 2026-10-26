@@ -14,6 +14,8 @@ export function Composer({
   onChange,
   onKeyDown,
   notices,
+  menu,
+  menuActiveId,
   controls,
   meters,
   action,
@@ -21,6 +23,7 @@ export function Composer({
   return (
     <footer className="at-prompt">
       {notices}
+      {menu && <div className="at-prompt__menu">{menu}</div>}
       <div className="at-prompt__box">
         <textarea
           ref={ref}
@@ -29,6 +32,7 @@ export function Composer({
           placeholder={placeholder}
           value={value}
           rows={1}
+          aria-activedescendant={menuActiveId ? `menu-item-${menuActiveId}` : undefined}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={onKeyDown}
         />

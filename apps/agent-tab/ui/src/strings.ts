@@ -82,6 +82,14 @@ export const strings = {
   promptLabel: "Message the agent",
   promptPlaceholder: "Describe a task or ask a question",
   promptBusy: "The agent is working. Press Esc to stop it.",
+  commands: "Commands",
+  login: {
+    description: "Sign in to your account",
+    started: (name: string) => `Finish signing in to ${name} in your browser.`,
+    done: (name: string) => `Signed in to ${name}. Send a prompt to start a session.`,
+    failed: (name: string) => `Could not sign in to ${name}. Try /login again.`,
+    notStarted: "Could not start the sign-in.",
+  },
   modeSettings: {
     modeHint: "What the agent may do without asking you first (Shift+Tab switches)",
     later: "The mode and model appear once the session starts.",
@@ -152,7 +160,7 @@ export const strings = {
     adapterMissing: ({ name, setup }: HarnessWords) =>
       `The ${name} ACP adapter is not installed. Run \`${setup.adapterInstall}\` in a terminal.`,
     signedOut: ({ name, setup }: HarnessWords) =>
-      `${name} is not signed in. Run \`${setup.signIn}\` once in a terminal and sign in there. Kaava never signs you in.`,
+      `${name} is not signed in. Run \`${setup.signIn}\` once in a terminal, or type /login here.`,
     adapterVersion: ({ setup }: HarnessWords) =>
       `This build was tested with adapter ${setup.adapterVersion}. Another version may behave differently: \`${setup.adapterInstall}\`.`,
     outsideWorktree: () =>

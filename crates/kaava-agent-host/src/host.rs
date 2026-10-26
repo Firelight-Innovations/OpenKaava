@@ -426,6 +426,7 @@ mod tests {
             mode: None,
             modes: Vec::new(),
             config,
+            commands: Vec::new(),
             answered: 0,
             setting_trouble: None,
             adapter_version: None,

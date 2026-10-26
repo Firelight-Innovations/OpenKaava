@@ -70,8 +70,10 @@ These rules come from handoff §0 and design AGT-002 and AGT-004. Review refuses
 breaks one.
 
 - OpenKaava runs the user's own, unmodified binary, signed in by the user. It never reads, stores
-  or logs a token, and never starts a sign-in flow. `sign_in` is a command the user runs in their
-  own terminal.
+  or logs a token. It starts a sign-in only when the user types `/login` in the tab
+  (`agent-tab/login`): that runs the harness's own CLI sign-in (`claude auth login`, `codex login`),
+  which opens a browser and keeps its credentials itself, and nothing it prints is read. `sign_in`
+  is the same command for the user's own terminal.
 - ACP is the wire protocol. A harness without ACP gets a translating adapter behind the same
   `Adapter` trait, never a second UI.
 - The user installs the adapter, pinned to a tested version. Record that version in
