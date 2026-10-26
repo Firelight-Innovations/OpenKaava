@@ -502,6 +502,67 @@
   font: var(--type-caption);
 }
 
+/* --- the built-in skills panel ---------------------------------------------
+   One card per skill; its mode is an ordinary `.setting` row inside it. */
+
+.settings-skills {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-skills__skill {
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.settings-skills__skill:last-child {
+  border-bottom: 0;
+}
+
+.settings-skills__skill > .setting {
+  border-bottom: 0;
+}
+
+.settings-skills__name {
+  margin: 0;
+  color: var(--txt-primary);
+  font-family: var(--mono);
+}
+
+.settings-skills__description {
+  margin: 0 0 var(--space-2);
+  color: var(--txt-tertiary);
+  font: var(--type-caption);
+}
+
+.settings-skills__installs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--txt-tertiary);
+  font: var(--type-caption);
+}
+
+.settings-skills__install {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.settings-skills__harness {
+  color: var(--txt-secondary);
+  font-weight: 600;
+}
+
+.settings-skills__path {
+  color: var(--txt-placeholder);
+  font: var(--type-mono-meta);
+  overflow-wrap: anywhere;
+}
+
 /* --- the Google account panel ----------------------------------------------
    Ordinary `.setting` rows for the account and the client secret; see
    CloudAccountPanel.tsx for why they are not schema rows. */

@@ -34,6 +34,8 @@ pub mod keys {
     pub const DEVELOPER_MODE: &str = "developer.mode";
     pub const KEYS_COPILOT_ACTION: &str = "keys.copilotAction";
     pub const KEYS_COPILOT_GLOBAL: &str = "keys.copilotGlobal";
+    /// Named after the skill's folder, so `skills.rs` can find a skill's key.
+    pub const SKILLS_AGENT_READY_CANVAS: &str = "skills.agent-ready-canvas";
 }
 
 /// Every group the shell itself registers, in no particular order — `Group::order`
@@ -53,6 +55,7 @@ static GROUPS: &[&Group] = &[
     &CLOUD,
     &UPDATES,
     &MCP,
+    &SKILLS,
     &DEVELOPER,
 ];
 
@@ -722,6 +725,53 @@ static MCP: Group = Group {
     settings: MCP_SETTINGS,
 };
 
+// --- built-in skills --------------------------------------------------------
+//
+// One select per skill Veistra ships, read by `skills::mode` when an agent
+// session starts, and by `skills::sync` when it changes. The panel above the
+// rows (`BuiltInSkillsPanel.tsx`) draws each row inside its skill's card.
+
+static SKILL_MODES: &[SelectOption] = &[
+    SelectOption {
+        value: "auto",
+        label: "Auto",
+        description: "On for canvas work: the project has canvas files, the prompt names a \
+                      canvas, or a Design pane is open in the cluster.",
+    },
+    SelectOption {
+        value: "on",
+        label: "On",
+        description: "Every agent session gets it.",
+    },
+    SelectOption {
+        value: "off",
+        label: "Off",
+        description: "No session gets it, and Veistra removes the copies it installed.",
+    },
+];
+
+static SKILLS_SETTINGS: &[Setting] = &[Setting {
+    key: keys::SKILLS_AGENT_READY_CANVAS,
+    title: "agent-ready-canvas",
+    description: "Builds canvases out of named frames and groups, so a click or a comment hands \
+                  an agent whole objects.",
+    control: Control::Select {
+        default: "auto",
+        options: SKILL_MODES,
+    },
+    applies: Applies::Next {
+        what: "the next agent session",
+    },
+}];
+
+static SKILLS: Group = Group {
+    id: "skills",
+    title: "Built-in skills",
+    description: "Skills Veistra ships and gives to the agents it runs in agent tabs.",
+    order: 62,
+    settings: SKILLS_SETTINGS,
+};
+
 // --- developer --------------------------------------------------------------
 //
 // Read by `mcp::dev_mode`, which every registry method that lists, advertises
@@ -848,6 +898,7 @@ mod tests {
             (keys::MCP_WRITE_PROJECT_CONFIG, "bool"),
             (keys::UPDATES_CHECK_AUTOMATICALLY, "bool"),
             (keys::DEVELOPER_MODE, "bool"),
+            (keys::SKILLS_AGENT_READY_CANVAS, "string"),
         ] {
             let value = registry
                 .get(key)

@@ -31,6 +31,10 @@ agent tab ── agent-tab/* ── AgentHost ── Adapter ── harness proc
   ACP, for every descriptor whose `protocol` is `Protocol::Acp`. A harness that does not speak ACP
   gets its own type that implements `Adapter` and translates, and a new `Protocol` variant that
   `AgentHost::send` maps to that type.
+- **Built-in skills.** A descriptor's `skills` (`SkillDelivery`) says how Veistra's built-in
+  skills reach the harness: a per-session plugin folder (Claude), a marked copy in the harness's
+  user skills folder (Codex), or a hint in the first prompt. `src-tauri/src/skills.rs` picks the
+  skills and puts the files in place; a new harness only chooses a variant.
 - **`agent-tab/harnesses`.** It answers one `HarnessInfo` per descriptor, with these fields:
   - the harness's name
   - what stands in its way, as a `Hint`

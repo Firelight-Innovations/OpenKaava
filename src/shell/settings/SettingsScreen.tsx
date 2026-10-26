@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import SettingRow from "./SettingRow";
 import McpPanel from "./McpPanel";
 import CloudAccountPanel from "./CloudAccountPanel";
+import BuiltInSkillsPanel from "./BuiltInSkillsPanel";
 import { settingsBackdrop, settingsScreen } from "../motion";
 import { closeSettings } from "../settingsSurface";
 import { X } from "lucide-react";
@@ -26,14 +27,14 @@ import "./settings.css";
  * `settings.css` spells out both.
  *
  * Nothing below is per-setting: every row comes from the schema Rust publishes,
- * so adding a setting is a Rust-only edit. The MCP panel and the Google account
- * panel are the two exceptions; `McpPanel.tsx` and `CloudAccountPanel.tsx` say
- * why.
+ * so adding a setting is a Rust-only edit. The MCP, Google account and
+ * built-in skills panels are the exceptions; each file says why.
  */
 
 /** The sections that get an extra panel. The only ids this file knows. */
 const MCP_GROUP = "mcp";
 const CLOUD_GROUP = "cloud";
+const SKILLS_GROUP = "skills";
 
 export default function SettingsScreen({
   session,
@@ -265,9 +266,14 @@ function Section({ group, session }: { group: SettingsGroup; session: SettingsSe
       {group.id === MCP_GROUP && <McpPanel />}
       {group.id === CLOUD_GROUP && <CloudAccountPanel />}
 
-      {group.settings.map((setting) => (
-        <SettingRow key={setting.key} setting={setting} session={session} />
-      ))}
+      {/* The skills panel draws each mode row inside its skill's card. */}
+      {group.id === SKILLS_GROUP ? (
+        <BuiltInSkillsPanel group={group} session={session} />
+      ) : (
+        group.settings.map((setting) => (
+          <SettingRow key={setting.key} setting={setting} session={session} />
+        ))
+      )}
     </>
   );
 }
