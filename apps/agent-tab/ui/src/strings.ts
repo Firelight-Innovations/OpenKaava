@@ -65,8 +65,6 @@ export const strings = {
   stopTurn: "Stop",
   stopTurnHint: "Stop the current turn (Esc)",
   send: "Send",
-  sendGlyph: "↑",
-  stopGlyph: "■",
   mode: "Mode",
   settings: "Agent settings",
   /** Joins the settings on the button: "Claude · Opus 5.5 · High". */
@@ -103,6 +101,8 @@ export const strings = {
     title: "Skills",
     description: "Enable a skill for this message",
     empty: "No skills found for this harness",
+    search: "Search skills",
+    noMatch: "No matching skills",
     back: "Back",
     selected: "Skill enabled",
   },
@@ -126,15 +126,34 @@ export const strings = {
   inTerminal: "Open in terminal",
   openedTerminal: (name: string) =>
     `Opened a new ${name} terminal session. This conversation stays here.`,
-  searchInScope: "Type after @ to search this context source.",
   searchFiles: "Search project files…",
   searchFrames: "Search design frames…",
   searchCanvases: "Search canvases…",
   searchComments: "Search comments…",
   searchSaved: "Search saved context…",
+  /** The @ menu's heading while it searches one source. */
+  scopeTitle: {
+    file: "Files",
+    canvas: "Canvases",
+    frame: "Frames",
+    comment: "Comments",
+    "design-comment": "Design comments",
+    context: "Saved context",
+  } as Record<string, string>,
+  issues: {
+    jira: "Jira",
+    linear: "Linear",
+    placeholder: {
+      jira: "https://your-team.atlassian.net/browse/KEY-123",
+      linear: "https://linear.app/your-team/issue/KEY-123",
+    } as Record<string, string>,
+    title: (provider: string) =>
+      `Add a ${provider === "jira" ? "Jira" : provider === "linear" ? "Linear" : "issue"} link`,
+  },
   issueLink: "Add issue link",
-  issueLinkHint: "Add a Jira or Linear link. The agent uses its own access to read it.",
-  addContext: "Add context",
+  issueLinkHint:
+    "Paste the issue's URL. No account is connected: the agent opens the link with its own access.",
+  addContext: "Add link",
   cancel: "Cancel",
   preferences: {
     harness: "Harness",
@@ -167,6 +186,7 @@ export const strings = {
     label: "Project context",
     searching: "Searching project context…",
     empty: "No matching project context",
+    typeToSearch: "Type to search",
     failed: "Could not search project context. Try typing @ again.",
   },
   btw: {
@@ -241,8 +261,22 @@ export const strings = {
     cancelled: "Withdrawn",
     outside: "Refused: it named a file outside this worktree",
   },
-  plan: "Plan",
-  planGlyph: { pending: "○", in_progress: "◐", completed: "●" } as Record<string, string>,
+  plan: {
+    title: "Tasks",
+    count: (done: number, total: number) => `${done} of ${total}`,
+    status: { pending: "To do", in_progress: "In progress", completed: "Done" } as Record<
+      string,
+      string
+    >,
+  },
+  /** The running line under a working turn: what the agent is at, and for how long. */
+  activity: {
+    running: (command: string) => `Running ${command}`,
+    elapsed: (ms: number) => {
+      const s = Math.max(0, Math.floor(ms / 1000));
+      return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
+    },
+  },
   usage: (used: number, size: number) =>
     `Context: ${used.toLocaleString()} of ${size.toLocaleString()} tokens`,
   diffAdded: (n: number) => `+${n}`,

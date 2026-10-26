@@ -45,10 +45,11 @@ export function ItemView({
       return <ToolItem tool={kind} />;
     case "approval":
       return <ApprovalItem id={item.id} approval={kind} onAnswer={actions.onAnswer} />;
+    // The plan is pinned over the composer and the usage is the composer's
+    // context ring, so neither repeats in the transcript.
     case "plan":
-      return <S.TodoList entries={kind.entries} />;
     case "usage":
-      return <S.Usage used={kind.used} size={kind.size} />;
+      return null;
     case "error":
       return (
         <S.ErrorItem

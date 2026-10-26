@@ -1,3 +1,4 @@
+import { Square } from "lucide-react";
 import { strings } from "../strings";
 import type { StopButtonProps } from "./types";
 import "./composer.css";
@@ -12,7 +13,7 @@ export function StopButton({ onClick }: StopButtonProps) {
       title={strings.stopTurnHint}
       onClick={onClick}
     >
-      <span aria-hidden="true">{strings.stopGlyph}</span>
+      <Square size={10} fill="currentColor" strokeWidth={0} aria-hidden="true" />
     </button>
   );
 }

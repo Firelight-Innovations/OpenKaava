@@ -52,9 +52,22 @@ function sectionOf(
   };
 }
 
-/** Every item, locked ones too: they stay focusable so a screen reader can read them. */
-function itemsIn(menu: HTMLElement | null): HTMLButtonElement[] {
-  return [...(menu?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? [])];
+/**
+ * Every item the arrows step through, locked ones too: they stay focusable so a
+ * screen reader can read them. The effort slider is one stop on the way; its
+ * stop names are for the pointer and are left out.
+ */
+function itemsIn(menu: HTMLElement | null): HTMLElement[] {
+  return [
+    ...(menu?.querySelectorAll<HTMLElement>(
+      'button:not(:disabled):not([tabindex="-1"]), input[type="range"]:not(:disabled)',
+    ) ?? []),
+  ];
+}
+
+/** A locked section whose one row is a sentence, such as why it is empty: drawn as a note. */
+function isNote(section: PickerProps, choices: PickerChoice[]): boolean {
+  return section.disabled === true && choices.length === 1 && choices[0].value === "";
 }
 
 /**
@@ -97,14 +110,23 @@ export function ModelMenu({
       items[0]
     )?.focus();
     const away = (event: PointerEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false);
+      if (root.current?.contains(event.target as Node)) return;
+      setOpen(false);
+      setMore(false);
+      setBrowsing(null);
     };
     document.addEventListener("pointerdown", away);
     return () => document.removeEventListener("pointerdown", away);
   }, [open]);
 
-  const close = () => {
+  /** Closes the menu, forgetting what was browsed in it. */
+  const dismiss = () => {
     setOpen(false);
+    setMore(false);
+    setBrowsing(null);
+  };
+  const close = () => {
+    dismiss();
     button.current?.focus();
   };
 
@@ -113,7 +135,7 @@ export function ModelMenu({
   const onKeyDown = (event: KeyboardEvent<HTMLSpanElement>) => {
     if (!open) return;
     const items = itemsIn(menu.current);
-    const at = items.indexOf(document.activeElement as HTMLButtonElement);
+    const at = items.indexOf(document.activeElement as HTMLElement);
     const go = (i: number) => items[(i + items.length) % items.length]?.focus();
     switch (event.key) {
       case "Escape":
@@ -140,7 +162,9 @@ export function ModelMenu({
         go(items.length - 1);
         break;
       case "Tab":
-        setOpen(false);
+        // Focus would otherwise fall out of the page with the menu.
+        event.preventDefault();
+        close();
         break;
     }
   };
@@ -176,10 +200,10 @@ export function ModelMenu({
         aria-controls={open ? id : undefined}
         aria-label={[label, ...shown].join(strings.settingsSpoken)}
         title={label}
-        onClick={() => setOpen((was) => !was)}
+        onClick={() => (open ? dismiss() : setOpen(true))}
       >
         <span className="at-model__value">{shown.join(strings.settingsJoin)}</span>
-        <ChevronDown size={12} strokeWidth={2} aria-hidden="true" />
+        <ChevronDown size={12} aria-hidden="true" />
       </button>
       {open && (
         <div
@@ -234,6 +258,7 @@ export function ModelMenu({
             const choices = choicesOf(section);
             if (choices.length === 0) return null;
             const locked = !section.onChange || section.disabled === true;
+            const note = isNote(section, choices);
             return (
               <div
                 key={section.label}
@@ -255,16 +280,18 @@ export function ModelMenu({
                       role="menuitemradio"
                       aria-checked={checked}
                       aria-disabled={locked}
-                      className="at-model__item"
+                      className={note ? "at-model__item at-model__item--note" : "at-model__item"}
                       onClick={() => {
                         if (locked) return;
                         if (!checked) section.onChange?.(choice.value);
                         close();
                       }}
                     >
-                      <span className="at-model__check">
-                        {checked && <Check size={14} strokeWidth={2} aria-hidden="true" />}
-                      </span>
+                      {!note && (
+                        <span className="at-model__check">
+                          {checked && <Check size={14} aria-hidden="true" />}
+                        </span>
+                      )}
                       <span className="at-model__name">{choice.name || choice.value}</span>
                       {choice.description && (
                         <span className="at-model__detail">{choice.description}</span>
@@ -283,7 +310,7 @@ export function ModelMenu({
                       onClick={() => setMore((was) => !was)}
                     >
                       {more ? strings.preferences.less : strings.preferences.more}
-                      <ChevronDown size={13} aria-hidden="true" />
+                      <ChevronDown size={12} aria-hidden="true" />
                     </button>
                   )}
               </div>

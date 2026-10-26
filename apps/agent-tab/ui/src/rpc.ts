@@ -40,8 +40,10 @@ export const openHistory = (id: string, harness?: Harness) =>
 export const archiveHistory = (id: string, archived: boolean) =>
   invoke<object>("agent-tab/history-archive", { id, archived });
 /** Sends to the tab's current harness: the running agent's, else the one chosen. */
-export const send = (text: string, preferences?: { effort: string | null; ultracode: boolean }) =>
-  invoke<object>("agent-tab/send", preferences ? { text, ...preferences } : { text });
+export const send = (
+  text: string,
+  preferences?: { effort: string | null; ultracode: boolean; mode?: string },
+) => invoke<object>("agent-tab/send", preferences ? { text, ...preferences } : { text });
 export const searchContext = (query: string, kinds?: string[]) =>
   invoke<{ items: MentionHit[] }>("refs/search", { query, kinds, limit: 50 });
 export const contextSources = () =>

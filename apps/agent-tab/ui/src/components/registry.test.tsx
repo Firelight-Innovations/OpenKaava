@@ -173,7 +173,6 @@ describe("the slot registry", () => {
       "ActionGroup",
       "Approval",
       "TodoList",
-      "Usage",
       "ErrorItem",
       "Hint",
       "Note",
@@ -185,6 +184,8 @@ describe("the slot registry", () => {
     ]) {
       expect(shown, name).toContain(name);
     }
+    // The usage item is the composer's context ring, not a line in the transcript.
+    expect(shown).not.toContain("Usage");
   });
 
   it("puts the settings and the latest usage in the composer's footer", async () => {

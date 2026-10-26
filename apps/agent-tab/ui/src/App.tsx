@@ -29,6 +29,8 @@ import type {
   Harness,
   HarnessInfo,
   Hint,
+  Item,
+  PlanEntry,
   SessionStatus,
   SettingTrouble,
 } from "./protocol.generated";
@@ -62,6 +64,9 @@ import { withChips, type ContextChip } from "./mentions";
 import { useMentions } from "./useMentions";
 import { useSideChat } from "./useSideChat";
 import { EFFORT_LEVELS } from "./preferences";
+
+/** A search scope's glyph in the @ menu, where it differs from the scope's own name. */
+const SCOPE_GLYPH: Record<string, string> = { file: "folder", "design-comment": "comment" };
 
 type Action =
   { type: "attached"; attachment: Attachment } | { type: "envelope"; envelope: Envelope };
@@ -107,19 +112,37 @@ export default function App() {
   const [menuClosedFor, setMenuClosedFor] = useState<string | null>(null);
   // What `/login` last said, shown under the transcript until the next prompt.
   const [loginNote, setLoginNote] = useState<string | null>(null);
+  /** Cluster transcripts still being copied into chips; Send waits for them. */
+  const [capturing, setCapturing] = useState(0);
   const [effort, setEffort] = useState<string | null>(null);
   const [ultracode, setUltracode] = useState(false);
+  // The mode each harness's next session starts in, picked before it exists.
+  const [startModes, setStartModes] = useState<StartModes>({});
+  const pickStartMode = useCallback(
+    (harness: Harness, mode: string) => setStartModes((now) => ({ ...now, [harness]: mode })),
+    [],
+  );
+  // A pick is for the one session it starts. Once a session of that harness
+  // has entered its mode, the agent's mode is the one to follow, and a later
+  // session asks first again unless the user picks again. Heard from each
+  // status as it comes, since a render may fold Ready and Stopped into one.
+  const heardStatus = useCallback((envelope: Envelope) => {
+    if (envelope.event.type !== "status") return;
+    const { harness, state } = envelope.event.status;
+    if (state === "starting" || state === "stopped" || state === "failed") return;
+    setStartModes((now) => (now[harness] === undefined ? now : { ...now, [harness]: undefined }));
+  }, []);
   const [settingsRequest, setSettingsRequest] = useState(0);
   const [caret, setCaret] = useState(0);
   const [chips, setChips] = useState<ContextChip[]>([]);
-  const [previewEffort, setPreviewEffort] = useState<string | null>(null);
   const [sources, setSources] = useState<Awaited<ReturnType<typeof rpc.contextSources>>>({
     clusters: [],
     issues: [],
   });
   const [contextScope, setContextScope] = useState<string | null>(null);
   const mentions = useMentions(draft, caret, contextScope);
-  const [issuePicker, setIssuePicker] = useState(false);
+  /** The issue tracker whose link form is open, `jira` or `linear`, or none. */
+  const [issuePicker, setIssuePicker] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [savedSessions, setSavedSessions] = useState<rpc.SavedSession[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -187,7 +210,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const stop = rpc.onEnvelope((envelope) => dispatch({ type: "envelope", envelope }));
+    const stop = rpc.onEnvelope((envelope) => {
+      dispatch({ type: "envelope", envelope });
+      heardStatus(envelope);
+    });
     const stopChosen = rpc.onChosen(heardChoice);
     void attach().finally(() => reportPainted());
     void listHarnesses();
@@ -209,7 +235,7 @@ export default function App() {
       stopModels();
       stopLogin();
     };
-  }, [attach, heardChoice, listHarnesses]);
+  }, [attach, heardChoice, heardStatus, listHarnesses]);
 
   const status = state.status;
   const working = busy(status);
@@ -295,13 +321,19 @@ export default function App() {
         });
         return;
       }
+      // A cluster's chip is still being copied: sending now would leave it out.
+      if (!retry && capturing > 0) return;
       setLoginNote(null);
       const sentChips = retry ? [] : chips;
+      const ultra = ultracode && current?.harness === "claude";
+      // Only a session about to start takes a mode; ask-first is where it starts anyway.
+      const picked = running ? null : startMode(current, startModes);
+      const mode = picked !== null && picked !== current?.askFirst ? picked : undefined;
       rpc
         .send(
           withChips(text, sentChips),
-          effort !== null || (ultracode && current?.harness === "claude")
-            ? { effort, ultracode: ultracode && current?.harness === "claude" }
+          effort !== null || ultra || mode !== undefined
+            ? { effort, ultracode: ultra, ...(mode === undefined ? {} : { mode }) }
             : undefined,
         )
         .then(
@@ -314,7 +346,19 @@ export default function App() {
           (err: unknown) => setNotice(noticeOf(err, strings.failed.send, current)),
         );
     },
-    [current, effort, ultracode, status, askSide, chips, reportedCommands, running, chosen],
+    [
+      current,
+      effort,
+      ultracode,
+      status,
+      askSide,
+      chips,
+      capturing,
+      reportedCommands,
+      running,
+      chosen,
+      startModes,
+    ],
   );
 
   // A harness and one of its models, `null` for the agent's default. The host
@@ -361,15 +405,41 @@ export default function App() {
   const onConfig = (configId: string, value: string) =>
     choose({ option: configId }, value, () => rpc.setConfig(configId, value));
 
+  // "/skills " opens the skill list as a search: what follows it narrows the
+  // list by name or description, names first.
   const skillsOpen = /^\/skills(?:\s|$)/.test(draft);
-  const skillQuery = draft.replace(/^\/skills\s*/, "").toLowerCase();
+  const skillSearch = draft.replace(/^\/skills\s*/, "");
+  const skillQuery = skillSearch.trim().toLowerCase();
+  const nameHit = (s: { name: string }) => s.name.toLowerCase().includes(skillQuery);
   const matches = skillsOpen
     ? skillList
-        .filter((s) => s.name.toLowerCase().includes(skillQuery))
+        .filter((s) => nameHit(s) || s.description.toLowerCase().includes(skillQuery))
+        .sort((a, b) => Number(nameHit(b)) - Number(nameHit(a)))
         .map((s) => ({ ...s, support: "agent" as const }))
     : matching(draft, offered(reportedCommands, running ?? chosen ?? "claude"));
-  const mentionOpen = mentions.query !== null && menuClosedFor !== draft;
-  const menuOpen = !mentionOpen && matches.length > 0 && menuClosedFor !== draft;
+  // The issue-link form covers both menus, so neither takes keys while it is open.
+  const mentionOpen = issuePicker === null && mentions.query !== null && menuClosedFor !== draft;
+  const menuOpen =
+    issuePicker === null &&
+    !mentionOpen &&
+    (matches.length > 0 || skillsOpen) &&
+    menuClosedFor !== draft;
+  const openSkills = () => {
+    setDraft("/skills ");
+    setCaret(8);
+    setMenuPath([]);
+    setMenuRow(0);
+    requestAnimationFrame(() => {
+      prompt.current?.focus();
+      prompt.current?.setSelectionRange(8, 8);
+    });
+  };
+  const leaveSkills = () => {
+    setDraft("/");
+    setCaret(1);
+    setMenuRow(0);
+    requestAnimationFrame(() => prompt.current?.focus());
+  };
   const pickCommand = (name: string) => {
     if (name.startsWith("skill:")) {
       const skill = skillList.find((s) => s.name === name.slice(6));
@@ -415,10 +485,18 @@ export default function App() {
         if (count) setMenuRow((Math.min(menuRow, count - 1) + step + count) % count);
         return;
       }
+      if (skillsOpen && event.key === "ArrowLeft" && skillSearch === "") {
+        event.preventDefault();
+        leaveSkills();
+        return;
+      }
       if (event.key === "Escape" || (event.key === "ArrowLeft" && menuPath.length)) {
         event.preventDefault();
         if (menuPath.length) {
           setMenuPath(menuPath.slice(0, -1));
+          setMenuRow(0);
+        } else if (mentionOpen && contextScope) {
+          setContextScope(null);
           setMenuRow(0);
         } else setMenuClosedFor(draft);
         return;
@@ -437,7 +515,11 @@ export default function App() {
           (event.key === "Enter" && !event.shiftKey && !complete))
       ) {
         event.preventDefault();
-        if (picked.children) {
+        // A hit left over from an earlier query is not what was typed; wait for this one's.
+        if (mentionOpen && mentions.pending && mentions.items.some((h) => h.uri === picked.id))
+          return;
+        if (menuOpen && picked.id === "skills") openSkills();
+        else if (picked.children) {
           setMenuPath([...menuPath, picked.id]);
           setMenuRow(0);
         } else {
@@ -446,6 +528,12 @@ export default function App() {
           setMenuPath([]);
           setMenuRow(0);
         }
+        return;
+      }
+      // An open @ picker with nothing to pick yet (searching, or no hits)
+      // swallows Enter rather than sending the half-typed "@query".
+      if (mentionOpen && event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
         return;
       }
     }
@@ -461,6 +549,12 @@ export default function App() {
       if (next === null) return;
       event.preventDefault();
       if (!event.repeat) onMode(next);
+    } else if (event.key === "Tab" && event.shiftKey && !running && current?.modes?.length) {
+      // Before the session, it switches the mode that session will start in.
+      const next = nextMode(current.modes, startMode(current, startModes));
+      if (next === null) return;
+      event.preventDefault();
+      if (!event.repeat) pickStartMode(current.harness, next);
     } else if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       if (!working || /^\/(btw|model|effort|login|clear|new|reset|stop|help)(?:\s|$)/.test(draft))
@@ -500,10 +594,36 @@ export default function App() {
     setTurns({ items: state.items, turns: toTurns(state.items, turns.turns) });
   }
   const waiting = state.status?.state === "needsInput";
+  // The running line under a turn: the tool call still going, by its title,
+  // and a clock from the turn's prompt that stops when the turn does.
+  let lastPrompt: string | undefined;
+  for (const item of state.items) if (item.kind.kind === "userMessage") lastPrompt = item.id;
+  const [since, setSince] = useState<number | undefined>(undefined);
+  useEffect(() => setSince(working ? Date.now() : undefined), [working, lastPrompt]);
+  const activity = useMemo(() => {
+    // A plan or usage update draws nothing, so the line reads past it.
+    let last: Item["kind"] | undefined;
+    for (const item of state.items)
+      if (item.kind.kind !== "plan" && item.kind.kind !== "usage") last = item.kind;
+    if (last?.kind !== "toolCall" || last.status === "completed" || last.status === "failed")
+      return undefined;
+    const title = last.title.replace(/`/g, "");
+    return last.toolKind === "execute" ? strings.activity.running(title) : title;
+  }, [state.items]);
   const lookup = useMemo(
-    () => ({ byId: new Map(state.items.map((item) => [item.id, item])), actions, waiting }),
-    [state.items, actions, waiting],
+    () => ({
+      byId: new Map(state.items.map((item) => [item.id, item])),
+      actions,
+      waiting,
+      activity,
+      since,
+    }),
+    [state.items, actions, waiting, activity, since],
   );
+  // The agent's to-do list stays pinned over the composer while a step is left.
+  let plan: PlanEntry[] | null = null;
+  for (const item of state.items) if (item.kind.kind === "plan") plan = item.kind.entries;
+  const openPlan = plan?.some((entry) => entry.status !== "completed") ? plan : null;
   const runtime = useExternalStoreRuntime({
     messages: turns.turns,
     convertMessage,
@@ -529,55 +649,69 @@ export default function App() {
         }
       : undefined;
   const pendingPrompt = typeof status?.pendingPrompt === "string" ? status.pendingPrompt : null;
-  const pickMention = (uri: string) => {
-    if (uri.startsWith("scope:")) {
-      setContextScope(uri.slice(6));
-      setLoginNote(strings.searchInScope);
-      return;
-    }
-    if (uri.startsWith("cluster:")) {
-      void rpc.clusterContext(uri.slice(8)).then(
-        (hit) => {
-          setChips((now) =>
-            now.some((c) => c.id === hit.uri)
-              ? now
-              : [...now, { id: hit.uri, label: hit.title, kind: hit.kind, uri: hit.uri }],
-          );
-          if (mentions.query) {
-            setDraft(draft.slice(0, mentions.query.start) + draft.slice(mentions.query.end));
-            setCaret(mentions.query.start);
-          }
-        },
-        () => setLoginNote(strings.mentions.failed),
-      );
-      return;
-    }
-    if (uri === "issue:link") {
-      setIssuePicker(true);
-      setMenuClosedFor(draft);
-      return;
-    }
-    const hit = [...mentions.items, ...sources.issues].find((h) => h.uri === uri);
-    if (!hit || !mentions.query) return;
-    setLoginNote(null);
+  /** Takes the `@query` being typed out of the draft and puts the caret back where it began. */
+  const dropMention = () => {
+    const query = mentions.query;
+    setMenuPath([]);
+    setMenuRow(0);
+    setContextScope(null);
+    if (!query) return;
+    setDraft(draft.slice(0, query.start) + draft.slice(query.end));
+    setCaret(query.start);
+    requestAnimationFrame(() => {
+      prompt.current?.focus();
+      prompt.current?.setSelectionRange(query.start, query.start);
+    });
+  };
+  const addChip = (hit: { uri: string; title: string; kind: string }) =>
     setChips((now) =>
       now.some((c) => c.id === hit.uri)
         ? now
         : [...now, { id: hit.uri, label: hit.title, kind: hit.kind, uri: hit.uri }],
     );
-    const next = {
-      text: draft.slice(0, mentions.query.start) + draft.slice(mentions.query.end),
-      caret: mentions.query.start,
-    };
-    setDraft(next.text);
-    setCaret(next.caret);
-    setMenuRow(0);
-    requestAnimationFrame(() => {
-      prompt.current?.focus();
-      prompt.current?.setSelectionRange(next.caret, next.caret);
-    });
+  const pickMention = (uri: string) => {
+    if (uri.startsWith("scope:")) {
+      setContextScope(uri.slice(6));
+      setMenuPath([]);
+      setMenuRow(0);
+      // What was typed named the scope, so its search starts empty.
+      const query = mentions.query;
+      if (query && query.end > query.start + 1) {
+        setDraft(draft.slice(0, query.start + 1) + draft.slice(query.end));
+        setCaret(query.start + 1);
+        requestAnimationFrame(() => {
+          prompt.current?.focus();
+          prompt.current?.setSelectionRange(query.start + 1, query.start + 1);
+        });
+      }
+      return;
+    }
+    if (uri.startsWith("issue:link:")) {
+      setIssuePicker(uri.slice(11));
+      setMenuClosedFor(draft);
+      return;
+    }
+    if (uri.startsWith("cluster:")) {
+      // The "@query" goes now, so nothing typed while the transcript is copied is lost;
+      // the chip follows when the copy is ready.
+      dropMention();
+      setCapturing((n) => n + 1);
+      void rpc
+        .clusterContext(uri.slice(8))
+        .then(addChip, () => setLoginNote(strings.mentions.failed))
+        .finally(() => setCapturing((n) => n - 1));
+      return;
+    }
+    const hit = [...mentions.items, ...sources.issues].find((h) => h.uri === uri);
+    if (!hit || !mentions.query) return;
+    setLoginNote(null);
+    addChip(hit);
+    dropMention();
   };
-  const sections = settingSections(status, live, onMode, onConfig);
+  // Before a session, the effort and, once discovery has listed them, the mode
+  // are the tab's own, sent with the prompt that starts it.
+  const start = running ? null : startSection(current, startModes, pickStartMode);
+  const sections = start ? [start] : settingSections(status, live, onMode, onConfig);
   if (!running)
     sections.unshift({
       label: strings.preferences.effort,
@@ -586,10 +720,8 @@ export default function App() {
       onChange: setEffort,
     });
   for (const section of sections)
-    if (section.label === strings.preferences.effort) {
+    if (section.label === strings.preferences.effort)
       section.choices = section.choices.filter((c) => c.value !== "ultra");
-      section.onPreview = setPreviewEffort;
-    }
   const workflow =
     live?.config.ultra_effort?.value ?? status?.config.find((o) => o.id === "ultra_effort")?.value;
   const ultraEnabled =
@@ -600,82 +732,148 @@ export default function App() {
   const contextItem = (h: (typeof mentions.items)[number]): MenuItem => ({
     id: h.uri,
     label: h.title,
-    detail: h.detail ?? h.kind,
+    detail: h.detail ?? undefined,
+    kind: h.kind,
   });
   const empty = (label: string): MenuItem[] => [{ id: `empty:${label}`, label, disabled: true }];
   const byKind = (kinds: string[]) =>
     mentions.items.filter((h) => kinds.includes(h.kind)).map(contextItem);
-  const group = (id: string, label: string, children: MenuItem[]): MenuItem => ({
+  const group = (id: string, label: string, kind: string, children: MenuItem[]): MenuItem => ({
     id,
     label,
+    kind,
     children: children.length ? children : empty(strings.mentions.empty),
   });
+  const scoped = (scope: string, label: string): MenuItem => ({
+    id: `scope:${scope}`,
+    label,
+    kind: "search",
+  });
+  /**
+   * One kind of context to browse: what the empty search already listed, then a
+   * row that searches the rest. With nothing listed the row is the search
+   * itself, so picking it does not open a level holding a single row.
+   */
+  const browse = (
+    id: string,
+    label: string,
+    kind: string,
+    listed: MenuItem[],
+    scope: string,
+    search: string,
+  ): MenuItem =>
+    listed.length
+      ? { id, label, kind, children: [...listed, scoped(scope, search)] }
+      : { ...scoped(scope, label), kind };
+  const issueLink = (provider: string): MenuItem => ({
+    id: `issue:link:${provider}`,
+    label: strings.issueLink,
+    kind: "issue",
+  });
+  // Typed at the top level, a kind's name offers its search above the hits: "@sav" finds Saved context.
+  const typed = contextScope ? "" : (mentions.query?.query ?? "").trim().toLowerCase();
+  const named = typed
+    ? Object.entries(strings.scopeTitle)
+        .filter(([, title]) =>
+          title
+            .toLowerCase()
+            .split(/\s+/)
+            .some((word) => word.startsWith(typed)),
+        )
+        .map(([scope, title]) => ({ ...scoped(scope, title), kind: SCOPE_GLYPH[scope] ?? scope }))
+    : [];
   const contextItems: MenuItem[] =
     mentions.query?.query || contextScope
-      ? mentions.items.map(contextItem)
+      ? [...named, ...mentions.items.map(contextItem)]
       : [
-          group("design", strings.contextGroups.design, [
-            group("canvases", strings.contextGroups.canvases, [
-              ...byKind(["canvas"]),
-              { id: "scope:canvas", label: strings.searchCanvases },
-            ]),
-            group("frames", strings.contextGroups.frames, [
-              ...byKind(["frame"]),
-              { id: "scope:frame", label: strings.searchFrames },
-            ]),
-            group("design-comments", strings.contextGroups.comments, [
-              ...byKind(["design-comment", "comment"]),
-              { id: "scope:design-comment", label: strings.searchComments },
-            ]),
+          group("design", strings.contextGroups.design, "design", [
+            browse(
+              "canvases",
+              strings.contextGroups.canvases,
+              "canvas",
+              byKind(["canvas"]),
+              "canvas",
+              strings.searchCanvases,
+            ),
+            browse(
+              "frames",
+              strings.contextGroups.frames,
+              "frame",
+              byKind(["frame"]),
+              "frame",
+              strings.searchFrames,
+            ),
+            browse(
+              "design-comments",
+              strings.contextGroups.comments,
+              "comment",
+              byKind(["design-comment", "comment"]),
+              "design-comment",
+              strings.searchComments,
+            ),
           ]),
-          group("pm", strings.contextGroups.pm, [
-            group("jira", "Jira", [
+          group("pm", strings.contextGroups.pm, "pm", [
+            group("jira", strings.issues.jira, "issue", [
               ...sources.issues
                 .filter((h) => /jira/i.test(`${h.title} ${h.detail}`))
                 .map(contextItem),
-              { id: "issue:link", label: strings.issueLink },
+              issueLink("jira"),
             ]),
-            group("linear", "Linear", [
+            group("linear", strings.issues.linear, "issue", [
               ...sources.issues
                 .filter((h) => /linear/i.test(`${h.title} ${h.detail}`))
                 .map(contextItem),
-              { id: "issue:link", label: strings.issueLink },
+              issueLink("linear"),
             ]),
           ]),
-          group(
-            "clusters",
-            strings.contextGroups.clusters,
-            sources.clusters.map((c) => ({ id: `cluster:${c.id}`, label: c.title })),
+          ...(sources.clusters.length
+            ? [
+                group(
+                  "clusters",
+                  strings.contextGroups.clusters,
+                  "cluster",
+                  sources.clusters.map((c) => ({
+                    id: `cluster:${c.id}`,
+                    label: c.title,
+                    kind: "cluster",
+                  })),
+                ),
+              ]
+            : []),
+          browse(
+            "files",
+            strings.contextGroups.files,
+            "folder",
+            byKind(["file", "folder"]),
+            "file",
+            strings.searchFiles,
           ),
-          group("files", strings.contextGroups.files, [
-            ...byKind(["file", "folder"]),
-            { id: "scope:file", label: strings.searchFiles },
-          ]),
-          group("comments", strings.contextGroups.comments, [
-            ...byKind(["comment", "design-comment"]),
-            { id: "scope:comment", label: strings.searchComments },
-          ]),
-          group("context", strings.contextGroups.context, [
-            ...byKind(["context"]),
-            { id: "scope:context", label: strings.searchSaved },
-          ]),
+          browse(
+            "comments",
+            strings.contextGroups.comments,
+            "comment",
+            byKind(["comment", "design-comment"]),
+            "comment",
+            strings.searchComments,
+          ),
+          browse(
+            "context",
+            strings.contextGroups.context,
+            "context",
+            byKind(["context"]),
+            "context",
+            strings.searchSaved,
+          ),
           ...byKind(["selection"]),
         ];
-  const skillItems = skillList.map((s) => ({
-    id: `skill:${s.name}`,
-    label: s.name.replace(/^\$/, ""),
-    detail: s.description,
-  }));
+  const scopeTitle = contextScope ? strings.scopeTitle[contextScope] : undefined;
   const slashItems: MenuItem[] = matches.map((c) => ({
     id: skillsOpen ? `skill:${c.name}` : c.name,
-    label: c.name,
+    label: skillsOpen ? c.name.replace(/^\$/, "") : c.name,
+    kind: skillsOpen || c.name === "skills" ? "skill" : "command",
     detail: `${c.description}${c.support === "terminal" ? ` · ${strings.inTerminal}` : ""}`,
-    children:
-      c.name === "skills"
-        ? skillItems.length
-          ? skillItems
-          : empty(strings.skills.empty)
-        : undefined,
+    // An empty list only for its arrow: opening it starts the skill search.
+    children: !skillsOpen && c.name === "skills" ? [] : undefined,
   }));
   let visibleItems = mentionOpen ? contextItems : slashItems;
   for (const id of menuPath) {
@@ -686,6 +884,7 @@ export default function App() {
   const navigable = visibleItems.filter((i) => !i.disabled);
   const menuActive = navigable[Math.min(menuRow, navigable.length - 1)]?.id ?? null;
   const changeMenuPath = (path: string[]) => {
+    if (menuOpen && path[0] === "skills") return openSkills();
     setMenuPath(path);
     setMenuRow(0);
   };
@@ -768,11 +967,15 @@ export default function App() {
               ref={prompt}
               chips={chips}
               onRemoveChip={(id) => setChips((now) => now.filter((c) => c.id !== id))}
-              effortLevel={previewEffort ?? effortValue}
+              effortLevel={effortValue}
               auxiliary={
                 issuePicker ? (
                   <S.ContextLink
-                    onCancel={() => setIssuePicker(false)}
+                    provider={issuePicker}
+                    onCancel={() => {
+                      setIssuePicker(null);
+                      dropMention();
+                    }}
                     onAdd={(link) => {
                       setChips((now) => [
                         ...now.filter((c) => c.id !== link),
@@ -783,23 +986,18 @@ export default function App() {
                           uri: link,
                         },
                       ]);
-                      setIssuePicker(false);
-                      if (mentions.query) {
-                        setDraft(
-                          draft.slice(0, mentions.query.start) + draft.slice(mentions.query.end),
-                        );
-                        setCaret(mentions.query.start);
-                      }
+                      setIssuePicker(null);
+                      dropMention();
                     }}
                   />
                 ) : undefined
               }
               value={draft}
               placeholder={working ? strings.promptBusy : strings.promptPlaceholder}
-              onChange={(text) => {
+              onChange={(text, at) => {
                 setDraft(text);
                 if (!text.includes("@")) setContextScope(null);
-                setCaret(text.length);
+                setCaret(at ?? text.length);
                 setMenuRow(0);
                 setMenuPath([]);
               }}
@@ -811,6 +1009,8 @@ export default function App() {
                 setDraft(next);
                 setCaret(at + prefix.length);
                 setMenuRow(0);
+                setMenuPath([]);
+                setContextScope(null);
                 setMenuClosedFor(null);
                 requestAnimationFrame(() => {
                   prompt.current?.focus();
@@ -818,13 +1018,23 @@ export default function App() {
                 });
               }}
               onDictate={() => {}}
-              contextNotice={mentionOpen ? mentions.note : null}
               sideChat={side.open ? <S.SideChat {...side.props} /> : undefined}
+              plan={openPlan ? <S.TodoList entries={openPlan} live={working} /> : undefined}
               onKeyDown={onKeyDown}
               menu={
                 mentionOpen ? (
                   <S.MentionMenu
                     label={strings.mentions.label}
+                    title={scopeTitle}
+                    status={named.length && !mentions.items.length ? null : mentions.note}
+                    onBack={
+                      contextScope
+                        ? () => {
+                            setContextScope(null);
+                            setMenuRow(0);
+                          }
+                        : undefined
+                    }
                     items={contextItems}
                     activeId={menuActive}
                     path={menuPath}
@@ -835,6 +1045,20 @@ export default function App() {
                   menuOpen && (
                     <S.SlashMenu
                       label={strings.commands}
+                      title={skillsOpen ? strings.skills.title : undefined}
+                      search={
+                        skillsOpen
+                          ? { query: skillSearch, placeholder: strings.skills.search }
+                          : undefined
+                      }
+                      status={
+                        skillsOpen && !matches.length
+                          ? skillList.length
+                            ? strings.skills.noMatch
+                            : strings.skills.empty
+                          : null
+                      }
+                      onBack={skillsOpen ? leaveSkills : undefined}
                       items={slashItems}
                       activeId={menuActive}
                       path={menuPath}
@@ -903,7 +1127,7 @@ export default function App() {
                   <S.StopButton onClick={stopTurn} />
                 ) : (
                   <S.SendButton
-                    disabled={draft.trim() === "" && chips.length === 0}
+                    disabled={(draft.trim() === "" && chips.length === 0) || capturing > 0}
                     onClick={() => submit(draft)}
                   />
                 )
@@ -921,14 +1145,54 @@ function modelOption(status: SessionStatus | null): ConfigOption | null {
   return (status && pickers(status).find((o) => o.category === "model")) ?? null;
 }
 
+/** The mode each harness's next session is to start in, as the user picked it. */
+type StartModes = Partial<Record<Harness, string>>;
+
+/**
+ * The mode `info`'s next session starts in: the pick, if its agent still
+ * offers it, else its ask-first mode. `null` until discovery has listed the
+ * modes.
+ */
+function startMode(info: HarnessInfo | undefined, picks: StartModes): string | null {
+  const modes = info?.modes ?? [];
+  if (info === undefined || modes.length === 0) return null;
+  const pick = picks[info.harness];
+  if (pick !== undefined && modes.some((m) => m.value === pick)) return pick;
+  return info.askFirst ?? modes[0].value;
+}
+
+/**
+ * The mode section before a session exists (owner decision D2 starts one on
+ * the first send): the modes discovery found for the harness it will run, so
+ * switching harness switches the list. The pick goes with the first prompt,
+ * and the host enters it once the session has confirmed ask-first. `null`
+ * until the host has asked that agent; `settingSections` speaks for it then.
+ */
+function startSection(
+  info: HarnessInfo | undefined,
+  picks: StartModes,
+  onPick: (harness: Harness, mode: string) => void,
+): PickerProps | null {
+  const value = startMode(info, picks);
+  if (info === undefined || value === null) return null;
+  return {
+    label: strings.mode,
+    title: strings.modeSettings.modeHint,
+    value,
+    choices: info.modes ?? [],
+    onChange: (mode: string) => onPick(info.harness, mode),
+  };
+}
+
 /**
  * The settings menu's sections after the harnesses: the effort, then the
- * mode, with the agent's own names, in its order. The agent reports them only
- * once its session exists, and owner decision D2 starts that on the first
- * send, so until then the menu says when they will appear. A new model can
- * bring other effort levels, or none, so those come from each status as the
- * agent lists them. A choice is shown at once (`live`, see `unanswered` in
- * model.ts) and stands until the status that answers it.
+ * mode, with the agent's own names, in its order. The agent reports them once
+ * its session exists, and owner decision D2 starts that on the first send, so
+ * until then, unless discovery listed the modes (`startSection`), the menu
+ * says when they will appear. A new model can bring other effort levels, or
+ * none, so those come from each status as the agent lists them. A choice is
+ * shown at once (`live`, see `unanswered` in model.ts) and stands until the
+ * status that answers it.
  */
 function settingSections(
   status: SessionStatus | null,

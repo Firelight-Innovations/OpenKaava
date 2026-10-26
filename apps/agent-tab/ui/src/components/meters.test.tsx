@@ -5,6 +5,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { defaultSlots } from "./registry";
 import type { HarnessChoice, PickerProps } from "./types";
 
@@ -286,6 +287,44 @@ describe("compact preferences and friendly notices", () => {
     expect(onChange).toHaveBeenCalledWith("high");
   });
 
+  it("keeps focus on the slider when a stop name is clicked or the reset goes away", () => {
+    function Stateful() {
+      const [value, setValue] = useState("high");
+      return (
+        <defaultSlots.EffortPicker
+          label="Effort"
+          value={value}
+          choices={["low", "medium", "high"].map((v) => ({ value: v, name: v }))}
+          onChange={setValue}
+        />
+      );
+    }
+    render(<Stateful />);
+    const slider = screen.getByRole("slider", { name: "Effort" });
+    fireEvent.click(screen.getByRole("button", { name: "Low" }));
+    expect(document.activeElement).toBe(slider);
+    const reset = screen.getByRole("button", { name: "Reset effort" });
+    reset.focus();
+    fireEvent.click(reset);
+    // Back at Medium the reset has nothing to do and is gone; focus stays in the picker.
+    expect(screen.queryByRole("button", { name: "Reset effort" })).toBeNull();
+    expect(document.activeElement).toBe(slider);
+  });
+
+  it("previews only a stop that can be applied", () => {
+    const { container } = render(
+      <defaultSlots.EffortPicker
+        label="Effort"
+        value="low"
+        choices={[{ value: "low", name: "Low" }]}
+        onChange={vi.fn()}
+      />,
+    );
+    const level = () => container.querySelector(".at-effort")?.getAttribute("data-level");
+    fireEvent.pointerEnter(screen.getByRole("button", { name: "Max" }));
+    expect(level()).toBe("low");
+  });
+
   it("includes Ultra as a Claude slider stop that changes the current conversation", () => {
     const onChange = vi.fn();
     render(
@@ -395,7 +434,8 @@ describe("the context meter", () => {
 
   it("shows how full the window is, and what is used and free", () => {
     render(<ContextMeter used={124_600} size={300_000} />);
-    expect(screen.getByRole("button", { name: "Context window 42% full" }).textContent).toBe("42%");
+    // A ring alone, as Claude Code draws it; the share is in its name and its card.
+    expect(screen.getByRole("button", { name: "Context window 42% full" }).textContent).toBe("");
     const card = screen.getByRole("tooltip", { hidden: true });
     expect(card.querySelector(".at-card__head")?.textContent).toBe(
       "Context window124.6k / 300k (42%)",
@@ -404,18 +444,22 @@ describe("the context meter", () => {
     expect(rows).toEqual(["Used124.6k42%", "Free space175.4k58%"]);
   });
 
-  it("fills its bar as far as the window is full, and no further", () => {
+  it("fills its ring as far as the window is full, and no further", () => {
+    const around = 2 * Math.PI * 6;
     const fill = (used: number) => {
       const { container } = render(<ContextMeter used={used} size={300_000} />);
-      const bar = container.querySelector<HTMLElement>(".at-minibar")!;
-      const width = bar.querySelector<HTMLElement>(".at-bar__fill")!.style.width;
+      const ring = container.querySelector<SVGElement>(".at-ring")!;
+      const dash = ring.querySelector(".at-ring__fill")!.getAttribute("stroke-dasharray")!;
       cleanup();
-      return [width, bar.getAttribute("data-tone")];
+      return [
+        Math.round((Number(dash.split(" ")[0]) / around) * 100),
+        ring.getAttribute("data-tone"),
+      ];
     };
-    expect(fill(124_600)).toEqual([`${(124_600 / 300_000) * 100}%`, "low"]);
-    expect(fill(255_000)).toEqual(["85%", "high"]);
-    expect(fill(288_000)).toEqual(["96%", "full"]);
-    expect(fill(400_000)).toEqual(["100%", "full"]);
+    expect(fill(124_600)).toEqual([42, "low"]);
+    expect(fill(255_000)).toEqual([85, "high"]);
+    expect(fill(288_000)).toEqual([96, "full"]);
+    expect(fill(400_000)).toEqual([100, "full"]);
   });
 
   it("breaks the used tokens down when the agent says what they are", () => {

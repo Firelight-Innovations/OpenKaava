@@ -1,13 +1,56 @@
 import { useEffect, useState } from "react";
-import { ChevronRight, ChevronLeft } from "lucide-react";
+import {
+  Bookmark,
+  ChevronLeft,
+  ChevronRight,
+  File,
+  FileText,
+  Folder,
+  Frame,
+  GitBranch,
+  SquareKanban,
+  Link,
+  MessageSquare,
+  MousePointer2,
+  Palette,
+  Search,
+  Shapes,
+  Slash,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import { strings } from "../strings";
 import type { MenuItem, MenuProps } from "./types";
 import "./menu.css";
+
+/** The glyph a row leads with, by what it is. Rows without a known kind get none. */
+const ICON: Record<string, LucideIcon> = {
+  design: Palette,
+  canvas: Shapes,
+  frame: Frame,
+  comment: MessageSquare,
+  "design-comment": MessageSquare,
+  pm: SquareKanban,
+  issue: Link,
+  cluster: GitBranch,
+  file: FileText,
+  folder: Folder,
+  context: Bookmark,
+  selection: MousePointer2,
+  search: Search,
+  skill: Sparkles,
+  command: Slash,
+  other: File,
+};
 
 /**
  * A popup list: slash commands, @ mentions. Presentational only; the caller
  * owns filtering, the active item and the keys, and passes `activeId` so the
  * input can point `aria-activedescendant` at `menu-item-<id>`.
+ *
+ * A nested list drills down in place, one level at a time, with the level's
+ * name and a back arrow at the top, so it never grows sideways out of a
+ * narrow pane.
  */
 export function Menu({
   label,
@@ -16,6 +59,10 @@ export function Menu({
   onPick,
   path: controlledPath,
   onPathChange,
+  title,
+  status,
+  search,
+  onBack,
 }: MenuProps) {
   const [localPath, setLocalPath] = useState<string[]>([]);
   const path = controlledPath ?? localPath;
@@ -27,86 +74,78 @@ export function Menu({
     if (activeId)
       document.getElementById(`menu-item-${activeId}`)?.scrollIntoView?.({ block: "nearest" });
   }, [activeId]);
-  if (items.length === 0) return null;
-  const levels: MenuItem[][] = [items];
+  if (items.length === 0 && !status) return null;
+  let list = items;
+  const trail: MenuItem[] = [];
   for (const id of path) {
-    const next = levels[levels.length - 1].find((i) => i.id === id)?.children;
-    if (!next) break;
-    levels.push(next);
+    const next = list.find((i) => i.id === id);
+    if (!next?.children) break;
+    trail.push(next);
+    list = next.children;
   }
-  const choose = (item: MenuItem, depth: number) => {
+  const heading = trail[trail.length - 1]?.label ?? title ?? label;
+  const back = trail.length > 0 ? () => setPath(path.slice(0, trail.length - 1)) : onBack;
+  const choose = (item: MenuItem) => {
     if (item.disabled) return;
-    if (item.children) setPath([...path.slice(0, depth), item.id]);
+    if (item.children) setPath([...path.slice(0, trail.length), item.id]);
     else onPick(item.id);
   };
   return (
-    <div
-      className="at-menu-shell"
-      data-nested={levels.length > 1 ? "" : undefined}
-      onKeyDown={(event) => {
-        const target = event.target as HTMLElement;
-        const list = target.closest("ul");
-        if (!list) return;
-        const rows = [...list.querySelectorAll<HTMLElement>(":scope > li")];
-        const at = rows.indexOf(target.closest("li")!);
-        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-          event.preventDefault();
-          rows[(at + (event.key === "ArrowDown" ? 1 : -1) + rows.length) % rows.length]?.focus();
-        } else if (event.key === "ArrowLeft" || event.key === "Escape") {
-          event.preventDefault();
-          event.stopPropagation();
-          setPath(path.slice(0, -1));
-        } else if (["ArrowRight", "Enter", " "].includes(event.key)) {
-          event.preventDefault();
-          target.closest<HTMLElement>("li")?.click();
-        }
-      }}
-    >
-      {levels.map((list, depth) => (
-        <ul
-          key={depth}
-          className="at-menu"
-          role="listbox"
-          aria-label={depth ? `${label} ${depth}` : label}
-        >
-          {depth > 0 && (
-            <li
-              className="at-menu__back"
-              role="option"
-              aria-selected={false}
-              tabIndex={-1}
-              onClick={() => setPath(path.slice(0, depth - 1))}
-            >
-              <ChevronLeft size={13} />
-              {strings.skills.back}
-            </li>
-          )}
-          {list.map((item) => (
-            <li
-              key={item.id}
-              id={`menu-item-${item.id}`}
-              role="option"
-              aria-selected={item.id === activeId}
-              aria-disabled={item.disabled}
-              aria-expanded={item.children ? path[depth] === item.id : undefined}
-              tabIndex={-1}
-              className={`at-menu__item${item.id === activeId ? " at-menu__item--active" : ""}`}
-              // Keeps focus in the input, so typing carries on after a pick.
-              onMouseDown={(event) => event.preventDefault()}
-              onMouseEnter={() => {
-                if (item.children) setPath([...path.slice(0, depth), item.id]);
-              }}
-              onClick={() => choose(item, depth)}
-            >
-              <span className="at-menu__label">{item.label}</span>
-              {item.detail && <span className="at-menu__detail">{item.detail}</span>}
-              {item.children && (
-                <ChevronRight className="at-menu__arrow" size={14} aria-hidden="true" />
-              )}
-            </li>
-          ))}
+    <div className="at-menu" data-nested={trail.length > 0 ? "" : undefined}>
+      <div className="at-menu__head">
+        {back && (
+          <button
+            type="button"
+            className="at-menu__back"
+            aria-label={strings.skills.back}
+            title={strings.skills.back}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={back}
+          >
+            <ChevronLeft size={14} aria-hidden="true" />
+          </button>
+        )}
+        <span className="at-menu__title">{heading}</span>
+      </div>
+      {search && trail.length === 0 && (
+        <div className="at-menu__search" data-empty={search.query ? undefined : ""}>
+          <Search size={13} aria-hidden="true" />
+          <span>{search.query || search.placeholder}</span>
+        </div>
+      )}
+      {list.length > 0 && (
+        <ul className="at-menu__list" role="listbox" aria-label={heading}>
+          {list.map((item) => {
+            const Icon = item.kind ? ICON[item.kind] : undefined;
+            return (
+              <li
+                key={item.id}
+                id={`menu-item-${item.id}`}
+                role="option"
+                aria-selected={item.id === activeId}
+                aria-disabled={item.disabled}
+                tabIndex={-1}
+                className={`at-menu__item${item.id === activeId ? " at-menu__item--active" : ""}`}
+                // Keeps focus in the input, so typing carries on after a pick.
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => choose(item)}
+              >
+                {Icon && <Icon className="at-menu__icon" size={14} aria-hidden="true" />}
+                <span className="at-menu__label">{item.label}</span>
+                {item.detail && <span className="at-menu__detail">{item.detail}</span>}
+                {item.children && (
+                  <ChevronRight className="at-menu__arrow" size={14} aria-hidden="true" />
+                )}
+              </li>
+            );
+          })}
         </ul>
-      ))}
+      )}
+      {status && (
+        <div className="at-menu__status" role="status">
+          {status}
+        </div>
+      )}
     </div>
   );
 }

@@ -17,6 +17,8 @@ export interface LayoutProps {
   composer: ReactNode;
 }
 export interface ContextLinkProps {
+  /** Which tracker the link is for, `jira` or `linear`, for the title and example. */
+  provider?: string;
   onAdd: (url: string) => void;
   onCancel: () => void;
 }
@@ -68,7 +70,12 @@ export interface TurnProps {
 }
 
 /** Shown in an agent turn that has nothing to show yet. */
-export type WorkingProps = Record<string, never>;
+export interface WorkingProps {
+  /** What the agent is at, in words, such as "Running pnpm test". Without it, "Working…". */
+  activity?: string;
+  /** When the turn started, in milliseconds since the epoch, for its running clock. */
+  since?: number;
+}
 
 /** Actions on a whole agent turn, such as copying it. */
 export type TurnActionsProps = Record<string, never>;
@@ -159,6 +166,8 @@ export interface ApprovalProps {
 
 export interface TodoListProps {
   entries: PlanEntry[];
+  /** The turn is running, so the step in progress turns. */
+  live?: boolean;
 }
 
 export interface UsageProps {
@@ -273,18 +282,20 @@ export interface NoticeProps {
 
 export interface ComposerProps {
   auxiliary?: ReactNode;
+  /** The agent's task list, pinned over the prompt box while it has steps left. */
+  plan?: ReactNode;
   chips?: ContextChip[];
   onRemoveChip?: (id: string) => void;
   effortLevel?: string;
   onAttach?: () => void;
   onDictate?: () => void;
   onSelect?: (caret: number) => void;
-  contextNotice?: string | null;
   sideChat?: ReactNode;
   ref: Ref<HTMLTextAreaElement>;
   value: string;
   placeholder: string;
-  onChange: (text: string) => void;
+  /** The new text and, when the input knows it, where the caret now is. */
+  onChange: (text: string, caret?: number) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   /** Notices to show above the input. */
   notices: ReactNode;
@@ -292,9 +303,9 @@ export interface ComposerProps {
   menu?: ReactNode;
   /** The id of the menu item Enter and Tab would pick, for the input to point at. */
   menuActiveId?: string | null;
-  /** Under the box, at the left: the settings button. */
+  /** In the box's toolbar, after attach: the settings button. */
   controls: ReactNode;
-  /** Under the box, at the right: the context meter and the usage ring. */
+  /** In the box's toolbar, before dictation: the context meter and the usage ring. */
   meters: ReactNode;
   /** Inside the box, at the end of the input: Send or Stop. */
   action: ReactNode;
@@ -337,6 +348,8 @@ export interface MenuItem {
   detail?: string;
   children?: MenuItem[];
   disabled?: boolean;
+  /** What the row is, for its leading glyph: `file`, `canvas`, `skill`, … */
+  kind?: string;
 }
 
 /** A popup list under the caret: slash commands, @ mentions. */
@@ -344,6 +357,17 @@ export interface MenuProps {
   path?: string[];
   onPathChange?: (path: string[]) => void;
   label: string;
+  /** The top level's heading, in place of `label`, such as a search scope. */
+  title?: string;
+  /** One quiet line under the rows: searching, nothing found, or a failure. */
+  status?: string | null;
+  /**
+   * A search line under the heading. It shows what is typed in the input,
+   * which keeps the focus and the keys, or `placeholder` while that is empty.
+   */
+  search?: { query: string; placeholder: string };
+  /** A back arrow at the top level too, for a scope the caller can leave. */
+  onBack?: () => void;
   items: MenuItem[];
   activeId: string | null;
   onPick: (id: string) => void;
