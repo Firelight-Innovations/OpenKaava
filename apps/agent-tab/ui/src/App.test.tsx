@@ -1478,7 +1478,11 @@ describe("slash commands", () => {
   });
 
   it("searches context from the plus button and sends the selected stable reference", async () => {
-    const hit = { uri: "veistra://canvas/design#frame=login", kind: "frame", title: "Login design" };
+    const hit = {
+      uri: "veistra://canvas/design#frame=login",
+      kind: "frame",
+      title: "Login design",
+    };
     backend(
       { status: null, seq: 0, items: [] },
       { "refs/search": () => Promise.resolve({ items: [hit] }) },
