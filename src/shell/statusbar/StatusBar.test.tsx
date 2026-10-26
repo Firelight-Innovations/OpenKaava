@@ -215,7 +215,7 @@ describe("StatusBar's git controls", () => {
     const onShowGit = vi.fn();
     render(
       <StatusBar
-        project="OpenKaava"
+        project="Veistra"
         environment={env}
         git={touched}
         githubOk
@@ -232,7 +232,7 @@ describe("StatusBar's git controls", () => {
   it("names the branch alone before git lands, and leaves the arrows out on main", () => {
     const { rerender } = render(
       <StatusBar
-        project="OpenKaava"
+        project="Veistra"
         environment={env}
         git={null}
         githubOk
@@ -244,7 +244,7 @@ describe("StatusBar's git controls", () => {
 
     rerender(
       <StatusBar
-        project="OpenKaava"
+        project="Veistra"
         environment={{ kind: "main" }}
         git={git({ branch: "main", ahead: 3 })}
         githubOk
@@ -258,7 +258,7 @@ describe("StatusBar's git controls", () => {
   it("holds the arrows and the diff stat inside the branch button, and not the chip", () => {
     render(
       <StatusBar
-        project="OpenKaava"
+        project="Veistra"
         environment={env}
         git={touched}
         githubOk
@@ -279,7 +279,7 @@ describe("StatusBar's git controls", () => {
     const onShowGit = vi.fn();
     render(
       <StatusBar
-        project="OpenKaava"
+        project="Veistra"
         environment={env}
         git={null}
         githubOk
@@ -304,7 +304,7 @@ describe("StatusBar's git controls", () => {
     const onShowGit = vi.fn();
     render(
       <StatusBar
-        project="OpenKaava"
+        project="Veistra"
         environment={env}
         git={null}
         githubOk
@@ -329,7 +329,7 @@ describe("StatusBar's git controls", () => {
   it("names GitHub's button the same whether or not the dot is red", () => {
     render(
       <StatusBar
-        project="OpenKaava"
+        project="Veistra"
         environment={env}
         git={null}
         githubOk={false}
@@ -345,7 +345,7 @@ describe("StatusBar's git controls", () => {
 
   it("draws readouts, not buttons, with nowhere to open", () => {
     render(
-      <StatusBar project="OpenKaava" environment={env} git={touched} githubOk update={null} />,
+      <StatusBar project="Veistra" environment={env} git={touched} githubOk update={null} />,
     );
 
     expect(screen.queryByRole("button", { name: /Source control/ })).toBeNull();
@@ -357,7 +357,7 @@ describe("StatusBar's git controls", () => {
   it("has no settings button", () => {
     render(
       <StatusBar
-        project="OpenKaava"
+        project="Veistra"
         environment={env}
         git={touched}
         githubOk
