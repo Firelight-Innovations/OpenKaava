@@ -66,7 +66,11 @@ tauri-plugin-single-instance = "2"
 # The minisign keypair this verifies against is unrelated to Authenticode code
 # signing, which the installers still do not have. `docs/dev/releases.md` says
 # which absence is which.
-tauri-plugin-updater = "2"
+#
+# Without its `zip` feature: a release ships the setup.exe and the .msi bare,
+# never zipped, so nothing here unpacks an archive, and zip 4's `extract`
+# (RUSTSEC-2026-0367 to 0369) is not linked.
+tauri-plugin-updater = { version = "2", default-features = false, features = ["rustls-tls"] }
 
 # The native folder picker behind Home's New/Open Project.
 #
@@ -247,7 +251,7 @@ ureq = { version = "3", default-features = false, features = [
 # rest of the codec list; a release built by the workflow in `docs/dev/
 # releases.md` is deflate, and a format nobody produces is a decompressor
 # nobody audits.
-zip = { version = "2", default-features = false, features = ["deflate"] }
+zip = { version = "9", default-features = false, features = ["deflate"] }
 
 # Checksums. The distribution decision in `docs/tool-protocol.md` §6 is a
 # release artifact verified before anything executes, and this is the verifying.

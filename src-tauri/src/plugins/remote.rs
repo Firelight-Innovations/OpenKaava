@@ -365,7 +365,7 @@ pub fn unpack(bytes: &[u8], into: &Path) -> Result<(), RemoteError> {
         let Some(relative) = entry.enclosed_name() else {
             return Err(RemoteError::Unpack(format!(
                 "`{}` points outside the archive",
-                entry.name()
+                String::from_utf8_lossy(entry.name_raw())
             )));
         };
         let target = into.join(relative);
