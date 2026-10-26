@@ -344,9 +344,7 @@ describe("StatusBar's git controls", () => {
   });
 
   it("draws readouts, not buttons, with nowhere to open", () => {
-    render(
-      <StatusBar project="Veistra" environment={env} git={touched} githubOk update={null} />,
-    );
+    render(<StatusBar project="Veistra" environment={env} git={touched} githubOk update={null} />);
 
     expect(screen.queryByRole("button", { name: /Source control/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /GitHub/ })).toBeNull();
