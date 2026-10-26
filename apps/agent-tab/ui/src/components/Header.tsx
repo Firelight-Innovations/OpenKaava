@@ -1,35 +1,55 @@
+import { SquarePen, History, MessageSquare } from "lucide-react";
 import { strings } from "../strings";
 import { useSlots } from "./registry";
 import type { HeaderProps } from "./types";
 import "./frame.css";
 
-export function Header({ cwd, harness, model, state, onNewSession }: HeaderProps) {
+/**
+ * Quiet conversation actions stay available before a first prompt, including
+ * saved sessions across harnesses. State changes are announced to screen readers.
+ */
+export function Header({ state, onNewSession, onHistory, onSideChat, history }: HeaderProps) {
   const S = useSlots();
   return (
-    <header className="at-header">
-      <span className="at-header__title">{strings.title}</span>
-      {harness !== null && <span className="at-chip">{harness}</span>}
-      {model !== null && <span className="at-chip">{model}</span>}
-      {cwd !== null && (
-        <span className="at-chip at-mono" title={cwd}>
-          {strings.environment(baseName(cwd))}
-        </span>
+    <header className="at-header" data-empty={state === null ? "" : undefined}>
+      <span className="at-header__status">
+        <S.StatusBadge state={state} />
+      </span>
+      {onSideChat && (
+        <button
+          type="button"
+          className="k-btn k-btn--ghost k-btn--icon"
+          aria-label={strings.btw.open}
+          title={strings.btw.open}
+          onClick={onSideChat}
+        >
+          <MessageSquare size={15} />
+        </button>
       )}
-      <S.StatusBadge state={state} />
-      <span className="at-header__spacer" />
-      <button
-        type="button"
-        className="k-btn k-btn--ghost k-btn--sm"
-        title={strings.newSessionHint}
-        onClick={onNewSession}
-      >
-        {strings.newSession}
-      </button>
+      {onHistory && (
+        <button
+          type="button"
+          className="k-btn k-btn--ghost k-btn--icon"
+          aria-label={strings.history.title}
+          aria-expanded={!!history}
+          title={strings.history.title}
+          onClick={onHistory}
+        >
+          <History size={15} />
+        </button>
+      )}
+      {
+        <button
+          type="button"
+          className="k-btn k-btn--ghost k-btn--icon"
+          aria-label={strings.newSession}
+          title={strings.newSessionHint}
+          onClick={onNewSession}
+        >
+          <SquarePen size={14} strokeWidth={2} aria-hidden="true" />
+        </button>
+      }
+      {history}
     </header>
   );
-}
-
-function baseName(path: string): string {
-  const parts = path.split(/[\\/]/).filter(Boolean);
-  return parts[parts.length - 1] ?? path;
 }

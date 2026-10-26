@@ -31,6 +31,7 @@ const status = (state: SessionStatus["state"]): SessionStatus => ({
   config: [],
   answered: 0,
   settingTrouble: null,
+  commands: [],
   adapterVersion: "0.90.0",
   exitCode: null,
   hint: null,

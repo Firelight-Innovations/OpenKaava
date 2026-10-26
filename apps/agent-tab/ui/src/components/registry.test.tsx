@@ -6,7 +6,7 @@
  */
 import "../jsdom-shims";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { isValidElement, type ComponentType, type ReactNode } from "react";
 
 const bridge = vi.hoisted(() => ({ invoke: vi.fn() }));
@@ -45,6 +45,7 @@ const EVERYTHING: Attachment = {
     config: [],
     answered: 0,
     settingTrouble: null,
+    commands: [],
   },
   items: [
     item("u", { kind: "userMessage", text: "hi" }),
@@ -172,7 +173,6 @@ describe("the slot registry", () => {
       "ActionGroup",
       "Approval",
       "TodoList",
-      "Usage",
       "ErrorItem",
       "Hint",
       "Note",
@@ -184,6 +184,8 @@ describe("the slot registry", () => {
     ]) {
       expect(shown, name).toContain(name);
     }
+    // The usage item is the composer's context ring, not a line in the transcript.
+    expect(shown).not.toContain("Usage");
   });
 
   it("puts the settings and the latest usage in the composer's footer", async () => {
@@ -320,14 +322,16 @@ describe("the slot registry", () => {
     expect(row("inProgress").querySelector(".at-tool__status")?.textContent).toBe("Running");
   });
 
-  it("names the harness and model it is given, and leaves out the unknown ones", () => {
+  it("offers New session before and during a session, and announces the state", () => {
     const { Header } = defaultSlots;
-    const header = (harness: string | null, model: string | null) =>
-      render(
-        <Header cwd={null} harness={harness} model={model} state={null} onNewSession={vi.fn()} />,
-      ).container.querySelectorAll(".at-chip");
-    expect([...header("Codex", "gpt-5")].map((el) => el.textContent)).toEqual(["Codex", "gpt-5"]);
+    const onNewSession = vi.fn();
+    render(<Header state={null} onNewSession={onNewSession} />);
+    expect(screen.getByRole("button", { name: "New session" })).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("No session");
     cleanup();
-    expect(header(null, null)).toHaveLength(0);
+    render(<Header state="working" onNewSession={onNewSession} />);
+    expect(screen.getByRole("status").textContent).toBe("Working");
+    fireEvent.click(screen.getByRole("button", { name: "New session" }));
+    expect(onNewSession).toHaveBeenCalledOnce();
   });
 });

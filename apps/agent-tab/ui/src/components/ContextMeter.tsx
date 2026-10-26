@@ -8,9 +8,9 @@ import "./meters.css";
 const HUES = 6;
 
 /**
- * How full the context window is: a short bar and a percentage, and on hover a
- * card that breaks the window down. Without a breakdown from the agent, the
- * card has one row for what is used and one for what is free.
+ * How full the context window is: a ring, as Claude Code draws it, and on
+ * hover a card that breaks the window down. Without a breakdown from the
+ * agent, the card has one row for what is used and one for what is free.
  */
 export function ContextMeter({ used, size, categories }: ContextMeterProps) {
   const S = useSlots();
@@ -23,16 +23,7 @@ export function ContextMeter({ used, size, categories }: ContextMeterProps) {
   return (
     <S.HoverCard
       label={strings.context.meter(share)}
-      trigger={
-        <>
-          <span className="at-minibar" data-tone={toneOf(share)} aria-hidden="true">
-            <span className="at-bar__fill" style={{ width: `${share * 100}%` }} />
-          </span>
-          <span className="at-minibar__share" aria-hidden="true">
-            {strings.percent(share)}
-          </span>
-        </>
-      }
+      trigger={<S.Ring share={share} tone={toneOf(share)} />}
     >
       <div className="at-card__head">
         <span>{strings.context.heading}</span>

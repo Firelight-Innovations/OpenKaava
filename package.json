@@ -34,6 +34,7 @@
     "bench:search": "node scripts/bench-search.mjs",
     "slop": "node scripts/slop.mjs",
     "probe": "node scripts/veistra-probe.mjs",
+    "setup:codex": "npm install --prefix node_modules/.agent-adapters/codex --omit=optional --no-save --package-lock=false @agentclientprotocol/codex-acp@2.2.2",
     "ui": "node scripts/veistra-ui.mjs",
     "ui:build": "tauri build --no-bundle --config {\\\"identifier\\\":\\\"com.firelightinnovations.veistra.agent\\\"}",
     "lint:fix": "eslint . --fix",

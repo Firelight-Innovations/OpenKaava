@@ -24,7 +24,9 @@ use std::collections::{HashMap, HashSet};
 use serde_json::Value;
 
 use crate::config::{enters_held_back, settings, Settings};
-use crate::event::{ApprovalOption, Event, FileDiff, Hint, Item, ItemKind, PlanEntry, ToolStatus};
+use crate::event::{
+    AgentCommand, ApprovalOption, Event, FileDiff, Hint, Item, ItemKind, PlanEntry, ToolStatus,
+};
 use crate::guard::request_paths;
 use crate::harness::Harness;
 use crate::mask::mask;
@@ -57,6 +59,32 @@ pub const MAX_PATHS: usize = 50;
 /// The most tool calls tracked as open at once. A call past it is dropped.
 pub const MAX_OPEN_TOOLS: usize = 500;
 
+/// The most commands kept from one `available_commands_update`.
+pub const COMMANDS_LIMIT: usize = 256;
+
+/// The most characters kept of a command's description or argument hint.
+const COMMAND_TEXT_LIMIT: usize = 300;
+
+/// ACP's `availableCommands`: a name, a description and, when the command
+/// takes an argument, `input.hint`. An entry without a name is skipped.
+pub(crate) fn commands(list: &[Value]) -> Vec<AgentCommand> {
+    let text = |value: Option<&Value>| -> Option<String> {
+        let s = value?.as_str()?.trim();
+        (!s.is_empty()).then(|| s.chars().take(COMMAND_TEXT_LIMIT).collect())
+    };
+    list.iter()
+        .filter_map(|entry| {
+            let name = text(entry.get("name"))?;
+            Some(AgentCommand {
+                name,
+                description: text(entry.get("description")).unwrap_or_default(),
+                hint: text(entry.pointer("/input/hint")),
+            })
+        })
+        .take(COMMANDS_LIMIT)
+        .collect()
+}
+
 /// Appended to a message that was cut at [`TEXT_LIMIT`].
 pub const CUT_NOTE: &str = "\n\n(message truncated)";
 
@@ -77,6 +105,7 @@ pub struct Normalizer {
     usage: Option<(u64, u64)>,
     mode: Option<String>,
     settings: Option<Settings>,
+    commands: Option<Vec<AgentCommand>>,
     dropped: u64,
 }
 
@@ -106,6 +135,7 @@ impl Normalizer {
             usage: None,
             mode: None,
             settings: None,
+            commands: None,
             dropped: 0,
         }
     }
@@ -142,6 +172,11 @@ impl Normalizer {
     /// The settings the agent last reported, taken so they are applied once.
     pub fn take_settings(&mut self) -> Option<Settings> {
         self.settings.take()
+    }
+
+    /// The commands the agent last offered, taken so they are applied once.
+    pub fn take_commands(&mut self) -> Option<Vec<AgentCommand>> {
+        self.commands.take()
     }
 
     /// The open turn, if any.
@@ -315,6 +350,13 @@ impl Normalizer {
             "config_option_update" => {
                 if let Some(list) = update.get("configOptions").filter(|l| l.is_array()) {
                     self.settings = Some(settings(list));
+                }
+                Vec::new()
+            }
+            // A list replaces the last one; an update without one says nothing.
+            "available_commands_update" => {
+                if let Some(list) = update.get("availableCommands").and_then(Value::as_array) {
+                    self.commands = Some(commands(list));
                 }
                 Vec::new()
             }
@@ -909,14 +951,32 @@ mod tests {
         n.update(&json!({"sessionUpdate": "current_mode_update", "currentModeId": "plan"}));
         assert_eq!(n.take_mode().as_deref(), Some("plan"));
         assert_eq!(n.take_mode(), None);
-        for kind in [
-            "plan_update",
-            "available_commands_update",
-            "_veistra/whatever",
-        ] {
+        for kind in ["plan_update", "_veistra/whatever"] {
             assert!(n.update(&json!({"sessionUpdate": kind})).is_empty());
         }
-        assert_eq!(n.dropped(), 3);
+        assert_eq!(n.dropped(), 2);
+    }
+
+    #[test]
+    fn the_agents_commands_are_reported_once_and_replaced_whole() {
+        let mut n = started();
+        let events = n.update(&json!({
+            "sessionUpdate": "available_commands_update",
+            "availableCommands": [
+                {"name": "compact", "description": "Clear history", "input": {"hint": "instructions"}},
+                {"name": "init", "description": "Set up CLAUDE.md"},
+                {"description": "no name"},
+            ]
+        }));
+        assert!(events.is_empty(), "nothing is drawn in the transcript");
+        let got = n.take_commands().unwrap();
+        assert_eq!(got.len(), 2);
+        assert_eq!(got[0].hint.as_deref(), Some("instructions"));
+        assert_eq!(got[1].hint, None);
+        assert!(n.take_commands().is_none());
+        n.update(&json!({"sessionUpdate": "available_commands_update"}));
+        assert!(n.take_commands().is_none(), "no list says nothing");
+        assert_eq!(n.dropped(), 0);
     }
 
     #[test]
@@ -1094,25 +1154,46 @@ mod tests {
         assert!(n.update(&chunk("x", Some("m1"))).is_empty());
     }
 
-    #[test]
-    fn an_approval_never_offers_a_way_into_auto_or_bypass() {
-        let mut n = started();
+    /// The plan card's options, as the card offers them.
+    fn plan_card(elevated: &str) -> Vec<String> {
         let params = json!({
             "toolCall": {"toolCallId": "t9", "title": "Ready to code?"},
             "options": [
-                {"optionId": "exit-plan-auto", "kind": "allow_once", "name": "Yes, and use auto mode"},
-                {"optionId": "exit-plan-bypass", "kind": "allow_always", "name": "Yes, and bypass"},
-                {"optionId": "exit-plan-clear-auto", "kind": "allow_once", "name": "Clear, then auto"},
+                {"optionId": "exit-plan-clear-auto", "kind": elevated, "name": "Clear, then auto"},
+                {"optionId": "exit-plan-auto", "kind": elevated, "name": "Yes, and use auto mode"},
+                {"optionId": "exit-plan-bypass", "kind": elevated, "name": "Yes, and bypass"},
                 {"optionId": "exit-plan-default", "kind": "allow_once", "name": "Yes, manually approve edits"},
                 {"optionId": "reject", "kind": "reject_once", "name": "No, keep planning"}
             ]
         });
-        let item = n.approval(&params, vec!["/w/plan.md".into()]);
-        let ItemKind::Approval { options, .. } = &item.kind else {
+        let item = started().approval(&params, vec!["/w/plan.md".into()]);
+        let ItemKind::Approval { options, .. } = item.kind else {
             panic!()
         };
-        let ids: Vec<_> = options.iter().map(|o| o.option_id.as_str()).collect();
-        assert_eq!(ids, ["exit-plan-default", "reject"]);
+        options.into_iter().map(|o| o.option_id).collect()
+    }
+
+    /// claude-agent-acp 0.90.0 sends every way out of a plan but the manual
+    /// one as `allow_always` (`permissions/options/tools.js`), so the card
+    /// offers only that one and Auto is entered from the mode picker.
+    #[test]
+    fn the_plan_card_offers_only_the_manual_way_out() {
+        assert_eq!(plan_card("allow_always"), ["exit-plan-default", "reject"]);
+    }
+
+    /// Auto is offered since the owner's decision (2026-10), so an adapter that
+    /// sent its ways out as `allow_once` would keep those, and lose bypass.
+    #[test]
+    fn an_approval_never_offers_a_way_into_bypass() {
+        assert_eq!(
+            plan_card("allow_once"),
+            [
+                "exit-plan-clear-auto",
+                "exit-plan-auto",
+                "exit-plan-default",
+                "reject"
+            ]
+        );
     }
 
     #[test]

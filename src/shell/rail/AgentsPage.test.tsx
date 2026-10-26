@@ -78,4 +78,19 @@ describe("AgentsPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "New agent session in web" }));
     expect(onNew).toHaveBeenCalledWith("c2");
   });
+
+  it("starts a session in the current cluster from the top New Agent action", () => {
+    const { onNew } = draw();
+    fireEvent.click(screen.getByRole("button", { name: "New Agent" }));
+    expect(onNew).toHaveBeenCalledWith("c1");
+  });
+
+  it("filters sessions by the search box", () => {
+    draw();
+    fireEvent.change(screen.getByRole("textbox", { name: "Search" }), {
+      target: { value: "migrat" },
+    });
+    expect(screen.queryByRole("button", { name: /Fix the session/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /Run the migrations/ })).not.toBeNull();
+  });
 });

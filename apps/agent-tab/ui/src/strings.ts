@@ -31,7 +31,6 @@ function percent(share: number): string {
 }
 
 export const strings = {
-  title: "Agent",
   state: {
     starting: "Starting",
     ready: "Ready",
@@ -41,13 +40,28 @@ export const strings = {
     failed: "Failed",
   } satisfies Record<SessionState, string>,
   idle: "No session",
+  loading: "Loading…",
   newSession: "New session",
   newSessionHint: "Stop the agent and clear this conversation",
+  history: {
+    title: "Previous sessions",
+    search: "Search conversations",
+    empty: "No conversations yet",
+    noMatches: "No matching conversations",
+    archived: "Archived",
+    archive: "Archive conversation",
+    restore: "Unarchive conversation",
+    close: "Close session history",
+    failed: "Could not load conversation history.",
+    openFailed: "Could not reopen that conversation.",
+    continueWith: "Continue with",
+    original: "Last used harness",
+    saving: "Saving conversation…",
+    retry: "Try again",
+  },
   stopTurn: "Stop",
   stopTurnHint: "Stop the current turn (Esc)",
   send: "Send",
-  sendGlyph: "↑",
-  stopGlyph: "■",
   mode: "Mode",
   settings: "Agent settings",
   /** Joins the settings on the button: "Claude · Opus 5.5 · High". */
@@ -78,24 +92,126 @@ export const strings = {
     meter: (share: number) => `Usage: ${percent(share)} of the tightest limit used`,
   },
   promptLabel: "Message the agent",
-  promptPlaceholder: "Ask the agent to do something in this worktree",
+  attachContext: "Add project context",
+  removeChip: (name: string) => `Remove ${name}`,
+  skills: {
+    title: "Skills",
+    description: "Enable a skill for this message",
+    empty: "No skills found for this harness",
+    search: "Search skills",
+    noMatch: "No matching skills",
+    back: "Back",
+    selected: "Skill enabled",
+  },
+  contextGroups: {
+    design: "Design",
+    pm: "Project management",
+    clusters: "Other clusters",
+    files: "Files",
+    comments: "Comments",
+    context: "Saved context",
+    selection: "Current selection",
+    canvases: "Canvases",
+    frames: "Frames",
+    all: "All project context",
+  },
+  dictate: "Voice dictation",
+  dictateLater: "Voice dictation · coming soon",
+  promptPlaceholder: "Describe a task or ask a question",
   promptBusy: "The agent is working. Press Esc to stop it.",
-  environment: (cwd: string) => `Worktree: ${cwd}`,
-  empty: {
-    heading: "Start a session",
-    body: "The agent works in this cluster's worktree. Approvals and edits show up here.",
-    examples: [
-      "Explain how this project is laid out",
-      "Find the failing test and fix it",
-      "Add a README section on building from source",
-    ],
-    keysHeading: "Keys",
-    keys: [
-      ["Enter", "Send"],
-      ["Shift+Enter", "New line"],
-      ["Esc", "Stop the current turn"],
-      ["Shift+Tab", "Switch mode, once the session starts"],
-    ] as const,
+  commands: "Commands",
+  inTerminal: "Open in terminal",
+  openedTerminal: (name: string) =>
+    `Opened a new ${name} terminal session. This conversation stays here.`,
+  searchFiles: "Search project files…",
+  searchFrames: "Search design frames…",
+  searchCanvases: "Search canvases…",
+  searchComments: "Search comments…",
+  searchSaved: "Search saved context…",
+  /** The @ menu's heading while it searches one source. */
+  scopeTitle: {
+    file: "Files",
+    canvas: "Canvases",
+    frame: "Frames",
+    comment: "Comments",
+    "design-comment": "Design comments",
+    context: "Saved context",
+  } as Record<string, string>,
+  issues: {
+    jira: "Jira",
+    linear: "Linear",
+    placeholder: {
+      jira: "https://your-team.atlassian.net/browse/KEY-123",
+      linear: "https://linear.app/your-team/issue/KEY-123",
+    } as Record<string, string>,
+    title: (provider: string) =>
+      `Add a ${provider === "jira" ? "Jira" : provider === "linear" ? "Linear" : "issue"} link`,
+  },
+  issueLink: "Add issue link",
+  issueLinkHint:
+    "Paste the issue's URL. No account is connected: the agent opens the link with its own access.",
+  addContext: "Add link",
+  cancel: "Cancel",
+  preferences: {
+    harness: "Harness",
+    model: "Model",
+    more: "More models",
+    less: "Latest models",
+    effort: "Effort",
+    levels: ["Low", "Medium", "High", "Xhigh", "Max"],
+    faster: "Faster",
+    smarter: "Smarter",
+    automatic: "Default",
+    resetEffort: "Reset effort",
+    ultraShort: "Ultra",
+    unsupported: "Not supported by this model",
+    ultracode: "Ultra effort",
+    ultracodeHint: "Deeper reasoning + Claude workflows. Applies to this conversation.",
+    nextSession: "Switch harness and carry this conversation with you.",
+  },
+  localCommands: {
+    skills: "Choose a skill for this message",
+    model: "Choose a harness and model",
+    effort: "Set reasoning effort",
+    clear: "Start a new conversation",
+    stop: "Stop the current response",
+    help: "Show available commands",
+    btw: "Ask a side question",
+  },
+  help: "Use /model to choose a harness and model, /effort to set reasoning, /btw for a side question, /clear for a new conversation, /stop to stop, and /login to sign in. Type @ to reference project files, designs, comments, or context. The agent’s commands also appear under / once connected.",
+  mentions: {
+    label: "Project context",
+    searching: "Searching project context…",
+    empty: "No matching project context",
+    typeToSearch: "Type to search",
+    failed: "Could not search project context. Try typing @ again.",
+  },
+  btw: {
+    title: "Side chat",
+    placeholder: "Ask a side question…",
+    close: "Close side chat",
+    clear: "Clear side chat",
+    hint: "A separate conversation with context from your main chat.",
+    failed: "Could not load the side conversation.",
+    open: "Open side chat",
+  },
+  errors: {
+    limit: "You’ve reached your usage limit",
+    limitHint:
+      "You can continue when your limit resets, or switch harnesses to carry on with this conversation.",
+    interrupted: "The response was interrupted",
+    generic: "Something interrupted the agent",
+    retry: "Try again",
+    dismiss: "Dismiss notice",
+    details: "Technical details",
+    reset: (time: string) => `Your limit resets at ${time}.`,
+  },
+  login: {
+    description: "Sign in to your account",
+    started: (name: string) => `Finish signing in to ${name} in your browser.`,
+    done: (name: string) => `Signed in to ${name}. Send a prompt to start a session.`,
+    failed: (name: string) => `Could not sign in to ${name}. Try /login again.`,
+    notStarted: "Could not start the sign-in.",
   },
   modeSettings: {
     modeHint: "What the agent may do without asking you first (Shift+Tab switches)",
@@ -142,8 +258,22 @@ export const strings = {
     cancelled: "Withdrawn",
     outside: "Refused: it named a file outside this worktree",
   },
-  plan: "Plan",
-  planGlyph: { pending: "○", in_progress: "◐", completed: "●" } as Record<string, string>,
+  plan: {
+    title: "Tasks",
+    count: (done: number, total: number) => `${done} of ${total}`,
+    status: { pending: "To do", in_progress: "In progress", completed: "Done" } as Record<
+      string,
+      string
+    >,
+  },
+  /** The running line under a working turn: what the agent is at, and for how long. */
+  activity: {
+    running: (command: string) => `Running ${command}`,
+    elapsed: (ms: number) => {
+      const s = Math.max(0, Math.floor(ms / 1000));
+      return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
+    },
+  },
   usage: (used: number, size: number) =>
     `Context: ${used.toLocaleString()} of ${size.toLocaleString()} tokens`,
   diffAdded: (n: number) => `+${n}`,
@@ -167,7 +297,7 @@ export const strings = {
     adapterMissing: ({ name, setup }: HarnessWords) =>
       `The ${name} ACP adapter is not installed. Run \`${setup.adapterInstall}\` in a terminal.`,
     signedOut: ({ name, setup }: HarnessWords) =>
-      `${name} is not signed in. Run \`${setup.signIn}\` once in a terminal and sign in there. Veistra never signs you in.`,
+      `${name} is not signed in. Run \`${setup.signIn}\` once in a terminal, or type /login here.`,
     adapterVersion: ({ setup }: HarnessWords) =>
       `This build was tested with adapter ${setup.adapterVersion}. Another version may behave differently: \`${setup.adapterInstall}\`.`,
     outsideWorktree: () =>

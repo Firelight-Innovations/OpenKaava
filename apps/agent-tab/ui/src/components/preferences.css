@@ -1,0 +1,565 @@
+/*
+ * The settings menu over the composer: harness, model, effort and mode. It
+ * follows the shell's menu recipe (`.k-menu`): an 8px card on layer 2, 28px
+ * rows and uppercase section labels. Reads only `--k-*` tokens.
+ */
+
+/* Anchored to the composer card, not the button, so it lines up with the card's edge. */
+.at-model__menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + var(--k-space-1-5));
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  width: min(300px, 100cqi - 2 * var(--k-space-3));
+  /* What is left above the composer once the textarea has grown to its 40vh. */
+  max-height: min(560px, 60vh - 72px);
+  overflow-y: auto;
+  padding: var(--k-space-1);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-menu);
+  background: var(--k-raised-bg);
+  box-shadow: var(--k-shadow-menu);
+  color: var(--k-fg-secondary);
+  font: var(--k-text-body);
+  text-align: left;
+  animation: at-model-in var(--k-motion-base) var(--k-ease);
+}
+
+.at-model__menu:focus {
+  outline: none;
+}
+
+/* The harness: a segmented control, quiet until pressed. */
+.at-model__harnesses {
+  display: flex;
+  gap: var(--k-space-0-5);
+  margin-bottom: var(--k-space-1);
+  padding: var(--k-space-0-5);
+  border-radius: var(--k-radius-control);
+  background: var(--k-composer-bg);
+}
+
+.at-model__harness {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 var(--k-space-2);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--k-radius-sm);
+  background: transparent;
+  color: var(--k-fg-muted);
+  font: var(--k-text-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--k-motion-fast) var(--k-ease),
+    color var(--k-motion-fast) var(--k-ease);
+}
+
+.at-model__harness:hover:not([aria-disabled="true"]) {
+  color: var(--k-editor-fg);
+}
+
+.at-model__harness[aria-pressed="true"] {
+  background: var(--k-list-active);
+  color: var(--k-editor-fg);
+}
+
+.at-model__harness[aria-disabled="true"]:not([aria-pressed="true"]) {
+  color: var(--k-fg-disabled);
+  cursor: default;
+}
+
+.at-model__harness:focus-visible {
+  outline: var(--k-focus-ring);
+  outline-offset: -1px;
+}
+
+.at-model__group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Each section after the first is set off by a hairline. */
+.at-model__menu > :is(.at-model__group, .at-effort) + :is(.at-model__group, .at-effort) {
+  margin-top: var(--k-space-1);
+  padding-top: var(--k-space-1);
+  border-top: 1px solid var(--k-panel-border);
+}
+
+.at-model__heading {
+  padding: var(--k-space-1-5) var(--k-space-2) var(--k-space-1);
+  color: var(--k-fg-faint);
+  font: var(--k-text-label);
+  letter-spacing: var(--k-text-label-tracking);
+  text-transform: uppercase;
+}
+
+.at-model__item {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  column-gap: var(--k-space-2);
+  align-items: center;
+  width: 100%;
+  min-height: var(--k-control-md);
+  padding: var(--k-space-1) var(--k-space-2);
+  border: 0;
+  border-radius: var(--k-radius-sm);
+  background: none;
+  color: var(--k-fg-secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.at-model__item[aria-checked="true"] {
+  color: var(--k-editor-fg);
+}
+
+.at-model__item:hover:not([aria-disabled="true"]),
+.at-model__item:focus-visible {
+  background: var(--k-menu-hover);
+}
+
+/* Keyboard focus gets the ring, as the harness buttons do; a hover tint alone is too faint. */
+.at-model__item:focus-visible,
+.at-model__more:focus-visible,
+.at-effort__reset:focus-visible {
+  outline: var(--k-focus-ring);
+  outline-offset: -1px;
+}
+
+.at-model__item[aria-disabled="true"] {
+  color: var(--k-fg-muted);
+  cursor: default;
+}
+
+/* A harness that cannot run yet reads quieter than one that is only locked. */
+.at-model__group[data-unavailable] .at-model__item {
+  color: var(--k-fg-faint);
+}
+
+/* A sentence in place of choices: no check column, so it starts under its heading. */
+.at-model__item--note {
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  padding-block: 0 var(--k-space-1-5);
+  color: var(--k-fg-faint);
+  font: var(--k-text-small);
+}
+
+.at-model__check {
+  display: inline-flex;
+  color: var(--k-accent);
+}
+
+.at-model__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.at-model__item--note .at-model__name {
+  white-space: normal;
+}
+
+.at-model__detail {
+  display: none;
+}
+
+.at-model__more {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-1);
+  min-height: var(--k-control-md);
+  padding: 0 var(--k-space-2) 0 calc(16px + 2 * var(--k-space-2));
+  border: 0;
+  border-radius: var(--k-radius-sm);
+  background: none;
+  color: var(--k-fg-muted);
+  font: var(--k-text-small);
+  cursor: pointer;
+}
+
+.at-model__more:hover,
+.at-model__more:focus-visible {
+  background: var(--k-menu-hover);
+  color: var(--k-editor-fg);
+}
+
+.at-model__more svg {
+  transition: transform var(--k-motion-base) var(--k-ease);
+}
+
+.at-model__more[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+/*
+ * Effort, drawn as a charge in the website's language: the dot grid of its
+ * canvases, a fill that heats from teal to coral, the halftone of its ember
+ * plate as it nears the top, a glint like its `.glim` sweep on each change,
+ * and at Ultra the whole ramp. Turning Ultra on surges once, with the hero
+ * meter's crackle on the thumb; then it holds still.
+ */
+.at-effort {
+  --effort: var(--k-effort-medium);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--k-space-1-5);
+}
+
+.at-effort[data-level="low"] {
+  --effort: var(--k-effort-low);
+}
+
+.at-effort[data-level="high"] {
+  --effort: var(--k-effort-high);
+}
+
+.at-effort[data-level="xhigh"] {
+  --effort: var(--k-effort-xhigh);
+}
+
+.at-effort[data-level="max"] {
+  --effort: var(--k-effort-max);
+}
+
+.at-effort[data-level="ultra"] {
+  --effort: var(--k-effort-ultra);
+}
+
+.at-effort__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 26px;
+  padding: var(--k-space-1) var(--k-space-1) 0 var(--k-space-2);
+}
+
+.at-effort__head .at-model__heading {
+  padding: 0;
+}
+
+.at-effort__default {
+  padding-right: var(--k-space-1);
+  color: var(--k-fg-faint);
+  font: var(--k-text-small);
+}
+
+.at-effort__reset {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--k-radius-sm);
+  background: none;
+  color: var(--k-fg-faint);
+  cursor: pointer;
+}
+
+.at-effort__reset:hover,
+.at-effort__reset:focus-visible {
+  background: var(--k-menu-hover);
+  color: var(--k-editor-fg);
+}
+
+/*
+ * The stops run from one round end of the track to the other: the first sits
+ * in the left end's curve and the last in the right's, so Low is all the way
+ * left and the top stop fills the whole capsule.
+ */
+.at-effort__track {
+  --centre: calc(10px + var(--at) / (var(--stops) - 1) * (100% - 20px));
+  position: relative;
+  height: 20px;
+  margin: var(--k-space-1-5) var(--k-space-2) 0;
+  border-radius: var(--k-radius-pill);
+  background:
+    radial-gradient(var(--k-panel-border) 1px, transparent 1.2px) center / 6px 6px,
+    var(--k-composer-bg);
+  box-shadow: inset 0 0 0 1px var(--k-input-border);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.at-effort[data-locked] .at-effort__track {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.at-effort__track:has(input:focus-visible) {
+  outline: var(--k-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Under the pointer handlers: it is here for the keys and for screen readers. */
+.at-effort__track input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Each 4px dot's centre is 10px in from its end, where the thumb's is. */
+.at-effort__stops {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: 8px;
+}
+
+.at-effort__stops i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--k-fg-faint);
+  opacity: 0.55;
+}
+
+.at-effort__stops i[data-off] {
+  opacity: 0.18;
+}
+
+/* Runs past the thumb's centre by half the track, so its round end wraps the thumb. */
+.at-effort__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--centre) + 10px);
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--effort) 14%, transparent),
+    var(--effort)
+  );
+  box-shadow: 0 0 calc(var(--heat) * 14px)
+    color-mix(in srgb, var(--effort) calc(var(--heat) * 55%), transparent);
+  transition:
+    width var(--k-motion-base) cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow var(--k-motion-base) var(--k-ease);
+}
+
+.at-effort[data-unset] .at-effort__fill {
+  opacity: 0;
+}
+
+/* The ember plate's halftone screen, denser in the hot end and stronger near the top. */
+.at-effort__fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(var(--k-glint) 0.7px, transparent 1.1px) 0 0 / 4px 4px;
+  mask-image: linear-gradient(90deg, transparent 25%, #000);
+  opacity: calc(var(--heat) * var(--heat) * 0.85);
+}
+
+.at-effort__glint {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 38%, var(--k-glint) 50%, transparent 62%) 100% 0 /
+    250% 100% no-repeat;
+  opacity: calc(0.35 + var(--heat) * 0.5);
+  animation: at-effort-glint 1200ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.at-effort[data-level="ultra"] .at-effort__fill {
+  background: var(--k-effort-ramp);
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--k-effort-max) 45%, transparent),
+    0 0 4px color-mix(in srgb, var(--k-effort-ultra) 60%, transparent);
+}
+
+/* Ultra just turned on: the capsule flares and the glint runs once more, slower. */
+.at-effort[data-surge] .at-effort__fill {
+  animation: at-effort-flare 1100ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.at-effort[data-surge] .at-effort__glint {
+  animation: at-effort-glint 1100ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.at-effort__thumb {
+  position: absolute;
+  top: 50%;
+  left: var(--centre);
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: var(--k-effort-thumb);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--effort) 35%, transparent),
+    0 1px 3px rgb(0 0 0 / 0.4);
+  transition:
+    left var(--k-motion-base) cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow var(--k-motion-base) var(--k-ease);
+}
+
+/* The thumb's glow grows with the charge; at Ultra it crackles like the hero's Lv3. */
+.at-effort__thumb::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--effort) 75%, transparent),
+    transparent
+  );
+  opacity: var(--heat);
+}
+
+.at-effort[data-surge] .at-effort__thumb::after {
+  animation: at-effort-crackle 400ms step-end 3;
+}
+
+.at-effort[data-unset] .at-effort__thumb {
+  background: var(--k-composer-bg);
+  box-shadow: inset 0 0 0 1.5px var(--k-fg-faint);
+}
+
+/* Each name centred under its stop; the end ones sit flush with the track's ends. */
+.at-effort__labels {
+  position: relative;
+  height: 20px;
+  margin: var(--k-space-1) var(--k-space-2) 0;
+}
+
+.at-effort__labels button {
+  position: absolute;
+  top: 0;
+  left: calc(10px + var(--i) / (var(--stops) - 1) * (100% - 20px));
+  height: 20px;
+  padding: 0 2px;
+  translate: -50% 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--k-radius-sm);
+  background: none;
+  color: var(--k-fg-faint);
+  font: var(--k-text-small);
+  font-size: var(--k-text-label-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--k-motion-fast) var(--k-ease);
+}
+
+.at-effort__labels button:first-child {
+  left: 0;
+  translate: none;
+}
+
+.at-effort__labels button:last-child {
+  left: auto;
+  right: 0;
+  translate: none;
+}
+
+.at-effort__labels button:hover:not(:disabled) {
+  color: var(--k-editor-fg);
+}
+
+.at-effort__labels button[aria-pressed="true"] {
+  color: color-mix(in srgb, var(--effort) 80%, var(--k-editor-fg));
+}
+
+/* Only the ramp's hot end: the whole of it across one short word reads as plain blue. */
+.at-effort__labels button[data-level="ultra"]:is([aria-pressed="true"], :hover:not(:disabled)) {
+  background: linear-gradient(90deg, var(--k-effort-max), var(--k-effort-ultra-text));
+  background-clip: text;
+  color: transparent;
+}
+
+.at-effort__labels button:disabled {
+  color: var(--k-fg-disabled);
+  opacity: 0.5;
+  cursor: default;
+}
+
+.at-effort__caption {
+  margin: var(--k-space-1-5) var(--k-space-2) 0;
+  color: var(--k-fg-muted);
+  font: var(--k-text-small);
+}
+
+@keyframes at-model-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes at-effort-glint {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0% 0;
+  }
+}
+
+@keyframes at-effort-flare {
+  25% {
+    filter: brightness(1.35);
+    box-shadow:
+      0 0 22px color-mix(in srgb, var(--k-effort-max) 60%, transparent),
+      0 0 6px color-mix(in srgb, var(--k-effort-ultra) 80%, transparent);
+  }
+}
+
+@keyframes at-effort-crackle {
+  0% {
+    opacity: 1;
+  }
+  25% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 0.3;
+  }
+}
+
+/* Still, the level reads by colour, fill, halftone and glow alone. */
+@media (prefers-reduced-motion: reduce) {
+  .at-model__menu,
+  .at-effort__glint,
+  .at-effort__fill,
+  .at-effort__thumb::after {
+    animation: none !important;
+  }
+  .at-effort__glint {
+    display: none;
+  }
+  .at-effort__fill,
+  .at-effort__thumb {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .at-effort__fill {
+    background: Highlight;
+    box-shadow: none;
+  }
+  .at-effort__thumb {
+    background: ButtonText;
+    box-shadow: none;
+  }
+}

@@ -371,24 +371,6 @@ details:not([open]) > .at-tool__head .at-tool__title {
   color: var(--k-fg-muted);
 }
 
-.at-plan {
-  padding: var(--k-space-1-5) var(--k-space-2-5);
-  border: 1px solid var(--k-panel-border);
-  border-radius: var(--k-radius-card);
-  background: var(--k-card-bg);
-}
-
-.at-plan ul {
-  margin: var(--k-space-1) 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.at-plan__entry--completed {
-  color: var(--k-fg-muted);
-  text-decoration: line-through;
-}
-
 .at-usage,
 .at-note {
   color: var(--k-fg-faint);

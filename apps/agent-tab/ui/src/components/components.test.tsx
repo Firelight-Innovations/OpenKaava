@@ -13,8 +13,11 @@ import { SessionList } from "./SessionList";
 afterEach(cleanup);
 
 describe("ContextMeter", () => {
-  const fill = (el: HTMLElement) =>
-    el.querySelector<HTMLElement>(".at-minibar .at-bar__fill")!.style.width;
+  // The ring's filled arc as a share of its circumference, in whole percent.
+  const fill = (el: HTMLElement) => {
+    const dash = el.querySelector(".at-ring__fill")!.getAttribute("stroke-dasharray")!;
+    return `${Math.round((Number(dash.split(" ")[0]) / (2 * Math.PI * 6)) * 100)}%`;
+  };
 
   it("draws nothing until usage and a window size are known", () => {
     expect(render(<ContextMeter used={null} size={100} />).container.firstChild).toBeNull();

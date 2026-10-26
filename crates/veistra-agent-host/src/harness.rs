@@ -22,6 +22,7 @@ use crate::mcp::McpServer;
 
 mod claude;
 mod codex;
+mod managed;
 
 pub use claude::CLAUDE;
 pub use codex::CODEX;
@@ -107,6 +108,9 @@ impl Descriptor {
             capabilities: self.capabilities,
             models: None,
             model: None,
+            commands: None,
+            modes: None,
+            ask_first: Some(self.policy.ask_first.to_string()),
         }
     }
 }
@@ -211,6 +215,14 @@ pub struct LaunchSpec {
     /// The model the session switches to once it is open, by value: the
     /// tab's choice. `None` leaves the agent on its own default.
     pub model: Option<String>,
+    /// Effort requested before the first prompt; applied only if the model offers it.
+    pub effort: Option<String>,
+    /// Claude's workflow orchestration setting, scoped to this session's SDK options.
+    pub ultracode: bool,
+    /// The mode the session switches to once it has asked first: the tab's
+    /// pick before the session existed. Only a mode the agent offers is sent,
+    /// never one held back (`config::NOT_OFFERED`); `None` stays ask-first.
+    pub mode: Option<String>,
 }
 
 /// The spec for `harness`, or the reason there is none. `path` and `pathext`
@@ -221,9 +233,33 @@ pub fn spec(
     path: Option<&OsStr>,
     pathext: Option<&OsStr>,
 ) -> Result<LaunchSpec, Hint> {
+    resolve_spec(harness, path, pathext, false)
+}
+
+/// Resolve an installed harness, including the build checkout's explicitly installed Codex adapter.
+/// Unlike [`spec`], this may fall back to `pnpm setup:codex`'s local install.
+pub fn installed_spec(
+    harness: Harness,
+    path: Option<&OsStr>,
+    pathext: Option<&OsStr>,
+) -> Result<LaunchSpec, Hint> {
+    resolve_spec(harness, path, pathext, true)
+}
+
+fn resolve_spec(
+    harness: Harness,
+    path: Option<&OsStr>,
+    pathext: Option<&OsStr>,
+    local: bool,
+) -> Result<LaunchSpec, Hint> {
     let descriptor = harness.descriptor();
     let cli = which(descriptor.cli, path, pathext).ok_or(Hint::HarnessMissing)?;
-    let adapter = which(descriptor.adapter.program, path, pathext).ok_or(Hint::AdapterMissing)?;
+    let adapter = if local {
+        managed::adapter(descriptor, path, pathext)
+    } else {
+        which(descriptor.adapter.program, path, pathext)
+    }
+    .ok_or(Hint::AdapterMissing)?;
     Ok(LaunchSpec {
         harness,
         program: adapter,
@@ -239,6 +275,9 @@ pub fn spec(
         setting_timeout: SETTING_TIMEOUT,
         mcp_servers: Vec::new(),
         model: None,
+        effort: None,
+        ultracode: false,
+        mode: None,
     })
 }
 

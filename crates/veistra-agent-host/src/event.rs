@@ -354,6 +354,21 @@ pub struct HarnessInfo {
     /// The value of the model its next session starts on: the tab's choice,
     /// else the agent's default. `None` when neither is known.
     pub model: Option<String>,
+    /// Commands advertised during discovery, before the tab starts its own session.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
+    pub commands: Option<Vec<AgentCommand>>,
+    /// The modes its agent offers, as discovery found them, less those held
+    /// back (`config::NOT_OFFERED`); `None` until the host has asked it. The
+    /// tab can pick one before the session exists.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
+    pub modes: Option<Vec<ConfigChoice>>,
+    /// The mode each of its sessions starts in, its policy's ask-first mode,
+    /// until a pick from `modes` switches it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
+    pub ask_first: Option<String>,
 }
 
 /// A session's whole status.
@@ -371,13 +386,17 @@ pub struct SessionStatus {
     /// as the agent reports it, even one the tab does not offer. Empty until
     /// the handshake has switched the agent to ask-first.
     pub mode: Option<String>,
-    /// The modes the tab may switch to, in the agent's order. Bypass and auto
-    /// are never among them (`config::NOT_OFFERED`).
+    /// The modes the tab may switch to, in the agent's order. Bypass, and
+    /// Codex's auto review and full access, are never among them
+    /// (`config::NOT_OFFERED`).
     pub modes: Vec<ConfigChoice>,
     /// The agent's other session settings — model, effort, fast mode — as it
     /// last reported them. Filled from the `session/new` reply, so a session
     /// that fails later in its handshake still carries them.
     pub config: Vec<ConfigOption>,
+    /// The slash commands the agent last offered, in its order. Empty until it
+    /// reports any; a later report replaces the list.
+    pub commands: Vec<AgentCommand>,
     /// The number of the last setting change the agent answered. Changing a
     /// setting returns the change's number, and numbers only grow, so the tab
     /// knows which status answers the choice it is showing. A new session
@@ -422,6 +441,19 @@ pub enum SettingTrouble {
         /// The agent's reason, masked.
         message: String,
     },
+}
+
+/// One slash command the agent offers, as `available_commands_update` lists it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct AgentCommand {
+    /// What follows the slash.
+    pub name: String,
+    /// The agent's one-line description.
+    pub description: String,
+    /// What the argument looks like, when the command takes one.
+    pub hint: Option<String>,
 }
 
 /// One session setting the agent offers: ACP's select config option. Every
@@ -485,6 +517,7 @@ mod tests {
             SettingTrouble::decl(&cfg),
             ConfigOption::decl(&cfg),
             ConfigChoice::decl(&cfg),
+            AgentCommand::decl(&cfg),
             Attachment::decl(&cfg),
             HarnessInfo::decl(&cfg),
         ];

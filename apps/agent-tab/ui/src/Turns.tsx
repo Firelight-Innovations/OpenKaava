@@ -25,6 +25,10 @@ interface Lookup {
   actions: ItemActions;
   /** The agent is waiting on the user, not working, though the turn is open. */
   waiting: boolean;
+  /** What the running turn is at, for `Working`, when there is more to say than "Working…". */
+  activity?: string;
+  /** When the running turn started, for `Working`'s clock. */
+  since?: number;
 }
 
 const LookupContext = createContext<Lookup | null>(null);
@@ -89,7 +93,8 @@ function Actions({ ids, children }: { ids: readonly string[]; children: ReactNod
 function AgentParts({ message }: { message: ThreadMessage }) {
   const S = useSlots();
   // An approval holds the turn open, but the agent is waiting, not working.
-  const waiting = useContext(LookupContext)?.waiting ?? false;
+  const lookup = useContext(LookupContext);
+  const waiting = lookup?.waiting ?? false;
   return (
     <MessagePrimitive.GroupedParts groupBy={groupBy}>
       {({ part, children }) => {
@@ -105,7 +110,11 @@ function AgentParts({ message }: { message: ThreadMessage }) {
           case "tool-call":
             return <ById id={part.toolCallId} />;
           case "indicator":
-            return waiting ? <></> : <S.Working />;
+            return waiting ? (
+              <></>
+            ) : (
+              <S.Working activity={lookup?.activity} since={lookup?.since} />
+            );
           default:
             // An empty fragment, not `null`: `null` would ask for a registered tool UI.
             return <></>;

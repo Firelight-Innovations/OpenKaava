@@ -5,6 +5,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { defaultSlots } from "./registry";
 import type { HarnessChoice, PickerProps } from "./types";
 
@@ -197,7 +198,8 @@ describe("the model menu's harnesses", () => {
   it("groups each harness's models under it, and checks only the one in use", () => {
     fireEvent.click(menu("claude", vi.fn()));
     const groups = screen.getAllByRole("group").map((g) => g.getAttribute("aria-label"));
-    expect(groups).toEqual(["Claude", "Codex", "Pi", "Veistra", "Effort"]);
+    expect(groups).toEqual(["Harness", "Model", "Effort"]);
+    expect(screen.queryByRole("menuitemradio", { name: "GPT-6 Astra" })).toBeNull();
     const checked = screen
       .getAllByRole("menuitemradio")
       .filter((el) => el.getAttribute("aria-checked") === "true")
@@ -210,6 +212,7 @@ describe("the model menu's harnesses", () => {
   it("picks a harness and a model in one choice", () => {
     const onChoose = vi.fn();
     fireEvent.click(menu("claude", onChoose));
+    fireEvent.click(screen.getByRole("button", { name: "Codex" }));
     fireEvent.click(screen.getByRole("menuitemradio", { name: "GPT-6 Astra" }));
     expect(onChoose).toHaveBeenCalledWith("codex", "gpt-6-astra");
   });
@@ -217,6 +220,7 @@ describe("the model menu's harnesses", () => {
   it("offers a harness with no known models at its default", () => {
     const onChoose = vi.fn();
     fireEvent.click(menu("claude", onChoose));
+    fireEvent.click(screen.getByRole("button", { name: "Pi" }));
     fireEvent.click(screen.getByRole("menuitemradio", { name: "Default model" }));
     expect(onChoose).toHaveBeenCalledWith("pi", null);
   });
@@ -224,9 +228,9 @@ describe("the model menu's harnesses", () => {
   it("shows a harness that cannot run yet, locked, with why", () => {
     const onChoose = vi.fn();
     fireEvent.click(menu("claude", onChoose));
-    const soon = screen.getByRole("menuitemradio", { name: "Coming soon" });
+    const soon = screen.getByRole("button", { name: "Veistra" });
     expect(soon.getAttribute("aria-disabled")).toBe("true");
-    expect(soon.closest("[role=group]")?.hasAttribute("data-unavailable")).toBe(true);
+    expect(soon.title).toBe("Coming soon");
     fireEvent.click(soon);
     expect(onChoose).not.toHaveBeenCalled();
   });
@@ -234,8 +238,135 @@ describe("the model menu's harnesses", () => {
   it("locks every harness without onChoose", () => {
     fireEvent.click(menu("claude"));
     expect(
-      screen.getByRole("menuitemradio", { name: "GPT-6 Astra" }).getAttribute("aria-disabled"),
+      screen.getByRole("menuitemradio", { name: "Opus 5.5" }).getAttribute("aria-disabled"),
     ).toBe("true");
+  });
+});
+
+describe("compact preferences and friendly notices", () => {
+  it("keeps older models behind More models and can collapse them again", () => {
+    const models = ["Opus 4.6", "Opus 5.5", "Sonnet 5.5", "Fable 5.1", "Haiku 5.5"].map((name) => ({
+      value: name,
+      name,
+    }));
+    render(
+      <ModelMenu
+        label="Agent settings"
+        harness="claude"
+        harnesses={[{ id: "claude", name: "Claude", model: "Opus 5.5", models, unavailable: null }]}
+        onChoose={vi.fn()}
+        sections={[]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Agent settings/ }));
+    expect(screen.queryByRole("menuitemradio", { name: "Opus 4.6" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "More models" }));
+    expect(screen.getByRole("menuitemradio", { name: "Opus 4.6" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Latest models" }));
+    expect(screen.queryByRole("menuitemradio", { name: "Opus 4.6" })).toBeNull();
+  });
+
+  it("disables unsupported effort levels and skips them with the keyboard", () => {
+    const onChange = vi.fn();
+    render(
+      <defaultSlots.EffortPicker
+        label="Effort"
+        value="low"
+        choices={[
+          { value: "low", name: "Low" },
+          { value: "high", name: "High" },
+        ]}
+        onChange={onChange}
+      />,
+    );
+    const unsupported = screen.getByRole("button", { name: "Xhigh" });
+    expect((unsupported as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(unsupported);
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.keyDown(screen.getByRole("slider", { name: "Effort" }), { key: "ArrowRight" });
+    expect(onChange).toHaveBeenCalledWith("high");
+  });
+
+  it("keeps focus on the slider when a stop name is clicked or the reset goes away", () => {
+    function Stateful() {
+      const [value, setValue] = useState("high");
+      return (
+        <defaultSlots.EffortPicker
+          label="Effort"
+          value={value}
+          choices={["low", "medium", "high"].map((v) => ({ value: v, name: v }))}
+          onChange={setValue}
+        />
+      );
+    }
+    render(<Stateful />);
+    const slider = screen.getByRole("slider", { name: "Effort" });
+    fireEvent.click(screen.getByRole("button", { name: "Low" }));
+    expect(document.activeElement).toBe(slider);
+    const reset = screen.getByRole("button", { name: "Reset effort" });
+    reset.focus();
+    fireEvent.click(reset);
+    // Back at Medium the reset has nothing to do and is gone; focus stays in the picker.
+    expect(screen.queryByRole("button", { name: "Reset effort" })).toBeNull();
+    expect(document.activeElement).toBe(slider);
+  });
+
+  it("previews only a stop that can be applied", () => {
+    const { container } = render(
+      <defaultSlots.EffortPicker
+        label="Effort"
+        value="low"
+        choices={[{ value: "low", name: "Low" }]}
+        onChange={vi.fn()}
+      />,
+    );
+    const level = () => container.querySelector(".at-effort")?.getAttribute("data-level");
+    fireEvent.pointerEnter(screen.getByRole("button", { name: "Max" }));
+    expect(level()).toBe("low");
+  });
+
+  it("includes Ultra as a Claude slider stop that changes the current conversation", () => {
+    const onChange = vi.fn();
+    render(
+      <ModelMenu
+        label="Agent settings"
+        harness="claude"
+        sections={[
+          {
+            label: "Effort",
+            value: "high",
+            choices: [{ value: "high", name: "High" }],
+            onChange: vi.fn(),
+          },
+        ]}
+        ultracode={{ enabled: true, disabled: false, onChange }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Agent settings/ }));
+    const slider = screen.getByRole("slider", { name: "Effort" });
+    expect(slider.getAttribute("aria-valuetext")).toBe("Ultra effort");
+    fireEvent.click(screen.getByRole("button", { name: "High" }));
+    expect(onChange).toHaveBeenCalledWith(false);
+    fireEvent.click(screen.getByRole("button", { name: "Ultra effort" }));
+    expect(onChange).toHaveBeenCalledWith(true);
+    expect(screen.queryByRole("switch")).toBeNull();
+  });
+
+  it("makes a usage-limit notice readable and dismissible without losing the reset time", () => {
+    const onRetry = vi.fn();
+    render(
+      <defaultSlots.ErrorItem
+        message="Internal error: You've hit your session limit · resets 11:50pm (America/Chicago)"
+        hint={null}
+        onRetry={onRetry}
+      />,
+    );
+    expect(screen.getByRole("status").textContent).toContain("11:50pm (America/Chicago)");
+    expect(screen.getByRole("status").textContent).not.toContain("Internal error");
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetry).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss notice" }));
+    expect(screen.queryByRole("status")).toBeNull();
   });
 });
 
@@ -303,7 +434,8 @@ describe("the context meter", () => {
 
   it("shows how full the window is, and what is used and free", () => {
     render(<ContextMeter used={124_600} size={300_000} />);
-    expect(screen.getByRole("button", { name: "Context window 42% full" }).textContent).toBe("42%");
+    // A ring alone, as Claude Code draws it; the share is in its name and its card.
+    expect(screen.getByRole("button", { name: "Context window 42% full" }).textContent).toBe("");
     const card = screen.getByRole("tooltip", { hidden: true });
     expect(card.querySelector(".at-card__head")?.textContent).toBe(
       "Context window124.6k / 300k (42%)",
@@ -312,18 +444,22 @@ describe("the context meter", () => {
     expect(rows).toEqual(["Used124.6k42%", "Free space175.4k58%"]);
   });
 
-  it("fills its bar as far as the window is full, and no further", () => {
+  it("fills its ring as far as the window is full, and no further", () => {
+    const around = 2 * Math.PI * 6;
     const fill = (used: number) => {
       const { container } = render(<ContextMeter used={used} size={300_000} />);
-      const bar = container.querySelector<HTMLElement>(".at-minibar")!;
-      const width = bar.querySelector<HTMLElement>(".at-bar__fill")!.style.width;
+      const ring = container.querySelector<SVGElement>(".at-ring")!;
+      const dash = ring.querySelector(".at-ring__fill")!.getAttribute("stroke-dasharray")!;
       cleanup();
-      return [width, bar.getAttribute("data-tone")];
+      return [
+        Math.round((Number(dash.split(" ")[0]) / around) * 100),
+        ring.getAttribute("data-tone"),
+      ];
     };
-    expect(fill(124_600)).toEqual([`${(124_600 / 300_000) * 100}%`, "low"]);
-    expect(fill(255_000)).toEqual(["85%", "high"]);
-    expect(fill(288_000)).toEqual(["96%", "full"]);
-    expect(fill(400_000)).toEqual(["100%", "full"]);
+    expect(fill(124_600)).toEqual([42, "low"]);
+    expect(fill(255_000)).toEqual([85, "high"]);
+    expect(fill(288_000)).toEqual([96, "full"]);
+    expect(fill(400_000)).toEqual([100, "full"]);
   });
 
   it("breaks the used tokens down when the agent says what they are", () => {

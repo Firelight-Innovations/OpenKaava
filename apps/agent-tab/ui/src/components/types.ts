@@ -8,6 +8,7 @@ import type { KeyboardEvent, MouseEvent, ReactNode, Ref } from "react";
 import type { ApprovalOption, PlanEntry, SessionState, ToolStatus } from "../protocol.generated";
 import type { DiffLine } from "../diff";
 import type { Tone } from "../meters";
+import type { ContextChip } from "../mentions";
 
 /** The tab's frame: header on top, transcript in the middle, composer below. */
 export interface LayoutProps {
@@ -15,16 +16,40 @@ export interface LayoutProps {
   transcript: ReactNode;
   composer: ReactNode;
 }
+export interface ContextLinkProps {
+  /** Which tracker the link is for, `jira` or `linear`, for the title and example. */
+  provider?: string;
+  onAdd: (url: string) => void;
+  onCancel: () => void;
+}
+
+export interface SideChatProps {
+  children: ReactNode;
+  working: boolean;
+  error: string | null;
+  onSend: (text: string) => void;
+  onClose: () => void;
+  onClear: () => void;
+  onStop: () => void;
+}
 
 export interface HeaderProps {
-  /** The worktree the session runs in, or `null` before there is a session. */
-  cwd: string | null;
-  /** The harness's display name ("Claude"), or `null` until the harness picker supplies one. */
-  harness: string | null;
-  /** The running model's name, or `null` when it is not known. */
-  model: string | null;
+  onHistory?: () => void;
+  onSideChat?: () => void;
+  history?: ReactNode;
+  /** The session's state, or `null` before there is a session. */
   state: SessionState | null;
   onNewSession: () => void;
+}
+
+export interface HistoryPanelProps {
+  sessions: import("../rpc").SavedSession[];
+  loading: boolean;
+  error: string | null;
+  onClose: () => void;
+  onRetry: () => void;
+  onOpen: (id: string, harness?: import("../protocol.generated").Harness) => void;
+  onArchive: (id: string, archived: boolean) => void;
 }
 
 export interface StatusBadgeProps {
@@ -45,7 +70,12 @@ export interface TurnProps {
 }
 
 /** Shown in an agent turn that has nothing to show yet. */
-export type WorkingProps = Record<string, never>;
+export interface WorkingProps {
+  /** What the agent is at, in words, such as "Running pnpm test". Without it, "Working…". */
+  activity?: string;
+  /** When the turn started, in milliseconds since the epoch, for its running clock. */
+  since?: number;
+}
 
 /** Actions on a whole agent turn, such as copying it. */
 export type TurnActionsProps = Record<string, never>;
@@ -58,7 +88,6 @@ export interface EmptyStateProps {
   blocked: string | null;
   /** What the harness still needs, already in words, or `null`. */
   setupHint: string | null;
-  onExample: (text: string) => void;
 }
 
 export interface UserMessageProps {
@@ -137,6 +166,8 @@ export interface ApprovalProps {
 
 export interface TodoListProps {
   entries: PlanEntry[];
+  /** The turn is running, so the step in progress turns. */
+  live?: boolean;
 }
 
 export interface UsageProps {
@@ -208,6 +239,9 @@ export interface HarnessChoice {
 
 /** The composer's settings button: the harnesses and their models, then effort, mode and the rest. */
 export interface ModelMenuProps {
+  openRequest?: number;
+  harnessLocked?: boolean;
+  ultracode?: { enabled: boolean; disabled: boolean; onChange: (enabled: boolean) => void };
   label: string;
   /** The harness in use, by id. */
   harness?: string | null;
@@ -247,18 +281,33 @@ export interface NoticeProps {
 }
 
 export interface ComposerProps {
+  auxiliary?: ReactNode;
+  /** The agent's task list, pinned over the prompt box while it has steps left. */
+  plan?: ReactNode;
+  chips?: ContextChip[];
+  onRemoveChip?: (id: string) => void;
+  effortLevel?: string;
+  onAttach?: () => void;
+  onDictate?: () => void;
+  onSelect?: (caret: number) => void;
+  sideChat?: ReactNode;
   ref: Ref<HTMLTextAreaElement>;
   value: string;
   placeholder: string;
-  onChange: (text: string) => void;
+  /** The new text and, when the input knows it, where the caret now is. */
+  onChange: (text: string, caret?: number) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   /** Notices to show above the input. */
   notices: ReactNode;
-  /** The footer's left side: the settings button. */
+  /** The slash-command list, floated above the box while one is being typed. */
+  menu?: ReactNode;
+  /** The id of the menu item Enter and Tab would pick, for the input to point at. */
+  menuActiveId?: string | null;
+  /** In the box's toolbar, after attach: the settings button. */
   controls: ReactNode;
-  /** Beside Send or Stop: the context meter and the usage ring. */
+  /** In the box's toolbar, before dictation: the context meter and the usage ring. */
   meters: ReactNode;
-  /** The footer's right side: Send or Stop. */
+  /** Inside the box, at the end of the input: Send or Stop. */
   action: ReactNode;
 }
 
@@ -282,6 +331,8 @@ export interface PickerChoice {
  * option the agent reports. Without `onChange` it is shown, not chosen.
  */
 export interface PickerProps {
+  onPreview?: (value: string | null) => void;
+  ultra?: { enabled: boolean; disabled: boolean; onChange: (enabled: boolean) => void };
   label: string;
   title?: string | null;
   value: string | null;
@@ -295,11 +346,28 @@ export interface MenuItem {
   label: string;
   /** A second line or hint, such as a command's argument or a file's folder. */
   detail?: string;
+  children?: MenuItem[];
+  disabled?: boolean;
+  /** What the row is, for its leading glyph: `file`, `canvas`, `skill`, … */
+  kind?: string;
 }
 
 /** A popup list under the caret: slash commands, @ mentions. */
 export interface MenuProps {
+  path?: string[];
+  onPathChange?: (path: string[]) => void;
   label: string;
+  /** The top level's heading, in place of `label`, such as a search scope. */
+  title?: string;
+  /** One quiet line under the rows: searching, nothing found, or a failure. */
+  status?: string | null;
+  /**
+   * A search line under the heading. It shows what is typed in the input,
+   * which keeps the focus and the keys, or `placeholder` while that is empty.
+   */
+  search?: { query: string; placeholder: string };
+  /** A back arrow at the top level too, for a scope the caller can leave. */
+  onBack?: () => void;
   items: MenuItem[];
   activeId: string | null;
   onPick: (id: string) => void;

@@ -32,6 +32,9 @@ fn mock(args: &[&str]) -> LaunchSpec {
         setting_timeout: PATIENCE,
         mcp_servers: Vec::new(),
         model: None,
+        effort: None,
+        ultracode: false,
+        mode: None,
     }
 }
 
@@ -46,6 +49,14 @@ fn an_agent_is_asked_for_its_models_and_never_sent_a_prompt() {
     // The mock also lists `bypassPermissions`, which is never offered.
     assert_eq!(values, ["default", "opus", "haiku"]);
     assert_eq!(models.default, "default");
+    // Its modes too, so one can be picked before a session exists; bypass never is.
+    let modes: Vec<&str> = models.modes.iter().map(|c| c.value.as_str()).collect();
+    assert_eq!(modes, ["default", "acceptEdits", "plan", "auto"]);
+    // And what a prompt may carry, so an @ chip goes as the agent can take it.
+    assert_eq!(
+        models.prompt_capabilities,
+        serde_json::json!({ "image": true, "embeddedContext": true })
+    );
     let sent = std::fs::read_to_string(&trace).unwrap();
     assert_eq!(
         sent.lines().collect::<Vec<_>>(),
@@ -58,6 +69,28 @@ fn a_signed_out_agent_has_no_models() {
     let dir = tempfile::tempdir().unwrap();
     let tree = worktree(dir.path());
     assert_eq!(ask(&mock(&["--signin"]), &tree, PATIENCE), None);
+}
+
+#[test]
+fn commands_advertised_around_session_new_are_kept_without_a_prompt() {
+    for flag in ["--commands-before", "--commands-after"] {
+        let dir = tempfile::tempdir().unwrap();
+        let tree = worktree(dir.path());
+        let trace = dir.path().join("trace.txt");
+        let spec = mock(&[flag, "--trace", trace.to_str().unwrap()]);
+        let models = ask(&spec, &tree, PATIENCE).unwrap();
+        assert_eq!(models.commands.len(), 2);
+        assert_eq!(models.commands[0].name, "compact");
+        assert_eq!(models.commands[0].hint.as_deref(), Some("instructions"));
+        assert_eq!(models.commands[1].name, "$project-skill");
+        assert_eq!(
+            std::fs::read_to_string(trace)
+                .unwrap()
+                .lines()
+                .collect::<Vec<_>>(),
+            ["initialize", "session/new"]
+        );
+    }
 }
 
 #[test]

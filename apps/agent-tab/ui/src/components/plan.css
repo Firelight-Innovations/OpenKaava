@@ -1,0 +1,138 @@
+/*
+ * The agent's task list, pinned over the composer: a quiet card whose head
+ * folds it, a check per finished step, and a turning ring on the step in
+ * progress while the turn runs.
+ */
+.at-plan {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: var(--k-space-2);
+  padding: var(--k-space-1) var(--k-space-1) var(--k-space-1-5);
+  border: 1px solid var(--k-panel-border);
+  border-radius: var(--k-radius-bar);
+  background: var(--k-card-bg);
+  font-size: var(--k-size-small);
+  animation: at-plan-in var(--k-motion-base) var(--k-ease);
+}
+
+.at-plan__head {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-1-5);
+  min-width: 0;
+  height: 26px;
+  padding: 0 var(--k-space-1-5);
+  border: 0;
+  border-radius: var(--k-radius-control);
+  background: none;
+  color: var(--k-fg-secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.at-plan__head:hover {
+  background: var(--k-menu-hover);
+}
+
+.at-plan__head:focus-visible {
+  outline: var(--k-focus-ring);
+}
+
+.at-plan__caret {
+  flex-shrink: 0;
+  color: var(--k-fg-faint);
+  transition: rotate var(--k-motion-fast) var(--k-ease);
+}
+
+.at-plan__head[aria-expanded="true"] .at-plan__caret {
+  rotate: 90deg;
+}
+
+.at-plan__title {
+  flex-shrink: 0;
+  color: var(--k-editor-fg);
+  font-weight: var(--k-weight-strong);
+}
+
+.at-plan__current {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--k-fg-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.at-plan__count {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--k-fg-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.at-plan__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-1);
+  max-height: min(220px, 30vh);
+  margin: var(--k-space-1) 0 0;
+  padding: 0 var(--k-space-1-5) 0 var(--k-space-2);
+  overflow-y: auto;
+  list-style: none;
+}
+
+.at-plan__entry {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: var(--k-space-2);
+  align-items: start;
+  color: var(--k-fg-secondary);
+  line-height: 1.45;
+}
+
+.at-plan__entry > svg {
+  margin-top: 0.15em;
+  color: var(--k-fg-faint);
+}
+
+.at-plan__entry[data-status="in_progress"] {
+  color: var(--k-editor-fg);
+}
+
+.at-plan__entry[data-status="in_progress"] > svg {
+  color: var(--k-accent);
+}
+
+.at-plan__entry[data-status="in_progress"][data-live] > svg {
+  animation: at-plan-spin 1s linear infinite;
+}
+
+.at-plan__entry[data-status="completed"] {
+  color: var(--k-fg-muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--k-fg-faint);
+}
+
+.at-plan__entry[data-status="completed"] > svg {
+  color: var(--k-tool-done);
+}
+
+@keyframes at-plan-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes at-plan-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .at-plan,
+  .at-plan__entry > svg {
+    animation: none !important;
+  }
+}

@@ -54,10 +54,12 @@ import { VeistraErrorCode } from "@veistra/bridge/errors";
 import {
   AGENT_TAB_CHOSEN,
   AGENT_TAB_EVENT,
+  AGENT_TAB_LOGIN,
   AGENT_TAB_MODELS,
   appPainted,
   onAgentTabChosen,
   onAgentTabEvent,
+  onAgentTabLogin,
   onAgentTabModels,
   onFilesChanged,
   onLaunchTarget,
@@ -1397,6 +1399,7 @@ const ToolWindow = forwardRef<
         [onAgentTabEvent, AGENT_TAB_EVENT],
         [onAgentTabChosen, AGENT_TAB_CHOSEN],
         [onAgentTabModels, AGENT_TAB_MODELS],
+        [onAgentTabLogin, AGENT_TAB_LOGIN],
       ] as const;
       for (const [listen, event] of listeners) {
         const stop = await listen(relay(event));

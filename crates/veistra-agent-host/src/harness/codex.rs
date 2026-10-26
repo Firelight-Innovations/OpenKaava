@@ -27,7 +27,7 @@ pub static CODEX: Descriptor = Descriptor {
     sign_in: "codex login",
     env: &[("INITIAL_AGENT_MODE", "read-only")],
     // With this set, a signed-out session signs itself in: `chat-gpt` opens a
-    // browser. Veistra never starts a sign-in; the user runs `codex login`.
+    // browser. Only the user's `/login` starts one, through `codex login`.
     env_remove: &["DEFAULT_AUTH_REQUEST"],
     // `read-only` asks before editing a file or using the network.
     policy: Policy {

@@ -1,0 +1,91 @@
+.at-side {
+  position: absolute;
+  bottom: calc(100% + var(--k-space-3));
+  right: var(--k-space-3);
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  width: min(390px, calc(100vw - 40px));
+  max-height: min(510px, 65vh);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-composer);
+  background: var(--k-raised-bg);
+  box-shadow: var(--k-shadow-menu);
+  overflow: hidden;
+}
+.at-side__head {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-2);
+  padding: var(--k-space-3);
+  border-bottom: 1px solid var(--k-panel-border);
+}
+.at-side__head strong {
+  flex: 1;
+  font-weight: var(--k-weight-strong);
+}
+.at-side button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--k-radius-control);
+  background: transparent;
+  color: var(--k-fg-secondary);
+  cursor: pointer;
+}
+.at-side button:hover {
+  background: var(--k-menu-hover);
+}
+.at-side button:focus-visible {
+  outline: var(--k-focus-ring);
+}
+.at-side__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-3);
+  overflow: auto;
+  min-height: 90px;
+  padding: var(--k-space-3);
+}
+.at-side__hint {
+  color: var(--k-fg-faint);
+  font-size: var(--k-size-small);
+  margin: 0;
+}
+.at-side__compose {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--k-space-2);
+  padding: var(--k-space-2);
+  margin: var(--k-space-2);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-turn);
+  background: var(--k-composer-bg);
+}
+.at-side__compose textarea {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  field-sizing: content;
+  max-height: 120px;
+  padding: var(--k-space-1);
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--k-editor-fg);
+  font: inherit;
+}
+.at-side__compose:focus-within {
+  outline: var(--k-focus-ring);
+}
+.at-side__compose button {
+  background: var(--k-accent);
+  color: var(--k-on-accent);
+  border-radius: var(--k-radius-pill);
+}
+.at-side__compose button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

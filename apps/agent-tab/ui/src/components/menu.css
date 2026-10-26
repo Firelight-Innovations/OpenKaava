@@ -4,45 +4,177 @@
  */
 
 .at-menu {
-  margin: 0;
-  padding: var(--k-space-1);
-  list-style: none;
-  max-height: 280px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  width: min(360px, 100%);
+  max-height: min(340px, 50vh);
+  overflow: hidden;
   border: 1px solid var(--k-input-border);
-  border-radius: var(--k-radius-control);
+  border-radius: var(--k-radius-menu);
   background: var(--k-raised-bg);
   box-shadow: var(--k-shadow-menu);
+  font-size: var(--k-size-small);
+  animation: at-menu-in var(--k-motion-base) var(--k-ease);
+}
+
+.at-menu__head {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-1);
+  min-height: 28px;
+  padding: var(--k-space-1) var(--k-space-2) 0;
+}
+
+.at-menu__title {
+  padding-inline: var(--k-space-1);
+  color: var(--k-fg-muted);
+  font-size: var(--k-text-label-size);
+  font-weight: var(--k-weight-strong);
+  letter-spacing: var(--k-text-label-tracking);
+  text-transform: uppercase;
+}
+
+/* Looks like a field, but mirrors the composer, which keeps the caret and the keys. */
+.at-menu__search {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-1-5);
+  height: 28px;
+  margin: var(--k-space-1) var(--k-space-2) 0;
+  padding: 0 var(--k-space-2);
+  border: 1px solid var(--k-accent);
+  border-radius: var(--k-radius-control);
+  background: var(--k-composer-bg);
+  color: var(--k-editor-fg);
+}
+
+.at-menu__search > svg {
+  flex-shrink: 0;
+  color: var(--k-fg-muted);
+}
+
+.at-menu__search > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.at-menu__search[data-empty] > span {
+  color: var(--k-fg-faint);
+}
+
+.at-menu__back {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--k-radius-sm);
+  background: transparent;
+  color: var(--k-fg-muted);
+  cursor: pointer;
+}
+
+.at-menu__back:hover {
+  background: var(--k-menu-hover);
+  color: var(--k-editor-fg);
+}
+
+.at-menu__back:focus-visible {
+  outline: var(--k-focus-ring);
+}
+
+.at-menu__list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: var(--k-space-1);
+  overflow-y: auto;
+  list-style: none;
 }
 
 .at-menu__item {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--k-space-2);
-  min-height: var(--k-row);
-  padding: var(--k-space-0-5) var(--k-space-2);
-  border-radius: var(--k-radius-sm);
+  min-height: 30px;
+  padding: 0 var(--k-space-2);
+  border-radius: var(--k-radius-control);
+  color: var(--k-editor-fg);
   cursor: pointer;
 }
 
 .at-menu__item:hover {
-  background: var(--k-list-hover);
+  background: var(--k-menu-hover);
 }
 
-.at-menu__item--active {
-  background: var(--k-list-active);
+/* The row Enter would pick: the accent's tint, so it reads at a glance over the
+   raised surface, where the list's own selected grey barely shows. */
+.at-menu__item--active,
+.at-menu__item--active:hover {
+  background: var(--k-accent-subtle);
+}
+
+.at-menu__item--active .at-menu__icon {
+  color: var(--k-accent);
+}
+
+.at-menu__item[aria-disabled="true"] {
+  color: var(--k-fg-faint);
+  cursor: default;
+}
+
+.at-menu__item[aria-disabled="true"]:hover {
+  background: none;
+}
+
+.at-menu__icon {
+  flex-shrink: 0;
+  color: var(--k-fg-muted);
 }
 
 .at-menu__label {
-  color: var(--k-editor-fg);
+  flex-shrink: 0;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .at-menu__detail {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--k-fg-faint);
-  font-size: var(--k-size-small);
+}
+
+.at-menu__arrow {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--k-fg-faint);
+}
+
+.at-menu__status {
+  padding: var(--k-space-2) var(--k-space-3);
+  border-top: 1px solid var(--k-panel-border);
+  color: var(--k-fg-muted);
+}
+
+.at-menu__list + .at-menu__status {
+  padding-block: var(--k-space-1-5);
+}
+
+.at-menu__head + .at-menu__status {
+  border-top: 0;
+}
+
+@keyframes at-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
 
 .at-sessions {

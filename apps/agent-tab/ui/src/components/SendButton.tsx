@@ -1,3 +1,4 @@
+import { ArrowUp } from "lucide-react";
 import { strings } from "../strings";
 import type { SendButtonProps } from "./types";
 import "./composer.css";
@@ -13,7 +14,7 @@ export function SendButton({ disabled, onClick }: SendButtonProps) {
       disabled={disabled}
       onClick={onClick}
     >
-      <span aria-hidden="true">{strings.sendGlyph}</span>
+      <ArrowUp size={16} aria-hidden="true" />
     </button>
   );
 }

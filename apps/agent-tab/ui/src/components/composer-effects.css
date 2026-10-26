@@ -1,0 +1,210 @@
+/*
+ * Effort leaves the composer alone, with one exception: turning Ultra on
+ * sweeps the whole ramp across the card once, through veistra.com's dot
+ * screen, with a ring that flares and fades. Then it is the plain card again.
+ */
+.at-prompt__box {
+  position: relative;
+  isolation: isolate;
+}
+/* Isolated, the box traps its popups' z-index; it comes forward while one is open. */
+.at-prompt__box:has(.at-model__menu, .at-hover__card[data-open]) {
+  z-index: 10;
+}
+.at-prompt[data-surge] .at-prompt__box {
+  animation: at-surge-ring 1300ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.at-prompt[data-surge] .at-prompt__box::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--k-effort-ramp);
+  mask:
+    radial-gradient(circle, #000 0.8px, transparent 1.3px) 0 0 / 6px 6px,
+    linear-gradient(100deg, transparent 30%, #000 50%, transparent 70%) 100% 0 / 300% 100% no-repeat;
+  mask-composite: intersect;
+  pointer-events: none;
+  animation: at-surge-sweep 1300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+/* A tag like the shell's git chips: neutral, with only its glyph in the kind's colour. */
+.at-chip {
+  --chip-glyph: var(--k-link);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--k-space-1);
+  max-width: 100%;
+  height: 22px;
+  padding: 0 var(--k-space-0-5) 0 var(--k-space-1-5);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-control);
+  background: var(--k-badge-bg);
+  color: var(--k-fg-secondary);
+  font: var(--k-text-small);
+  vertical-align: baseline;
+}
+.at-chip > svg:first-child {
+  flex-shrink: 0;
+  color: var(--chip-glyph);
+}
+.at-chip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.at-chip[data-kind="skill"] {
+  --chip-glyph: var(--k-context-5);
+}
+.at-chip[data-kind="comment"],
+.at-chip[data-kind="design-comment"] {
+  --chip-glyph: var(--k-context-3);
+}
+.at-chip[data-kind="issue"] {
+  --chip-glyph: var(--k-context-4);
+}
+.at-chip button {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--k-radius-sm);
+  background: transparent;
+  color: var(--k-fg-faint);
+  cursor: pointer;
+}
+.at-chip button:hover {
+  background: var(--k-menu-hover);
+  color: var(--k-editor-fg);
+}
+.at-chip button:focus-visible {
+  outline: var(--k-focus-ring);
+}
+/* Inline in a sent message: it sits on the text's line, in the link colour. */
+.at-user__text .at-chip {
+  height: auto;
+  margin-inline: var(--k-space-0-5);
+  padding: 0 var(--k-space-1);
+  border: 0;
+  background: var(--k-accent-subtle);
+  color: var(--k-link);
+  line-height: inherit;
+}
+.at-assistant a[href^="veistra:"] {
+  display: inline-block;
+  padding: 0 var(--k-space-1);
+  border-radius: var(--k-radius-sm);
+  background: var(--k-accent-subtle);
+  color: var(--k-link);
+  text-decoration: none;
+}
+.at-link-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-2);
+  padding: var(--k-space-3);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-menu);
+  background: var(--k-raised-bg);
+  box-shadow: var(--k-shadow-menu);
+  font-size: var(--k-size-small);
+}
+.at-link-picker__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-2);
+}
+.at-link-picker__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--k-space-1-5);
+  color: var(--k-editor-fg);
+  font-weight: var(--k-weight-strong);
+}
+.at-link-picker input {
+  height: 30px;
+  padding: 0 var(--k-space-2);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-control);
+  background: var(--k-composer-bg);
+  color: var(--k-editor-fg);
+  font: inherit;
+}
+.at-link-picker input:focus-visible {
+  outline: none;
+  border-color: var(--k-accent);
+}
+.at-link-picker p {
+  margin: 0;
+  color: var(--k-fg-muted);
+  line-height: 1.45;
+}
+.at-link-picker__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--k-space-1-5);
+}
+.at-link-picker__actions button {
+  height: 26px;
+  padding: 0 var(--k-space-2-5);
+  border: 1px solid var(--k-input-border);
+  border-radius: var(--k-radius-control);
+  color: var(--k-editor-fg);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.at-link-picker__actions button:hover:not(:disabled) {
+  background: var(--k-menu-hover);
+}
+.at-link-picker__actions .at-link-picker__primary {
+  border-color: transparent;
+  background: var(--k-accent);
+  color: var(--k-on-accent);
+}
+.at-link-picker__actions .at-link-picker__primary:hover:not(:disabled) {
+  background: var(--k-accent);
+  filter: brightness(1.1);
+}
+.at-link-picker__actions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.at-link-picker__actions button:focus-visible {
+  outline: var(--k-focus-ring);
+}
+/* The band crosses the card left to right and fades as it reaches the far side. */
+@keyframes at-surge-sweep {
+  from {
+    mask-position:
+      0 0,
+      100% 0;
+    opacity: 0.55;
+  }
+  70% {
+    opacity: 0.55;
+  }
+  to {
+    mask-position:
+      0 0,
+      0% 0;
+    opacity: 0;
+  }
+}
+@keyframes at-surge-ring {
+  30% {
+    border-color: var(--k-effort-ultra);
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--k-effort-max) 30%, transparent),
+      0 0 18px color-mix(in srgb, var(--k-effort-ultra) 30%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .at-prompt[data-surge] .at-prompt__box,
+  .at-prompt[data-surge] .at-prompt__box::before {
+    animation: none;
+  }
+}

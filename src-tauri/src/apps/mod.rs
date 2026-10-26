@@ -15,6 +15,9 @@
 
 // `pub(crate)` for `lib.rs` (which manages its `Sessions`), `shell_state`
 // (which stops a closed tab's agent) and the MCP panel's refusal reasons.
+mod agent_cli;
+mod agent_context;
+mod agent_history;
 pub(crate) mod agent_tab;
 mod agents;
 mod blender_viewer;
@@ -721,6 +724,9 @@ pub const WRITE_METHODS: &[&str] = &[
     // does a mode that accepts edits unasked. The model and effort are set
     // with the mode.
     "agent-tab/send",
+    "agent-tab/cli-command",
+    "agent-tab/btw-send",
+    "agent-tab/btw-answer",
     "agent-tab/answer",
     "agent-tab/set-mode",
     "agent-tab/set-config",

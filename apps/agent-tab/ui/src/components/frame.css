@@ -19,36 +19,28 @@
   font-size: var(--k-size-small);
 }
 
+/* No bar and no rule: one icon at the right once there is a session, and no
+   height at all before. */
 .at-header {
+  position: relative;
   flex-shrink: 0;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--k-space-1) var(--k-space-2);
-  min-height: 34px;
-  padding: var(--k-space-1) var(--k-space-2-5);
-  border-bottom: 1px solid var(--k-panel-border);
-  background: var(--k-editor-bg);
+  justify-content: flex-end;
+  padding: var(--k-space-1) var(--k-space-2) 0;
 }
 
-.at-header__title {
-  font-weight: var(--k-weight-strong);
+.at-header[data-empty] {
+  padding: var(--k-space-1) var(--k-space-2) 0;
 }
 
-.at-header__spacer {
-  flex: 1;
-}
-
-.at-chip {
-  max-width: 24ch;
+/* Heard, not seen. */
+.at-header__status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
   overflow: hidden;
-  text-overflow: ellipsis;
+  clip-path: inset(50%);
   white-space: nowrap;
-  padding: 1px var(--k-space-1-5);
-  border-radius: var(--k-radius-sm);
-  background: var(--k-badge-bg);
-  color: var(--k-badge-fg);
-  font-size: var(--k-size-small);
 }
 
 .at-status {
@@ -102,61 +94,8 @@
 
 .at-empty {
   margin-block: auto;
-  padding: var(--k-space-3) var(--k-space-1);
-  color: var(--k-fg-muted);
-}
-
-.at-empty .at-hint {
-  margin: 1em 0;
-}
-
-.at-empty__heading {
-  margin: 0 0 var(--k-space-1);
-  color: var(--k-editor-fg);
-  font-size: var(--k-size-heading);
-  font-weight: var(--k-weight-strong);
-}
-
-.at-empty__examples {
-  margin: var(--k-space-2) 0;
-  padding: 0;
-  list-style: none;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: var(--k-space-1);
-}
-
-.at-empty__keys {
-  margin: var(--k-space-3) 0 var(--k-space-1);
-  font-size: var(--k-text-label-size);
-  font-weight: var(--k-weight-strong);
-  letter-spacing: var(--k-text-label-tracking);
-  text-transform: uppercase;
-  color: var(--k-fg-faint);
-}
-
-.at-keys {
-  margin: 0;
-}
-
-.at-keys > div {
-  display: flex;
   gap: var(--k-space-2);
-}
-
-.at-keys dt {
-  min-width: 11ch;
-}
-
-.at-keys dd {
-  margin: 0;
-}
-
-.at-keys kbd {
-  font-family: var(--k-mono);
-  font-size: var(--k-size-small);
-  padding: 0 var(--k-space-1);
-  border: 1px solid var(--k-input-border);
-  border-radius: var(--k-radius-sm);
+  color: var(--k-fg-muted);
 }

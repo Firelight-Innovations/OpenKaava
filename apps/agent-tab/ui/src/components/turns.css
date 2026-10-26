@@ -29,6 +29,51 @@
 }
 
 .at-working {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-2);
+  min-width: 0;
   color: var(--k-fg-faint);
   font-size: var(--k-size-small);
+}
+
+.at-working > .at-shimmer {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A ring in the effort ramp, a quarter of it missing, turning like a charge. */
+.at-working__spark {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: conic-gradient(
+    transparent 0 25%,
+    var(--k-effort-low) 25%,
+    var(--k-effort-medium) 50%,
+    var(--k-effort-high) 75%,
+    var(--k-effort-max)
+  );
+  mask: radial-gradient(circle, transparent 3px, #000 3.5px);
+  animation: at-working-spin 900ms linear infinite;
+}
+
+.at-working__clock {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes at-working-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .at-working__spark {
+    animation: none;
+  }
 }

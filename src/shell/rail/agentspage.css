@@ -6,6 +6,60 @@
   padding: 6px 0 12px;
 }
 
+.k-agents__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px 8px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.k-agents__action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--txt-secondary);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.k-agents__action:hover:not(:disabled),
+.k-agents__search:focus-within {
+  background: var(--bg-layer-1-hover);
+  color: var(--txt-primary);
+}
+
+.k-agents__action:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.k-agents__action:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.k-agents__search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--txt-primary);
+  font: inherit;
+}
+
+.k-agents__search input::placeholder {
+  color: var(--txt-secondary);
+}
+
 .k-agents__cluster {
   padding: 6px 8px;
 }

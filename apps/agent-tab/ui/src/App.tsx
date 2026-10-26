@@ -29,9 +29,12 @@ import type {
   Harness,
   HarnessInfo,
   Hint,
+  Item,
+  PlanEntry,
   SessionStatus,
   SettingTrouble,
 } from "./protocol.generated";
+import { completion, isLogin, matching, offered, skillCommands, commandSupport } from "./commands";
 import { harnessChoices, type RunningModel } from "./harnesses";
 import { latestUsage } from "./meters";
 import {
@@ -54,9 +57,16 @@ import * as rpc from "./rpc";
 import { toTurns, type Turn } from "./thread";
 import { Turns, TurnsProvider } from "./Turns";
 import { useSlots } from "./components/registry";
-import type { PickerProps } from "./components/types";
-import { hintText, infoOf, modelName } from "./harness";
+import type { PickerProps, MenuItem } from "./components/types";
+import { hintText, infoOf } from "./harness";
 import { strings, type HarnessWords } from "./strings";
+import { withChips, type ContextChip } from "./mentions";
+import { useMentions } from "./useMentions";
+import { useSideChat } from "./useSideChat";
+import { EFFORT_LEVELS } from "./preferences";
+
+/** A search scope's glyph in the @ menu, where it differs from the scope's own name. */
+const SCOPE_GLYPH: Record<string, string> = { file: "folder", "design-comment": "comment" };
 
 type Action =
   { type: "attached"; attachment: Attachment } | { type: "envelope"; envelope: Envelope };
@@ -96,11 +106,75 @@ export default function App() {
   const [attachFailed, setAttachFailed] = useState(false);
   const [pending, setPending] = useState<Pending | null>(null);
   const [harnessesFailed, setHarnessesFailed] = useState(false);
+  // The slash-command list: the row the keys are on, and the draft Esc closed it for.
+  const [menuRow, setMenuRow] = useState(0);
+  const [menuPath, setMenuPath] = useState<string[]>([]);
+  const [menuClosedFor, setMenuClosedFor] = useState<string | null>(null);
+  // What `/login` last said, shown under the transcript until the next prompt.
+  const [loginNote, setLoginNote] = useState<string | null>(null);
+  /** Cluster transcripts still being copied into chips; Send waits for them. */
+  const [capturing, setCapturing] = useState(0);
+  const [effort, setEffort] = useState<string | null>(null);
+  const [ultracode, setUltracode] = useState(false);
+  // The mode each harness's next session starts in, picked before it exists.
+  const [startModes, setStartModes] = useState<StartModes>({});
+  const pickStartMode = useCallback(
+    (harness: Harness, mode: string) => setStartModes((now) => ({ ...now, [harness]: mode })),
+    [],
+  );
+  // A pick is for the one session it starts. Once a session of that harness
+  // has entered its mode, the agent's mode is the one to follow, and a later
+  // session asks first again unless the user picks again. Heard from each
+  // status as it comes, since a render may fold Ready and Stopped into one.
+  const heardStatus = useCallback((envelope: Envelope) => {
+    if (envelope.event.type !== "status") return;
+    const { harness, state } = envelope.event.status;
+    if (state === "starting" || state === "stopped" || state === "failed") return;
+    setStartModes((now) => (now[harness] === undefined ? now : { ...now, [harness]: undefined }));
+  }, []);
+  const [settingsRequest, setSettingsRequest] = useState(0);
+  const [caret, setCaret] = useState(0);
+  const [chips, setChips] = useState<ContextChip[]>([]);
+  const [sources, setSources] = useState<Awaited<ReturnType<typeof rpc.contextSources>>>({
+    clusters: [],
+    issues: [],
+  });
+  const [contextScope, setContextScope] = useState<string | null>(null);
+  const mentions = useMentions(draft, caret, contextScope);
+  /** The issue tracker whose link form is open, `jira` or `linear`, or none. */
+  const [issuePicker, setIssuePicker] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [savedSessions, setSavedSessions] = useState<rpc.SavedSession[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const side = useSideChat(state.items);
+  const askSide = side.ask;
   // Counts the choices this tab has heard of. A `harnesses` reply asked for
   // before one is older than it, so it must not put back the harness it
   // replaced.
   const choices = useRef(0);
   const prompt = useRef<HTMLTextAreaElement | null>(null);
+  const loadHistory = useCallback(() => {
+    setHistoryLoading(true);
+    setHistoryError(null);
+    void rpc
+      .history()
+      .then(
+        (answer) => setSavedSessions(answer.sessions ?? []),
+        () => setHistoryError(strings.history.failed),
+      )
+      .finally(() => setHistoryLoading(false));
+  }, []);
+  useEffect(() => {
+    if (!state.attached || (!state.items.length && !state.status?.pendingPrompt)) return;
+    const timer = setTimeout(() => {
+      void rpc.saveHistory().catch(() => {});
+    }, 750);
+    return () => clearTimeout(timer);
+  }, [state.attached, state.items, state.status?.pendingPrompt]);
+  // The effect that hears a sign-in end runs once, so it reads the latest list from here.
+  const harnessesRef = useRef<HarnessInfo[]>([]);
+  harnessesRef.current = harnesses;
 
   // Envelopes are held until this answers, so a retry loses none of them.
   const attach = useCallback(
@@ -136,19 +210,32 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const stop = rpc.onEnvelope((envelope) => dispatch({ type: "envelope", envelope }));
+    const stop = rpc.onEnvelope((envelope) => {
+      dispatch({ type: "envelope", envelope });
+      heardStatus(envelope);
+    });
     const stopChosen = rpc.onChosen(heardChoice);
     void attach().finally(() => reportPainted());
     void listHarnesses();
+    void rpc.contextSources().then(
+      (answer) => setSources({ clusters: answer?.clusters ?? [], issues: answer?.issues ?? [] }),
+      () => {},
+    );
     // The host asks each agent for its models after its first answer, and
     // says when they are in.
     const stopModels = rpc.onModels(() => void listHarnesses());
+    const stopLogin = rpc.onLogin((harness, ok) => {
+      const name = infoOf(harnessesRef.current, harness)?.name ?? "";
+      setLoginNote(ok ? strings.login.done(name) : strings.login.failed(name));
+      if (ok) void listHarnesses();
+    });
     return () => {
       stop();
       stopChosen();
       stopModels();
+      stopLogin();
     };
-  }, [attach, heardChoice, listHarnesses]);
+  }, [attach, heardChoice, heardStatus, listHarnesses]);
 
   const status = state.status;
   const working = busy(status);
@@ -160,19 +247,118 @@ export default function App() {
   // What the session's own hints are about, even once it has ended. An error
   // item names its own harness, which an earlier session may have run.
   const session = infoOf(harnesses, status?.harness ?? null);
+  const reportedCommands = useMemo(
+    () =>
+      status?.harness === (running ?? chosen) && status.commands.length
+        ? status.commands
+        : (current?.commands ?? []),
+    [status?.harness, status?.commands, current?.commands, running, chosen],
+  );
+  const skillList = skillCommands(reportedCommands, running ?? chosen ?? "claude");
 
   const submit = useCallback(
-    (text: string) => {
-      if (text.trim() === "") return;
+    (text: string, retry = false) => {
+      if (text.trim() === "" && (retry || chips.length === 0)) return;
       setNotice(null);
-      rpc.send(text).then(
-        // Only if the box still holds what was sent: the user may have typed
-        // on while it was in flight, and a Retry sends an older prompt.
-        () => setDraft((now) => (now === text ? "" : now)),
-        (err: unknown) => setNotice(noticeOf(err, strings.failed.send, current)),
-      );
+      if (/^\/skills(?:\s|$)/.test(text.trim())) {
+        setDraft("/skills ");
+        setMenuClosedFor(null);
+        return;
+      }
+      if (commandSupport(text, reportedCommands, running ?? chosen ?? "claude") === "terminal") {
+        void rpc.cliCommand(text).then(
+          () => {
+            setDraft("");
+            setLoginNote(strings.openedTerminal(current?.name ?? ""));
+          },
+          (err: unknown) => setNotice(noticeOf(err, strings.failed.send, current)),
+        );
+        return;
+      }
+      const [command, ...args] = text.trim().split(/\s+/);
+      if (
+        ["/model", "/effort", "/clear", "/new", "/reset", "/stop", "/help", "/btw"].includes(
+          command,
+        )
+      ) {
+        setDraft("");
+        if (["/clear", "/new", "/reset"].includes(command))
+          void rpc
+            .reset()
+            .catch((err: unknown) => setNotice(noticeOf(err, strings.failed.setting, current)));
+        else if (command === "/stop") void rpc.cancel().catch(() => {});
+        else if (command === "/help") setLoginNote(strings.help);
+        else if (command === "/btw") askSide(args.join(" "));
+        else if (
+          command === "/effort" &&
+          args[0] === "ultracode" &&
+          current?.harness === "claude"
+        ) {
+          if (running)
+            void rpc
+              .setConfig("ultra_effort", args[1] === "off" ? "off" : "on")
+              .catch((err: unknown) => setNotice(noticeOf(err, strings.failed.setting, current)));
+          else setUltracode(args[1] !== "off");
+        } else if (command === "/effort" && args.length) {
+          const option = status?.config.find((c) => c.category === "thought_level");
+          const value = args[0].toLowerCase();
+          if (option?.choices.some((c) => c.value === value))
+            void rpc
+              .setConfig(option.id, value)
+              .catch((err: unknown) => setNotice(noticeOf(err, strings.failed.setting, current)));
+          else if (!status && EFFORT_LEVELS.some((v) => v === value)) setEffort(value);
+          else setLoginNote(strings.preferences.unsupported);
+        } else setSettingsRequest((n) => n + 1);
+        return;
+      }
+      // The sign-in is the host's, not a prompt: the agent never sees it.
+      if (isLogin(text)) {
+        setDraft("");
+        setLoginNote(strings.login.started(current?.name ?? ""));
+        rpc.login().catch((err: unknown) => {
+          setLoginNote(null);
+          setNotice(noticeOf(err, strings.login.notStarted, current));
+        });
+        return;
+      }
+      // A cluster's chip is still being copied: sending now would leave it out.
+      if (!retry && capturing > 0) return;
+      setLoginNote(null);
+      const sentChips = retry ? [] : chips;
+      const ultra = ultracode && current?.harness === "claude";
+      // Only a session about to start takes a mode; ask-first is where it starts anyway.
+      const picked = running ? null : startMode(current, startModes);
+      const mode = picked !== null && picked !== current?.askFirst ? picked : undefined;
+      rpc
+        .send(
+          withChips(text, sentChips),
+          effort !== null || ultra || mode !== undefined
+            ? { effort, ultracode: ultra, ...(mode === undefined ? {} : { mode }) }
+            : undefined,
+        )
+        .then(
+          // Only if the box still holds what was sent: the user may have typed
+          // on while it was in flight, and a Retry sends an older prompt.
+          () => {
+            setDraft((now) => (now === text ? "" : now));
+            setChips((now) => now.filter((c) => !sentChips.includes(c)));
+          },
+          (err: unknown) => setNotice(noticeOf(err, strings.failed.send, current)),
+        );
     },
-    [current],
+    [
+      current,
+      effort,
+      ultracode,
+      status,
+      askSide,
+      chips,
+      capturing,
+      reportedCommands,
+      running,
+      chosen,
+      startModes,
+    ],
   );
 
   // A harness and one of its models, `null` for the agent's default. The host
@@ -183,6 +369,7 @@ export default function App() {
     rpc.choose(harness as Harness, model).then(
       () => {
         heardChoice(harness as Harness);
+        void attach();
         void listHarnesses();
       },
       (err: unknown) => setNotice(noticeOf(err, strings.failed.choose, current)),
@@ -218,7 +405,138 @@ export default function App() {
   const onConfig = (configId: string, value: string) =>
     choose({ option: configId }, value, () => rpc.setConfig(configId, value));
 
+  // "/skills " opens the skill list as a search: what follows it narrows the
+  // list by name or description, names first.
+  const skillsOpen = /^\/skills(?:\s|$)/.test(draft);
+  const skillSearch = draft.replace(/^\/skills\s*/, "");
+  const skillQuery = skillSearch.trim().toLowerCase();
+  const nameHit = (s: { name: string }) => s.name.toLowerCase().includes(skillQuery);
+  const matches = skillsOpen
+    ? skillList
+        .filter((s) => nameHit(s) || s.description.toLowerCase().includes(skillQuery))
+        .sort((a, b) => Number(nameHit(b)) - Number(nameHit(a)))
+        .map((s) => ({ ...s, support: "agent" as const }))
+    : matching(draft, offered(reportedCommands, running ?? chosen ?? "claude"));
+  // The issue-link form covers both menus, so neither takes keys while it is open.
+  const mentionOpen = issuePicker === null && mentions.query !== null && menuClosedFor !== draft;
+  const menuOpen =
+    issuePicker === null &&
+    !mentionOpen &&
+    (matches.length > 0 || skillsOpen) &&
+    menuClosedFor !== draft;
+  const openSkills = () => {
+    setDraft("/skills ");
+    setCaret(8);
+    setMenuPath([]);
+    setMenuRow(0);
+    requestAnimationFrame(() => {
+      prompt.current?.focus();
+      prompt.current?.setSelectionRange(8, 8);
+    });
+  };
+  const leaveSkills = () => {
+    setDraft("/");
+    setCaret(1);
+    setMenuRow(0);
+    requestAnimationFrame(() => prompt.current?.focus());
+  };
+  const pickCommand = (name: string) => {
+    if (name.startsWith("skill:")) {
+      const skill = skillList.find((s) => s.name === name.slice(6));
+      if (skill) {
+        setChips((now) =>
+          now.some((c) => c.id === name)
+            ? now
+            : [
+                ...now,
+                {
+                  id: name,
+                  label: skill.name.replace(/^\$/, ""),
+                  kind: "skill",
+                  command: skill.name,
+                },
+              ],
+        );
+        setDraft("");
+        prompt.current?.focus();
+      }
+      return;
+    }
+    if (skillsOpen) {
+      pickCommand(`skill:${name}`);
+      return;
+    }
+    const command = matches.find((c) => c.name === name);
+    if (command) setDraft(completion(command));
+  };
+
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Backspace" && draft === "" && chips.length) {
+      event.preventDefault();
+      setChips((now) => now.slice(0, -1));
+      return;
+    }
+    if ((mentionOpen || menuOpen) && !event.nativeEvent.isComposing) {
+      const count = navigable.length;
+      const picked = navigable[Math.min(menuRow, count - 1)];
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const step = event.key === "ArrowDown" ? 1 : -1;
+        if (count) setMenuRow((Math.min(menuRow, count - 1) + step + count) % count);
+        return;
+      }
+      if (skillsOpen && event.key === "ArrowLeft" && skillSearch === "") {
+        event.preventDefault();
+        leaveSkills();
+        return;
+      }
+      if (event.key === "Escape" || (event.key === "ArrowLeft" && menuPath.length)) {
+        event.preventDefault();
+        if (menuPath.length) {
+          setMenuPath(menuPath.slice(0, -1));
+          setMenuRow(0);
+        } else if (mentionOpen && contextScope) {
+          setContextScope(null);
+          setMenuRow(0);
+        } else setMenuClosedFor(draft);
+        return;
+      }
+      // A command typed out in full, with no argument to give, sends as it is.
+      const complete =
+        menuOpen &&
+        !skillsOpen &&
+        !menuPath.length &&
+        !picked?.children &&
+        matches.some((c) => c.name === picked?.id && draft === `/${c.name}` && c.hint === null);
+      if (
+        picked &&
+        ((event.key === "Tab" && !event.shiftKey) ||
+          (event.key === "ArrowRight" && picked.children) ||
+          (event.key === "Enter" && !event.shiftKey && !complete))
+      ) {
+        event.preventDefault();
+        // A hit left over from an earlier query is not what was typed; wait for this one's.
+        if (mentionOpen && mentions.pending && mentions.items.some((h) => h.uri === picked.id))
+          return;
+        if (menuOpen && picked.id === "skills") openSkills();
+        else if (picked.children) {
+          setMenuPath([...menuPath, picked.id]);
+          setMenuRow(0);
+        } else {
+          if (mentionOpen) pickMention(picked.id);
+          else pickCommand(picked.id);
+          setMenuPath([]);
+          setMenuRow(0);
+        }
+        return;
+      }
+      // An open @ picker with nothing to pick yet (searching, or no hits)
+      // swallows Enter rather than sending the half-typed "@query".
+      if (mentionOpen && event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        return;
+      }
+    }
     if (event.key === "Escape" && working) {
       event.preventDefault();
       stopTurn();
@@ -231,9 +549,16 @@ export default function App() {
       if (next === null) return;
       event.preventDefault();
       if (!event.repeat) onMode(next);
+    } else if (event.key === "Tab" && event.shiftKey && !running && current?.modes?.length) {
+      // Before the session, it switches the mode that session will start in.
+      const next = nextMode(current.modes, startMode(current, startModes));
+      if (next === null) return;
+      event.preventDefault();
+      if (!event.repeat) pickStartMode(current.harness, next);
     } else if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
-      if (!working) submit(draft);
+      if (!working || /^\/(btw|model|effort|login|clear|new|reset|stop|help)(?:\s|$)/.test(draft))
+        submit(draft);
     }
   };
 
@@ -249,7 +574,7 @@ export default function App() {
         ),
       onRetry: (itemId: string) => {
         const text = promptBefore(state.items, itemId);
-        if (text !== null) submit(text);
+        if (text !== null) submit(text, true);
       },
       hintText: (hint: Hint, harness: Harness) => hintText(hint, infoOf(harnesses, harness)),
     }),
@@ -269,10 +594,36 @@ export default function App() {
     setTurns({ items: state.items, turns: toTurns(state.items, turns.turns) });
   }
   const waiting = state.status?.state === "needsInput";
+  // The running line under a turn: the tool call still going, by its title,
+  // and a clock from the turn's prompt that stops when the turn does.
+  let lastPrompt: string | undefined;
+  for (const item of state.items) if (item.kind.kind === "userMessage") lastPrompt = item.id;
+  const [since, setSince] = useState<number | undefined>(undefined);
+  useEffect(() => setSince(working ? Date.now() : undefined), [working, lastPrompt]);
+  const activity = useMemo(() => {
+    // A plan or usage update draws nothing, so the line reads past it.
+    let last: Item["kind"] | undefined;
+    for (const item of state.items)
+      if (item.kind.kind !== "plan" && item.kind.kind !== "usage") last = item.kind;
+    if (last?.kind !== "toolCall" || last.status === "completed" || last.status === "failed")
+      return undefined;
+    const title = last.title.replace(/`/g, "");
+    return last.toolKind === "execute" ? strings.activity.running(title) : title;
+  }, [state.items]);
   const lookup = useMemo(
-    () => ({ byId: new Map(state.items.map((item) => [item.id, item])), actions, waiting }),
-    [state.items, actions, waiting],
+    () => ({
+      byId: new Map(state.items.map((item) => [item.id, item])),
+      actions,
+      waiting,
+      activity,
+      since,
+    }),
+    [state.items, actions, waiting, activity, since],
   );
+  // The agent's to-do list stays pinned over the composer while a step is left.
+  let plan: PlanEntry[] | null = null;
+  for (const item of state.items) if (item.kind.kind === "plan") plan = item.kind.entries;
+  const openPlan = plan?.some((entry) => entry.status !== "completed") ? plan : null;
   const runtime = useExternalStoreRuntime({
     messages: turns.turns,
     convertMessage,
@@ -298,6 +649,245 @@ export default function App() {
         }
       : undefined;
   const pendingPrompt = typeof status?.pendingPrompt === "string" ? status.pendingPrompt : null;
+  /** Takes the `@query` being typed out of the draft and puts the caret back where it began. */
+  const dropMention = () => {
+    const query = mentions.query;
+    setMenuPath([]);
+    setMenuRow(0);
+    setContextScope(null);
+    if (!query) return;
+    setDraft(draft.slice(0, query.start) + draft.slice(query.end));
+    setCaret(query.start);
+    requestAnimationFrame(() => {
+      prompt.current?.focus();
+      prompt.current?.setSelectionRange(query.start, query.start);
+    });
+  };
+  const addChip = (hit: { uri: string; title: string; kind: string }) =>
+    setChips((now) =>
+      now.some((c) => c.id === hit.uri)
+        ? now
+        : [...now, { id: hit.uri, label: hit.title, kind: hit.kind, uri: hit.uri }],
+    );
+  const pickMention = (uri: string) => {
+    if (uri.startsWith("scope:")) {
+      setContextScope(uri.slice(6));
+      setMenuPath([]);
+      setMenuRow(0);
+      // What was typed named the scope, so its search starts empty.
+      const query = mentions.query;
+      if (query && query.end > query.start + 1) {
+        setDraft(draft.slice(0, query.start + 1) + draft.slice(query.end));
+        setCaret(query.start + 1);
+        requestAnimationFrame(() => {
+          prompt.current?.focus();
+          prompt.current?.setSelectionRange(query.start + 1, query.start + 1);
+        });
+      }
+      return;
+    }
+    if (uri.startsWith("issue:link:")) {
+      setIssuePicker(uri.slice(11));
+      setMenuClosedFor(draft);
+      return;
+    }
+    if (uri.startsWith("cluster:")) {
+      // The "@query" goes now, so nothing typed while the transcript is copied is lost;
+      // the chip follows when the copy is ready.
+      dropMention();
+      setCapturing((n) => n + 1);
+      void rpc
+        .clusterContext(uri.slice(8))
+        .then(addChip, () => setLoginNote(strings.mentions.failed))
+        .finally(() => setCapturing((n) => n - 1));
+      return;
+    }
+    const hit = [...mentions.items, ...sources.issues].find((h) => h.uri === uri);
+    if (!hit || !mentions.query) return;
+    setLoginNote(null);
+    addChip(hit);
+    dropMention();
+  };
+  // Before a session, the effort and, once discovery has listed them, the mode
+  // are the tab's own, sent with the prompt that starts it.
+  const start = running ? null : startSection(current, startModes, pickStartMode);
+  const sections = start ? [start] : settingSections(status, live, onMode, onConfig);
+  if (!running)
+    sections.unshift({
+      label: strings.preferences.effort,
+      value: effort,
+      choices: EFFORT_LEVELS.map((value, i) => ({ value, name: strings.preferences.levels[i] })),
+      onChange: setEffort,
+    });
+  for (const section of sections)
+    if (section.label === strings.preferences.effort)
+      section.choices = section.choices.filter((c) => c.value !== "ultra");
+  const workflow =
+    live?.config.ultra_effort?.value ?? status?.config.find((o) => o.id === "ultra_effort")?.value;
+  const ultraEnabled =
+    (running ?? chosen) === "claude" && (running ? workflow === "on" : ultracode);
+  const effortValue = ultraEnabled
+    ? "ultra"
+    : (sections.find((s) => s.label === strings.preferences.effort)?.value ?? "medium");
+  const contextItem = (h: (typeof mentions.items)[number]): MenuItem => ({
+    id: h.uri,
+    label: h.title,
+    detail: h.detail ?? undefined,
+    kind: h.kind,
+  });
+  const empty = (label: string): MenuItem[] => [{ id: `empty:${label}`, label, disabled: true }];
+  const byKind = (kinds: string[]) =>
+    mentions.items.filter((h) => kinds.includes(h.kind)).map(contextItem);
+  const group = (id: string, label: string, kind: string, children: MenuItem[]): MenuItem => ({
+    id,
+    label,
+    kind,
+    children: children.length ? children : empty(strings.mentions.empty),
+  });
+  const scoped = (scope: string, label: string): MenuItem => ({
+    id: `scope:${scope}`,
+    label,
+    kind: "search",
+  });
+  /**
+   * One kind of context to browse: what the empty search already listed, then a
+   * row that searches the rest. With nothing listed the row is the search
+   * itself, so picking it does not open a level holding a single row.
+   */
+  const browse = (
+    id: string,
+    label: string,
+    kind: string,
+    listed: MenuItem[],
+    scope: string,
+    search: string,
+  ): MenuItem =>
+    listed.length
+      ? { id, label, kind, children: [...listed, scoped(scope, search)] }
+      : { ...scoped(scope, label), kind };
+  const issueLink = (provider: string): MenuItem => ({
+    id: `issue:link:${provider}`,
+    label: strings.issueLink,
+    kind: "issue",
+  });
+  // Typed at the top level, a kind's name offers its search above the hits: "@sav" finds Saved context.
+  const typed = contextScope ? "" : (mentions.query?.query ?? "").trim().toLowerCase();
+  const named = typed
+    ? Object.entries(strings.scopeTitle)
+        .filter(([, title]) =>
+          title
+            .toLowerCase()
+            .split(/\s+/)
+            .some((word) => word.startsWith(typed)),
+        )
+        .map(([scope, title]) => ({ ...scoped(scope, title), kind: SCOPE_GLYPH[scope] ?? scope }))
+    : [];
+  const contextItems: MenuItem[] =
+    mentions.query?.query || contextScope
+      ? [...named, ...mentions.items.map(contextItem)]
+      : [
+          group("design", strings.contextGroups.design, "design", [
+            browse(
+              "canvases",
+              strings.contextGroups.canvases,
+              "canvas",
+              byKind(["canvas"]),
+              "canvas",
+              strings.searchCanvases,
+            ),
+            browse(
+              "frames",
+              strings.contextGroups.frames,
+              "frame",
+              byKind(["frame"]),
+              "frame",
+              strings.searchFrames,
+            ),
+            browse(
+              "design-comments",
+              strings.contextGroups.comments,
+              "comment",
+              byKind(["design-comment", "comment"]),
+              "design-comment",
+              strings.searchComments,
+            ),
+          ]),
+          group("pm", strings.contextGroups.pm, "pm", [
+            group("jira", strings.issues.jira, "issue", [
+              ...sources.issues
+                .filter((h) => /jira/i.test(`${h.title} ${h.detail}`))
+                .map(contextItem),
+              issueLink("jira"),
+            ]),
+            group("linear", strings.issues.linear, "issue", [
+              ...sources.issues
+                .filter((h) => /linear/i.test(`${h.title} ${h.detail}`))
+                .map(contextItem),
+              issueLink("linear"),
+            ]),
+          ]),
+          ...(sources.clusters.length
+            ? [
+                group(
+                  "clusters",
+                  strings.contextGroups.clusters,
+                  "cluster",
+                  sources.clusters.map((c) => ({
+                    id: `cluster:${c.id}`,
+                    label: c.title,
+                    kind: "cluster",
+                  })),
+                ),
+              ]
+            : []),
+          browse(
+            "files",
+            strings.contextGroups.files,
+            "folder",
+            byKind(["file", "folder"]),
+            "file",
+            strings.searchFiles,
+          ),
+          browse(
+            "comments",
+            strings.contextGroups.comments,
+            "comment",
+            byKind(["comment", "design-comment"]),
+            "comment",
+            strings.searchComments,
+          ),
+          browse(
+            "context",
+            strings.contextGroups.context,
+            "context",
+            byKind(["context"]),
+            "context",
+            strings.searchSaved,
+          ),
+          ...byKind(["selection"]),
+        ];
+  const scopeTitle = contextScope ? strings.scopeTitle[contextScope] : undefined;
+  const slashItems: MenuItem[] = matches.map((c) => ({
+    id: skillsOpen ? `skill:${c.name}` : c.name,
+    label: skillsOpen ? c.name.replace(/^\$/, "") : c.name,
+    kind: skillsOpen || c.name === "skills" ? "skill" : "command",
+    detail: `${c.description}${c.support === "terminal" ? ` · ${strings.inTerminal}` : ""}`,
+    // An empty list only for its arrow: opening it starts the skill search.
+    children: !skillsOpen && c.name === "skills" ? [] : undefined,
+  }));
+  let visibleItems = mentionOpen ? contextItems : slashItems;
+  for (const id of menuPath) {
+    const children = visibleItems.find((i) => i.id === id)?.children;
+    if (!children) break;
+    visibleItems = children;
+  }
+  const navigable = visibleItems.filter((i) => !i.disabled);
+  const menuActive = navigable[Math.min(menuRow, navigable.length - 1)]?.id ?? null;
+  const changeMenuPath = (path: string[]) => {
+    if (menuOpen && path[0] === "skills") return openSkills();
+    setMenuPath(path);
+    setMenuRow(0);
+  };
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
@@ -305,11 +895,49 @@ export default function App() {
         <S.Layout
           header={
             <S.Header
-              cwd={status?.cwd ?? null}
-              harness={current?.name ?? null}
-              // An ended session's model is not what the next prompt runs.
-              model={running ? modelName(status) : null}
               state={status?.state ?? null}
+              onSideChat={() => askSide("")}
+              onHistory={() => {
+                setHistoryOpen((was) => !was);
+                if (!historyOpen) loadHistory();
+              }}
+              history={
+                historyOpen ? (
+                  <S.HistoryPanel
+                    sessions={savedSessions}
+                    loading={historyLoading}
+                    error={historyError}
+                    onClose={() => {
+                      setHistoryOpen(false);
+                      prompt.current?.focus();
+                    }}
+                    onRetry={loadHistory}
+                    onArchive={(id, archived) => {
+                      void rpc
+                        .archiveHistory(id, archived)
+                        .then(loadHistory, () => setHistoryError(strings.history.failed));
+                    }}
+                    onOpen={(id, harness) => {
+                      setHistoryLoading(true);
+                      setPending(null);
+                      void rpc
+                        .openHistory(id, harness)
+                        .then(
+                          (attachment) => {
+                            dispatch({ type: "attached", attachment });
+                            setHistoryOpen(false);
+                            setNotice(null);
+                            setDraft("");
+                            setChips([]);
+                            void listHarnesses();
+                          },
+                          () => setHistoryError(strings.history.openFailed),
+                        )
+                        .finally(() => setHistoryLoading(false));
+                    }}
+                  />
+                ) : undefined
+              }
               onNewSession={() => {
                 setNotice(null);
                 void rpc.reset().catch(() => {});
@@ -322,16 +950,13 @@ export default function App() {
                 <S.EmptyState
                   blocked={blocked}
                   setupHint={current?.hint ? hintText(current.hint, current) : null}
-                  onExample={(text) => {
-                    setDraft(text);
-                    prompt.current?.focus();
-                  }}
                 />
               ) : (
                 <Turns />
               )}
               {pendingPrompt !== null && <S.UserMessage text={pendingPrompt} pending />}
               {hint && <S.Hint text={hintText(hint, session)} />}
+              {loginNote && <S.Note text={loginNote} />}
               {exited && state.items.length > 0 && (
                 <S.Note text={strings.exited(status.exitCode)} />
               )}
@@ -340,10 +965,110 @@ export default function App() {
           composer={
             <S.Composer
               ref={prompt}
+              chips={chips}
+              onRemoveChip={(id) => setChips((now) => now.filter((c) => c.id !== id))}
+              effortLevel={effortValue}
+              auxiliary={
+                issuePicker ? (
+                  <S.ContextLink
+                    provider={issuePicker}
+                    onCancel={() => {
+                      setIssuePicker(null);
+                      dropMention();
+                    }}
+                    onAdd={(link) => {
+                      setChips((now) => [
+                        ...now.filter((c) => c.id !== link),
+                        {
+                          id: link,
+                          label: link.split("/").filter(Boolean).slice(-2).join("/"),
+                          kind: "issue",
+                          uri: link,
+                        },
+                      ]);
+                      setIssuePicker(null);
+                      dropMention();
+                    }}
+                  />
+                ) : undefined
+              }
               value={draft}
               placeholder={working ? strings.promptBusy : strings.promptPlaceholder}
-              onChange={setDraft}
+              onChange={(text, at) => {
+                setDraft(text);
+                if (!text.includes("@")) setContextScope(null);
+                setCaret(at ?? text.length);
+                setMenuRow(0);
+                setMenuPath([]);
+              }}
+              onSelect={setCaret}
+              onAttach={() => {
+                const at = prompt.current?.selectionStart ?? draft.length;
+                const prefix = at > 0 && !/\s/.test(draft[at - 1]) ? " @" : "@";
+                const next = draft.slice(0, at) + prefix + draft.slice(at);
+                setDraft(next);
+                setCaret(at + prefix.length);
+                setMenuRow(0);
+                setMenuPath([]);
+                setContextScope(null);
+                setMenuClosedFor(null);
+                requestAnimationFrame(() => {
+                  prompt.current?.focus();
+                  prompt.current?.setSelectionRange(at + prefix.length, at + prefix.length);
+                });
+              }}
+              onDictate={() => {}}
+              sideChat={side.open ? <S.SideChat {...side.props} /> : undefined}
+              plan={openPlan ? <S.TodoList entries={openPlan} live={working} /> : undefined}
               onKeyDown={onKeyDown}
+              menu={
+                mentionOpen ? (
+                  <S.MentionMenu
+                    label={strings.mentions.label}
+                    title={scopeTitle}
+                    status={named.length && !mentions.items.length ? null : mentions.note}
+                    onBack={
+                      contextScope
+                        ? () => {
+                            setContextScope(null);
+                            setMenuRow(0);
+                          }
+                        : undefined
+                    }
+                    items={contextItems}
+                    activeId={menuActive}
+                    path={menuPath}
+                    onPathChange={changeMenuPath}
+                    onPick={pickMention}
+                  />
+                ) : (
+                  menuOpen && (
+                    <S.SlashMenu
+                      label={strings.commands}
+                      title={skillsOpen ? strings.skills.title : undefined}
+                      search={
+                        skillsOpen
+                          ? { query: skillSearch, placeholder: strings.skills.search }
+                          : undefined
+                      }
+                      status={
+                        skillsOpen && !matches.length
+                          ? skillList.length
+                            ? strings.skills.noMatch
+                            : strings.skills.empty
+                          : null
+                      }
+                      onBack={skillsOpen ? leaveSkills : undefined}
+                      items={slashItems}
+                      activeId={menuActive}
+                      path={menuPath}
+                      onPathChange={changeMenuPath}
+                      onPick={pickCommand}
+                    />
+                  )
+                )
+              }
+              menuActiveId={mentionOpen || menuOpen ? menuActive : null}
               notices={
                 <>
                   {attachFailed && (
@@ -367,6 +1092,16 @@ export default function App() {
               controls={
                 <S.ModelMenu
                   label={strings.settings}
+                  openRequest={settingsRequest}
+                  harnessLocked={false}
+                  ultracode={{
+                    enabled: ultraEnabled,
+                    disabled: status?.state === "starting",
+                    onChange: (enabled) => {
+                      if (running) onConfig("ultra_effort", enabled ? "on" : "off");
+                      else setUltracode(enabled);
+                    },
+                  }}
                   harness={running ?? chosen}
                   // The model is the running session's own option, so it is
                   // listed under the harness in use, with the agent's names.
@@ -374,8 +1109,11 @@ export default function App() {
                   // With no agent running, a pick chooses the next session's
                   // harness. While one runs, its prompts go to that agent until
                   // a new session starts, so only its model can change.
-                  onChoose={running === null ? chooseHarness : onModel}
-                  sections={settingSections(status, live, onMode, onConfig)}
+                  onChoose={(picked, value) => {
+                    if (picked === running && onModel) onModel(picked, value);
+                    else chooseHarness(picked, value);
+                  }}
+                  sections={sections}
                 />
               }
               meters={
@@ -388,7 +1126,10 @@ export default function App() {
                 working ? (
                   <S.StopButton onClick={stopTurn} />
                 ) : (
-                  <S.SendButton disabled={draft.trim() === ""} onClick={() => submit(draft)} />
+                  <S.SendButton
+                    disabled={(draft.trim() === "" && chips.length === 0) || capturing > 0}
+                    onClick={() => submit(draft)}
+                  />
                 )
               }
             />
@@ -404,14 +1145,54 @@ function modelOption(status: SessionStatus | null): ConfigOption | null {
   return (status && pickers(status).find((o) => o.category === "model")) ?? null;
 }
 
+/** The mode each harness's next session is to start in, as the user picked it. */
+type StartModes = Partial<Record<Harness, string>>;
+
+/**
+ * The mode `info`'s next session starts in: the pick, if its agent still
+ * offers it, else its ask-first mode. `null` until discovery has listed the
+ * modes.
+ */
+function startMode(info: HarnessInfo | undefined, picks: StartModes): string | null {
+  const modes = info?.modes ?? [];
+  if (info === undefined || modes.length === 0) return null;
+  const pick = picks[info.harness];
+  if (pick !== undefined && modes.some((m) => m.value === pick)) return pick;
+  return info.askFirst ?? modes[0].value;
+}
+
+/**
+ * The mode section before a session exists (owner decision D2 starts one on
+ * the first send): the modes discovery found for the harness it will run, so
+ * switching harness switches the list. The pick goes with the first prompt,
+ * and the host enters it once the session has confirmed ask-first. `null`
+ * until the host has asked that agent; `settingSections` speaks for it then.
+ */
+function startSection(
+  info: HarnessInfo | undefined,
+  picks: StartModes,
+  onPick: (harness: Harness, mode: string) => void,
+): PickerProps | null {
+  const value = startMode(info, picks);
+  if (info === undefined || value === null) return null;
+  return {
+    label: strings.mode,
+    title: strings.modeSettings.modeHint,
+    value,
+    choices: info.modes ?? [],
+    onChange: (mode: string) => onPick(info.harness, mode),
+  };
+}
+
 /**
  * The settings menu's sections after the harnesses: the effort, then the
- * mode, with the agent's own names, in its order. The agent reports them only
- * once its session exists, and owner decision D2 starts that on the first
- * send, so until then the menu says when they will appear. A new model can
- * bring other effort levels, or none, so those come from each status as the
- * agent lists them. A choice is shown at once (`live`, see `unanswered` in
- * model.ts) and stands until the status that answers it.
+ * mode, with the agent's own names, in its order. The agent reports them once
+ * its session exists, and owner decision D2 starts that on the first send, so
+ * until then, unless discovery listed the modes (`startSection`), the menu
+ * says when they will appear. A new model can bring other effort levels, or
+ * none, so those come from each status as the agent lists them. A choice is
+ * shown at once (`live`, see `unanswered` in model.ts) and stands until the
+ * status that answers it.
  */
 function settingSections(
   status: SessionStatus | null,
@@ -420,23 +1201,23 @@ function settingSections(
   onConfig: (configId: string, value: string) => void,
 ): PickerProps[] {
   const options = status ? pickers(status) : [];
-  if (!status || (status.modes.length === 0 && options.length === 0)) {
-    // A session that ended before reporting any is not going to.
-    const coming = !status || status.state === "starting";
-    if (!coming) return [];
+  if (!status) {
     return [
       {
         label: strings.mode,
         value: null,
         choices: [{ value: "", name: strings.modeSettings.later }],
+        disabled: true,
       },
     ];
   }
+  if (status.modes.length === 0 && options.length === 0) return [];
   const disabled = !settable(status);
   const others: PickerProps[] = options
-    .filter((option) => option.category !== "model")
+    .filter((option) => option.category !== "model" && option.id !== "ultra_effort")
     .map((option) => ({
-      label: option.name || option.id,
+      label:
+        option.category === "thought_level" ? strings.preferences.effort : option.name || option.id,
       title: option.description,
       value: live?.config[option.id]?.value ?? option.value,
       choices: option.choices,

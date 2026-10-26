@@ -318,8 +318,9 @@ cwd: string,
  */
 mode: string | null, 
 /**
- * The modes the tab may switch to, in the agent's order. Bypass and auto
- * are never among them (`config::NOT_OFFERED`).
+ * The modes the tab may switch to, in the agent's order. Bypass, and
+ * Codex's auto review and full access, are never among them
+ * (`config::NOT_OFFERED`).
  */
 modes: Array<ConfigChoice>, 
 /**
@@ -328,6 +329,11 @@ modes: Array<ConfigChoice>,
  * that fails later in its handshake still carries them.
  */
 config: Array<ConfigOption>, 
+/**
+ * The slash commands the agent last offered, in its order. Empty until it
+ * reports any; a later report replaces the list.
+ */
+commands: Array<AgentCommand>, 
 /**
  * The number of the last setting change the agent answered. Changing a
  * setting returns the change's number, and numbers only grow, so the tab
@@ -415,6 +421,20 @@ name: string,
  */
 description: string | null, };
 
+export type AgentCommand = { 
+/**
+ * What follows the slash.
+ */
+name: string, 
+/**
+ * The agent's one-line description.
+ */
+description: string, 
+/**
+ * What the argument looks like, when the command takes one.
+ */
+hint: string | null, };
+
 export type Attachment = { 
 /**
  * The session's status, or `None` before the first prompt.
@@ -460,4 +480,19 @@ models: Array<ConfigChoice> | null,
  * The value of the model its next session starts on: the tab's choice,
  * else the agent's default. `None` when neither is known.
  */
-model: string | null, };
+model: string | null, 
+/**
+ * Commands advertised during discovery, before the tab starts its own session.
+ */
+commands?: Array<AgentCommand>, 
+/**
+ * The modes its agent offers, as discovery found them, less those held
+ * back (`config::NOT_OFFERED`); `None` until the host has asked it. The
+ * tab can pick one before the session exists.
+ */
+modes?: Array<ConfigChoice>, 
+/**
+ * The mode each of its sessions starts in, its policy's ask-first mode,
+ * until a pick from `modes` switches it.
+ */
+askFirst?: string, };

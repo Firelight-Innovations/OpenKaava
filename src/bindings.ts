@@ -554,6 +554,15 @@ export function onAgentTabModels(cb: (payload: unknown) => void): Promise<Unlist
   return listen<unknown>(AGENT_TAB_MODELS, (e) => cb(e.payload));
 }
 
+/** The event Rust sends an agent tab when the sign-in it started has ended
+ *  (`apps::agent_tab::LOGIN`). Payload is `{ instanceId, harness, ok }`. */
+export const AGENT_TAB_LOGIN = "agent-tab:login";
+
+/** Hear that a sign-in ended, to relay to the tab that started it. */
+export function onAgentTabLogin(cb: (payload: unknown) => void): Promise<UnlistenFn> {
+  return listen<unknown>(AGENT_TAB_LOGIN, (e) => cb(e.payload));
+}
+
 /** A project's `.veistra/icon.*` as a `data:` URL, or `null` for "draw the
  *  letter tile". Mirrors `commands::project_icon`. */
 export function projectIcon(path: string): Promise<string | null> {
