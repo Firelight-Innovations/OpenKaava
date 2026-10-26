@@ -2,10 +2,10 @@
 use super::CallContext;
 use crate::context::{self, Method, Payload, PutRequest};
 use crate::shell_state::ShellState;
-use veistra_agent_host::{event::ItemKind, AgentHost};
-use veistra_rpc::{RpcError, INVALID_PARAMS};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager};
+use veistra_agent_host::{event::ItemKind, AgentHost};
+use veistra_rpc::{RpcError, INVALID_PARAMS};
 
 pub(super) fn sources(app: &AppHandle, ctx: &CallContext) -> Value {
     let snapshot = app.state::<ShellState>().snapshot();
@@ -82,5 +82,7 @@ pub(super) fn capture(
             reference_in_place: false,
         },
     )?;
-    Ok(json!({ "uri": format!("veistra://context/{}", item.id), "title": title, "kind": "cluster" }))
+    Ok(
+        json!({ "uri": format!("veistra://context/{}", item.id), "title": title, "kind": "cluster" }),
+    )
 }

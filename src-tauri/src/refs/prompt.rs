@@ -542,7 +542,10 @@ mod tests {
         assert_eq!(out.len(), 1);
         assert_eq!(out[0]["type"], "text");
         let text = out[0]["text"].as_str().unwrap();
-        assert!(text.starts_with("veistra://file/a.gd (text): a.gd"), "{text}");
+        assert!(
+            text.starts_with("veistra://file/a.gd (text): a.gd"),
+            "{text}"
+        );
         assert!(text.contains("x\ny"), "{text}");
         assert!(text.ends_with("A picture is not attached."), "{text}");
     }
@@ -586,7 +589,10 @@ mod tests {
         let text = "see [@a](<veistra://file/a.gd>), [x](<veistra://file/b.gd>), \
                     [@](<veistra://file/c.gd>), [@PROJ-1](<https://jira.example/PROJ-1>), \
                     [@ a ] b [@a again](<veistra://file/a.gd>) [@d](<veistra://file/d.gd>)";
-        assert_eq!(named_in(text), ["veistra://file/a.gd", "veistra://file/d.gd"]);
+        assert_eq!(
+            named_in(text),
+            ["veistra://file/a.gd", "veistra://file/d.gd"]
+        );
         assert_eq!(
             named_in("[@unclosed](<veistra://file/a.gd"),
             Vec::<String>::new()
