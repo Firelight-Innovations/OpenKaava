@@ -89,6 +89,38 @@ pub struct Descriptor {
     pub protocol: Protocol,
     /// What the tab may offer for it.
     pub capabilities: Capabilities,
+    /// How Veistra's built-in skills reach it. See [`SkillDelivery`].
+    pub skills: SkillDelivery,
+}
+
+/// How a harness is given Veistra's built-in skills (`src-tauri/src/skills.rs`).
+///
+/// Each variant is the least invasive route that harness supports, in this
+/// order of preference: something scoped to one session, then a folder the
+/// harness reads for the user, then a sentence in the first prompt. The host
+/// only carries the result (`LaunchSpec::plugins`, `LaunchSpec::preamble`);
+/// the app decides which skills a session gets and puts the files in place.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SkillDelivery {
+    /// A Claude Code plugin directory holding `skills/<name>/SKILL.md`, passed
+    /// for this session only in `session/new`'s
+    /// `_meta.claudeCode.options.plugins`. The adapter hands it to the SDK,
+    /// which starts `claude` with `--plugin-dir`. Nothing is written into the
+    /// user's `~/.claude` or the project.
+    ClaudePlugin,
+    /// Copied into the folder the harness reads the user's own skills from:
+    /// `$<home_env>/skills`, or `~/<home_default>/skills` when the variable is
+    /// unset. Used when the harness has no per-session route. The copy carries
+    /// a marker file, so Veistra only ever replaces or removes copies it made.
+    UserSkills {
+        /// The variable that moves the harness's home, such as `CODEX_HOME`.
+        home_env: &'static str,
+        /// The home's folder under the user's profile when that is unset.
+        home_default: &'static str,
+    },
+    /// Neither: the first prompt names each skill and the absolute path of its
+    /// `SKILL.md`, as context the transcript does not show.
+    Hint,
 }
 
 impl Descriptor {
@@ -223,6 +255,12 @@ pub struct LaunchSpec {
     /// pick before the session existed. Only a mode the agent offers is sent,
     /// never one held back (`config::NOT_OFFERED`); `None` stays ask-first.
     pub mode: Option<String>,
+    /// Claude Code plugin directories for this session only
+    /// ([`SkillDelivery::ClaudePlugin`]). Ignored by every other harness.
+    pub plugins: Vec<PathBuf>,
+    /// Context sent ahead of the first prompt of a new process, which the
+    /// agent reads and the transcript does not show ([`SkillDelivery::Hint`]).
+    pub preamble: Option<String>,
 }
 
 /// The spec for `harness`, or the reason there is none. `path` and `pathext`
@@ -278,6 +316,8 @@ fn resolve_spec(
         effort: None,
         ultracode: false,
         mode: None,
+        plugins: Vec::new(),
+        preamble: None,
     })
 }
 

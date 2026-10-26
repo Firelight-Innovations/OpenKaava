@@ -452,6 +452,11 @@ impl Mock {
                 if let Some(path) = self.flag_value("--record-mcp") {
                     let _ = std::fs::write(path, servers.to_string());
                 }
+                // `session/new`'s `_meta`, for the plugin directories.
+                if let Some(path) = self.flag_value("--record-meta") {
+                    let meta = params.get("_meta").cloned().unwrap_or(Value::Null);
+                    let _ = std::fs::write(path, meta.to_string());
+                }
                 self.bearer = servers
                     .pointer("/0/headers/0/value")
                     .and_then(Value::as_str)

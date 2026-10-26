@@ -35,6 +35,8 @@ fn mock(args: &[&str]) -> LaunchSpec {
         effort: None,
         ultracode: false,
         mode: None,
+        plugins: Vec::new(),
+        preamble: None,
     }
 }
 

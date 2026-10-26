@@ -300,6 +300,9 @@ impl AgentHost {
                     None => (existing.map(|s| s.items()).unwrap_or_default(), None),
                 }
             };
+        // A new process gets the spec's preamble (the built-in skill hint)
+        // ahead of any handoff, both as context the transcript does not show.
+        let context = join_context(spec.preamble.as_deref(), context.as_deref());
         let generation = self.generation.fetch_add(1, Ordering::SeqCst) + 1;
         let events = self
             .events
@@ -636,6 +639,16 @@ fn retire(session: Arc<dyn Adapter>) {
         });
 }
 
+/// The preamble and the handoff context as one block, preamble first, or
+/// `None` when there is neither.
+fn join_context(preamble: Option<&str>, handoff: Option<&str>) -> Option<String> {
+    match (preamble, handoff) {
+        (Some(p), Some(h)) => Some(format!("{p}\n\n{h}")),
+        (Some(one), None) | (None, Some(one)) => Some(one.to_string()),
+        (None, None) => None,
+    }
+}
+
 /// The agent's label for the value of its option in ACP's `model` category,
 /// or the bare value when it offers none. `None` before the agent reports one.
 fn model_name(status: SessionStatus) -> Option<String> {
@@ -684,6 +697,17 @@ mod tests {
                 description: None,
             }],
         }
+    }
+
+    #[test]
+    fn a_preamble_goes_ahead_of_a_handoff() {
+        assert_eq!(join_context(None, None), None);
+        assert_eq!(join_context(Some("p"), None).as_deref(), Some("p"));
+        assert_eq!(join_context(None, Some("h")).as_deref(), Some("h"));
+        assert_eq!(
+            join_context(Some("p"), Some("h")).as_deref(),
+            Some("p\n\nh")
+        );
     }
 
     #[test]
