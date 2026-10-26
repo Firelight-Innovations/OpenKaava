@@ -11,10 +11,10 @@ import type { ThreadMessageLike } from "@assistant-ui/react";
 import type { Item } from "./protocol.generated";
 
 /** The tool name for every item that is not text, reasoning or a tool call. */
-export const ITEM_TOOL = "kaava.item";
+export const ITEM_TOOL = "veistra.item";
 
 /** The tool name for the agent's tool calls: the only parts that group (`Turns.tsx`). */
-export const ACTION_TOOL = "kaava.action";
+export const ACTION_TOOL = "veistra.action";
 
 /** One turn: a run of items that becomes one message. */
 export interface Turn {

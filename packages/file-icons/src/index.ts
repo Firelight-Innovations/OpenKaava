@@ -5,7 +5,7 @@
  * `currentColor`, because here the colour *is* the information: file-type icons wherever a
  * filename is listed to be scanned, and nowhere else — chrome stays inline SVG at `currentColor`.
  * The colour argument in full, the MIT licence, the generated `public/icons/material/` against
- * the hand-drawn `public/icons/kaava/`, and the contrast measurements behind the black OpenKaava
+ * the hand-drawn `public/icons/veistra/`, and the contrast measurements behind the black Veistra
  * mark are in `docs/design-notes/file-icons.md`.
  */
 
@@ -21,24 +21,24 @@ import {
 const BASE = "/icons/material/";
 
 /** The hand-drawn half. Tracked in git, unlike `BASE`; the docs page says why. */
-const KAAVA_BASE = "/icons/kaava/";
+const VEISTRA_BASE = "/icons/veistra/";
 
-/** OpenKaava's own directory inside a project. Matched exactly, dot and all. */
-const KAAVA_FOLDER = ".kaava";
+/** Veistra's own directory inside a project. Matched exactly, dot and all. */
+const VEISTRA_FOLDER = ".veistra";
 
 /** The project file's extension, with its dot, ready to test a name's tail. */
-const KAAVA_EXTENSION = ".kaava";
+const VEISTRA_EXTENSION = ".veistra";
 
 /**
- * The OpenKaava glyph for a file, or `null` to let the theme answer. A suffix test rather than a
+ * The Veistra glyph for a file, or `null` to let the theme answer. A suffix test rather than a
  * table, because the basename is the *project's* name and there is no list of those. The dot
- * must have something before it: bare `.kaava` is a name, not a `kaava` extension, and falls
+ * must have something before it: bare `.veistra` is a name, not a `veistra` extension, and falls
  * through to the generic file glyph — the rule `extensionOf` in `apps/files/ui/src/rpc.ts` uses.
  */
-function kaavaFileIcon(lower: string): string | null {
-  if (lower.length <= KAAVA_EXTENSION.length) return null;
-  if (!lower.endsWith(KAAVA_EXTENSION)) return null;
-  return `${KAAVA_BASE}kaava.svg`;
+function veistraFileIcon(lower: string): string | null {
+  if (lower.length <= VEISTRA_EXTENSION.length) return null;
+  if (!lower.endsWith(VEISTRA_EXTENSION)) return null;
+  return `${VEISTRA_BASE}veistra.svg`;
 }
 
 /**
@@ -51,8 +51,8 @@ function kaavaFileIcon(lower: string): string | null {
 export function fileIconUrl(name: string): string {
   const lower = name.toLowerCase();
 
-  const kaava = kaavaFileIcon(lower);
-  if (kaava) return kaava;
+  const veistra = veistraFileIcon(lower);
+  if (veistra) return veistra;
 
   const exact = fileNames[lower];
   if (exact) return BASE + exact;
@@ -88,10 +88,10 @@ export function folderIconUrl(name: string, expanded: boolean): string {
   const lower = name.toLowerCase();
 
   // Before the theme and before the decoration strip below, which is why it is here rather than
-  // folded into the exact lookup: `.kaava` bares to `kaava`, so a theme that ever gains a `kaava`
+  // folded into the exact lookup: `.veistra` bares to `veistra`, so a theme that ever gains a `veistra`
   // folder would win the second pass and this folder would stop being ours.
-  if (lower === KAAVA_FOLDER) {
-    return `${KAAVA_BASE}folder-kaava${expanded ? "-open" : ""}.svg`;
+  if (lower === VEISTRA_FOLDER) {
+    return `${VEISTRA_BASE}folder-veistra${expanded ? "-open" : ""}.svg`;
   }
 
   const exact = table[lower];

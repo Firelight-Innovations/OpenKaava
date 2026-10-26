@@ -110,10 +110,10 @@ pub fn has_error(run: &ReconcileRun) -> bool {
     run.outcomes.iter().any(ReconcileOutcome::is_error)
 }
 
-/// `kaava reconcile`'s exit code for `run`, per PRD section 9.3: 0 with no
+/// `veistra reconcile`'s exit code for `run`, per PRD section 9.3: 0 with no
 /// error outcome, 1 with one or more. (Exit code 2 — "the command read no
 /// project at that path" — is decided earlier, before a `ReconcileRun`
-/// exists at all; see `src/bin/kaava.rs`.)
+/// exists at all; see `src/bin/veistra.rs`.)
 #[must_use]
 pub fn exit_code(run: &ReconcileRun) -> u8 {
     u8::from(has_error(run))
@@ -134,7 +134,7 @@ mod tests {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).unwrap();
         }
-        fs::write(path, format!("// @kaava:{marker_id} {slug}\n")).unwrap();
+        fs::write(path, format!("// @veistra:{marker_id} {slug}\n")).unwrap();
     }
 
     #[test]

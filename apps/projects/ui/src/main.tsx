@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import { onThemeChanged } from "@openkaava/bridge/theme";
+import { onThemeChanged } from "@veistra/bridge/theme";
 // Root-relative — the shell's own palette and chrome, not a copy of them.
 // See `apps/agents/ui/src/main.tsx` for why these two imports are absolute.
 import "/src/tokens.css";

@@ -1,7 +1,7 @@
 //! The graph loader of PRD section 6.4, with quarantine on a dangling
 //! reference.
 //!
-//! On project open Schematify walks `.kaava/`, parses every file, and builds
+//! On project open Schematify walks `.veistra/`, parses every file, and builds
 //! the graph in memory. There is no index to consult and none to keep in step.
 //!
 //! The loader never panics and never returns early on bad data. A design tree
@@ -187,18 +187,18 @@ pub struct LoadOutcome {
     pub report: Report,
 }
 
-/// Walk `.kaava/` under a project root and build the graph.
+/// Walk `.veistra/` under a project root and build the graph.
 ///
 /// # Errors
 ///
-/// Returns [`CoreError::NoProject`] when the directory holds no `.kaava/`
+/// Returns [`CoreError::NoProject`] when the directory holds no `.veistra/`
 /// tree. Every other failure is reported rather than returned, because a
 /// project that half-loads is worth drawing and a project that does not exist
 /// is not.
 pub fn load_project(project_root: &Path) -> Result<LoadOutcome> {
     let started = Instant::now();
-    let kaava = project_root.join(".kaava");
-    if !kaava.is_dir() {
+    let veistra = project_root.join(".veistra");
+    if !veistra.is_dir() {
         return Err(CoreError::NoProject {
             root: project_root.to_path_buf(),
         });
@@ -207,29 +207,30 @@ pub fn load_project(project_root: &Path) -> Result<LoadOutcome> {
     let mut graph = Graph::new();
     let mut report = Report::default();
 
-    let (nodes, problems) = read_directory::<Node>(&kaava.join("nodes"), "node");
+    let (nodes, problems) = read_directory::<Node>(&veistra.join("nodes"), "node");
     report.unreadable.extend(problems);
-    let (edges, problems) = read_directory::<Edge>(&kaava.join("edges"), "edge");
+    let (edges, problems) = read_directory::<Edge>(&veistra.join("edges"), "edge");
     report.unreadable.extend(problems);
-    let (screens, problems) = read_directory::<Screen>(&kaava.join("screens"), "screen");
+    let (screens, problems) = read_directory::<Screen>(&veistra.join("screens"), "screen");
     report.unreadable.extend(problems);
-    let (flows, problems) = read_directory::<Flow>(&kaava.join("flows"), "flow");
+    let (flows, problems) = read_directory::<Flow>(&veistra.join("flows"), "flow");
     report.unreadable.extend(problems);
-    let (decisions, problems) = read_directory::<Decision>(&kaava.join("decisions"), "decision");
+    let (decisions, problems) = read_directory::<Decision>(&veistra.join("decisions"), "decision");
     report.unreadable.extend(problems);
-    let (rules, problems) = read_directory::<Rule>(&kaava.join("rules"), "rule");
+    let (rules, problems) = read_directory::<Rule>(&veistra.join("rules"), "rule");
     report.unreadable.extend(problems);
-    let (layouts, problems) = read_directory::<Layout>(&kaava.join("layout"), "layout");
+    let (layouts, problems) = read_directory::<Layout>(&veistra.join("layout"), "layout");
     report.unreadable.extend(problems);
 
     if let Some(registry) = read_one::<LibraryRegistry>(
-        &kaava.join("registry").join("libraries.json"),
+        &veistra.join("registry").join("libraries.json"),
         "library registry",
         &mut report,
     ) {
         graph.set_libraries(registry);
     }
-    if let Some(brief) = read_one::<ProjectBrief>(&kaava.join("brief.json"), "brief", &mut report) {
+    if let Some(brief) = read_one::<ProjectBrief>(&veistra.join("brief.json"), "brief", &mut report)
+    {
         graph.set_brief(brief);
     }
 
@@ -289,7 +290,7 @@ pub fn load_project(project_root: &Path) -> Result<LoadOutcome> {
         graph.insert_layout(layout);
     }
 
-    read_runs(&kaava.join("runs"), &mut graph, &mut report);
+    read_runs(&veistra.join("runs"), &mut graph, &mut report);
     graph.reindex();
 
     // Slugs are claimed after the index is built, because a facet is scoped to

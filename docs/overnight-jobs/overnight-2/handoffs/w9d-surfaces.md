@@ -45,7 +45,7 @@ One merge-time build hazard, not a code defect: `cargo check` first failed
 with `no ingest_run_file in the root` immediately after merging, despite
 `lib.rs` visibly re-exporting it — a stale fingerprint in the
 `CARGO_TARGET_DIR` shared across every worktree tonight (`cargo clean -p
-schematify-core -p openkaava-orchestrator` reported "Blocking waiting for
+schematify-core -p veistra-orchestrator` reported "Blocking waiting for
 file lock on build directory", confirming concurrent-build contention).
 Cleared and rebuilt clean; not a rebase/merge conflict.
 
@@ -195,7 +195,7 @@ that checks every counter and every reconciliation-row cell against PRD
 site information, so it answers the `COUNT` column but nothing else.
 `SITE` (`src/auth/verifier.ts +3 more`, `skew_window — no marker`) can only
 come from `crates/schematify-reconcile`'s own per-node `reconcile.json`
-files (PRD §9.3), and the fixture had none — `kaava reconcile` has never run
+files (PRD §9.3), and the fixture had none — `veistra reconcile` has never run
 against `fixtures/saas-backend/`, and it has no real source tree to scan
 against anyway (`src/auth/verifier.ts` is fictional, invented for the
 wireframe).
@@ -222,7 +222,7 @@ outcome, drawn in the UI as a `▲` beside the count rather than left silent.
 
 **This is the one place a reviewer should look hardest.** The `reconcile.json`
 files are hand-authored evidence, the same category `run-1184.json` and
-`audit.json` already are in this fixture — not a live `kaava reconcile` run
+`audit.json` already are in this fixture — not a live `veistra reconcile` run
 against real code. If that reads as manufacturing evidence rather than
 recording it, the alternative (leave `SITE` at `—` for a fixture with no real
 reconciliation data) is one line to switch to: drop the 8 new files and
@@ -353,7 +353,7 @@ screen.
 
 | Step | Result |
 |---|---|
-| `cargo test -p openkaava-orchestrator schematify::` | 35 passed |
+| `cargo test -p veistra-orchestrator schematify::` | 35 passed |
 | `cargo test --workspace` | All passing (the "known false failures" the brief warned about are not present in this run — already fixed elsewhere) |
 | `cargo clippy --workspace --all-targets -- -D warnings` | 0 warnings above baseline |
 | `cargo fmt --all -- --check` | Pass |

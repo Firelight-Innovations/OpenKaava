@@ -67,7 +67,7 @@ pub fn run(app: &AppHandle) {
         // somebody else's crate, so the one honest thing to do is notice out
         // loud if it ever stops holding, instead of adopting a directory
         // beside the one being read.
-        crate::kaava_log!(
+        crate::veistra_log!(
             "{} is not named for {IDENTIFIER}; not adopting anything",
             current.display()
         );
@@ -83,7 +83,7 @@ pub fn run(app: &AppHandle) {
         return;
     };
 
-    crate::kaava_log!(
+    crate::veistra_log!(
         "adopted the config directory of {} into {}",
         adopted.display(),
         current.display()
@@ -165,7 +165,7 @@ fn move_into(from: &Path, to: &Path) -> std::io::Result<()> {
             continue;
         }
         if let Err(e) = std::fs::rename(entry.path(), &target) {
-            crate::kaava_log!("could not adopt {}: {e}", entry.path().display());
+            crate::veistra_log!("could not adopt {}: {e}", entry.path().display());
         }
     }
 
@@ -190,7 +190,7 @@ fn mark(current: &Path, from: &Path) {
     let json = format!("{{\n  \"identifier\": \"{name}\",\n  \"at\": {at}\n}}\n");
 
     if let Err(e) = std::fs::write(current.join(MARKER), json) {
-        crate::kaava_log!("adopted {name} but could not record it: {e}");
+        crate::veistra_log!("adopted {name} but could not record it: {e}");
     }
 }
 
@@ -206,7 +206,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_nanos())
             .unwrap_or_default();
-        let dir = std::env::temp_dir().join(format!("kaava-adopt-{tag}-{at}"));
+        let dir = std::env::temp_dir().join(format!("veistra-adopt-{tag}-{at}"));
         std::fs::create_dir_all(&dir).expect("the temp directory is writable");
         dir
     }
@@ -322,7 +322,7 @@ mod tests {
         assert!(derived_from_the_identifier(
             &parent.join(format!("{IDENTIFIER}.agent"))
         ));
-        assert!(!derived_from_the_identifier(&parent.join("OpenKaava")));
+        assert!(!derived_from_the_identifier(&parent.join("Veistra")));
         assert!(!derived_from_the_identifier(
             &parent.join("com.example.other")
         ));

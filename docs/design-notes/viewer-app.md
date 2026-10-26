@@ -18,7 +18,7 @@ re-render costs nothing.
 
 They also exist in `src/shell/titlebar/TitleBar.tsx` as `APP_COMMAND`. This is the same restatement
 `rpc.ts`'s header argues for and for the same reason: an app's only coupling to its host is
-`@openkaava/bridge` and the shape of what crosses it, and the day this becomes a tool repository of its
+`@veistra/bridge` and the shape of what crosses it, and the day this becomes a tool repository of its
 own, nothing in `apps/viewer/` may be reaching into `src/`. Two copies of a ten-line table is the
 price of that boundary being real.
 
@@ -62,7 +62,7 @@ Every call this app makes to its host, in one file.
 
 The shapes there mirror `src-tauri/src/apps/files.rs` and are _restated_ rather than imported from
 the shell's source. That is not duplication for its own sake: an app knows its host only through
-`@openkaava/bridge`, and the day this one is extracted into a tool repository of its own, nothing in
+`@veistra/bridge`, and the day this one is extracted into a tool repository of its own, nothing in
 `apps/files/` may be reaching into `src/`. The restatement is what makes that true, and `pnpm build`
 is not what catches a drift between the two — a Rust test is.
 
@@ -165,7 +165,7 @@ What this app says to the File Explorer, and what it listens for back.
 Three strings and two shapes. They are **restated** in `apps/files/ui/src/topics.ts` rather than
 imported from one place, which is the same trade `commands.ts` makes for the menu ids and `rpc.ts`
 makes for the backend's reply shapes: an app's only coupling to anything outside itself is
-`@openkaava/bridge` and the shape of what crosses it. A module the two apps shared would be a third
+`@veistra/bridge` and the shape of what crosses it. A module the two apps shared would be a third
 thing that has to move with either of them, and it would make one app's refactor able to break the
 other's build — the failure this boundary exists to prevent.
 

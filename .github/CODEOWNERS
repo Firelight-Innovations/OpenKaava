@@ -66,12 +66,12 @@
 # owner in that pair, same as any other write there, and `runs/` still does not.
 #
 # No leading slash on any of the lines below, deliberately — unlike every rule
-# above. `.kaava/` is a *project's* root, not a fixed location in this repository:
+# above. `.veistra/` is a *project's* root, not a fixed location in this repository:
 # today it exists three times, under
 # `crates/schematify-core/fixtures/{dense-service,saas-backend,stress-2000}/`,
 # and a project opened elsewhere in a checkout (including at the repository
 # root, if this repository is ever opened as a Schematify project itself) would
-# add another. An unanchored pattern matches `.kaava/nodes/` at any depth, the
+# add another. An unanchored pattern matches `.veistra/nodes/` at any depth, the
 # same way `apps/ @octocat` in GitHub's own CODEOWNERS documentation matches an
 # `apps` directory anywhere rather than only at the root — so this does not need
 # updating every time a fixture is added or renamed.
@@ -81,13 +81,13 @@
 # would hand every one of these fixture trees to the owner, `runs/` and
 # `layout/` included. Placing the two unowned lines last gives them the final
 # word for the paths they name.
-.kaava/brief.json @braden-seaborn
-.kaava/nodes/ @braden-seaborn
-.kaava/edges/ @braden-seaborn
-.kaava/rules/ @braden-seaborn
-.kaava/screens/ @braden-seaborn
-.kaava/flows/ @braden-seaborn
-.kaava/decisions/ @braden-seaborn
-.kaava/registry/ @braden-seaborn
-.kaava/runs/
-.kaava/layout/
+.veistra/brief.json @braden-seaborn
+.veistra/nodes/ @braden-seaborn
+.veistra/edges/ @braden-seaborn
+.veistra/rules/ @braden-seaborn
+.veistra/screens/ @braden-seaborn
+.veistra/flows/ @braden-seaborn
+.veistra/decisions/ @braden-seaborn
+.veistra/registry/ @braden-seaborn
+.veistra/runs/
+.veistra/layout/

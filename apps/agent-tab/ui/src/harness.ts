@@ -3,7 +3,7 @@
  * the words for its hints, its picker's choices, and the model it runs.
  *
  * Everything here reads `agent-tab/harnesses` and the session's status. The
- * registry itself lives in Rust (`crates/kaava-agent-host/src/harness.rs`),
+ * registry itself lives in Rust (`crates/veistra-agent-host/src/harness.rs`),
  * so a new harness shows up here with no change to this file.
  */
 import type { Harness, HarnessInfo, Hint, SessionStatus } from "./protocol.generated";

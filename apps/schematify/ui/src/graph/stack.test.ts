@@ -68,7 +68,7 @@ describe("STACK_GRAPH", () => {
   });
 
   it("draws status bar cell 1 as services only, with no edge count", () => {
-    expect(statusCell1(STACK_GRAPH)).toBe(".kaava/ · 7 services");
+    expect(statusCell1(STACK_GRAPH)).toBe(".veistra/ · 7 services");
   });
 });
 

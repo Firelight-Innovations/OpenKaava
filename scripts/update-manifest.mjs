@@ -1,5 +1,5 @@
 /**
- * Build the `latest.json` that OpenKaava's updater reads.
+ * Build the `latest.json` that Veistra's updater reads.
  *
  * `bundle.createUpdaterArtifacts` makes `tauri build` sign each installer and
  * drop a `.sig` beside it. It does **not** write the manifest that says where
@@ -7,7 +7,7 @@
  * workflow knows the tag the assets are about to hang off.
  *
  * The shaping is exported and unit-tested rather than done inline in YAML. A
- * manifest is read by every installed copy of OpenKaava and is the one artifact in
+ * manifest is read by every installed copy of Veistra and is the one artifact in
  * the release nobody looks at: a wrong `url` is a silent no-op on every machine
  * at once, and there is no failing build to notice it.
  *
@@ -21,7 +21,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 /** Where the assets of a tagged release live. Public, so no token is involved. */
-const REPO = "Firelight-Innovations/OpenKaava";
+const REPO = "Firelight-Innovations/Veistra";
 
 /**
  * Tauri's name for a platform, which is **not** a Rust target triple: it is
@@ -137,7 +137,7 @@ export function buildManifest({ tag, signed, notes, pubDate }) {
  * the release page either way.
  */
 export function defaultNotes(version) {
-  return `OpenKaava ${version} is available. The release notes are on GitHub.`;
+  return `Veistra ${version} is available. The release notes are on GitHub.`;
 }
 
 /**

@@ -1,6 +1,6 @@
 # Tutorials
 
-Ten short pages, the same ones the Tutorials app inside OpenKaava shows you,
+Ten short pages, the same ones the Tutorials app inside Veistra shows you,
 reading in the order they were written to be read. Each is a few minutes and
 ends with a **takeaway** — something you can check you can now do.
 
@@ -11,7 +11,7 @@ enforces the order.
 
 | Tutorial                                        | Minutes | What you'll be able to do                                                       |
 | -------------------------------------------------- | --------- | ------------------------------------------------------------------------------------ |
-| [The OpenKaava window](the-window.md)                 | 4       | Name every band of the OpenKaava window.                                               |
+| [The Veistra window](the-window.md)                 | 4       | Name every band of the Veistra window.                                               |
 | [Your first project](first-project.md)            | 6       | Open a folder as a project, and know exactly what got written into it.             |
 
 ## Working in the shell
@@ -34,7 +34,7 @@ enforces the order.
 
 | Tutorial                                            | Minutes | What you'll be able to do                                                       |
 | ------------------------------------------------------ | --------- | -------------------------------------------------------------------------------------- |
-| [Give your agent OpenKaava's tools](mcp-servers.md)       | 7       | Connect Claude Code or another MCP client to OpenKaava's own tools.                        |
+| [Give your agent Veistra's tools](mcp-servers.md)       | 7       | Connect Claude Code or another MCP client to Veistra's own tools.                        |
 
 ## The stack
 

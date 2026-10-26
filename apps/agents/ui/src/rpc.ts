@@ -3,9 +3,9 @@
  *
  * The shapes mirror `src-tauri/src/apps/agents.rs` and are restated rather
  * than imported, for the same reason as every other app's `rpc.ts`: an app
- * knows its host only through `@openkaava/bridge`.
+ * knows its host only through `@veistra/bridge`.
  */
-import { KaavaRpcError, invoke } from "@openkaava/bridge";
+import { VeistraRpcError, invoke } from "@veistra/bridge";
 
 // --- what the backend returns -------------------------------------------------
 
@@ -27,7 +27,7 @@ export interface StoredObject {
   size: number;
 }
 
-/** `status.json` as `infra/images/agent/files/kaava-session-hook` writes it. */
+/** `status.json` as `infra/images/agent/files/veistra-session-hook` writes it. */
 export interface Status {
   schema?: number;
   session_id?: string;
@@ -110,7 +110,7 @@ export const startMachine = (name: string): Promise<{ started: string }> =>
 
 /** The trouble an error carries, when the backend attached one. */
 export function troubleOf(error: unknown): Trouble | null {
-  if (!(error instanceof KaavaRpcError)) return null;
+  if (!(error instanceof VeistraRpcError)) return null;
   const data = error.data as { kind?: unknown } | undefined;
   return data && typeof data.kind === "string" ? (data as Trouble) : null;
 }

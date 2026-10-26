@@ -4,7 +4,7 @@
  * `crates/schematify-core`'s loader (PRD §6.4) is on a branch that has not
  * merged, and `00-AGENT-CONTEXT.md` forbids importing that crate.
  *
- * Deliberately pure: nothing here imports `@openkaava/bridge`, so this module
+ * Deliberately pure: nothing here imports `@veistra/bridge`, so this module
  * unit-tests under plain Node without a `window`. `./backend.ts` is this app's
  * other half, and its only door to Rust.
  *
@@ -158,10 +158,10 @@ export function loadGraph(
   return Promise.resolve(SERVICE_GRAPHS[slug] ?? emptyGraph("service", slug));
 }
 
-/** The `.kaava/` storage root every tier's status-bar cell 1 names (PRD
- *  §6.1: "Decision SCH-ARC-003 changes the root to `.kaava/`. Wave 2 draws
- *  `.kaava/` in that cell."). */
-export const KAAVA_ROOT = ".kaava/";
+/** The `.veistra/` storage root every tier's status-bar cell 1 names (PRD
+ *  §6.1: "Decision SCH-ARC-003 changes the root to `.veistra/`. Wave 2 draws
+ *  `.veistra/` in that cell."). */
+export const VEISTRA_ROOT = ".veistra/";
 
 /** `1 service`, `2 services`. Every count string this app draws is built by
  *  interpolating a number in front of a noun, and each one was written with
@@ -213,8 +213,8 @@ export function stackHeaderCounts(graph: SchematicGraph): string {
  *  header (WIREFRAME-EXTRACT.md §5.1: `sdd/ · 6 services`, no edge count in
  *  that cell); the Service and Module Schematics count nodes and edges. */
 export function statusCell1(graph: SchematicGraph): string {
-  if (graph.tier === "stack") return `${KAAVA_ROOT} · ${plural(countServices(graph), "service")}`;
-  return `${KAAVA_ROOT} · ${plural(countNodes(graph), "node")} · ${plural(countEdges(graph), "edge")}`;
+  if (graph.tier === "stack") return `${VEISTRA_ROOT} · ${plural(countServices(graph), "service")}`;
+  return `${VEISTRA_ROOT} · ${plural(countNodes(graph), "node")} · ${plural(countEdges(graph), "edge")}`;
 }
 
 /** Status bar cell 2: the layout file this Schematic's positions persist to
@@ -404,7 +404,7 @@ export function createMemorySeam(): SchematifySeam & {
 /**
  * The seam the running application uses, backed by `./backend.ts` (the real
  * `schematify/*` methods) through a dynamic `import()` rather than a static
- * one — a static import here would pull `@openkaava/bridge`'s `window`
+ * one — a static import here would pull `@veistra/bridge`'s `window`
  * access into the plain-Node `index.test.ts` (see `w2-shell.md`'s fix for
  * the same failure). Memoized so `createBackendSeam`'s in-memory maps
  * persist across calls. `loadGraph()` and `createMemorySeam()` above are

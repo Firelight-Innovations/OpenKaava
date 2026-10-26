@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const bridge = vi.hoisted(() => ({ invoke: vi.fn() }));
-vi.mock("@openkaava/bridge", () => ({ invoke: bridge.invoke }));
+vi.mock("@veistra/bridge", () => ({ invoke: bridge.invoke }));
 
 import type { SceneElement } from "./scene";
 import {

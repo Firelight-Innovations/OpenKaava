@@ -1,9 +1,9 @@
 //! The components an agent puts in front of the person with `show` and
 //! `show_component`, and the props each one draws from
-//! (`docs/design/KAAVA-CONTEXT-REFS.md` §6).
+//! (`docs/design/VEISTRA-CONTEXT-REFS.md` §6).
 //!
 //! These types are the only definition. The agent tab's TypeScript is
-//! generated from them into `apps/agent-tab/ui/src/kaava-show.generated.ts`,
+//! generated from them into `apps/agent-tab/ui/src/veistra-show.generated.ts`,
 //! and the test at the bottom of this file fails when the two disagree.
 //!
 //! Every limit is a promise to the tab: props that pass [`Component::parse`]
@@ -51,7 +51,7 @@ const MAX_UNIT: usize = 16;
 /// `{version, component, props}`.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[cfg_attr(test, derive(ts_rs::TS))]
-pub struct KaavaShow {
+pub struct VeistraShow {
     pub version: u32,
     #[serde(flatten)]
     pub shown: Component,
@@ -77,7 +77,7 @@ pub enum Component {
 #[cfg_attr(test, derive(ts_rs::TS), ts(optional_fields))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RefsProps {
-    /// `kaava://` references, in the order they are drawn.
+    /// `veistra://` references, in the order they are drawn.
     pub refs: Vec<String>,
     /// One line above them.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -557,7 +557,7 @@ mod tests {
     #[test]
     fn every_component_is_drawn_from_the_marker_the_tab_reads() {
         let shown = parse("callout", json!({ "tone": "tip", "body": "Use **bold**." })).unwrap();
-        let marker = serde_json::to_value(KaavaShow {
+        let marker = serde_json::to_value(VeistraShow {
             version: VERSION,
             shown,
         })
@@ -575,7 +575,7 @@ mod tests {
     #[test]
     fn every_name_parses_and_none_is_left_out() {
         let samples = [
-            ("refs", json!({ "refs": ["kaava://selection"] })),
+            ("refs", json!({ "refs": ["veistra://selection"] })),
             ("callout", json!({ "tone": "note", "body": "b" })),
             ("steps", json!({ "steps": [{ "title": "t" }] })),
             (
@@ -624,7 +624,7 @@ mod tests {
         assert!(missing.contains("missing field `body`"), "{missing}");
         let blank = refused("steps", json!({ "steps": [{ "title": "  " }] }));
         assert!(blank.starts_with("`steps[0].title` is empty"), "{blank}");
-        assert!(refused("refs", json!(["kaava://selection"])).contains("invalid type"));
+        assert!(refused("refs", json!(["veistra://selection"])).contains("invalid type"));
     }
 
     #[test]
@@ -640,7 +640,7 @@ mod tests {
             json!({ "format": "mermaid", "source": "s", "title": title + "x" }),
         );
         assert_eq!(over, "`title` is 201 characters; at most 200");
-        let nine = vec!["kaava://selection"; MAX_SHOWN + 1];
+        let nine = vec!["veistra://selection"; MAX_SHOWN + 1];
         assert_eq!(
             refused("refs", json!({ "refs": nine })),
             "`refs` holds 9; at most 8"
@@ -675,7 +675,7 @@ mod tests {
     fn a_refs_caption_is_trimmed_and_a_blank_one_left_out_as_show_does() {
         let caption = |c: &str| match parse(
             "refs",
-            json!({ "refs": ["kaava://selection"], "caption": c }),
+            json!({ "refs": ["veistra://selection"], "caption": c }),
         ) {
             Ok(Component::Refs(p)) => p.caption,
             other => panic!("{other:?}"),
@@ -688,7 +688,7 @@ mod tests {
 
     #[test]
     fn the_props_are_measured_again_as_they_will_be_answered() {
-        let mut shown = parse("refs", json!({ "refs": ["kaava://selection"] })).unwrap();
+        let mut shown = parse("refs", json!({ "refs": ["veistra://selection"] })).unwrap();
         assert!(shown.check_size().is_ok());
         // A canonical form can be longer than what was sent: a space in a
         // path is written %20.
@@ -699,7 +699,7 @@ mod tests {
 
     #[test]
     fn references_are_capped_across_every_list() {
-        let step = || json!({ "title": "t", "refs": vec!["kaava://selection"; MAX_ITEM_REFS] });
+        let step = || json!({ "title": "t", "refs": vec!["veistra://selection"; MAX_ITEM_REFS] });
         let steps = |n: usize| json!({ "steps": vec![step(); n] });
         assert!(parse("steps", steps(MAX_REFS / MAX_ITEM_REFS)).is_ok());
         let over = refused("steps", steps(MAX_REFS / MAX_ITEM_REFS + 1));
@@ -788,7 +788,7 @@ mod tests {
     fn generated() -> String {
         let cfg = Config::new().with_large_int("number");
         let decls = [
-            KaavaShow::decl(&cfg),
+            VeistraShow::decl(&cfg),
             Component::decl(&cfg),
             RefsProps::decl(&cfg),
             CalloutProps::decl(&cfg),
@@ -814,7 +814,7 @@ mod tests {
         ];
         let mut out = String::from(
             "// Generated from src-tauri/src/refs/catalogue.rs and resolve.rs by ts-rs. Do not edit.\n\
-             // Regenerate: KAAVA_BLESS=1 cargo test --lib refs::catalogue::tests::generated\n\n",
+             // Regenerate: VEISTRA_BLESS=1 cargo test --lib refs::catalogue::tests::generated\n\n",
         );
         for decl in decls {
             out.push_str("export ");
@@ -831,14 +831,14 @@ mod tests {
     fn generated_path() -> std::path::PathBuf {
         let crate_dir = std::env::var("CARGO_MANIFEST_DIR")
             .unwrap_or_else(|_| env!("CARGO_MANIFEST_DIR").to_string());
-        std::path::Path::new(&crate_dir).join("../apps/agent-tab/ui/src/kaava-show.generated.ts")
+        std::path::Path::new(&crate_dir).join("../apps/agent-tab/ui/src/veistra-show.generated.ts")
     }
 
     #[test]
     fn generated_types_match_the_checked_in_file() {
         let path = generated_path();
         let want = generated();
-        if std::env::var("KAAVA_BLESS").as_deref() == Ok("1") {
+        if std::env::var("VEISTRA_BLESS").as_deref() == Ok("1") {
             std::fs::write(&path, &want).unwrap();
         }
         let have = std::fs::read_to_string(&path)
@@ -846,7 +846,7 @@ mod tests {
             .replace("\r\n", "\n");
         assert!(
             have == want,
-            "{} is stale. Regenerate it with:\n  KAAVA_BLESS=1 cargo test --lib refs::catalogue::tests::generated",
+            "{} is stale. Regenerate it with:\n  VEISTRA_BLESS=1 cargo test --lib refs::catalogue::tests::generated",
             path.display()
         );
     }

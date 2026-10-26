@@ -1,8 +1,8 @@
-# Releasing an OpenKaava app
+# Releasing a Veistra app
 
-What a repository outside this one has to publish for OpenKaava to install it.
+What a repository outside this one has to publish for Veistra to install it.
 `releases.md` is the orchestrator's own pipeline; this is the smaller one every
-app repository needs, and the two differ in what they produce: OpenKaava ships an
+app repository needs, and the two differ in what they produce: Veistra ships an
 `.exe` installer, an app ships a `.zip`.
 
 Nothing uses this pipeline today. Schematify's two predecessor applications
@@ -13,9 +13,9 @@ Both have since been folded into one in-repo app (`apps/README.md`) and
 release through the orchestrator's own pipeline (`docs/dev/releases.md`)
 instead. This document is what the first genuinely third-party tool
 repository will need — kept for that case rather than deleted, the same way
-`catalog.toml` and `kaava.toml` keep their machinery with zero rows.
+`catalog.toml` and `veistra.toml` keep their machinery with zero rows.
 
-## What OpenKaava downloads
+## What Veistra downloads
 
 `plugins::remote` resolves `https://api.github.com/repos/<owner>/<name>/releases/latest`
 and looks for:
@@ -29,7 +29,7 @@ Without a `.zip`, the install fails with *"has no .zip asset attached"*. Without
 the sidecar it still installs, but the record says `sha256: null` — "installed,
 never verified" — so publish one.
 
-The zip contains the package as OpenKaava will run it: `kaava-tool.toml` at the
+The zip contains the package as Veistra will run it: `veistra-tool.toml` at the
 root or one directory down, the built `ui/dist`, and the core binary at whatever
 path `[core] bin` names. **Nothing is built on the user's machine.**
 
@@ -52,7 +52,7 @@ name = "Main"
 path = "main/"
 
 [core]
-bin = "core/target/release/kaava-acme-tool.exe"
+bin = "core/target/release/veistra-acme-tool.exe"
 ```
 
 `[tool] id` **must** equal the `id` in `catalog.toml` for a library entry. A
@@ -108,7 +108,7 @@ jobs:
       - name: Build the core
         run: cargo build --release --manifest-path core/Cargo.toml
 
-      # The zip is the package as OpenKaava runs it. Staged into a directory named
+      # The zip is the package as Veistra runs it. Staged into a directory named
       # after the tag so the archive has one clean root, which is the shape
       # `remote::manifest_root` looks one level down for.
       - name: Stage and archive
@@ -116,7 +116,7 @@ jobs:
         run: |
           NAME="${{ github.event.repository.name }}-${{ github.ref_name }}"
           mkdir -p "staging/$NAME"
-          cp kaava-tool.toml "staging/$NAME/"
+          cp veistra-tool.toml "staging/$NAME/"
           mkdir -p "staging/$NAME/ui"
           cp -r ui/dist "staging/$NAME/ui/dist"
           mkdir -p "staging/$NAME/core/target/release"
@@ -152,7 +152,7 @@ jobs:
 ```
 
 Published as a **draft**, matching the orchestrator's. `releases/latest` ignores
-drafts, so OpenKaava will not offer a release until somebody publishes it — which is
+drafts, so Veistra will not offer a release until somebody publishes it — which is
 the intended safety on a pipeline that ships code onto other people's machines.
 
 ## Blocked: neither shared package is published yet
@@ -160,18 +160,18 @@ the intended safety on a pipeline that ships code onto other people's machines.
 An app repository cannot currently depend on the two things the protocol says it
 should, and this has to be settled before any such repository can build.
 
-**`@openkaava/bridge` is not on npm.** `npm view @openkaava/bridge` is a 404, as of
+**`@veistra/bridge` is not on npm.** `npm view @veistra/bridge` is a 404, as of
 2026-08-21. It is the only host coupling a plugin frontend is supposed to have —
-`tool-protocol.md` §5 says a frontend's "only host coupling is `@openkaava/bridge`",
+`tool-protocol.md` §5 says a frontend's "only host coupling is `@veistra/bridge`",
 and `.github/CODEOWNERS` calls it "the npm package a tool author actually
 installs". Nothing installs it today, because it is not there.
 
-**`kaava-rpc` is not on crates.io** either, though this half has a working
+**`veistra-rpc` is not on crates.io** either, though this half has a working
 answer without publishing: a git dependency resolves fine against a public
 repository.
 
 ```toml
-kaava-rpc = { git = "https://github.com/Firelight-Innovations/OpenKaava.git" }
+veistra-rpc = { git = "https://github.com/Firelight-Innovations/Veistra.git" }
 ```
 
 The frontend has no equivalent that is worth having. A git dependency on this
@@ -179,8 +179,8 @@ repository would fetch source, and `packages/bridge` publishes `dist` — which 
 built, not committed — so it would need a `prepare` script and a build of the
 whole workspace to install one small package.
 
-**Recommendation: publish `@openkaava/bridge` to npm before scaffolding the first
+**Recommendation: publish `@veistra/bridge` to npm before scaffolding the first
 of these.** It is small, the repository is already public, and the protocol
-document already describes it as published. Publishing `kaava-rpc` alongside it
+document already describes it as published. Publishing `veistra-rpc` alongside it
 is optional and tidier; the git dependency is a real answer for the Rust half
 either way.

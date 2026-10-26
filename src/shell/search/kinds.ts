@@ -103,25 +103,25 @@ const KIND_BY_EXTENSION: Record<string, SearchKind> = {
 };
 
 /**
- * Whole filenames that are OpenKaava's own, checked before any extension.
+ * Whole filenames that are Veistra's own, checked before any extension.
  *
- * These have to win over the extension table: `kaava.toml` is a `.toml` and
+ * These have to win over the extension table: `veistra.toml` is a `.toml` and
  * would otherwise land in `data`, which is true but useless — the reason to
- * filter for OpenKaava files at all is to find the ones that configure *this*
+ * filter for Veistra files at all is to find the ones that configure *this*
  * tool, and burying them among every other TOML defeats that.
  */
-const KAAVA_FILENAMES = new Set(["kaava.toml", "kaava.lock"]);
+const VEISTRA_FILENAMES = new Set(["veistra.toml", "veistra.lock"]);
 
-/** Extensions that are OpenKaava's own wherever they appear. */
-const KAAVA_EXTENSIONS = new Set(["kaava"]);
+/** Extensions that are Veistra's own wherever they appear. */
+const VEISTRA_EXTENSIONS = new Set(["veistra"]);
 
 /**
- * A path segment that makes everything beneath it OpenKaava's.
+ * A path segment that makes everything beneath it Veistra's.
  *
  * Matching on the directory rather than each file inside it is what makes a
- * `.kaava/` full of otherwise-ordinary JSON classify the way a user expects.
+ * `.veistra/` full of otherwise-ordinary JSON classify the way a user expects.
  */
-const KAAVA_DIRECTORY = ".kaava";
+const VEISTRA_DIRECTORY = ".veistra";
 
 /** Where the kind table gives no answer. Not an error — most files are prose or unknown. */
 export const DEFAULT_KIND: SearchKind = "content";
@@ -147,7 +147,7 @@ export function extensionOf(name: string): string {
 /**
  * Classify a file by its absolute path.
  *
- * Takes the whole path rather than just the name because the `.kaava/`
+ * Takes the whole path rather than just the name because the `.veistra/`
  * directory rule cannot be answered from a basename alone.
  */
 export function kindOf(path: string): SearchKind {
@@ -155,11 +155,11 @@ export function kindOf(path: string): SearchKind {
   const name = normalized.slice(normalized.lastIndexOf("/") + 1);
   const lower = name.toLowerCase();
 
-  if (KAAVA_FILENAMES.has(lower)) return "kaava";
-  if (normalized.split("/").includes(KAAVA_DIRECTORY)) return "kaava";
+  if (VEISTRA_FILENAMES.has(lower)) return "veistra";
+  if (normalized.split("/").includes(VEISTRA_DIRECTORY)) return "veistra";
 
   const extension = extensionOf(lower);
-  if (KAAVA_EXTENSIONS.has(extension)) return "kaava";
+  if (VEISTRA_EXTENSIONS.has(extension)) return "veistra";
 
   return KIND_BY_EXTENSION[extension] ?? DEFAULT_KIND;
 }
@@ -169,11 +169,11 @@ export const KIND_LABEL: Record<SearchKind, string> = {
   script: "Scripts",
   data: "Data",
   content: "Content",
-  kaava: "OpenKaava",
+  veistra: "Veistra",
 };
 
 /** The order kinds are drawn in, everywhere they are listed. */
-export const ALL_KINDS: SearchKind[] = ["script", "data", "content", "kaava"];
+export const ALL_KINDS: SearchKind[] = ["script", "data", "content", "veistra"];
 
 /**
  * Hits regrouped so each kind is contiguous, in `ALL_KINDS` order, keeping the

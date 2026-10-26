@@ -665,7 +665,7 @@ mod tests {
             given: "an expired token".to_owned(),
             when: "it is verified".to_owned(),
             then: "the call rejects".to_owned(),
-            impl_ref: Some("@kaava:0192f4a1".to_owned()),
+            impl_ref: Some("@veistra:0192f4a1".to_owned()),
             status: TestStatus::Passing,
             last_result_ms: Some(41.0),
         };
@@ -685,7 +685,7 @@ mod tests {
             tier: BudgetTier::Hard,
             probe: Some(Probe {
                 command: "pnpm bench:verify".to_owned(),
-                parser: "kaava-bench-v1".to_owned(),
+                parser: "veistra-bench-v1".to_owned(),
             }),
             sign_off: None,
         };

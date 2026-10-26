@@ -392,7 +392,7 @@ mod tests {
             slug: Slug::new("no-unwrap").unwrap(),
             statement: "No unwrap on a value that came from the filesystem.".to_owned(),
             command: Some("cargo clippy".to_owned()),
-            marker: Some("@kaava:0192f4a1".to_owned()),
+            marker: Some("@veistra:0192f4a1".to_owned()),
             severity: Severity::Error,
             audit: Vec::new(),
         });
@@ -428,7 +428,7 @@ mod tests {
     #[test]
     fn a_marker_token_is_searchable_and_ranks_second() {
         let index = GraphIndex::build(&graph());
-        let hits = index.search("@kaava:0192f4a1", DEFAULT_LIMIT);
+        let hits = index.search("@veistra:0192f4a1", DEFAULT_LIMIT);
         assert_eq!(hits.len(), 1);
         assert_eq!(hits[0].rank, MatchRank::ExactMarker);
         assert_eq!(hits[0].kind, HitKind::Rule);

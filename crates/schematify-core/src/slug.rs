@@ -134,7 +134,7 @@ impl SlugScope {
 
 /// Every slug claimed so far, and by what.
 ///
-/// The loader builds one of these as it walks `.kaava/` and reports a
+/// The loader builds one of these as it walks `.veistra/` and reports a
 /// collision rather than letting the second file win silently.
 #[derive(Debug, Default, Clone)]
 pub struct SlugIndex {

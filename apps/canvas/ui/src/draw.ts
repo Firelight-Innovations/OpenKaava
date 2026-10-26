@@ -161,7 +161,7 @@ function base(type: string, b: Base): Element {
     updated: 1,
     link: null,
     locked: false,
-    ...(b.node ? { customData: { kaava: { node: b.node } } } : {}),
+    ...(b.node ? { customData: { veistra: { node: b.node } } } : {}),
   };
 }
 
@@ -241,8 +241,8 @@ export function frame(b: {
   diagram: Record<string, unknown>;
   /**
    * The frame this one replaces, when a diagram is rebuilt in place. Its
-   * `customData` (a typed object, a child canvas, anything else under `kaava`)
-   * and its `link` carry over: only `kaava.diagram` is this writer's to set.
+   * `customData` (a typed object, a child canvas, anything else under `veistra`)
+   * and its `link` carry over: only `veistra.diagram` is this writer's to set.
    */
   previous?: Element;
 }): Element {
@@ -252,11 +252,11 @@ export function frame(b: {
   el.roughness = 0;
   el.boundElements = null;
   const custom = (b.previous?.customData as Record<string, unknown> | undefined) ?? {};
-  const kaava = (custom.kaava as Record<string, unknown> | undefined) ?? {};
+  const veistra = (custom.veistra as Record<string, unknown> | undefined) ?? {};
   const out: Element = {
     ...el,
     name: b.name,
-    customData: { ...custom, kaava: { ...kaava, diagram: b.diagram } },
+    customData: { ...custom, veistra: { ...veistra, diagram: b.diagram } },
   };
   if (b.previous?.link) out.link = b.previous.link;
   return out;

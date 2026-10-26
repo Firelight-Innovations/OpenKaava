@@ -79,7 +79,7 @@
   display: flex;
 }
 
-/* 26px, per `docs/design/KAAVA-UX-SPEC.md` §1.2 — these were already real
+/* 26px, per `docs/design/VEISTRA-UX-SPEC.md` §1.2 — these were already real
    `<button>`s, where the v3 boards mock them as inert `<span>`s (§5's
    contradiction 12); only the row height (was 22px) and the colours (now the
    new token names) move for this rework. */

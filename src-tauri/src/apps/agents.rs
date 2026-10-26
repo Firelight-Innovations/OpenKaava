@@ -8,11 +8,11 @@
 
 use crate::apps::CallContext;
 use crate::cloud::{self, compute, storage, Cloud, Source, Trouble};
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use tauri::{AppHandle, Manager};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 
 /// Newest sessions kept per agent. Older ones stay in the bucket.
 const SESSIONS_PER_AGENT: usize = 200;
@@ -442,7 +442,7 @@ mod tests {
 
     #[test]
     fn start_refuses_a_machine_that_is_not_an_agent() {
-        let err = start(&Cloud::default(), &committed_fixture(), "kaava-gpu").unwrap_err();
+        let err = start(&Cloud::default(), &committed_fixture(), "veistra-gpu").unwrap_err();
         assert_eq!(err.code, INVALID_PARAMS);
     }
 

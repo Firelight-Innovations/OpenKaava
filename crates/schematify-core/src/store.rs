@@ -1,4 +1,4 @@
-//! The `.kaava/` storage layout of PRD section 6, and the writes it allows.
+//! The `.veistra/` storage layout of PRD section 6, and the writes it allows.
 //!
 //! The three layers are not organisational tidiness. They are the enforcement
 //! mechanism for the rule that an agent shall not change the design: the
@@ -35,7 +35,7 @@ use crate::registry::{LibraryRegistry, Rule};
 use crate::run::RunArtifact;
 
 /// The directory name Schematify keeps design data in.
-const KAAVA: &str = ".kaava";
+const VEISTRA: &str = ".veistra";
 
 /// Which of the three layers of PRD section 6.2 a path belongs to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -63,21 +63,21 @@ impl WriteLayer {
     }
 }
 
-/// Which layer a path under `.kaava/` belongs to.
+/// Which layer a path under `.veistra/` belongs to.
 ///
-/// Returns `None` for a path outside `.kaava/`, or one this build does not
+/// Returns `None` for a path outside `.veistra/`, or one this build does not
 /// recognise. An unknown path is not assumed semantic: a gate that guesses
 /// would either block a legitimate write or pass one it should have caught.
 #[must_use]
 pub fn layer_of(path: &Path) -> Option<WriteLayer> {
-    let mut after_kaava = false;
+    let mut after_veistra = false;
     for part in path.components() {
         let part = part.as_os_str().to_string_lossy();
-        if part == KAAVA {
-            after_kaava = true;
+        if part == VEISTRA {
+            after_veistra = true;
             continue;
         }
-        if !after_kaava {
+        if !after_veistra {
             continue;
         }
         return match part.as_ref() {
@@ -123,14 +123,14 @@ pub fn allowed_together(paths: &[PathBuf]) -> bool {
     one_node && one_audit
 }
 
-/// One project's `.kaava/` tree, and the writes into it.
+/// One project's `.veistra/` tree, and the writes into it.
 #[derive(Debug, Clone)]
 pub struct Store {
     root: PathBuf,
 }
 
 impl Store {
-    /// A store over a project directory. `.kaava/` sits inside it.
+    /// A store over a project directory. `.veistra/` sits inside it.
     #[must_use]
     pub fn open(project_root: impl Into<PathBuf>) -> Self {
         Self {
@@ -144,40 +144,42 @@ impl Store {
         &self.root
     }
 
-    /// The `.kaava/` directory itself.
+    /// The `.veistra/` directory itself.
     #[must_use]
-    pub fn kaava_dir(&self) -> PathBuf {
-        self.root.join(KAAVA)
+    pub fn veistra_dir(&self) -> PathBuf {
+        self.root.join(VEISTRA)
     }
 
     /// Where a node file lives.
     #[must_use]
     pub fn node_path(&self, id: Uuid) -> PathBuf {
-        self.kaava_dir().join("nodes").join(format!("{id}.json"))
+        self.veistra_dir().join("nodes").join(format!("{id}.json"))
     }
 
     /// Where an edge file lives.
     #[must_use]
     pub fn edge_path(&self, id: Uuid) -> PathBuf {
-        self.kaava_dir().join("edges").join(format!("{id}.json"))
+        self.veistra_dir().join("edges").join(format!("{id}.json"))
     }
 
     /// Where a screen file lives.
     #[must_use]
     pub fn screen_path(&self, id: Uuid) -> PathBuf {
-        self.kaava_dir().join("screens").join(format!("{id}.json"))
+        self.veistra_dir()
+            .join("screens")
+            .join(format!("{id}.json"))
     }
 
     /// Where a flow file lives.
     #[must_use]
     pub fn flow_path(&self, id: Uuid) -> PathBuf {
-        self.kaava_dir().join("flows").join(format!("{id}.json"))
+        self.veistra_dir().join("flows").join(format!("{id}.json"))
     }
 
     /// Where a decision file lives.
     #[must_use]
     pub fn decision_path(&self, id: Uuid) -> PathBuf {
-        self.kaava_dir()
+        self.veistra_dir()
             .join("decisions")
             .join(format!("{id}.json"))
     }
@@ -185,25 +187,25 @@ impl Store {
     /// Where a rule file lives.
     #[must_use]
     pub fn rule_path(&self, id: Uuid) -> PathBuf {
-        self.kaava_dir().join("rules").join(format!("{id}.json"))
+        self.veistra_dir().join("rules").join(format!("{id}.json"))
     }
 
     /// Where the one library registry file lives.
     #[must_use]
     pub fn libraries_path(&self) -> PathBuf {
-        self.kaava_dir().join("registry").join("libraries.json")
+        self.veistra_dir().join("registry").join("libraries.json")
     }
 
     /// Where the project brief lives.
     #[must_use]
     pub fn brief_path(&self) -> PathBuf {
-        self.kaava_dir().join("brief.json")
+        self.veistra_dir().join("brief.json")
     }
 
     /// Where a Schematic's layout lives, named by slug rather than by UUID.
     #[must_use]
     pub fn layout_path(&self, schematic: &str) -> PathBuf {
-        self.kaava_dir()
+        self.veistra_dir()
             .join("layout")
             .join(format!("{schematic}.json"))
     }
@@ -211,7 +213,7 @@ impl Store {
     /// Where one ingested run lives.
     #[must_use]
     pub fn run_path(&self, node: Uuid, run: u64) -> PathBuf {
-        self.kaava_dir()
+        self.veistra_dir()
             .join("runs")
             .join(node.to_string())
             .join(format!("run-{run}.json"))
@@ -220,7 +222,7 @@ impl Store {
     /// Where a node's lifecycle audit lives.
     #[must_use]
     pub fn audit_path(&self, node: Uuid) -> PathBuf {
-        self.kaava_dir()
+        self.veistra_dir()
             .join("runs")
             .join(node.to_string())
             .join("audit.json")
@@ -243,7 +245,7 @@ impl Store {
             "runs",
             "layout",
         ] {
-            let path = self.kaava_dir().join(directory);
+            let path = self.veistra_dir().join(directory);
             fs::create_dir_all(&path).map_err(|source| CoreError::Io { path, source })?;
         }
         Ok(())
@@ -620,12 +622,12 @@ mod tests {
         let id = Uuid::from_u128(1);
         let ends = |p: PathBuf| p.to_string_lossy().replace('\\', "/");
         assert!(ends(store.node_path(id))
-            .ends_with(".kaava/nodes/00000000-0000-0000-0000-000000000001.json"));
-        assert!(ends(store.edge_path(id)).contains(".kaava/edges/"));
-        assert!(ends(store.libraries_path()).ends_with(".kaava/registry/libraries.json"));
-        assert!(ends(store.brief_path()).ends_with(".kaava/brief.json"));
+            .ends_with(".veistra/nodes/00000000-0000-0000-0000-000000000001.json"));
+        assert!(ends(store.edge_path(id)).contains(".veistra/edges/"));
+        assert!(ends(store.libraries_path()).ends_with(".veistra/registry/libraries.json"));
+        assert!(ends(store.brief_path()).ends_with(".veistra/brief.json"));
         assert!(
-            ends(store.layout_path("auth-service")).ends_with(".kaava/layout/auth-service.json")
+            ends(store.layout_path("auth-service")).ends_with(".veistra/layout/auth-service.json")
         );
         assert!(ends(store.run_path(id, 1184)).ends_with("/run-1184.json"));
         assert!(ends(store.audit_path(id)).ends_with("/audit.json"));
@@ -1052,7 +1054,7 @@ mod tests {
         let store = Store::open(directory.path());
         store.init().unwrap();
         let run = RunArtifact {
-            schema: "kaava-bench-v9".to_owned(),
+            schema: "veistra-bench-v9".to_owned(),
             run: 1,
             at: "2026-08-25T00:00:00Z".to_owned(),
             commit: "abc".to_owned(),
@@ -1128,7 +1130,7 @@ mod tests {
             "runs",
             "layout",
         ] {
-            assert!(store.kaava_dir().join(name).is_dir(), "{name}");
+            assert!(store.veistra_dir().join(name).is_dir(), "{name}");
         }
     }
 

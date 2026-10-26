@@ -1,9 +1,9 @@
-//! Where OpenKaava remembers the projects you have opened, across launches.
+//! Where Veistra remembers the projects you have opened, across launches.
 //!
 //! This is the first thing in the orchestrator that wrote to disk. Everything
 //! else it knew it re-derived at boot — the stack snapshot is a scan, a terminal
 //! dies with its process. That was fine while nothing had to survive a restart.
-//! "Open OpenKaava and land back where you were" was the first thing that did.
+//! "Open Veistra and land back where you were" was the first thing that did.
 //!
 //! What survives here now is the **Recent list only**. Which project is open is
 //! a fact about a *cluster* (see `crate::project`'s module doc) and lives in
@@ -40,7 +40,7 @@ const KEEP: crate::userdata::store::Keep = crate::userdata::store::Keep::Aside;
 pub struct Stored {
     /// **Vestigial: the migration's only input.** Nothing writes this any more.
     ///
-    /// It was the global "the project that was open when OpenKaava last closed", the
+    /// It was the global "the project that was open when Veistra last closed", the
     /// field this module was built around. A project belongs to a cluster now,
     /// so the authority moved to `Cluster::project` in `layout.json`.
     ///
@@ -103,7 +103,7 @@ impl Stored {
 
 /// Read the store, or start empty. **Never fatal:** every read here degrades to
 /// [`Stored::default`]. A recents file that is missing, truncated by a power
-/// cut, or written by a future build must not stop OpenKaava from starting — the
+/// cut, or written by a future build must not stop Veistra from starting — the
 /// worst honest outcome of a corrupt file is an empty Recent list, and that is a
 /// great deal better than an app that will not open. [`save`] is what makes that
 /// rare: it writes a temp file and renames it, so a reader either sees the whole

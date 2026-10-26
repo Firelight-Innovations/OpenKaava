@@ -57,7 +57,7 @@ getrandom = "0.3"
 tempfile = "3"
 
 # Test-only too. Generates the agent tab's TypeScript from the event types in
-# `kaava-agent-host`, inside that crate's own tests, where a check also fails
+# `veistra-agent-host`, inside that crate's own tests, where a check also fails
 # when the checked-in file is stale. MIT.
 ts-rs = "12"
 
@@ -78,14 +78,14 @@ ts-rs = "12"
 # call, so two escape hatches carry the difference: tests are exempted wholesale
 # in clippy.toml, and the one invariant shipping code leans on — a lock this
 # process owns being un-poisoned — is answered once in `src-tauri/src/sync.rs`
-# (and `crates/kaava-rpc/src/sync.rs`) rather than at each of its forty sites.
+# (and `crates/veistra-rpc/src/sync.rs`) rather than at each of its forty sites.
 unwrap_used = "warn"
 expect_used = "warn"
 
 # §4.1 (`missing_docs`) and §5 modules (`unreachable_pub`) are deliberately NOT
 # here, because they are not workspace-wide rules even though they read like
 # ones. Both are about a *published surface*: what another repository imports
-# and has to understand. `crates/kaava-rpc` and `crates/kaava-tool-manifest`
+# and has to understand. `crates/veistra-rpc` and `crates/veistra-tool-manifest`
 # have one; `src-tauri` does not — it is an application whose `pub` items exist
 # to cross module boundaries inside a single binary.
 #

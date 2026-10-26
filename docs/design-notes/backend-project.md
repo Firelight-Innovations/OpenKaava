@@ -79,11 +79,11 @@ on a network share every time somebody clicks a chip.
 
 The shell draws its own title bar, so `retitle` is not what the user reads inside the app — it is
 what the taskbar, the alt-tab switcher, and a screen reader announce. Those are the places where
-"which OpenKaava window is this" is a real question, and the only ones that can answer it are outside
+"which Veistra window is this" is a real question, and the only ones that can answer it are outside
 the webview.
 
 It used to hardcode `main`, which was correct while there was one project in the process and
 silently wrong the moment there were several: two windows working on two projects would have shown
 one name in the taskbar, or two entries with the same one. A window showing a cluster with no
-project — or showing no cluster at all — falls back to plain "OpenKaava" rather than inheriting a
+project — or showing no cluster at all — falls back to plain "Veistra" rather than inheriting a
 neighbour's name, which would be the same lie in a quieter form.

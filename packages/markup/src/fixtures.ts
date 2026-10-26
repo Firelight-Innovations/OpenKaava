@@ -24,10 +24,10 @@ export function arrow(id: string, x: number, y: number, dx: number, dy: number):
 
 /** A pin the way the layer stores it: marker plus bound label. */
 export function pin(n: number, cx: number, cy: number, worldPoint?: [number, number, number]) {
-  const kaava: Record<string, unknown> = { kind: "pin", n, note: `note ${n}` };
+  const veistra: Record<string, unknown> = { kind: "pin", n, note: `note ${n}` };
   if (worldPoint) {
-    kaava.nodePath = `Root/Node${n}`;
-    kaava.worldPoint = worldPoint;
+    veistra.nodePath = `Root/Node${n}`;
+    veistra.worldPoint = worldPoint;
   }
   return [
     el({
@@ -37,7 +37,7 @@ export function pin(n: number, cx: number, cy: number, worldPoint?: [number, num
       y: cy - 16,
       width: 32,
       height: 32,
-      customData: { kaava },
+      customData: { veistra },
     }),
     el({
       id: `l${n}`,
@@ -46,7 +46,7 @@ export function pin(n: number, cx: number, cy: number, worldPoint?: [number, num
       y: cy - 8,
       text: String(n),
       containerId: `m${n}`,
-      customData: { kaava: { kind: "pin-label", n } },
+      customData: { veistra: { kind: "pin-label", n } },
     }),
   ];
 }

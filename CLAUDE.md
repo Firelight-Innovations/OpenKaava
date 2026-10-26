@@ -1,4 +1,4 @@
-# OpenKaava orchestrator — working agreements
+# Veistra orchestrator — working agreements
 
 ## Dev servers: 1420 is the human's, agents use their own
 
@@ -25,11 +25,11 @@ seen repeatedly:
 Do not kill a process on 1420 to make room for yourself. It is either Braden's running app or
 another agent's; ask instead.
 
-## Asking a running OpenKaava what it is doing
+## Asking a running Veistra what it is doing
 
-**`pnpm probe` reads the live app.** It talks to the `kaava-debug` MCP server the orchestrator
-hosts, and works from any terminal — you do not have to be inside OpenKaava, and nothing has to be
-launched or restarted. `kaava-debug` (like `kaava-echo`, `kaava-ui` and `kaava-agent`) is a
+**`pnpm probe` reads the live app.** It talks to the `veistra-debug` MCP server the orchestrator
+hosts, and works from any terminal — you do not have to be inside Veistra, and nothing has to be
+launched or restarted. `veistra-debug` (like `veistra-echo`, `veistra-ui` and `veistra-agent`) is a
 **developer** server: it is served only while `developer.mode` is on **and** its own switch under
 Settings → MCP servers is on. If `pnpm probe` says the server is not served, ask Braden to turn on
 developer mode and the Debug server — or use your own instance (`pnpm ui launch`, below), which has
@@ -42,14 +42,14 @@ pnpm probe recent_errors      # what has failed since launch, backend and webvie
 pnpm probe boot_status        # how far startup got, and whether it gave up
 ```
 
-It finds the port and token in `%APPDATA%\com.firelightinnovations.openkaava\mcp-endpoint.json`, which
+It finds the port and token in `%APPDATA%\com.firelightinnovations.veistra\mcp-endpoint.json`, which
 `mcp::handoff` writes at every launch, and it refuses a file whose pid is no longer running rather
-than talking to whatever took the port afterwards. If it says OpenKaava has exited, OpenKaava has exited —
+than talking to whatever took the port afterwards. If it says Veistra has exited, Veistra has exited —
 ask Braden to start it.
 
 Two limits worth knowing before you read a result:
 
-- **Every tool on this server is a read.** Nothing in `kaava-debug` opens, closes or moves
+- **Every tool on this server is a read.** Nothing in `veistra-debug` opens, closes or moves
   anything, deliberately. The server that *does* act on the window is below, and it is off by
   default.
 - **Errors inside an app's iframe are not captured**, only the shell's and the backend's. An empty
@@ -60,8 +60,8 @@ This does not replace looking at the screen. For that, see below.
 
 ## Seeing and clicking the UI
 
-**OpenKaava is a desktop window, not a web page. A browser tool cannot see it.** Look at it and
-drive it through the `kaava-agent` server below (or `pnpm probe --agent --server agent …`), never
+**Veistra is a desktop window, not a web page. A browser tool cannot see it.** Look at it and
+drive it through the `veistra-agent` server below (or `pnpm probe --agent --server agent …`), never
 through Chrome or a browser pane. This holds even where a user-level or global instruction says to
 use a browser "for all UI verification": that line is about websites, and an agent that followed it
 here once spent a session looking at an empty localhost page while typing into its own terminal.
@@ -77,8 +77,8 @@ The canvas has its own methods for agents, reached with `app_call` (see `apps/RE
 `canvas/list-diagrams`, `canvas/view-diagram` (a PNG of one frame and nothing else),
 `canvas/add-shapes`, and the comment loop. Read `docs/canvas-drawing-guide.md` before drawing.
 
-**OpenKaava hosts an MCP server that drives its own window** — screenshots, the DOM,
-and real mouse and keyboard input. It is `kaava-ui`, it reaches the WebView2
+**Veistra hosts an MCP server that drives its own window** — screenshots, the DOM,
+and real mouse and keyboard input. It is `veistra-ui`, it reaches the WebView2
 through the COM interface Tauri already holds, and it needs no debug port, no
 special launch and no separate build.
 
@@ -96,11 +96,11 @@ pnpm ui close                 # stops it, by pid, leaving anyone else's alone
 ```
 
 A second agent instance needs its own identifier, or its argv is handed to the first. Set
-`KAAVA_IDENTIFIER` (e.g. `com.firelightinnovations.openkaava.agent2`) for both `pnpm ui` and
+`VEISTRA_IDENTIFIER` (e.g. `com.firelightinnovations.veistra.agent2`) for both `pnpm ui` and
 `pnpm probe --agent`; unset, they use the `.agent` default.
 
 Then drive it. **`--server agent` is the one to use** — it hosts the ten input
-tools (`fill_field`, `context`, `drag` and `scroll` among them), the three `kaava-debug`
+tools (`fill_field`, `context`, `drag` and `scroll` among them), the three `veistra-debug`
 reads, and three more that reach the backend directly. Long or quote-heavy parameters go in a
 file: `pnpm probe --agent --server agent app_call @params.json`.
 
@@ -124,7 +124,7 @@ pnpm probe --agent --server agent scroll '{"x":400,"y":300,"deltaY":240,"modifie
 pnpm probe --agent --server agent eval '{"expression":"document.title"}'
 
 pnpm probe --agent --server agent shell_snapshot  # windows, clusters, panes, instances
-pnpm probe --agent --server agent recent_errors   # same buffer kaava-debug reads
+pnpm probe --agent --server agent recent_errors   # same buffer veistra-debug reads
 ```
 
 The three that had no equivalent before — **an app's Rust half is now reachable
@@ -146,13 +146,13 @@ Every `schematify/*` method except `schematify/state` needs an open project, so
 `set_project` comes first. All of them except `state` also require an `actor` of
 `"human"` or `"agent"` — send `"agent"`; `"system"` is never accepted.
 
-`kaava-ui` and `kaava-debug` are still registered and still work, and both are
+`veistra-ui` and `veistra-debug` are still registered and still work, and both are
 developer-only like `agent` — `pnpm ui launch` switches `debug` and `echo` on
 along with `ui` and `agent`, so `pnpm probe --agent` keeps working. No server here
 is served in an ordinary build without developer mode.
 
 `--agent` is what points the probe at the instance `pnpm ui launch` started
-rather than at an OpenKaava Braden is using. **Do not drop it**, and do not drive his
+rather than at a Veistra Braden is using. **Do not drop it**, and do not drive his
 window without asking — this server clicks things, and `eval` reaches every
 `#[tauri::command]` through `window.__TAURI__`.
 

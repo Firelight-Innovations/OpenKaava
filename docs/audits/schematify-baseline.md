@@ -23,13 +23,13 @@ should prefer this document over PRD section 14.3 where the two disagree.
 | pnpm workspace | repo root | `pnpm-workspace.yaml`: `packages/*`, `examples/*/ui` |
 | Cargo workspace | repo root | `Cargo.toml`: `src-tauri`, `crates/*`, `examples/echo-tool` |
 
-`packages/*` (npm packages, each has its own `package.json`, published under `@openkaava/*`):
+`packages/*` (npm packages, each has its own `package.json`, published under `@veistra/*`):
 
 | Package | Path |
 |---|---|
-| `@openkaava/bridge` | `packages/bridge/` |
-| `@openkaava/file-icons` | `packages/file-icons/` |
-| `@openkaava/monaco-languages` | `packages/monaco-languages/` |
+| `@veistra/bridge` | `packages/bridge/` |
+| `@veistra/file-icons` | `packages/file-icons/` |
+| `@veistra/monaco-languages` | `packages/monaco-languages/` |
 
 `apps/*` (first-party surfaces — **not** pnpm workspace packages; no `package.json` under `apps/`, they are Vite entry points of the root build):
 
@@ -47,8 +47,8 @@ should prefer this document over PRD section 14.3 where the two disagree.
 
 | Crate | Path |
 |---|---|
-| `kaava-tool-manifest` | `crates/kaava-tool-manifest/` |
-| `kaava-rpc` | `crates/kaava-rpc/` |
+| `veistra-tool-manifest` | `crates/veistra-tool-manifest/` |
+| `veistra-rpc` | `crates/veistra-rpc/` |
 
 ## 3. The module that draws the application tab strip
 
@@ -66,23 +66,23 @@ The literal strings live one hop upstream, in **`src-tauri/src/apps/mod.rs:157`�
 1. `REGISTRY[i].name` — e.g. `"Forger"` at `mod.rs:207`, `"Journeyman"` at `mod.rs:229` — is a `&'static str` compiled into the binary.
 2. `apps::display_name(&app, &app_id)` (called from `src-tauri/src/commands.rs:208`, inside `open_instance`) reads it from `REGISTRY`.
 3. `open_instance` passes it as `title` into `ShellState::open_instance` (`shell_state.rs:1047`, field at line 1140), which becomes `SurfaceInstance.title`.
-4. The frontend reads that off `shell:state`, and `ClusterBar.tsx` renders it as the tab label. A frame can later override its own title via `kaava/title` (`ToolWindow.tsx:797`–`802`), but the initial, and for these two apps the only, label comes from `REGISTRY`.
+4. The frontend reads that off `shell:state`, and `ClusterBar.tsx` renders it as the tab label. A frame can later override its own title via `veistra/title` (`ToolWindow.tsx:797`–`802`), but the initial, and for these two apps the only, label comes from `REGISTRY`.
 
 **So: the strings a new app's tab shows are edited in exactly one place,
 `src-tauri/src/apps/mod.rs`'s `REGISTRY` constant — `name` and `description` fields.**
 
-## 4. Presence of kaava.toml, .kaava, kaava-tool://, @openkaava/*
+## 4. Presence of veistra.toml, .veistra, veistra-tool://, @veistra/*
 
 | Item | Present | Where |
 |---|---|---|
-| `kaava.toml` | Yes | Repo root. The **stack manifest** — pins other OpenKaava repositories and their versions, unrelated to a Schematify project. `[[tool]]` array is empty today (see section 7) |
-| `.kaava` extension | Yes | `src-tauri/src/project/marker.rs`. Names a **project** manifest, `<name>.kaava`, distinct from `kaava.toml`. `TRACE_DIR` constant (`marker.rs:32`) names the sibling `.kaava/` directory OpenKaava writes into |
-| `kaava-tool://` | Yes | `src/shell/state/toolFrontend.ts`, `src-tauri/src/apps/design.rs`, `src-tauri/src/tool_frontend.rs` — the scheme a *tool's* frontend is served from in a release build. Apps are not served this way; they load from the shell's own origin (`apps::entry_url`, `mod.rs:444`: `/apps/<id>/ui/index.html`) |
-| `@openkaava/*` npm scope | Yes | `packages/bridge/package.json` (`@openkaava/bridge`), plus `@openkaava/file-icons` and `@openkaava/monaco-languages` (section 2) |
+| `veistra.toml` | Yes | Repo root. The **stack manifest** — pins other Veistra repositories and their versions, unrelated to a Schematify project. `[[tool]]` array is empty today (see section 7) |
+| `.veistra` extension | Yes | `src-tauri/src/project/marker.rs`. Names a **project** manifest, `<name>.veistra`, distinct from `veistra.toml`. `TRACE_DIR` constant (`marker.rs:32`) names the sibling `.veistra/` directory Veistra writes into |
+| `veistra-tool://` | Yes | `src/shell/state/toolFrontend.ts`, `src-tauri/src/apps/design.rs`, `src-tauri/src/tool_frontend.rs` — the scheme a *tool's* frontend is served from in a release build. Apps are not served this way; they load from the shell's own origin (`apps::entry_url`, `mod.rs:444`: `/apps/<id>/ui/index.html`) |
+| `@veistra/*` npm scope | Yes | `packages/bridge/package.json` (`@veistra/bridge`), plus `@veistra/file-icons` and `@veistra/monaco-languages` (section 2) |
 
-Two names exist and must not be confused: `kaava.toml` (this orchestrator's own
-stack manifest, one per orchestrator checkout) and `<name>.kaava` (a project
-manifest, one per project a user opens). Schematify's `.kaava/` project
+Two names exist and must not be confused: `veistra.toml` (this orchestrator's own
+stack manifest, one per orchestrator checkout) and `<name>.veistra` (a project
+manifest, one per project a user opens). Schematify's `.veistra/` project
 directory (PRD section 6) is the second kind.
 
 ## 5. Every step `pnpm verify` runs
@@ -93,7 +93,7 @@ verify = build && test && lint && format:check
 
 | Top-level step | Script | Expands to |
 |---|---|---|
-| `build` | `pnpm run build` | `build:bridge` (`pnpm --filter @openkaava/bridge build`) → `generate:icons` (`node scripts/generate-file-icons.mjs`) → `generate:branding` (`node scripts/generate-branding.mjs`) → `build:file-icons` (`pnpm --filter @openkaava/file-icons build`) → `build:monaco-languages` (`pnpm --filter @openkaava/monaco-languages build`) → `tsc` → `vite build` |
+| `build` | `pnpm run build` | `build:bridge` (`pnpm --filter @veistra/bridge build`) → `generate:icons` (`node scripts/generate-file-icons.mjs`) → `generate:branding` (`node scripts/generate-branding.mjs`) → `build:file-icons` (`pnpm --filter @veistra/file-icons build`) → `build:monaco-languages` (`pnpm --filter @veistra/monaco-languages build`) → `tsc` → `vite build` |
 | `test` | `pnpm run test` | `test:js` (`vitest run` **and** `pnpm --filter "./packages/**" --filter "./examples/**" --if-present test`) → `test:rust` (`cargo test --workspace`) |
 | `lint` | `pnpm run lint` | `lint:version` (`node scripts/check-version.mjs`) → `lint:identity` (`node scripts/check-identity.mjs`) → `lint:branding` (`node scripts/check-branding.mjs`) → `lint:js` (`eslint .`) → `lint:rust` (`node scripts/clippy-baseline.mjs`) → `lint:comments` (`node scripts/check-comments.mjs`) |
 | `format:check` | `pnpm run format:check` | `prettier --check .` **and** `cargo fmt --all -- --check` |
@@ -144,7 +144,7 @@ frame's `invoke` into Rust.
 Every first-party app's calls do **not** get individual `#[tauri::command]`
 entries. They go through one already-registered command:
 
-1. App frontend calls `invoke("schematify/open-project", params)` via `@openkaava/bridge` (postMessage, transport B — not a Tauri IPC call).
+1. App frontend calls `invoke("schematify/open-project", params)` via `@veistra/bridge` (postMessage, transport B — not a Tauri IPC call).
 2. `ToolWindow.tsx:897` relays it to `callApp(frame.appId, method, params, {instanceId})`.
 3. That calls the Tauri command `app_call` (`commands.rs:1145`), already in `generate_handler!` at `lib.rs:462`.
 4. `app_call` spawns a blocking worker, resolves a `CallContext`, and calls `apps::call(&app, &context, &id, &method, params)` (`mod.rs:461`).
@@ -158,9 +158,9 @@ entries. They go through one already-registered command:
 Two patterns coexist today, both valid, neither enforced:
 
 - **`apps/files/ui/src/rpc.ts`** (`apps/files/ui/src/rpc.ts:1`–`324`): every call the app makes is wrapped in one file. Method-name strings (`"files/list"`, `"files/read"`, …) appear nowhere else. Types mirror `src-tauri/src/apps/files.rs`, restated rather than imported — `apps/` may not import from `src/`.
-- **`apps/home/ui/src/App.tsx`**: no `rpc.ts`. `invoke<T>("home/state")` etc. called directly from `@openkaava/bridge`, inline in the component (`App.tsx:153,170,190,216`).
+- **`apps/home/ui/src/App.tsx`**: no `rpc.ts`. `invoke<T>("home/state")` etc. called directly from `@veistra/bridge`, inline in the component (`App.tsx:153,170,190,216`).
 
-Both import `invoke` from `@openkaava/bridge` (never from `src/bindings.ts` —
+Both import `invoke` from `@veistra/bridge` (never from `src/bindings.ts` —
 that import is reserved for the shell, see STANDARDS.md §2). Given Schematify
 has 10 commands (PRD §14.5), the `rpc.ts` pattern is the closer analog and is
 recommended.
@@ -175,7 +175,7 @@ every row below.
 |---|---|---|---|
 | React surface | `packages/schematify-ui` | `apps/schematify/ui/` | Matches `apps/home/ui`, `apps/files/ui`. `packages/` is reserved for npm libraries shared with external tool repos (bridge, file-icons, monaco-languages) — an app is not that (section 2) |
 | Rust registration | `src-tauri/src/apps/schematify/mod.rs` (directory module) | `src-tauri/src/apps/schematify.rs` (single file), **unless** the crate's size argues otherwise — see below | Every existing app (`home.rs`, `files.rs`, `forger.rs`, `journeyman.rs`) is one file, including `design.rs` at 37,298 bytes (the largest). Only `design.rs` has a sibling non-Rust file (`design_probe.js`, embedded via `include_str!`), still not a directory module |
-| Crates | `crates/schematify-core`, `crates/schematify-reconcile` | Confirmed as proposed | `Cargo.toml:17` already globs `crates/*` as workspace members; `crates/kaava-rpc/Cargo.toml` is the pattern to copy (`version.workspace = true` etc., `[lints] workspace = true`) |
+| Crates | `crates/schematify-core`, `crates/schematify-reconcile` | Confirmed as proposed | `Cargo.toml:17` already globs `crates/*` as workspace members; `crates/veistra-rpc/Cargo.toml` is the pattern to copy (`version.workspace = true` etc., `[lints] workspace = true`) |
 | Registry entry | (unstated) | `src-tauri/src/apps/mod.rs`: add `mod schematify;` beside line 20, a `Registered { id: "schematify", name: "Schematify", ... }` row appended to `REGISTRY` (currently closes at line 238) | Sole registration point (STANDARDS.md §3) |
 | Vite entry | (unstated) | `vite.config.ts`: add `schematify: resolve(__dirname, "apps/schematify/ui/index.html"),` after line 72 (`journeyman:`), before the closing `}` at line 73 | "The one piece that cannot be inferred" (STANDARDS.md §3, `vite.config.ts:49`–`52`) |
 | `catalog.toml` entry | (unstated) | **No entry.** `catalog.toml` is empty and is the *tool* install library. Forger and Journeyman were removed from it when they became first-party apps (`catalog.toml:51`–`54`). Home, Files and Tutorials never appeared there and do not today — confirmed by reading the file, which lists zero apps | Direct contradiction of the task brief's assumption that Home/Files/Tutorial "appear" in `catalog.toml`; they do not |
@@ -275,7 +275,7 @@ Files (deduplicated, both terms, any case), by area:
 - `src-tauri/src/plugins/mod.rs:544,549`
 - `src-tauri/src/plugins/remote.rs:412,414,421,424–430,468,486`
 - `src-tauri/src/plugins/store.rs:175,177,195`
-- `crates/kaava-tool-manifest/src/lib.rs:939,941,961,968`
+- `crates/veistra-tool-manifest/src/lib.rs:939,941,961,968`
 
 **Prose referencing Forger/Journeyman as a fact about the product** (needs
 rewriting, not just string deletion, once both are real Schematify surfaces):
@@ -296,7 +296,7 @@ rewriting, not just string deletion, once both are real Schematify surfaces):
 - `docs/user/tutorials/the-stack.md:30,61,82`
 - `docs/user/tutorials/the-window.md:52`
 - `packages/bridge/README.md:22` (an example `invoke` call using `"forger/list-specs"`)
-- `kaava.toml:29` (comment)
+- `veistra.toml:29` (comment)
 - `src-tauri/src/discovery.rs:41,197` (comments)
 - `src-tauri/src/mcp/servers/mod.rs:14` (comment)
 - `src-tauri/src/plugins/catalog.rs:105,106` (comment)

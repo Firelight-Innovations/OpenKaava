@@ -7,8 +7,8 @@
  * markup is saved and loaded, and which {@link MarkupTarget} it sends as.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { isMarkupJson, type MarkupJson } from "@kaava/markup";
-import type { MarkupExport } from "@kaava/markup/layer";
+import { isMarkupJson, type MarkupJson } from "@veistra/markup";
+import type { MarkupExport } from "@veistra/markup/layer";
 import {
   AUTO_SEND_KEY,
   TIP_KEY,

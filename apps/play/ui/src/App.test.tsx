@@ -8,7 +8,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 
 const bridge = vi.hoisted(() => ({ invoke: vi.fn() }));
 
-vi.mock("@openkaava/bridge", () => ({
+vi.mock("@veistra/bridge", () => ({
   invoke: bridge.invoke,
   reportPainted: vi.fn(),
   openIn: vi.fn(),

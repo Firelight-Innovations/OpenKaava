@@ -41,7 +41,9 @@ export function useClusterProject(clusterId: string | null): OpenProject | null 
       .then((info) => live && setOpen(info))
       // Left as "no project": the bar draws the same thing for a failed read and
       // for nothing open, and a title has no slot for an error.
-      .catch((err: unknown) => console.error("kaava: could not read the cluster's project:", err));
+      .catch((err: unknown) =>
+        console.error("veistra: could not read the cluster's project:", err),
+      );
 
     // Async, and a cleanup must return synchronously, so this runs in the
     // background and `live` covers the gap.

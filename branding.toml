@@ -23,18 +23,22 @@
 # templated, renamed, or made configurable here, however much they look like
 # branding:
 #
-#   the `kaava.toml` filename          the `kaava-tool://` URL scheme
-#   the `.kaava` file extension        the `@openkaava/*` npm scope
-#   the `.kaava/` project directory    the crate names
-#   the `kaava/*` RPC namespace        `com.firelightinnovations.openkaava`
-#     (kaava/painted, kaava/commands,  the OS config directory holding
-#      kaava/open, kaava/publish)        projects.json
-#                                      the `kaava-<id>` MCP server key
+#   the `veistra.toml` filename              the `veistra-tool://` URL scheme
+#   the `.veistra` file extension            the `@veistra/*` npm scope
+#   the `.veistra/` project directory        the crate names
+#   the `veistra/*` RPC namespace            `com.firelightinnovations.veistra`
+#     (veistra/painted, veistra/commands,    the OS config directory holding
+#      veistra/open, veistra/publish)          projects.json
+#                                            the `veistra-<id>` MCP server key
 #
 # Those are wire formats and on-disk contracts. Renaming one breaks every tool
 # repository ever written against this shell and stops existing projects
 # opening. A branding system that reaches them is a rename script with a config
 # file, which is a different and much worse thing. See `docs/branding.md` §2.
+#
+# They were renamed exactly once, from `kaava` to `veistra`, when OpenKaava
+# became Veistra — a deliberate clean break, with only the bundle identifier
+# carried across by `scripts/check-identity.mjs --adopt`.
 
 
 # --- The grammar this file is allowed to use ---------------------------------
@@ -49,17 +53,17 @@
 [product]
 
 # The name as it is written in prose, window titles and menus. The product is
-# OpenKaava, and nothing else. Several surfaces used to append a second word to
+# Veistra, and nothing else. Several surfaces used to append a second word to
 # it and disagree with each other about which one — this file exists so that
 # question has one answer rather than five.
-name = "OpenKaava"
+name = "Veistra"
 
 # The same name as the wordmark's text node, in mixed case.
 #
 # Home's stylesheet uppercases it, so this is what a screen reader is handed:
-# "OpenKaava" is a word, where "OPENKAAVA" is nine letters it may spell out. The
+# "Veistra" is a word, where "VEISTRA" is seven letters it may spell out. The
 # splash sets it as written, in mixed case.
-wordmark = "OpenKaava"
+wordmark = "Veistra"
 
 # The line under the lockup on Home's hero. Read by nothing else — a tagline
 # repeated on a second surface stops being a tagline.
@@ -91,7 +95,7 @@ copyright = "© 2026 Veistra. All rights reserved."
 # the outline is wound clockwise and the seed counter-clockwise. The generator
 # lifts `d` and nothing else, so a `fill-rule` attribute on the source would be
 # dropped silently and the seed would fill in. Do not rewind the arc flags.
-mark = "assets/kaava-mark.svg"
+mark = "assets/veistra-mark.svg"
 
 # The same mark in its three tones — dark skin, light flesh, brown seed — with a
 # hairline of the background separating each. Three drawables, so the generator
@@ -103,7 +107,7 @@ mark = "assets/kaava-mark.svg"
 # hairlines can be `var(--bg)` rather than a fixed hex. Everything smaller — the
 # 15px title-bar glyph, the shared tool placeholder, the 34px mark inside the
 # splash ring — stays on `mark` above and inherits its `currentColor`.
-mark-colour = "assets/kaava-mark-colour.svg"
+mark-colour = "assets/veistra-mark-colour.svg"
 
 # What the installer and taskbar icons are drawn from. Its reader is a person
 # running `pnpm tauri icon assets/app-icon-source.svg`, which rewrites the PNG

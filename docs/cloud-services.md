@@ -1,11 +1,11 @@
-# OpenKaava Cloud: services and data contracts
+# Veistra Cloud: services and data contracts
 
-Reference for anyone building OpenKaava UI on top of the cloud side: the agent views, the
+Reference for anyone building Veistra UI on top of the cloud side: the agent views, the
 registry app, and the design canvas. It describes what exists in Google Cloud, where each kind of
 data lives, the exact shape of each record, and how the desktop app authenticates.
 
 The infrastructure is in [`infra/`](../infra/README.md). The product plan is
-[`kaava-cloud.md`](../kaava-cloud.md). If this document disagrees with the code in `infra/`, the
+[`veistra-cloud.md`](../veistra-cloud.md). If this document disagrees with the code in `infra/`, the
 code wins. Fix this document in the same change.
 
 > **Status, 2026-09-28.** Everything below is deployed and live in `veistra-prod`. Plane CE and
@@ -22,15 +22,15 @@ code wins. Fix this document in the same change.
 | Session records | Cloud Storage bucket that agent VMs write to | `gs://veistra-prod-sessions` |
 | Render queue | Cloud Storage bucket between agents and the GPU node | `gs://veistra-prod-render-queue` |
 | Hindsight | Agent memory, Cloud Run behind Google IAM | `https://hindsight-hsi6ckovra-uc.a.run.app` |
-| Agent VMs | Compute Engine, label `role=agent`, named `kaava-<name>` | `kaava-worker` at first |
-| GPU node | Compute Engine Spot L4, label `role=gpu`, stopped at rest | `kaava-gpu` |
+| Agent VMs | Compute Engine, label `role=agent`, named `veistra-<name>` | `veistra-worker` at first |
+| GPU node | Compute Engine Spot L4, label `role=gpu`, stopped at rest | `veistra-gpu` |
 
 Every machine and service here scales to zero or stops itself when idle, because the monthly
 budget is 150 USD. **The UI must not keep things awake.** See §8.
 
 ## 2. Authentication from the desktop app
 
-OpenKaava holds no keys. It uses the signed-in user's Google identity, through the Rust backend:
+Veistra holds no keys. It uses the signed-in user's Google identity, through the Rust backend:
 
 | To call | Send | Get it with |
 |---|---|---|
@@ -43,16 +43,16 @@ OpenKaava holds no keys. It uses the signed-in user's Google identity, through t
 - If `gcloud` is missing or not logged in, show a state that says so and names the fix
   (`gcloud auth login`). Do not show a generic network error.
 - The user is a project owner, so these tokens can read and write everything listed above. Agent
-  VMs use their own service account (`kaava-agent`), not the user's identity.
+  VMs use their own service account (`veistra-agent`), not the user's identity.
 
-### OpenKaava's own Google sign-in
+### Veistra's own Google sign-in
 
-For the `kaava-api` gateway (`services/kaava-api`), OpenKaava can sign in to Google itself, without
+For the `veistra-api` gateway (`services/veistra-api`), Veistra can sign in to Google itself, without
 `gcloud`. The code is `src-tauri/src/cloud/google.rs`.
 
 - **Flow.** OAuth 2.0 for installed apps: the system browser, a one-shot redirect listener on
   `127.0.0.1`, PKCE `S256`, and a random `state`. Scopes are `openid email` only. The result is an
-  ID token whose audience is the OAuth client ID, which `kaava-api` lists as a custom audience.
+  ID token whose audience is the OAuth client ID, which `veistra-api` lists as a custom audience.
 - **Storage.** The refresh token goes to Windows Credential Manager, with the account's email.
   The ID token is kept in memory and refreshed five minutes before it expires. The access token
   is not kept at all.
@@ -67,15 +67,15 @@ For the `kaava-api` gateway (`services/kaava-api`), OpenKaava can sign in to Goo
 
 ### Plane through the gateway
 
-Plane's REST API, the plane-vm status and wake, and the project list all go through `kaava-api`
-(`src-tauri/src/cloud/gateway.rs`). The gateway holds the Plane token; OpenKaava holds none.
+Plane's REST API, the plane-vm status and wake, and the project list all go through `veistra-api`
+(`src-tauri/src/cloud/gateway.rs`). The gateway holds the Plane token; Veistra holds none.
 
 - **Configuration.** Settings, Cloud, Gateway URL (`cloud.gatewayUrl`): the service's `url`
   output. With no URL, Plane calls and the wake fail with `Trouble::GatewayUnconfigured`, and the
   project list falls back to reading Cloud Storage directly.
 - **Identity.** The in-app sign-in's ID token when it is configured and signed in. Otherwise the
   `gcloud auth print-identity-token` token, which the gateway also accepts.
-- **Errors.** The gateway marks its own answers with `X-Kaava-Api: 1`. An unmarked 401 or 403 came
+- **Errors.** The gateway marks its own answers with `X-Veistra-Api: 1`. An unmarked 401 or 403 came
   from Cloud Run IAM: a sign-in or access problem. A marked 503 `plane_unreachable` is
   `Trouble::PlaneAsleep`. A gateway that does not answer is `Trouble::GatewayUnreachable`.
 
@@ -83,8 +83,8 @@ Plane's REST API, the plane-vm status and wake, and the project list all go thro
 
 - Cost (BigQuery, billing), the Agents app (Compute inventory and monitoring, Storage reads), and
   Hindsight's ID token.
-- The embedded Plane web UI: the IAP tunnel and the `plane.kaava.internal` hosts entry. See
-  `services/kaava-api/README.md` for why the gateway does not serve it yet.
+- The embedded Plane web UI: the IAP tunnel and the `plane.veistra.internal` hosts entry. See
+  `services/veistra-api/README.md` for why the gateway does not serve it yet.
 - The identity fallback and the direct project list above, when no sign-in or no URL is set.
 
 ## 3. Artifacts
@@ -154,7 +154,7 @@ gs://veistra-artifacts/<game>/design/<canvas-id>/canvas.json
 ```
 
 - `canvas.json` is an Excalidraw scene (`type`, `version`, `elements`, `appState`, `files`) plus
-  one top-level `kaava` object:
+  one top-level `veistra` object:
 
   ```json
   {
@@ -163,7 +163,7 @@ gs://veistra-artifacts/<game>/design/<canvas-id>/canvas.json
     "elements": [],
     "appState": {},
     "files": {},
-    "kaava": {
+    "veistra": {
       "schema": 1,
       "id": "level-1",
       "game": "anomaly",
@@ -176,10 +176,10 @@ gs://veistra-artifacts/<game>/design/<canvas-id>/canvas.json
   ```
 
 - **Nested canvases (P7-3).** A frame element links to a child canvas through
-  `customData.kaava.child = "<canvas-id>"`. The child's `kaava.parent` points back, and the
+  `customData.veistra.child = "<canvas-id>"`. The child's `veistra.parent` points back, and the
   breadcrumb follows `parent` up to the root.
 - **Asset spec cards (P7-4).** A spec card is an element with
-  `customData.kaava.spec = { name, reference_images, size_m, triangle_budget, style_notes }`.
+  `customData.veistra.spec = { name, reference_images, size_m, triangle_budget, style_notes }`.
   Pressing Go exports the card as a `spec` artifact (§3). The asset list (P7-5) reads spec cards
   across every canvas of one game and joins each to the latest `status` of the artifact that
   names it in `spec_ref`.
@@ -202,13 +202,13 @@ gs://veistra-prod-sessions/<agent>/<session-id>/status.json       replaced on ev
 gs://veistra-prod-sessions/<agent>/<session-id>/transcript.jsonl  Claude Code's transcript
 ```
 
-`<agent>` is the VM name, for example `kaava-worker`. Example `status.json`:
+`<agent>` is the VM name, for example `veistra-worker`. Example `status.json`:
 
 ```json
 {
   "schema": 1,
   "session_id": "0b6c1f7e-…",
-  "agent": "kaava-worker",
+  "agent": "veistra-worker",
   "user": "braden_seaborn_firelightinnovations_com",
   "cwd": "/home/…/anomaly",
   "state": "idle",
@@ -225,7 +225,7 @@ gs://veistra-prod-sessions/<agent>/<session-id>/transcript.jsonl  Claude Code's 
 | `last_event` | The Claude Code hook that wrote this: `SessionStart`, `UserPromptSubmit`, `Stop`, `SubagentStop` or `SessionEnd` |
 | `prompt` | Present only after `UserPromptSubmit`. The first 500 characters of that prompt |
 | `end_reason` | Present only after `SessionEnd` |
-| `workflow` | Present only when the runner set `KAAVA_WORKFLOW`, `KAAVA_WORKFLOW_RUN` and `KAAVA_WORKFLOW_STEP` |
+| `workflow` | Present only when the runner set `VEISTRA_WORKFLOW`, `VEISTRA_WORKFLOW_RUN` and `VEISTRA_WORKFLOW_STEP` |
 
 - A field that has no value is left out; it is never written as `null`.
 - `transcript.jsonl` is uploaded at every `Stop` and at `SessionEnd`, not during a turn. A
@@ -254,11 +254,11 @@ state. The `_workflows/` prefix is reserved for it now, so skip that prefix when
 - **Start** an agent with `POST …/instances/<name>/start`. Agent VMs stop themselves after 30
   minutes with no Claude, Godot or Blender process and nobody logged in, so a Start control
   belongs in the UI.
-- **What an agent VM has installed** is in `/etc/kaava/image.json` on the VM, written when the
+- **What an agent VM has installed** is in `/etc/veistra/image.json` on the VM, written when the
   image was built from `infra/images/agent/`.
 - **Render queue.** `gs://veistra-prod-render-queue/jobs/<id>/` holds a job that is waiting or
   running. `done/<id>.json` records a finished one as `{"status": "ok"|"error", …}`. The GPU node
-  is `kaava-gpu` and has the same status values.
+  is `veistra-gpu` and has the same status values.
 
 ## 8. Hindsight
 

@@ -75,11 +75,11 @@ Ink is bound to the camera it was drawn from. If the camera moves, the ink is hi
 
 ## Opening in Canvas
 
-`toCanvasScene(markupJson, imageFileId)` in `@kaava/markup` returns an Excalidraw scene: the frame as a locked image element at the origin, then the ink at the offsets it had over the frame. Pins are ordinary ellipse-and-text groups in it, still carrying `customData.kaava`. The caller registers the PNG under `imageFileId` in the scene's `files`.
+`toCanvasScene(markupJson, imageFileId)` in `@veistra/markup` returns an Excalidraw scene: the frame as a locked image element at the origin, then the ink at the offsets it had over the frame. Pins are ordinary ellipse-and-text groups in it, still carrying `customData.veistra`. The caller registers the PNG under `imageFileId` in the scene's `files`.
 
-## `customData.kaava`
+## `customData.veistra`
 
-Inside `excalidraw.elements`, elements carry what this format needs on `customData.kaava`:
+Inside `excalidraw.elements`, elements carry what this format needs on `customData.veistra`:
 
 | `kind` | Extra fields |
 |---|---|
@@ -87,7 +87,7 @@ Inside `excalidraw.elements`, elements carry what this format needs on `customDa
 | `pin-label` | `n`. The number drawn inside the marker; not a separate pin. |
 | `arrow`, `rectangle`, `ellipse`, ... | optional `targets` |
 
-Other tools may add their own keys beside `kaava`; a reader ignores what it does not know.
+Other tools may add their own keys beside `veistra`; a reader ignores what it does not know.
 
 ## What is approximate
 

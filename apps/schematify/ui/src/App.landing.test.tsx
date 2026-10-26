@@ -32,9 +32,9 @@ vi.stubGlobal("ResizeObserver", NoopResizeObserver);
 // The bridge touches `window` and talks to Tauri; the seam below is where
 // this test actually observes. `graph/backend.test.ts` covers what the real
 // seam does with a tier — this file only asks which tier it is handed.
-vi.mock("@openkaava/bridge", () => ({
+vi.mock("@veistra/bridge", () => ({
   invoke: vi.fn(() => Promise.reject(new Error("no backend in this test"))),
-  KaavaRpcError: class KaavaRpcError extends Error {},
+  VeistraRpcError: class VeistraRpcError extends Error {},
   reportPainted: vi.fn(),
 }));
 

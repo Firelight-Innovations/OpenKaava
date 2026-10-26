@@ -2316,46 +2316,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "kaava-agent-host"
-version = "0.6.2"
-dependencies = [
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.20",
- "ts-rs",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "kaava-echo-tool"
-version = "0.6.2"
-dependencies = [
- "kaava-rpc",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "kaava-rpc"
-version = "0.6.2"
-dependencies = [
- "serde",
- "serde_json",
- "thiserror 2.0.20",
-]
-
-[[package]]
-name = "kaava-tool-manifest"
-version = "0.6.2"
-dependencies = [
- "semver",
- "serde",
- "thiserror 2.0.20",
- "toml 0.9.12+spec-1.1.0",
-]
-
-[[package]]
 name = "keyboard-types"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2967,53 +2927,6 @@ dependencies = [
  "dunce",
  "is-wsl",
  "libc",
-]
-
-[[package]]
-name = "openkaava-orchestrator"
-version = "0.6.2"
-dependencies = [
- "axum",
- "base64 0.22.1",
- "grep-matcher",
- "grep-regex",
- "grep-searcher",
- "ignore",
- "kaava-agent-host",
- "kaava-rpc",
- "kaava-tool-manifest",
- "keyring",
- "notify",
- "portable-pty",
- "rand 0.9.5",
- "regex-syntax",
- "rfd",
- "rmcp",
- "schematify-core",
- "semver",
- "serde",
- "serde_json",
- "serde_path_to_error",
- "sha2",
- "sysinfo",
- "tauri",
- "tauri-build",
- "tauri-plugin-opener",
- "tauri-plugin-single-instance",
- "tauri-plugin-updater",
- "tempfile",
- "thiserror 2.0.20",
- "tokio",
- "tokio-util",
- "toml 0.9.12+spec-1.1.0",
- "trash",
- "ts-rs",
- "ureq",
- "url",
- "webview2-com",
- "windows-core 0.61.2",
- "windows-sys 0.61.2",
- "zip 2.4.2",
 ]
 
 [[package]]
@@ -5443,6 +5356,93 @@ name = "vcpkg"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
+
+[[package]]
+name = "veistra-agent-host"
+version = "0.6.2"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.20",
+ "ts-rs",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "veistra-echo-tool"
+version = "0.6.2"
+dependencies = [
+ "serde",
+ "serde_json",
+ "veistra-rpc",
+]
+
+[[package]]
+name = "veistra-orchestrator"
+version = "0.6.2"
+dependencies = [
+ "axum",
+ "base64 0.22.1",
+ "grep-matcher",
+ "grep-regex",
+ "grep-searcher",
+ "ignore",
+ "keyring",
+ "notify",
+ "portable-pty",
+ "rand 0.9.5",
+ "regex-syntax",
+ "rfd",
+ "rmcp",
+ "schematify-core",
+ "semver",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "sha2",
+ "sysinfo",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-opener",
+ "tauri-plugin-single-instance",
+ "tauri-plugin-updater",
+ "tempfile",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+ "toml 0.9.12+spec-1.1.0",
+ "trash",
+ "ts-rs",
+ "ureq",
+ "url",
+ "veistra-agent-host",
+ "veistra-rpc",
+ "veistra-tool-manifest",
+ "webview2-com",
+ "windows-core 0.61.2",
+ "windows-sys 0.61.2",
+ "zip 2.4.2",
+]
+
+[[package]]
+name = "veistra-rpc"
+version = "0.6.2"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "veistra-tool-manifest"
+version = "0.6.2"
+dependencies = [
+ "semver",
+ "serde",
+ "thiserror 2.0.20",
+ "toml 0.9.12+spec-1.1.0",
+]
 
 [[package]]
 name = "version-compare"

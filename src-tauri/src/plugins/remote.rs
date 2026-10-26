@@ -12,7 +12,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 
 /// Sent with every API call. GitHub rejects a request without one.
-const USER_AGENT: &str = concat!("OpenKaava/", env!("CARGO_PKG_VERSION"));
+const USER_AGENT: &str = concat!("Veistra/", env!("CARGO_PKG_VERSION"));
 
 /// How long any one request may take before it is abandoned.
 const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
@@ -82,7 +82,7 @@ pub enum RemoteError {
     /// A 404 from GitHub, and **deliberately one variant for two causes**: a
     /// repository that does not exist and one the token cannot see are
     /// indistinguishable from here. GitHub answers 404 for both precisely so
-    /// that a private repository's existence is not leaked, and OpenKaava must not
+    /// that a private repository's existence is not leaked, and Veistra must not
     /// resolve that ambiguity either.
     NotFoundOrNoAccess {
         slug: String,
@@ -104,7 +104,7 @@ pub enum RemoteError {
         actual: String,
     },
     Unpack(String),
-    /// The zip did not contain a `kaava-tool.toml`.
+    /// The zip did not contain a `veistra-tool.toml`.
     NotAPlugin,
     /// The manifest's id is not the one the catalog promised.
     IdMismatch {
@@ -142,7 +142,7 @@ impl std::fmt::Display for RemoteError {
                 "the download does not match its checksum (expected {expected}, got {actual})"
             ),
             Self::Unpack(why) => write!(f, "could not unpack the download: {why}"),
-            Self::NotAPlugin => write!(f, "the release contains no kaava-tool.toml"),
+            Self::NotAPlugin => write!(f, "the release contains no veistra-tool.toml"),
             Self::IdMismatch { expected, found } => write!(
                 f,
                 "this release calls itself `{found}`, but `{expected}` was expected"
@@ -384,7 +384,7 @@ pub fn unpack(bytes: &[u8], into: &Path) -> Result<(), RemoteError> {
     Ok(())
 }
 
-/// Find the directory holding `kaava-tool.toml`.
+/// Find the directory holding `veistra-tool.toml`.
 ///
 /// A release zip usually wraps everything in one folder named after the tag, so
 /// the manifest is one level down rather than at the root. Looks at the root
@@ -392,13 +392,13 @@ pub fn unpack(bytes: &[u8], into: &Path) -> Result<(), RemoteError> {
 /// differently-shaped archive, and guessing at it would install the wrong thing
 /// quietly.
 pub fn manifest_root(unpacked: &Path) -> Option<PathBuf> {
-    if unpacked.join("kaava-tool.toml").is_file() {
+    if unpacked.join("veistra-tool.toml").is_file() {
         return Some(unpacked.to_path_buf());
     }
     let entries = std::fs::read_dir(unpacked).ok()?;
     for entry in entries.flatten() {
         let path = entry.path();
-        if path.is_dir() && path.join("kaava-tool.toml").is_file() {
+        if path.is_dir() && path.join("veistra-tool.toml").is_file() {
             return Some(path);
         }
     }
@@ -411,25 +411,25 @@ mod tests {
 
     #[test]
     fn a_bare_slug_parses() {
-        let repo = Repo::parse("Firelight-Innovations/OpenKaava-Acme").expect("parses");
+        let repo = Repo::parse("Firelight-Innovations/Veistra-Acme").expect("parses");
         assert_eq!(repo.owner, "Firelight-Innovations");
-        assert_eq!(repo.name, "OpenKaava-Acme");
+        assert_eq!(repo.name, "Veistra-Acme");
     }
 
     #[test]
     fn every_url_form_reaches_the_same_repo() {
         let expected = Repo {
             owner: "Firelight-Innovations".to_string(),
-            name: "OpenKaava-Acme".to_string(),
+            name: "Veistra-Acme".to_string(),
         };
         for input in [
-            "https://github.com/Firelight-Innovations/OpenKaava-Acme",
-            "https://github.com/Firelight-Innovations/OpenKaava-Acme/",
-            "https://github.com/Firelight-Innovations/OpenKaava-Acme.git",
-            "http://github.com/Firelight-Innovations/OpenKaava-Acme",
-            "github.com/Firelight-Innovations/OpenKaava-Acme",
-            "git@github.com:Firelight-Innovations/OpenKaava-Acme.git",
-            "  Firelight-Innovations/OpenKaava-Acme  ",
+            "https://github.com/Firelight-Innovations/Veistra-Acme",
+            "https://github.com/Firelight-Innovations/Veistra-Acme/",
+            "https://github.com/Firelight-Innovations/Veistra-Acme.git",
+            "http://github.com/Firelight-Innovations/Veistra-Acme",
+            "github.com/Firelight-Innovations/Veistra-Acme",
+            "git@github.com:Firelight-Innovations/Veistra-Acme.git",
+            "  Firelight-Innovations/Veistra-Acme  ",
         ] {
             assert_eq!(Repo::parse(input).as_ref(), Some(&expected), "for {input}");
         }
@@ -467,7 +467,7 @@ mod tests {
     fn a_repo_word_rejects_a_path_separator_or_a_space() {
         assert!(!is_repo_word("a b"));
         assert!(!is_repo_word("a\\b"));
-        assert!(is_repo_word("OpenKaava-Acme"));
+        assert!(is_repo_word("Veistra-Acme"));
         assert!(is_repo_word("some_tool.rs"));
     }
 

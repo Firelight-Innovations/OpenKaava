@@ -1,8 +1,8 @@
 /**
  * The comment model shared by the Godot Viewer, the Blender Viewer and Play —
- * three apps, one store. `docs/KAAVA-UX-REWORK.md` §3.4: a comment anchors to
+ * three apps, one store. `docs/VEISTRA-UX-REWORK.md` §3.4: a comment anchors to
  * a node path, a mesh part plus material, or a scene plus a playhead time plus
- * a screenshot, and lives as a file in `.kaava/comments/` inside the calling
+ * a screenshot, and lives as a file in `.veistra/comments/` inside the calling
  * cluster's environment.
  *
  * The three apps' Rust halves (`godot_viewer.rs`, `blender_viewer.rs`,
@@ -18,7 +18,7 @@
  * moment one of them fixed a bug the other two still had. `apps/shared/` is
  * deliberately outside that rule (see `apps/README.md`'s layout note).
  */
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 
 // --- what the backend returns --------------------------------------------
 

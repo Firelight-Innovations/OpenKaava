@@ -1,8 +1,8 @@
-//! Ingesting a `kaava-bench-v1` run artifact, per PRD section 8: "Schematify
+//! Ingesting a `veistra-bench-v1` run artifact, per PRD section 8: "Schematify
 //! ingests the artifact into `runs/` and draws it."
 //!
 //! CI runs a probe command and writes the artifact somewhere outside
-//! `.kaava/`; nothing in this crate invokes the probe. [`ingest_run_file`] is
+//! `.veistra/`; nothing in this crate invokes the probe. [`ingest_run_file`] is
 //! the entry point a later wave wires to a Tauri command: give it the path
 //! CI wrote and the node whose workflow produced the run, and it reads,
 //! validates and writes the file. [`ingest_run`] is the pure half for a
@@ -302,7 +302,7 @@ mod tests {
         fs::write(
             &dropped,
             serde_json::to_vec(&serde_json::json!({
-                "schema": "kaava-bench-v9",
+                "schema": "veistra-bench-v9",
                 "run": 1,
                 "at": "2026-08-25T00:00:00Z",
                 "commit": "abc",
@@ -316,7 +316,7 @@ mod tests {
             ingest_run_file(&outcome.graph, &store, Uuid::from_u128(1), &dropped).unwrap_err();
         assert!(matches!(
             error,
-            CoreError::UnknownRunSchema { found, .. } if found == "kaava-bench-v9"
+            CoreError::UnknownRunSchema { found, .. } if found == "veistra-bench-v9"
         ));
         assert!(!store.run_path(Uuid::from_u128(1), 1).exists());
     }

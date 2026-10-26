@@ -1,14 +1,14 @@
-//! Blender, as far as OpenKaava goes: find it, launch it, and run it headless.
+//! Blender, as far as Veistra goes: find it, launch it, and run it headless.
 //!
-//! `docs/KAAVA-UX-REWORK.md` §3.1: Blender is never embedded. Two things are
+//! `docs/VEISTRA-UX-REWORK.md` §3.1: Blender is never embedded. Two things are
 //! done with it. "Open in Blender" starts the real editor, detached, so closing
-//! OpenKaava never closes a scene someone is editing. And an *export* runs
+//! Veistra never closes a scene someone is editing. And an *export* runs
 //! `blender -b` on a `.blend` with the bundled `export.py`, which writes a
 //! `.glb`, a few preview renders and a parts list into a cache under
-//! `<environment>/.kaava/blender/`. The viewer shows that cache and how old it
+//! `<environment>/.veistra/blender/`. The viewer shows that cache and how old it
 //! is; it never reads the live scene.
 //!
-//! The cache is Kaava state, so it is written even on a read-only `main`. A
+//! The cache is Veistra state, so it is written even on a read-only `main`. A
 //! `.glb` *into the checkout* (the `blender.exportDir` setting) is not, and is
 //! refused there.
 
@@ -93,7 +93,7 @@ static SETTINGS_ROWS: &[Setting] = &[
         title: "Export the .glb into",
         description: "A folder in the environment, relative to its root, for the exported .glb \
                       — a game's assets folder, say. Leave empty to keep the .glb in \
-                      .kaava/blender/ with the previews. Refused on main, which is read-only.",
+                      .veistra/blender/ with the previews. Refused on main, which is read-only.",
         control: Control::Text {
             default: "",
             placeholder: "assets/models",
@@ -107,7 +107,7 @@ static SETTINGS_ROWS: &[Setting] = &[
 pub static SETTINGS: Group = Group {
     id: "blender",
     title: "Blender",
-    description: "The Blender Viewer, and how Kaava runs Blender for it.",
+    description: "The Blender Viewer, and how Veistra runs Blender for it.",
     order: 110,
     settings: SETTINGS_ROWS,
 };
@@ -124,7 +124,7 @@ pub fn no_window(cmd: &mut Command) {
 }
 
 /// Start the real Blender on a `.blend` and let go of it. On Windows it gets its
-/// own process group and no console, so it survives OpenKaava and is not
+/// own process group and no console, so it survives Veistra and is not
 /// affected by its console being closed.
 pub fn launch_detached(exe: &Path, blend: &Path) -> Result<(), String> {
     let mut cmd = Command::new(exe);
@@ -156,9 +156,9 @@ pub fn mtime_ms(path: &Path) -> Option<u64> {
     Some(modified.duration_since(UNIX_EPOCH).ok()?.as_millis() as u64)
 }
 
-/// `<project>/.kaava/blender`.
+/// `<project>/.veistra/blender`.
 pub fn cache_root(project: &Path) -> PathBuf {
-    project.join(".kaava").join("blender")
+    project.join(".veistra").join("blender")
 }
 
 /// The `.blend` path as written relative to the project, with forward slashes,
@@ -391,7 +391,7 @@ pub struct BlendFile {
 
 const SKIP_DIRS: &[&str] = &[
     ".git",
-    ".kaava",
+    ".veistra",
     ".godot",
     "node_modules",
     "target",
@@ -502,7 +502,7 @@ mod tests {
         touch(&project.path().join("a.blend"));
         touch(&project.path().join("a.blend1"));
         touch(&project.path().join("node_modules/x/b.blend"));
-        touch(&project.path().join(".kaava/blender/c.blend"));
+        touch(&project.path().join(".veistra/blender/c.blend"));
         touch(&project.path().join("art/deep/d.BLEND"));
         let found = find_blends(project.path());
         let rels: Vec<_> = found.iter().map(|b| b.rel.as_str()).collect();
@@ -513,7 +513,7 @@ mod tests {
     #[test]
     fn the_glb_lands_in_the_cache_unless_an_export_folder_is_set() {
         let project = Path::new("/p");
-        let cache = Path::new("/p/.kaava/blender/bed-1");
+        let cache = Path::new("/p/.veistra/blender/bed-1");
         assert_eq!(
             glb_target(project, cache, "art/bed.blend", "").unwrap(),
             cache.join("model.glb")

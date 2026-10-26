@@ -18,7 +18,7 @@ const HANDLE = vi.hoisted(() => ({
   setInteractive: (v: boolean) => h.setInteractive(v),
 }));
 
-vi.mock("@kaava/scene-view", () => ({
+vi.mock("@veistra/scene-view", () => ({
   SceneView: forwardRef(function Fake({ children }: { children?: ReactNode }, ref) {
     // Stable: a handle that changes every render would be set again every render.
     useImperativeHandle(ref, () => HANDLE, []);
@@ -26,12 +26,12 @@ vi.mock("@kaava/scene-view", () => ({
   }),
 }));
 
-vi.mock("@kaava/markup", () => ({
+vi.mock("@veistra/markup", () => ({
   sceneHost: () => ({}),
   poseMatches: () => true,
 }));
 
-vi.mock("@kaava/markup/layer", () => ({
+vi.mock("@veistra/markup/layer", () => ({
   MarkupLayer: ({
     active,
     onActiveChange,
@@ -59,7 +59,7 @@ function mount(onMarkup = vi.fn(), onNotice = vi.fn()) {
     <Scene3D
       glb={new ArrayBuffer(0)}
       lookup={lookup}
-      glbPath="C:/p/.kaava/preview/godot/main.glb"
+      glbPath="C:/p/.veistra/preview/godot/main.glb"
       scenePath="res://main.tscn"
       godot={null}
       selected={null}

@@ -83,7 +83,7 @@ export const filesAndEditing: Body = {
     },
     {
       kind: "note",
-      body: "Turning that off still leaves one prompt in place: if the thing you are deleting has **unsaved** edits under it, OpenKaava asks anyway. The trash can give back the last *saved* version of a file — the typing you have not saved is the one thing it cannot return.",
+      body: "Turning that off still leaves one prompt in place: if the thing you are deleting has **unsaved** edits under it, Veistra asks anyway. The trash can give back the last *saved* version of a file — the typing you have not saved is the one thing it cannot return.",
     },
     {
       kind: "text",
@@ -97,11 +97,11 @@ export const filesAndEditing: Body = {
     },
     {
       kind: "text",
-      body: "Each row names the file, the folder it came from, its size, and how long ago it went. **Restore** puts it back where it was. **Delete** purges it for good, behind a harder confirmation that says so — nothing in OpenKaava or Windows can recover it afterwards.",
+      body: "Each row names the file, the folder it came from, its size, and how long ago it went. **Restore** puts it back where it was. **Delete** purges it for good, behind a harder confirmation that says so — nothing in Veistra or Windows can recover it afterwards.",
     },
     {
       kind: "note",
-      body: 'The list is a snapshot with a "Read {time}" stamp, not a live feed — a refresh sits beside it. Something can vanish between the listing and your click; OpenKaava says so rather than pretending it worked.',
+      body: 'The list is a snapshot with a "Read {time}" stamp, not a live feed — a refresh sits beside it. Something can vanish between the listing and your click; Veistra says so rather than pretending it worked.',
     },
 
     { kind: "heading", body: "Editing" },

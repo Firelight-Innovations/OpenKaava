@@ -19,7 +19,7 @@
  * most likely to be in.
  */
 import { useCallback, useEffect, useState } from "react";
-import { on, reportPainted, OPENED_EVENT } from "@openkaava/bridge";
+import { on, reportPainted, OPENED_EVENT } from "@veistra/bridge";
 import { BODIES } from "./content";
 import Reader from "./Reader";
 import Contents from "./Contents";
@@ -33,7 +33,7 @@ export default function App() {
 
   /**
    * Home opens a particular tutorial by asking the shell for this app and
-   * naming one — the same `kaava/open` path the Explorer uses to put a file in
+   * naming one — the same `veistra/open` path the Explorer uses to put a file in
    * the Viewer. An unknown id is ignored rather than shown as an error: it can
    * only come from a build mismatch, and dropping the reader on the index is a
    * better answer than a page saying the link was wrong.

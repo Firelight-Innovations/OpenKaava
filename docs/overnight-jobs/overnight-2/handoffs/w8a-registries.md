@@ -9,7 +9,7 @@ file. The registry tables, the rule document page and the `Ctrl+K` palette are
 the interface half.
 
 Branch `schematify/w8a-registries`, pull request
-<https://github.com/Firelight-Innovations/OpenKaava/pull/87>.
+<https://github.com/Firelight-Innovations/Veistra/pull/87>.
 
 **Everything here is additive.** No type, function or field that existed before
 this branch changed its shape or its signature. The branch wiring the
@@ -84,7 +84,7 @@ also refuses a node that is not a module, and adding a library the module
 already holds succeeds and changes nothing, so a caller retrying a write does
 not have to check first.
 
-**Linter rule L04 is not redundant with this.** A `.kaava/` tree arrives by
+**Linter rule L04 is not redundant with this.** A `.veistra/` tree arrives by
 `git merge` and by hand as well as through this function, and a rule that
 guards one of three doors guards nothing. This one refuses; L04 finds what got
 in anyway. Both are tested against the reference fixture.
@@ -316,7 +316,7 @@ would be tidier and are a one-line change whenever the interface wants them.
 - **No Tauri command is wired.** Deliberate; PRD section 14.5 requires the
   `actor` argument every command carries, and that belongs with the surface.
 - **The licence policy is not persisted.** `LicensePolicy` serialises, but
-  nothing reads or writes it from `.kaava/`. PRD sections 5.10 and 6.1 give the
+  nothing reads or writes it from `.veistra/`. PRD sections 5.10 and 6.1 give the
   registry directory one file, `libraries.json`, and adding a second file to a
   storage layout other waves are already reading felt like the wrong thing to
   do unasked. Callers pass `LicensePolicy::default()` today. If it should

@@ -1,7 +1,7 @@
 /**
  * Assembles C1–C6 into the two layouts the host's own pane width picks
  * between (`charts/layout.ts`, `docs/design/COST-TRACKER-CHARTS.md` §5,
- * `docs/design/KAAVA-UX-SPEC.md` boards 06 and 11):
+ * `docs/design/VEISTRA-UX-SPEC.md` boards 06 and 11):
  *
  * - **Docked** (< `DOCKED_MAX_WIDTH`): C1 as a mini sparkline, then forecast
  *   by category as compact bar rows — a donut has no room to be read at rail
@@ -13,7 +13,7 @@
  * A `ResizeObserver` on this component's own root measures the width — the
  * host decides how much room the app gets, not the window.
  */
-import { onThemeChanged } from "@openkaava/bridge/theme";
+import { onThemeChanged } from "@veistra/bridge/theme";
 import type { EChartsOption } from "echarts";
 import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { burnOption } from "./charts/burn";
@@ -49,7 +49,7 @@ function useOwnWidth(): [RefObject<HTMLDivElement | null>, number] {
 }
 
 /**
- * Re-read on `kaava:theme-changed` so a rebuilt option carries the new
+ * Re-read on `veistra:theme-changed` so a rebuilt option carries the new
  * colours — `useChart` itself only re-inits the canvas, not this
  * component's own option-building.
  */

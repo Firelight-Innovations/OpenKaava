@@ -1,0 +1,11 @@
+[tool]
+id      = "echo"
+version = "0.1.0"
+
+[frontend]
+dist    = "ui/dist"
+dev-url = "http://localhost:5174"
+
+[core]
+bin  = "target/debug/veistra-echo-tool"
+args = ["--veistra-rpc"]

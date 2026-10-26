@@ -10,7 +10,7 @@ import { dropFolderAt, importMessage, READ_ONLY_DROP } from "./osDrop";
 const handlers = vi.hoisted(() => new Map<string, (payload: unknown) => void>());
 const importFiles = vi.hoisted(() => vi.fn());
 
-vi.mock("@openkaava/bridge", () => ({
+vi.mock("@veistra/bridge", () => ({
   on: (event: string, cb: (payload: unknown) => void) => {
     handlers.set(event, cb);
     return () => handlers.delete(event);

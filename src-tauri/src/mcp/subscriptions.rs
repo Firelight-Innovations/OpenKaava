@@ -96,7 +96,7 @@ impl Subscriptions {
 mod tests {
     use super::*;
 
-    const URI: &str = "kaava://workspace/focus";
+    const URI: &str = "veistra://workspace/focus";
 
     #[test]
     fn a_subscriber_hears_about_a_change() {
@@ -134,7 +134,7 @@ mod tests {
         let subs = Subscriptions::default();
         let mut rx = subs.subscribe("workspace", URI, "s1");
 
-        assert_eq!(subs.notify("workspace", "kaava://workspace/other"), 0);
+        assert_eq!(subs.notify("workspace", "veistra://workspace/other"), 0);
         assert_eq!(subs.notify("canvas", URI), 0);
         assert!(rx.try_recv().is_err());
     }

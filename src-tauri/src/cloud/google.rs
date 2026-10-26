@@ -1,10 +1,10 @@
-//! Signing in to Google from OpenKaava itself, instead of through `gcloud`.
+//! Signing in to Google from Veistra itself, instead of through `gcloud`.
 //!
 //! An OAuth 2.0 installed-app flow (RFC 8252): the system browser opens
 //! Google's consent page, Google redirects back to a one-shot listener on
 //! `127.0.0.1`, and the code is exchanged with PKCE (RFC 7636). The scopes are
 //! `openid` and `email` only, because the one thing this identity is for is an
-//! ID token that Cloud Run (`kaava-api`) accepts.
+//! ID token that Cloud Run (`veistra-api`) accepts.
 //!
 //! The refresh token and the OAuth client secret live in the OS credential
 //! store ([`SecretStore`]); the ID token in memory only. The client ID is a
@@ -315,7 +315,7 @@ impl GoogleAuth {
             Some((id_token, Instant::now() + lifetime));
     }
 
-    /// An ID token for `kaava-api`, refreshed when it is near expiry.
+    /// An ID token for `veistra-api`, refreshed when it is near expiry.
     /// `Ok(None)` means nobody is signed in with this client, which the
     /// caller may answer with the `gcloud` fallback.
     pub fn id_token(&self, client: &Client) -> Result<Option<String>> {
@@ -448,12 +448,12 @@ pub fn parse_redirect(
         .ok_or_else(|| "the sign-in reply had no code".into())
 }
 
-const DONE_PAGE: &str = "<!doctype html><meta charset=utf-8><title>OpenKaava</title>\
+const DONE_PAGE: &str = "<!doctype html><meta charset=utf-8><title>Veistra</title>\
 <body style=\"font:16px system-ui;margin:3em\"><h1>Signed in</h1>\
-<p>You can close this tab and return to OpenKaava.</p></body>";
-const REFUSED_PAGE: &str = "<!doctype html><meta charset=utf-8><title>OpenKaava</title>\
+<p>You can close this tab and return to Veistra.</p></body>";
+const REFUSED_PAGE: &str = "<!doctype html><meta charset=utf-8><title>Veistra</title>\
 <body style=\"font:16px system-ui;margin:3em\"><h1>Not signed in</h1>\
-<p>Return to OpenKaava to try again.</p></body>";
+<p>Return to Veistra to try again.</p></body>";
 
 fn answer(stream: &mut TcpStream, status: &str, body: &str) {
     let reply = format!(

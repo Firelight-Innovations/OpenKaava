@@ -51,7 +51,7 @@ function report(id: string, result: ContextInserted): void {
 }
 
 function failed(id: string, what: string, e: unknown): void {
-  console.error(`kaava: ${what} into ${id} failed`, e);
+  console.error(`veistra: ${what} into ${id} failed`, e);
   notify(id, `Could not ${what}`, true);
 }
 

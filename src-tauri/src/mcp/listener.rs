@@ -33,7 +33,7 @@ use tauri::{AppHandle, Manager};
 /// Managed state, empty until [`start`] has bound. Everything that reads it —
 /// the pty environment, the `.mcp.json` writer, the status bar — has to cope
 /// with `None`, because a machine that would not give us a loopback socket is
-/// one where OpenKaava should still open.
+/// one where Veistra should still open.
 #[derive(Default)]
 pub struct Endpoint {
     bound: Mutex<Option<Bound>>,
@@ -57,12 +57,12 @@ impl Endpoint {
     /// Empty when nothing is bound, which is what makes the caller's loop a
     /// no-op rather than a branch: a terminal opened before the listener came up
     /// simply inherits neither variable and cannot connect, and that is the same
-    /// state as a terminal the user opened outside OpenKaava.
+    /// state as a terminal the user opened outside Veistra.
     pub fn env(&self) -> Vec<(String, String)> {
         match self.get() {
             Some((port, token)) => vec![
-                ("KAAVA_MCP_PORT".to_string(), port.to_string()),
-                ("KAAVA_MCP_TOKEN".to_string(), token),
+                ("VEISTRA_MCP_PORT".to_string(), port.to_string()),
+                ("VEISTRA_MCP_TOKEN".to_string(), token),
             ],
             None => Vec::new(),
         }
@@ -86,7 +86,7 @@ pub fn start(app: &AppHandle) -> Option<u16> {
     let std_listener = match StdTcpListener::bind(socket) {
         Ok(listener) => listener,
         Err(e) => {
-            crate::kaava_log!("could not bind the MCP listener: {e}");
+            crate::veistra_log!("could not bind the MCP listener: {e}");
             return None;
         }
     };
@@ -94,13 +94,13 @@ pub fn start(app: &AppHandle) -> Option<u16> {
     let port = match std_listener.local_addr() {
         Ok(addr) => addr.port(),
         Err(e) => {
-            crate::kaava_log!("the MCP listener has no address: {e}");
+            crate::veistra_log!("the MCP listener has no address: {e}");
             return None;
         }
     };
 
     if let Err(e) = std_listener.set_nonblocking(true) {
-        crate::kaava_log!("could not make the MCP listener non-blocking: {e}");
+        crate::veistra_log!("could not make the MCP listener non-blocking: {e}");
         return None;
     }
 
@@ -127,13 +127,13 @@ pub fn start(app: &AppHandle) -> Option<u16> {
         let listener = match tokio::net::TcpListener::from_std(std_listener) {
             Ok(listener) => listener,
             Err(e) => {
-                crate::kaava_log!("could not hand the MCP listener to the runtime: {e}");
+                crate::veistra_log!("could not hand the MCP listener to the runtime: {e}");
                 return;
             }
         };
 
         if let Err(e) = axum::serve(listener, router).await {
-            crate::kaava_log!("the MCP listener stopped: {e}");
+            crate::veistra_log!("the MCP listener stopped: {e}");
         }
     });
 
@@ -204,7 +204,7 @@ struct Gate {
 ///
 /// Loopback already keeps this off the network, but not away from other
 /// processes on the same machine: a port is scannable, and these tools reach
-/// into the live application. The token is what makes "OpenKaava spawned this shell"
+/// into the live application. The token is what makes "Veistra spawned this shell"
 /// the actual admission test. An agent tab's session token passes too, on the
 /// context route only, and the cluster it was minted for rides along on the
 /// request (see [`session`]).
@@ -336,7 +336,7 @@ impl ServerHandler for Bridge {
         }
 
         info.server_info = Implementation::new(
-            format!("kaava-{}", self.id),
+            format!("veistra-{}", self.id),
             env!("CARGO_PKG_VERSION").to_string(),
         );
         info.instructions = super::servers::instructions(&self.id).map(str::to_string);
@@ -605,8 +605,8 @@ fn templates_result(listed: Vec<ResourceTemplate>) -> ListResourceTemplatesResul
 
 /// A failed read as a protocol error: a reference that is malformed, missing
 /// or refused is the caller's to fix, and anything else is ours.
-fn read_error(e: kaava_rpc::RpcError) -> ErrorData {
-    if e.code == kaava_rpc::INVALID_PARAMS {
+fn read_error(e: veistra_rpc::RpcError) -> ErrorData {
+    if e.code == veistra_rpc::INVALID_PARAMS {
         ErrorData::invalid_params(e.message, None)
     } else {
         ErrorData::internal_error(e.message, None)
@@ -642,7 +642,7 @@ fn tool_result(answer: ToolAnswer) -> CallToolResult {
 /// Say explicitly that a tool list must not be cached. Two reasons, both real.
 ///
 /// **Correctness.** The list changes when a settings toggle moves, so a client
-/// holding one past that moment is reasoning about an OpenKaava that no longer
+/// holding one past that moment is reasoning about a Veistra that no longer
 /// exists.
 ///
 /// **Interop.** `ttlMs` and `cacheScope` are *required* by MCP 2026-07-28.
@@ -709,8 +709,8 @@ mod tests {
 
         let env = endpoint.env();
         assert_eq!(env.len(), 2);
-        assert!(env.contains(&("KAAVA_MCP_PORT".to_string(), "4321".to_string())));
-        assert!(env.contains(&("KAAVA_MCP_TOKEN".to_string(), "sekrit".to_string())));
+        assert!(env.contains(&("VEISTRA_MCP_PORT".to_string(), "4321".to_string())));
+        assert!(env.contains(&("VEISTRA_MCP_TOKEN".to_string(), "sekrit".to_string())));
     }
 
     /// Two launches must not share a token, or one instance's terminals could
@@ -784,11 +784,12 @@ mod tests {
 
     #[test]
     fn a_session_answers_from_its_own_cluster_whatever_the_call_names() {
-        let mut named = Some(serde_json::json!({ "uri": "kaava://selection", "cluster": "other" }));
+        let mut named =
+            Some(serde_json::json!({ "uri": "veistra://selection", "cluster": "other" }));
         pin_cluster(&mut named, "mine".into());
         assert_eq!(
             named,
-            Some(serde_json::json!({ "uri": "kaava://selection", "cluster": "mine" }))
+            Some(serde_json::json!({ "uri": "veistra://selection", "cluster": "mine" }))
         );
         let mut none = None;
         pin_cluster(&mut none, "mine".into());
@@ -798,21 +799,21 @@ mod tests {
     #[test]
     fn a_resource_reads_as_text_and_blobs_in_order() {
         let answer = ToolAnswer::Blocks(vec![
-            Block::Text("kaava://file/a.png (image): a.png".into()),
+            Block::Text("veistra://file/a.png (image): a.png".into()),
             Block::Image {
                 mime: "image/png".into(),
                 data: "AA==".into(),
             },
         ]);
-        let out = serde_json::to_value(resource_contents("kaava://file/a.png", answer)).unwrap();
+        let out = serde_json::to_value(resource_contents("veistra://file/a.png", answer)).unwrap();
         assert_eq!(out[0]["mimeType"], "text/plain");
-        assert_eq!(out[0]["text"], "kaava://file/a.png (image): a.png");
+        assert_eq!(out[0]["text"], "veistra://file/a.png (image): a.png");
         assert_eq!(out[1]["mimeType"], "image/png");
         assert_eq!(out[1]["blob"], "AA==");
-        assert_eq!(out[1]["uri"], "kaava://file/a.png");
+        assert_eq!(out[1]["uri"], "veistra://file/a.png");
 
         let json = resource_contents(
-            "kaava://workspace/focus",
+            "veistra://workspace/focus",
             serde_json::json!({"a": 1}).into(),
         );
         let json = serde_json::to_value(json).unwrap();
@@ -829,12 +830,13 @@ mod tests {
 
     #[test]
     fn a_bad_reference_is_the_callers_mistake_and_anything_else_is_ours() {
-        let bad = kaava_rpc::RpcError::new(kaava_rpc::INVALID_PARAMS, "no such file".to_string());
+        let bad =
+            veistra_rpc::RpcError::new(veistra_rpc::INVALID_PARAMS, "no such file".to_string());
         assert_eq!(
             read_error(bad).code,
             ErrorData::invalid_params("", None).code
         );
-        let broke = kaava_rpc::RpcError::new(kaava_rpc::INTERNAL_ERROR, "boom".to_string());
+        let broke = veistra_rpc::RpcError::new(veistra_rpc::INTERNAL_ERROR, "boom".to_string());
         assert_eq!(
             read_error(broke).code,
             ErrorData::internal_error("", None).code

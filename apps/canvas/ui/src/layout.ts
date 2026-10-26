@@ -95,7 +95,7 @@ export interface ShapeSpec {
   ref?: string;
   /** Leave this element where it was put even if it overlaps. */
   fixed?: boolean;
-  /** A link opened on click: `kaava://diagram/<id>` moves to that diagram. */
+  /** A link opened on click: `veistra://diagram/<id>` moves to that diagram. */
   link?: string;
 }
 
@@ -285,8 +285,8 @@ const DIAGRAM_ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const SHAPE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 
 function diagramOf(el: Element): Record<string, unknown> | null {
-  const kaava = (el.customData as { kaava?: { diagram?: unknown } } | undefined)?.kaava;
-  const d = kaava?.diagram;
+  const veistra = (el.customData as { veistra?: { diagram?: unknown } } | undefined)?.veistra;
+  const d = veistra?.diagram;
   return d && typeof d === "object" ? (d as Record<string, unknown>) : null;
 }
 
@@ -299,7 +299,7 @@ export function addShapes(
   spec: AddShapesSpec,
   width: LineWidth,
   values: Record<string, unknown> = {},
-  files: Record<string, { kaavaRef?: string }> = {},
+  files: Record<string, { veistraRef?: string }> = {},
 ): LayoutResult {
   const f = spec.frame;
   if (!f || typeof f.id !== "string" || !DIAGRAM_ID.test(f.id))
@@ -478,7 +478,7 @@ export function addShapes(
           stroke: s.fill === "solid" ? PALETTE.ink.fill : stroke,
         });
         if (s.label && s.label !== label && /\{\{/.test(s.label))
-          t.customData = { kaava: { template: s.label } };
+          t.customData = { veistra: { template: s.label } };
         bind(el, t, "text");
         out.push(t);
         texts.push({ el: t, fixed: true, owner: id });
@@ -507,16 +507,16 @@ export function addShapes(
         stroke,
         node: s.id,
       });
-      const kaava: Record<string, unknown> = { node: s.id };
-      if (/\{\{/.test(raw)) kaava.template = raw;
-      el.customData = { kaava };
+      const veistra: Record<string, unknown> = { node: s.id };
+      if (/\{\{/.test(raw)) veistra.template = raw;
+      el.customData = { veistra };
       if (s.link) el.link = s.link;
       out.push(el);
       placed.set(s.id, { el, box: { x, y, width: m.width, height: m.height }, kind: "text" });
       texts.push({ el, fixed: !!s.fixed, owner: id });
     } else if (s.type === "image") {
       const ref = s.ref ?? "";
-      const fileId = Object.keys(files).find((k) => files[k]?.kaavaRef === ref);
+      const fileId = Object.keys(files).find((k) => files[k]?.veistraRef === ref);
       if (!fileId)
         throw new Error(`image \`${s.id}\`: no reference image \`${ref}\` on this canvas`);
       const el = imageElement({
@@ -842,7 +842,7 @@ export function indexSpec(
       text: link,
       size: "heading",
       color: "blue",
-      link: `kaava://diagram/${row.id}`,
+      link: `veistra://diagram/${row.id}`,
     });
     y += snapUp(measure(link, TEXT_SIZE.heading, width).height + 4);
     const detail = [row.summary, row.covers.length ? `covers: ${row.covers.join(", ")}` : ""]

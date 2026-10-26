@@ -47,12 +47,12 @@ __pycache__/
 # Worktrees an agent works in. A second checkout of this repository, inside it.
 .claude/worktrees/
 
-# `pnpm probe ... screenshot` writes here by default only if KAAVA_SHOT points
+# `pnpm probe ... screenshot` writes here by default only if VEISTRA_SHOT points
 # into the repo (its own default is now the OS temp dir, precisely so this
 # never happens on its own). Kept as a safety net: it is a picture of
 # somebody's debugging session, and it has been swept into a commit by
 # `git add -A` more than once already.
-kaava-shot.png
+veistra-shot.png
 
 # Terraform (infra/). Provider plugins are downloaded per checkout; state lives in the
 # `<project>-tfstate` bucket, except bootstrap's before its first migration. tfvars files other

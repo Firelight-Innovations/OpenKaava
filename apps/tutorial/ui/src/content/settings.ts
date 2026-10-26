@@ -43,7 +43,7 @@ export const settings: Body = {
           chord: "Next…",
           what: "Read when the next one of something opens — an editor, a terminal, a search.",
         },
-        { chord: "Restart", what: "Read once, while OpenKaava is starting." },
+        { chord: "Restart", what: "Read once, while Veistra is starting." },
       ],
     },
     {
@@ -103,7 +103,7 @@ export const settings: Body = {
     },
     {
       kind: "text",
-      body: "That is not cosmetic. Only the settings you changed are written to disk — a `settings.json` on a machine nobody has touched this screen on does not exist. Which means a later version of OpenKaava can improve a default and have the new one reach everybody who never disagreed with the old one. Your choices stay where you put them.",
+      body: "That is not cosmetic. Only the settings you changed are written to disk — a `settings.json` on a machine nobody has touched this screen on does not exist. Which means a later version of Veistra can improve a default and have the new one reach everybody who never disagreed with the old one. Your choices stay where you put them.",
     },
 
     { kind: "heading", body: "Where it lives" },

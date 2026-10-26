@@ -3,7 +3,7 @@
  * on; a rectangle or ellipse points at what is under its centre. The host does
  * the picking (`MarkupHost.pick`), this module only decides where to ask.
  */
-import { kaavaData, touch } from "./elements";
+import { veistraData, touch } from "./elements";
 import type { MarkupElement, MarkupHost, MarkupTarget } from "./types";
 
 export interface TargetPoint {
@@ -44,7 +44,7 @@ export function resolveTargets(
 }
 
 /**
- * Stamps `customData.kaava = { kind, targets? }` on every arrow and box, and
+ * Stamps `customData.veistra = { kind, targets? }` on every arrow and box, and
  * `{ kind }` on other ink. Idempotent: an element whose stamp would not change
  * is returned as it was, so calling this before every export does not bump
  * versions and does not look like an edit to a saver.
@@ -55,13 +55,13 @@ export function annotateTargets(
 ): MarkupElement[] {
   return elements.map((el) => {
     if (el.isDeleted || el.containerId) return el;
-    const existing = kaavaData(el);
+    const existing = veistraData(el);
     if (existing && (existing.kind === "pin" || existing.kind === "pin-label")) return el;
     const targets = resolveTargets(el, pick);
     const next: Record<string, unknown> = { ...existing, kind: el.type };
     delete next.targets;
     if (targets.length > 0) next.targets = targets;
     if (JSON.stringify(next) === JSON.stringify(existing)) return el;
-    return touch(el, { customData: { ...el.customData, kaava: next } });
+    return touch(el, { customData: { ...el.customData, veistra: next } });
   });
 }

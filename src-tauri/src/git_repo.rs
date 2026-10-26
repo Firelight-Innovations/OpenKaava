@@ -133,10 +133,10 @@ const MAX_FILES: usize = 5_000;
 const MAX_FILE_BYTES: u64 = 50 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 256 * 1024 * 1024;
 
-/// The lines a freshly written `.gitignore` starts with. `.kaava/worktrees/` is the one
+/// The lines a freshly written `.gitignore` starts with. `.veistra/worktrees/` is the one
 /// that matters: worktree clusters live inside the project, and committing a checkout into
 /// the repository it belongs to would nest one inside the other.
-const IGNORE_LINES: &[&str] = &["node_modules/", "target/", ".kaava/worktrees/"];
+const IGNORE_LINES: &[&str] = &["node_modules/", "target/", ".veistra/worktrees/"];
 
 /// Give `dir` a git repository with a first commit, so a worktree can be cut from it.
 pub fn init_repository(dir: &Path) -> Result<InitOutcome> {
@@ -296,14 +296,14 @@ fn small_enough(dir: &Path, env: &[(&str, &str)]) -> bool {
     true
 }
 
-/// The project's own manifest files at the folder's top: `<name>.kaava`.
+/// The project's own manifest files at the folder's top: `<name>.veistra`.
 fn manifest_names(dir: &Path) -> Vec<String> {
     std::fs::read_dir(dir)
         .into_iter()
         .flatten()
         .flatten()
         .filter_map(|entry| entry.file_name().into_string().ok())
-        .filter(|name| name.ends_with(".kaava"))
+        .filter(|name| name.ends_with(".veistra"))
         .collect()
 }
 
@@ -466,7 +466,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         init_repository_with(dir.path(), IDENTITY).unwrap();
         let text = std::fs::read_to_string(dir.path().join(".gitignore")).unwrap();
-        assert!(text.contains(".kaava/worktrees/"));
+        assert!(text.contains(".veistra/worktrees/"));
         assert!(text.contains("node_modules/"));
     }
 
@@ -477,7 +477,7 @@ mod tests {
         init_repository_with(dir.path(), IDENTITY).unwrap();
         let text = std::fs::read_to_string(dir.path().join(".gitignore")).unwrap();
         assert!(text.starts_with("secret.txt\n"));
-        assert!(text.contains(".kaava/worktrees/"));
+        assert!(text.contains(".veistra/worktrees/"));
     }
 
     #[test]
@@ -534,13 +534,13 @@ mod tests {
     #[test]
     fn a_huge_file_keeps_the_first_commit_to_the_projects_own_files() {
         let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("demo.kaava"), "name = \"demo\"").unwrap();
+        std::fs::write(dir.path().join("demo.veistra"), "name = \"demo\"").unwrap();
         let big = std::fs::File::create(dir.path().join("big.bin")).unwrap();
         big.set_len(MAX_FILE_BYTES + 1).unwrap();
         let outcome = init_repository_with(dir.path(), IDENTITY).unwrap();
         assert!(!outcome.committed_everything);
         let tracked = run_git_env(dir.path(), "ls-files", &["ls-files"], IDENTITY).unwrap();
-        assert!(tracked.contains("demo.kaava"));
+        assert!(tracked.contains("demo.veistra"));
         assert!(!tracked.contains("big.bin"));
     }
 }

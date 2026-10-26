@@ -1,6 +1,6 @@
 //! The atomic JSON writer: temporary file, fsync, rename.
 //!
-//! Every semantic file in `.kaava/` is written through here, and the three
+//! Every semantic file in `.veistra/` is written through here, and the three
 //! steps each earn their place. The temporary file sits **in the same
 //! directory**, so the rename is inside one filesystem and cannot silently
 //! become a copy. `sync_all` runs before it, so the bytes are on the device

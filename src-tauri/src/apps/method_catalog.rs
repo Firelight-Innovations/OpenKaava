@@ -1,4 +1,4 @@
-//! The methods an agent can name in `kaava-agent`'s `app_call`, for the MCP panel.
+//! The methods an agent can name in `veistra-agent`'s `app_call`, for the MCP panel.
 //!
 //! No app declares its methods as data: each `call` is a `match` on a string,
 //! and none has a parameter schema. So there is nothing to read at runtime and

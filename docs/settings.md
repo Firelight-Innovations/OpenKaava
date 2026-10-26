@@ -1,6 +1,6 @@
 # Settings
 
-What OpenKaava lets you change, where the change is written, and what a new setting
+What Veistra lets you change, where the change is written, and what a new setting
 costs to add. The implementation is `src-tauri/src/settings/`; this document is
 the contract that module — and every app that registers a section against it —
 is written to.
@@ -217,11 +217,11 @@ obliged to be one or the other.
 
 ## 7. How an app's frontend reads settings
 
-An app's frontend has no door to Tauri. `@openkaava/bridge` is its whole interface,
+An app's frontend has no door to Tauri. `@veistra/bridge` is its whole interface,
 so it reads settings the same way it reads anything else:
 
 ```ts
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 
 const settings = await invoke("settings/all");
 ```

@@ -74,9 +74,9 @@ resource "google_storage_bucket" "render_queue" {
   }
 }
 
-# What every agent session did, for the OpenKaava views that show agent activity, session logs and
+# What every agent session did, for the Veistra views that show agent activity, session logs and
 # workflow progress. Claude Code hooks on every agent VM write here (images/agent/files/
-# kaava-session-hook); infra/README.md documents the layout, which is the contract the UX reads.
+# veistra-session-hook); infra/README.md documents the layout, which is the contract the UX reads.
 # Transcripts are text and small, so they stay in Standard storage and move to Nearline, not away.
 resource "google_storage_bucket" "sessions" {
   name                        = "${var.project_id}-sessions"
@@ -97,7 +97,7 @@ resource "google_storage_bucket" "sessions" {
 }
 
 # Project records and the AI job queue (Plane design, section 3). Each record links one Plane
-# project to its artifacts, repository and Hindsight banks, so OpenKaava lists projects from here
+# project to its artifacts, repository and Hindsight banks, so Veistra lists projects from here
 # without waking plane-vm. prod/ and dev/ split the cloud and local Plane instances.
 resource "google_storage_bucket" "projects" {
   name                        = "veistra-projects"
@@ -130,7 +130,7 @@ resource "google_storage_bucket_object" "projects_prefix" {
   content  = "\n"
 }
 
-# Every agent VM runs as kaava-agent (foundation/), so these grants cover all of them.
+# Every agent VM runs as veistra-agent (foundation/), so these grants cover all of them.
 resource "google_storage_bucket_iam_member" "agent" {
   for_each = {
     artifacts    = google_storage_bucket.artifacts.name
@@ -140,7 +140,7 @@ resource "google_storage_bucket_iam_member" "agent" {
   }
   bucket = each.value
   role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:kaava-agent@${var.project_id}.iam.gserviceaccount.com"
+  member = "serviceAccount:veistra-agent@${var.project_id}.iam.gserviceaccount.com"
 }
 
 output "sessions_bucket" {

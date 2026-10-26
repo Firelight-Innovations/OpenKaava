@@ -8,10 +8,10 @@
 
 use super::remote::{self, RemoteError, Repo};
 use super::{store, InstallError, Registry, ResolvedPlugin};
-use kaava_tool_manifest::ToolManifest;
 use serde::Serialize;
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, Manager};
+use veistra_tool_manifest::ToolManifest;
 
 /// Progress for one install, emitted repeatedly at the same event name.
 ///
@@ -29,7 +29,7 @@ pub const PROGRESS_EVENT: &str = "plugins:install-progress";
 /// without orphaning anything else, which is the shape of failure nobody
 /// notices until a private install asks for a credential that is still there
 /// under a name nothing looks up any more.
-pub const KEYRING_SERVICE: &str = "com.firelightinnovations.openkaava";
+pub const KEYRING_SERVICE: &str = "com.firelightinnovations.veistra";
 const KEYRING_ACCOUNT: &str = "github-token";
 
 /// How far along one install is.
@@ -341,7 +341,7 @@ fn run(
 /// release yet, and neither is the user's problem. The app stays listed in the
 /// library as something they can install by hand, which is the same place a
 /// successful skip would leave them. Greeting somebody with two red failures
-/// because they opened OpenKaava on a plane is a worse first impression than
+/// because they opened Veistra on a plane is a worse first impression than
 /// starting with fewer apps.
 pub fn seed_defaults(app: &AppHandle) {
     if store::exists(app) {
@@ -365,11 +365,11 @@ pub fn seed_defaults(app: &AppHandle) {
             match from_repo(&handle, &repo, Some(&id), private) {
                 Ok(resolved) => {
                     println!(
-                        "kaava: installed {} {} by default",
+                        "veistra: installed {} {} by default",
                         resolved.id, resolved.version
                     )
                 }
-                Err(err) => eprintln!("kaava: skipped the default app `{id}`: {err}"),
+                Err(err) => eprintln!("veistra: skipped the default app `{id}`: {err}"),
             }
         }
     });
@@ -405,14 +405,14 @@ mod tests {
     #[test]
     fn sanitize_leaves_a_valid_package_id_alone() {
         assert_eq!(sanitize("acme"), "acme");
-        assert_eq!(sanitize("kaava-acme"), "kaava-acme");
+        assert_eq!(sanitize("veistra-acme"), "veistra-acme");
     }
 
     #[test]
     fn sanitize_flattens_a_slug_into_one_segment() {
         assert_eq!(
-            sanitize("Firelight-Innovations/OpenKaava-Acme"),
-            "Firelight-Innovations-OpenKaava-Acme"
+            sanitize("Firelight-Innovations/Veistra-Acme"),
+            "Firelight-Innovations-Veistra-Acme"
         );
         assert!(!sanitize("../../etc").contains('.'));
         assert!(!sanitize("a/b").contains('/'));

@@ -24,7 +24,7 @@ transition. `src-tauri/Cargo.toml` gained one dependency,
 | Method | Params | Does |
 |---|---|---|
 | `schematify/state` | — | Unchanged, wave 1a's. |
-| `schematify/open-project` | `actor` | Reports the cluster's project root and whether `.kaava/` exists under it. Read-only — does not call `Store::init()`. |
+| `schematify/open-project` | `actor` | Reports the cluster's project root and whether `.veistra/` exists under it. Read-only — does not call `Store::init()`. |
 | `schematify/load-graph` | `actor` | `load_project`, shaped by hand into `{ graph: { nodes, edges, screens, flows, decisions, rules, libraries, brief }, report: { clean, quarantined, unreadable, slugCollisions, idCollisions, misnamed, durationMs } }`. Hand-shaped because `Graph` and `Report`'s own sub-types (`Quarantine`, `IdCollision`, …) carry no `Serialize` — the crate is a library, not a wire format. |
 | `schematify/write-node` | `actor`, `node` | Deserializes `node` as `schematify_core::Node` (whole envelope + kind fields) and writes it via `Store::write_node`. |
 | `schematify/write-edge` | `actor`, `edge` | Same, for `Edge`. Reports `stored: false` for a `contains` edge, which the crate refuses to write at all. |
@@ -165,7 +165,7 @@ inside the seam (`graph/`):
   in-memory — see "What still doesn't persist" below.
 - **`graph/index.ts`**. `defaultSeam` now reaches `createBackendSeam()`
   through a **dynamic** `import("./backend")`, memoized, rather than a
-  static one. A static import would pull `@openkaava/bridge`'s `window`
+  static one. A static import would pull `@veistra/bridge`'s `window`
   access into `index.test.ts`, which runs on plain Node — the exact failure
   wave 2's review round 2 already fixed once by splitting `rpc.ts` into
   `backend.ts`. `loadGraph()` (the fixture-returning function) and
@@ -310,7 +310,7 @@ endpoint is dropped, and a real-shaped case built from `auth-service`'s
 actual 12 module slugs plus `token-pipeline` draws **13** nodes while
 `countNodes` on that same result reports **12**. **Real data now yields a
 count of 12, matching the wave 2 acceptance string exactly —
-`.kaava/ · 12 nodes · 9 edges` is true against reality, not merely against
+`.veistra/ · 12 nodes · 9 edges` is true against reality, not merely against
 the stand-in — while the group itself still reaches the canvas as the
 containment box it actually is.**
 
@@ -420,7 +420,7 @@ stay backend-free":
   `layout.test.ts`, `routing.test.ts`) constructs its own
   `createMemorySeam()` explicitly and passes it to `openSchematic` — none of
   them read `defaultSeam`, so none of them touch the real backend or
-  `@openkaava/bridge`.
+  `@veistra/bridge`.
 - Only `defaultSeam` changed, and only `App.tsx` (via `openSchematic`'s
   default parameter) reads `defaultSeam`. `App.tsx` is not under test this
   wave (no jsdom in this repo's Vitest config, per wave 2's own header
@@ -432,7 +432,7 @@ stay backend-free":
 | Check | Result |
 |---|---|
 | `pnpm build` | Pass. `dist/assets/schematify-*.js` built. |
-| `pnpm test:js` | Pass — 508 + 28 (bridge). Includes 18 `project.test.ts` assertions on real projected content (not just "did not throw"), covering the facet and comment exclusions, the group-is-drawn-but-not-an-edge-endpoint case, and a real-shaped 13-drawn/12-counted regression case; the merge from `main` also brought wave 10a's 13 `check-kaava-boundary.test.mjs` cases along, unrelated to this wave's own changes. |
+| `pnpm test:js` | Pass — 508 + 28 (bridge). Includes 18 `project.test.ts` assertions on real projected content (not just "did not throw"), covering the facet and comment exclusions, the group-is-drawn-but-not-an-edge-endpoint case, and a real-shaped 13-drawn/12-counted regression case; the merge from `main` also brought wave 10a's 13 `check-veistra-boundary.test.mjs` cases along, unrelated to this wave's own changes. |
 | `pnpm typecheck` (`tsc`) | Pass, plus re-run as `npx tsc -p tsconfig.json --noEmit --typeRoots ./__no_types__` (wave 2's technique for ruling out this machine's stray home-directory `@types/node`) — also clean. No Node builtin, no post-ES2020 API in any new file. |
 | `pnpm lint:js` | Pass — 0 errors, the same 8 pre-existing React-hook warnings named in the wave 2/3 handoffs, none in a file this wave touched. |
 | `pnpm lint:comments` | Pass after trimming 4 spots that exceeded the 20-consecutive-comment-line cap over the course of this wave (`backend.ts`, `index.ts`, and `schematify.rs`'s module doc comment twice, once after the first pass and again after adding `lint`/`reconcile-status`) — moved detail into this handoff instead of re-baselining. 0 grandfathered. |
@@ -456,9 +456,9 @@ No test was deleted or skipped.
    agent-initiated gesture yet — every call reaching `backend.ts` today
    follows a person's mouse and keyboard. One constant
    (`graph/backend.ts`'s `ACTOR`), not re-derived per call.
-3. **`schematify/open-project` is read-only** — reports whether `.kaava/`
+3. **`schematify/open-project` is read-only** — reports whether `.veistra/`
    exists, never calls `Store::init()` to create it. PRD §14.5 says
-   "validates", not "creates"; a project with no `.kaava/` tree yet is a
+   "validates", not "creates"; a project with no `.veistra/` tree yet is a
    state `load-graph` already reports honestly (`CoreError::NoProject`,
    surfaced as a plain refusal).
 4. **`schematify/load-graph`'s response is hand-shaped JSON, not a direct
@@ -493,7 +493,7 @@ No test was deleted or skipped.
 
 Nobody watched this run against a real window tonight
 (`00-AGENT-CONTEXT.md` forbids `pnpm app`/`pnpm dev:agent`/`pnpm ui launch`
-for this job). In the morning, with a project that has a `.kaava/` tree
+for this job). In the morning, with a project that has a `.veistra/` tree
 seeded from `crates/schematify-core/fixtures/saas-backend/` (or any real
 project with an `auth-service`):
 
@@ -501,11 +501,11 @@ project with an `auth-service`):
    the splash screen or showing `.kv-shell__error` — a wrong
    `DEFAULT_SERVICE_SLUG` or a project missing `auth-service` would show the
    latter, which is the intended failure mode, not a crash.
-2. Drag a node, then look at `.kaava/layout/auth-service.json` on disk
+2. Drag a node, then look at `.veistra/layout/auth-service.json` on disk
    directly — confirm it now holds the new position, and that no file under
-   `.kaava/nodes/` or `.kaava/edges/` changed. Reopen the app and confirm
+   `.veistra/nodes/` or `.veistra/edges/` changed. Reopen the app and confirm
    the position survived (loaded back through `readLayout`).
-3. Reparent or duplicate a node, then check `.kaava/nodes/` — confirm
+3. Reparent or duplicate a node, then check `.veistra/nodes/` — confirm
    (per "What still doesn't persist" above) that **nothing changed on
    disk**, and that this matches what you expect before Wave 3/6 completes
    the partial-payload gap. If a human decides this gap should close sooner,
@@ -514,7 +514,7 @@ project with an `auth-service`):
 4. Look at the Outline against `fixtures/saas-backend/`: **13 rows** — the
    12 modules named in PRD §16.1 plus `token-pipeline`, a real `group` that
    is drawn like any other row — but status bar cell 1 should still read
-   `.kaava/ · 12 nodes · 9 edges`, matching the wave 2 acceptance string
+   `.veistra/ · 12 nodes · 9 edges`, matching the wave 2 acceptance string
    exactly, because `countNodes` excludes annotation-tier kinds from the
    arithmetic while `graph.nodes` (what the Outline walks) still carries
    the group. That gap between 13 rows and a count of 12 is the ruling

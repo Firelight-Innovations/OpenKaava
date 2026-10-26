@@ -2,7 +2,7 @@
  * The text viewer: two banners and the box Monaco fills.
  *
  * Almost nothing here styles the editor. Monaco draws itself from the
- * `kaava-dark` theme in `./monaco.ts`, which is where the tokens end up as
+ * `veistra-dark` theme in `./monaco.ts`, which is where the tokens end up as
  * colours; a CSS rule reaching into `.monaco-editor` would be a second,
  * invisible place those decisions live. This sheet's job is to give the editor
  * a correctly sized box and to draw the two things Monaco has no opinion about.

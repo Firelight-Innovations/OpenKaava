@@ -42,8 +42,8 @@ pub enum CoreError {
         source: serde_json::Error,
     },
 
-    /// A project directory holds no `.kaava/` tree.
-    #[error("no .kaava directory under {root}")]
+    /// A project directory holds no `.veistra/` tree.
+    #[error("no .veistra directory under {root}")]
     NoProject {
         /// The directory that was searched.
         root: PathBuf,

@@ -4,7 +4,7 @@
  *
  * Where a picture comes from, cheapest first: this session's memory (moving
  * back and forth between a parent and its children costs nothing), the disk
- * cache under `.kaava/canvas-snapshots/` (a canvas opens with every picture
+ * cache under `.veistra/canvas-snapshots/` (a canvas opens with every picture
  * at once), and last a fresh render of the child file, which is then cached.
  * Renders run one at a time, in idle time once input has paused, so a
  * parent with thirty stale pictures still pans while they fill in.
@@ -223,7 +223,7 @@ export class SnapshotPainter {
         pictures.set(frame.id, { fileId: PLACEHOLDER_FILE_ID });
         continue;
       }
-      const fileId = `kaava-snapshot:${child}:${d.mtime}:${theme}`;
+      const fileId = `veistra-snapshot:${child}:${d.mtime}:${theme}`;
       if (!have[fileId]) {
         const dataURL = theme === "dark" ? (d.dark ??= await darken(d.light)) : d.light;
         files.push({

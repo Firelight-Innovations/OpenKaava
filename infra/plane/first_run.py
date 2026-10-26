@@ -8,9 +8,9 @@ It makes the same HTTP calls Plane's own forms make, in this order, and skips an
 already done, so it is safe to run again:
 
 1. instance admin (the owner), password login on, magic link off
-2. workspace `veistra`, with `agent` and `kaava` invited as Members
+2. workspace `veistra`, with `agent` and `veistra` invited as Members
 3. each bot signs up, accepts its invitation and gets one personal access token, which goes
-   straight into Secret Manager as <prefix>pat-agent / <prefix>pat-kaava
+   straight into Secret Manager as <prefix>pat-agent / <prefix>pat-veistra
 4. public sign-up off
 
 Every password is read from Secret Manager (terraform/plane generates them) and every token is
@@ -30,13 +30,13 @@ from render_env import credentials, secret
 
 PROFILES = {
     # Canonical URL, and where the laptop actually connects: the tunnel, or local Docker.
-    "prod": ("http://plane.kaava.internal:8765", "http://127.0.0.1:8765", "plane-"),
+    "prod": ("http://plane.veistra.internal:8765", "http://127.0.0.1:8765", "plane-"),
     "dev": ("http://localhost:8766", "http://127.0.0.1:8766", "plane-dev-"),
 }
 WORKSPACE = "veistra"
 OWNER = {"email": "braden.seaborn@firelightinnovations.com", "first_name": "Braden",
          "last_name": "Seaborn"}
-BOTS = {"agent": "agent@plane.kaava.internal", "kaava": "kaava@plane.kaava.internal"}
+BOTS = {"agent": "agent@plane.veistra.internal", "veistra": "veistra@plane.veistra.internal"}
 MEMBER = 15
 
 
@@ -189,7 +189,7 @@ def main():
             step(f"{pat} already set; not minting another token")
             continue
         status, body = bot.call("POST", "/api/users/api-tokens/", json_body={
-            "label": f"openkaava-{name}", "description": f"Secret Manager {pat}"})
+            "label": f"veistra-{name}", "description": f"Secret Manager {pat}"})
         if status != 201:
             fail(f"{name} token: {status}")
         step(f"{pat} stored as {add_version(project, gtoken, pat, body['token'])}")
@@ -202,8 +202,8 @@ def main():
     step("public sign-up off")
     probe = Session(url, connect)
     status, _ = probe.call("GET", f"/api/v1/workspaces/{WORKSPACE}/projects/", headers={
-        "X-API-Key": secret(project, gtoken, f"{prefix}pat-kaava")})
-    step(f"API check with {prefix}pat-kaava: HTTP {status}")
+        "X-API-Key": secret(project, gtoken, f"{prefix}pat-veistra")})
+    step(f"API check with {prefix}pat-veistra: HTTP {status}")
     if status != 200:
         sys.exit(1)
 

@@ -135,7 +135,7 @@ pub struct Found {
     pub minor: u32,
     /// The sibling that keeps a console attached, when the release ships one.
     /// A GUI-subsystem `godot.exe` writes nothing to a pipe, so a run whose log
-    /// Kaava wants to read goes through this one instead.
+    /// Veistra wants to read goes through this one instead.
     pub console: Option<PathBuf>,
 }
 
@@ -285,7 +285,7 @@ fn accept(
         .ok_or_else(|| format!("{} did not report a Godot version", path.display()))?;
     if major < 4 {
         return Err(format!(
-            "{} is Godot {version}; Kaava drives Godot 4.x",
+            "{} is Godot {version}; Veistra drives Godot 4.x",
             path.display()
         ));
     }
@@ -437,7 +437,7 @@ pub struct GodotProject {
     pub engine_major: u32,
 }
 
-/// The fields of `project.godot` Kaava reads. It is an INI dialect, and only
+/// The fields of `project.godot` Veistra reads. It is an INI dialect, and only
 /// three keys matter, so this reads lines rather than pulling in a parser.
 #[derive(Debug, Default, PartialEq)]
 pub struct ProjectFile {
@@ -483,7 +483,7 @@ const SKIP: &[&str] = &[
     ".godot",
     ".import",
     "node_modules",
-    ".kaava",
+    ".veistra",
     "target",
     "addons",
 ];
@@ -659,7 +659,7 @@ mod tests {
 
         let got = resolve(&probe, &answers("3.5.stable"));
         assert!(got.found.is_none(), "the setting is authoritative");
-        assert!(got.problems[0].contains("Kaava drives Godot 4.x"));
+        assert!(got.problems[0].contains("Veistra drives Godot 4.x"));
 
         probe.setting = dir.path().join("missing").display().to_string();
         let got = resolve(&probe, &answers("4.2.stable"));

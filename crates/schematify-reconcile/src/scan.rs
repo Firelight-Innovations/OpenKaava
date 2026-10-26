@@ -1,4 +1,4 @@
-//! Walks a source tree for `@kaava:` marker tokens (PRD section 9.1).
+//! Walks a source tree for `@veistra:` marker tokens (PRD section 9.1).
 //!
 //! The token is "found by plain regular expression" per the PRD, and that is
 //! taken literally here: every text file's raw content is scanned line by
@@ -19,19 +19,19 @@ use uuid::Uuid;
 use crate::token::{parse_captures, token_pattern};
 
 /// Directory names never descended into, regardless of `.gitignore` content.
-/// `.kaava` is the design data itself (PRD section 6.1) — a `test-case`
+/// `.veistra` is the design data itself (PRD section 6.1) — a `test-case`
 /// facet's `impl_ref` field (section 5.5) can hold the same marker-token text
 /// the scanner looks for, so without this exclusion the design data counts as
 /// a second code occurrence of its own marker and a correct project reports
 /// a false `duplicate`. `.git` is excluded for the same reason no source tree
 /// scan should read version-control internals as code.
-const ALWAYS_SKIP_DIRS: [&str; 4] = ["node_modules", "target", ".kaava", ".git"];
+const ALWAYS_SKIP_DIRS: [&str; 4] = ["node_modules", "target", ".veistra", ".git"];
 
 /// Bytes examined at the front of a file to guess whether it is binary. Git
 /// uses the same "does the prefix contain a NUL byte" heuristic.
 const BINARY_SNIFF_LEN: usize = 8000;
 
-/// One `@kaava:` marker found while walking the tree.
+/// One `@veistra:` marker found while walking the tree.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Occurrence {
     /// The file the marker was found in, relative or absolute as given to
@@ -173,32 +173,32 @@ mod tests {
         write(
             root,
             "src/lib.rs",
-            b"// @kaava:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 token-verifier.verify_signature\nfn verify() {}\n",
+            b"// @veistra:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 token-verifier.verify_signature\nfn verify() {}\n",
         );
         write(
             root,
             "scripts/tool.py",
-            b"# @kaava:0192f4a2-4c3d-7890-a1b2-c3d4e5f6a7b8 tool.run\ndef run():\n    pass\n",
+            b"# @veistra:0192f4a2-4c3d-7890-a1b2-c3d4e5f6a7b8 tool.run\ndef run():\n    pass\n",
         );
         write(
             root,
             "src/widget.tsx",
-            b"/* @kaava:0192f4a3-4c3d-7890-a1b2-c3d4e5f6a7b8 widget.render */\nexport function Widget() {}\n",
+            b"/* @veistra:0192f4a3-4c3d-7890-a1b2-c3d4e5f6a7b8 widget.render */\nexport function Widget() {}\n",
         );
         write(
             root,
             "docs/notes.html",
-            b"<!-- @kaava:0192f4a4-4c3d-7890-a1b2-c3d4e5f6a7b8 notes.section -->\n<p>hi</p>\n",
+            b"<!-- @veistra:0192f4a4-4c3d-7890-a1b2-c3d4e5f6a7b8 notes.section -->\n<p>hi</p>\n",
         );
         write(
             root,
             "config/settings.toml",
-            b"# @kaava:0192f4a5-4c3d-7890-a1b2-c3d4e5f6a7b8 settings.load\nkey = 1\n",
+            b"# @veistra:0192f4a5-4c3d-7890-a1b2-c3d4e5f6a7b8 settings.load\nkey = 1\n",
         );
         write(
             root,
             "src/unknown.zig",
-            b"// @kaava:0192f4a6-4c3d-7890-a1b2-c3d4e5f6a7b8 unknown.build\n",
+            b"// @veistra:0192f4a6-4c3d-7890-a1b2-c3d4e5f6a7b8 unknown.build\n",
         );
 
         let result = scan_tree(root);
@@ -220,17 +220,17 @@ mod tests {
         write(
             root,
             "node_modules/pkg/index.js",
-            b"// @kaava:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 pkg.entry\n",
+            b"// @veistra:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 pkg.entry\n",
         );
         write(
             root,
             "target/debug/build.rs",
-            b"// @kaava:0192f4a2-4c3d-7890-a1b2-c3d4e5f6a7b8 build.step\n",
+            b"// @veistra:0192f4a2-4c3d-7890-a1b2-c3d4e5f6a7b8 build.step\n",
         );
         write(
             root,
             "src/lib.rs",
-            b"// @kaava:0192f4a3-4c3d-7890-a1b2-c3d4e5f6a7b8 real.code\n",
+            b"// @veistra:0192f4a3-4c3d-7890-a1b2-c3d4e5f6a7b8 real.code\n",
         );
 
         let result = scan_tree(root);
@@ -242,7 +242,7 @@ mod tests {
     }
 
     #[test]
-    fn a_marker_inside_kaava_or_git_produces_no_occurrence() {
+    fn a_marker_inside_veistra_or_git_produces_no_occurrence() {
         let dir = tempfile::tempdir().expect("tempdir");
         let root = dir.path();
 
@@ -252,25 +252,25 @@ mod tests {
         // the same marker.
         write(
             root,
-            ".kaava/nodes/0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8.json",
-            br#"{"id": "0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8", "impl_ref": "@kaava:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 thing.run"}"#,
+            ".veistra/nodes/0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8.json",
+            br#"{"id": "0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8", "impl_ref": "@veistra:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 thing.run"}"#,
         );
         write(
             root,
             ".git/config",
-            b"// @kaava:0192f4a2-4c3d-7890-a1b2-c3d4e5f6a7b8 git.internal\n",
+            b"// @veistra:0192f4a2-4c3d-7890-a1b2-c3d4e5f6a7b8 git.internal\n",
         );
         write(
             root,
             "src/lib.rs",
-            b"// @kaava:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 thing.run\n",
+            b"// @veistra:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 thing.run\n",
         );
 
         let result = scan_tree(root);
         assert_eq!(
             result.occurrences.len(),
             1,
-            "only the source file's marker should be found, not the copy inside .kaava or .git"
+            "only the source file's marker should be found, not the copy inside .veistra or .git"
         );
         assert_eq!(result.occurrences[0].file, root.join("src").join("lib.rs"));
     }
@@ -283,12 +283,12 @@ mod tests {
         write(
             root,
             "ignored/file.rs",
-            b"// @kaava:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 ignored.thing\n",
+            b"// @veistra:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 ignored.thing\n",
         );
         write(
             root,
             "kept/file.rs",
-            b"// @kaava:0192f4a2-4c3d-7890-a1b2-c3d4e5f6a7b8 kept.thing\n",
+            b"// @veistra:0192f4a2-4c3d-7890-a1b2-c3d4e5f6a7b8 kept.thing\n",
         );
 
         let result = scan_tree(root);
@@ -304,7 +304,8 @@ mod tests {
         let dir = tempfile::tempdir().expect("tempdir");
         let root = dir.path();
         // A NUL byte early in the content is enough to look binary.
-        let mut content = b"@kaava:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 binary.thing\x00".to_vec();
+        let mut content =
+            b"@veistra:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 binary.thing\x00".to_vec();
         content.extend_from_slice(b"trailing bytes after the null");
         write(root, "asset.bin", &content);
 
@@ -319,7 +320,8 @@ mod tests {
         let dir = tempfile::tempdir().expect("tempdir");
         let root = dir.path();
         let mut content = b"// note: \xFF\xFE stray bytes\n".to_vec();
-        content.extend_from_slice(b"// @kaava:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 still.found\n");
+        content
+            .extend_from_slice(b"// @veistra:0192f4a1-4c3d-7890-a1b2-c3d4e5f6a7b8 still.found\n");
         write(root, "weird.txt", &content);
 
         let result = scan_tree(root);

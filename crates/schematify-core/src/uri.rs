@@ -44,7 +44,7 @@ impl UriKind {
         }
     }
 
-    /// The directory under `.kaava/` that holds this kind.
+    /// The directory under `.veistra/` that holds this kind.
     #[must_use]
     pub fn directory(self) -> &'static str {
         match self {

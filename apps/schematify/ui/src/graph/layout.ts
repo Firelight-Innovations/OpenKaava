@@ -47,7 +47,7 @@ export interface LayoutFile {
   viewport?: LayoutViewport;
 }
 
-/** The path the file is written to, relative to the `.kaava/` root. */
+/** The path the file is written to, relative to the `.veistra/` root. */
 export function layoutPath(slug: string): string {
   return `layout/${slug}.json`;
 }

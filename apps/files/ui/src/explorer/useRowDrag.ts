@@ -3,13 +3,13 @@
  *
  * This app cannot see where the drag goes. It draws inside an iframe, and an
  * iframe's pointer events stop at its own edge. So the gesture is split: this
- * half owns the *press* and says `kaava/drag` when one becomes a drag and again
+ * half owns the *press* and says `veistra/drag` when one becomes a drag and again
  * when it is released; the shell owns everything after that, and nothing comes
  * back. What that costs, what it deliberately does not tell this app, and why
  * pointer capture was the wrong answer: `docs/design-notes/drag-files-to-terminal.md`.
  */
 import { useCallback } from "react";
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 import type { Row } from "./useTree";
 
 /**
@@ -25,8 +25,8 @@ const PRESS_THRESHOLD = 4;
  *  cannot act on and will not draw — but it must not be a silently rejected
  *  promise either. */
 function tell(phase: "begin" | "end", paths: string[]): void {
-  void invoke("kaava/drag", { phase, paths }).catch((e: unknown) => {
-    console.error(`kaava: files could not report a ${phase} drag`, e);
+  void invoke("veistra/drag", { phase, paths }).catch((e: unknown) => {
+    console.error(`veistra: files could not report a ${phase} drag`, e);
   });
 }
 

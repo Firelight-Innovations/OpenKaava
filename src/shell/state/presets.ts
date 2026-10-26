@@ -39,7 +39,7 @@ export function useLayoutPresets(): LayoutPreset[] {
       } catch (err: unknown) {
         // Rust degrades a broken `presets.json` to the built-ins, so reaching
         // this means the *call* failed — and an empty submenu reads as unwired.
-        console.error("kaava: could not list layout presets:", err);
+        console.error("veistra: could not list layout presets:", err);
       }
     })();
 

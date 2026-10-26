@@ -1,6 +1,6 @@
 /*
  * Styling for CommentPanel.tsx — the one comment list all three viewer apps
- * mount. Token names are the new kaava-ds set (docs/design/kaava-ds/tokens.json),
+ * mount. Token names are the new veistra-ds set (docs/design/veistra-ds/tokens.json),
  * not the old K-Shell v2 names still in src/tokens.css; the ux-tokens
  * workstream is adding those definitions in parallel (see apps/README.md).
  */
@@ -164,6 +164,6 @@
   color: var(--txt-on-accent, #fff);
 }
 
-/* The Open/Resolved pill uses the shared `.k-badge` (src/kaava-ui.css)
+/* The Open/Resolved pill uses the shared `.k-badge` (src/veistra-ui.css)
  * rather than a hand-rolled equivalent — see SegmentedControl.tsx's note on
  * the same rule for tabs. */

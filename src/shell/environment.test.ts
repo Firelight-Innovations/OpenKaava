@@ -30,7 +30,7 @@ describe("environmentOf", () => {
     const env = environmentOf(
       cluster({
         worktree: {
-          path: "/repo/.kaava/worktrees/flashlight",
+          path: "/repo/.veistra/worktrees/flashlight",
           branch: "wt/flashlight-cone",
           base: null,
         },
@@ -39,7 +39,7 @@ describe("environmentOf", () => {
     expect(env).toEqual({
       kind: "worktree",
       branch: "wt/flashlight-cone",
-      path: "/repo/.kaava/worktrees/flashlight",
+      path: "/repo/.veistra/worktrees/flashlight",
     });
   });
 
@@ -47,7 +47,7 @@ describe("environmentOf", () => {
     const env = environmentOf(
       cluster({
         worktree: {
-          path: "/repo/.kaava/worktrees/design",
+          path: "/repo/.veistra/worktrees/design",
           branch: DESIGN_WORKTREE_BRANCH,
           base: null,
         },
@@ -58,7 +58,7 @@ describe("environmentOf", () => {
 
   it("drops the branch field for a detached HEAD rather than reporting null", () => {
     const env = environmentOf(
-      cluster({ worktree: { path: "/repo/.kaava/worktrees/x", branch: null, base: null } }),
+      cluster({ worktree: { path: "/repo/.veistra/worktrees/x", branch: null, base: null } }),
     );
     expect(env.kind).toBe("worktree");
     expect(env.branch).toBeUndefined();

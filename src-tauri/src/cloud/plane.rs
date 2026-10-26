@@ -1,8 +1,8 @@
-//! Talking to Plane CE's own REST API, through the `kaava-api` gateway.
+//! Talking to Plane CE's own REST API, through the `veistra-api` gateway.
 //!
-//! `OPENKAAVA-PLANE-DESIGN.md` §3 and §7.1: paths under `/api/v1/`, cursor
+//! `VEISTRA-PLANE-DESIGN.md` §3 and §7.1: paths under `/api/v1/`, cursor
 //! pagination with `per_page` at most [`MAX_PER_PAGE`], and a 300-requests-
-//! per-minute budget per key (§12 V4). The gateway (`services/kaava-api`)
+//! per-minute budget per key (§12 V4). The gateway (`services/veistra-api`)
 //! holds the Plane token and adds it itself, so this side holds no Plane
 //! secret at all: it sends a Google ID token ([`gateway`]) and a path.
 //! `apps/projects.rs` exposes [`call`] as `plane/get`, `plane/post` and

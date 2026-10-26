@@ -1,8 +1,8 @@
 /**
- * `@kaava/markup`, the pure half: types, host adapters, the session model, the
+ * `@veistra/markup`, the pure half: types, host adapters, the session model, the
  * JSON format and the Canvas bridge. Nothing here imports Excalidraw or React,
  * so it is cheap to import from anywhere. The layer component is in
- * `@kaava/markup/layer`.
+ * `@veistra/markup/layer`.
  */
 export * from "./types";
 export { imageHost } from "./imageHost";

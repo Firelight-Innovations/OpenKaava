@@ -1,6 +1,6 @@
 /**
  * The filenames below carry the shape `tauri build` really produced — PR #20
- * lists `OpenKaava_0.1.0_x64-setup.exe` and `OpenKaava_0.1.0_x64_en-US.msi` from a
+ * lists `Veistra_0.1.0_x64-setup.exe` and `Veistra_0.1.0_x64_en-US.msi` from a
  * local `pnpm app:build`, and only the version is changed here. That matters:
  * this module's whole job is to agree with a naming scheme nobody in this
  * repository controls, and a fixture written from memory would test the memory.
@@ -9,22 +9,22 @@
 import { describe, expect, it } from "vitest";
 import { buildManifest, classify, defaultNotes, versionOf } from "./update-manifest.mjs";
 
-const SETUP = "OpenKaava_0.2.0_x64-setup.exe";
-const MSI = "OpenKaava_0.2.0_x64_en-US.msi";
+const SETUP = "Veistra_0.2.0_x64-setup.exe";
+const MSI = "Veistra_0.2.0_x64_en-US.msi";
 const SIGNED = [{ file: SETUP, signature: "dW50cnVzdGVkIGNvbW1lbnQ=\n" }];
 
 describe("classify", () => {
   it("reads the platform and the installer out of a filename", () => {
     expect(classify(SETUP)).toMatchObject({ target: "windows-x86_64", kind: "nsis" });
     expect(classify(MSI)).toMatchObject({ target: "windows-x86_64", kind: "msi" });
-    expect(classify("OpenKaava_0.2.0_arm64-setup.exe")).toMatchObject({
+    expect(classify("Veistra_0.2.0_arm64-setup.exe")).toMatchObject({
       target: "windows-aarch64",
     });
   });
 
   it("claims nothing it cannot name both halves of", () => {
-    expect(classify("OpenKaava-setup.exe")).toBeNull();
-    expect(classify("OpenKaava_0.2.0_x64.exe")).toBeNull();
+    expect(classify("Veistra-setup.exe")).toBeNull();
+    expect(classify("Veistra_0.2.0_x64.exe")).toBeNull();
   });
 });
 
@@ -53,7 +53,7 @@ describe("buildManifest", () => {
     expect(manifest.pub_date).toBe("2026-01-01T00:00:00Z");
     expect(manifest.platforms["windows-x86_64"]).toEqual({
       signature: "dW50cnVzdGVkIGNvbW1lbnQ=",
-      url: `https://github.com/Firelight-Innovations/OpenKaava/releases/download/v0.2.0/${SETUP}`,
+      url: `https://github.com/Firelight-Innovations/Veistra/releases/download/v0.2.0/${SETUP}`,
     });
   });
 
@@ -129,8 +129,8 @@ describe("buildManifest", () => {
       buildManifest({
         tag: "v0.2.0",
         signed: [
-          { file: "OpenKaava_0.2.0_x64-setup.exe", signature: "a" },
-          { file: "OpenKaava_0.1.9_x64-setup.exe", signature: "b" },
+          { file: "Veistra_0.2.0_x64-setup.exe", signature: "a" },
+          { file: "Veistra_0.1.9_x64-setup.exe", signature: "b" },
         ],
       }),
     ).toThrow(/two nsis installers claim windows-x86_64/);

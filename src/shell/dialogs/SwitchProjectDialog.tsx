@@ -1,11 +1,11 @@
 /**
  * The Switch Project dialog (board 08, "Switch project, restore state") —
- * the title-bar project pill's dropdown. Lists every project OpenKaava
+ * the title-bar project pill's dropdown. Lists every project Veistra
  * remembers opening, lets you filter them by name, and switches the active
  * cluster to whichever one you pick.
  *
  * The full board also draws a **restore toast** — "2 environments · 6 panes
- * · cloud stream reattached · Git docked" — depicting KAAVA-UX-REWORK.md
+ * · cloud stream reattached · Git docked" — depicting VEISTRA-UX-REWORK.md
  * §6's restore order. That depends on the per-project workspace file §6
  * defines, which nothing persists yet, so this dialog only does the one
  * thing that is real today: pointing the active cluster at a different
@@ -224,8 +224,8 @@ function summaryOf(row: RecentProjectRow, busy: boolean): string {
   if (busy) return "Opening…";
   if (!row.exists) return "Folder not found.";
   if (!row.open) {
-    // A row with a last-opened time was opened, whether or not `.kaava/` was written.
-    return row.initialized || row.lastOpened !== null ? "Not open." : "Never opened in Kaava.";
+    // A row with a last-opened time was opened, whether or not `.veistra/` was written.
+    return row.initialized || row.lastOpened !== null ? "Not open." : "Never opened in Veistra.";
   }
   const envs = row.environmentCount;
   const clusters = row.clusterCount;

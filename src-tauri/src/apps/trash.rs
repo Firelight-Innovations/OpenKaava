@@ -1,7 +1,7 @@
 //! Seeing what was deleted, and pulling it back out.
 //!
 //! `files/delete` moves things to the Recycle Bin, which is what makes deleting
-//! from OpenKaava recoverable. This module is the other half of that promise: the
+//! from Veistra recoverable. This module is the other half of that promise: the
 //! deleted things are listable, restorable and — deliberately last — permanently
 //! purgeable, by a person through the Files app and by an agent through the same
 //! three methods.
@@ -19,10 +19,10 @@
 //! which is a scope decision rather than a security theatre one.
 
 use crate::apps::CallContext;
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use tauri::AppHandle;
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 
 pub fn call(
     app: &AppHandle,
@@ -87,7 +87,7 @@ fn is_inside(path: &Path, root: &Path) -> bool {
 ///
 /// `trash::os_limited` is on Windows and on Freedesktop-compliant Unix, and
 /// **not on macOS** — the crate cfg-gates the whole module, because macOS offers
-/// no API to enumerate or restore from its Trash. OpenKaava runs on Windows, so this
+/// no API to enumerate or restore from its Trash. Veistra runs on Windows, so this
 /// is not a live gap, but the code is gated to match rather than failing to
 /// compile there.
 #[cfg(any(

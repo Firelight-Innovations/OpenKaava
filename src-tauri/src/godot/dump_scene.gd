@@ -1,4 +1,4 @@
-# Run by OpenKaava as `godot --headless --path <project> -s <this file> -- --scene <res://...> --out <file>`.
+# Run by Veistra as `godot --headless --path <project> -s <this file> -- --scene <res://...> --out <file>`.
 # Loads one scene without adding it to the tree (so no _ready runs and nothing
 # in the game executes) and writes its node tree as JSON.
 extends SceneTree

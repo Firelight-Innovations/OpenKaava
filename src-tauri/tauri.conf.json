@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "OpenKaava",
+  "productName": "Veistra",
   "version": "../package.json",
-  "identifier": "com.firelightinnovations.openkaava",
+  "identifier": "com.firelightinnovations.veistra",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "OpenKaava",
+        "title": "Veistra",
         "width": 1440,
         "height": 900,
         "minWidth": 900,
@@ -54,7 +54,7 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "../kaava.toml": "kaava.toml"
+      "../veistra.toml": "veistra.toml"
     },
     "windows": {
       "nsis": {
@@ -65,7 +65,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/Firelight-Innovations/OpenKaava/releases/latest/download/latest.json"
+        "https://github.com/Firelight-Innovations/Veistra/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhFMTYyQzdGRUIxMjJFNUYKUldSZkxoTHJmeXdXamdZWVNZaXRTVGtQekF6QmFNbHFVejM3SE9WSTE4L1NBSDhPa25EVERtd1UK",
       "windows": {

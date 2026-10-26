@@ -1,4 +1,4 @@
-//! OpenKaava orchestrator — the entry point that ties the multi-repo stack together.
+//! Veistra orchestrator — the entry point that ties the multi-repo stack together.
 //!
 //! The Rust side owns everything that touches the machine: reading the stack
 //! manifest, finding component checkouts on disk, and comparing what's there
@@ -114,7 +114,7 @@ pub fn run() {
     launch_guard::clear_hung_primary(&context.config().identifier);
 
     let launched = tauri::Builder::default()
-        // **First, before every other plugin.** Explorer's "Open with OpenKaava"
+        // **First, before every other plugin.** Explorer's "Open with Veistra"
         // launches this binary again, and everything registered above this
         // line would also run in the process that is about to be told to exit.
         // The callback receives the second launch's argv and this process
@@ -251,7 +251,7 @@ pub fn run() {
         // anyone asking. Empty until `plugins::changed` syncs it, which the
         // setup below does once and every install does after.
         .manage(plugins::Watchers::default())
-        // Whether a newer OpenKaava exists, and how far through fetching it we are.
+        // Whether a newer Veistra exists, and how far through fetching it we are.
         // One value for the process rather than one per window: two windows
         // offering two different answers to "is there an update" is a bug with
         // no correct resolution, and the event that keeps them level carries
@@ -386,7 +386,7 @@ pub fn run() {
             //
             // Failure is not fatal and is already reported inside. A machine
             // that will not hand out a loopback socket should still get an
-            // orchestrator; what it loses is agent access to OpenKaava's own tools.
+            // orchestrator; what it loses is agent access to Veistra's own tools.
             mcp::start(app.handle());
 
             // Before `restore_session`, because a restored layout may hold a
@@ -426,7 +426,7 @@ pub fn run() {
 
             // After `restore_session` too, because this walks the clusters it
             // just brought back to find which projects are open — and it is what
-            // writes the `.mcp.json` an agent reads to find OpenKaava's servers. A
+            // writes the `.mcp.json` an agent reads to find Veistra's servers. A
             // project opened later goes through `commands::set_cluster_project`,
             // which syncs again.
             mcp::sync_all(&handle);
@@ -468,7 +468,7 @@ pub fn run() {
                         80,
                         24,
                     ) {
-                        crate::kaava_log!("could not open the launch terminal: {e}");
+                        crate::veistra_log!("could not open the launch terminal: {e}");
                     }
                 }
             }
@@ -652,14 +652,14 @@ pub fn run() {
     // this goes to stderr and takes the exit code with it. A panic here would
     // print a backtrace to a console nobody is looking at.
     if let Err(error) = launched {
-        crate::kaava_log!("could not start the application: {error}");
+        crate::veistra_log!("could not start the application: {error}");
         std::process::exit(1);
     }
 }
 
 /// Which apps have at least one instance in the layout, with their names.
 ///
-/// What boot waits to hear `kaava/painted` from. Every app in the registry used
+/// What boot waits to hear `veistra/painted` from. Every app in the registry used
 /// to be docked at startup, so the registry and "what is on screen" were the
 /// same list; a restored session makes them different, and waiting on an app
 /// with no frame mounted would hold the splash for the full timeout on every
@@ -731,7 +731,7 @@ fn restore_session(app: &tauri::AppHandle) {
         }
 
         if let Err(e) = windows::create(app, &placement.label, geometry, false) {
-            crate::kaava_log!("could not restore window {}: {e}", placement.label);
+            crate::veistra_log!("could not restore window {}: {e}", placement.label);
         }
     }
 
@@ -777,7 +777,7 @@ fn migrate_global_project(app: &tauri::AppHandle, shell: &ShellState) {
 ///
 /// A tab whose shell will not start is closed rather than left on screen. The
 /// alternative is a tab that draws, accepts focus, and swallows every keystroke
-/// with nothing to send them to — which looks like OpenKaava being broken rather
+/// with nothing to send them to — which looks like Veistra being broken rather
 /// than like one shell being unavailable.
 ///
 /// Each one respawns in **its own cluster's** project, resolved at this moment
@@ -796,7 +796,7 @@ fn respawn_terminals(app: &tauri::AppHandle, shell: &ShellState) {
         // directory and run commands somewhere the tab does not say. The
         // cluster stays and is drawn as missing; only its shells are dropped.
         if shell.cluster_environment_missing(&terminal.cluster_id) {
-            crate::kaava_log!(
+            crate::veistra_log!(
                 "not restoring {}: the worktree of cluster {} is missing",
                 terminal.id,
                 terminal.cluster_id
@@ -813,7 +813,7 @@ fn respawn_terminals(app: &tauri::AppHandle, shell: &ShellState) {
                 .as_ref(),
         );
         if let Err(e) = ptys.open(app, &terminal.id, &cwd, 80, 24, &marker) {
-            crate::kaava_log!("could not restore the shell behind {}: {e}", terminal.id);
+            crate::veistra_log!("could not restore the shell behind {}: {e}", terminal.id);
             shell.close_terminal(app, &terminal.id);
         }
     }

@@ -9,7 +9,7 @@ file. The panel, the severity glyphs, the collapsed strip and status-bar cell 3
 are the interface half and belong to a later agent.
 
 Branch `schematify/w7a-linter`, pull request
-<https://github.com/Firelight-Innovations/OpenKaava/pull/83>.
+<https://github.com/Firelight-Innovations/Veistra/pull/83>.
 
 ---
 

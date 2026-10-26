@@ -69,7 +69,7 @@ The split is one-way on purpose. Files hands over a path it was already showing
 and learns nothing back — not the cursor's position outside itself, not which
 terminals exist, not whether anything was written. A frame that could ask those
 questions would be a frame that could survey the window it is drawn in. Nothing
-comes back from `kaava/drag` but an acknowledgement.
+comes back from `veistra/drag` but an acknowledgement.
 
 ## What stayed in the source
 

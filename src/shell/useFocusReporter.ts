@@ -4,7 +4,7 @@ import { isTauri } from "./hostWindow";
 import { createFocusReporter, readFocus, type FocusReporter } from "./focusReport";
 
 /**
- * Report this window's focus to the backend, so `kaava-workspace` can tell a
+ * Report this window's focus to the backend, so `veistra-workspace` can tell a
  * subscribed agent when it moves. See `focusReport.ts` for the rules; this is
  * only the wiring to the events that can change the answer.
  *

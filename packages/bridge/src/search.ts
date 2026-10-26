@@ -1,9 +1,9 @@
 /**
  * The frame side of the title bar's shared search field.
  *
- * A frame claims the field with `kaava/search-claim` and gives it up with
- * `kaava/search-release`; what the user types, submits or escapes in the field
- * comes back as `kaava:search` events. The shell decides whether the claim is
+ * A frame claims the field with `veistra/search-claim` and gives it up with
+ * `veistra/search-release`; what the user types, submits or escapes in the field
+ * comes back as `veistra:search` events. The shell decides whether the claim is
  * showing (only the active surface's is), so a frame claims when its filter
  * exists and releases when it does not, and never has to track focus.
  *
@@ -57,7 +57,7 @@ export function createSearchClaimer(io: SearchIo): (initial: SearchClaim) => Sea
       const params = { placeholder: claim.placeholder, value: claim.value };
       if (sent && sent.placeholder === params.placeholder && sent.value === params.value) return;
       sent = params;
-      void io.invoke("kaava/search-claim", params).catch(() => {});
+      void io.invoke("veistra/search-claim", params).catch(() => {});
     };
 
     const off = io.on(SEARCH_EVENT, (payload) => {
@@ -80,7 +80,7 @@ export function createSearchClaimer(io: SearchIo): (initial: SearchClaim) => Sea
       live = false;
       off();
       if (current?.release === release) current = null;
-      if (sendRelease) void io.invoke("kaava/search-release").catch(() => {});
+      if (sendRelease) void io.invoke("veistra/search-release").catch(() => {});
     };
 
     const handle: SearchHandle = {

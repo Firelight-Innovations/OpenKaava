@@ -143,8 +143,8 @@ export async function render(req: RenderRequest) {
 interface AuthorRequest {
   scene: {
     elements: Element[];
-    kaava?: { values?: Record<string, unknown> };
-    files?: Record<string, { kaavaRef?: string }>;
+    veistra?: { values?: Record<string, unknown> };
+    files?: Record<string, { veistraRef?: string }>;
   };
   spec: AddShapesSpec & {
     index?: boolean;
@@ -185,7 +185,7 @@ export async function addShapesOp(req: AuthorRequest) {
       elements,
       spec,
       lineWidth,
-      req.scene.kaava?.values ?? {},
+      req.scene.veistra?.values ?? {},
       req.scene.files ?? {},
     );
     return { spec, result };

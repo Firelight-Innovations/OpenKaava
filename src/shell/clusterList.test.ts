@@ -16,7 +16,7 @@ function cluster(id: string, over: Partial<Cluster> = {}): Cluster {
     id,
     name: id,
     tree: { kind: "leaf", tabs: [], active: null } as unknown as Cluster["tree"],
-    project: "C:/code/openkaava",
+    project: "C:/code/veistra",
     worktree: null,
     activeTerminal: null,
     bandHeight: null,
@@ -62,13 +62,13 @@ describe("cycleTarget", () => {
 
 describe("labels", () => {
   it("names the folder whatever the separator", () => {
-    expect(folderName(String.raw`C:\code\open-kaava` + "\\")).toBe("open-kaava");
+    expect(folderName(String.raw`C:\code\veistra` + "\\")).toBe("veistra");
     expect(folderName("/home/me/proj")).toBe("proj");
   });
 
   it("reads project · branch for a worktree, and the default branch for none", () => {
-    expect(clusterTooltip(cluster("a", { worktree: wt("feat/x") }))).toBe("openkaava · feat/x");
-    expect(clusterTooltip(cluster("a"))).toBe("openkaava · default branch");
+    expect(clusterTooltip(cluster("a", { worktree: wt("feat/x") }))).toBe("veistra · feat/x");
+    expect(clusterTooltip(cluster("a"))).toBe("veistra · default branch");
     expect(branchLabel(cluster("a"))).toBe("default branch");
   });
 

@@ -8,7 +8,7 @@
  * tokenizer registered next to this table under a real `toml` id". This is that.
  *
  * `docs/design-notes/monaco-languages.md` carries the long form: the five ways `ini`
- * is concretely wrong on `.kaava`, `kaava.toml` and `Cargo.toml`; why the grammar moved
+ * is concretely wrong on `.veistra`, `veistra.toml` and `Cargo.toml`; why the grammar moved
  * out of `apps/files/` into `packages/`, and why `index.ts` then exports a `registerToml`
  * rather than three loose setters; and why every token name here is borrowed, not invented.
  */
@@ -21,7 +21,7 @@ import type * as monaco from "monaco-editor/editor/editor.api";
 export const TOML_LANGUAGE_ID = "toml";
 
 /** Lowercase, dot-less, matching the `extensionOf` helpers on both sides. */
-export const TOML_EXTENSIONS = ["toml", "kaava"] as const;
+export const TOML_EXTENSIONS = ["toml", "veistra"] as const;
 
 /**
  * Comments, brackets, and what the editor auto-closes. `#` only: TOML has no block comment
@@ -51,9 +51,9 @@ export const TOML_CONFIGURATION: monaco.languages.LanguageConfiguration = {
 /**
  * The Monarch tokenizer. No validation, no folding provider, no language service: a lexer
  * says what a run of characters *looks* like, not whether the document is well-formed. A
- * `.kaava` with a duplicate table is coloured perfectly and is still rejected by Rust, the
+ * `.veistra` with a duplicate table is coloured perfectly and is still rejected by Rust, the
  * half that gets to have an opinion. Every token name it emits is one `vs-dark` already
- * colours, which is what lets every OpenKaava theme keep `rules: []` — see the design notes.
+ * colours, which is what lets every Veistra theme keep `rules: []` — see the design notes.
  */
 export const TOML_LANGUAGE: monaco.languages.IMonarchLanguage = {
   defaultToken: "",
@@ -71,7 +71,7 @@ export const TOML_LANGUAGE: monaco.languages.IMonarchLanguage = {
       // --- table headers ------------------------------------------------
       // `[[tool]]` before `[tool]`: they start with the same character, and the
       // shorter rule would take half of the longer one and leave a stray
-      // bracket, precisely the bug the `ini` stand-in has on `kaava.toml`.
+      // bracket, precisely the bug the `ini` stand-in has on `veistra.toml`.
       // Anchored with `^`, as `ini.js` and `yaml.js` both are, so a header is told
       // apart from an array *value* by where it sits rather than what is inside it.
       // Every capture group is spelled out because Monarch maps an array of
@@ -84,7 +84,7 @@ export const TOML_LANGUAGE: monaco.languages.IMonarchLanguage = {
       // (`{ a = 1, b = 2 }`) are keys too; a table header cannot be caught here
       // because it has no `=`. The character class is TOML's bare-key set,
       // `A-Za-z0-9_-`, and the `-` is the whole reason this rule is not `ini`'s:
-      // every key OpenKaava writes has one in it.
+      // every key Veistra writes has one in it.
       [/("(?:[^"\\]|\\.)*"|'[^']*')(\s*)(=)/, ["key", "", "delimiter"]],
       [/([A-Za-z0-9_-]+(?:\s*\.\s*[A-Za-z0-9_-]+)*)(\s*)(=)/, ["key", "", "delimiter"]],
 
@@ -132,7 +132,7 @@ export const TOML_LANGUAGE: monaco.languages.IMonarchLanguage = {
     whitespace: [
       [/[ \t\r\n]+/, ""],
       // Anywhere on the line, not just at the start of one — TOML allows a
-      // comment after a value, and `kaava.toml` uses that.
+      // comment after a value, and `veistra.toml` uses that.
       [/#.*$/, "comment"],
     ],
 

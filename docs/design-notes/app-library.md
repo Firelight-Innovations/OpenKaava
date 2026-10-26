@@ -40,7 +40,7 @@ An entry marked `default` is installed on first run, automatically, with nobody
 asked. Combined with the fact that a plugin core is an unsandboxed child process
 holding the user's full privileges (`tool-protocol.md` §6), that makes
 `catalog.toml` the one file in this repository where **four lines of TOML cause
-code to be downloaded and executed on every machine that installs OpenKaava.**
+code to be downloaded and executed on every machine that installs Veistra.**
 
 It is also the change most likely to be waved through in review, because it
 looks like configuration rather than like code. That asymmetry — highest
@@ -100,7 +100,7 @@ that cannot be edited from inside the pull request.
 
 `include_str!` rather than a file read at runtime, for the threat model rather
 than for speed. A catalog sitting beside the executable is a file an installed
-OpenKaava could be pointed at a different copy of; one baked into the binary changes
+Veistra could be pointed at a different copy of; one baked into the binary changes
 only when somebody ships a build, which is the same trust boundary as the rest
 of the application code.
 
@@ -109,5 +109,5 @@ which matters, because consulting the catalog is among the first things a first
 run does.
 
 The cost is real and worth stating: **adding an app to the library requires a
-OpenKaava release.** That is the trade being made, and it is the right one while the
+Veistra release.** That is the trade being made, and it is the right one while the
 list is short and the consequence of an entry is "runs code on every machine".

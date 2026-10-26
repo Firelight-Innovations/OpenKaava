@@ -1,6 +1,6 @@
 [package]
 name = "schematify-reconcile"
-description = "Marker-token scanning and the `kaava reconcile` command — Schematify's code-to-design reconciliation (PRD section 9)"
+description = "Marker-token scanning and the `veistra reconcile` command — Schematify's code-to-design reconciliation (PRD section 9)"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -11,8 +11,8 @@ license.workspace = true
 workspace = true
 
 [[bin]]
-name = "kaava"
-path = "src/bin/kaava.rs"
+name = "veistra"
+path = "src/bin/veistra.rs"
 
 [dependencies]
 serde.workspace = true

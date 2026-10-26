@@ -192,7 +192,7 @@ export function descendantsOf(index: DocIndex, id: string): SchematicNode[] {
  * array length` seconds and gigabytes later, inside render, where `App.tsx`'s
  * `openSchematic` catch cannot reach it.
  *
- * Neither source of a document is trusted to be acyclic: `.kaava/nodes/` is
+ * Neither source of a document is trusted to be acyclic: `.veistra/nodes/` is
  * loaded with a loop intact on purpose so rule L01 can report it
  * (`crates/schematify-core/src/graph.rs`), and `./layout.ts`'s
  * `fromAnnotation` copies `parentId` off `layout/<slug>.json` unvalidated.

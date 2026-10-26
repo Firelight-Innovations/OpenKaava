@@ -3,7 +3,7 @@
 //! Focus lives in the DOM, which the backend cannot see, so each window's shell
 //! tells us when it moves (`report_focus`, debounced on the webview side). This
 //! is the one place the answer is kept: the workspace server's `focus` tool and
-//! its `kaava://workspace/focus` resource both read it, and a change here is what
+//! its `veistra://workspace/focus` resource both read it, and a change here is what
 //! wakes a subscribed agent.
 //!
 //! Two small pieces, both pure so they can be tested without an `AppHandle`:
@@ -76,7 +76,7 @@ impl FocusState {
 
 /// Folds a burst of changes into one notification.
 ///
-/// Moving focus from one OpenKaava window to another produces two reports a few
+/// Moving focus from one Veistra window to another produces two reports a few
 /// milliseconds apart (the old window blurs, the new one gains focus), and an
 /// agent only needs to hear about the end state. The first change arms the
 /// coalescer and the caller sleeps briefly before sending; changes that land

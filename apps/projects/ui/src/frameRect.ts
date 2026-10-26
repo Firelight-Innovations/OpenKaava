@@ -1,7 +1,7 @@
 import type { Bounds } from "./rpc";
 
 /** Where this app's own iframe sits in the main window, as the shell reports
- * it over `kaava/window-rect` (`src/shell/toolwindow/ToolWindow.tsx`). Logical
+ * it over `veistra/window-rect` (`src/shell/toolwindow/ToolWindow.tsx`). Logical
  * pixels, matching `getBoundingClientRect()` — no DPI conversion either side. */
 export interface FrameRect {
   x: number;

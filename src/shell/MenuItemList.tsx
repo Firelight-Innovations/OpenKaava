@@ -286,7 +286,7 @@ function Beside({
  * refused.
  *
  * The refusal is shown rather than logged because it is an answer to what was
- * just typed — "that name is one of OpenKaava's own" is only useful next to the
+ * just typed — "that name is one of Veistra's own" is only useful next to the
  * field holding that name. On success the whole menu closes, which is the
  * acknowledgement: the thing you asked for happened and there is nothing left to
  * confirm.

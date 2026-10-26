@@ -102,7 +102,7 @@ describe("the three checks of our own", () => {
       [
         "branding: 1 problem(s)",
         "",
-        "  src-tauri/tauri.conf.json: productName is OpenKaava, branding.toml says FORGEWORKS",
+        "  src-tauri/tauri.conf.json: productName is Veistra, branding.toml says FORGEWORKS",
       ].join("\n"),
       "branding",
     );
@@ -211,7 +211,7 @@ describe("when nothing matches", () => {
   it("names the stage rather than reporting nothing", () => {
     const found = parse(
       [
-        "> openkaava-orchestrator@0.1.0 build",
+        "> veistra-orchestrator@0.1.0 build",
         "> tsc && vite build",
         "",
         "some unparseable disaster",

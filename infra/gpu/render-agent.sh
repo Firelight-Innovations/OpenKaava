@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# Render agent (PRD P4-2, P4-3). Runs on the GPU node as kaava-render-agent.service.
+# Render agent (PRD P4-2, P4-3). Runs on the GPU node as veistra-render-agent.service.
 #
-# Drains the render queue one job at a time, then powers the machine off after KAAVA_IDLE_MINUTES
+# Drains the render queue one job at a time, then powers the machine off after VEISTRA_IDLE_MINUTES
 # with nothing to do. The idle clock starts at boot, so a node started by mistake also stops.
 # See render.sh for the queue layout.
 
 set -uo pipefail
-. /etc/kaava/env
+. /etc/veistra/env
 
-queue="gs://$KAAVA_RENDER_QUEUE"
-idle_limit=$((KAAVA_IDLE_MINUTES * 60))
+queue="gs://$VEISTRA_RENDER_QUEUE"
+idle_limit=$((VEISTRA_IDLE_MINUTES * 60))
 last_work=$(date +%s)
 
-log() { echo "[kaava-render-agent] $*"; }
+log() { echo "[veistra-render-agent] $*"; }
 
 finish() {
   local id=$1 body=$2
@@ -33,7 +33,7 @@ run_job() {
   res=$(jq -r .resolution "$work/job.json")
 
   local started=$SECONDS
-  if blender -b --python /opt/kaava/turntable.py -- "$work/input.glb" "$work/out" "$frames" "$res" \
+  if blender -b --python /opt/veistra/turntable.py -- "$work/input.glb" "$work/out" "$frames" "$res" \
     >"$work/blender.log" 2>&1 && gcloud storage cp --quiet "$work"/out/*.png "$output"; then
     finish "$id" "$(jq -n --arg out "$output" --argjson s $((SECONDS - started)) \
       '{status: "ok", output: $out, seconds: $s}')"
@@ -51,7 +51,7 @@ while true; do
     run_job "$job"
     last_work=$(date +%s)
   elif [ $(($(date +%s) - last_work)) -ge "$idle_limit" ]; then
-    log "idle for ${KAAVA_IDLE_MINUTES}m; powering off"
+    log "idle for ${VEISTRA_IDLE_MINUTES}m; powering off"
     shutdown -h now
     exit 0
   fi

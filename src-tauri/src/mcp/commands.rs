@@ -41,7 +41,7 @@ pub fn mcp_status(
 }
 
 /// Everything the tools panel draws: each server's tools with their input
-/// schemas, and the app methods `kaava-agent`'s `app_call` can reach.
+/// schemas, and the app methods `veistra-agent`'s `app_call` can reach.
 ///
 /// Built from the registry the listener serves `tools/list` from, so the panel
 /// cannot disagree with a client. Filtered by developer mode the same way

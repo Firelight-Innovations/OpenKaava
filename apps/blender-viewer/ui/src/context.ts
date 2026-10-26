@@ -4,9 +4,9 @@
  * host's; this file only decides what each thing is called and what kind of
  * item it becomes, so the viewer's buttons and its drag share one path.
  */
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 import { contextKey, type ContextRef } from "../../../shared/context";
-import type { MarkupJson } from "@kaava/markup";
+import type { MarkupJson } from "@veistra/markup";
 import {
   BLENDER_TARGET,
   blobBase64,

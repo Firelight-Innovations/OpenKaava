@@ -4,7 +4,7 @@
  * `schematify/module-dashboard` and `schematify/runs` (`src-tauri/src/apps/schematify.rs`).
  *
  * Pure and DOM-free, the same convention `./problems.ts` follows: nothing
- * here imports `@openkaava/bridge`, so it unit-tests under plain Node.
+ * here imports `@veistra/bridge`, so it unit-tests under plain Node.
  * `./backend.ts` is this app's only door to Rust.
  *
  * Both wire shapes are hand-built JSON on the Rust side (`json!`, not a

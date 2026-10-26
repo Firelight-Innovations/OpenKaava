@@ -1,8 +1,8 @@
 /*
- * New Project (board 14, `docs/design/KAAVA-UX-SPEC.md`). Page-specific
+ * New Project (board 14, `docs/design/VEISTRA-UX-SPEC.md`). Page-specific
  * layout only — buttons, fields and toggles come from the shared `.k-btn`,
  * `.k-field`, `.k-toggle` and `.k-tabs--segmented` vocabulary in
- * `src/kaava-ui.css` (loaded by every app through `apps/shared/app.css`),
+ * `src/veistra-ui.css` (loaded by every app through `apps/shared/app.css`),
  * and every colour, radius and spacing value below is one of `src/
  * tokens.css`'s own tokens. Nothing here hardcodes a hex or invents a
  * duplicate of a token that already exists — see the `ux-tokens` PR (#143)

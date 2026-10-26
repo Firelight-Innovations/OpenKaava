@@ -66,8 +66,8 @@ function item(over: Partial<ContextItem> = {}): ContextItem {
     method: "put",
     createdAt: 1,
     size: 2048,
-    path: "C:/p/.kaava/context/a.png",
-    relPath: ".kaava/context/a.png",
+    path: "C:/p/.veistra/context/a.png",
+    relPath: ".veistra/context/a.png",
     owned: true,
     image: { width: 640, height: 480 },
     missing: false,
@@ -125,7 +125,7 @@ describe("ContextStrip", () => {
         image: undefined,
         text: { chars: 22, lines: 3, truncated: false },
         preview: JSON.stringify({ pins: [] }, null, 2),
-        path: "C:/p/.kaava/context/j.json",
+        path: "C:/p/.veistra/context/j.json",
       }),
     ]);
     const { container } = render(<ContextStrip sessionId="t1" />);
@@ -229,7 +229,7 @@ describe("ContextStrip", () => {
     fireEvent.click(await screen.findByLabelText("Hide context"));
     expect(screen.queryByText("Play frame")).toBeNull();
     expect(screen.getByLabelText("Show context, 2 items")).toBeTruthy();
-    expect(localStorage.getItem("kaava.contextStrip.collapsed")).toBe("1");
+    expect(localStorage.getItem("veistra.contextStrip.collapsed")).toBe("1");
     fireEvent.click(screen.getByLabelText("Show context, 2 items"));
     expect((await screen.findAllByText("Play frame")).length).toBe(2);
   });
@@ -356,7 +356,7 @@ describe.each(["side", "bottom"] as const)("ContextStrip in the %s layout", (lay
     fireEvent.click(await screen.findByLabelText("Hide context"));
     expect(screen.queryByText("Play frame")).toBeNull();
     expect(screen.getByLabelText("Show context, 2 items")).toBeTruthy();
-    expect(localStorage.getItem("kaava.contextStrip.collapsed")).toBe("1");
+    expect(localStorage.getItem("veistra.contextStrip.collapsed")).toBe("1");
     fireEvent.click(screen.getByLabelText("Show context, 2 items"));
     expect((await screen.findAllByText("Play frame")).length).toBe(2);
   });

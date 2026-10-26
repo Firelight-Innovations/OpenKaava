@@ -49,12 +49,12 @@ export interface MarkupToolbarProps {
 
 export function MarkupToolbar(props: MarkupToolbarProps) {
   return (
-    <div className="kaava-markup__toolbar" role="toolbar" aria-label="Markup tools">
+    <div className="veistra-markup__toolbar" role="toolbar" aria-label="Markup tools">
       {TOOLS.map((t) => (
         <button
           key={t.id}
           type="button"
-          className="kaava-markup__btn"
+          className="veistra-markup__btn"
           aria-label={t.label}
           title={t.label}
           aria-pressed={props.tool === t.id}
@@ -63,12 +63,12 @@ export function MarkupToolbar(props: MarkupToolbarProps) {
           {t.icon}
         </button>
       ))}
-      <span className="kaava-markup__sep" />
+      <span className="veistra-markup__sep" />
       {props.swatches.map((s) => (
         <button
           key={s.id}
           type="button"
-          className="kaava-markup__btn kaava-markup__swatch"
+          className="veistra-markup__btn veistra-markup__swatch"
           aria-label={s.label}
           title={s.label}
           aria-pressed={props.color === s.color}
@@ -76,10 +76,10 @@ export function MarkupToolbar(props: MarkupToolbarProps) {
           onClick={() => props.onColor(s.color)}
         />
       ))}
-      <span className="kaava-markup__sep" />
+      <span className="veistra-markup__sep" />
       <button
         type="button"
-        className="kaava-markup__btn"
+        className="veistra-markup__btn"
         aria-label="Undo"
         title="Undo"
         onClick={props.onUndo}
@@ -88,7 +88,7 @@ export function MarkupToolbar(props: MarkupToolbarProps) {
       </button>
       <button
         type="button"
-        className="kaava-markup__btn"
+        className="veistra-markup__btn"
         aria-label="Redo"
         title="Redo"
         onClick={props.onRedo}
@@ -97,15 +97,15 @@ export function MarkupToolbar(props: MarkupToolbarProps) {
       </button>
       <button
         type="button"
-        className="kaava-markup__btn"
+        className="veistra-markup__btn"
         aria-label="Clear"
         title="Clear"
         onClick={props.onClear}
       >
         <Trash2 size={16} strokeWidth={1.5} />
       </button>
-      <span className="kaava-markup__sep" />
-      <button type="button" className="kaava-markup__done" onClick={props.onDone}>
+      <span className="veistra-markup__sep" />
+      <button type="button" className="veistra-markup__done" onClick={props.onDone}>
         <Check size={14} strokeWidth={1.5} />
         Done
       </button>

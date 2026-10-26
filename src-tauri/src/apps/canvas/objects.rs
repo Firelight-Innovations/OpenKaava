@@ -13,10 +13,10 @@ use super::subcanvas;
 use super::types::{self, TypeDef};
 use super::webview::Webview;
 use super::{bad, file_for, files, load, relative, validate_id, DIR};
-use kaava_rpc::RpcError;
 use serde_json::{json, Map, Value};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
+use veistra_rpc::RpcError;
 
 /// The most canvases a `recursive` walk visits, and how deep it goes.
 const WALK_MAX: usize = 200;
@@ -52,19 +52,19 @@ pub fn parent_of(root: &Path, id: &str) -> Option<String> {
     let path = file_for(root, id);
     let scene = load(root, &path).ok()?;
     scene
-        .get("kaava")?
+        .get("veistra")?
         .get("parent")?
         .as_str()
         .map(str::to_owned)
 }
 
-/// Refuse a scene that would put a canvas under itself: a `kaava.parent` that
+/// Refuse a scene that would put a canvas under itself: a `veistra.parent` that
 /// is the canvas or one of its descendants, or a frame linking to the canvas
 /// itself or to one of its ancestors.
 pub fn check_links(root: &Path, id: &str, scene: &Value) -> Result<(), RpcError> {
     let up = |c: &str| parent_of(root, c);
     if let Some(parent) = scene
-        .get("kaava")
+        .get("veistra")
         .and_then(|k| k.get("parent"))
         .and_then(Value::as_str)
     {
@@ -152,7 +152,7 @@ fn must_exist(root: &Path, id: &str) -> Result<(), RpcError> {
         return Ok(());
     }
     Err(RpcError::with_data(
-        kaava_rpc::INVALID_PARAMS,
+        veistra_rpc::INVALID_PARAMS,
         format!("there is no canvas `{id}` ({})", relative(root, &path)),
         json!({ "kind": "missing" }),
     ))
@@ -164,7 +164,7 @@ fn read_canvas(root: &Path, id: &str) -> Result<Read, RpcError> {
     let mut scene = load(root, &path)?;
     let migration = frames::migrate(&mut scene);
     let title = scene
-        .pointer("/kaava/title")
+        .pointer("/veistra/title")
         .and_then(Value::as_str)
         .filter(|t| !t.is_empty())
         .unwrap_or_else(|| id.rsplit('/').next().unwrap_or(id))
@@ -189,7 +189,7 @@ fn read_canvas(root: &Path, id: &str) -> Result<Read, RpcError> {
     })
 }
 
-/// Every canvas's children by `kaava.parent`, in file order.
+/// Every canvas's children by `veistra.parent`, in file order.
 fn nested_children(root: &Path) -> HashMap<String, Vec<String>> {
     let mut out: HashMap<String, Vec<String>> = HashMap::new();
     for (id, _) in files(root) {
@@ -202,7 +202,7 @@ fn nested_children(root: &Path) -> HashMap<String, Vec<String>> {
 
 /// The canvases a listing covers, in order: the one asked for, plus its
 /// descendants when `recursive` (both the canvases its frames link to and the ones
-/// whose `kaava.parent` names it, as `canvas/tree` shows them); or every canvas in
+/// whose `veistra.parent` names it, as `canvas/tree` shows them); or every canvas in
 /// the project.
 fn scope(
     root: &Path,
@@ -424,7 +424,7 @@ pub fn frame_detail(root: &Path, params: Option<&Value>) -> Result<Value, RpcErr
 
 /// `canvas/frame-image` `{actor, canvas, frame, scale?, maxDimension?, theme?}`:
 /// render just that frame to a PNG, drawn by the open Canvas app so it matches
-/// what a person sees. The file is `.kaava/preview/canvas/<canvas>/<frame id>.png`
+/// what a person sees. The file is `.veistra/preview/canvas/<canvas>/<frame id>.png`
 /// and is overwritten by the next render of the same frame.
 ///
 /// Result: `{path, relative, width, height, scale, bytes, frame: Frame, hint}`;
@@ -459,7 +459,7 @@ pub fn frame_image(
 // --- nesting ------------------------------------------------------------------
 
 /// `canvas/tree` `{actor}`: the nested-canvas hierarchy. A canvas sits under the
-/// canvas its `kaava.parent` names; one with no parent, or whose parent is not
+/// canvas its `veistra.parent` names; one with no parent, or whose parent is not
 /// in the checkout, is a root.
 ///
 /// Result: `{roots: [Node], cycles: [id], problems: [string]}` where a Node is
@@ -482,7 +482,7 @@ pub fn tree(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
             Ok(r) => Row {
                 parent: r
                     .scene
-                    .pointer("/kaava/parent")
+                    .pointer("/veistra/parent")
                     .and_then(Value::as_str)
                     .map(str::to_owned),
                 frames: r.frames.len(),
@@ -563,26 +563,29 @@ pub fn tree(root: &Path, params: Option<&Value>) -> Result<Value, RpcError> {
 
 /// The prefix of the Excalidraw `link` a frame carries beside its child canvas, so
 /// the editor draws its link badge. Mirrors `CANVAS_LINK` in `ui/src/nesting.ts`.
-const CANVAS_LINK: &str = "kaava://canvas/";
+const CANVAS_LINK: &str = "veistra://canvas/";
 
 /// Point frame element `el` at canvas `child`, or clear the link with `None`.
-/// Only `customData.kaava.child` and a `kaava://canvas/` link are touched: the
+/// Only `customData.veistra.child` and a `veistra://canvas/` link are touched: the
 /// frame's object, diagram and any other metadata stay as they were, and a link
 /// to something else is left alone when unlinking.
 fn set_child_link(el: &mut Value, child: Option<&str>) {
     if !el.get("customData").is_some_and(Value::is_object) {
         el["customData"] = json!({});
     }
-    if !el["customData"].get("kaava").is_some_and(Value::is_object) {
-        el["customData"]["kaava"] = json!({});
+    if !el["customData"]
+        .get("veistra")
+        .is_some_and(Value::is_object)
+    {
+        el["customData"]["veistra"] = json!({});
     }
     match child {
         Some(c) => {
-            el["customData"]["kaava"]["child"] = json!(c);
+            el["customData"]["veistra"]["child"] = json!(c);
             el["link"] = json!(format!("{CANVAS_LINK}{c}"));
         }
         None => {
-            if let Some(k) = el["customData"]["kaava"].as_object_mut() {
+            if let Some(k) = el["customData"]["veistra"].as_object_mut() {
                 k.remove("child");
                 k.remove("subcanvas");
             }
@@ -593,12 +596,12 @@ fn set_child_link(el: &mut Value, child: Option<&str>) {
             {
                 el["link"] = Value::Null;
             }
-            if el["customData"]["kaava"]
+            if el["customData"]["veistra"]
                 .as_object()
                 .is_some_and(Map::is_empty)
             {
                 if let Some(c) = el["customData"].as_object_mut() {
-                    c.remove("kaava");
+                    c.remove("veistra");
                 }
             }
             if el["customData"].as_object().is_some_and(Map::is_empty) {
@@ -624,7 +627,7 @@ fn clear_links(root: &Path, canvas: &str, child: &str, who: &str) -> Result<usiz
             if is_frame_el(el)
                 && is_live_el(el)
                 && el
-                    .pointer("/customData/kaava/child")
+                    .pointer("/customData/veistra/child")
                     .and_then(Value::as_str)
                     == Some(child)
             {
@@ -639,7 +642,7 @@ fn clear_links(root: &Path, canvas: &str, child: &str, who: &str) -> Result<usiz
     Ok(n)
 }
 
-/// Write canvas `id`'s `kaava.parent` (`None` removes it), without any check.
+/// Write canvas `id`'s `veistra.parent` (`None` removes it), without any check.
 fn write_parent(
     root: &Path,
     id: &str,
@@ -647,13 +650,13 @@ fn write_parent(
     who: &str,
 ) -> Result<Option<u64>, RpcError> {
     let (_, mut scene, base) = open(root, &json!({ "id": id }))?;
-    if !scene.get("kaava").is_some_and(Value::is_object) {
-        scene["kaava"] = Value::Object(Map::new());
+    if !scene.get("veistra").is_some_and(Value::is_object) {
+        scene["veistra"] = Value::Object(Map::new());
     }
     match parent {
-        Some(par) => scene["kaava"]["parent"] = json!(par),
+        Some(par) => scene["veistra"]["parent"] = json!(par),
         None => {
-            if let Some(k) = scene["kaava"].as_object_mut() {
+            if let Some(k) = scene["veistra"].as_object_mut() {
                 k.remove("parent");
             }
         }
@@ -665,7 +668,7 @@ fn write_parent(
 /// make `frame` (an element id or exact name) on `canvas` open the existing canvas
 /// `child` on double-click, or clear its link with `null`.
 ///
-/// Linking sets the frame's child link and the child's `kaava.parent`, so the tree
+/// Linking sets the frame's child link and the child's `veistra.parent`, so the tree
 /// and the breadcrumb agree with the frame. Refused when `child` does not exist, is
 /// `canvas` or one of its ancestors (a loop), or is already nested under a different
 /// canvas (pass `reparent: true` to move it; the old parent's frame that linked to it
@@ -846,7 +849,7 @@ fn apply_object(
     values: Option<&Map<String, Value>>,
 ) -> Result<(), RpcError> {
     let current = el
-        .pointer("/customData/kaava/object")
+        .pointer("/customData/veistra/object")
         .and_then(Value::as_object);
     let have_type = current
         .and_then(|o| o.get("type"))
@@ -905,10 +908,13 @@ fn apply_object(
     if !el.get("customData").is_some_and(Value::is_object) {
         el["customData"] = json!({});
     }
-    if !el["customData"].get("kaava").is_some_and(Value::is_object) {
-        el["customData"]["kaava"] = json!({});
+    if !el["customData"]
+        .get("veistra")
+        .is_some_and(Value::is_object)
+    {
+        el["customData"]["veistra"] = json!({});
     }
-    el["customData"]["kaava"]["object"] = json!({ "type": type_id, "props": props });
+    el["customData"]["veistra"]["object"] = json!({ "type": type_id, "props": props });
     Ok(())
 }
 
@@ -1102,7 +1108,7 @@ pub fn create_frame(root: &Path, params: Option<&Value>) -> Result<Value, RpcErr
             .collect::<Vec<_>>()
             .join(", ");
         return Err(RpcError::with_data(
-            kaava_rpc::INVALID_PARAMS,
+            veistra_rpc::INVALID_PARAMS,
             format!(
                 "{list} already belong to a frame. An element sits in one frame, so wrapping it \
                  would take it out of that one and leave a gap there (and a diagram rebuilt by \
@@ -1186,9 +1192,9 @@ mod tests {
         v
     }
 
-    fn frame(id: &str, name: &str, kaava: Value) -> Value {
+    fn frame(id: &str, name: &str, veistra: Value) -> Value {
         json!({ "id": id, "type": "frame", "name": name, "x": 10, "y": 20, "width": 300,
-                "height": 200, "customData": { "kaava": kaava } })
+                "height": 200, "customData": { "veistra": veistra } })
     }
 
     fn put(root: &Path, id: &str, parent: Option<&str>, elements: Vec<Value>) {
@@ -1223,7 +1229,7 @@ mod tests {
                     json!({ "spec": { "name": "Pillar", "size_m": 4, "triangle_budget": 900 } }),
                 ),
                 json!({ "id": "legacy", "type": "rectangle", "x": 0, "y": 0, "width": 5,
-                        "height": 5, "customData": { "kaava": { "spec": { "name": "Chair" } } } }),
+                        "height": 5, "customData": { "veistra": { "spec": { "name": "Chair" } } } }),
             ],
         );
         put(
@@ -1390,7 +1396,7 @@ mod tests {
         assert!(first["relative"]
             .as_str()
             .unwrap()
-            .starts_with(".kaava/preview/canvas/world/"));
+            .starts_with(".veistra/preview/canvas/world/"));
         assert!(Path::new(first["path"].as_str().unwrap()).is_file());
         assert_eq!(web.0.borrow()[0]["frameId"], "f1");
         let dir_files: Vec<_> =
@@ -1455,7 +1461,7 @@ mod tests {
             let path = file_for(dir.path(), id);
             let mut s: Value =
                 serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
-            s["kaava"]["parent"] = json!(parent);
+            s["veistra"]["parent"] = json!(parent);
             std::fs::write(&path, s.to_string()).unwrap();
         }
         let out = run(dir.path(), "canvas/tree", agent(json!({}))).unwrap();
@@ -1508,7 +1514,7 @@ mod tests {
         let dir = project();
         let read = |id: &str| run(dir.path(), "canvas/read", json!({ "id": id })).unwrap();
         let mut world = read("world");
-        world["scene"]["kaava"]["parent"] = json!("world/pillar");
+        world["scene"]["veistra"]["parent"] = json!("world/pillar");
         let err = run(
             dir.path(),
             "canvas/write",
@@ -1908,8 +1914,8 @@ mod tests {
         assert_eq!(out["previous"], Value::Null);
         assert_eq!(parent_of(dir.path(), "side").as_deref(), Some("hub"));
         let el = &read_scene(dir.path(), "hub")["elements"][0];
-        assert_eq!(el["link"], "kaava://canvas/side");
-        assert_eq!(el["customData"]["kaava"]["child"], "side");
+        assert_eq!(el["link"], "veistra://canvas/side");
+        assert_eq!(el["customData"]["veistra"]["child"], "side");
 
         let tree = run(dir.path(), "canvas/tree", agent(json!({}))).unwrap();
         let hub = tree["roots"]
@@ -1926,10 +1932,10 @@ mod tests {
     fn linking_and_retyping_keep_a_frames_diagram_and_both_listings_see_it() {
         let dir = links_project();
         link(dir.path(), "h1", json!("side"), json!({})).unwrap();
-        let kaava = read_scene(dir.path(), "hub")["elements"][0]["customData"]["kaava"].clone();
-        assert_eq!(kaava["diagram"]["id"], "hub-diagram");
-        assert_eq!(kaava["object"]["type"], "feature");
-        assert_eq!(kaava["child"], "side");
+        let veistra = read_scene(dir.path(), "hub")["elements"][0]["customData"]["veistra"].clone();
+        assert_eq!(veistra["diagram"]["id"], "hub-diagram");
+        assert_eq!(veistra["object"]["type"], "feature");
+        assert_eq!(veistra["child"], "side");
 
         run(
             dir.path(),
@@ -1937,10 +1943,10 @@ mod tests {
             agent(json!({ "canvas": "hub", "frame": "h1", "type": "system" })),
         )
         .unwrap();
-        let kaava = read_scene(dir.path(), "hub")["elements"][0]["customData"]["kaava"].clone();
-        assert_eq!(kaava["diagram"]["id"], "hub-diagram");
-        assert_eq!(kaava["object"]["type"], "system");
-        assert_eq!(kaava["child"], "side");
+        let veistra = read_scene(dir.path(), "hub")["elements"][0]["customData"]["veistra"].clone();
+        assert_eq!(veistra["diagram"]["id"], "hub-diagram");
+        assert_eq!(veistra["object"]["type"], "system");
+        assert_eq!(veistra["child"], "side");
 
         let listed = run(
             dir.path(),
@@ -2004,10 +2010,10 @@ mod tests {
         run(dir.path(), "canvas/link-frame", agent(moved)).unwrap();
         assert_eq!(parent_of(dir.path(), "side").as_deref(), Some("other"));
         let hub = read_scene(dir.path(), "hub");
-        let kaava = &hub["elements"][0]["customData"]["kaava"];
-        assert!(kaava.get("child").is_none());
+        let veistra = &hub["elements"][0]["customData"]["veistra"];
+        assert!(veistra.get("child").is_none());
         assert_eq!(hub["elements"][0]["link"], Value::Null);
-        assert_eq!(kaava["diagram"]["id"], "hub-diagram");
+        assert_eq!(veistra["diagram"]["id"], "hub-diagram");
     }
 
     #[test]
@@ -2024,8 +2030,8 @@ mod tests {
         assert_eq!(parent_of(dir.path(), "other"), None);
         let el = &read_scene(dir.path(), "hub")["elements"][0];
         assert_eq!(el["link"], Value::Null);
-        assert_eq!(el["customData"]["kaava"]["object"]["type"], "feature");
-        assert_eq!(el["customData"]["kaava"]["diagram"]["id"], "hub-diagram");
+        assert_eq!(el["customData"]["veistra"]["object"]["type"], "feature");
+        assert_eq!(el["customData"]["veistra"]["diagram"]["id"], "hub-diagram");
     }
 
     #[test]
@@ -2093,8 +2099,8 @@ mod tests {
         .unwrap();
         assert_eq!(out["unlinkedFrames"], 1);
         let el = &read_scene(dir.path(), "hub")["elements"][0];
-        assert!(el["customData"]["kaava"].get("child").is_none());
-        assert_eq!(el["customData"]["kaava"]["object"]["type"], "feature");
+        assert!(el["customData"]["veistra"].get("child").is_none());
+        assert_eq!(el["customData"]["veistra"]["object"]["type"], "feature");
         assert_eq!(el["link"], Value::Null);
         let again = run(
             dir.path(),

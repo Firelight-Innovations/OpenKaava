@@ -30,7 +30,7 @@ use std::path::{Path, PathBuf};
 use tauri::{Manager, State};
 use tauri_plugin_opener::OpenerExt;
 
-/// Read kaava.toml, resolve every declared tool against the filesystem, cache
+/// Read veistra.toml, resolve every declared tool against the filesystem, cache
 /// the result, and hand it to the UI.
 ///
 /// Safe to call repeatedly — it always re-reads from disk, so this doubles as
@@ -106,7 +106,7 @@ pub fn boot_status(state: State<'_, AppState>) -> boot::BootStatus {
     })
 }
 
-/// The path Explorer's "Open with OpenKaava" was pointed at, if this launch had one.
+/// The path Explorer's "Open with Veistra" was pointed at, if this launch had one.
 ///
 /// Polled once by the shell when it mounts, for the reason `launch`'s module doc
 /// gives: Tauri does not replay events, and at the moment a launch target is
@@ -125,7 +125,7 @@ pub fn take_launch_target(state: State<'_, launch::LaunchState>) -> Option<launc
 /// A first-party app's UI has drawn its first meaningful frame.
 ///
 /// Reported by the *shell*, not by the app: an app's frontend sends
-/// `kaava/painted` over transport B, and `ToolWindow` — the only thing that can
+/// `veistra/painted` over transport B, and `ToolWindow` — the only thing that can
 /// say which mounted frame a message came from — forwards it here with the id
 /// it resolved. So an app cannot report on another app's behalf, for the same
 /// reason it cannot answer another app's `invoke`.
@@ -140,7 +140,7 @@ pub fn app_painted(id: String) {
 
 // --- shell state ------------------------------------------------------------
 //
-// Placement and terminal sessions are shared across every OpenKaava window, so they
+// Placement and terminal sessions are shared across every Veistra window, so they
 // live in `ShellState` rather than in any window's React tree. Each of these
 // mutators broadcasts `shell:state` on the way out — see `ShellState::mutate`.
 //
@@ -688,7 +688,7 @@ fn cluster_name_or_environment_fallback(
 /// Design canvas cluster onto it in the calling window.
 ///
 /// The "offered but not auto-created" half of the canvas's behaviour
-/// (KAAVA-UX-REWORK.md §5) — `project::open`'s `open_design_cluster_if_present`
+/// (VEISTRA-UX-REWORK.md §5) — `project::open`'s `open_design_cluster_if_present`
 /// is the *auto* half, run once at open time for a project that already has
 /// `wt/design`; this is the same finish for one that doesn't, reachable
 /// without closing and reopening the project to get it. `base` is the branch
@@ -710,7 +710,7 @@ pub fn create_design_cluster(
     Ok(shell.add_design_cluster(&app, &label, &project, environment))
 }
 
-/// Drop a tab on the switcher's empty space (KAAVA-UX-REWORK.md §5): a
+/// Drop a tab on the switcher's empty space (VEISTRA-UX-REWORK.md §5): a
 /// cluster of its own, in the same environment the tab came from, holding
 /// that one tab.
 ///
@@ -803,7 +803,7 @@ pub fn close_cluster(
 
 // --- windows ----------------------------------------------------------------
 
-/// Which OpenKaava window the cursor is over, or `None` if it is over none of them.
+/// Which Veistra window the cursor is over, or `None` if it is over none of them.
 ///
 /// Called by the drag layer on drop, to find out which window a tab was let go
 /// over. The frontend cannot answer this for itself — see `windows::at_cursor`.
@@ -853,7 +853,7 @@ pub async fn new_window(app: tauri::AppHandle, shell: State<'_, ShellState>) -> 
 
 /// Drag a whole cluster clear of its window — the multi-monitor gesture.
 ///
-/// `to_label` is where it lands. `Some(label)` moves it into an OpenKaava window that is already open,
+/// `to_label` is where it lands. `Some(label)` moves it into a Veistra window that is already open,
 /// which is what a release over another window means; `None` gives it a window of its own.
 ///
 /// That first case is deliberately built here where the same thing for a single tab was
@@ -1287,7 +1287,7 @@ pub fn terminal_busy(ptys: State<'_, PtySessions>, id: String) -> Option<pty::Bu
 }
 
 /// Drop a terminal into the band of whatever cluster a window is showing.
-/// `to_label` is the destination, which may be any OpenKaava window including the
+/// `to_label` is the destination, which may be any Veistra window including the
 /// one it is already in.
 ///
 /// Still named by *window*, because that is what the drag layer can find out —
@@ -1484,7 +1484,7 @@ pub fn list_catalog(app: tauri::AppHandle) -> Vec<plugins::catalog::CatalogRow> 
 ///
 /// The development path, and in this build the only one. `path` is a directory
 /// the person picked; everything about what the plugin *is* comes from the
-/// `kaava-tool.toml` inside it rather than from anything the frontend asserts.
+/// `veistra-tool.toml` inside it rather than from anything the frontend asserts.
 #[tauri::command]
 pub fn install_plugin_folder(app: tauri::AppHandle, path: String) -> Result<plugins::PluginRow> {
     let path = PathBuf::from(path);
@@ -1558,10 +1558,10 @@ pub fn set_plugin_enabled(app: tauri::AppHandle, id: String, enabled: bool) -> b
 ///
 /// This is the shell end of transport B for apps. The iframe posts a `request` message,
 /// `ToolWindow` forwards it here, and the reply goes back as a `response` — so an app's UI calls
-/// `invoke("files/list")` through `@openkaava/bridge` exactly as a tool's UI would, and never learns
+/// `invoke("files/list")` through `@veistra/bridge` exactly as a tool's UI would, and never learns
 /// that its host answered in-process rather than over a pipe. The error type is `RpcError`, not
 /// this crate's `AppError`: it carries the JSON-RPC `code` the bridge turns back into a
-/// `KaavaRpcError`, which is what lets a frontend tell "no such method" from "that file isn't text"
+/// `VeistraRpcError`, which is what lets a frontend tell "no such method" from "that file isn't text"
 /// without parsing an error string.
 ///
 /// `id` names the app — the code that answers. `instance_id` names the surface that asked, and it
@@ -1582,7 +1582,7 @@ pub async fn app_call(
     cluster_id: Option<String>,
     method: String,
     params: Option<serde_json::Value>,
-) -> std::result::Result<serde_json::Value, kaava_rpc::RpcError> {
+) -> std::result::Result<serde_json::Value, veistra_rpc::RpcError> {
     // The whole dispatch moves to a blocking worker and this command awaits it. A synchronous
     // `#[tauri::command]` runs on the **main thread**, and an app's Rust half does things that must
     // not happen there: `home/open-project` opens a native folder picker, which needs the main
@@ -1606,8 +1606,8 @@ pub async fn app_call(
     // becomes a plain internal error rather than being unwrapped into a panic
     // that would take the main thread with it.
     .unwrap_or_else(|e| {
-        Err(kaava_rpc::RpcError::new(
-            kaava_rpc::INTERNAL_ERROR,
+        Err(veistra_rpc::RpcError::new(
+            veistra_rpc::INTERNAL_ERROR,
             format!("the app call did not complete: {e}"),
         ))
     })
@@ -1765,7 +1765,7 @@ pub struct ProjectIconChanged {
     pub icon: Option<String>,
 }
 
-/// A project's `.kaava/icon.*` as a `data:` URL, or `None` for the letter tile.
+/// A project's `.veistra/icon.*` as a `data:` URL, or `None` for the letter tile.
 /// See `project::icon` for why a data URL and why the size is capped.
 #[tauri::command]
 pub fn project_icon(path: String) -> Option<String> {
@@ -1942,7 +1942,7 @@ fn fill_preset_gaps(
                         dir: None,
                     },
                 ) else {
-                    crate::kaava_log!("could not open `{app_id}` for a preset slot");
+                    crate::veistra_log!("could not open `{app_id}` for a preset slot");
                     continue;
                 };
                 // Only when appending would have put it in the wrong place,
@@ -1970,7 +1970,7 @@ fn fill_preset_gaps(
                     // the preset already decided the shape.
                     None,
                 ) {
-                    crate::kaava_log!("could not open a terminal for a preset slot: {e}");
+                    crate::veistra_log!("could not open a terminal for a preset slot: {e}");
                 }
             }
         }
@@ -2075,7 +2075,7 @@ pub fn review_comments_mark_sent(
 /// than leaving it unarranged.
 pub(crate) fn apply_project_open_preset(app: &tauri::AppHandle, cluster_id: &str) {
     let Some(preset) = presets::find(app, presets::PROJECT_OPEN_PRESET_ID) else {
-        crate::kaava_log!("the built-in project-open preset is missing");
+        crate::veistra_log!("the built-in project-open preset is missing");
         return;
     };
 
@@ -2214,7 +2214,7 @@ mod tests {
     fn local_worktree() -> Environment {
         Environment::LocalWorktree {
             name: "feat-x".to_string(),
-            path: "C:/proj/.kaava/worktrees/feat-x".to_string(),
+            path: "C:/proj/.veistra/worktrees/feat-x".to_string(),
             branch: "wt/feat-x".to_string(),
             base: "main".to_string(),
         }

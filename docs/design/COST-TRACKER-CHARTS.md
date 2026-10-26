@@ -205,7 +205,7 @@ The rework decides the layout. The plan gives the order of importance only:
 
 ## 6. Acceptance
 
-- [ ] C1–C3 draw from the fixture (`KAAVA_CLOUD_FIXTURES`) and from live data in the agent
+- [ ] C1–C3 draw from the fixture (`VEISTRA_CLOUD_FIXTURES`) and from live data in the agent
       instance (`pnpm ui launch`).
 - [ ] C4–C6 draw from the fixtures, and show the `notEnabled` note on a project without the
       export.

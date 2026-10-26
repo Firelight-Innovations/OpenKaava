@@ -1,5 +1,5 @@
 /*
- * The Context strip, beside the terminal (docs/design/KAAVA-AGENT-CONTEXT.md §4.4).
+ * The Context strip, beside the terminal (docs/design/VEISTRA-AGENT-CONTEXT.md §4.4).
  * A column on the region's own surface: rows are `bg-layer-1`, the edge is
  * `border-subtle`, and nothing here nests a region inside a region. Every value is
  * a token.

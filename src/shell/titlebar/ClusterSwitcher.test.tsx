@@ -16,7 +16,7 @@ function cluster(
     id,
     name,
     tree: { kind: "leaf", tabs: [], active: null } as unknown as Cluster["tree"],
-    project: "C:/code/openkaava",
+    project: "C:/code/veistra",
     worktree: branch ? { path: `C:/wt/${name}`, branch, base: "main" } : null,
     activeTerminal: null,
     bandHeight: null,
@@ -42,7 +42,7 @@ function setup(over: Partial<ClusterSwitcherProps> = {}) {
   };
   render(
     <ClusterSwitcher
-      project="OpenKaava"
+      project="Veistra"
       environment={{ kind: "worktree", branch: "feat/auth" }}
       environmentLabel="auth"
       environmentCount={3}

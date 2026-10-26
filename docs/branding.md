@@ -13,7 +13,7 @@ to.
 The obvious reason is "make it easy to change names and logos". That is a
 convenience and it would not have earned a work package.
 
-The real reason is that the source in this repository is Apache-2.0 while OpenKaava
+The real reason is that the source in this repository is Apache-2.0 while Veistra
 and Schematify stay trademarks — the open-core split Rust, Docker and
 Mozilla all use. That position is unenforceable, and worse than that
 *unfollowable*, unless somebody who forks the source can strip the marks in one
@@ -31,14 +31,14 @@ node scripts/check-branding.mjs --fix    # write that agreement in, once
 ```
 
 The second reason is smaller and was immediate. The product did not agree with
-itself about its own name. `tauri.conf.json` said `OpenKaava`, `kaava.toml` said
-`OpenKaava`, the splash wordmark said `OPENKAAVA`, the title bar and the About item
+itself about its own name. `tauri.conf.json` said `Veistra`, `veistra.toml` said
+`Veistra`, the splash wordmark said `VEISTRA`, the title bar and the About item
 appended a second word to it, and `windows.rs` built detached windows titled
-`OpenKaava`. Five surfaces, three answers. One source of truth forces that to be
-answered once, and it is answered: **the product is OpenKaava**.
+`Veistra`. Five surfaces, three answers. One source of truth forces that to be
+answered once, and it is answered: **the product is Veistra**.
 
 The title bar was not merely inconsistent, it was wrong. It named the shell as a
-runtime — something other software is built on top of — which OpenKaava is not, and
+runtime — something other software is built on top of — which Veistra is not, and
 it did so in the two most visible strings in the window.
 `src-tauri/src/branding.rs` carries a test that fails if the product's name ever
 contains "engine" again.
@@ -61,30 +61,36 @@ so a fork can work through the list.
 Not templated, not renamed, not made configurable, however much each of them
 looks like branding:
 
-- the `kaava.toml` filename
-- the `.kaava` file extension and the `.kaava/` project directory
-- the `kaava/*` RPC method namespace — `kaava/painted`, `kaava/commands`,
-  `kaava/open`, `kaava/publish`
-- the `kaava-tool://` URL scheme
-- the `@openkaava/*` npm scope
+- the `veistra.toml` filename
+- the `.veistra` file extension and the `.veistra/` project directory
+- the `veistra/*` RPC method namespace — `veistra/painted`, `veistra/commands`,
+  `veistra/open`, `veistra/publish`
+- the `veistra-tool://` URL scheme
+- the `@veistra/*` npm scope
 - the crate names
-- the bundle identifier `com.firelightinnovations.openkaava`
+- the bundle identifier `com.firelightinnovations.veistra`
 - the OS configuration directory that holds `projects.json`
-- the `kaava-<id>` MCP server key
+- the `veistra-<id>` MCP server key
 
 These are wire formats and on-disk contracts, not names. `docs/tool-protocol.md`
 is a published API and half of it is spelled with these strings; a tool repo
-written last year sends `kaava/painted` and will keep sending it. Renaming the
-`.kaava` extension does not rebrand anything, it makes every existing project
+written last year sends `veistra/painted` and will keep sending it. Renaming the
+`.veistra` extension does not rebrand anything, it makes every existing project
 unopenable. A branding system that reaches into this list is not a branding
 system, it is a rename script with a config file, which is a different and much
 worse thing.
+
+This list has been renamed exactly once, from `kaava` to `veistra`, when
+OpenKaava became Veistra. That was a deliberate clean break rather than a
+branding change: a project whose directory is still `.kaava/` has to be renamed
+to `.veistra/` by hand. Only the bundle identifier was carried across, by
+`scripts/check-identity.mjs --adopt` (see `docs/dev/user-data.md`).
 
 The same list is in `branding.toml`'s own header, deliberately duplicated,
 because the next person to read that file will assume the opposite and will read
 it before they read this.
 
-Note what the boundary cuts through rather than around. `kaava.toml`'s
+Note what the boundary cuts through rather than around. `veistra.toml`'s
 *filename* is frozen; its `[stack] name` value is tier 1 and is checked. The
 bundle *identifier* is frozen; `productName` is tier 1 and is checked. Neither
 file is wholly on one side.
@@ -111,7 +117,7 @@ branding.toml                     the one file anybody edits
     │       apps/files/ui/src/branding.generated.ts Files
     │
     └── scripts/check-branding.mjs       `pnpm lint`; fails naming file + field
-            index.html · splash.html · kaava.toml · tauri.conf.json
+            index.html · splash.html · veistra.toml · tauri.conf.json
 ```
 
 Three decisions in that picture are load-bearing.
@@ -132,10 +138,10 @@ is built; if Rust read the name at run time, the installer's name and the window
 title could disagree *on one machine, at once* — which is precisely the class of
 bug this whole package exists to remove. `include_str!` commits every surface at
 the same moment, and cargo rebuilds when the file changes. It also means
-`branding.toml` needs no entry in `bundle.resources`, unlike `kaava.toml`.
+`branding.toml` needs no entry in `bundle.resources`, unlike `veistra.toml`.
 
 **One generated module per frontend bundle, not one shared module.**
-STANDARDS.md §1.4 says an app reaches its host through `@openkaava/bridge` and
+STANDARDS.md §1.4 says an app reaches its host through `@veistra/bridge` and
 nothing else, and `apps/home/ui/src/icons.tsx` already refuses to import the
 shell's `Icon.tsx` for that reason. A generated file inside the app's own source
 tree is the only form that survives the app being extracted to its own
@@ -192,7 +198,7 @@ changed it and watched nothing happen.
 
 `product.wordmark` is a separate field from `product.name` and is set in mixed
 case, because a stylesheet that draws the wordmark may uppercase it. The markup
-holds "OpenKaava" so a screen reader is handed a word; the screen shows "OPENKAAVA".
+holds "Veistra" so a screen reader is handed a word; the screen shows "VEISTRA".
 `apps/home/ui/src/home.css` makes that trade for the lockup. `splash.html` sets
 the wordmark as written, with its ™ in a span of its own, and makes the trade
 for `product.company` instead: the markup holds "Veistra", the screen shows
@@ -213,11 +219,11 @@ window's size, rendered from `splash.html` in Chromium):
   word for another across the interface is a fork with extra steps, and small
   forks grow. One config, read once, one build.
 - **`package.json`.** It is checked by nothing here because it holds no brand
-  string. Its `name` is `openkaava-orchestrator`, the npm identity of a package
-  marked `private` and never published — the same category as the `@openkaava/*`
+  string. Its `name` is `veistra-orchestrator`, the npm identity of a package
+  marked `private` and never published — the same category as the `@veistra/*`
   scope, which is tier 2.
-- **Prose in `apps/tutorial/**` and in `docs/`.** The tutorials say OpenKaava
-  because they are teaching OpenKaava, and a tutorial written about a fork is a
+- **Prose in `apps/tutorial/**` and in `docs/`.** The tutorials say Veistra
+  because they are teaching Veistra, and a tutorial written about a fork is a
   tutorial that needs rewriting anyway.
 
 ### The grammar `branding.toml` may use
@@ -248,7 +254,7 @@ prose because the list is also the trademark surface.
 | `index.html`, `splash.html` | the page `<title>` |
 | `src-tauri/tauri.conf.json` | `productName` — also the installer's filename |
 | `src-tauri/tauri.conf.json` | the main window's `title` |
-| `kaava.toml` | `[stack] name` |
+| `veistra.toml` | `[stack] name` |
 | `splash.html` | the wordmark text node, the company beside it, and the copyright notice |
 | the title bar | the centred title, and the About item |
 | Home | the lockup word and the tagline |
@@ -259,19 +265,19 @@ prose because the list is also the trademark surface.
 
 **Art.** `assets/` is the brand pack, and everything in it is replaceable:
 
-- `assets/kaava-mark.svg` — the mark, as a monochrome silhouette. The generator
+- `assets/veistra-mark.svg` — the mark, as a monochrome silhouette. The generator
   lifts its `viewBox` and its single `<path>` into the frontend modules, and
   **fails the build** if the file cannot be reduced to one path. A more
   complicated mark belongs on a surface that loads it as a file. It also lifts
   `d` and nothing else, so a `fill-rule` on the source path is dropped silently:
   a counter has to work under the default nonzero rule, by winding.
-- `assets/kaava-mark-colour.svg` — the same mark in its three tones, which the
+- `assets/veistra-mark-colour.svg` — the same mark in its three tones, which the
   generator cannot reduce and so does not compile in. Its one reader is `Mark`
   in `apps/home/ui/src/icons.tsx`, which inlines the geometry by hand so the
   hairlines between the tones can be `var(--bg)`. Changing the mark means
   changing both files; the silhouette is the one the generator checks.
 - `assets/app-icon-source.svg` — what `pnpm tauri icon` draws the PNG set from.
-- `assets/kaava-icon.svg`, `kaava-icon-256.svg` — the container-icon variants
+- `assets/veistra-icon.svg`, `veistra-icon-256.svg` — the container-icon variants
   from the brand packet, drawn as the same tile at 24 and at 256. All three
   tiles place the mark by its **ink**, not its viewBox: the silhouette is 19.2
   of its 24 units tall, so a transform sized against the box leaves a third of
@@ -279,7 +285,7 @@ prose because the list is also the trademark surface.
   scale it to leave 11.7% of the tile clear above and below — on the 256 tile,
   `translate(5.333 5.333) scale(10.2222)`. Change the mark's geometry and these
   three numbers have to be recomputed; nothing checks them. There was a
-  third, `kaava-icon-textured.svg`, which stippled grain over the whole tile; it
+  third, `veistra-icon-textured.svg`, which stippled grain over the whole tile; it
   is gone, because the tile's ground is now a two-stop radial falloff and that
   falloff is the only thing drawing the icon's edge. Grain laid over it fights
   the edge it is there to make.
@@ -302,10 +308,10 @@ prose because the list is also the trademark surface.
 
 `src/ui/Icon.tsx` and `apps/home/ui/src/icons.tsx` both draw the mark as an
 inline `<path>`, and the geometry for both is generated out of
-`assets/kaava-mark.svg`. This was the one call site that needed a decision, so
+`assets/veistra-mark.svg`. This was the one call site that needed a decision, so
 here is the decision and the reason.
 
-Loading the branded asset as an `<img src="/kaava-mark.svg">` was the
+Loading the branded asset as an `<img src="/veistra-mark.svg">` was the
 alternative. It fails on colour. The mark is drawn on the title bar at 15px in
 the title bar's own text colour, and again — larger — as the placeholder every
 tool shares until it earns its own icon. `fill="currentColor"` is what makes
@@ -317,7 +323,7 @@ would cost a request plus a second way of drawing one glyph.
 Leaving it as a hardcoded default was the other alternative, and it is what the
 code did before: the path data was copied into two files, and a comment in each
 one claimed the copy was faithful. That claim was the only thing checking it.
-Generating the geometry makes `assets/kaava-mark.svg` the actual source rather
+Generating the geometry makes `assets/veistra-mark.svg` the actual source rather
 than the nominal one, and a fork replaces one SVG instead of finding two string
 literals.
 
@@ -327,7 +333,7 @@ product large enough for the hairlines between the tones to survive. The
 generator cannot carry it: reducing the mark to one path is what lets every
 other surface draw it in `currentColor`, and three drawables do not reduce. So
 `Mark` in `apps/home/ui/src/icons.tsx` writes that geometry out, and
-`assets/kaava-mark-colour.svg` is the file it is a copy of. Two files to keep in
+`assets/veistra-mark-colour.svg` is the file it is a copy of. Two files to keep in
 step is the price; the argument above still holds for the silhouette, which is
 what the other four call sites draw and what the generator still checks.
 
@@ -368,5 +374,5 @@ a caption the shell itself had already stopped producing.
 The tutorials' whole argument is that the pictures are accurate. A picture that
 survives a rename by not being renamed is a picture that has quietly stopped
 being one, so anything that redraws a branded surface reads the name the same
-way the surface does. The prose around it still says OpenKaava, because prose about
-OpenKaava is teaching OpenKaava and a fork rewrites it anyway.
+way the surface does. The prose around it still says Veistra, because prose about
+Veistra is teaching Veistra and a fork rewrites it anyway.

@@ -9,7 +9,7 @@
 //! takes paths and touches the filesystem, which makes it testable and makes
 //! "open this project" a thing the rest of the orchestrator can do without a
 //! human at the keyboard — a command line flag, a recent-projects jump list, a
-//! `.kaava` file double-clicked in Explorer. Choosing a folder by pointing at it
+//! `.veistra` file double-clicked in Explorer. Choosing a folder by pointing at it
 //! is a *user interface* act, and this module is Home's user interface half.
 
 use crate::apps::CallContext;
@@ -19,10 +19,10 @@ use crate::git;
 use crate::plugins;
 use crate::project::{self, ProjectSnapshot};
 use crate::state::AppState;
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde_json::{json, Value};
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, Manager};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 
 /// Every method here is scoped to the cluster that called it.
 ///
@@ -113,7 +113,7 @@ pub fn call(
         )),
         "home/close-project" => shape(project::close(app, context.require_cluster()?)),
 
-        // A project's `.kaava/icon.*` as a `data:` URL, or null for the letter
+        // A project's `.veistra/icon.*` as a `data:` URL, or null for the letter
         // tile — the same answer the shell's `project_icon` command gives, for a
         // pane that can only reach Rust through this dispatcher. Read-only:
         // setting one needs a picker, and Home's pickers are for folders.
@@ -125,9 +125,9 @@ pub fn call(
         //
         // A `home/*` method rather than a Tauri command, because Home is an
         // *app*: STANDARDS.md §1.4 has apps reach the shell only through
-        // `@openkaava/bridge`. It cannot touch the shell's React tree either, so
+        // `@veistra/bridge`. It cannot touch the shell's React tree either, so
         // "show me the library" goes app -> Rust -> event -> shell, which is
-        // the same path `kaava/open` takes and for the same reason.
+        // the same path `veistra/open` takes and for the same reason.
         //
         // The folder picker is still reachable, from inside the library, beside
         // the other two ways in rather than being the only one.
@@ -222,7 +222,7 @@ fn shape(snapshot: ProjectSnapshot) -> Result<Value, RpcError> {
 ///
 /// **The parent is set.** Without an owner window the picker is a separate
 /// top-level window: it can fall behind the app, and alt-tab treats it as a
-/// second application. With one it is modal to OpenKaava, which is what a person
+/// second application. With one it is modal to Veistra, which is what a person
 /// opening a project expects. It opens where the last one did, so this passes no
 /// starting directory — the OS remembers better than we would.
 fn pick(app: &AppHandle, title: &str) -> Option<PathBuf> {
