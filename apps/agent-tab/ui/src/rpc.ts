@@ -55,7 +55,7 @@ export const onEnvelope = (cb: (envelope: Envelope) => void) =>
 /** Mirrors `apps::agent_tab::CHOSEN`. */
 export const CHOSEN = "agent-tab:chosen";
 
-/** This tab's choice of harness and model, whether made here or in the agent bar. */
+/** This tab's choice of harness and model, whoever made it. */
 export const onChosen = (cb: (harness: Harness, model: string | null) => void) =>
   on(CHOSEN, (payload) => {
     const { harness, model } = payload as { harness: Harness; model?: string | null };

@@ -1,9 +1,6 @@
 /**
  * Every word the agent tab shows. Handoff §0: user-facing strings live in one
  * file, and the harness is "Claude" — never "Claude Code".
- *
- * The agent bar in the shell has its own `src/shell/agentbar/strings.ts`,
- * because the shell may not import an app's source; see handoff §11.
  */
 import type { HarnessInfo, Hint, SessionState, ToolStatus } from "./protocol.generated";
 

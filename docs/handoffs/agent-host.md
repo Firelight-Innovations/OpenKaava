@@ -5,6 +5,7 @@ Reader: **Agent C**, a cloud agent that implements and tests this feature.
 Design source: `docs/design/VEISTRA-AGENT-EMBEDDING-DESIGN.md` (read it first; this document turns it into tasks).
 Related: `docs/VEISTRA-UX-REWORK.md` (environments, clusters, panes; "UX spec" below), `docs/design/VEISTRA-PLANE-DESIGN.md`, `docs/design/veistra-ds/` (tokens; the owner's `claude/veistra-tokens.css`).
 Lint note: `ste_lint.py` was not run on this document. Terms marked PROPOSED are not in `core/terminology.csv` yet.
+Superseded in part (2026-10-25): the agent bar (§4) was removed. Agent sessions run only in the agent tab.
 
 ### Repository notes (added when this was committed)
 

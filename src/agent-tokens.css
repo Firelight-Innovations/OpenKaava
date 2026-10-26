@@ -1,18 +1,17 @@
 /*
- * The agent surfaces' design tokens: the agent tab (apps/agent-tab) and the
- * agent bar (src/shell/agentbar). Their components read only the `--k-*` names
- * below, and this file is the one place that says which Veistra token each one
- * is. Restyle the agent UI here, not in a component.
+ * The agent surface's design tokens: the agent tab (apps/agent-tab). Its
+ * components read only the `--k-*` names below, and this file is the one place
+ * that says which Veistra token each one is. Restyle the agent UI here, not in a
+ * component.
  *
  * Every value is a Veistra token or a size, never a hex, so the shell's live
  * theme and accent carry straight through: light and dark come from
- * `src/tokens.css`. It sits beside that file for the same reason
- * `src/veistra-ui.css` does: the shell and an app both import it, and neither may
- * import the other's source.
+ * `src/tokens.css`. It sits beside that file, as `src/veistra-ui.css` does, so a
+ * shell surface can load it again without importing an app's source.
  *
- * A few tokens (`--k-accent`, `--k-accent-subtle`, `--k-on-accent`, `--k-border-strong`,
- * `--k-space-4`, `--k-motion-fast`, `--k-shadow-card`) are not read by a component yet. They are
- * the rest of the palette, kept for the components that are still being built.
+ * A few tokens (`--k-accent-subtle`, `--k-shadow-card`, `--k-text-small`, `--k-control-md`,
+ * `--k-sidebar-bg`) are not read by a component yet. They are the rest of the palette, kept for the components that
+ * are still being built.
  *
  * The colour names are the VS Code-style ones from handoff §2.1.1
  * (`docs/handoffs/agent-host.md`), kept so nothing that reads them moves.
@@ -113,7 +112,6 @@
   --k-radius-card: var(--radius-sm);
   --k-radius-input: var(--radius-sm);
   --k-radius-control: var(--radius-md);
-  --k-radius-bar: var(--radius-region);
   --k-radius-pill: 999px;
   --k-radius-turn: 12px;
   --k-radius-composer: 14px;

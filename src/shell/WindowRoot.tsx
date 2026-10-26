@@ -68,10 +68,9 @@ import TerminalDeck, { type TerminalDeckHandle } from "./terminal/TerminalDeck";
 import { callApp, useApps, useOpenables, usePages } from "./state/apps";
 import { applyPreset, savePreset, useLayoutPresets } from "./state/presets";
 import { useClusterProject } from "./state/project";
-import { agentBarShown, agentTabIn, barActions, useAgentBarStatus } from "./state/agentBar";
 import { agentClusters, agentsDot, useAgentSessions } from "./state/agentSessions";
+import { agentTabIn, useAgentTabRefresh } from "./state/agentTab";
 import { newAgent, openAgent, type AgentOpeners } from "./state/agentOpeners";
-import { ClusterAgentBar } from "./agentbar/AgentBar";
 import ReadOnlyBanner from "./git/ReadOnlyBanner";
 import { useProjectIcon } from "./state/projectIcon";
 import { useUpdates } from "./state/updates";
@@ -1644,24 +1643,9 @@ export default function WindowRoot({
   );
   const onOpenProjectSwitcher = useCallback(() => setSwitchProjectOpen(true), []);
 
-  // The agent bar (handoff §4), shown only while Rust says this cluster may run an agent at
-  // all: developer mode gates it until V6. A main checkout still shows the bar, disabled, with
-  // the reason, so the way to a worktree is on screen. It asks about the cluster's agent tab
-  // when there is one, so it names the harness and model that tab runs.
+  // The cluster's agent tab hears from the shell when a setting or its environment changes.
   const agentTab = useMemo(() => agentTabIn(tree, instances), [tree, instances]);
-  const agentBarStatus = useAgentBarStatus(
-    activeClusterId,
-    environment ? environmentKey(environment) : null,
-    agentTab,
-  );
-  const agentBarActions = useMemo(
-    () =>
-      barActions(
-        { label, tree, instances, paneId: activePaneId, dir: splitDirOnOpen(activePaneId) },
-        agentTab,
-      ),
-    [label, tree, instances, activePaneId, agentTab],
-  );
+  useAgentTabRefresh(activeClusterId, environment ? environmentKey(environment) : null, agentTab);
 
   // The Agents page and its rail dot: the agent tabs in this window's
   // clusters, and what each session is doing, kept live whether or not the
@@ -2123,15 +2107,6 @@ export default function WindowRoot({
               <ReadOnlyBanner
                 projectPath={project.path}
                 onNewWorktreeCluster={() => onAddCluster("newLocalWorktree")}
-              />
-            ) : undefined,
-          agentBar:
-            activeCluster && agentBarShown(agentBarStatus) ? (
-              <ClusterAgentBar
-                clusterId={activeCluster.id}
-                status={agentBarStatus}
-                onChoose={agentBarActions.onChoose}
-                onSend={agentBarActions.onSend}
               />
             ) : undefined,
           toolWindow: (

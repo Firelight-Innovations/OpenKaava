@@ -6,7 +6,7 @@ import { onThemeChanged } from "@veistra/bridge/theme";
 // rather than a copy of the palette.
 import "/src/tokens.css";
 import "/apps/shared/app.css";
-// The agent tab's own tokens, shared with the agent bar in the shell.
+// The agent tab's own tokens.
 import "/src/agent-tokens.css";
 
 // Follows the shell's live theme and accent (handoff §2.1.2).
