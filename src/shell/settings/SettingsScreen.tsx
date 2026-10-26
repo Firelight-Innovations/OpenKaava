@@ -6,7 +6,7 @@ import CloudAccountPanel from "./CloudAccountPanel";
 import { settingsBackdrop, settingsScreen } from "../motion";
 import { closeSettings } from "../settingsSurface";
 import { X } from "lucide-react";
-import { useTitlebarSearch } from "../titlebarSearch";
+import { CLAIMED_FIELD_CLASS, useTitlebarSearch } from "../titlebarSearch";
 import type { Setting, SettingsGroup } from "../../bindings";
 import type { SettingsSession } from "./useSettings";
 import "./settings.css";
@@ -79,7 +79,9 @@ export default function SettingsScreen({
   // terminal, a field or an app's frame, and focus left there would send typing
   // to the surface behind and keep Escape from ever reaching the listener above.
   // On the way out it goes back, unless something else took it first: a click
-  // on the status bar's git controls, say, which shut this screen.
+  // on the status bar's git controls, say, which shut this screen. The title
+  // bar's field counts as the screen's own while claimed: the filter is typed
+  // there, and it turns back into a button as the claim is released.
   const dialog = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const before = document.activeElement;
@@ -87,7 +89,11 @@ export default function SettingsScreen({
     node?.focus({ preventScroll: true });
     return () => {
       const now = document.activeElement;
-      const ours = now === null || now === document.body || node?.contains(now) === true;
+      const ours =
+        now === null ||
+        now === document.body ||
+        node?.contains(now) === true ||
+        now.closest(`.${CLAIMED_FIELD_CLASS}`) !== null;
       if (ours && before instanceof HTMLElement && before.isConnected) {
         before.focus({ preventScroll: true });
       }

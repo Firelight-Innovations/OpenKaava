@@ -7,6 +7,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import SettingsScreen from "./SettingsScreen";
+import { CLAIMED_FIELD_CLASS } from "../titlebarSearch";
 import type { SettingsSession } from "./useSettings";
 
 afterEach(() => {
@@ -62,5 +63,21 @@ describe("SettingsScreen focus", () => {
     elsewhere.focus();
     unmount();
     expect(document.activeElement).toBe(elsewhere);
+  });
+
+  // The screen's filter is typed in the title bar's claimed field, outside the
+  // dialog; closing from there is not focus going somewhere else.
+  it("gives focus back when it closes from its title-bar filter", () => {
+    const field = focusedField();
+    const slot = document.createElement("label");
+    slot.className = CLAIMED_FIELD_CLASS;
+    const filter = document.createElement("input");
+    slot.append(filter);
+    document.body.append(slot);
+    const { unmount } = render(<SettingsScreen session={session} landOn={null} />);
+
+    filter.focus();
+    unmount();
+    expect(document.activeElement).toBe(field);
   });
 });
