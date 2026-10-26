@@ -390,7 +390,7 @@ export default function MarkupLayer({
   return (
     <div
       ref={rootRef}
-      className={`kaava-markup${active ? " kaava-markup--active" : ""}`}
+      className={`veistra-markup${active ? " veistra-markup--active" : ""}`}
       data-theme={theme}
       onContextMenuCapture={(e) => {
         e.preventDefault();
@@ -428,7 +428,7 @@ export default function MarkupLayer({
       )}
       {active && pending && (
         <input
-          className="kaava-markup__note"
+          className="veistra-markup__note"
           style={{ left: pending.x + 22, top: pending.y - 14 }}
           autoFocus
           aria-label={`Note for pin ${pending.n}`}
@@ -442,7 +442,7 @@ export default function MarkupLayer({
         />
       )}
       {showChip && returnTo && (
-        <div className="kaava-markup__chip" role="status">
+        <div className="veistra-markup__chip" role="status">
           <span>Markup at saved view</span>
           <button
             type="button"

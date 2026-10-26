@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { reportPainted } from "@openkaava/bridge";
+import { reportPainted } from "@veistra/bridge";
 import {
   Camera,
   ExternalLink,
@@ -368,7 +368,7 @@ export default function App() {
           )}
           {chosen && chosen.engineMajor < 4 && (
             <p className="pl__notice">
-              {chosen.name} is a Godot 3 project. Kaava drives Godot 4.x.
+              {chosen.name} is a Godot 3 project. Veistra drives Godot 4.x.
             </p>
           )}
           {readOnly && (
@@ -457,8 +457,8 @@ export default function App() {
       {consentOpen && chosen && (
         <div className="pl__consent" role="dialog" aria-label="Enable capture">
           <p>
-            Capture adds one small script, <code>addons/kaava/kaava_capture.gd</code>, and one line
-            under <code>[autoload]</code> in{" "}
+            Capture adds one small script, <code>addons/veistra/veistra_capture.gd</code>, and one
+            line under <code>[autoload]</code> in{" "}
             <code>{chosen.rel === "." ? "" : `${chosen.rel}/`}project.godot</code>. While the game
             runs it listens in a temporary folder for a capture, pause or resume request from this
             pane. It opens no network connection and can be removed here at any time, which puts{" "}

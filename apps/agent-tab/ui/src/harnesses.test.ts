@@ -15,12 +15,12 @@ const OPUS = { value: "opus", name: "Opus 5.5", description: null };
 const SONNET = { value: "sonnet", name: "Sonnet 5.5", description: null };
 
 describe("harnessChoices", () => {
-  it("lists Claude, Codex and Kaava, and the ones the host does not run are coming soon", () => {
+  it("lists Claude, Codex and Veistra, and the ones the host does not run are coming soon", () => {
     const listed = harnessChoices([CLAUDE], "claude", null);
     expect(listed.map((h) => [h.name, h.unavailable])).toEqual([
       ["Claude", null],
       ["Codex", "Coming soon"],
-      ["Kaava", "Coming soon"],
+      ["Veistra", "Coming soon"],
     ]);
   });
 
@@ -41,7 +41,7 @@ describe("harnessChoices", () => {
   it("follows the three with any other harness the host reports", () => {
     const other = { harness: "pi", hint: null } as unknown as HarnessInfo;
     const ids = harnessChoices([CLAUDE, other], "claude", null).map((h) => h.id);
-    expect(ids).toEqual(["claude", "codex", "kaava", "pi"]);
+    expect(ids).toEqual(["claude", "codex", "veistra", "pi"]);
   });
 
   it("never locks the harness in use, even before the host has answered", () => {
@@ -62,7 +62,7 @@ describe("harnessChoices", () => {
     expect(listed.map((h) => [h.id, h.unavailable])).toEqual([
       ["claude", null],
       ["codex", "Not set up"],
-      ["kaava", "Coming soon"],
+      ["veistra", "Coming soon"],
     ]);
   });
 

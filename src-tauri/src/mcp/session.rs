@@ -19,10 +19,10 @@ pub const SERVER_ID: &str = "context";
 /// One entry for an ACP `mcpServers` list: an HTTP server and its bearer.
 #[derive(Clone, PartialEq, Eq)]
 // Read by the agent tab once `claude/agent-tab-mcp-servers` maps it to
-// `kaava_agent_host::McpServer`; until then only the tests below use it.
+// `veistra_agent_host::McpServer`; until then only the tests below use it.
 #[allow(dead_code)]
 pub struct SessionServer {
-    /// The key the agent names its tools by, `kaava-context`.
+    /// The key the agent names its tools by, `veistra-context`.
     pub name: String,
     pub url: String,
     pub bearer: String,
@@ -197,7 +197,7 @@ mod tests {
         assert!(serve(4000, true, None).is_empty());
         assert!(serve(4000, true, Some(String::new())).is_empty());
         let offered = serve(4000, true, Some("secret-bearer".into()));
-        assert_eq!(offered[0].name, "kaava-context");
+        assert_eq!(offered[0].name, "veistra-context");
         assert_eq!(offered[0].url, "http://127.0.0.1:4000/mcp/context");
         let logged = format!("{offered:?}");
         assert!(!logged.contains("secret-bearer"), "{logged}");

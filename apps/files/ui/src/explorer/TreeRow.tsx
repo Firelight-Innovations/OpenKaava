@@ -19,7 +19,7 @@
  * a question about `useTree.ts`.
  */
 import type { Row } from "./useTree";
-import { fileIconUrl, folderIconUrl } from "@openkaava/file-icons";
+import { fileIconUrl, folderIconUrl } from "@veistra/file-icons";
 import { decorate, GIT_KIND_LETTER, GIT_KIND_TOKEN, type GitDecoration } from "./gitStatus";
 import type { RowDragProps } from "./useRowDrag";
 

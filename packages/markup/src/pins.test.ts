@@ -33,7 +33,7 @@ describe("pin numbering", () => {
 
   it("ignores elements that are not pins", () => {
     expect(
-      nextPinNumber([el({ id: "a", type: "arrow", customData: { kaava: { kind: "arrow" } } })]),
+      nextPinNumber([el({ id: "a", type: "arrow", customData: { veistra: { kind: "arrow" } } })]),
     ).toBe(1);
   });
 });
@@ -51,7 +51,7 @@ describe("pinSkeleton", () => {
 
   it("records kind, n and an empty note", () => {
     const s = pinSkeleton({ n: 2, x: 0, y: 0, colors });
-    expect(s.customData).toEqual({ kaava: { kind: "pin", n: 2, note: "" } });
+    expect(s.customData).toEqual({ veistra: { kind: "pin", n: 2, note: "" } });
   });
 
   it("records nodePath and worldPoint when the host picked something", () => {
@@ -64,7 +64,7 @@ describe("pinSkeleton", () => {
       note: "too tall",
       colors,
     });
-    expect(s.customData.kaava).toEqual({
+    expect(s.customData.veistra).toEqual({
       kind: "pin",
       n: 1,
       note: "too tall",
@@ -75,7 +75,7 @@ describe("pinSkeleton", () => {
 
   it("marks the label so a pin is never listed twice", () => {
     const s = pinSkeleton({ n: 5, x: 0, y: 0, colors });
-    expect(s.label.customData.kaava).toEqual({ kind: "pin-label", n: 5 });
+    expect(s.label.customData.veistra).toEqual({ kind: "pin-label", n: 5 });
   });
 });
 

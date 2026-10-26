@@ -1,5 +1,5 @@
 /**
- * A project's tile: its own icon when it has one (`.kaava/icon.*`), and its
+ * A project's tile: its own icon when it has one (`.veistra/icon.*`), and its
  * initial otherwise.
  *
  * A leaf module under `src/shell/` rather than inside a region, because the

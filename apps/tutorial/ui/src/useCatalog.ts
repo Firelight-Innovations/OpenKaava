@@ -9,11 +9,11 @@
  *
  * Declared here rather than imported from the orchestrator's `src/bindings.ts`,
  * for the reason every app declares its own: an app's only coupling to its host
- * is `@openkaava/bridge` and the shape of what crosses it. Mirrors
+ * is `@veistra/bridge` and the shape of what crosses it. Mirrors
  * `src-tauri/src/apps/tutorial.rs`.
  */
 import { useCallback, useEffect, useState } from "react";
-import { KaavaRpcError, invoke } from "@openkaava/bridge";
+import { VeistraRpcError, invoke } from "@veistra/bridge";
 
 export interface Section {
   id: string;
@@ -98,12 +98,12 @@ export function useCatalog(): CatalogSession {
 }
 
 /**
- * A `KaavaRpcError` carries the JSON-RPC code its host produced it from, which
+ * A `VeistraRpcError` carries the JSON-RPC code its host produced it from, which
  * is the difference between "this build has no such method" and "the call never
  * reached a host at all".
  */
 function describe(error: unknown): string {
-  if (error instanceof KaavaRpcError) return `[${error.code}] ${error.message}`;
+  if (error instanceof VeistraRpcError) return `[${error.code}] ${error.message}`;
   if (error instanceof Error) return error.message;
   return String(error);
 }

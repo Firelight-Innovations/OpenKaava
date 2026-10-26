@@ -1,7 +1,7 @@
 //! How much an agent draws on a design canvas, and what it looks like.
 //!
 //! Two knobs, both chosen in Settings (Canvas section) and both overridable per
-//! canvas (`kaava.design` in the canvas file):
+//! canvas (`veistra.design` in the canvas file):
 //!
 //! * a **detail level**, which says how many panels a frame carries and whether
 //!   scales, tables and worked examples are required, and
@@ -98,7 +98,7 @@ pub static DETAIL_LEVELS: &[DetailLevel] = &[
 - Each frame has two or more tables (5 rows or more) and at least one worked example with the arithmetic written out line by line, ending in the value the engine would store.
 - Show the edge cases as their own panel: boundaries, off-by-one cases, empty and maximum inputs, and what the system does when each fails.
 - Show a rejected alternative where a design choice was made: draw it small, mark it with a cross and say why in one line.
-- Cross-link: a label that depends on another frame links to it (`kaava://diagram/<id>`), and a value that appears twice lives in the value table (`{{name}}`) so it cannot drift.
+- Cross-link: a label that depends on another frame links to it (`veistra://diagram/<id>`), and a value that appears twice lives in the value table (`{{name}}`) so it cannot drift.
 - Order panels so the frame reads left to right, top to bottom: overview, mechanism, numbers, worked example, edge cases.
 - Text may be denser, but never below 14 px, and every paragraph is 3 lines or fewer.",
     },
@@ -310,9 +310,9 @@ pub fn resolve(
     }
 }
 
-/// The `kaava.design` override a canvas file carries: `(detail, style)`.
+/// The `veistra.design` override a canvas file carries: `(detail, style)`.
 pub fn override_of(scene: &Value) -> (Option<String>, Option<String>) {
-    let design = scene.get("kaava").and_then(|k| k.get("design"));
+    let design = scene.get("veistra").and_then(|k| k.get("design"));
     let get = |key: &str| {
         design
             .and_then(|d| d.get(key))
@@ -441,17 +441,17 @@ pub fn parse_choice(
     }
 }
 
-/// Apply a choice to `kaava.design` in a scene.
+/// Apply a choice to `veistra.design` in a scene.
 pub fn store_choice(scene: &mut Value, key: &str, choice: Option<Option<String>>) {
     let Some(choice) = choice else { return };
-    if !scene.get("kaava").is_some_and(Value::is_object) {
-        scene["kaava"] = json!({});
+    if !scene.get("veistra").is_some_and(Value::is_object) {
+        scene["veistra"] = json!({});
     }
-    let kaava = &mut scene["kaava"];
-    if !kaava.get("design").is_some_and(Value::is_object) {
-        kaava["design"] = Value::Object(Map::new());
+    let veistra = &mut scene["veistra"];
+    if !veistra.get("design").is_some_and(Value::is_object) {
+        veistra["design"] = Value::Object(Map::new());
     }
-    if let Some(design) = kaava["design"].as_object_mut() {
+    if let Some(design) = veistra["design"].as_object_mut() {
         match choice {
             Some(id) => {
                 design.insert(key.into(), json!(id));
@@ -461,9 +461,9 @@ pub fn store_choice(scene: &mut Value, key: &str, choice: Option<Option<String>>
             }
         }
     }
-    let emptied = kaava["design"].as_object().is_some_and(Map::is_empty);
-    if let (true, Some(kaava)) = (emptied, kaava.as_object_mut()) {
-        kaava.remove("design");
+    let emptied = veistra["design"].as_object().is_some_and(Map::is_empty);
+    if let (true, Some(veistra)) = (emptied, veistra.as_object_mut()) {
+        veistra.remove("design");
     }
 }
 
@@ -596,7 +596,7 @@ mod tests {
         store_choice(&mut scene, "detail", Some(None));
         assert_eq!(override_of(&scene), (None, None));
         assert!(
-            scene["kaava"].get("design").is_none(),
+            scene["veistra"].get("design").is_none(),
             "an empty override is removed"
         );
     }

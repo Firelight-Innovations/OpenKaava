@@ -1,15 +1,15 @@
 # MCP server manager
 
-Roadmap item #4. OpenKaava hosts MCP servers; it never consumes them.
+Roadmap item #4. Veistra hosts MCP servers; it never consumes them.
 
 The clients are harnesses the user brings themselves — Claude Code, Codex, or
-whatever else — running in terminals **OpenKaava spawned**. That is the constraint
+whatever else — running in terminals **Veistra spawned**. That is the constraint
 the whole design rests on, and it is worth saying plainly before anything else:
 we own the environment the client starts in. Discovery, authentication and port
 assignment are all solvable by writing an environment variable, where for a
 general-purpose MCP server each of them would be a support problem.
 
-OpenKaava is BYOH. We are not building a harness, so nothing here may assume one.
+Veistra is BYOH. We are not building a harness, so nothing here may assume one.
 
 ---
 
@@ -18,13 +18,13 @@ OpenKaava is BYOH. We are not building a harness, so nothing here may assume one
 **If the harness can already do it, it does not get an MCP server.**
 
 No file reading, no writing, no directory listing, no search, no git. Every
-coding agent worth pointing at OpenKaava arrives with those built in, usually better
+coding agent worth pointing at Veistra arrives with those built in, usually better
 tuned than ours would be, and wrapping them would buy an agent a second worse way
 to do something it can already do — while costing us a permission surface, a
 maintenance burden, and a pile of tool descriptions competing for the model's
 attention against its own.
 
-What earns a server is the opposite: **something that exists only inside OpenKaava.**
+What earns a server is the opposite: **something that exists only inside Veistra.**
 Schematify's design graph is the first real case. An agent cannot read a
 Schematify node by opening a file, because the interesting part is not the
 file — it is the model, its boundaries, and the question "does this change
@@ -46,7 +46,7 @@ concern and not a protocol one.
 So "manager" here means **registry**, not **supervisor** — a data structure, not
 a distributed systems problem. That falls out of section 3.
 
-Right now OpenKaava needs no MCP server at all. Nothing in the current build does
+Right now Veistra needs no MCP server at all. Nothing in the current build does
 anything a harness cannot already do, so by section 1 nothing qualifies. This
 milestone therefore ships **infrastructure plus one echo server**, whose entire
 job is to prove a client can discover the endpoint, authenticate, list a tool and
@@ -85,7 +85,7 @@ fanning out cost real machinery; with every server in-process, a second endpoint
 costs a route. What separate endpoints buy is worth more than that route:
 
 - **Namespacing we do not have to invent.** The client derives tool names from
-  the server name it connected to — `mcp__kaava-schematify__validate` — instead of us
+  the server name it connected to — `mcp__veistra-schematify__validate` — instead of us
   hand-prefixing every tool inside one flat namespace and hoping nobody collides.
 - **A 1:1 map to the settings UI.** "Registered server" is exactly the row the
   user toggles, which is what the roadmap asked for.
@@ -93,7 +93,7 @@ costs a route. What separate endpoints buy is worth more than that route:
   to see another tool's, and every tool it can see but must not use is noise in
   its context.
 
-Enable and disable stay on our side — OpenKaava decides which routes are mounted and
+Enable and disable stay on our side — Veistra decides which routes are mounted and
 which entries are written — rather than living in the harness's own `/mcp` panel.
 
 ## 5. Registration
@@ -118,16 +118,16 @@ a preferred port with upward fallback. Loopback only, never `0.0.0.0`: this is a
 local IPC channel that happens to speak HTTP, and binding it to a routable
 interface would put every registered tool on the network.
 
-**Discovery.** OpenKaava writes the project's `.mcp.json`, and because OpenKaava owns the
+**Discovery.** Veistra writes the project's `.mcp.json`, and because Veistra owns the
 pty, both the port and the token can be environment variables:
 
 ```json
 {
   "mcpServers": {
-    "kaava-echo": {
+    "veistra-echo": {
       "type": "http",
-      "url": "http://127.0.0.1:${KAAVA_MCP_PORT}/mcp/echo",
-      "headers": { "Authorization": "Bearer ${KAAVA_MCP_TOKEN}" }
+      "url": "http://127.0.0.1:${VEISTRA_MCP_PORT}/mcp/echo",
+      "headers": { "Authorization": "Bearer ${VEISTRA_MCP_TOKEN}" }
     }
   }
 }
@@ -139,15 +139,15 @@ rather than with the values inlined:
 - **The file is safe to commit.** No secret, no machine-specific port — the same
   file for every developer on the project.
 - **The token rotates per launch** without rewriting anything on disk.
-- **A terminal OpenKaava did not spawn cannot connect.** It inherits neither
+- **A terminal Veistra did not spawn cannot connect.** It inherits neither
   variable, so the URL does not resolve and the bearer is empty. That is the
   correct failure rather than an inconvenience: these tools reach into the live
   application, and a shell opened outside it should not be able to.
 
-OpenKaava merges rather than clobbers — a project may already have its own servers,
-and only the `kaava-*` keys are ours to write or remove.
+Veistra merges rather than clobbers — a project may already have its own servers,
+and only the `veistra-*` keys are ours to write or remove.
 
-`kaava-*` names avoid Claude Code's reserved set (`workspace`,
+`veistra-*` names avoid Claude Code's reserved set (`workspace`,
 `claude-in-chrome`, `computer-use`, `Claude Preview`, `Claude Browser`).
 
 **Verify before relying on it:** that `${VAR}` expansion applies to `url` and
@@ -160,14 +160,14 @@ launch, which costs the committable-file property and nothing else.
 A project-scoped `.mcp.json` is approved once, interactively, on first use. That
 is a security feature and we should not try to defeat it silently.
 
-What OpenKaava does instead:
+What Veistra does instead:
 
 - **Status bar indicator** with three states — connected, pending approval, off.
   Pending is the one that matters: it is a real state with a real fix, and a user
   who does not know the server is waiting on them will conclude it is broken.
 - **An opt-in in settings** to write `enabledMcpjsonServers` into
-  `.claude/settings.local.json`, pre-approving OpenKaava's servers for that project.
-  Opt-in and per-project, phrased as trusting OpenKaava's own server rather than as
+  `.claude/settings.local.json`, pre-approving Veistra's servers for that project.
+  Opt-in and per-project, phrased as trusting Veistra's own server rather than as
   turning off a prompt.
 
 When the registered set changes while a client is connected, the server emits
@@ -210,7 +210,7 @@ bottom of this section because it is the step people skip.
 
 The id matches `^[a-z][a-z0-9-]*$`, the same rule app ids and tool ids are held
 to, because it becomes the URL path `/mcp/<id>` and the `.mcp.json` key
-`kaava-<id>`. `every_registered_server_id_is_url_safe` in `servers/mod.rs` holds
+`veistra-<id>`. `every_registered_server_id_is_url_safe` in `servers/mod.rs` holds
 the shipped set to it, so a bad id fails `cargo test` rather than appearing as a
 route nobody can reach. (`registry.rs` has a same-named check over its own test
 doubles; that one proves the rule, not the set.)
@@ -277,7 +277,7 @@ expect an edit and will not find one:
 - **No route to add.** The listener mounts every registered server at
   `/mcp/<id>` (section 4).
 - **No `.mcp.json` edit.** That file is generated from the registry, and only the
-  `kaava-*` keys are ours to write or remove (section 6). It is gated on the
+  `veistra-*` keys are ours to write or remove (section 6). It is gated on the
   `mcp.writeProjectConfig` setting.
 - **No frontend change.** The settings screen lists whatever the registry hands
   it, including servers that are switched off — and *excluding* developer-only
@@ -298,11 +298,11 @@ happen at all:
 
 > **If the harness can already do it, it does not get a server.** No file
 > reading, writing or listing, no search, no git. Every agent worth pointing at
-> OpenKaava arrives with those, and a second worse copy costs a permission surface
+> Veistra arrives with those, and a second worse copy costs a permission surface
 > and a pile of tool descriptions competing for the model's attention against its
 > own.
 >
-> What earns a server is something that exists only inside OpenKaava and has no
+> What earns a server is something that exists only inside Veistra and has no
 > filesystem equivalent — Schematify's design graph is the first real case,
 > because an agent cannot read a node's *boundaries* by opening a file.
 
@@ -334,7 +334,7 @@ cannot be added and quietly forget one of them.
 deliberate: the endpoint is reachable by anything on the machine that holds the
 token, so a leaked token should cost knowledge of a window layout and not control
 of it. A server that can click cannot make that promise. `dev_only` is what keeps
-it from being on the list at all for somebody who is not working on OpenKaava.
+it from being on the list at all for somebody who is not working on Veistra.
 
 **Writing is not on its own what earns it.** `design` writes — a reply, a
 question or a resolution on a comment thread — and ships ungated, because what a
@@ -383,13 +383,13 @@ should be written as some.
 
 ## 13. The servers every build ships: `canvas`, `workspace` and `context`
 
-Everything above `dev_only` is for whoever works on OpenKaava. These three are for
+Everything above `dev_only` is for whoever works on Veistra. These three are for
 the agent working *in* it, so none is gated: all start on, all appear with
-developer mode off, and all are written into `.mcp.json` as `kaava-canvas`,
-`kaava-workspace` and `kaava-context` (the committed `.mcp.json` carries them, and a
+developer mode off, and all are written into `.mcp.json` as `veistra-canvas`,
+`veistra-workspace` and `veistra-context` (the committed `.mcp.json` carries them, and a
 test holds it to what a fresh sync writes). Harness terminals reach them through the
-same `KAAVA_MCP_PORT` and `KAAVA_MCP_TOKEN` as every other route; `mcp-endpoint.json`
-serves the same endpoint to an agent outside OpenKaava, at `/mcp/canvas`,
+same `VEISTRA_MCP_PORT` and `VEISTRA_MCP_TOKEN` as every other route; `mcp-endpoint.json`
+serves the same endpoint to an agent outside Veistra, at `/mcp/canvas`,
 `/mcp/workspace` and `/mcp/context`.
 
 ### `workspace` (read-only)
@@ -408,13 +408,13 @@ The layout comes from the same `ShellState` snapshot `shell_snapshot` reads. Whe
 focus is comes from `mcp::FocusState`, which each window's shell keeps current (see
 below); `focus` still asks each window's page for what only the DOM knows at that
 moment, the way the `context` tool does. An app can say what it shows by defining
-`window.__kaavaContext`; Canvas reports its open canvas and selection.
+`window.__veistraContext`; Canvas reports its open canvas and selection.
 
-#### Focus push: `kaava://workspace/focus`
+#### Focus push: `veistra://workspace/focus`
 
 Polling `focus` works, but an agent that wants to know what "this" means when the
 person speaks is better told when focus moves. The server publishes one resource,
-`kaava://workspace/focus` (`application/json`), and declares the `resources`
+`veistra://workspace/focus` (`application/json`), and declares the `resources`
 capability with `subscribe: true`. Reading it returns exactly what the `focus` tool
 returns, so there is one answer however it is asked for. It lists, reads and
 subscribes only while the server is switched on, like its tools.
@@ -422,10 +422,10 @@ subscribes only while the server is switched on, like its tools.
 **How an agent subscribes.** The notification carries only the uri; the agent
 re-reads to see the new state.
 
-1. `resources/list` shows `kaava://workspace/focus`.
-2. `resources/subscribe` with `{"uri": "kaava://workspace/focus"}` (clients on
+1. `resources/list` shows `veistra://workspace/focus`.
+2. `resources/subscribe` with `{"uri": "veistra://workspace/focus"}` (clients on
    protocol versions before 2026-07-28), or `subscriptions/listen` with
-   `resourceSubscriptions: ["kaava://workspace/focus"]` (2026-07-28). Both are
+   `resourceSubscriptions: ["veistra://workspace/focus"]` (2026-07-28). Both are
    supported; the second holds one request open and carries the notifications on it.
 3. On `notifications/resources/updated` for that uri, call `resources/read` (or the
    `focus` tool).
@@ -497,7 +497,7 @@ object); see `docs/canvas-objects.md`. Twelve tools expose it:
 The intended order is `list_frames` or `search_frames` first, then `get_frame` and
 `frame_image` for detail, and `create_frame` to group elements into a labelled typed
 object. `frame_image` returns the PNG's path and size and does not attach the image:
-the path is what the caller needs. `kaava-context`'s `get_canvas_node` attaches it.
+the path is what the caller needs. `veistra-context`'s `get_canvas_node` attaches it.
 
 Scope differs per tool. The project-wide ones (`list_types`, `list_frames`,
 `search_frames`, `canvas_tree`, `save_type`, `delete_type`) use `Scope::Project`: they
@@ -526,7 +526,7 @@ do the drawing, and the file written is still the named one. If no Canvas pane i
 anywhere the error names the canvas and says to open one. `describe_diagram` and
 `view_diagram` take `frame` as an alias for `diagram`.
 
-**Inactive clusters.** A pane learns its canvas from the page's `__kaavaContext`, which
+**Inactive clusters.** A pane learns its canvas from the page's `__veistraContext`, which
 only exists for a mounted pane, so a pane in an inactive cluster reports `canvas: null`.
 `list_canvases` flags these with `canvasKnown: false` and a `note`. When a call names no
 canvas and some pane's canvas is unknown, it is refused (`canvas-unknown` when no
@@ -536,14 +536,14 @@ with no file) rather than guessed. Name `canvas` or `instance` to be certain.
 ### `context`
 
 References, both ways: the agent finds, reads and shows the person files, frames,
-comments, screenshots and assets by `kaava://` reference, and reads the selection.
+comments, screenshots and assets by `veistra://` reference, and reads the selection.
 Tools: `show`, `read`, `search_context`, `list_comments`, `resolve_comment`,
-`get_selection` and `get_canvas_node`. It publishes `kaava://selection`, which
-notifies alongside `kaava://workspace/focus`, and reads every other reference as an
+`get_selection` and `get_canvas_node`. It publishes `veistra://selection`, which
+notifies alongside `veistra://workspace/focus`, and reads every other reference as an
 unlisted resource, with templates that say how to write one. An agent the host
 launches for one cluster gets a token that opens `/mcp/context` only and answers
 from that cluster. The scheme, the security rules and each tool are in
-`docs/design/KAAVA-CONTEXT-REFS.md`.
+`docs/design/VEISTRA-CONTEXT-REFS.md`.
 
 **Transport.** Every route here, `context` included, is streamable HTTP. It requires
 an `initialize` call and the returned `mcp-session-id` header on later requests; a

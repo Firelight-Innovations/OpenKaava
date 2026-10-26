@@ -1,4 +1,4 @@
-//! Schematify's Rust half — the design layer of OpenKaava, registered like
+//! Schematify's Rust half — the design layer of Veistra, registered like
 //! Home and Files (`docs/design/SCHEMATIFY-PRD.md` §1.3). A thin JSON-RPC
 //! layer over `schematify-core`: resolves a project root from
 //! [`CallContext`], turns `params` into typed arguments, calls the crate,
@@ -22,7 +22,6 @@ use std::fs;
 use std::path::Path;
 
 use crate::apps::CallContext;
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use schematify_core::{
     contract_fields_changed, ingest_run_file, lint, load_project, stale_cascade, Actor, BudgetTier,
     CoreError, Decision, DecisionStatus, Edge, EdgeKind, Flow, Graph, Lifecycle, Node, NodeKind,
@@ -30,11 +29,12 @@ use schematify_core::{
 };
 use serde_json::{json, Value};
 use tauri::AppHandle;
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 
 /// What `schematify/state` reports.
 ///
 /// `project` mirrors what [`CallContext`] resolved rather than anything
-/// Schematify has read for itself — there is no `.kaava/` graph read yet, so
+/// Schematify has read for itself — there is no `.veistra/` graph read yet, so
 /// the one honest thing to say is *where* it would look once there is. `ready`
 /// is the field the frontend keys its empty state off; it is `false` in every
 /// build until a real Schematic surface lands behind it, at which point it
@@ -186,26 +186,26 @@ fn core_rpc(error: CoreError) -> RpcError {
 
 // --- Methods --------------------------------------------------------------
 
-/// `schematify/open-project`. Opens a project root and validates `.kaava/`
+/// `schematify/open-project`. Opens a project root and validates `.veistra/`
 /// under it, per PRD §14.5. "Opens" is `CallContext` resolving the cluster's
 /// project, already done before this function runs — what this method adds is
-/// telling the caller whether that project actually holds a `.kaava/` tree,
+/// telling the caller whether that project actually holds a `.veistra/` tree,
 /// so a frontend can offer to create one rather than fail load-graph with a
 /// confusing error.
 fn open_project(context: &CallContext, params: Option<&Value>) -> Result<Value, RpcError> {
     actor_param(params)?;
     let root = require_project(context)?;
     let store = Store::open(root);
-    let kaava_dir = store.kaava_dir();
+    let veistra_dir = store.veistra_dir();
 
     Ok(json!({
         "path": root.display().to_string(),
-        "kaavaDir": kaava_dir.display().to_string(),
-        "exists": kaava_dir.is_dir(),
+        "veistraDir": veistra_dir.display().to_string(),
+        "exists": veistra_dir.is_dir(),
     }))
 }
 
-/// `schematify/load-graph`. Walks `.kaava/` and returns every semantic file it
+/// `schematify/load-graph`. Walks `.veistra/` and returns every semantic file it
 /// found, alongside the validation report PRD §6.4 asks for. `Graph` itself
 /// does not implement `Serialize` — it is an in-memory index, not a wire type
 /// — so this shapes the answer by hand from its accessors rather than
@@ -652,7 +652,7 @@ fn reconcile_status(context: &CallContext, params: Option<&Value>) -> Result<Val
 
     let store = Store::open(root);
     let path = store
-        .kaava_dir()
+        .veistra_dir()
         .join("runs")
         .join(node_id.to_string())
         .join("reconcile.json");
@@ -836,7 +836,7 @@ fn supersede_decision(context: &CallContext, params: Option<&Value>) -> Result<V
 /// the scope wave 9b's own doc comment names: the node whose CI workflow
 /// produced the run, not a budget node itself, since one workflow answers
 /// several budgets in one file. `path` is wherever CI dropped the
-/// `kaava-bench-v1` artifact, outside `.kaava/` — Schematify never invokes
+/// `veistra-bench-v1` artifact, outside `.veistra/` — Schematify never invokes
 /// the probe that produced it, only reads what it wrote.
 fn ingest_run(context: &CallContext, params: Option<&Value>) -> Result<Value, RpcError> {
     actor_param(params)?;
@@ -1018,7 +1018,7 @@ fn module_dashboard(context: &CallContext, params: Option<&Value>) -> Result<Val
     // §5.10, §9.2) — a run artifact is the one place those 4 numbers are
     // recorded. The `SITE` cell is not: no run field carries where a marker
     // was found, only how many, so `reconciliation_sites` reads the
-    // `reconcile.json` `kaava reconcile` writes per node (PRD §9.3) for the
+    // `reconcile.json` `veistra reconcile` writes per node (PRD §9.3) for the
     // module and its direct facet children — the same "direct children of
     // scope" boundary wave 9b's own `ingest_run` drew for budgets.
     let reconcile_scope: Vec<Uuid> = std::iter::once(module_id)
@@ -1107,7 +1107,7 @@ fn elide_uuid(id: Uuid) -> String {
 ///
 /// `count` and `site` are never reconciled against each other — §3 of the
 /// wave 9d handoff explains why (a run can legitimately land before
-/// `kaava reconcile` has caught up, or the reverse) — but a caller still
+/// `veistra reconcile` has caught up, or the reverse) — but a caller still
 /// needs to *see* a disagreement rather than have it pass silently, per PRD
 /// §12.1's "Errors first · never hidden." `count_mismatch` is that signal:
 /// `true` when the number of `reconcile.json` entries this scope's own
@@ -1139,7 +1139,7 @@ impl ReconcileRow {
 /// summary — see `module_dashboard`'s doc comment for why the count and the
 /// site text come from two different sources. A count with nothing behind it
 /// (no `reconcile.json` on disk yet, the ordinary state for a project that
-/// has never run `kaava reconcile`) draws `—`, not a guess.
+/// has never run `veistra reconcile`) draws `—`, not a guess.
 fn reconciliation_rows(
     store: &Store,
     scope: &[Uuid],
@@ -1171,7 +1171,7 @@ fn reconciliation_rows(
 
     for &id in scope {
         let path = store
-            .kaava_dir()
+            .veistra_dir()
             .join("runs")
             .join(id.to_string())
             .join("reconcile.json");
@@ -1305,7 +1305,7 @@ mod tests {
                 .duration_since(std::time::UNIX_EPOCH)
                 .map(|d| d.as_nanos())
                 .unwrap_or_default();
-            let dir = std::env::temp_dir().join(format!("kaava-schematify-{tag}-{stamp}"));
+            let dir = std::env::temp_dir().join(format!("veistra-schematify-{tag}-{stamp}"));
             fs::create_dir_all(&dir).expect("temp dir");
             Self(dir)
         }
@@ -1414,7 +1414,7 @@ mod tests {
     }
 
     #[test]
-    fn open_project_reports_whether_kaava_exists() {
+    fn open_project_reports_whether_veistra_exists() {
         let dir = TempDir::new("open-project");
         let context = context_at(dir.path());
 
@@ -1433,13 +1433,13 @@ mod tests {
             "schematify/open-project",
             Some(json!({ "actor": "agent" })),
         )
-        .expect("open-project does not fail once .kaava exists");
+        .expect("open-project does not fail once .veistra exists");
         assert_eq!(after["exists"], true);
     }
 
     #[test]
-    fn load_graph_refuses_a_project_with_no_kaava_directory() {
-        let dir = TempDir::new("load-graph-no-kaava");
+    fn load_graph_refuses_a_project_with_no_veistra_directory() {
+        let dir = TempDir::new("load-graph-no-veistra");
         let context = context_at(dir.path());
 
         let err = dispatch(
@@ -1447,7 +1447,7 @@ mod tests {
             "schematify/load-graph",
             Some(json!({ "actor": "human" })),
         )
-        .expect_err("no .kaava directory is a refusal, not an empty graph");
+        .expect_err("no .veistra directory is a refusal, not an empty graph");
         assert_eq!(err.code, INTERNAL_ERROR);
     }
 
@@ -1466,7 +1466,7 @@ mod tests {
             "schematify/load-graph",
             Some(json!({ "actor": "human" })),
         )
-        .expect("load-graph succeeds against a real .kaava directory");
+        .expect("load-graph succeeds against a real .veistra directory");
 
         let nodes = value["graph"]["nodes"]
             .as_array()
@@ -2239,12 +2239,12 @@ mod tests {
         // more than `write_layout_then_read_layout_round_trips` did.
         let dir_path = dir
             .path()
-            .join(".kaava")
+            .join(".veistra")
             .join("runs")
             .join(node.to_string());
         fs::create_dir_all(&dir_path).expect("runs dir");
         let payload = json!({
-            "schema": "kaava-reconcile-v1",
+            "schema": "veistra-reconcile-v1",
             "at": "2026-09-03T00:00:00Z",
             "outcome": "matched",
         });
@@ -3079,7 +3079,7 @@ mod tests {
             tier: BudgetTier::Hard,
             probe: Some(Probe {
                 command: "pnpm bench:x".to_string(),
-                parser: "kaava-bench-v1".to_string(),
+                parser: "veistra-bench-v1".to_string(),
             }),
             sign_off: None,
         })
@@ -3339,7 +3339,7 @@ mod tests {
     /// artifact's own `ReconcileResult`, and the `reconcile.json` files this
     /// module's own children carry (§3 of the wave 9d handoff). Nothing
     /// reconciles the two against each other, on purpose: a run can declare
-    /// a count no evidence file backs yet (CI ran before `kaava reconcile`
+    /// a count no evidence file backs yet (CI ran before `veistra reconcile`
     /// did), and a caller should see that gap rather than have one number
     /// silently overwritten by the other. This test proves the 2 numbers
     /// really are independent by making them disagree: a run declaring 5
@@ -3386,13 +3386,13 @@ mod tests {
         // needs no facet nodes to make its point.
         let runs_dir = dir
             .path()
-            .join(".kaava")
+            .join(".veistra")
             .join("runs")
             .join(scope_id.to_string());
         fs::write(
             runs_dir.join("reconcile.json"),
             json!({
-                "schema": "kaava-reconcile-v1",
+                "schema": "veistra-reconcile-v1",
                 "at": "2026-09-03T00:00:00Z",
                 "outcome": "matched",
                 "node_id": scope_id.to_string(),
@@ -3469,13 +3469,13 @@ mod tests {
 
         let runs_dir = dir
             .path()
-            .join(".kaava")
+            .join(".veistra")
             .join("runs")
             .join(scope_id.to_string());
         fs::write(
             runs_dir.join("reconcile.json"),
             json!({
-                "schema": "kaava-reconcile-v1",
+                "schema": "veistra-reconcile-v1",
                 "at": "2026-09-03T00:00:00Z",
                 "outcome": "duplicate",
                 "node_id": scope_id.to_string(),
@@ -3559,13 +3559,13 @@ mod tests {
 
         let runs_dir = dir
             .path()
-            .join(".kaava")
+            .join(".veistra")
             .join("runs")
             .join(scope_id.to_string());
         fs::write(
             runs_dir.join("reconcile.json"),
             json!({
-                "schema": "kaava-reconcile-v1",
+                "schema": "veistra-reconcile-v1",
                 "at": "2026-09-03T00:00:00Z",
                 "outcome": "present_unknown",
                 "node_id": scope_id.to_string(),

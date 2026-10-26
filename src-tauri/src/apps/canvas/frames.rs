@@ -1,19 +1,19 @@
 //! Frames as labelled objects: what an agent reads a canvas as when it asks
 //! "what is on this canvas" rather than "what shapes are there".
 //!
-//! A frame's metadata is `customData.kaava.object = { type, props }` on the
+//! A frame's metadata is `customData.veistra.object = { type, props }` on the
 //! Excalidraw frame element itself. It stays inside the scene, travels with the
 //! element when it is copied, and needs no second file to keep in step. The
 //! frame's id is the element id, its name is Excalidraw's own `name`, and its
-//! child canvas is `customData.kaava.child` (see `apps/canvas/ui/src/nesting.ts`).
+//! child canvas is `customData.veistra.child` (see `apps/canvas/ui/src/nesting.ts`).
 //!
-//! Older canvases carry the asset spec card (`customData.kaava.spec`). [`migrate`]
+//! Older canvases carry the asset spec card (`customData.veistra.spec`). [`migrate`]
 //! turns one on a frame into a `model` object, in memory, and reports the cards
 //! on plain shapes instead of guessing a frame for them.
 //!
 //! Everything is a pure function of scene JSON and the type table.
 
-use super::diagrams::{bounds_of, elements_of, kaava_of, members_of, Bounds};
+use super::diagrams::{bounds_of, elements_of, members_of, veistra_of, Bounds};
 use super::types::{self, TypeDef, REVIEW_STATES};
 use serde_json::{json, Map, Value};
 use std::collections::HashSet;
@@ -44,7 +44,7 @@ fn is_default_name(name: &str) -> bool {
 #[derive(Debug, Clone)]
 pub struct Frame {
     pub id: String,
-    /// The id of the named diagram this frame is (`kaava.diagram.id`), when it is one.
+    /// The id of the named diagram this frame is (`veistra.diagram.id`), when it is one.
     pub diagram_id: Option<String>,
     pub name: String,
     pub type_id: Option<String>,
@@ -109,7 +109,7 @@ pub fn migrate(scene: &mut Value) -> Migration {
         if !is_live(el) {
             continue;
         }
-        let Some(spec) = kaava_of(el, "spec").and_then(Value::as_object).cloned() else {
+        let Some(spec) = veistra_of(el, "spec").and_then(Value::as_object).cloned() else {
             continue;
         };
         let id = str_of(el, "id").unwrap_or("").to_string();
@@ -124,7 +124,7 @@ pub fn migrate(scene: &mut Value) -> Migration {
             });
             continue;
         }
-        if kaava_of(el, "object").is_some() {
+        if veistra_of(el, "object").is_some() {
             continue;
         }
         let current = str_of(el, "name").unwrap_or("").to_string();
@@ -139,13 +139,13 @@ pub fn migrate(scene: &mut Value) -> Migration {
             current
         };
         let props = spec_to_props(&spec, &name);
-        if let Some(kaava) = el
+        if let Some(veistra) = el
             .get_mut("customData")
-            .and_then(|c| c.get_mut("kaava"))
+            .and_then(|c| c.get_mut("veistra"))
             .and_then(Value::as_object_mut)
         {
-            kaava.remove("spec");
-            kaava.insert("object".into(), json!({ "type": "model", "props": props }));
+            veistra.remove("spec");
+            veistra.insert("object".into(), json!({ "type": "model", "props": props }));
         }
         el["name"] = json!(name);
         out.converted.push(id);
@@ -161,9 +161,9 @@ pub fn list(scene: &Value) -> Vec<Frame> {
         .filter(|e| is_live(e) && is_frame(e))
         .map(|frame| {
             let id = str_of(frame, "id").unwrap_or("").to_string();
-            let object = kaava_of(frame, "object");
+            let object = veistra_of(frame, "object");
             Frame {
-                diagram_id: kaava_of(frame, "diagram")
+                diagram_id: veistra_of(frame, "diagram")
                     .and_then(|d| str_of(d, "id"))
                     .filter(|d| !d.is_empty())
                     .map(str::to_owned),
@@ -178,7 +178,7 @@ pub fn list(scene: &Value) -> Vec<Frame> {
                     .cloned()
                     .unwrap_or_default(),
                 bounds: bounds_of(frame),
-                child: kaava_of(frame, "child")
+                child: veistra_of(frame, "child")
                     .and_then(Value::as_str)
                     .filter(|c| !c.is_empty())
                     .map(str::to_owned),
@@ -342,7 +342,7 @@ pub fn model_card(el: &Value) -> Option<Value> {
     if !is_frame(el) {
         return None;
     }
-    let object = kaava_of(el, "object")?;
+    let object = veistra_of(el, "object")?;
     if str_of(object, "type") != Some("model") {
         return None;
     }
@@ -422,7 +422,7 @@ mod tests {
         let mut s = scene(vec![frame(
             "f1",
             "Frame",
-            json!({ "kaava": { "child": "c/x", "spec": {
+            json!({ "veistra": { "child": "c/x", "spec": {
                 "name": "Playfield", "size_m": 16, "triangle_budget": 5000,
                 "style_notes": "chunky", "reference_images": ["a.png"], "status": "review" } } }),
         )]);
@@ -430,13 +430,13 @@ mod tests {
         assert_eq!(m.converted, ["f1"]);
         let el = &s["elements"][0];
         assert_eq!(el["name"], "Playfield");
-        assert!(el["customData"]["kaava"].get("spec").is_none());
+        assert!(el["customData"]["veistra"].get("spec").is_none());
         assert_eq!(
-            el["customData"]["kaava"]["child"], "c/x",
+            el["customData"]["veistra"]["child"], "c/x",
             "the child link survives"
         );
         assert_eq!(
-            el["customData"]["kaava"]["object"],
+            el["customData"]["veistra"]["object"],
             json!({ "type": "model", "props": {
                 "size_m": 16, "triangle_budget": 5000, "style_notes": "chunky",
                 "reference_images": ["a.png"], "review_state": "review" } })
@@ -453,18 +453,18 @@ mod tests {
         let mut s = scene(vec![frame(
             "f1",
             "Hospital bed",
-            json!({ "kaava": { "spec": { "name": "Gurney", "status": "bogus" } } }),
+            json!({ "veistra": { "spec": { "name": "Gurney", "status": "bogus" } } }),
         )]);
         migrate(&mut s);
         assert_eq!(s["elements"][0]["name"], "Hospital bed");
-        let props = &s["elements"][0]["customData"]["kaava"]["object"]["props"];
+        let props = &s["elements"][0]["customData"]["veistra"]["object"]["props"];
         assert_eq!(props["asset_name"], "Gurney");
         assert_eq!(props["review_state"], "draft");
     }
 
     #[test]
     fn a_card_on_a_plain_shape_is_reported_and_left_alone() {
-        let card = json!({ "kaava": { "spec": { "name": "Chair" } } });
+        let card = json!({ "veistra": { "spec": { "name": "Chair" } } });
         let mut s = scene(vec![shape("a", None, card.clone())]);
         let m = migrate(&mut s);
         assert!(m.converted.is_empty());
@@ -483,12 +483,12 @@ mod tests {
         let mut s = scene(vec![frame(
             "f1",
             "Jump",
-            json!({ "kaava": { "object": { "type": "feature", "props": {} },
+            json!({ "veistra": { "object": { "type": "feature", "props": {} },
                                "spec": { "name": "Old" } } }),
         )]);
         assert!(migrate(&mut s).converted.is_empty());
         assert_eq!(
-            s["elements"][0]["customData"]["kaava"]["object"]["type"],
+            s["elements"][0]["customData"]["veistra"]["object"]["type"],
             "feature"
         );
     }
@@ -502,7 +502,7 @@ mod tests {
             frame(
                 "f1",
                 "Flap",
-                json!({ "kaava": { "object": { "type": "feature",
+                json!({ "veistra": { "object": { "type": "feature",
                     "props": { "summary": "Tap to rise", "priority": "high" } } } }),
             ),
             shape("s1", Some("f1"), json!(null)),
@@ -511,7 +511,7 @@ mod tests {
             frame(
                 "f2",
                 "Pillar",
-                json!({ "kaava": { "child": "world/pillar",
+                json!({ "veistra": { "child": "world/pillar",
                 "object": { "type": "model", "props": { "style_notes": "green and chunky" } } } }),
             ),
             frame("f3", "Loose", json!(null)),
@@ -541,7 +541,7 @@ mod tests {
         let s = scene(vec![frame(
             "frame:board-title",
             "Board title",
-            json!({ "kaava": { "diagram": { "id": "board-title", "title": "Board title" } } }),
+            json!({ "veistra": { "diagram": { "id": "board-title", "title": "Board title" } } }),
         )]);
         let frames = list(&s);
         for key in ["frame:board-title", "board-title", "Board title"] {
@@ -558,7 +558,7 @@ mod tests {
         let s = scene(vec![frame(
             "f1",
             "X",
-            json!({ "kaava": { "object": { "type": "gone", "props": { "a": 1 } } } }),
+            json!({ "veistra": { "object": { "type": "gone", "props": { "a": 1 } } } }),
         )]);
         let row = frame_json("c", &list(&s)[0], &table());
         assert_eq!(row["typeKnown"], false);
@@ -619,7 +619,7 @@ mod tests {
         let mut s = scene(vec![frame(
             "f1",
             "Frame",
-            json!({ "kaava": { "spec": { "name": "Gurney", "size_m": 2, "triangle_budget": 8000,
+            json!({ "veistra": { "spec": { "name": "Gurney", "size_m": 2, "triangle_budget": 8000,
                                           "status": "review" } } }),
         )]);
         migrate(&mut s);
@@ -631,7 +631,7 @@ mod tests {
         assert!(model_card(&frame(
             "g",
             "Jump",
-            json!({ "kaava": { "object": { "type": "feature" } } })
+            json!({ "veistra": { "object": { "type": "feature" } } })
         ))
         .is_none());
     }

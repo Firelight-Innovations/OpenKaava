@@ -158,7 +158,7 @@ fn insert(
     }
 }
 
-/// Files were dropped on a terminal, from Explorer or from a Kaava app.
+/// Files were dropped on a terminal, from Explorer or from a Veistra app.
 #[tauri::command]
 pub fn terminal_drop_paths(
     app: AppHandle,
@@ -288,8 +288,8 @@ pub fn insert_for_cluster(
     app: &AppHandle,
     cluster_id: Option<&str>,
     params: Option<serde_json::Value>,
-) -> std::result::Result<serde_json::Value, kaava_rpc::RpcError> {
-    use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
+) -> std::result::Result<serde_json::Value, veistra_rpc::RpcError> {
+    use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
     let p: InsertParams = serde_json::from_value(params.unwrap_or(serde_json::Value::Null))
         .map_err(|e| RpcError::new(INVALID_PARAMS, format!("bad params: {e}")))?;
     let declined = |reason: &str| serde_json::json!({ "inserted": false, "reason": reason });
@@ -458,7 +458,7 @@ mod tests {
 
     #[test]
     fn a_typed_reference_never_presses_enter() {
-        let paths = vec!["C:/p/.kaava/context/markup.png".to_string()];
+        let paths = vec!["C:/p/.veistra/context/markup.png".to_string()];
         for harness in [
             Harness::Claude,
             Harness::Gemini,

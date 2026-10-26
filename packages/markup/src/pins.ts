@@ -2,11 +2,11 @@
  * Pins: a numbered marker that also records what it was placed on.
  *
  * A pin is two Excalidraw elements, an ellipse and the text bound inside it,
- * sharing a group id. The ellipse carries `customData.kaava = { kind: "pin", n,
+ * sharing a group id. The ellipse carries `customData.veistra = { kind: "pin", n,
  * note, nodePath?, worldPoint? }`; the label carries `{ kind: "pin-label", n }`
  * so that a reader listing pins never counts it twice.
  */
-import { kaavaData, live, touch, withKaava } from "./elements";
+import { veistraData, live, touch, withVeistra } from "./elements";
 import type { MarkupElement, PinData, Vec3 } from "./types";
 
 /** Diameter of the marker, in host pixels. */
@@ -37,7 +37,7 @@ export interface PinInput {
 export function nextPinNumber(elements: readonly MarkupElement[], floor = 0): number {
   let max = floor;
   for (const el of elements) {
-    const data = kaavaData(el);
+    const data = veistraData(el);
     if (data && (data.kind === "pin" || data.kind === "pin-label") && typeof data.n === "number") {
       if (data.n > max) max = data.n;
     }
@@ -46,7 +46,7 @@ export function nextPinNumber(elements: readonly MarkupElement[], floor = 0): nu
 }
 
 export function pinGroupId(n: number): string {
-  return `kaava-pin-${n}`;
+  return `veistra-pin-${n}`;
 }
 
 export interface PinSkeleton {
@@ -62,13 +62,13 @@ export interface PinSkeleton {
   strokeWidth: number;
   roughness: number;
   groupIds: string[];
-  customData: { kaava: PinData };
+  customData: { veistra: PinData };
   label: {
     text: string;
     fontSize: number;
     strokeColor: string;
     groupIds: string[];
-    customData: { kaava: { kind: "pin-label"; n: number } };
+    customData: { veistra: { kind: "pin-label"; n: number } };
   };
 }
 
@@ -96,13 +96,13 @@ export function pinSkeleton(input: PinInput): PinSkeleton {
     strokeWidth: 2,
     roughness: 0,
     groupIds: [group],
-    customData: { kaava: data },
+    customData: { veistra: data },
     label: {
       text: String(n),
       fontSize: 16,
       strokeColor: colors.text,
       groupIds: [group],
-      customData: { kaava: { kind: "pin-label", n } },
+      customData: { veistra: { kind: "pin-label", n } },
     },
   };
 }
@@ -117,7 +117,7 @@ export interface PinRecord extends PinData {
 export function listPins(elements: readonly MarkupElement[]): PinRecord[] {
   const pins: PinRecord[] = [];
   for (const el of live(elements)) {
-    const data = kaavaData(el);
+    const data = veistraData(el);
     if (!data || data.kind !== "pin" || typeof data.n !== "number") continue;
     const pin: PinRecord = {
       kind: "pin",
@@ -134,12 +134,12 @@ export function listPins(elements: readonly MarkupElement[]): PinRecord[] {
 }
 
 export function isPinPart(el: MarkupElement): boolean {
-  const kind = kaavaData(el)?.kind;
+  const kind = veistraData(el)?.kind;
   return kind === "pin" || kind === "pin-label";
 }
 
 function pinNumberOf(el: MarkupElement): number | null {
-  const data = kaavaData(el);
+  const data = veistraData(el);
   if (!data || (data.kind !== "pin" && data.kind !== "pin-label")) return null;
   return typeof data.n === "number" ? data.n : null;
 }
@@ -151,8 +151,8 @@ export function setPinNote(
   note: string,
 ): MarkupElement[] {
   return elements.map((el) => {
-    const data = kaavaData(el);
-    return data && data.kind === "pin" && data.n === n ? withKaava(el, { note }) : el;
+    const data = veistraData(el);
+    return data && data.kind === "pin" && data.n === n ? withVeistra(el, { note }) : el;
   });
 }
 
@@ -164,7 +164,7 @@ export function movePinTo(
   y: number,
 ): MarkupElement[] {
   const marker = elements.find(
-    (el) => !el.isDeleted && kaavaData(el)?.kind === "pin" && pinNumberOf(el) === n,
+    (el) => !el.isDeleted && veistraData(el)?.kind === "pin" && pinNumberOf(el) === n,
   );
   if (!marker) return elements.slice();
   const dx = x - (marker.x + marker.width / 2);

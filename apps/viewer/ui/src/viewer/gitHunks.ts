@@ -7,10 +7,10 @@
  * a shared file neither the explorer nor the other viewers need to import.
  * The shape below mirrors `src-tauri/src/apps/files.rs`, restated rather than
  * imported for the same reason `../rpc.ts`'s header gives: an app knows its
- * host only through `@openkaava/bridge`, and a Rust test is what is meant to catch
+ * host only through `@veistra/bridge`, and a Rust test is what is meant to catch
  * a drift between the two, not `tsc`.
  */
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 
 /**
  * One contiguous change between HEAD and the working copy, in the current

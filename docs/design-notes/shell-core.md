@@ -93,7 +93,7 @@ is request/reply, because there is no watcher — the panel re-asks after every 
 shown tool changes, and that is the whole update model.
 
 Every `GitControl` method takes a **cluster** id. It used to be a tool id, which was not a near-miss
-but a dead end — Rust resolved a tool id against the `kaava.toml` `[[tool]]` pins, a list
+but a dead end — Rust resolved a tool id against the `veistra.toml` `[[tool]]` pins, a list
 `discovery.rs` leaves empty for every project, so every call rejected and the source-control view drew
 an error where its change list should have been. `git.rs`'s note on `git_cluster_status` has the full
 account.
@@ -112,7 +112,7 @@ error it is.
 A cluster can work inside a git worktree instead of the project folder itself, which is what lets two
 clusters hold two branches of one repository open at the same time without either one's edits showing
 up in the other's file tree. The worktree is a real second checkout on disk; git maintains it, and
-`git worktree list` — not anything OpenKaava writes down — is the authority on which ones exist.
+`git worktree list` — not anything Veistra writes down — is the authority on which ones exist.
 
 They are created *outside* the project, at `<project>/../.worktrees/<project-name>/<name>/`, and that
 placement is load-bearing rather than tidiness. A worktree nested inside the project would be a
@@ -153,7 +153,7 @@ it stays the project even while the work is happening in a worktree beside it. H
 the file tree walks the root, and conflating them would have Home renaming itself every time somebody
 made a branch.
 
-Synchronous, so it cannot check that the directory still exists. A worktree removed outside OpenKaava
+Synchronous, so it cannot check that the directory still exists. A worktree removed outside Veistra
 leaves the path pointing at nothing until the backend reconciles against `git worktree list`, which it
 does on load and after every worktree mutation. Callers that walk the result should treat a missing
 directory as empty rather than as a failure.
@@ -356,7 +356,7 @@ region's DOM looks like.
 
 Because the scope of "one registry" is exactly one window, and a window is exactly one webview with
 its own JavaScript context. There is no arrangement in which a single page hosts two independent
-shells that would need separate registries — a second OpenKaava window is a second webview, with its own
+shells that would need separate registries — a second Veistra window is a second webview, with its own
 copy of this module.
 
 A context would also have forced an ordering problem for no benefit: `WindowRoot` both consumes the

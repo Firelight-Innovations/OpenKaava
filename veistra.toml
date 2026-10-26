@@ -1,0 +1,35 @@
+# The Veistra stack manifest.
+#
+# This file is the single source of truth for *which* components make up the
+# stack and *which version* of each one this orchestrator expects. Veistra is
+# multi-repo: every component below lives in its own repository and cuts its own
+# tagged releases. We pin exact semantic versions here rather than tracking a
+# branch tip, so a given checkout of `orchestrator` always describes one
+# reproducible stack.
+#
+# The *name* below is presentation and `branding.toml` owns it — the lint fails
+# if the two disagree. This file's own *filename* is frozen and is not branding;
+# branding.toml's header has the rest of that list.
+
+[stack]
+name = "Veistra"
+version = "0.1.0"
+
+# Where local checkouts of the component repos live, relative to this file.
+# The default layout is every Veistra repo sitting as a sibling of `orchestrator/`.
+checkout-root = ".."
+
+
+# --- Development tools -------------------------------------------------------
+# `kind = "dev-tool"` means authoring-time only. It is the only kind today, and
+# the field stays anyway: the manifest's job is to say what a component *is*,
+# and a schema that omits the question cannot answer it later without a
+# migration.
+#
+# This array is empty right now. Schematify's two predecessor applications
+# were its two entries; both have been reclassified as one first-party app
+# under `apps/` — see `apps/README.md` — which puts it in the binary rather
+# than in a sibling checkout, so it is no longer a stack component this file
+# needs to pin. The array stays, working, with zero rows: it is still where a
+# genuinely separate-repository dev tool gets pinned, the day one exists.
+

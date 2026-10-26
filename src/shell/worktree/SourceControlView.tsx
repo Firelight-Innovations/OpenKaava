@@ -18,7 +18,7 @@
  * motion section is explicit that this list stays at native scroll speed.
  */
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
-import { isTomlPath, TOML_LANGUAGE_ID } from "@openkaava/monaco-languages";
+import { isTomlPath, TOML_LANGUAGE_ID } from "@veistra/monaco-languages";
 import type { GitControl, GitDiff, GitFileChange, ReviewControl, ReviewSend } from "../contract";
 import { GIT_KIND_LETTER, GIT_KIND_TOKEN } from "../contract";
 import { READ_ONLY_HINT } from "../environment";
@@ -51,7 +51,7 @@ export interface SourceControlViewProps {
    *
    * A cluster id, not a tool id. This view used to take the latter, and every
    * call it made resolved through `git.rs`'s `repo()` — which looks an id up in
-   * `StackSnapshot.tools`, the `kaava.toml` stack-component pins. Those are a
+   * `StackSnapshot.tools`, the `veistra.toml` stack-component pins. Those are a
    * different id space from the shell's own apps, and `discovery.rs`'s
    * `ENABLED_TOOLS` is `&[]`, so that list is empty for every project. The
    * lookup could therefore only ever fail: every call from here came back
@@ -278,7 +278,7 @@ export default function SourceControlView({
                   `language` is TOML or nothing, because that is the entire set
                   `DiffView` can tokenize — its header explains why. Decided
                   here from the path rather than inside it because a path is
-                  what this view has; asked of `@openkaava/monaco-languages` rather
+                  what this view has; asked of `@veistra/monaco-languages` rather
                   than answered inline because that package owns which
                   extensions its grammar claims, and it is Monaco-free, so
                   importing it does not undo the `lazy` boundary above.

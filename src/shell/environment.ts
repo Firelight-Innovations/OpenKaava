@@ -1,7 +1,7 @@
 /**
  * The environment model — display side only. Every cluster is exactly one of
  * a local worktree, a cloud session, the standing design-canvas worktree, or
- * main itself, read-only (`docs/KAAVA-UX-REWORK.md` §1-2). [`environmentOf`]
+ * main itself, read-only (`docs/VEISTRA-UX-REWORK.md` §1-2). [`environmentOf`]
  * reads `Cluster.environment` when the backend has set it, falling back to
  * the older `worktree`/`project` fields for a cluster that predates it.
  * Every caller goes through it rather than either field directly.
@@ -63,7 +63,7 @@ function fromRustEnvironment(env: RustEnvironment): Environment {
 
 /**
  * The branch name of the standing design-canvas worktree
- * (`docs/KAAVA-UX-REWORK.md` §5) — a worktree checked out to exactly this
+ * (`docs/VEISTRA-UX-REWORK.md` §5) — a worktree checked out to exactly this
  * branch is the design canvas, independent of `Cluster.pinned`.
  */
 export const DESIGN_WORKTREE_BRANCH = "wt/design";
@@ -101,7 +101,7 @@ export function environmentKey(env: Environment): string {
 }
 
 /**
- * Whether a tab dragged out of `from` may land in `to` (`docs/KAAVA-UX-
+ * Whether a tab dragged out of `from` may land in `to` (`docs/VEISTRA-UX-
  * REWORK.md` §5). On `clusterRoot`, not [`environmentKey`] — that keys every
  * `main` cluster alike, which is wrong here: two clusters each working
  * directly in a different project share no root and must refuse. A `null`

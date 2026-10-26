@@ -1,4 +1,4 @@
-# OpenKaava 0.2.0 — Primary Context (read this first)
+# Veistra 0.2.0 — Primary Context (read this first)
 
 You are one of four agents working overnight, each in your own git worktree,
 each on your own branch, each with no human available until morning. Another
@@ -8,7 +8,7 @@ need to work independently is in this document plus your own task prompt.
 
 ## What we're building
 
-OpenKaava (`Firelight-Innovations/OpenKaava`) is a Tauri v2 desktop app: Rust
+Veistra (`Firelight-Innovations/Veistra`) is a Tauri v2 desktop app: Rust
 backend in `src-tauri/`, React 19 + TypeScript frontend in `src/`. It's an
 Agentic Development Environment for game development — a shell that coding
 agents run inside, currently pre-alpha, Windows-only.
@@ -22,7 +22,7 @@ different stack.
 
 ## The stack mismatch — read this before you touch Orca's source
 
-Orca is Electron + Node.js + TypeScript. OpenKaava is Tauri v2: Rust owns
+Orca is Electron + Node.js + TypeScript. Veistra is Tauri v2: Rust owns
 everything that touches the machine (filesystem, processes, the OS webview),
 and the React frontend reaches Rust only through typed commands
 (`src/bindings.ts` → `src-tauri/src/commands.rs`). This means:
@@ -31,7 +31,7 @@ and the React frontend reaches Rust only through typed commands
   UI components, their props/state shape, their interaction logic (click
   handlers, drag handlers, comment threading data model, DOM element
   selection logic for Design Mode — all of that is plain web tech and
-  transfers to OpenKaava's React frontend with import-path and styling changes.
+  transfers to Veistra's React frontend with import-path and styling changes.
 - **Not portable, needs a real Rust rewrite:** anything built on Electron's
   `ipcMain`/`ipcRenderer`, `child_process`, `BrowserView`/`webContents`, or
   direct Chrome DevTools Protocol (CDP) sessions. Tauri has its own command
@@ -40,7 +40,7 @@ and the React frontend reaches Rust only through typed commands
   Treat every Electron API call in Orca's source as a description of *what*
   needs to happen, not code you can paste into a `.rs` file.
 
-Read `docs/dev/architecture.md` in OpenKaava before writing anything — it
+Read `docs/dev/architecture.md` in Veistra before writing anything — it
 explains the actual command-registration pattern (`commands.rs` →
 `generate_handler!` in `lib.rs` → typed wrapper in `bindings.ts`), the shell
 region layout under `src/shell/`, and the apps-vs-tools distinction. Do not
@@ -48,8 +48,8 @@ invent a different pattern because Orca does it differently.
 
 ## Studying Orca's source
 
-Clone it read-only into a scratch directory outside the OpenKaava repo — do
-not add it as a submodule, do not commit any of its files into OpenKaava:
+Clone it read-only into a scratch directory outside the Veistra repo — do
+not add it as a submodule, do not commit any of its files into Veistra:
 
 ```bash
 git clone --depth 1 https://github.com/stablyai/orca.git /tmp/orca-reference
@@ -66,7 +66,7 @@ redesign for Rust.
 
 ## License
 
-Orca is MIT-licensed. OpenKaava is Apache-2.0. That combination is fine —
+Orca is MIT-licensed. Veistra is Apache-2.0. That combination is fine —
 Apache-2.0 projects routinely include MIT-licensed code — but you must carry
 the attribution forward correctly:
 
@@ -75,7 +75,7 @@ the attribution forward correctly:
   © Stably AI.
 - Add or extend a `THIRD-PARTY-NOTICES` (or equivalent — check if one exists
   already; `NOTICE` in the repo root is the existing precedent for this kind
-  of thing) entry recording that OpenKaava incorporates MIT-licensed code
+  of thing) entry recording that Veistra incorporates MIT-licensed code
   from `stablyai/orca`.
 - Do not copy Orca's own branding, logos, or the word "Orca" into any
   user-facing string, file name, or comment beyond the attribution above.

@@ -1,0 +1,21 @@
+{
+  "id": "01a03637-7800-7049-b67a-60f34e1a4026",
+  "slug": "jwks-refetch-rate",
+  "kind": "budget",
+  "title": "jwks_refetch_rate",
+  "lifecycle": "specified",
+  "authored_by": "human",
+  "created": "2026-08-25T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a03637-7800-7024-8962-cc11fce89708",
+  "metric": "jwks_refetch_rate",
+  "op": "<",
+  "value": 1,
+  "unit": "per minute",
+  "tier": "soft",
+  "probe": {
+    "command": "pnpm bench:jwks",
+    "parser": "veistra-bench-v1"
+  },
+  "sign_off": "m.ross, run #1179"
+}

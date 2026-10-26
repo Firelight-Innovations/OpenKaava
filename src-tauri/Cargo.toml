@@ -1,7 +1,7 @@
 [package]
-name = "openkaava-orchestrator"
+name = "veistra-orchestrator"
 version.workspace = true
-description = "Entry point for the OpenKaava stack — loads and orchestrates the dev tools"
+description = "Entry point for the Veistra stack — loads and orchestrates the dev tools"
 authors = ["Veistra"]
 edition = "2021"
 
@@ -20,17 +20,17 @@ workspace = true
 # suffix. `main.rs` is a thin shim that calls into this library, which also lets
 # integration tests and the mobile entry point reach the same code.
 # See https://github.com/rust-lang/cargo/issues/8519
-name = "openkaava_orchestrator_lib"
+name = "veistra_orchestrator_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]
 # Schematify is disabled (ORC-SCO-001): off by default, so the switcher bar
 # never offers it. `cargo build --features schematify` brings the app back, and
-# `KAAVA_SCHEMATIFY=1` does the same for its Vite entry in `vite.config.ts`.
+# `VEISTRA_SCHEMATIFY=1` does the same for its Vite entry in `vite.config.ts`.
 schematify = ["dep:schematify-core"]
-# Design Mode is disabled: it points at web UIs, and OpenKaava no longer
+# Design Mode is disabled: it points at web UIs, and Veistra no longer
 # targets them. Off by default; `--features design-mode` restores the app, its
-# comment store and the `kaava-design` MCP server, and `KAAVA_DESIGN_MODE=1`
+# comment store and the `veistra-design` MCP server, and `VEISTRA_DESIGN_MODE=1`
 # restores its Vite entry. See `docs/design-notes/design-mode.md`.
 design-mode = []
 
@@ -40,7 +40,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 # `unstable` is what gates `Window::add_child` — the multi-webview API
 # `src/plane_webview.rs` uses to embed Plane CE as its own WebView2 instance
-# rather than an `<iframe>` (`OPENKAAVA-PLANE-DESIGN.md` §11: an iframe's
+# rather than an `<iframe>` (`VEISTRA-PLANE-DESIGN.md` §11: an iframe's
 # third-party-cookie blocking breaks Plane's login session on every restart).
 # Tauri documents the feature as exactly that — an API that has not settled
 # yet — so this was flagged as a decision for the owner rather than switched
@@ -50,8 +50,8 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["unstable"] }
 tauri-plugin-opener = "2"
 
-# One OpenKaava process per machine, and the reason is Explorer's context menu.
-# "Open with OpenKaava" on a folder launches this binary again, and a second
+# One Veistra process per machine, and the reason is Explorer's context menu.
+# "Open with Veistra" on a folder launches this binary again, and a second
 # process would hold its own ShellState and write its own layout.json and
 # projects.json over the first one's. This plugin hands the argv of the second
 # launch to the process already running and exits it, so the context menu
@@ -89,21 +89,21 @@ tauri-plugin-updater = "2"
 # Linux portal and async-runtime plumbing this uses none of.
 rfd = { version = "0.16", default-features = false }
 
-# Reading `kaava-tool.toml` out of a tool's checkout — where its frontend's dev
+# Reading `veistra-tool.toml` out of a tool's checkout — where its frontend's dev
 # URL and built `dist` directory are declared. Shared with every tool repo, so
 # the orchestrator and the tools cannot disagree about the manifest's shape.
-kaava-tool-manifest = { path = "../crates/kaava-tool-manifest" }
+veistra-tool-manifest = { path = "../crates/veistra-tool-manifest" }
 
 # The wire types of transport A. The orchestrator is not spawning tool cores yet,
 # but `RpcError` is already the error shape a frontend receives: an app's Rust
 # half (`src/apps/`) fails with one, and it crosses to the iframe unchanged. Two
 # error vocabularies for one `invoke` — one for apps, one for tools — is exactly
 # the drift this crate exists to prevent.
-kaava-rpc = { path = "../crates/kaava-rpc" }
+veistra-rpc = { path = "../crates/veistra-rpc" }
 # The agent tab's engine: coding agents over the Agent Client Protocol, one
 # per tab, in its cluster's worktree. No Tauri in it; `apps::agent_tab` is the
-# glue. See `docs/design/KAAVA-AGENT-EMBEDDING-DESIGN.md`.
-kaava-agent-host = { path = "../crates/kaava-agent-host" }
+# glue. See `docs/design/VEISTRA-AGENT-EMBEDDING-DESIGN.md`.
+veistra-agent-host = { path = "../crates/veistra-agent-host" }
 
 # The Schematify design graph: schemas, atomic storage, the loader, and the
 # lifecycle rules. `src-tauri/src/apps/schematify.rs` is the thin JSON-RPC
@@ -152,7 +152,7 @@ grep-searcher = "0.1"
 # named directly here because this crate calls its `escape` function itself.
 regex-syntax = "0.8"
 
-# The Model Context Protocol, for the servers OpenKaava hosts for whatever coding
+# The Model Context Protocol, for the servers Veistra hosts for whatever coding
 # agent the user is running in a terminal. See `src/mcp/` and
 # `docs/mcp-server-manager.md`.
 #
@@ -255,7 +255,7 @@ sha2 = "0.10"
 
 # Parsing and validating the Plane URLs `apps/projects.rs` hands to the child
 # webview (`src/plane_webview.rs`) — same-origin checked against
-# `plane.kaava.internal` before anything is ever opened or navigated. Already
+# `plane.veistra.internal` before anything is ever opened or navigated. Already
 # in the tree transitively; named directly because this crate now calls it
 # itself rather than only linking it through something else's API.
 url = "2"
@@ -273,7 +273,7 @@ keyring = { version = "3", features = ["windows-native"] }
 # is named here is only that this crate calls them itself.
 #
 # The alternative was a debug port and a second process, which is what the
-# earlier `scripts/kaava-ui.mjs` did. `CallDevToolsProtocolMethod` is the same
+# earlier `scripts/veistra-ui.mjs` did. `CallDevToolsProtocolMethod` is the same
 # protocol over the COM interface Tauri already holds, so there is no socket, no
 # environment variable read at launch, and nothing an agent could point at a
 # build somebody is using.
@@ -306,9 +306,9 @@ windows-sys = { version = "0.61", features = [
 ] }
 
 [dev-dependencies]
-# Generates the agent tab's `kaava-show.generated.ts` from `refs::catalogue`,
+# Generates the agent tab's `veistra-show.generated.ts` from `refs::catalogue`,
 # inside a test that also fails when the checked-in file is stale. Test-only, as
-# in `kaava-agent-host`: the derives are `cfg_attr(test, ...)`.
+# in `veistra-agent-host`: the derives are `cfg_attr(test, ...)`.
 ts-rs.workspace = true
 # A throwaway git repository for `mcp::config`'s drift tests. Those read the
 # *committed* `.mcp.json` rather than the working copy, and proving that they do

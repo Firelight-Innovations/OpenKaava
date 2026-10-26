@@ -759,7 +759,7 @@ describe("projectStackGraph", () => {
   });
 
   /**
-   * A `.kaava/` tree is a directory a person can hand-edit, so a `parent`
+   * A `.veistra/` tree is a directory a person can hand-edit, so a `parent`
    * chain that loops is a real possibility rather than a hypothetical one —
    * `isDescendantOf` guards the tier-2 and tier-3 walks for the same reason.
    * Without the guard this hangs rather than failing, which is why it is

@@ -394,14 +394,14 @@ fn load(app: &AppHandle) -> Book {
         Ok(raw) => raw,
         Err(e) => {
             if e.kind() != std::io::ErrorKind::NotFound {
-                crate::kaava_log!("could not read {}: {e}", path.display());
+                crate::veistra_log!("could not read {}: {e}", path.display());
             }
             return Book::default();
         }
     };
 
     serde_json::from_str(&raw).unwrap_or_else(|e| {
-        crate::kaava_log!("{} is not readable, starting empty: {e}", path.display());
+        crate::veistra_log!("{} is not readable, starting empty: {e}", path.display());
         Book::default()
     })
 }
@@ -413,7 +413,7 @@ fn save(app: &AppHandle, book: &Book) {
 
     if let Some(parent) = path.parent() {
         if let Err(e) = std::fs::create_dir_all(parent) {
-            crate::kaava_log!("could not create {}: {e}", parent.display());
+            crate::veistra_log!("could not create {}: {e}", parent.display());
             return;
         }
     }
@@ -421,18 +421,18 @@ fn save(app: &AppHandle, book: &Book) {
     let json = match serde_json::to_string_pretty(book) {
         Ok(json) => json,
         Err(e) => {
-            crate::kaava_log!("could not serialize the design comments: {e}");
+            crate::veistra_log!("could not serialize the design comments: {e}");
             return;
         }
     };
 
     let temp = path.with_extension("json.tmp");
     if let Err(e) = std::fs::write(&temp, json) {
-        crate::kaava_log!("could not write {}: {e}", temp.display());
+        crate::veistra_log!("could not write {}: {e}", temp.display());
         return;
     }
     if let Err(e) = std::fs::rename(&temp, &path) {
-        crate::kaava_log!("could not replace {}: {e}", path.display());
+        crate::veistra_log!("could not replace {}: {e}", path.display());
         let _ = std::fs::remove_file(&temp);
     }
 }
@@ -468,7 +468,7 @@ fn save_shot(app: &AppHandle, id: &str, png: &[u8]) -> bool {
 
     if let Some(parent) = path.parent() {
         if let Err(e) = std::fs::create_dir_all(parent) {
-            crate::kaava_log!("could not create {}: {e}", parent.display());
+            crate::veistra_log!("could not create {}: {e}", parent.display());
             return false;
         }
     }
@@ -476,7 +476,7 @@ fn save_shot(app: &AppHandle, id: &str, png: &[u8]) -> bool {
     match std::fs::write(&path, png) {
         Ok(()) => true,
         Err(e) => {
-            crate::kaava_log!("could not write {}: {e}", path.display());
+            crate::veistra_log!("could not write {}: {e}", path.display());
             false
         }
     }

@@ -1,4 +1,4 @@
-//! The Plane child webview — `OPENKAAVA-PLANE-DESIGN.md` §11, B1.4/B1.5.
+//! The Plane child webview — `VEISTRA-PLANE-DESIGN.md` §11, B1.4/B1.5.
 //!
 //! A Tauri v2 **child webview** of the main window, deliberately not an
 //! `<iframe>`: a cross-origin iframe inside the shell's own WebView2 runs
@@ -25,9 +25,9 @@ use tauri::{AppHandle, LogicalPosition, LogicalSize, Manager, WebviewUrl};
 use url::Url;
 
 /// The child webview's label, and the canonical Plane host it may ever be
-/// pointed at. `OPENKAAVA-PLANE-DESIGN.md` §2/§3.
+/// pointed at. `VEISTRA-PLANE-DESIGN.md` §2/§3.
 pub const LABEL: &str = "plane";
-pub const PLANE_HOST: &str = "plane.kaava.internal";
+pub const PLANE_HOST: &str = "plane.veistra.internal";
 
 /// `pages.rs`'s row id for this app, and the one page [`sync_visibility`]
 /// ever shows the webview for. Hardcoded rather than looked up: `PAGES` is
@@ -326,7 +326,7 @@ mod tests {
     #[test]
     fn the_canonical_plane_url_is_accepted() {
         assert!(is_plane_url(&url(
-            "http://plane.kaava.internal:8765/veistra/projects/abc/issues/"
+            "http://plane.veistra.internal:8765/veistra/projects/abc/issues/"
         )));
     }
 
@@ -334,13 +334,13 @@ mod tests {
     fn a_different_host_is_refused() {
         assert!(!is_plane_url(&url("http://localhost:8765/")));
         assert!(!is_plane_url(&url(
-            "https://evil.example/plane.kaava.internal"
+            "https://evil.example/plane.veistra.internal"
         )));
     }
 
     #[test]
     fn navigation_follows_the_same_rule_as_opening() {
-        assert!(allow_navigation(&url("http://plane.kaava.internal/x")));
+        assert!(allow_navigation(&url("http://plane.veistra.internal/x")));
         assert!(!allow_navigation(&url("https://evil.example/")));
     }
 

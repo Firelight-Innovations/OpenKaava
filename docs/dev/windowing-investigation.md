@@ -1,6 +1,6 @@
 # Windowing: what was wrong, and what is still only suspected
 
-Written for [#45](https://github.com/Firelight-Innovations/OpenKaava/issues/45), which
+Written for [#45](https://github.com/Firelight-Innovations/Veistra/issues/45), which
 reported that opening an app inside the shell — the Design app was the example — behaved
 badly, with no root cause known. This page records what the investigation found, what was
 fixed, and what was looked at and left alone, so the next person to touch the pane tree does
@@ -142,7 +142,7 @@ case worked before and still works, and testing there proves nothing.
 1. **The reported bug.** Open a project, or otherwise get a cluster with two panes side by
    side. Click the cluster chip to bring Home up. From the Apps menu, choose **Design Mode**.
    *Before:* Home disappears, nothing opens, and the console reads
-   `kaava: could not open that app: UnknownTool("design")`. *After:* Design Mode appears in
+   `veistra: could not open that app: UnknownTool("design")`. *After:* Design Mode appears in
    the pane Home was covering with.
 2. **The project-open terminal.** Open a folder as a project into a fresh cluster. The
    built-in project-open preset asks for Files, the viewer and a terminal.

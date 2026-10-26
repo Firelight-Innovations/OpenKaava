@@ -1,6 +1,6 @@
 # Overnight 2: Schematify. Agent context (read first)
 
-You are one of several agents building Schematify overnight inside the OpenKaava
+You are one of several agents building Schematify overnight inside the Veistra
 monorepo. No human is available until morning. Do not ask questions. Decide,
 record the assumption, and keep going.
 

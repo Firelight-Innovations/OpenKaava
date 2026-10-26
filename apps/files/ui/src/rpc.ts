@@ -2,13 +2,13 @@
  * Every call this app makes to its host, in one file.
  *
  * The shapes below mirror `src-tauri/src/apps/files.rs` and are *restated*
- * rather than imported: an app knows its host only through `@openkaava/bridge`, and
+ * rather than imported: an app knows its host only through `@veistra/bridge`, and
  * the day this one is extracted into a tool repository of its own, nothing in
  * `apps/files/` may be reaching into `src/`. A Rust test catches a drift, not
  * `pnpm build`. Wrapping `invoke` also puts the method-name strings in exactly
  * one place — nothing outside this module spells `"files/read-bytes"`.
  */
-import { KaavaRpcError, invoke } from "@openkaava/bridge";
+import { VeistraRpcError, invoke } from "@veistra/bridge";
 
 // --- what the backend returns -------------------------------------------------
 
@@ -271,7 +271,7 @@ export const openInBlender = (path: string) => invoke<unknown>("files/open-in-bl
  *  `null` for every other failure, including a write that failed for a reason
  *  the user cannot resolve by reloading. */
 export function staleWrite(err: unknown): { mtime: number | null } | null {
-  if (!(err instanceof KaavaRpcError)) return null;
+  if (!(err instanceof VeistraRpcError)) return null;
   const data = err.data as { kind?: unknown; mtime?: unknown } | undefined;
   if (!data || data.kind !== "stale") return null;
   return { mtime: typeof data.mtime === "number" ? data.mtime : null };
@@ -286,12 +286,12 @@ export function staleWrite(err: unknown): { mtime: number | null } | null {
  *  one caller. If this ever needs to be reliable rather than merely right, it
  *  becomes a `data.kind` like `staleWrite` above. */
 export function isNotText(err: unknown): boolean {
-  return err instanceof KaavaRpcError && err.message.includes("not a UTF-8 text file");
+  return err instanceof VeistraRpcError && err.message.includes("not a UTF-8 text file");
 }
 
 /** The failing method, plus whatever the host said about why. */
 export function describe(method: string, err: unknown): string {
-  if (err instanceof KaavaRpcError) return `${method} — [${err.code}] ${err.message}`;
+  if (err instanceof VeistraRpcError) return `${method} — [${err.code}] ${err.message}`;
   return `${method} — ${String(err)}`;
 }
 

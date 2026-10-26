@@ -89,7 +89,7 @@ const TAURI_RESTRICTION = {
 const BRIDGE_RESTRICTION = {
   group: ["**/packages/bridge/src/**"],
   message:
-    "STANDARDS.md §1.4: import from '@openkaava/bridge', not from its source tree. " +
+    "STANDARDS.md §1.4: import from '@veistra/bridge', not from its source tree. " +
     "A relative path into packages/bridge/src breaks the moment the bridge ships separately.",
 };
 
@@ -130,7 +130,7 @@ const APPS = [
  * PRD §14.6 / Schematify wave 10a scope item 2: gate TypeScript imports across
  * package boundaries in CI. `apps/README.md`'s "Apps talking to each other"
  * section already states the boundary in prose — an app reaches another app
- * only through the shell-routed `kaava/open` and `kaava/publish` topics, never
+ * only through the shell-routed `veistra/open` and `veistra/publish` topics, never
  * by importing its source — and this is that rule made mechanical, on the same
  * `no-restricted-imports` machinery `regionIsolation` below already uses for
  * `src/shell/<region>`.
@@ -170,7 +170,7 @@ const appIsolation = APPS.map((app) => ({
             message:
               `apps/README.md: the '${app}' app may not import another app's source. ` +
               "Two apps that need to reach each other do it through the shell-routed " +
-              "kaava/open and kaava/publish topics, not a TypeScript import.",
+              "veistra/open and veistra/publish topics, not a TypeScript import.",
           },
         ],
       },
@@ -235,10 +235,10 @@ export default tseslint.config(
       // Regenerated from branding.toml on every typecheck and build, once per
       // frontend bundle — hence the glob rather than three paths.
       "**/branding.generated.ts",
-      // Generated from kaava-agent-host's event types by that crate's tests.
+      // Generated from veistra-agent-host's event types by that crate's tests.
       "apps/agent-tab/ui/src/protocol.generated.ts",
       // Generated from src-tauri's refs::catalogue by that module's tests.
-      "apps/agent-tab/ui/src/kaava-show.generated.ts",
+      "apps/agent-tab/ui/src/veistra-show.generated.ts",
     ],
   },
 

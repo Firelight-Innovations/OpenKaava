@@ -1,20 +1,20 @@
 //! The context store: images, files and snippets that a person (or an app)
 //! wants an agent to have, kept as plain files inside the environment.
 //!
-//! Design: `docs/design/KAAVA-AGENT-CONTEXT.md`. Every harness can read a file
-//! by path, so a file under `.kaava/context/` is the transport; `@` mentions and
+//! Design: `docs/design/VEISTRA-AGENT-CONTEXT.md`. Every harness can read a file
+//! by path, so a file under `.veistra/context/` is the transport; `@` mentions and
 //! thumbnails are conveniences on top.
 //!
 //! Layout, per environment:
 //! ```text
-//! .kaava/context/.gitignore          `*` — context never enters a commit
-//! .kaava/context/<key-slug>.png      the bytes (an "owned" item)
-//! .kaava/context/<id>.json           the sidecar: one [`ContextItem`]
+//! .veistra/context/.gitignore          `*` — context never enters a commit
+//! .veistra/context/<key-slug>.png      the bytes (an "owned" item)
+//! .veistra/context/<id>.json           the sidecar: one [`ContextItem`]
 //! ```
 //!
 //! A sidecar per item, as in `comments.rs`: a lost one leaves the file usable.
 //!
-//! **Writes are allowed in a main cluster.** `.kaava/context/` is Kaava's own
+//! **Writes are allowed in a main cluster.** `.veistra/context/` is Veistra's own
 //! state, not the checkout, and the nested `.gitignore` keeps it out of `git
 //! status`. `apps::write_refusal` therefore does not list any `context/*`
 //! method, and the shell commands here never call `guard_cluster_write`.
@@ -22,11 +22,11 @@
 use crate::refs::policy;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine as _;
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::{Component, Path, PathBuf};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
 
 /// Stored-image ceiling. Not downscaled here: there is no image codec in the
 /// tree, and the honest answer to "too big" is a refusal the user can act on.
@@ -151,7 +151,7 @@ pub struct ContextItem {
     /// Relative to the environment root, forward slashes. Empty when the file
     /// is outside the root.
     pub rel_path: String,
-    /// True when Kaava wrote the file into the store, so removing the item
+    /// True when Veistra wrote the file into the store, so removing the item
     /// deletes it. False for a file referenced where it already lives.
     pub owned: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -197,9 +197,9 @@ pub struct PutRequest {
 
 // --- storage ----------------------------------------------------------------
 
-/// `<root>/.kaava/context`.
+/// `<root>/.veistra/context`.
 pub fn store_dir(root: &Path) -> PathBuf {
-    root.join(".kaava").join("context")
+    root.join(".veistra").join("context")
 }
 
 fn sidecar(dir: &Path, id: &str) -> PathBuf {
@@ -253,7 +253,7 @@ pub fn list(root: &Path) -> Vec<ContextItem> {
                     Some(item)
                 }
                 Err(err) => {
-                    crate::kaava_log!(
+                    crate::veistra_log!(
                         "skipping unreadable context item {}: {err}",
                         e.path().display()
                     );
@@ -285,7 +285,7 @@ pub fn get(root: &Path, id: &str) -> Result<ContextItem, RpcError> {
     Ok(item)
 }
 
-/// Forget an item. Deletes the file only when Kaava wrote it; a file that was
+/// Forget an item. Deletes the file only when Veistra wrote it; a file that was
 /// referenced in place is the user's and is never touched.
 pub fn remove(root: &Path, id: &str) -> Result<(), RpcError> {
     let item = get(root, id)?;
@@ -559,7 +559,7 @@ fn put_with(
 
     write_sidecar(&dir, &item, rename)?;
 
-    // A copy Kaava wrote under another name (the extension changed, or the
+    // A copy Veistra wrote under another name (the extension changed, or the
     // last send fell back to a new name) is now stale: the record moved on.
     // The exception is the canonical file a reader is holding: it stays, stale,
     // and the next send over it succeeds once the reader lets go.
@@ -779,7 +779,7 @@ fn write_owned(
         shown(target),
         shown(&alt)
     );
-    crate::kaava_log!("context: {note}");
+    crate::veistra_log!("context: {note}");
     Ok((alt, Some(note)))
 }
 
@@ -946,7 +946,7 @@ fn jpeg_dims(bytes: &[u8]) -> Option<(u32, u32)> {
     None
 }
 
-/// The secrets rule a copy would break, by the same lists the `kaava://`
+/// The secrets rule a copy would break, by the same lists the `veistra://`
 /// resolver withholds a stored copy with: the source path, the title and the
 /// first 64 KB. Screened here too so the bytes never reach the store. The
 /// title is free text, so it counts only when it is spelt as a file name.
@@ -1000,7 +1000,7 @@ fn clamp_text(text: String) -> (String, TextInfo) {
         }
         let cut = &text[..end];
         let cut = cut.rfind('\n').map_or(cut, |n| &cut[..n]);
-        format!("{cut}\n[truncated by Kaava at 256 KB]\n")
+        format!("{cut}\n[truncated by Veistra at 256 KB]\n")
     } else {
         text
     };
@@ -1022,7 +1022,7 @@ fn clamp_text(text: String) -> (String, TextInfo) {
 // --- names and paths ---------------------------------------------------------
 
 /// File names are `[a-z0-9-]` only (see [`key_stem`]), so no harness adapter
-/// ever has to quote a name Kaava chose.
+/// ever has to quote a name Veistra chose.
 pub fn slugify(s: &str) -> String {
     let mut out = String::new();
     for c in s.chars().flat_map(char::to_lowercase) {
@@ -1226,7 +1226,7 @@ pub fn call(
             )?)
         }
         other => Err(RpcError::new(
-            kaava_rpc::METHOD_NOT_FOUND,
+            veistra_rpc::METHOD_NOT_FOUND,
             format!("no method `{other}`"),
         )),
     }
@@ -1292,11 +1292,11 @@ mod tests {
         );
         assert!(item.owned);
         assert!(Path::new(&item.path).is_file());
-        assert!(item.rel_path.starts_with(".kaava/context/"));
+        assert!(item.rel_path.starts_with(".veistra/context/"));
         assert!(item.rel_path.ends_with(".png"));
         assert!(
             !item.rel_path.contains(' '),
-            "names Kaava chooses never need quoting"
+            "names Veistra chooses never need quoting"
         );
         let ignore = std::fs::read_to_string(store_dir(dir.path()).join(".gitignore")).unwrap();
         assert_eq!(ignore, "*\n");
@@ -1356,7 +1356,7 @@ mod tests {
         assert!(stored.len() <= MAX_TEXT_BYTES + 64);
         assert!(stored
             .trim_end()
-            .ends_with("[truncated by Kaava at 256 KB]"));
+            .ends_with("[truncated by Veistra at 256 KB]"));
         assert!(item.preview.unwrap().len() <= 240);
     }
 
@@ -1905,7 +1905,7 @@ mod tests {
             "id": "ctx_0199a1b2c3d4e5f6a7", "v": 1, "kind": "image", "mime": "image/png",
             "title": "main", "source": { "appId": "godot-viewer" }, "method": "put",
             "createdAt": 1, "size": 2, "path": legacy.to_string_lossy(),
-            "relPath": ".kaava/context/x.png", "owned": true
+            "relPath": ".veistra/context/x.png", "owned": true
         });
         std::fs::write(
             store.join("ctx_0199a1b2c3d4e5f6a7.json"),

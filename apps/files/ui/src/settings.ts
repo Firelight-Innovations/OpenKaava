@@ -4,7 +4,7 @@
  * **Restated from `apps/viewer/ui/src/settings.ts`, deliberately.** See that
  * file's header for the argument, which is the one `./topics.ts` already makes
  * for itself: an app's only coupling to anything outside itself is
- * `@openkaava/bridge` and the shape of what crosses it, and a module the two apps
+ * `@veistra/bridge` and the shape of what crosses it, and a module the two apps
  * shared would let one app's refactor break the other's build.
  *
  * Unlike `./topics.ts`, this copy is not shorter than the Viewer's. What
@@ -12,7 +12,7 @@
  * `files.confirmDelete` and nothing else — and the reader below is the generic
  * mechanism underneath that, which has no per-app half to trim.
  */
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 
 /** What a setting can hold. The three shapes the four controls produce. */
 export type SettingValue = boolean | number | string;
@@ -76,7 +76,7 @@ export function loadSettings(): Promise<SettingsReader> {
       // Once, not once per read: the memoised promise keeps the degraded
       // reader, so an app whose host cannot answer still deletes and lists
       // instead of filling the console.
-      console.warn("kaava: could not read settings; falling back to this build's own", err);
+      console.warn("veistra: could not read settings; falling back to this build's own", err);
       return DEGRADED;
     });
   return pending;

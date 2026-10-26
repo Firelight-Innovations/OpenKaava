@@ -5,7 +5,7 @@ import {
   type TauriCore,
   type WindowLike,
 } from "./client.js";
-import { KaavaErrorCode, KaavaRpcError } from "./errors.js";
+import { VeistraErrorCode, VeistraRpcError } from "./errors.js";
 
 const SHELL_ORIGIN = "https://shell.example";
 
@@ -25,7 +25,7 @@ function fakeWindow(): { win: WindowLike; dispatch: (event: IncomingWindowMessag
 
 function readyMessage(session = { projectPath: null }) {
   return {
-    kaava: 1 as const,
+    veistra: 1 as const,
     kind: "ready" as const,
     toolId: "echo",
     protocol: 1 as const,
@@ -44,10 +44,10 @@ function handshake(
 }
 
 describe("host detection", () => {
-  it("is 'kaava' when self !== parent, mirroring window.parent !== window", () => {
+  it("is 'veistra' when self !== parent, mirroring window.parent !== window", () => {
     const { win: self } = fakeWindow();
     const { win: parent } = fakeWindow();
-    expect(createClient({ self, parent }).host()).toBe("kaava");
+    expect(createClient({ self, parent }).host()).toBe("veistra");
   });
 
   it("is 'tauri' when self === parent — a tool's own app is a top-level window", () => {
@@ -61,7 +61,7 @@ describe("handshake", () => {
     const { win: self } = fakeWindow();
     const { win: parent } = fakeWindow();
     createClient({ self, parent });
-    expect(parent.postMessage).toHaveBeenCalledWith({ kaava: 1, kind: "hello" }, "*");
+    expect(parent.postMessage).toHaveBeenCalledWith({ veistra: 1, kind: "hello" }, "*");
   });
 
   it("resolves session() from the ready message's session field", async () => {
@@ -87,14 +87,14 @@ describe("request/response", () => {
     // Uses the shell's own origin (learned from `ready`), not "*", now that
     // it's known.
     expect(parent.postMessage).toHaveBeenLastCalledWith(
-      { kaava: 1, kind: "request", id: 1, method: "echo", params: { text: "hi" } },
+      { veistra: 1, kind: "request", id: 1, method: "echo", params: { text: "hi" } },
       SHELL_ORIGIN,
     );
 
     dispatch({
       source: parent,
       origin: SHELL_ORIGIN,
-      data: { kaava: 1, kind: "response", id: 1, result: { text: "hi" } },
+      data: { veistra: 1, kind: "response", id: 1, result: { text: "hi" } },
     });
     await expect(promise).resolves.toEqual({ text: "hi" });
   });
@@ -110,14 +110,14 @@ describe("request/response", () => {
 
     handshake(parent, dispatch);
     expect(parent.postMessage).toHaveBeenLastCalledWith(
-      { kaava: 1, kind: "request", id: 1, method: "echo", params: { text: "queued" } },
+      { veistra: 1, kind: "request", id: 1, method: "echo", params: { text: "queued" } },
       SHELL_ORIGIN,
     );
 
     dispatch({
       source: parent,
       origin: SHELL_ORIGIN,
-      data: { kaava: 1, kind: "response", id: 1, result: "ok" },
+      data: { veistra: 1, kind: "response", id: 1, result: "ok" },
     });
     await expect(promise).resolves.toBe("ok");
   });
@@ -134,7 +134,7 @@ describe("request/response", () => {
       const client = createClient({ self, parent, timeoutMs: 1_000 });
 
       const promise = client.invoke("echo", { text: "abandoned" });
-      const assertion = expect(promise).rejects.toMatchObject({ code: KaavaErrorCode.Timeout });
+      const assertion = expect(promise).rejects.toMatchObject({ code: VeistraErrorCode.Timeout });
       await vi.advanceTimersByTimeAsync(1_000);
       await assertion;
 
@@ -146,7 +146,7 @@ describe("request/response", () => {
     }
   });
 
-  it("rejects with a KaavaRpcError carrying the shell's error envelope", async () => {
+  it("rejects with a VeistraRpcError carrying the shell's error envelope", async () => {
     const { win: self, dispatch } = fakeWindow();
     const { win: parent } = fakeWindow();
     const client = createClient({ self, parent });
@@ -157,14 +157,14 @@ describe("request/response", () => {
       source: parent,
       origin: SHELL_ORIGIN,
       data: {
-        kaava: 1,
+        veistra: 1,
         kind: "response",
         id: 1,
         error: { code: -32601, message: "no such method: nope" },
       },
     });
 
-    await expect(promise).rejects.toBeInstanceOf(KaavaRpcError);
+    await expect(promise).rejects.toBeInstanceOf(VeistraRpcError);
     await expect(promise).rejects.toMatchObject({ code: -32601, message: "no such method: nope" });
   });
 
@@ -177,7 +177,7 @@ describe("request/response", () => {
       handshake(parent, dispatch);
 
       const promise = client.invoke("echo");
-      const assertion = expect(promise).rejects.toMatchObject({ code: KaavaErrorCode.Timeout });
+      const assertion = expect(promise).rejects.toMatchObject({ code: VeistraErrorCode.Timeout });
       await vi.advanceTimersByTimeAsync(1_000);
       await assertion;
     } finally {
@@ -202,7 +202,7 @@ describe("message filtering", () => {
     expect(settled).toBe(false);
   });
 
-  it("drops a message missing the kaava:1 marker", async () => {
+  it("drops a message missing the veistra:1 marker", async () => {
     const { win: self, dispatch } = fakeWindow();
     const { win: parent } = fakeWindow();
     const client = createClient({ self, parent });
@@ -235,7 +235,7 @@ describe("events", () => {
     dispatch({
       source: parent,
       origin: SHELL_ORIGIN,
-      data: { kaava: 1, kind: "event", event: "file/changed", payload: { path: "a.txt" } },
+      data: { veistra: 1, kind: "event", event: "file/changed", payload: { path: "a.txt" } },
     });
     expect(received).toEqual([{ path: "a.txt" }]);
 
@@ -243,7 +243,7 @@ describe("events", () => {
     dispatch({
       source: parent,
       origin: SHELL_ORIGIN,
-      data: { kaava: 1, kind: "event", event: "file/changed", payload: { path: "b.txt" } },
+      data: { veistra: 1, kind: "event", event: "file/changed", payload: { path: "b.txt" } },
     });
     expect(received).toEqual([{ path: "a.txt" }]);
   });
@@ -262,7 +262,7 @@ describe("menu commands", () => {
     dispatch({
       source: parent,
       origin: SHELL_ORIGIN,
-      data: { kaava: 1, kind: "command", command: "file/save" },
+      data: { veistra: 1, kind: "command", command: "file/save" },
     });
     expect(received).toEqual(["file/save"]);
 
@@ -270,7 +270,7 @@ describe("menu commands", () => {
     dispatch({
       source: parent,
       origin: SHELL_ORIGIN,
-      data: { kaava: 1, kind: "command", command: "edit/undo" },
+      data: { veistra: 1, kind: "command", command: "edit/undo" },
     });
     expect(received).toEqual(["file/save"]);
   });
@@ -292,19 +292,19 @@ describe("menu commands", () => {
     dispatch({
       source: parent,
       origin: SHELL_ORIGIN,
-      data: { kaava: 1, kind: "command", command: "file/save" },
+      data: { veistra: 1, kind: "command", command: "file/save" },
     });
     dispatch({
       source: parent,
       origin: SHELL_ORIGIN,
-      data: { kaava: 1, kind: "event", event: "file/save", payload: 1 },
+      data: { veistra: 1, kind: "event", event: "file/save", payload: 1 },
     });
 
     expect(commands).toEqual(["file/save"]);
     expect(events).toEqual([1]);
   });
 
-  it("sends a declaration as a kaava/commands request", () => {
+  it("sends a declaration as a veistra/commands request", () => {
     const { win: self, dispatch } = fakeWindow();
     const { win: parent } = fakeWindow();
     const client = createClient({ self, parent });
@@ -314,10 +314,10 @@ describe("menu commands", () => {
 
     expect(parent.postMessage).toHaveBeenLastCalledWith(
       {
-        kaava: 1,
+        veistra: 1,
         kind: "request",
         id: 1,
-        method: "kaava/commands",
+        method: "veistra/commands",
         params: { commands: ["file/save", "edit/undo"] },
       },
       SHELL_ORIGIN,
@@ -360,7 +360,7 @@ describe("menu commands", () => {
 });
 
 describe("the sideways channel", () => {
-  it("sends openIn as a kaava/open request and resolves with the chosen instance", async () => {
+  it("sends openIn as a veistra/open request and resolves with the chosen instance", async () => {
     const { win: self, dispatch } = fakeWindow();
     const { win: parent } = fakeWindow();
     const client = createClient({ self, parent });
@@ -369,10 +369,10 @@ describe("the sideways channel", () => {
     const promise = client.openIn("viewer", { path: "a.txt", preview: true });
     expect(parent.postMessage).toHaveBeenLastCalledWith(
       {
-        kaava: 1,
+        veistra: 1,
         kind: "request",
         id: 1,
-        method: "kaava/open",
+        method: "veistra/open",
         params: { appId: "viewer", payload: { path: "a.txt", preview: true } },
       },
       SHELL_ORIGIN,
@@ -381,7 +381,7 @@ describe("the sideways channel", () => {
     dispatch({
       source: parent,
       origin: SHELL_ORIGIN,
-      data: { kaava: 1, kind: "response", id: 1, result: { instanceId: "viewer-1" } },
+      data: { veistra: 1, kind: "response", id: 1, result: { instanceId: "viewer-1" } },
     });
     await expect(promise).resolves.toEqual({ instanceId: "viewer-1" });
   });
@@ -395,10 +395,10 @@ describe("the sideways channel", () => {
     client.publish("files/active-path", { path: "a.txt" });
     expect(parent.postMessage).toHaveBeenLastCalledWith(
       {
-        kaava: 1,
+        veistra: 1,
         kind: "request",
         id: 1,
-        method: "kaava/publish",
+        method: "veistra/publish",
         params: { topic: "files/active-path", value: { path: "a.txt" } },
       },
       SHELL_ORIGIN,
@@ -443,11 +443,11 @@ describe("the sideways channel", () => {
         source: parent,
         origin: SHELL_ORIGIN,
         data: {
-          kaava: 1,
+          veistra: 1,
           kind: "event",
           // The prefix is the client's own business — a subscriber names the
           // bare topic and never sees this.
-          event: "kaava:topic/files/active-path",
+          event: "veistra:topic/files/active-path",
           payload: { value: { path }, from: "viewer-1" },
         },
       });
@@ -476,7 +476,7 @@ describe("the sideways channel", () => {
     dispatch({
       source: parent,
       origin: SHELL_ORIGIN,
-      data: { kaava: 1, kind: "event", event: "project:changed", payload: { clusterId: "c1" } },
+      data: { veistra: 1, kind: "event", event: "project:changed", payload: { clusterId: "c1" } },
     });
 
     expect(asEvent).toEqual([{ clusterId: "c1" }]);
@@ -520,21 +520,21 @@ describe("tauri host", () => {
     expect(invoke).toHaveBeenCalledWith("echo", { text: "hi" });
   });
 
-  it("resolves kaava/* locally and never reaches tauri invoke", async () => {
+  it("resolves veistra/* locally and never reaches tauri invoke", async () => {
     const { win: self } = fakeWindow();
     const { invoke, importTauri } = fakeTauri();
     const client = createClient({ self, parent: self, importTauri });
 
-    await expect(client.invoke("kaava/hello")).resolves.toEqual({ protocol: 1 });
-    await expect(client.invoke("kaava/shutdown")).resolves.toBeNull();
+    await expect(client.invoke("veistra/hello")).resolves.toEqual({ protocol: 1 });
+    await expect(client.invoke("veistra/shutdown")).resolves.toBeNull();
     // `/` is not a legal Tauri command name, so a reserved method that reached
     // `invoke` would be a guaranteed runtime error rather than a wrong answer.
-    await expect(client.invoke("kaava/painted")).resolves.toBeNull();
+    await expect(client.invoke("veistra/painted")).resolves.toBeNull();
     // A tool's own Tauri app draws its own chrome, so there is no menu bar to
     // grey out — the declaration is accepted and dropped rather than refused,
     // so a frontend that supports menu commands does not log an error on a host
     // where the feature simply does not apply.
-    await expect(client.invoke("kaava/commands", { commands: [] })).resolves.toBeNull();
+    await expect(client.invoke("veistra/commands", { commands: [] })).resolves.toBeNull();
     expect(invoke).not.toHaveBeenCalled();
   });
 
@@ -543,15 +543,15 @@ describe("tauri host", () => {
     const { invoke, importTauri } = fakeTauri();
     const client = createClient({ self, parent: self, importTauri });
 
-    // Refused, not dropped — the difference from `kaava/commands` above. There
+    // Refused, not dropped — the difference from `veistra/commands` above. There
     // is no cluster here and no second app to reach, so answering "done" to an
     // open would leave a frontend believing it had put a file on screen that
     // nothing anywhere is showing.
-    await expect(client.invoke("kaava/open", { appId: "viewer" })).rejects.toBeInstanceOf(
-      KaavaRpcError,
+    await expect(client.invoke("veistra/open", { appId: "viewer" })).rejects.toBeInstanceOf(
+      VeistraRpcError,
     );
-    await expect(client.invoke("kaava/publish", { topic: "t", value: 1 })).rejects.toBeInstanceOf(
-      KaavaRpcError,
+    await expect(client.invoke("veistra/publish", { topic: "t", value: 1 })).rejects.toBeInstanceOf(
+      VeistraRpcError,
     );
     expect(invoke).not.toHaveBeenCalled();
   });
@@ -562,9 +562,9 @@ describe("tauri host", () => {
     const client = createClient({ self, parent: self, importTauri });
 
     await expect(
-      client.invoke("kaava/search-claim", { placeholder: "Filter", value: "" }),
-    ).rejects.toBeInstanceOf(KaavaRpcError);
-    await expect(client.invoke("kaava/search-release")).rejects.toBeInstanceOf(KaavaRpcError);
+      client.invoke("veistra/search-claim", { placeholder: "Filter", value: "" }),
+    ).rejects.toBeInstanceOf(VeistraRpcError);
+    await expect(client.invoke("veistra/search-release")).rejects.toBeInstanceOf(VeistraRpcError);
     expect(invoke).not.toHaveBeenCalled();
   });
 
@@ -579,10 +579,10 @@ describe("tauri host", () => {
 
     expect(parent.postMessage).toHaveBeenLastCalledWith(
       {
-        kaava: 1,
+        veistra: 1,
         kind: "request",
         id: 1,
-        method: "kaava/search-claim",
+        method: "veistra/search-claim",
         params: { placeholder: "Filter files", value: "" },
       },
       SHELL_ORIGIN,
@@ -592,9 +592,9 @@ describe("tauri host", () => {
       origin: SHELL_ORIGIN,
       source: parent,
       data: {
-        kaava: 1,
+        veistra: 1,
         kind: "event",
-        event: "kaava:search",
+        event: "veistra:search",
         payload: { kind: "query", value: "a" },
       },
     });

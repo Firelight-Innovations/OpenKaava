@@ -1,4 +1,4 @@
-# Run by OpenKaava as `godot --headless --path <project> -s <this file> -- --scene <res://...> --glb <file> --out <file>`.
+# Run by Veistra as `godot --headless --path <project> -s <this file> -- --scene <res://...> --glb <file> --out <file>`.
 # Loads one scene without adding it to the tree (so no _ready runs and nothing
 # in the game executes), exports it as a glTF binary for the 3D preview, and
 # writes the scene tree beside it as JSON. The preview matches the tree against

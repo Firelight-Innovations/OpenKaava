@@ -1,7 +1,7 @@
 /**
  * The shell's one modal primitive: `.k-dialog-scrim`/`.k-dialog` (§4's
  * Dialog row — `radius-xl`, `shadow-overlay`, `bg-layer-2`, see
- * `src/kaava-ui.css`) plus a focus trap and Escape-or-scrim-click to cancel.
+ * `src/veistra-ui.css`) plus a focus trap and Escape-or-scrim-click to cancel.
  * Everything the New Cluster dialog (board 04) and the Switch Project
  * dialog (board 08) both need — see `apps/home/ui/src/WorktreeDialog.tsx`
  * for the pattern this generalizes (scrim, focus trap, Esc, `role="dialog"`),

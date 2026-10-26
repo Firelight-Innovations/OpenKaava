@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { reportPainted, session } from "@openkaava/bridge";
+import { reportPainted, session } from "@veistra/bridge";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { AlertTriangle, ChevronRight, FilePlus2, Lock, Palette, SquareDashed } from "lucide-react";
 import { SendButton, SendFooter } from "../../../shared/SendFooter";
@@ -303,10 +303,10 @@ export default function App() {
         },
       });
       const s = next.scene;
-      saver.setBase(next.mtime, signature(toSaved(s.elements, s.appState, s.files, s.kaava)));
+      saver.setBase(next.mtime, signature(toSaved(s.elements, s.appState, s.files, s.veistra)));
       saverRef.current = saver;
       setDoc(next);
-      setDesign(s.kaava?.design);
+      setDesign(s.veistra?.design);
       setFrames(framesIn(s.elements));
       setCommentTarget(null);
       setTargetError(null);
@@ -417,7 +417,7 @@ export default function App() {
           : 0;
       setSplitOffer((prev) => (prev === offer ? prev : offer));
       if (!saver || !open || readOnly) return;
-      const scene = toSaved(elements, appState, files, open.scene.kaava);
+      const scene = toSaved(elements, appState, files, open.scene.veistra);
       saver.schedule(scene, signature(scene));
     },
     [readOnly],
@@ -478,7 +478,7 @@ export default function App() {
         elements,
         api.getAppState() as unknown as Record<string, unknown>,
         api.getFiles() as unknown as Record<string, unknown>,
-        open.scene.kaava,
+        open.scene.veistra,
       );
       saver.schedule(scene, signature(scene));
       await saver.flush();
@@ -489,17 +489,17 @@ export default function App() {
   );
 
   /** Give the open canvas its own detail level or style, or clear it (`null`) to follow
-   *  Settings. It lives in the file's `kaava.design`, so it is saved like any edit and
+   *  Settings. It lives in the file's `veistra.design`, so it is saved like any edit and
    *  is what `canvas/design-brief` and `add_shapes` read. */
   const chooseDesign = useCallback(
     async (key: keyof DesignOverride, choice: string | null) => {
       const api = apiRef.current;
       const open = docRef.current;
       if (!api || !open || readOnly) return;
-      // The saver's next write reads `open.scene.kaava`; replacing it here rather than
+      // The saver's next write reads `open.scene.veistra`; replacing it here rather than
       // calling `setDoc` keeps the editor's `initial` prop, and so its scene, untouched.
-      open.scene.kaava = withDesign(open.scene.kaava, key, choice);
-      setDesign(open.scene.kaava.design);
+      open.scene.veistra = withDesign(open.scene.veistra, key, choice);
+      setDesign(open.scene.veistra.design);
       await commitElements(api.getSceneElementsIncludingDeleted() as unknown as SceneElement[]);
     },
     [commitElements, readOnly],
@@ -700,7 +700,7 @@ export default function App() {
       files: api.getFiles() as unknown as Record<string, unknown>,
       dark: theme === "dark",
     });
-    return putSelectionImage(png, open.scene.kaava?.title || open.id, elements.length);
+    return putSelectionImage(png, open.scene.veistra?.title || open.id, elements.length);
   }, [theme]);
 
   const sendSelection = useCallback(() => {

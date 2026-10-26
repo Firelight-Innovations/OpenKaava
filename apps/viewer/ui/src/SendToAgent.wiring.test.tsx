@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 const bridge = vi.hoisted(() => ({ invoke: vi.fn() }));
-vi.mock("@openkaava/bridge", () => ({ invoke: bridge.invoke }));
+vi.mock("@veistra/bridge", () => ({ invoke: bridge.invoke }));
 
 import SendToAgent from "./SendToAgent";
 import { SendFooter } from "../../../shared/SendFooter";

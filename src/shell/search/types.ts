@@ -5,7 +5,7 @@
 /** What a hit *is*, a coarser question than its file extension — the file axis
  *  only, unlike `contract.ts`'s five-way `SearchType`, which mixes file kinds
  *  with "terminal output" and "tool settings". See the design note. */
-export type SearchKind = "script" | "data" | "content" | "kaava";
+export type SearchKind = "script" | "data" | "content" | "veistra";
 
 /** One row in the results region. `path` is absolute because every consumer
  *  needs it absolute; relative display is computed at draw time, not stored. */

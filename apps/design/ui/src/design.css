@@ -1,7 +1,7 @@
 /*
  * Design Mode's own stylesheet, beside the component that uses it (§6.4).
  *
- * `apps/shared/app.css` covers what an OpenKaava app looks like generally, and this
+ * `apps/shared/app.css` covers what a Veistra app looks like generally, and this
  * covers the one thing no other app does: a viewport inside a pane. Colours are
  * `src/tokens.css` throughout — an app inventing a hex value is an app that is
  * visibly not part of the same product the moment the two sit side by side.

@@ -40,8 +40,8 @@ export function boxOf(el: SceneElement): Box {
 }
 
 function diagramMeta(el: SceneElement): Record<string, unknown> | null {
-  const custom = el.customData as { kaava?: { diagram?: unknown } } | undefined;
-  const d = custom?.kaava?.diagram;
+  const custom = el.customData as { veistra?: { diagram?: unknown } } | undefined;
+  const d = custom?.veistra?.diagram;
   return d && typeof d === "object" ? (d as Record<string, unknown>) : null;
 }
 

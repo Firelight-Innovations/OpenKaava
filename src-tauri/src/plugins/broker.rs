@@ -11,12 +11,12 @@
 
 use crate::plugins::{self, Registry};
 use crate::sync::MutexExt;
-use kaava_rpc::{RpcError, ToolProcess, HANDSHAKE_FAILED, INTERNAL_ERROR, METHOD_NOT_FOUND};
-use kaava_tool_manifest::ToolManifest;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Manager};
+use veistra_rpc::{RpcError, ToolProcess, HANDSHAKE_FAILED, INTERNAL_ERROR, METHOD_NOT_FOUND};
+use veistra_tool_manifest::ToolManifest;
 
 /// The protocol version this shell speaks. A core answering anything else is
 /// rejected at the handshake rather than negotiated down — see
@@ -80,7 +80,7 @@ impl Broker {
         let core = self.cores.lock_or_panic().remove(package_id);
         if let Some(core) = core {
             if let Err(e) = core.shutdown() {
-                eprintln!("kaava: {package_id} did not shut down cleanly: {e}");
+                eprintln!("veistra: {package_id} did not shut down cleanly: {e}");
             }
         }
     }
@@ -120,7 +120,7 @@ impl Broker {
                 let winner = Arc::clone(winner);
                 drop(cores);
                 if let Err(e) = spawned.shutdown() {
-                    eprintln!("kaava: could not stop a duplicate {package_id} core: {e}");
+                    eprintln!("veistra: could not stop a duplicate {package_id} core: {e}");
                 }
                 Ok(winner)
             }
@@ -134,15 +134,15 @@ impl Broker {
 
 /// Whether a method belongs to the protocol rather than to a plugin.
 ///
-/// The `kaava/` prefix is reserved on both transports. A core is required to
-/// implement `kaava/hello` and `kaava/shutdown` and forbidden to define anything
+/// The `veistra/` prefix is reserved on both transports. A core is required to
+/// implement `veistra/hello` and `veistra/shutdown` and forbidden to define anything
 /// else under it, so forwarding one would either duplicate a handshake this
 /// module owns or reach a method the protocol says cannot exist.
 fn is_reserved(method: &str) -> bool {
-    method.starts_with("kaava/")
+    method.starts_with("veistra/")
 }
 
-/// Start a package's core and complete `kaava/hello`.
+/// Start a package's core and complete `veistra/hello`.
 ///
 /// Every failure here is an [`RpcError`] rather than a log line, because the
 /// caller is a frontend waiting on an `invoke` — a plugin that cannot start has
@@ -158,7 +158,7 @@ fn spawn(app: &AppHandle, package_id: &str) -> Result<ToolProcess, RpcError> {
     };
 
     let manifest = ToolManifest::load(&checkout)
-        .map_err(|e| RpcError::new(INTERNAL_ERROR, format!("kaava-tool.toml: {e}")))?;
+        .map_err(|e| RpcError::new(INTERNAL_ERROR, format!("veistra-tool.toml: {e}")))?;
 
     let Some(core) = manifest.core.as_ref() else {
         // A frontend-only package. Worth naming precisely: the surface loaded
@@ -187,10 +187,10 @@ fn spawn(app: &AppHandle, package_id: &str) -> Result<ToolProcess, RpcError> {
     Ok(process)
 }
 
-/// `kaava/hello`, and the two checks the protocol says the host owes.
+/// `veistra/hello`, and the two checks the protocol says the host owes.
 ///
 /// Specified since v1 and enforced nowhere until now: `HANDSHAKE_FAILED` existed
-/// in `kaava-rpc` and nothing raised it, because the code that would is this.
+/// in `veistra-rpc` and nothing raised it, because the code that would is this.
 /// Both checks refuse rather than negotiate — a core built against a different
 /// major, or one whose identity does not match the manifest it was found beside,
 /// is a mismatch that gets worse the longer it runs.
@@ -203,7 +203,7 @@ fn handshake(
     // `docs/tool-protocol.md` §3, "Session". Sent as the specified shape anyway
     // so a core parsing it strictly today keeps working when it is filled in.
     let reply = process.call(
-        "kaava/hello",
+        "veistra/hello",
         Some(json!({ "protocol": PROTOCOL, "session": { "projectPath": null } })),
     )?;
 
@@ -234,7 +234,7 @@ fn check_hello(reply: &Value, package_id: &str, manifest_id: &str) -> Result<(),
         return Err(RpcError::new(
             HANDSHAKE_FAILED,
             format!(
-                "`{package_id}` answered the handshake as {:?}, but its kaava-tool.toml says {manifest_id:?}",
+                "`{package_id}` answered the handshake as {:?}, but its veistra-tool.toml says {manifest_id:?}",
                 claimed.unwrap_or("nothing"),
             ),
         ));
@@ -271,14 +271,14 @@ mod tests {
     use super::*;
 
     /// The two the protocol names, plus the space it reserves around them. A
-    /// core that defined `kaava/save` would be violating §2, and the shell
+    /// core that defined `veistra/save` would be violating §2, and the shell
     /// refusing to forward it is what keeps that a plugin's bug rather than a
     /// silent second handshake.
     #[test]
     fn the_protocol_namespace_is_never_forwarded() {
-        assert!(is_reserved("kaava/hello"));
-        assert!(is_reserved("kaava/shutdown"));
-        assert!(is_reserved("kaava/anything-else"));
+        assert!(is_reserved("veistra/hello"));
+        assert!(is_reserved("veistra/shutdown"));
+        assert!(is_reserved("veistra/anything-else"));
     }
 
     /// A plugin's own vocabulary crosses untouched — the broker is a relay, not
@@ -288,8 +288,8 @@ mod tests {
     fn a_plugins_own_methods_are_forwarded() {
         assert!(!is_reserved("specs/load"));
         assert!(!is_reserved("echo"));
-        assert!(!is_reserved("graph/kaava/nested"));
-        assert!(!is_reserved("kaavamainen/list"));
+        assert!(!is_reserved("graph/veistra/nested"));
+        assert!(!is_reserved("veistramainen/list"));
     }
 
     #[test]
@@ -334,7 +334,7 @@ mod tests {
     }
 
     /// A reply with neither field — an empty object, or a core that answered
-    /// `kaava/hello` with `null` because it does not implement it. Named
+    /// `veistra/hello` with `null` because it does not implement it. Named
     /// explicitly because the `Option` comparisons above make it easy to write
     /// this check in a way that accepts a missing field.
     #[test]

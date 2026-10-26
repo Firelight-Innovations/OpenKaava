@@ -20,10 +20,10 @@ function fakeIo() {
 const base = { placeholder: "Filter files", value: "" };
 
 describe("createSearchClaimer", () => {
-  it("sends kaava/search-claim with the placeholder and value", () => {
+  it("sends veistra/search-claim with the placeholder and value", () => {
     const { io, invoke } = fakeIo();
     createSearchClaimer(io)({ ...base, onChange: () => {} });
-    expect(invoke).toHaveBeenCalledWith("kaava/search-claim", {
+    expect(invoke).toHaveBeenCalledWith("veistra/search-claim", {
       placeholder: "Filter files",
       value: "",
     });
@@ -61,19 +61,19 @@ describe("createSearchClaimer", () => {
     handle.update({ value: "ab" });
     expect(invoke).not.toHaveBeenCalled();
     handle.update({ value: "" });
-    expect(invoke).toHaveBeenCalledWith("kaava/search-claim", {
+    expect(invoke).toHaveBeenCalledWith("veistra/search-claim", {
       placeholder: "Filter files",
       value: "",
     });
   });
 
-  it("release sends kaava/search-release once and stops listening", () => {
+  it("release sends veistra/search-release once and stops listening", () => {
     const { io, invoke, emit, listeners } = fakeIo();
     const onChange = vi.fn();
     const handle = createSearchClaimer(io)({ ...base, onChange });
     handle.release();
     handle.release();
-    expect(invoke.mock.calls.filter(([m]) => m === "kaava/search-release")).toHaveLength(1);
+    expect(invoke.mock.calls.filter(([m]) => m === "veistra/search-release")).toHaveLength(1);
     expect(listeners.size).toBe(0);
     emit({ kind: "query", value: "x" });
     expect(onChange).not.toHaveBeenCalled();
@@ -86,7 +86,7 @@ describe("createSearchClaimer", () => {
     const second = vi.fn();
     claim({ ...base, onChange: first });
     claim({ placeholder: "Search nodes", value: "", onChange: second });
-    expect(invoke.mock.calls.filter(([m]) => m === "kaava/search-release")).toHaveLength(0);
+    expect(invoke.mock.calls.filter(([m]) => m === "veistra/search-release")).toHaveLength(0);
     emit({ kind: "query", value: "q" });
     expect(first).not.toHaveBeenCalled();
     expect(second).toHaveBeenCalledWith("q");

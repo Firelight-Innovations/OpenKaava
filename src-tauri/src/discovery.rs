@@ -23,7 +23,7 @@ pub struct StackSnapshot {
 
 /// Stack components this build actually resolves and reports health for.
 ///
-/// kaava.toml pins every component of the stack, because the manifest's job is
+/// veistra.toml pins every component of the stack, because the manifest's job is
 /// to describe the whole of it — but a checkout that is nothing but a README in
 /// an otherwise empty directory has no Cargo.toml or package.json for
 /// `probe_version` to read, so it would resolve to `Unversioned` and the health
@@ -33,11 +33,11 @@ pub struct StackSnapshot {
 /// This is the filter that keeps that from happening: a tool id not listed
 /// here is dropped before `resolve_one` ever runs, so it is never probed and
 /// never produces a `ResolvedTool` at all — not a warning the frontend has to
-/// know to hide, nothing to resolve. kaava.toml keeps every pin regardless, so
+/// know to hide, nothing to resolve. veistra.toml keeps every pin regardless, so
 /// no information about the stack's shape is lost; when a component gets past
 /// a README, giving it health tracking back is exactly one id added here.
 ///
-/// Empty today for a second reason on top of that one: kaava.toml's `[[tool]]`
+/// Empty today for a second reason on top of that one: veistra.toml's `[[tool]]`
 /// array is itself empty. Schematify's two predecessor applications were its
 /// two entries and are now folded into one in-repo app (`apps/README.md`), so
 /// there is currently no stack component left to enable health tracking for.
@@ -68,7 +68,7 @@ pub fn resolve(manifest_path: &Path, manifest: &Manifest) -> Result<StackSnapsho
 }
 
 fn resolve_one(spec: &ToolSpec, checkout_root: &Path) -> Result<ResolvedTool> {
-    // Validate the pin even when the checkout is missing — a typo in kaava.toml
+    // Validate the pin even when the checkout is missing — a typo in veistra.toml
     // should be loud immediately, not the day someone finally clones the repo.
     let pinned = Version::parse(&spec.version).map_err(|source| AppError::Version {
         id: spec.id.clone(),
@@ -103,7 +103,7 @@ fn resolve_one(spec: &ToolSpec, checkout_root: &Path) -> Result<ResolvedTool> {
 
 /// Read a checkout's own idea of its version.
 ///
-/// OpenKaava components are either Rust crates or npm packages, so those two
+/// Veistra components are either Rust crates or npm packages, so those two
 /// manifests cover the field. A repo with neither — an empty scaffold, say —
 /// returns `None` rather than an error, because "not built yet" is a normal
 /// state during pre-alpha, not a failure.
@@ -208,7 +208,7 @@ mod tests {
         assert_eq!(normalize(input), PathBuf::from("C:/code/helve"));
     }
 
-    /// Parses the repo's actual kaava.toml and resolves it. Catches a typo in a
+    /// Parses the repo's actual veistra.toml and resolves it. Catches a typo in a
     /// pinned version, an unknown key, or a malformed `[[tool]]` table at
     /// `cargo test` time instead of at app launch.
     #[test]
@@ -216,13 +216,13 @@ mod tests {
         let path = manifest_dir()
             .parent()
             .expect("src-tauri always has a parent")
-            .join("kaava.toml");
+            .join("veistra.toml");
 
-        let manifest = crate::manifest::Manifest::load(&path).expect("kaava.toml should parse");
+        let manifest = crate::manifest::Manifest::load(&path).expect("veistra.toml should parse");
         let snapshot =
             resolve(&path, &manifest).expect("every pinned version should be valid semver");
 
-        // kaava.toml's `[[tool]]` array is empty today — Schematify's two predecessors,
+        // veistra.toml's `[[tool]]` array is empty today — Schematify's two predecessors,
         // its only two entries, were reclassified as in-repo apps (see
         // `apps/README.md`) and nothing has taken their place yet. That is a
         // legitimate state for the manifest, not a broken fixture, so this test
@@ -250,7 +250,7 @@ mod tests {
         ids.sort_unstable();
         let unique = ids.len();
         ids.dedup();
-        assert_eq!(unique, ids.len(), "duplicate tool id in kaava.toml");
+        assert_eq!(unique, ids.len(), "duplicate tool id in veistra.toml");
 
         for tool in &snapshot.tools {
             assert!(
@@ -263,7 +263,7 @@ mod tests {
 
     #[test]
     fn probe_version_is_none_for_a_bare_directory() {
-        let dir = std::env::temp_dir().join("kaava-probe-empty-test");
+        let dir = std::env::temp_dir().join("veistra-probe-empty-test");
         std::fs::create_dir_all(&dir).unwrap();
         assert_eq!(probe_version(&dir), None);
         let _ = std::fs::remove_dir(&dir);
@@ -300,7 +300,7 @@ mod tests {
             tools: vec![spec("definitely-not-a-real-tool-id"), spec("also-not-real")],
         };
 
-        let snapshot = resolve(Path::new("kaava.toml"), &manifest).expect("resolves");
+        let snapshot = resolve(Path::new("veistra.toml"), &manifest).expect("resolves");
         assert!(
             snapshot.tools.is_empty(),
             "neither synthetic id is on ENABLED_TOOLS, so neither should resolve"

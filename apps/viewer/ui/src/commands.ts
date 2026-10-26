@@ -5,7 +5,7 @@
  * iframe and the shell must not import its hooks or poke its DOM. So a menu
  * item is a *message*: the shell posts a transport-B `command` to the active
  * frame and this module answers it. `docs/tool-protocol.md` §3 has the wire
- * shape; `@openkaava/bridge`'s `onCommand` is the receiving end.
+ * shape; `@veistra/bridge`'s `onCommand` is the receiving end.
  *
  * There is a second copy of this file in `apps/files/ui/src/`, answering the
  * commands that act on the tree. Neither knows about the other: each declares
@@ -18,7 +18,7 @@
  * rather than imported from the shell.
  */
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
-import { declareCommands, onCommand } from "@openkaava/bridge";
+import { declareCommands, onCommand } from "@veistra/bridge";
 import { activeEditor, subscribeActiveEditor } from "./viewer/activeEditor";
 import { documents, type OpenFiles } from "./tabs/useOpenFiles";
 import type { DeleteTarget } from "./useDelete";
@@ -189,7 +189,7 @@ export function useMenuCommands({
       // Undo, Redo, Cut and Copy are declared for as long as an editor is
       // mounted, rather than tracked against the undo stack and the selection.
       // A deliberate trade: both change on every keystroke and cursor move, so
-      // tracking them means a `kaava/commands` message per keystroke for a grey
+      // tracking them means a `veistra/commands` message per keystroke for a grey
       // pixel — and what an undeclared item buys is not there. Monaco's undo
       // with an empty stack does nothing, exactly what a disabled item does, and
       // its copy with no selection copies the current line, a real action.

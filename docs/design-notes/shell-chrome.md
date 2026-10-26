@@ -57,7 +57,7 @@ a session.
 
 ### Page chips, which are not clusters
 
-The OpenKaava Cloud screens — Agents and Cost Tracker today, Projects later —
+The Veistra Cloud screens — Agents and Cost Tracker today, Projects later —
 are *pages*: each one gets its own cluster, separate from every real cluster,
 rather than being an app you add to a pane. Braden's brief was that they must
 not be separate apps and must keep their buttons small. So they sit as a
@@ -127,7 +127,7 @@ is about, and it points back here.
 
 ### Why the default context menu is turned off in Rust
 
-Right-clicking anywhere in OpenKaava used to raise Chromium's own menu: Back,
+Right-clicking anywhere in Veistra used to raise Chromium's own menu: Back,
 Forward, Refresh, Print, Save as, View source. None of the six is an operation
 this application has. There is nothing to go back to, "Save as" offers to save
 the shell's own HTML, and printing a workspace is not a thing anybody wants.

@@ -13,7 +13,7 @@ branch, every one reviewed by a separate agent before merge except where noted.
 | #76 | 0 | Baseline audit — resolved where Schematify lives against existing conventions |
 | #77 | — | Wireframe extraction: all 6 screens distilled, 19 binding rulings |
 | #78 | 1a | Retired Forger and Journeyman, scaffolded Schematify |
-| #79 | 9a | `@kaava:` marker scanning and the `kaava reconcile` command |
+| #79 | 9a | `@veistra:` marker scanning and the `veistra reconcile` command |
 | #80 | 1b | Core schemas, storage, loader, fixtures — 159 tests |
 | #81 | 2 | Shell, design tokens, status bar |
 | #82 | 3 | The Schematic engine |
@@ -52,11 +52,11 @@ splitter.
 
 From wave 10a, still outstanding:
 
-- Add `kaava-boundary` to the required checks. It runs on every PR and passes,
+- Add `veistra-boundary` to the required checks. It runs on every PR and passes,
   but nothing enforces it.
 - Enable "Require review from Code Owners". `.github/CODEOWNERS` already exists
-  and wave 10a built it out to PRD §14.6, including the `.kaava/` nodes-vs-runs
-  -vs-layout split; it was checked against `check-kaava-boundary.mjs` and the two
+  and wave 10a built it out to PRD §14.6, including the `.veistra/` nodes-vs-runs
+  -vs-layout split; it was checked against `check-veistra-boundary.mjs` and the two
   agree, lifecycle-pair exception included. `required_pull_request_reviews` is
   simply absent from the branch protection, so this is a bare toggle blocked on
   nothing.

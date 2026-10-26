@@ -142,7 +142,7 @@
             payload: {
               phase: "failed",
               message:
-                "No manifest found at C:\\Users\\bjsea\\.kaava\\kaava.toml \u2014 set KAAVA_STACK or clone the stack first.",
+                "No manifest found at C:\\Users\\bjsea\\.veistra\\veistra.toml \u2014 set VEISTRA_STACK or clone the stack first.",
             },
           },
         ];
@@ -155,7 +155,7 @@
         // The splash reads this key from localStorage before first paint. The
         // iframe is about:blank, so it shares this page's storage; setting it
         // here before each mount is what the shell does in the real app.
-        var APPEARANCE_KEY = "kaava.splash-appearance";
+        var APPEARANCE_KEY = "veistra.splash-appearance";
         var APPEARANCES = [
           { name: "first launch", value: null },
           { name: "dark blue", value: { theme: "dark", accent: "blue" } },

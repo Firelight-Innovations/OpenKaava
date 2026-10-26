@@ -21,7 +21,7 @@ describe("toSaved", () => {
     );
     expect(saved.elements.map((e) => e.id)).toEqual(["a"]);
     expect(saved.appState).toEqual({ viewBackgroundColor: "#ffffff", gridSize: 20 });
-    expect(saved.kaava).toEqual({ title: "T" });
+    expect(saved.veistra).toEqual({ title: "T" });
     expect(saved.type).toBe("excalidraw");
   });
 
@@ -36,7 +36,7 @@ describe("toSaved", () => {
       undefined,
     );
     expect(Object.keys(saved.files)).toEqual(["f1"]);
-    expect(saved).not.toHaveProperty("kaava");
+    expect(saved).not.toHaveProperty("veistra");
   });
 });
 
@@ -91,13 +91,13 @@ describe("ids", () => {
 
 describe("design override", () => {
   it("sets one choice without touching the other or the bookkeeping", () => {
-    const kaava = { id: "game", title: "Game", design: { style: "whiteboard" } };
-    expect(withDesign(kaava, "detail", "dense")).toEqual({
+    const veistra = { id: "game", title: "Game", design: { style: "whiteboard" } };
+    expect(withDesign(veistra, "detail", "dense")).toEqual({
       id: "game",
       title: "Game",
       design: { style: "whiteboard", detail: "dense" },
     });
-    expect(kaava.design).toEqual({ style: "whiteboard" });
+    expect(veistra.design).toEqual({ style: "whiteboard" });
   });
 
   it("drops an emptied design so a canvas that follows Settings leaves no trace", () => {
@@ -111,7 +111,9 @@ describe("design override", () => {
     const base = toSaved([], {}, {}, { id: "g" });
     const picked = toSaved([], {}, {}, withDesign({ id: "g" }, "style", "minimal"));
     expect(signature(picked)).not.toBe(signature(base));
-    expect(toSaved([], {}, {}, withDesign({ id: "g" }, "style", "minimal")).kaava?.design).toEqual({
+    expect(
+      toSaved([], {}, {}, withDesign({ id: "g" }, "style", "minimal")).veistra?.design,
+    ).toEqual({
       style: "minimal",
     });
   });

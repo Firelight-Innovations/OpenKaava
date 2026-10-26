@@ -7,7 +7,7 @@ under the caps in STANDARDS.md §10. The source files point back here.
 
 **Restated from `apps/viewer/ui/src/topics.ts`, deliberately.** See that
 file's header for the argument; the short version is that an app's only
-coupling to anything outside itself is `@openkaava/bridge` and the shape of what
+coupling to anything outside itself is `@veistra/bridge` and the shape of what
 crosses it, and a module the two apps shared would let one app's refactor
 break the other's build.
 
@@ -34,7 +34,7 @@ the split happened. The shell aims a command at whichever surface is active
 and greys out everything that surface has not declared, so the menu is simply
 the union of what the active frame offered. Click into the tree and New File
 lights up; click into an editor and Save does. That falls out of
-`kaava/commands` being a declaration rather than a registry, which is the
+`veistra/commands` being a declaration rather than a registry, which is the
 property its design note in `docs/tool-protocol.md` argues for.
 
 ### The one thing this app gave up

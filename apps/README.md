@@ -3,14 +3,14 @@
 The surfaces the orchestrator ships itself.
 
 An app and a tool look identical in the shell — a tab in the switcher bar, an
-iframe in the tool window, `@openkaava/bridge` in the frontend. The difference is
+iframe in the tool window, `@veistra/bridge` in the frontend. The difference is
 where the two halves come from, and it decides everything else:
 
 | | Tool | App |
 |---|---|---|
 | Lives in | its own repository, cloned beside this one | `apps/` in this repo |
 | Frontend built by | its own Vite project | this repo's `vite.config.ts` |
-| Frontend served from | its dev server, or `kaava-tool://` | the shell's own origin |
+| Frontend served from | its dev server, or `veistra-tool://` | the shell's own origin |
 | Rust half | a child process, over the standard streams | a module in `src-tauri/src/apps/` |
 | Can be | missing, unbuilt, the wrong version | none of those — it is in the binary |
 
@@ -38,7 +38,7 @@ apps/
   viewer/ui/              File Viewer's frontend
   tutorial/ui/            Tutorials' frontend
   agent-tab/ui/           Agent's frontend: one Claude session in this cluster's worktree
-  agents/ui/              Agents' frontend: OpenKaava Cloud's agent machines and sessions
+  agents/ui/              Agents' frontend: Veistra Cloud's agent machines and sessions
   costs/ui/               Cost Tracker's frontend: this month's Google Cloud spend and forecast
   projects/ui/            Projects' frontend: the project switcher and its embedded Plane workspace
   design/ui/              Design Mode's frontend
@@ -79,7 +79,7 @@ live in `src/shell/state/fakeBackend.ts` and has been removed.
 ## Reporting in at startup
 
 Every app owes the shell one thing beyond drawing itself: a call to
-`reportPainted()` from `@openkaava/bridge` once its first meaningful content is
+`reportPainted()` from `@veistra/bridge` once its first meaningful content is
 committed to the DOM.
 
 The orchestrator's splash window stays up until every app in the registry has
@@ -107,8 +107,8 @@ a file in File Explorer has to put it on screen in File Viewer, which is a
 different app, in a different iframe, that the Explorer cannot see and must not
 be able to address.
 
-`kaava/open` and `kaava/publish` are that, and they are host business — the
-shell routes them, exactly as it answers `kaava/painted` and `kaava/commands`,
+`veistra/open` and `veistra/publish` are that, and they are host business — the
+shell routes them, exactly as it answers `veistra/painted` and `veistra/commands`,
 and it does so without understanding either. An `appId` is matched against the
 layout; a `topic` is a `Map` key. No payload is inspected and no intent is
 enumerated, so two apps can agree on a new thing to say to each other without a
@@ -135,7 +135,7 @@ and the button says "soon".
 
 The tutorials column used to be dead too, and is not any more. `home/tutorials`
 answers with the first few unfinished tutorials from `apps/tutorial.rs`'s
-catalog, and a card calls `kaava/open` on the Tutorials app naming one. Home
+catalog, and a card calls `veistra/open` on the Tutorials app naming one. Home
 holds no list of its own, which is the point: a second copy would be a second
 place to add a tutorial.
 
@@ -146,41 +146,41 @@ README at the repo root.
 **File Explorer** (`files/list`, `files/root`) — the project's folders and what
 is in them, plus everything that changes the shape of it: create, rename,
 duplicate, delete, trash. It does not show a file's contents. Clicking a row
-asks the shell for a File Viewer in the same cluster (`kaava/open`) rather than
+asks the shell for a File Viewer in the same cluster (`veistra/open`) rather than
 drawing the file itself.
 
 **Agents** (`agents/overview`, `agents/transcript`, `agents/start`) — the agent
-VMs in OpenKaava Cloud, every session each one has run, which workflow run a
+VMs in Veistra Cloud, every session each one has run, which workflow run a
 session belongs to, and what the agent did in it. It reads the sessions bucket
 and Compute Engine through `src-tauri/src/cloud/`, with the caller's own
 `gcloud` sign-in, and polls only while visible. Its one write is starting a
 stopped agent VM, which only a press of Start calls. Set
-`KAAVA_CLOUD_FIXTURES` to the absolute path of `src-tauri/fixtures/cloud` to run it against the committed
+`VEISTRA_CLOUD_FIXTURES` to the absolute path of `src-tauri/fixtures/cloud` to run it against the committed
 fixture instead of the live project.
 
 Agents is a **page**, not an app you open into a pane. It is left out of the
-Apps menu, the add-app button, presets and `kaava/open`, and `open_instance`
+Apps menu, the add-app button, presets and `veistra/open`, and `open_instance`
 refuses it by name. Its chip at the left of the cluster bar opens it into its
 own dedicated cluster instead. `src-tauri/src/pages.rs` declares which apps are
 pages. Making another app a page takes a row there, on top of the app's usual
 three edits.
 
-**Cost Tracker** (`costs/estimate`) — what OpenKaava Cloud has cost so far this
+**Cost Tracker** (`costs/estimate`) — what Veistra Cloud has cost so far this
 month at list price, and the month's forecast against its 150 USD budget
-(`KAAVA_GCP_BUDGET` overrides it). It multiplies what exists (machines, disks,
+(`VEISTRA_GCP_BUDGET` overrides it). It multiplies what exists (machines, disks,
 reserved IPs, buckets, Cloud Run services) by how much each ran or held, from
 Cloud Monitoring, by the public Cloud Billing Catalog price. The price lists
 are cached for a day; the page refreshes every minute while visible. It only
 reads. Egress, NAT, Secret Manager, logging, Artifact Registry, free tiers,
 discounts and credits are left out, and the page lists them. The same
-`KAAVA_CLOUD_FIXTURES` folder answers it, with `clock.json` fixing "now".
+`VEISTRA_CLOUD_FIXTURES` folder answers it, with `clock.json` fixing "now".
 `src-tauri/fixtures/cloud/billing/` holds real catalog SKUs, trimmed. It is a
 page, like Agents: its chip opens it, and the Apps menu does not list it.
 
 Beside the estimate it shows what Google actually billed, net of credits, from
 the Cloud Billing export to BigQuery (`cloud::bigquery`). The standard usage
 cost export has to be switched on once in the Console, into the
-`billing_export` dataset (`KAAVA_BILLING_DATASET` overrides it). Until then the
+`billing_export` dataset (`VEISTRA_BILLING_DATASET` overrides it). Until then the
 page says how, rather than failing. The export trails the estimate by a few
 hours. Fixtures: `bigquery/tables.json` and `bigquery/billing.json`.
 
@@ -194,16 +194,16 @@ only while the page is visible. Until then those charts show the same
 `bigquery/monthly.json`.
 
 **Projects** (`projects/list`, `projects/wake-start`, `projects/plane-get`) —
-every OpenKaava Cloud project's Plane workspace, picked from a switcher and
+every Veistra Cloud project's Plane workspace, picked from a switcher and
 opened beside it. Selecting one wakes `plane-vm` if it was stopped
 (`projects/wake-start`, polled by `projects/wake-status`), then lands a native
 child webview over the pane — not an `<iframe>`, so Plane's own login session
 survives a restart — positioned and resized by `src-tauri/src/plane_webview.rs`.
 `projects/plane-get`/`-post`/`-patch` proxy the rest of Plane's REST API
 through the backend's own PAT, out of Secret Manager, so nothing but that
-same-origin webview ever needs one. Needs `plane.kaava.internal` resolving to
+same-origin webview ever needs one. Needs `plane.veistra.internal` resolving to
 the tunnel's local port in the hosts file; the app surfaces the fix inline
-when it does not. The same `KAAVA_CLOUD_FIXTURES` folder runs it against a
+when it does not. The same `VEISTRA_CLOUD_FIXTURES` folder runs it against a
 fixture project list instead of the live bucket.
 
 Projects is a page too, like Agents and Cost Tracker: its chip opens it, and
@@ -248,12 +248,12 @@ frames the DevTools Protocol's equivalent cannot. The probe answers over
 `postMessage` and is inert in every frame but the one this app armed.
 
 **Canvas** (`canvas/list`, `canvas/read`, `canvas/assets`, `canvas/write`, `canvas/create`) — the design
-canvas of `docs/KAAVA-UX-REWORK.md` §5: draw on [Excalidraw](https://excalidraw.com), and each
+canvas of `docs/VEISTRA-UX-REWORK.md` §5: draw on [Excalidraw](https://excalidraw.com), and each
 canvas is one file, `<environment>/canvas/<id>.json` (`<id>` may nest folders: `levels/ward-b`),
 so it is committed with the game and survives a clone. The file is an Excalidraw scene plus a
-`kaava` object (`schema`, `id`, `title`, `parent`, `updated`, `updated_by`) — the shape of
+`veistra` object (`schema`, `id`, `title`, `parent`, `updated`, `updated_by`) — the shape of
 `docs/cloud-services.md` §4, minus its bucket. **That section proposes the artifact store instead
-and is marked "decision needed"; this follows `KAAVA-UX-REWORK.md` §6 and the PRD's P7-2, which
+and is marked "decision needed"; this follows `VEISTRA-UX-REWORK.md` §6 and the PRD's P7-2, which
 are decided.** The app id is `canvas`, not `design`: `design` is the feature-gated Design Mode
 app that points at a running page.
 
@@ -267,8 +267,8 @@ is reported and never overwritten. Only the background colour and grid are kept 
 view state, and deleted elements and unreferenced images are dropped, so a save is a small diff.
 
 Canvases nest. Select a frame and "Create child canvas" makes a new canvas in a folder named
-after its parent (`levels` becomes `levels/ward-b`), sets `customData.kaava.child` on the frame and
-`kaava.parent` in the child's file, and opens it. Double-clicking a frame that has a child opens
+after its parent (`levels` becomes `levels/ward-b`), sets `customData.veistra.child` on the frame and
+`veistra.parent` in the child's file, and opens it. Double-clicking a frame that has a child opens
 it (the app takes that double-click before Excalidraw's own text edit does), and the breadcrumb
 in the header follows `parent` back up. A frame whose child file is missing says so and stays
 put. Unlinking only removes the frame's link; the child file is left alone. To link a frame to a
@@ -282,7 +282,7 @@ into sub-canvases". The agent tool is `split_frames` (`canvas/split-frames`, wit
 `minElements` and `dryRun` params). Each split frame's elements move into a child canvas,
 `<parent>/<diagram id>`, together with a copy of the frame. The child keeps the frame's id, its
 position and its diagram metadata. The parent keeps the empty frame. That frame is linked to
-the child as any nested frame is, and it is marked `customData.kaava.subcanvas`. In the parent,
+the child as any nested frame is, and it is marked `customData.veistra.subcanvas`. In the parent,
 the frame shows a picture of its child: a locked image element that is never saved. To edit
 the child, double-click the frame. The split is explicit, not done on open, for three reasons.
 It turns one committed file into many, which is the person's call. Read-only main cannot write.
@@ -295,7 +295,7 @@ each copied into its own checkpoint ring first.
 Pictures are drawn by Excalidraw's exporter from the child file, in the light theme. The dark
 theme's picture is that image passed through the inverse of Excalidraw's dark-mode image
 filter, so it inverts with the canvas like the drawing it stands for. They are cached in memory
-for the session, and on disk in `.kaava/canvas-snapshots/`. Those files are git-ignored and
+for the session, and on disk in `.veistra/canvas-snapshots/`. Those files are git-ignored and
 keyed by the child's mtime. They are listed by `canvas/snapshots` and written by
 `canvas/put-snapshot`; neither is a design write. While a parent is open it polls its
 children's mtimes every two seconds and redraws any that changed. Redrawing runs one picture at
@@ -312,12 +312,12 @@ comments that moved into children. `values` includes the uses found in children,
 `set-values` updates the children's copies of the table. `set-frame` renames the child's copy
 of the frame as well.
 
-An agent driving the editor through `kaava-ui` should know that Excalidraw's properties island
+An agent driving the editor through `veistra-ui` should know that Excalidraw's properties island
 sits over the left edge of the canvas (about the first 195 px) while a shape is selected. A
 click or drag there lands on the island, not on the scene. Draw with `canvas/add-shapes`
 instead, or press Escape to clear the selection first.
 
-Spec cards (`customData.kaava.spec`, fields from `docs/cloud-services.md` section 4) are made
+Spec cards (`customData.veistra.spec`, fields from `docs/cloud-services.md` section 4) are made
 by selecting any shape and filling in the inspector: name, size in metres, triangle budget,
 style notes, reference images, plus the card's own review state (draft, review, accepted,
 rejected). "Copy JSON" exports exactly the five documented fields, and refuses an incomplete
@@ -329,7 +329,7 @@ column is not there yet.
 "Send selection" (header) renders the selected elements, with the members of a selected frame
 and the text inside a selected shape, to a PNG with Excalidraw's exporter and puts it in the
 agent's context; "Send card" puts a valid spec card as JSON text. Both can be dragged onto a
-terminal as well as clicked, and both work on read-only main because `.kaava/context/` is not the
+terminal as well as clicked, and both work on read-only main because `.veistra/context/` is not the
 checkout. The PNG is tried at 2x, 1x, 0.5x and 0.25x until it fits the store's 8 MB limit.
 
 Excalidraw is loaded lazily (`React.lazy`), and its fonts are served from
@@ -349,13 +349,13 @@ of the drawing and collapse to a strip; nothing floats over the drawing.
 |---|---|
 | `canvas/list-diagrams` | Every named frame: id, title, summary, parent, level, covers. |
 | `canvas/describe-diagram` | `{diagram}`: its shapes, labels and what each arrow joins, as text. |
-| `canvas/view-diagram` | `{diagram, region?, scale?, theme?}`: a PNG of that frame alone, at `.kaava/canvas-views/<id>/<diagram>.png`, overwritten each time. |
+| `canvas/view-diagram` | `{diagram, region?, scale?, theme?}`: a PNG of that frame alone, at `.veistra/canvas-views/<id>/<diagram>.png`, overwritten each time. |
 | `canvas/save` | Flushes the open editor, then reports the file's path, element count and diagrams. |
 | `canvas/add-shapes` | `{frame, shapes, replace?, nudge?, values?}` or `{index: true}`: measured layout, returns ids and warnings, checkpoints first. |
 | `canvas/import-mermaid` | `{frame, source}`: a Mermaid flowchart or state diagram as a new frame. |
 | `canvas/checkpoints`, `canvas/restore-checkpoint` | The last five saves before a bulk edit; restore one (default the newest). |
 | `canvas/values`, `canvas/set-values` | The `{{name}}` value table, where each is used, and labels that no longer match. |
-| `canvas/design-brief`, `canvas/set-design` | The detail level and drawing style in force for a canvas (its override, else Settings > Canvas, else the default), and a per-canvas override: `{detail?, style?}`, `null` clears. `add_shapes` draws in the style; `drawing_guide` ends with the guidance. The Canvas toolbar's Drawing style control sets the same override by hand (`kaava.design` in the file). `drawing_guide {topic: "design"}` serves `docs/canvas-design-prompt.md`, the brief for designing a game. |
+| `canvas/design-brief`, `canvas/set-design` | The detail level and drawing style in force for a canvas (its override, else Settings > Canvas, else the default), and a per-canvas override: `{detail?, style?}`, `null` clears. `add_shapes` draws in the style; `drawing_guide` ends with the guidance. The Canvas toolbar's Drawing style control sets the same override by hand (`veistra.design` in the file). `drawing_guide {topic: "design"}` serves `docs/canvas-design-prompt.md`, the brief for designing a game. |
 | `canvas/coverage` | Which frames cover each checklist topic, and which topics none do. |
 | `canvas/refs` | Reference images under `canvas/<id>/refs/`. |
 | `canvas/list-comments` | `{status?: open\|resolved\|all, diagram?}`. |
@@ -379,13 +379,13 @@ pnpm probe --agent --server agent app_call @view.json
 
 Comments are one JSON file each in `canvas/<id>.comments/`, beside the canvas, so they are
 committed with it. The shape (`id`, `frameId`, `elementIds` or `region`, `text`, `author`,
-`createdAt`, `status`, `resolution`) follows `@kaava/markup`'s annotation in spirit, pinned to a
+`createdAt`, `status`, `resolution`) follows `@veistra/markup`'s annotation in spirit, pinned to a
 frame instead of a page, without depending on that package. Images dropped into the editor are
-written to `canvas/<id>/refs/` and the scene keeps a `kaavaRef` path instead of base64; a read puts
+written to `canvas/<id>/refs/` and the scene keeps a `veistraRef` path instead of base64; a read puts
 the bytes back, so the editor never knows.
 
 **Tutorials** (`tutorial/catalog`, `tutorial/complete`, `tutorial/reset`) — short
-walkthroughs of what OpenKaava does today, with a tick against the ones you have
+walkthroughs of what Veistra does today, with a tick against the ones you have
 read. `docs/tutorials.md` is how to add one.
 
 It is the only app that reads nothing on the machine: `tutorial::call` ignores
@@ -397,10 +397,10 @@ prose is in the frontend because it is a view.
 Like Home, it **covers** the cluster rather than taking a pane: no tab in the
 switcher, no row in the Apps menu or the `+`, and gone as soon as you choose
 something else. Home's cards are its door. It is still an ordinary registry entry
-all the same — that is what resolves its frontend when `kaava/open` asks for one,
+all the same — that is what resolves its frontend when `veistra/open` asks for one,
 and the filtering is a fact about which menus offer it. `docs/tutorials.md` §8.
 
-**Schematify** — the design layer of OpenKaava: draws the full-scale plan,
+**Schematify** — the design layer of Veistra: draws the full-scale plan,
 technical and product together, that coding agents build from. It replaces
 two predecessor applications this scaffold was built from, folded into one
 rather than two — see `docs/design/SCHEMATIFY-PRD.md` §1.3 for what each used
@@ -424,7 +424,7 @@ present and visibly disabled — there is no install handoff behind it yet.
 **Blender Viewer** (`blender-viewer/state`) — read-only, the same shape for
 Blender: a Model/Renders/Wire switch, an honest placeholder in place of a real
 3D viewport (deliberately not three.js — see
-`docs/KAAVA-UX-REWORK.md` §3.2), a parts list, a renders strip. Same story as
+`docs/VEISTRA-UX-REWORK.md` §3.2), a parts list, a renders strip. Same story as
 the Godot Viewer on emptiness and "Open in Blender".
 
 **Play** (`play/state`) — runs the environment's debug build in a pane and
@@ -457,15 +457,15 @@ it first — see that directory's note above on why the isolation rule excludes
 it.
 
 A comment anchors to one of three things: a Godot node path, a Blender part
-plus material, or a Play scene plus a playhead time (`docs/KAAVA-UX-REWORK.md`
-§3.4). It is a file — one per comment — under `.kaava/comments/` inside the
+plus material, or a Play scene plus a playhead time (`docs/VEISTRA-UX-REWORK.md`
+§3.4). It is a file — one per comment — under `.veistra/comments/` inside the
 calling cluster's environment, not a database row, for the same reason the
 rest of this repo's structured state is files: it travels with the branch and
 merges the way git already merges text. `src-tauri/src/comments.rs`'s doc
 comment has the ID scheme and the merge reasoning in full.
 
 "Send to agent now" is on every comment panel, and it is always disabled: it
-is drawn now so the layout is right, but nothing reads `.kaava/comments/` into
+is drawn now so the layout is right, but nothing reads `.veistra/comments/` into
 an agent yet, and the button says so in its tooltip rather than pretending to
 work.
 
@@ -478,7 +478,7 @@ app is looked up (`apps::call`, like `settings/all`), so they exist for every
 app and plugin surface without registering anything.
 
 ```ts
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 
 // An image (a panel capture, a frame, a render): bytes cross once.
 const item = await invoke("context/put", {
@@ -507,7 +507,7 @@ version. Without a key, a file is keyed by its path and anything else by its
 content hash, so identical pastes are stored once.
 
 Send exactly one of `bytesBase64`, `text` or `path`. The item is a file under
-`<environment>/.kaava/context/` plus a `<id>.json` record (id, kind, sniffed
+`<environment>/.veistra/context/` plus a `<id>.json` record (id, kind, sniffed
 mime, title, `source.appId`, size, `path`, `relPath`); that directory carries
 its own `.gitignore`, so context never enters a commit. `source.appId` is
 stamped by the shell from the calling frame and cannot be claimed in params.
@@ -521,14 +521,14 @@ A `path` already inside the environment is referenced where it is and never
 deleted by `context/remove`. An unsupported put fails with an `INVALID_PARAMS`
 error whose message says why.
 
-**These calls are allowed in a read-only main cluster.** `.kaava/context/` is
-Kaava's own state, not the checkout, and is gitignored, so it is not in
+**These calls are allowed in a read-only main cluster.** `.veistra/context/` is
+Veistra's own state, not the checkout, and is gitignored, so it is not in
 `WRITE_METHODS`.
 
 A store change emits the Tauri event `context:changed` (`{ root }`); the shell
 strip beside each terminal listens to it. To let a user drag an item onto a
 terminal, register it with `context/put` first and then send
-`kaava/drag { phase: "begin", items: [item.id] }` (`paths` and `items` may be
+`veistra/drag { phase: "begin", items: [item.id] }` (`paths` and `items` may be
 mixed); the drop inserts the reference the running harness understands.
 
 ### Agent saw (Claude Code)
@@ -537,27 +537,27 @@ The strip can also show images the agent *read*. It is off until the person
 turns it on in the strip, which asks first and then merges one `PostToolUse`
 hook (matcher `Read`) into `<env>/.claude/settings.local.json`, keeping every
 other key and hook. The hook appends each payload to
-`.kaava/context/.saw.jsonl` (gitignored) and Kaava reads that file; a file
+`.veistra/context/.saw.jsonl` (gitignored) and Veistra reads that file; a file
 append was chosen over a hook binary posting to the local listener because it
-needs no shipped executable, port or token, and works with Kaava closed. The
+needs no shipped executable, port or token, and works with Veistra closed. The
 strip's "Stop tracking" removes exactly that hook. Codex and Gemini have no
 adapter yet.
 
-## References: `kaava://`
+## References: `veistra://`
 
-A `kaava://` reference names a file, a canvas frame, a comment or a context item
+A `veistra://` reference names a file, a canvas frame, a comment or a context item
 in a way a person and an agent read alike. The design is
-[`docs/design/KAAVA-CONTEXT-REFS.md`](../docs/design/KAAVA-CONTEXT-REFS.md).
+[`docs/design/VEISTRA-CONTEXT-REFS.md`](../docs/design/VEISTRA-CONTEXT-REFS.md).
 The host answers `refs/resolve` before any app is looked up, as it does
-`context/*`, but only for Kaava's own apps: a plugin is someone else's code, and
+`context/*`, but only for Veistra's own apps: a plugin is someone else's code, and
 a reference reads the project. A plugin's own `refs/` method still reaches the
 plugin.
 
 ```ts
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 
 // What a reference chip draws: a kind, a title, and parts to show.
-const r = await invoke("refs/resolve", { uri: "kaava://file/scripts/player.gd#L10-L20" });
+const r = await invoke("refs/resolve", { uri: "veistra://file/scripts/player.gd#L10-L20" });
 // { uri, kind, title, detail?, meta, parts: [{ type: "text" | "image" | "json" | "note", … }], withheld? }
 ```
 

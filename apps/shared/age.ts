@@ -1,7 +1,7 @@
 /**
  * "Age of render" labels — the Godot Viewer's and the Blender Viewer's header
  * both name how stale the thing they're showing is, per
- * `docs/KAAVA-UX-REWORK.md` §3.1/§3.2. Shared because both viewers need the
+ * `docs/VEISTRA-UX-REWORK.md` §3.1/§3.2. Shared because both viewers need the
  * exact same rounding so "a render from three minutes ago" reads the same way
  * in both panes.
  */

@@ -39,7 +39,7 @@ describe("HindsightPage", () => {
     ["gcloudMissing", "The Google Cloud CLI is not installed", "gcloud auth login"],
     ["signedOut", "Signed out of Google Cloud", "gcloud auth login"],
     ["denied", "This Google account may not call Hindsight", "gcloud config set account"],
-    ["missing", "Hindsight is not deployed at that address", "KAAVA_HINDSIGHT_URL"],
+    ["missing", "Hindsight is not deployed at that address", "VEISTRA_HINDSIGHT_URL"],
     ["unreachable", "Hindsight did not answer", ""],
   ])("a %s trouble says what is missing and how to fix it", async (kind, heading, command) => {
     const status: HindsightStatus = { state: "trouble", url: URL, trouble: { kind } };

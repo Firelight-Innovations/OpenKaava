@@ -1,4 +1,4 @@
-//! Where OpenKaava remembers the presets you have saved, across launches.
+//! Where Veistra remembers the presets you have saved, across launches.
 //!
 //! The third thing in the orchestrator to touch the disk, after
 //! [`crate::project::store`] and [`crate::shell_store`], and built to the same
@@ -48,7 +48,7 @@ pub struct Stored {
 ///
 /// **Never fatal.** Every failure degrades to [`Stored::default`], which merges
 /// to "just the built-ins". A presets file that is missing, truncated by a power
-/// cut, or written by a future build must not stop OpenKaava from starting, and must
+/// cut, or written by a future build must not stop Veistra from starting, and must
 /// not empty the menu it is meant to fill.
 pub fn load(app: &AppHandle) -> Stored {
     file(app)

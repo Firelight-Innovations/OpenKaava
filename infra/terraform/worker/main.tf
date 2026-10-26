@@ -1,12 +1,12 @@
 # Agent VMs (PRD 4, Phase 2). One entry in `agents` is one VM; the PRD's single worker is the
-# default. Every one boots the `kaava-agent` image (images/agent/), runs as the shared kaava-agent
+# default. Every one boots the `veistra-agent` image (images/agent/), runs as the shared veistra-agent
 # identity (foundation/), and is told where the shared services are through metadata, so a new
 # agent needs a line here and nothing else: Hindsight, the registry, the render queue and the
 # session records already accept it.
 #
 # Agent VMs stop themselves after `idle_minutes` with no agent process and nobody logged in, since
 # an always-on e2-standard-8 alone would cost more than the monthly budget. Start one with
-# `gcloud compute instances start kaava-worker --zone us-central1-a`.
+# `gcloud compute instances start veistra-worker --zone us-central1-a`.
 
 terraform {
   required_version = ">= 1.9"
@@ -44,14 +44,14 @@ variable "artifacts_bucket" {
 
 variable "gpu_instance" {
   type        = string
-  description = "Name of the GPU node kaava-render starts. Must match gpu/."
-  default     = "kaava-gpu"
+  description = "Name of the GPU node veistra-render starts. Must match gpu/."
+  default     = "veistra-gpu"
 }
 
 variable "plane_url" {
   type        = string
   description = "Plane CE for the `plane` MCP server; empty leaves it out. Must match plane/."
-  default     = "http://plane.kaava.internal:8765"
+  default     = "http://plane.veistra.internal:8765"
 }
 
 provider "google" {
@@ -60,18 +60,18 @@ provider "google" {
   zone    = var.zone
 }
 
-data "google_compute_subnetwork" "kaava" {
-  name   = "kaava-${var.region}"
+data "google_compute_subnetwork" "veistra" {
+  name   = "veistra-${var.region}"
   region = var.region
 }
 
 data "google_compute_image" "agent" {
-  family  = "kaava-agent"
+  family  = "veistra-agent"
   project = var.project_id
 }
 
 data "google_service_account" "agent" {
-  account_id = "kaava-agent"
+  account_id = "veistra-agent"
 }
 
 data "google_cloud_run_v2_service" "hindsight" {
@@ -81,7 +81,7 @@ data "google_cloud_run_v2_service" "hindsight" {
 
 resource "google_compute_instance" "agent" {
   for_each                  = var.agents
-  name                      = "kaava-${each.key}"
+  name                      = "veistra-${each.key}"
   machine_type              = each.value.machine_type
   tags                      = ["iap"]
   allow_stopping_for_update = true
@@ -97,7 +97,7 @@ resource "google_compute_instance" "agent" {
 
   # No access_config block: no external IP (PRD constraint 4).
   network_interface {
-    subnetwork = data.google_compute_subnetwork.kaava.self_link
+    subnetwork = data.google_compute_subnetwork.veistra.self_link
   }
 
   service_account {
@@ -112,16 +112,16 @@ resource "google_compute_instance" "agent" {
   }
 
   metadata = {
-    enable-oslogin      = "TRUE"
-    startup-script      = "#!/bin/bash\nexec /opt/kaava/boot.sh"
-    kaava-artifacts     = var.artifacts_bucket
-    kaava-render-queue  = "${var.project_id}-render-queue"
-    kaava-sessions      = "${var.project_id}-sessions"
-    kaava-gpu-instance  = var.gpu_instance
-    kaava-hindsight-url = data.google_cloud_run_v2_service.hindsight.uri
-    kaava-plane-url     = var.plane_url
-    kaava-memory-banks  = join(",", each.value.memory_banks)
-    kaava-idle-minutes  = tostring(each.value.idle_minutes)
+    enable-oslogin        = "TRUE"
+    startup-script        = "#!/bin/bash\nexec /opt/veistra/boot.sh"
+    veistra-artifacts     = var.artifacts_bucket
+    veistra-render-queue  = "${var.project_id}-render-queue"
+    veistra-sessions      = "${var.project_id}-sessions"
+    veistra-gpu-instance  = var.gpu_instance
+    veistra-hindsight-url = data.google_cloud_run_v2_service.hindsight.uri
+    veistra-plane-url     = var.plane_url
+    veistra-memory-banks  = join(",", each.value.memory_banks)
+    veistra-idle-minutes  = tostring(each.value.idle_minutes)
   }
 
   # A new image does not replace running agents mid-session. Recreate one deliberately with

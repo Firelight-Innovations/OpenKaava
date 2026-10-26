@@ -1,4 +1,4 @@
-//! Settings — what OpenKaava lets you change, and what the change is worth.
+//! Settings — what Veistra lets you change, and what the change is worth.
 //!
 //! The rules for adding one, and the interface an app registers a section
 //! through, are in `docs/settings.md`. This module is the vocabulary they are
@@ -187,7 +187,7 @@ impl Registry {
         }
         for setting in group.settings {
             if !setting.key.starts_with(&format!("{}.", group.id)) {
-                crate::kaava_log!(
+                crate::veistra_log!(
                     "setting {:?} is in group {:?} but is not prefixed by it",
                     setting.key,
                     group.id
@@ -213,7 +213,7 @@ impl Registry {
                 Ok(coerced) => {
                     kept.insert(key, coerced);
                 }
-                Err(e) => crate::kaava_log!("ignoring a stored setting: {e}"),
+                Err(e) => crate::veistra_log!("ignoring a stored setting: {e}"),
             }
         }
         if let Ok(mut values) = self.values.lock() {
@@ -418,7 +418,7 @@ fn commit(app: &AppHandle) {
         },
     );
     if let Err(e) = app.emit(SETTINGS_CHANGED_EVENT, &values) {
-        crate::kaava_log!("could not announce the settings change: {e}");
+        crate::veistra_log!("could not announce the settings change: {e}");
     }
 }
 
@@ -430,7 +430,7 @@ fn commit(app: &AppHandle) {
 ///
 /// The exception is a setting whose reader is **a file on disk**. `.mcp.json` is
 /// written, not consulted, so a change that only moved a value in memory would
-/// leave that file describing an OpenKaava that no longer exists until something else
+/// leave that file describing a Veistra that no longer exists until something else
 /// happened to rewrite it. Both keys below decide what goes in it.
 ///
 /// Matching on the key rather than syncing after every write, because that file
@@ -470,8 +470,8 @@ pub const APP_WRITABLE: &[&str] = &[markup::AUTO_SEND, markup::TIP];
 
 /// Validates a `settings/set` call without touching the registry, so the refusal
 /// is testable without an app handle.
-pub fn parse_app_set(params: Option<&Value>) -> Result<(String, Value), kaava_rpc::RpcError> {
-    let bad = |m: String| kaava_rpc::RpcError::new(kaava_rpc::INVALID_PARAMS, m);
+pub fn parse_app_set(params: Option<&Value>) -> Result<(String, Value), veistra_rpc::RpcError> {
+    let bad = |m: String| veistra_rpc::RpcError::new(veistra_rpc::INVALID_PARAMS, m);
     let key = params
         .and_then(|p| p.get("key"))
         .and_then(Value::as_str)
@@ -488,12 +488,12 @@ pub fn parse_app_set(params: Option<&Value>) -> Result<(String, Value), kaava_rp
 
 /// `settings/set` from an app frame: validated, stored, persisted and announced
 /// the same way the settings screen's own write is.
-pub fn app_set(app: &AppHandle, params: Option<&Value>) -> Result<Value, kaava_rpc::RpcError> {
+pub fn app_set(app: &AppHandle, params: Option<&Value>) -> Result<Value, veistra_rpc::RpcError> {
     let (key, value) = parse_app_set(params)?;
     let stored = app
         .state::<Registry>()
         .set(&key, value)
-        .map_err(|e| kaava_rpc::RpcError::new(kaava_rpc::INVALID_PARAMS, e.to_string()))?;
+        .map_err(|e| veistra_rpc::RpcError::new(veistra_rpc::INVALID_PARAMS, e.to_string()))?;
     commit(app);
     react(app, &key);
     Ok(stored)
@@ -510,7 +510,7 @@ pub fn flag(app: &AppHandle, key: &str) -> bool {
         .get(key)
         .and_then(|v| v.as_bool())
         .unwrap_or_else(|| {
-            crate::kaava_log!("{key:?} is not a toggle any build declares");
+            crate::veistra_log!("{key:?} is not a toggle any build declares");
             false
         })
 }
@@ -521,7 +521,7 @@ pub fn number(app: &AppHandle, key: &str) -> i64 {
         .get(key)
         .and_then(|v| v.as_i64())
         .unwrap_or_else(|| {
-            crate::kaava_log!("{key:?} is not a number any build declares");
+            crate::veistra_log!("{key:?} is not a number any build declares");
             0
         })
 }
@@ -532,7 +532,7 @@ pub fn text(app: &AppHandle, key: &str) -> String {
         .get(key)
         .and_then(|v| v.as_str().map(str::to_string))
         .unwrap_or_else(|| {
-            crate::kaava_log!("{key:?} is not a string any build declares");
+            crate::veistra_log!("{key:?} is not a string any build declares");
             String::new()
         })
 }

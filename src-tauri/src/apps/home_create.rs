@@ -1,5 +1,5 @@
 //! `home/create-project` — the Tauri half of the New Project page's Create
-//! column (board 14, `docs/KAAVA-UX-REWORK.md` §7). `project::create::run` is
+//! column (board 14, `docs/VEISTRA-UX-REWORK.md` §7). `project::create::run` is
 //! the actual step-runner and is pure; everything here is the plumbing that
 //! wires its [`project::create::Ops`] to the real filesystem and `git`, and
 //! exposes it as two RPC methods the same way `apps::projects`' wake flow
@@ -19,12 +19,12 @@
 use crate::apps::CallContext;
 use crate::git;
 use crate::project::{self, create};
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS};
 
 /// Held in `tauri::State`, registered in `lib.rs` beside `apps::projects::
 /// WakeManager`. `snapshot` is `None` only before the first `home/create-
@@ -141,7 +141,7 @@ fn design_worktree_path(repo: &Path) -> PathBuf {
 
 /// [`create::Ops::land_code`]'s real body: clone or link the code, then write
 /// a manifest if the folder does not already have one — §7 step 2, "Clone it
-/// and write kaava.toml".
+/// and write veistra.toml".
 ///
 /// "Open existing" is the one kind this refuses to write a manifest for: §7
 /// says it "only links" a project, so a folder with no manifest is a
@@ -187,7 +187,7 @@ fn land(
     if kind == create::Kind::OpenExisting {
         if !project::has_manifest(&path) {
             return Err(format!(
-                "{} has no Kaava project file yet — Open existing only links a project that already has one",
+                "{} has no Veistra project file yet — Open existing only links a project that already has one",
                 path.display()
             ));
         }
@@ -458,7 +458,7 @@ mod tests {
     /// writing one on the user's behalf.
     #[test]
     fn open_existing_refuses_a_folder_with_no_manifest() {
-        let dir = std::env::temp_dir().join(format!("kaava-create-test-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("veistra-create-test-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
 
         let source = create::CodeSource::LocalFolder { path: dir.clone() };
@@ -474,7 +474,7 @@ mod tests {
     #[test]
     fn a_game_writes_a_manifest_into_an_existing_empty_folder() {
         let dir =
-            std::env::temp_dir().join(format!("kaava-create-test-game-{}", std::process::id()));
+            std::env::temp_dir().join(format!("veistra-create-test-game-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
 
         let source = create::CodeSource::LocalFolder { path: dir.clone() };

@@ -27,7 +27,7 @@ use std::path::{Path, PathBuf};
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Environment {
     /// A second checkout of the project's repository, on its own branch,
-    /// created and owned by OpenKaava under `.kaava/worktrees/<name>`.
+    /// created and owned by Veistra under `.veistra/worktrees/<name>`.
     ///
     /// The ordinary case for real work: a cluster on a `LocalWorktree` reads
     /// and writes files nowhere near the project folder, so two clusters can
@@ -36,7 +36,7 @@ pub enum Environment {
     #[serde(rename_all = "camelCase")]
     LocalWorktree {
         /// The worktree's own name — `feat-x`, not `wt/feat-x` — used as both
-        /// its folder name under `.kaava/worktrees/` and, prefixed, its
+        /// its folder name under `.veistra/worktrees/` and, prefixed, its
         /// branch. Kept separate from `branch` because the dialog that
         /// creates one shows this alone; the `wt/` prefix is this module's
         /// convention, not something a user types.
@@ -134,7 +134,7 @@ impl Environment {
 
     /// The branch this environment is on, where that concept applies.
     /// `Main`'s is not this module's to name — the main checkout can be on
-    /// any branch, changed from outside OpenKaava at any time, so answering
+    /// any branch, changed from outside Veistra at any time, so answering
     /// would mean shelling out to `git` from a getter with no error path.
     /// Callers that want it already have `git::git_cluster_status` for that.
     pub fn branch(&self) -> Option<&str> {
@@ -297,19 +297,19 @@ pub fn guard_cluster_write(app: &tauri::AppHandle, cluster_id: &str, op: &str) -
 pub fn read_only_env(env: Option<&Environment>) -> Vec<(String, String)> {
     if env.is_some_and(Environment::is_main) {
         vec![
-            ("KAAVA_READ_ONLY".to_string(), "1".to_string()),
-            ("KAAVA_ENVIRONMENT".to_string(), "main".to_string()),
+            ("VEISTRA_READ_ONLY".to_string(), "1".to_string()),
+            ("VEISTRA_ENVIRONMENT".to_string(), "main".to_string()),
         ]
     } else {
         Vec::new()
     }
 }
 
-/// Create a new local worktree under `.kaava/worktrees/<name>`, on branch
+/// Create a new local worktree under `.veistra/worktrees/<name>`, on branch
 /// `wt/<name>` forked from `base`.
 ///
 /// `main_repo` must already be the *primary* checkout — see
-/// `git::main_repo_root` — since that is where `.kaava/worktrees` lives and
+/// `git::main_repo_root` — since that is where `.veistra/worktrees` lives and
 /// where `git worktree add` has to run. This deliberately does not share
 /// `git.rs`'s existing `git_worktree_create` command: that one serves the
 /// older per-tool worktree convention (`<project>/../.worktrees/<project
@@ -321,7 +321,7 @@ pub fn read_only_env(env: Option<&Environment>) -> Vec<(String, String)> {
 pub fn create_local_worktree(main_repo: &Path, name: &str, base: &str) -> Result<Environment> {
     git::validate_worktree_name(name)?;
 
-    let path = main_repo.join(".kaava").join("worktrees").join(name);
+    let path = main_repo.join(".veistra").join("worktrees").join(name);
     let branch = format!("wt/{name}");
     git::add_worktree_from(main_repo, &path, &branch, base)?;
 
@@ -381,9 +381,12 @@ pub fn detect_design_environment(main_repo: &Path) -> Option<Environment> {
 
 /// Create `wt/design` fresh, for a project that does not have one yet and
 /// asked for the canvas anyway (the "offered but not auto-created" half of
-/// the Design canvas's behaviour — see `KAAVA-UX-REWORK.md` §5).
+/// the Design canvas's behaviour — see `VEISTRA-UX-REWORK.md` §5).
 pub fn create_design_environment(main_repo: &Path, base: &str) -> Result<Environment> {
-    let path = main_repo.join(".kaava").join("worktrees").join(DESIGN_NAME);
+    let path = main_repo
+        .join(".veistra")
+        .join("worktrees")
+        .join(DESIGN_NAME);
     git::add_worktree_from(main_repo, &path, DESIGN_BRANCH, base)?;
     Ok(Environment::Design {
         path: path.to_string_lossy().to_string(),
@@ -429,7 +432,7 @@ mod tests {
     fn local_worktree_serializes_with_camel_case_kind() {
         let env = Environment::LocalWorktree {
             name: "feat-x".to_string(),
-            path: "C:/proj/.kaava/worktrees/feat-x".to_string(),
+            path: "C:/proj/.veistra/worktrees/feat-x".to_string(),
             branch: "wt/feat-x".to_string(),
             base: "main".to_string(),
         };
@@ -554,7 +557,7 @@ mod tests {
     #[test]
     fn read_only_env_marks_main_shells_only() {
         let main = read_only_env(Some(&Environment::Main));
-        assert!(main.contains(&("KAAVA_READ_ONLY".to_string(), "1".to_string())));
+        assert!(main.contains(&("VEISTRA_READ_ONLY".to_string(), "1".to_string())));
         assert!(read_only_env(None).is_empty());
         let wt = Environment::LocalWorktree {
             name: "x".to_string(),
@@ -596,7 +599,7 @@ mod tests {
     /// `git::validate_worktree_name`, not a raw git error about `refs/heads/`.
     #[test]
     fn create_local_worktree_rejects_a_bad_name_before_touching_git() {
-        let dir = std::env::temp_dir().join("kaava-env-test-does-not-exist");
+        let dir = std::env::temp_dir().join("veistra-env-test-does-not-exist");
         let err = create_local_worktree(&dir, "../escape", "main").unwrap_err();
         match err {
             AppError::Git { op, .. } => assert_eq!(op, "worktree add"),

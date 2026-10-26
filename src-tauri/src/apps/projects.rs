@@ -1,6 +1,6 @@
 //! The Projects app's Rust half: the project switcher, the wake flow that
 //! brings Plane up from a stopped `plane-vm`, and the proxy to Plane's own
-//! REST API. `OPENKAAVA-PLANE-DESIGN.md` §11 (Agent B's tasks) is the spec;
+//! REST API. `VEISTRA-PLANE-DESIGN.md` §11 (Agent B's tasks) is the spec;
 //! `docs/handoffs/plane-frontend.md` in Agent A's worktree is what is
 //! actually live today.
 //!
@@ -11,7 +11,7 @@
 //! (`projects/list`) is a plain bucket read and **never** wakes Plane
 //! (design §3.1) — it does not touch [`wake`] or [`tunnel`] at all.
 //!
-//! The REST proxy, the wake flow and the list go through the `kaava-api`
+//! The REST proxy, the wake flow and the list go through the `veistra-api`
 //! gateway ([`gateway`]). The IAP tunnel and the hosts entry remain only for
 //! Plane's own web UI in the child webview.
 //!
@@ -23,13 +23,13 @@ use crate::cloud::gateway::{self, Gateway};
 use crate::cloud::{self, compute, plane, storage, tunnel, wake, Cloud, Source, Trouble};
 use crate::plane_webview::{self, Bounds};
 use crate::settings::{self, keys};
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::Instant;
 use tauri::{AppHandle, Manager};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 
 /// design §3: the one profile this PR wires up. B1.2 adds `dev` and a
 /// setting to switch between them; until then this is the only prefix
@@ -132,7 +132,7 @@ fn gateway_of(app: &AppHandle) -> Gateway {
 /// design §3.1, restated field for field. `plane.project_id` and
 /// `hindsight_banks` keep the record's own snake_case rather than the
 /// camelCase the rest of this app's wire shapes use, because this file is
-/// written by `kaava-project` (Python) and read by more than one consumer —
+/// written by `veistra-project` (Python) and read by more than one consumer —
 /// renaming it on this side only would mean two spellings of one schema.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectRecord {
@@ -141,7 +141,7 @@ pub struct ProjectRecord {
     pub name: String,
     pub game: Option<String>,
     pub plane: PlaneProjectRef,
-    /// `null` on a project with no artifact prefix, such as OpenKaava itself.
+    /// `null` on a project with no artifact prefix, such as Veistra itself.
     #[serde(default)]
     pub artifacts: Option<String>,
     #[serde(default)]
@@ -654,7 +654,7 @@ mod tests {
         let list = list(&Cloud::default(), &committed_fixture()).unwrap();
         assert_eq!(list.source, "fixture");
         let names: Vec<&str> = list.projects.iter().map(|p| p.name.as_str()).collect();
-        assert_eq!(names, vec!["Anomaly", "OpenKaava", "Sandbox", "Torn Apart"]);
+        assert_eq!(names, vec!["Anomaly", "Sandbox", "Torn Apart", "Veistra"]);
         assert_eq!(list.problems.len(), 1, "the one malformed record");
         assert!(list.problems[0].contains("broken.json"));
     }
@@ -776,11 +776,7 @@ mod tests {
     #[test]
     fn a_project_with_no_artifacts_prefix_still_lists() {
         let list = list(&Cloud::default(), &committed_fixture()).unwrap();
-        let kaava = list
-            .projects
-            .iter()
-            .find(|p| p.slug == "openkaava")
-            .unwrap();
-        assert_eq!(kaava.artifacts, None);
+        let veistra = list.projects.iter().find(|p| p.slug == "veistra").unwrap();
+        assert_eq!(veistra.artifacts, None);
     }
 }

@@ -59,8 +59,8 @@ import "monaco-editor/languages/definitions/ini/register";
  */
 import { jsonDefaults } from "monaco-editor/languages/features/json/register";
 
-import { registerToml } from "@openkaava/monaco-languages";
-import { monacoThemeData, onThemeChanged } from "@openkaava/bridge/theme";
+import { registerToml } from "@veistra/monaco-languages";
+import { monacoThemeData, onThemeChanged } from "@veistra/bridge/theme";
 
 import EditorWorker from "monaco-editor/editor/editor.worker?worker";
 import JsonWorker from "monaco-editor/languages/features/json/json.worker?worker";
@@ -98,8 +98,8 @@ jsonDefaults.setDiagnosticsOptions({
 /**
  * TOML, which Monaco does not ship and this app cannot do without.
  *
- * The grammar has moved from `./toml.ts` to `@openkaava/monaco-languages`,
- * unchanged, because three editors in OpenKaava now need it and `src/` and
+ * The grammar has moved from `./toml.ts` to `@veistra/monaco-languages`,
+ * unchanged, because three editors in Veistra now need it and `src/` and
  * `apps/files/` may not import each other — a package is the only ground all
  * three can stand on. That file still argues for its own existence and still
  * lists what the `ini` stand-in it replaced got wrong. Called here rather than
@@ -110,12 +110,12 @@ registerToml(monaco);
 
 /**
  * The editor theme. Every colour comes from the live `src/tokens.css` values
- * via `monacoThemeData` in `@openkaava/bridge/theme` (base `vs` in light,
+ * via `monacoThemeData` in `@veistra/bridge/theme` (base `vs` in light,
  * `vs-dark` in dark), as 8-digit `#RRGGBBAA`: `Color.fromHex` silently returns
  * opaque red for `rgba()`. Named like `src/shell/diff/DiffView.tsx`'s copy;
  * the two never load together.
  */
-export const THEME = "kaava-dark";
+export const THEME = "veistra-dark";
 
 /** Redefined on every theme or accent change; Monaco cannot take `var()`. */
 function defineAccentTheme(): void {
@@ -185,20 +185,20 @@ const LANGUAGE_BY_EXTENSION: Record<string, string> = {
   cfg: "ini",
 
   /**
-   * TOML, and OpenKaava's own two files with it. These used to point at `ini` as an
+   * TOML, and Veistra's own two files with it. These used to point at `ini` as an
    * admitted stand-in; they now point at a real grammar.
    *
-   * `kaava` is in this table rather than left to the plaintext fallback because
-   * a `<project>.kaava` marker *is* TOML: `project/marker.rs` reads one with
-   * `raw.parse::<toml::Table>()`, and `create` writes one with `[kaava]` and
-   * `[project]` tables in it. The extension is OpenKaava's; the format is not, and
+   * `veistra` is in this table rather than left to the plaintext fallback because
+   * a `<project>.veistra` marker *is* TOML: `project/marker.rs` reads one with
+   * `raw.parse::<toml::Table>()`, and `create` writes one with `[veistra]` and
+   * `[project]` tables in it. The extension is Veistra's; the format is not, and
    * pretending otherwise would mean a second grammar to keep in step with this
-   * one. It is also the pairing that makes the icon work land: `.kaava` gets the
-   * OpenKaava glyph from `packages/file-icons/src/index.ts` *and* the colour of the
+   * one. It is also the pairing that makes the icon work land: `.veistra` gets the
+   * Veistra glyph from `packages/file-icons/src/index.ts` *and* the colour of the
    * format it actually is.
    */
   toml: "toml",
-  kaava: "toml",
+  veistra: "toml",
 };
 
 /** The Monaco language id for a file, or `undefined` for plain text. */
@@ -389,7 +389,7 @@ export function mountEditor(
 
 /**
  * Bind Ctrl+S inside the editor. `KeyMod.CtrlCmd` is Monaco's own name for the
- * platform's primary modifier, which on Windows — the only platform OpenKaava ships
+ * platform's primary modifier, which on Windows — the only platform Veistra ships
  * on — is Ctrl.
  *
  * Needed on top of the document-level handler in `App.tsx`: Monaco's keybinding
@@ -418,7 +418,7 @@ export function bindPreview(
   run: { toggle: () => void; toggleSide: () => void },
 ): void {
   editor.addAction({
-    id: "openkaava.preview.toggle",
+    id: "veistra.preview.toggle",
     label: "Open Preview",
     keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyV],
     contextMenuGroupId: "navigation",
@@ -426,7 +426,7 @@ export function bindPreview(
     run: () => run.toggle(),
   });
   editor.addAction({
-    id: "openkaava.preview.side",
+    id: "veistra.preview.side",
     label: "Open Preview to the Side",
     keybindings: [
       monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, monaco.KeyCode.KeyV),

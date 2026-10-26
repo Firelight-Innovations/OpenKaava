@@ -24,9 +24,9 @@ use crate::apps::canvas::style;
 use crate::apps::{self, CallContext};
 use crate::mcp::{McpServer, McpTool, ToolAnswer};
 use crate::shell_state::ShellState;
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde_json::{json, Map, Value};
 use tauri::{AppHandle, Manager};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 
 pub static SERVER: McpServer = McpServer {
     id: "canvas",
@@ -119,7 +119,7 @@ canvas_tools! {
     );
 
     "list_canvases" => "", Scope::Open, true,
-    "Every Canvas open in OpenKaava right now: pane instance id, the canvas it shows, its \
+    "Every Canvas open in Veistra right now: pane instance id, the canvas it shows, its \
      cluster, whether it is focused or visible. Also says which canvas a tool would act on if \
      you name none. Call this first when more than one may be open.",
     || obj(json!({}), &[]);
@@ -658,7 +658,7 @@ fn shape_spec_schema() -> Value {
             "tail": head,
             "ref": { "type": "string", "description": "Image: `refs/<file>`, a reference image of this canvas (see refs)." },
             "fixed": { "type": "boolean", "description": "Never move this text to clear an overlap." },
-            "link": { "type": "string", "description": "Opened on click; `kaava://diagram/<id>` moves to that diagram." },
+            "link": { "type": "string", "description": "Opened on click; `veistra://diagram/<id>` moves to that diagram." },
         },
         "required": ["id", "type"],
     })

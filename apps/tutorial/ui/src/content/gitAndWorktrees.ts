@@ -3,7 +3,7 @@ import type { Body } from "./blocks";
 /**
  * Source control, and the worktree offer.
  *
- * The worktree half is the one worth the tutorial. OpenKaava offers a worktree on
+ * The worktree half is the one worth the tutorial. Veistra offers a worktree on
  * the first open of a repository, which is a prompt most people have never seen
  * from an editor — and declining it is the right answer often enough that the
  * dialog needs explaining rather than just answering.
@@ -18,7 +18,7 @@ export const gitAndWorktrees: Body = {
     },
     {
       kind: "note",
-      body: "OpenKaava runs the `git` binary on your machine rather than linking a git library. That means your credential helper, SSH agent, `.gitconfig`, hooks and aliases all apply, because they are already `git`'s and nothing had to be taught about them.",
+      body: "Veistra runs the `git` binary on your machine rather than linking a git library. That means your credential helper, SSH agent, `.gitconfig`, hooks and aliases all apply, because they are already `git`'s and nothing had to be taught about them.",
     },
 
     { kind: "heading", body: "The change list" },
@@ -49,7 +49,7 @@ export const gitAndWorktrees: Body = {
     },
     {
       kind: "soon",
-      body: "Push, pull, fetch and clone are not here. Each is long-running and reports progress, which wants the terminal rather than a panel — run them from an OpenKaava terminal, where your credentials already work.",
+      body: "Push, pull, fetch and clone are not here. Each is long-running and reports progress, which wants the terminal rather than a panel — run them from a Veistra terminal, where your credentials already work.",
     },
 
     { kind: "heading", body: "In the file apps" },
@@ -61,11 +61,11 @@ export const gitAndWorktrees: Body = {
     { kind: "heading", body: "The worktree offer" },
     {
       kind: "text",
-      body: "Open a git repository into a cluster that has no worktree yet and OpenKaava asks: **Work in a separate worktree?**",
+      body: "Open a git repository into a cluster that has no worktree yet and Veistra asks: **Work in a separate worktree?**",
     },
     {
       kind: "text",
-      body: "A git worktree is a second checkout of the same repository, on its own branch, in its own folder — one `.git` history, two working directories. OpenKaava offers one because a **cluster** is meant to be an independent piece of work, and two clusters sharing one checkout share one branch and one set of uncommitted edits.",
+      body: "A git worktree is a second checkout of the same repository, on its own branch, in its own folder — one `.git` history, two working directories. Veistra offers one because a **cluster** is meant to be an independent piece of work, and two clusters sharing one checkout share one branch and one set of uncommitted edits.",
     },
     {
       kind: "text",

@@ -4,7 +4,7 @@
  * terminal are the host's (`context/put`); this file decides what each thing is
  * called and what it becomes, so the buttons and the drag share one path.
  */
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 import { formatPlayTime } from "../../../shared/comments";
 import { contextKey, type ContextRef } from "../../../shared/context";
 import type { Capture, LogLine } from "./rpc";

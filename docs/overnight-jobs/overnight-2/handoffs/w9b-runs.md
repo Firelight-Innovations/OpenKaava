@@ -40,7 +40,7 @@ retrospective says a weak test looked like it covered but did not.
   the run (per the fixture, `token-verifier`'s module node, not any budget
   node).
 - `ingest_run_file(graph: &Graph, store: &Store, scope: Uuid, path: &Path)
-  -> Result<()>` — reads a file CI dropped somewhere outside `.kaava/`
+  -> Result<()>` — reads a file CI dropped somewhere outside `.veistra/`
   through `read_run_artifact`, then calls `ingest_run`. **This is the entry
   point a later wave wires to a Tauri command**: give it the graph, the
   store, the node id, and the path CI wrote the artifact to.
@@ -116,7 +116,7 @@ naming the version, and nothing is written under `scope`.
   to `descendants(scope)` in `ingest.rs` is the one-line fix if that turns
   out to be real.
 - **`ingest_run` does not auto-assign a run number.** The `run` field is
-  part of the CI-authored `kaava-bench-v1` payload, per PRD 5.10's own
+  part of the CI-authored `veistra-bench-v1` payload, per PRD 5.10's own
   example (`"run": 1184`), and `Store::write_run` already writes to
   `run_path(scope, run.run)`. Ingestion trusts CI's own number and refuses a
   collision rather than silently renumbering, which would let two different

@@ -49,7 +49,7 @@ afterEach(() => {
 
 function row(over: Partial<RecentProjectRow> = {}): RecentProjectRow {
   return {
-    name: "OpenKaava",
+    name: "Veistra",
     path: "C:/repo",
     id: "proj-1",
     initialized: true,
@@ -111,7 +111,7 @@ describe("SwitchProjectDialog", () => {
     ]);
     renderDialog();
     await screen.findByText("Seen");
-    expect(screen.getAllByText("Never opened in Kaava.")).toHaveLength(1);
+    expect(screen.getAllByText("Never opened in Veistra.")).toHaveLength(1);
     expect(screen.getByText("Not open.")).toBeTruthy();
   });
 

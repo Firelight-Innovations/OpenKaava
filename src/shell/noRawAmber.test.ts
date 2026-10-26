@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
  * ignores the accent setting. Use `var(--accent)` / `--accent-wash` /
  * `--accent-line` or `color-mix(in srgb, var(--accent) N%, transparent)`;
  * Monaco, which takes strings, reads the resolved value via
- * `accentThemeColors` in `@openkaava/bridge/theme`.
+ * `accentThemeColors` in `@veistra/bridge/theme`.
  *
  * Exempt: the token definitions in `src/tokens.css`, and tests, which need the
  * literal as a fixture.

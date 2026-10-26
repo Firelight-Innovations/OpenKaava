@@ -39,7 +39,7 @@ const PER_STEM: usize = 3;
 pub fn keep(path: &Path, label: &str) -> Option<PathBuf> {
     let dir = path.parent()?.join(DIR);
     if let Err(e) = std::fs::create_dir_all(&dir) {
-        crate::kaava_log!("could not create {}: {e}", dir.display());
+        crate::veistra_log!("could not create {}: {e}", dir.display());
         return None;
     }
 
@@ -48,7 +48,7 @@ pub fn keep(path: &Path, label: &str) -> Option<PathBuf> {
     let target = dir.join(format!("{stem}.{label}.{}.{extension}", now_ms()));
 
     if let Err(e) = std::fs::rename(path, &target) {
-        crate::kaava_log!("could not back up {}: {e}", path.display());
+        crate::veistra_log!("could not back up {}: {e}", path.display());
         return None;
     }
 
@@ -103,7 +103,7 @@ fn trim(dir: &Path, stem: &str) {
             })
             .collect(),
         Err(e) => {
-            crate::kaava_log!("could not list {}: {e}", dir.display());
+            crate::veistra_log!("could not list {}: {e}", dir.display());
             return;
         }
     };
@@ -115,7 +115,7 @@ fn trim(dir: &Path, stem: &str) {
     found.sort_by_key(|path| stamp_of(path));
     for old in found.iter().take(found.len() - PER_STEM) {
         if let Err(e) = std::fs::remove_file(old) {
-            crate::kaava_log!("could not remove {}: {e}", old.display());
+            crate::veistra_log!("could not remove {}: {e}", old.display());
         }
     }
 }
@@ -144,7 +144,7 @@ mod tests {
     use super::*;
 
     fn scratch(tag: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("kaava-backup-{tag}-{}", now_nanos()));
+        let dir = std::env::temp_dir().join(format!("veistra-backup-{tag}-{}", now_nanos()));
         std::fs::create_dir_all(&dir).expect("the temp directory is writable");
         dir.join("settings.json")
     }

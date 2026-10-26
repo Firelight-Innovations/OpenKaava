@@ -1,4 +1,4 @@
-import { reportPainted } from "@openkaava/bridge";
+import { reportPainted } from "@veistra/bridge";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TroubleNote } from "../../../shared/trouble";
 import { MachineRail, type RowContext, WorkflowRail } from "./Rail";

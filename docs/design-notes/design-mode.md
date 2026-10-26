@@ -1,13 +1,13 @@
 # Design Mode
 
 > **Disabled, 2026-09-27.** Design Mode exists to point an agent at elements of
-> a *web* UI. OpenKaava now targets game development through OpenKaava Cloud
-> (`kaava-cloud.md`), so web UIs are out of scope. The code stays in the tree,
+> a *web* UI. Veistra now targets game development through Veistra Cloud
+> (`veistra-cloud.md`), so web UIs are out of scope. The code stays in the tree,
 > compiled out by default:
 >
 > - `cargo build --features design-mode` restores the app, the comment store
->   (`design_comments`) and the `kaava-design` MCP server.
-> - `KAAVA_DESIGN_MODE=1` restores the `apps/design/` Vite entry.
+>   (`design_comments`) and the `veistra-design` MCP server.
+> - `VEISTRA_DESIGN_MODE=1` restores the `apps/design/` Vite entry.
 >
 > Turn on both, or neither. Do not confuse this app with the **design canvas**
 > (PRD P7), which is a different feature.
@@ -18,7 +18,7 @@ pages exist and what is guaranteed about them.
 
 Design Mode hosts a page the shell did not write, lets somebody click an element
 in it, and hands that element's markup, computed styles and a cropped screenshot
-to a coding agent. It is the first surface in OpenKaava to embed arbitrary external
+to a coding agent. It is the first surface in Veistra to embed arbitrary external
 content, so most of what follows is about the two questions that raises: what
 may be loaded, and how anything gets *into* a frame the shell cannot script.
 
@@ -43,7 +43,7 @@ component.
 
 **`design/target` decides what may be loaded at all**, and it is a security
 boundary rather than a convenience. See `normalize` and the `.localhost` rule in
-it — a page reaching OpenKaava's own commands is one bad hostname away without that
+it — a page reaching Veistra's own commands is one bad hostname away without that
 check, and the reason is a detail of Tauri's origin test rather than anything
 visible from here.
 
@@ -78,7 +78,7 @@ may reach a command by asking whether its origin is the app's own, and on
 Windows that test takes the first label of a `*.localhost` host and looks it up
 among the registered custom protocols (`tauri::webview`'s `is_local_url`). The
 port is not part of the test. So a page served from
-`http://kaava-tool.localhost:5173` answers that question *yes* and is treated as
+`http://veistra-tool.localhost:5173` answers that question *yes* and is treated as
 local — with the full command surface behind it. Refusing the whole suffix is
 broader than the hole and much easier to keep true than a list of registered
 scheme names that grows.
@@ -129,7 +129,7 @@ carries the cluster a call came from, but nothing maps a cluster to an operating
 system window, and inventing that mapping is a change to the shell's own model
 rather than to this app. The frontend closes the gap from its side instead: it
 refuses to ask while `document.hasFocus()` is false, so the window being
-photographed is the window the click happened in. A second OpenKaava window holding
+photographed is the window the click happened in. A second Veistra window holding
 a second Design Mode while this one has focus is the case that would otherwise
 be answered with a picture of the wrong screen.
 
@@ -245,5 +245,5 @@ design-comments.md` is the record of the replacement.
 
 The paragraph about inserting into the active terminal is still true and is now
 much less interesting. An MCP tool call reaches an agent whether or not it is in
-a terminal OpenKaava spawned, so the verb that would have been needed is one this
+a terminal Veistra spawned, so the verb that would have been needed is one this
 no longer waits on.

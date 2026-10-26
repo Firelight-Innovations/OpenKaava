@@ -122,11 +122,11 @@ automatically.
 
 | Step | Result |
 |---|---|
-| `cargo test -p openkaava-orchestrator --lib apps::schematify::` | Pass, 19 → 26 tests (see §3) |
+| `cargo test -p veistra-orchestrator --lib apps::schematify::` | Pass, 19 → 26 tests (see §3) |
 | `pnpm build` | Pass |
 | `pnpm test:js` (workspace + `packages/bridge`) | Pass, 641 + 28 |
 | `cargo test --workspace` (fail-fast) | Stopped on the first failing target, a pre-existing flake — see below |
-| `cargo test --workspace --no-fail-fast` | Ran every target: all unit tests pass (including `schematify-core`'s 173 and `openkaava_orchestrator_lib`'s full suite), 5 integration-test **binaries** fail — all the same pre-existing flake, none in code this wave touches — see below |
+| `cargo test --workspace --no-fail-fast` | Ran every target: all unit tests pass (including `schematify-core`'s 173 and `veistra_orchestrator_lib`'s full suite), 5 integration-test **binaries** fail — all the same pre-existing flake, none in code this wave touches — see below |
 | `pnpm lint` (version/identity/branding/js/rust/comments) | Pass — `lint:js` is 0 errors, 8 pre-existing React-hook warnings unrelated to this wave; `lint:rust` (clippy) 0 warnings above the baseline of 0 |
 | `pnpm format:check` | Pass (`cargo fmt --check` and `prettier --check` both clean) |
 | `node scripts/check-comments.mjs` | Pass, 445 files, none above limit (0 grandfathered) — required trimming the module doc comment and `apply_stale_cascade`'s doc comment, and rewriting `staleness.ts`'s comments, to stay under the 20-line run cap |
@@ -134,11 +134,11 @@ automatically.
 | `npx eslint` on the four changed/added TS files | Clean |
 
 **None of the `cargo test --workspace` failures are this wave's.** All 5
-failing integration-test binaries — `kaava-tool-manifest`'s
+failing integration-test binaries — `veistra-tool-manifest`'s
 `reference_manifest`, and `schematify-core`'s `fixtures`, `lint`,
 `registries`, and `self_budgets` — panic on the same error shape,
 `NoProject { root: "…\\.worktrees\\sch-review-w6\\crates\\schematify-core
-\\fixtures\\…" }` (and one on `w9b-review` for `kaava-tool-manifest`):
+\\fixtures\\…" }` (and one on `w9b-review` for `veistra-tool-manifest`):
 a path baked in at compile time from `env!("CARGO_MANIFEST_DIR")`,
 resolved against whichever worktree last compiled that test binary into
 the **shared** `CARGO_TARGET_DIR` — neither `sch-review-w6` nor
@@ -147,7 +147,7 @@ same shared-target-dir staleness defect the orchestrator named as
 `sch-fix-flake`'s to own, just manifesting on two crates rather than the
 one crate its original report named — worth flagging back, not fixing
 here. Every unit-test target (no fixture path involved) passes clean,
-`openkaava_orchestrator_lib`'s (this wave's crate) included in full.
+`veistra_orchestrator_lib`'s (this wave's crate) included in full.
 
 ## 5. Assumptions
 
@@ -187,8 +187,8 @@ here. Every unit-test target (no fixture path involved) passes clean,
 
 ## 7. What a human should verify on screen
 
-Nothing in this wave changed anything renderable without a live `.kaava/`
-project open in a real OpenKaava window — no browser was available, and none
+Nothing in this wave changed anything renderable without a live `.veistra/`
+project open in a real Veistra window — no browser was available, and none
 of this wave's claims rest on a screenshot. Once a project with a `stale`
 node exists (or `crates/schematify-core/fixtures/saas-backend/`'s own
 `audit-emitter` fixture is loaded through a Schematic that draws the Outline),

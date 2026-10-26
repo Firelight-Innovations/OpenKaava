@@ -2,7 +2,7 @@
 //! after what the person typed (`refs/prompt`).
 //!
 //! A `resource_link` is the one kind every ACP agent accepts, and the agent
-//! reads it through `kaava-context`, so any reference can go as one. An agent
+//! reads it through `veistra-context`, so any reference can go as one. An agent
 //! that takes embedded context gets a reference's text in a `resource` block
 //! instead, and one that takes images gets its pictures as `image` blocks.
 //! What resolving withholds, a secret or a gitignored file, is only ever
@@ -171,7 +171,7 @@ fn blocks_for(r: &Resolved, accepts: Accepts, budget: &mut Budget) -> Vec<Value>
             })
         } else {
             let spent = "Not embedded: this message has no room left for attached text. \
-                         `read` it through kaava-context.";
+                         `read` it through veistra-context.";
             let notes = [Some(spent), unseen.as_deref()];
             link(r, &notes.into_iter().flatten().collect::<Vec<_>>())
         }
@@ -255,16 +255,16 @@ mod tests {
 
     #[test]
     fn an_agent_that_takes_nothing_more_gets_links_it_can_read() {
-        let r = with_pictures(text_ref("kaava://file/a.gd", "a.gd", "x\ny"), 1, 8);
+        let r = with_pictures(text_ref("veistra://file/a.gd", "a.gd", "x\ny"), 1, 8);
         let out = blocks(vec![r], NONE);
         assert_eq!(out.len(), 1);
         assert_eq!(
             out[0],
             json!({
                 "type": "resource_link",
-                "uri": "kaava://file/a.gd",
+                "uri": "veistra://file/a.gd",
                 "name": "a.gd",
-                "description": "a.gd · lines 1–2\nA picture is not attached: `read` kaava://file/a.gd to see it.",
+                "description": "a.gd · lines 1–2\nA picture is not attached: `read` veistra://file/a.gd to see it.",
                 "mimeType": "text/x-gdscript",
                 "size": 3,
             })
@@ -273,22 +273,25 @@ mod tests {
 
     #[test]
     fn an_agent_that_takes_everything_gets_the_text_then_the_pictures() {
-        let r = with_pictures(text_ref("kaava://file/a.gd", "a.gd", "x\ny"), 2, 8);
+        let r = with_pictures(text_ref("veistra://file/a.gd", "a.gd", "x\ny"), 2, 8);
         let out = blocks(vec![r], ALL);
         assert_eq!(out.len(), 3);
         assert_eq!(out[0]["type"], "resource");
-        assert_eq!(out[0]["resource"]["uri"], "kaava://file/a.gd");
+        assert_eq!(out[0]["resource"]["uri"], "veistra://file/a.gd");
         let text = out[0]["resource"]["text"].as_str().unwrap();
-        assert!(text.starts_with("kaava://file/a.gd (text): a.gd"), "{text}");
+        assert!(
+            text.starts_with("veistra://file/a.gd (text): a.gd"),
+            "{text}"
+        );
         assert!(text.ends_with("x\ny"), "{text}");
         assert_eq!(out[1]["type"], "image");
         assert_eq!(out[1]["mimeType"], "image/png");
-        assert_eq!(out[2]["uri"], "kaava://file/a.gd");
+        assert_eq!(out[2]["uri"], "veistra://file/a.gd");
     }
 
     #[test]
     fn a_withheld_reference_is_only_ever_linked() {
-        let mut r = text_ref("kaava://file/.env", ".env", "");
+        let mut r = text_ref("veistra://file/.env", ".env", "");
         r.parts.clear();
         r.withheld = Some("withheld: environment files are never read".into());
         let out = blocks(vec![r], ALL);
@@ -306,8 +309,8 @@ mod tests {
         let big = "x".repeat(MAX_TEXT_BYTES);
         let out = blocks(
             vec![
-                text_ref("kaava://file/big.txt", "big.txt", &big),
-                text_ref("kaava://file/small.gd", "small.gd", "y"),
+                text_ref("veistra://file/big.txt", "big.txt", &big),
+                text_ref("veistra://file/small.gd", "small.gd", "y"),
             ],
             ALL,
         );
@@ -320,7 +323,7 @@ mod tests {
     #[test]
     fn a_link_for_text_past_the_budget_still_names_the_pictures_left_out() {
         let big = "x".repeat(MAX_TEXT_BYTES);
-        let r = with_pictures(text_ref("kaava://file/big.svg", "big.svg", &big), 1, 8);
+        let r = with_pictures(text_ref("veistra://file/big.svg", "big.svg", &big), 1, 8);
         let text_only = Accepts {
             image: false,
             embedded_context: true,
@@ -329,7 +332,7 @@ mod tests {
         let about = out[0]["description"].as_str().unwrap();
         assert!(about.contains("no room left"), "{about}");
         assert!(
-            about.ends_with("`read` kaava://file/big.svg to see it."),
+            about.ends_with("`read` veistra://file/big.svg to see it."),
             "{about}"
         );
     }
@@ -337,7 +340,7 @@ mod tests {
     #[test]
     fn pictures_stop_at_the_count_and_the_rest_are_named() {
         let r = with_pictures(
-            text_ref("kaava://file/a.png", "a.png", ""),
+            text_ref("veistra://file/a.png", "a.png", ""),
             MAX_IMAGES + 2,
             8,
         );
@@ -345,7 +348,7 @@ mod tests {
         assert_eq!(out.len(), 1 + MAX_IMAGES);
         let text = out[0]["resource"]["text"].as_str().unwrap();
         assert!(
-            text.ends_with("2 pictures are not attached: `read` kaava://file/a.png to see them.")
+            text.ends_with("2 pictures are not attached: `read` veistra://file/a.png to see them.")
         );
         let mut budget = Budget::default();
         assert!(
@@ -359,9 +362,9 @@ mod tests {
     #[test]
     fn a_reference_given_twice_goes_once_and_a_bad_one_says_why() {
         let given = [
-            "kaava://file/a.gd".to_string(),
-            "kaava://file/../x".to_string(),
-            "kaava://file/a.gd".to_string(),
+            "veistra://file/a.gd".to_string(),
+            "veistra://file/../x".to_string(),
+            "veistra://file/a.gd".to_string(),
         ];
         let parsed = wanted(&given);
         assert_eq!(parsed.len(), 2);
@@ -369,7 +372,7 @@ mod tests {
         let missing = Fault::new(Reason::Missing, "there is no `gone.gd` in this project");
         let out = answer(
             vec![
-                ("kaava://file/gone.gd", Err(missing)),
+                ("veistra://file/gone.gd", Err(missing)),
                 (parsed[1].0, Err(parsed[1].1.clone().unwrap_err())),
             ],
             ALL,
@@ -378,7 +381,7 @@ mod tests {
         assert_eq!(
             out["failed"][0],
             json!({
-                "uri": "kaava://file/gone.gd",
+                "uri": "veistra://file/gone.gd",
                 "reason": "missing",
                 "message": "there is no `gone.gd` in this project",
             })

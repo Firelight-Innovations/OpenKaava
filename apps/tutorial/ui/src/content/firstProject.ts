@@ -1,7 +1,7 @@
 import type { Body } from "./blocks";
 
 /**
- * Opening a folder, and what "set up as an OpenKaava project" actually writes.
+ * Opening a folder, and what "set up as a Veistra project" actually writes.
  *
  * The second half matters more than the first. A tool that creates files in
  * somebody's repository owes them an exact list, and "initialize" is a word that
@@ -9,11 +9,11 @@ import type { Body } from "./blocks";
  */
 export const firstProject: Body = {
   takeaway:
-    "You can open a folder as a project, and you know exactly which two things OpenKaava wrote into it.",
+    "You can open a folder as a project, and you know exactly which two things Veistra wrote into it.",
   blocks: [
     {
       kind: "text",
-      body: "An OpenKaava project is **a folder**. Not a workspace file, not a database entry — a directory on disk that you point OpenKaava at.",
+      body: "A Veistra project is **a folder**. Not a workspace file, not a database entry — a directory on disk that you point Veistra at.",
     },
 
     { kind: "heading", body: "Open one" },
@@ -29,7 +29,7 @@ export const firstProject: Body = {
     },
     {
       kind: "step",
-      body: "Pick any folder. It does not have to be an OpenKaava project, or a git repository, or empty.",
+      body: "Pick any folder. It does not have to be a Veistra project, or a git repository, or empty.",
     },
     {
       kind: "step",
@@ -37,24 +37,24 @@ export const firstProject: Body = {
     },
     {
       kind: "note",
-      body: "The picker is a native OS dialog and it blocks until you answer it. If OpenKaava looks frozen after clicking, check your other monitor — the button says **choose a folder…** while it waits, which is the only clue you get.",
+      body: "The picker is a native OS dialog and it blocks until you answer it. If Veistra looks frozen after clicking, check your other monitor — the button says **choose a folder…** while it waits, which is the only clue you get.",
     },
 
     { kind: "heading", body: "A plain folder is a real project" },
     {
       kind: "text",
-      body: 'A folder with no OpenKaava manifest still opens, and this is deliberate rather than lenient. OpenKaava has to be able to point at a game that already exists, and the answer to "what happens when the project format changes" must never be "it stops opening".',
+      body: 'A folder with no Veistra manifest still opens, and this is deliberate rather than lenient. Veistra has to be able to point at a game that already exists, and the answer to "what happens when the project format changes" must never be "it stops opening".',
     },
     {
       kind: "text",
-      body: "Home marks such a folder **not set up** and offers a button: **Set up as an OpenKaava project**. Nothing forces you to press it.",
+      body: "Home marks such a folder **not set up** and offers a button: **Set up as a Veistra project**. Nothing forces you to press it.",
     },
     {
       kind: "flow",
       steps: [
         "Open a plain folder",
         "Home marks it **not set up**",
-        "Click **Set up as an OpenKaava project**",
+        "Click **Set up as a Veistra project**",
       ],
     },
     {
@@ -70,15 +70,15 @@ export const firstProject: Body = {
     {
       kind: "mock",
       view: "project-files",
-      caption: "`Anvil.kaava` and `.kaava/`, added beside the files the folder already had.",
+      caption: "`Anvil.veistra` and `.veistra/`, added beside the files the folder already had.",
     },
     {
       kind: "step",
-      body: "A manifest named after the folder — a project called `Anvil` gets `Anvil.kaava`. Small, hand-editable TOML, meant for version control.",
+      body: "A manifest named after the folder — a project called `Anvil` gets `Anvil.veistra`. Small, hand-editable TOML, meant for version control.",
     },
     {
       kind: "step",
-      body: "A `.kaava/` directory beside it. This is the opposite of the manifest: everything OpenKaava *produces* about the project — agent traces, designs, docs — and it grows. It starts empty.",
+      body: "A `.veistra/` directory beside it. This is the opposite of the manifest: everything Veistra *produces* about the project — agent traces, designs, docs — and it grows. It starts empty.",
     },
     {
       kind: "text",
@@ -86,8 +86,8 @@ export const firstProject: Body = {
     },
     {
       kind: "code",
-      body: `[kaava]
-# Bumped only when a change would make an older OpenKaava misread this file.
+      body: `[veistra]
+# Bumped only when a change would make an older Veistra misread this file.
 format = 1
 created-with = "0.1.0"
 
@@ -99,7 +99,7 @@ created-unix-ms = 1755300000000`,
     },
     {
       kind: "text",
-      body: 'The `id` is the point of the file. It combines a creation timestamp with a hash of that time and the path — not a UUID, because a dependency for one value is a poor trade. It stays stable across renames and moves, and that is what OpenKaava means when it says "this project": the path is not, since you will move the folder eventually.',
+      body: 'The `id` is the point of the file. It combines a creation timestamp with a hash of that time and the path — not a UUID, because a dependency for one value is a poor trade. It stays stable across renames and moves, and that is what Veistra means when it says "this project": the path is not, since you will move the folder eventually.',
     },
     {
       kind: "note",

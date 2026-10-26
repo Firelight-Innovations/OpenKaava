@@ -190,11 +190,11 @@ there is nothing for a thread to hold — the second round of the conversation i
 the code changing, and it shows up in the same panel.
 
 This is the one place the model departs from the review host it is adapted
-from, and it is a decision rather than an unfinished port. If OpenKaava ever grows
+from, and it is a decision rather than an unfinished port. If Veistra ever grows
 an agent surface that can talk back, a thread becomes worth having and the
 model gains a parent id; nothing here forecloses that.
 
-### Why `.kaava/` inside the checkout, and not the config directory
+### Why `.veistra/` inside the checkout, and not the config directory
 
 `project::store` puts the Recent list in the OS config directory because it is
 a fact about *this machine's* history with projects. A note on a line of a diff
@@ -227,7 +227,7 @@ failure in front of them.
 
 ### One lock for the process
 
-OpenKaava is single-instance but not single-*window*. Two windows can have the same
+Veistra is single-instance but not single-*window*. Two windows can have the same
 project open, so two commands can land on the same file at once, and the loser
 of that read-modify-write would silently drop whichever note the winner had
 just added.

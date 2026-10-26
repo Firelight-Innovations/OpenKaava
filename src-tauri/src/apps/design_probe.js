@@ -37,11 +37,11 @@
 
   // The top frame is the shell's own window. It has no parent to be armed by,
   // and a probe that could be armed there would be a way for an embedded page
-  // to read OpenKaava's interface rather than its own. Leaving before the listener
+  // to read Veistra's interface rather than its own. Leaving before the listener
   // exists is cheaper than checking on every message.
   if (window.parent === window) return;
 
-  var CHANNEL = "kaavaDesign";
+  var CHANNEL = "veistraDesign";
 
   /**
    * What a payload may carry. Budgets rather than a whole document, because

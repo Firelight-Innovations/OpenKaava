@@ -2,7 +2,7 @@
 # plane-vm boot (Plane design, section 5.3). The startup script: runs as root on every boot.
 #
 # Everything it needs arrives as instance metadata written by terraform/plane: Plane's compose
-# file, our env template, the renderer and kaava-idle. Nothing is baked into an image, and
+# file, our env template, the renderer and veistra-idle. Nothing is baked into an image, and
 # setup.sh is never run here, so the only place a secret is written is the tmpfs under /run.
 #
 # The first boot formats plane-data and installs Docker; every later boot goes straight to
@@ -73,20 +73,20 @@ watch=$data/plane-watch
 mkdir -p "$watch/state"
 md plane-watch >"$watch/plane_watch.py"
 md plane-watch-compose >"$watch/compose.yaml"
-KAAVA_WORKER=$(md kaava-worker) KAAVA_ZONE=$(md kaava-worker-zone) \
+VEISTRA_WORKER=$(md veistra-worker) VEISTRA_ZONE=$(md veistra-worker-zone) \
   docker compose -p plane-watch -f "$watch/compose.yaml" up -d --force-recreate --quiet-pull
 
-log "6/6 kaava-idle"
-md kaava-idle >/tmp/kaava_idle.py
-cat >/etc/kaava-idle.conf <<EOF
+log "6/6 veistra-idle"
+md veistra-idle >/tmp/veistra_idle.py
+cat >/etc/veistra-idle.conf <<EOF
 # Written by infra/plane/boot.sh on every boot.
 PORTS=$port
-IDLE_MINUTES=$(md kaava-idle-minutes)
+IDLE_MINUTES=$(md veistra-idle-minutes)
 MIN_UPTIME_MINUTES=20
 ACTIVITY_COMMAND=docker logs --since {minutes}m plane-proxy-1
 EXTRA_CHECK=test -e $watch/state/busy
 PRE_STOP=docker compose -p plane-watch stop; ${compose[*]} stop
 EOF
-python3 /tmp/kaava_idle.py install
+python3 /tmp/veistra_idle.py install
 
 log "compose up after $(($(date +%s) - started))s; Plane answers once the migrator finishes"

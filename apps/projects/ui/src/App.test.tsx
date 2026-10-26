@@ -21,7 +21,7 @@ class NoopResizeObserver {
 vi.stubGlobal("ResizeObserver", NoopResizeObserver);
 
 const bridge = vi.hoisted(() => {
-  class KaavaRpcError extends Error {
+  class VeistraRpcError extends Error {
     constructor(
       readonly code: number,
       message: string,
@@ -30,19 +30,19 @@ const bridge = vi.hoisted(() => {
       super(message);
     }
   }
-  return { invoke: vi.fn(), KaavaRpcError };
+  return { invoke: vi.fn(), VeistraRpcError };
 });
 
-vi.mock("@openkaava/bridge", () => ({
+vi.mock("@veistra/bridge", () => ({
   invoke: bridge.invoke,
-  KaavaRpcError: bridge.KaavaRpcError,
+  VeistraRpcError: bridge.VeistraRpcError,
   reportPainted: vi.fn(),
   // The real shell reports this moments after the iframe mounts. Answering it
   // synchronously here stands in for that, rather than making every test that
-  // exercises the wake flow also drive a fake `kaava/window-rect` message —
+  // exercises the wake flow also drive a fake `veistra/window-rect` message —
   // `frameRect.test.ts` is where the combining logic itself is covered.
   on: vi.fn((event: string, cb: (payload: unknown) => void) => {
-    if (event === "kaava/window-rect") {
+    if (event === "veistra/window-rect") {
       cb({ x: 10, y: 20, width: 300, height: 300, window: "win-2" });
     }
     return () => {};
@@ -140,7 +140,7 @@ describe("Projects", () => {
     render(<App />);
     const note = await screen.findByText(/No projects yet/);
     expect(note.textContent).not.toContain("`");
-    expect(note.querySelector("code")?.textContent).toBe("kaava-project");
+    expect(note.querySelector("code")?.textContent).toBe("veistra-project");
     expect(screen.getByRole("heading", { level: 1 }).className).toContain("app__title--hidden");
   });
 
@@ -190,7 +190,7 @@ describe("Projects", () => {
         return Promise.resolve({
           ok: false,
           resolved: "203.0.113.5",
-          fix: 'Add "127.0.0.1 plane.kaava.internal" to the hosts file (as an administrator, once).',
+          fix: 'Add "127.0.0.1 plane.veistra.internal" to the hosts file (as an administrator, once).',
         });
       }
       if (method === "projects/wake-start") return Promise.resolve({ started: true });
@@ -201,7 +201,7 @@ describe("Projects", () => {
     });
     render(<App />);
     fireEvent.click(await screen.findByRole("button", { name: /Anomaly/ }));
-    expect(await screen.findByText(/Add "127.0.0.1 plane.kaava.internal"/)).toBeTruthy();
+    expect(await screen.findByText(/Add "127.0.0.1 plane.veistra.internal"/)).toBeTruthy();
   });
 
   it("waits with a note while the first read is pending, with no error yet", async () => {
@@ -213,7 +213,7 @@ describe("Projects", () => {
 
   it("ends the wait in a timed-out state with Retry when the bridge gives up", async () => {
     bridge.invoke.mockImplementation(() =>
-      Promise.reject(new bridge.KaavaRpcError(-32001, "request timed out")),
+      Promise.reject(new bridge.VeistraRpcError(-32001, "request timed out")),
     );
     render(<App />);
     expect(await screen.findByText("Reading Projects timed out")).toBeTruthy();
@@ -223,7 +223,9 @@ describe("Projects", () => {
 
   it("says which account to check when Google Cloud denies the read", async () => {
     bridge.invoke.mockImplementation(() =>
-      Promise.reject(new bridge.KaavaRpcError(-32603, "refused", { kind: "denied", detail: "no" })),
+      Promise.reject(
+        new bridge.VeistraRpcError(-32603, "refused", { kind: "denied", detail: "no" }),
+      ),
     );
     render(<App />);
     expect(await screen.findByText("This Google account may not read that")).toBeTruthy();
@@ -234,7 +236,7 @@ describe("Projects", () => {
     backend({
       wakeStart: () =>
         Promise.reject(
-          new bridge.KaavaRpcError(-32603, "no gateway URL", { kind: "gatewayUnconfigured" }),
+          new bridge.VeistraRpcError(-32603, "no gateway URL", { kind: "gatewayUnconfigured" }),
         ),
     });
     render(<App />);
@@ -263,7 +265,7 @@ describe("Projects", () => {
       wake: [
         {
           phase: "failed",
-          detail: "the kaava-api gateway did not answer: connection refused",
+          detail: "the veistra-api gateway did not answer: connection refused",
           trouble: { kind: "gatewayUnreachable", detail: "connection refused" },
         },
       ],
@@ -275,7 +277,7 @@ describe("Projects", () => {
 
   it("tells you to install the CLI when gcloud is missing", async () => {
     bridge.invoke.mockImplementation(() =>
-      Promise.reject(new bridge.KaavaRpcError(-32603, "no gcloud", { kind: "gcloudMissing" })),
+      Promise.reject(new bridge.VeistraRpcError(-32603, "no gcloud", { kind: "gcloudMissing" })),
     );
     render(<App />);
     expect(await screen.findByText("The Google Cloud CLI is not installed")).toBeTruthy();

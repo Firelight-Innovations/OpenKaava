@@ -1,5 +1,5 @@
 /**
- * An app frame reporting a shell chord (`kaava/key`). Keys typed in an iframe
+ * An app frame reporting a shell chord (`veistra/key`). Keys typed in an iframe
  * never reach the shell's `document`, so Ctrl+Shift+P and the like were dead
  * whenever an app had focus. The report is replayed as a `keydown` on the
  * shell's document, which is what `useKeyboard` already listens for.

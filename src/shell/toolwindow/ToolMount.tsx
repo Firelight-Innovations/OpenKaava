@@ -47,7 +47,7 @@ export default function ToolMount({
   /**
    * Both ids travel with the registration rather than being looked up later.
    * The instance id is what a message resolves to; the app id is where its
-   * `invoke` is routed and what `kaava/painted` reports. Establishing identity
+   * `invoke` is routed and what `veistra/painted` reports. Establishing identity
    * and routing in one call means there is no second lookup to disagree with
    * the first.
    */

@@ -9,15 +9,15 @@
  *
  *  Tones follow `HEALTH_TOKEN`: both "needs update" and "not tracked" warn,
  *  "not installed" errs, which is the point `theStack.ts` spends its middle
- *  section on. Nothing is actually pinned in `kaava.toml` today, so an empty
+ *  section on. Nothing is actually pinned in `veistra.toml` today, so an empty
  *  popover — not this one — is what a fresh machine shows; see the note below. */
 import { Chip, Col, Row } from "./chrome";
 
-/** One row per unwell tool, in the order `kaava.toml` pins them.
+/** One row per unwell tool, in the order `veistra.toml` pins them.
  *
  *  Illustrative names, not real ones. Two real entries used to make this
  *  screen real; both are now the single Schematify app (see
- *  `apps/README.md`), and `kaava.toml`'s `[[tool]]` array is empty, so this
+ *  `apps/README.md`), and `veistra.toml`'s `[[tool]]` array is empty, so this
  *  mocks a hypothetical third-party tool pair rather than a live state. */
 const UNWELL: { name: string; tone: "warn" | "err"; label: string }[] = [
   { name: "Example Tool", tone: "err", label: "not installed" },

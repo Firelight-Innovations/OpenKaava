@@ -2,7 +2,7 @@
  * A containment cycle must not hang or crash the draw.
  *
  * `parentId` reaches the document from two places and neither is validated.
- * `.kaava/nodes/` is one: `crates/schematify-core/src/graph.rs` says plainly
+ * `.veistra/nodes/` is one: `crates/schematify-core/src/graph.rs` says plainly
  * that "a cycle in the `parent` chain terminates the walk rather than hanging.
  * Rule L01 reports the cycle" — core loads such a project on purpose and
  * leaves the complaint to the linter, so `schematify/load-graph` hands one to
@@ -168,7 +168,7 @@ describe("buildFrame over a cyclic document", () => {
   });
 
   /**
-   * The `.kaava/nodes/` half, end to end — the finding-1 path itself, and the
+   * The `.veistra/nodes/` half, end to end — the finding-1 path itself, and the
    * one the cases above only approximate by hand-building a document. This is
    * what `App.tsx` actually does: project, build, draw. `graph.rs` loads a
    * project shaped exactly like this and leaves rule L01 to complain, so it is

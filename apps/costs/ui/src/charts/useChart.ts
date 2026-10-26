@@ -2,7 +2,7 @@
  * Owns one ECharts instance's whole lifecycle: init on the returned ref,
  * `setOption` when `option` changes, resize when the element does, dispose on
  * unmount, and re-init when the shell's theme changes
- * (`docs/design/COST-TRACKER-CHARTS.md` §4.1, `@openkaava/bridge/theme`'s
+ * (`docs/design/COST-TRACKER-CHARTS.md` §4.1, `@veistra/bridge/theme`'s
  * `onThemeChanged`). No wrapper library — this is the whole of what one
  * would give us.
  *
@@ -19,7 +19,7 @@ import {
   MarkLineComponent,
   TooltipComponent,
 } from "echarts/components";
-import { onThemeChanged } from "@openkaava/bridge/theme";
+import { onThemeChanged } from "@veistra/bridge/theme";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef, type RefObject } from "react";

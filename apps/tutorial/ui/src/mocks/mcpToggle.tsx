@@ -11,7 +11,7 @@ export default function McpToggle() {
         <Row justify="between" align="center">
           <Col gap="xs">
             <span className="tut__mock-caption">Echo</span>
-            <span className="tut__mock-caption">kaava-echo · /mcp/echo · 2 tools</span>
+            <span className="tut__mock-caption">veistra-echo · /mcp/echo · 2 tools</span>
           </Col>
           <span className="tut__mock-toggle tut__mock-toggle--on" />
         </Row>
@@ -20,7 +20,7 @@ export default function McpToggle() {
       <Arrow dir="right" />
 
       <MockWindow title=".mcp.json" className="tut__mock-grow">
-        <span className="tut__mock-caption">{'"kaava-echo": { ... }'}</span>
+        <span className="tut__mock-caption">{'"veistra-echo": { ... }'}</span>
       </MockWindow>
     </Row>
   );

@@ -172,7 +172,7 @@ describe("the model menu's harnesses", () => {
       unavailable: null,
     },
     { id: "pi", name: "Pi", models: [], model: null, unavailable: null },
-    { id: "kaava", name: "Kaava", models: [], model: null, unavailable: "Coming soon" },
+    { id: "veistra", name: "Veistra", models: [], model: null, unavailable: "Coming soon" },
   ];
   const EFFORT: PickerProps = { label: "Effort", value: "high", choices: [] };
 
@@ -197,7 +197,7 @@ describe("the model menu's harnesses", () => {
   it("groups each harness's models under it, and checks only the one in use", () => {
     fireEvent.click(menu("claude", vi.fn()));
     const groups = screen.getAllByRole("group").map((g) => g.getAttribute("aria-label"));
-    expect(groups).toEqual(["Claude", "Codex", "Pi", "Kaava", "Effort"]);
+    expect(groups).toEqual(["Claude", "Codex", "Pi", "Veistra", "Effort"]);
     const checked = screen
       .getAllByRole("menuitemradio")
       .filter((el) => el.getAttribute("aria-checked") === "true")

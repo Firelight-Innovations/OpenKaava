@@ -6,7 +6,7 @@ import type { Category, Estimate, Line } from "./rpc";
 
 /**
  * Where the forecast turns from on track to worth watching, and from worth
- * watching to over. `docs/KAAVA-UX-REWORK.md` §4's rail-dot table: "Amber at
+ * watching to over. `docs/VEISTRA-UX-REWORK.md` §4's rail-dot table: "Amber at
  * 50% of budget, red at 90%." Chart C1's line and markLine, the Summary
  * figures and the project-page rail dot (owned elsewhere) all read this pair.
  */

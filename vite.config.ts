@@ -26,9 +26,9 @@ const AGENT_PORT = 1430;
 const TAURI_PORT = 1420;
 
 // @ts-expect-error process is a nodejs global
-const SCHEMATIFY = process.env.KAAVA_SCHEMATIFY === "1";
+const SCHEMATIFY = process.env.VEISTRA_SCHEMATIFY === "1";
 // @ts-expect-error process is a nodejs global
-const DESIGN_MODE = process.env.KAAVA_DESIGN_MODE === "1";
+const DESIGN_MODE = process.env.VEISTRA_DESIGN_MODE === "1";
 
 /**
  * Serves and emits Excalidraw's fonts at `/vendor/excalidraw/fonts/`, which is
@@ -50,7 +50,7 @@ function excalidrawFonts(): Plugin {
       return statSync(resolve(base, next)).isDirectory() ? walk(base, next) : [next];
     });
   return {
-    name: "kaava-excalidraw-fonts",
+    name: "veistra-excalidraw-fonts",
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const url = (req.url ?? "").split("?")[0];
@@ -127,10 +127,10 @@ export default defineConfig(async ({ mode }) => ({
         costs: resolve(__dirname, "apps/costs/ui/index.html"),
         projects: resolve(__dirname, "apps/projects/ui/index.html"),
         // Design Mode is disabled and ships no bundle unless
-        // `KAAVA_DESIGN_MODE=1` — the twin of the `design-mode` Cargo feature.
+        // `VEISTRA_DESIGN_MODE=1` — the twin of the `design-mode` Cargo feature.
         ...(DESIGN_MODE ? { design: resolve(__dirname, "apps/design/ui/index.html") } : {}),
         // Schematify is disabled (ORC-SCO-001) and ships no bundle unless
-        // `KAAVA_SCHEMATIFY=1` — the twin of the `schematify` Cargo feature.
+        // `VEISTRA_SCHEMATIFY=1` — the twin of the `schematify` Cargo feature.
         ...(SCHEMATIFY ? { schematify: resolve(__dirname, "apps/schematify/ui/index.html") } : {}),
       },
     },

@@ -9,12 +9,12 @@
 set -euo pipefail
 exec 3>&1 1>&2
 
-[ -r /etc/kaava/env ] && . /etc/kaava/env
-url=${KAAVA_PLANE_URL:?KAAVA_PLANE_URL is not set in /etc/kaava/env}
-project=${KAAVA_PROJECT:?KAAVA_PROJECT is not set in /etc/kaava/env}
+[ -r /etc/veistra/env ] && . /etc/veistra/env
+url=${VEISTRA_PLANE_URL:?VEISTRA_PLANE_URL is not set in /etc/veistra/env}
+project=${VEISTRA_PROJECT:?VEISTRA_PROJECT is not set in /etc/veistra/env}
 
 # A cold start takes 3 to 4 minutes; Claude Code waits for it (MCP_TIMEOUT in managed settings).
-/opt/kaava/bin/kaava-wake plane --project "$project" --quiet
+/opt/veistra/bin/veistra-wake plane --project "$project" --quiet
 
 token=$(curl -fsS -H "Metadata-Flavor: Google" \
   "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token" |
@@ -26,4 +26,4 @@ PLANE_API_KEY=$(curl -fsS -H "Authorization: Bearer $token" \
 
 export PLANE_API_KEY PLANE_BASE_URL="$url" PLANE_WORKSPACE_SLUG=veistra
 exec 1>&3 3>&-
-exec /opt/kaava/plane-mcp/bin/plane-mcp-server stdio
+exec /opt/veistra/plane-mcp/bin/plane-mcp-server stdio

@@ -11,7 +11,7 @@ import type { ReactNode } from "react";
  *
  * Most reads use the `gcloud` login on the machine (`docs/cloud-services.md`
  * §2), so their setup is a terminal command, and the note says so. The one
- * exception is `signInNeeded`: OpenKaava's own Google sign-in, which lives in
+ * exception is `signInNeeded`: Veistra's own Google sign-in, which lives in
  * Settings, Cloud.
  */
 
@@ -59,7 +59,7 @@ export function describeFailure(error: unknown, subject: string): FailureNote {
           <p className="app__note">
             {subject} reads Google Cloud through your own <code>gcloud</code> login. Install the CLI
             from cloud.google.com/sdk, run <code>gcloud auth login</code>, then retry. There is no
-            Settings section for this; nothing is stored in OpenKaava.
+            Settings section for this; nothing is stored in Veistra.
           </p>
         ),
         detail,
@@ -71,7 +71,7 @@ export function describeFailure(error: unknown, subject: string): FailureNote {
         steps: (
           <p className="app__note">
             Run <code>gcloud auth login</code> in a terminal, then retry. There is no Settings
-            section for this; OpenKaava uses the <code>gcloud</code> login on this machine.
+            section for this; Veistra uses the <code>gcloud</code> login on this machine.
           </p>
         ),
         detail,
@@ -95,7 +95,7 @@ export function describeFailure(error: unknown, subject: string): FailureNote {
         steps: (
           <p className="app__note">
             What {subject} reads does not exist in this Google Cloud project. If the project is
-            wrong, set <code>KAAVA_GCP_PROJECT</code> before starting OpenKaava.
+            wrong, set <code>VEISTRA_GCP_PROJECT</code> before starting Veistra.
           </p>
         ),
         detail,
@@ -107,7 +107,7 @@ export function describeFailure(error: unknown, subject: string): FailureNote {
         steps: (
           <p className="app__note">
             Check the network connection or proxy, then retry. Nothing is wrong with your login as
-            far as OpenKaava can tell.
+            far as Veistra can tell.
           </p>
         ),
         detail,
@@ -118,7 +118,7 @@ export function describeFailure(error: unknown, subject: string): FailureNote {
         heading: "Sign in to Google again",
         steps: (
           <p className="app__note">
-            OpenKaava&apos;s Google sign-in has lapsed. Open Settings, Cloud, and press Sign in with
+            Veistra&apos;s Google sign-in has lapsed. Open Settings, Cloud, and press Sign in with
             Google, then retry.
           </p>
         ),
@@ -130,8 +130,9 @@ export function describeFailure(error: unknown, subject: string): FailureNote {
         heading: "The Plane gateway is not set up",
         steps: (
           <p className="app__note">
-            {subject} reaches Plane through the kaava-api gateway. Paste its URL into Settings,
-            Cloud, Gateway URL. Until it is deployed, see <code>services/kaava-api/README.md</code>.
+            {subject} reaches Plane through the veistra-api gateway. Paste its URL into Settings,
+            Cloud, Gateway URL. Until it is deployed, see{" "}
+            <code>services/veistra-api/README.md</code>.
           </p>
         ),
         detail,

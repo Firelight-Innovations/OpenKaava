@@ -5,7 +5,7 @@ import type { DesignOverride } from "./scene";
 
 interface Props {
   canvasId: string;
-  /** What the open canvas carries (`kaava.design`); nothing means it follows Settings. */
+  /** What the open canvas carries (`veistra.design`); nothing means it follows Settings. */
   override: DesignOverride | undefined;
   readOnly: boolean;
   onChange: (key: keyof DesignOverride, choice: string | null) => void;

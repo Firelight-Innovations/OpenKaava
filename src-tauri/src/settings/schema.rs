@@ -63,7 +63,7 @@ static GROUPS: &[&Group] = &[
 // handoff and says nothing in it is a choice; a user's accent is a choice, so
 // it belongs in a layer above rather than as an edit to the spec's own values.
 
-/// One per design-system accent option (`docs/design/kaava-ds/tokens.json`).
+/// One per design-system accent option (`docs/design/veistra-ds/tokens.json`).
 /// The value is a *name*, not a hex — `src/tokens.css` carries the hex for
 /// both themes under `--accent-<name>`, and `appearance.ts` just points
 /// `--accent` at the right one. A name survives a theme switch unchanged,
@@ -72,7 +72,7 @@ static ACCENTS: &[SelectOption] = &[
     SelectOption {
         value: "blue",
         label: "Blue",
-        description: "The default. Plane's blue, so Kaava and the projects app read as one.",
+        description: "The default. Plane's blue, so Veistra and the projects app read as one.",
     },
     SelectOption {
         value: "amber",
@@ -429,7 +429,7 @@ static TERMINAL_SETTINGS: &[Setting] = &[
 static TERMINAL: Group = Group {
     id: "terminal",
     title: "Terminal",
-    description: "The shells OpenKaava spawns, in the panel and in panes.",
+    description: "The shells Veistra spawns, in the panel and in panes.",
     order: 30,
     settings: TERMINAL_SETTINGS,
 };
@@ -482,7 +482,7 @@ static KEYS_SETTINGS: &[Setting] = &[
     Setting {
         key: keys::KEYS_COPILOT_ACTION,
         title: "Copilot key",
-        description: "What the Copilot key on a Windows keyboard does while OpenKaava has focus. \
+        description: "What the Copilot key on a Windows keyboard does while Veistra has focus. \
                       Windows sends it as Win+Shift+F23.",
         control: Control::Select {
             default: "palette",
@@ -493,9 +493,9 @@ static KEYS_SETTINGS: &[Setting] = &[
     Setting {
         key: keys::KEYS_COPILOT_GLOBAL,
         title: "Claim the Copilot key everywhere",
-        description: "Installs a keyboard hook so the key reaches OpenKaava even when it is not \
+        description: "Installs a keyboard hook so the key reaches Veistra even when it is not \
                       the focused window, and stops Windows launching Copilot. Off, only a focused \
-                      OpenKaava sees the key, and Windows may still act on it first.",
+                      Veistra sees the key, and Windows may still act on it first.",
         control: Control::Toggle { default: false },
         applies: Applies::Now,
     },
@@ -593,7 +593,7 @@ static GITHUB_SETTINGS: &[Setting] = &[Setting {
     key: keys::GITHUB_ITEM_LIMIT,
     title: "Items to fetch",
     description: "How many open issues and how many open pull requests to ask for — this many of \
-                  each, not in total. A signed-out OpenKaava gets sixty GitHub requests an hour and \
+                  each, not in total. A signed-out Veistra gets sixty GitHub requests an hour and \
                   each refresh spends two of them, so the cost of a larger list is the size of \
                   the reply rather than the quota.",
     control: Control::Number {
@@ -622,8 +622,8 @@ static GITHUB: Group = Group {
 
 // --- cloud ------------------------------------------------------------------
 //
-// The kaava-api gateway (`cloud::gateway`, read by `apps::projects`) and
-// OpenKaava's own Google sign-in (`cloud::google`). The client ID is a setting
+// The veistra-api gateway (`cloud::gateway`, read by `apps::projects`) and
+// Veistra's own Google sign-in (`cloud::google`). The client ID is a setting
 // because it is not a secret: Google prints it in every consent URL. The client
 // secret and the sign-in itself are credentials, so they go to the OS
 // credential store through the panel drawn above this section's rows
@@ -633,12 +633,12 @@ static CLOUD_SETTINGS: &[Setting] = &[
     Setting {
         key: keys::CLOUD_GATEWAY_URL,
         title: "Gateway URL",
-        description: "The kaava-api service the Projects page reaches Plane through: the `url` \
-                      output of infra/terraform/kaava-api. Empty until it is deployed, and the \
+        description: "The veistra-api service the Projects page reaches Plane through: the `url` \
+                      output of infra/terraform/veistra-api. Empty until it is deployed, and the \
                       Projects page says so.",
         control: Control::Text {
             default: "",
-            placeholder: "https://kaava-api-….run.app",
+            placeholder: "https://veistra-api-….run.app",
         },
         applies: Applies::Next {
             what: "the next Plane call",
@@ -647,8 +647,8 @@ static CLOUD_SETTINGS: &[Setting] = &[
     Setting {
         key: keys::CLOUD_GOOGLE_CLIENT_ID,
         title: "Google OAuth client ID",
-        description: "The Desktop app OAuth client OpenKaava signs in with, from the Google Cloud \
-                      console (services/kaava-api/README.md says how to make one). Changing it \
+        description: "The Desktop app OAuth client Veistra signs in with, from the Google Cloud \
+                      console (services/veistra-api/README.md says how to make one). Changing it \
                       signs you out, because a sign-in belongs to the client that made it.",
         control: Control::Text {
             default: "",
@@ -663,7 +663,7 @@ static CLOUD_SETTINGS: &[Setting] = &[
 static CLOUD: Group = Group {
     id: "cloud",
     title: "Cloud",
-    description: "The Google account OpenKaava uses for OpenKaava Cloud. Without a sign-in here, \
+    description: "The Google account Veistra uses for Veistra Cloud. Without a sign-in here, \
                   the gcloud login on this machine is used instead.",
     order: 47,
     settings: CLOUD_SETTINGS,
@@ -672,7 +672,7 @@ static CLOUD: Group = Group {
 // --- updates ----------------------------------------------------------------
 //
 // Read once, in `lib.rs`'s setup, by `updater::start`. The one thing this
-// governs is whether OpenKaava asks — the Help menu's Check for Updates works
+// governs is whether Veistra asks — the Help menu's Check for Updates works
 // either way, and nothing downloads or installs without the button being
 // pressed.
 
@@ -680,7 +680,7 @@ static UPDATES_SETTINGS: &[Setting] = &[Setting {
     key: keys::UPDATES_CHECK_AUTOMATICALLY,
     title: "Check for a newer version at launch",
     description: "One request to the releases endpoint, in the background, once per launch. \
-                  Switching this off stops OpenKaava asking; it does not stop you asking, and it \
+                  Switching this off stops Veistra asking; it does not stop you asking, and it \
                   has never downloaded or installed anything on its own either way.",
     control: Control::Toggle { default: true },
     // `Restart` for `terminal.openOnLaunch`'s reason: the launch is the only
@@ -692,7 +692,7 @@ static UPDATES_SETTINGS: &[Setting] = &[Setting {
 static UPDATES: Group = Group {
     id: "updates",
     title: "Updates",
-    description: "How OpenKaava finds out that a newer OpenKaava exists.",
+    description: "How Veistra finds out that a newer Veistra exists.",
     order: 50,
     settings: UPDATES_SETTINGS,
 };
@@ -717,7 +717,7 @@ static MCP_SETTINGS: &[Setting] = &[Setting {
 static MCP: Group = Group {
     id: "mcp",
     title: "MCP servers",
-    description: "What OpenKaava offers the coding agents running in its terminals.",
+    description: "What Veistra offers the coding agents running in its terminals.",
     order: 60,
     settings: MCP_SETTINGS,
 };
@@ -733,7 +733,7 @@ static DEVELOPER_SETTINGS: &[Setting] = &[Setting {
     key: keys::DEVELOPER_MODE,
     title: "Developer mode",
     description: "Shows the MCP servers that drive this window rather than read it — \
-                  screenshots, clicks and keystrokes, for an agent working on OpenKaava itself. \
+                  screenshots, clicks and keystrokes, for an agent working on Veistra itself. \
                   Switching this on only makes them visible; each still has its own switch, and \
                   every one of them starts off.",
     control: Control::Toggle { default: false },
@@ -743,7 +743,7 @@ static DEVELOPER_SETTINGS: &[Setting] = &[Setting {
 static DEVELOPER: Group = Group {
     id: "developer",
     title: "Developer",
-    description: "Tools for working on OpenKaava. Nothing here is needed to use it.",
+    description: "Tools for working on Veistra. Nothing here is needed to use it.",
     order: 90,
     settings: DEVELOPER_SETTINGS,
 };

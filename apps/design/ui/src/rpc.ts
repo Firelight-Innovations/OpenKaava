@@ -3,7 +3,7 @@
  * `src-tauri/src/apps/design.rs` and are restated rather than imported, for the
  * reason `apps/files/ui/src/rpc.ts` gives.
  */
-import { KaavaRpcError, invoke } from "@openkaava/bridge";
+import { VeistraRpcError, invoke } from "@veistra/bridge";
 import type { Comment } from "./comments";
 import type { PickedElement } from "./probe";
 
@@ -71,6 +71,6 @@ export const deleteComment = (id: string) => invoke<null>("design/comment/delete
 /** The host's own words for why a call failed. Every refusal in `design.rs` is
  *  written as a sentence for a person, so none is mapped to a category here. */
 export function reasonFor(err: unknown): string {
-  if (err instanceof KaavaRpcError) return err.message;
+  if (err instanceof VeistraRpcError) return err.message;
   return String(err);
 }

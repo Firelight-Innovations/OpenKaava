@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { firstRequest, parseTranscript } from "./transcript";
-import fixture from "../../../../src-tauri/fixtures/cloud/veistra-prod-sessions/kaava-worker/3f2a9c1e-7b40-4d2a-9e61-0c5d8b7a1f01/transcript.jsonl?raw";
+import fixture from "../../../../src-tauri/fixtures/cloud/veistra-prod-sessions/veistra-worker/3f2a9c1e-7b40-4d2a-9e61-0c5d8b7a1f01/transcript.jsonl?raw";
 
 const lines = (...objects: unknown[]): string => objects.map((o) => JSON.stringify(o)).join("\n");
 

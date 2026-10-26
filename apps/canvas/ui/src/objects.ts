@@ -1,14 +1,14 @@
 /**
  * Frames as labelled objects, the unit of detail on a canvas.
  *
- * A frame carries `customData.kaava.object = { type, props }`: the id of an
+ * A frame carries `customData.veistra.object = { type, props }`: the id of an
  * object type and the values of that type's fields. The frame's own element id
  * is its id and Excalidraw's `name` is its name. The Rust side
  * (`src-tauri/src/apps/canvas/frames.rs`) reads the same shape for the agent,
  * so this file and that one must agree.
  *
  * The type definitions come from `canvas/types`: the built-ins are code on the
- * Rust side and the project's own are in `.kaava/canvas/types.json`. Nothing
+ * Rust side and the project's own are in `.veistra/canvas/types.json`. Nothing
  * here knows what a "model" is except the export to the old spec-card JSON.
  *
  * Everything is pure, so the inspector's logic is tested without Excalidraw.
@@ -67,18 +67,18 @@ export const ICON_NAMES = [
   "monitor",
 ] as const;
 
-interface Kaava {
+interface Veistra {
   object?: unknown;
 }
 
-function kaavaOf(el: SceneElement): Kaava | undefined {
-  return (el.customData as { kaava?: Kaava } | undefined)?.kaava;
+function veistraOf(el: SceneElement): Veistra | undefined {
+  return (el.customData as { veistra?: Veistra } | undefined)?.veistra;
 }
 
 /** The object a frame carries, or `null` for a frame nobody has typed. */
 export function objectOf(el: SceneElement): FrameObject | null {
   if (!isFrame(el) || el.isDeleted) return null;
-  const raw = kaavaOf(el)?.object as { type?: unknown; props?: unknown } | undefined;
+  const raw = veistraOf(el)?.object as { type?: unknown; props?: unknown } | undefined;
   if (!raw || typeof raw.type !== "string" || raw.type === "") return null;
   const props =
     raw.props && typeof raw.props === "object" && !Array.isArray(raw.props)
@@ -103,11 +103,11 @@ function touched(el: SceneElement, patch: Partial<SceneElement>): SceneElement {
  */
 export function withObject(el: SceneElement, obj: FrameObject | null): SceneElement {
   const custom = { ...((el.customData as Record<string, unknown> | undefined) ?? {}) };
-  const kaava = { ...((custom.kaava as Record<string, unknown> | undefined) ?? {}) };
-  if (obj === null) delete kaava.object;
-  else kaava.object = obj;
-  if (Object.keys(kaava).length > 0) custom.kaava = kaava;
-  else delete custom.kaava;
+  const veistra = { ...((custom.veistra as Record<string, unknown> | undefined) ?? {}) };
+  if (obj === null) delete veistra.object;
+  else veistra.object = obj;
+  if (Object.keys(veistra).length > 0) custom.veistra = veistra;
+  else delete custom.veistra;
   return touched(el, { customData: Object.keys(custom).length > 0 ? custom : undefined });
 }
 
@@ -234,7 +234,7 @@ export function modelDraft(name: string, props: Record<string, unknown>): SpecDr
 /** A spec card on an element that is not a frame, as stored. */
 export function legacyCardOf(el: SceneElement): { name: string } | null {
   if (el.isDeleted || isFrame(el)) return null;
-  const spec = (el.customData as { kaava?: { spec?: unknown } } | undefined)?.kaava?.spec;
+  const spec = (el.customData as { veistra?: { spec?: unknown } } | undefined)?.veistra?.spec;
   if (!spec || typeof spec !== "object" || Array.isArray(spec)) return null;
   const name = (spec as { name?: unknown }).name;
   return { name: typeof name === "string" ? name : "" };
@@ -286,7 +286,7 @@ export function targetOf(
   }
   const el = picked[0]!;
   if (isFrame(el)) {
-    const child = (el.customData as { kaava?: { child?: unknown } } | undefined)?.kaava?.child;
+    const child = (el.customData as { veistra?: { child?: unknown } } | undefined)?.veistra?.child;
     return {
       kind: "frame",
       id: el.id,
@@ -437,8 +437,8 @@ export function wrapSelection(
  */
 export function convertLegacy(elements: readonly SceneElement[], id: string): Wrapped {
   const el = elements.find((e) => e.id === id && !e.isDeleted);
-  const spec = (el?.customData as { kaava?: { spec?: Record<string, unknown> } } | undefined)?.kaava
-    ?.spec;
+  const spec = (el?.customData as { veistra?: { spec?: Record<string, unknown> } } | undefined)
+    ?.veistra?.spec;
   if (!el || !spec) return { ok: false, error: "That shape has no spec card." };
   const wrapped = wrapSelection(elements, { [id]: true }, String(spec.name || "Model"));
   if (!wrapped.ok) return wrapped;
@@ -451,10 +451,10 @@ export function convertLegacy(elements: readonly SceneElement[], id: string): Wr
     if (e.id === wrapped.frameId) return withObject(e, { type: "model", props });
     if (e.id !== id) return e;
     const custom = { ...(e.customData as Record<string, unknown>) };
-    const kaava = { ...(custom.kaava as Record<string, unknown>) };
-    delete kaava.spec;
-    if (Object.keys(kaava).length > 0) custom.kaava = kaava;
-    else delete custom.kaava;
+    const veistra = { ...(custom.veistra as Record<string, unknown>) };
+    delete veistra.spec;
+    if (Object.keys(veistra).length > 0) custom.veistra = veistra;
+    else delete custom.veistra;
     return touched(e, { customData: Object.keys(custom).length > 0 ? custom : undefined });
   });
   return { ok: true, elements: out, frameId: wrapped.frameId };

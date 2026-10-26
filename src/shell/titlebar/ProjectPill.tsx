@@ -1,7 +1,7 @@
 /**
  * The title bar's centred pill: which project, and which environment.
  *
- * `docs/design/KAAVA-UX-SPEC.md` §1.2. A 16×16 tile (the project's own icon,
+ * `docs/design/VEISTRA-UX-SPEC.md` §1.2. A 16×16 tile (the project's own icon,
  * or its initial), the project's
  * name, then either `· N environments` (no cluster active — U-Anatomy and
  * U-Workspace's idle state) or a mono chip naming the active cluster's

@@ -20,19 +20,19 @@ const HANDLE = vi.hoisted(() => ({
   setInteractive: (v: boolean) => h.setInteractive(v),
 }));
 
-vi.mock("@kaava/scene-view", () => ({
+vi.mock("@veistra/scene-view", () => ({
   SceneView: forwardRef(function Fake({ children }: { children?: ReactNode }, ref) {
     useImperativeHandle(ref, () => HANDLE, []);
     return <div>{children}</div>;
   }),
 }));
 
-vi.mock("@kaava/markup", () => ({
+vi.mock("@veistra/markup", () => ({
   sceneHost: h.sceneHost,
   poseMatches: () => true,
 }));
 
-vi.mock("@kaava/markup/layer", () => ({
+vi.mock("@veistra/markup/layer", () => ({
   MarkupLayer: ({
     active,
     onActiveChange,
@@ -56,7 +56,7 @@ import MarkupScene, { type MarkupSceneProps } from "./MarkupScene";
 function mount(over: Partial<MarkupSceneProps> = {}) {
   const props: MarkupSceneProps = {
     glb: new ArrayBuffer(0),
-    glbPath: "C:/p/.kaava/blender/bed/model.glb",
+    glbPath: "C:/p/.veistra/blender/bed/model.glb",
     extra: { engine: "blender", blend: "bed.blend" },
     selectedPath: null,
     onSelect: vi.fn(),
@@ -95,7 +95,7 @@ describe("MarkupScene", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Mark up/ }));
     await waitFor(() => expect(h.sceneHost).toHaveBeenCalled());
     expect(h.sceneHost).toHaveBeenLastCalledWith(HANDLE, {
-      glb: ".kaava/blender/bed/model.glb",
+      glb: ".veistra/blender/bed/model.glb",
       extra: { engine: "blender", blend: "bed.blend" },
     });
   });

@@ -4,14 +4,14 @@
  * paths. `App` loads this with `React.lazy`, so three.js and Excalidraw stay out
  * of the viewer's first chunk.
  */
-import type { MarkupExport } from "@kaava/markup/layer";
+import type { MarkupExport } from "@veistra/markup/layer";
 import MarkupScene from "../../../shared/MarkupScene";
 import type { NodeLookup } from "./preview";
 
 export interface Scene3DProps {
   glb: ArrayBuffer;
   lookup: NodeLookup;
-  /** Absolute path of the glb; the markup JSON records it relative to `.kaava`. */
+  /** Absolute path of the glb; the markup JSON records it relative to `.veistra`. */
   glbPath: string;
   /** `res://...` of the scene being shown. */
   scenePath: string;

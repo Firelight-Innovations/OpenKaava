@@ -26,7 +26,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { claimSearch, host, type SearchHandle } from "@openkaava/bridge";
+import { claimSearch, host, type SearchHandle } from "@veistra/bridge";
 import ContextMenu, { type DraftKind, type MenuTarget } from "../ContextMenu";
 import DraftRow from "./DraftRow";
 import TreeRow, { GUTTER, INDENT } from "./TreeRow";
@@ -226,7 +226,7 @@ const Explorer = forwardRef<
   // Under the shell the filter is typed in the title bar's search field, which
   // this tree claims while it is showing. Standalone there is no shell to claim
   // from, so the tree draws its own input as it always did.
-  const inShell = host() === "kaava";
+  const inShell = host() === "veistra";
   /**
    * Where the keyboard is. Separate from `selectedPath` because the two are
    * different facts: the cursor can sit on a directory, or on a file nobody

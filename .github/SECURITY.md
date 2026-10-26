@@ -5,13 +5,13 @@
 **Please do not open a public issue.**
 
 Use GitHub's private vulnerability reporting: go to the
-[Security tab](https://github.com/Firelight-Innovations/OpenKaava/security) and
+[Security tab](https://github.com/Firelight-Innovations/Veistra/security) and
 choose **Report a vulnerability**. That opens a thread visible only to you and
 the maintainers, and it keeps the report, the discussion and the eventual
 advisory in one place.
 
 If that route is unavailable to you for any reason, email
-**braden.seaborn@firelightinnovations.com** with `OpenKaava security` in the subject
+**braden.seaborn@firelightinnovations.com** with `Veistra security` in the subject
 line.
 
 Useful things to include, in rough order of how much they help: what an attacker
@@ -52,8 +52,8 @@ application.
 
 Reports in that class are the ones most wanted:
 
-- Anything that lets a **project file** — `kaava.toml`, the contents of a
-  `.kaava/` directory, a checked-out tool repository — cause code to run that
+- Anything that lets a **project file** — `veistra.toml`, the contents of a
+  `.veistra/` directory, a checked-out tool repository — cause code to run that
   the user did not ask to run. Opening an untrusted project should not be the
   same act as executing it.
 - Anything that lets a **mounted tool** reach past the protocol boundary

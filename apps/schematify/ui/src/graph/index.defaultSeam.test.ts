@@ -1,7 +1,7 @@
 /**
  * `defaultSeam.loadGraph`'s own forwarding, isolated from `backend.ts`'s
  * real body entirely — `./backend` is mocked out, not just
- * `@openkaava/bridge`, so this test can fail for exactly 1 reason:
+ * `@veistra/bridge`, so this test can fail for exactly 1 reason:
  * `index.ts`'s own wrapper arrow drops or mismatches an argument before it
  * reaches the seam it obtains. That is the round-2 defect: a 0-arg arrow
  * satisfying a 2-arg interface with no type error, 1 layer above the

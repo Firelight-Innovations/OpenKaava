@@ -1,5 +1,5 @@
-/** Standard JSON-RPC codes plus the Kaava range — `docs/tool-protocol.md` §2. */
-export const KaavaErrorCode = {
+/** Standard JSON-RPC codes plus the Veistra range — `docs/tool-protocol.md` §2. */
+export const VeistraErrorCode = {
   ParseError: -32700,
   InvalidRequest: -32600,
   MethodNotFound: -32601,
@@ -19,13 +19,13 @@ export const KaavaErrorCode = {
  * the same to calling code, which is the point: tool UI shouldn't need to
  * know which host it's running under to handle a failure.
  */
-export class KaavaRpcError extends Error {
+export class VeistraRpcError extends Error {
   readonly code: number;
   readonly data?: unknown;
 
   constructor(code: number, message: string, data?: unknown) {
     super(message);
-    this.name = "KaavaRpcError";
+    this.name = "VeistraRpcError";
     this.code = code;
     this.data = data;
   }

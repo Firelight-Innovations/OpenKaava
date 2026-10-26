@@ -3,9 +3,9 @@
  * rendered frame as an image, for the agent working in this environment. The
  * store and the strip beside each terminal are the host's (`context/put`).
  */
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 import { contextKey, type ContextRef } from "../../../shared/context";
-import type { MarkupJson } from "@kaava/markup";
+import type { MarkupJson } from "@veistra/markup";
 import {
   GODOT_TARGET,
   blobBase64,

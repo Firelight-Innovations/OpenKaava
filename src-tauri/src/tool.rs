@@ -1,7 +1,7 @@
 //! The vocabulary of the stack: what a tool *is*, and what state it's in.
 //!
 //! Two layers on purpose:
-//!   * `ToolSpec`     — what kaava.toml *declares*. Deserialized from the manifest.
+//!   * `ToolSpec`     — what veistra.toml *declares*. Deserialized from the manifest.
 //!   * `ResolvedTool` — that spec joined with what's actually on disk right now.
 //!
 //! Keeping "declared" and "actual" as separate types means the discovery step
@@ -16,13 +16,13 @@ pub enum ToolKind {
     /// An authoring tool: a window you open while you work.
     ///
     /// The only kind today. It stays an enum rather than collapsing into a
-    /// bare marker because `kaava.toml` already writes `kind = "dev-tool"` on
+    /// bare marker because `veistra.toml` already writes `kind = "dev-tool"` on
     /// every entry, and removing a field from a manifest format is a migration
     /// while adding a variant to it is not.
     DevTool,
 }
 
-/// One `[[tool]]` table from kaava.toml.
+/// One `[[tool]]` table from veistra.toml.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct ToolSpec {

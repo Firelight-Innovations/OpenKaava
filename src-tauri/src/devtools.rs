@@ -26,7 +26,7 @@ use tauri::{AppHandle, Manager, WebviewWindow};
 const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
 
 /// Never a target. The splash window has no shell in it, and picking it because
-/// it happened to have focus during boot would answer a question about OpenKaava
+/// it happened to have focus during boot would answer a question about Veistra
 /// with a screenshot of a progress bar.
 const SPLASH: &str = "splash";
 

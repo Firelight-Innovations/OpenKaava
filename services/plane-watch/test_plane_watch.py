@@ -19,8 +19,8 @@ LABELS = {
 
 RECORD = {
     "schema": 1,
-    "slug": "openkaava",
-    "plane": {"workspace": "veistra", "project_id": "P1", "identifier": "KAAVA"},
+    "slug": "veistra",
+    "plane": {"workspace": "veistra", "project_id": "P1", "identifier": "VEISTRA"},
     "archived": False,
 }
 
@@ -93,10 +93,10 @@ class PureTest(unittest.TestCase):
         self.assertEqual(found, [("ai:breakdown", "breakdown"), ("ai:do", "do")])
 
     def test_job_id_is_stable_for_the_same_labelling(self):
-        a = plane_watch.job_id("KAAVA", 12, "breakdown", "2026-09-28T02:22:46.318787Z")
-        b = plane_watch.job_id("KAAVA", 12, "breakdown", "2026-09-28T02:22:46.318787+00:00")
+        a = plane_watch.job_id("VEISTRA", 12, "breakdown", "2026-09-28T02:22:46.318787Z")
+        b = plane_watch.job_id("VEISTRA", 12, "breakdown", "2026-09-28T02:22:46.318787+00:00")
         self.assertEqual(a, b)
-        self.assertEqual(a, "KAAVA-12-breakdown-20260928T022246318787")
+        self.assertEqual(a, "VEISTRA-12-breakdown-20260928T022246318787")
 
     def test_swapped_labels_removes_triggers_keeps_the_rest_and_adds_queued_once(self):
         self.assertEqual(plane_watch.swapped_labels(["L-art", "L-do", "L-context"], LABELS), ["L-art", "L-queued"])
@@ -123,17 +123,17 @@ class PollTest(unittest.TestCase):
         plane = FakePlane([item(12, "2026-09-28T02:22:46Z", ["L-art", "L-breakdown"]), item(13, "2026-09-28T02:20:00Z")])
         queued = self.watcher(plane).poll()
 
-        job_id = "KAAVA-12-breakdown-20260928T022246000000"
+        job_id = "VEISTRA-12-breakdown-20260928T022246000000"
         self.assertEqual(queued, [job_id])
         self.assertEqual(self.google.jobs("pending"), [job_id])
         job = self.google.objects[f"prod/jobs/pending/{job_id}.json"]
         self.assertEqual(job["kind"], "breakdown")
-        self.assertEqual(job["project"], "openkaava")
+        self.assertEqual(job["project"], "veistra")
         self.assertEqual(job["plane"]["work_item_id"], "W12")
         self.assertEqual(plane.items["W12"]["labels"], ["L-art", "L-queued"])
         self.assertEqual(len(plane.comments), 1)
         self.assertIn(job_id, plane.comments[0][1])
-        self.assertEqual(self.google.started, ["kaava-worker"])
+        self.assertEqual(self.google.started, ["veistra-worker"])
         self.assertTrue(os.path.exists(os.path.join(self.dir.name, "busy")))
 
     def test_the_next_poll_queues_nothing_more(self):
@@ -149,7 +149,7 @@ class PollTest(unittest.TestCase):
         plane.fail_comment = True
         watcher = self.watcher(plane)
         self.assertEqual(len(watcher.poll()), 1)
-        self.assertEqual(self.google.started, ["kaava-worker"])
+        self.assertEqual(self.google.started, ["veistra-worker"])
         self.assertEqual(watcher.poll(), [])
         self.assertEqual(len(self.google.jobs("pending")), 1)
 
@@ -158,11 +158,11 @@ class PollTest(unittest.TestCase):
         watcher = self.watcher(plane)
         watcher.poll()
         watcher.poll()
-        self.assertEqual(self.google.started, ["kaava-worker", "kaava-worker"])
+        self.assertEqual(self.google.started, ["veistra-worker", "veistra-worker"])
 
     def test_a_retry_before_the_label_swap_writes_no_second_job_even_once_claimed(self):
         plane = FakePlane([item(12, "2026-09-28T02:22:46Z", ["L-do"])])
-        job_id = "KAAVA-12-do-20260928T022246000000"
+        job_id = "VEISTRA-12-do-20260928T022246000000"
         # The worker already moved it on; the label swap never happened.
         self.google.objects[f"prod/jobs/claimed/{job_id}.json"] = {"id": job_id}
         self.assertEqual(self.watcher(plane).poll(), [job_id])

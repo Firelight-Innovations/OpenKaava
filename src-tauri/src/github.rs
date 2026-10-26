@@ -25,7 +25,7 @@ use std::path::Path;
 use tauri::AppHandle;
 
 /// Sent with every call. GitHub rejects a request without one.
-const USER_AGENT: &str = concat!("OpenKaava/", env!("CARGO_PKG_VERSION"));
+const USER_AGENT: &str = concat!("Veistra/", env!("CARGO_PKG_VERSION"));
 
 /// How long one request may take. Shorter than the installer's minute, because
 /// this runs on a cluster switch rather than on a button somebody pressed
@@ -71,7 +71,7 @@ pub enum GithubItemState {
 /// Note what is absent. No body, no comments, no checks, no review state, no
 /// diff: this is a list, and every one of those is a second request per row.
 /// Orca's equivalent type carries all of them because Orca reviews pull
-/// requests in-app; OpenKaava 0.2.0 browses them and opens a worktree, so the
+/// requests in-app; Veistra 0.2.0 browses them and opens a worktree, so the
 /// fields stop where that stops.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -132,7 +132,7 @@ pub enum GithubTrouble {
     /// **404, and deliberately one variant for two causes** — a repository that
     /// does not exist and one this token cannot see are indistinguishable from
     /// here. GitHub answers 404 for both precisely so a private repository's
-    /// existence is not leaked, and OpenKaava must not resolve that ambiguity
+    /// existence is not leaked, and Veistra must not resolve that ambiguity
     /// either. `remote.rs` makes the same call for the same reason.
     MissingOrPrivate,
     /// The hourly quota is spent. Anonymous callers get 60 an hour and a token

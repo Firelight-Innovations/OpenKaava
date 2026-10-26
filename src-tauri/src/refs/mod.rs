@@ -1,16 +1,16 @@
-//! `kaava://` references: one way for a person and an agent to point at the
+//! `veistra://` references: one way for a person and an agent to point at the
 //! same file, asset, canvas frame, comment or context item.
 //!
-//! `docs/design/KAAVA-CONTEXT-REFS.md` is the long form. In short:
+//! `docs/design/VEISTRA-CONTEXT-REFS.md` is the long form. In short:
 //!
 //! ```text
-//! kaava://file/<path>[#L10-L20]        a file or asset, relative to the cluster's root
-//! kaava://canvas/<id>[#frame=<id>]     a canvas, or one frame on it
-//! kaava://canvas/<id>#comment=<id>     a comment on a canvas
-//! kaava://comment/<id>                 a viewer comment and its screenshot
-//! kaava://design-comment/<id>          a Design Mode comment and its screenshot
-//! kaava://context/<id>                 an item in the context store
-//! kaava://selection                    what is selected in the cluster's panes
+//! veistra://file/<path>[#L10-L20]        a file or asset, relative to the cluster's root
+//! veistra://canvas/<id>[#frame=<id>]     a canvas, or one frame on it
+//! veistra://canvas/<id>#comment=<id>     a comment on a canvas
+//! veistra://comment/<id>                 a viewer comment and its screenshot
+//! veistra://design-comment/<id>          a Design Mode comment and its screenshot
+//! veistra://context/<id>                 an item in the context store
+//! veistra://selection                    what is selected in the cluster's panes
 //! ```
 //!
 //! A reference resolves inside the cluster it is resolved for. Design Mode
@@ -31,12 +31,12 @@ pub mod search;
 pub mod uri;
 
 use fault::{Fault, Reason};
-use kaava_rpc::{RpcError, INTERNAL_ERROR, METHOD_NOT_FOUND};
 use live::Actor;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use tauri::AppHandle;
+use veistra_rpc::{RpcError, INTERNAL_ERROR, METHOD_NOT_FOUND};
 
 /// `refs/resolve` `{uri}` → [`resolve::Resolved`]: what the agent tab draws for
 /// a reference chip or a `show` card. Answered as the person, who is the one
@@ -108,7 +108,7 @@ pub fn call(
     }
 }
 
-/// Only Kaava's own apps resolve references. A plugin is someone else's code,
+/// Only Veistra's own apps resolve references. A plugin is someone else's code,
 /// and a reference reads the project.
 fn admit(caller: &str) -> Result<(), RpcError> {
     if crate::apps::is_app(caller) {
@@ -116,7 +116,7 @@ fn admit(caller: &str) -> Result<(), RpcError> {
     }
     Err(RpcError::new(
         METHOD_NOT_FOUND,
-        format!("`refs/*` answers Kaava's own apps only, not `{caller}`"),
+        format!("`refs/*` answers Veistra's own apps only, not `{caller}`"),
     ))
 }
 
@@ -149,8 +149,8 @@ fn parse_params<T: DeserializeOwned>(params: Option<Value>) -> Result<T, RpcErro
 #[cfg(test)]
 mod tests {
     use super::*;
-    use kaava_rpc::INVALID_PARAMS;
     use serde_json::json;
+    use veistra_rpc::INVALID_PARAMS;
 
     #[test]
     fn only_refs_methods_are_answered_here() {
@@ -166,7 +166,7 @@ mod tests {
     }
 
     #[test]
-    fn only_kaavas_own_apps_are_answered() {
+    fn only_veistras_own_apps_are_answered() {
         assert!(admit("agent-tab").is_ok());
         assert!(admit("canvas").is_ok());
         for stranger in ["acme.tools/panel", "", "agent-tab "] {
@@ -186,10 +186,10 @@ mod tests {
             reason(uri_param(Some(&json!({ "uri": 7 }))).unwrap_err()),
             "bad-params"
         );
-        let escape = uri_param(Some(&json!({ "uri": "kaava://file/../secrets" }))).unwrap_err();
+        let escape = uri_param(Some(&json!({ "uri": "veistra://file/../secrets" }))).unwrap_err();
         assert_eq!(escape.code, INVALID_PARAMS);
         assert_eq!(escape.data, Some(json!({ "reason": "bad-uri" })));
-        let ok = uri_param(Some(&json!({ "uri": "kaava://selection" })));
+        let ok = uri_param(Some(&json!({ "uri": "veistra://selection" })));
         assert_eq!(ok.unwrap(), uri::Ref::Selection);
     }
 
@@ -225,10 +225,10 @@ mod tests {
             "`uris` is required"
         );
         let asked: PromptParams =
-            parse_params(Some(json!({ "uris": ["kaava://selection"] }))).unwrap();
+            parse_params(Some(json!({ "uris": ["veistra://selection"] }))).unwrap();
         assert_eq!(asked.accepts, None);
         let asked: PromptParams = parse_params(Some(
-            json!({ "uris": ["kaava://selection"], "accepts": null }),
+            json!({ "uris": ["veistra://selection"], "accepts": null }),
         ))
         .unwrap();
         assert_eq!(asked.accepts, None);

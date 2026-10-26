@@ -2,13 +2,13 @@
  * The wire shapes `godot-viewer/*` answers with, restated from
  * `src-tauri/src/godot/scene.rs` and `rpc.rs` rather than imported, for the
  * same reason `apps/shared/comments.ts` restates the comment shapes: an app's
- * only coupling to its host is `@openkaava/bridge` and what crosses it.
+ * only coupling to its host is `@veistra/bridge` and what crosses it.
  *
  * `godot-viewer/state` reads the cache; nothing runs Godot until
  * `godot-viewer/refresh` is called, and that runs in the background while the
  * pane polls `state` and watches `job`.
  */
-import { invoke } from "@openkaava/bridge";
+import { invoke } from "@veistra/bridge";
 
 export interface GodotNode {
   /** The scene-tree path this node answers to, e.g. `World/Player/Flashlight`. */

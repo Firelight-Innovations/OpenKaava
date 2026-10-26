@@ -1,9 +1,9 @@
 //! The Blender Viewer's Rust half.
 //!
-//! `docs/KAAVA-UX-REWORK.md` §3.1-3.2: Blender is never embedded. This app
+//! `docs/VEISTRA-UX-REWORK.md` §3.1-3.2: Blender is never embedded. This app
 //! finds a Blender install, opens a `.blend` in the real editor (detached),
 //! and runs `blender -b` with a bundled script to *export*: a `.glb`, preview
-//! renders and a parts list, cached under `.kaava/blender/`. The viewer shows
+//! renders and a parts list, cached under `.veistra/blender/`. The viewer shows
 //! that export and its age, never the live scene. The machinery is in
 //! [`crate::blender`]; this file is the RPC surface over it.
 //!
@@ -17,11 +17,11 @@ use crate::blender::job::{Jobs, Spec};
 use crate::blender::{self, keys, Manifest};
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine as _;
-use kaava_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tauri::{AppHandle, Manager};
+use veistra_rpc::{RpcError, INTERNAL_ERROR, INVALID_PARAMS, METHOD_NOT_FOUND};
 
 /// The settings this app reads, gathered once per call.
 #[derive(Debug, Clone, Default)]
@@ -319,8 +319,8 @@ fn export_start(
 
     let cache = blender::cache_dir(project, &rel);
     let export_dir = services.config.export_dir.trim();
-    // The cache is Kaava state and always allowed. A .glb written into the
-    // checkout is a write to it, which main refuses (docs/KAAVA-UX-REWORK.md §2.3).
+    // The cache is Veistra state and always allowed. A .glb written into the
+    // checkout is a write to it, which main refuses (docs/VEISTRA-UX-REWORK.md §2.3).
     if !export_dir.is_empty() && services.read_only {
         return Err(RpcError::new(
             crate::apps::READ_ONLY,
@@ -582,7 +582,7 @@ mod tests {
             None,
         )
         .expect_err("unknown method");
-        assert_eq!(err.code, kaava_rpc::METHOD_NOT_FOUND);
+        assert_eq!(err.code, veistra_rpc::METHOD_NOT_FOUND);
     }
 
     #[test]
@@ -660,7 +660,7 @@ mod tests {
         assert_eq!(err.code, crate::apps::READ_ONLY);
         assert!(!env.path().join("assets").exists());
 
-        // Same main, no export folder: the cache is Kaava state and is allowed.
+        // Same main, no export folder: the cache is Veistra state and is allowed.
         let started = dispatch(
             &context(env.path()),
             &fx.services(config_with(&exe), true),
@@ -841,7 +841,7 @@ mod tests {
         );
     }
 
-    // Opt-in: a real Blender. These run only with `KAAVA_TEST_REAL_BLENDER=1`
+    // Opt-in: a real Blender. These run only with `VEISTRA_TEST_REAL_BLENDER=1`
     // and a Blender that `detect` can find; anywhere else they return at once,
     // so CI needs neither. The mocked tests above cannot notice the export
     // script disagreeing with a real `bpy`.
@@ -868,12 +868,12 @@ bpy.ops.wm.save_as_mainfile(filepath=sys.argv[-1])
 "#;
 
     fn real_blender() -> Option<PathBuf> {
-        if std::env::var("KAAVA_TEST_REAL_BLENDER").as_deref() != Ok("1") {
+        if std::env::var("VEISTRA_TEST_REAL_BLENDER").as_deref() != Ok("1") {
             return None;
         }
         let found = detect::find(&RealHost, "").hit;
         if found.is_none() {
-            eprintln!("KAAVA_TEST_REAL_BLENDER is set but no Blender was found; skipping");
+            eprintln!("VEISTRA_TEST_REAL_BLENDER is set but no Blender was found; skipping");
         }
         found.map(|(_, path)| path)
     }

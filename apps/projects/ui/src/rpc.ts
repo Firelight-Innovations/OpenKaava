@@ -3,14 +3,14 @@
  *
  * The shapes mirror `src-tauri/src/apps/projects.rs` and are restated rather
  * than imported, for the same reason as every other app's `rpc.ts`: an app
- * knows its host only through `@openkaava/bridge`.
+ * knows its host only through `@veistra/bridge`.
  */
-import { KaavaRpcError, invoke } from "@openkaava/bridge";
+import { VeistraRpcError, invoke } from "@veistra/bridge";
 
 // --- projects/list --------------------------------------------------------
 
-/** `OPENKAAVA-PLANE-DESIGN.md` §3.1, restated field for field — snake_case
- * because the record is written by `kaava-project` (Python), not by this
+/** `VEISTRA-PLANE-DESIGN.md` §3.1, restated field for field — snake_case
+ * because the record is written by `veistra-project` (Python), not by this
  * app, and the schema is one thing regardless of which side reads it. */
 export interface PlaneProjectRef {
   workspace: string;
@@ -124,7 +124,7 @@ export type Trouble =
   | { kind: "planeAsleep"; detail: string };
 
 export function troubleOf(error: unknown): Trouble | null {
-  if (!(error instanceof KaavaRpcError)) return null;
+  if (!(error instanceof VeistraRpcError)) return null;
   const data = error.data as { kind?: unknown } | undefined;
   return data && typeof data.kind === "string" ? (data as Trouble) : null;
 }

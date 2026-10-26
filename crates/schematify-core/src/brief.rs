@@ -1,7 +1,7 @@
 //! The project brief of PRD section 5.12.
 //!
 //! One file, `brief.json`, human-authored, holding what the product is for.
-//! It is the only semantic file in `.kaava/` not addressed by a UUID, because
+//! It is the only semantic file in `.veistra/` not addressed by a UUID, because
 //! there is exactly one of it.
 //!
 //! A success metric carries a number and a unit rather than a sentence. A

@@ -5,7 +5,7 @@
  * Every colour below is a token from src/tokens.css. The single exception is the
  * backdrop's wash, which is a scrim rather than a colour — see the note on it.
  * Buttons, badges, the switch, field inputs, the segmented track and the menu
- * are the design system's own `.k-*` classes from src/kaava-ui.css; this file
+ * are the design system's own `.k-*` classes from src/veistra-ui.css; this file
  * only lays them out.
  *
  * No transition and no animation anywhere in this file, on anything. The

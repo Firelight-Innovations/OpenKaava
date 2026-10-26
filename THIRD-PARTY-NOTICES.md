@@ -20,12 +20,12 @@ does not grant. This one covers everyone else's.
 - **Upstream:** <https://github.com/stablyai/orca>
 - **License:** MIT
 - **Copyright:** © Stably AI
-- **Used in:** OpenKaava's Design Mode
+- **Used in:** Veistra's Design Mode
 
 Orca is an open-source Electron application that runs coding agents in git
 worktrees. Its "Design Mode" — click an element in an embedded browser, send
 its markup, styles and a cropped screenshot to an agent — is the feature
-OpenKaava's Design Mode is adapted from.
+Veistra's Design Mode is adapted from.
 
 What was carried across is the **approach and the data model**, and in places
 the shape of the code: a full-viewport click catcher in a closed shadow root,

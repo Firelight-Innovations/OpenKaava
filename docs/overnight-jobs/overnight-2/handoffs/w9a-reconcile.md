@@ -1,12 +1,12 @@
-# Wave 9a handoff — marker scanning and `kaava reconcile`
+# Wave 9a handoff — marker scanning and `veistra reconcile`
 
 ## What was built
 
 `crates/schematify-reconcile`, a new workspace member (picked up automatically
 by the existing `crates/*` glob — no root `Cargo.toml` edit). Six library
-modules plus a `kaava` binary target:
+modules plus a `veistra` binary target:
 
-- `token.rs` — the `@kaava:<uuid> <slug>` marker grammar (PRD section 9.1), a
+- `token.rs` — the `@veistra:<uuid> <slug>` marker grammar (PRD section 9.1), a
   compiled `Regex` built once per scan, and `parse_token`/`parse_captures` for
   testing the grammar directly.
 - `scan.rs` — `scan_tree(root) -> ScanResult`, walking with `ignore::WalkBuilder`
@@ -19,9 +19,9 @@ modules plus a `kaava` binary target:
   carrying its evidence (`EvidenceSite` — file and line).
 - `reconcile.rs` — `reconcile(root, graph) -> ReconcileRun`, the comparison
   that turns a scan plus a graph into outcomes; `has_error`/`exit_code`.
-- `report.rs` — `write_run_files` (the `.kaava/runs/<node-uuid>/reconcile.json`
+- `report.rs` — `write_run_files` (the `.veistra/runs/<node-uuid>/reconcile.json`
   writer) and `render_text`/`render_json` for the `--out` report.
-- `src/bin/kaava.rs` — `kaava reconcile [--root <path>] [--out <path>]
+- `src/bin/veistra.rs` — `veistra reconcile [--root <path>] [--out <path>]
   [--format text|json]`.
 
 ## Fixes from the Opus review of this PR
@@ -29,26 +29,26 @@ modules plus a `kaava` binary target:
 Five findings came back, two of them correctness bugs. All five are fixed in
 this commit:
 
-1. **Run artifacts landed at `<root>/runs/`, not `<root>/.kaava/runs/`.** PRD
-   section 6.1 puts `runs/` inside `.kaava/`, beside `nodes/` — which
+1. **Run artifacts landed at `<root>/runs/`, not `<root>/.veistra/runs/`.** PRD
+   section 6.1 puts `runs/` inside `.veistra/`, beside `nodes/` — which
    `graph.rs`'s own loader already read from correctly. Fixed in `report.rs`
    (`write_run_files`) and the CLI test that asserted the old path.
-2. **The scanner read `.kaava` and `.git` as source.** A `test-case` facet's
+2. **The scanner read `.veistra` and `.git` as source.** A `test-case` facet's
    `impl_ref` field (PRD 5.5/5.10) can hold the same marker text the scanner
    looks for, so the node file itself counted as a second occurrence and a
    correct project reported a false `duplicate` and exited 1. `scan.rs`'s
-   `ALWAYS_SKIP_DIRS` now excludes `.kaava` and `.git` alongside
-   `node_modules`/`target`; `scan::tests::a_marker_inside_kaava_or_git_produces_no_occurrence`
+   `ALWAYS_SKIP_DIRS` now excludes `.veistra` and `.git` alongside
+   `node_modules`/`target`; `scan::tests::a_marker_inside_veistra_or_git_produces_no_occurrence`
    covers it directly. Fixed together with finding 1, since moving `runs/`
-   inside `.kaava` would have made the false duplicate worse otherwise.
-3. **`kaava reconcile` returned exit code 2 when writing results failed**,
+   inside `.veistra` would have made the false duplicate worse otherwise.
+3. **`veistra reconcile` returned exit code 2 when writing results failed**,
    colliding with PRD section 9.3's exit code 2, which is reserved for "the
    command read no project at that path." A write failure happens after the
    project read fine and reconciliation completed — a different failure
    class. It now uses exit code 3 (`EXIT_RESULT_NOT_WRITTEN` in
-   `src/bin/kaava.rs`), a code the PRD does not claim; covered by
+   `src/bin/veistra.rs`), a code the PRD does not claim; covered by
    `tests/cli_reconcile.rs::a_result_write_failure_exits_3_not_2`, which
-   blocks `.kaava/runs/` from being created and asserts `Some(3)`.
+   blocks `.veistra/runs/` from being created and asserts `Some(3)`.
 4. **`uuid`'s `v4` feature was enabled but unused** (nothing in this crate
    generates a UUID; every one is parsed from a marker or a node file).
    Dropped from `Cargo.toml`, keeping only `serde`.
@@ -76,11 +76,11 @@ more than its code.
 
 Two callers use this trait: `reconcile::reconcile(root: &Path, graph: &dyn
 GraphLookup) -> ReconcileRun` (the comparison logic) and
-`src/bin/kaava.rs::run_reconcile`, which today constructs `JsonFileGraph::load(&root)`
+`src/bin/veistra.rs::run_reconcile`, which today constructs `JsonFileGraph::load(&root)`
 and would instead construct the real graph. `schematify_reconcile_status`
 (the Tauri command PRD section 9.3 names) is expected to call
 `report::write_run_files`'s output — it reads
-`.kaava/runs/<node-uuid>/reconcile.json` off disk rather than calling into
+`.veistra/runs/<node-uuid>/reconcile.json` off disk rather than calling into
 this crate directly ("Schematify shall never scan the working tree from the
 interface process," PRD 9.3) — so the wiring wave's other job is on the
 `schematify-core`/Tauri side, not here.
@@ -118,7 +118,7 @@ explicit caller-supplied bit.
 | Condition | Status |
 |---|---|
 | `pnpm verify` passes | Pass — `build`, `test:js`, `lint:js` (0 errors), `lint:comments`, `lint:version`, `lint:identity`, `lint:branding`, `format:check` all green; `test:rust` (`cargo test --workspace`, 14 binaries, 0 failures) and `lint:rust` (`clippy-baseline.mjs`, 0 warnings above baseline) confirmed after the review fixes too |
-| Duplicate marker token → error, exit code 1 | Pass — `tests/cli_reconcile.rs::duplicate_marker_token_exits_1` spawns the real compiled `kaava` binary via `CARGO_BIN_EXE_kaava` and asserts `Some(1)`; now also confirmed not a false positive from the `.kaava`-scanning bug (finding 2) |
+| Duplicate marker token → error, exit code 1 | Pass — `tests/cli_reconcile.rs::duplicate_marker_token_exits_1` spawns the real compiled `veistra` binary via `CARGO_BIN_EXE_veistra` and asserts `Some(1)`; now also confirmed not a false positive from the `.veistra`-scanning bug (finding 2) |
 | Every PRD 9.2 outcome reachable and tested | Pass — `Matched`, `DeclaredAbsent` (both `error: false` and `error: true`), `PresentUnknown`, `Duplicate` each have a direct unit test in `reconcile.rs`, plus `outcome.rs` tests each variant's `is_error`/`kind`/`drawn` mapping |
 | Crate compiles and tests without `crates/schematify-core` existing | Pass — that crate does not exist in this worktree; `schematify-reconcile` depends on nothing under `crates/` |
 
@@ -131,14 +131,14 @@ explicit caller-supplied bit.
    field on the node's own JSON, not by its `kind`. See "Widened the
    markable set" above for the reasoning and where to change it.
 2. **`reconcile.json`'s schema.** PRD 9.3 names the path, not the shape. It
-   is `{schema: "kaava-reconcile-v1", at: <rfc3339>, outcome: <the
+   is `{schema: "veistra-reconcile-v1", at: <rfc3339>, outcome: <the
    ReconcileOutcome, flattened>}`, mirroring how `run-<n>.json` carries a
    `schema` tag (section 5.10). Overwritten each run — the PRD gives this
    file no run number the way `run-<n>.json` has one.
 3. **Which node id a `runs/` directory is keyed by, for `present_unknown` and
    `duplicate`.** Section 9.3 says the command writes one file "for every
    node it touches." Read broadly: `present_unknown` and `duplicate` outcomes
-   key their `.kaava/runs/<id>/` directory by the marker's own id even though
+   key their `.veistra/runs/<id>/` directory by the marker's own id even though
    no graph node exists for it, rather than being omitted from the on-disk
    audit trail entirely.
 4. **Exit code 2 also covers a bad CLI argument**, not only "no project at
@@ -157,7 +157,7 @@ explicit caller-supplied bit.
    for a fresh scaffold or a checkout without `.git` — this also matches the
    task instruction, which named `.gitignore` unconditionally.
 7. **No `clap` dependency.** `--root`/`--out`/`--format` are hand-parsed in
-   `src/bin/kaava.rs`; `clap` is not yet in this workspace's dependency tree,
+   `src/bin/veistra.rs`; `clap` is not yet in this workspace's dependency tree,
    and three flags did not seem worth the addition or the `deny.toml` check.
 
 ## For the wiring wave: dependency consolidation, not yet done
@@ -176,7 +176,7 @@ four pins onto `[workspace.dependencies]` where an entry already exists.
 - **`schematify_reconcile_status`, the Tauri command PRD 9.3 names**, and any
   UI. Out of this wave's scope per the task brief (crate + CLI only); the
   wiring wave section above names what it would call.
-- **`kaava`'s other subcommands** (load-graph, lint, search, etc. from PRD
+- **`veistra`'s other subcommands** (load-graph, lint, search, etc. from PRD
   14.5/section 9 neighbors) — this binary has only `reconcile`; later waves
   add a subcommand by matching on it in `main`, no shared file to edit.
 - **Comment-syntax-aware scanning was deliberately not built.** The PRD states

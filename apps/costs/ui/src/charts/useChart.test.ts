@@ -37,7 +37,7 @@ vi.mock("echarts/components", () => ({
 vi.mock("echarts/renderers", () => ({ CanvasRenderer: {} }));
 
 // `useChart` re-inits on the shell's real theme broadcast now
-// (`@openkaava/bridge/theme`'s `onThemeChanged`), not a raw `message` event —
+// (`@veistra/bridge/theme`'s `onThemeChanged`), not a raw `message` event —
 // this stands in for the bridge so a test can fire that change itself,
 // without a real bridge client or transport.
 const theme = vi.hoisted(() => {
@@ -52,7 +52,7 @@ const theme = vi.hoisted(() => {
     }),
   };
 });
-vi.mock("@openkaava/bridge/theme", () => ({ onThemeChanged: theme.onThemeChanged }));
+vi.mock("@veistra/bridge/theme", () => ({ onThemeChanged: theme.onThemeChanged }));
 
 import { useChart } from "./useChart";
 

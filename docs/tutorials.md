@@ -61,10 +61,10 @@ tutorial is an array of them plus a one-sentence `takeaway`.
 | `heading` | A sub-heading | Sections inside one tutorial |
 | `step` | A numbered row, optionally with a chord | One thing to do |
 | `note` | An indented aside | True and useful, but not a step |
-| `soon` | An aside tagged **Not yet** | Something OpenKaava does not do |
+| `soon` | An aside tagged **Not yet** | Something Veistra does not do |
 | `code` | A monospace block | A command, or a file's contents |
 | `keys` | A two-column table | Chords, or any short glossary |
-| `mock` | A static picture of OpenKaava's UI, with an optional caption | Showing a part of the interface instead of describing it |
+| `mock` | A static picture of Veistra's UI, with an optional caption | Showing a part of the interface instead of describing it |
 | `flow` | Steps in a row, joined by `→` | A short path, where numbering would overstate the ceremony |
 
 Steps are numbered by position at render time, not by hand, so inserting one in
@@ -102,13 +102,13 @@ when it is.
 
 A tutorial that tells you to click **Open Project** is easier to follow if you
 have also *seen* where that button is. `mock` is for exactly that: a small,
-static, deliberately inert picture of a piece of OpenKaava's UI — a bar, a panel,
+static, deliberately inert picture of a piece of Veistra's UI — a bar, a panel,
 a tree — sitting inline in the prose the way a screenshot would, without being
 one.
 
 Not a screenshot, on purpose. A captured pixel grid goes stale the moment the
 interface it was taken from changes, silently, with nothing to fail — the
-tutorial would keep shipping a picture of an OpenKaava that no longer exists. A
+tutorial would keep shipping a picture of a Veistra that no longer exists. A
 mock is source: `apps/tutorial/ui/src/mocks/chrome.tsx` declares a small set
 of primitives — a window frame, a band, a labelled arrow, a chip, a tab, a
 tree row — built only from `src/tokens.css`'s own colours, and every one of
@@ -152,7 +152,7 @@ Tutorial {
 - `blurb` is one sentence, second person, saying what the reader will be able to
   do. It is drawn under the title on the card, so it must not repeat it — there
   is a test.
-- `minutes` is an honest figure for somebody who has not seen OpenKaava before.
+- `minutes` is an honest figure for somebody who has not seen Veistra before.
 - `after` names the tutorial this one reads best *after*, and drives the "Next"
   button at the foot of the page. `None` for one that stands alone.
 
@@ -197,7 +197,7 @@ The rules the existing ten follow. They are conventions, not enforced.
 3. **Explain the rule, not just the gesture.** "Panes split along the longer
    axis" is worth more than "drag here", because it predicts the next case.
 4. **The takeaway is a capability, not a summary.** "You can open a folder as a
-   project, and you know which two things OpenKaava wrote into it" — something the
+   project, and you know which two things Veistra wrote into it" — something the
    reader can check.
 5. **Steps are things to do.** If a block is not an action, it is `text`.
 
@@ -221,8 +221,8 @@ by a build that dropped a tutorial cannot make Home count to eleven out of ten.
 
 ## 7. How Home opens one
 
-Home calls `openIn("tutorial", { tutorialId })` from `@openkaava/bridge` — the same
-`kaava/open` path the File Explorer uses to put a file in the File Viewer.
+Home calls `openIn("tutorial", { tutorialId })` from `@veistra/bridge` — the same
+`veistra/open` path the File Explorer uses to put a file in the File Viewer.
 
 Home names a **kind** of app, never a particular surface. Which Tutorials pane
 answers is a fact about the layout that only the shell can see, and the shell
@@ -276,7 +276,7 @@ has no other; a cluster that already had a Home keeps it when uncovered, because
 that door costs nothing to take again.
 
 Tutorials' door is Home's right-hand column: a card opens one tutorial, and the
-link under them opens the index. Both go through `kaava/open`.
+link under them opens the index. Both go through `veistra/open`.
 
 Neither surface appears in the title bar's Apps menu or the switcher's `+`.
 `appsHandlers.available` in `WindowRoot.tsx` filters both out of the one list
@@ -284,7 +284,7 @@ that feeds both menus. A menu row would be a second door doing the same "find
 it, or open one" job as the first, and two doors agree only by luck.
 
 **Rust still registers Tutorials as an ordinary app**, and `apps::openables`
-still lists it. That is what makes `kaava/open` resolve a frontend for it — the
+still lists it. That is what makes `veistra/open` resolve a frontend for it — the
 filtering is a fact about which menus offer it, not about what it is. Dropping
 it from the registry would take the app with it.
 
@@ -298,7 +298,7 @@ pane nobody can reach.
 - **No search within the tutorials.** Ten pages with a contents rail beside them
   is not a corpus. This becomes worth building somewhere around thirty.
 - **No interactive checkpoints.** "Mark as done" is the reader's assertion, not
-  OpenKaava's observation. Checking whether somebody really opened a project would
+  Veistra's observation. Checking whether somebody really opened a project would
   mean the tutorial app watching the rest of the application, which is a
   surveillance surface bought for a tick.
 - **No ordering enforcement.** `after` is a suggestion and nothing is locked. A

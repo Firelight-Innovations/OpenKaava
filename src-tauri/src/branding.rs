@@ -4,7 +4,7 @@
 //! `project::retitle` writes, the title a detached window is built with, and the
 //! caption on the folder picker Home raises.
 //!
-//! **Embedded at compile time, unlike `kaava.toml`.** The manifest is located on
+//! **Embedded at compile time, unlike `veistra.toml`.** The manifest is located on
 //! disk at run time because it points at checkouts that differ per machine.
 //! Branding is the opposite: Tauri bakes `productName` and the window title into
 //! the bundle when it is built, so a name read at run time could disagree with
@@ -58,7 +58,7 @@ mod tests {
     }
 
     /// The bug this module was written for: the title bar and the About item
-    /// both used to call the shell an engine. OpenKaava is an ADE — it hosts the
+    /// both used to call the shell an engine. Veistra is an ADE — it hosts the
     /// tools you work in, and is not a runtime that anything ships on top of.
     /// The guard stays because the wrong name is easy to reintroduce and reads
     /// as authoritative wherever it appears.

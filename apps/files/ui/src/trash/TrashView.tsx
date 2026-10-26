@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { PRODUCT_NAME } from "../branding.generated";
 import NoticeBar, { type Notice } from "../NoticeBar";
-import { fileIconUrl, folderIconUrl } from "@openkaava/file-icons";
+import { fileIconUrl, folderIconUrl } from "@veistra/file-icons";
 import {
   describe,
   formatSize,

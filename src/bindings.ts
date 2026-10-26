@@ -35,7 +35,7 @@ export interface ResolvedTool {
   name: string;
   kind: ToolKind;
   repo: string;
-  /** The version pinned in kaava.toml. */
+  /** The version pinned in veistra.toml. */
   version: string;
   description: string;
   path: string | null;
@@ -53,7 +53,7 @@ export interface StackSnapshot {
   tools: ResolvedTool[];
 }
 
-/** Re-read kaava.toml and re-scan the disk. Also serves as "refresh". */
+/** Re-read veistra.toml and re-scan the disk. Also serves as "refresh". */
 export function loadStack(): Promise<StackSnapshot> {
   return invoke<StackSnapshot>("load_stack");
 }
@@ -161,7 +161,7 @@ export interface PluginSurface {
   address: string;
   name: string;
   description: string;
-  /** In the Apps menu, or only reachable through `kaava/open`. */
+  /** In the Apps menu, or only reachable through `veistra/open`. */
   listed: boolean;
 }
 
@@ -264,7 +264,7 @@ export interface GoogleAuthStatus {
   pending: boolean;
 }
 
-/** Who is signed in to OpenKaava's own Google sign-in. No network. */
+/** Who is signed in to Veistra's own Google sign-in. No network. */
 export function googleAuthStatus(): Promise<GoogleAuthStatus> {
   return invoke<GoogleAuthStatus>("google_auth_status");
 }
@@ -375,9 +375,9 @@ export function onPluginsChanged(cb: () => void): Promise<UnlistenFn> {
  *
  * Called by `ToolWindow`, which is the only thing that knows which mounted
  * frame a message came from, and never by an app itself — an app calls
- * `invoke` from `@openkaava/bridge` and the shell relays it here. A rejection
+ * `invoke` from `@veistra/bridge` and the shell relays it here. A rejection
  * carries `{ code, message, data? }`, the JSON-RPC error object the bridge
- * turns back into a `KaavaRpcError`.
+ * turns back into a `VeistraRpcError`.
  */
 export function appCall(
   id: string,
@@ -473,7 +473,7 @@ export function setClusterProject(clusterId: string, path: string | null): Promi
  * are left out. `open`/`clusterCount`/`environmentCount` answer for *this
  * session* only: a project nobody has opened since launch reads as closed,
  * even if it looked busy last time — there is no persisted per-project
- * workspace yet (KAAVA-UX-REWORK.md §6) for a closed one to draw from.
+ * workspace yet (VEISTRA-UX-REWORK.md §6) for a closed one to draw from.
  */
 export interface RecentProjectRow {
   name: string;
@@ -488,7 +488,7 @@ export interface RecentProjectRow {
   environmentCount: number;
 }
 
-/** Every project OpenKaava remembers opening, each with how much of it is
+/** Every project Veistra remembers opening, each with how much of it is
  *  live right now. See `commands::list_recent_projects`. */
 export function listRecentProjects(): Promise<RecentProjectRow[]> {
   return invoke<RecentProjectRow[]>("list_recent_projects", {});
@@ -554,7 +554,7 @@ export function onAgentTabModels(cb: (payload: unknown) => void): Promise<Unlist
   return listen<unknown>(AGENT_TAB_MODELS, (e) => cb(e.payload));
 }
 
-/** A project's `.kaava/icon.*` as a `data:` URL, or `null` for "draw the
+/** A project's `.veistra/icon.*` as a `data:` URL, or `null` for "draw the
  *  letter tile". Mirrors `commands::project_icon`. */
 export function projectIcon(path: string): Promise<string | null> {
   return invoke<string | null>("project_icon", { path });
@@ -599,7 +599,7 @@ export function onProjectIconChanged(
  */
 export interface WorktreeRef {
   path: string;
-  /** `null` for a detached HEAD — a state OpenKaava never creates but can find. */
+  /** `null` for a detached HEAD — a state Veistra never creates but can find. */
   branch: string | null;
   /** The branch this one was forked from, recorded at creation. `null` for a
    *  worktree old enough to predate the field, or one this build never made. */
@@ -807,7 +807,7 @@ export function gitWorktreeRemove(clusterId: string, force: boolean): Promise<vo
  * report what it is bound to afterwards.
  *
  * Worth calling on a cluster switch and after anything that could have removed
- * a directory from outside OpenKaava. Cheap — a `is_dir` check, and a git spawn
+ * a directory from outside Veistra. Cheap — a `is_dir` check, and a git spawn
  * only in the case where the answer turns out to be "gone".
  */
 export function gitWorktreeReconcile(clusterId: string): Promise<WorktreeRef | null> {
@@ -854,7 +854,7 @@ export function gitDivergenceDiff(
 /* --- review comments ---------------------------------------------------------
  *
  * Notes a person left on lines of a diff, so an agent can be handed them.
- * Mirrors `src-tauri/src/review/`, which keeps them in `.kaava/` inside the
+ * Mirrors `src-tauri/src/review/`, which keeps them in `.veistra/` inside the
  * checkout — cluster-scoped for the same reason every git command is, so the
  * frontend never names a directory for the backend to write in.
  */
@@ -1046,7 +1046,7 @@ export function githubOpenInBrowser(url: string): Promise<void> {
  * Tell the backend that a first-party app's UI has drawn its first meaningful
  * frame.
  *
- * Called by `ToolWindow` when an app frame sends `kaava/painted`, and by
+ * Called by `ToolWindow` when an app frame sends `veistra/painted`, and by
  * nothing else: the id is the one the shell resolved from the frame the message
  * arrived on, never one an app named for itself. Boot holds the splash window
  * until every app has reported (`src-tauri/src/boot.rs`), so this is what
@@ -1108,7 +1108,7 @@ export function bootStatus(): Promise<BootStatus> {
 
 /* --- launched with a path ----------------------------------------------------
  *
- * Explorer's "Open with OpenKaava". Rust has already opened a folder as a project
+ * Explorer's "Open with Veistra". Rust has already opened a folder as a project
  * by the time either of these is called; what reaches the shell is a *file*,
  * and only `ToolWindow` can decide which viewer shows it. See `launch.rs`.
  */
@@ -1126,9 +1126,9 @@ export function takeLaunchTarget(): Promise<LaunchTarget | null> {
   return invoke<LaunchTarget | null>("take_launch_target");
 }
 
-/** A *second* "Open with OpenKaava", routed here by single-instance rather than run. */
+/** A *second* "Open with Veistra", routed here by single-instance rather than run. */
 export function onLaunchTarget(cb: () => void): Promise<UnlistenFn> {
-  return listen<unknown>("kaava://launch-target", () => cb());
+  return listen<unknown>("veistra://launch-target", () => cb());
 }
 
 /** One webview failure into Rust's ring buffer. Swallows its own failure — the caller is an error handler. */
@@ -1530,7 +1530,7 @@ export function listClusterEnvironments(project: string): Promise<Environment[]>
 /**
  * Create `wt/design` for a project that doesn't have one yet, and pin the
  * Design canvas cluster onto it in the calling window — the "offered but not
- * auto-created" half of the canvas (KAAVA-UX-REWORK.md §5). Mirrors
+ * auto-created" half of the canvas (VEISTRA-UX-REWORK.md §5). Mirrors
  * `commands::create_design_cluster`. Resolves to the new cluster's id, or
  * `null` if this window already has a pinned cluster (idempotent per window,
  * same as the auto-created path).
@@ -1632,12 +1632,12 @@ export function setWindowGeometry(label: string, geometry: WindowGeometry): Prom
   return invoke("set_window_geometry", { label, geometry });
 }
 
-/** Which OpenKaava window the cursor is over, or `null` if it is over none of them. */
+/** Which Veistra window the cursor is over, or `null` if it is over none of them. */
 export function windowAtCursor(): Promise<string | null> {
   return invoke<string | null>("window_at_cursor");
 }
 
-/** Drop a terminal into any OpenKaava window's terminal band, including this one. */
+/** Drop a terminal into any Veistra window's terminal band, including this one. */
 export function moveTerminal(id: string, toLabel: string): Promise<void> {
   return invoke("move_terminal", { id, toLabel });
 }
@@ -1863,7 +1863,7 @@ export function onContextChanged(cb: () => void): Promise<UnlistenFn> {
   return listen("context:changed", () => cb());
 }
 
-/* --- files dragged in from outside OpenKaava ------------------------------------
+/* --- files dragged in from outside Veistra ------------------------------------
  *
  * Not a command and not one of our own events: the operating system's own drag,
  * reported by the webview through Tauri. It is the one drag in the shell that
@@ -2147,7 +2147,7 @@ export function onUpdateChanged(cb: (state: UpdateState) => void): Promise<Unlis
 
 /* --- MCP -------------------------------------------------------------------
  *
- * The servers OpenKaava hosts for whatever coding agent is running in one of its
+ * The servers Veistra hosts for whatever coding agent is running in one of its
  * terminals. Design and the rule about what may be added are in
  * `docs/mcp-server-manager.md`.
  */
@@ -2160,7 +2160,7 @@ export interface McpServerInfo {
   enabled: boolean;
   /** The route it answers on, `/mcp/<id>`. Shown so a connection can be checked by hand. */
   path: string;
-  /** The key it takes in a project's `.mcp.json`, `kaava-<id>`. */
+  /** The key it takes in a project's `.mcp.json`, `veistra-<id>`. */
   configKey: string;
   toolCount: number;
   /** Only `developer.mode` reveals this one. Rust has already filtered the list; this marks it. */
@@ -2295,7 +2295,7 @@ export function searchContent(
   });
 }
 
-/** Whether Kaava's "Agent saw" hook is in this environment's Claude settings. */
+/** Whether Veistra's "Agent saw" hook is in this environment's Claude settings. */
 export interface AgentSawStatus {
   installed: boolean;
   /** The settings file that is, or would be, edited. */

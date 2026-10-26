@@ -53,7 +53,7 @@ vi.mock("echarts/components", () => ({
 vi.mock("echarts/renderers", () => ({ CanvasRenderer: {} }));
 
 const bridge = vi.hoisted(() => {
-  class KaavaRpcError extends Error {
+  class VeistraRpcError extends Error {
     constructor(
       readonly code: number,
       message: string,
@@ -62,14 +62,14 @@ const bridge = vi.hoisted(() => {
       super(message);
     }
   }
-  return { invoke: vi.fn(), KaavaRpcError };
+  return { invoke: vi.fn(), VeistraRpcError };
 });
 
-vi.mock("@openkaava/bridge", () => ({
+vi.mock("@veistra/bridge", () => ({
   invoke: bridge.invoke,
-  KaavaRpcError: bridge.KaavaRpcError,
+  VeistraRpcError: bridge.VeistraRpcError,
   reportPainted: vi.fn(),
-  // `@openkaava/bridge/theme` (`useChart` and `CostCharts`' own theme
+  // `@veistra/bridge/theme` (`useChart` and `CostCharts`' own theme
   // re-read) compiles to a relative import of this same module's `on` —
   // a no-op subscription is enough; the theme-change re-init itself is
   // `useChart.test.ts`'s own unit test, not this page-level one.
@@ -105,7 +105,7 @@ const estimate: Estimate = {
       forecast: 33.22,
       lines: [
         {
-          resource: "kaava-worker",
+          resource: "veistra-worker",
           detail: "e2-standard-8 · us-central1-a · running",
           item: "vCPU",
           quantityToDate: 960,
@@ -118,7 +118,7 @@ const estimate: Estimate = {
           note: null,
         },
         {
-          resource: "kaava-worker",
+          resource: "veistra-worker",
           detail: "e2-standard-8 · us-central1-a · running",
           item: "Memory",
           quantityToDate: 3840,
@@ -194,7 +194,7 @@ describe("Cost Tracker", () => {
     expect(bridge.invoke).toHaveBeenCalledWith("costs/estimate", undefined, 90_000);
 
     const machines = screen.getByRole("region", { name: "Machines" });
-    expect(within(machines).getAllByText("kaava-worker")).toHaveLength(1);
+    expect(within(machines).getAllByText("veistra-worker")).toHaveLength(1);
     expect(within(machines).getByText("$0.0218 / vCPU·h")).toBeTruthy();
     expect(within(machines).getByText("960 vCPU·h")).toBeTruthy();
   });
@@ -261,7 +261,7 @@ describe("Cost Tracker", () => {
 
   it("draws the fix when gcloud is signed out", async () => {
     bridge.invoke.mockRejectedValue(
-      new bridge.KaavaRpcError(-32603, "gcloud is not signed in", {
+      new bridge.VeistraRpcError(-32603, "gcloud is not signed in", {
         kind: "signedOut",
         detail: "no account",
       }),
@@ -338,7 +338,7 @@ describe("Cost Tracker", () => {
 
   it("ends the wait in a timed-out state with Retry when the bridge gives up", async () => {
     bridge.invoke.mockImplementation(() =>
-      Promise.reject(new bridge.KaavaRpcError(-32001, "request timed out")),
+      Promise.reject(new bridge.VeistraRpcError(-32001, "request timed out")),
     );
     render(<App />);
     expect(await screen.findByText("Reading Cost timed out")).toBeTruthy();
@@ -347,7 +347,9 @@ describe("Cost Tracker", () => {
 
   it("says which account to check when Google Cloud denies the read", async () => {
     bridge.invoke.mockImplementation(() =>
-      Promise.reject(new bridge.KaavaRpcError(-32603, "refused", { kind: "denied", detail: "no" })),
+      Promise.reject(
+        new bridge.VeistraRpcError(-32603, "refused", { kind: "denied", detail: "no" }),
+      ),
     );
     render(<App />);
     expect(await screen.findByText("This Google account may not read that")).toBeTruthy();
@@ -356,7 +358,7 @@ describe("Cost Tracker", () => {
 
   it("tells you to install the CLI when gcloud is missing", async () => {
     bridge.invoke.mockImplementation(() =>
-      Promise.reject(new bridge.KaavaRpcError(-32603, "no gcloud", { kind: "gcloudMissing" })),
+      Promise.reject(new bridge.VeistraRpcError(-32603, "no gcloud", { kind: "gcloudMissing" })),
     );
     render(<App />);
     expect(await screen.findByText("The Google Cloud CLI is not installed")).toBeTruthy();

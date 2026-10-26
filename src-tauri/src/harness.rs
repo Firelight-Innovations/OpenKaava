@@ -3,7 +3,7 @@
 //!
 //! Quoting a path for the *shell* is `quoting.rs`. This is the layer above it:
 //! inside `claude` the line is read as prose and `@` mentions, and a path quoted
-//! for PowerShell is noise there. See `docs/design/KAAVA-AGENT-CONTEXT.md` §4.3.
+//! for PowerShell is noise there. See `docs/design/VEISTRA-AGENT-CONTEXT.md` §4.3.
 //!
 //! Detection is on demand (a drop, a paste), never a timer: walk the shell's
 //! descendants once and match by executable name and command line. A per-tab
@@ -248,14 +248,14 @@ mod tests {
 
     #[test]
     fn claude_gets_an_at_mention_relative_to_its_own_cwd() {
-        let paths = vec![under(".kaava/context/20260930-shot-ab12.png")];
+        let paths = vec![under(".veistra/context/20260930-shot-ab12.png")];
         let text = reference(
             Harness::Claude,
             ShellFamily::PowerShell,
             Some(&base()),
             &paths,
         );
-        assert_eq!(text, "@.kaava/context/20260930-shot-ab12.png ");
+        assert_eq!(text, "@.veistra/context/20260930-shot-ab12.png ");
     }
 
     #[test]

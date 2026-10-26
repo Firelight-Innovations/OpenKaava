@@ -367,13 +367,13 @@ class Watcher:
 def load_config(env=os.environ):
     return {
         "plane_url": env.get("PLANE_URL", "http://proxy:80"),
-        "plane_host": env.get("PLANE_HOST", "plane.kaava.internal:8765"),
+        "plane_host": env.get("PLANE_HOST", "plane.veistra.internal:8765"),
         "workspace": env.get("PLANE_WORKSPACE", "veistra"),
-        "token_secret": env.get("PLANE_TOKEN_SECRET", "plane-pat-kaava"),
-        "bucket": env.get("KAAVA_PROJECTS", "veistra-projects"),
-        "profile": env.get("KAAVA_PROFILE", "prod"),
-        "worker": env.get("KAAVA_WORKER", "kaava-worker"),
-        "zone": env.get("KAAVA_ZONE", "us-central1-a"),
+        "token_secret": env.get("PLANE_TOKEN_SECRET", "plane-pat-veistra"),
+        "bucket": env.get("VEISTRA_PROJECTS", "veistra-projects"),
+        "profile": env.get("VEISTRA_PROFILE", "prod"),
+        "worker": env.get("VEISTRA_WORKER", "veistra-worker"),
+        "zone": env.get("VEISTRA_ZONE", "us-central1-a"),
         "state_dir": env.get("STATE_DIR", "/state"),
         "interval": int(env.get("INTERVAL", "60")),
     }

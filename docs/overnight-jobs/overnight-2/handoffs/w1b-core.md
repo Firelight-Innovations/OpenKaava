@@ -7,7 +7,7 @@ root `Cargo.toml`. No app, no `src-tauri/`, no `catalog.toml`, no
 types.
 
 Branch `schematify/w1b-core`, pull request
-<https://github.com/Firelight-Innovations/OpenKaava/pull/80>.
+<https://github.com/Firelight-Innovations/Veistra/pull/80>.
 
 ---
 
@@ -58,7 +58,7 @@ differ.
 | `write_json_atomic(&Path, &T)` | Temporary file in the same directory, `sync_all`, rename. Pretty-printed with a trailing newline. |
 | `AtomicWriteError` | Names the step that failed. |
 | `Store::open(project_root)` | Everything below hangs off this. |
-| `.kaava_dir()`, `.node_path(id)`, `.edge_path`, `.screen_path`, `.flow_path`, `.decision_path`, `.rule_path`, `.libraries_path()`, `.brief_path()`, `.layout_path(slug)`, `.run_path(node, n)`, `.audit_path(node)` | PRD 6.1 as functions. |
+| `.veistra_dir()`, `.node_path(id)`, `.edge_path`, `.screen_path`, `.flow_path`, `.decision_path`, `.rule_path`, `.libraries_path()`, `.brief_path()`, `.layout_path(slug)`, `.run_path(node, n)`, `.audit_path(node)` | PRD 6.1 as functions. |
 | `.init()` | Creates the nine directories. |
 | `.write_node`, `.write_edge`, `.write_screen`, `.write_flow`, `.write_decision`, `.write_rule`, `.write_libraries`, `.write_layout`, `.write_run` | Atomic writes. `write_edge` returns `false` for a `contains` edge and writes nothing. `write_run` refuses an unknown schema before touching the disk. |
 | `.write_transition(&mut Node, to, actor, actor_name, at, reason) -> Result<AuditRow>` | The PRD 6.3 pair. Checks the transition first, so an illegal one writes nothing. |
@@ -69,7 +69,7 @@ differ.
 
 | Item | What it is |
 |---|---|
-| `load_project(&Path) -> Result<LoadOutcome>` | Walks `.kaava/`. The only error is `CoreError::NoProject`. |
+| `load_project(&Path) -> Result<LoadOutcome>` | Walks `.veistra/`. The only error is `CoreError::NoProject`. |
 | `LoadOutcome { graph, report }` | |
 | `Report { quarantined, unreadable, slug_collisions, id_collisions, misnamed, slug_index, duration_ms }` | `.is_clean()`, `.slug_owner(scope, slug)`. |
 | `IdCollision { id, kept, discarded }`, `MisnamedFile { id, file }` | Two files claiming one identifier, and a filename disagreeing with the identifier inside it. |
@@ -198,7 +198,7 @@ Dropping the node would put its own children out of reach and turn one dangling
 reference into a cascade of them. `Graph::is_quarantined` is how a surface finds
 out; the node is still addressable.
 
-**`load_project` returns one error.** Only "there is no `.kaava/` here". A
+**`load_project` returns one error.** Only "there is no `.veistra/` here". A
 malformed file, a dangling reference and a slug collision are all reported in
 the `Report` beside a graph that loaded, because a project that half-loads is
 worth drawing.
@@ -336,7 +336,7 @@ would have touched another wave's crate for no gain tonight.
 
 ## 10. Left undone
 
-- **`crates/schematify-reconcile` is not here.** PRD 9.3 puts the `kaava
+- **`crates/schematify-reconcile` is not here.** PRD 9.3 puts the `veistra
   reconcile` binary in its own crate, and wave 9 owns it. Nothing in this crate
   scans a working tree.
 - **`packages/schematify-ui` is not here.** PRD wave 1 lists it; it is the

@@ -14,7 +14,7 @@
  * `OPENED_EVENT` in, `ACTIVE_PATH` and `DIRTY_PATHS` out, `TREE_CHANGE` both ways.
  */
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import { invoke, on, publish, reportPainted, subscribe, OPENED_EVENT } from "@openkaava/bridge";
+import { invoke, on, publish, reportPainted, subscribe, OPENED_EVENT } from "@veistra/bridge";
 import NoticeBar from "./NoticeBar";
 import { useMenuCommands } from "./commands";
 import { useDelete } from "./useDelete";
@@ -209,12 +209,12 @@ export default function App() {
       // never offered the next one. Not sent on mount, which would race a restore.
       if (hadFile.current) {
         hadFile.current = false;
-        void invoke("kaava/title", { title: "File Viewer", subject: null }).catch(() => {});
+        void invoke("veistra/title", { title: "File Viewer", subject: null }).catch(() => {});
       }
       return;
     }
     hadFile.current = true;
-    void invoke("kaava/title", {
+    void invoke("veistra/title", {
       title: activeName,
       subject: activePath,
       preview: activePreview && !activeDirty,

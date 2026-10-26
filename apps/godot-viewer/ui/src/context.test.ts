@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const invoke = vi.hoisted(() => vi.fn());
-vi.mock("@openkaava/bridge", () => ({ invoke }));
+vi.mock("@veistra/bridge", () => ({ invoke }));
 
-import type { MarkupJson } from "@kaava/markup";
+import type { MarkupJson } from "@veistra/markup";
 import { base64Blob, keepMarkup, markupJsonText, putFrame, putMarkup, treeText } from "./context";
 import type { GodotNode } from "./rpc";
 
@@ -70,7 +70,7 @@ describe("putFrame", () => {
 
 const markup: MarkupJson = {
   version: 1,
-  source: { kind: "scene", glb: ".kaava/preview/godot/main_tscn.glb" },
+  source: { kind: "scene", glb: ".veistra/preview/godot/main_tscn.glb" },
   size: { width: 640, height: 360 },
   pins: [{ n: 1, note: "too tall", nodePath: "World/Player" }],
   annotations: [],

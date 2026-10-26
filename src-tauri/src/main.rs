@@ -4,5 +4,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    openkaava_orchestrator_lib::run()
+    veistra_orchestrator_lib::run()
 }

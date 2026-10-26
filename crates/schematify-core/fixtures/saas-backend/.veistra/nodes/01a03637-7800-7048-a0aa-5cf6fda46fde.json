@@ -1,0 +1,21 @@
+{
+  "id": "01a03637-7800-7048-a0aa-5cf6fda46fde",
+  "slug": "verify-p95",
+  "kind": "budget",
+  "title": "verify_p95",
+  "lifecycle": "specified",
+  "authored_by": "human",
+  "created": "2026-08-25T00:00:00Z",
+  "superseded_by": null,
+  "parent": "01a03637-7800-7024-8962-cc11fce89708",
+  "metric": "verify_p95",
+  "op": "<",
+  "value": 3,
+  "unit": "ms",
+  "tier": "hard",
+  "probe": {
+    "command": "pnpm bench:verify",
+    "parser": "veistra-bench-v1"
+  },
+  "sign_off": null
+}

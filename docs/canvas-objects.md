@@ -12,16 +12,16 @@ element, so Excalidraw round-trips it untouched:
 
 ```json
 { "type": "frame", "name": "Gurney",
-  "customData": { "kaava": {
+  "customData": { "veistra": {
     "object": { "type": "model", "props": { "size_m": 2, "review_state": "draft" } },
     "child": "world/gurney" } },
-  "link": "kaava://canvas/world/gurney" }
+  "link": "veistra://canvas/world/gurney" }
 ```
 
 The frame's `name` is its label. `child` is a canvas id; the canvas file's own
-`kaava.parent` points back up. Cycles are refused on write.
+`veistra.parent` points back up. Cycles are refused on write.
 
-Older canvases kept a spec card on a plain shape (`customData.kaava.spec`).
+Older canvases kept a spec card on a plain shape (`customData.veistra.spec`).
 Reading migrates it in memory to a Model frame around that shape (the result's
 `migrated` lists them); the file is rewritten on the next edit. Nothing is lost.
 
@@ -34,7 +34,7 @@ optional `default`. Changing a frame's type keeps every stored value, including
 those the new type has no field for.
 
 Custom types are made in **Manage types** and saved per project in
-`.kaava/canvas/types.json` (written to a temp file, then renamed). A custom type
+`.veistra/canvas/types.json` (written to a temp file, then renamed). A custom type
 cannot reuse a built-in id.
 
 ## Methods for agents
@@ -44,7 +44,7 @@ All take `actor: "agent"`. Canvas ids are the id or a `canvas/x.json` path.
 | Method | Params | Result |
 |---|---|---|
 | `canvas/types` | | `{builtin, custom, path, problem}` |
-| `canvas/frames` | `canvas?`, `recursive?` | `{scope, canvases, frames, legacyCards, unreadable, problems}`; no `canvas` means the whole project. `recursive` follows both frame links and canvases whose `kaava.parent` names this one. A named canvas that does not exist is an error (`data.kind: "missing"`) |
+| `canvas/frames` | `canvas?`, `recursive?` | `{scope, canvases, frames, legacyCards, unreadable, problems}`; no `canvas` means the whole project. `recursive` follows both frame links and canvases whose `veistra.parent` names this one. A named canvas that does not exist is an error (`data.kind: "missing"`) |
 | `canvas/search-frames` | `query?`, `type?`, `canvas?`, `limit?` | `{query, type, total, matches}`, each a frame plus `score`, `matchedIn`; a missing named canvas is an error |
 | `canvas/frame` | `canvas`, `frame` (element id, diagram id, or exact title; the element id is the primary key) | the frame, its `typeDef`, `contents`, `canvasPath`, `image` |
 | `canvas/frame-image` | `canvas`, `frame`, `scale?`, `maxDimension?`, `theme?` | `{path, relative, width, height, scale, bytes, frame, hint}` |
@@ -58,13 +58,13 @@ All take `actor: "agent"`. Canvas ids are the id or a `canvas/x.json` path.
 
 A frame in results is `{canvas, id, diagramId, name, type, typeName, typeKnown, props,
 extraProps, bbox, childCanvas, elements}`. `canvas/frame-image` renders to
-`.kaava/preview/canvas/<canvas>/<frame id>.png`, overwritten in place.
+`.veistra/preview/canvas/<canvas>/<frame id>.png`, overwritten in place.
 
 ## A frame can be a diagram, a typed object and a link at once
 
-`customData.kaava` on one frame may hold `diagram` (from `add_shapes`), `object` (its
+`customData.veistra` on one frame may hold `diagram` (from `add_shapes`), `object` (its
 type and values) and `child` (a nested canvas) together. Rebuilding a diagram with
-`add_shapes` replaces only `kaava.diagram`; the object, child and `link` are kept.
+`add_shapes` replaces only `veistra.diagram`; the object, child and `link` are kept.
 `get_frame` and the other frame methods accept the element id (`frame:board-title`),
 the diagram id (`board-title`) or the title; the element id is the primary key and
 `diagramId` is reported next to it. A typed frame with no diagram metadata whose element

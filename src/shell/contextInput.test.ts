@@ -74,7 +74,7 @@ describe("fileToBase64", () => {
 
 describe("pasteImage", () => {
   it("sends the bytes once and posts what was inserted", async () => {
-    terminalPasteImage.mockResolvedValue(inserted({ text: "@.kaava/context/x.png ", count: 1 }));
+    terminalPasteImage.mockResolvedValue(inserted({ text: "@.veistra/context/x.png ", count: 1 }));
     const bytes = new Uint8Array([1, 2, 3]);
 
     await pasteImage("t1", { arrayBuffer: () => Promise.resolve(bytes.buffer), name: "image.png" });
