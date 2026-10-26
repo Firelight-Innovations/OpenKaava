@@ -7,6 +7,7 @@
  */
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { MotionGlobalConfig } from "framer-motion";
 import type { FrameSlots } from "../contract";
 import Frame from "./Frame";
 
@@ -170,6 +171,10 @@ describe("Frame's terminal band", () => {
 
   it("re-fits a maximized band to the column when the column changes size", async () => {
     observeByHand();
+    // The mount's spring is not under test here, and while one runs, each of its
+    // steps overwrites what the observer writes. Waiting for it to read 0px was
+    // flaky on a slow runner. With animations skipped it lands at once and stops.
+    MotionGlobalConfig.skipAnimations = true;
     try {
       const { container } = render(
         <Frame
@@ -182,10 +187,9 @@ describe("Frame's terminal band", () => {
       const main = container.querySelector(".frame__main") as HTMLElement;
       const column = observers.filter((o) => o.seen.includes(main)).pop();
       expect(column?.seen).toEqual([main]);
-      // The mount's spring runs to the fit jsdom measures, 0px. Let it finish, or
-      // its next step would overwrite whatever the observer writes.
+      // The mount lands on the fit jsdom measures, 0px.
       const band = container.querySelector('[data-region="bottom"]') as HTMLElement;
-      await waitFor(() => expect(band.style.height).toBe("0px"), { timeout: 2000 });
+      await waitFor(() => expect(band.style.height).toBe("0px"));
 
       main.getBoundingClientRect = () => ({ height: 700 }) as DOMRect;
       const handle = container.querySelector('[data-region="bottomhandle"]') as HTMLElement;
@@ -197,6 +201,7 @@ describe("Frame's terminal band", () => {
       await new Promise((r) => setTimeout(r, 300));
       expect(band.style.height).toBe("694px");
     } finally {
+      MotionGlobalConfig.skipAnimations = false;
       restore();
     }
   });
