@@ -12,6 +12,8 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 use std::time::{Duration, Instant};
 
+use serde_json::Value;
+
 use crate::event::{Attachment, Envelope, Event, Hint, Item, SessionStatus};
 use crate::guard::{NotAWorktree, Worktree};
 use crate::harness::{Harness, LaunchSpec, Protocol};
@@ -32,12 +34,18 @@ const RETIRE_WAIT: Duration = Duration::from_secs(3);
 pub trait Adapter: Send + Sync {
     /// Which harness it runs.
     fn harness(&self) -> Harness;
-    /// Start a turn with `text`.
-    fn prompt(&self, text: &str) -> Result<(), HostError>;
+    /// Start a turn with `text`, then the content blocks `attached`, which
+    /// the agent reads and the transcript does not show.
+    fn prompt(&self, text: &str, attached: Vec<Value>) -> Result<(), HostError>;
     /// Start a turn with handoff context that is not another visible user message.
-    fn prompt_with_context(&self, text: &str, context: Option<&str>) -> Result<(), HostError> {
+    fn prompt_with_context(
+        &self,
+        text: &str,
+        context: Option<&str>,
+        attached: Vec<Value>,
+    ) -> Result<(), HostError> {
         let combined = context.map(|context| format!("{context}\n\n{text}"));
-        self.prompt(combined.as_deref().unwrap_or(text))
+        self.prompt(combined.as_deref().unwrap_or(text), attached)
     }
     /// Stop the running turn.
     fn abort(&self);
@@ -71,11 +79,16 @@ impl Adapter for Session {
     fn harness(&self) -> Harness {
         Session::harness(self)
     }
-    fn prompt(&self, text: &str) -> Result<(), HostError> {
-        Session::prompt(self, text)
+    fn prompt(&self, text: &str, attached: Vec<Value>) -> Result<(), HostError> {
+        Session::prompt(self, text, attached)
     }
-    fn prompt_with_context(&self, text: &str, context: Option<&str>) -> Result<(), HostError> {
-        Session::prompt_with_context(self, text, context)
+    fn prompt_with_context(
+        &self,
+        text: &str,
+        context: Option<&str>,
+        attached: Vec<Value>,
+    ) -> Result<(), HostError> {
+        Session::prompt_with_context(self, text, context, attached)
     }
     fn abort(&self) {
         self.cancel();
@@ -231,15 +244,17 @@ impl AgentHost {
         self.map().get(instance_id).cloned()
     }
 
-    /// Send `text` to the tab's session, starting one in `worktree` first if
-    /// it has none or its last one has exited. A session that exited hands its
-    /// items to the next, so the tab's conversation carries on.
+    /// Send `text`, then the content blocks `attached`, to the tab's session,
+    /// starting one in `worktree` first if it has none or its last one has
+    /// exited. A session that exited hands its items to the next, so the
+    /// tab's conversation carries on.
     pub fn send(
         &self,
         instance_id: &str,
         spec: LaunchSpec,
         worktree: Worktree,
         text: &str,
+        attached: Vec<Value>,
     ) -> Result<(), HostError> {
         let _one_at_a_time = self.sending.lock().unwrap_or_else(|e| e.into_inner());
         let mut existing = self.get(instance_id);
@@ -254,7 +269,7 @@ impl AgentHost {
         }
         if let Some(session) = &existing {
             if session.is_alive() {
-                return session.prompt(text);
+                return session.prompt(text, attached);
             }
         }
         let (prior, context) =
@@ -306,7 +321,7 @@ impl AgentHost {
         if let Some(old) = replaced {
             retire(old);
         }
-        session.prompt_with_context(text, context.as_deref())?;
+        session.prompt_with_context(text, context.as_deref(), attached)?;
         // Keep the handoff marker across a failed startup so Retry also receives
         // real context. Live turns use their process's existing conversation.
         Ok(())

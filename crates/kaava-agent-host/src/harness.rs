@@ -109,6 +109,8 @@ impl Descriptor {
             models: None,
             model: None,
             commands: None,
+            modes: None,
+            ask_first: Some(self.policy.ask_first.to_string()),
         }
     }
 }
@@ -217,6 +219,10 @@ pub struct LaunchSpec {
     pub effort: Option<String>,
     /// Claude's workflow orchestration setting, scoped to this session's SDK options.
     pub ultracode: bool,
+    /// The mode the session switches to once it has asked first: the tab's
+    /// pick before the session existed. Only a mode the agent offers is sent,
+    /// never one held back (`config::NOT_OFFERED`); `None` stays ask-first.
+    pub mode: Option<String>,
 }
 
 /// The spec for `harness`, or the reason there is none. `path` and `pathext`
@@ -271,6 +277,7 @@ fn resolve_spec(
         model: None,
         effort: None,
         ultracode: false,
+        mode: None,
     })
 }
 

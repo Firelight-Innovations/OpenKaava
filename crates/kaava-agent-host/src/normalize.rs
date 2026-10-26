@@ -1154,25 +1154,46 @@ mod tests {
         assert!(n.update(&chunk("x", Some("m1"))).is_empty());
     }
 
-    #[test]
-    fn an_approval_never_offers_a_way_into_auto_or_bypass() {
-        let mut n = started();
+    /// The plan card's options, as the card offers them.
+    fn plan_card(elevated: &str) -> Vec<String> {
         let params = json!({
             "toolCall": {"toolCallId": "t9", "title": "Ready to code?"},
             "options": [
-                {"optionId": "exit-plan-auto", "kind": "allow_once", "name": "Yes, and use auto mode"},
-                {"optionId": "exit-plan-bypass", "kind": "allow_always", "name": "Yes, and bypass"},
-                {"optionId": "exit-plan-clear-auto", "kind": "allow_once", "name": "Clear, then auto"},
+                {"optionId": "exit-plan-clear-auto", "kind": elevated, "name": "Clear, then auto"},
+                {"optionId": "exit-plan-auto", "kind": elevated, "name": "Yes, and use auto mode"},
+                {"optionId": "exit-plan-bypass", "kind": elevated, "name": "Yes, and bypass"},
                 {"optionId": "exit-plan-default", "kind": "allow_once", "name": "Yes, manually approve edits"},
                 {"optionId": "reject", "kind": "reject_once", "name": "No, keep planning"}
             ]
         });
-        let item = n.approval(&params, vec!["/w/plan.md".into()]);
-        let ItemKind::Approval { options, .. } = &item.kind else {
+        let item = started().approval(&params, vec!["/w/plan.md".into()]);
+        let ItemKind::Approval { options, .. } = item.kind else {
             panic!()
         };
-        let ids: Vec<_> = options.iter().map(|o| o.option_id.as_str()).collect();
-        assert_eq!(ids, ["exit-plan-default", "reject"]);
+        options.into_iter().map(|o| o.option_id).collect()
+    }
+
+    /// claude-agent-acp 0.90.0 sends every way out of a plan but the manual
+    /// one as `allow_always` (`permissions/options/tools.js`), so the card
+    /// offers only that one and Auto is entered from the mode picker.
+    #[test]
+    fn the_plan_card_offers_only_the_manual_way_out() {
+        assert_eq!(plan_card("allow_always"), ["exit-plan-default", "reject"]);
+    }
+
+    /// Auto is offered since the owner's decision (2026-10), so an adapter that
+    /// sent its ways out as `allow_once` would keep those, and lose bypass.
+    #[test]
+    fn an_approval_never_offers_a_way_into_bypass() {
+        assert_eq!(
+            plan_card("allow_once"),
+            [
+                "exit-plan-clear-auto",
+                "exit-plan-auto",
+                "exit-plan-default",
+                "reject"
+            ]
+        );
     }
 
     #[test]

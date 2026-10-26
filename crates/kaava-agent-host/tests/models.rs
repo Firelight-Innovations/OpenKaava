@@ -34,6 +34,7 @@ fn mock(args: &[&str]) -> LaunchSpec {
         model: None,
         effort: None,
         ultracode: false,
+        mode: None,
     }
 }
 
@@ -48,6 +49,14 @@ fn an_agent_is_asked_for_its_models_and_never_sent_a_prompt() {
     // The mock also lists `bypassPermissions`, which is never offered.
     assert_eq!(values, ["default", "opus", "haiku"]);
     assert_eq!(models.default, "default");
+    // Its modes too, so one can be picked before a session exists; bypass never is.
+    let modes: Vec<&str> = models.modes.iter().map(|c| c.value.as_str()).collect();
+    assert_eq!(modes, ["default", "acceptEdits", "plan", "auto"]);
+    // And what a prompt may carry, so an @ chip goes as the agent can take it.
+    assert_eq!(
+        models.prompt_capabilities,
+        serde_json::json!({ "image": true, "embeddedContext": true })
+    );
     let sent = std::fs::read_to_string(&trace).unwrap();
     assert_eq!(
         sent.lines().collect::<Vec<_>>(),

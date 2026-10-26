@@ -21,13 +21,15 @@ pub const MODE_CATEGORY: &str = "mode";
 pub const BYPASS: &str = "bypassPermissions";
 
 /// Claude's auto mode, where a classifier approves calls in the user's place.
-/// Those calls never reach `session/request_permission`, so Kaava's
-/// outside-worktree guard never sees them; it is held back with [`BYPASS`]
-/// until the owner decides otherwise.
+/// Offered, by the owner's decision (2026-10): those calls never reach
+/// `session/request_permission`, so Kaava's outside-worktree guard does not
+/// see them, and what keeps them in the worktree is Claude's own classifier.
+/// A session still starts ask-first; auto is only ever the user's pick.
 pub const AUTO: &str = "auto";
 
 /// Codex's auto-review mode, its adapter's default: a reviewer model approves
 /// calls in the user's place, so, like [`AUTO`], they never reach the guard.
+/// Still held back: the owner's decision on auto covered Claude's alone.
 pub const CODEX_AUTO_REVIEW: &str = "agent";
 
 /// Codex's full-access mode: no approvals and no sandbox. Codex's [`BYPASS`].
@@ -40,7 +42,7 @@ pub const CODEX_FULL_ACCESS: &str = "agent-full-access";
 /// the one the agent is in. A harness that uses one of them for something
 /// else needs a narrower rule. Approval options that enter one are dropped
 /// too ([`enters_held_back`]).
-pub const NOT_OFFERED: [&str; 4] = [BYPASS, AUTO, CODEX_AUTO_REVIEW, CODEX_FULL_ACCESS];
+pub const NOT_OFFERED: [&str; 3] = [BYPASS, CODEX_AUTO_REVIEW, CODEX_FULL_ACCESS];
 
 /// What one `configOptions` list says.
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -96,16 +98,15 @@ pub fn allowed(choices: Vec<ConfigChoice>) -> Vec<ConfigChoice> {
 }
 
 /// Whether an approval option would put the agent in a mode the tab holds
-/// back: the mode's own id, or one of the plan card's `exit-plan-*` ids or
-/// the "switch to auto mode" button's, which name it as a word of the id.
-/// Words split at punctuation and at a camelCase capital, in any case, so
-/// `yesSwitchToAuto` counts as well as `exit-plan-auto`. Choosing one would
-/// enter Auto or Bypass without the mode switcher, where the
-/// outside-worktree guard cannot apply. The match is on the id alone: the
-/// labels say "auto-accept edits" for Accept edits, which is offered.
+/// back: the mode's own id, or one of the plan card's `exit-plan-*` ids,
+/// which name it as a word of the id. Words split at punctuation and at a
+/// camelCase capital, in any case, so `yesSwitchToBypass` counts as well as
+/// `exit-plan-bypass`. Choosing one would enter Bypass without the mode
+/// switcher. Auto is offered ([`AUTO`]), so `exit-plan-auto` is not held back
+/// here. claude-agent-acp 0.90.0 sends it as `allow_always`, which no card
+/// offers, so with that adapter Auto is entered from the mode picker.
 pub fn enters_held_back(option_id: &str) -> bool {
-    NOT_OFFERED.contains(&option_id)
-        || words(option_id).any(|word| matches!(word.as_str(), "auto" | "bypass"))
+    NOT_OFFERED.contains(&option_id) || words(option_id).any(|word| word == "bypass")
 }
 
 /// An id's words, lowercased: split at anything but a letter or digit, and
@@ -226,8 +227,10 @@ mod tests {
         assert_eq!(values, ["x", "y"]);
     }
 
+    /// Auto was held back with bypass until the owner chose to offer it
+    /// (2026-10); this test said so, and now says the opposite for auto only.
     #[test]
-    fn bypass_and_auto_are_never_offered() {
+    fn bypass_is_never_offered_and_auto_is() {
         let choices = modes(&json!({
             "currentModeId": "default",
             "availableModes": [
@@ -239,7 +242,7 @@ mod tests {
         }))
         .unwrap();
         let ids: Vec<_> = allowed(choices).into_iter().map(|c| c.value).collect();
-        assert_eq!(ids, ["default", "plan"]);
+        assert_eq!(ids, ["default", "plan", "auto"]);
     }
 
     #[test]
@@ -262,21 +265,25 @@ mod tests {
     #[test]
     fn approval_options_that_enter_a_held_back_mode_are_recognised() {
         for id in [
-            "auto",
             "bypassPermissions",
-            "exit-plan-auto",
             "exit-plan-bypass",
-            "exit-plan-clear-auto",
             "exit-plan-clear-bypass",
-            "switch-to-auto",
-            "yesSwitchToAuto",
-            "switch_to_AUTO",
-            "useAutoMode",
+            "switch-to-bypass",
+            "yesSwitchToBypass",
+            "switch_to_BYPASS",
             "BypassPermissions",
+            "agent",
+            "agent-full-access",
         ] {
             assert!(enters_held_back(id), "{id}");
         }
+        // Auto is offered, so a card's way into it is kept.
         for id in [
+            "auto",
+            "exit-plan-auto",
+            "exit-plan-clear-auto",
+            "yesSwitchToAuto",
+            "useAutoMode",
             "allow",
             "allow_once",
             "reject",
@@ -294,7 +301,8 @@ mod tests {
 
     /// Every `optionId` claude-agent-acp 0.90.0 sends
     /// (`permissions/options/shared.js`, `PERMISSION_OPTION_ID`), and
-    /// whether the card drops it. A new id in a later adapter goes here.
+    /// whether [`enters_held_back`] drops it by id (the card also drops
+    /// every `allow_always` option). A new id in a later adapter goes here.
     #[test]
     fn every_option_id_the_claude_adapter_sends_is_sorted() {
         let ids = [
@@ -303,10 +311,10 @@ mod tests {
             ("allow-skill-exact", false),
             ("allow-skill-prefix", false),
             ("exit-plan-bypass", true),
-            ("exit-plan-auto", true),
+            ("exit-plan-auto", false),
             ("exit-plan-accept-edits", false),
             ("exit-plan-default", false),
-            ("exit-plan-clear-auto", true),
+            ("exit-plan-clear-auto", false),
             ("exit-plan-clear-bypass", true),
             ("exit-plan-clear-accept-edits", false),
             ("reject", false),
@@ -349,6 +357,6 @@ mod tests {
             .iter()
             .map(|c| c.value.as_str())
             .collect();
-        assert_eq!(values, ["default"]);
+        assert_eq!(values, ["default", "auto"]);
     }
 }

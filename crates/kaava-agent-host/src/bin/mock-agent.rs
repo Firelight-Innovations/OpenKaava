@@ -69,6 +69,7 @@ fn main() {
         fast: "off".into(),
         ultracode: false,
         bearer: String::new(),
+        blocks: Vec::new(),
     };
     if mock.has("--secret") {
         eprintln!("debug: token sk-ant-oat01-AbCdEf0123456789xyzAbCd for someone@example.com");
@@ -147,6 +148,8 @@ struct Mock {
     ultracode: bool,
     /// The first MCP server's bearer, as `session/new` gave it.
     bearer: String,
+    /// The type of each content block in the last prompt, in order.
+    blocks: Vec<String>,
 }
 
 impl Mock {
@@ -272,9 +275,8 @@ impl Mock {
     /// option as it now stands, after a `current_mode_update` for a mode, sent
     /// whether or not the mode settled where it was asked to.
     /// With `--settles-elsewhere` every change but to `default` settles on
-    /// `acceptEdits` instead. Claude's adapter settles elsewhere only when it
-    /// cannot run Auto, which the tab never asks for; this stands in for an
-    /// agent that settles elsewhere more often. A new model brings its own
+    /// `acceptEdits` instead, as Claude's adapter does for Auto when its model
+    /// cannot run it; this stands in for that, whatever the mode. A new model brings its own
     /// effort levels, and the effort drops to `medium` where it has no level
     /// of the old one's. With `--slow-setting` the reply comes a second after
     /// the notification.
@@ -398,7 +400,10 @@ impl Mock {
                 let caps = if self.has("--no-mcp-caps") {
                     json!({})
                 } else {
-                    json!({ "mcpCapabilities": { "http": !self.has("--no-mcp-http"), "sse": true } })
+                    json!({
+                        "mcpCapabilities": { "http": !self.has("--no-mcp-http"), "sse": true },
+                        "promptCapabilities": { "image": true, "embeddedContext": true },
+                    })
                 };
                 self.reply(
                     &id,
@@ -528,9 +533,14 @@ impl Mock {
             }
             (Some("session/set_config_option"), Some(id)) => self.set_config(&id, &params),
             (Some("session/prompt"), Some(id)) => {
-                let text = params
-                    .get("prompt")
-                    .and_then(Value::as_array)
+                let prompt = params.get("prompt").and_then(Value::as_array);
+                self.blocks = prompt
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|block| block.get("type").and_then(Value::as_str))
+                    .map(str::to_string)
+                    .collect();
+                let text = prompt
                     .map(|blocks| {
                         blocks
                             .iter()
@@ -557,6 +567,11 @@ impl Mock {
     /// One turn, chosen by the prompt's text.
     fn prompt(&mut self, text: &str) {
         match text {
+            // Last, after whatever an @ chip wrote ahead of it.
+            t if t.split_whitespace().last() == Some("blocks") => {
+                self.chunk(&format!("blocks: {}", self.blocks.join(", ")), "m1");
+                self.end_turn("end_turn");
+            }
             "workflow" => {
                 self.chunk(
                     &format!(

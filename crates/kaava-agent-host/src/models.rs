@@ -39,11 +39,18 @@ pub struct Models {
     pub default: String,
     /// Commands the adapter advertised without requiring an inference turn.
     pub commands: Vec<AgentCommand>,
+    /// The modes on offer, less those held back (`config::NOT_OFFERED`), so
+    /// the tab can pick one before the session exists.
+    pub modes: Vec<ConfigChoice>,
+    /// The ACP `promptCapabilities` its `initialize` answered, as they came:
+    /// what a prompt may carry beyond text and links. `Null` if it said none.
+    pub prompt_capabilities: Value,
 }
 
 /// The option of category `model` in a `configOptions` list, if it has one.
 pub fn of(list: &Value) -> Option<Models> {
-    let option = config::settings(list)
+    let settings = config::settings(list);
+    let option = settings
         .options
         .into_iter()
         .find(|o| o.category.as_deref() == Some(MODEL_CATEGORY))?;
@@ -51,6 +58,11 @@ pub fn of(list: &Value) -> Option<Models> {
         choices: option.choices,
         default: option.value,
         commands: Vec::new(),
+        modes: settings
+            .mode
+            .map(|m| config::allowed(m.choices))
+            .unwrap_or_default(),
+        prompt_capabilities: Value::Null,
     })
 }
 
@@ -89,14 +101,28 @@ fn converse(child: &mut Child, worktree: &Worktree, wait: Duration) -> Option<Mo
         ("session/new", json!({ "cwd": cwd, "mcpServers": [] })),
     ];
     let mut reply = Value::Null;
+    let mut accepts = Value::Null;
     let mut commands = None;
     for (id, (method, params)) in requests.into_iter().enumerate() {
         let request = json!({ "jsonrpc": "2.0", "id": id, "method": method, "params": params });
         writeln!(stdin, "{request}").ok()?;
         stdin.flush().ok()?;
         reply = answer(&lines, id, Instant::now() + wait, &mut commands)?;
+        if method == "initialize" {
+            accepts = reply
+                .pointer("/agentCapabilities/promptCapabilities")
+                .cloned()
+                .unwrap_or_default();
+        }
     }
     let mut models = of(reply.get("configOptions")?)?;
+    models.prompt_capabilities = accepts;
+    // An agent without a mode option lists its modes on their own, as a session's reply does.
+    if models.modes.is_empty() {
+        if let Some(choices) = reply.get("modes").and_then(config::modes) {
+            models.modes = config::allowed(choices);
+        }
+    }
     // Some adapters publish their commands just after session/new's response.
     let deadline = Instant::now() + Duration::from_secs(1);
     while commands.is_none() {
@@ -315,6 +341,8 @@ mod tests {
             choices: Vec::new(),
             default: "opus".into(),
             commands: Vec::new(),
+            modes: Vec::new(),
+            prompt_capabilities: Value::Null,
         })
     }
 

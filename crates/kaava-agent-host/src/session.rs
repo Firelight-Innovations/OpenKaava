@@ -122,6 +122,9 @@ struct Shared {
     model: Option<String>,
     effort: Option<String>,
     ultracode: bool,
+    /// The mode the tab picked before the session existed, which the
+    /// handshake switches to once ask-first is confirmed.
+    mode: Option<String>,
     harness: Harness,
     child: Mutex<Child>,
     /// What ends the child and everything it started at once.
@@ -147,6 +150,9 @@ struct Inner {
     replies: HashMap<i64, Option<Result<Value, RemoteError>>>,
     prompt: Option<String>,
     prompt_context: Option<String>,
+    /// The content blocks that follow the queued prompt's text: what its @
+    /// chips name, resolved.
+    attached: Vec<Value>,
     /// The newest queued change; a new turn waits until settings reach it.
     queued_change: u64,
     approvals: Vec<Waiting>,
@@ -165,6 +171,9 @@ struct Inner {
     /// How many times the agent has reported its mode, so a reply to
     /// `session/set_mode`, which does not say, knows whether one came first.
     mode_reports: u64,
+    /// The mode the agent last reported, shown or not. `show_mode` holds a
+    /// report back during the handshake, and the pick made then reads it here.
+    reported: Option<String>,
     events: Sender<Envelope>,
     last_seq: u64,
     noise: u64,
@@ -273,6 +282,7 @@ impl Session {
             model: spec.model.clone(),
             effort: spec.effort.clone(),
             ultracode: spec.ultracode,
+            mode: spec.mode.clone(),
             harness: spec.harness,
             setting_timeout: spec.setting_timeout,
             mcp_servers: spec.mcp_servers,
@@ -294,6 +304,7 @@ impl Session {
                 replies: HashMap::new(),
                 prompt: None,
                 prompt_context: None,
+                attached: Vec::new(),
                 queued_change: status.answered,
                 approvals: Vec::new(),
                 normalizer: Normalizer::new(&prefix, spec.harness),
@@ -303,6 +314,7 @@ impl Session {
                 mode_option: None,
                 changing: HashMap::new(),
                 mode_reports: 0,
+                reported: None,
                 events,
                 last_seq: seq.load(Ordering::SeqCst),
                 noise: 0,
@@ -339,8 +351,8 @@ impl Session {
     /// Queue a prompt. One at a time: a second while the first is running is
     /// refused rather than queued, so the tab never shows a prompt that has
     /// not started.
-    pub(crate) fn prompt(&self, text: &str) -> Result<(), HostError> {
-        self.prompt_with_context(text, None)
+    pub(crate) fn prompt(&self, text: &str, attached: Vec<Value>) -> Result<(), HostError> {
+        self.prompt_with_context(text, None, attached)
     }
 
     /// A cross-harness handoff is model context, not another user message in the transcript.
@@ -348,6 +360,7 @@ impl Session {
         &self,
         text: &str,
         context: Option<&str>,
+        attached: Vec<Value>,
     ) -> Result<(), HostError> {
         let mut inner = self.shared.lock();
         if inner.closed || inner.status.state == SessionState::Failed {
@@ -358,6 +371,7 @@ impl Session {
         }
         inner.prompt = Some(text.to_string());
         inner.prompt_context = context.map(str::to_owned);
+        inner.attached = attached;
         if inner.status.state == SessionState::Starting
             || inner.queued_change > inner.status.answered
         {
@@ -374,6 +388,7 @@ impl Session {
         let shared = &self.shared;
         let mut inner = shared.lock();
         inner.prompt_context = None;
+        inner.attached.clear();
         if inner.prompt.take().is_some() && inner.status.pending_prompt.take().is_some() {
             let status = inner.status.clone();
             shared.emit(&mut inner, Event::Status { status });
@@ -599,8 +614,9 @@ impl Inner {
             self.status.state,
             SessionState::Ready | SessionState::Working | SessionState::NeedsInput
         ) {
-            self.status.mode = Some(mode);
+            self.status.mode = Some(mode.clone());
         }
+        self.reported = Some(mode);
     }
 
     /// Take in a reply that carries the settings: `session/new`'s modes and
@@ -845,8 +861,23 @@ impl Shared {
         if let Some(effort) = effort {
             self.choose_effort(&session_id, &effort);
         }
+        // Only now, with ask-first confirmed: a pick that fails leaves it there.
+        let picked = match self.mode.as_deref() {
+            Some(mode) if mode != self.ask_first => Some(self.choose_mode(&session_id, mode)),
+            _ => None,
+        };
         let mut inner = self.lock();
-        inner.status.mode = Some(self.ask_first.to_string());
+        // The agent has the last word, as once the session runs. A report
+        // since the pick is read under the lock that ends the handshake, so
+        // one is either taken here or shown once the session is Ready.
+        let mode = match picked {
+            Some(fallback) => inner
+                .reported
+                .take()
+                .unwrap_or_else(|| fallback.to_string()),
+            None => self.ask_first.to_string(),
+        };
+        inner.status.mode = Some(mode);
         if inner.closed {
             return Ok(());
         }
@@ -889,6 +920,55 @@ impl Shared {
                     self.instance_id
                 ),
             );
+        }
+    }
+
+    /// Switch the session to `mode`, the tab's pick before it started, if the
+    /// agent offers it, and answer with the mode it is in afterwards unless
+    /// the agent says otherwise. The offer is the status's, which never holds
+    /// a mode held back, so this cannot reach one. Claude's settles on Accept
+    /// edits when its model cannot run Auto, and says so in a report.
+    /// A mode refused or no longer offered leaves the session asking first.
+    fn choose_mode<'a>(&'a self, session_id: &str, mode: &'a str) -> &'a str {
+        let (offered, option) = {
+            let mut inner = self.lock();
+            // Only a report that answers this pick counts, not ask-first's.
+            inner.reported = None;
+            let offered = inner.status.modes.iter().any(|m| m.value == mode);
+            (offered, inner.mode_option.clone())
+        };
+        // As `set_mode` does: through the mode option when there is one, whose
+        // reply carries every setting, else directly, taken as set.
+        let (method, params, sets) = match option {
+            Some(config_id) => (
+                "session/set_config_option",
+                json!({ "sessionId": session_id, "configId": config_id, "value": mode }),
+                None,
+            ),
+            None => (
+                "session/set_mode",
+                json!({ "sessionId": session_id, "modeId": mode }),
+                Some(mode.to_string()),
+            ),
+        };
+        let switched = offered
+            && self
+                .send_request(method, params, carries_settings(sets))
+                .and_then(|id| self.finish(id, method, Some(HANDSHAKE)))
+                .is_ok();
+        if !switched {
+            (self.log)(
+                Level::Info,
+                &format!(
+                    "agent-host: {} stays in ask-first mode, not the one chosen",
+                    self.instance_id
+                ),
+            );
+        }
+        if switched {
+            mode
+        } else {
+            self.ask_first
         }
     }
 
@@ -938,6 +1018,7 @@ impl Shared {
             // gone and draws nothing.
             inner.status.pending_prompt = None;
             inner.prompt_context = None;
+            inner.attached.clear();
             let mut events = match inner.prompt.take() {
                 Some(text) => inner.normalizer.begin_turn(&text),
                 None => Vec::new(),
@@ -963,7 +1044,7 @@ impl Shared {
 
     /// Run the queued prompt, if a cancel has not withdrawn it.
     fn turn(&self) {
-        let (text, session_id, context) = {
+        let (text, session_id, context, attached) = {
             let mut inner = self.lock();
             while inner.prompt.is_some()
                 && inner.queued_change > inner.status.answered
@@ -985,6 +1066,7 @@ impl Shared {
                 text,
                 inner.session_id.clone().unwrap_or_default(),
                 inner.prompt_context.take(),
+                std::mem::take(&mut inner.attached),
             )
         };
         let mut blocks = Vec::new();
@@ -992,6 +1074,8 @@ impl Shared {
             blocks.push(json!({ "type": "text", "text": context }));
         }
         blocks.push(json!({ "type": "text", "text": text }));
+        // After the text, as `refs/prompt` lays them out; the transcript shows only the text.
+        blocks.extend(attached);
         let reply = self.request(
             "session/prompt",
             json!({
@@ -1509,6 +1593,7 @@ impl Shared {
             let mut inner = self.lock();
             inner.closed = true;
             inner.prompt_context = None;
+            inner.attached.clear();
             // Nothing is left to answer a change, or to change.
             inner.status.setting_trouble = None;
             for slot in inner.replies.values_mut() {
@@ -1842,6 +1927,7 @@ mod tests {
             replies: HashMap::new(),
             prompt: None,
             prompt_context: None,
+            attached: Vec::new(),
             queued_change: 0,
             approvals: Vec::new(),
             normalizer: Normalizer::new("t", crate::harness::Harness::Claude),
@@ -1865,6 +1951,7 @@ mod tests {
             mode_option: None,
             changing: HashMap::new(),
             mode_reports: 0,
+            reported: None,
             events,
             last_seq: 0,
             noise: 0,

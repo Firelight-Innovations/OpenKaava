@@ -358,6 +358,17 @@ pub struct HarnessInfo {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(test, ts(optional))]
     pub commands: Option<Vec<AgentCommand>>,
+    /// The modes its agent offers, as discovery found them, less those held
+    /// back (`config::NOT_OFFERED`); `None` until the host has asked it. The
+    /// tab can pick one before the session exists.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
+    pub modes: Option<Vec<ConfigChoice>>,
+    /// The mode each of its sessions starts in, its policy's ask-first mode,
+    /// until a pick from `modes` switches it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
+    pub ask_first: Option<String>,
 }
 
 /// A session's whole status.
@@ -375,8 +386,9 @@ pub struct SessionStatus {
     /// as the agent reports it, even one the tab does not offer. Empty until
     /// the handshake has switched the agent to ask-first.
     pub mode: Option<String>,
-    /// The modes the tab may switch to, in the agent's order. Bypass and auto
-    /// are never among them (`config::NOT_OFFERED`).
+    /// The modes the tab may switch to, in the agent's order. Bypass, and
+    /// Codex's auto review and full access, are never among them
+    /// (`config::NOT_OFFERED`).
     pub modes: Vec<ConfigChoice>,
     /// The agent's other session settings — model, effort, fast mode — as it
     /// last reported them. Filled from the `session/new` reply, so a session

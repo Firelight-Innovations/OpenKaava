@@ -77,6 +77,7 @@ fn mock(args: &[&str]) -> LaunchSpec {
         model: None,
         effort: None,
         ultracode: false,
+        mode: None,
     }
 }
 
@@ -107,7 +108,8 @@ impl Rig {
     }
 
     fn send_spec(&self, spec: LaunchSpec, text: &str) -> Result<(), HostError> {
-        self.host.send(TAB, spec, self.tree.clone(), text)
+        self.host
+            .send(TAB, spec, self.tree.clone(), text, Vec::new())
     }
 
     /// Where a mock told `--init-gate` waits, as a string a flag can carry.
@@ -284,6 +286,25 @@ fn a_turn_streams_in_order_and_ends_ready() {
         .items
         .iter()
         .any(|i| matches!(&i.kind, ItemKind::Reasoning { text } if text == "thinking")));
+}
+
+/// What a file chip names reaches the agent as a block of its own after the
+/// text, which the transcript shows as typed, chip and all.
+#[test]
+fn a_file_chip_reaches_the_agent_as_a_resource_block_after_the_text() {
+    let rig = rig();
+    let text = "[@main.gd](<kaava://file/main.gd>) blocks";
+    let file = json!({
+        "type": "resource",
+        "resource": { "uri": "kaava://file/main.gd", "mimeType": "text/plain", "text": "extends Node" },
+    });
+    rig.host
+        .send(TAB, mock(&[]), rig.tree.clone(), text, vec![file])
+        .unwrap();
+    rig.turns_done(1);
+    let items = rig.items();
+    assert_eq!(texts(&items), ["blocks: text, resource"]);
+    assert!(matches!(&items[0].kind, ItemKind::UserMessage { text: shown } if shown == text));
 }
 
 #[test]
@@ -867,7 +888,8 @@ fn a_session_belongs_to_its_worktree() {
     rig.send(&[], "slow").unwrap();
     rig.state(SessionState::Working);
     assert!(matches!(
-        rig.host.send(TAB, mock(&[]), rig.other.clone(), "hi"),
+        rig.host
+            .send(TAB, mock(&[]), rig.other.clone(), "hi", Vec::new()),
         Err(HostError::WrongWorktree)
     ));
     assert_eq!(rig.host.worktree(TAB), Some(rig.tree.clone()));
@@ -1001,7 +1023,7 @@ fn the_session_asks_for_its_harness_policy_mode() {
     };
     asked
         .host
-        .send(TAB, spec, asked.tree.clone(), "hi")
+        .send(TAB, spec, asked.tree.clone(), "hi", Vec::new())
         .unwrap();
     asked.turns_done(1);
     let status = last_status(&asked.events()).unwrap();
@@ -1033,7 +1055,9 @@ fn traced(rig: &Rig, model: &str) -> String {
     let dir = tempfile::tempdir().unwrap();
     let trace = dir.path().join("trace.txt");
     let spec = on_model(model, &["--trace", trace.to_str().unwrap()]);
-    rig.host.send(TAB, spec, rig.tree.clone(), "hi").unwrap();
+    rig.host
+        .send(TAB, spec, rig.tree.clone(), "hi", Vec::new())
+        .unwrap();
     rig.turns_done(1);
     std::fs::read_to_string(&trace).unwrap()
 }
@@ -1055,7 +1079,9 @@ fn initial_effort_is_applied_after_the_model_and_before_the_first_prompt() {
         effort: Some("high".into()),
         ..mock(&[])
     };
-    rig.host.send(TAB, spec, rig.tree.clone(), "hi").unwrap();
+    rig.host
+        .send(TAB, spec, rig.tree.clone(), "hi", Vec::new())
+        .unwrap();
     rig.turns_done(1);
     let ready = first_ready(&rig.events()).unwrap();
     assert_eq!(value_of(&ready, "model"), Some("opus"));
@@ -1070,7 +1096,9 @@ fn initial_effort_absent_from_the_model_is_never_sent() {
         effort: Some("max".into()),
         ..mock(&[])
     };
-    rig.host.send(TAB, spec, rig.tree.clone(), "hi").unwrap();
+    rig.host
+        .send(TAB, spec, rig.tree.clone(), "hi", Vec::new())
+        .unwrap();
     rig.turns_done(1);
     let ready = first_ready(&rig.events()).unwrap();
     assert_eq!(value_of(&ready, "effort"), None);
@@ -1104,7 +1132,9 @@ fn a_model_the_agent_does_not_offer_is_never_asked_for() {
 fn a_model_the_agent_refuses_leaves_the_session_on_its_default() {
     let rig = rig();
     let spec = on_model("opus", &["--refuse-model"]);
-    rig.host.send(TAB, spec, rig.tree.clone(), "hi").unwrap();
+    rig.host
+        .send(TAB, spec, rig.tree.clone(), "hi", Vec::new())
+        .unwrap();
     rig.turns_done(1);
     let ready = first_ready(&rig.events()).unwrap();
     assert_eq!(value_of(&ready, "model"), Some("default"));
@@ -1126,7 +1156,9 @@ fn a_variable_the_harness_must_not_inherit_never_reaches_it() {
             env_remove: vec![inherited[0].to_string()],
             ..mock(&[])
         };
-        rig.host.send(TAB, spec, rig.tree.clone(), text).unwrap();
+        rig.host
+            .send(TAB, spec, rig.tree.clone(), text, Vec::new())
+            .unwrap();
     };
     spec(&format!("env {}", inherited[0]));
     rig.turns_done(1);
@@ -1275,7 +1307,7 @@ fn a_missing_program_is_a_spawn_error() {
     spec.program = rig.tree.root().join("no-such-agent.exe");
     let err = rig
         .host
-        .send(TAB, spec, rig.tree.clone(), "hi")
+        .send(TAB, spec, rig.tree.clone(), "hi", Vec::new())
         .unwrap_err();
     assert_eq!(err.code(), "spawn");
     assert_eq!(err.hint(), Some(Hint::AdapterMissing));
@@ -1459,7 +1491,7 @@ fn stopping_several_agents_does_not_wait_on_each_in_turn() {
     let tabs = ["agent-tab-a", "agent-tab-b", "agent-tab-c", "agent-tab-d"];
     for tab in tabs {
         rig.host
-            .send(tab, mock(&[]), rig.tree.clone(), "slow")
+            .send(tab, mock(&[]), rig.tree.clone(), "slow", Vec::new())
             .unwrap();
     }
     rig.until("every agent working", |events| {
@@ -1602,7 +1634,9 @@ fn a_node_cmd_in_the_worktree_is_not_run_by_the_npm_shim() {
         Some(std::ffi::OsStr::new(".CMD")),
     )
     .unwrap();
-    rig.host.send(TAB, spec, rig.tree.clone(), "hi").unwrap();
+    rig.host
+        .send(TAB, spec, rig.tree.clone(), "hi", Vec::new())
+        .unwrap();
     rig.logged("exited with code");
     assert!(
         !rig.tree.root().join("planted.txt").exists(),
@@ -1622,15 +1656,16 @@ fn the_session_reports_its_modes_and_settings() {
         "forced to ask first"
     );
     let modes: Vec<&str> = status.modes.iter().map(|m| m.value.as_str()).collect();
+    // Auto was held back too until the owner chose to offer it (2026-10).
     assert_eq!(
         modes,
-        ["default", "acceptEdits", "plan"],
-        "bypass (D4) and auto are never offered"
+        ["default", "acceptEdits", "plan", "auto"],
+        "bypass (D4) is never offered"
     );
     let names: Vec<&str> = status.modes.iter().map(|m| m.name.as_str()).collect();
     assert_eq!(
         names,
-        ["Manual", "Accept edits", "Plan"],
+        ["Manual", "Accept edits", "Plan", "Auto"],
         "the agent's own names"
     );
     let ids: Vec<&str> = status.config.iter().map(|o| o.id.as_str()).collect();
@@ -1685,7 +1720,7 @@ fn the_agent_can_change_its_settings_on_its_own() {
 #[test]
 fn a_handshake_that_fails_early_never_shows_the_users_own_mode() {
     let rig = rig();
-    // The mock's own default mode is `auto`, which the tab holds back.
+    // The mock's own default mode is `auto`, which a session never starts in.
     rig.send(&["--no-session-id"], "hi").unwrap();
     rig.state(SessionState::Failed);
     let status = last_status(&rig.events()).unwrap();
@@ -1693,7 +1728,7 @@ fn a_handshake_that_fails_early_never_shows_the_users_own_mode() {
     // What the session/new reply carried is still there, as the status's
     // docs say, though the handshake failed after it.
     let modes: Vec<&str> = status.modes.iter().map(|m| m.value.as_str()).collect();
-    assert_eq!(modes, ["default", "acceptEdits", "plan"]);
+    assert_eq!(modes, ["default", "acceptEdits", "plan", "auto"]);
     assert!(!status.config.is_empty());
 }
 
@@ -1705,7 +1740,7 @@ fn an_agent_without_config_options_still_reports_its_modes() {
     let status = last_status(&rig.events()).unwrap();
     assert!(status.config.is_empty());
     let modes: Vec<_> = status.modes.iter().map(|m| m.value.as_str()).collect();
-    assert_eq!(modes, ["default", "acceptEdits", "plan"]);
+    assert_eq!(modes, ["default", "acceptEdits", "plan", "auto"]);
     assert_eq!(status.mode.as_deref(), Some("default"));
 }
 
@@ -1729,7 +1764,7 @@ fn a_mode_switch_round_trips_through_the_agent() {
         ["session/set_mode", "session/set_config_option"],
         "the handshake's ask-first, then the change through the mode option"
     );
-    for refused in ["bypassPermissions", "auto", "dontAsk", "nonsense"] {
+    for refused in ["bypassPermissions", "dontAsk", "nonsense"] {
         assert!(
             matches!(
                 rig.host.set_mode(TAB, refused),
@@ -1738,6 +1773,129 @@ fn a_mode_switch_round_trips_through_the_agent() {
             "{refused}"
         );
     }
+}
+
+#[test]
+fn auto_is_the_users_to_pick_once_the_session_has_asked_first() {
+    let rig = rig();
+    rig.send(&[], "stream").unwrap();
+    rig.turns_done(1);
+    let ticket = rig.host.set_mode(TAB, "auto").unwrap();
+    let status = rig.status_where("auto mode answered", |s| s.answered >= ticket);
+    assert_eq!(status.mode.as_deref(), Some("auto"));
+}
+
+#[test]
+fn a_mode_picked_before_the_session_is_entered_after_ask_first() {
+    let rig = rig();
+    let record = rig.dir.path().join("settings.log");
+    let spec = LaunchSpec {
+        mode: Some("plan".into()),
+        ..mock(&["--record-settings", record.to_str().unwrap()])
+    };
+    rig.host
+        .send(TAB, spec, rig.tree.clone(), "stream", Vec::new())
+        .unwrap();
+    rig.turns_done(1);
+    let status = last_status(&rig.events()).unwrap();
+    assert_eq!(status.mode.as_deref(), Some("plan"));
+    assert_eq!(
+        settings_sent(&record),
+        ["session/set_mode", "session/set_config_option"],
+        "ask-first, then the pick through the mode option"
+    );
+}
+
+#[test]
+fn a_held_back_mode_picked_before_the_session_is_never_sent() {
+    let rig = rig();
+    let record = rig.dir.path().join("settings.log");
+    let spec = LaunchSpec {
+        mode: Some("bypassPermissions".into()),
+        ..mock(&["--record-settings", record.to_str().unwrap()])
+    };
+    rig.host
+        .send(TAB, spec, rig.tree.clone(), "stream", Vec::new())
+        .unwrap();
+    rig.turns_done(1);
+    let status = last_status(&rig.events()).unwrap();
+    assert_eq!(
+        status.mode.as_deref(),
+        Some("default"),
+        "still asking first"
+    );
+    assert_eq!(settings_sent(&record), ["session/set_mode"]);
+}
+
+/// Starts a session whose mode was picked before it, and answers with every
+/// mode its statuses showed.
+fn picked_before(rig: &Rig, mode: &str, args: &[&str]) -> Vec<String> {
+    let spec = LaunchSpec {
+        mode: Some(mode.into()),
+        ..mock(args)
+    };
+    rig.host
+        .send(TAB, spec, rig.tree.clone(), "stream", Vec::new())
+        .unwrap();
+    rig.turns_done(1);
+    let shown = rig.statuses_since(0).into_iter().filter_map(|s| s.mode);
+    shown.collect()
+}
+
+#[test]
+fn a_mode_picked_before_the_session_shows_where_the_agent_settled() {
+    // As Claude's adapter answers Auto on a model that cannot run it.
+    let rig = rig();
+    let shown = picked_before(&rig, "plan", &["--settles-elsewhere"]);
+    assert_eq!(shown.last().map(String::as_str), Some("acceptEdits"));
+    assert!(
+        !shown.iter().any(|m| m == "plan"),
+        "never the pick: {shown:?}"
+    );
+}
+
+/// The report comes after the reply, so it can land before or after Ready;
+/// either way the status ends where the agent went.
+#[test]
+fn a_mode_the_agent_moves_to_just_after_the_pick_is_the_one_shown() {
+    let rig = rig();
+    let shown = picked_before(&rig, "plan", &["--then-mode", "acceptEdits"]);
+    assert_eq!(shown.last().map(String::as_str), Some("acceptEdits"));
+}
+
+#[test]
+fn without_a_mode_option_a_mode_picked_before_shows_where_the_agent_settled() {
+    let rig = rig();
+    let shown = picked_before(&rig, "plan", &["--no-config", "--settles-elsewhere"]);
+    assert_eq!(shown.last().map(String::as_str), Some("acceptEdits"));
+    assert!(
+        !shown.iter().any(|m| m == "plan"),
+        "never the pick: {shown:?}"
+    );
+}
+
+#[test]
+fn a_mode_picked_before_that_the_agent_refuses_leaves_the_session_asking_first() {
+    let rig = rig();
+    let record = rig.dir.path().join("settings.log");
+    let args = [
+        "--refuse-mode",
+        "plan",
+        "--record-settings",
+        record.to_str().unwrap(),
+    ];
+    let shown = picked_before(&rig, "plan", &args);
+    assert_eq!(shown.last().map(String::as_str), Some("default"));
+    assert!(
+        !shown.iter().any(|m| m == "plan"),
+        "never the pick: {shown:?}"
+    );
+    assert_eq!(
+        settings_sent(&record),
+        ["session/set_mode", "session/set_config_option"],
+        "ask-first, then the pick it refused"
+    );
+    assert_eq!(texts(&rig.items()), ["Hello"], "and the turn still runs");
 }
 
 #[test]
@@ -1799,21 +1957,16 @@ fn without_a_mode_option_the_mode_is_set_directly() {
     rig.turns_done(1);
     let status = last_status(&rig.events()).unwrap();
     assert!(status.config.is_empty());
-    assert_eq!(status.modes.len(), 3, "from `modes`, less bypass and auto");
+    assert_eq!(status.modes.len(), 4, "from `modes`, less bypass");
     let ticket = rig.host.set_mode(TAB, "plan").unwrap();
     let status = rig.status_where("plan mode", |s| s.answered >= ticket);
     assert_eq!(status.mode.as_deref(), Some("plan"));
     assert_eq!(status.setting_trouble, None);
     assert_eq!(settings_sent(&record), ["session/set_mode"; 2]);
-    for refused in ["bypassPermissions", "auto"] {
-        assert!(
-            matches!(
-                rig.host.set_mode(TAB, refused),
-                Err(HostError::UnknownOption)
-            ),
-            "{refused}"
-        );
-    }
+    assert!(matches!(
+        rig.host.set_mode(TAB, "bypassPermissions"),
+        Err(HostError::UnknownOption)
+    ));
 }
 
 #[test]
@@ -1860,7 +2013,7 @@ fn a_slow_setting_is_reported_as_unanswered_and_still_taken_in() {
     let mut spec = mock(&["--slow-setting"]);
     spec.setting_timeout = Duration::from_millis(100);
     rig.host
-        .send(TAB, spec, rig.tree.clone(), "stream")
+        .send(TAB, spec, rig.tree.clone(), "stream", Vec::new())
         .unwrap();
     rig.turns_done(1);
     let before = rig.events().len();
@@ -2040,7 +2193,7 @@ fn ending_the_session_clears_a_change_still_unanswered() {
     let mut spec = mock(&["--slow-setting"]);
     spec.setting_timeout = Duration::from_millis(100);
     rig.host
-        .send(TAB, spec, rig.tree.clone(), "stream")
+        .send(TAB, spec, rig.tree.clone(), "stream", Vec::new())
         .unwrap();
     rig.turns_done(1);
     rig.host.set_mode(TAB, "plan").unwrap();

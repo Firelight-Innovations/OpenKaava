@@ -318,8 +318,9 @@ cwd: string,
  */
 mode: string | null, 
 /**
- * The modes the tab may switch to, in the agent's order. Bypass and auto
- * are never among them (`config::NOT_OFFERED`).
+ * The modes the tab may switch to, in the agent's order. Bypass, and
+ * Codex's auto review and full access, are never among them
+ * (`config::NOT_OFFERED`).
  */
 modes: Array<ConfigChoice>, 
 /**
@@ -483,4 +484,15 @@ model: string | null,
 /**
  * Commands advertised during discovery, before the tab starts its own session.
  */
-commands?: Array<AgentCommand>, };
+commands?: Array<AgentCommand>, 
+/**
+ * The modes its agent offers, as discovery found them, less those held
+ * back (`config::NOT_OFFERED`); `None` until the host has asked it. The
+ * tab can pick one before the session exists.
+ */
+modes?: Array<ConfigChoice>, 
+/**
+ * The mode each of its sessions starts in, its policy's ask-first mode,
+ * until a pick from `modes` switches it.
+ */
+askFirst?: string, };
