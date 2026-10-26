@@ -58,6 +58,7 @@
    those are things you read *while* a terminal is running. A full-width band
    would shorten them every time it opened. */
 .frame__main {
+  position: relative;
   flex: 1;
   min-width: 0;
   display: flex;
@@ -90,7 +91,10 @@
    nothing on screen to pull. It keeps `row-resize` for the same reason. */
 
 .frame__bottomhandle {
-  flex: none;
+  position: absolute;
+  left: 0;
+  width: var(--band-w, 100%);
+  bottom: var(--band-h, 0px);
   height: var(--w-resize-handle);
   background: var(--bg);
   display: flex;
@@ -118,13 +122,29 @@
 }
 
 .frame__bottom {
-  flex: none;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: var(--band-w, 100%);
   background: var(--bg);
   display: flex;
   min-height: 0;
   /* The height is driven by a motion value in Frame.tsx and deliberately not
      set here, for the reason `.frame__page` gives about its width. */
   overflow: hidden;
+}
+
+/* The band is drawn over the foot of the column, so what sits above it gives up
+   that height. Whole width: the tool window's own bottom margin grows. Under the
+   left columns only (`Frame.tsx`'s `useBandWidth`): just those columns' panes
+   lift, and the rightmost one keeps the full height. */
+.frame__main:not([data-band-split]) .frame__toolwindow {
+  margin-bottom: calc(var(--space-1-5, 6px) + var(--band-h, 0px));
+}
+
+.pane-split__child[data-band-under] > .pane,
+.pane-split__child[data-band-under] > .pane-split {
+  bottom: var(--band-h, 0px);
 }
 
 /* --- everything left of the rail, as one hideable box ---------------------
@@ -155,7 +175,7 @@
    — kept local per the common brief rather than added to `src/tokens.css`. */
 
 :root {
-  --w-project-rail: 44px;
+  --w-project-rail: 224px;
 }
 
 .frame__pagehandle {
@@ -261,6 +281,20 @@
   display: flex;
   flex-direction: column;
   background: var(--bg-surface-1, var(--surface));
+}
+
+/* Folded cluster list: the rail gives its column back, and an expanded page
+   stops reserving it. */
+.frame__side:has(.clusterstrip[data-collapsed]) {
+  --w-project-rail: 0px;
+}
+
+/* A docked page sits beside the cluster list, never over it: the list keeps the
+   window's far-right edge (as in the website's mock) and the page widens the card
+   leftward. Hiding the rail here was the bug that made the list impossible to
+   open while Agents was docked. A hairline marks the seam while both show. */
+.frame__side[data-docked]:not(:has(.clusterstrip[data-collapsed])) .frame__rail {
+  border-left: 1px solid var(--border-subtle, var(--line));
 }
 
 .frame__side[data-expanded] .frame__rail {
